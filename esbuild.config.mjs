@@ -37,7 +37,8 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	// for temp development
+	outfile: "D:\\Downloads\\LYT Kit v5 (2021-08-01)\\LYT Kit\\.obsidian\\plugins\\importer\\main.js",
 });
 
 if (prod) {

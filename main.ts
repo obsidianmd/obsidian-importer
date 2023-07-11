@@ -1,6 +1,13 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
+import { App, Modal, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import flow from 'xml-flow';
+import * as fs from 'fs';
 // Remember to rename these classes and interfaces!
+
+declare global {
+	interface Window {
+		electron: any;
+	}
+}
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -18,8 +25,8 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'import:open-modal',
+			name: 'Open importer',
 			callback: () => {
 				new SampleModal(this.app).open();
 			}
@@ -48,12 +55,29 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.setText('Woah!');
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Pick file' }, el => {
+				el.addEventListener('click', () => {
+					let electron = window.electron;
+					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
+						title: 'Pick Evernote ENEX ',
+						properties: ['openFile', 'dontAddToRecent'],
+						filters: [{ name: 'ENEX (Evernote export)', extensions: ['enex'] }],
+					});
+					console.log(selectedFiles)
+
+					if (selectedFiles && selectedFiles.length > 0) {
+						new EnexParser(selectedFiles);
+					}
+				})
+			});
+		});
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
@@ -67,11 +91,11 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
 
 		new Setting(containerEl)
 			.setName('Setting #1')
@@ -84,5 +108,20 @@ class SampleSettingTab extends PluginSettingTab {
 					this.plugin.settings.mySetting = value;
 					await this.plugin.saveSettings();
 				}));
+	}
+}
+
+class EnexParser {
+	constructor(paths: string[]) {
+		console.log(paths)
+		for (let path of paths) {
+			let inFile = fs.createReadStream(path);
+			console.log(flow);
+			let xmlStream = flow(inFile);
+
+			xmlStream.on('tag:note', note => {
+				console.log(note);
+			});
+		}
 	}
 }
