@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown,  } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
 // Remember to rename these classes and interfaces!
@@ -12,6 +12,14 @@ declare global {
 interface MyPluginSettings {
 	mySetting: string;
 }
+
+
+function escapeRegex(str: string): string {
+	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
+}
+
+const ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
+const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_CHARACTERS) + ']', 'g');
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
@@ -66,10 +74,9 @@ class SampleModal extends Modal {
 						properties: ['openFile', 'dontAddToRecent'],
 						filters: [{ name: 'ENEX (Evernote export)', extensions: ['enex'] }],
 					});
-					console.log(selectedFiles)
 
 					if (selectedFiles && selectedFiles.length > 0) {
-						new EnexParser(selectedFiles);
+						new EnexParser(this.app, selectedFiles);
 					}
 				})
 			});
@@ -112,16 +119,77 @@ class SampleSettingTab extends PluginSettingTab {
 }
 
 class EnexParser {
-	constructor(paths: string[]) {
-		console.log(paths)
-		for (let path of paths) {
-			let inFile = fs.createReadStream(path);
-			console.log(flow);
-			let xmlStream = flow(inFile);
+	app: App;
+	folderPath: string;
+	folder: TFolder;
 
-			xmlStream.on('tag:note', note => {
-				console.log(note);
-			});
+	constructor(app: App, paths: string[]) {
+		this.app = app;
+		this.folderPath = 'evernote'
+
+		for (let path of paths) {
+			this.readNotebookByPath(path);
 		}
 	}
+
+	async readNotebookByPath(path: string) {
+		let inFile = fs.createReadStream(path);
+		let xmlStream = flow(inFile);
+
+		let evernoteNotebook = new EvernoteNotebook();
+		evernoteNotebook.notes = [];
+		xmlStream.on('tag:note', noteData => {
+			let note = new EvernoteNote();
+			console.log(noteData);
+			note.title = noteData.title;
+
+			evernoteNotebook.notes.push(note);
+		});
+
+		let folder = app.vault.getAbstractFileByPath(this.folderPath);
+
+		if (folder === null || !(folder instanceof TFolder)) {
+			await app.vault.createFolder(this.folderPath);
+			folder = app.vault.getAbstractFileByPath(this.folderPath);
+		}
+
+		this.folder = folder as TFolder;
+
+		xmlStream.on('end', async () => {
+			// testing
+			for (let file of this.folder.children.slice()) {
+				console.log('delete', file.name)
+				await app.vault.delete(file, true);
+	
+			}
+
+			for (let note of evernoteNotebook.notes) {
+				await this.saveAsMarkdownFile(note);
+			}
+		});
+	}
+
+	async saveAsMarkdownFile(note: EvernoteNote) {
+		let santizedName = note.title.replace(ILLEGAL_FILENAME_RE, '');
+		console.log(santizedName);
+		//@ts-ignore
+		await app.fileManager.createNewFile(this.folder, santizedName, '');
+	}
+}
+
+class EvernoteNotebook {
+	notes: EvernoteNote[];
+}
+
+class EvernoteNote {
+	title: string;
+	rawXmlContent: string;
+	createdTs: number;
+	updatedTs: number;
+	attachments: Record<string, EvernoteAttachment> = {};
+
+}
+
+class EvernoteAttachment {
+
 }
