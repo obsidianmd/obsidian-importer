@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown,  } from 'obsidian';
+import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
 // Remember to rename these classes and interfaces!
@@ -142,6 +142,7 @@ class EnexParser {
 			let note = new EvernoteNote();
 			console.log(noteData);
 			note.title = noteData.title;
+			note.content = htmlToMarkdown(noteData.content);
 
 			evernoteNotebook.notes.push(note);
 		});
@@ -158,7 +159,6 @@ class EnexParser {
 		xmlStream.on('end', async () => {
 			// testing
 			for (let file of this.folder.children.slice()) {
-				console.log('delete', file.name)
 				await app.vault.delete(file, true);
 	
 			}
@@ -171,9 +171,8 @@ class EnexParser {
 
 	async saveAsMarkdownFile(note: EvernoteNote) {
 		let santizedName = note.title.replace(ILLEGAL_FILENAME_RE, '');
-		console.log(santizedName);
 		//@ts-ignore
-		await app.fileManager.createNewFile(this.folder, santizedName, '');
+		await app.fileManager.createNewMarkdownFile(this.folder, santizedName, note.content);
 	}
 }
 
@@ -184,6 +183,7 @@ class EvernoteNotebook {
 class EvernoteNote {
 	title: string;
 	rawXmlContent: string;
+	content: string;
 	createdTs: number;
 	updatedTs: number;
 	attachments: Record<string, EvernoteAttachment> = {};
