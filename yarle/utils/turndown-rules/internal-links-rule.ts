@@ -27,6 +27,7 @@ export const wikiStyleLinksRule = {
 			getTurndownService(yarleOptions).turndown(removeBrackets(node.innerHTML));
 		internalTurndownedContent = removeDoubleBackSlashes(internalTurndownedContent);
 		const lexer = new marked.Lexer({});
+		console.log(internalTurndownedContent);
 		const tokens = lexer.lex(internalTurndownedContent) as any;
 		const extension = yarleOptions.addExtensionToInternalLinks ? '.md' : '';
 		let token: any = {
@@ -52,8 +53,7 @@ export const wikiStyleLinksRule = {
 		const mdKeyword = token['mdKeyword'];
 
 		// handle ObsidianMD internal link display name
-		const omitObsidianLinksDisplayName = yarleOptions.obsidianSettings.omitLinkDisplayName;
-		const renderedObsidianDisplayName = omitObsidianLinksDisplayName ? '' : `|${displayName}`;
+		const renderedObsidianDisplayName = displayName === realValue ? '' : `|${displayName}`;
 
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(token['text']);

@@ -51,7 +51,7 @@ export const processNode = (note: any, notebookName: string): void => {
 
 	} catch (e) {
 		// tslint:disable-next-line:no-console
-		console.log(`Failed to convert note: ${noteData.title}, ${JSON.stringify(e)}`);
+		console.log(`Failed to convert note: ${noteData.title}`, e);
 	}
 	// tslint:disable-next-line:no-console
 	const dateFinished: Date = new Date();

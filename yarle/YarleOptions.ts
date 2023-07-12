@@ -21,9 +21,6 @@ export interface YarleOptions {
 	skipReminderDoneTime?: boolean;
 	skipTags?: boolean;
 	useHashTags?: boolean;
-	obsidianSettings?: {
-		omitLinkDisplayName?: boolean,
-	};
 	replaceWhitespacesInTagsByUnderscore?: boolean;
 	skipEnexFileNameFromOutputPath?: boolean;
 	haveEnexLevelResources?: boolean;

@@ -42,12 +42,13 @@ export const defaultYarleOptions: YarleOptions = {
 export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
 
 function deepCopy(obj: any) {
+	if (obj === undefined || obj === null) return obj;
 	return JSON.parse(JSON.stringify(obj));
 }
 
 function merge(original: any, ...objects: any[]) {
 	for (let object of objects) {
-		for (let key in Object.keys(object)) {
+		for (let key of Object.keys(object)) {
 			let value = object[key];
 			let originalValue = original[key];
 
