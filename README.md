@@ -6,6 +6,13 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 Currently supports import from Evernote `.enex` with more formats to be added later.
 
+Planned formats:
+
+- [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
+- [ ] HTML, folder of files
+- [ ] Notion
+- [ ] Apple Notes
+
 ## Usage
 
 First install Importer in Obsidian → Community Plugins
@@ -25,4 +32,6 @@ Currently, the import does not have any special settings, if you want more contr
 
 ## Credits
 
-- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by @akosbalasko, [support his work ](https://www.buymeacoffee.com/akosbalasko) 
+This plugin relies on important contributions:
+
+- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for `.enex` conversion, [support his work](https://www.buymeacoffee.com/akosbalasko)
