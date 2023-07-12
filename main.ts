@@ -56,13 +56,13 @@ class ImporterModal extends Modal {
 		this.titleEl.setText('Import data into Obsidian');
 
 		new Setting(contentEl)
-			.setName('Export type')
+			.setName('File format')
 			.setDesc('The format to be imported.')
 			.addDropdown(dropdown => dropdown.addOption('evernote', 'Evernote (.enex)'));
 
 		this.fileLocationSetting = new Setting(contentEl)
-			.setName('File to import')
-			.setDesc(`Pick the files that you'd like to import.`)
+			.setName('Files to import')
+			.setDesc(`Pick the files that you want to import.`)
 			.addButton(button => button
 				.setButtonText('Browse')
 				.onClick(() => {
@@ -80,7 +80,7 @@ class ImporterModal extends Modal {
 				}));
 
 		new Setting(contentEl)
-			.setName('Output location')
+			.setName('Output folder')
 			.setDesc(`Choose a folder in the vault to put the imported files. Leave empty to output to vault root.`)
 			.addText(text => text
 				.setValue('Evernote')
