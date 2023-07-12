@@ -8,8 +8,6 @@ import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
 
 import * as utils from './utils';
-import { clearLogFile } from './utils/clearLogFile';
-import { loggerInfo } from './utils/loggerInfo';
 import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
@@ -60,8 +58,8 @@ const setOptions = (options: YarleOptions): void => {
 
 	yarleOptions.currentTemplate = template;
 
-	loggerInfo(`Current config is: ${JSON.stringify(yarleOptions, null, 4)}`);
-	loggerInfo(`Path separator:${path.sep}`);
+	console.log(`Current config is: ${JSON.stringify(yarleOptions, null, 4)}`);
+	console.log(`Path separator:${path.sep}`);
 	/*}*/
 };
 
@@ -76,7 +74,7 @@ export interface ImportResult {
 }
 
 export const parseStream = async (options: YarleOptions, enexSource: string): Promise<ImportResult> => {
-	loggerInfo(`Getting stream from ${enexSource}`);
+	console.log(`Getting stream from ${enexSource}`);
 	const stream = fs.createReadStream(enexSource);
 	// const xml = new XmlStream(stream);
 	let noteNumber = 0;
@@ -88,13 +86,13 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 	return new Promise((resolve, reject) => {
 
 		const logAndReject = (error: Error) => {
-			loggerInfo(`Could not convert ${enexSource}:\n${error.message}`);
+			console.log(`Could not convert ${enexSource}:\n${error.message}`);
 			++failed;
 
 			return reject();
 		};
 		if (!fs.existsSync(enexSource)) {
-			return loggerInfo(JSON.stringify({ name: 'NoSuchFileOrDirectory', message: 'source Enex file does not exists' }));
+			return console.log(JSON.stringify({ name: 'NoSuchFileOrDirectory', message: 'source Enex file does not exists' }));
 		}
 
 		const xml = flow(stream);
@@ -107,7 +105,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 		xml.on('tag:note', (note: any) => {
 			if (options.skipWebClips && isWebClip(note)) {
 				++skipped;
-				loggerInfo(`Notes skipped: ${skipped}`);
+				console.log(`Notes skipped: ${skipped}`);
 			}
 			else {
 				if (noteAttributes) {
@@ -117,7 +115,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
 				processNode(note, notebookName);
 				++noteNumber;
-				loggerInfo(`Notes processed: ${noteNumber}\n\n`);
+				console.log(`Notes processed: ${noteNumber}\n\n`);
 			}
 			noteAttributes = null;
 
@@ -153,8 +151,8 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
 			const success = noteNumber - failed;
 			const totalNotes = noteNumber + skipped;
-			loggerInfo('==========================');
-			loggerInfo(
+			console.log('==========================');
+			console.log(
 				`Conversion finished: ${success} succeeded, ${skipped} skipped, ${failed} failed. Total notes: ${totalNotes}`,
 			);
 
@@ -171,7 +169,6 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 };
 
 export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> => {
-	clearLogFile();
 	setOptions(options);
 	const outputNotebookFolders = [];
 	let results = {

@@ -1,11 +1,8 @@
-import { EOL } from 'os';
 import { convertHtml2Md } from './convert-html-to-md';
-import { convert2Html } from './convert-to-html';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { RuntimePropertiesSingleton } from './runtime-properties';
-import { getMetadata, getTags, isComplex, saveHtmlFile, saveMdFile, } from './utils';
-import { loggerInfo } from './utils/loggerInfo';
+import { getMetadata, getTags, isComplex, saveMdFile, } from './utils';
 
 import { applyTemplate } from './utils/templates/templates';
 import { yarleOptions } from './yarle';
@@ -13,8 +10,7 @@ import { yarleOptions } from './yarle';
 export const processNode = (note: any, notebookName: string): void => {
 
 	const dateStarted: Date = new Date();
-	loggerInfo(EOL);
-	loggerInfo(`Conversion started at ${dateStarted}`);
+	console.log(`Conversion started at ${dateStarted}`);
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	runtimeProps.setCurrentNoteName(note.title);
@@ -30,7 +26,7 @@ export const processNode = (note: any, notebookName: string): void => {
 	};
 
 	// tslint:disable-next-line:no-console
-	loggerInfo(`Converting note "${noteData.title}"...`);
+	console.log(`Converting note "${noteData.title}"...`);
 
 	try {
 		if (isComplex(note)) {
@@ -44,7 +40,7 @@ export const processNode = (note: any, notebookName: string): void => {
 
 		const data = applyTemplate(noteData, yarleOptions);
 		// tslint:disable-next-line:no-console
-		// loggerInfo(`data =>\n ${JSON.stringify(data)} \n***`);
+		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
 		saveMdFile(data, note);
 
@@ -55,12 +51,12 @@ export const processNode = (note: any, notebookName: string): void => {
 
 	} catch (e) {
 		// tslint:disable-next-line:no-console
-		loggerInfo(`Failed to convert note: ${noteData.title}, ${JSON.stringify(e)}`);
+		console.log(`Failed to convert note: ${noteData.title}, ${JSON.stringify(e)}`);
 	}
 	// tslint:disable-next-line:no-console
 	const dateFinished: Date = new Date();
 	const conversionDuration = (dateFinished.getTime() - dateStarted.getTime()) / 1000; // in seconds.
-	loggerInfo(`Conversion finished at ${dateFinished}`);
-	loggerInfo(`Note "${noteData.title}" converted successfully in ${conversionDuration} seconds.`);
+	console.log(`Conversion finished at ${dateFinished}`);
+	console.log(`Note "${noteData.title}" converted successfully in ${conversionDuration} seconds.`);
 
 };

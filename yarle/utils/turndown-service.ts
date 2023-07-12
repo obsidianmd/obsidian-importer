@@ -1,13 +1,12 @@
 import { gfm } from 'joplin-turndown-plugin-gfm';
-import TurndownService from 'turndown';
 
 import { YarleOptions } from './../YarleOptions';
 import { divRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
 import { taskListRule } from './turndown-rules/task-list-rule';
 
 export const getTurndownService = (yarleOptions: YarleOptions) => {
-	/* istanbul ignore next */
-	const turndownService = new TurndownService({
+	// @ts-ignore
+	const turndownService = new window.TurndownService({
 		br: '',
 		...yarleOptions.turndownOptions,
 		blankReplacement: (content: any, node: any) => {
