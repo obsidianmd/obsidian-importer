@@ -1,5 +1,4 @@
 import fs from 'fs';
-import merge from 'lodash.merge';
 import * as path from 'path';
 import flow from 'xml-flow';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -41,6 +40,29 @@ export const defaultYarleOptions: YarleOptions = {
 };
 
 export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
+
+function deepCopy(obj: any) {
+	return JSON.parse(JSON.stringify(obj));
+}
+
+function merge(original: any, ...objects: any[]) {
+	for (let object of objects) {
+		for (let key in Object.keys(object)) {
+			let value = object[key];
+			let originalValue = original[key];
+
+			if (!Array.isArray(value) && typeof value === 'object' &&
+				!Array.isArray(originalValue) && typeof originalValue === 'object') {
+				original[key] = merge({}, originalValue, value);
+			}
+			else {
+				original[key] = deepCopy(value);
+			}
+		}
+	}
+
+	return original;
+}
 
 const setOptions = (options: YarleOptions): void => {
 	yarleOptions = merge({}, defaultYarleOptions, options);
