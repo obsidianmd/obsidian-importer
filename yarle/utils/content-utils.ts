@@ -2,7 +2,6 @@ import { utimesSync } from 'fs';
 import { moment } from 'obsidian';
 import { NoteData } from './../models';
 import { MetaData } from './../models/MetaData';
-// import { utimes } from 'utimes';
 import { yarleOptions } from './../yarle';
 import { escapeStringRegexp } from './escape-string-regexp';
 
@@ -110,19 +109,21 @@ export const logTags = (note: any): string => {
 	return undefined;
 };
 
+let btime: any;
+try {
+	btime = window.require('btime');
+} catch (e) {}
+
 export const setFileDates = (path: string, note: any): void => {
+	// also set creation time if supported
+	const creationTime = moment(note.created).valueOf();
+	if (creationTime > 0 && btime) {
+		btime.btime(path, creationTime);
+	}
+
 	const updated = moment(note.updated).valueOf();
 	const mtime = updated / 1000;
 	utimesSync(path, mtime, mtime);
-	// also set creation time where supported
-	const creationTime = moment(note.created);
-
-	const created = (moment('1970-01-01 00:00:00.000').isBefore(creationTime)
-		? creationTime
-		: moment('1970-01-01 00:00:00.001')).valueOf();
-	if (created) {
-		// utimes(path, {btime: created});
-	}
 };
 
 export const getTimeStampMoment = (resource: any): any => {
