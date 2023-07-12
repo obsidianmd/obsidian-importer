@@ -12,10 +12,10 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
-		"@types/xml-flow": "^1.0.1",
+		"@types/lodash.merge": "4.6.7",
 		"@types/marked": "^5.0.0",
 		"@types/node": "^16.11.6",
-		"@types/lodash.merge": "4.6.7",
+		"@types/xml-flow": "^1.0.1",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
 		"obsidian": "latest",
@@ -27,10 +27,8 @@
 		"lodash.merge": "4.6.2",
 		"marked": "4.2.5",
 		"md5-file": "5.0.0",
-		"mime-types": "2.1.35",
 		"nanoid": "3.3.6",
 		"sanitize-filename": "1.6.3",
-		"unique-filename": "2.0.1",
 		"xml-flow": "1.0.4"
 	}
 }

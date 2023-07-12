@@ -1,21 +1,19 @@
 import * as fs from 'fs';
-import * as mime from 'mime-types';
 import { nanoid } from 'nanoid';
 import { moment } from 'obsidian';
 import * as path from 'path';
 import sanitize from 'sanitize-filename';
-import uniqueFilename from 'unique-filename';
 
 import { yarleOptions } from '../yarle';
 
 import { ResourceFileProperties } from './../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
+import { extension } from './mime';
 
 export const normalizeTitle = (title: string) => {
 	// Allow setting a specific replacement character for file and resource names
 	// Default to a retrocompatible value
-	return sanitize(title, { replacement: yarleOptions.replacementChar || '_' }).replace(/[\[\]\#\^]/g, '')
-		;
+	return sanitize(title, { replacement: yarleOptions.replacementChar || '_' }).replace(/[\[\]\#\^]/g, '');
 };
 
 export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | string => {
@@ -36,7 +34,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | 
 
 };
 export const getResourceFileProperties = (workDir: string, resource: any): ResourceFileProperties => {
-	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? uniqueFilename('', 'unknown_filename') : 'unknown_filename';
+	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + "0000000").slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
@@ -78,13 +76,14 @@ export const getExtensionFromResourceFileName = (resource: any): string => {
 	return splitFileName.length > 1 ? splitFileName[splitFileName.length - 1] : undefined;
 
 };
+
 export const getExtensionFromMime = (resource: any): string => {
 	const mimeType = resource.mime;
 	if (!mimeType) {
 		return undefined;
 	}
 
-	return mime.extension(mimeType);
+	return extension(mimeType) || undefined;
 };
 
 export const getExtension = (resource: any): string => {
