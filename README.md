@@ -1,5 +1,7 @@
 This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
+![Obsidian Importer screenshot](/images/screenshot.png)
+
 ## Supported formats
 
 Currently supports import from Evernote `.enex` with more formats to be added later.
