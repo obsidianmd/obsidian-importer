@@ -2,6 +2,8 @@ import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown,
 import flow from 'xml-flow';
 import * as fs from 'fs';
 import { dropTheRope, defaultYarleOptions } from './yarle/yarle';
+import { OutputFormat } from 'yarle/output-format';
+import { TaskOutputFormat } from 'yarle';
 
 declare global {
 	interface Window {
@@ -152,7 +154,9 @@ class EnexParser {
 			...{
 				enexSources: paths,
 				//@ts-ignore
-				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/evernote')
+				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/evernote'),
+				outputFormat: OutputFormat.ObsidianMD,
+				taskOutputFormat: TaskOutputFormat.ObsidianMD
 			}
 		};
 		dropTheRope(yarleOptions);
