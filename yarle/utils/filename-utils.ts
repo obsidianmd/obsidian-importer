@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as mime from 'mime-types';
-import Moment from 'moment';
 import { nanoid } from 'nanoid';
+import { moment } from 'obsidian';
 import * as path from 'path';
 import sanitize from 'sanitize-filename';
 import uniqueFilename from 'unique-filename';
@@ -94,8 +94,7 @@ export const getExtension = (resource: any): string => {
 };
 
 export const getZettelKastelId = (note: any, dstPath: string): string => {
-	return Moment(note['created']).format('YYYYMMDDHHmm');
-
+	return moment(note['created']).format('YYYYMMDDHHmm');
 };
 
 export const getUniqueId = (): string => {

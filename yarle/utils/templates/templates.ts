@@ -1,4 +1,3 @@
-import { cloneDeep } from 'lodash';
 import { NoteData } from '../../models/NoteData';
 
 import { YarleOptions } from '../../YarleOptions';
@@ -9,7 +8,7 @@ import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocatio
 
 export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) => {
 
-	let result = cloneDeep(yarleOptions.currentTemplate);
+	let result = yarleOptions.currentTemplate;
 
 	result = applyTitleTemplate(noteData, result, () => noteData.title);
 	result = applyTagsTemplate(noteData, result, () => !yarleOptions.skipTags);

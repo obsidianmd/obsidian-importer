@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { merge } from 'lodash';
+import merge from 'lodash.merge';
 import * as path from 'path';
 import flow from 'xml-flow';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -125,7 +125,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 				for (const task of Object.keys(tasks)) {
 
 					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`
-					const fileContent = fs.readFileSync(currentNotePath, 'UTF-8');
+					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
 					const sortedTasks = new Map([...tasks[task]].sort());
 
 					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));

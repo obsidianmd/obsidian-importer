@@ -1,4 +1,3 @@
-import { cloneDeep } from 'lodash';
 import fs from 'fs';
 import md5File from 'md5-file';
 import * as path from 'path';
@@ -17,7 +16,7 @@ const getResourceWorkDirs = (note: any) => {
 
 export const processResources = (note: any): string => {
     let resourceHashes: any = {};
-    let updatedContent = cloneDeep(note.content);
+    let updatedContent = note.content;
     const {absoluteResourceWorkDir, relativeResourceWorkDir} = getResourceWorkDirs(note);
 
     console.log(`relative resource work dir: ${relativeResourceWorkDir}`);
@@ -47,7 +46,7 @@ export const processResources = (note: any): string => {
 const addMediaReference = (content: string, resourceHashes: any, hash: any, workDir: string): string => {
   const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, '\ ')}`;
   console.log(`mediaReference src ${src} added`);
-  let updatedContent = cloneDeep(content);
+  let updatedContent: any;
   const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
   const re = new RegExp(replace, 'g');
   const matchedElements = content.match(re);

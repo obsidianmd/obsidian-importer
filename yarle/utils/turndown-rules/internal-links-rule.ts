@@ -1,4 +1,3 @@
-import * as _ from 'lodash';
 import { marked } from 'marked';
 import { RuntimePropertiesSingleton } from '../../runtime-properties';
 import { yarleOptions } from '../../yarle';
@@ -74,8 +73,26 @@ export const wikiStyleLinksRule = {
 	},
 };
 
+
+let htmlUnescapes: any = {
+	'&amp;': '&',
+	'&lt;': '<',
+	'&gt;': '>',
+	'&quot;': '"',
+	'&#39;': '\''
+};
+
+let reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g;
+let reHasEscapedHtml = RegExp(reEscapedHtml.source);
+
+function unescape(text: string) {
+	return (text && reHasEscapedHtml.test(text))
+		? text.replace(reEscapedHtml, (str: string) => htmlUnescapes[str])
+		: text;
+}
+
 export const getShortLinkIfPossible = (token: any, value: string): string => {
-	return (!token['text'] || _.unescape(token['text']) === _.unescape(value))
+	return (!token['text'] || unescape(token['text']) === unescape(value))
 		? yarleOptions.generateNakedUrls ? value : `<${value}>`
 		: `${token['mdKeyword']}[${token['text']}](${value})`;
 };
