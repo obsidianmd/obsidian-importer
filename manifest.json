@@ -3,7 +3,7 @@
 	"name": "Importer",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Obsidian Importer lets you import notes from other apps and file formats into your Obsidian vault.",
+	"description": "Import notes from other apps like Evernote.",
 	"author": "Obsidian",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",
