@@ -7,7 +7,6 @@ import { yarleOptions } from '../yarle';
 
 import { getNoteFileName, getNoteName, getUniqueId, normalizeTitle } from './filename-utils';
 import { loggerInfo } from './loggerInfo';
-import { OutputFormat } from './../output-format';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
 export const paths: Path = {};
@@ -139,15 +138,8 @@ export const setPaths = (enexSource: string): void => {
     paths.resourcePath = `${outputDir}${path.sep}${enexFile}${path.sep}${yarleOptions.resourcesDir}`;
   }
 
-  if (yarleOptions.outputFormat === OutputFormat.LogSeqMD) {
-    const folderName = yarleOptions.logseqSettings.journalNotes ? 'journal' : 'pages';
-    paths.mdPath = `${outputDir}${path.sep}${folderName}${path.sep}`;
-    paths.resourcePath = `${outputDir}${path.sep}${yarleOptions.resourcesDir}`;
-  }
-
   fsExtra.mkdirsSync(paths.mdPath);
-  if ((!yarleOptions.haveEnexLevelResources && !yarleOptions.haveGlobalResources) || 
-    yarleOptions.outputFormat === OutputFormat.LogSeqMD) {
+  if ((!yarleOptions.haveEnexLevelResources && !yarleOptions.haveGlobalResources)) {
     fsExtra.mkdirsSync(paths.resourcePath);
   }
   loggerInfo(`path ${paths.mdPath} created`);

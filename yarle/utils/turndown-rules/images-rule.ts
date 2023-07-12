@@ -2,7 +2,6 @@ import { yarleOptions } from '../../yarle';
 
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
-import { OutputFormat } from './../../output-format';
 
 export const imagesRule = {
   filter: filterByNodeName('IMG'),
@@ -24,10 +23,7 @@ export const imagesRule = {
     let sizeString = (widthParam || heightParam) ? ` =${widthParam}x${heightParam}` : '';
 
     // while this isn't really a standard, it is common enough
-    if (yarleOptions.keepImageSize === OutputFormat.StandardMD || yarleOptions.keepImageSize === OutputFormat.LogSeqMD) {
-
-      return `![](${realValue}${sizeString})`;
-    } else if (yarleOptions.keepImageSize === OutputFormat.ObsidianMD) {
+    if (yarleOptions.keepImageSize) {
       sizeString = (widthParam || heightParam) ? `|${widthParam || 0}x${heightParam || 0}` : '';
       if (realValue.startsWith('./')) {
         return `![[${realValue}${sizeString}]]`;
@@ -36,8 +32,7 @@ export const imagesRule = {
       }
     }
 
-    const useObsidianMD = yarleOptions.outputFormat === OutputFormat.ObsidianMD;
-    if (useObsidianMD && !value.match(/^[a-z]+:/)) {
+    if (!value.match(/^[a-z]+:/)) {
       return `![[${realValue}]]`;
     }
 

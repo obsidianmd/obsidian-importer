@@ -3,7 +3,6 @@ export interface MetaData {
     updatedAt?: string;
     sourceUrl?: string;
     location?: string;
-    linkToOriginal?: string;
     notebookName?: string;
     reminderTime?: string;
     reminderOrder?: string;

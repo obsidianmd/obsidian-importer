@@ -1,6 +1,4 @@
-import { OutputFormat } from './output-format';
 import { TagSeparatorReplaceOptions } from './models';
-import { TaskOutputFormat } from './task-output-format';
 
 export interface YarleOptions {
     enexDir?: string; // used by command line
@@ -8,7 +6,6 @@ export interface YarleOptions {
     templateFile?: string;
     currentTemplate?: string;
     outputDir?: string;
-    keepOriginalHtml?: boolean;
     isMetadataNeeded?: boolean;
     isNotebookNameNeeded?: boolean;
     isZettelkastenNeeded?: boolean;
@@ -24,10 +21,6 @@ export interface YarleOptions {
     skipReminderDoneTime?: boolean;
     skipTags?: boolean;
     useHashTags?: boolean;
-    outputFormat?: OutputFormat;
-    logseqSettings?: {
-        journalNotes: boolean,
-    };
     obsidianSettings?: {
         omitLinkDisplayName?: boolean,
     };
@@ -42,14 +35,13 @@ export interface YarleOptions {
     monospaceIsCodeBlock?: boolean;
     dateFormat?: string;
     nestedTags?: TagSeparatorReplaceOptions;
-    keepImageSize?: OutputFormat;
+    keepImageSize?: boolean;
     keepOriginalAmountOfNewlines?: boolean;
     generateNakedUrls?: boolean;
     addExtensionToInternalLinks?: boolean;
     pathSeparator?: string;
     resourcesDir?: string;
     turndownOptions?: Record<string, any>;
-    taskOutputFormat?: TaskOutputFormat;
     obsidianTaskTag?: string;
     useUniqueUnknownFileNames?: boolean;
 }

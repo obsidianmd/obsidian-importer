@@ -51,9 +51,6 @@ export const hasMetadataInTemplate = (templateContent: string): boolean => {
 export const hasUpdateTimeInTemplate = (templateContent: string): boolean => {
     return hasItemInTemplate(UPDATETIME, templateContent);
 };
-export const hasLinkToOriginalInTemplate = (templateContent: string): boolean => {
-    return hasItemInTemplate(ORIGINALLINK, templateContent);
-};
 const hasItemInTemplate = (item: any, templateContent: string): boolean => {
     return templateContent.includes(item.START_BLOCK) &&
         templateContent.includes(item.CONTENT_PLACEHOLDER) &&

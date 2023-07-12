@@ -1,9 +1,7 @@
-import { App, Modal, Notice, Plugin, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
-import flow from 'xml-flow';
 import * as fs from 'fs';
-import { dropTheRope, defaultYarleOptions, ImportResult } from 'yarle/yarle';
-import { OutputFormat } from 'yarle/output-format';
-import { TaskOutputFormat } from 'yarle';
+import { App, htmlToMarkdown, Modal, normalizePath, Notice, Plugin, Setting, TFolder } from 'obsidian';
+import flow from 'xml-flow';
+import { defaultYarleOptions, dropTheRope, ImportResult } from 'yarle/yarle';
 
 declare global {
 	interface Window {
@@ -170,8 +168,6 @@ class EnexParser {
 				enexSources: paths,
 				//@ts-ignore
 				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/' + this.folderPath),
-				outputFormat: OutputFormat.ObsidianMD,
-				taskOutputFormat: TaskOutputFormat.ObsidianMD
 			}
 		};
 

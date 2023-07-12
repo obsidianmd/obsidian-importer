@@ -15,7 +15,6 @@ export const getMetadata = (note: any, notebookName: string): MetaData => {
         updatedAt: getUpdateTime(note),
         sourceUrl: getSourceUrl(note),
         location: getLatLong(note),
-        linkToOriginal: getLinkToOriginal(note),
         reminderTime: getReminderTime(note),
         reminderOrder: getReminderOrder(note),
         reminderDoneTime: getReminderDoneTime(note),
@@ -47,8 +46,7 @@ export const getSourceUrl = (note: any): string => {
 };
 
 export const getLinkToOriginal = (note: any): string => {
-  return yarleOptions.keepOriginalHtml ?
-    getHtmlFileLink(note) : undefined;
+  return undefined;
 };
 
 export const getLatLong = (note: any): string => {
