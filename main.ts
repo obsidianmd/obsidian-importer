@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
 import { dropTheRope, defaultYarleOptions, ImportResult } from 'yarle/yarle';
@@ -47,7 +47,7 @@ export default class MyPlugin extends Plugin {
 class ImporterModal extends Modal {
 	fileLocationSetting: Setting;
 	outputLocationSettingInput: HTMLInputElement;
-	filePaths: string[];
+	filePaths: string[] = [];
 
 	constructor(app: App) {
 		super(app);
@@ -63,7 +63,7 @@ class ImporterModal extends Modal {
 			.addDropdown(dropdown => dropdown.addOption('evernote', 'Evernote (.enex)'));
 
 		this.fileLocationSetting = new Setting(contentEl)
-			.setName('File location')
+			.setName('File to import')
 			.setDesc(`Pick the files that you'd like to import.`)
 			.addButton(button => button
 				.setButtonText('Browse')
@@ -81,7 +81,7 @@ class ImporterModal extends Modal {
 					}
 				}));
 
-		 new Setting(contentEl)
+		new Setting(contentEl)
 			.setName('Output location')
 			.setDesc(`Choose a folder in the vault to put the imported files. Leave empty to output to vault root.`)
 			.addText(text => text
@@ -92,6 +92,11 @@ class ImporterModal extends Modal {
 		contentEl.createDiv('button-container u-center-text', el => {
 			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 				el.addEventListener('click', async () => {
+					if (this.filePaths.length === 0) {
+						new Notice('Please pick at least one file to import.');
+						return;
+					}
+
 					let parser = new EnexParser(this.app);
 					this.modalEl.addClass('is-loading');
 					let results = await parser.yarleReadNotebook(this.filePaths, this.outputLocationSettingInput.value);
@@ -147,7 +152,7 @@ class EnexParser {
 
 	async yarleReadNotebook(paths: string[], outputFolder: string) {
 		this.folderPath = outputFolder;
-		
+
 		if (this.folderPath === '') {
 			this.folderPath = '/';
 		}
