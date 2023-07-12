@@ -46,6 +46,7 @@ export default class MyPlugin extends Plugin {
 
 class ImporterModal extends Modal {
 	fileLocationSetting: Setting;
+	outputLocationSettingInput: HTMLInputElement;
 	filePaths: string[];
 
 	constructor(app: App) {
@@ -80,12 +81,20 @@ class ImporterModal extends Modal {
 					}
 				}));
 
+		 new Setting(contentEl)
+			.setName('Output location')
+			.setDesc(`Choose a folder in the vault to put the imported files. Leave empty to output to vault root.`)
+			.addText(text => text
+				.setValue('Evernote')
+				.then(text => this.outputLocationSettingInput = text.inputEl));
+
+
 		contentEl.createDiv('button-container u-center-text', el => {
 			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 				el.addEventListener('click', async () => {
 					let parser = new EnexParser(this.app);
 					this.modalEl.addClass('is-loading');
-					let results = await parser.yarleReadNotebook(this.filePaths);
+					let results = await parser.yarleReadNotebook(this.filePaths, this.outputLocationSettingInput.value);
 					this.modalEl.removeClass('is-loading');
 					this.showResult(results);
 				});
@@ -134,10 +143,15 @@ class EnexParser {
 
 	constructor(app: App) {
 		this.app = app;
-		this.folderPath = 'evernote';
 	}
 
-	async yarleReadNotebook(paths: string[]) {
+	async yarleReadNotebook(paths: string[], outputFolder: string) {
+		this.folderPath = outputFolder;
+		
+		if (this.folderPath === '') {
+			this.folderPath = '/';
+		}
+
 		let folder = app.vault.getAbstractFileByPath(this.folderPath);
 
 		if (folder === null || !(folder instanceof TFolder)) {
@@ -145,18 +159,12 @@ class EnexParser {
 			folder = app.vault.getAbstractFileByPath(this.folderPath);
 		}
 
-		this.folder = folder as TFolder;
-
-		for (let file of this.folder.children.slice()) {
-			await app.vault.delete(file, true);
-		}
-
 		let yarleOptions = {
 			...defaultYarleOptions,
 			...{
 				enexSources: paths,
 				//@ts-ignore
-				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/evernote'),
+				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/' + this.folderPath),
 				outputFormat: OutputFormat.ObsidianMD,
 				taskOutputFormat: TaskOutputFormat.ObsidianMD
 			}
