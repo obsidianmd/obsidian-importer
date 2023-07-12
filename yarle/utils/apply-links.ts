@@ -44,7 +44,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 				return path.extname(file).toLowerCase() === extension;
 			});
 			for (const targetFile of targetFiles) {
-				const fileContent = fs.readFileSync(`${notebookFolder}${path.sep}${targetFile}`, 'UTF-8');
+				const fileContent = fs.readFileSync(`${notebookFolder}${path.sep}${targetFile}`, 'utf8');
 				let updatedContent = fileContent;
 				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
 				updatedContent = updatedContent.replace(regexp, realFileNameInContent);

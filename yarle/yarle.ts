@@ -8,6 +8,7 @@ import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
 
 import * as utils from './utils';
+import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
@@ -176,6 +177,7 @@ export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> 
 		failed: 0,
 		skipped: 0
 	};
+
 	for (const enex of options.enexSources) {
 		utils.setPaths(enex);
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
@@ -186,6 +188,8 @@ export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> 
 		results.skipped += enexResults.skipped;
 		outputNotebookFolders.push(utils.getNotesPath());
 	}
+
+	await applyLinks(options, outputNotebookFolders);
 
 	return results;
 

@@ -1,6 +1,6 @@
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
-import { languageItems } from './../../outputLanguages/outputLanguages';
+import { languageItems } from './../../outputLanguages';
 
 const EVERNOTE_HIGHLIGHT = '-evernote-highlight:true;';
 const EVERNOTE_COLORHIGHLIGHT = '--en-highlight';
