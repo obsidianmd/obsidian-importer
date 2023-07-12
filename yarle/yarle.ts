@@ -9,13 +9,15 @@ import { YarleOptions } from './YarleOptions';
 import { processNode } from './process-node';
 import { isWebClip } from './utils/note-utils';
 import { loggerInfo } from './utils/loggerInfo';
-import { hasAnyTagsInTemplate,
+import {
+  hasAnyTagsInTemplate,
   hasCreationTimeInTemplate,
   hasLinkToOriginalInTemplate,
   hasLocationInTemplate,
   hasNotebookInTemplate,
   hasSourceURLInTemplate,
-  hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
+  hasUpdateTimeInTemplate
+} from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 import { OutputFormat } from './output-format';
 import { clearLogFile } from './utils/clearLogFile';
@@ -62,7 +64,7 @@ export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
 const setOptions = (options: YarleOptions): void => {
   yarleOptions = merge({}, defaultYarleOptions, options);
 
-  let template = (yarleOptions.templateFile)  ?  fs.readFileSync(yarleOptions.templateFile, 'utf-8') : defaultTemplate;
+  let template = (yarleOptions.templateFile) ? fs.readFileSync(yarleOptions.templateFile, 'utf-8') : defaultTemplate;
   template = yarleOptions.currentTemplate ? yarleOptions.currentTemplate : template;
 
   /*if (yarleOptions.templateFile) {*/
@@ -85,7 +87,7 @@ interface TaskGroups {
   [key: string]: Map<string, string>;
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: string): Promise<void> => {
+export const parseStream = async (options: YarleOptions, enexSource: string): Promise<{ total: number, success: number, failed: number, skipped: number }> => {
   loggerInfo(`Getting stream from ${enexSource}`);
   const stream = fs.createReadStream(enexSource);
   // const xml = new XmlStream(stream);
@@ -130,7 +132,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
         loggerInfo(`Notes processed: ${noteNumber}\n\n`);
       }
       noteAttributes = null;
-      
+
       const runtimeProps = RuntimePropertiesSingleton.getInstance();
       const currentNotePath = runtimeProps.getCurrentNotePath();
       if (currentNotePath) {
@@ -142,39 +144,39 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
           let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
 
-          if (isTanaOutput()){
+          if (isTanaOutput()) {
             const tanaNote = JSON.parse(fileContent);
-            const rootTaskChild = tanaNote.nodes?.[0].children?.find((child:any) => child.name === taskPlaceholder)
-            if (rootTaskChild){
-              for (const taskItem of sortedTasks.values()){
+            const rootTaskChild = tanaNote.nodes?.[0].children?.find((child: any) => child.name === taskPlaceholder)
+            if (rootTaskChild) {
+              for (const taskItem of sortedTasks.values()) {
                 // split by tasks
-                const todoState = taskItem.startsWith(checkboxTodo)? 'todo':'done'
+                const todoState = taskItem.startsWith(checkboxTodo) ? 'todo' : 'done'
                 tanaNote.nodes?.[0].children?.push({
-              
-                    uid: 'uuid' + Math.random(),
-                    createdAt: rootTaskChild.createdAt,
-                    editedAt: rootTaskChild.editedAt,
-                    type: 'node' as NodeType,
 
-                    name: cleanTanaContent(taskItem, todoState === 'todo' ? checkboxTodo: checkboxDone),
-                    todoState: todoState as "todo"|"done",
-                    refs:[],
+                  uid: 'uuid' + Math.random(),
+                  createdAt: rootTaskChild.createdAt,
+                  editedAt: rootTaskChild.editedAt,
+                  type: 'node' as NodeType,
+
+                  name: cleanTanaContent(taskItem, todoState === 'todo' ? checkboxTodo : checkboxDone),
+                  todoState: todoState as "todo" | "done",
+                  refs: [],
                 }
 
                 )
               }
-            tanaNote.nodes?.[0].children.splice(tanaNote.nodes?.[0].children.indexOf(rootTaskChild), 1)
-            updatedContent = JSON.stringify(tanaNote)
-          }
+              tanaNote.nodes?.[0].children.splice(tanaNote.nodes?.[0].children.indexOf(rootTaskChild), 1)
+              updatedContent = JSON.stringify(tanaNote)
+            }
 
           }
           fs.writeFileSync(currentNotePath, updatedContent);
-          
+
         }
       }
     });
 
-    xml.on('tag:task', (pureTask: any) => {
+    xml.on('tag:task', (pureTask: any) => {
       const task = mapEvernoteTask(pureTask);
       if (!tasks[task.taskgroupnotelevelid]) {
         tasks[task.taskgroupnotelevelid] = new Map();
@@ -194,26 +196,42 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
         `Conversion finished: ${success} succeeded, ${skipped} skipped, ${failed} failed. Total notes: ${totalNotes}`,
       );
 
-      return resolve();
+      return resolve({
+        total: noteNumber,
+        success,
+        failed,
+        skipped
+
+      });
     });
     xml.on('error', logAndReject);
     stream.on('error', logAndReject);
   });
 };
 
-export const dropTheRope = async (options: YarleOptions): Promise<Array<string>> => {
+export const dropTheRope = async (options: YarleOptions): Promise<{ total: number, success: number, failed: number, skipped: number }> => {
   clearLogFile();
   setOptions(options);
   const outputNotebookFolders = [];
+  let results = {
+    total: 0,
+    success: 0,
+    failed: 0,
+    skipped: 0
+  };
   for (const enex of options.enexSources) {
     utils.setPaths(enex);
     const runtimeProps = RuntimePropertiesSingleton.getInstance();
     runtimeProps.setCurrentNotebookName(utils.getNotebookName(enex));
-    await parseStream(options, enex);
+    let enexResults = await parseStream(options, enex);
+    results.total += enexResults.total;
+    results.success += enexResults.success;
+    results.failed += enexResults.failed;
+    results.skipped += enexResults.skipped;
     outputNotebookFolders.push(utils.getNotesPath());
   }
 
-  return outputNotebookFolders;
+  return results;
 
 };
 // tslint:enable:no-console

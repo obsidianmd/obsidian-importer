@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
+import { App, Modal, Plugin, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
 import { dropTheRope, defaultYarleOptions } from './yarle/yarle';
@@ -22,57 +22,51 @@ function escapeRegex(str: string): string {
 const ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
 const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_CHARACTERS) + ']', 'g');
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		await this.loadSettings();
-
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
-			new SampleModal(this.app).open();
+			new ImporterModal(this.app).open();
 		})
 
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'import:open-modal',
 			name: 'Open importer',
 			callback: () => {
-				new SampleModal(this.app).open();
+				new ImporterModal(this.app).open();
 			}
 		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
 	onunload() {
 
 	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
 }
 
-class SampleModal extends Modal {
+class ImporterModal extends Modal {
+	fileLocationSetting: Setting;
+	filePaths: string[];
+
 	constructor(app: App) {
 		super(app);
 	}
 
 	onOpen() {
 		const { contentEl } = this;
-		contentEl.setText('Woah!');
-		contentEl.createDiv('button-container u-center-text', el => {
-			el.createEl('button', { cls: 'mod-cta', text: 'Pick file' }, el => {
-				el.addEventListener('click', () => {
+		this.titleEl.setText('Import data into Obsidian')
+
+		new Setting(contentEl)
+			.setName('Export type')
+			.setDesc('The format to be imported.')
+			.addDropdown(dropdown => dropdown.addOption('evernote', 'Evernote (.enex)'));
+
+		this.fileLocationSetting = new Setting(contentEl)
+			.setName('File location')
+			.setDesc(`Pick the files that you'd like to import.`)
+			.addButton(button => button
+				.setButtonText('Browse')
+				.onClick(() => {
 					let electron = window.electron;
 					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
 						title: 'Pick Evernote ENEX ',
@@ -81,45 +75,30 @@ class SampleModal extends Modal {
 					});
 
 					if (selectedFiles && selectedFiles.length > 0) {
-						new EnexParser(this.app, selectedFiles);
+						this.filePaths = selectedFiles;
+						this.updateFileLocation();
 					}
-				})
+				}));
+
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
+				el.addEventListener('click', () => {
+					new EnexParser(this.app, this.filePaths);
+				});
 			});
 		});
+	}
+
+	updateFileLocation() {
+		let descriptionFragment = document.createDocumentFragment();
+		descriptionFragment.createEl('span', {text: `You've picked the following files to import: `});
+		descriptionFragment.createEl('span', {cls: 'u-pop', text: this.filePaths.join(', ')});
+		this.fileLocationSetting.setDesc(descriptionFragment);
 	}
 
 	onClose() {
 		const { contentEl } = this;
 		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const { containerEl } = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 }
 
@@ -159,7 +138,8 @@ class EnexParser {
 				taskOutputFormat: TaskOutputFormat.ObsidianMD
 			}
 		};
-		dropTheRope(yarleOptions);
+		let results = await dropTheRope(yarleOptions);
+		console.log(results)
 	}
 
 	async readNotebookByPath(path: string) {

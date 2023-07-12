@@ -4,7 +4,7 @@ import * as  fsextra from 'fs-extra';
 import { LOGFILE } from './loggerInfo';
 export const clearLogFile = () => {
     // tslint:disable-next-line:no-console
-    console.log(`clearing log: ${LOGFILE}`);
+    // console.log(`clearing log: ${LOGFILE}`);
     if (fs.existsSync(LOGFILE)) {
         fsextra.removeSync(LOGFILE);
     }
