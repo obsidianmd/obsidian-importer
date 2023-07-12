@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-importer",
 	"version": "1.0.1",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Import notes from other apps like Evernote.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
