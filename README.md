@@ -1,6 +1,6 @@
-This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
+![Obsidian Importer screenshot](/images/social.png)
 
-![Obsidian Importer screenshot](/images/screenshot.png)
+This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
 ## Supported formats
 
@@ -20,6 +20,8 @@ First install Importer in Obsidian → Community Plugins
 - Click **Import**
 
 Currently, the import does not have any special settings, if you want more control over the output, consider using [Yarle](https://github.com/akosbalasko/yarle).
+
+![Obsidian Importer screenshot](/images/screenshot.png)
 
 ## Credits
 
