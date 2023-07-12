@@ -1,7 +1,7 @@
-import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown } from 'obsidian';
+import { App, Modal, Plugin, PluginSettingTab, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
-// Remember to rename these classes and interfaces!
+import { dropTheRope, defaultYarleOptions } from './yarle/yarle';
 
 declare global {
 	interface Window {
@@ -12,7 +12,6 @@ declare global {
 interface MyPluginSettings {
 	mySetting: string;
 }
-
 
 function escapeRegex(str: string): string {
 	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
@@ -30,6 +29,10 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
+			new SampleModal(this.app).open();
+		})
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -125,11 +128,34 @@ class EnexParser {
 
 	constructor(app: App, paths: string[]) {
 		this.app = app;
-		this.folderPath = 'evernote'
+		this.folderPath = 'evernote';
 
-		for (let path of paths) {
-			this.readNotebookByPath(path);
+		this.yarleReadNotebook(paths);
+	}
+
+	async yarleReadNotebook(paths: string[]) {
+		let folder = app.vault.getAbstractFileByPath(this.folderPath);
+
+		if (folder === null || !(folder instanceof TFolder)) {
+			await app.vault.createFolder(this.folderPath);
+			folder = app.vault.getAbstractFileByPath(this.folderPath);
 		}
+
+		this.folder = folder as TFolder;
+
+		for (let file of this.folder.children.slice()) {
+			await app.vault.delete(file, true);
+		}
+
+		let yarleOptions = {
+			...defaultYarleOptions,
+			...{
+				enexSources: paths,
+				//@ts-ignore
+				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/evernote')
+			}
+		};
+		dropTheRope(yarleOptions);
 	}
 
 	async readNotebookByPath(path: string) {
@@ -139,10 +165,7 @@ class EnexParser {
 		let evernoteNotebook = new EvernoteNotebook();
 		evernoteNotebook.notes = [];
 		xmlStream.on('tag:note', noteData => {
-			let note = new EvernoteNote();
-			console.log(noteData);
-			note.title = noteData.title;
-			note.content = htmlToMarkdown(noteData.content);
+			let note = new EvernoteNote(noteData);
 
 			evernoteNotebook.notes.push(note);
 		});
@@ -160,7 +183,6 @@ class EnexParser {
 			// testing
 			for (let file of this.folder.children.slice()) {
 				await app.vault.delete(file, true);
-	
 			}
 
 			for (let note of evernoteNotebook.notes) {
@@ -180,6 +202,31 @@ class EvernoteNotebook {
 	notes: EvernoteNote[];
 }
 
+interface EvernoteNoteData {
+	title: string;
+	content: string;
+	created: string;
+	updated: string;
+	tag?: string | string[];
+	resource?: EvernoteResourceData[];
+}
+
+interface EvernoteResourceData {
+	data: {
+		$attrs: {
+			encoding: string
+		},
+		$text: string
+	},
+	mime: string,
+	width?: number,
+	height?: number,
+	'resource-attributes': {
+		'file-name': string,
+		'source-url'?: string
+	}
+}
+
 class EvernoteNote {
 	title: string;
 	rawXmlContent: string;
@@ -187,6 +234,11 @@ class EvernoteNote {
 	createdTs: number;
 	updatedTs: number;
 	attachments: Record<string, EvernoteAttachment> = {};
+
+	constructor(data: EvernoteNoteData) {
+		this.title = data.title;
+		this.content = htmlToMarkdown(data.content);
+	}
 
 }
 
