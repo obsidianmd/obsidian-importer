@@ -1,5 +1,4 @@
 import fs from 'fs';
-import fsExtra from 'fs-extra';
 import * as path from 'path';
 
 import { Path } from '../paths';
@@ -66,11 +65,11 @@ export const getHtmlFileLink = (note: any): string => {
 
 const clearDistDir = (dstPath: string): void => {
 	if (fs.existsSync(dstPath)) {
-		if(fs.rmSync) {
-			fs.rmSync(dstPath, {recursive: true, force: true});
+		if (fs.rmSync) {
+			fs.rmSync(dstPath, { recursive: true, force: true });
 		}
 		else {
-			fs.rmdirSync(dstPath, {recursive: true});
+			fs.rmdirSync(dstPath, { recursive: true });
 		}
 	}
 	fs.mkdirSync(dstPath);
@@ -135,9 +134,9 @@ export const setPaths = (enexSource: string): void => {
 		paths.resourcePath = `${outputDir}${path.sep}${enexFile}${path.sep}${yarleOptions.resourcesDir}`;
 	}
 
-	fs.mkdirSync(paths.mdPath, {recursive: true});
+	fs.mkdirSync(paths.mdPath, { recursive: true });
 	if ((!yarleOptions.haveEnexLevelResources && !yarleOptions.haveGlobalResources)) {
-		fs.mkdirSync(paths.resourcePath, {recursive: true});
+		fs.mkdirSync(paths.resourcePath, { recursive: true });
 	}
 	console.log(`path ${paths.mdPath} created`);
 	// clearDistDir(paths.simpleMdPath);

@@ -1,92 +1,97 @@
-import { InternalLink, NoteData } from './models';
+import { InternalLink } from './models';
+
 export interface NoteIdNameEntry {
-    title: string;
-    noteName: string;
-    notebookName: string;
-    uniqueEnd: string;
+	title: string;
+	noteName: string;
+	notebookName: string;
+	uniqueEnd: string;
 }
 
 export interface NoteIdNames {
- [key: string]: NoteIdNameEntry;
+	[key: string]: NoteIdNameEntry;
 }
+
 export class RuntimePropertiesSingleton {
 
-    static instance: RuntimePropertiesSingleton;
+	static instance: RuntimePropertiesSingleton;
 
-    noteIdNameMap: NoteIdNames;
-    noteIdNameTOCMap: NoteIdNames; // Table of Contents map - the trusted source
-    currentNoteName: string;
-    currentNotebookName: string;
-    currentNotePath: string;
+	noteIdNameMap: NoteIdNames;
+	noteIdNameTOCMap: NoteIdNames; // Table of Contents map - the trusted source
+	currentNoteName: string;
+	currentNotebookName: string;
+	currentNotePath: string;
 
-    private constructor() {
-        this.noteIdNameMap = {};
-        this.noteIdNameTOCMap = {};
+	private constructor() {
+		this.noteIdNameMap = {};
+		this.noteIdNameTOCMap = {};
 
-    }
+	}
 
-    static getInstance(): RuntimePropertiesSingleton {
-        if (!RuntimePropertiesSingleton.instance) {
-            RuntimePropertiesSingleton.instance = new RuntimePropertiesSingleton();
-        }
+	static getInstance(): RuntimePropertiesSingleton {
+		if (!RuntimePropertiesSingleton.instance) {
+			RuntimePropertiesSingleton.instance = new RuntimePropertiesSingleton();
+		}
 
-        return RuntimePropertiesSingleton.instance;
-    }
+		return RuntimePropertiesSingleton.instance;
+	}
 
-    addItemToMap(linkItem: InternalLink): void {
-        this.noteIdNameMap[linkItem.url] = {
-            ...this.noteIdNameMap[linkItem.url],
-            title: linkItem.title,
-            noteName: this.currentNoteName,
-            notebookName: this.currentNotebookName,
-            uniqueEnd: linkItem.uniqueEnd,
-        };
-    }
-    addItemToTOCMap(linkItem: InternalLink): void {
-        this.noteIdNameTOCMap[linkItem.url] = {
-            ...this.noteIdNameMap[linkItem.url],
-            title: linkItem.title,
-            noteName: this.currentNoteName,
-            notebookName: this.currentNotebookName,
-            uniqueEnd: linkItem.uniqueEnd,
-        };
-    }
+	addItemToMap(linkItem: InternalLink): void {
+		this.noteIdNameMap[linkItem.url] = {
+			...this.noteIdNameMap[linkItem.url],
+			title: linkItem.title,
+			noteName: this.currentNoteName,
+			notebookName: this.currentNotebookName,
+			uniqueEnd: linkItem.uniqueEnd,
+		};
+	}
 
-    getNoteIdNameMap(): any {
-        return this.noteIdNameMap;
-    }
+	addItemToTOCMap(linkItem: InternalLink): void {
+		this.noteIdNameTOCMap[linkItem.url] = {
+			...this.noteIdNameMap[linkItem.url],
+			title: linkItem.title,
+			noteName: this.currentNoteName,
+			notebookName: this.currentNotebookName,
+			uniqueEnd: linkItem.uniqueEnd,
+		};
+	}
 
-    getNoteIdNameTOCMap(): any {
-        return this.noteIdNameTOCMap;
-    }
+	getNoteIdNameMap(): any {
+		return this.noteIdNameMap;
+	}
 
-    getAllNoteIdNameMap(): NoteIdNames {
-        return {
-            ...this.noteIdNameMap,
-            ...this.noteIdNameTOCMap,
-        };
-    }
+	getNoteIdNameTOCMap(): any {
+		return this.noteIdNameTOCMap;
+	}
 
-    getNoteIdNameMapByNoteTitle(noteTitle: string): any {
-        return Object.values(this.getAllNoteIdNameMap()).filter(noteIdName => noteIdName.title === noteTitle);
-    }
+	getAllNoteIdNameMap(): NoteIdNames {
+		return {
+			...this.noteIdNameMap,
+			...this.noteIdNameTOCMap,
+		};
+	}
 
-    setCurrentNotebookName(currentNotebookName: string): void {
-        this.currentNotebookName = currentNotebookName;
-    }
+	getNoteIdNameMapByNoteTitle(noteTitle: string): any {
+		return Object.values(this.getAllNoteIdNameMap()).filter(noteIdName => noteIdName.title === noteTitle);
+	}
 
-    setCurrentNoteName(currentNoteName: string): void {
-        this.currentNoteName = currentNoteName;
-    }
-    getCurrentNoteName(): string {
-        return this.currentNoteName;
-    }
-    getCurrentNotePath(): string {
-        return this.currentNotePath;
-    }
+	setCurrentNotebookName(currentNotebookName: string): void {
+		this.currentNotebookName = currentNotebookName;
+	}
 
-    setCurrentNotePath(value: string): void {
-        this.currentNotePath = value;
-    }
+	setCurrentNoteName(currentNoteName: string): void {
+		this.currentNoteName = currentNoteName;
+	}
+
+	getCurrentNoteName(): string {
+		return this.currentNoteName;
+	}
+
+	getCurrentNotePath(): string {
+		return this.currentNotePath;
+	}
+
+	setCurrentNotePath(value: string): void {
+		this.currentNotePath = value;
+	}
 
 }

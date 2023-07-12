@@ -1,3 +1,3 @@
-export const isTOC = (noteTitle: any): boolean => {
-    return noteTitle === 'Table of Contents';
+export const isTOC = (noteTitle: any): boolean => {
+	return noteTitle === 'Table of Contents';
 };

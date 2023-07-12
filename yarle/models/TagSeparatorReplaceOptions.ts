@@ -1,5 +1,5 @@
 export interface TagSeparatorReplaceOptions {
-    separatorInEN: string;
-    replaceSeparatorWith: string;
-    replaceSpaceWith?: string;
+	separatorInEN: string;
+	replaceSeparatorWith: string;
+	replaceSpaceWith?: string;
 }

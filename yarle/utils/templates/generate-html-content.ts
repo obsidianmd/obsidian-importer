@@ -1,6 +1,5 @@
-
-export const generateHtmlContent = (options: any) => {
- return `
+export const generateHtmlContent = (options: any) => {
+	return `
     <!DOCTYPE html>
         <head>
         <title>${options.title}</title>
