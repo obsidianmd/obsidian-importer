@@ -1,5 +1,6 @@
 import * as fs from 'fs';
-import { App, htmlToMarkdown, Modal, normalizePath, Notice, Plugin, Setting, TFolder } from 'obsidian';
+import { App, FileSystemAdapter, htmlToMarkdown, Modal, Notice, Plugin, Setting, TFolder } from 'obsidian';
+import * as path from 'path';
 import flow from 'xml-flow';
 import { defaultYarleOptions, dropTheRope, ImportResult } from 'yarle/yarle';
 
@@ -9,10 +10,6 @@ declare global {
 	}
 }
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
 function escapeRegex(str: string): string {
 	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
 }
@@ -20,16 +17,14 @@ function escapeRegex(str: string): string {
 const ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
 const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_CHARACTERS) + ']', 'g');
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class ImporterPlugin extends Plugin {
 	async onload() {
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app).open();
 		})
 
 		this.addCommand({
-			id: 'import:open-modal',
+			id: 'open-modal',
 			name: 'Open importer',
 			callback: () => {
 				new ImporterModal(this.app).open();
@@ -49,9 +44,7 @@ class ImporterModal extends Modal {
 
 	constructor(app: App) {
 		super(app);
-	}
 
-	onOpen() {
 		const { contentEl } = this;
 		this.titleEl.setText('Import data into Obsidian');
 
@@ -62,13 +55,13 @@ class ImporterModal extends Modal {
 
 		this.fileLocationSetting = new Setting(contentEl)
 			.setName('Files to import')
-			.setDesc(`Pick the files that you want to import.`)
+			.setDesc('Pick the files that you want to import.')
 			.addButton(button => button
 				.setButtonText('Browse')
 				.onClick(() => {
 					let electron = window.electron;
 					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
-						title: 'Pick Evernote ENEX ',
+						title: 'Pick Evernote ENEX',
 						properties: ['openFile', 'dontAddToRecent'],
 						filters: [{ name: 'ENEX (Evernote export)', extensions: ['enex'] }],
 					});
@@ -81,7 +74,7 @@ class ImporterModal extends Modal {
 
 		new Setting(contentEl)
 			.setName('Output folder')
-			.setDesc(`Choose a folder in the vault to put the imported files. Leave empty to output to vault root.`)
+			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
 				.setValue('Evernote')
 				.then(text => this.outputLocationSettingInput = text.inputEl));
@@ -149,6 +142,10 @@ class EnexParser {
 	}
 
 	async yarleReadNotebook(paths: string[], outputFolder: string) {
+		let { app } = this;
+		let adapter = app.vault.adapter;
+		if (!(adapter instanceof FileSystemAdapter)) return;
+
 		this.folderPath = outputFolder;
 
 		if (this.folderPath === '') {
@@ -166,8 +163,7 @@ class EnexParser {
 			...defaultYarleOptions,
 			...{
 				enexSources: paths,
-				//@ts-ignore
-				outputDir: normalizePath(this.app.vault.adapter.getBasePath() + '/' + this.folderPath),
+				outputDir: path.join(adapter.getBasePath(), folder.path),
 			}
 		};
 
@@ -176,6 +172,7 @@ class EnexParser {
 	}
 
 	async readNotebookByPath(path: string) {
+		let { app } = this;
 		let inFile = fs.createReadStream(path);
 		let xmlStream = flow(inFile);
 
@@ -194,13 +191,18 @@ class EnexParser {
 			folder = app.vault.getAbstractFileByPath(this.folderPath);
 		}
 
-		this.folder = folder as TFolder;
+		if (!(folder instanceof TFolder)) {
+			new Notice('Failed to create destination folder');
+			return;
+		}
+
+		this.folder = folder;
 
 		xmlStream.on('end', async () => {
-			// testing
-			for (let file of this.folder.children.slice()) {
-				await app.vault.delete(file, true);
-			}
+			// Cleanup
+			// for (let file of this.folder.children.slice()) {
+			// 	await app.vault.delete(file, true);
+			// }
 
 			for (let note of evernoteNotebook.notes) {
 				await this.saveAsMarkdownFile(note);
@@ -211,7 +213,7 @@ class EnexParser {
 	async saveAsMarkdownFile(note: EvernoteNote) {
 		let santizedName = note.title.replace(ILLEGAL_FILENAME_RE, '');
 		//@ts-ignore
-		await app.fileManager.createNewMarkdownFile(this.folder, santizedName, note.content);
+		await this.app.fileManager.createNewMarkdownFile(this.folder, santizedName, note.content);
 	}
 }
 
