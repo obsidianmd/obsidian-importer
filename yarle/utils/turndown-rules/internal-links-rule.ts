@@ -1,4 +1,3 @@
-import { marked } from 'marked';
 import { RuntimePropertiesSingleton } from '../../runtime-properties';
 import { yarleOptions } from '../../yarle';
 
@@ -23,21 +22,15 @@ export const wikiStyleLinksRule = {
 		if (!nodeProxy.href) {
 			return '';
 		}
-		let internalTurndownedContent =
-			getTurndownService(yarleOptions).turndown(removeBrackets(node.innerHTML));
-		internalTurndownedContent = removeDoubleBackSlashes(internalTurndownedContent);
-		const lexer = new marked.Lexer({});
-		console.log(internalTurndownedContent);
-		const tokens = lexer.lex(internalTurndownedContent) as any;
-		const extension = yarleOptions.addExtensionToInternalLinks ? '.md' : '';
-		let token: any = {
-			mdKeyword: '',
-			text: internalTurndownedContent,
-		};
-		if (tokens.length > 0 && tokens[0]['type'] === 'heading') {
-			token = tokens[0];
-			token['mdKeyword'] = `${'#'.repeat(tokens[0]['depth'])} `;
+		let text = getTurndownService(yarleOptions).turndown(removeBrackets(node.innerHTML));
+		text = removeDoubleBackSlashes(text);
+		let prefix = '';
+		let match = text.match(/^(#{1,6} )(.*)/);
+		if (match) {
+			prefix = match[1];
+			text = match[2];
 		}
+
 		const value = nodeProxy.href.value;
 		const type = nodeProxy.type ? nodeProxy.type.value : undefined;
 		const realValue = yarleOptions.urlEncodeFileNamesAndLinks ? encodeURI(value) : value;
@@ -46,17 +39,11 @@ export const wikiStyleLinksRule = {
 			return `![[${realValue}]]`;
 		}
 		if (value.match(/^(https?:|www\.|file:|ftp:|mailto:)/)) {
-			return getShortLinkIfPossible(token, value);
+			return prefix + getShortLinkIfPossible(text, value);
 		}
 
-		const displayName = token['text'];
-		const mdKeyword = token['mdKeyword'];
-
-		// handle ObsidianMD internal link display name
-		const renderedObsidianDisplayName = displayName === realValue ? '' : `|${displayName}`;
-
 		if (value.startsWith('evernote://')) {
-			const fileName = normalizeTitle(token['text']);
+			const fileName = normalizeTitle(text);
 			const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
 			const uniqueId = getUniqueId();
 			if (isTOC(noteIdNameMap.getCurrentNoteName())) {
@@ -66,10 +53,10 @@ export const wikiStyleLinksRule = {
 				noteIdNameMap.addItemToMap({ url: value, title: fileName, uniqueEnd: uniqueId });
 			}
 
-			return `${mdKeyword}[[${value}${extension}${renderedObsidianDisplayName}]]`;
+			return prefix + `[[${value}]]`;
 		}
 
-		return `${mdKeyword}[[${realValue}${renderedObsidianDisplayName}]]`;
+		return prefix + `[[${realValue}${text === realValue ? '' : `|${text}`}]]`;
 	},
 };
 
@@ -91,8 +78,6 @@ function unescape(text: string) {
 		: text;
 }
 
-export const getShortLinkIfPossible = (token: any, value: string): string => {
-	return (!token['text'] || unescape(token['text']) === unescape(value))
-		? yarleOptions.generateNakedUrls ? value : `<${value}>`
-		: `${token['mdKeyword']}[${token['text']}](${value})`;
+export const getShortLinkIfPossible = (text: string, value: string): string => {
+	return (!text || unescape(text) === unescape(value)) ? yarleOptions.generateNakedUrls ? value : `<${value}>` : `[${text}](${value})`;
 };

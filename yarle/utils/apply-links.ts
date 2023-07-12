@@ -12,50 +12,58 @@ import { getAllOutputFilesWithExtension } from './get-all-output-files';
 export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<string>): void => {
 	const linkNameMap = RuntimePropertiesSingleton.getInstance();
 	const allLinks = linkNameMap.getAllNoteIdNameMap();
+
+	let entries = Object.entries(allLinks);
+	if (entries.length === 0) return;
+
+	console.log(`About to update links...`);
+
 	const allconvertedFiles: Array<string> = [];
 	for (const outputFolder of outputNotebookFolders) {
 		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, undefined);
 	}
-	for (const [linkName, linkProps] of Object.entries(allLinks)) {
-		const uniqueId = linkProps.uniqueEnd;
-		let fileName = (linkProps as any)['title'];
-		if (allconvertedFiles.find(fn => fn.includes(uniqueId))) {
-			fileName = truncatFileName(fileName, uniqueId);
-		}
 
-		const notebookName: string = (linkProps as any)['notebookName'];
-		const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName as string) : fileName as string;
+	for (const notebookFolder of outputNotebookFolders) {
+		console.log(`Notebook: ${notebookFolder}`);
+		const filesInOutputDir = fs.readdirSync(notebookFolder);
 
-		for (const notebookFolder of outputNotebookFolders) {
-			let realFileName = encodedFileName;
-			let realFileNameInContent = encodedFileName;
-			if (notebookName && !notebookFolder.endsWith(notebookName)) {
-				realFileName = `${notebookName}${encodedFileName}`;
-				realFileNameInContent = `${notebookName}/${encodedFileName}`;
-			}
-			const filesInOutputDir = fs.readdirSync(notebookFolder);
-			console.log(`Files in output dir: ${JSON.stringify(filesInOutputDir)}`);
-			console.log(`notebookFolder: ${notebookFolder}`);
-			console.log(`realFileName: ${realFileName}`);
+		const targetFiles = filesInOutputDir.filter(file => {
+			return path.extname(file).toLowerCase() === '.md';
+		});
+		console.log(`Files to check for links: ${JSON.stringify(targetFiles)}`);
 
-			const extension = '.md';
+		for (const targetFile of targetFiles) {
+			let filepath = path.join(notebookFolder, targetFile);
+			const fileContent = fs.readFileSync(filepath, 'utf8');
+			let updatedContent = fileContent;
 
-			const targetFiles = filesInOutputDir.filter(file => {
-				return path.extname(file).toLowerCase() === extension;
-			});
-			for (const targetFile of targetFiles) {
-				const fileContent = fs.readFileSync(`${notebookFolder}${path.sep}${targetFile}`, 'utf8');
-				let updatedContent = fileContent;
-				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
-				updatedContent = updatedContent.replace(regexp, realFileNameInContent);
-
-
-				if (fileContent !== updatedContent) {
-					console.log(`replaced output written to: ${notebookFolder}${path.sep}${targetFile}`);
-					fs.writeFileSync(`${notebookFolder}${path.sep}${targetFile}`, updatedContent);
+			for (const [linkName, linkProps] of entries) {
+				const uniqueId = linkProps.uniqueEnd;
+				let fileName = linkProps.title;
+				if (allconvertedFiles.find(fn => fn.includes(uniqueId))) {
+					fileName = truncatFileName(fileName, uniqueId);
 				}
+
+				const notebookName = linkProps.notebookName;
+				const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName as string) : fileName as string;
+
+				let replacement = encodedFileName;
+				if (notebookName && !notebookFolder.endsWith(notebookName)) {
+					replacement = `${notebookName}/${encodedFileName}`;
+				}
+
+				console.log(`Replacing "${linkName}" with "${replacement}"`);
+				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
+				updatedContent = updatedContent.replace(regexp, replacement);
+			}
+
+			if (fileContent !== updatedContent) {
+				console.log(`File written: ${filepath}`);
+				fs.writeFileSync(filepath, updatedContent);
 			}
 		}
 	}
+
+
 };
 

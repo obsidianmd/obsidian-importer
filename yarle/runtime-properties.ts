@@ -16,7 +16,7 @@ export class RuntimePropertiesSingleton {
 	static instance: RuntimePropertiesSingleton;
 
 	noteIdNameMap: NoteIdNames;
-	noteIdNameTOCMap: NoteIdNames; // Table of Contents map - the trusted source
+	noteIdNameTOCMap: NoteIdNames; // Table of Contents map - the trusted source
 	currentNoteName: string;
 	currentNotebookName: string;
 	currentNotePath: string;
@@ -24,7 +24,6 @@ export class RuntimePropertiesSingleton {
 	private constructor() {
 		this.noteIdNameMap = {};
 		this.noteIdNameTOCMap = {};
-
 	}
 
 	static getInstance(): RuntimePropertiesSingleton {
