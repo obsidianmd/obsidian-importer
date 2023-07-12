@@ -1,5 +1,5 @@
+import crypto from 'crypto';
 import fs from 'fs';
-import md5File from 'md5-file';
 import * as path from 'path';
 
 import { ResourceHashItem } from './models/ResourceHash';
@@ -81,7 +81,8 @@ const processResource = (workDir: string, resource: any): any => {
 
 	const absFilePath = `${workDir}${path.sep}${fileName}`;
 
-	fs.writeFileSync(absFilePath, data, 'base64');
+	let buffer = Buffer.from(data, 'base64');
+	fs.writeFileSync(absFilePath, buffer);
 
 	const atime = accessTime.valueOf() / 1000;
 	fs.utimesSync(absFilePath, atime, atime);
@@ -92,7 +93,9 @@ const processResource = (workDir: string, resource: any): any => {
 		resourceHash[hashIndex as any] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 	else {
-		const md5Hash = md5File.sync(absFilePath);
+		let hash = crypto.createHash('md5')
+		hash.update(buffer);
+		const md5Hash = hash.digest('hex');
 		resourceHash[md5Hash] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 
