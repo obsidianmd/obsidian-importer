@@ -87,7 +87,13 @@ interface TaskGroups {
   [key: string]: Map<string, string>;
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: string): Promise<{ total: number, success: number, failed: number, skipped: number }> => {
+export interface ImportResult {
+  total: number,
+  failed: number,
+  skipped: number
+}
+
+export const parseStream = async (options: YarleOptions, enexSource: string): Promise<ImportResult> => {
   loggerInfo(`Getting stream from ${enexSource}`);
   const stream = fs.createReadStream(enexSource);
   // const xml = new XmlStream(stream);
@@ -198,7 +204,6 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
       return resolve({
         total: noteNumber,
-        success,
         failed,
         skipped
 
@@ -209,13 +214,12 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
   });
 };
 
-export const dropTheRope = async (options: YarleOptions): Promise<{ total: number, success: number, failed: number, skipped: number }> => {
+export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> => {
   clearLogFile();
   setOptions(options);
   const outputNotebookFolders = [];
   let results = {
     total: 0,
-    success: 0,
     failed: 0,
     skipped: 0
   };
@@ -225,7 +229,6 @@ export const dropTheRope = async (options: YarleOptions): Promise<{ total: numbe
     runtimeProps.setCurrentNotebookName(utils.getNotebookName(enex));
     let enexResults = await parseStream(options, enex);
     results.total += enexResults.total;
-    results.success += enexResults.success;
     results.failed += enexResults.failed;
     results.skipped += enexResults.skipped;
     outputNotebookFolders.push(utils.getNotesPath());

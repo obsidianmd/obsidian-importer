@@ -1,7 +1,7 @@
 import { App, Modal, Plugin, Setting, TFolder, htmlToMarkdown, normalizePath } from 'obsidian';
 import flow from 'xml-flow';
 import * as fs from 'fs';
-import { dropTheRope, defaultYarleOptions } from './yarle/yarle';
+import { dropTheRope, defaultYarleOptions, ImportResult } from 'yarle/yarle';
 import { OutputFormat } from 'yarle/output-format';
 import { TaskOutputFormat } from 'yarle';
 
@@ -54,7 +54,7 @@ class ImporterModal extends Modal {
 
 	onOpen() {
 		const { contentEl } = this;
-		this.titleEl.setText('Import data into Obsidian')
+		this.titleEl.setText('Import data into Obsidian');
 
 		new Setting(contentEl)
 			.setName('Export type')
@@ -82,8 +82,12 @@ class ImporterModal extends Modal {
 
 		contentEl.createDiv('button-container u-center-text', el => {
 			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
-				el.addEventListener('click', () => {
-					new EnexParser(this.app, this.filePaths);
+				el.addEventListener('click', async () => {
+					let parser = new EnexParser(this.app);
+					this.modalEl.addClass('is-loading');
+					let results = await parser.yarleReadNotebook(this.filePaths);
+					this.modalEl.removeClass('is-loading');
+					this.showResult(results);
 				});
 			});
 		});
@@ -91,9 +95,30 @@ class ImporterModal extends Modal {
 
 	updateFileLocation() {
 		let descriptionFragment = document.createDocumentFragment();
-		descriptionFragment.createEl('span', {text: `You've picked the following files to import: `});
-		descriptionFragment.createEl('span', {cls: 'u-pop', text: this.filePaths.join(', ')});
+		descriptionFragment.createEl('span', { text: `You've picked the following files to import: ` });
+		descriptionFragment.createEl('span', { cls: 'u-pop', text: this.filePaths.join(', ') });
 		this.fileLocationSetting.setDesc(descriptionFragment);
+	}
+
+	showResult(result: ImportResult) {
+		let { contentEl } = this;
+
+		contentEl.empty();
+
+		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed - result.skipped} notes, out of ${result.total} total notes!` });
+
+		if (result.skipped !== 0 || result.failed !== 0) {
+			contentEl.createEl('p', { text: `${result.skipped} notes were skipped and ${result.failed} notes failed to import.` });
+		}
+
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+				el.addEventListener('click', async () => {
+					this.close();
+				});
+			});
+		});
+
 	}
 
 	onClose() {
@@ -107,11 +132,9 @@ class EnexParser {
 	folderPath: string;
 	folder: TFolder;
 
-	constructor(app: App, paths: string[]) {
+	constructor(app: App) {
 		this.app = app;
 		this.folderPath = 'evernote';
-
-		this.yarleReadNotebook(paths);
 	}
 
 	async yarleReadNotebook(paths: string[]) {
@@ -138,8 +161,9 @@ class EnexParser {
 				taskOutputFormat: TaskOutputFormat.ObsidianMD
 			}
 		};
-		let results = await dropTheRope(yarleOptions);
-		console.log(results)
+
+		return await dropTheRope(yarleOptions);
+
 	}
 
 	async readNotebookByPath(path: string) {
