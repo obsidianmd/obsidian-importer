@@ -100,7 +100,6 @@ export interface ImportResult {
 export const parseStream = async (options: YarleOptions, enexSource: string): Promise<ImportResult> => {
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = fs.createReadStream(enexSource);
-	// const xml = new XmlStream(stream);
 	let noteNumber = 0;
 	let failed = 0;
 	let skipped = 0;
@@ -137,9 +136,15 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 					note['note-attributes'] = noteAttributes;
 				}
 
-				processNode(note, notebookName);
 				++noteNumber;
-				console.log(`Notes processed: ${noteNumber}\n\n`);
+
+				try {
+					processNode(note, notebookName);
+					console.log(`Notes processed: ${noteNumber}\n\n`);
+				} catch (e) {
+					++failed;
+					return;
+				}
 			}
 			noteAttributes = null;
 
@@ -171,8 +176,6 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 		});
 
 		xml.on('end', () => {
-
-
 			const success = noteNumber - failed;
 			const totalNotes = noteNumber + skipped;
 			console.log('==========================');
@@ -217,4 +220,3 @@ export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> 
 	return results;
 
 };
-// tslint:enable:no-console

@@ -10,7 +10,6 @@ import { yarleOptions } from './yarle';
 export const processNode = (note: any, notebookName: string): void => {
 
 	const dateStarted: Date = new Date();
-	console.log(`Conversion started at ${dateStarted}`);
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	runtimeProps.setCurrentNoteName(note.title);
@@ -25,8 +24,7 @@ export const processNode = (note: any, notebookName: string): void => {
 		originalContent: note.content,
 	};
 
-	// tslint:disable-next-line:no-console
-	console.log(`Converting note "${noteData.title}"...`);
+	console.log(`Converting for note "${noteData.title}" started at ${dateStarted}...`);
 
 	try {
 		if (isComplex(note)) {
@@ -39,7 +37,6 @@ export const processNode = (note: any, notebookName: string): void => {
 		noteData = { ...noteData, ...getTags(note) };
 
 		const data = applyTemplate(noteData, yarleOptions);
-		// tslint:disable-next-line:no-console
 		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
 		saveMdFile(data, note);
@@ -50,13 +47,12 @@ export const processNode = (note: any, notebookName: string): void => {
 		}*/
 
 	} catch (e) {
-		// tslint:disable-next-line:no-console
-		console.log(`Failed to convert note: ${noteData.title}`, e);
+		console.error(`Failed to convert note: ${noteData.title}`, e);
+		throw e;
 	}
-	// tslint:disable-next-line:no-console
-	const dateFinished: Date = new Date();
-	const conversionDuration = (dateFinished.getTime() - dateStarted.getTime()) / 1000; // in seconds.
-	console.log(`Conversion finished at ${dateFinished}`);
-	console.log(`Note "${noteData.title}" converted successfully in ${conversionDuration} seconds.`);
-
+	finally {
+		const dateFinished: Date = new Date();
+		const conversionDuration = (dateFinished.getTime() - dateStarted.getTime()) / 1000; // in seconds.
+		console.log(`Conversion for note "${noteData.title}" finished at ${dateFinished}. Took ${conversionDuration} seconds`);
+	}
 };

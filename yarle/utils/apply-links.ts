@@ -1,5 +1,3 @@
-/* istanbul ignore file */
-// tslint:disable:no-console
 import * as fs from 'fs';
 import * as path from 'path';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
@@ -30,7 +28,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 		const targetFiles = filesInOutputDir.filter(file => {
 			return path.extname(file).toLowerCase() === '.md';
 		});
-		console.log(`Files to check for links: ${JSON.stringify(targetFiles)}`);
+		console.log(`${targetFiles.length} files to check for links`);
 
 		for (const targetFile of targetFiles) {
 			let filepath = path.join(notebookFolder, targetFile);
@@ -52,7 +50,6 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 					replacement = `${notebookName}/${encodedFileName}`;
 				}
 
-				console.log(`Replacing "${linkName}" with "${replacement}"`);
 				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
 				updatedContent = updatedContent.replace(regexp, replacement);
 			}
@@ -64,6 +61,6 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 		}
 	}
 
-
+	console.log(`Link update complete.`);
 };
 
