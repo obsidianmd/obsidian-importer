@@ -1,7 +1,5 @@
-import * as fs from 'fs';
-import { App, FileSystemAdapter, htmlToMarkdown, Modal, Notice, Plugin, Setting, TFolder } from 'obsidian';
+import { App, FileSystemAdapter, Modal, Notice, Plugin, Setting, TFolder } from 'obsidian';
 import * as path from 'path';
-import flow from 'xml-flow';
 import { defaultYarleOptions, dropTheRope, ImportResult } from 'yarle/yarle';
 
 declare global {
@@ -9,13 +7,6 @@ declare global {
 		electron: any;
 	}
 }
-
-function escapeRegex(str: string): string {
-	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
-}
-
-const ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
-const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_CHARACTERS) + ']', 'g');
 
 export default class ImporterPlugin extends Plugin {
 	async onload() {
@@ -170,97 +161,4 @@ class EnexParser {
 		return await dropTheRope(yarleOptions);
 
 	}
-
-	async readNotebookByPath(path: string) {
-		let { app } = this;
-		let inFile = fs.createReadStream(path);
-		let xmlStream = flow(inFile);
-
-		let evernoteNotebook = new EvernoteNotebook();
-		evernoteNotebook.notes = [];
-		xmlStream.on('tag:note', noteData => {
-			let note = new EvernoteNote(noteData);
-
-			evernoteNotebook.notes.push(note);
-		});
-
-		let folder = app.vault.getAbstractFileByPath(this.folderPath);
-
-		if (folder === null || !(folder instanceof TFolder)) {
-			await app.vault.createFolder(this.folderPath);
-			folder = app.vault.getAbstractFileByPath(this.folderPath);
-		}
-
-		if (!(folder instanceof TFolder)) {
-			new Notice('Failed to create destination folder');
-			return;
-		}
-
-		this.folder = folder;
-
-		xmlStream.on('end', async () => {
-			// Cleanup
-			// for (let file of this.folder.children.slice()) {
-			// 	await app.vault.delete(file, true);
-			// }
-
-			for (let note of evernoteNotebook.notes) {
-				await this.saveAsMarkdownFile(note);
-			}
-		});
-	}
-
-	async saveAsMarkdownFile(note: EvernoteNote) {
-		let santizedName = note.title.replace(ILLEGAL_FILENAME_RE, '');
-		//@ts-ignore
-		await this.app.fileManager.createNewMarkdownFile(this.folder, santizedName, note.content);
-	}
-}
-
-class EvernoteNotebook {
-	notes: EvernoteNote[];
-}
-
-interface EvernoteNoteData {
-	title: string;
-	content: string;
-	created: string;
-	updated: string;
-	tag?: string | string[];
-	resource?: EvernoteResourceData[];
-}
-
-interface EvernoteResourceData {
-	data: {
-		$attrs: {
-			encoding: string
-		},
-		$text: string
-	},
-	mime: string,
-	width?: number,
-	height?: number,
-	'resource-attributes': {
-		'file-name': string,
-		'source-url'?: string
-	}
-}
-
-class EvernoteNote {
-	title: string;
-	rawXmlContent: string;
-	content: string;
-	createdTs: number;
-	updatedTs: number;
-	attachments: Record<string, EvernoteAttachment> = {};
-
-	constructor(data: EvernoteNoteData) {
-		this.title = data.title;
-		this.content = htmlToMarkdown(data.content);
-	}
-
-}
-
-class EvernoteAttachment {
-
 }
