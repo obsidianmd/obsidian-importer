@@ -19,7 +19,7 @@ First install Importer in Obsidian → Community Plugins
 
 ### Import notes from Evernote
 
-- Export your Evernote files to `.enex` format. You can export a whole notebook by going to the Notebooks screen, click on **More actions** (`...` icon) and choose **Export Notebook...** 
+- Export your Evernote files to `.enex` format. You can export a whole notebook in the desktop client by going to the Notebooks screen, click on **More actions** (`...` icon) and choose **Export Notebook...**
 - Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
 - Under **File format** select **Evernote (.enex)**
 - Choose the `.enex` file you want to import
