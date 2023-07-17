@@ -53,7 +53,7 @@ class ImporterModal extends Modal {
 					let electron = window.electron;
 					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
 						title: 'Pick Evernote ENEX',
-						properties: ['openFile', 'dontAddToRecent'],
+						properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
 						filters: [{ name: 'ENEX (Evernote export)', extensions: ['enex'] }],
 					});
 
