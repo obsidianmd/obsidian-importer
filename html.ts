@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { FormatImporter } from "format-importer";
 import { App, FileSystemAdapter, TFolder, htmlToMarkdown, normalizePath } from "obsidian";
 import { baseFileName, sanitizeFileName } from "./util";
-import { ImportResult } from "yarle/interfaces";
+import { ImportResult } from "interfaces";
 
 export class HtmlImporter extends FormatImporter {
         async import(filePaths: string[], outputFolder: string) {
