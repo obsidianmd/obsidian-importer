@@ -9,7 +9,6 @@ declare global {
 	}
 }
 
-
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, FormatImporter>;
 
