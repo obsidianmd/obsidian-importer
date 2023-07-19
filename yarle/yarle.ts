@@ -12,6 +12,7 @@ import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 import { YarleOptions } from './YarleOptions';
+import { ImportResult } from './interfaces';
 
 export const defaultYarleOptions: YarleOptions = {
 	enexSources: ['notebook.enex'],
@@ -89,12 +90,6 @@ const setOptions = (options: YarleOptions): void => {
 
 interface TaskGroups {
 	[key: string]: Map<string, string>;
-}
-
-export interface ImportResult {
-	total: number,
-	failed: number,
-	skipped: number
 }
 
 export const parseStream = async (options: YarleOptions, enexSource: string): Promise<ImportResult> => {

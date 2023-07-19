@@ -1,6 +1,7 @@
-import { App, FileSystemAdapter, Modal, Notice, Plugin, Setting, TFolder } from 'obsidian';
-import * as path from 'path';
-import { defaultYarleOptions, dropTheRope, ImportResult } from 'yarle/yarle';
+import { EvernoteEnexImporter } from 'evernote-enex';
+import { FormatImporter } from 'format-importer';
+import { App, DropdownComponent, Modal, Notice, Plugin, Setting } from 'obsidian';
+import { ImportResult } from 'yarle/interfaces';
 
 declare global {
 	interface Window {
@@ -9,16 +10,22 @@ declare global {
 }
 
 export default class ImporterPlugin extends Plugin {
+	importers: Record<string, FormatImporter>;
+
 	async onload() {
+		this.importers = {
+			'evernote': new EvernoteEnexImporter(this.app)
+		};
+
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
-			new ImporterModal(this.app).open();
+			new ImporterModal(this.app, this).open();
 		})
 
 		this.addCommand({
 			id: 'open-modal',
 			name: 'Open importer',
 			callback: () => {
-				new ImporterModal(this.app).open();
+				new ImporterModal(this.app, this).open();
 			}
 		});
 	}
@@ -29,12 +36,16 @@ export default class ImporterPlugin extends Plugin {
 }
 
 class ImporterModal extends Modal {
+	plugin: ImporterPlugin;
 	fileLocationSetting: Setting;
 	outputLocationSettingInput: HTMLInputElement;
 	filePaths: string[] = [];
+	fileFormatSetting: DropdownComponent;
 
-	constructor(app: App) {
+	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
+
+		this.plugin = plugin;
 
 		const { contentEl } = this;
 		this.titleEl.setText('Import data into Obsidian');
@@ -42,7 +53,10 @@ class ImporterModal extends Modal {
 		new Setting(contentEl)
 			.setName('File format')
 			.setDesc('The format to be imported.')
-			.addDropdown(dropdown => dropdown.addOption('evernote', 'Evernote (.enex)'));
+			.addDropdown(dropdown => dropdown
+				.addOption('evernote', 'Evernote (.enex)')
+				.addOption('html', 'HTML file (.html)')
+				.then(dropdown => this.fileFormatSetting = dropdown));
 
 		this.fileLocationSetting = new Setting(contentEl)
 			.setName('Files to import')
@@ -79,9 +93,18 @@ class ImporterModal extends Modal {
 						return;
 					}
 
-					let parser = new EnexParser(this.app);
+					let fileFormat = this.fileFormatSetting.getValue();
+					let importer = this.plugin.importers[fileFormat];
+
+					if (!importer) {
+						new Notice('Invalid import format.');
+						return;
+					}
+
+
+
 					this.modalEl.addClass('is-loading');
-					let results = await parser.yarleReadNotebook(this.filePaths, this.outputLocationSettingInput.value);
+					let results = await importer.import(this.filePaths, this.outputLocationSettingInput.value);
 					this.modalEl.removeClass('is-loading');
 					this.showResult(results);
 				});
@@ -123,42 +146,3 @@ class ImporterModal extends Modal {
 	}
 }
 
-class EnexParser {
-	app: App;
-	folderPath: string;
-	folder: TFolder;
-
-	constructor(app: App) {
-		this.app = app;
-	}
-
-	async yarleReadNotebook(paths: string[], outputFolder: string) {
-		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
-
-		this.folderPath = outputFolder;
-
-		if (this.folderPath === '') {
-			this.folderPath = '/';
-		}
-
-		let folder = app.vault.getAbstractFileByPath(this.folderPath);
-
-		if (folder === null || !(folder instanceof TFolder)) {
-			await app.vault.createFolder(this.folderPath);
-			folder = app.vault.getAbstractFileByPath(this.folderPath);
-		}
-
-		let yarleOptions = {
-			...defaultYarleOptions,
-			...{
-				enexSources: paths,
-				outputDir: path.join(adapter.getBasePath(), folder.path),
-			}
-		};
-
-		return await dropTheRope(yarleOptions);
-
-	}
-}
