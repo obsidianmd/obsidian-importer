@@ -8,5 +8,5 @@ export abstract class FormatImporter {
 		this.app = app;
 	}
 
-        abstract import(filePaths: string[], outputFolder: string): Promise<ImportResult>;
+	abstract import(filePaths: string[], outputFolder: string): Promise<ImportResult>;
 }
