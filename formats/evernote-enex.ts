@@ -1,7 +1,7 @@
 import { FormatImporter } from "format-importer";
 import { App, FileSystemAdapter, TFolder } from "obsidian";
 import * as path from 'path';
-import { defaultYarleOptions, dropTheRope } from 'yarle/yarle';
+import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
 	app: App;

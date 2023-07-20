@@ -1,4 +1,4 @@
-import { EvernoteEnexImporter } from 'evernote-enex';
+import { EvernoteEnexImporter } from 'formats/evernote-enex';
 import { HtmlImporter } from 'html';
 import { App, DropdownComponent, Modal, Notice, Plugin, Setting, TextComponent } from 'obsidian';
 import { ImportResult, ImporterInfo } from 'interfaces';
