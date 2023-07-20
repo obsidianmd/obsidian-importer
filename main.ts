@@ -128,7 +128,6 @@ class ImporterModal extends Modal {
 					}
 
 					this.modalEl.addClass('is-loading');
-				
 					let results = await importerInfo.importer.import(this.filePaths, this.outputLocationSettingInput.getValue());
 					this.modalEl.removeClass('is-loading');
 					this.showResult(results);

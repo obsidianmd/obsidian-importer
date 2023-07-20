@@ -1,11 +1,11 @@
 import type { FormatImporter } from "format-importer";
 
 export interface ImporterInfo {
-        id: string;
-        name: string;
-        extensions: string[];
-        exportFolerName: string;
-        importer: FormatImporter;
+	id: string;
+	name: string;
+	extensions: string[];
+	exportFolerName: string;
+	importer: FormatImporter;
 }
 
 export interface ImportResult {
