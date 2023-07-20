@@ -30,12 +30,13 @@ export class HtmlImporter extends FormatImporter {
                 }
 
                 for (let path of filePaths) {
-                        let htmlContent = await fs.readFileSync(path, 'utf-8');
-                        let mdContent = htmlToMarkdown(htmlContent);
-
                         try {
-                                await this.saveAsMarkdownFile(folder as TFolder, baseFileName(normalizePath(path)), mdContent);
-                                results.total++;
+                                if (folder instanceof TFolder) {
+                                        let htmlContent = await fs.readFileSync(path, 'utf-8');
+                                        let mdContent = htmlToMarkdown(htmlContent);
+                                        await this.saveAsMarkdownFile(folder, baseFileName(normalizePath(path)), mdContent);
+                                        results.total++;
+                                }
                         } catch (e) {
                                 console.error(e);
                                 results.failed++;
