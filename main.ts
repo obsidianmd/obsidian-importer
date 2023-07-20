@@ -1,7 +1,7 @@
 import { EvernoteEnexImporter } from 'evernote-enex';
-import { FormatImporter } from 'format-importer';
-import { App, DropdownComponent, Modal, Notice, Plugin, Setting } from 'obsidian';
-import { ImportResult } from 'yarle/interfaces';
+import { HtmlImporter } from 'html';
+import { App, DropdownComponent, Modal, Notice, Plugin, Setting, TextComponent } from 'obsidian';
+import { ImportResult, ImporterInfo } from 'interfaces';
 
 declare global {
 	interface Window {
@@ -10,12 +10,24 @@ declare global {
 }
 
 export default class ImporterPlugin extends Plugin {
-	importers: Record<string, FormatImporter>;
+	importers: ImporterInfo[];
 
 	async onload() {
-		this.importers = {
-			'evernote': new EvernoteEnexImporter(this.app)
-		};
+		this.importers = [];
+		this.importers.push({
+			id: 'evernote-enex',
+			name: `Evernote (.enex)`,
+			exportFolerName: 'Evernote',
+			extensions: ['enex'],
+			importer: new EvernoteEnexImporter(this.app)
+		});
+		this.importers.push({
+			id: 'html',
+			name: `HTML (.html))`,
+			exportFolerName: 'HTML',
+			extensions: ['html'],
+			importer: new HtmlImporter(this.app)
+		});
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
@@ -38,7 +50,7 @@ export default class ImporterPlugin extends Plugin {
 class ImporterModal extends Modal {
 	plugin: ImporterPlugin;
 	fileLocationSetting: Setting;
-	outputLocationSettingInput: HTMLInputElement;
+	outputLocationSettingInput: TextComponent;
 	filePaths: string[] = [];
 	fileFormatSetting: DropdownComponent;
 
@@ -53,10 +65,15 @@ class ImporterModal extends Modal {
 		new Setting(contentEl)
 			.setName('File format')
 			.setDesc('The format to be imported.')
-			.addDropdown(dropdown => dropdown
-				.addOption('evernote', 'Evernote (.enex)')
-				.addOption('html', 'HTML file (.html)')
-				.then(dropdown => this.fileFormatSetting = dropdown));
+			.addDropdown(dropdown => {
+				let importers = this.plugin.importers;
+
+				for (let importer of importers) {
+					dropdown.addOption(importer.id, importer.name);
+				}
+
+				this.fileFormatSetting = dropdown;
+			});
 
 		this.fileLocationSetting = new Setting(contentEl)
 			.setName('Files to import')
@@ -64,11 +81,15 @@ class ImporterModal extends Modal {
 			.addButton(button => button
 				.setButtonText('Browse')
 				.onClick(() => {
+					let importerInfo = this.getCurrentImporterInfo();
+					if (!importerInfo) {
+						return;
+					}
 					let electron = window.electron;
 					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
-						title: 'Pick Evernote ENEX',
+						title: 'Pick files to import',
 						properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
-						filters: [{ name: 'ENEX (Evernote export)', extensions: ['enex'] }],
+						filters: [{ name: importerInfo.name, extensions: importerInfo.extensions }],
 					});
 
 					if (selectedFiles && selectedFiles.length > 0) {
@@ -82,8 +103,16 @@ class ImporterModal extends Modal {
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
 				.setValue('Evernote')
-				.then(text => this.outputLocationSettingInput = text.inputEl));
+				.then(text => this.outputLocationSettingInput = text));
 
+		this.fileFormatSetting.onChange(() => {
+			let newImporterInfo = this.getCurrentImporterInfo();
+			if (!newImporterInfo) {
+				return;
+			}
+
+			this.outputLocationSettingInput.setValue(newImporterInfo.exportFolerName);
+		})
 
 		contentEl.createDiv('button-container u-center-text', el => {
 			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
@@ -93,23 +122,31 @@ class ImporterModal extends Modal {
 						return;
 					}
 
-					let fileFormat = this.fileFormatSetting.getValue();
-					let importer = this.plugin.importers[fileFormat];
-
-					if (!importer) {
-						new Notice('Invalid import format.');
+					let importerInfo = this.getCurrentImporterInfo();
+					if (!importerInfo) {
 						return;
 					}
 
-
-
 					this.modalEl.addClass('is-loading');
-					let results = await importer.import(this.filePaths, this.outputLocationSettingInput.value);
+				
+					let results = await importerInfo.importer.import(this.filePaths, this.outputLocationSettingInput.getValue());
 					this.modalEl.removeClass('is-loading');
 					this.showResult(results);
 				});
 			});
 		});
+	}
+
+	getCurrentImporterInfo(): ImporterInfo {
+		let format = this.fileFormatSetting.getValue();
+		let importers = this.plugin.importers.filter(importer => importer.id === format);
+
+		if (importers.length === 0) {
+			new Notice('Invalid import format.');
+			return null;
+		}
+
+		return importers.first();
 	}
 
 	updateFileLocation() {

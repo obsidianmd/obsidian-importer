@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { ImportResult } from "yarle/interfaces";
+import { ImportResult } from "interfaces";
 
 export abstract class FormatImporter {
 	app: App;
