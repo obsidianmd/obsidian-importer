@@ -1,7 +1,7 @@
+import { FormatImporter } from 'format-importer';
 import { EvernoteEnexImporter } from 'formats/evernote-enex';
 import { HtmlImporter } from 'html';
 import { App, DropdownComponent, Modal, Notice, Plugin, Setting, TextComponent } from 'obsidian';
-import { ImportResult, ImporterInfo } from 'interfaces';
 
 declare global {
 	interface Window {
@@ -9,25 +9,19 @@ declare global {
 	}
 }
 
+export interface ImportResult {
+	total: number,
+	failed: number,
+	skipped: number
+}
+
 export default class ImporterPlugin extends Plugin {
-	importers: ImporterInfo[];
+	importers: FormatImporter[];
 
 	async onload() {
 		this.importers = [];
-		this.importers.push({
-			id: 'evernote-enex',
-			name: `Evernote (.enex)`,
-			exportFolerName: 'Evernote',
-			extensions: ['enex'],
-			importer: new EvernoteEnexImporter(this.app)
-		});
-		this.importers.push({
-			id: 'html',
-			name: `HTML (.html))`,
-			exportFolerName: 'HTML',
-			extensions: ['html'],
-			importer: new HtmlImporter(this.app)
-		});
+		this.importers.push(new EvernoteEnexImporter(this.app));
+		this.importers.push(new HtmlImporter(this.app));
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
@@ -106,12 +100,12 @@ class ImporterModal extends Modal {
 				.then(text => this.outputLocationSettingInput = text));
 
 		this.fileFormatSetting.onChange(() => {
-			let newImporterInfo = this.getCurrentImporterInfo();
-			if (!newImporterInfo) {
+			let newImporter = this.getCurrentImporterInfo();
+			if (!newImporter) {
 				return;
 			}
 
-			this.outputLocationSettingInput.setValue(newImporterInfo.exportFolerName);
+			this.outputLocationSettingInput.setValue(newImporter.defaultExportFolerName);
 		})
 
 		contentEl.createDiv('button-container u-center-text', el => {
@@ -128,7 +122,7 @@ class ImporterModal extends Modal {
 					}
 
 					this.modalEl.addClass('is-loading');
-					let results = await importerInfo.importer.import(this.filePaths, this.outputLocationSettingInput.getValue());
+					let results = await importerInfo.import(this.filePaths, this.outputLocationSettingInput.getValue());
 					this.modalEl.removeClass('is-loading');
 					this.showResult(results);
 				});
@@ -136,7 +130,7 @@ class ImporterModal extends Modal {
 		});
 	}
 
-	getCurrentImporterInfo(): ImporterInfo {
+	getCurrentImporterInfo(): FormatImporter {
 		let format = this.fileFormatSetting.getValue();
 		let importers = this.plugin.importers.filter(importer => importer.id === format);
 

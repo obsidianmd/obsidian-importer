@@ -12,7 +12,7 @@ import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 import { YarleOptions } from './YarleOptions';
-import { ImportResult } from '../../interfaces';
+import { ImportResult } from '../../main';
 
 export const defaultYarleOptions: YarleOptions = {
 	enexSources: ['notebook.enex'],

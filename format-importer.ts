@@ -1,8 +1,13 @@
 import { App } from "obsidian";
-import { ImportResult } from "interfaces";
+import { ImportResult } from "main";
 
 export abstract class FormatImporter {
 	app: App;
+
+	id: string;
+	name: string;
+	extensions: string[];
+	defaultExportFolerName: string;
 
 	constructor(app: App) {
 		this.app = app;

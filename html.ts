@@ -2,13 +2,17 @@ import * as fs from 'fs';
 import { FormatImporter } from "format-importer";
 import { App, FileSystemAdapter, TFolder, htmlToMarkdown, normalizePath } from "obsidian";
 import { baseFileName, sanitizeFileName } from "./util";
-import { ImportResult } from "interfaces";
+import { ImportResult } from "main";
 
 export class HtmlImporter extends FormatImporter {
+	id = 'html';
+	name = `HTML (.html)`;
+	extensions = ['html'];
+	defaultExportFolerName = 'HTML';
+
 	async import(filePaths: string[], outputFolder: string) {
 		let { app } = this;
 		let adapter = app.vault.adapter;
-
 
 		if (!(adapter instanceof FileSystemAdapter)) return;
 

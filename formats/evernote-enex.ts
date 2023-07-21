@@ -4,7 +4,11 @@ import * as path from 'path';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
-	app: App;
+	id = 'evernote-enex';
+	name = `Evernote (.enex)`;
+	extensions = ['enex'];
+	defaultExportFolerName = 'Evernote';
+
 	folderPath: string;
 	folder: TFolder;
 
