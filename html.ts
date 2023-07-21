@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { FormatImporter } from "format-importer";
-import { App, FileSystemAdapter, TFolder, htmlToMarkdown, normalizePath } from "obsidian";
-import { baseFileName, sanitizeFileName } from "./util";
+import { FileSystemAdapter, TFolder, htmlToMarkdown, normalizePath } from "obsidian";
+import { pathToFilename, sanitizeFileName } from "./util";
 import { ImportResult } from "main";
 
 export class HtmlImporter extends FormatImporter {
@@ -38,7 +38,7 @@ export class HtmlImporter extends FormatImporter {
 				if (folder instanceof TFolder) {
 					let htmlContent = await fs.readFileSync(path, 'utf-8');
 					let mdContent = htmlToMarkdown(htmlContent);
-					await this.saveAsMarkdownFile(folder, baseFileName(normalizePath(path)), mdContent);
+					await this.saveAsMarkdownFile(folder, pathToFilename(path), mdContent);
 					results.total++;
 				}
 			} catch (e) {
