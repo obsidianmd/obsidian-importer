@@ -92,11 +92,26 @@ export abstract class FormatImporter {
 		let folder = await this.getOutputFolder();
 
 		let fileList = this.listInputFiles();
+		let result: ImportResult = { total: 0, failed: 0, skipped: 0 }
 		for (let transformor of this.transformors) {
-			for (let path of fileList) {
-				let originalContent = await fs.readFileSync(path, 'utf-8');
-				let transformedContent = await transformor(originalContent, path);
-				this.saveAsMarkdownFile(folder, pathToFilename(path), transformedContent);
+			for (let path of filePaths) {
+				try {
+					let originalContent = await fs.readFileSync(path, 'utf-8');
+					let transformedContent = await transformor(originalContent, path);
+					if (transformedContent === null) {
+						result.skipped++;
+
+					}
+					else {
+						this.saveAsMarkdownFile(folder, pathToFilename(path), transformedContent);
+					}
+
+					result.total++;
+				}
+				catch (e) {
+					console.error(e);
+					result.failed++;
+				}
 			}
 		}
 
@@ -105,9 +120,11 @@ export abstract class FormatImporter {
 		for (let postProcessor of this.postProcessors) {
 			postProcessor(inputFiles, outputFiles);
 		}
+		
+		return result;
 	}
 
-	private async getOutputFolder(): Promise<TFolder> | null {
+	async getOutputFolder(): Promise<TFolder> | null {
 		let folder = app.vault.getAbstractFileByPath(this.outputFolderPath);
 
 		if (folder === null || !(folder instanceof TFolder)) {
