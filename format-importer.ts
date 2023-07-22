@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { App, FileSystemAdapter, TFile, TFolder } from "obsidian";
+import { App, FileSystemAdapter, TFile, TFolder, normalizePath } from "obsidian";
 import { ImportResult } from "main";
 import { pathToFilename, sanitizeFileName } from "./util";
 
@@ -103,6 +103,7 @@ export abstract class FormatImporter {
 
 					}
 					else {
+						path = normalizePath(path);
 						this.saveAsMarkdownFile(folder, pathToFilename(path), transformedContent);
 					}
 
@@ -120,7 +121,7 @@ export abstract class FormatImporter {
 		for (let postProcessor of this.postProcessors) {
 			postProcessor(inputFiles, outputFiles);
 		}
-		
+
 		return result;
 	}
 
