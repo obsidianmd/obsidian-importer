@@ -19,9 +19,10 @@ export default class ImporterPlugin extends Plugin {
 	importers: FormatImporter[];
 
 	async onload() {
-		this.importers = [];
-		this.importers.push(new EvernoteEnexImporter(this.app));
-		this.importers.push(new HtmlImporter(this.app));
+		this.importers = [
+			new EvernoteEnexImporter(this.app),
+			new HtmlImporter(this.app)
+		];
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
