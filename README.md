@@ -30,6 +30,14 @@ Currently, the import does not have any special settings, if you want more contr
 
 ![Obsidian Importer screenshot](/images/screenshot.png)
 
+## Contribution guide
+
+You can create a new importer by adding a class under the `formats` folder that implements the `FormatImporter` class.
+
+If you need to add settings, add the setting UI to `this.modal.contentEl` like how you would add them to a plugin. After you're done, simply add your importer to `ImporterPlugin.importers` in `main.ts`.
+
+We're still experimenting with contributions, if you have any questions, please hop onto the [#importer thread under #plugin-dev channel](https://discord.com/channels/686053708261228577/1133074995271188520) on our Discord.
+
 ## Credits
 
 This plugin relies on important contributions:
