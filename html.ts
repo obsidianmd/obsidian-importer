@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import { FormatImporter } from "./format-importer";
 import { Notice, htmlToMarkdown, normalizePath } from "obsidian";
 import { pathToFilename } from './util';
@@ -31,7 +30,7 @@ export class HtmlImporter extends FormatImporter {
 
 		for (let path of filePaths) {
 			try {
-				let htmlContent = await fs.readFileSync(path, 'utf-8');
+				let htmlContent = await this.readPath(path);
 				let mdContent = htmlToMarkdown(htmlContent);
 				path = normalizePath(path);
 				await this.saveAsMarkdownFile(folder, pathToFilename(path), mdContent);

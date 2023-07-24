@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { App, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
@@ -92,6 +93,10 @@ export abstract class FormatImporter {
 				});
 			});
 		});
+	}
+
+	async readPath(path: string) {
+		return await fs.readFileSync(path, 'utf-8');
 	}
 
 	// todo: return results
