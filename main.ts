@@ -1,6 +1,6 @@
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
-import { HtmlImporter } from './html';
+import { HtmlImporter } from './formats/html';
 import { App, Modal, Plugin, Setting } from 'obsidian';
 
 declare global {

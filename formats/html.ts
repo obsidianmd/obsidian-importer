@@ -1,7 +1,7 @@
-import { FormatImporter } from "./format-importer";
+import { FormatImporter } from "../format-importer";
 import { Notice, htmlToMarkdown, normalizePath } from "obsidian";
-import { pathToFilename } from './util';
-import { ImportResult } from './main';
+import { pathToFilename } from '../util';
+import { ImportResult } from '../main';
 
 export class HtmlImporter extends FormatImporter {
 	init() {
