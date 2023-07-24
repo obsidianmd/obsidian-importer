@@ -1,136 +1,67 @@
-import * as fs from 'fs';
-import { App, FileSystemAdapter, TFile, TFolder, normalizePath } from "obsidian";
-import { ImportResult } from "main";
-import { pathToFilename, sanitizeFileName } from "./util";
+import { App, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
+import { ImportResult, ImporterModal } from "./main";
+import { sanitizeFileName } from "./util";
 
 export abstract class FormatImporter {
 	app: App;
+	modal: ImporterModal;
 
-	id: string;
-	name: string;
-	extensions: string[];
-	defaultExportFolerName: string;
-
-	transformors: Array<(input: string, path: string) => string | Promise<string>>;
-	postProcessors: Array<(originalFileList: string[], outputMarkdownFileList: string[]) => void>;
-
-	outputFolderPath: string;
-
-	constructor(app: App) {
+	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
-
-		this.transformors = [];
-		this.postProcessors = [];
-
-		this.outputFolderPath = this.defaultExportFolerName;
+		this.modal = modal;
+		this.init();
 	}
 
-	setOutputFolderPath(folderPath: string) {
+	abstract init(): void;
+
+	filePaths: string[] = [];
+	addFileChooserSetting(name: string, extensions: string[]) {
+		let fileLocationSetting = new Setting(this.modal.contentEl)
+			.setName('Files to import')
+			.setDesc('Pick the files that you want to import.')
+			.addButton(button => button
+				.setButtonText('Browse')
+				.onClick(() => {
+					let electron = window.electron;
+					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
+						title: 'Pick files to import',
+						properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
+						filters: [{ name, extensions }],
+					});
+
+					if (selectedFiles && selectedFiles.length > 0) {
+						this.filePaths = selectedFiles;
+						let descriptionFragment = document.createDocumentFragment();
+						descriptionFragment.createEl('span', { text: `You've picked the following files to import: ` });
+						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFiles.join(', ') });
+						fileLocationSetting.setDesc(descriptionFragment);
+					}
+				}));
+	}
+
+	outputLocationSettingInput: TextComponent;
+	addOutputLocationSetting(defaultExportFolerName: string) {
+		new Setting(this.modal.contentEl)
+			.setName('Output folder')
+			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
+			.addText(text => text
+				.setValue(defaultExportFolerName)
+				.then(text => this.outputLocationSettingInput = text));
+	}
+
+	async getOutputFolder(): Promise<TFolder> | null {
+		let { vault } = this.app;
+
+		let folderPath = this.outputLocationSettingInput.getValue();
 		if (folderPath === '') {
 			folderPath = '/';
 		}
 
-		this.outputFolderPath = folderPath;
-	}
-
-	// Using `addTransformer` to add a transformer function is the simplest way to perform an import
-	// by transform each file in their original format to Markdown `input: string` is the content of
-	// each file we're importing from the returned string is the content in each imported Markdown
-
-	// Note: you can add multiple transformers; they will be executed in the order that they're added
-	// For example, you might want to sanitize each file before
-
-	// If you want to skip a file, return `null`.
-	// If you want to create an empty Markdown file, return an empty string instead.
-	addTransformer(transformer: (input: string, path: string) => null | string | Promise<string>) {
-		this.transformors.push(transformer);
-	}
-
-	// Add post processors to make further changes after an initial pass done by transformors
-	// For example, you might want to do some cross referencing to fix the internal links or
-	// media links after converting everything to Markdown
-	// In Post Processors, it's common to make use of helper functions like `readMarkdownOutput`,
-	// `editMarkdownOutput`, and `replaceInMarkdownOutput` to fix up Markdown output
-	addPostProcessor(postProcessor: (originalFileList: string[], outputMarkdownFileList: string[]) => void) {
-		this.postProcessors.push(postProcessor);
-	}
-
-	// Read the Markdown output by path. DO NOT use this function in transformers; only use it in post processors.
-	// `path` is relative to the exported folder
-	async readMarkdownOutput(path: string): Promise<string> | null {
-		let { app } = this;
-		let file = this.getFileByPath(path);
-
-		return await app.vault.cachedRead(file);
-	}
-
-	async editMarkdownOutput(path: string, newContent: string) {
-		let { app } = this;
-		let file = this.getFileByPath(path);
-
-		return await app.vault.modify(file, newContent);
-	}
-
-	async replaceInMarkdownOutput(path: string, pattern: string | RegExp, replacement: string) {
-		let content = await this.readMarkdownOutput(path);
-		let newContent = content.replace(pattern, replacement);
-
-		await this.editMarkdownOutput(path, newContent);
-	}
-
-	// If you have already defined transformers and post processors, you can leave this alone
-	// You can handle everything yourself by overriding the `import` function
-	// Or you can call `super.import(filePaths, outputFolder)` inside your `import` function
-	// to still let the transformers and post processors run, but also add your own logic
-	async import(filePaths: string[], outputFolder: string): Promise<ImportResult> {
-		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
-
-		this.setOutputFolderPath(outputFolder);
-
-		let folder = await this.getOutputFolder();
-
-		let fileList = this.listInputFiles();
-		let result: ImportResult = { total: 0, failed: 0, skipped: 0 }
-		for (let transformor of this.transformors) {
-			for (let path of filePaths) {
-				try {
-					let originalContent = await fs.readFileSync(path, 'utf-8');
-					let transformedContent = await transformor(originalContent, path);
-					if (transformedContent === null) {
-						result.skipped++;
-
-					}
-					else {
-						path = normalizePath(path);
-						this.saveAsMarkdownFile(folder, pathToFilename(path), transformedContent);
-					}
-
-					result.total++;
-				}
-				catch (e) {
-					console.error(e);
-					result.failed++;
-				}
-			}
-		}
-
-		let inputFiles = this.listInputFiles();
-		let outputFiles = this.listOutputFiles();
-		for (let postProcessor of this.postProcessors) {
-			postProcessor(inputFiles, outputFiles);
-		}
-
-		return result;
-	}
-
-	async getOutputFolder(): Promise<TFolder> | null {
-		let folder = app.vault.getAbstractFileByPath(this.outputFolderPath);
+		let folder = vault.getAbstractFileByPath(folderPath);
 
 		if (folder === null || !(folder instanceof TFolder)) {
-			await app.vault.createFolder(this.outputFolderPath);
-			folder = app.vault.getAbstractFileByPath(this.outputFolderPath);
+			await vault.createFolder(folderPath);
+			folder = vault.getAbstractFileByPath(folderPath);
 		}
 
 		if (folder instanceof TFolder) {
@@ -140,26 +71,27 @@ export abstract class FormatImporter {
 		return null;
 	}
 
-	private getFileByPath(path: string): TFile | null {
-		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
+	abstract import(): Promise<void>;
 
-		let file = app.vault.getAbstractFileByPath(this.outputFolderPath + '/' + path);
+	showResult(result: ImportResult) {
+		let { modal } = this;
+		let { contentEl } = modal;
 
-		if (file instanceof TFile) {
-			return file;
+		contentEl.empty();
+
+		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed - result.skipped} notes, out of ${result.total} total notes!` });
+
+		if (result.skipped !== 0 || result.failed !== 0) {
+			contentEl.createEl('p', { text: `${result.skipped} notes were skipped and ${result.failed} notes failed to import.` });
 		}
 
-		return null;
-	}
-
-	private listInputFiles(): string[] {
-		return [];
-	}
-
-	private listOutputFiles(): string[] {
-		return [];
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+				el.addEventListener('click', async () => {
+					modal.close();
+				});
+			});
+		});
 	}
 
 	// todo: return results

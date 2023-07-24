@@ -75,12 +75,21 @@ const processResource = (workDir: string, resource: any): any => {
 	const resourceHash: any = {};
 	const data = resource.data.$text;
 
+	// Skip unknown type as we don't know how to handle
+	// Source: https://dev.evernote.com/doc/articles/data_structure.php
+	// "The default type "application/octet-stream" should be used if a more specific type is not known."
+	if (resource.mime === 'application/octet-stream') {
+		return resourceHash;
+	}
+
 	const accessTime = utils.getTimeStampMoment(resource);
 	const resourceFileProps = utils.getResourceFileProperties(workDir, resource);
 	let fileName = resourceFileProps.fileName;
 
 	const absFilePath = `${workDir}${path.sep}${fileName}`;
 
+	console.log(resource)
+	console.log(data);
 	let buffer = Buffer.from(data, 'base64');
 	fs.writeFileSync(absFilePath, buffer);
 

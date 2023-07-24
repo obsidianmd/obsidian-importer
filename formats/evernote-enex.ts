@@ -1,23 +1,30 @@
-import { FormatImporter } from "format-importer";
-import { FileSystemAdapter, TFolder } from "obsidian";
+import { FormatImporter } from "../format-importer";
+import { FileSystemAdapter, Notice } from "obsidian";
 import * as path from 'path';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
-	id = 'evernote-enex';
-	name = `Evernote (.enex)`;
-	extensions = ['enex'];
-	defaultExportFolerName = 'Evernote';
-	folder: TFolder;
+	init() {
+		this.addFileChooserSetting('Evernote (.enex)', ['enex']);
+		this.addOutputLocationSetting('Evernote');
+	}
 
-	async import(filePaths: string[], outputFolder: string) {
+	async import() {
+		let { filePaths } = this;
+		if (filePaths.length === 0) {
+			new Notice('Please pick at least one file to import.');
+			return;
+		}
+
+		let folder = await this.getOutputFolder();
+		if (!folder) {
+			new Notice('Please select a location to export to.');
+			return;
+		}
+
 		let { app } = this;
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
-
-		this.setOutputFolderPath(outputFolder);
-
-		let folder = await this.getOutputFolder();
 
 		let yarleOptions = {
 			...defaultYarleOptions,
@@ -27,6 +34,8 @@ export class EvernoteEnexImporter extends FormatImporter {
 			}
 		};
 
-		return await dropTheRope(yarleOptions);
+		let results = await dropTheRope(yarleOptions);
+
+		this.showResult(results);
 	}
 }
