@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { App, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
+import { App, DropdownComponent, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
 
@@ -18,6 +18,33 @@ export abstract class FormatImporter {
 	}
 
 	abstract init(): void;
+
+	// give option to choose both folder and file depending on their need
+	// this is due to the technical limitation that the system chooser doesn't let
+	// the user choose folders and individual files at the same time
+	addFileOrFolderChooserSetting(name: string, extensions: string[]) {
+		let importTypeSettingDropdown: DropdownComponent = null;
+		let updateSetting = () => {
+			let value = importTypeSettingDropdown.getValue();
+			this.fileLocationSetting.settingEl.toggle(value === 'files');
+			this.folderLocationSetting.settingEl.toggle(value === 'folders');
+		}
+
+		new Setting(this.modal.contentEl)
+			.setName('Import type')
+			.setName(`Choose if you're importing folders or files.`)
+			.addDropdown(dropdown => dropdown
+				.addOption('files', 'Files')
+				.addOption('folders', 'Folders')
+				.onChange(updateSetting)
+				.setValue('files')
+				.then(dropdown => importTypeSettingDropdown = dropdown));
+
+		this.addFileChooserSetting(name, extensions);
+		this.addFolderChooserSetting(name, extensions);
+
+		updateSetting();
+	}
 
 	addFileChooserSetting(name: string, extensions: string[]) {
 		this.fileLocationSetting = new Setting(this.modal.contentEl)
@@ -44,6 +71,34 @@ export abstract class FormatImporter {
 	}
 
 	addFolderChooserSetting(name: string, extensions: string[]) {
+		let walk = (dir: string): string[] => {
+			let results: string[] = [];
+			let list = fs.readdirSync(dir);
+
+			list.forEach(file => {
+				file = normalizePath(dir) + '/' + file;
+				let stat = fs.statSync(file);
+				if (stat && stat.isDirectory()) {
+					results = results.concat(walk(file));
+				}
+				else {
+					let lastDotPosition = file.lastIndexOf('.');
+
+					if (lastDotPosition === -1 || lastDotPosition === file.length - 1 || lastDotPosition === 0) {
+						return;
+					}
+
+					let extension = file.slice(lastDotPosition + 1);
+
+					if (extensions.contains(extension)) {
+						results.push(file);
+					}
+				}
+			});
+
+			return results;
+		}
+
 		this.folderLocationSetting = new Setting(this.modal.contentEl)
 			.setName('Folders to import')
 			.setDesc('Pick the folders that you want to import.')
@@ -51,21 +106,24 @@ export abstract class FormatImporter {
 				.setButtonText('Browse')
 				.onClick(async () => {
 					let electron = window.electron;
-					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
+					let selectedFolders = electron.remote.dialog.showOpenDialogSync({
 						title: 'Pick folders to import',
 						properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 						filters: [{ name, extensions }],
 					});
 
-					if (selectedFiles && selectedFiles.length > 0) {
-						this.filePaths = selectedFiles;
-						for (let folder of selectedFiles) {
-							console.log(folder)
-							console.log(await fs.readdirSync(folder))
+					if (selectedFolders && selectedFolders.length > 0) {
+						this.filePaths = [];
+
+						for (let folder of selectedFolders) {
+							this.filePaths = this.filePaths.concat(walk(folder));
 						}
+
+						console.log(this.filePaths)
+
 						let descriptionFragment = document.createDocumentFragment();
 						descriptionFragment.createEl('span', { text: `You've picked the following folders to import: ` });
-						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFiles.join(', ') });
+						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFolders.join(', ') });
 						this.folderLocationSetting.setDesc(descriptionFragment);
 					}
 				}));
