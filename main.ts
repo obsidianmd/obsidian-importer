@@ -60,13 +60,16 @@ export class ImporterModal extends Modal {
 		super(app);
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
+
+		let keys = Object.keys(this.importers);
+		if (keys.length > 0) {
+			this.updateContent(keys[0]);
+		}
 	}
 
 	updateContent(selectedId: string) {
-		const { contentEl } = this;
+		const { contentEl, importers } = this;
 		contentEl.empty();
-
-		let importers = this.plugin.importers;
 
 		new Setting(contentEl)
 			.setName('File format')
@@ -101,6 +104,10 @@ export class ImporterModal extends Modal {
 				});
 			});
 		}
+	}
+
+	get importers() {
+		return this.plugin.importers;
 	}
 
 	onClose() {

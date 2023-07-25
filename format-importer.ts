@@ -6,6 +6,10 @@ import { sanitizeFileName } from "./util";
 export abstract class FormatImporter {
 	app: App;
 	modal: ImporterModal;
+	filePaths: string[] = [];
+	outputLocationSettingInput: TextComponent;
+	fileLocationSetting: Setting;
+	folderLocationSetting: Setting;
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
@@ -15,9 +19,8 @@ export abstract class FormatImporter {
 
 	abstract init(): void;
 
-	filePaths: string[] = [];
 	addFileChooserSetting(name: string, extensions: string[]) {
-		let fileLocationSetting = new Setting(this.modal.contentEl)
+		this.fileLocationSetting = new Setting(this.modal.contentEl)
 			.setName('Files to import')
 			.setDesc('Pick the files that you want to import.')
 			.addButton(button => button
@@ -35,12 +38,39 @@ export abstract class FormatImporter {
 						let descriptionFragment = document.createDocumentFragment();
 						descriptionFragment.createEl('span', { text: `You've picked the following files to import: ` });
 						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFiles.join(', ') });
-						fileLocationSetting.setDesc(descriptionFragment);
+						this.fileLocationSetting.setDesc(descriptionFragment);
 					}
 				}));
 	}
 
-	outputLocationSettingInput: TextComponent;
+	addFolderChooserSetting(name: string, extensions: string[]) {
+		this.folderLocationSetting = new Setting(this.modal.contentEl)
+			.setName('Folders to import')
+			.setDesc('Pick the folders that you want to import.')
+			.addButton(button => button
+				.setButtonText('Browse')
+				.onClick(async () => {
+					let electron = window.electron;
+					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
+						title: 'Pick folders to import',
+						properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
+						filters: [{ name, extensions }],
+					});
+
+					if (selectedFiles && selectedFiles.length > 0) {
+						this.filePaths = selectedFiles;
+						for (let folder of selectedFiles) {
+							console.log(folder)
+							console.log(await fs.readdirSync(folder))
+						}
+						let descriptionFragment = document.createDocumentFragment();
+						descriptionFragment.createEl('span', { text: `You've picked the following folders to import: ` });
+						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFiles.join(', ') });
+						this.folderLocationSetting.setDesc(descriptionFragment);
+					}
+				}));
+	}
+
 	addOutputLocationSetting(defaultExportFolerName: string) {
 		new Setting(this.modal.contentEl)
 			.setName('Output folder')
