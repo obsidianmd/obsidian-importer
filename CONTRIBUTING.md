@@ -16,7 +16,7 @@ We're still experimenting with contributions, if you have any questions, please 
 
 ### Bounties
 
-Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty)
+Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). How to claim a bounty:
 
 1. **Apply for a bounty** — to apply reply to the issue with a 1-2 sentence description of why you would be a good fit, and links to code samples (e.g. Obsidian community plugins)
 2. **Receive assignment** — the bounty will be assigned to one developer. We will notify you on the issue if you are selected.
