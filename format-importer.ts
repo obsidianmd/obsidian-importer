@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { App, DropdownComponent, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
@@ -76,7 +77,8 @@ export abstract class FormatImporter {
 			let list = fs.readdirSync(dir);
 
 			list.forEach(file => {
-				file = normalizePath(dir) + '/' + file;
+				file = path.join(dir, file);
+
 				let stat = fs.statSync(file);
 				if (stat && stat.isDirectory()) {
 					results = results.concat(walk(file));
@@ -118,8 +120,6 @@ export abstract class FormatImporter {
 						for (let folder of selectedFolders) {
 							this.filePaths = this.filePaths.concat(walk(folder));
 						}
-
-						console.log(this.filePaths)
 
 						let descriptionFragment = document.createDocumentFragment();
 						descriptionFragment.createEl('span', { text: `You've picked the following folders to import: ` });
