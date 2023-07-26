@@ -16,9 +16,12 @@ We're still experimenting with contributions, if you have any questions, please 
 
 ### Bounties
 
-Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). How to claim a bounty:
+Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). We're looking for developers who have experience with the relevant import formats, and TypeScript/Obsidian development. How to claim a bounty:
 
-1. **Apply for a bounty** — to apply reply to the issue with a 1-2 sentence description of why you would be a good fit, and links to code samples (e.g. Obsidian community plugins). We will prioritize developers who have experience with the relevant import format, and TypeScript/Obsidian development.
+1. **Apply for a bounty** — to apply reply to the issue with the following details:
+	- 1-2 sentence description of why you would be a good fit
+	- 1-2 sentences about how you would approach the requirements
+	- Links to code samples, e.g. Obsidian community contributions
 2. **Receive assignment** — the bounty will be assigned to one developer. We will notify you on the issue if you are selected.
 3. **Fork repo** — if you have questions during the development you can ask in the Obsidian Discord channel *#importer* (under #plugin-dev)
 4. **Submit your PR** — submit your code within the bounty timeframe. If the timeframe elapses, the bounty will be reassigned to another developer.
