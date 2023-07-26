@@ -33,7 +33,7 @@ export abstract class FormatImporter {
 
 		new Setting(this.modal.contentEl)
 			.setName('Import type')
-			.setName(`Choose if you're importing folders or files.`)
+			.setDesc('Choose if you want to import folders or files.')
 			.addDropdown(dropdown => dropdown
 				.addOption('files', 'Files')
 				.addOption('folders', 'Folders')
