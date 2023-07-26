@@ -19,7 +19,7 @@ We're still experimenting with contributions, if you have any questions, please 
 Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). We're looking for developers who have experience with the relevant import formats, and TypeScript/Obsidian development. How to claim a bounty:
 
 1. **Apply for a bounty** — to apply reply to the issue with the following details:
-	- 1-2 sentence description of why you would be a good fit
+	- 1-2 sentences about why you would be a good fit
 	- 1-2 sentences about how you would approach the requirements
 	- Links to code samples, e.g. Obsidian community contributions
 2. **Receive assignment** — the bounty will be assigned to one developer. We will notify you on the issue if you are selected.
