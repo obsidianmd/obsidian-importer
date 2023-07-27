@@ -29,3 +29,11 @@ export function pathToFilename(path: string) {
 
 	return filename.slice(0, lastDotPosition);
 }
+
+export function stripFileExtension(path: string) {
+	return path.contains('.') ? path.slice(0, path.lastIndexOf('.')) : path;
+}
+
+export function getParentFolder(path: string) {
+	return path.contains('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+}

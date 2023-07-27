@@ -6,5 +6,5 @@ export const stripNotionId = (id: string) => {
 };
 
 export const getNotionId = (id: string) => {
-	return id.replace(/(\.(md|csv))?$/, '').match(/[a-z0-9]{32}$/)?.[0];
+	return id.match(/[a-z0-9]{32}$/)?.[0];
 };

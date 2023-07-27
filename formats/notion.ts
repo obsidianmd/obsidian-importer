@@ -2,7 +2,7 @@ import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import { FileSystemAdapter, Notice } from 'obsidian';
 import { processFile } from './notion/importer';
-import { escapeRegex } from '../util';
+import { escapeRegex, getParentFolder, stripFileExtension } from '../util';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -22,8 +22,6 @@ export class NotionImporter extends FormatImporter {
 			return;
 		}
 
-		const outputFolder = (await this.getOutputFolder()).path;
-
 		const folderHTML = this.folderLocationSetting.descEl.innerHTML;
 		const folderPaths = folderHTML
 			.match(/<span class="u-pop">.*?<\/span>/g)
@@ -32,7 +30,7 @@ export class NotionImporter extends FormatImporter {
 			);
 		const folderPathsReplacement = new RegExp(
 			folderPaths
-				.map((folderPath) => '^' + escapeRegex(folderPath))
+				.map((folderPath) => '^' + escapeRegex(folderPath) + '/')
 				.join('|')
 		);
 
@@ -47,21 +45,27 @@ export class NotionImporter extends FormatImporter {
 		};
 
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
+		const hrefsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 
 		await Promise.all(
 			filePaths.map(
 				(filePath) =>
 					new Promise(async (resolve, reject) => {
 						try {
-							const destinationPath =
-								outputFolder +
-								filePath.replace(folderPathsReplacement, '');
+							const normalizedFilePath = filePath.replace(
+								folderPathsReplacement,
+								''
+							);
 							const text = await this.readPath(filePath);
-							const [id, fileInfo] = processFile({
+							const { id, fileInfo, attachments } = processFile({
 								text,
 								filePath,
-								destinationPath,
+								normalizedFilePath,
 							});
+							for (let [path, attachmentInfo] of Object.entries(
+								attachments
+							))
+								hrefsToAttachmentInfo[path] = attachmentInfo;
 
 							idsToFileInfo[id] = fileInfo;
 							resolve(true);
@@ -74,15 +78,42 @@ export class NotionImporter extends FormatImporter {
 			)
 		);
 
-		console.log(idsToFileInfo);
-		console.log(
-			'bodies',
-			Object.values(idsToFileInfo).filter((page) => page.body)
+		// Instead of a target path, have it so that it's just a title and a LIST of parent IDs
+
+		const pathDuplicateChecks = new Set<string>();
+		const titleDuplicateChecks = new Set<string>(
+			app.vault.getAllLoadedFiles().map((file) => file.name)
 		);
-		console.log(
-			'properties',
-			Object.values(idsToFileInfo).filter((page) => page.properties)
-		);
+
+		for (let [_id, fileInfo] of Object.entries(idsToFileInfo)) {
+			let pathDuplicateCheck = `${fileInfo.parentIds.join('/')}/${
+				fileInfo.title
+			}`;
+			console.log(pathDuplicateCheck, new Set([...pathDuplicateChecks]));
+
+			if (pathDuplicateChecks.has(pathDuplicateCheck)) {
+				let duplicateResolutionIndex = 2;
+				while (
+					pathDuplicateChecks.has(
+						`${pathDuplicateCheck} ${duplicateResolutionIndex}`
+					)
+				) {
+					duplicateResolutionIndex++;
+				}
+				fileInfo.title = `${fileInfo.title} ${duplicateResolutionIndex}`;
+			}
+
+			if (titleDuplicateChecks.has(fileInfo.title)) {
+				fileInfo.fullLinkPathNeeded = true;
+			}
+
+			pathDuplicateChecks.add(
+				`${fileInfo.parentIds.join('/')}/${fileInfo.title}`
+			);
+			titleDuplicateChecks.add(fileInfo.title);
+		}
+
+		console.log(idsToFileInfo, hrefsToAttachmentInfo);
 
 		this.showResult(results);
 	}

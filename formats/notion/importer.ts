@@ -1,15 +1,34 @@
 import moment from 'moment';
+import {
+	getParentFolder,
+	pathToFilename,
+	stripFileExtension,
+} from '../../util';
+import { getNotionId } from './utils/notion-ids';
 
+/**
+ * @param {{
+ * text: string,
+ * filePath: string,
+ * targetPath: string
+ * }} config - targetPath is missing the target folder and file extension. It will be manipulated until it reaches the final obsidian form (without Notion IDs)
+ */
 export const processFile = ({
 	text,
 	filePath,
-	destinationPath,
+	normalizedFilePath,
 }: {
 	text: string;
 	filePath: string;
-	destinationPath: string;
-}): [string, NotionFileInfo] => {
+	normalizedFilePath: string;
+}) => {
 	const id = text.match(/<article id="(.*?)"/)?.[1];
+	const parentFolder = getParentFolder(filePath);
+	const parentIds = getParentFolder(normalizedFilePath)
+		.split('/')
+		.map((parentNote) => getNotionId(parentNote))
+		.filter((id) => id);
+
 	const title = text.match(/<h1 class="page-title">(.*?)<\/h1>/)?.[1];
 	const description = text.match(
 		/<p class="page-description">((.|\n)*?)<\/p>/
@@ -18,14 +37,21 @@ export const processFile = ({
 		/<table class="properties"><tbody>((.|\n)*?)<\/tbody><\/table>/
 	)?.[1];
 
-	let properties: ObsidianProperty[] | undefined;
+	const properties: ObsidianProperty[] = [];
+	const attachments: Record<string, NotionAttachmentInfo> = {};
+
 	if (rawProperties) {
-		const propertyList = rawProperties.match(/<tr.*?<\/tr>/g);
-		if (propertyList?.length > 0) {
-			properties = propertyList
-				.map((property) => parseProperty(property))
-				.filter((property) => property.content);
-			if (properties.length === 0) properties = undefined;
+		const rawPropertyList = rawProperties.match(/<tr.*?<\/tr>/g);
+		for (let rawProperty of rawPropertyList) {
+			const property = parseProperty(rawProperty);
+
+			if (property.notionType === 'file' && property.type === 'list') {
+				for (let href of property.content) {
+					attachments[href] = parseAttachmentInfo(href, parentFolder);
+				}
+			}
+
+			if (property.content) properties.push(property);
 		}
 	}
 
@@ -34,25 +60,51 @@ export const processFile = ({
 			/<div class="page-body">((.|\n)*)<\/div><\/article><\/body><\/html>/
 		)?.[1] ?? '';
 
-	return [
+	console.log(
+		`${encodeURIComponent(stripFileExtension(pathToFilename(filePath)))}`
+	);
+
+	const thisFileHref = encodeURIComponent(
+		stripFileExtension(pathToFilename(filePath))
+	);
+	const attachmentLinks = body
+		.match(new RegExp(`<a href="${thisFileHref}\\/.*?"`, 'g'))
+		?.map((attachment) => attachment.match(/"(.*?)"/)[0]);
+	for (let attachment of attachmentLinks) {
+		attachments[attachment] = parseAttachmentInfo(attachment, parentFolder);
+	}
+
+	return {
 		id,
-		{
+		fileInfo: {
 			path: filePath,
-			destinationPath,
+			parentIds,
 			body,
 			title,
 			properties,
 			description,
 			htmlToMarkdown: false,
+			fullLinkPathNeeded: false,
 		},
-	];
+		attachments,
+	};
 };
 
-const parseProperty = (property: string): ObsidianProperty => {
-	const type = property.match(
+const parseAttachmentInfo = (
+	href: string,
+	parentFolder: string
+): NotionAttachmentInfo => {
+	const linkText = stripFileExtension(decodeURI(href));
+	const path = parentFolder + '/' + linkText;
+	return { linkText, path };
+};
+
+const parseProperty = (property: string) => {
+	const notionType = property.match(
 		/<tr class="property-row property-row-(.*?)"/
 	)?.[1] as NotionPropertyType;
-	if (!type) throw new Error('property type not found for: ' + property);
+	if (!notionType)
+		throw new Error('property type not found for: ' + property);
 
 	const title = property.match(/<th>.*<\/span>(.*?)<\/th>/)?.[1];
 
@@ -80,12 +132,12 @@ const parseProperty = (property: string): ObsidianProperty => {
 	};
 
 	const obsidianType = Object.entries(typesMap).find(([_, notionTypes]) =>
-		notionTypes.includes(type)
+		notionTypes.includes(notionType)
 	)?.[0] as ObsidianProperty['type'];
 
 	if (!obsidianType) throw new Error('type not found for: ' + htmlContent);
 
-	switch (type) {
+	switch (notionType) {
 		case 'checkbox':
 			content = /checkbox-on/.test(htmlContent);
 			break;
@@ -123,11 +175,19 @@ const parseProperty = (property: string): ObsidianProperty => {
 			content = htmlContent;
 			break;
 		case 'file':
+			const fileList = htmlContent.match(/<a href=".*?"/g);
+			content = fileList?.map((linkHtml) => {
+				const linkHref = linkHtml.match(/<a href="(.*?)"/)[1];
+				return linkHref;
+			});
+			break;
 		case 'relation':
-			const allFiles = htmlContent.match(/<a href=".*"/g);
-			content = allFiles?.map((fileHtml) =>
-				decodeURI(fileHtml.match(/<a href="(.*)"/)[1])
-			);
+			const relationList = htmlContent.match(/<a href=".*?"/g);
+			content = relationList?.map((linkHtml) => {
+				const linkHref = linkHtml.match(/<a href="(.*?)"/)[1];
+				const linkText = stripFileExtension(decodeURI(linkHref));
+				return getNotionId(linkText);
+			});
 			break;
 		case 'multi_select':
 			const allSelects = htmlContent.match(/<span.*?>.*?<\/span>/g);
@@ -144,6 +204,7 @@ const parseProperty = (property: string): ObsidianProperty => {
 	const parsedProperty = {
 		title,
 		type: obsidianType,
+		notionType,
 		content,
 	} as ObsidianProperty;
 

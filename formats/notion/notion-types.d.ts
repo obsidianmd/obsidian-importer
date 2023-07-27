@@ -26,14 +26,17 @@ type ObsidianProperty = (
 	| { type: 'number'; content?: number }
 	| { type: 'list'; content?: string[] }
 	| { type: 'checkbox'; content: boolean }
-) & { title: string };
+) & { title: string; notionType: NotionPropertyType };
 
 type NotionFileInfo = {
 	title: string;
+	parentIds: string[];
 	path: string;
-	destinationPath: string;
 	properties?: ObsidianProperty[];
 	body: string;
 	description?: string;
 	htmlToMarkdown: boolean;
+	fullLinkPathNeeded: boolean;
 };
+
+type NotionAttachmentInfo = { path: string; linkText: string };
