@@ -1,3 +1,4 @@
+import { NotionImporter } from 'formats/notion';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
@@ -15,9 +16,9 @@ interface ImporterDefinition {
 }
 
 export interface ImportResult {
-	total: number,
-	failed: string[],
-	skipped: string[]
+	total: number;
+	failed: string[];
+	skipped: string[];
 }
 
 export default class ImporterPlugin extends Plugin {
@@ -25,32 +26,34 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
-			'evernote': {
+			evernote: {
 				name: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
 			},
-			'html': {
+			html: {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
+			},
+			notion: {
+				name: 'Notion (.html)',
+				importer: NotionImporter,
 			},
 		};
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
-		})
+		});
 
 		this.addCommand({
 			id: 'open-modal',
 			name: 'Open importer',
 			callback: () => {
 				new ImporterModal(this.app, this).open();
-			}
+			},
 		});
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 }
 
 export class ImporterModal extends Modal {
@@ -74,7 +77,7 @@ export class ImporterModal extends Modal {
 		new Setting(contentEl)
 			.setName('File format')
 			.setDesc('The format to be imported.')
-			.addDropdown(dropdown => {
+			.addDropdown((dropdown) => {
 				for (let id in importers) {
 					if (importers.hasOwnProperty(id)) {
 						dropdown.addOption(id, importers[id].name);
@@ -91,17 +94,21 @@ export class ImporterModal extends Modal {
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = new importers[selectedId].importer(this.app, this);
 
-			contentEl.createDiv('button-container u-center-text', el => {
-				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
-					el.addEventListener('click', async () => {
-						this.modalEl.addClass('is-loading');
-						try {
-							await importer.import();
-						} finally {
-							this.modalEl.removeClass('is-loading');
-						}
-					});
-				});
+			contentEl.createDiv('button-container u-center-text', (el) => {
+				el.createEl(
+					'button',
+					{ cls: 'mod-cta', text: 'Import' },
+					(el) => {
+						el.addEventListener('click', async () => {
+							this.modalEl.addClass('is-loading');
+							try {
+								await importer.import();
+							} finally {
+								this.modalEl.removeClass('is-loading');
+							}
+						});
+					}
+				);
 			});
 		}
 	}
@@ -115,4 +122,3 @@ export class ImporterModal extends Modal {
 		contentEl.empty();
 	}
 }
-

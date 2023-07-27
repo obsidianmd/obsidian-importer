@@ -1,5 +1,5 @@
-import { FormatImporter } from "../format-importer";
-import { FileSystemAdapter, Notice } from "obsidian";
+import { FormatImporter } from '../format-importer';
+import { FileSystemAdapter, Notice } from 'obsidian';
 import * as path from 'path';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
@@ -31,7 +31,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 			...{
 				enexSources: filePaths,
 				outputDir: path.join(adapter.getBasePath(), folder.path),
-			}
+			},
 		};
 
 		let results = await dropTheRope(yarleOptions);

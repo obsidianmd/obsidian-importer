@@ -10,7 +10,7 @@ Planned formats:
 
 - [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
 - [x] HTML, folder of files
-- [ ] Notion
+- [x] Notion, nested folder(s) of exported `.html` files
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
 - [ ] Google Keep
@@ -20,6 +20,17 @@ Planned formats:
 ## Usage
 
 First install Importer in Obsidian → Community Plugins
+
+### Import notes from Notion
+- Export your Notion files to `HTML` format. You can export a whole top-level page or database from Notion by clicking **More actions** (`...` icon) and chose **Export.** Chose the following settings:
+![Recommended Notion settings](images/notion-export-settings.png)
+- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
+- Under **File format** select **Notion (.html)**
+- Choose the folder(s) of Notion notes you want to import. **Note:** *Import all of your Notion notes at once to avoid conflicts with Notion IDs and Obsidian internal links!*
+- Select a folder for the import — your Notion pages and databases will be nested inside this folder.
+- Click **Import**
+
+The importer will convert any page properties to YAML metadata. Any pages with children are placed inside a parent folder of the same name, which is most compatible with many Obsidian "Folder-note" plugins. 
 
 ### Import notes from Evernote
 
