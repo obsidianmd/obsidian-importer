@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { App, DropdownComponent, Setting, TFolder, TextComponent } from "obsidian";
+import { App, DropdownComponent, Setting, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
 
@@ -117,7 +117,7 @@ export abstract class FormatImporter {
 					});
 
 					if (selectedFolders && selectedFolders.length > 0) {
-						this.folderPaths = [];
+						this.folderPaths = selectedFolders.map((path: string) => normalizePath(path));
 						this.filePaths = [];
 
 						for (let folder of selectedFolders) {
