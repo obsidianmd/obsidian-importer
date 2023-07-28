@@ -4,7 +4,7 @@ import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from 
 import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
-import { extension, lookup } from "mime-types";
+import { getExtension, getType } from "mime/lite";
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {}
@@ -117,8 +117,8 @@ export class HtmlImporter extends FormatImporter {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
-			if ((lookup(filename) || "application/octet-stream") !== type) {
-				const ext = extension(type);
+			if ((getType(filename) ?? "application/octet-stream") !== type) {
+				const ext = getExtension(type);
 				if (ext) {
 					filename += `.${ext}`;
 				}
@@ -131,7 +131,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestFile(url: URL) {
-		const type = lookup(getURLFilename(url)) || "application/octet-stream";
+		const type = getType(getURLFilename(url)) ?? "application/octet-stream";
 		return { type, data: (await readFile(fileURLToPath(url))).buffer };
 	}
 
@@ -158,7 +158,7 @@ export class HtmlImporter extends FormatImporter {
 				throw e;
 			}
 		}
-		const type = response.headers["Content-Type"] || lookup(getURLFilename(url)) || "application/octet-stream";
+		const type = response.headers["Content-Type"] || (getType(getURLFilename(url)) ?? "application/octet-stream");
 		return { type, data: response.arrayBuffer };
 	}
 
