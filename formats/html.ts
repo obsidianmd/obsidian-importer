@@ -116,7 +116,7 @@ export class HtmlImporter extends FormatImporter {
 			if (!this.filterType(type)) {
 				return "skipped";
 			}
-			let filename = HtmlImporter.getURLFilename(url);
+			let filename = getURLFilename(url);
 			if ((lookup(filename) || "application/octet-stream") !== type) {
 				const ext = extension(type);
 				if (ext) {
@@ -131,7 +131,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestFile(url: URL) {
-		const type = lookup(HtmlImporter.getURLFilename(url)) || "application/octet-stream";
+		const type = lookup(getURLFilename(url)) || "application/octet-stream";
 		return { type, data: (await readFile(fileURLToPath(url))).buffer };
 	}
 
@@ -158,7 +158,7 @@ export class HtmlImporter extends FormatImporter {
 				throw e;
 			}
 		}
-		const type = response.headers["Content-Type"] || lookup(HtmlImporter.getURLFilename(url)) || "application/octet-stream";
+		const type = response.headers["Content-Type"] || lookup(getURLFilename(url)) || "application/octet-stream";
 		return { type, data: response.arrayBuffer };
 	}
 
@@ -183,8 +183,9 @@ export class HtmlImporter extends FormatImporter {
 		return ["audio/", "image/", "video/"]
 			.some(prefix => mimeType.startsWith(prefix));
 	}
+}
 
-	static getURLFilename(url: URL) {
-		return pathToFilename(normalizePath(decodeURI(url.pathname)));
-	}
+
+function getURLFilename(url: URL) {
+	return pathToFilename(normalizePath(decodeURI(url.pathname)));
 }
