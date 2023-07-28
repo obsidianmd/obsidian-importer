@@ -187,10 +187,9 @@ export abstract class FormatImporter {
 		return await fs.readFileSync(path, 'utf-8');
 	}
 
-	// todo: return results
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string) {
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
 		let santizedName = sanitizeFileName(title);
 		//@ts-ignore
-		await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
+		return await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
 	}
 }
