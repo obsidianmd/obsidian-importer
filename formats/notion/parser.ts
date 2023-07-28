@@ -4,7 +4,11 @@ import {
 	pathToFilename,
 	stripFileExtension,
 } from '../../util';
-import { getNotionId } from './utils/notion-ids';
+import {
+	getAttachmentPath,
+	getNotionId,
+	matchAttachmentLinks,
+} from './notion-utils';
 
 /**
  * @param {{
@@ -13,7 +17,7 @@ import { getNotionId } from './utils/notion-ids';
  * targetPath: string
  * }} config - targetPath is missing the target folder and file extension. It will be manipulated until it reaches the final obsidian form (without Notion IDs)
  */
-export const processFile = ({
+export const parseFileInfo = ({
 	text,
 	filePath,
 	normalizedFilePath,
@@ -22,7 +26,7 @@ export const processFile = ({
 	filePath: string;
 	normalizedFilePath: string;
 }) => {
-	const id = text.match(/<article id="(.*?)"/)?.[1];
+	const id = getNotionId(text.match(/<article id="(.*?)"/)[1]);
 	const parentFolder = getParentFolder(filePath);
 	const parentIds = getParentFolder(normalizedFilePath)
 		.split('/')
@@ -38,7 +42,7 @@ export const processFile = ({
 	)?.[1];
 
 	const properties: ObsidianProperty[] = [];
-	const attachments: Record<string, NotionAttachmentInfo> = {};
+	const attachments = new Set<string>();
 
 	if (rawProperties) {
 		const rawPropertyList = rawProperties.match(/<tr.*?<\/tr>/g);
@@ -47,7 +51,8 @@ export const processFile = ({
 
 			if (property.notionType === 'file' && property.type === 'list') {
 				for (let href of property.content) {
-					attachments[href] = parseAttachmentInfo(href, parentFolder);
+					const path = getAttachmentPath(href, parentFolder);
+					attachments.add(path);
 				}
 			}
 
@@ -60,18 +65,14 @@ export const processFile = ({
 			/<div class="page-body">((.|\n)*)<\/div><\/article><\/body><\/html>/
 		)?.[1] ?? '';
 
-	console.log(
-		`${encodeURIComponent(stripFileExtension(pathToFilename(filePath)))}`
+	const attachmentLinks = matchAttachmentLinks(body, filePath)?.map(
+		(attachment) => attachment.match(/href="(.*?)"/)[1]
 	);
-
-	const thisFileHref = encodeURIComponent(
-		stripFileExtension(pathToFilename(filePath))
-	);
-	const attachmentLinks = body
-		.match(new RegExp(`<a href="${thisFileHref}\\/.*?"`, 'g'))
-		?.map((attachment) => attachment.match(/"(.*?)"/)[0]);
-	for (let attachment of attachmentLinks) {
-		attachments[attachment] = parseAttachmentInfo(attachment, parentFolder);
+	if (attachmentLinks) {
+		for (let attachment of attachmentLinks) {
+			const path = getAttachmentPath(attachment, parentFolder);
+			attachments.add(path);
+		}
 	}
 
 	return {
@@ -90,15 +91,7 @@ export const processFile = ({
 	};
 };
 
-const parseAttachmentInfo = (
-	href: string,
-	parentFolder: string
-): NotionAttachmentInfo => {
-	const linkText = stripFileExtension(decodeURI(href));
-	const path = parentFolder + '/' + linkText;
-	return { linkText, path };
-};
-
+// just map file paths to link text, then transfer.
 const parseProperty = (property: string) => {
 	const notionType = property.match(
 		/<tr class="property-row property-row-(.*?)"/
@@ -175,19 +168,9 @@ const parseProperty = (property: string) => {
 			content = htmlContent;
 			break;
 		case 'file':
-			const fileList = htmlContent.match(/<a href=".*?"/g);
-			content = fileList?.map((linkHtml) => {
-				const linkHref = linkHtml.match(/<a href="(.*?)"/)[1];
-				return linkHref;
-			});
-			break;
 		case 'relation':
-			const relationList = htmlContent.match(/<a href=".*?"/g);
-			content = relationList?.map((linkHtml) => {
-				const linkHref = linkHtml.match(/<a href="(.*?)"/)[1];
-				const linkText = stripFileExtension(decodeURI(linkHref));
-				return getNotionId(linkText);
-			});
+			const linkList = htmlContent.match(/<a href=".*?<\/a>/g);
+			content = linkList.flat();
 			break;
 		case 'multi_select':
 			const allSelects = htmlContent.match(/<span.*?>.*?<\/span>/g);

@@ -1,8 +1,16 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
-import { FileSystemAdapter, Notice } from 'obsidian';
-import { processFile } from './notion/importer';
-import { escapeRegex, getParentFolder, stripFileExtension } from '../util';
+import { FileSystemAdapter, Notice, normalizePath } from 'obsidian';
+import { parseFileInfo } from './notion/parser';
+import {
+	escapeRegex,
+	getFileExtension,
+	getParentFolder,
+	pathToFilename,
+	stripFileExtension,
+} from '../util';
+import { cleanDuplicates } from './notion/clean-duplicates';
+import { convertNotesToMd } from './notion/convert-to-md';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -45,7 +53,7 @@ export class NotionImporter extends FormatImporter {
 		};
 
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
-		const hrefsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
+		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 
 		await Promise.all(
 			filePaths.map(
@@ -57,17 +65,22 @@ export class NotionImporter extends FormatImporter {
 								''
 							);
 							const text = await this.readPath(filePath);
-							const { id, fileInfo, attachments } = processFile({
-								text,
-								filePath,
-								normalizedFilePath,
-							});
-							for (let [path, attachmentInfo] of Object.entries(
-								attachments
-							))
-								hrefsToAttachmentInfo[path] = attachmentInfo;
+							const { id, fileInfo, attachments } = parseFileInfo(
+								{
+									text,
+									filePath,
+									normalizedFilePath,
+								}
+							);
+
+							for (let path of attachments)
+								pathsToAttachmentInfo[path] = {
+									title: pathToFilename(path),
+									fullLinkPathNeeded: false,
+								};
 
 							idsToFileInfo[id] = fileInfo;
+							results.total++;
 							resolve(true);
 						} catch (e) {
 							console.error(e);
@@ -78,42 +91,29 @@ export class NotionImporter extends FormatImporter {
 			)
 		);
 
-		// Instead of a target path, have it so that it's just a title and a LIST of parent IDs
-
-		const pathDuplicateChecks = new Set<string>();
-		const titleDuplicateChecks = new Set<string>(
-			app.vault.getAllLoadedFiles().map((file) => file.name)
+		const appSettings = await app.vault.adapter.read(
+			normalizePath(`${app.vault.configDir}/app.json`)
 		);
+		const parsedSettings = JSON.parse(appSettings ?? '{}');
+		const attachmentFolderPath = parsedSettings.attachmentFolderPath ?? '';
 
-		for (let [_id, fileInfo] of Object.entries(idsToFileInfo)) {
-			let pathDuplicateCheck = `${fileInfo.parentIds.join('/')}/${
-				fileInfo.title
-			}`;
-			console.log(pathDuplicateCheck, new Set([...pathDuplicateChecks]));
+		cleanDuplicates({
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			attachmentFolderPath,
+			app,
+		});
 
-			if (pathDuplicateChecks.has(pathDuplicateCheck)) {
-				let duplicateResolutionIndex = 2;
-				while (
-					pathDuplicateChecks.has(
-						`${pathDuplicateCheck} ${duplicateResolutionIndex}`
-					)
-				) {
-					duplicateResolutionIndex++;
-				}
-				fileInfo.title = `${fileInfo.title} ${duplicateResolutionIndex}`;
-			}
+		console.log(idsToFileInfo);
 
-			if (titleDuplicateChecks.has(fileInfo.title)) {
-				fileInfo.fullLinkPathNeeded = true;
-			}
+		convertNotesToMd({
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			attachmentFolderPath,
+			app,
+		});
 
-			pathDuplicateChecks.add(
-				`${fileInfo.parentIds.join('/')}/${fileInfo.title}`
-			);
-			titleDuplicateChecks.add(fileInfo.title);
-		}
-
-		console.log(idsToFileInfo, hrefsToAttachmentInfo);
+		console.log(idsToFileInfo);
 
 		this.showResult(results);
 	}

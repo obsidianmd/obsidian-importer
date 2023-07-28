@@ -39,4 +39,7 @@ type NotionFileInfo = {
 	fullLinkPathNeeded: boolean;
 };
 
-type NotionAttachmentInfo = { path: string; linkText: string };
+type NotionAttachmentInfo = {
+	title: string;
+	fullLinkPathNeeded: boolean;
+};
