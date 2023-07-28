@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { App, DropdownComponent, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
+import { App, DropdownComponent, Setting, TFolder, TextComponent } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
 
@@ -8,6 +8,8 @@ export abstract class FormatImporter {
 	app: App;
 	modal: ImporterModal;
 	filePaths: string[] = [];
+	folderPaths: string[] = [];
+
 	outputLocationSettingInput: TextComponent;
 	fileLocationSetting: Setting;
 	folderLocationSetting: Setting;
@@ -115,6 +117,7 @@ export abstract class FormatImporter {
 					});
 
 					if (selectedFolders && selectedFolders.length > 0) {
+						this.folderPaths = [];
 						this.filePaths = [];
 
 						for (let folder of selectedFolders) {
