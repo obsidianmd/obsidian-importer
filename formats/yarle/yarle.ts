@@ -96,8 +96,8 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = fs.createReadStream(enexSource);
 	let noteNumber = 0;
-	let failed = 0;
-	let skipped = 0;
+	let failed: string[] = [];
+	let skipped: string[] = [];
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = utils.getNotebookName(enexSource);
 
@@ -105,7 +105,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
 		const logAndReject = (error: Error) => {
 			console.log(`Could not convert ${enexSource}:\n${error.message}`);
-			++failed;
+			failed.push(enexSource);
 
 			return reject();
 		};
@@ -122,7 +122,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 
 		xml.on('tag:note', (note: any) => {
 			if (options.skipWebClips && isWebClip(note)) {
-				++skipped;
+				skipped.push(note.title);
 				console.log(`Notes skipped: ${skipped}`);
 			}
 			else {
@@ -137,8 +137,13 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 					processNode(note, notebookName);
 					console.log(`Notes processed: ${noteNumber}\n\n`);
 				} catch (e) {
-					++failed;
-					return;
+					failed.push(note.title || enexSource);
+					return resolve({
+						total: noteNumber,
+						failed,
+						skipped
+
+					});
 				}
 			}
 			noteAttributes = null;
@@ -171,8 +176,8 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 		});
 
 		xml.on('end', () => {
-			const success = noteNumber - failed;
-			const totalNotes = noteNumber + skipped;
+			const success = noteNumber - failed.length;
+			const totalNotes = noteNumber + skipped.length;
 			console.log('==========================');
 			console.log(
 				`Conversion finished: ${success} succeeded, ${skipped} skipped, ${failed} failed. Total notes: ${totalNotes}`,
@@ -193,10 +198,10 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> => {
 	setOptions(options);
 	const outputNotebookFolders = [];
-	let results = {
+	let results: ImportResult = {
 		total: 0,
-		failed: 0,
-		skipped: 0
+		failed: [],
+		skipped: []
 	};
 
 	for (const enex of options.enexSources) {
@@ -205,8 +210,8 @@ export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> 
 		runtimeProps.setCurrentNotebookName(utils.getNotebookName(enex));
 		let enexResults = await parseStream(options, enex);
 		results.total += enexResults.total;
-		results.failed += enexResults.failed;
-		results.skipped += enexResults.skipped;
+		results.failed = results.failed.concat(enexResults.failed);
+		results.skipped = results.skipped.concat(enexResults.skipped);
 		outputNotebookFolders.push(utils.getNotesPath());
 	}
 

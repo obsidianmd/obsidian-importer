@@ -171,10 +171,28 @@ export abstract class FormatImporter {
 
 		contentEl.empty();
 
-		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed - result.skipped} notes, out of ${result.total} total notes!` });
+		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed.length - result.skipped.length} notes, out of ${result.total} total notes!` });
 
-		if (result.skipped !== 0 || result.failed !== 0) {
-			contentEl.createEl('p', { text: `${result.skipped} notes were skipped and ${result.failed} notes failed to import.` });
+		if (result.skipped.length > 0 || result.failed.length > 0) {
+			contentEl.createEl('p', { text: `${result.skipped.length} notes were skipped and ${result.failed.length} notes failed to import.` });
+		}
+
+		if (result.skipped.length > 0) {
+			contentEl.createEl('p', { text: `Skipped notes:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of result.skipped) {
+					el.createEl('li', { text: note });
+				}
+			});
+		}
+
+		if (result.failed.length > 0) {
+			contentEl.createEl('p', { text: `Failed to import:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of result.failed) {
+					el.createEl('li', { text: note });
+				}
+			});
 		}
 
 		contentEl.createDiv('button-container u-center-text', el => {

@@ -24,8 +24,8 @@ export class HtmlImporter extends FormatImporter {
 
 		let results: ImportResult = {
 			total: 0,
-			skipped: 0,
-			failed: 0
+			skipped: [],
+			failed: []
 		};
 
 		for (let path of filePaths) {
@@ -37,7 +37,7 @@ export class HtmlImporter extends FormatImporter {
 				results.total++;
 			} catch (e) {
 				console.error(e);
-				results.failed++;
+				results.failed.push(path);
 			}
 		}
 
