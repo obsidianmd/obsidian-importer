@@ -112,10 +112,10 @@ export class HtmlImporter extends FormatImporter {
 				.length;
 			results.failed = results.failed.concat(transformedAST
 				.filter(({ attachment }) => attachment === "failed")
-				.map(({ link: { path, display } }) => `${display}: ${path}`));
+				.map(({ link: { path } }) => path));
 			results.skipped = results.skipped.concat(transformedAST
 				.filter(({ attachment }) => attachment === "skipped")
-				.map(({ link: { path, display } }) => `${display}: ${path}`));
+				.map(({ link: { path } }) => path));
 
 			mdContent = transformedAST.map(({ text }) => text).join("");
 			await this.app.vault.modify(mdFile, mdContent);
