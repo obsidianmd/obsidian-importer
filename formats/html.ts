@@ -88,41 +88,36 @@ export class HtmlImporter extends FormatImporter {
 		try {
 			let mdContent = htmlToMarkdown(await this.readPath(path));
 			path = normalizePath(path);
+			const pathURL = pathToFileURL(path);
 			mdFile = await this.saveAsMarkdownFile(folder, pathToBasename(path), "");
 
-			// todo: use internal md parser
-			const regex = /!\[(.*?)\]\((.+?)\)/gu;
-			const pathURL = pathToFileURL(path);
-			const attachments = Object.fromEntries(await Promise.all(
-				[...mdContent.matchAll(regex)]
-					.map(async ([, , link]) => {
-						const corrected = link.startsWith("//") ? `https:${link}` : link;
-						return [
-							link,
-							await this.downloadAttachmentCached(mdFile, new URL(corrected, pathURL))
-						] as const;
-					})
-			));
-			const attachmentEntries = Object.entries(attachments);
-			results.total += attachmentEntries.length;
-			results.failed = results.failed.concat(attachmentEntries
-				.filter(([, result]) => result === "failed")
-				.map(([link]) => link));
-			results.skipped = results.skipped.concat(attachmentEntries
-				.filter(([, result]) => result === "skipped")
-				.map(([link]) => link));
+			const ast = mdContent.split(/(?=!)/ug);
+			const transformedAST = await Promise.all(ast
+				.map(async text => {
+					const link = parseMarkdownLink(text);
+					if (!link) {
+						return { text };
+					}
+					const { path: linktext, display, read } = link;
+					const { path: linkpath, subpath } = parseLinktext(linktext);
+					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
+					const attachment = await this.downloadAttachmentCached(mdFile, new URL(correctedPath, pathURL));
+					text = attachment instanceof TFile
+						? `${this.app.fileManager.generateMarkdownLink(attachment, path, subpath, display)}${text.slice(read)}`
+						: text;
+					return { text, attachment, link } as const;
+				}));
+			results.total += transformedAST
+				.filter(({ link }) => link)
+				.length;
+			results.failed = results.failed.concat(transformedAST
+				.filter(({ attachment }) => attachment === "failed")
+				.map(({ link: { path, display } }) => `${display}: ${path}`));
+			results.skipped = results.skipped.concat(transformedAST
+				.filter(({ attachment }) => attachment === "skipped")
+				.map(({ link: { path, display } }) => `${display}: ${path}`));
 
-			mdContent = mdContent.replace(regex, (str, alias, link) => {
-				const attachment = attachments[link];
-				if (!(attachment instanceof TFile)) {
-					return str;
-				}
-				let { subpath } = parseLinktext(link);
-				if (subpath) {
-					subpath = `#${subpath}`;
-				}
-				return this.app.fileManager.generateMarkdownLink(attachment, path, subpath, alias);
-			})
+			mdContent = transformedAST.map(({ text }) => text).join("");
 			await this.app.vault.modify(mdFile, mdContent);
 		} catch (e) {
 			console.error(e);
@@ -254,4 +249,72 @@ interface Response {
 
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
+}
+
+// todo: use internal md parser (but consider performance first)
+function parseMarkdownLink(
+	link: string,
+) {
+	// cannot use regex, example: `parseMarkdownLink("![a(b)c[d\\]e]f](g[h]i(j\\)k)l)")`
+	function parseComponent(
+		str: string,
+		escaper: string,
+		[start, end]: [string, string],
+	): [ret: string, read: number] {
+		let ret = "";
+		let read = 0;
+		let level = 0;
+		let escaping = false;
+		for (const codePoint of str) {
+			read += codePoint.length;
+			if (escaping) {
+				ret += codePoint;
+				escaping = false;
+				continue;
+			}
+			switch (codePoint) {
+				case escaper:
+					escaping = true;
+					break;
+				case start:
+					if (level > 0) {
+						ret += codePoint;
+					}
+					++level;
+					break;
+				case end:
+					--level;
+					if (level > 0) {
+						ret += codePoint;
+					}
+					break;
+				default:
+					ret += codePoint;
+					break;
+			}
+			if (level <= 0) {
+				break;
+			}
+		}
+		if (level > 0 ||
+			read <= String.fromCodePoint((str || "\x00").charCodeAt(0)).length) {
+			return ["", -1];
+		}
+		return [ret, read];
+	}
+	const link2 = link.startsWith("!") ? link.slice("!".length) : link;
+	const [display, read] = parseComponent(link2, "\\", ["[", "]"]);
+	if (read < 0) {
+		return null;
+	}
+	const rest = link2.slice(read);
+	const [path, read2] = parseComponent(rest, "\\", ["(", ")"]);
+	if (read2 < 0) {
+		return null;
+	}
+	return {
+		path: decodeURI(path),
+		display,
+		read: (link.startsWith("!") ? 1 : 0) + read + read2,
+	};
 }
