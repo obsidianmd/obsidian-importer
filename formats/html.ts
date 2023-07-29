@@ -99,7 +99,9 @@ export class HtmlImporter extends FormatImporter {
 						return { text };
 					}
 					const { path: linkpath, display, read } = link;
-					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
+					const correctedPath = linkpath.startsWith("//")
+						? `https:${linkpath}`
+						: normalizePath(linkpath).split("/").map(encodeURIComponent).join("/");
 					const attachment = await this.downloadAttachmentCached(mdFile, new URL(correctedPath, pathURL));
 					text = attachment instanceof TFile
 						? `${this.app.fileManager.generateMarkdownLink(attachment, path, "", display)}${text.slice(read)}`
