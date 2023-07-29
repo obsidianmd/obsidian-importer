@@ -24,6 +24,7 @@
 		"@zip.js/zip.js": "2.7.20",
 		"joplin-turndown-plugin-gfm": "1.0.12",
 		"sanitize-filename": "1.6.3",
+		"unzipper": "^0.10.14",
 		"xml-flow": "1.0.4"
 	}
 }
