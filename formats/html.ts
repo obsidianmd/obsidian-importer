@@ -72,7 +72,7 @@ export class HtmlImporter extends FormatImporter {
 		const results = await Promise.all(filePaths
 			.map(path => this.processFile(folder, path)));
 		this.showResult({
-			total: results.map(({ total }) => total).reduce((l, r) => l + r, 0),
+			total: results.map(({ total }) => total).reduce((left, right) => left + right, 0),
 			failed: results.map(({ failed }) => failed).flat(),
 			skipped: results.map(({ skipped }) => skipped).flat()
 		});
@@ -99,10 +99,20 @@ export class HtmlImporter extends FormatImporter {
 						return { text };
 					}
 					const { path: linkpath, display, read } = link;
-					const correctedPath = linkpath.startsWith("//")
-						? `https:${linkpath}`
-						: normalizePath(linkpath).split("/").map(encodeURIComponent).join("/");
-					const attachment = await this.downloadAttachmentCached(mdFile, new URL(correctedPath, pathURL));
+					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
+					let url;
+					try {
+						url = new URL(correctedPath);
+					} catch (e) {
+						if (!(e instanceof TypeError)) {
+							throw e;
+						}
+						url = new URL(normalizePath(correctedPath)
+							.split("/")
+							.map(encodeURIComponent)
+							.join("/"), pathURL);
+					}
+					const attachment = await this.downloadAttachmentCached(mdFile, url);
 					text = attachment instanceof TFile
 						? `${this.app.fileManager.generateMarkdownLink(attachment, path, "", display)}${text.slice(read)}`
 						: text;
@@ -238,7 +248,17 @@ export class HtmlImporter extends FormatImporter {
 		if (!this.minimumImageSize || !response.type.startsWith("image/")) {
 			return true;
 		}
-		const { width, height } = imageSize(Buffer.from(response.data));
+		let size;
+		try {
+			size = imageSize(Buffer.from(response.data));
+		} catch (e) {
+			if (e instanceof TypeError || e instanceof RangeError) {
+				// image not recognized
+				return true;
+			}
+			throw e;
+		}
+		const { height, width } = size;
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
 	}
 }
