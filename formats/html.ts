@@ -5,10 +5,9 @@ import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
 import { getExtension, getType } from "mime/lite";
-import { promisify } from "util";
-import imageSize from "image-size";
+import { disableFS, imageSize } from "image-size";
 
-const imageSizePromise = promisify(imageSize);
+disableFS(true);
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
@@ -157,7 +156,7 @@ export class HtmlImporter extends FormatImporter {
 				default:
 					throw new Error(url.toString());
 			}
-			if (!await this.filterAttachment(response)) {
+			if (!this.filterAttachment(response)) {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
@@ -224,9 +223,9 @@ export class HtmlImporter extends FormatImporter {
 		throw error;
 	}
 
-	async filterAttachment(response: Response) {
+	filterAttachment(response: Response) {
 		const { data, type } = response;
-		return this.filterAttachmentSize(data) && this.filterAttachmentType(type) && await this.filterImageSize(response);
+		return this.filterAttachmentSize(data) && this.filterAttachmentType(type) && this.filterImageSize(response);
 	}
 
 	filterAttachmentSize(data: ArrayBufferLike) {
@@ -239,11 +238,11 @@ export class HtmlImporter extends FormatImporter {
 			.some(prefix => type.startsWith(prefix));
 	}
 
-	async filterImageSize(response: Response) {
+	filterImageSize(response: Response) {
 		if (!this.minimumImageSize || !response.type.startsWith("image/")) {
 			return true;
 		}
-		const { width, height } = await imageSize(Buffer.from(response.data));
+		const { width, height } = imageSize(Buffer.from(response.data));
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
 	}
 }
