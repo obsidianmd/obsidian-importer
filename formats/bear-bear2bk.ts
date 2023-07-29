@@ -46,10 +46,9 @@ export class Bear2bkImporter extends FormatImporter {
       const directory = await unzipper.Open.file(filePath);
       for (let file of directory.files) {
         try {
-
           if (!file) continue;
 
-          if (file.path.match(/\.md$/)) {
+          if (file.path.match(/\.md|.markdown$/)) {
             const paths = file.path.replace(`/${path.basename(file.path)}`, '').split('/');
             const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
 
