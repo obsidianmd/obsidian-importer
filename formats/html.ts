@@ -1,5 +1,5 @@
 import { FormatImporter } from "../format-importer";
-import { Notice, Setting, TFile, TFolder, TextComponent, htmlToMarkdown, normalizePath, parseLinktext, requestUrl } from "obsidian";
+import { Notice, Setting, TFile, TFolder, htmlToMarkdown, normalizePath, parseLinktext, requestUrl } from "obsidian";
 import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from '../util';
 import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
