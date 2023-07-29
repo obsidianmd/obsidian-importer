@@ -212,7 +212,7 @@ export class HtmlImporter extends FormatImporter {
 		return { type, data: response.arrayBuffer };
 	}
 
-	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBuffer) {
+	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
 		const [basename, extension] = splitFilename(sanitizeFileName(filename));
 		let error;
 		for (let retry = 0; retry < 5; ++retry) {
