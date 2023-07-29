@@ -91,10 +91,10 @@ export class HtmlImporter extends FormatImporter {
 			const pathURL = pathToFileURL(path);
 			mdFile = await this.saveAsMarkdownFile(folder, pathToBasename(path), "");
 
-			const ast = mdContent.split(/(?=!)/ug);
+			const ast = mdContent.split(/(?=!)/u);
 			const transformedAST = await Promise.all(ast
 				.map(async text => {
-					const link = parseMarkdownLink(text);
+					const link = parseMarkdownLink(text, false);
 					if (!link) {
 						return { text };
 					}
@@ -254,6 +254,7 @@ function getURLFilename(url: URL) {
 // todo: use internal md parser (but consider performance first)
 function parseMarkdownLink(
 	link: string,
+	strict: boolean = true,
 ) {
 	// cannot use regex, example: `parseMarkdownLink("![a(b)c[d\\]e]f](g[h]i(j\\)k)l)")`
 	function parseComponent(
@@ -308,13 +309,27 @@ function parseMarkdownLink(
 		return null;
 	}
 	const rest = link2.slice(read);
-	const [path, read2] = parseComponent(rest, "\\", ["(", ")"]);
+	const [pathtext, read2] = parseComponent(rest, "\\", ["(", ")"]);
 	if (read2 < 0) {
 		return null;
 	}
+	let pathParts;
+	if (strict) {
+		pathParts = pathtext.split(/ +/u, 2);
+	} else {
+		pathParts = pathtext.split(/ +(?=")/u);
+		if (pathParts.length > 2) {
+			pathParts = [pathParts.slice(0, -1).join(""), pathParts.at(-1)];
+		}
+	}
+	const [, title] = (/^"(?<title>(?:\\"|[^"])*)"$/u).exec(pathParts[1] ?? '""') ?? [];
+	if (title === undefined) {
+		return null;
+	}
 	return {
-		path: decodeURI(path),
 		display,
+		path: decodeURI(pathParts[0] ?? ""),
 		read: (link.startsWith("!") ? 1 : 0) + read + read2,
+		title,
 	};
 }
