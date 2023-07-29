@@ -1,5 +1,5 @@
 import { FormatImporter } from "../format-importer";
-import { Notice, TFile, TFolder, htmlToMarkdown, normalizePath, parseLinktext, requestUrl } from "obsidian";
+import { Notice, Setting, TFile, TFolder, TextComponent, htmlToMarkdown, normalizePath, parseLinktext, requestUrl } from "obsidian";
 import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from '../util';
 import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
@@ -7,11 +7,31 @@ import { readFile } from "fs/promises";
 import { getExtension, getType } from "mime/lite";
 
 export class HtmlImporter extends FormatImporter {
-	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {}
+	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
+
+	attachmentSizeLimit: number;
 
 	init() {
 		this.addFileOrFolderChooserSetting('HTML (.htm .html)', ['htm', 'html']);
+		this.addAttatchmentSizeLimit(10);
 		this.addOutputLocationSetting('HTML');
+	}
+
+	addAttatchmentSizeLimit(defaultInMB: number) {
+		this.attachmentSizeLimit = defaultInMB * 10 ** 6;
+		new Setting(this.modal.contentEl)
+			.setName("Attachment size limit (MB)")
+			.setDesc("Set 0 to disable.")
+			.addText(text => text
+				.setValue(defaultInMB.toString())
+				.onChange(value => {
+					const num = Number(value);
+					if (Number.isNaN(num) || num < 0) {
+						text.setValue((this.attachmentSizeLimit / 10 ** 6).toString());
+						return;
+					}
+					this.attachmentSizeLimit = num * 10 ** 6;
+				}));
 	}
 
 	async import() {
@@ -27,8 +47,8 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const results = (await Promise.all(filePaths
-			.map(path => this.processFile(folder, path))));
+		const results = await Promise.all(filePaths
+			.map(path => this.processFile(folder, path)));
 		this.showResult({
 			total: results.map(({ total }) => total).reduce((l, r) => l + r, 0),
 			failed: results.map(({ failed }) => failed).flat(),
@@ -114,11 +134,11 @@ export class HtmlImporter extends FormatImporter {
 				default:
 					throw new Error(url.toString());
 			}
-			const { type, data } = response;
-			if (!this.filterType(type)) {
+			if (!this.filterAttachment(response)) {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
+			const { data, type } = response;
 			if ((getType(filename) ?? "application/octet-stream") !== type) {
 				const ext = getExtension(type);
 				if (ext) {
@@ -181,12 +201,26 @@ export class HtmlImporter extends FormatImporter {
 		throw error;
 	}
 
-	filterType(mimeType: string) {
+	filterAttachment(response: Response) {
+		const { data, type } = response;
+		return this.filterAttachmentSize(data) && this.filterAttachmentType(type);
+	}
+
+	filterAttachmentSize(data: ArrayBufferLike) {
+		const { byteLength } = data;
+		return !this.attachmentSizeLimit || byteLength <= this.attachmentSizeLimit;
+	}
+
+	filterAttachmentType(type: string) {
 		return ["audio/", "image/", "video/"]
-			.some(prefix => mimeType.startsWith(prefix));
+			.some(prefix => type.startsWith(prefix));
 	}
 }
 
+interface Response {
+	type: string
+	data: ArrayBufferLike
+}
 
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
