@@ -5,15 +5,21 @@ import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
 import { getExtension, getType } from "mime/lite";
+import { promisify } from "util";
+import imageSize from "image-size";
+
+const imageSizePromise = promisify(imageSize);
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
 
 	attachmentSizeLimit: number;
+	minimumImageSize: number;
 
 	init() {
 		this.addFileOrFolderChooserSetting('HTML (.htm .html)', ['htm', 'html']);
 		this.addAttatchmentSizeLimit(10);
+		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.addOutputLocationSetting('HTML');
 	}
 
@@ -32,6 +38,23 @@ export class HtmlImporter extends FormatImporter {
 					}
 					this.attachmentSizeLimit = num * 10 ** 6;
 				}));
+	}
+
+	addMinimumImageSize(defaultInPx: number) {
+		this.minimumImageSize = defaultInPx;
+		new Setting(this.modal.contentEl)
+			.setName("Minimum image size")
+			.setDesc("Set to 0 to disable.")
+			.addText(text => text
+				.setValue(defaultInPx.toString())
+				.onChange(value => {
+					const num = Number(value);
+					if (!Number.isInteger(num) || num < 0) {
+						text.setValue(this.minimumImageSize.toString());
+						return;
+					}
+					this.minimumImageSize = num;
+				}))
 	}
 
 	async import() {
@@ -134,7 +157,7 @@ export class HtmlImporter extends FormatImporter {
 				default:
 					throw new Error(url.toString());
 			}
-			if (!this.filterAttachment(response)) {
+			if (!await this.filterAttachment(response)) {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
@@ -201,9 +224,9 @@ export class HtmlImporter extends FormatImporter {
 		throw error;
 	}
 
-	filterAttachment(response: Response) {
+	async filterAttachment(response: Response) {
 		const { data, type } = response;
-		return this.filterAttachmentSize(data) && this.filterAttachmentType(type);
+		return this.filterAttachmentSize(data) && this.filterAttachmentType(type) && await this.filterImageSize(response);
 	}
 
 	filterAttachmentSize(data: ArrayBufferLike) {
@@ -214,6 +237,14 @@ export class HtmlImporter extends FormatImporter {
 	filterAttachmentType(type: string) {
 		return ["audio/", "image/", "video/"]
 			.some(prefix => type.startsWith(prefix));
+	}
+
+	async filterImageSize(response: Response) {
+		if (!this.minimumImageSize || !response.type.startsWith("image/")) {
+			return true;
+		}
+		const { width, height } = await imageSize(Buffer.from(response.data));
+		return width >= this.minimumImageSize && height >= this.minimumImageSize;
 	}
 }
 
