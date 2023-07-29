@@ -98,12 +98,11 @@ export class HtmlImporter extends FormatImporter {
 					if (!link) {
 						return { text };
 					}
-					const { path: linktext, display, read } = link;
-					const { path: linkpath, subpath } = parseLinktext(linktext);
+					const { path: linkpath, display, read } = link;
 					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
 					const attachment = await this.downloadAttachmentCached(mdFile, new URL(correctedPath, pathURL));
 					text = attachment instanceof TFile
-						? `${this.app.fileManager.generateMarkdownLink(attachment, path, subpath, display)}${text.slice(read)}`
+						? `${this.app.fileManager.generateMarkdownLink(attachment, path, "", display)}${text.slice(read)}`
 						: text;
 					return { text, attachment, link } as const;
 				}));
