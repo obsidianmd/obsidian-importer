@@ -1,7 +1,7 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import { FileSystemAdapter, Notice, normalizePath } from 'obsidian';
-import { parseFileInfo } from './notion/parser';
+import { parseFiles } from './notion/parse-info';
 import {
 	escapeRegex,
 	getFileExtension,
@@ -11,6 +11,7 @@ import {
 } from '../util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
+import { copyFiles } from './notion/copy-files';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -23,7 +24,7 @@ export class NotionImporter extends FormatImporter {
 	}
 
 	async import(): Promise<void> {
-		let { filePaths } = this;
+		let { app, filePaths } = this;
 
 		if (filePaths.length === 0) {
 			new Notice('Please pick at least one folder to import.');
@@ -38,11 +39,13 @@ export class NotionImporter extends FormatImporter {
 			);
 		const folderPathsReplacement = new RegExp(
 			folderPaths
-				.map((folderPath) => '^' + escapeRegex(folderPath) + '/')
+				.map((folderPath) => '^' + escapeRegex(folderPath) + '\\/')
 				.join('|')
 		);
 
-		let { app } = this;
+		console.log(folderPathsReplacement);
+		return;
+
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
@@ -55,41 +58,18 @@ export class NotionImporter extends FormatImporter {
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
 		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 
-		await Promise.all(
-			filePaths.map(
-				(filePath) =>
-					new Promise(async (resolve, reject) => {
-						try {
-							const normalizedFilePath = filePath.replace(
-								folderPathsReplacement,
-								''
-							);
-							const text = await this.readPath(filePath);
-							const { id, fileInfo, attachments } = parseFileInfo(
-								{
-									text,
-									filePath,
-									normalizedFilePath,
-								}
-							);
+		const readPath = this.readPath.bind(this);
 
-							for (let path of attachments)
-								pathsToAttachmentInfo[path] = {
-									title: pathToFilename(path),
-									fullLinkPathNeeded: false,
-								};
+		await parseFiles(filePaths, {
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			results,
+			folderPathsReplacement,
+			readPath,
+		});
 
-							idsToFileInfo[id] = fileInfo;
-							results.total++;
-							resolve(true);
-						} catch (e) {
-							console.error(e);
-							results.failed++;
-							reject(e);
-						}
-					})
-			)
-		);
+		results.total =
+			filePaths.length + Object.keys(pathsToAttachmentInfo).length;
 
 		const appSettings = await app.vault.adapter.read(
 			normalizePath(`${app.vault.configDir}/app.json`)
@@ -104,16 +84,22 @@ export class NotionImporter extends FormatImporter {
 			app,
 		});
 
-		console.log(idsToFileInfo);
-
 		convertNotesToMd({
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
-			app,
 		});
 
-		console.log(idsToFileInfo);
+		const targetFolderPath = (await this.getOutputFolder()).path;
+
+		await copyFiles({
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			attachmentFolderPath,
+			app,
+			targetFolderPath,
+			results,
+		});
 
 		this.showResult(results);
 	}

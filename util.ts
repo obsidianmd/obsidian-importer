@@ -35,7 +35,7 @@ export function stripFileExtension(path: string) {
 }
 
 export function getFileExtension(path: string) {
-	return path.contains('.') ? path.slice(path.lastIndexOf('.')) : '';
+	return path.contains('.') ? path.slice(path.lastIndexOf('.') + 1) : '';
 }
 
 export function getParentFolder(path: string) {

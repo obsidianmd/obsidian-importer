@@ -12,12 +12,10 @@ export function convertNotesToMd({
 	idsToFileInfo,
 	pathsToAttachmentInfo,
 	attachmentFolderPath,
-	app,
 }: {
 	idsToFileInfo: Record<string, NotionFileInfo>;
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	attachmentFolderPath: string;
-	app: App;
 }) {
 	for (let [id, fileInfo] of Object.entries(idsToFileInfo)) {
 		fileInfo.body = convertInlineDatabasesToObsidian(fileInfo.body, {
@@ -35,6 +33,17 @@ export function convertNotesToMd({
 		});
 
 		fileInfo.body = htmlToMarkdown(fileInfo.body);
+
+		if (fileInfo.properties) {
+			fileInfo.yamlProperties = fileInfo.properties.map((property) =>
+				convertPropertyToYAML(property, {
+					fileInfo,
+					idsToFileInfo,
+					pathsToAttachmentInfo,
+					attachmentFolderPath,
+				})
+			);
+		}
 	}
 }
 
@@ -61,7 +70,6 @@ function convertInlineDatabasesToObsidian(
 			return header.match(/<\/span>(.*?)<\/th>/)[1];
 		});
 		const childRows = inlineDatabase[2].match(/<tr id=".*?">(.*?)<\/tr>/g);
-
 		const childIds = childRows.map((row) =>
 			getNotionId(row.match(/<tr id="(.*?)"/)[1])
 		);
@@ -82,7 +90,7 @@ function convertInlineDatabasesToObsidian(
 				return convertPropertyToMarkdown(property, {
 					idsToFileInfo,
 					pathsToAttachmentInfo,
-					fileInfo,
+					fileInfo: childFileInfo,
 					attachmentFolderPath,
 				});
 			});
@@ -121,7 +129,7 @@ function convertPropertyToMarkdown(
 		case 'checkbox':
 			return property.content ? 'X' : ' ';
 		case 'date':
-			return property.content.format('YYYY-MM-DDTHH:mm');
+			return property.content.format('YYYY-MM-DD HH:mm');
 		case 'list':
 			return property.content
 				.map((content) =>
@@ -145,6 +153,75 @@ function convertPropertyToMarkdown(
 	}
 }
 
+function convertPropertyToYAML(
+	property: NotionFileInfo['properties'][number],
+	{
+		idsToFileInfo,
+		pathsToAttachmentInfo,
+		fileInfo,
+		attachmentFolderPath,
+	}: {
+		idsToFileInfo: Record<string, NotionFileInfo>;
+		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+		fileInfo: NotionFileInfo;
+		attachmentFolderPath: string;
+	}
+): YamlProperty {
+	let content: YamlProperty['content'];
+	switch (property.type) {
+		case 'checkbox':
+		case 'number':
+			content = property.content;
+			break;
+		case 'date':
+			content =
+				property.content.hour() === 0 && property.content.minute() === 0
+					? property.content.format('YYYY-MM-DD')
+					: property.content.format('YYYY-MM-DDTHH:mm');
+			break;
+		case 'list':
+			content = property.content.map((content) =>
+				htmlToMarkdown(
+					convertHtmlLinksToURLs(
+						convertLinksToObsidian(content, {
+							idsToFileInfo,
+							pathsToAttachmentInfo,
+							fileInfo,
+							attachmentFolderPath,
+							embedAttachments: false,
+						})
+					)
+				)
+			);
+			break;
+		case 'text':
+			content = htmlToMarkdown(
+				convertHtmlLinksToURLs(
+					convertLinksToObsidian(property.content, {
+						idsToFileInfo,
+						pathsToAttachmentInfo,
+						fileInfo,
+						attachmentFolderPath,
+					})
+				)
+			);
+			break;
+	}
+	return {
+		title: htmlToMarkdown(property.title),
+		content,
+	};
+}
+
+function convertHtmlLinksToURLs(content: string) {
+	const links = content.match(/<a href="[^"]+".*?<\/a>/);
+	if (!links) return content;
+	for (let link of links) {
+		content = content.replace(link, extractHref(link));
+	}
+	return content;
+}
+
 function convertLinksToObsidian(
 	body: string,
 	{
@@ -152,15 +229,16 @@ function convertLinksToObsidian(
 		pathsToAttachmentInfo,
 		attachmentFolderPath,
 		fileInfo,
+		embedAttachments = true,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 		attachmentFolderPath: string;
 		fileInfo: NotionFileInfo;
+		embedAttachments?: boolean;
 	}
 ) {
 	const parentFolder = getParentFolder(fileInfo.path);
-
 	const attachmentLinks = matchAttachmentLinks(body, fileInfo.path);
 
 	if (attachmentLinks) {
@@ -169,15 +247,16 @@ function convertLinksToObsidian(
 				extractHref(link),
 				parentFolder
 			);
+
 			const attachmentInfo = pathsToAttachmentInfo[attachmentPath];
-			const obsidianLink = `![[${
-				attachmentInfo.fullLinkPathNeeded
+			const obsidianLink = `${embedAttachments ? '!' : ''}[[${
+				attachmentInfo.fullLinkPathNeeded && attachmentFolderPath !== ''
 					? attachmentFolderPath +
 					  '/' +
-					  fileInfo.title +
+					  attachmentInfo.nameWithExtension +
 					  '|' +
-					  fileInfo.title
-					: fileInfo.title
+					  attachmentInfo.nameWithExtension
+					: attachmentInfo.nameWithExtension
 			}]]`;
 			body = body.replace(
 				new RegExp(escapeRegex(link), 'g'),
@@ -189,9 +268,7 @@ function convertLinksToObsidian(
 	const relationLinks = matchRelationLinks(body);
 	if (relationLinks) {
 		for (let link of relationLinks) {
-			const relationId = getNotionId(
-				decodeURIComponent(extractHref(link))
-			);
+			const relationId = getNotionId(extractHref(link));
 			const fileInfo = idsToFileInfo[relationId];
 			let obsidianLink: string = fileInfoToObsidianLink(fileInfo, {
 				idsToFileInfo,

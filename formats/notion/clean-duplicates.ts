@@ -26,7 +26,6 @@ export function cleanDuplicates({
 	});
 
 	cleanDuplicateAttachments({
-		app,
 		loadedFiles,
 		pathsToAttachmentInfo,
 		titleDuplicateChecks,
@@ -72,13 +71,11 @@ function cleanDuplicateNotes({
 }
 
 function cleanDuplicateAttachments({
-	app,
 	loadedFiles,
 	pathsToAttachmentInfo,
 	titleDuplicateChecks,
 	attachmentFolderPath,
 }: {
-	app: App;
 	loadedFiles: TAbstractFile[];
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	titleDuplicateChecks: Set<string>;
@@ -91,12 +88,14 @@ function cleanDuplicateAttachments({
 	);
 
 	for (let [_path, attachmentInfo] of Object.entries(pathsToAttachmentInfo)) {
-		if (titleDuplicateChecks.has(attachmentInfo.title))
+		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
 			attachmentInfo.fullLinkPathNeeded = true;
-		if (attachmentFiles.has(attachmentInfo.title)) {
+		if (attachmentFiles.has(attachmentInfo.nameWithExtension)) {
 			let duplicateResolutionIndex = 2;
-			const name = stripFileExtension(attachmentInfo.title);
-			const extension = getFileExtension(attachmentInfo.title);
+			const name = stripFileExtension(attachmentInfo.nameWithExtension);
+			const extension = getFileExtension(
+				attachmentInfo.nameWithExtension
+			);
 			while (
 				attachmentFiles.has(
 					`${name} ${duplicateResolutionIndex}.${extension}`
@@ -104,7 +103,7 @@ function cleanDuplicateAttachments({
 			) {
 				duplicateResolutionIndex++;
 			}
-			attachmentInfo.title = `${name} ${duplicateResolutionIndex}.${extension}`;
+			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
 		}
 	}
 }

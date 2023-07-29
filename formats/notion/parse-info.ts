@@ -5,19 +5,67 @@ import {
 	stripFileExtension,
 } from '../../util';
 import {
+	extractHref,
 	getAttachmentPath,
 	getNotionId,
 	matchAttachmentLinks,
 } from './notion-utils';
+import { ImportResult } from 'main';
+import { FormatImporter } from 'format-importer';
 
-/**
- * @param {{
- * text: string,
- * filePath: string,
- * targetPath: string
- * }} config - targetPath is missing the target folder and file extension. It will be manipulated until it reaches the final obsidian form (without Notion IDs)
- */
-export const parseFileInfo = ({
+export async function parseFiles(
+	filePaths: string[],
+	{
+		idsToFileInfo,
+		pathsToAttachmentInfo,
+		results,
+		folderPathsReplacement,
+		readPath,
+	}: {
+		idsToFileInfo: Record<string, NotionFileInfo>;
+		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+		results: ImportResult;
+		folderPathsReplacement: RegExp;
+		readPath: FormatImporter['readPath'];
+	}
+) {
+	await Promise.all(
+		filePaths.map(
+			(filePath) =>
+				new Promise(async (resolve, reject) => {
+					try {
+						const normalizedFilePath = filePath.replace(
+							folderPathsReplacement,
+							''
+						);
+						const text = await readPath(filePath);
+						const { id, fileInfo, attachments } = parseFileInfo({
+							text,
+							filePath,
+							normalizedFilePath,
+						});
+
+						for (let path of attachments)
+							pathsToAttachmentInfo[path] = {
+								nameWithExtension: path.slice(
+									path.lastIndexOf('/') + 1
+								),
+								fullLinkPathNeeded: false,
+							};
+
+						idsToFileInfo[id] = fileInfo;
+						resolve(true);
+					} catch (e) {
+						console.error(e);
+						results.failed++;
+						reject(e);
+					}
+				})
+		)
+	);
+}
+
+const parseFileInfo = ({
 	text,
 	filePath,
 	normalizedFilePath,
@@ -50,8 +98,11 @@ export const parseFileInfo = ({
 			const property = parseProperty(rawProperty);
 
 			if (property.notionType === 'file' && property.type === 'list') {
-				for (let href of property.content) {
-					const path = getAttachmentPath(href, parentFolder);
+				for (let link of property.content) {
+					const path = getAttachmentPath(
+						extractHref(link),
+						parentFolder
+					);
 					attachments.add(path);
 				}
 			}
@@ -65,12 +116,13 @@ export const parseFileInfo = ({
 			/<div class="page-body">((.|\n)*)<\/div><\/article><\/body><\/html>/
 		)?.[1] ?? '';
 
-	const attachmentLinks = matchAttachmentLinks(body, filePath)?.map(
-		(attachment) => attachment.match(/href="(.*?)"/)[1]
-	);
+	const attachmentLinks = matchAttachmentLinks(body, filePath);
 	if (attachmentLinks) {
 		for (let attachment of attachmentLinks) {
-			const path = getAttachmentPath(attachment, parentFolder);
+			const path = getAttachmentPath(
+				extractHref(attachment),
+				parentFolder
+			);
 			attachments.add(path);
 		}
 	}

@@ -21,18 +21,23 @@ type NotionPropertyType =
 	| 'auto_increment_id';
 
 type ObsidianProperty = (
-	| { type: 'text'; content?: string }
-	| { type: 'date'; content?: moment.Moment }
-	| { type: 'number'; content?: number }
-	| { type: 'list'; content?: string[] }
+	| { type: 'text'; content: string }
+	| { type: 'date'; content: moment.Moment }
+	| { type: 'number'; content: number }
+	| { type: 'list'; content: string[] }
 	| { type: 'checkbox'; content: boolean }
 ) & { title: string; notionType: NotionPropertyType };
+type YamlProperty = {
+	content: string | moment.Moment | number | string[] | boolean;
+	title: string;
+};
 
 type NotionFileInfo = {
 	title: string;
 	parentIds: string[];
 	path: string;
 	properties?: ObsidianProperty[];
+	yamlProperties?: YamlProperty[];
 	body: string;
 	description?: string;
 	htmlToMarkdown: boolean;
@@ -40,6 +45,6 @@ type NotionFileInfo = {
 };
 
 type NotionAttachmentInfo = {
-	title: string;
+	nameWithExtension: string;
 	fullLinkPathNeeded: boolean;
 };

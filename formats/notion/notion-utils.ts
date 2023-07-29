@@ -1,4 +1,4 @@
-import { pathToFilename } from '../../util';
+import { escapeRegex, pathToFilename } from '../../util';
 import { stripFileExtension } from '../../util';
 
 export const isNotionId = (id: string) =>
@@ -13,11 +13,12 @@ export const getNotionId = (id: string) => {
 };
 
 export const matchAttachmentLinks = (body: string, filePath: string) => {
-	const thisFileHref = encodeURIComponent(
-		stripFileExtension(pathToFilename(filePath))
-	);
+	const thisFileHref = encodeURIComponent(pathToFilename(filePath));
 	return body.match(
-		new RegExp(`<a href="${thisFileHref}\\/((?!html)[^"])+".*?<\\/a>`, 'g')
+		new RegExp(
+			`<a href="${escapeRegex(thisFileHref)}\\/((?!html)[^"])+".*?<\\/a>`,
+			'g'
+		)
 	);
 };
 
@@ -26,13 +27,13 @@ export const matchRelationLinks = (body: string) => {
 };
 
 export const extractHref = (a: string) => {
-	return a.match(/href="(.*?)"/)?.[1];
+	return decodeURI(a.match(/href="(.*?)"/)?.[1]);
 };
 
 export const getAttachmentPath = (
-	href: string,
+	decodedHref: string,
 	parentFolder: string
 ): string => {
-	const path = parentFolder + '/' + decodeURI(href);
+	const path = parentFolder + '/' + decodedHref;
 	return path;
 };
