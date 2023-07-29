@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { App, DropdownComponent, FileSystemAdapter, Modal, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
+import { App, DropdownComponent, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
 
@@ -8,6 +8,8 @@ export abstract class FormatImporter {
 	app: App;
 	modal: ImporterModal;
 	filePaths: string[] = [];
+	folderPaths: string[] = [];
+
 	outputLocationSettingInput: TextComponent;
 	fileLocationSetting: Setting;
 	folderLocationSetting: Setting;
@@ -33,7 +35,7 @@ export abstract class FormatImporter {
 
 		new Setting(this.modal.contentEl)
 			.setName('Import type')
-			.setName(`Choose if you're importing folders or files.`)
+			.setDesc('Choose if you want to import folders or files.')
 			.addDropdown(dropdown => dropdown
 				.addOption('files', 'Files')
 				.addOption('folders', 'Folders')
@@ -115,6 +117,7 @@ export abstract class FormatImporter {
 					});
 
 					if (selectedFolders && selectedFolders.length > 0) {
+						this.folderPaths = selectedFolders.map((path: string) => normalizePath(path));
 						this.filePaths = [];
 
 						for (let folder of selectedFolders) {
@@ -168,10 +171,28 @@ export abstract class FormatImporter {
 
 		contentEl.empty();
 
-		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed - result.skipped} notes, out of ${result.total} total notes!` });
+		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed.length - result.skipped.length} notes, out of ${result.total} total notes!` });
 
-		if (result.skipped !== 0 || result.failed !== 0) {
-			contentEl.createEl('p', { text: `${result.skipped} notes were skipped and ${result.failed} notes failed to import.` });
+		if (result.skipped.length > 0 || result.failed.length > 0) {
+			contentEl.createEl('p', { text: `${result.skipped.length} notes were skipped and ${result.failed.length} notes failed to import.` });
+		}
+
+		if (result.skipped.length > 0) {
+			contentEl.createEl('p', { text: `Skipped notes:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of result.skipped) {
+					el.createEl('li', { text: note });
+				}
+			});
+		}
+
+		if (result.failed.length > 0) {
+			contentEl.createEl('p', { text: `Failed to import:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of result.failed) {
+					el.createEl('li', { text: note });
+				}
+			});
 		}
 
 		contentEl.createDiv('button-container u-center-text', el => {

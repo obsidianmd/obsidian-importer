@@ -28,21 +28,19 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		const results = (await Promise.all(filePaths
-			.map(path => this.processFile(folder, path))))
-			.reduce((accumulator, value) => {
-				accumulator.total += value.total;
-				accumulator.skipped += value.skipped;
-				accumulator.failed += value.failed;
-				return accumulator;
-			}, { total: 0, skipped: 0, failed: 0 });
-		this.showResult(results);
+			.map(path => this.processFile(folder, path))));
+		this.showResult({
+			total: results.map(({ total }) => total).reduce((l, r) => l + r, 0),
+			failed: results.map(({ failed }) => failed).flat(),
+			skipped: results.map(({ skipped }) => skipped).flat()
+		});
 	}
 
 	async processFile(folder: TFolder, path: string) {
 		const results: ImportResult = {
 			total: 1,
-			failed: 0,
-			skipped: 0
+			failed: [],
+			skipped: []
 		};
 		let mdFile: TFile | null = null;
 		try {
@@ -63,10 +61,14 @@ export class HtmlImporter extends FormatImporter {
 						] as const;
 					})
 			));
-			const attachmentResults = Object.values(attachments);
-			results.total += attachmentResults.length;
-			results.failed += attachmentResults.filter(result => result === "failed").length;
-			results.skipped += attachmentResults.filter(result => result === "skipped").length;
+			const attachmentEntries = Object.entries(attachments);
+			results.total += attachmentEntries.length;
+			results.failed = results.failed.concat(attachmentEntries
+				.filter(([, result]) => result === "failed")
+				.map(([link]) => link));
+			results.skipped = results.skipped.concat(attachmentEntries
+				.filter(([, result]) => result === "skipped")
+				.map(([link]) => link));
 
 			mdContent = mdContent.replace(regex, (str, alias, link) => {
 				const attachment = attachments[link];
@@ -82,7 +84,7 @@ export class HtmlImporter extends FormatImporter {
 			await this.app.vault.modify(mdFile, mdContent);
 		} catch (e) {
 			console.error(e);
-			++results.failed;
+			results.failed.push(path);
 			if (mdFile) {
 				try {
 					await this.app.vault.delete(mdFile);

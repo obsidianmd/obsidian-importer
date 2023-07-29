@@ -16,8 +16,8 @@ interface ImporterDefinition {
 
 export interface ImportResult {
 	total: number,
-	failed: number,
-	skipped: number
+	failed: string[],
+	skipped: string[]
 }
 
 export default class ImporterPlugin extends Plugin {

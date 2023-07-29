@@ -9,9 +9,9 @@ We're still experimenting with contributions, if you have any questions, please 
 ### Code standards
 
 - Follow our [Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Your contribution needs to be implemented in TypeScript.
-- Lightweight - the fewer the dependencies, the better. For example, if you import `lodash` and only use two functions don't it, re-consider.
-- Be extremely performance minded. Your code might be used in vaults with 10,000 or even 100,000 notes.
+- Your contribution must be implemented in TypeScript.
+- Keep it lightweight. The fewer the dependencies, the better. For example, if you import `lodash` and only use two functions don't it, re-consider.
+- Be extremely performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
 - Your code should be self-explanatory. There's no need to over-comment your code, class names and function names should explain most things. Reserve comments for unusual situations and avoid commenting for the sake of commenting.
 
 ### Bounties
