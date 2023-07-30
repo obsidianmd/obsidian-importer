@@ -91,14 +91,31 @@ export class HtmlImporter extends FormatImporter {
 			const pathURL = pathToFileURL(path);
 			mdFile = await this.saveAsMarkdownFile(folder, pathToBasename(path), "");
 
-			const ast = mdContent.split(/(?=!)/u);
+			const ast = [];
+			let read = -1;
+			let next = 0;
+			do {
+				next = mdContent.indexOf("!", read + 1);
+				if (next === -1) {
+					next = mdContent.length;
+				}
+				ast.push(mdContent.slice(read, next));
+				const link = parseMarkdownLink(mdContent.slice(next), false);
+				if (link) {
+					ast.push({
+						link,
+						text: mdContent.slice(next, next + link.read),
+					});
+					next += link.read;
+				}
+				read = next;
+			} while (read < mdContent.length)
 			const transformedAST = await Promise.all(ast
-				.map(async text => {
-					const link = parseMarkdownLink(text, false);
-					if (!link) {
-						return { text };
+				.map(async ast => {
+					if (typeof ast === "string") {
+						return { text: ast };
 					}
-					const { path: linkpath, display, read } = link;
+					let { link, link: { path: linkpath, display }, text } = ast;
 					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
 					let url;
 					try {
@@ -113,9 +130,9 @@ export class HtmlImporter extends FormatImporter {
 							.join("/"), pathURL);
 					}
 					const attachment = await this.downloadAttachmentCached(mdFile, url);
-					text = attachment instanceof TFile
-						? `${this.app.fileManager.generateMarkdownLink(attachment, path, "", display)}${text.slice(read)}`
-						: text;
+					if (attachment instanceof TFile) {
+						text = this.app.fileManager.generateMarkdownLink(attachment, path, "", display);
+					}
 					return { text, attachment, link } as const;
 				}));
 			results.total += transformedAST
