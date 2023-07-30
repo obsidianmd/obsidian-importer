@@ -12,6 +12,8 @@ import {
 } from './notion-utils';
 import { ImportResult } from 'main';
 import { FormatImporter } from 'format-importer';
+import { sanitizeFileName } from '../../util';
+import { htmlToMarkdown } from 'obsidian';
 
 export async function parseFiles(
 	filePaths: string[],
@@ -32,12 +34,13 @@ export async function parseFiles(
 	await Promise.all(
 		filePaths.map(
 			(filePath) =>
-				new Promise(async (resolve, reject) => {
+				new Promise(async (resolve) => {
 					try {
 						const normalizedFilePath = filePath.replace(
 							folderPathsReplacement,
 							''
 						);
+
 						const text = await readPath(filePath);
 						const { id, fileInfo, attachments } = parseFileInfo({
 							text,
@@ -47,8 +50,8 @@ export async function parseFiles(
 
 						for (let path of attachments)
 							pathsToAttachmentInfo[path] = {
-								nameWithExtension: path.slice(
-									path.lastIndexOf('/') + 1
+								nameWithExtension: sanitizeFileName(
+									path.slice(path.lastIndexOf('/') + 1)
 								),
 								fullLinkPathNeeded: false,
 							};
@@ -57,8 +60,8 @@ export async function parseFiles(
 						resolve(true);
 					} catch (e) {
 						console.error(e);
-						results.failed++;
-						reject(e);
+						results.failed.push(filePath);
+						resolve(false);
 					}
 				})
 		)
@@ -81,7 +84,15 @@ const parseFileInfo = ({
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
-	const title = text.match(/<h1 class="page-title">(.*?)<\/h1>/)?.[1];
+	const parsedTitle =
+		text.match(/<title>((.|\n)*?)<\/title>/)?.[1] || 'Untitled';
+	if (!parsedTitle) {
+		throw new Error('no title for ' + normalizedFilePath);
+	}
+	const title = sanitizeFileName(parsedTitle.replace(/\n/g, ''))
+		.replace(/^\s+/, '')
+		.replace(/\s+$/, '');
+
 	const description = text.match(
 		/<p class="page-description">((.|\n)*?)<\/p>/
 	)?.[1];
@@ -93,7 +104,7 @@ const parseFileInfo = ({
 	const attachments = new Set<string>();
 
 	if (rawProperties) {
-		const rawPropertyList = rawProperties.match(/<tr.*?<\/tr>/g);
+		const rawPropertyList = rawProperties.match(/<tr(.|\n)*?<\/tr>/g);
 		for (let rawProperty of rawPropertyList) {
 			const property = parseProperty(rawProperty);
 
@@ -143,7 +154,6 @@ const parseFileInfo = ({
 	};
 };
 
-// just map file paths to link text, then transfer.
 const parseProperty = (property: string) => {
 	const notionType = property.match(
 		/<tr class="property-row property-row-(.*?)"/
@@ -151,10 +161,10 @@ const parseProperty = (property: string) => {
 	if (!notionType)
 		throw new Error('property type not found for: ' + property);
 
-	const title = property.match(/<th>.*<\/span>(.*?)<\/th>/)?.[1];
+	const title = property.match(/<th>(.|\n)*?<\/span>((.|\n)*?)<\/th>/)?.[2];
 
 	let content;
-	const htmlContent = property.match(/<td>(.*?)<\/td>/)?.[1];
+	const htmlContent = property.match(/<td>((.|\n)*?)<\/td>/)?.[1];
 
 	const typesMap: Record<ObsidianProperty['type'], NotionPropertyType[]> = {
 		checkbox: ['checkbox'],
@@ -196,24 +206,28 @@ const parseProperty = (property: string) => {
 			break;
 		case 'email':
 		case 'phone_number':
-			content = htmlContent.match(/<a.*?>(.*?)<\/a>/)?.[1];
+			content = htmlContent
+				.match(/<a.*?>(.*?)<\/a>/)?.[1]
+				?.replace(/\n/g, ' ');
 			break;
 		case 'created_by':
 		case 'last_edited_by':
 		case 'person':
 			content = htmlContent.match(
-				/class="icon user-icon"\/>(.*)<\/span>/
+				/class="icon user-icon"\/>((.|\n)*?)<\/span>/
 			)?.[1];
 			break;
 		case 'select':
-			content = htmlContent.match(/<span.*?>(.*?)<\/span>/)?.[1];
+			content = htmlContent.match(/<span.*?>((.|\n)*?)<\/span>/)?.[1];
 			break;
 		case 'status':
 			content = htmlContent.match(
-				/<span.*?><div class="status-dot.*?<\/div>(.*?)<\/span>/
+				/<span.*?><div class="status-dot.*?<\/div>((.|\n)*?)<\/span>/
 			)?.[1];
 			break;
 		case 'url':
+			content = htmlContent.replace(/\n/g, ' ');
+			break;
 		case 'text':
 		case 'formula':
 		case 'rollup':
@@ -221,13 +235,14 @@ const parseProperty = (property: string) => {
 			break;
 		case 'file':
 		case 'relation':
-			const linkList = htmlContent.match(/<a href=".*?<\/a>/g);
-			content = linkList.flat();
+			const linkList = htmlContent.match(/<a href="(.|\n)*?<\/a>/g);
+			content = linkList.flat().map((link) => link.replace(/\n/g, ' '));
 			break;
 		case 'multi_select':
-			const allSelects = htmlContent.match(/<span.*?>.*?<\/span>/g);
+			const allSelects = htmlContent.match(/<span.*?>(.|\n)*?<\/span>/g);
 			content = allSelects?.map(
-				(selectHtml) => selectHtml.match(/<span.*?>(.*?)<\/span>/)?.[1]
+				(selectHtml) =>
+					selectHtml.match(/<span.*?>((.|\n)*?)<\/span>/)?.[1]
 			);
 			break;
 		case 'number':

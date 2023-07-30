@@ -1,17 +1,11 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import { FileSystemAdapter, Notice, normalizePath } from 'obsidian';
-import { parseFiles } from './notion/parse-info';
-import {
-	escapeRegex,
-	getFileExtension,
-	getParentFolder,
-	pathToFilename,
-	stripFileExtension,
-} from '../util';
+import { escapeRegex } from '../util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
 import { copyFiles } from './notion/copy-files';
+import { parseFiles } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -24,35 +18,26 @@ export class NotionImporter extends FormatImporter {
 	}
 
 	async import(): Promise<void> {
-		let { app, filePaths } = this;
+		let { app, filePaths, folderPaths } = this;
 
 		if (filePaths.length === 0) {
 			new Notice('Please pick at least one folder to import.');
 			return;
 		}
 
-		const folderHTML = this.folderLocationSetting.descEl.innerHTML;
-		const folderPaths = folderHTML
-			.match(/<span class="u-pop">.*?<\/span>/g)
-			.map(
-				(folder) => folder.match(/<span class="u-pop">(.*?)<\/span>/)[1]
-			);
 		const folderPathsReplacement = new RegExp(
-			folderPaths
-				.map((folderPath) => '^' + escapeRegex(folderPath) + '\\/')
-				.join('|')
+			`^(${folderPaths
+				.map((folderPath) => escapeRegex('/' + folderPath))
+				.join('|')})`
 		);
-
-		console.log(folderPathsReplacement);
-		return;
 
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
 		let results: ImportResult = {
 			total: 0,
-			skipped: 0,
-			failed: 0,
+			skipped: [],
+			failed: [],
 		};
 
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};

@@ -1,6 +1,6 @@
 import { App, htmlToMarkdown } from 'obsidian';
 import { escapeRegex, getParentFolder } from '../../util';
-import { getNotionId } from './notion-utils';
+import { assembleParentIds, getNotionId } from './notion-utils';
 import {
 	extractHref,
 	matchAttachmentLinks,
@@ -22,7 +22,6 @@ export function convertNotesToMd({
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
-			fileInfo,
 		});
 
 		fileInfo.body = convertLinksToObsidian(fileInfo.body, {
@@ -32,7 +31,11 @@ export function convertNotesToMd({
 			fileInfo,
 		});
 
-		fileInfo.body = htmlToMarkdown(fileInfo.body);
+		fileInfo.body = htmlToMarkdown(
+			replaceTableOfContents(
+				fixNotionLists(replaceNestedStrongs(fileInfo.body))
+			)
+		);
 
 		if (fileInfo.properties) {
 			fileInfo.yamlProperties = fileInfo.properties.map((property) =>
@@ -47,35 +50,67 @@ export function convertNotesToMd({
 	}
 }
 
+function replaceNestedStrongs(body: string) {
+	return body
+		.replace(/<strong>(<strong>)+/g, '<strong>')
+		.replace(/<\/strong>(<\/strong>)+/g, '</strong>');
+}
+
+function replaceTableOfContents(body: string) {
+	const tocLinks = body.match(
+		/<a class="table_of_contents\-link" href=.*?>.*?<\/a>/g
+	);
+	if (!tocLinks) return body;
+	for (let link of tocLinks) {
+		const linkTitle = link.match(/>(.*?)<\/a>/)[1];
+		body = body.replace(link, `<a href="#${linkTitle}">${linkTitle}</a>`);
+	}
+	return body;
+}
+
+function fixNotionLists(body: string) {
+	return body.replace(
+		/<\/li><\/ul><ul id=".*?" class="bulleted-list"><li style="list-style-type:disc">/g,
+		'</li><li style="list-style-type:disc">'
+	);
+}
+
 function convertInlineDatabasesToObsidian(
 	body: string,
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
 		attachmentFolderPath,
-		fileInfo,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 		attachmentFolderPath: string;
-		fileInfo: NotionFileInfo;
 	}
 ) {
 	const DATABASE_MATCH =
-		/<table class="collection-content"><thead>(.*?)<\/thead><tbody>(.*?)<\/tbody><\/table>/;
+		/<table class="collection-content"><thead>((.|\n)*?)<\/thead><tbody>((.|\n)*?)<\/tbody><\/table>/;
 	let inlineDatabase = body.match(DATABASE_MATCH);
 	while (inlineDatabase) {
 		const rawDatabaseHeaders = inlineDatabase[1].match(/<th>.*?<\/th>/g);
 		const headers = rawDatabaseHeaders.map((header) => {
-			return header.match(/<\/span>(.*?)<\/th>/)[1];
+			return header.match(/<\/span>((.|\n)*?)<\/th>/)[1];
 		});
-		const childRows = inlineDatabase[2].match(/<tr id=".*?">(.*?)<\/tr>/g);
+		const childRows = inlineDatabase[3].match(
+			/<tr id=".*?">((.|\n)*?)<\/tr>/g
+		);
 		const childIds = childRows.map((row) =>
 			getNotionId(row.match(/<tr id="(.*?)"/)[1])
 		);
 
-		const processedRows = childIds.map((childId) => {
+		const processedRows = childIds.map((childId, i) => {
 			const childFileInfo = idsToFileInfo[childId];
+
+			// if there's no child linked, just use row's basic HTML formatting as a fallback
+			if (!childFileInfo)
+				return childRows[i]
+					.match(/<td(.*?)<\/td>/g)
+					.map((cell) => cell.match(/<td.*?>(.*?)<\/td>/)?.[1] ?? '');
+
 			const processedRow: string[] = headers.map((propertyName, i) => {
 				const isTitle = i === 0;
 				if (isTitle) {
@@ -129,7 +164,10 @@ function convertPropertyToMarkdown(
 		case 'checkbox':
 			return property.content ? 'X' : ' ';
 		case 'date':
-			return property.content.format('YYYY-MM-DD HH:mm');
+			return property.content.hour() === 0 &&
+				property.content.minute() === 0
+				? property.content.format('MMMM D, YYYY')
+				: property.content.format('MMMM D, YYYY h:mm A');
 		case 'list':
 			return property.content
 				.map((content) =>
@@ -171,13 +209,8 @@ function convertPropertyToYAML(
 	switch (property.type) {
 		case 'checkbox':
 		case 'number':
-			content = property.content;
-			break;
 		case 'date':
-			content =
-				property.content.hour() === 0 && property.content.minute() === 0
-					? property.content.format('YYYY-MM-DD')
-					: property.content.format('YYYY-MM-DDTHH:mm');
+			content = property.content;
 			break;
 		case 'list':
 			content = property.content.map((content) =>
@@ -214,7 +247,7 @@ function convertPropertyToYAML(
 }
 
 function convertHtmlLinksToURLs(content: string) {
-	const links = content.match(/<a href="[^"]+".*?<\/a>/);
+	const links = content.match(/<a href="[^"]+"(.|\n)*?<\/a>/);
 	if (!links) return content;
 	for (let link of links) {
 		content = content.replace(link, extractHref(link));
@@ -249,6 +282,8 @@ function convertLinksToObsidian(
 			);
 
 			const attachmentInfo = pathsToAttachmentInfo[attachmentPath];
+			if (!attachmentInfo) continue;
+
 			const obsidianLink = `${embedAttachments ? '!' : ''}[[${
 				attachmentInfo.fullLinkPathNeeded && attachmentFolderPath !== ''
 					? attachmentFolderPath +
@@ -269,14 +304,28 @@ function convertLinksToObsidian(
 	if (relationLinks) {
 		for (let link of relationLinks) {
 			const relationId = getNotionId(extractHref(link));
+			if (!relationId) continue;
 			const fileInfo = idsToFileInfo[relationId];
-			let obsidianLink: string = fileInfoToObsidianLink(fileInfo, {
-				idsToFileInfo,
-			});
-			body = body.replace(
-				new RegExp(escapeRegex(link), 'g'),
-				obsidianLink
-			);
+			if (fileInfo) {
+				let obsidianLink: string = fileInfoToObsidianLink(fileInfo, {
+					idsToFileInfo,
+				});
+				body = body.replace(
+					new RegExp(escapeRegex(link)),
+					obsidianLink
+				);
+			} else {
+				const titleMatch = htmlToMarkdown(
+					link.match(/>(.*?)<\/a>/)[1].replace(/<.*?\/>/g, '')
+				)
+					.replace(/^\s+/, '')
+					.replace(/\s+$/, '');
+
+				body = body.replace(
+					new RegExp(escapeRegex(link)),
+					`[[${titleMatch}]]`
+				);
+			}
 		}
 	}
 
@@ -289,10 +338,11 @@ function fileInfoToObsidianLink(
 ) {
 	return `[[${
 		fileInfo.fullLinkPathNeeded
-			? fileInfo.parentIds
-					.map((parentId) => idsToFileInfo[parentId].title)
-					.join('/') +
+			? assembleParentIds(fileInfo, idsToFileInfo)
+					.map((folder) => folder + '/')
+					.join('') +
 			  fileInfo.title +
+			  '\\' +
 			  '|' +
 			  fileInfo.title
 			: fileInfo.title

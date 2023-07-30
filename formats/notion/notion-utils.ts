@@ -9,21 +9,23 @@ export const stripNotionId = (id: string) => {
 };
 
 export const getNotionId = (id: string) => {
-	return id.replace(/-/g, '').match(/([a-z0-9]{32})(\.|$)/)?.[1];
+	return id.replace(/-/g, '').match(/([a-z0-9]{32})(\?|\.|$)/)?.[1];
 };
 
 export const matchAttachmentLinks = (body: string, filePath: string) => {
 	const thisFileHref = encodeURIComponent(pathToFilename(filePath));
 	return body.match(
 		new RegExp(
-			`<a href="${escapeRegex(thisFileHref)}\\/((?!html)[^"])+".*?<\\/a>`,
+			`<a href="${escapeRegex(
+				thisFileHref
+			)}\\/((?!html)[^"])+"(.|\n)*?<\\/a>`,
 			'g'
 		)
 	);
 };
 
 export const matchRelationLinks = (body: string) => {
-	return body.match(/<a href="[^"]+(%20| )[a-z0-9]{32}\.html".*?<\/a>/g);
+	return body.match(/<a href="[^"]+(%20| )[a-z0-9]{32}\.html"(.|\n)*?<\/a>/g);
 };
 
 export const extractHref = (a: string) => {
@@ -37,3 +39,11 @@ export const getAttachmentPath = (
 	const path = parentFolder + '/' + decodedHref;
 	return path;
 };
+
+export const assembleParentIds = (
+	fileInfo: NotionFileInfo,
+	idsToFileInfo: Record<string, NotionFileInfo>
+) =>
+	fileInfo.parentIds.map(
+		(parentId) => idsToFileInfo[parentId]?.title ?? parentId
+	);

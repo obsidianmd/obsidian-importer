@@ -2,6 +2,8 @@ import { FormatImporter } from 'format-importer';
 import { App, normalizePath, htmlToMarkdown } from 'obsidian';
 import * as fs from 'fs';
 import { ImportResult } from 'main';
+import moment from 'moment';
+import { assembleParentIds } from './notion-utils';
 
 export async function copyFiles({
 	idsToFileInfo,
@@ -18,17 +20,19 @@ export async function copyFiles({
 	app: App;
 	results: ImportResult;
 }) {
-	const normalizedAttachmentFolder = normalizePath(attachmentFolderPath);
+	const normalizedAttachmentFolder =
+		normalizePath(attachmentFolderPath) + '/';
 
 	const createdFolders = new Set<string>();
 	await Promise.all(
 		Object.entries(idsToFileInfo)
 			.map(
 				([_id, fileInfo]) =>
-					new Promise(async (resolve, reject) => {
+					new Promise(async (resolve) => {
 						try {
-							const parentTitles = fileInfo.parentIds.map(
-								(parentId) => idsToFileInfo[parentId].title
+							const parentTitles = assembleParentIds(
+								fileInfo,
+								idsToFileInfo
 							);
 
 							if (parentTitles.length > 0) {
@@ -55,8 +59,44 @@ export async function copyFiles({
 									file,
 									(frontMatter) => {
 										for (let property of fileInfo.yamlProperties) {
-											frontMatter[property.title] =
-												property.content;
+											if (
+												moment.isMoment(
+													property.content
+												)
+											) {
+												if (
+													property.content.hour() ===
+														0 &&
+													property.content.minute() ===
+														0
+												) {
+													// this isn't working, still is date
+													app.metadataTypeManager.setType(
+														property.title,
+														'date'
+													);
+													frontMatter[
+														property.title
+													] =
+														property.content.format(
+															'YYYY-MM-DD'
+														);
+												} else {
+													app.metadataTypeManager.setType(
+														property.title,
+														'time'
+													);
+													frontMatter[
+														property.title
+													] =
+														property.content.format(
+															'YYYY-MM-DDTHH:mm'
+														);
+												}
+											} else {
+												frontMatter[property.title] =
+													property.content;
+											}
 										}
 									}
 								);
@@ -64,15 +104,15 @@ export async function copyFiles({
 							resolve(true);
 						} catch (e) {
 							console.error(e);
-							results.failed++;
-							reject(e);
+							results.failed.push(fileInfo.path);
+							resolve(false);
 						}
 					})
 			)
 			.concat(
 				Object.entries(pathsToAttachmentInfo).map(
 					([path, attachmentInfo]) =>
-						new Promise(async (resolve, reject) => {
+						new Promise(async (resolve) => {
 							try {
 								const data = fs.readFileSync(path);
 								await app.vault.adapter.writeBinary(
@@ -82,8 +122,8 @@ export async function copyFiles({
 								resolve(true);
 							} catch (e) {
 								console.error(e);
-								results.failed++;
-								reject(e);
+								results.failed.push(path);
+								resolve(false);
 							}
 						})
 				)
