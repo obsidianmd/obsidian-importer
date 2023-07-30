@@ -44,7 +44,7 @@ export class HtmlImporter extends FormatImporter {
 	addMinimumImageSize(defaultInPx: number) {
 		this.minimumImageSize = defaultInPx;
 		new Setting(this.modal.contentEl)
-			.setName("Minimum image size")
+			.setName("Minimum image size (px)")
 			.setDesc("Set to 0 to disable.")
 			.addText(text => text
 				.setValue(defaultInPx.toString())
