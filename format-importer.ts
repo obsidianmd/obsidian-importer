@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as fsPromises from "fs/promises";
 import * as path from 'path';
 import { App, DropdownComponent, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
@@ -205,7 +206,7 @@ export abstract class FormatImporter {
 	}
 
 	async readPath(path: string) {
-		return await fs.readFileSync(path, 'utf-8');
+		return await fsPromises.readFile(path, 'utf-8');
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
