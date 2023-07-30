@@ -6,6 +6,8 @@ import { URL, fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
 import { getExtension, getType } from "mime/lite";
 import { disableFS, imageSize } from "image-size";
+import { fileTypeFromBuffer } from "file-type";
+import isSvg from "is-svg";
 
 disableFS(true);
 
@@ -198,8 +200,8 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestFile(url: URL) {
-		const type = getType(getURLFilename(url)) ?? "application/octet-stream";
-		return { type, data: (await readFile(fileURLToPath(url))).buffer };
+		const data = (await readFile(fileURLToPath(url))).buffer;
+		return { type: await detectType(url, data), data };
 	}
 
 	async requestHTTP(url: URL) {
@@ -225,8 +227,8 @@ export class HtmlImporter extends FormatImporter {
 				throw e;
 			}
 		}
-		const type = response.headers["Content-Type"] || (getType(getURLFilename(url)) ?? "application/octet-stream");
-		return { type, data: response.arrayBuffer };
+		const { arrayBuffer: data } = response;
+		return { type: response.headers["Content-Type"] || await detectType(url, data), data };
 	}
 
 	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
@@ -287,6 +289,12 @@ interface Response {
 
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
+}
+
+async function detectType(url: URL, data: ArrayBufferLike) {
+	return getType(getURLFilename(url)) ??
+		(await fileTypeFromBuffer(data))?.mime ??
+		(isSvg(new TextDecoder().decode(data)) ? "image/svg+xml" : "application/octet-stream")
 }
 
 // todo: use internal md parser (but consider performance first)
