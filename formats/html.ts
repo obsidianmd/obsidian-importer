@@ -177,7 +177,7 @@ export class HtmlImporter extends FormatImporter {
 					response = await this.requestHTTP(url);
 					break;
 				default:
-					throw new Error(url.toString());
+					throw new Error(url.href);
 			}
 			if (!this.filterAttachment(response)) {
 				return "skipped";
@@ -203,7 +203,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestHTTP(url: URL) {
-		url = new URL(url.toString());
+		url = new URL(url.href);
 		let response;
 		try {
 			url.protocol = "https:";
