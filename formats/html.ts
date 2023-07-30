@@ -117,25 +117,30 @@ export class HtmlImporter extends FormatImporter {
 					if (typeof ast === "string") {
 						return { text: ast };
 					}
-					let { link, link: { path: linkpath, display }, text } = ast;
-					const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
-					let url;
 					try {
-						url = new URL(correctedPath);
-					} catch (e) {
-						if (!(e instanceof TypeError)) {
-							throw e;
+						let { link, link: { path: linkpath, display }, text } = ast;
+						const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
+						let url;
+						try {
+							url = new URL(correctedPath);
+						} catch (e) {
+							if (!(e instanceof TypeError)) {
+								throw e;
+							}
+							url = new URL(normalizePath(correctedPath)
+								.split("/")
+								.map(encodeURIComponent)
+								.join("/"), pathURL);
 						}
-						url = new URL(normalizePath(correctedPath)
-							.split("/")
-							.map(encodeURIComponent)
-							.join("/"), pathURL);
+						const attachment = await this.downloadAttachmentCached(mdFile, url);
+						if (attachment instanceof TFile) {
+							text = this.app.fileManager.generateMarkdownLink(attachment, path, "", display);
+						}
+						return { text, attachment, link } as const;
+					} catch (e) {
+						console.error(e);
+						return { text: ast.text };
 					}
-					const attachment = await this.downloadAttachmentCached(mdFile, url);
-					if (attachment instanceof TFile) {
-						text = this.app.fileManager.generateMarkdownLink(attachment, path, "", display);
-					}
-					return { text, attachment, link } as const;
 				}));
 			results.total += transformedAST
 				.filter(({ link }) => link)
