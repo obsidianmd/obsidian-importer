@@ -375,7 +375,7 @@ function parseMarkdownLink(
 	return {
 		display,
 		path: decodeURI(pathParts[0] ?? ""),
-		read: (link.startsWith("!") ? 1 : 0) + read + read2,
+		read: (link.startsWith("!") ? "!".length : 0) + read + read2,
 		title,
 	};
 }
