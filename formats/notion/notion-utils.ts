@@ -64,3 +64,11 @@ export const assembleParentIds = (
 			.map((folder) => folder + '/')
 	);
 };
+
+export function parseDate(content: moment.Moment) {
+	if (content.hour() === 0 && content.minute() === 0) {
+		return content.format('YYYY-MM-DD');
+	} else {
+		return content.format('YYYY-MM-DDTHH:mm');
+	}
+}

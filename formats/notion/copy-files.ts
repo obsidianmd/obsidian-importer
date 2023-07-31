@@ -1,8 +1,8 @@
-import * as fs from 'fs';
+import { readFile } from 'fs/promises';
 import { ImportResult } from 'main';
 import moment from 'moment';
 import { App, normalizePath } from 'obsidian';
-import { assembleParentIds } from './notion-utils';
+import { assembleParentIds, parseDate } from './notion-utils';
 
 export async function copyFiles({
 	idsToFileInfo,
@@ -67,35 +67,8 @@ export async function copyFiles({
 													property.content
 												)
 											) {
-												if (
-													property.content.hour() ===
-														0 &&
-													property.content.minute() ===
-														0
-												) {
-													// this isn't working, still is date
-													app.metadataTypeManager.setType(
-														property.title,
-														'date'
-													);
-													frontMatter[
-														property.title
-													] =
-														property.content.format(
-															'YYYY-MM-DD'
-														);
-												} else {
-													app.metadataTypeManager.setType(
-														property.title,
-														'time'
-													);
-													frontMatter[
-														property.title
-													] =
-														property.content.format(
-															'YYYY-MM-DDTHH:mm'
-														);
-												}
+												frontMatter[property.title] =
+													parseDate(property.content);
 											} else {
 												frontMatter[property.title] =
 													property.content;
@@ -117,7 +90,7 @@ export async function copyFiles({
 					([path, attachmentInfo]) =>
 						new Promise(async (resolve) => {
 							try {
-								const data = fs.readFileSync(path);
+								const data = await readFile(path);
 								await app.vault.adapter.writeBinary(
 									`${normalizedAttachmentFolder}${attachmentInfo.nameWithExtension}`,
 									data

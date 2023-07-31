@@ -36,7 +36,9 @@ export function convertNotesToMd({
 			replaceTableOfContents(
 				fixNotionLists(
 					fixNotionDates(
-						replaceNestedStrongs(stripLinkImages(fileInfo.body))
+						replaceNestedStrongs(
+							stripLinkImages(encodeNewlines(fileInfo.body))
+						)
 					)
 				)
 			)
@@ -57,11 +59,10 @@ export function convertNotesToMd({
 	}
 }
 
-function replaceNestedStrongs(body: string) {
-	return body
+const replaceNestedStrongs = (body: string) =>
+	body
 		.replace(/<strong>(<strong>)+/g, '<strong>')
 		.replace(/<\/strong>(<\/strong>)+/g, '</strong>');
-}
 
 function replaceTableOfContents(body: string) {
 	const tocLinks = body.match(
@@ -75,22 +76,21 @@ function replaceTableOfContents(body: string) {
 	return body;
 }
 
-function stripLinkImages(body: string) {
-	return body.replace(/<a [^>]+>(<[^>]+>?[^>]+\/>)+([^<]+?)<\/a>/g, '$2');
-}
+const encodeNewlines = (body: string) => body.replace(/\n/g, '<br />');
 
-function fixNotionDates(body: string) {
-	return body.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
-}
+const stripLinkImages = (body: string) =>
+	body.replace(/<a [^>]+>(<[^>]+>?[^>]+\/>)+([^<]+?)<\/a>/g, '$2');
 
-function fixNotionLists(body: string) {
-	return body
+const fixNotionDates = (body: string) =>
+	body.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
+
+const fixNotionLists = (body: string) =>
+	body
 		.replace(
 			/<\/li><\/ul><ul id=".*?" [^>]*><li [^>]*>/g,
 			'</li><li style="list-style-type:disc">'
 		)
 		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
-}
 
 function convertInlineDatabasesToObsidian(
 	body: string,
@@ -123,22 +123,21 @@ function convertInlineDatabasesToObsidian(
 			const childFileInfo = idsToFileInfo[childId];
 
 			// if there's no child included in the import, just use row's basic HTML formatting as a fallback
-			const childCells = childRows[i].match(/<td(.*?)<\/td>/g);
+			const childCells = childRows[i].match(/<td((.|\n)*?)<\/td>/g);
 			if (!childFileInfo)
 				return childCells.map(
 					(cell) => cell.match(/<td.*?>(.*?)<\/td>/)?.[1] ?? ''
 				);
 
 			const processedRow: string[] = headers.map((propertyName, i) => {
-				const property = childFileInfo.properties.find(
-					(property) => property.title === propertyName
-				);
-
 				if (childCells[i].contains('class="cell-title"')) {
 					return fileInfoToObsidianLink(childFileInfo, {
 						idsToFileInfo,
 					});
 				} else {
+					const property = childFileInfo.properties.find(
+						(property) => property.title === propertyName
+					);
 					if (!property) return '';
 					return convertPropertyToMarkdown(property, {
 						idsToFileInfo,
@@ -191,6 +190,7 @@ function convertPropertyToMarkdown(
 				: property.content.format('MMMM D, YYYY h:mm A');
 		case 'list':
 			return property.content
+				.filter((content) => content)
 				.map((content) =>
 					convertLinksToObsidian(content, {
 						idsToFileInfo,
@@ -293,6 +293,8 @@ function convertLinksToObsidian(
 	}
 ) {
 	const parentFolder = getParentFolder(fileInfo.path);
+	console.log(body);
+
 	const attachmentLinks = matchAttachmentLinks(body, fileInfo.path);
 
 	if (attachmentLinks) {
