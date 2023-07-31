@@ -212,10 +212,10 @@ export abstract class FormatImporter {
 	// todo: return results
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options: DataWriteOptions) {
 		// 	const {vault } = this.app;
-		let santizedName = sanitizeFileName(title);
+		let sanitizedName = sanitizeFileName(title);
 		
 		//@ts-ignore
-		await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
+		await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
 
 		// TODO: This allows dataWriteOptions, but doesn't automatically do versioning
 		// 	await vault.create(`${folder.path}/${sanitizedName}.md`, content, options);
