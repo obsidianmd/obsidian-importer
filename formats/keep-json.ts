@@ -65,9 +65,10 @@ export class KeepImporter extends FormatImporter {
 		for (let srcPath of filePaths) {
 			const fileMeta = separatePathNameExt(srcPath)
 			try {
-				if(fileMeta.ext == 'json') {
+				if(fileMeta.ext === 'json') {
 					let rawContent = await this.readPath(srcPath);
 					let keepJson = convertStringToKeepJson(rawContent);
+					if(!keepJson) throw(`JSON file doesn't match expected Google Keep format.`);
 					
 					if(keepJson.isArchived && !this.importArchived) {
 						results.skipped.push(`${fileMeta.name}.${fileMeta.ext} (Archived note)`);
@@ -92,8 +93,9 @@ export class KeepImporter extends FormatImporter {
 					
 				}
 				results.total++;
+
 			} catch (e) {
-				console.error(e);
+				console.error(`${fileMeta.name}.${fileMeta.ext} ::: `, e);
 				results.failed.push(`${fileMeta.name}.${fileMeta.ext}`);
 			}
 		}

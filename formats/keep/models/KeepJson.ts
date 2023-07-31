@@ -39,12 +39,12 @@ export interface KeepJson {
 /**
  * Accepts a string and attempts to parse it into a valid Google Keep JSON
  */
-export function convertStringToKeepJson(rawContent: string): KeepJson {
+export function convertStringToKeepJson(rawContent: string): KeepJson | null {
 	const keepJson = JSON.parse(rawContent);
 
-	// Is this this right place to check if the parsed json matches the minimum viable as a Google Keep Json
-	// typeof fileContents.userEditedTimestampUsec !== 'undefined'		&&
-	// typeof fileContents.createdTimestampUsec !== 'undefined';
+	// Check file matches expected mandatory items in Keep interface
+	if(typeof keepJson.userEditedTimestampUsec === 'undefined') return null;
+	if(typeof keepJson.createdTimestampUsec === 'undefined') return null;
 
 	return keepJson;
 }

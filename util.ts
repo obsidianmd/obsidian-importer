@@ -37,7 +37,7 @@ export function pathToFilename(path: string) {
 }
 
 /**
- * Returns an object with name and ext properties.
+ * Returns an object with name and extension properties.
  * Doesn't accept a full path.
  */
 export function separatePathNameExt(fullPath: string): {path: string, name: string, ext: string} {
@@ -69,7 +69,7 @@ export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
 	if(normalizedPath === '') {
 		normalizedPath = '/';
 	}
-	
+
 	const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
 	if(folder instanceof TFolder) {
 		return folder;
@@ -80,7 +80,10 @@ export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
 	return newFolder;
 }
 
-
+/**
+ * Copies a file into the vault without parsing it.
+ * Designed primarily for Binary files.
+ */
 export async function copyFile(absSrcFilepath: string, relOutputFilepath: string) {
     let { vault } = this.app;
 	const fileData = await fs.readFile(absSrcFilepath);
