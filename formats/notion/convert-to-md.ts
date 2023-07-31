@@ -32,12 +32,18 @@ export function convertNotesToMd({
 			fileInfo,
 		});
 
-		fileInfo.body = htmlToMarkdown(
-			replaceTableOfContents(
-				fixNotionLists(
-					fixNotionDates(
-						replaceNestedStrongs(
-							stripLinkImages(encodeNewlines(fileInfo.body))
+		fileInfo.body = escapeHashtags(
+			htmlToMarkdown(
+				replaceTableOfContents(
+					fixNotionLists(
+						fixNotionDates(
+							stripLinkImages(
+								encodeNewlines(
+									replaceNewlinesInFormatting(
+										replaceNestedFormatting(fileInfo.body)
+									)
+								)
+							)
 						)
 					)
 				)
@@ -59,10 +65,69 @@ export function convertNotesToMd({
 	}
 }
 
-const replaceNestedStrongs = (body: string) =>
+const escapeHashtags = (body: string) => {
+	const tagExp = /#[a-z0-9\-]+/gi;
+
+	if (!tagExp.test(body)) return body;
+	const lines = body.split('\n');
+	for (let i = 0; i < lines.length; i++) {
+		const hashtags = lines[i].match(tagExp);
+		if (!hashtags) continue;
+		let newLine = lines[i];
+		for (let hashtag of hashtags) {
+			const hashtagInLink = new RegExp(
+				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
+			);
+
+			if (hashtagInLink.test(newLine)) {
+				console.log(
+					newLine,
+					'contains',
+					hashtag,
+					hashtagInLink,
+					newLine.match(hashtagInLink)
+				);
+				continue;
+			}
+			newLine = newLine.replace(hashtag, '\\' + hashtag);
+			console.log('replaced:', hashtag, newLine, hashtagInLink);
+		}
+		lines[i] = newLine;
+	}
+	return lines.join('\n');
+};
+
+const replaceNestedFormatting = (body: string) =>
 	body
 		.replace(/<strong>(<strong>)+/g, '<strong>')
-		.replace(/<\/strong>(<\/strong>)+/g, '</strong>');
+		.replace(/<\/strong>(<\/strong>)+/g, '</strong>')
+		.replace(/<em>(<em>)+/g, '<em>')
+		.replace(/<\/em>(<\/em>)+/g, '</em>');
+
+const replaceNewlinesInFormatting = (body: string) => {
+	const strongs = body.matchAll(/<strong>((.|\n)*)<\/strong>/g);
+	for (let strong of strongs) {
+		if (strong[1].contains('\n')) {
+			const strongs = strong[1].split('\n');
+			body = body.replace(
+				strong[0],
+				strongs.map((strong) => `<strong>${strong}</strong>`).join('\n')
+			);
+		}
+	}
+	const italics = body.matchAll(/<em>((.|\n)*)<\/em>/g);
+	for (let italic of italics) {
+		if (italic[1].contains('\n')) {
+			const italics = italic[1].split('\n');
+			body = body.replace(
+				italic[0],
+				italics.map((italic) => `<em>${italic}</em>`).join('\n')
+			);
+		}
+	}
+
+	return body;
+};
 
 function replaceTableOfContents(body: string) {
 	const tocLinks = body.match(
@@ -293,7 +358,6 @@ function convertLinksToObsidian(
 	}
 ) {
 	const parentFolder = getParentFolder(fileInfo.path);
-	console.log(body);
 
 	const attachmentLinks = matchAttachmentLinks(body, fileInfo.path);
 

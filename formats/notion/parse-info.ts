@@ -85,7 +85,9 @@ const parseFileInfo = ({
 	if (!parsedTitle) {
 		throw new Error('no title for ' + normalizedFilePath);
 	}
-	let title = sanitizeFileName(htmlToMarkdown(parsedTitle.replace(/\n/g, '')))
+	let title = sanitizeFileName(
+		htmlToMarkdown(parsedTitle.replace(/\n/g, '').replace(/#/g, ''))
+	)
 		.replace(/^\s+/, '')
 		.replace(/\s+$/, '');
 
