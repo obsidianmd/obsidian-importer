@@ -24,6 +24,8 @@ export async function copyFiles({
 
 	const createdFolders = new Set<string>();
 
+	console.log(normalizedAttachmentFolder);
+
 	await Promise.all(
 		Object.entries(idsToFileInfo)
 			.map(
