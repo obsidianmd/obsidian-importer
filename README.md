@@ -23,16 +23,14 @@ First install Importer in Obsidian → Community Plugins
 
 ### Import notes from Notion
 - Export your Notion files to `HTML` format. You can export a whole top-level page or database from Notion by clicking **More actions** (`...` icon) and chose **Export.** Chose the following settings:
-![Recommended Notion settings](images/notion-export-settings.png)
+<img src="images/notion-export-settings.png" width="300" />
 - Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
 - Under **File format** select **Notion (.html)**
 - Choose the folder(s) of Notion notes you want to import. 
   - Select the unzipped folder(s), not anything inside of them.
-  - *Note:** *It's recommended to import all your Notion at once so internal links can be reconciled correctly!*
+  - **Note:** *It's recommended to import all your Notion at once so internal links can be reconciled correctly!*
 - Select a folder for the import — your Notion pages and databases will be nested inside this folder.
 - Click **Import**
-
-The importer will convert any page properties to YAML metadata. Any pages with children are placed inside a parent folder of the same name, which is most compatible with many Obsidian "Folder-note" plugins. 
 
 ### Import notes from Evernote
 
