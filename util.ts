@@ -1,5 +1,5 @@
 import { TFolder, normalizePath } from "obsidian";
-import fs from 'fs';
+import fs from 'fs/promises';
 
 
 function escapeRegex(str: string): string {
@@ -80,13 +80,6 @@ export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
 
 export async function copyFile(absSrcFilepath: string, relOutputFilepath: string) {
     let { vault } = this.app;
-	const absOutputFilepath = vault.adapter.basePath + '/' + relOutputFilepath;
-
-	fs.copyFile(absSrcFilepath, absOutputFilepath, (err) => {
-	if (err) {
-		console.error('Error copying file:', err);
-	} else {
-		console.log('File copied successfully!');
-	}
-	});
+	const fileData = await fs.readFile(absSrcFilepath);
+	await vault.createBinary(relOutputFilepath, fileData);
 }
