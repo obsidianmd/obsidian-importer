@@ -22,3 +22,6 @@ data.json
 .DS_Store
 
 package-lock.json
+
+# Exclude files specific to personal development process
+.hotreload
