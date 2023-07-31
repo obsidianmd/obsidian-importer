@@ -1,3 +1,4 @@
+import { KeepImporter } from 'formats/keep-json';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
@@ -32,6 +33,10 @@ export default class ImporterPlugin extends Plugin {
 			'html': {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
+			},
+			'keep': {
+				name: 'Google Keep (.json)',
+				importer: KeepImporter,
 			},
 		};
 
