@@ -1,10 +1,11 @@
-import { App, htmlToMarkdown } from 'obsidian';
+import { htmlToMarkdown } from 'obsidian';
 import { escapeRegex, getParentFolder } from '../../util';
-import { assembleParentIds, getNotionId } from './notion-utils';
 import {
+	assembleParentIds,
 	extractHref,
-	matchAttachmentLinks,
 	getAttachmentPath,
+	getNotionId,
+	matchAttachmentLinks,
 	matchRelationLinks,
 } from './notion-utils';
 
@@ -33,7 +34,11 @@ export function convertNotesToMd({
 
 		fileInfo.body = htmlToMarkdown(
 			replaceTableOfContents(
-				fixNotionLists(replaceNestedStrongs(fileInfo.body))
+				fixNotionLists(
+					fixNotionDates(
+						replaceNestedStrongs(stripLinkImages(fileInfo.body))
+					)
+				)
 			)
 		);
 
@@ -68,11 +73,21 @@ function replaceTableOfContents(body: string) {
 	return body;
 }
 
+function stripLinkImages(body: string) {
+	return body.replace(/<a [^>]+>(<[^>]+>?[^>]+\/>)+([^<]+?)<\/a>/g, '$2');
+}
+
+function fixNotionDates(body: string) {
+	return body.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
+}
+
 function fixNotionLists(body: string) {
-	return body.replace(
-		/<\/li><\/ul><ul id=".*?" class="bulleted-list"><li style="list-style-type:disc">/g,
-		'</li><li style="list-style-type:disc">'
-	);
+	return body
+		.replace(
+			/<\/li><\/ul><ul id=".*?" [^>]*><li [^>]*>/g,
+			'</li><li style="list-style-type:disc">'
+		)
+		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
 }
 
 function convertInlineDatabasesToObsidian(
@@ -247,7 +262,7 @@ function convertPropertyToYAML(
 }
 
 function convertHtmlLinksToURLs(content: string) {
-	const links = content.match(/<a href="[^"]+"(.|\n)*?<\/a>/);
+	const links = content.match(/<a href="[^"]+"(.|\n)*?<\/a>/g);
 	if (!links) return content;
 	for (let link of links) {
 		content = content.replace(link, extractHref(link));
@@ -301,6 +316,7 @@ function convertLinksToObsidian(
 	}
 
 	const relationLinks = matchRelationLinks(body);
+
 	if (relationLinks) {
 		for (let link of relationLinks) {
 			const relationId = getNotionId(extractHref(link));
@@ -338,9 +354,7 @@ function fileInfoToObsidianLink(
 ) {
 	return `[[${
 		fileInfo.fullLinkPathNeeded
-			? assembleParentIds(fileInfo, idsToFileInfo)
-					.map((folder) => folder + '/')
-					.join('') +
+			? assembleParentIds(fileInfo, idsToFileInfo).join('') +
 			  fileInfo.title +
 			  '\\' +
 			  '|' +

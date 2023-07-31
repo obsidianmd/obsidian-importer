@@ -1,6 +1,5 @@
-import { App, TAbstractFile, TFile, normalizePath } from 'obsidian';
-import { getFileExtension } from '../../util';
-import { stripFileExtension } from '../../util';
+import { App, TAbstractFile } from 'obsidian';
+import { getFileExtension, stripFileExtension } from '../../util';
 
 export function cleanDuplicates({
 	idsToFileInfo,

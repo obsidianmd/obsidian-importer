@@ -1,8 +1,7 @@
-import { FormatImporter } from 'format-importer';
-import { App, normalizePath, htmlToMarkdown } from 'obsidian';
 import * as fs from 'fs';
 import { ImportResult } from 'main';
 import moment from 'moment';
+import { App, normalizePath } from 'obsidian';
 import { assembleParentIds } from './notion-utils';
 
 export async function copyFiles({
@@ -38,18 +37,21 @@ export async function copyFiles({
 							if (parentTitles.length > 0) {
 								let createdFolder = '';
 								for (let folder of parentTitles) {
-									createdFolder += '/' + folder;
+									createdFolder += folder;
 									if (!createdFolders.has(createdFolder)) {
 										app.vault.createFolder(
-											targetFolderPath + createdFolder
+											targetFolderPath +
+												'/' +
+												createdFolder
 										);
 										createdFolders.add(createdFolder);
 									}
 								}
 							}
-							const path = `${targetFolderPath}/${parentTitles
-								.map((parent) => parent + '/')
-								.join('')}${fileInfo.title}.md`;
+							const path = `${targetFolderPath}/${assembleParentIds(
+								fileInfo,
+								idsToFileInfo
+							).join('')}${fileInfo.title}.md`;
 							const file = await app.vault.create(
 								path,
 								fileInfo.body

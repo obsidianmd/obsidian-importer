@@ -1,5 +1,4 @@
 import { escapeRegex, pathToFilename } from '../../util';
-import { stripFileExtension } from '../../util';
 
 export const isNotionId = (id: string) =>
 	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
@@ -25,7 +24,13 @@ export const matchAttachmentLinks = (body: string, filePath: string) => {
 };
 
 export const matchRelationLinks = (body: string) => {
-	return body.match(/<a href="[^"]+(%20| )[a-z0-9]{32}\.html"(.|\n)*?<\/a>/g);
+	const relations = body.match(
+		/<a href="[^"]+(%20| )[a-z0-9]{32}\.html"(.|\n)*?<\/a>/g
+	);
+	const links = body.match(
+		/<a href="https:\/\/www.notion.so\/[^"]+-[a-z0-9]{32}(\?pvs=\d+)?"(.|\n)*?<\/a>/g
+	);
+	return relations && links ? relations.concat(links) : relations ?? links;
 };
 
 export const extractHref = (a: string) => {
@@ -44,6 +49,8 @@ export const assembleParentIds = (
 	fileInfo: NotionFileInfo,
 	idsToFileInfo: Record<string, NotionFileInfo>
 ) =>
-	fileInfo.parentIds.map(
-		(parentId) => idsToFileInfo[parentId]?.title ?? parentId
-	);
+	fileInfo.parentIds
+		.map((parentId) => idsToFileInfo[parentId]?.title)
+		// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
+		.filter((parentId) => parentId)
+		.map((folder) => folder + '/');

@@ -1,19 +1,13 @@
+import { FormatImporter } from 'format-importer';
+import { ImportResult } from 'main';
 import moment from 'moment';
-import {
-	getParentFolder,
-	pathToFilename,
-	stripFileExtension,
-} from '../../util';
+import { getParentFolder, sanitizeFileName } from '../../util';
 import {
 	extractHref,
 	getAttachmentPath,
 	getNotionId,
 	matchAttachmentLinks,
 } from './notion-utils';
-import { ImportResult } from 'main';
-import { FormatImporter } from 'format-importer';
-import { sanitizeFileName } from '../../util';
-import { htmlToMarkdown } from 'obsidian';
 
 export async function parseFiles(
 	filePaths: string[],
