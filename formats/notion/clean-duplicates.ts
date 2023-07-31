@@ -1,5 +1,6 @@
 import { App, TAbstractFile } from 'obsidian';
 import { getFileExtension, stripFileExtension } from '../../util';
+import { assembleParentIds } from './notion-utils';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -63,7 +64,9 @@ function cleanDuplicateNotes({
 		}
 
 		pathDuplicateChecks.add(
-			`${fileInfo.parentIds.join('/')}/${fileInfo.title}`
+			`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
+				fileInfo.title
+			}`
 		);
 		titleDuplicateChecks.add(fileInfo.title);
 	}
