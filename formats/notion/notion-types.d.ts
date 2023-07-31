@@ -24,11 +24,11 @@ declare global {
 		| 'auto_increment_id';
 
 	type ObsidianProperty = (
-		| { type: 'text'; content: string }
-		| { type: 'date'; content: moment.Moment }
-		| { type: 'number'; content: number }
-		| { type: 'list'; content: string[] }
-		| { type: 'checkbox'; content: boolean }
+		| { type: 'text'; content?: string }
+		| { type: 'date'; content?: moment.Moment }
+		| { type: 'number'; content?: number }
+		| { type: 'list'; content?: string[] }
+		| { type: 'checkbox'; content?: boolean }
 	) & { title: string; notionType: NotionPropertyType };
 	type YamlProperty = {
 		content: string | moment.Moment | number | string[] | boolean;

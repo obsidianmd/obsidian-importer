@@ -43,14 +43,16 @@ export function convertNotesToMd({
 		);
 
 		if (fileInfo.properties) {
-			fileInfo.yamlProperties = fileInfo.properties.map((property) =>
-				convertPropertyToYAML(property, {
-					fileInfo,
-					idsToFileInfo,
-					pathsToAttachmentInfo,
-					attachmentFolderPath,
-				})
-			);
+			fileInfo.yamlProperties = fileInfo.properties
+				.filter((property) => property.content)
+				.map((property) =>
+					convertPropertyToYAML(property, {
+						fileInfo,
+						idsToFileInfo,
+						pathsToAttachmentInfo,
+						attachmentFolderPath,
+					})
+				);
 		}
 	}
 }
@@ -120,29 +122,31 @@ function convertInlineDatabasesToObsidian(
 		const processedRows = childIds.map((childId, i) => {
 			const childFileInfo = idsToFileInfo[childId];
 
-			// if there's no child linked, just use row's basic HTML formatting as a fallback
+			// if there's no child included in the import, just use row's basic HTML formatting as a fallback
+			const childCells = childRows[i].match(/<td(.*?)<\/td>/g);
 			if (!childFileInfo)
-				return childRows[i]
-					.match(/<td(.*?)<\/td>/g)
-					.map((cell) => cell.match(/<td.*?>(.*?)<\/td>/)?.[1] ?? '');
+				return childCells.map(
+					(cell) => cell.match(/<td.*?>(.*?)<\/td>/)?.[1] ?? ''
+				);
 
 			const processedRow: string[] = headers.map((propertyName, i) => {
-				const isTitle = i === 0;
-				if (isTitle) {
-					return fileInfoToObsidianLink(childFileInfo, {
-						idsToFileInfo,
-					});
-				}
 				const property = childFileInfo.properties.find(
 					(property) => property.title === propertyName
 				);
-				if (!property) return '';
-				return convertPropertyToMarkdown(property, {
-					idsToFileInfo,
-					pathsToAttachmentInfo,
-					fileInfo: childFileInfo,
-					attachmentFolderPath,
-				});
+
+				if (childCells[i].contains('class="cell-title"')) {
+					return fileInfoToObsidianLink(childFileInfo, {
+						idsToFileInfo,
+					});
+				} else {
+					if (!property) return '';
+					return convertPropertyToMarkdown(property, {
+						idsToFileInfo,
+						pathsToAttachmentInfo,
+						fileInfo: childFileInfo,
+						attachmentFolderPath,
+					});
+				}
 			});
 			return processedRow;
 		});
@@ -175,6 +179,8 @@ function convertPropertyToMarkdown(
 		attachmentFolderPath: string;
 	}
 ) {
+	if (property.content === undefined) return '';
+
 	switch (property.type) {
 		case 'checkbox':
 			return property.content ? 'X' : ' ';

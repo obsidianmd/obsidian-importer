@@ -48,9 +48,19 @@ export const getAttachmentPath = (
 export const assembleParentIds = (
 	fileInfo: NotionFileInfo,
 	idsToFileInfo: Record<string, NotionFileInfo>
-) =>
-	fileInfo.parentIds
-		.map((parentId) => idsToFileInfo[parentId]?.title)
-		// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
-		.filter((parentId) => parentId)
-		.map((folder) => folder + '/');
+) => {
+	const pathNames = fileInfo.path.split('/');
+	return (
+		fileInfo.parentIds
+			.map(
+				(parentId) =>
+					idsToFileInfo[parentId]?.title ??
+					pathNames
+						.find((pathSegment) => pathSegment.contains(parentId))
+						?.replace(` ${parentId}`, '')
+			)
+			// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
+			// .filter((parentId) => parentId)
+			.map((folder) => folder + '/')
+	);
+};

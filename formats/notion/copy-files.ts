@@ -23,6 +23,7 @@ export async function copyFiles({
 		normalizePath(attachmentFolderPath) + '/';
 
 	const createdFolders = new Set<string>();
+
 	await Promise.all(
 		Object.entries(idsToFileInfo)
 			.map(

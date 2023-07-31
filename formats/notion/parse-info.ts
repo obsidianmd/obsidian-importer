@@ -112,7 +112,24 @@ const parseFileInfo = ({
 				}
 			}
 
-			if (property.content) properties.push(property);
+			switch (property.type) {
+				case 'checkbox':
+					properties.push(property);
+					break;
+				case 'list':
+					if (property.content && property.content.length > 0)
+						properties.push(property);
+					break;
+				case 'number':
+					if (property.content !== undefined)
+						properties.push(property);
+					break;
+				case 'text':
+				case 'date':
+					if (property.content) properties.push(property);
+			}
+
+			properties.push(property);
 		}
 	}
 
