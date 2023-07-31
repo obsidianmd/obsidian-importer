@@ -23,7 +23,9 @@ First install Importer in Obsidian → Community Plugins
 
 ### Import notes from Notion
 - Export your Notion files to `HTML` format. You can export a whole top-level page or database from Notion by clicking **More actions** (`...` icon) and chose **Export.** Chose the following settings:
+
 <img src="images/notion-export-settings.png" width="300" />
+
 - Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
 - Under **File format** select **Notion (.html)**
 - Choose the folder(s) of Notion notes you want to import. 
