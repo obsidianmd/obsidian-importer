@@ -59,7 +59,7 @@ function cleanDuplicateNotes({
 			fileInfo.title = `${fileInfo.title} ${duplicateResolutionIndex}`;
 		}
 
-		if (titleDuplicateChecks.has(fileInfo.title)) {
+		if (titleDuplicateChecks.has(fileInfo.title + '.md')) {
 			fileInfo.fullLinkPathNeeded = true;
 		}
 
@@ -107,5 +107,6 @@ function cleanDuplicateAttachments({
 			}
 			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
 		}
+		attachmentFiles.add(attachmentInfo.nameWithExtension);
 	}
 }
