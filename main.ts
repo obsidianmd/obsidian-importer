@@ -2,7 +2,7 @@ import { KeepImporter } from 'formats/keep-json';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 
 declare global {
 	interface Window {
@@ -100,11 +100,13 @@ export class ImporterModal extends Modal {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
 						this.modalEl.addClass('is-loading');
+						new Notice('Import started.');
 						try {
 							await importer.import();
 						} finally {
 							this.modalEl.removeClass('is-loading');
 						}
+						new Notice('Import complete.');
 					});
 				});
 			});

@@ -5,6 +5,12 @@ import { ImportResult } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { convertStringToKeepJson } from "./keep/models/KeepJson";
 
+
+const NOTE_EXTS = ['json'];
+// Google Keep exports in the original format uploaded, so limiting to only binary formats Obsidian supports
+const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
+
+
 export class KeepImporter extends FormatImporter {
 	importArchivedSetting: Setting;
 	importTrashedSetting: Setting;
@@ -12,11 +18,27 @@ export class KeepImporter extends FormatImporter {
 	importTrashed: boolean = false;
 
 	init() {
-		const noteExts = ['json'];
-		// Google Keep exports in the original format uploaded, so limiting to only binary formats Obsidian supports
-		const attachmentExts = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
+		this.modal.contentEl.createEl('h3', {text: 'Exporting from Google Keep'});
+		const firstParaEl = this.modal.contentEl.createEl('p', {
+			text: 'To export your files from Google Keep, open ',
+		});
+		firstParaEl.createEl('a', {
+			text: 'Google Takeout',
+			href: 'https://takeout.google.com/'
+		});
+		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, unzip it and and import the files below before clicking import.');
 
-		this.addFileChooserSetting('Notes & attachments', [...noteExts, ...attachmentExts]);
+		this.modal.contentEl.createEl('h3', {text: 'Supported features'});
+		this.modal.contentEl.createEl('p', {
+			text: `All checklist will import as one level as Google Keep doesn't export indentation information.`,
+		});
+		this.modal.contentEl.createEl('p', {
+			text: `Reminders and user assignments on notes won't import as they are not supported by Obsidian.`,
+		});
+
+		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
+
+		this.addFileChooserSetting('Notes & attachments', [...NOTE_EXTS, ...ATTACHMENT_EXTS]);
 
 		this.importArchivedSetting = new Setting(this.modal.contentEl)
             .setName('Import archived notes')
@@ -43,6 +65,7 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async import(): Promise<void> {
+
 		let { filePaths } = this;
 		if (filePaths.length === 0) {
 			new Notice('Please pick at least one file to import.');
