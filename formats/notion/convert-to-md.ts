@@ -79,18 +79,8 @@ const escapeHashtags = (body: string) => {
 				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
 			);
 
-			if (hashtagInLink.test(newLine)) {
-				console.log(
-					newLine,
-					'contains',
-					hashtag,
-					hashtagInLink,
-					newLine.match(hashtagInLink)
-				);
-				continue;
-			}
+			if (hashtagInLink.test(newLine)) continue;
 			newLine = newLine.replace(hashtag, '\\' + hashtag);
-			console.log('replaced:', hashtag, newLine, hashtagInLink);
 		}
 		lines[i] = newLine;
 	}
