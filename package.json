@@ -6,8 +6,7 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json",
-		"copy": "cp main.js \"/Users/jreinier/Library/Mobile Documents/iCloud~md~obsidian/Documents/TEST/.obsidian/plugins/obsidian-importer\""
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [],
 	"author": "",
