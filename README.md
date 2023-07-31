@@ -26,7 +26,9 @@ First install Importer in Obsidian → Community Plugins
 ![Recommended Notion settings](images/notion-export-settings.png)
 - Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
 - Under **File format** select **Notion (.html)**
-- Choose the folder(s) of Notion notes you want to import. **Note:** *Import all of your Notion notes at once to avoid conflicts with Notion IDs and Obsidian internal links!*
+- Choose the folder(s) of Notion notes you want to import. 
+  - Select the unzipped folder(s), not anything inside of them.
+  - *Note:** *It's recommended to import all your Notion at once so internal links can be reconciled correctly!*
 - Select a folder for the import — your Notion pages and databases will be nested inside this folder.
 - Click **Import**
 
