@@ -66,7 +66,10 @@ export function separatePathNameExt(fullPath: string): {path: string, name: stri
  */
 export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
 	let normalizedPath = normalizePath(folderPath)
-
+	if(normalizedPath === '') {
+		normalizedPath = '/';
+	}
+	
 	const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
 	if(folder instanceof TFolder) {
 		return folder;

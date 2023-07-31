@@ -15,7 +15,8 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     if(jsonContent.attachments)	mdContent += `#Keep/Attachment `;
     if(jsonContent.isArchived)	mdContent += `#Keep/Archived `;
     if(jsonContent.isTrashed) 	mdContent += `#Keep/Trashed `;
-
+    
+    // Add Keep labels in as tags
 	if(jsonContent.labels) {
         let labels = '';
         for(let i=0; i<jsonContent.labels.length; i++) {
@@ -25,6 +26,11 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
         }
         mdContent += labels; 
     };
+
+    if(jsonContent.title) {
+        mdContent += `\n\n`;
+        mdContent += `## ${jsonContent.title}\n`;
+    }
 
     if(jsonContent.textContent) {
         mdContent += `\n\n`;

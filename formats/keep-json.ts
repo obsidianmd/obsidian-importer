@@ -1,18 +1,45 @@
 import { FormatImporter } from "../format-importer";
-import { Notice, normalizePath } from "obsidian";
+import { DataWriteOptions, Notice, Setting, normalizePath } from "obsidian";
 import { copyFile, getOrCreateFolder, separatePathNameExt } from '../util';
 import { ImportResult } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { convertStringToKeepJson } from "./keep/models/KeepJson";
 
 export class KeepImporter extends FormatImporter {
+	importArchivedSetting: Setting;
+	importTrashedSetting: Setting;
+	importArchived: boolean = false;
+	importTrashed: boolean = false;
+
 	init() {
 		const noteExts = ['json'];
 		// Google Keep exports in the original format uploaded, so limiting to only binary formats Obsidian supports
 		const attachmentExts = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
-		this.addFileOrFolderChooserSetting('Notes & attachments', [...noteExts, ...attachmentExts]);
+		this.addFileChooserSetting('Notes & attachments', [...noteExts, ...attachmentExts]);
+
+		this.importArchivedSetting = new Setting(this.modal.contentEl)
+            .setName('Import archived notes')
+			.setDesc('If imported, files archived in Google Keep will be tagged as archived.')
+            .addToggle(toggle => {
+                toggle.setValue(this.importArchived)
+                toggle.onChange(async (value) => {
+                    this.importArchived = value;
+                });
+            });
+        
+		this.importTrashedSetting = new Setting(this.modal.contentEl)
+            .setName('Import deleted notes')
+			.setDesc('If imported, files deleted in Google Keep will be tagged as trashed. Trashed notes will only exist in your Google export if deleted recently.')
+            .addToggle(toggle => {
+                toggle.setValue(this.importTrashed)
+                toggle.onChange(async (value) => {
+                    this.importTrashed = value;
+                });
+            });
+
 		this.addOutputLocationSetting('Google Keep');
+
 	}
 
 	async import(): Promise<void> {
@@ -24,7 +51,7 @@ export class KeepImporter extends FormatImporter {
 
 		let folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice('Please select a location to import your files to.');
 			return;
 		}
 		let assetFolderPath = `${folder.path}/Assets`;
@@ -41,11 +68,21 @@ export class KeepImporter extends FormatImporter {
 				if(fileMeta.ext == 'json') {
 					let rawContent = await this.readPath(srcPath);
 					let keepJson = convertStringToKeepJson(rawContent);
+					
+					if(keepJson.isArchived && !this.importArchived) continue;
+					if(keepJson.isTrashed && !this.importTrashed) continue;
+					
 					let mdContent = convertJsonToMd(keepJson);
-					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent);
+					const options: DataWriteOptions = {
+						ctime: keepJson.createdTimestampUsec/1000,
+						mtime: keepJson.userEditedTimestampUsec/1000
+					}
+					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent, options);
+
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
 					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
+
 				}
 				results.total++;
 			} catch (e) {

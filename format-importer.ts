@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as fsPromises from "fs/promises";
 import * as path from 'path';
-import { App, DropdownComponent, Setting, TFolder, TextComponent, normalizePath } from "obsidian";
+import { App, DataWriteOptions, DropdownComponent, Setting, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
 import { sanitizeFileName } from "./util";
 
@@ -210,9 +210,10 @@ export abstract class FormatImporter {
 	}
 
 	// todo: return results
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string) {
-		let santizedName = sanitizeFileName(title);
-		//@ts-ignore
-		await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options: DataWriteOptions) {
+		const {vault } = this.app;
+		let sanitizedName = sanitizeFileName(title);
+		await vault.create(`${folder.path}/${sanitizedName}.md`, content, options);
 	}
 }
+
