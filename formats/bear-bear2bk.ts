@@ -10,7 +10,7 @@ const EXPORTED_ASSETS_FOLDER_NAME = 'bear-assets';
 
 export class Bear2bkImporter extends FormatImporter {
   init() {
-    this.addFileOrFolderChooserSetting('Bear2bk (.bear2bk)', ['bear2bk'])
+    this.addFileOrFolderChooserSetting('Bear2bk (.bear2bk)', ['bear2bk']);
     this.addOutputLocationSetting('Bear');
   }
 
@@ -33,13 +33,14 @@ export class Bear2bkImporter extends FormatImporter {
       failed: []
     };
 
-    const attachmentsFolderPath = await (this.app.vault as any).getAvailablePathForAttachments(EXPORTED_ASSETS_FOLDER_NAME)
+    // @ts-ignore
+    const attachmentsFolderPath = await this.app.vault.getAvailablePathForAttachments(EXPORTED_ASSETS_FOLDER_NAME);
     const existingAssetAttachmentsFolder = this.app.vault.getAbstractFileByPath(attachmentsFolderPath);
-    const assetMatcher = /!\[\]\(assets\//g
+    const assetMatcher = /!\[\]\(assets\//g;
 
     // Create folder for text bundle assets inside of vault's media folder.
     if (!existingAssetAttachmentsFolder) {
-      await this.app.vault.createFolder(attachmentsFolderPath)
+      await this.app.vault.createFolder(attachmentsFolderPath);
     }
 
     for (let filePath of filePaths) {
@@ -66,7 +67,7 @@ export class Bear2bkImporter extends FormatImporter {
           if (file.path.match(/\/assets\//g)) {
             const assetFilename = path.basename(file.path);
             const assetFileVaultPath = `${attachmentsFolderPath}/${assetFilename}`;
-            await this.app.vault.createBinary(assetFileVaultPath, await file.buffer())
+            await this.app.vault.createBinary(assetFileVaultPath, await file.buffer());
             continue;
           }
         } catch (error) {
