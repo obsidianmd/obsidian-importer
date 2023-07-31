@@ -1,3 +1,7 @@
+import { TFolder, normalizePath } from "obsidian";
+import fs from 'fs';
+
+
 function escapeRegex(str: string): string {
 	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
 }
@@ -55,4 +59,34 @@ export function separatePathNameExt(fullPath: string): {path: string, name: stri
 		name,
 		ext,
 	};
+}
+
+/**
+ * Retrieves a reference to a specific folder in a vault. Creates it first if it doesn't exist.
+ */
+export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
+	let normalizedPath = normalizePath(folderPath)
+
+	const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
+	if(folder instanceof TFolder) {
+		return folder;
+	}
+	
+	await this.app.vault.createFolder(normalizedPath);
+	const newFolder = this.app.vault.getAbstractFileByPath(normalizedPath) as TFolder;
+	return newFolder;
+}
+
+
+export async function copyFile(absSrcFilepath: string, relOutputFilepath: string) {
+    let { vault } = this.app;
+	const absOutputFilepath = vault.adapter.basePath + '/' + relOutputFilepath;
+
+	fs.copyFile(absSrcFilepath, absOutputFilepath, (err) => {
+	if (err) {
+		console.error('Error copying file:', err);
+	} else {
+		console.log('File copied successfully!');
+	}
+	});
 }

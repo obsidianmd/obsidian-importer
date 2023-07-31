@@ -1,9 +1,9 @@
 import { FormatImporter } from "../format-importer";
 import { Notice, normalizePath } from "obsidian";
-import { separatePathNameExt } from '../util';
+import { copyFile, getOrCreateFolder, separatePathNameExt } from '../util';
 import { ImportResult } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
-import { KeepJson, convertStringToKeepJson } from "./keep/models/KeepJson";
+import { convertStringToKeepJson } from "./keep/models/KeepJson";
 
 export class KeepImporter extends FormatImporter {
 	init() {
@@ -27,6 +27,7 @@ export class KeepImporter extends FormatImporter {
 			new Notice('Please select a location to export to.');
 			return;
 		}
+		let assetFolderPath = `${folder.path}/Assets`;
 
 		let results: ImportResult = {
 			total: 0,
@@ -34,23 +35,22 @@ export class KeepImporter extends FormatImporter {
 			failed: []
 		};
 
-		for (let path of filePaths) {
+		for (let srcPath of filePaths) {
 			try {
-				path = normalizePath(path);
-				const fileMeta = separatePathNameExt(path)
+				const fileMeta = separatePathNameExt(srcPath)
 				if(fileMeta.ext == 'json') {
-					let rawContent = await this.readPath(path);
+					let rawContent = await this.readPath(srcPath);
 					let keepJson = convertStringToKeepJson(rawContent);
 					let mdContent = convertJsonToMd(keepJson);
 					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent);
 				} else {
-					console.log(fileMeta.name);
-					// await copyFile(folder, fileMeta.name);
+					let assetFolder = await getOrCreateFolder(assetFolderPath);
+					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
 				}
 				results.total++;
 			} catch (e) {
 				console.error(e);
-				results.failed.push(path);
+				results.failed.push(srcPath);
 			}
 		}
 
