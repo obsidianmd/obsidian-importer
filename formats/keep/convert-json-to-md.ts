@@ -14,7 +14,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     if(jsonContent.isPinned)    mdContent += `#Keep/Pinned `;
     if(jsonContent.attachments)	mdContent += `#Keep/Attachment `;
     if(jsonContent.isArchived)	mdContent += `#Keep/Archived `;
-    if(jsonContent.isTrashed) 	mdContent += `#Keep/Trashed `;
+    if(jsonContent.isTrashed) 	mdContent += `#Keep/Deleted `;
     
     // Add Keep labels in as tags
 	if(jsonContent.labels) {
@@ -59,10 +59,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
 
     // Update created and modified date to match Keep data if desired
     // if(settings.createdDate === CreatedDateTypes.googleKeep) {
-        // const options: DataWriteOptions = {
-        //     ctime: content.createdTimestampUsec/1000,
-        //     mtime: content.userEditedTimestampUsec/1000
-        // }
+
         // await vault.append(fileRef, '', options);
     // }
 

@@ -30,7 +30,7 @@ export class KeepImporter extends FormatImporter {
         
 		this.importTrashedSetting = new Setting(this.modal.contentEl)
             .setName('Import deleted notes')
-			.setDesc('If imported, files deleted in Google Keep will be tagged as trashed. Trashed notes will only exist in your Google export if deleted recently.')
+			.setDesc('If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.')
             .addToggle(toggle => {
                 toggle.setValue(this.importTrashed)
                 toggle.onChange(async (value) => {
@@ -63,31 +63,38 @@ export class KeepImporter extends FormatImporter {
 		};
 
 		for (let srcPath of filePaths) {
+			const fileMeta = separatePathNameExt(srcPath)
 			try {
-				const fileMeta = separatePathNameExt(srcPath)
 				if(fileMeta.ext == 'json') {
 					let rawContent = await this.readPath(srcPath);
 					let keepJson = convertStringToKeepJson(rawContent);
 					
-					if(keepJson.isArchived && !this.importArchived) continue;
-					if(keepJson.isTrashed && !this.importTrashed) continue;
+					if(keepJson.isArchived && !this.importArchived) {
+						results.skipped.push(`${fileMeta.name}.${fileMeta.ext} (Archived note)`);
+						continue;
+					}
+					if(keepJson.isTrashed && !this.importTrashed) {
+						results.skipped.push(`${fileMeta.name}.${fileMeta.ext} (Deleted note)`);
+						continue;
+					}
 					
 					let mdContent = convertJsonToMd(keepJson);
-					const options: DataWriteOptions = {
+					
+					const writeOptions: DataWriteOptions = {
 						ctime: keepJson.createdTimestampUsec/1000,
 						mtime: keepJson.userEditedTimestampUsec/1000
 					}
-					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent, options);
-
+					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent, writeOptions);
+					
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
 					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
-
+					
 				}
 				results.total++;
 			} catch (e) {
 				console.error(e);
-				results.failed.push(srcPath);
+				results.failed.push(`${fileMeta.name}.${fileMeta.ext}`);
 			}
 		}
 
