@@ -1,5 +1,5 @@
 import { htmlToMarkdown } from 'obsidian';
-import { escapeRegex, getParentFolder } from '../../util';
+import { escapeHashtags, escapeRegex, getParentFolder } from '../../util';
 import {
 	assembleParentIds,
 	extractHref,
@@ -64,28 +64,6 @@ export function convertNotesToMd({
 		}
 	}
 }
-
-const escapeHashtags = (body: string) => {
-	const tagExp = /#[a-z0-9\-]+/gi;
-
-	if (!tagExp.test(body)) return body;
-	const lines = body.split('\n');
-	for (let i = 0; i < lines.length; i++) {
-		const hashtags = lines[i].match(tagExp);
-		if (!hashtags) continue;
-		let newLine = lines[i];
-		for (let hashtag of hashtags) {
-			const hashtagInLink = new RegExp(
-				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
-			);
-
-			if (hashtagInLink.test(newLine)) continue;
-			newLine = newLine.replace(hashtag, '\\' + hashtag);
-		}
-		lines[i] = newLine;
-	}
-	return lines.join('\n');
-};
 
 const replaceNestedFormatting = (body: string) =>
 	body

@@ -41,3 +41,25 @@ export function getFileExtension(path: string) {
 export function getParentFolder(path: string) {
 	return path.contains('/') ? path.slice(0, path.lastIndexOf('/')) : '';
 }
+
+export function escapeHashtags(body: string) {
+	const tagExp = /#[a-z0-9\-]+/gi;
+
+	if (!tagExp.test(body)) return body;
+	const lines = body.split('\n');
+	for (let i = 0; i < lines.length; i++) {
+		const hashtags = lines[i].match(tagExp);
+		if (!hashtags) continue;
+		let newLine = lines[i];
+		for (let hashtag of hashtags) {
+			const hashtagInLink = new RegExp(
+				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
+			);
+
+			if (hashtagInLink.test(newLine)) continue;
+			newLine = newLine.replace(hashtag, '\\' + hashtag);
+		}
+		lines[i] = newLine;
+	}
+	return lines.join('\n');
+}
