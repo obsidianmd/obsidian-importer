@@ -1,7 +1,7 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import moment from 'moment';
-import { getParentFolder, sanitizeFileName } from '../../util';
+import { getParentFolder, pathToFilename, sanitizeFileName } from '../../util';
 import { htmlToMarkdown } from 'obsidian';
 import {
 	extractHref,
@@ -80,22 +80,11 @@ const parseFileInfo = ({
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
-	const parsedTitle =
-		text.match(/<title>((.|\n)*?)<\/title>/)?.[1] || 'Untitled';
-	if (!parsedTitle) {
-		throw new Error('no title for ' + normalizedFilePath);
-	}
-	let title = sanitizeFileName(
-		htmlToMarkdown(parsedTitle.replace(/\n/g, '').replace(/#/g, ''))
-	)
+	const fileName = pathToFilename(filePath);
+	const parsedTitle = fileName.replace(` ${getNotionId(fileName)}`, '');
+	let title = sanitizeFileName(parsedTitle.replace(/#/g, ''))
 		.replace(/^\s+/, '')
 		.replace(/\s+$/, '');
-
-	// just in case title names are too long
-	while (title.length > 100) {
-		const wordList = title.split(' ');
-		title = wordList.slice(0, wordList.length - 1).join(' ') + '...';
-	}
 
 	const description = text.match(
 		/<p class="page-description">((.|\n)*?)<\/p>/
@@ -227,7 +216,16 @@ const parseProperty = (property: string) => {
 				obsidianType = 'text';
 				content = dateContent
 					.split(' → ')
-					.map((content) => parseDate(moment(content)))
+					.map((content) =>
+						parseDate(
+							moment(
+								content,
+								content.includes(':')
+									? 'MMMM D, YYYY h:mm A'
+									: 'MMMM D, YYYY'
+							)
+						)
+					)
 					.join(' - ');
 			} else content = moment(dateContent);
 			break;

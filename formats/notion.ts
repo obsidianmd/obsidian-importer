@@ -86,6 +86,24 @@ export class NotionImporter extends FormatImporter {
 			results,
 		});
 
+		console.log(
+			'notes:',
+			Object.keys(idsToFileInfo).length,
+			'attachments:',
+			Object.keys(pathsToAttachmentInfo).length,
+			'file paths:',
+			this.filePaths.length
+		);
+
+		const allLoadedPaths = app.vault
+			.getMarkdownFiles()
+			.map((file) => file.name);
+		const loadedNotes = Object.values(idsToFileInfo);
+		const skippedFiles = loadedNotes
+			.filter((note) => !allLoadedPaths.includes(note.title + '.md'))
+			.map((note) => note.path);
+		results.skipped.push(...skippedFiles);
+
 		this.showResult(results);
 	}
 }
