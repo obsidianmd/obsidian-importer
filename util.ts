@@ -9,20 +9,6 @@ export function sanitizeFileName(name: string) {
 	return name.replace(ILLEGAL_FILENAME_RE, '');
 }
 
-export function pathToFilename(path: string) {
-	if (!path.contains('/')) return path;
-
-	let lastSlashPosition = path.lastIndexOf('/');
-	let filename = path.slice(lastSlashPosition + 1);
-	let lastDotPosition = filename.lastIndexOf('.');
-
-	if (lastDotPosition === -1 || lastDotPosition === filename.length - 1 || lastDotPosition === 0) {
-		return filename;
-	}
-
-	return filename.slice(0, lastDotPosition);
-}
-
 export function genUid(length: number): string {
 	let array: string[] = [];
 	for (let i = 0; i < length; i++) {
