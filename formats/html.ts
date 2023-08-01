@@ -30,12 +30,17 @@ export class HtmlImporter extends FormatImporter {
 			.setName("Attachment size limit (MB)")
 			.setDesc("Set 0 to disable.")
 			.addText(text => text
-				.then(({ inputEl }) => {
-					inputEl.inputMode = "numeric";
-					inputEl.pattern = "\\+?\\d*[.,]?\\d*";
-				})
+				.then(text => text.inputEl.type = "number")
+				.then(text => text.inputEl.step = "0.1")
 				.setValue(defaultInMB.toString())
-				.onChange(value => this.attachmentSizeLimit = (value === "+" ? 0 : Number(value)) * 10 ** 6));
+				.onChange(value => {
+					const num = value === "-" ? 0 : Number(value);
+					if (num < 0) {
+						text.setValue((this.attachmentSizeLimit / 10 ** 6).toString());
+						return;
+					}
+					this.attachmentSizeLimit = num * 10 ** 6;
+				}));
 	}
 
 	addMinimumImageSize(defaultInPx: number) {
@@ -44,12 +49,16 @@ export class HtmlImporter extends FormatImporter {
 			.setName("Minimum image size (px)")
 			.setDesc("Set 0 to disable.")
 			.addText(text => text
-				.then(({ inputEl }) => {
-					inputEl.inputMode = "numeric";
-					inputEl.pattern = "\\+?\\d*";
-				})
+				.then(text => text.inputEl.type = "number")
 				.setValue(defaultInPx.toString())
-				.onChange(value => this.minimumImageSize = value === "+" ? 0 : Number(value)))
+				.onChange(value => {
+					const num = value === "-" ? 0 : Number(value);
+					if (!Number.isInteger(num) || num < 0) {
+						text.setValue(this.minimumImageSize.toString());
+						return;
+					}
+					this.minimumImageSize = num;
+				}))
 	}
 
 	async import() {
