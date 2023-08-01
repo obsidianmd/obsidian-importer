@@ -194,9 +194,9 @@ export class HtmlImporter extends FormatImporter {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
-			const { data, type } = response;
-			if ((getType(filename) ?? "application/octet-stream") !== type) {
-				const ext = getExtension(type);
+			const { data, mime } = response;
+			if ((getType(filename) ?? "application/octet-stream") !== mime) {
+				const ext = getExtension(mime);
 				if (ext) {
 					filename += `.${ext}`;
 				}
@@ -210,7 +210,7 @@ export class HtmlImporter extends FormatImporter {
 
 	async requestFile(url: URL) {
 		const data = (await readFile(fileURLToPath(url))).buffer;
-		return { type: await detectType(url, data), data };
+		return { mime: await detectMime(url, data), data };
 	}
 
 	async requestHTTP(url: URL) {
@@ -237,7 +237,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 		}
 		const { arrayBuffer: data } = response;
-		return { type: response.headers["Content-Type"] || await detectType(url, data), data };
+		return { mime: response.headers["Content-Type"] || await detectMime(url, data), data };
 	}
 
 	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
@@ -258,8 +258,8 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	filterAttachment(response: Response) {
-		const { data, type } = response;
-		return this.filterAttachmentSize(data) && this.filterAttachmentType(type) && this.filterImageSize(response);
+		const { data, mime } = response;
+		return this.filterAttachmentSize(data) && this.filterAttachmentMime(mime) && this.filterImageSize(response);
 	}
 
 	filterAttachmentSize(data: ArrayBufferLike) {
@@ -267,13 +267,13 @@ export class HtmlImporter extends FormatImporter {
 		return !this.attachmentSizeLimit || byteLength <= this.attachmentSizeLimit;
 	}
 
-	filterAttachmentType(type: string) {
+	filterAttachmentMime(mime: string) {
 		return ["audio/", "image/", "video/"]
-			.some(prefix => type.startsWith(prefix));
+			.some(prefix => mime.startsWith(prefix));
 	}
 
 	filterImageSize(response: Response) {
-		if (!this.minimumImageSize || !response.type.startsWith("image/")) {
+		if (!this.minimumImageSize || !response.mime.startsWith("image/")) {
 			return true;
 		}
 		let size;
@@ -292,7 +292,7 @@ export class HtmlImporter extends FormatImporter {
 }
 
 interface Response {
-	type: string
+	mime: string
 	data: ArrayBufferLike
 }
 
@@ -300,7 +300,7 @@ function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
 }
 
-async function detectType(url: URL, data: ArrayBufferLike) {
+async function detectMime(url: URL, data: ArrayBufferLike) {
 	return getType(getURLFilename(url)) ??
 		(await fileTypeFromBuffer(data))?.mime ??
 		(isSvg(data) ? "image/svg+xml" : "application/octet-stream")
