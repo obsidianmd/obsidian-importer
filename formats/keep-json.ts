@@ -1,9 +1,10 @@
 import { FormatImporter } from "../format-importer";
-import { DataWriteOptions, Notice, Setting, normalizePath } from "obsidian";
-import { copyFile, getOrCreateFolder, separatePathNameExt } from '../util';
+import { DataWriteOptions, Notice, Setting } from "obsidian";
+import { copyFile, getOrCreateFolder, modifyWriteOptions, separatePathNameExt } from '../util';
 import { ImportResult } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { convertStringToKeepJson } from "./keep/models/KeepJson";
+import { addKeepFrontMatter } from "./keep/add-keep-frontmatter";
 
 
 const NOTE_EXTS = ['json'];
@@ -107,13 +108,15 @@ export class KeepImporter extends FormatImporter {
 					}
 					
 					let mdContent = convertJsonToMd(keepJson);
+					const fileRef = await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent);
+					addKeepFrontMatter(fileRef, keepJson);					
 					
 					const writeOptions: DataWriteOptions = {
 						ctime: keepJson.createdTimestampUsec/1000,
 						mtime: keepJson.userEditedTimestampUsec/1000
 					}
-					await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent, writeOptions);
-					
+					modifyWriteOptions(fileRef, writeOptions);
+
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
 					// Keep assets have filenames that appear unique, so no duplicate handling is implemented

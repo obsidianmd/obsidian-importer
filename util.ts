@@ -1,4 +1,4 @@
-import { TFolder, normalizePath } from "obsidian";
+import { DataWriteOptions, TFile, TFolder, normalizePath } from "obsidian";
 import fs from 'fs/promises';
 
 
@@ -109,4 +109,39 @@ export async function copyFile(absSrcFilepath: string, relOutputFilepath: string
     let { vault } = this.app;
 	const fileData = await fs.readFile(absSrcFilepath);
 	await vault.createBinary(relOutputFilepath, fileData);
+}
+
+/**
+ * Adds a single tag to the tag property in frontmatter.
+ * No sanitization is performed in this function.
+ */
+export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+	if(!frontmatter['tags']) {
+		frontmatter['tags'] = tag;
+	} else {
+		frontmatter['tags'] += ' ' + tag;
+	}
+	});
+}
+
+/**
+ * Adds an alias to the note's frontmatter.
+ */
+export async function addAliasToFrontmatter(alias: string, fileRef: TFile) {
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+		if(!frontmatter['alias']) {
+			frontmatter['alias'] = alias;
+		} else {
+			frontmatter['alias'] += ', ' + alias;
+		}
+	});
+}
+
+/**
+ * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file
+ */
+export async function modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions) {
+	let { vault } = this.app;
+	await vault.append(fileRef, '', writeOptions);
 }

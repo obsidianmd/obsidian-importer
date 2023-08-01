@@ -17,22 +17,6 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     if(jsonContent.attachments)	mdContent += `#Keep/Attachment `;
     if(jsonContent.isArchived)	mdContent += `#Keep/Archived `;
     if(jsonContent.isTrashed) 	mdContent += `#Keep/Deleted `;
-    
-    // Add Keep labels in as tags
-	if(jsonContent.labels) {
-        let labels = '';
-        for(let i=0; i<jsonContent.labels.length; i++) {
-            const labelName = sanitizeHashtag(jsonContent.labels[i].name);
-            if(i > 0) labels += ' ';
-            labels += `#Keep/Label/${labelName}`;
-        }
-        mdContent += labels; 
-    };
-
-    if(jsonContent.title) {
-        mdContent += `\n\n`;
-        mdContent += `## ${jsonContent.title}\n`;
-    }
 
     if(jsonContent.textContent) {
         const normalizedTextContent = sanitizeHashtags(jsonContent.textContent);
