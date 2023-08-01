@@ -19,7 +19,7 @@ export class HtmlImporter extends FormatImporter {
 
 	init() {
 		this.addFileOrFolderChooserSetting('HTML (.htm .html)', ['htm', 'html']);
-		this.addAttatchmentSizeLimit(10);
+		this.addAttatchmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.addOutputLocationSetting('HTML');
 	}
