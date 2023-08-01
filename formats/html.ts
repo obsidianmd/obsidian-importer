@@ -2,7 +2,7 @@ import { FormatImporter } from "../format-importer";
 import { Notice, Setting, TFile, TFolder, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
 import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from '../util';
 import { ImportResult } from '../main';
-import { URL, fileURLToPath, pathToFileURL } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
 import { disableFS, imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
@@ -209,7 +209,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestFile(url: URL) {
-		const data = (await readFile(fileURLToPath(url))).buffer;
+		const data = (await readFile(fileURLToPath(url.href))).buffer;
 		return { mime: await detectMime(url, data), data };
 	}
 
