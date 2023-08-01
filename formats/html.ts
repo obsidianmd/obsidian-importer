@@ -292,8 +292,8 @@ export class HtmlImporter extends FormatImporter {
 }
 
 interface Response {
-	mime: string
-	data: ArrayBufferLike
+	mime: string;
+	data: ArrayBufferLike;
 }
 
 function getURLFilename(url: URL) {
@@ -303,7 +303,7 @@ function getURLFilename(url: URL) {
 async function detectMime(url: URL, data: ArrayBufferLike) {
 	return mime(splitFilename(getURLFilename(url))[1]) ||
 		((await fileTypeFromBuffer(data))?.mime ??
-			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"))
+			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"));
 }
 
 function isSvg(data: ArrayBufferLike) {
