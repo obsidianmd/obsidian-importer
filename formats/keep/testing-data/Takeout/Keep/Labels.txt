@@ -1,0 +1,14 @@
+!'@:$"LabelStartingWithSymbols
+label with !'@:$" Symbols
+Hello
+92labelStartingWithNumber
+#!'@:$"LabelStartingWithSymbols
+Underscored_Label
+hyphenated-label
+label with spaces
+labelWith!'@:$"Symbols
+!'@:$"Label
+label
+camelCaseLabel
+LabelWith#Inside
+label with !'@:$" Symbols and spaces

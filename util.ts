@@ -113,27 +113,30 @@ export async function copyFile(absSrcFilepath: string, relOutputFilepath: string
 
 /**
  * Adds a single tag to the tag property in frontmatter.
- * No sanitization is performed in this function.
+ * Will be sanitized.
  */
 export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
-	if(!frontmatter['tags']) {
-		frontmatter['tags'] = tag;
-	} else {
-		frontmatter['tags'] += ' ' + tag;
-	}
+	const sanitizedTag = sanitizeHashtag(tag);
+	this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+		if(!frontmatter['tag']) {
+			frontmatter['tag'] = ` - ${sanitizedTag}`;
+		} else {
+			frontmatter['tag'] += `\n - ${sanitizedTag}`;
+		}
 	});
 }
 
 /**
  * Adds an alias to the note's frontmatter.
- */
+ * Only linebreak sanitzation is performed in this function.
+*/
 export async function addAliasToFrontmatter(alias: string, fileRef: TFile) {
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+	const sanitizedAlias = alias.split('\n').join(', ');
+	this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
 		if(!frontmatter['alias']) {
-			frontmatter['alias'] = alias;
+			frontmatter['alias'] = ` - ${sanitizedAlias}`;
 		} else {
-			frontmatter['alias'] += ', ' + alias;
+			frontmatter['alias'] += `\n - ${sanitizedAlias}`;
 		}
 	});
 }

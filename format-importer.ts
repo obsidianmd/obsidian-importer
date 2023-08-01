@@ -3,7 +3,7 @@ import * as fsPromises from "fs/promises";
 import * as path from 'path';
 import { App, DataWriteOptions, DropdownComponent, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
 import { ImportResult, ImporterModal } from "./main";
-import { addAliasToFrontmatter, addTagToFrontmatter, sanitizeFileName } from "./util";
+import { sanitizeFileName } from "./util";
 
 export abstract class FormatImporter {
 	app: App;
