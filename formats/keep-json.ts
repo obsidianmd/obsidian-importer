@@ -119,7 +119,7 @@ export class KeepImporter extends FormatImporter {
 
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
-					// Keep assets have filenames that appear unique, so no duplicate handling is implemented
+					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
 					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
 					
 				}

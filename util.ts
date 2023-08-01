@@ -71,9 +71,10 @@ export function separatePathNameExt(fullPath: string): {path: string, name: stri
 	let ext = filename.substring(lastDotPosition + 1);
 
 	// If there is no period, then the filename has no extension.
-	// if (lastDotPosition === -1) {
-	// 	ext = '';
-	// }
+	if (lastDotPosition === -1) {
+		name = filename;
+		ext = '';
+	}
 	
 	return {
 		path,
