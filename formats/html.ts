@@ -30,10 +30,12 @@ export class HtmlImporter extends FormatImporter {
 			.setName("Attachment size limit (MB)")
 			.setDesc("Set 0 to disable.")
 			.addText(text => text
+				.then(text => text.inputEl.type = "number")
+				.then(text => text.inputEl.step = "0.1")
 				.setValue(defaultInMB.toString())
 				.onChange(value => {
-					const num = Number(value);
-					if (Number.isNaN(num) || num < 0) {
+					const num = value === "-" ? 0 : Number(value);
+					if (num < 0) {
 						text.setValue((this.attachmentSizeLimit / 10 ** 6).toString());
 						return;
 					}
@@ -47,9 +49,10 @@ export class HtmlImporter extends FormatImporter {
 			.setName("Minimum image size (px)")
 			.setDesc("Set 0 to disable.")
 			.addText(text => text
+				.then(text => text.inputEl.type = "number")
 				.setValue(defaultInPx.toString())
 				.onChange(value => {
-					const num = Number(value);
+					const num = value === "-" ? 0 : Number(value);
 					if (!Number.isInteger(num) || num < 0) {
 						text.setValue(this.minimumImageSize.toString());
 						return;
