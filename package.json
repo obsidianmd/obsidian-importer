@@ -13,7 +13,6 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/marked": "^5.0.0",
-		"@types/mime": "^3.0.1",
 		"@types/node": "^16.11.6",
 		"@types/xml-flow": "^1.0.1",
 		"builtin-modules": "3.3.0",
@@ -26,7 +25,6 @@
 		"file-type": "^18.5.0",
 		"image-size": "^1.0.2",
 		"joplin-turndown-plugin-gfm": "1.0.12",
-		"mime": "^3.0.0",
 		"nanoid": "3.3.6",
 		"sanitize-filename": "1.6.3",
 		"xml-flow": "1.0.4"

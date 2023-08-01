@@ -4,9 +4,9 @@ import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from 
 import { ImportResult } from '../main';
 import { URL, fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
-import { getExtension, getType } from "mime/lite";
 import { disableFS, imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
+import { extension, mime } from "./utils/mime";
 
 disableFS(true);
 
@@ -36,7 +36,7 @@ export class HtmlImporter extends FormatImporter {
 				.setValue(defaultInMB.toString())
 				.onChange(value => {
 					const num = ["+", "-"].includes(value) ? 0 : Number(value);
-					if (num < 0) {
+					if (Number.isNaN(num) || num < 0) {
 						text.setValue((this.attachmentSizeLimit / 10 ** 6).toString());
 						return;
 					}
@@ -194,9 +194,9 @@ export class HtmlImporter extends FormatImporter {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
-			const { data, mime } = response;
-			if ((getType(filename) ?? "application/octet-stream") !== mime) {
-				const ext = getExtension(mime);
+			const { data, mime: actualMime } = response;
+			if ((mime(splitFilename(filename)[1]) || "application/octet-stream") !== actualMime) {
+				const ext = extension(actualMime);
 				if (ext) {
 					filename += `.${ext}`;
 				}
@@ -301,9 +301,9 @@ function getURLFilename(url: URL) {
 }
 
 async function detectMime(url: URL, data: ArrayBufferLike) {
-	return getType(getURLFilename(url)) ??
-		(await fileTypeFromBuffer(data))?.mime ??
-		(isSvg(data) ? "image/svg+xml" : "application/octet-stream")
+	return mime(splitFilename(getURLFilename(url))[1]) ||
+		((await fileTypeFromBuffer(data))?.mime ??
+			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"))
 }
 
 function isSvg(data: ArrayBufferLike) {

@@ -965,6 +965,7 @@ let extensions: Record<string, string> = {
 	'video/x-smv': 'smv',
 	'x-conference/x-cooltalk': 'ice'
 };
+const mimes = Object.fromEntries(Object.entries(extensions).map(([key, value]) => [value, key]))
 
 /*
 // Use this to generate the extensions (need to install `mime-db`)
@@ -995,4 +996,8 @@ export function extension(type: string) {
 	let ext = match && extensions[match[1].toLowerCase()]
 
 	return ext || '';
+}
+
+export function mime(extension: string) {
+	return mimes[extension] ?? "";
 }
