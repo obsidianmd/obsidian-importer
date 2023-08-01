@@ -84,8 +84,10 @@ export async function createFolderStructure(paths: Set<string>, app: App) {
 			if (!createdFolders.has(createdFolder)) {
 				createdFolders.add(createdFolder);
 				creationPromises.push(
-					app.vault.createFolder(createdFolder).catch((e) => {
-						console.error(e);
+					app.vault.createFolder(createdFolder).catch(() => {
+						console.warn(
+							`Skipping created folder: ${createdFolder}`
+						);
 					})
 				);
 			}
