@@ -22,3 +22,11 @@ export function pathToFilename(path: string) {
 
 	return filename.slice(0, lastDotPosition);
 }
+
+export function genUid(length: number): string {
+	let array: string[] = [];
+	for (let i = 0; i < length; i++) {
+		array.push((Math.random() * 16 | 0).toString(16));
+	}
+	return array.join('');
+}

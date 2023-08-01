@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import { nanoid } from 'nanoid';
 import { moment } from 'obsidian';
 import * as path from 'path';
 import sanitize from 'sanitize-filename';
@@ -34,7 +33,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | 
 
 };
 export const getResourceFileProperties = (workDir: string, resource: any): ResourceFileProperties => {
-	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + "0000000").slice(2, 10) : 'unknown_filename';
+	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
@@ -94,10 +93,6 @@ export const getExtension = (resource: any): string => {
 
 export const getZettelKastelId = (note: any, dstPath: string): string => {
 	return moment(note['created']).format('YYYYMMDDHHmm');
-};
-
-export const getUniqueId = (): string => {
-	return nanoid(5);
 };
 
 export const getNoteName = (dstPath: string, note: any): string => {

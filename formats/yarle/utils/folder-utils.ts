@@ -1,11 +1,12 @@
 import fs from 'fs';
 import * as path from 'path';
+import { genUid } from '../../../util';
 
 import { Path } from '../paths';
 import { yarleOptions } from '../yarle';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
-import { getNoteFileName, getNoteName, getUniqueId, normalizeTitle } from './filename-utils';
+import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
 
 export const paths: Path = {};
 const MAX_PATH = 249;
@@ -28,7 +29,7 @@ export const truncatFileName = (fileName: string, uniqueId: string): string => {
 const truncateFilePath = (note: any, fileName: string, fullFilePath: string): string => {
 	const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
 
-	const noteIdMap = noteIdNameMap.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title))[0] || { uniqueEnd: getUniqueId() };
+	const noteIdMap = noteIdNameMap.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title))[0] || { uniqueEnd: genUid(6) };
 
 
 	if (fileName.length <= 11) {
