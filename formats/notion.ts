@@ -6,6 +6,7 @@ import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
 import { copyFiles } from './notion/copy-files';
 import { parseFiles } from './notion/parse-info';
+import { assembleParentIds } from './notion/notion-utils';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -19,6 +20,7 @@ export class NotionImporter extends FormatImporter {
 
 	async import(): Promise<void> {
 		let { app, filePaths, folderPaths } = this;
+		const targetFolderPath = (await this.getOutputFolder()).path;
 
 		if (filePaths.length === 0) {
 			new Notice('Please pick at least one folder to import.');
@@ -62,20 +64,20 @@ export class NotionImporter extends FormatImporter {
 		const parsedSettings = JSON.parse(appSettings ?? '{}');
 		const attachmentFolderPath = parsedSettings.attachmentFolderPath ?? '';
 
-		cleanDuplicates({
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-			attachmentFolderPath,
-			app,
-		});
+		if (attachmentFolderPath.startsWith('.'))
+			cleanDuplicates({
+				idsToFileInfo,
+				pathsToAttachmentInfo,
+				attachmentFolderPath,
+				app,
+				targetFolderPath,
+			});
 
 		convertNotesToMd({
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
 		});
-
-		const targetFolderPath = (await this.getOutputFolder()).path;
 
 		await copyFiles({
 			idsToFileInfo,
@@ -86,15 +88,6 @@ export class NotionImporter extends FormatImporter {
 			results,
 		});
 
-		console.log(
-			'notes:',
-			Object.keys(idsToFileInfo).length,
-			'attachments:',
-			Object.keys(pathsToAttachmentInfo).length,
-			'file paths:',
-			this.filePaths.length
-		);
-
 		const allLoadedPaths = app.vault
 			.getMarkdownFiles()
 			.map((file) => file.name);
@@ -103,6 +96,13 @@ export class NotionImporter extends FormatImporter {
 			.filter((note) => !allLoadedPaths.includes(note.title + '.md'))
 			.map((note) => note.path);
 		results.skipped.push(...skippedFiles);
+
+		const duplicateFileTest = Object.values(idsToFileInfo).map(
+			(fileInfo) =>
+				`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
+					fileInfo.title
+				}.md`
+		);
 
 		this.showResult(results);
 	}

@@ -50,6 +50,8 @@ export async function parseFiles(
 									path.slice(path.lastIndexOf('/') + 1)
 								),
 								fullLinkPathNeeded: false,
+								parentIds: fileInfo.parentIds,
+								path,
 							};
 
 						idsToFileInfo[id] = fileInfo;

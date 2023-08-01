@@ -48,8 +48,10 @@ declare global {
 	};
 
 	type NotionAttachmentInfo = {
+		path: string;
 		nameWithExtension: string;
 		fullLinkPathNeeded: boolean;
+		parentIds: string[];
 	};
 }
 

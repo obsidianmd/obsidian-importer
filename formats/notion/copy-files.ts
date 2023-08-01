@@ -3,6 +3,7 @@ import { ImportResult } from 'main';
 import moment from 'moment';
 import { App, normalizePath } from 'obsidian';
 import { assembleParentIds, parseDate } from './notion-utils';
+import { getParentFolder } from '../../util';
 
 export async function copyFiles({
 	idsToFileInfo,
@@ -19,12 +20,7 @@ export async function copyFiles({
 	app: App;
 	results: ImportResult;
 }) {
-	const normalizedAttachmentFolder =
-		normalizePath(attachmentFolderPath) + '/';
-
 	const createdFolders = new Set<string>();
-
-	console.log(normalizedAttachmentFolder);
 
 	await Promise.all(
 		Object.entries(idsToFileInfo)
@@ -92,9 +88,22 @@ export async function copyFiles({
 					([path, attachmentInfo]) =>
 						new Promise(async (resolve) => {
 							try {
+								const parentFolders = getParentFolder(
+									attachmentInfo.path
+								).split('/');
+
+								let createdFolder = '';
+								for (let folder of parentFolders) {
+									createdFolder += folder + '/';
+									if (!createdFolders.has(createdFolder)) {
+										app.vault.createFolder(createdFolder);
+										createdFolders.add(createdFolder);
+									}
+								}
+
 								const data = await readFile(path);
 								await app.vault.adapter.writeBinary(
-									`${normalizedAttachmentFolder}${attachmentInfo.nameWithExtension}`,
+									`${attachmentInfo.nameWithExtension}`,
 									data
 								);
 								resolve(true);

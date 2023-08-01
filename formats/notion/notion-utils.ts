@@ -46,7 +46,7 @@ export const getAttachmentPath = (
 };
 
 export const assembleParentIds = (
-	fileInfo: NotionFileInfo,
+	fileInfo: NotionFileInfo | NotionAttachmentInfo,
 	idsToFileInfo: Record<string, NotionFileInfo>
 ) => {
 	const pathNames = fileInfo.path.split('/');

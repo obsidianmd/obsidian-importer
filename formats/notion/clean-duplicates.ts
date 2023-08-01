@@ -7,11 +7,13 @@ export function cleanDuplicates({
 	pathsToAttachmentInfo,
 	attachmentFolderPath,
 	app,
+	targetFolderPath,
 }: {
 	idsToFileInfo: Record<string, NotionFileInfo>;
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	attachmentFolderPath: string;
 	app: App;
+	targetFolderPath: string;
 }) {
 	const loadedFiles = app.vault.getAllLoadedFiles();
 	const pathDuplicateChecks = new Set<string>();
@@ -30,6 +32,8 @@ export function cleanDuplicates({
 		pathsToAttachmentInfo,
 		titleDuplicateChecks,
 		attachmentFolderPath,
+		targetFolderPath,
+		idsToFileInfo,
 	});
 }
 
@@ -75,31 +79,55 @@ function cleanDuplicateNotes({
 function cleanDuplicateAttachments({
 	loadedFiles,
 	pathsToAttachmentInfo,
+	idsToFileInfo,
 	titleDuplicateChecks,
 	attachmentFolderPath,
+	targetFolderPath,
 }: {
 	loadedFiles: TAbstractFile[];
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+	idsToFileInfo: Record<string, NotionFileInfo>;
 	titleDuplicateChecks: Set<string>;
 	attachmentFolderPath: string;
+	targetFolderPath: string;
 }) {
-	const attachmentFiles = new Set(
+	const attachmentPaths = new Set(
 		loadedFiles
-			.filter((file) => file.path.includes(attachmentFolderPath))
-			.map((file) => file.name)
+			.filter((file) => !file.path.endsWith('.md'))
+			.map((file) => file.path)
 	);
+
+	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
+	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
 	for (let [_path, attachmentInfo] of Object.entries(pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
 			attachmentInfo.fullLinkPathNeeded = true;
-		if (attachmentFiles.has(attachmentInfo.nameWithExtension)) {
+		let thisAttachmentPath = '';
+
+		if (attachmentsInCurrentFolder) {
+			thisAttachmentPath = `${targetFolderPath}/${assembleParentIds(
+				attachmentInfo,
+				idsToFileInfo
+			).join('')}/${
+				attachmentSubfolder ? attachmentSubfolder[0] + '/' : ''
+			}`.replace(/\/\//g, '/');
+		} else {
+			thisAttachmentPath = attachmentFolderPath;
+		}
+
+		if (
+			attachmentPaths.has(
+				thisAttachmentPath + attachmentInfo.nameWithExtension
+			)
+		) {
 			let duplicateResolutionIndex = 2;
-			const name = stripFileExtension(attachmentInfo.nameWithExtension);
+			const name = stripFileExtension(thisAttachmentPath);
 			const extension = getFileExtension(
 				attachmentInfo.nameWithExtension
 			);
 			while (
-				attachmentFiles.has(
+				attachmentPaths.has(
 					`${name} ${duplicateResolutionIndex}.${extension}`
 				)
 			) {
@@ -107,6 +135,9 @@ function cleanDuplicateAttachments({
 			}
 			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
 		}
-		attachmentFiles.add(attachmentInfo.nameWithExtension);
+
+		attachmentPaths.add(
+			thisAttachmentPath + attachmentInfo.nameWithExtension
+		);
 	}
 }
