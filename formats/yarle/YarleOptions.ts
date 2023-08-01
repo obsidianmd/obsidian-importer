@@ -1,8 +1,8 @@
+import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 
 export interface YarleOptions {
-	enexDir?: string; // used by command line
-	enexSources?: Array<string>; // used by the UI
+	enexSources: PickedFile[];
 	templateFile?: string;
 	currentTemplate?: string;
 	outputDir?: string;

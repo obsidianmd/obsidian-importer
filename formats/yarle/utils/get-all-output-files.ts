@@ -1,5 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { fs, path } from '../../../filesystem';
 
 export const getAllOutputFilesWithExtension = (dirPath: string, arrayOfFiles: Array<any>, extension: string): Array<any> => {
 	const files = fs.readdirSync(dirPath);

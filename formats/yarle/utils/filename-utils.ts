@@ -1,7 +1,6 @@
-import * as fs from 'fs';
 import { moment } from 'obsidian';
-import * as path from 'path';
 import sanitize from 'sanitize-filename';
+import { fs, path } from '../../../filesystem';
 
 import { yarleOptions } from '../yarle';
 
@@ -122,7 +121,5 @@ export const getNoteName = (dstPath: string, note: any): string => {
 };
 
 export const getNotebookName = (enexFile: string): string => {
-	const notebookName = path.basename(enexFile, '.enex');
-
-	return notebookName;
+	return path.basename(enexFile, '.enex');
 };

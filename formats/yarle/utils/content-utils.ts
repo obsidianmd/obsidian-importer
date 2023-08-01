@@ -1,4 +1,4 @@
-import { utimesSync } from 'fs';
+import { fs } from 'filesystem';
 import { moment } from 'obsidian';
 import { NoteData } from './../models';
 import { MetaData } from './../models/MetaData';
@@ -124,7 +124,7 @@ export const setFileDates = (path: string, note: any): void => {
 
 	const updated = moment(note.updated).valueOf();
 	const mtime = updated / 1000;
-	utimesSync(path, mtime, mtime);
+	fs.utimesSync(path, mtime, mtime);
 };
 
 export const getTimeStampMoment = (resource: any): any => {

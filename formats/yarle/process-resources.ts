@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import * as path from 'path';
+import { fs, path } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';

@@ -1,7 +1,5 @@
-import fs from 'fs';
-import * as path from 'path';
+import { fs, path, PickedFile } from 'filesystem';
 import { genUid } from '../../../util';
-
 import { Path } from '../paths';
 import { yarleOptions } from '../yarle';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
@@ -114,12 +112,8 @@ export const clearResourceDir = (note: any): void => {
 	resourceDirClears.set(resPath, clears + 1);
 };
 
-export const setPaths = (enexSource: string): void => {
-	// console.log('setting paths');
-	const enexFolder = enexSource.split(path.sep);
-	// console.log(`enex folder split: ${JSON.stringify(enexFolder)}`);
-	const enexFile = (enexFolder.length >= 1 ? enexFolder[enexFolder.length - 1] : enexFolder[0]).split(/.enex$/)[0];
-	// console.log(`enex file: ${enexFile}`);
+export const setPaths = (enexSource: PickedFile): void => {
+	const enexFile = enexSource.basename;
 
 	const outputDir = path.isAbsolute(yarleOptions.outputDir)
 		? yarleOptions.outputDir
