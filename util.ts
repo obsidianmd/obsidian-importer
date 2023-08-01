@@ -12,14 +12,35 @@ const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_FILENAME_CHARAC
 const ILLEGAL_HASHTAG_CHARACTERS = ILLEGAL_FILENAME_CHARACTERS + '!@#$%^&()+=\`\'~;,.';
 const ILLEGAL_HASHTAG_RE = new RegExp('[' + escapeRegex(ILLEGAL_HASHTAG_CHARACTERS) + ']', 'g');
 
+// Finds any non-whitespace sections starting with #
+const POTENTIAL_HASHTAGS_RE = new RegExp(/(#[^ ^#]*)/, 'g');
+
 export function sanitizeFileName(name: string) {
 	return name.replace(ILLEGAL_FILENAME_RE, '');
 }
 
+/**
+ * Searches a string for characters unsupported by Obsidian in the hashtag body and returns a snaitized string.
+ * If the # symbol is included at the start or anywhere else it will be removed.
+ */
 export function sanitizeHashtag(name: string): string {
 	let tagName = name.replace(ILLEGAL_HASHTAG_RE, '');
 	tagName = tagName.split(' ').join('-');
+	if(!isNaN(tagName[0] as any)) {
+		tagName = '_' + tagName;
+	}
 	return tagName;
+}
+
+/**
+ * Searches a string for hashtags that include characters unsupported in hastags by Obsidian.
+ * Returns a string with those hastags normalised.
+ */
+export function sanitizeHashtags(str: string): string {
+	const newStr = str.replace(POTENTIAL_HASHTAGS_RE, (str: string) : string => {
+		return '#' + sanitizeHashtag(str);
+	});
+	return newStr;
 }
 
 export function pathToFilename(path: string) {
@@ -81,7 +102,7 @@ export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
 }
 
 /**
- * Copies a file into the vault without parsing it.
+ * Copies a file into the vault without parsing it or checking for duplicates.
  * Designed primarily for Binary files.
  */
 export async function copyFile(absSrcFilepath: string, relOutputFilepath: string) {

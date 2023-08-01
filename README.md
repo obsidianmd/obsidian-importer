@@ -13,7 +13,7 @@ Planned formats:
 - [ ] Notion
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
-- [ ] Google Keep
+- [x] Google Keep
 - [ ] Roam Research
 - [ ] Other Markdown flavors
 

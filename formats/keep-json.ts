@@ -18,6 +18,18 @@ export class KeepImporter extends FormatImporter {
 	importTrashed: boolean = false;
 
 	init() {
+		this.modal.contentEl.createEl('h3', {text: 'Supported features'});
+		const listEl = this.modal.contentEl.createEl('ul');
+		listEl.createEl('li', {
+			text: `All checklists will import as first level items as Google Keep doesn't export indentation information.`,
+		});
+		listEl.createEl('li', {
+			text: `Reminders and user assignments on notes won't import as they are not supported by Obsidian.`,
+		});
+		listEl.createEl('li', {
+			text: `All other information should import as a combination of content and tags.`,
+		});
+
 		this.modal.contentEl.createEl('h3', {text: 'Exporting from Google Keep'});
 		const firstParaEl = this.modal.contentEl.createEl('p', {
 			text: 'To export your files from Google Keep, open ',
@@ -27,14 +39,6 @@ export class KeepImporter extends FormatImporter {
 			href: 'https://takeout.google.com/'
 		});
 		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, unzip it and and import the files below before clicking import.');
-
-		this.modal.contentEl.createEl('h3', {text: 'Supported features'});
-		this.modal.contentEl.createEl('p', {
-			text: `All checklist will import as one level as Google Keep doesn't export indentation information.`,
-		});
-		this.modal.contentEl.createEl('p', {
-			text: `Reminders and user assignments on notes won't import as they are not supported by Obsidian.`,
-		});
 
 		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
 
@@ -112,6 +116,7 @@ export class KeepImporter extends FormatImporter {
 					
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
+					// Keep assets have filenames that appear unique, so no duplicate handling is implemented
 					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
 					
 				}
