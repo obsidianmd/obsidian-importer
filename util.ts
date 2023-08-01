@@ -17,15 +17,15 @@ export function pathToFilename(path: string) {
 }
 
 export function pathToBasename(path: string) {
-	return splitFilename(pathToFilename(path))[0];
+	return splitFilename(pathToFilename(path)).basename;
 }
 
-export function splitFilename(filename: string): [basename: string, extension: string] {
+export function splitFilename(filename: string) {
 	let lastDotPosition = filename.lastIndexOf('.');
 
 	if (lastDotPosition === -1 || lastDotPosition === filename.length - 1 || lastDotPosition === 0) {
-		return [filename, ""];
+		return { basename: filename, extension: "" };
 	}
 
-	return [filename.slice(0, lastDotPosition), filename.slice(lastDotPosition + 1)];
+	return { basename: filename.slice(0, lastDotPosition), extension: filename.slice(lastDotPosition + 1) };
 }

@@ -192,7 +192,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 			let filename = getURLFilename(url);
 			const { data, mime: actualMime } = response;
-			if ((mime(splitFilename(filename)[1]) || "application/octet-stream") !== actualMime) {
+			if ((mime(splitFilename(filename).extension) || "application/octet-stream") !== actualMime) {
 				const ext = extension(actualMime);
 				if (ext) {
 					filename += `.${ext}`;
@@ -238,7 +238,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
-		const [basename, extension] = splitFilename(sanitizeFileName(filename));
+		const { basename, extension } = splitFilename(sanitizeFileName(filename));
 		let error;
 		for (let retry = 0; retry < 5; ++retry) {
 			try {
@@ -295,7 +295,7 @@ function getURLFilename(url: URL) {
 }
 
 async function detectMime(url: URL, data: ArrayBufferLike) {
-	return mime(splitFilename(getURLFilename(url))[1]) ||
+	return mime(splitFilename(getURLFilename(url)).extension) ||
 		((await fileTypeFromBuffer(data))?.mime ??
 			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"));
 }
