@@ -7,7 +7,7 @@ import { convertStringToKeepJson } from "./keep/models/KeepJson";
 
 
 const NOTE_EXTS = ['json'];
-// Google Keep exports in the original format uploaded, so limiting to only binary formats Obsidian supports
+// Google Keep supports attachment formats that might change and exports in the original format uploaded, so limiting to binary formats Obsidian supports
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
 
