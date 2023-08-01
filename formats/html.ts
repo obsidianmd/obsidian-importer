@@ -7,7 +7,6 @@ import { readFile } from "fs/promises";
 import { getExtension, getType } from "mime/lite";
 import { disableFS, imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
-import isSvg from "is-svg";
 
 disableFS(true);
 
@@ -304,7 +303,11 @@ function getURLFilename(url: URL) {
 async function detectType(url: URL, data: ArrayBufferLike) {
 	return getType(getURLFilename(url)) ??
 		(await fileTypeFromBuffer(data))?.mime ??
-		(isSvg(new TextDecoder().decode(data)) ? "image/svg+xml" : "application/octet-stream")
+		(isSvg(data) ? "image/svg+xml" : "application/octet-stream")
+}
+
+function isSvg(data: ArrayBufferLike) {
+	return Buffer.from(data).includes("<svg");
 }
 
 // todo: use internal md parser (but consider performance first)
