@@ -9,7 +9,7 @@ function escapeRegex(str: string): string {
 const ILLEGAL_FILENAME_CHARACTERS = '\\/:*?<>\"|';
 const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_FILENAME_CHARACTERS) + ']', 'g');
 
-const ILLEGAL_HASHTAG_CHARACTERS = ILLEGAL_FILENAME_CHARACTERS + '!@#$%^&()+=\`\'~;,.';
+const ILLEGAL_HASHTAG_CHARACTERS = '\\:*?<>\"|!@#$%^&()+=\`\'~;,.';
 const ILLEGAL_HASHTAG_RE = new RegExp('[' + escapeRegex(ILLEGAL_HASHTAG_CHARACTERS) + ']', 'g');
 
 // Finds any non-whitespace sections starting with #
@@ -118,11 +118,14 @@ export async function copyFile(absSrcFilepath: string, relOutputFilepath: string
  */
 export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
 	const sanitizedTag = sanitizeHashtag(tag);
-	this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
 		if(!frontmatter['tag']) {
-			frontmatter['tag'] = ` - ${sanitizedTag}`;
+			frontmatter['tag'] = [sanitizedTag];
 		} else {
-			frontmatter['tag'] += `\n - ${sanitizedTag}`;
+			if (!Array.isArray(frontmatter['tag'])) {
+				frontmatter['tag'] = frontmatter['tag'].split(' ');
+			}
+			frontmatter['tag'].push(sanitizedTag);
 		}
 	});
 }
@@ -133,11 +136,14 @@ export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
 */
 export async function addAliasToFrontmatter(alias: string, fileRef: TFile) {
 	const sanitizedAlias = alias.split('\n').join(', ');
-	this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
 		if(!frontmatter['alias']) {
-			frontmatter['alias'] = ` - ${sanitizedAlias}`;
+			frontmatter['alias'] = [sanitizedAlias];
 		} else {
-			frontmatter['alias'] += `\n - ${sanitizedAlias}`;
+			if (!Array.isArray(frontmatter['alias'])) {
+				frontmatter['alias'] = frontmatter['alias'].split(' ');
+			}
+			frontmatter['alias'].push(sanitizedAlias);
 		}
 	});
 }

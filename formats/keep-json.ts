@@ -109,7 +109,7 @@ export class KeepImporter extends FormatImporter {
 					
 					let mdContent = convertJsonToMd(keepJson);
 					const fileRef = await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent);
-					addKeepFrontMatter(fileRef, keepJson);					
+					await addKeepFrontMatter(fileRef, keepJson);					
 					
 					const writeOptions: DataWriteOptions = {
 						ctime: keepJson.createdTimestampUsec/1000,
