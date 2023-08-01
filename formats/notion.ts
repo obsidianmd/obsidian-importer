@@ -1,7 +1,7 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import { FileSystemAdapter, Notice, normalizePath } from 'obsidian';
-import { escapeRegex } from '../util';
+import { escapeRegex, fixDuplicateSlashes } from '../util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
 import { copyFiles } from './notion/copy-files';
@@ -20,7 +20,10 @@ export class NotionImporter extends FormatImporter {
 
 	async import(): Promise<void> {
 		let { app, filePaths, folderPaths } = this;
-		const targetFolderPath = (await this.getOutputFolder()).path;
+		let targetFolderPath = (await this.getOutputFolder()).path;
+		// As a convention, all parent folders should end with "/" in this importer.
+		if (!targetFolderPath.endsWith('/')) targetFolderPath += '/';
+		targetFolderPath = fixDuplicateSlashes(targetFolderPath);
 
 		if (filePaths.length === 0) {
 			new Notice('Please pick at least one folder to import.');
@@ -82,27 +85,19 @@ export class NotionImporter extends FormatImporter {
 		await copyFiles({
 			idsToFileInfo,
 			pathsToAttachmentInfo,
-			attachmentFolderPath,
 			app,
 			targetFolderPath,
 			results,
 		});
 
-		const allLoadedPaths = app.vault
+		const allMarkdownFiles = app.vault
 			.getMarkdownFiles()
 			.map((file) => file.name);
 		const loadedNotes = Object.values(idsToFileInfo);
 		const skippedFiles = loadedNotes
-			.filter((note) => !allLoadedPaths.includes(note.title + '.md'))
+			.filter((note) => !allMarkdownFiles.includes(note.title + '.md'))
 			.map((note) => note.path);
 		results.skipped.push(...skippedFiles);
-
-		const duplicateFileTest = Object.values(idsToFileInfo).map(
-			(fileInfo) =>
-				`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
-					fileInfo.title
-				}.md`
-		);
 
 		this.showResult(results);
 	}

@@ -1,4 +1,4 @@
-import { escapeRegex, pathToFilename } from '../../util';
+import { escapeRegex, matchFilename, pathToFilename } from '../../util';
 
 export const isNotionId = (id: string) =>
 	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
@@ -12,7 +12,7 @@ export const getNotionId = (id: string) => {
 };
 
 export const matchAttachmentLinks = (body: string, filePath: string) => {
-	const thisFileHref = encodeURIComponent(pathToFilename(filePath));
+	const thisFileHref = encodeURIComponent(matchFilename(filePath));
 	return body.match(
 		new RegExp(
 			`<a href="${escapeRegex(

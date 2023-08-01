@@ -1,7 +1,13 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
 import moment from 'moment';
-import { getParentFolder, pathToFilename, sanitizeFileName } from '../../util';
+import {
+	getFileExtension,
+	getParentFolder,
+	matchFilename,
+	pathToFilename,
+	sanitizeFileName,
+} from '../../util';
 import { htmlToMarkdown } from 'obsidian';
 import {
 	extractHref,
@@ -44,15 +50,23 @@ export async function parseFiles(
 							normalizedFilePath,
 						});
 
-						for (let path of attachments)
-							pathsToAttachmentInfo[path] = {
+						for (let path of attachments) {
+							const basicFileName = matchFilename(path);
+
+							const attachmentInfo: NotionAttachmentInfo = {
 								nameWithExtension: sanitizeFileName(
-									path.slice(path.lastIndexOf('/') + 1)
+									`${
+										basicFileName || 'Untitled'
+									}.${getFileExtension(path)}`
 								),
+								parentFolderPath: '',
 								fullLinkPathNeeded: false,
 								parentIds: fileInfo.parentIds,
 								path,
 							};
+
+							pathsToAttachmentInfo[path] = attachmentInfo;
+						}
 
 						idsToFileInfo[id] = fileInfo;
 						resolve(true);
@@ -82,11 +96,24 @@ const parseFileInfo = ({
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
-	const fileName = pathToFilename(filePath);
-	const parsedTitle = fileName.replace(` ${getNotionId(fileName)}`, '');
-	let title = sanitizeFileName(parsedTitle.replace(/#/g, ''))
-		.replace(/^\s+/, '')
-		.replace(/\s+$/, '');
+	const parsedTitle =
+		text.match(/<title>((.|\n)*?)<\/title>/)?.[1] || 'Untitled';
+	if (!parsedTitle) {
+		throw new Error('no title for ' + normalizedFilePath);
+	}
+	let title = sanitizeFileName(
+		htmlToMarkdown(parsedTitle.replace(/\n/g, '<br />'))
+			.replace(/#/g, '')
+			.replace(/\n/g, ' ')
+			.replace(/^\s+/, '')
+			.replace(/\s+$/, '')
+	);
+
+	// just in case title names are too long
+	while (title.length > 100) {
+		const wordList = title.split(' ');
+		title = wordList.slice(0, wordList.length - 1).join(' ') + '...';
+	}
 
 	const description = text.match(
 		/<p class="page-description">((.|\n)*?)<\/p>/

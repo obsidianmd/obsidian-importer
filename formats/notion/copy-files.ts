@@ -3,24 +3,44 @@ import { ImportResult } from 'main';
 import moment from 'moment';
 import { App, normalizePath } from 'obsidian';
 import { assembleParentIds, parseDate } from './notion-utils';
-import { getParentFolder } from '../../util';
+import {
+	createFolderStructure,
+	escapeRegex,
+	getParentFolder,
+} from '../../util';
 
 export async function copyFiles({
 	idsToFileInfo,
 	pathsToAttachmentInfo,
-	attachmentFolderPath,
 	targetFolderPath,
 	app,
 	results,
 }: {
 	idsToFileInfo: Record<string, NotionFileInfo>;
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	attachmentFolderPath: string;
 	targetFolderPath: string;
 	app: App;
 	results: ImportResult;
 }) {
-	const createdFolders = new Set<string>();
+	const flatFolderPaths = new Set<string>([targetFolderPath]);
+
+	const allFolderPaths = Object.values(idsToFileInfo)
+		.map(
+			(fileInfo) =>
+				targetFolderPath +
+				assembleParentIds(fileInfo, idsToFileInfo).join('')
+		)
+		.concat(
+			Object.values(pathsToAttachmentInfo).map(
+				(attachmentInfo) => attachmentInfo.parentFolderPath
+			)
+		);
+
+	for (let folderPath of allFolderPaths) {
+		flatFolderPaths.add(folderPath);
+	}
+
+	await createFolderStructure(flatFolderPaths, app);
 
 	await Promise.all(
 		Object.entries(idsToFileInfo)
@@ -28,26 +48,7 @@ export async function copyFiles({
 				([_id, fileInfo]) =>
 					new Promise(async (resolve) => {
 						try {
-							const parentTitles = assembleParentIds(
-								fileInfo,
-								idsToFileInfo
-							);
-
-							if (parentTitles.length > 0) {
-								let createdFolder = '';
-								for (let folder of parentTitles) {
-									createdFolder += folder;
-									if (!createdFolders.has(createdFolder)) {
-										app.vault.createFolder(
-											targetFolderPath +
-												'/' +
-												createdFolder
-										);
-										createdFolders.add(createdFolder);
-									}
-								}
-							}
-							const path = `${targetFolderPath}/${assembleParentIds(
+							const path = `${targetFolderPath}${assembleParentIds(
 								fileInfo,
 								idsToFileInfo
 							).join('')}${fileInfo.title}.md`;
@@ -88,22 +89,9 @@ export async function copyFiles({
 					([path, attachmentInfo]) =>
 						new Promise(async (resolve) => {
 							try {
-								const parentFolders = getParentFolder(
-									attachmentInfo.path
-								).split('/');
-
-								let createdFolder = '';
-								for (let folder of parentFolders) {
-									createdFolder += folder + '/';
-									if (!createdFolders.has(createdFolder)) {
-										app.vault.createFolder(createdFolder);
-										createdFolders.add(createdFolder);
-									}
-								}
-
 								const data = await readFile(path);
 								await app.vault.adapter.writeBinary(
-									`${attachmentInfo.nameWithExtension}`,
+									`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`,
 									data
 								);
 								resolve(true);

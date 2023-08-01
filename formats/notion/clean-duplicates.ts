@@ -1,5 +1,9 @@
 import { App, TAbstractFile } from 'obsidian';
-import { getFileExtension, stripFileExtension } from '../../util';
+import {
+	fixDuplicateSlashes,
+	getFileExtension,
+	matchFilename,
+} from '../../util';
 import { assembleParentIds } from './notion-utils';
 
 export function cleanDuplicates({
@@ -47,9 +51,10 @@ function cleanDuplicateNotes({
 	titleDuplicateChecks: Set<string>;
 }) {
 	for (let [_id, fileInfo] of Object.entries(idsToFileInfo)) {
-		let pathDuplicateCheck = `${fileInfo.parentIds.join('/')}/${
-			fileInfo.title
-		}`;
+		let pathDuplicateCheck = `${assembleParentIds(
+			fileInfo,
+			idsToFileInfo
+		).join('')}${fileInfo.title}`;
 
 		if (pathDuplicateChecks.has(pathDuplicateCheck)) {
 			let duplicateResolutionIndex = 2;
@@ -72,7 +77,7 @@ function cleanDuplicateNotes({
 				fileInfo.title
 			}`
 		);
-		titleDuplicateChecks.add(fileInfo.title);
+		titleDuplicateChecks.add(fileInfo.title + '.md');
 	}
 }
 
@@ -103,32 +108,34 @@ function cleanDuplicateAttachments({
 	for (let [_path, attachmentInfo] of Object.entries(pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
 			attachmentInfo.fullLinkPathNeeded = true;
-		let thisAttachmentPath = '';
 
+		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
-			thisAttachmentPath = `${targetFolderPath}/${assembleParentIds(
-				attachmentInfo,
-				idsToFileInfo
-			).join('')}/${
-				attachmentSubfolder ? attachmentSubfolder[0] + '/' : ''
-			}`.replace(/\/\//g, '/');
+			parentFolderPath = fixDuplicateSlashes(
+				`${targetFolderPath}/${assembleParentIds(
+					attachmentInfo,
+					idsToFileInfo
+				).join('')}${
+					attachmentSubfolder ? attachmentSubfolder + '/' : ''
+				}`
+			);
 		} else {
-			thisAttachmentPath = attachmentFolderPath;
+			parentFolderPath = fixDuplicateSlashes(attachmentFolderPath + '/');
 		}
 
 		if (
 			attachmentPaths.has(
-				thisAttachmentPath + attachmentInfo.nameWithExtension
+				parentFolderPath + attachmentInfo.nameWithExtension
 			)
 		) {
 			let duplicateResolutionIndex = 2;
-			const name = stripFileExtension(thisAttachmentPath);
+			const name = matchFilename(attachmentInfo.nameWithExtension);
 			const extension = getFileExtension(
 				attachmentInfo.nameWithExtension
 			);
 			while (
 				attachmentPaths.has(
-					`${name} ${duplicateResolutionIndex}.${extension}`
+					`${parentFolderPath}/${name} ${duplicateResolutionIndex}.${extension}`
 				)
 			) {
 				duplicateResolutionIndex++;
@@ -136,8 +143,10 @@ function cleanDuplicateAttachments({
 			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
 		}
 
+		attachmentInfo.parentFolderPath = parentFolderPath;
+
 		attachmentPaths.add(
-			thisAttachmentPath + attachmentInfo.nameWithExtension
+			parentFolderPath + attachmentInfo.nameWithExtension
 		);
 	}
 }

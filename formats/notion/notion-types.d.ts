@@ -50,6 +50,7 @@ declare global {
 	type NotionAttachmentInfo = {
 		path: string;
 		nameWithExtension: string;
+		parentFolderPath: string;
 		fullLinkPathNeeded: boolean;
 		parentIds: string[];
 	};

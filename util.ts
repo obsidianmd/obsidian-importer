@@ -1,3 +1,5 @@
+import { App } from 'obsidian';
+
 export function escapeRegex(str: string): string {
 	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
 }
@@ -10,6 +12,10 @@ const ILLEGAL_FILENAME_RE = new RegExp(
 
 export function sanitizeFileName(name: string) {
 	return name.replace(ILLEGAL_FILENAME_RE, '');
+}
+
+export function matchFilename(path: string) {
+	return path.match(/([^\/\.]*)(\.[^\/]+)?$/)?.[1];
 }
 
 export function pathToFilename(path: string) {
@@ -30,12 +36,10 @@ export function pathToFilename(path: string) {
 	return filename.slice(0, lastDotPosition);
 }
 
-export function stripFileExtension(path: string) {
-	return path.contains('.') ? path.slice(0, path.lastIndexOf('.')) : path;
-}
-
 export function getFileExtension(path: string) {
-	return path.contains('.') ? path.slice(path.lastIndexOf('.') + 1) : '';
+	return path.contains('.') && path.lastIndexOf('.') !== 0
+		? path.slice(path.lastIndexOf('.') + 1)
+		: '';
 }
 
 export function getParentFolder(path: string) {
@@ -62,4 +66,31 @@ export function escapeHashtags(body: string) {
 		lines[i] = newLine;
 	}
 	return lines.join('\n');
+}
+
+export function fixDuplicateSlashes(path: string) {
+	return path.replace(/\/\/+/g, '/');
+}
+
+export async function createFolderStructure(paths: Set<string>, app: App) {
+	const createdFolders = new Set<string>();
+	const creationPromises: Promise<void>[] = [];
+
+	for (let path of paths) {
+		const nestedFolders = path.split('/').filter((path) => path);
+		let createdFolder = '';
+		for (let folder of nestedFolders) {
+			createdFolder += folder + '/';
+			if (!createdFolders.has(createdFolder)) {
+				createdFolders.add(createdFolder);
+				creationPromises.push(
+					app.vault.createFolder(createdFolder).catch((e) => {
+						console.error(e);
+					})
+				);
+			}
+		}
+	}
+
+	await Promise.all(creationPromises);
 }
