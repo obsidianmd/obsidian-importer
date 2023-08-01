@@ -4,11 +4,8 @@ import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from 
 import { ImportResult } from '../main';
 import { fileURLToPath, pathToFileURL } from "url";
 import { readFile } from "fs/promises";
-import { disableFS, imageSize } from "image-size";
 import { fileTypeFromBuffer } from "file-type";
 import { extension, mime } from "./utils/mime";
-
-disableFS(true);
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
@@ -190,7 +187,7 @@ export class HtmlImporter extends FormatImporter {
 				default:
 					throw new Error(url.href);
 			}
-			if (!this.filterAttachment(response)) {
+			if (!await this.filterAttachment(response)) {
 				return "skipped";
 			}
 			let filename = getURLFilename(url);
@@ -257,9 +254,9 @@ export class HtmlImporter extends FormatImporter {
 		throw error;
 	}
 
-	filterAttachment(response: Response) {
+	async filterAttachment(response: Response) {
 		const { data, mime } = response;
-		return this.filterAttachmentSize(data) && this.filterAttachmentMime(mime) && this.filterImageSize(response);
+		return this.filterAttachmentSize(data) && this.filterAttachmentMime(mime) && await this.filterImageSize(response);
 	}
 
 	filterAttachmentSize(data: ArrayBufferLike) {
@@ -272,19 +269,16 @@ export class HtmlImporter extends FormatImporter {
 			.some(prefix => mime.startsWith(prefix));
 	}
 
-	filterImageSize(response: Response) {
-		if (!this.minimumImageSize || !response.mime.startsWith("image/")) {
+	async filterImageSize(response: Response) {
+		const { mime, data } = response;
+		if (!this.minimumImageSize || !mime.startsWith("image/")) {
 			return true;
 		}
 		let size;
 		try {
-			size = imageSize(Buffer.from(response.data));
-		} catch (e) {
-			if (e instanceof TypeError || e instanceof RangeError) {
-				// image not recognized
-				return true;
-			}
-			throw e;
+			size = await imageSize(new Blob([data], { type: mime }));
+		} catch {
+			return true;
 		}
 		const { height, width } = size;
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
@@ -308,6 +302,24 @@ async function detectMime(url: URL, data: ArrayBufferLike) {
 
 function isSvg(data: ArrayBufferLike) {
 	return Buffer.from(data).includes("<svg");
+}
+
+async function imageSize(data: Blob) {
+	const image = new Image();
+	const url = URL.createObjectURL(data);
+	try {
+		return await new Promise<{ height: number, width: number }>((resolve, reject) => {
+			image.addEventListener("error", ({ error }) => reject(error), { once: true, passive: true });
+			image.addEventListener(
+				"load",
+				() => resolve({ height: image.naturalHeight, width: image.naturalWidth }),
+				{ once: true, passive: true },
+			);
+			image.src = url;
+		});
+	} finally {
+		URL.revokeObjectURL(url);
+	}
 }
 
 // todo: use internal md parser (but consider performance first)
