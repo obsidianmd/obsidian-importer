@@ -1,2 +1,2 @@
-export const checkboxTodo = '- [ ]'
-export const checkboxDone = '- [x]'
+export const checkboxTodo = '- [ ]';
+export const checkboxDone = '- [x]';

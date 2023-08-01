@@ -1,6 +1,7 @@
 import fs from 'fs';
 import * as path from 'path';
 import flow from 'xml-flow';
+import { ImportResult } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { processNode } from './process-node';
 import { convertTasktoMd } from './process-tasks';
@@ -12,7 +13,6 @@ import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 import { YarleOptions } from './YarleOptions';
-import { ImportResult } from '../../main';
 
 export const defaultYarleOptions: YarleOptions = {
 	enexSources: ['notebook.enex'],
@@ -153,7 +153,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
 
-					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`
+					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`;
 					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
 					const sortedTasks = new Map([...tasks[task]].sort());
 

@@ -1,7 +1,7 @@
+import { App, Modal, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { App, Modal, Plugin, Setting } from 'obsidian';
 
 declare global {
 	interface Window {
@@ -37,7 +37,7 @@ export default class ImporterPlugin extends Plugin {
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
-		})
+		});
 
 		this.addCommand({
 			id: 'open-modal',

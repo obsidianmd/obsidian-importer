@@ -1,9 +1,9 @@
 import * as fs from 'fs';
-import * as fsPromises from "fs/promises";
+import * as fsPromises from 'fs/promises';
+import { App, DropdownComponent, normalizePath, Setting, TextComponent, TFolder } from 'obsidian';
 import * as path from 'path';
-import { App, DropdownComponent, Setting, TFolder, TextComponent, normalizePath } from "obsidian";
-import { ImportResult, ImporterModal } from "./main";
-import { sanitizeFileName } from "./util";
+import { ImporterModal, ImportResult } from './main';
+import { sanitizeFileName } from './util';
 
 export abstract class FormatImporter {
 	app: App;
@@ -32,7 +32,7 @@ export abstract class FormatImporter {
 			let value = importTypeSettingDropdown.getValue();
 			this.fileLocationSetting.settingEl.toggle(value === 'files');
 			this.folderLocationSetting.settingEl.toggle(value === 'folders');
-		}
+		};
 
 		new Setting(this.modal.contentEl)
 			.setName('Import type')
@@ -102,7 +102,7 @@ export abstract class FormatImporter {
 			});
 
 			return results;
-		}
+		};
 
 		this.folderLocationSetting = new Setting(this.modal.contentEl)
 			.setName('Folders to import')
