@@ -1,4 +1,5 @@
 import 'obsidian';
+import { FileSystemAdapter } from 'obsidian';
 
 declare global {
 	type NotionPropertyType =
@@ -61,5 +62,9 @@ declare module 'obsidian' {
 		metadataTypeManager: {
 			setType: (key: string, type: string) => void;
 		};
+	}
+
+	interface Vault {
+		getConfig: (key: string) => string | undefined;
 	}
 }

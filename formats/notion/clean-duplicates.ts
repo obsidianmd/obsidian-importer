@@ -50,7 +50,7 @@ function cleanDuplicateNotes({
 	pathDuplicateChecks: Set<string>;
 	titleDuplicateChecks: Set<string>;
 }) {
-	for (let [_id, fileInfo] of Object.entries(idsToFileInfo)) {
+	for (let fileInfo of Object.values(idsToFileInfo)) {
 		let pathDuplicateCheck = `${assembleParentIds(
 			fileInfo,
 			idsToFileInfo
@@ -105,7 +105,7 @@ function cleanDuplicateAttachments({
 	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
 	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
-	for (let [_path, attachmentInfo] of Object.entries(pathsToAttachmentInfo)) {
+	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
 			attachmentInfo.fullLinkPathNeeded = true;
 

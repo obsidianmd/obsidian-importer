@@ -18,7 +18,7 @@ export function convertNotesToMd({
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	attachmentFolderPath: string;
 }) {
-	for (let [id, fileInfo] of Object.entries(idsToFileInfo)) {
+	for (let fileInfo of Object.values(idsToFileInfo)) {
 		fileInfo.body = convertInlineDatabasesToObsidian(fileInfo.body, {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
@@ -32,23 +32,15 @@ export function convertNotesToMd({
 			fileInfo,
 		});
 
-		fileInfo.body = escapeHashtags(
-			htmlToMarkdown(
-				replaceTableOfContents(
-					fixNotionLists(
-						fixNotionDates(
-							stripLinkImages(
-								encodeNewlines(
-									replaceNewlinesInFormatting(
-										replaceNestedFormatting(fileInfo.body)
-									)
-								)
-							)
-						)
-					)
-				)
-			)
-		);
+		replaceNestedFormatting(fileInfo.body);
+		replaceNewlinesInFormatting(fileInfo.body);
+		encodeNewlines(fileInfo.body);
+		stripLinkImages(fileInfo.body);
+		fixNotionDates(fileInfo.body);
+		fixNotionLists(fileInfo.body);
+		replaceTableOfContents(fileInfo.body);
+		fileInfo.body = htmlToMarkdown(fileInfo.body);
+		fileInfo.body = escapeHashtags(fileInfo.body);
 
 		if (fileInfo.properties) {
 			fileInfo.yamlProperties = fileInfo.properties
@@ -65,12 +57,13 @@ export function convertNotesToMd({
 	}
 }
 
-const replaceNestedFormatting = (body: string) =>
-	body
+const replaceNestedFormatting = (body: string) => {
+	body = body
 		.replace(/<strong>(<strong>)+/g, '<strong>')
 		.replace(/<\/strong>(<\/strong>)+/g, '</strong>')
 		.replace(/<em>(<em>)+/g, '<em>')
 		.replace(/<\/em>(<\/em>)+/g, '</em>');
+};
 
 const replaceNewlinesInFormatting = (body: string) => {
 	const strongs = body.matchAll(/<strong>((.|\n)*)<\/strong>/g);
@@ -93,8 +86,6 @@ const replaceNewlinesInFormatting = (body: string) => {
 			);
 		}
 	}
-
-	return body;
 };
 
 function replaceTableOfContents(body: string) {
@@ -106,24 +97,28 @@ function replaceTableOfContents(body: string) {
 		const linkTitle = link.match(/>(.*?)<\/a>/)[1];
 		body = body.replace(link, `<a href="#${linkTitle}">${linkTitle}</a>`);
 	}
-	return body;
 }
 
-const encodeNewlines = (body: string) => body.replace(/\n/g, '<br />');
+const encodeNewlines = (body: string) => {
+	body = body.replace(/\n/g, '<br />');
+};
 
-const stripLinkImages = (body: string) =>
-	body.replace(/<a [^>]+>(<[^>]+>?[^>]+\/>)+([^<]+?)<\/a>/g, '$2');
+const stripLinkImages = (body: string) => {
+	body = body.replace(/<a [^>]+>(<[^>]+>?[^>]+\/>)+([^<]+?)<\/a>/g, '$2');
+};
 
-const fixNotionDates = (body: string) =>
-	body.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
+const fixNotionDates = (body: string) => {
+	body = body.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
+};
 
-const fixNotionLists = (body: string) =>
-	body
+const fixNotionLists = (body: string) => {
+	body = body
 		.replace(
 			/<\/li><\/ul><ul id=".*?" [^>]*><li [^>]*>/g,
 			'</li><li style="list-style-type:disc">'
 		)
 		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
+};
 
 function convertInlineDatabasesToObsidian(
 	body: string,

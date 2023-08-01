@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import { ImportResult } from 'main';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { App, normalizePath } from 'obsidian';
 import { assembleParentIds, parseDate } from './notion-utils';
 import {
@@ -42,66 +42,47 @@ export async function copyFiles({
 
 	await createFolderStructure(flatFolderPaths, app);
 
-	await Promise.all(
-		Object.entries(idsToFileInfo)
-			.map(
-				([_id, fileInfo]) =>
-					new Promise(async (resolve) => {
-						try {
-							const path = `${targetFolderPath}${assembleParentIds(
-								fileInfo,
-								idsToFileInfo
-							).join('')}${fileInfo.title}.md`;
-							const file = await app.vault.create(
-								path,
-								fileInfo.body
-							);
-							if (fileInfo.yamlProperties) {
-								await app.fileManager.processFrontMatter(
-									file,
-									(frontMatter) => {
-										for (let property of fileInfo.yamlProperties) {
-											if (
-												moment.isMoment(
-													property.content
-												)
-											) {
-												frontMatter[property.title] =
-													parseDate(property.content);
-											} else {
-												frontMatter[property.title] =
-													property.content;
-											}
-										}
-									}
+	for (let id of Object.keys(idsToFileInfo)) {
+		const fileInfo = idsToFileInfo[id];
+		try {
+			const path = `${targetFolderPath}${assembleParentIds(
+				fileInfo,
+				idsToFileInfo
+			).join('')}${fileInfo.title}.md`;
+			const file = await app.vault.create(path, fileInfo.body);
+			if (fileInfo.yamlProperties) {
+				await app.fileManager.processFrontMatter(
+					file,
+					(frontMatter) => {
+						for (let property of fileInfo.yamlProperties) {
+							if (moment.isMoment(property.content)) {
+								frontMatter[property.title] = parseDate(
+									property.content
 								);
+							} else {
+								frontMatter[property.title] = property.content;
 							}
-							resolve(true);
-						} catch (e) {
-							console.error(e);
-							results.failed.push(fileInfo.path);
-							resolve(false);
 						}
-					})
-			)
-			.concat(
-				Object.entries(pathsToAttachmentInfo).map(
-					([path, attachmentInfo]) =>
-						new Promise(async (resolve) => {
-							try {
-								const data = await readFile(path);
-								await app.vault.adapter.writeBinary(
-									`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`,
-									data
-								);
-								resolve(true);
-							} catch (e) {
-								console.error(e);
-								results.failed.push(path);
-								resolve(false);
-							}
-						})
-				)
-			)
-	);
+					}
+				);
+			}
+		} catch (e) {
+			console.error(e);
+			results.failed.push(fileInfo.path);
+		}
+	}
+
+	for (let path of Object.keys(pathsToAttachmentInfo)) {
+		const attachmentInfo = pathsToAttachmentInfo[path];
+		try {
+			const data = await readFile(path);
+			await app.vault.adapter.writeBinary(
+				`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`,
+				data
+			);
+		} catch (e) {
+			console.error(e);
+			results.failed.push(path);
+		}
+	}
 }

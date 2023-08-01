@@ -61,11 +61,9 @@ export class NotionImporter extends FormatImporter {
 		results.total =
 			filePaths.length + Object.keys(pathsToAttachmentInfo).length;
 
-		const appSettings = await app.vault.adapter.read(
-			normalizePath(`${app.vault.configDir}/app.json`)
+		const attachmentFolderPath = app.vault.getConfig(
+			'attachmentFolderPath'
 		);
-		const parsedSettings = JSON.parse(appSettings ?? '{}');
-		const attachmentFolderPath = parsedSettings.attachmentFolderPath ?? '';
 
 		if (attachmentFolderPath.startsWith('.'))
 			cleanDuplicates({

@@ -1,6 +1,6 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import {
 	getFileExtension,
 	getParentFolder,
@@ -225,9 +225,9 @@ const parseProperty = (property: string) => {
 		],
 	};
 
-	let obsidianType = Object.entries(typesMap).find(([_, notionTypes]) =>
-		notionTypes.includes(notionType)
-	)?.[0] as ObsidianProperty['type'];
+	let obsidianType = Object.keys(typesMap).find(
+		(type: keyof typeof typesMap) => typesMap[type].includes(notionType)
+	) as ObsidianProperty['type'];
 
 	if (!obsidianType) throw new Error('type not found for: ' + htmlContent);
 

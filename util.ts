@@ -74,7 +74,6 @@ export function fixDuplicateSlashes(path: string) {
 
 export async function createFolderStructure(paths: Set<string>, app: App) {
 	const createdFolders = new Set<string>();
-	const creationPromises: Promise<void>[] = [];
 
 	for (let path of paths) {
 		const nestedFolders = path.split('/').filter((path) => path);
@@ -83,16 +82,11 @@ export async function createFolderStructure(paths: Set<string>, app: App) {
 			createdFolder += folder + '/';
 			if (!createdFolders.has(createdFolder)) {
 				createdFolders.add(createdFolder);
-				creationPromises.push(
-					app.vault.createFolder(createdFolder).catch(() => {
-						console.warn(
-							`Skipping created folder: ${createdFolder}`
-						);
-					})
-				);
+				// Apparently Obsidian serializes everything so doing it in parallel doesn't make a difference.
+				await app.vault.createFolder(createdFolder).catch(() => {
+					console.warn(`Skipping created folder: ${createdFolder}`);
+				});
 			}
 		}
 	}
-
-	await Promise.all(creationPromises);
 }
