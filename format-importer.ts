@@ -1,19 +1,14 @@
-import * as fs from 'fs';
-import * as fsPromises from "fs/promises";
-import * as path from 'path';
-import { App, DataWriteOptions, DropdownComponent, Setting, TFile, TFolder, TextComponent, normalizePath } from "obsidian";
-import { ImportResult, ImporterModal } from "./main";
-import { sanitizeFileName } from "./util";
+import { App, Platform, Setting, TextComponent, TFile, TFolder } from 'obsidian';
+import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
+import { ImporterModal, ImportResult } from './main';
+import { sanitizeFileName } from './util';
 
 export abstract class FormatImporter {
 	app: App;
 	modal: ImporterModal;
-	filePaths: string[] = [];
-	folderPaths: string[] = [];
+	files: PickedFile[] = [];
 
 	outputLocationSettingInput: TextComponent;
-	fileLocationSetting: Setting;
-	folderLocationSetting: Setting;
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
@@ -23,114 +18,69 @@ export abstract class FormatImporter {
 
 	abstract init(): void;
 
-	// give option to choose both folder and file depending on their need
-	// this is due to the technical limitation that the system chooser doesn't let
-	// the user choose folders and individual files at the same time
-	addFileOrFolderChooserSetting(name: string, extensions: string[]) {
-		let importTypeSettingDropdown: DropdownComponent = null;
-		let updateSetting = () => {
-			let value = importTypeSettingDropdown.getValue();
-			this.fileLocationSetting.settingEl.toggle(value === 'files');
-			this.folderLocationSetting.settingEl.toggle(value === 'folders');
-		}
-
-		new Setting(this.modal.contentEl)
-			.setName('Import type')
-			.setDesc('Choose if you want to import folders or files.')
-			.addDropdown(dropdown => dropdown
-				.addOption('files', 'Files')
-				.addOption('folders', 'Folders')
-				.onChange(updateSetting)
-				.setValue('files')
-				.then(dropdown => importTypeSettingDropdown = dropdown));
-
-		this.addFileChooserSetting(name, extensions);
-		this.addFolderChooserSetting(name, extensions);
-
-		updateSetting();
-	}
-
-	addFileChooserSetting(name: string, extensions: string[]) {
-		this.fileLocationSetting = new Setting(this.modal.contentEl)
+	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = true) {
+		let fileLocationSetting = new Setting(this.modal.contentEl)
 			.setName('Files to import')
 			.setDesc('Pick the files that you want to import.')
 			.addButton(button => button
-				.setButtonText('Browse')
-				.onClick(() => {
-					let electron = window.electron;
-					let selectedFiles = electron.remote.dialog.showOpenDialogSync({
-						title: 'Pick files to import',
-						properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
-						filters: [{ name, extensions }],
-					});
+				.setButtonText(allowMultiple ? 'Choose files' : 'Choose file')
+				.onClick(async () => {
+					if (Platform.isDesktopApp) {
+						let properties = ['openFile', 'dontAddToRecent'];
+						if (allowMultiple) {
+							properties.push('multiSelections');
+						}
+						let result = await window.electron.remote.dialog.showOpenDialog({
+							title: 'Pick files to import', properties,
+							filters: [{ name, extensions }],
+						});
 
-					if (selectedFiles && selectedFiles.length > 0) {
-						this.filePaths = selectedFiles;
-						let descriptionFragment = document.createDocumentFragment();
-						descriptionFragment.createEl('span', { text: `You've picked the following files to import: ` });
-						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFiles.join(', ') });
-						this.fileLocationSetting.setDesc(descriptionFragment);
+						if (!result.canceled && result.filePaths.length > 0) {
+							this.files = result.filePaths.map((filepath: string) => new NodePickedFile(filepath));
+							updateFiles();
+						}
+					}
+					else {
+						let inputEl = createEl('input');
+						inputEl.type = 'file';
+						inputEl.addEventListener('change', () => {
+							let files = Array.from(inputEl.files);
+							if (files.length > 0) {
+								this.files = files.map(file => new WebPickedFile(file));
+								updateFiles();
+							}
+						});
+						inputEl.click();
 					}
 				}));
-	}
 
-	addFolderChooserSetting(name: string, extensions: string[]) {
-		let walk = (dir: string): string[] => {
-			let results: string[] = [];
-			let list = fs.readdirSync(dir);
+		if (allowMultiple && Platform.isDesktopApp) {
+			fileLocationSetting.addButton(button => button
+				.setButtonText('Choose folder')
+				.onClick(async () => {
+					if (Platform.isDesktopApp) {
+						let result = await window.electron.remote.dialog.showOpenDialog({
+							title: 'Pick folders to import',
+							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
+						});
 
-			list.forEach(file => {
-				file = path.join(dir, file);
-
-				let stat = fs.statSync(file);
-				if (stat && stat.isDirectory()) {
-					results = results.concat(walk(file));
-				}
-				else {
-					let lastDotPosition = file.lastIndexOf('.');
-
-					if (lastDotPosition === -1 || lastDotPosition === file.length - 1 || lastDotPosition === 0) {
-						return;
+						if (!result.canceled && result.filePaths.length > 0) {
+							fileLocationSetting.setDesc('Reading folders...');
+							let folders = result.filePaths.map((filepath: string) => new NodePickedFolder(filepath));
+							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
+							updateFiles();
+						}
 					}
-
-					let extension = file.slice(lastDotPosition + 1);
-
-					if (extensions.contains(extension)) {
-						results.push(file);
-					}
-				}
-			});
-
-			return results;
+				}));
 		}
 
-		this.folderLocationSetting = new Setting(this.modal.contentEl)
-			.setName('Folders to import')
-			.setDesc('Pick the folders that you want to import.')
-			.addButton(button => button
-				.setButtonText('Browse')
-				.onClick(async () => {
-					let electron = window.electron;
-					let selectedFolders = electron.remote.dialog.showOpenDialogSync({
-						title: 'Pick folders to import',
-						properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-						filters: [{ name, extensions }],
-					});
-
-					if (selectedFolders && selectedFolders.length > 0) {
-						this.folderPaths = selectedFolders.map((path: string) => normalizePath(path));
-						this.filePaths = [];
-
-						for (let folder of selectedFolders) {
-							this.filePaths = this.filePaths.concat(walk(folder));
-						}
-
-						let descriptionFragment = document.createDocumentFragment();
-						descriptionFragment.createEl('span', { text: `You've picked the following folders to import: ` });
-						descriptionFragment.createEl('span', { cls: 'u-pop', text: selectedFolders.join(', ') });
-						this.folderLocationSetting.setDesc(descriptionFragment);
-					}
-				}));
+		let updateFiles = () => {
+			let descriptionFragment = document.createDocumentFragment();
+			descriptionFragment.createEl('span', { text: `These files will be imported: ` });
+			descriptionFragment.createEl('br');
+			descriptionFragment.createEl('span', { cls: 'u-pop', text: this.files.map(f => f.name).join(', ') });
+			fileLocationSetting.setDesc(descriptionFragment);
+		};
 	}
 
 	addOutputLocationSetting(defaultExportFolerName: string) {
@@ -205,19 +155,10 @@ export abstract class FormatImporter {
 		});
 	}
 
-	async readPath(path: string) {
-		return await fsPromises.readFile(path, 'utf-8');
-	}
-
-	// todo: return results
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		const {vault } = this.app;
-		let sanitizedName = sanitizeFileName(title);
-		
-		//@ts-ignore
-		let fileRef =  await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
-
-		return fileRef as TFile;
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
+		let santizedName = sanitizeFileName(title);
+		// @ts-ignore
+		return await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
 	}
 
 }

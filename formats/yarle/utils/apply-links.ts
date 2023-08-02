@@ -1,5 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { fs, path } from '../../../filesystem';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
 import { YarleOptions } from './../YarleOptions';

@@ -1,5 +1,6 @@
 import { DataWriteOptions, TFile, TFolder, normalizePath } from "obsidian";
 import fs from 'fs/promises';
+import { PickedFile } from "filesystem";
 
 
 function escapeRegex(str: string): string {
@@ -33,7 +34,7 @@ export function sanitizeHashtag(name: string): string {
 }
 
 /**
- * Searches a string for hashtags that include characters unsupported in hastags by Obsidian.
+ * Searches a string for hashtags that include characters unsupported in hashtags by Obsidian.
  * Returns a string with those hastags normalised.
  */
 export function sanitizeHashtags(str: string): string {
@@ -41,6 +42,14 @@ export function sanitizeHashtags(str: string): string {
 		return '#' + sanitizeHashtag(str);
 	});
 	return newStr;
+}
+
+export function genUid(length: number): string {
+	let array: string[] = [];
+	for (let i = 0; i < length; i++) {
+		array.push((Math.random() * 16 | 0).toString(16));
+	}
+	return array.join('');
 }
 
 export function pathToFilename(path: string) {
@@ -106,10 +115,9 @@ export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
  * Copies a file into the vault without parsing it or checking for duplicates.
  * Designed primarily for Binary files.
  */
-export async function copyFile(absSrcFilepath: string, relOutputFilepath: string) {
+export async function copyFile(file: PickedFile, relOutputFilepath: string) {
     let { vault } = this.app;
-	const fileData = await fs.readFile(absSrcFilepath);
-	await vault.createBinary(relOutputFilepath, fileData);
+	await vault.createBinary(relOutputFilepath, await file.read());
 }
 
 /**

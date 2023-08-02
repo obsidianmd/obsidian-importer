@@ -1,17 +1,16 @@
-import { FormatImporter } from "../format-importer";
-import { Notice, htmlToMarkdown, normalizePath } from "obsidian";
-import { pathToFilename } from '../util';
+import { htmlToMarkdown, Notice } from 'obsidian';
+import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 
 export class HtmlImporter extends FormatImporter {
 	init() {
-		this.addFileOrFolderChooserSetting('HTML (.htm .html)', ['htm', 'html']);
+		this.addFileChooserSetting('HTML (.htm .html)', ['htm', 'html']);
 		this.addOutputLocationSetting('HTML');
 	}
 
 	async import(): Promise<void> {
-		let { filePaths } = this;
-		if (filePaths.length === 0) {
+		let { files } = this;
+		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
 		}
@@ -28,16 +27,15 @@ export class HtmlImporter extends FormatImporter {
 			failed: []
 		};
 
-		for (let path of filePaths) {
+		for (let file of files) {
 			try {
-				let htmlContent = await this.readPath(path);
+				let htmlContent = await file.readText();
 				let mdContent = htmlToMarkdown(htmlContent);
-				path = normalizePath(path);
-				await this.saveAsMarkdownFile(folder, pathToFilename(path), mdContent);
+				await this.saveAsMarkdownFile(folder, file.basename, mdContent);
 				results.total++;
 			} catch (e) {
 				console.error(e);
-				results.failed.push(path);
+				results.failed.push(file.toString());
 			}
 		}
 

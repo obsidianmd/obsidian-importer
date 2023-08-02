@@ -1,8 +1,6 @@
-import * as fs from 'fs';
-import { nanoid } from 'nanoid';
 import { moment } from 'obsidian';
-import * as path from 'path';
 import sanitize from 'sanitize-filename';
+import { fs, path } from '../../../filesystem';
 
 import { yarleOptions } from '../yarle';
 
@@ -34,7 +32,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | 
 
 };
 export const getResourceFileProperties = (workDir: string, resource: any): ResourceFileProperties => {
-	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + "0000000").slice(2, 10) : 'unknown_filename';
+	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
@@ -96,10 +94,6 @@ export const getZettelKastelId = (note: any, dstPath: string): string => {
 	return moment(note['created']).format('YYYYMMDDHHmm');
 };
 
-export const getUniqueId = (): string => {
-	return nanoid(5);
-};
-
 export const getNoteName = (dstPath: string, note: any): string => {
 	let noteName;
 
@@ -127,7 +121,5 @@ export const getNoteName = (dstPath: string, note: any): string => {
 };
 
 export const getNotebookName = (enexFile: string): string => {
-	const notebookName = path.basename(enexFile, '.enex');
-
-	return notebookName;
+	return path.basename(enexFile, '.enex');
 };

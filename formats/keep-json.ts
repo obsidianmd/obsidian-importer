@@ -71,8 +71,8 @@ export class KeepImporter extends FormatImporter {
 
 	async import(): Promise<void> {
 
-		let { filePaths } = this;
-		if (filePaths.length === 0) {
+		let { files } = this;
+		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
 		}
@@ -90,25 +90,24 @@ export class KeepImporter extends FormatImporter {
 			failed: []
 		};
 
-		for (let srcPath of filePaths) {
-			const fileMeta = separatePathNameExt(srcPath)
+		for (let file of files) {
 			try {
-				if(fileMeta.ext === 'json') {
-					let rawContent = await this.readPath(srcPath);
+				if(file.extension === 'json') {
+					let rawContent = await file.readText();
 					let keepJson = convertStringToKeepJson(rawContent);
 					if(!keepJson) throw(`JSON file doesn't match expected Google Keep format.`);
 					
 					if(keepJson.isArchived && !this.importArchived) {
-						results.skipped.push(`${fileMeta.name}.${fileMeta.ext} (Archived note)`);
+						results.skipped.push(`${file.name} (Archived note)`);
 						continue;
 					}
 					if(keepJson.isTrashed && !this.importTrashed) {
-						results.skipped.push(`${fileMeta.name}.${fileMeta.ext} (Deleted note)`);
+						results.skipped.push(`${file.name} (Deleted note)`);
 						continue;
 					}
 					
 					let mdContent = convertJsonToMd(keepJson);
-					const fileRef = await this.saveAsMarkdownFile(folder, fileMeta.name, mdContent);
+					const fileRef = await this.saveAsMarkdownFile(folder, file.basename, mdContent);
 					await addKeepFrontMatter(fileRef, keepJson);					
 					
 					const writeOptions: DataWriteOptions = {
@@ -120,14 +119,14 @@ export class KeepImporter extends FormatImporter {
 				} else {
 					let assetFolder = await getOrCreateFolder(assetFolderPath);
 					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-					await copyFile(srcPath, `${assetFolder.path}/${fileMeta.name}.${fileMeta.ext}`);
+					await copyFile(file, `${assetFolder.path}/${file.name}`);
 					
 				}
 				results.total++;
 
 			} catch (e) {
-				console.error(`${fileMeta.name}.${fileMeta.ext} ::: `, e);
-				results.failed.push(`${fileMeta.name}.${fileMeta.ext}`);
+				console.error(`${file.name} ::: `, e);
+				results.failed.push(`${file.name}`);
 			}
 		}
 

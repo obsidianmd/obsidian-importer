@@ -42,7 +42,7 @@ export default class ImporterPlugin extends Plugin {
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
 			new ImporterModal(this.app, this).open();
-		})
+		});
 
 		this.addCommand({
 			id: 'open-modal',
@@ -66,14 +66,14 @@ export class ImporterModal extends Modal {
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
 
-		let keys = Object.keys(this.importers);
+		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
 			this.updateContent(keys[0]);
 		}
 	}
 
 	updateContent(selectedId: string) {
-		const { contentEl, importers } = this;
+		const { contentEl, plugin: { importers } } = this;
 		contentEl.empty();
 
 		new Setting(contentEl)
@@ -111,10 +111,6 @@ export class ImporterModal extends Modal {
 				});
 			});
 		}
-	}
-
-	get importers() {
-		return this.plugin.importers;
 	}
 
 	onClose() {

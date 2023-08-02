@@ -1,11 +1,10 @@
-import fs from 'fs';
-import * as path from 'path';
-
+import { fs, path, PickedFile } from 'filesystem';
+import { genUid } from '../../../util';
 import { Path } from '../paths';
 import { yarleOptions } from '../yarle';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
-import { getNoteFileName, getNoteName, getUniqueId, normalizeTitle } from './filename-utils';
+import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
 
 export const paths: Path = {};
 const MAX_PATH = 249;
@@ -28,7 +27,7 @@ export const truncatFileName = (fileName: string, uniqueId: string): string => {
 const truncateFilePath = (note: any, fileName: string, fullFilePath: string): string => {
 	const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
 
-	const noteIdMap = noteIdNameMap.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title))[0] || { uniqueEnd: getUniqueId() };
+	const noteIdMap = noteIdNameMap.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title))[0] || { uniqueEnd: genUid(6) };
 
 
 	if (fileName.length <= 11) {
@@ -113,12 +112,8 @@ export const clearResourceDir = (note: any): void => {
 	resourceDirClears.set(resPath, clears + 1);
 };
 
-export const setPaths = (enexSource: string): void => {
-	// console.log('setting paths');
-	const enexFolder = enexSource.split(path.sep);
-	// console.log(`enex folder split: ${JSON.stringify(enexFolder)}`);
-	const enexFile = (enexFolder.length >= 1 ? enexFolder[enexFolder.length - 1] : enexFolder[0]).split(/.enex$/)[0];
-	// console.log(`enex file: ${enexFile}`);
+export const setPaths = (enexSource: PickedFile): void => {
+	const enexFile = enexSource.basename;
 
 	const outputDir = path.isAbsolute(yarleOptions.outputDir)
 		? yarleOptions.outputDir

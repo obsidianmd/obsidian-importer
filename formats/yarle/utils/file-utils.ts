@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { fs } from '../../../filesystem';
 
 import { setFileDates } from './content-utils';
 

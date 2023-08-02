@@ -982,17 +982,17 @@ Object.keys(db).forEach((type) => {
 console.log(extensions);
  */
 
-let EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/
+let EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
 
 export function extension(type: string) {
 	if (!type || typeof type !== 'string') {
-		return ''
+		return '';
 	}
 
-	let match = EXTRACT_TYPE_REGEXP.exec(type)
+	let match = EXTRACT_TYPE_REGEXP.exec(type);
 
 	// get extensions
-	let ext = match && extensions[match[1].toLowerCase()]
+	let ext = match && extensions[match[1].toLowerCase()];
 
 	return ext || '';
 }

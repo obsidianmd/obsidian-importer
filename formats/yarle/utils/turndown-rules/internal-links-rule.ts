@@ -1,7 +1,8 @@
+import { genUid } from '../../../../util';
 import { RuntimePropertiesSingleton } from '../../runtime-properties';
 import { yarleOptions } from '../../yarle';
 
-import { getUniqueId, normalizeTitle } from '../filename-utils';
+import { normalizeTitle } from '../filename-utils';
 import { getTurndownService } from '../turndown-service';
 import { isTOC } from './../../utils/is-toc';
 
@@ -45,7 +46,7 @@ export const wikiStyleLinksRule = {
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(text);
 			const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
-			const uniqueId = getUniqueId();
+			const uniqueId = genUid(6);
 			if (isTOC(noteIdNameMap.getCurrentNoteName())) {
 				noteIdNameMap.addItemToTOCMap({ url: value, title: fileName, uniqueEnd: uniqueId });
 			}
