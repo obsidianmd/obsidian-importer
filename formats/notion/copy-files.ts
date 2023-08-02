@@ -49,7 +49,7 @@ export async function copyFiles({
 				fileInfo,
 				idsToFileInfo
 			).join('')}${fileInfo.title}.md`;
-			const file = await app.vault.create(path, fileInfo.body);
+			const file = await app.vault.create(path, fileInfo.markdownBody);
 			if (fileInfo.yamlProperties) {
 				await app.fileManager.processFrontMatter(
 					file,

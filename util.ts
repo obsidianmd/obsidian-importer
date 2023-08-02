@@ -43,7 +43,7 @@ export function getFileExtension(path: string) {
 }
 
 export function getParentFolder(path: string) {
-	return path.contains('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+	return path.contains('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
 }
 
 export function escapeHashtags(body: string) {

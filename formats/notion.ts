@@ -65,14 +65,13 @@ export class NotionImporter extends FormatImporter {
 			'attachmentFolderPath'
 		);
 
-		if (attachmentFolderPath.startsWith('.'))
-			cleanDuplicates({
-				idsToFileInfo,
-				pathsToAttachmentInfo,
-				attachmentFolderPath,
-				app,
-				targetFolderPath,
-			});
+		cleanDuplicates({
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			attachmentFolderPath,
+			app,
+			targetFolderPath,
+		});
 
 		convertNotesToMd({
 			idsToFileInfo,

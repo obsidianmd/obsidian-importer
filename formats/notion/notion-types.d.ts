@@ -24,28 +24,43 @@ declare global {
 		| 'last_edited_by'
 		| 'auto_increment_id';
 
-	type ObsidianProperty = (
-		| { type: 'text'; content?: string }
-		| { type: 'date'; content?: moment.Moment }
-		| { type: 'number'; content?: number }
-		| { type: 'list'; content?: string[] }
-		| { type: 'checkbox'; content?: boolean }
-	) & { title: string; notionType: NotionPropertyType };
+	type NotionProperty = {
+		type: 'text' | 'date' | 'number' | 'list' | 'checkbox';
+		title: string;
+		notionType: NotionPropertyType;
+		links: NotionLink[];
+		body: HTMLTableCellElement;
+	};
+
 	type YamlProperty = {
-		content: string | moment.Moment | number | string[] | boolean;
+		content: string | number | string[] | boolean;
 		title: string;
 	};
+
+	type NotionLink = {
+		a: HTMLAnchorElement;
+	} & (
+		| {
+				type: 'relation';
+				id: string;
+		  }
+		| {
+				type: 'attachment';
+				path: string;
+		  }
+	);
 
 	type NotionFileInfo = {
 		title: string;
 		parentIds: string[];
 		path: string;
-		properties?: ObsidianProperty[];
+		properties?: NotionProperty[];
 		yamlProperties?: YamlProperty[];
-		body: string;
+		body: HTMLDivElement;
+		markdownBody?: string;
 		description?: string;
-		htmlToMarkdown: boolean;
 		fullLinkPathNeeded: boolean;
+		notionLinks: NotionLink[];
 	};
 
 	type NotionAttachmentInfo = {

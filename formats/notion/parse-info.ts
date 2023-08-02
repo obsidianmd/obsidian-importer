@@ -1,21 +1,12 @@
 import { FormatImporter } from 'format-importer';
 import { ImportResult } from 'main';
-import { moment } from 'obsidian';
 import {
 	getFileExtension,
 	getParentFolder,
 	matchFilename,
-	pathToFilename,
 	sanitizeFileName,
 } from '../../util';
-import { htmlToMarkdown } from 'obsidian';
-import {
-	extractHref,
-	getAttachmentPath,
-	getNotionId,
-	matchAttachmentLinks,
-	parseDate,
-} from './notion-utils';
+import { getNotionId } from './notion-utils';
 
 export async function parseFiles(
 	filePaths: string[],
@@ -33,51 +24,47 @@ export async function parseFiles(
 		readPath: FormatImporter['readPath'];
 	}
 ) {
-	await Promise.all(
-		filePaths.map(
-			(filePath) =>
-				new Promise(async (resolve) => {
-					try {
-						const normalizedFilePath = filePath.replace(
-							folderPathsReplacement,
-							''
-						);
+	for (let filePath of filePaths) {
+		try {
+			const normalizedFilePath = filePath.replace(
+				folderPathsReplacement,
+				''
+			);
 
-						const text = await readPath(filePath);
-						const { id, fileInfo, attachments } = parseFileInfo({
-							text,
-							filePath,
-							normalizedFilePath,
-						});
+			const text = await readPath(filePath);
+			const { id, fileInfo } = parseFileInfo({
+				text,
+				filePath,
+				normalizedFilePath,
+			});
 
-						for (let path of attachments) {
-							const basicFileName = matchFilename(path);
+			for (let link of fileInfo.notionLinks) {
+				if (
+					link.type !== 'attachment' ||
+					pathsToAttachmentInfo[link.path]
+				)
+					continue;
+				const basicFileName = matchFilename(link.path);
+				const attachmentInfo: NotionAttachmentInfo = {
+					nameWithExtension: sanitizeFileName(
+						`${basicFileName || 'Untitled'}.${getFileExtension(
+							link.path
+						)}`
+					),
+					parentFolderPath: '',
+					fullLinkPathNeeded: false,
+					parentIds: fileInfo.parentIds,
+					path: link.path,
+				};
+				pathsToAttachmentInfo[attachmentInfo.path] = attachmentInfo;
+			}
 
-							const attachmentInfo: NotionAttachmentInfo = {
-								nameWithExtension: sanitizeFileName(
-									`${
-										basicFileName || 'Untitled'
-									}.${getFileExtension(path)}`
-								),
-								parentFolderPath: '',
-								fullLinkPathNeeded: false,
-								parentIds: fileInfo.parentIds,
-								path,
-							};
-
-							pathsToAttachmentInfo[path] = attachmentInfo;
-						}
-
-						idsToFileInfo[id] = fileInfo;
-						resolve(true);
-					} catch (e) {
-						console.error(e);
-						results.failed.push(filePath);
-						resolve(false);
-					}
-				})
-		)
-	);
+			idsToFileInfo[id] = fileInfo;
+		} catch (e) {
+			console.error(e);
+			results.failed.push(filePath);
+		}
+	}
 }
 
 const parseFileInfo = ({
@@ -90,19 +77,17 @@ const parseFileInfo = ({
 	normalizedFilePath: string;
 }) => {
 	const id = getNotionId(text.match(/<article id="(.*?)"/)[1]);
-	const parentFolder = getParentFolder(filePath);
 	const parentIds = getParentFolder(normalizedFilePath)
 		.split('/')
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
+	const document = new DOMParser().parseFromString(text, 'text/html');
 	const parsedTitle =
-		text.match(/<title>((.|\n)*?)<\/title>/)?.[1] || 'Untitled';
-	if (!parsedTitle) {
-		throw new Error('no title for ' + normalizedFilePath);
-	}
+		document.querySelector('title').textContent || 'Untitled';
 	let title = sanitizeFileName(
-		htmlToMarkdown(parsedTitle.replace(/\n/g, '<br />'))
+		parsedTitle
+			.replace(/\n/g, ' ')
 			.replace(/#/g, '')
 			.replace(/\n/g, ' ')
 			.replace(/^\s+/, '')
@@ -115,97 +100,57 @@ const parseFileInfo = ({
 		title = wordList.slice(0, wordList.length - 1).join(' ') + '...';
 	}
 
-	const description = text.match(
-		/<p class="page-description">((.|\n)*?)<\/p>/
-	)?.[1];
-	const rawProperties = text.match(
-		/<table class="properties"><tbody>((.|\n)*?)<\/tbody><\/table>/
-	)?.[1];
+	const description = document.querySelector(
+		`p[class*="page-description]`
+	).innerHTML;
+	const rawProperties = document
+		.querySelector(`table[class="properties"]`)
+		.querySelector('tbody').children;
 
-	const properties: ObsidianProperty[] = [];
-	const attachments = new Set<string>();
+	const properties: NotionProperty[] = [];
 
 	if (rawProperties) {
-		const rawPropertyList = rawProperties.match(/<tr(.|\n)*?<\/tr>/g);
-		for (let rawProperty of rawPropertyList) {
-			const property = parseProperty(rawProperty);
-
-			if (property.notionType === 'file' && property.type === 'list') {
-				for (let link of property.content) {
-					const path = getAttachmentPath(
-						extractHref(link),
-						parentFolder
-					);
-					attachments.add(path);
-				}
-			}
-
-			switch (property.type) {
-				case 'checkbox':
-					properties.push(property);
-					break;
-				case 'list':
-					if (property.content && property.content.length > 0)
-						properties.push(property);
-					break;
-				case 'number':
-					if (property.content !== undefined)
-						properties.push(property);
-					break;
-				case 'text':
-				case 'date':
-					if (property.content) properties.push(property);
-			}
-
-			properties.push(property);
+		for (let i = 0; i < rawProperties.length; i++) {
+			const row = rawProperties.item(i) as HTMLTableRowElement;
+			const property = getProperty(row, filePath);
+			if (property.body.textContent) properties.push(property);
 		}
-	}
 
-	const body =
-		text.match(
-			/<div class="page-body">((.|\n)*)<\/div><\/article><\/body><\/html>/
-		)?.[1] ?? '';
+		const body = document.querySelector(
+			`div[class*="page-content"]`
+		) as HTMLDivElement;
 
-	const attachmentLinks = matchAttachmentLinks(body, filePath);
-	if (attachmentLinks) {
-		for (let attachment of attachmentLinks) {
-			const path = getAttachmentPath(
-				extractHref(attachment),
-				parentFolder
-			);
-			attachments.add(path);
-		}
-	}
-
-	return {
-		id,
-		fileInfo: {
+		const notionLinks = getNotionLinks(body, filePath);
+		const fileInfo: NotionFileInfo = {
 			path: filePath,
 			parentIds,
 			body,
 			title,
 			properties,
 			description,
-			htmlToMarkdown: false,
 			fullLinkPathNeeded: false,
-		},
-		attachments,
-	};
+			notionLinks,
+		};
+
+		return {
+			id,
+			fileInfo,
+		};
+	}
 };
 
-const parseProperty = (property: string) => {
-	const notionType = property.match(
-		/<tr class="property-row property-row-(.*?)"/
+const getProperty = (property: HTMLTableRowElement, filePath: string) => {
+	const notionType = property.className.match(
+		/property-row-(.*?)/
 	)?.[1] as NotionPropertyType;
 	if (!notionType)
 		throw new Error('property type not found for: ' + property);
 
-	const title = property.match(/<th>(.|\n)*?<\/span>((.|\n)*?)<\/th>/)?.[2];
+	const title = property.cells[0].textContent;
 
-	let content;
-	const htmlContent = property.match(/<td>((.|\n)*?)<\/td>/)?.[1];
+	const body = property.cells[1];
 
-	const typesMap: Record<ObsidianProperty['type'], NotionPropertyType[]> = {
+	const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
 		checkbox: ['checkbox'],
 		date: ['created_time', 'last_edited_time', 'date'],
 		list: ['file', 'multi_select', 'relation'],
@@ -227,90 +172,42 @@ const parseProperty = (property: string) => {
 
 	let obsidianType = Object.keys(typesMap).find(
 		(type: keyof typeof typesMap) => typesMap[type].includes(notionType)
-	) as ObsidianProperty['type'];
+	) as NotionProperty['type'];
 
-	if (!obsidianType) throw new Error('type not found for: ' + htmlContent);
+	if (!obsidianType) throw new Error('type not found for: ' + body);
 
-	switch (notionType) {
-		case 'checkbox':
-			content = /checkbox-on/.test(htmlContent);
-			break;
-		case 'created_time':
-		case 'last_edited_time':
-		case 'date':
-			const dateContent = htmlContent.match(/<time>@(.*)<\/time>/)?.[1];
-			if (!dateContent) {
-				content = undefined;
-			} else if (dateContent.includes(' → ')) {
-				obsidianType = 'text';
-				content = dateContent
-					.split(' → ')
-					.map((content) =>
-						parseDate(
-							moment(
-								content,
-								content.includes(':')
-									? 'MMMM D, YYYY h:mm A'
-									: 'MMMM D, YYYY'
-							)
-						)
-					)
-					.join(' - ');
-			} else content = moment(dateContent);
-			break;
-		case 'email':
-		case 'phone_number':
-			content = htmlContent
-				.match(/<a.*?>(.*?)<\/a>/)?.[1]
-				?.replace(/\n/g, ' ');
-			break;
-		case 'created_by':
-		case 'last_edited_by':
-		case 'person':
-			content = htmlContent.match(
-				/class="icon user-icon"\/>((.|\n)*?)<\/span>/
-			)?.[1];
-			break;
-		case 'select':
-			content = htmlContent.match(/<span.*?>((.|\n)*?)<\/span>/)?.[1];
-			break;
-		case 'status':
-			content = htmlContent.match(
-				/<span.*?><div class="status-dot.*?<\/div>((.|\n)*?)<\/span>/
-			)?.[1];
-			break;
-		case 'url':
-			content = htmlContent.replace(/\n/g, ' ');
-			break;
-		case 'text':
-		case 'formula':
-		case 'rollup':
-			content = htmlContent;
-			break;
-		case 'file':
-		case 'relation':
-			const linkList = htmlContent.match(/<a href="(.|\n)*?<\/a>/g);
-			content = linkList.flat().map((link) => link.replace(/\n/g, ' '));
-			break;
-		case 'multi_select':
-			const allSelects = htmlContent.match(/<span.*?>(.|\n)*?<\/span>/g);
-			content = allSelects?.map(
-				(selectHtml) =>
-					selectHtml.match(/<span.*?>((.|\n)*?)<\/span>/)?.[1]
-			);
-			break;
-		case 'number':
-		case 'auto_increment_id':
-			content = Number(htmlContent);
-			break;
-	}
-
-	const parsedProperty = {
+	const parsedProperty: NotionProperty = {
 		title,
 		type: obsidianType,
 		notionType,
-		content,
-	} as ObsidianProperty;
+		body,
+		links: getNotionLinks(body, filePath),
+	};
 
 	return parsedProperty;
+};
+
+export const getNotionLinks = (body: HTMLElement, filePath: string) => {
+	const thisFileHref = matchFilename(filePath);
+	const links: NotionLink[] = [];
+	const parentFolder = getParentFolder(filePath);
+
+	body.querySelectorAll('a').forEach((a) => {
+		const decodedURI = decodeURI(a.href);
+		const id = getNotionId(decodedURI);
+		if (
+			decodedURI.includes(thisFileHref) &&
+			!decodedURI.endsWith('.html')
+		) {
+			links.push({
+				type: 'attachment',
+				a,
+				path: parentFolder + decodedURI,
+			});
+		} else if (id && decodedURI.endsWith('.html')) {
+			links.push({ type: 'relation', a, id });
+		}
+	});
+
+	return links;
 };
