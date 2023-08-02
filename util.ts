@@ -1,4 +1,4 @@
-import { DataWriteOptions, TFile, TFolder, normalizePath } from "obsidian";
+import { DataWriteOptions, FileManager, TFile, TFolder, Vault, normalizePath } from "obsidian";
 import { PickedFile } from "filesystem";
 
 
@@ -53,39 +53,40 @@ export function genUid(length: number): string {
 
 /**
  * Retrieves a reference to a specific folder in a vault. Creates it first if it doesn't exist.
+ * Must pass in the relevant vault.
  */
-export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
+export async function getOrCreateFolder(folderPath: string, vault: Vault): Promise<TFolder> {
 	let normalizedPath = normalizePath(folderPath)
 	if(normalizedPath === '') {
 		normalizedPath = '/';
 	}
 
-	const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
+	const folder = vault.getAbstractFileByPath(normalizedPath);
 	if(folder instanceof TFolder) {
 		return folder;
 	}
 	
-	await this.app.vault.createFolder(normalizedPath);
-	const newFolder = this.app.vault.getAbstractFileByPath(normalizedPath) as TFolder;
+	await vault.createFolder(normalizedPath);
+	const newFolder = vault.getAbstractFileByPath(normalizedPath) as TFolder;
 	return newFolder;
 }
 
 /**
  * Copies a file into the vault without parsing it or checking for duplicates.
  * Designed primarily for Binary files.
+ * Must pass in the relevant vault.
  */
-export async function copyFile(file: PickedFile, relOutputFilepath: string) {
-    let { vault } = this.app;
+export async function copyFile(file: PickedFile, relOutputFilepath: string, vault: Vault) {
 	await vault.createBinary(relOutputFilepath, await file.read());
 }
 
 /**
- * Adds a single tag to the tag property in frontmatter.
- * Will be sanitized.
+ * Adds a single tag to the tag property in frontmatter and santises it.
+ * Must pass in app.fileManager.
  */
-export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
+export async function addTagToFrontmatter(tag: string, fileRef: TFile, fileManager: FileManager) {
 	const sanitizedTag = sanitizeHashtag(tag);
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+	await fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
 		if(!frontmatter['tag']) {
 			frontmatter['tag'] = [sanitizedTag];
 		} else {
@@ -99,11 +100,12 @@ export async function addTagToFrontmatter(tag: string, fileRef: TFile) {
 
 /**
  * Adds an alias to the note's frontmatter.
- * Only linebreak sanitzation is performed in this function.
+ * Only linebreak sanitization is performed in this function.
+ * Must pass in app.fileManager.
 */
-export async function addAliasToFrontmatter(alias: string, fileRef: TFile) {
+export async function addAliasToFrontmatter(alias: string, fileRef: TFile, fileManager: FileManager) {
 	const sanitizedAlias = alias.split('\n').join(', ');
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+	await fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
 		if(!frontmatter['alias']) {
 			frontmatter['alias'] = [sanitizedAlias];
 		} else {
@@ -116,9 +118,9 @@ export async function addAliasToFrontmatter(alias: string, fileRef: TFile) {
 }
 
 /**
- * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file
+ * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file.
+ * Must pass in the relevant vault.
  */
-export async function modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions) {
-	let { vault } = this.app;
+export async function modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions, vault: Vault) {
 	await vault.append(fileRef, '', writeOptions);
 }
