@@ -21,7 +21,6 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
-		"file-type": "^18.5.0",
 		"joplin-turndown-plugin-gfm": "1.0.12",
 		"sanitize-filename": "1.6.3",
 		"xml-flow": "1.0.4"

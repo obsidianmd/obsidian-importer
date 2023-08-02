@@ -5,7 +5,6 @@ import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
 import { pathToFilename, sanitizeFileName, splitFilename } from '../util';
 import { extension, mime } from "./utils/mime";
 
-const fileType: typeof import("file-type") = Platform.isDesktopApp ? require("file-type") : null;
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
 export class HtmlImporter extends FormatImporter {
@@ -207,7 +206,7 @@ export class HtmlImporter extends FormatImporter {
 
 	async requestFile(url: URL) {
 		const data = (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer;
-		return { mime: await detectMime(url, data), data };
+		return { mime: detectMime(url), data };
 	}
 
 	async requestHTTP(url: URL) {
@@ -234,7 +233,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 		}
 		const { arrayBuffer: data } = response;
-		return { mime: response.headers["Content-Type"] || await detectMime(url, data), data };
+		return { mime: response.headers["Content-Type"] || detectMime(url), data };
 	}
 
 	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
@@ -294,14 +293,8 @@ function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
 }
 
-async function detectMime(url: URL, data: ArrayBufferLike) {
-	return mime(splitFilename(getURLFilename(url)).extension) ||
-		((await fileType.fileTypeFromBuffer(data))?.mime ??
-			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"));
-}
-
-function isSvg(data: ArrayBufferLike) {
-	return Buffer.from(data).includes("<svg");
+function detectMime(url: URL) {
+	return mime(splitFilename(getURLFilename(url)).extension) || "application/octet-stream";
 }
 
 async function imageSize(data: Blob) {
