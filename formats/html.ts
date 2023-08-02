@@ -61,36 +61,31 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async import() {
-		let { files } = this;
+		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
 		}
 
-		let folder = await this.getOutputFolder();
+		const folder = await this.getOutputFolder();
 		if (!folder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
 
-		const results = await Promise.all(files
-			.map(file => this.processFile(folder, file)));
-		this.showResult({
-			total: results.map(({ total }) => total).reduce((left, right) => left + right, 0),
-			failed: results.map(({ failed }) => failed).flat(),
-			skipped: results.map(({ skipped }) => skipped).flat()
-		});
+		const result: ImportResult = {
+			total: 0,
+			skipped: [],
+			failed: [],
+		};
+		await Promise.all(files.map(file => this.processFile(result, folder, file)));
+		this.showResult(result);
 	}
 
-	async processFile(folder: TFolder, file: PickedFile) {
-		const results: ImportResult = {
-			total: 1,
-			failed: [],
-			skipped: [],
-		};
+	async processFile(result: ImportResult, folder: TFolder, file: PickedFile) {
 		if (!(file instanceof NodePickedFile)) {
-			results.skipped.push(file.name);
-			return results;
+			result.skipped.push(file.name);
+			return;
 		}
 		let mdFile: TFile | null = null;
 		try {
@@ -149,13 +144,13 @@ export class HtmlImporter extends FormatImporter {
 						return { text: ast.text };
 					}
 				}));
-			results.total += transformedAST
+			result.total += transformedAST
 				.filter(({ link }) => link)
 				.length;
-			results.failed = results.failed.concat(transformedAST
+			result.failed = result.failed.concat(transformedAST
 				.filter(({ attachment }) => attachment === "failed")
 				.map(({ link: { path } }) => path));
-			results.skipped = results.skipped.concat(transformedAST
+			result.skipped = result.skipped.concat(transformedAST
 				.filter(({ attachment }) => attachment === "skipped")
 				.map(({ link: { path } }) => path));
 
@@ -163,7 +158,7 @@ export class HtmlImporter extends FormatImporter {
 			await this.app.vault.modify(mdFile, mdContent);
 		} catch (e) {
 			console.error(e);
-			results.failed.push(file.toString());
+			result.failed.push(file.toString());
 			if (mdFile) {
 				try {
 					await this.app.vault.delete(mdFile);
@@ -172,7 +167,6 @@ export class HtmlImporter extends FormatImporter {
 				}
 			}
 		}
-		return results;
 	}
 
 	downloadAttachmentCached(mdFile: TFile, url: URL) {
