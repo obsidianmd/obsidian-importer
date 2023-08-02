@@ -1,5 +1,4 @@
 import { DataWriteOptions, TFile, TFolder, normalizePath } from "obsidian";
-import fs from 'fs/promises';
 import { PickedFile } from "filesystem";
 
 
