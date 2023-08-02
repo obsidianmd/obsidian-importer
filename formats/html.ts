@@ -1,11 +1,12 @@
-import { FormatImporter } from "../format-importer";
-import { Notice, Setting, TFile, TFolder, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
-import { pathToBasename, pathToFilename, sanitizeFileName, splitFilename } from '../util';
+import { htmlToMarkdown, normalizePath, Notice, Platform, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
-import { fileURLToPath, pathToFileURL } from "url";
-import { readFile } from "fs/promises";
-import { fileTypeFromBuffer } from "file-type";
+import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
+import { pathToFilename, sanitizeFileName, splitFilename } from '../util';
 import { extension, mime } from "./utils/mime";
+
+const fileType: typeof import("file-type") = Platform.isDesktopApp ? require("file-type") : null;
+const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
@@ -14,7 +15,7 @@ export class HtmlImporter extends FormatImporter {
 	minimumImageSize: number;
 
 	init() {
-		this.addFileOrFolderChooserSetting('HTML (.htm .html)', ['htm', 'html']);
+		this.addFileChooserSetting('HTML (.htm .html)', ['htm', 'html']);
 		this.addAttatchmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.addOutputLocationSetting('HTML');
@@ -60,8 +61,8 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async import() {
-		let { filePaths } = this;
-		if (filePaths.length === 0) {
+		let { files } = this;
+		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
 		}
@@ -72,8 +73,8 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const results = await Promise.all(filePaths
-			.map(path => this.processFile(folder, path)));
+		const results = await Promise.all(files
+			.map(file => this.processFile(folder, file)));
 		this.showResult({
 			total: results.map(({ total }) => total).reduce((left, right) => left + right, 0),
 			failed: results.map(({ failed }) => failed).flat(),
@@ -81,18 +82,21 @@ export class HtmlImporter extends FormatImporter {
 		});
 	}
 
-	async processFile(folder: TFolder, path: string) {
+	async processFile(folder: TFolder, file: PickedFile) {
 		const results: ImportResult = {
 			total: 1,
 			failed: [],
-			skipped: []
+			skipped: [],
 		};
+		if (!(file instanceof NodePickedFile)) {
+			results.skipped.push(file.name);
+			return results;
+		}
 		let mdFile: TFile | null = null;
 		try {
-			let mdContent = htmlToMarkdown(await this.readPath(path));
-			path = normalizePath(path);
-			const pathURL = pathToFileURL(path);
-			mdFile = await this.saveAsMarkdownFile(folder, pathToBasename(path), "");
+			let mdContent = htmlToMarkdown(await file.readText());
+			const pathURL = nodeUrl.pathToFileURL(file.filepath);
+			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
 
 			const ast = [];
 			let read = -1;
@@ -135,7 +139,7 @@ export class HtmlImporter extends FormatImporter {
 						}
 						const attachment = await this.downloadAttachmentCached(mdFile, url);
 						if (attachment instanceof TFile) {
-							text = this.app.fileManager.generateMarkdownLink(attachment, path, "", display);
+							text = this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", display);
 						}
 						return { text, attachment, link } as const;
 					} catch (e) {
@@ -157,7 +161,7 @@ export class HtmlImporter extends FormatImporter {
 			await this.app.vault.modify(mdFile, mdContent);
 		} catch (e) {
 			console.error(e);
-			results.failed.push(path);
+			results.failed.push(file.toString());
 			if (mdFile) {
 				try {
 					await this.app.vault.delete(mdFile);
@@ -206,7 +210,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async requestFile(url: URL) {
-		const data = (await readFile(fileURLToPath(url.href))).buffer;
+		const data = (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer;
 		return { mime: await detectMime(url, data), data };
 	}
 
@@ -296,7 +300,7 @@ function getURLFilename(url: URL) {
 
 async function detectMime(url: URL, data: ArrayBufferLike) {
 	return mime(splitFilename(getURLFilename(url)).extension) ||
-		((await fileTypeFromBuffer(data))?.mime ??
+		((await fileType.fileTypeFromBuffer(data))?.mime ??
 			(isSvg(data) ? "image/svg+xml" : "application/octet-stream"));
 }
 

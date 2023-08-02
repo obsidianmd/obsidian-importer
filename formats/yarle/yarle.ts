@@ -1,6 +1,6 @@
-import fs from 'fs';
-import * as path from 'path';
 import flow from 'xml-flow';
+import { fs, NodePickedFile, path, PickedFile } from '../../filesystem';
+import { ImportResult } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { processNode } from './process-node';
 import { convertTasktoMd } from './process-tasks';
@@ -12,10 +12,9 @@ import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 import { YarleOptions } from './YarleOptions';
-import { ImportResult } from '../../main';
 
 export const defaultYarleOptions: YarleOptions = {
-	enexSources: ['notebook.enex'],
+	enexSources: [],
 	outputDir: './mdNotes',
 	isMetadataNeeded: false,
 	isNotebookNameNeeded: false,
@@ -92,26 +91,24 @@ interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: string): Promise<ImportResult> => {
+export const parseStream = async (options: YarleOptions, enexSource: PickedFile): Promise<ImportResult> => {
+	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	console.log(`Getting stream from ${enexSource}`);
-	const stream = fs.createReadStream(enexSource);
+	const stream = enexSource.createReadStream();
 	let noteNumber = 0;
 	let failed: string[] = [];
 	let skipped: string[] = [];
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
-	const notebookName = utils.getNotebookName(enexSource);
+	const notebookName = enexSource.basename;
 
 	return new Promise((resolve, reject) => {
 
 		const logAndReject = (error: Error) => {
 			console.log(`Could not convert ${enexSource}:\n${error.message}`);
-			failed.push(enexSource);
+			failed.push(enexSource.toString());
 
 			return reject();
 		};
-		if (!fs.existsSync(enexSource)) {
-			return console.log(JSON.stringify({ name: 'NoSuchFileOrDirectory', message: 'source Enex file does not exists' }));
-		}
 
 		const xml = flow(stream);
 
@@ -153,7 +150,7 @@ export const parseStream = async (options: YarleOptions, enexSource: string): Pr
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
 
-					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`
+					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`;
 					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
 					const sortedTasks = new Map([...tasks[task]].sort());
 
@@ -207,7 +204,7 @@ export const dropTheRope = async (options: YarleOptions): Promise<ImportResult> 
 	for (const enex of options.enexSources) {
 		utils.setPaths(enex);
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
-		runtimeProps.setCurrentNotebookName(utils.getNotebookName(enex));
+		runtimeProps.setCurrentNotebookName(enex.basename);
 		let enexResults = await parseStream(options, enex);
 		results.total += enexResults.total;
 		results.failed = results.failed.concat(enexResults.failed);

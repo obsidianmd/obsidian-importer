@@ -9,15 +9,19 @@ export function sanitizeFileName(name: string) {
 	return name.replace(ILLEGAL_FILENAME_RE, '');
 }
 
+export function genUid(length: number): string {
+	let array: string[] = [];
+	for (let i = 0; i < length; i++) {
+		array.push((Math.random() * 16 | 0).toString(16));
+	}
+	return array.join('');
+}
+
 export function pathToFilename(path: string) {
 	if (!path.contains('/')) return path;
 
 	let lastSlashPosition = path.lastIndexOf('/');
 	return path.slice(lastSlashPosition + 1);
-}
-
-export function pathToBasename(path: string) {
-	return splitFilename(pathToFilename(path)).basename;
 }
 
 export function splitFilename(filename: string) {

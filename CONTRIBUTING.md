@@ -4,6 +4,14 @@ You can create a new importer by adding a class under the `formats` folder that 
 
 If you need to add settings, add the setting UI to `this.modal.contentEl` like how you would add them to a plugin. After you're done, simply add your importer to `ImporterPlugin.importers` in `main.ts`.
 
+Please refrain from using NodeJS or Electron imports. If you must use Node's `fs` or `path` modules, please import them from `filesystem.ts` instead of directly from node. This makes it a soft-dependency that will resolve to null at runtime on mobile. For all other Node imports, please use the following
+
+```ts
+import type * as NodeModuleName from 'node:modulename';
+
+const modulename: typeof NodeModuleName = Platform.isDesktopApp ? window.require('node:modulename') : null;
+``` 
+
 We're still experimenting with contributions, if you have any questions, please hop onto the [#importer thread under #plugin-dev channel](https://discord.com/channels/686053708261228577/1133074995271188520) on our Discord.
 
 ### Code standards
@@ -26,4 +34,5 @@ Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidi
 3. **Fork repo** — if you have questions during the development you can ask in the Obsidian Discord channel *#importer* (under #plugin-dev)
 4. **Submit your PR** — submit your code within the bounty timeframe. If the timeframe elapses, the bounty will be reassigned to another developer.
 5. **Pass code review** — your code must meet the requirements listed in the issue, and the code standards above
-6. **Merging and payment** — once your PR is merged, we will submit payment via PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.
+6. **Agree to CLA** — the [Contributor License Agreement](https://github.com/obsidianmd/obsidian-releases/blob/master/cla.md) grants us license to use your code
+7. **Merging and payment** — once your PR is merged, we will submit payment via PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.

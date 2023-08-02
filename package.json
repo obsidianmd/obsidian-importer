@@ -12,9 +12,8 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
-		"@types/marked": "^5.0.0",
-		"@types/node": "^16.11.6",
-		"@types/xml-flow": "^1.0.1",
+		"@types/node": "16.6.2",
+		"@types/xml-flow": "1.0.1",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
 		"obsidian": "latest",
@@ -24,7 +23,6 @@
 	"dependencies": {
 		"file-type": "^18.5.0",
 		"joplin-turndown-plugin-gfm": "1.0.12",
-		"nanoid": "3.3.6",
 		"sanitize-filename": "1.6.3",
 		"xml-flow": "1.0.4"
 	}

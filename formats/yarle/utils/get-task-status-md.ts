@@ -5,4 +5,4 @@ export const getTaskStatusMd = (task: any): string => {
 	return (task.taskstatus === EvernoteTaskStatus.Open)
 		? checkboxTodo
 		: checkboxDone;
-}
+};
