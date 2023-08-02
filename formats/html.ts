@@ -99,21 +99,23 @@ export class HtmlImporter extends FormatImporter {
 			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
 
 			const ast = [];
-			let read = -1;
+			let read = 0;
 			let next = 0;
 			do {
-				next = mdContent.indexOf("!", read + 1);
+				next = mdContent.indexOf("!", read);
 				if (next === -1) {
 					next = mdContent.length;
 				}
-				ast.push(mdContent.slice(read, next));
 				const link = parseMarkdownLink(mdContent.slice(next), false);
 				if (link) {
-					ast.push({
+					ast.push(mdContent.slice(read, next), {
 						link,
 						text: mdContent.slice(next, next + link.read),
 					});
 					next += link.read;
+				} else {
+					next += "!".length;
+					ast.push(mdContent.slice(read, next));
 				}
 				read = next;
 			} while (read < mdContent.length)
