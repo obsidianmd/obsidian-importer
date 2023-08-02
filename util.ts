@@ -9,11 +9,11 @@ function escapeRegex(str: string): string {
 const ILLEGAL_FILENAME_CHARACTERS = '\\/:*?<>\"|';
 const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_FILENAME_CHARACTERS) + ']', 'g');
 
-const ILLEGAL_HASHTAG_CHARACTERS = '\\:*?<>\"|!@#$%^&()+=\`\'~;,.';
-const ILLEGAL_HASHTAG_RE = new RegExp('[' + escapeRegex(ILLEGAL_HASHTAG_CHARACTERS) + ']', 'g');
+const ILLEGAL_TAG_CHARACTERS = '\\:*?<>\"|!@#$%^&()+=\`\'~;,.';
+const ILLEGAL_TAG_RE = new RegExp('[' + escapeRegex(ILLEGAL_TAG_CHARACTERS) + ']', 'g');
 
 // Finds any non-whitespace sections starting with #
-const POTENTIAL_HASHTAGS_RE = new RegExp(/(#[^ ^#]*)/, 'g');
+const POTENTIAL_TAGS_RE = new RegExp(/(#[^ ^#]*)/, 'g');
 
 export function sanitizeFileName(name: string) {
 	return name.replace(ILLEGAL_FILENAME_RE, '');
@@ -24,7 +24,7 @@ export function sanitizeFileName(name: string) {
  * If the # symbol is included at the start or anywhere else it will be removed.
  */
 export function sanitizeHashtag(name: string): string {
-	let tagName = name.replace(ILLEGAL_HASHTAG_RE, '');
+	let tagName = name.replace(ILLEGAL_TAG_RE, '');
 	tagName = tagName.split(' ').join('-');
 	if(!isNaN(tagName[0] as any)) {
 		tagName = '_' + tagName;
@@ -37,7 +37,7 @@ export function sanitizeHashtag(name: string): string {
  * Returns a string with those hastags normalised.
  */
 export function sanitizeHashtags(str: string): string {
-	const newStr = str.replace(POTENTIAL_HASHTAGS_RE, (str: string) : string => {
+	const newStr = str.replace(POTENTIAL_TAGS_RE, (str: string) : string => {
 		return '#' + sanitizeHashtag(str);
 	});
 	return newStr;
@@ -49,20 +49,6 @@ export function genUid(length: number): string {
 		array.push((Math.random() * 16 | 0).toString(16));
 	}
 	return array.join('');
-}
-
-export function pathToFilename(path: string) {
-	if (!path.contains('/')) return path;
-
-	let lastSlashPosition = path.lastIndexOf('/');
-	let filename = path.slice(lastSlashPosition + 1);
-	let lastDotPosition = filename.lastIndexOf('.');
-
-	if (lastDotPosition === -1 || lastDotPosition === filename.length - 1 || lastDotPosition === 0) {
-		return filename;
-	}
-
-	return filename.slice(0, lastDotPosition);
 }
 
 /**
