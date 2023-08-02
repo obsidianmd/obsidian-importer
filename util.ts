@@ -67,32 +67,6 @@ export function pathToFilename(path: string) {
 }
 
 /**
- * Returns an object with name and extension properties.
- * Doesn't accept a full path.
- */
-export function separatePathNameExt(fullPath: string): {path: string, name: string, ext: string} {
-	let lastSlashPosition = fullPath.lastIndexOf('/');
-	let filename = fullPath.slice(lastSlashPosition + 1);
-	const lastDotPosition = filename.lastIndexOf('.');
-	
-	let path = fullPath.substring(0, lastSlashPosition);
-	let name = filename.substring(0, lastDotPosition);
-	let ext = filename.substring(lastDotPosition + 1);
-
-	// If there is no period, then the filename has no extension.
-	if (lastDotPosition === -1) {
-		name = filename;
-		ext = '';
-	}
-	
-	return {
-		path,
-		name,
-		ext,
-	};
-}
-
-/**
  * Retrieves a reference to a specific folder in a vault. Creates it first if it doesn't exist.
  */
 export async function getOrCreateFolder(folderPath: string): Promise<TFolder> {
