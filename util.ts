@@ -87,13 +87,13 @@ export async function copyFile(file: PickedFile, relOutputFilepath: string, vaul
 export async function addTagToFrontmatter(tag: string, fileRef: TFile, fileManager: FileManager) {
 	const sanitizedTag = sanitizeHashtag(tag);
 	await fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
-		if(!frontmatter['tag']) {
-			frontmatter['tag'] = [sanitizedTag];
+		if(!frontmatter['tags']) {
+			frontmatter['tags'] = [sanitizedTag];
 		} else {
-			if (!Array.isArray(frontmatter['tag'])) {
-				frontmatter['tag'] = frontmatter['tag'].split(' ');
+			if (!Array.isArray(frontmatter['tags'])) {
+				frontmatter['tags'] = frontmatter['tags'].split(' ');
 			}
-			frontmatter['tag'].push(sanitizedTag);
+			frontmatter['tags'].push(sanitizedTag);
 		}
 	});
 }
@@ -106,13 +106,13 @@ export async function addTagToFrontmatter(tag: string, fileRef: TFile, fileManag
 export async function addAliasToFrontmatter(alias: string, fileRef: TFile, fileManager: FileManager) {
 	const sanitizedAlias = alias.split('\n').join(', ');
 	await fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
-		if(!frontmatter['alias']) {
-			frontmatter['alias'] = [sanitizedAlias];
+		if(!frontmatter['aliases']) {
+			frontmatter['aliases'] = [sanitizedAlias];
 		} else {
-			if (!Array.isArray(frontmatter['alias'])) {
-				frontmatter['alias'] = frontmatter['alias'].split(' ');
+			if (!Array.isArray(frontmatter['aliases'])) {
+				frontmatter['aliases'] = frontmatter['aliases'].split(' ');
 			}
-			frontmatter['alias'].push(sanitizedAlias);
+			frontmatter['aliases'].push(sanitizedAlias);
 		}
 	});
 }
