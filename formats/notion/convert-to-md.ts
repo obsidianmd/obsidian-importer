@@ -23,17 +23,9 @@ export function convertNotesToMd({
 	attachmentFolderPath: string;
 }) {
 	for (let fileInfo of Object.values(idsToFileInfo)) {
-		// fileInfo.body = convertInlineDatabasesToObsidian(fileInfo.body, {
-		// 	idsToFileInfo,
-		// 	pathsToAttachmentInfo,
-		// 	attachmentFolderPath,
-		// });
-
 		convertLinksToObsidian(fileInfo.notionLinks, {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
-			attachmentFolderPath,
-			fileInfo,
 		});
 
 		replaceNestedTags(fileInfo.body, 'strong');
@@ -85,11 +77,11 @@ const splitBrsInFormatting = (body: HTMLDivElement, tag: 'strong' | 'em') => {
 
 function replaceTableOfContents(body: HTMLDivElement) {
 	const tocLinks = body.querySelectorAll(
-		'a[href*=#]'
+		'a[href*=\\#]'
 	) as NodeListOf<HTMLAnchorElement>;
 	if (tocLinks.length === 0) return body;
 	tocLinks.forEach((link) => {
-		if (link.href.startsWith('#')) {
+		if (link.getAttribute('href').startsWith('#')) {
 			link.setAttribute('href', '#' + link.textContent);
 		}
 	});
@@ -118,132 +110,6 @@ const fixNotionLists = (body: HTMLDivElement) => {
 		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
 };
 
-// function convertInlineDatabasesToObsidian(
-// 	body: HTMLDivElement,
-// 	{
-// 		idsToFileInfo,
-// 		pathsToAttachmentInfo,
-// 		attachmentFolderPath,
-// 	}: {
-// 		idsToFileInfo: Record<string, NotionFileInfo>;
-// 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-// 		attachmentFolderPath: string;
-// 	}
-// ) {
-// 	let inlineDatabases = body.querySelectorAll(
-// 		`table[class="collection-content"]`
-// 	) as NodeListOf<HTMLTableElement>;
-
-// 	inlineDatabases.forEach((database) => {
-// 		const rawDatabaseHeaders = database.querySelectorAll(
-// 			'th'
-// 		) as NodeListOf<HTMLTableCellElement>;
-// 		const headers: string[] = [];
-// 		rawDatabaseHeaders.forEach((header) => {
-// 			headers.push(header.textContent);
-// 		});
-// 		const childRows = database.querySelectorAll('tr');
-// 		const childIds: string[] = [];
-// 		childRows.forEach((row) => {
-// 			const id = getNotionId(row.getAttribute('id'))
-
-// 			headers.forEach(header => {
-
-// 			})
-// 		});
-
-// 		const processedRows = childIds.map((childId, i) => {
-// 			const childFileInfo = idsToFileInfo[childId];
-
-// 			// if there's no child included in the import, just use row's basic HTML formatting as a fallback
-// 			const childCells = childRows[i].match(/<td((.|\n)*?)<\/td>/g);
-// 			if (!childFileInfo)
-// 				return childCells.map(
-// 					(cell) => cell.match(/<td.*?>(.*?)<\/td>/)?.[1] ?? ''
-// 				);
-
-// 			const processedRow: string[] = headers.map((propertyName, i) => {
-// 				if (childCells[i].contains('class="cell-title"')) {
-// 					return fileInfoToObsidianLink(childFileInfo, {
-// 						idsToFileInfo,
-// 					});
-// 				} else {
-// 					const property = childFileInfo.properties.find(
-// 						(property) => property.title === propertyName
-// 					);
-// 					if (!property) return '';
-// 					return convertPropertyToMarkdown(property, {
-// 						idsToFileInfo,
-// 						pathsToAttachmentInfo,
-// 						fileInfo: childFileInfo,
-// 						attachmentFolderPath,
-// 					});
-// 				}
-// 			});
-// 			return processedRow;
-// 		});
-
-// 		const formattedDatabase = `| ${headers.join(' | ')} |<br />| ${headers
-// 			.map(() => '---')
-// 			.join(' | ')} |<br />${processedRows
-// 			.map((row) => `| ${row.join(' | ')} |`)
-// 			.join('<br />')}<br />`;
-
-// 		body = body.replace(inlineDatabase[0], formattedDatabase);
-
-// 		inlineDatabase = body.match(DATABASE_MATCH);
-// 	});
-
-// 	return body;
-// }
-
-// function convertPropertyToMarkdown(
-// 	property: NotionFileInfo['properties'][number],
-// 	{
-// 		idsToFileInfo,
-// 		pathsToAttachmentInfo,
-// 		fileInfo,
-// 		attachmentFolderPath,
-// 	}: {
-// 		idsToFileInfo: Record<string, NotionFileInfo>;
-// 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-// 		fileInfo: NotionFileInfo;
-// 		attachmentFolderPath: string;
-// 	}
-// ) {
-// 	if (property.body === undefined) return '';
-
-// 	switch (property.type) {
-// 		case 'checkbox':
-// 			return property.body ? 'X' : ' ';
-// 		case 'date':
-// 			return property.body.hour() === 0 && property.body.minute() === 0
-// 				? property.body.format('MMMM D, YYYY')
-// 				: property.body.format('MMMM D, YYYY h:mm A');
-// 		case 'list':
-// 			return property.body
-// 				.filter((content) => content)
-// 				.map((content) =>
-// 					convertLinksToObsidian(content, {
-// 						idsToFileInfo,
-// 						pathsToAttachmentInfo,
-// 						fileInfo,
-// 						attachmentFolderPath,
-// 					})
-// 				)
-// 				.join(', ');
-// 		case 'number':
-// 			return String(property.body);
-// 		case 'text':
-// 			return convertLinksToObsidian(property.body, {
-// 				idsToFileInfo,
-// 				pathsToAttachmentInfo,
-// 				fileInfo,
-// 				attachmentFolderPath,
-// 			});
-// 	}
-// }
-
 function convertPropertyToYAML(
 	property: NotionFileInfo['properties'][number],
 	{
@@ -264,9 +130,7 @@ function convertPropertyToYAML(
 		convertLinksToObsidian(property.links, {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
-			attachmentFolderPath,
 			embedAttachments: false,
-			fileInfo,
 		});
 		convertHtmlLinksToURLs(property.body);
 	}
@@ -317,7 +181,7 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 	for (let i = 0; i < links.length; i++) {
 		const link = links.item(i);
 		const span = document.createElement('span');
-		span.setText(link.href);
+		span.setText(link.getAttribute('href'));
 		link.insertAdjacentElement('afterend', span);
 		link.remove();
 	}
@@ -329,19 +193,13 @@ function convertLinksToObsidian(
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
-		attachmentFolderPath,
 		embedAttachments = true,
-		fileInfo,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		attachmentFolderPath: string;
 		embedAttachments?: boolean;
-		fileInfo: NotionFileInfo;
 	}
 ) {
-	const parentFolder = getParentFolder(fileInfo.path);
-
 	for (let link of notionLinks) {
 		let obsidianLink = document.createElement('span');
 		let linkContent: string;
@@ -352,7 +210,7 @@ function convertLinksToObsidian(
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
 					const extractedFilename = matchFilename(
-						decodeURI(link.a.href)
+						decodeURI(link.a.getAttribute('href'))
 					);
 					linkContent = `[[${stripNotionId(extractedFilename)}]]`;
 				} else {

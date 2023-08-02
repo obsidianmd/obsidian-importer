@@ -79,6 +79,8 @@ export class NotionImporter extends FormatImporter {
 			attachmentFolderPath,
 		});
 
+		console.log(pathsToAttachmentInfo);
+
 		await copyFiles({
 			idsToFileInfo,
 			pathsToAttachmentInfo,

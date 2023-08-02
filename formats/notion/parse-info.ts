@@ -7,6 +7,7 @@ import {
 	sanitizeFileName,
 } from '../../util';
 import { getNotionId } from './notion-utils';
+import { htmlToMarkdown } from 'obsidian';
 
 export async function parseFiles(
 	filePaths: string[],
@@ -56,7 +57,7 @@ export async function parseFiles(
 					parentIds: fileInfo.parentIds,
 					path: link.path,
 				};
-				pathsToAttachmentInfo[attachmentInfo.path] = attachmentInfo;
+				pathsToAttachmentInfo[link.path] = attachmentInfo;
 			}
 
 			idsToFileInfo[id] = fileInfo;
@@ -76,18 +77,23 @@ const parseFileInfo = ({
 	filePath: string;
 	normalizedFilePath: string;
 }) => {
-	const id = getNotionId(text.match(/<article id="(.*?)"/)[1]);
 	const parentIds = getParentFolder(normalizedFilePath)
 		.split('/')
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
 	const document = new DOMParser().parseFromString(text, 'text/html');
+	const id = getNotionId(
+		document.querySelector('article').getAttribute('id')
+	);
+	if (!id) throw new Error('no id found for: ' + filePath);
 	const parsedTitle =
 		document.querySelector('title').textContent || 'Untitled';
+
 	let title = sanitizeFileName(
 		parsedTitle
 			.replace(/\n/g, ' ')
+			.replace(/:/g, '-')
 			.replace(/#/g, '')
 			.replace(/\n/g, ' ')
 			.replace(/^\s+/, '')
@@ -101,11 +107,11 @@ const parseFileInfo = ({
 	}
 
 	const description = document.querySelector(
-		`p[class*="page-description]`
+		`p[class*=page-description]`
 	).innerHTML;
 	const rawProperties = document
-		.querySelector(`table[class="properties"]`)
-		.querySelector('tbody').children;
+		.querySelector(`table[class=properties]`)
+		?.querySelector('tbody').children;
 
 	const properties: NotionProperty[] = [];
 
@@ -115,33 +121,33 @@ const parseFileInfo = ({
 			const property = getProperty(row, filePath);
 			if (property.body.textContent) properties.push(property);
 		}
-
-		const body = document.querySelector(
-			`div[class*="page-content"]`
-		) as HTMLDivElement;
-
-		const notionLinks = getNotionLinks(body, filePath);
-		const fileInfo: NotionFileInfo = {
-			path: filePath,
-			parentIds,
-			body,
-			title,
-			properties,
-			description,
-			fullLinkPathNeeded: false,
-			notionLinks,
-		};
-
-		return {
-			id,
-			fileInfo,
-		};
 	}
+
+	const body = document.querySelector(
+		`div[class=page-body]`
+	) as HTMLDivElement;
+
+	const notionLinks = getNotionLinks(body, filePath);
+	const fileInfo: NotionFileInfo = {
+		path: filePath,
+		parentIds,
+		body,
+		title,
+		properties,
+		description,
+		fullLinkPathNeeded: false,
+		notionLinks,
+	};
+
+	return {
+		id,
+		fileInfo,
+	};
 };
 
 const getProperty = (property: HTMLTableRowElement, filePath: string) => {
 	const notionType = property.className.match(
-		/property-row-(.*?)/
+		/property-row-(.*)/
 	)?.[1] as NotionPropertyType;
 	if (!notionType)
 		throw new Error('property type not found for: ' + property);
@@ -193,7 +199,7 @@ export const getNotionLinks = (body: HTMLElement, filePath: string) => {
 	const parentFolder = getParentFolder(filePath);
 
 	body.querySelectorAll('a').forEach((a) => {
-		const decodedURI = decodeURI(a.href);
+		const decodedURI = decodeURI(a.getAttribute('href'));
 		const id = getNotionId(decodedURI);
 		if (
 			decodedURI.includes(thisFileHref) &&
@@ -208,6 +214,8 @@ export const getNotionLinks = (body: HTMLElement, filePath: string) => {
 			links.push({ type: 'relation', a, id });
 		}
 	});
+
+	console.log('links', links);
 
 	return links;
 };

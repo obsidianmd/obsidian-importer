@@ -74,10 +74,14 @@ export async function copyFiles({
 
 	for (let path of Object.keys(pathsToAttachmentInfo)) {
 		const attachmentInfo = pathsToAttachmentInfo[path];
+		console.log(path);
+
 		try {
 			const data = await readFile(path);
 			await app.vault.adapter.writeBinary(
-				`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`,
+				normalizePath(
+					`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`
+				),
 				data
 			);
 		} catch (e) {
