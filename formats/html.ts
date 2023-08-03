@@ -144,8 +144,7 @@ export class HtmlImporter extends FormatImporter {
 				await this.app.vault.process(mdFile, data =>
 					`${data}${mdContent.replace(
 						new RegExp(Object.keys(attachments)
-							.sort()
-							.reverse()
+							.sort(({ length: left }, { length: right }) => right - left)
 							.map(escapeRegExp)
 							.join("|"), "gu"),
 						encodeURI,
@@ -164,8 +163,7 @@ export class HtmlImporter extends FormatImporter {
 					if (Object.keys(replacements).length > 0) {
 						return data.replace(
 							new RegExp(Object.keys(replacements)
-								.sort()
-								.reverse()
+								.sort(({ length: left }, { length: right }) => right - left)
 								.map(escapeRegExp)
 								.join("|"), "gu"),
 							link => replacements[link],
