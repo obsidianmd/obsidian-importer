@@ -39,6 +39,9 @@ export class PromiseExecutor {
 	}
 
 	async run<T>(func: () => PromiseLike<T>): Promise<T> {
+		if (this.pool.length <= 0) {
+			return await func();
+		}
 		const index = await Promise.race(this.pool);
 		const ret = func();
 		this.pool[index] = ret.then(() => index, () => index);
