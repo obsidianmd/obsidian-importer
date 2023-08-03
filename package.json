@@ -26,6 +26,7 @@
 	},
 	"dependencies": {
 		"@zip.js/zip.js": "2.7.20",
+		"axios": "^1.4.0",
 		"joplin-turndown-plugin-gfm": "1.0.12",
 		"xml-flow": "1.0.4"
 	}
