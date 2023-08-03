@@ -8,6 +8,7 @@ const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.requir
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
+	lastWriteAttachment = Promise.resolve<unknown>(null);
 
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
@@ -240,21 +241,17 @@ export class HtmlImporter extends FormatImporter {
 		return { type, data };
 	}
 
-	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
-		const { basename, extension } = splitFilename(sanitizeFileName(filename));
-		let error;
-		for (let retry = 0; retry < 5; ++retry) {
-			try {
-				//@ts-ignore
-				const path: string = await this.app.vault.getAvailablePathForAttachments(basename, extension, mdFile);
-				return await this.app.vault.createBinary(path, data);
-			} catch (e) {
-				// retry in case `path` is the same for multiple invocations of `writeAttachment`
-				error = e;
-				await sleep(1000 * Math.random());
-			}
-		}
-		throw error;
+	writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
+		const { lastWriteAttachment } = this;
+		const ret = (async () => {
+			await lastWriteAttachment;
+			const { basename, extension } = splitFilename(sanitizeFileName(filename));
+			// @ts-ignore
+			const path: string = await this.app.vault.getAvailablePathForAttachments(basename, extension, mdFile);
+			return await this.app.vault.createBinary(path, data);
+		})();
+		this.lastWriteAttachment = ret.catch(() => { });
+		return ret;
 	}
 
 	async filterAttachment(response: Response) {
