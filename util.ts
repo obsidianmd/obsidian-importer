@@ -17,20 +17,6 @@ export function genUid(length: number): string {
 	return array.join('');
 }
 
-export function pathToFilename(path: string) {
-	if (!path.contains('/')) return path;
-	const lastSlashPosition = path.lastIndexOf('/');
-	return path.slice(lastSlashPosition + 1);
-}
-
-export function splitFilename(filename: string) {
-	const lastDotPosition = filename.lastIndexOf('.');
-	if (lastDotPosition === -1 || lastDotPosition === filename.length - 1 || lastDotPosition === 0) {
-		return { basename: filename, extension: "" };
-	}
-	return { basename: filename.slice(0, lastDotPosition), extension: filename.slice(lastDotPosition + 1) };
-}
-
 export class PromiseExecutor {
 	readonly pool: PromiseLike<number>[];
 	revision: object = {};

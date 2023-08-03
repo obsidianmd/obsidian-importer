@@ -1,8 +1,8 @@
 import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, Platform, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
-import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
-import { pathToFilename, PromiseExecutor, sanitizeFileName, splitFilename } from '../util';
+import { fsPromises, NodePickedFile, parseFilePath, PickedFile } from '../filesystem';
+import { PromiseExecutor, sanitizeFileName } from '../util';
 import { extension } from './util/mime';
 
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
@@ -210,26 +210,27 @@ export class HtmlImporter extends FormatImporter {
 			return null;
 		}
 		const { data, extension } = response;
-		let filename = getURLFilename(url);
+		const filename = parseURL(url);
+		let { name } = filename;
 		if (extension) {
-			if (splitFilename(filename).extension !== extension) {
-				filename += `.${extension}`;
+			if (filename.extension !== extension) {
+				name += `.${extension}`;
 			}
 		} else {
-			filename += `.noext.${{
+			name += `.noext.${{
 				"audio": "mp3",
 				"img": "png",
 				"video": "mp4",
 			}[type]}`;
 		}
-		return await this.writeAttachment(mdFile, filename, data);
+		return await this.writeAttachment(mdFile, name, data);
 	}
 
 	async requestFile(type: TypedResponse["type"], url: URL) {
 		return {
 			type,
 			data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer,
-			extension: splitFilename(getURLFilename(url)).extension,
+			extension: parseURL(url).extension,
 		};
 	}
 
@@ -251,14 +252,14 @@ export class HtmlImporter extends FormatImporter {
 			return {
 				type,
 				data: response.data,
-				extension: extension(response.mime) || splitFilename(getURLFilename(url)).extension,
+				extension: extension(response.mime) || parseURL(url).extension,
 			};
 		});
 	}
 
 	writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
 		return this.writeAttachmentExecutor.run(async () => {
-			const { basename, extension } = splitFilename(sanitizeFileName(filename));
+			const { basename, extension } = parseFilePath(sanitizeFileName(filename));
 			// @ts-ignore
 			const path: string = await this.app.vault.getAvailablePathForAttachments(basename, extension, mdFile);
 			return await this.app.vault.createBinary(path, data);
@@ -301,8 +302,8 @@ function escapeRegExp(str: string) {
 	return str.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
 }
 
-function getURLFilename(url: URL) {
-	return pathToFilename(normalizePath(decodeURIComponent(url.pathname)));
+function parseURL(url: URL) {
+	return parseFilePath(normalizePath(decodeURIComponent(url.pathname)));
 }
 
 async function requestURL(url: URL) {
