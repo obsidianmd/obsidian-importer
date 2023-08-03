@@ -32,6 +32,10 @@ const context = await esbuild.context({
 		"@lezer/highlight",
 		"@lezer/lr",
 		...builtins],
+
+	// We don't need to include code to create zip files (deflate), only read them (inflate),
+	// so this cuts it out and makes the final bundle smaller.
+	alias: {'@zip.js/zip.js': '@zip.js/zip.js/lib/zip-no-worker-inflate.js'},
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",

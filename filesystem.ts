@@ -31,7 +31,6 @@ export interface PickedFolder {
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 }
 
-
 export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
@@ -73,7 +72,7 @@ export class NodePickedFile implements PickedFile {
 		try {
 			fd = await fsPromises.open(this.filepath, 'r');
 			let stat = await fd.stat();
-			return callback(new ZipReader(new FSReader(fd, stat.size)));
+			return await callback(new ZipReader(new FSReader(fd, stat.size)));
 		} finally {
 			await fd?.close();
 		}
