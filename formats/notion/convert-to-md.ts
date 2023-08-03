@@ -11,7 +11,7 @@ import {
 	stripNotionId,
 	parseDate,
 } from './notion-utils';
-import moment from 'moment';
+import { moment } from 'obsidian';
 
 export function convertNotesToMd({
 	idsToFileInfo,
@@ -191,8 +191,7 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 		const link = links.item(i);
 		const span = document.createElement('span');
 		span.setText(link.getAttribute('href'));
-		link.insertAdjacentElement('afterend', span);
-		link.remove();
+		link.replaceWith(span);
 	}
 	return content;
 }
@@ -254,7 +253,6 @@ function convertLinksToObsidian(
 		}
 
 		obsidianLink.setText(linkContent);
-		link.a.insertAdjacentElement('afterend', obsidianLink);
-		link.a.remove();
+		link.a.replaceWith(obsidianLink);
 	}
 }

@@ -33,9 +33,6 @@ export class NotionImporter extends FormatImporter {
 				.join('|')})`
 		);
 
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
-
 		let results: ImportResult = {
 			total: 0,
 			skipped: [],
@@ -72,8 +69,6 @@ export class NotionImporter extends FormatImporter {
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
 		});
-
-		console.log(pathsToAttachmentInfo);
 
 		await copyFiles({
 			idsToFileInfo,

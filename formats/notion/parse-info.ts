@@ -11,32 +11,30 @@ import { htmlToMarkdown } from 'obsidian';
 import { PickedFile } from 'filesystem';
 
 export async function parseFiles(
-	filePaths: PickedFile[],
+	files: PickedFile[],
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
 		results,
 		folderPathsReplacement,
-		readPath,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 		results: ImportResult;
 		folderPathsReplacement: RegExp;
-		readPath: FormatImporter['readPath'];
 	}
 ) {
-	for (let filePath of filePaths) {
+	for (let file of files) {
 		try {
-			const normalizedFilePath = filePath.replace(
+			const normalizedFilePath = file.basename.replace(
 				folderPathsReplacement,
 				''
 			);
 
-			const text = await readPath(filePath);
+			const text = await file.readText();
 			const { id, fileInfo } = parseFileInfo({
 				text,
-				filePath,
+				file,
 				normalizedFilePath,
 			});
 
@@ -71,11 +69,11 @@ export async function parseFiles(
 
 const parseFileInfo = ({
 	text,
-	filePath,
+	file,
 	normalizedFilePath,
 }: {
 	text: string;
-	filePath: string;
+	file: PickedFile;
 	normalizedFilePath: string;
 }) => {
 	const parentIds = getParentFolder(normalizedFilePath)
