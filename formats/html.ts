@@ -8,6 +8,7 @@ const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.requir
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
+	requestHTTPExecutor = new PromiseExecutor(5);
 	writeAttachmentExecutor = new PromiseExecutor(1);
 
 	attachmentSizeLimit: number;
@@ -214,22 +215,24 @@ export class HtmlImporter extends FormatImporter {
 		return { type, data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer };
 	}
 
-	async requestHTTP(type: TypedResponse["type"], url: URL) {
-		url = new URL(url.href);
-		let data;
-		try {
-			url.protocol = "https:";
-			data = await requestURL(url);
-		} catch (e) {
+	requestHTTP(type: TypedResponse["type"], url: URL) {
+		return this.requestHTTPExecutor.run(async () => {
+			url = new URL(url.href);
+			let data;
 			try {
-				url.protocol = "http:";
+				url.protocol = "https:";
 				data = await requestURL(url);
-			} catch (e2) {
-				console.error(e2);
-				throw e;
+			} catch (e) {
+				try {
+					url.protocol = "http:";
+					data = await requestURL(url);
+				} catch (e2) {
+					console.error(e2);
+					throw e;
+				}
 			}
-		}
-		return { type, data };
+			return { type, data };
+		});
 	}
 
 	writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
