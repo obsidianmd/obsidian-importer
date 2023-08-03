@@ -31,7 +31,6 @@ export function splitFilename(filename: string) {
 	return { basename: filename.slice(0, lastDotPosition), extension: filename.slice(lastDotPosition + 1) };
 }
 
-
 export class PromiseExecutor {
 	readonly pool: PromiseLike<number>[];
 
