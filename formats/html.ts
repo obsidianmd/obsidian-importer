@@ -2,13 +2,13 @@ import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, Platform, reques
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
-import { pathToFilename, sanitizeFileName, splitFilename } from '../util';
+import { pathToFilename, PromiseExecutor, sanitizeFileName, splitFilename } from '../util';
 
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
-	lastWriteAttachment = Promise.resolve<unknown>(null);
+	writeAttachmentExecutor = new PromiseExecutor(1);
 
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
@@ -233,16 +233,12 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
-		const { lastWriteAttachment } = this;
-		const ret = (async () => {
-			await lastWriteAttachment;
+		return this.writeAttachmentExecutor.run(async () => {
 			const { basename, extension } = splitFilename(sanitizeFileName(filename));
 			// @ts-ignore
 			const path: string = await this.app.vault.getAvailablePathForAttachments(basename, extension, mdFile);
 			return await this.app.vault.createBinary(path, data);
-		})();
-		this.lastWriteAttachment = ret.catch(() => { });
-		return ret;
+		});
 	}
 
 	async filterAttachment(response: TypedResponse) {

@@ -30,3 +30,19 @@ export function splitFilename(filename: string) {
 	}
 	return { basename: filename.slice(0, lastDotPosition), extension: filename.slice(lastDotPosition + 1) };
 }
+
+
+export class PromiseExecutor {
+	readonly pool: PromiseLike<number>[];
+
+	constructor(concurrency: number) {
+		this.pool = [...new Array(concurrency)].map((_0, index) => Promise.resolve(index));
+	}
+
+	async run<T>(func: () => PromiseLike<T>): Promise<T> {
+		const index = await Promise.race(this.pool);
+		const ret = func();
+		this.pool[index] = ret.then(() => index, () => index);
+		return await ret;
+	}
+}
