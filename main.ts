@@ -4,6 +4,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { RoamJSONImporter } from 'formats/roam-json';
+import { importRoamJson } from 'formats/roam/roam'; //TODO remove after testing
 
 declare global {
 	interface Window {
@@ -59,6 +60,22 @@ export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
 	async onload() {
+
+		//TODO remove after testing
+		const filePaths = [
+			"/Users/mtvogel/Downloads/roam json exports/Theme Tester.json",
+			// "/Users/mtvogel/Downloads/roam json exports/test-graph.json",
+		]
+		let roamOptions = {
+			saveAttachments: true,
+			jsonSources: filePaths,
+			outputDir: "/Users/mtvogel/Documents/Obsidian/dev vault/Roam",
+			downloadAttachments:false
+		};
+		let results = await importRoamJson(roamOptions);
+		console.log(results)
+		//
+		//
 		this.importers = {
 			'evernote': {
 				name: 'Evernote (.enex)',
