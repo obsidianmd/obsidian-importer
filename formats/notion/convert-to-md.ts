@@ -32,13 +32,16 @@ export function convertNotesToMd({
 		replaceNestedTags(fileInfo.body, 'em');
 		stripLinkFormatting(fileInfo.body);
 		encodeNewlinesToBr(fileInfo.body);
-		splitBrsInFormatting(fileInfo.body, 'strong');
-		splitBrsInFormatting(fileInfo.body, 'em');
 		fixNotionDates(fileInfo.body);
 		fixNotionLists(fileInfo.body);
 		replaceTableOfContents(fileInfo.body);
 
-		fileInfo.markdownBody = htmlToMarkdown(fileInfo.body.innerHTML);
+		let htmlString = fileInfo.body.innerHTML;
+		// Simpler to just use the HTML string for this replacement
+		splitBrsInFormatting(htmlString, 'strong');
+		splitBrsInFormatting(htmlString, 'em');
+
+		fileInfo.markdownBody = htmlToMarkdown(htmlString);
 		fileInfo.markdownBody = escapeHashtags(fileInfo.markdownBody);
 
 		if (fileInfo.properties) {
@@ -56,23 +59,26 @@ export function convertNotesToMd({
 
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 	body.querySelectorAll(tag).forEach((el) => {
+		if (el.parentElement.tagName === tag.toUpperCase()) return;
 		const nestedEls = el.querySelectorAll(tag);
 		if (nestedEls.length === 0) return;
-		const textContent = el.textContent;
+		for (let i = 0; i < nestedEls.length; i++) {
+			const children = nestedEls[i].childNodes;
+			children.forEach((child) => el.appendChild(child));
+		}
 		nestedEls.forEach((nestedEl) => nestedEl.remove());
-		el.setText(textContent);
 	});
 };
 
-const splitBrsInFormatting = (body: HTMLDivElement, tag: 'strong' | 'em') => {
-	body.querySelectorAll(tag).forEach((el) => {
-		// TODO: check to see if newlines are stripped in textContent
-		if (!/<br \/>/g.test(el.textContent)) return;
-		el.innerHTML = el.innerHTML.replace(
-			/<br \/>/g,
-			`</${tag}><br /><${tag}>`
+const splitBrsInFormatting = (htmlString: string, tag: 'strong' | 'em') => {
+	const tags = htmlString.match(new RegExp(`<${tag}>(.|\n)*</${tag}>`));
+	if (!tags) return;
+	for (let tag of tags.filter((tag) => tag.contains('<br />'))) {
+		htmlString = htmlString.replace(
+			tag,
+			tag.split('<br />').join(`</${tag}><br /><${tag}>`)
 		);
-	});
+	}
 };
 
 function replaceTableOfContents(body: HTMLDivElement) {
