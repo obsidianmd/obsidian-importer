@@ -1,10 +1,11 @@
-import { App, Platform, Setting, TextComponent, TFile, TFolder } from 'obsidian';
+import { App, normalizePath, Platform, Setting, TextComponent, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ImportResult } from './main';
 import { sanitizeFileName } from './util';
 
 export abstract class FormatImporter {
 	app: App;
+	vault: Vault;
 	modal: ImporterModal;
 	files: PickedFile[] = [];
 
@@ -12,6 +13,7 @@ export abstract class FormatImporter {
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
+		this.vault = app.vault;
 		this.modal = modal;
 		this.init();
 	}
@@ -43,10 +45,12 @@ export abstract class FormatImporter {
 					else {
 						let inputEl = createEl('input');
 						inputEl.type = 'file';
+						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 						inputEl.addEventListener('change', () => {
 							let files = Array.from(inputEl.files);
 							if (files.length > 0) {
-								this.files = files.map(file => new WebPickedFile(file));
+								this.files = files.map(file => new WebPickedFile(file))
+									.filter(file => extensions.contains(file.extension));
 								updateFiles();
 							}
 						});
@@ -153,6 +157,27 @@ export abstract class FormatImporter {
 				});
 			});
 		});
+	}
+
+	// Utility functions for vault
+
+	/**
+	 * Recursively create folders, if they don't exist.
+	 */
+	async createFolders(path: string): Promise<TFolder> {
+		let normalizedPath = normalizePath(path);
+		let folder = this.vault.getAbstractFileByPath(normalizedPath);
+		if (folder && folder instanceof TFolder) {
+			return folder;
+		}
+
+		await this.vault.createFolder(normalizedPath);
+		folder = this.vault.getAbstractFileByPath(normalizedPath);
+		if (!(folder instanceof TFolder)) {
+			throw new Error(`Failed to create folder at "${path}"`);
+		}
+
+		return folder;
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {

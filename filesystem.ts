@@ -1,5 +1,7 @@
+import { BlobReader, Reader, ZipReader } from '@zip.js/zip.js';
 import type * as NodeFS from 'node:fs';
 import type * as NodePath from 'node:path';
+import type * as NodeUrl from 'node:url';
 import { Platform } from 'obsidian';
 
 export interface PickedFile {
@@ -16,6 +18,9 @@ export interface PickedFile {
 
 	/** Read the file as binary */
 	read(): Promise<ArrayBuffer>;
+
+	/** Read the file as zip, processing the zip in the callback */
+	readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void>;
 }
 
 export interface PickedFolder {
@@ -26,10 +31,14 @@ export interface PickedFolder {
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 }
 
-
 export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
+export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
+
+export function nodeBufferToArrayBuffer(buffer: Buffer, offset = 0, length = buffer.byteLength): ArrayBuffer {
+	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
+}
 
 export class NodePickedFile implements PickedFile {
 	type: 'file' = 'file';
@@ -55,7 +64,18 @@ export class NodePickedFile implements PickedFile {
 
 	async read(): Promise<ArrayBuffer> {
 		let buffer = await fsPromises.readFile(this.filepath);
-		return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+		return nodeBufferToArrayBuffer(buffer);
+	}
+
+	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+		let fd: NodeFS.promises.FileHandle;
+		try {
+			fd = await fsPromises.open(this.filepath, 'r');
+			let stat = await fd.stat();
+			return await callback(new ZipReader(new FSReader(fd, stat.size)));
+		} finally {
+			await fd?.close();
+		}
 	}
 
 	createReadStream() {
@@ -112,19 +132,18 @@ export class WebPickedFile implements PickedFile {
 		this.file = file;
 		let name = this.name = file.name;
 
-		let dotIndex = name.lastIndexOf('.');
-		if (dotIndex <= 0) {
-			this.basename = name;
-			this.extension = '';
-		}
-		else {
-			this.basename = name.substring(0, dotIndex);
-			this.extension = name.substring(dotIndex + 1).toLowerCase();
-		}
+		let { basename, extension } = parseFilePath(name);
+
+		this.basename = basename;
+		this.extension = extension;
 	}
 
 	readText(): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
+		let { file } = this;
+		if (file.text) {
+			return file.text();
+		}
+		return new Promise((resolve, reject) => {
 			let reader = new FileReader();
 			reader.addEventListener('load', () => resolve(reader.result as string));
 			reader.addEventListener('error', reject);
@@ -133,7 +152,20 @@ export class WebPickedFile implements PickedFile {
 	}
 
 	async read(): Promise<ArrayBuffer> {
-		return this.file.arrayBuffer();
+		let { file } = this;
+		if (file.arrayBuffer) {
+			return file.arrayBuffer();
+		}
+		return new Promise((resolve, reject) => {
+			let reader = new FileReader();
+			reader.addEventListener('load', () => resolve(reader.result as ArrayBuffer));
+			reader.addEventListener('error', reject);
+			reader.readAsArrayBuffer(this.file);
+		});
+	}
+
+	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+		return callback(new ZipReader(new BlobReader(this.file)));
 	}
 
 	toString(): string {
@@ -154,4 +186,42 @@ export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?:
 		}
 	}
 	return results;
+}
+
+/**
+ * Parse a filepath to get a file's name, basename (name without extension), and extension (lowercase).
+ * For example, "path/to/my/file.md" would become `{name: "file.md", basename: "file", extension: "md"}`
+ */
+export function parseFilePath(filepath: string): { name: string, basename: string, extension: string } {
+	let lastIndex = Math.max(filepath.lastIndexOf('/'), filepath.lastIndexOf('\\'));
+	let name = filepath;
+	if (lastIndex >= 0) {
+		name = filepath.substring(lastIndex + 1);
+	}
+
+	let dotIndex = name.lastIndexOf('.');
+	let basename = name;
+	let extension = '';
+	if (dotIndex > 0) {
+		basename = name.substring(0, dotIndex);
+		extension = name.substring(dotIndex + 1).toLowerCase();
+	}
+
+	return { name, basename, extension };
+}
+
+class FSReader extends Reader<NodeFS.promises.FileHandle> {
+	fd: NodeFS.promises.FileHandle;
+
+	constructor(fd: NodeFS.promises.FileHandle, size: number) {
+		super(fd);
+		this.fd = fd;
+		this.size = size;
+	}
+
+	async readUint8Array(offset: number, length: number) {
+		let buffer = Buffer.alloc(length);
+		let result = await this.fd.read(buffer, 0, length, offset);
+		return new Uint8Array(nodeBufferToArrayBuffer(buffer, 0, result.bytesRead));
+	}
 }

@@ -1,6 +1,6 @@
 import { NoteData } from '../../models/NoteData';
 
-import { YarleOptions } from '../../YarleOptions';
+import { YarleOptions } from '../../options';
 import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate, applyTagsArrayTemplate, applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate, } from './apply-functions';
 
 import * as T from './placeholders/metadata-placeholders';
