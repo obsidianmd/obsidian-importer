@@ -45,8 +45,8 @@ export class Bear2bkImporter extends FormatImporter {
     }
 
     for (let filePath of filePaths) {
-      const fileBlob = new Blob([fs.readFileSync(filePath)])
-      const zip = new ZipReader(new BlobReader(fileBlob))
+      const fileBlob = new Blob([fs.readFileSync(filePath)]);
+      const zip = new ZipReader(new BlobReader(fileBlob));
       for (let file of await zip.getEntries()) {
         try {
           if (!file) continue;
@@ -80,7 +80,7 @@ export class Bear2bkImporter extends FormatImporter {
             continue;
           }
         } catch (error) {
-          results.failed.push(file.filename)
+          results.failed.push(file.filename);
           continue;
         }
       }
