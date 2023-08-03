@@ -74,16 +74,18 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const result: ImportResult = {
+		const result: ImportResult & { errors: unknown[] } = {
 			total: 0,
 			skipped: [],
 			failed: [],
+			errors: [],
 		};
 		await Promise.all(files.map(file => this.processFile(result, folder, file)));
 		this.showResult(result);
+		console.error(...result.errors);
 	}
 
-	async processFile(result: ImportResult, folder: TFolder, file: PickedFile) {
+	async processFile(result: ImportResult & { errors: unknown[] }, folder: TFolder, file: PickedFile) {
 		let mdFile: TFile | null = null;
 		try {
 			const htmlContent = await file.readText();
@@ -113,7 +115,7 @@ export class HtmlImporter extends FormatImporter {
 								),
 							] as const;
 						} catch (e) {
-							console.error(e);
+							result.errors.push(e);
 							throw src;
 						}
 					})
@@ -169,13 +171,13 @@ export class HtmlImporter extends FormatImporter {
 				await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 			}
 		} catch (e) {
-			console.error(e);
+			result.errors.push(e);
 			result.failed.push(file.toString());
 			if (mdFile) {
 				try {
 					await this.app.vault.delete(mdFile);
 				} catch (e) {
-					console.error(e);
+					result.errors.push(e);
 				}
 			}
 		}
@@ -236,8 +238,7 @@ export class HtmlImporter extends FormatImporter {
 				try {
 					url.protocol = "http:";
 					response = await requestURL(url);
-				} catch (e2) {
-					console.error(e2);
+				} catch {
 					throw e;
 				}
 			}
