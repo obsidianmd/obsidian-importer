@@ -1,4 +1,4 @@
-import { htmlToMarkdown, normalizePath, Notice, Platform, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, Platform, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
@@ -88,73 +88,75 @@ export class HtmlImporter extends FormatImporter {
 		}
 		let mdFile: TFile | null = null;
 		try {
-			let mdContent = htmlToMarkdown(await file.readText());
-			const pathURL = nodeUrl.pathToFileURL(file.filepath);
+			const htmlContent = await file.readText();
 			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
+			const mdContent = htmlToMarkdown(htmlContent);
+			if (!mdContent) {
+				return;
+			}
 
-			const ast = [];
-			let read = 0;
-			let next = 0;
-			do {
-				next = mdContent.indexOf("!", read);
-				if (next === -1) {
-					next = mdContent.length;
-				}
-				const link = parseMarkdownLink(mdContent.slice(next), false);
-				if (link) {
-					ast.push(mdContent.slice(read, next), {
-						link,
-						text: mdContent.slice(next, next + link.read),
-					});
-					next += link.read;
-				} else {
-					next += "!".length;
-					ast.push(mdContent.slice(read, next));
-				}
-				read = next;
-			} while (read < mdContent.length)
-			const transformedAST = await Promise.all(ast
-				.map(async ast => {
-					if (typeof ast === "string") {
-						return { text: ast };
-					}
-					try {
-						let { link, link: { path: linkpath, display }, text } = ast;
-						const correctedPath = linkpath.startsWith("//") ? `https:${linkpath}` : linkpath;
-						let url;
+			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
+			const pathURL = nodeUrl.pathToFileURL(file.filepath);
+			const downloads = await Promise.allSettled(
+				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
+					.map(async element => {
+						let src = "";
 						try {
-							url = new URL(correctedPath);
+							src = element.getAttribute("src"); // `element.src` does not give the raw `src` string
+							return [
+								decodeURI(src),
+								await this.downloadAttachmentCached(mdFile, new URL(src.startsWith("//") ? `https:${src}` : src, pathURL)),
+							] as const;
 						} catch (e) {
-							if (!(e instanceof TypeError)) {
-								throw e;
-							}
-							url = new URL(normalizePath(correctedPath)
-								.split("/")
-								.map(encodeURIComponent)
-								.join("/"), pathURL);
+							console.error(e);
+							throw src;
 						}
-						const attachment = await this.downloadAttachmentCached(mdFile, url);
-						if (attachment instanceof TFile) {
-							text = this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", display);
-						}
-						return { text, attachment, link } as const;
-					} catch (e) {
-						console.error(e);
-						return { text: ast.text };
-					}
-				}));
-			result.total += transformedAST
-				.filter(({ link }) => link)
-				.length;
-			result.failed = result.failed.concat(transformedAST
-				.filter(({ attachment }) => attachment === "failed")
-				.map(({ link: { path } }) => path));
-			result.skipped = result.skipped.concat(transformedAST
-				.filter(({ attachment }) => attachment === "skipped")
-				.map(({ link: { path } }) => path));
+					})
+			);
+			result.total += downloads.length;
+			result.failed = result.failed.concat(downloads
+				.filter((dl): dl is typeof dl & { status: "rejected" } => dl.status === "rejected")
+				.map(({ reason }) => reason));
+			result.skipped = result.skipped.concat(downloads
+				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
+				.map(({ value: [src] }) => src));
 
-			mdContent = transformedAST.map(({ text }) => text).join("");
-			await this.app.vault.modify(mdFile, mdContent);
+			const attachments = Object.fromEntries(downloads
+				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
+				.map(({ value }) => value));
+			if (Object.keys(attachments).length > 0) {
+				const cache0 = new Promise<CachedMetadata>(resolve => {
+					const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
+						if (file.path === mdFile.path) {
+							try {
+								resolve(cache);
+							} finally {
+								this.app.metadataCache.offref(ref);
+							}
+						}
+					});
+				});
+				await this.app.vault.process(mdFile, data =>
+					`${data}${mdContent.replace(new RegExp(Object.keys(attachments).map(escapeRegExp).join("|"), "gu"), encodeURI)}`);
+				const cache = await cache0;
+				await this.app.vault.process(mdFile, data => {
+					const replacements = Object.fromEntries((cache.embeds ?? [])
+						.map(embed => {
+							const { [embed.link]: attachment } = attachments;
+							if (!attachment) {
+								return null;
+							}
+							return [embed.original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", embed.displayText)] as const;
+						})
+						.filter(entry => entry));
+					if (Object.keys(replacements).length > 0) {
+						return data.replace(new RegExp(Object.keys(replacements).map(escapeRegExp).join("|"), "gu"), link => replacements[link]);
+					}
+					return data;
+				});
+			} else {
+				await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
+			}
 		} catch (e) {
 			console.error(e);
 			result.failed.push(file.toString());
@@ -173,35 +175,30 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async downloadAttachment(mdFile: TFile, url: URL) {
-		try {
-			let response;
-			switch (url.protocol) {
-				case "file:":
-					response = await this.requestFile(url);
-					break;
-				case "https:":
-				case "http:":
-					response = await this.requestHTTP(url);
-					break;
-				default:
-					throw new Error(url.href);
-			}
-			if (!await this.filterAttachment(response)) {
-				return "skipped";
-			}
-			let filename = getURLFilename(url);
-			const { data, mime: actualMime } = response;
-			if ((mime(splitFilename(filename).extension) || "application/octet-stream") !== actualMime) {
-				const ext = extension(actualMime);
-				if (ext) {
-					filename += `.${ext}`;
-				}
-			}
-			return await this.writeAttachment(mdFile, filename, data);
-		} catch (e) {
-			console.error(e);
-			return "failed";
+		let response;
+		switch (url.protocol) {
+			case "file:":
+				response = await this.requestFile(url);
+				break;
+			case "https:":
+			case "http:":
+				response = await this.requestHTTP(url);
+				break;
+			default:
+				throw new Error(url.href);
 		}
+		if (!await this.filterAttachment(response)) {
+			return null;
+		}
+		let filename = getURLFilename(url);
+		const { data, mime: actualMime } = response;
+		if ((mime(splitFilename(filename).extension) || "application/octet-stream") !== actualMime) {
+			const ext = extension(actualMime);
+			if (ext) {
+				filename += `.${ext}`;
+			}
+		}
+		return await this.writeAttachment(mdFile, filename, data);
 	}
 
 	async requestFile(url: URL) {
@@ -289,6 +286,10 @@ interface Response {
 	data: ArrayBufferLike;
 }
 
+function escapeRegExp(str: string) {
+	return str.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
+}
+
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
 }
@@ -313,87 +314,4 @@ async function imageSize(data: Blob) {
 	} finally {
 		URL.revokeObjectURL(url);
 	}
-}
-
-// todo: use internal md parser (but consider performance first)
-function parseMarkdownLink(
-	link: string,
-	strict: boolean = true,
-) {
-	// cannot use regex, example: `parseMarkdownLink("![a(b)c[d\\]e]f](g[h]i(j\\)k)l)")`
-	function parseComponent(
-		str: string,
-		escaper: string,
-		[start, end]: [string, string],
-	): [ret: string, read: number] {
-		let ret = "";
-		let read = 0;
-		let level = 0;
-		let escaping = false;
-		for (const codePoint of str) {
-			read += codePoint.length;
-			if (escaping) {
-				ret += codePoint;
-				escaping = false;
-				continue;
-			}
-			switch (codePoint) {
-				case escaper:
-					escaping = true;
-					break;
-				case start:
-					if (level > 0) {
-						ret += codePoint;
-					}
-					++level;
-					break;
-				case end:
-					--level;
-					if (level > 0) {
-						ret += codePoint;
-					}
-					break;
-				default:
-					ret += codePoint;
-					break;
-			}
-			if (level <= 0) {
-				break;
-			}
-		}
-		if (level > 0 ||
-			read <= String.fromCodePoint((str || "\x00").charCodeAt(0)).length) {
-			return ["", -1];
-		}
-		return [ret, read];
-	}
-	const link2 = link.startsWith("!") ? link.slice("!".length) : link;
-	const [display, read] = parseComponent(link2, "\\", ["[", "]"]);
-	if (read < 0) {
-		return null;
-	}
-	const rest = link2.slice(read);
-	const [pathtext, read2] = parseComponent(rest, "\\", ["(", ")"]);
-	if (read2 < 0) {
-		return null;
-	}
-	let pathParts;
-	if (strict) {
-		pathParts = pathtext.split(/ +/u, 2);
-	} else {
-		pathParts = pathtext.split(/ +(?=")/u);
-		if (pathParts.length > 2) {
-			pathParts = [pathParts.slice(0, -1).join(""), pathParts.at(-1)];
-		}
-	}
-	const [, title] = (/^"(?<title>(?:\\"|[^"])*)"$/u).exec(pathParts[1] ?? '""') ?? [];
-	if (title === undefined) {
-		return null;
-	}
-	return {
-		display,
-		path: decodeURI(pathParts[0] ?? ""),
-		read: (link.startsWith("!") ? "!".length : 0) + read + read2,
-		title,
-	};
 }
