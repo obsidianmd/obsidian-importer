@@ -997,7 +997,3 @@ export function extension(type: string) {
 
 	return ext || '';
 }
-
-export function mime(extension: string) {
-	return mimes[extension] ?? "";
-}

@@ -6,7 +6,7 @@ import { yarleOptions } from '../yarle';
 
 import { ResourceFileProperties } from './../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { extension } from '../../utils/mime';
+import { extension } from './mime';
 
 export const normalizeTitle = (title: string) => {
 	// Allow setting a specific replacement character for file and resource names

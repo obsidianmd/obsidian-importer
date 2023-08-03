@@ -3,7 +3,6 @@ import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
 import { pathToFilename, sanitizeFileName, splitFilename } from '../util';
-import { extension, mime } from "./utils/mime";
 
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
@@ -100,12 +99,19 @@ export class HtmlImporter extends FormatImporter {
 			const downloads = await Promise.allSettled(
 				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
 					.map(async element => {
+						type TagNames = keyof {
+							[K in keyof HTMLElementTagNameMap as HTMLElementTagNameMap[K] extends typeof element ? K : never]: never
+						};
 						let src = "";
 						try {
 							src = element.getAttribute("src"); // `element.src` does not give the raw `src` string
 							return [
 								decodeURI(src),
-								await this.downloadAttachmentCached(mdFile, new URL(src.startsWith("//") ? `https:${src}` : src, pathURL)),
+								await this.downloadAttachmentCached(
+									mdFile,
+									element.tagName.toLowerCase() as TagNames,
+									new URL(src.startsWith("//") ? `https:${src}` : src, pathURL),
+								),
 							] as const;
 						} catch (e) {
 							console.error(e);
@@ -170,19 +176,19 @@ export class HtmlImporter extends FormatImporter {
 		}
 	}
 
-	downloadAttachmentCached(mdFile: TFile, url: URL) {
-		return this.attachments[url.href] ??= this.downloadAttachment(mdFile, url);
+	downloadAttachmentCached(mdFile: TFile, type: Response["type"], url: URL) {
+		return this.attachments[url.href] ??= this.downloadAttachment(mdFile, type, url);
 	}
 
-	async downloadAttachment(mdFile: TFile, url: URL) {
+	async downloadAttachment(mdFile: TFile, type: Response["type"], url: URL) {
 		let response;
 		switch (url.protocol) {
 			case "file:":
-				response = await this.requestFile(url);
+				response = await this.requestFile(type, url);
 				break;
 			case "https:":
 			case "http:":
-				response = await this.requestHTTP(url);
+				response = await this.requestHTTP(type, url);
 				break;
 			default:
 				throw new Error(url.href);
@@ -191,22 +197,27 @@ export class HtmlImporter extends FormatImporter {
 			return null;
 		}
 		let filename = getURLFilename(url);
-		const { data, mime: actualMime } = response;
-		if ((mime(splitFilename(filename).extension) || "application/octet-stream") !== actualMime) {
-			const ext = extension(actualMime);
-			if (ext) {
-				filename += `.${ext}`;
+		if (!splitFilename(filename).extension) {
+			switch (type) {
+				case 'audio':
+					filename += ".noext.mp3";
+					break;
+				case 'img':
+					filename += ".noext.bmp";
+					break;
+				case 'video':
+					filename += ".noext.mp4";
+					break;
 			}
 		}
-		return await this.writeAttachment(mdFile, filename, data);
+		return await this.writeAttachment(mdFile, filename, response.data);
 	}
 
-	async requestFile(url: URL) {
-		const data = (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer;
-		return { mime: detectMime(url), data };
+	async requestFile(type: Response["type"], url: URL) {
+		return { type, data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer };
 	}
 
-	async requestHTTP(url: URL) {
+	async requestHTTP(type: Response["type"], url: URL) {
 		url = new URL(url.href);
 		let response;
 		try {
@@ -230,7 +241,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 		}
 		const { arrayBuffer: data } = response;
-		return { mime: response.headers["Content-Type"] || detectMime(url), data };
+		return { type, data };
 	}
 
 	async writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
@@ -251,8 +262,8 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async filterAttachment(response: Response) {
-		const { data, mime } = response;
-		return this.filterAttachmentSize(data) && this.filterAttachmentMime(mime) && await this.filterImageSize(response);
+		const { data } = response;
+		return this.filterAttachmentSize(data) && await this.filterImageSize(response);
 	}
 
 	filterAttachmentSize(data: ArrayBufferLike) {
@@ -260,19 +271,14 @@ export class HtmlImporter extends FormatImporter {
 		return !this.attachmentSizeLimit || byteLength <= this.attachmentSizeLimit;
 	}
 
-	filterAttachmentMime(mime: string) {
-		return ["audio/", "image/", "video/"]
-			.some(prefix => mime.startsWith(prefix));
-	}
-
 	async filterImageSize(response: Response) {
-		const { mime, data } = response;
-		if (!this.minimumImageSize || !mime.startsWith("image/")) {
+		const { data, type } = response;
+		if (!this.minimumImageSize || type !== "img") {
 			return true;
 		}
 		let size;
 		try {
-			size = await imageSize(new Blob([data], { type: mime }));
+			size = await imageSize(new Blob([data]));
 		} catch {
 			return true;
 		}
@@ -282,7 +288,7 @@ export class HtmlImporter extends FormatImporter {
 }
 
 interface Response {
-	mime: string;
+	type: "audio" | "img" | "video";
 	data: ArrayBufferLike;
 }
 
@@ -292,10 +298,6 @@ function escapeRegExp(str: string) {
 
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURI(url.pathname)));
-}
-
-function detectMime(url: URL) {
-	return mime(splitFilename(getURLFilename(url)).extension) || "application/octet-stream";
 }
 
 async function imageSize(data: Blob) {
