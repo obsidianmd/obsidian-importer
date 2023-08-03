@@ -9,8 +9,7 @@ import { parseFiles } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
 	init() {
-		this.addFileChooserSetting('Notion HTML export folder', ['html']);
-
+		this.addFileChooserSetting('Notion HTML export folder', ['html'], true);
 		this.addOutputLocationSetting('Notion');
 	}
 
@@ -49,8 +48,7 @@ export class NotionImporter extends FormatImporter {
 			folderPathsReplacement,
 		});
 
-		results.total =
-			filePaths.length + Object.keys(pathsToAttachmentInfo).length;
+		results.total = files.length;
 
 		const attachmentFolderPath = app.vault.getConfig(
 			'attachmentFolderPath'
