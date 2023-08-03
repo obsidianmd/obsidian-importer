@@ -13,7 +13,7 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
 - [ ] Google Keep
-- [ ] Roam Research
+- [x] Roam Research
 - [ ] Other Markdown flavors
 
 ## Usage
