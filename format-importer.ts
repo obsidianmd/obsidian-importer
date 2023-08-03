@@ -45,10 +45,12 @@ export abstract class FormatImporter {
 					else {
 						let inputEl = createEl('input');
 						inputEl.type = 'file';
+						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 						inputEl.addEventListener('change', () => {
 							let files = Array.from(inputEl.files);
 							if (files.length > 0) {
-								this.files = files.map(file => new WebPickedFile(file));
+								this.files = files.map(file => new WebPickedFile(file))
+									.filter(file => extensions.contains(file.extension));
 								updateFiles();
 							}
 						});
