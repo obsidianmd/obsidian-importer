@@ -1,7 +1,7 @@
 import { NoteData } from './models/NoteData';
 
 import { getTurndownService } from './utils/turndown-service';
-import { YarleOptions } from './YarleOptions';
+import { YarleOptions } from './options';
 
 const unwrapElement = (node: Element) => {
 	node.replaceWith(...Array.from(node.children));
