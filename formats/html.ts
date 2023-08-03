@@ -81,7 +81,8 @@ export class HtmlImporter extends FormatImporter {
 			errors: [],
 		};
 
-		const processed = await Promise.allSettled(files.map(file => this.processFile(result, folder, file)));
+		const executor = new PromiseExecutor(1);
+		const processed = await Promise.allSettled(files.map(file => executor.run(() => this.processFile(result, folder, file))));
 		result.errors = result.errors.concat(processed
 			.filter((p): p is typeof p & { status: "rejected" } => p.status === "rejected")
 			.map(({ reason }) => reason));
