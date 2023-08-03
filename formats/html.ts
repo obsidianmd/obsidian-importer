@@ -95,10 +95,6 @@ export class HtmlImporter extends FormatImporter {
 		try {
 			const htmlContent = await file.readText();
 			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
-			const mdContent = htmlToMarkdown(htmlContent);
-			if (!mdContent) {
-				return;
-			}
 
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
 			const pathURL = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
@@ -133,6 +129,10 @@ export class HtmlImporter extends FormatImporter {
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
 				.map(({ value: [src] }) => decodeURIComponent(src)));
 
+			const mdContent = htmlToMarkdown(htmlContent);
+			if (!mdContent) {
+				return;
+			}
 			const attachments = Object.fromEntries(downloads
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
 				.map(({ value }) => value));
