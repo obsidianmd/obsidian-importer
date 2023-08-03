@@ -173,11 +173,11 @@ export class HtmlImporter extends FormatImporter {
 		}
 	}
 
-	downloadAttachmentCached(mdFile: TFile, type: Response["type"], url: URL) {
+	downloadAttachmentCached(mdFile: TFile, type: TypedResponse["type"], url: URL) {
 		return this.attachments[url.href] ??= this.downloadAttachment(mdFile, type, url);
 	}
 
-	async downloadAttachment(mdFile: TFile, type: Response["type"], url: URL) {
+	async downloadAttachment(mdFile: TFile, type: TypedResponse["type"], url: URL) {
 		let response;
 		switch (url.protocol) {
 			case "file:":
@@ -210,11 +210,11 @@ export class HtmlImporter extends FormatImporter {
 		return await this.writeAttachment(mdFile, filename, response.data);
 	}
 
-	async requestFile(type: Response["type"], url: URL) {
+	async requestFile(type: TypedResponse["type"], url: URL) {
 		return { type, data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer };
 	}
 
-	async requestHTTP(type: Response["type"], url: URL) {
+	async requestHTTP(type: TypedResponse["type"], url: URL) {
 		url = new URL(url.href);
 		let response;
 		try {
@@ -254,7 +254,7 @@ export class HtmlImporter extends FormatImporter {
 		return ret;
 	}
 
-	async filterAttachment(response: Response) {
+	async filterAttachment(response: TypedResponse) {
 		const { data } = response;
 		return this.filterAttachmentSize(data) && await this.filterImageSize(response);
 	}
@@ -264,7 +264,7 @@ export class HtmlImporter extends FormatImporter {
 		return !this.attachmentSizeLimit || byteLength <= this.attachmentSizeLimit;
 	}
 
-	async filterImageSize(response: Response) {
+	async filterImageSize(response: TypedResponse) {
 		const { data, type } = response;
 		if (!this.minimumImageSize || type !== "img") {
 			return true;
@@ -280,7 +280,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 }
 
-interface Response {
+interface TypedResponse {
 	type: "audio" | "img" | "video";
 	data: ArrayBufferLike;
 }
