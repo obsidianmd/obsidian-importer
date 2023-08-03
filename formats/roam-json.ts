@@ -27,10 +27,8 @@ export class RoamJSONImporter extends FormatImporter {
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
 		let roamOptions = {
-			...{
-				jsonSources: filePaths,
-				outputDir: path.join(adapter.getBasePath(), folder.path),
-			}
+			jsonSources: filePaths,
+			outputDir: path.join(adapter.getBasePath(), folder.path),
 		};
 
 		// let results = await dropTheRope(roamOptions);
