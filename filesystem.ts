@@ -1,5 +1,6 @@
 import type * as NodeFS from 'node:fs';
 import type * as NodePath from 'node:path';
+import type * as NodeUrl from 'node:url';
 import { Platform } from 'obsidian';
 
 export interface PickedFile {
@@ -30,6 +31,7 @@ export interface PickedFolder {
 export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
+export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
 
 export class NodePickedFile implements PickedFile {
 	type: 'file' = 'file';
@@ -112,15 +114,10 @@ export class WebPickedFile implements PickedFile {
 		this.file = file;
 		let name = this.name = file.name;
 
-		let dotIndex = name.lastIndexOf('.');
-		if (dotIndex <= 0) {
-			this.basename = name;
-			this.extension = '';
-		}
-		else {
-			this.basename = name.substring(0, dotIndex);
-			this.extension = name.substring(dotIndex + 1).toLowerCase();
-		}
+		let { basename, extension } = parseFilePath(name);
+
+		this.basename = basename;
+		this.extension = extension;
 	}
 
 	readText(): Promise<string> {
@@ -154,4 +151,26 @@ export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?:
 		}
 	}
 	return results;
+}
+
+/**
+ * Parse a filepath to get a file's name, basename (name without extension), and extension (lowercase).
+ * For example, "path/to/my/file.md" would become `{name: "file.md", basename: "file", extension: "md"}`
+ */
+export function parseFilePath(filepath: string): { name: string, basename: string, extension: string } {
+	let lastIndex = Math.max(filepath.lastIndexOf('/'), filepath.lastIndexOf('\\'));
+	let name = filepath;
+	if (lastIndex >= 0) {
+		name = filepath.substring(lastIndex + 1);
+	}
+
+	let dotIndex = name.lastIndexOf('.');
+	let basename = name;
+	let extension = '';
+	if (dotIndex > 0) {
+		basename = name.substring(0, dotIndex);
+		extension = name.substring(dotIndex + 1).toLowerCase();
+	}
+
+	return { name, basename, extension };
 }
