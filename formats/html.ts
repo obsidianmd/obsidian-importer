@@ -3,7 +3,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, parseFilePath, PickedFile } from '../filesystem';
 import { PromiseExecutor, sanitizeFileName } from '../util';
-import { extension } from './util/mime';
+import { extension } from '../mime';
 
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
