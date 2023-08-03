@@ -216,28 +216,19 @@ export class HtmlImporter extends FormatImporter {
 
 	async requestHTTP(type: TypedResponse["type"], url: URL) {
 		url = new URL(url.href);
-		let response;
+		let data;
 		try {
 			url.protocol = "https:";
-			response = await requestUrl({
-				url: url.href,
-				method: "GET",
-				throw: true,
-			});
+			data = await requestURL(url);
 		} catch (e) {
 			try {
 				url.protocol = "http:";
-				response = await requestUrl({
-					url: url.href,
-					method: "GET",
-					throw: true,
-				});
+				data = await requestURL(url);
 			} catch (e2) {
 				console.error(e2);
 				throw e;
 			}
 		}
-		const { arrayBuffer: data } = response;
 		return { type, data };
 	}
 
@@ -291,6 +282,21 @@ function escapeRegExp(str: string) {
 
 function getURLFilename(url: URL) {
 	return pathToFilename(normalizePath(decodeURIComponent(url.pathname)));
+}
+
+async function requestURL(url: URL) {
+	try {
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(response.statusText);
+		}
+		return await response.arrayBuffer();
+	} catch {
+		return (await requestUrl({
+			url: url.href,
+			throw: true,
+		})).arrayBuffer;
+	}
 }
 
 async function imageSize(data: Blob) {
