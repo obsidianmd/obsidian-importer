@@ -3,6 +3,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, PickedFile } from '../filesystem';
 import { pathToFilename, PromiseExecutor, sanitizeFileName, splitFilename } from '../util';
+import { extension } from './util/mime';
 
 const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
@@ -194,44 +195,51 @@ export class HtmlImporter extends FormatImporter {
 		if (!await this.filterAttachment(response)) {
 			return null;
 		}
+		const { data, extension } = response;
 		let filename = getURLFilename(url);
-		if (!splitFilename(filename).extension) {
-			switch (type) {
-				case 'audio':
-					filename += ".noext.mp3";
-					break;
-				case 'img':
-					filename += ".noext.bmp";
-					break;
-				case 'video':
-					filename += ".noext.mp4";
-					break;
+		if (extension) {
+			if (splitFilename(filename).extension !== extension) {
+				filename += `.${extension}`;
 			}
+		} else {
+			filename += `.noext.${{
+				"audio": "mp3",
+				"img": "bmp",
+				"video": "mp4",
+			}[type]}`;
 		}
-		return await this.writeAttachment(mdFile, filename, response.data);
+		return await this.writeAttachment(mdFile, filename, data);
 	}
 
 	async requestFile(type: TypedResponse["type"], url: URL) {
-		return { type, data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer };
+		return {
+			type,
+			data: (await fsPromises.readFile(nodeUrl.fileURLToPath(url.href))).buffer,
+			extension: splitFilename(getURLFilename(url)).extension,
+		};
 	}
 
 	requestHTTP(type: TypedResponse["type"], url: URL) {
 		return this.requestHTTPExecutor.run(async () => {
 			url = new URL(url.href);
-			let data;
+			let response;
 			try {
 				url.protocol = "https:";
-				data = await requestURL(url);
+				response = await requestURL(url);
 			} catch (e) {
 				try {
 					url.protocol = "http:";
-					data = await requestURL(url);
+					response = await requestURL(url);
 				} catch (e2) {
 					console.error(e2);
 					throw e;
 				}
 			}
-			return { type, data };
+			return {
+				type,
+				data: response.data,
+				extension: extension(response.mime) || splitFilename(getURLFilename(url)).extension,
+			};
 		});
 	}
 
@@ -273,6 +281,7 @@ export class HtmlImporter extends FormatImporter {
 interface TypedResponse {
 	type: "audio" | "img" | "video";
 	data: ArrayBufferLike;
+	extension: string;
 }
 
 function escapeRegExp(str: string) {
@@ -292,9 +301,16 @@ async function requestURL(url: URL) {
 		if (!response.ok) {
 			throw new Error(response.statusText);
 		}
-		return await response.arrayBuffer();
+		return {
+			data: await response.arrayBuffer(),
+			mime: response.headers.get("Content-Type") ?? "",
+		};
 	} catch {
-		return (await requestUrl(url.href)).arrayBuffer;
+		const response = await requestUrl(url.href);
+		return {
+			data: response.arrayBuffer,
+			mime: response.headers["Content-Type"] ?? "",
+		};
 	}
 }
 
