@@ -142,7 +142,14 @@ export class HtmlImporter extends FormatImporter {
 					});
 				});
 				await this.app.vault.process(mdFile, data =>
-					`${data}${mdContent.replace(new RegExp(Object.keys(attachments).map(escapeRegExp).join("|"), "gu"), encodeURI)}`);
+					`${data}${mdContent.replace(
+						new RegExp(Object.keys(attachments)
+							.sort()
+							.reverse()
+							.map(escapeRegExp)
+							.join("|"), "gu"),
+						encodeURI,
+					)}`);
 				const cache = await cache0;
 				await this.app.vault.process(mdFile, data => {
 					const replacements = Object.fromEntries((cache.embeds ?? [])
@@ -155,7 +162,14 @@ export class HtmlImporter extends FormatImporter {
 						})
 						.filter(entry => entry));
 					if (Object.keys(replacements).length > 0) {
-						return data.replace(new RegExp(Object.keys(replacements).map(escapeRegExp).join("|"), "gu"), link => replacements[link]);
+						return data.replace(
+							new RegExp(Object.keys(replacements)
+								.sort()
+								.reverse()
+								.map(escapeRegExp)
+								.join("|"), "gu"),
+							link => replacements[link],
+						);
 					}
 					return data;
 				});
