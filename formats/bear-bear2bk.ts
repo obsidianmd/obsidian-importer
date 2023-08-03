@@ -1,8 +1,9 @@
 import * as path from 'path'
+import * as fs from 'fs'
 import { FormatImporter } from "../format-importer";
 import { Notice, normalizePath } from "obsidian";
-// @ts-ignore 
-import unzipper from 'unzipper';
+import { ZipReader, BlobReader } from '@zip.js/zip.js';
+import { Blob } from 'buffer';
 import { pathToFilename } from '../util';
 import { ImportResult } from '../main';
 
@@ -44,16 +45,20 @@ export class Bear2bkImporter extends FormatImporter {
     }
 
     for (let filePath of filePaths) {
-      const directory = await unzipper.Open.file(filePath);
-      for (let file of directory.files) {
+      const fileBlob = new Blob([fs.readFileSync(filePath)])
+      const zip = new ZipReader(new BlobReader(fileBlob))
+      for (let file of await zip.getEntries()) {
         try {
           if (!file) continue;
+          if (file.filename.match(/\.md|.markdown$/)) {
+            const markdownFileStream = new TransformStream();
+            const markdownFileTextPromise = new Response(markdownFileStream.readable).text();
 
-          if (file.path.match(/\.md|.markdown$/)) {
-            const paths = file.path.replace(`/${path.basename(file.path)}`, '').split('/');
+            await file.getData(markdownFileStream.writable);
+            const paths = file.filename.replace(`/${path.basename(file.filename)}`, '').split('/');
             const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
 
-            let mdContent = (await file.buffer()).toString();
+            let mdContent = await markdownFileTextPromise;
             if (mdContent.match(assetMatcher)) {
               // Replace asset paths with new asset folder path.
               mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath}/`);
@@ -64,14 +69,19 @@ export class Bear2bkImporter extends FormatImporter {
             continue;
           }
 
-          if (file.path.match(/\/assets\//g)) {
-            const assetFilename = path.basename(file.path);
+          if (file.filename.match(/\/assets\//g)) {
+            const assetFileStream = new TransformStream();
+            const assetFileBufferPromise = new Response(assetFileStream.readable).arrayBuffer();
+
+            await file.getData(assetFileStream.writable);
+            const assetFilename = path.basename(file.filename);
             const assetFileVaultPath = `${attachmentsFolderPath}/${assetFilename}`;
-            await this.app.vault.createBinary(assetFileVaultPath, await file.buffer());
+            await this.app.vault.createBinary(assetFileVaultPath, await assetFileBufferPromise);
             continue;
           }
         } catch (error) {
-          results.failed.push(filePath);
+          results.failed.push(file.filename)
+          continue;
         }
       }
     }
