@@ -19,17 +19,14 @@ export function genUid(length: number): string {
 
 export function pathToFilename(path: string) {
 	if (!path.contains('/')) return path;
-
-	let lastSlashPosition = path.lastIndexOf('/');
+	const lastSlashPosition = path.lastIndexOf('/');
 	return path.slice(lastSlashPosition + 1);
 }
 
 export function splitFilename(filename: string) {
-	let lastDotPosition = filename.lastIndexOf('.');
-
+	const lastDotPosition = filename.lastIndexOf('.');
 	if (lastDotPosition === -1 || lastDotPosition === filename.length - 1 || lastDotPosition === 0) {
 		return { basename: filename, extension: "" };
 	}
-
 	return { basename: filename.slice(0, lastDotPosition), extension: filename.slice(lastDotPosition + 1) };
 }
