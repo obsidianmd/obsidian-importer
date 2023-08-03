@@ -105,7 +105,7 @@ export class HtmlImporter extends FormatImporter {
 						try {
 							src = element.getAttribute("src"); // `element.src` does not give the raw `src` string
 							return [
-								decodeURIComponent(src),
+								src,
 								await this.downloadAttachmentCached(
 									mdFile,
 									element.tagName.toLowerCase() as TagNames,
@@ -121,10 +121,10 @@ export class HtmlImporter extends FormatImporter {
 			result.total += downloads.length;
 			result.failed = result.failed.concat(downloads
 				.filter((dl): dl is typeof dl & { status: "rejected" } => dl.status === "rejected")
-				.map(({ reason }) => reason));
+				.map(({ reason }) => decodeURIComponent(reason)));
 			result.skipped = result.skipped.concat(downloads
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
-				.map(({ value: [src] }) => src));
+				.map(({ value: [src] }) => decodeURIComponent(src)));
 
 			const attachments = Object.fromEntries(downloads
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
@@ -147,13 +147,14 @@ export class HtmlImporter extends FormatImporter {
 							.sort(({ length: left }, { length: right }) => right - left)
 							.map(escapeRegExp)
 							.join("|"), "gu"),
-						encodeURI,
+						encodeURIComponent,
 					)}`);
 				const cache = await cache0;
 				await this.app.vault.process(mdFile, data => {
+					const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
 					const replacements = Object.fromEntries((cache.embeds ?? [])
 						.map(embed => {
-							const { [embed.link]: attachment } = attachments;
+							const { [decodeURIComponent(embed.link)]: attachment } = attachments2;
 							if (!attachment) {
 								return null;
 							}
