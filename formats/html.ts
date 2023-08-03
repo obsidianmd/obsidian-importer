@@ -130,7 +130,13 @@ export class HtmlImporter extends FormatImporter {
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
 				.map(({ value }) => value));
 			if (Object.keys(attachments).length > 0) {
-				const cache0 = new Promise<CachedMetadata>(resolve => {
+				const unencodedURIs = new RegExp(Object.keys(attachments)
+					.sort(({ length: left }, { length: right }) => right - left)
+					.map(escapeRegExp)
+					.join("|"), "gu");
+				const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
+
+				const cache = new Promise<CachedMetadata>(resolve => {
 					const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
 						if (file.path === mdFile.path) {
 							try {
@@ -141,37 +147,24 @@ export class HtmlImporter extends FormatImporter {
 						}
 					});
 				});
-				await this.app.vault.process(mdFile, data =>
-					`${data}${mdContent.replace(
-						new RegExp(Object.keys(attachments)
-							.sort(({ length: left }, { length: right }) => right - left)
-							.map(escapeRegExp)
-							.join("|"), "gu"),
-						encodeURIComponent,
-					)}`);
-				const cache = await cache0;
-				await this.app.vault.process(mdFile, data => {
-					const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
-					const replacements = Object.fromEntries((cache.embeds ?? [])
-						.map(embed => {
-							const { [decodeURIComponent(embed.link)]: attachment } = attachments2;
-							if (!attachment) {
-								return null;
-							}
-							return [embed.original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", embed.displayText)] as const;
-						})
-						.filter(entry => entry));
-					if (Object.keys(replacements).length > 0) {
-						return data.replace(
-							new RegExp(Object.keys(replacements)
-								.sort(({ length: left }, { length: right }) => right - left)
-								.map(escapeRegExp)
-								.join("|"), "gu"),
-							link => replacements[link],
-						);
-					}
-					return data;
-				});
+				await this.app.vault.process(mdFile, data => `${data}${mdContent.replace(unencodedURIs, encodeURIComponent)}`);
+
+				const embeds = Object.fromEntries(((await cache).embeds ?? [])
+					.map(({ link, original, displayText }) => {
+						const { [decodeURIComponent(link)]: attachment } = attachments2;
+						if (!attachment) {
+							return null;
+						}
+						return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
+					})
+					.filter(entry => entry));
+				if (Object.keys(embeds).length > 0) {
+					const embedOriginals = new RegExp(Object.keys(embeds)
+						.sort(({ length: left }, { length: right }) => right - left)
+						.map(escapeRegExp)
+						.join("|"), "gu")
+					await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
+				}
 			} else {
 				await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 			}
