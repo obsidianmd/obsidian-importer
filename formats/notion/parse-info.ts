@@ -8,9 +8,10 @@ import {
 } from '../../util';
 import { getNotionId } from './notion-utils';
 import { htmlToMarkdown } from 'obsidian';
+import { PickedFile } from 'filesystem';
 
 export async function parseFiles(
-	filePaths: string[],
+	filePaths: PickedFile[],
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,

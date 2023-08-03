@@ -6,26 +6,23 @@ import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
 import { copyFiles } from './notion/copy-files';
 import { parseFiles } from './notion/parse-info';
-import { assembleParentIds } from './notion/notion-utils';
 
 export class NotionImporter extends FormatImporter {
 	init() {
-		this.addFolderChooserSetting('Notion HTML export folder', ['html']);
-
-		this.fileLocationSetting?.settingEl.toggle(false);
-		this.folderLocationSetting?.settingEl.toggle(true);
+		this.addFileChooserSetting('Notion HTML export folder', ['html']);
 
 		this.addOutputLocationSetting('Notion');
 	}
 
 	async import(): Promise<void> {
-		let { app, filePaths, folderPaths } = this;
+		let { app, files } = this;
+		this.files;
 		let targetFolderPath = (await this.getOutputFolder()).path;
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath.endsWith('/')) targetFolderPath += '/';
 		targetFolderPath = fixDuplicateSlashes(targetFolderPath);
 
-		if (filePaths.length === 0) {
+		if (files.length === 0) {
 			new Notice('Please pick at least one folder to import.');
 			return;
 		}
@@ -48,14 +45,11 @@ export class NotionImporter extends FormatImporter {
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
 		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 
-		const readPath = this.readPath.bind(this);
-
-		await parseFiles(filePaths, {
+		await parseFiles(files, {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			results,
 			folderPathsReplacement,
-			readPath,
 		});
 
 		results.total =

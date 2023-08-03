@@ -60,13 +60,16 @@ export function convertNotesToMd({
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 	body.querySelectorAll(tag).forEach((el) => {
 		if (el.parentElement.tagName === tag.toUpperCase()) return;
-		const nestedEls = el.querySelectorAll(tag);
-		if (nestedEls.length === 0) return;
-		for (let i = 0; i < nestedEls.length; i++) {
-			const children = nestedEls[i].childNodes;
-			children.forEach((child) => el.appendChild(child));
+		let firstNested = el.querySelector(tag);
+		while (firstNested) {
+			const childrenOfNested = firstNested.childNodes;
+			const hoistedChildren = document.createDocumentFragment();
+			childrenOfNested.forEach((child) =>
+				hoistedChildren.appendChild(child)
+			);
+			firstNested.replaceWith(hoistedChildren);
+			firstNested = el.querySelector(tag);
 		}
-		nestedEls.forEach((nestedEl) => nestedEl.remove());
 	});
 };
 
