@@ -217,7 +217,7 @@ export class HtmlImporter extends FormatImporter {
 		} else {
 			filename += `.noext.${{
 				"audio": "mp3",
-				"img": "bmp",
+				"img": "png",
 				"video": "mp4",
 			}[type]}`;
 		}
