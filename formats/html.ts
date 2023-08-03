@@ -286,16 +286,16 @@ function getURLFilename(url: URL) {
 
 async function requestURL(url: URL) {
 	try {
-		const response = await fetch(url);
+		const response = await fetch(url, {
+			mode: "cors",
+			referrerPolicy: "no-referrer",
+		});
 		if (!response.ok) {
 			throw new Error(response.statusText);
 		}
 		return await response.arrayBuffer();
 	} catch {
-		return (await requestUrl({
-			url: url.href,
-			throw: true,
-		})).arrayBuffer;
+		return (await requestUrl(url.href)).arrayBuffer;
 	}
 }
 
