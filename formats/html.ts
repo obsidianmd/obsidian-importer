@@ -81,10 +81,6 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async processFile(result: ImportResult, folder: TFolder, file: PickedFile) {
-		if (!(file instanceof NodePickedFile)) {
-			result.skipped.push(file.name);
-			return;
-		}
 		let mdFile: TFile | null = null;
 		try {
 			const htmlContent = await file.readText();
@@ -95,7 +91,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
-			const pathURL = nodeUrl.pathToFileURL(file.filepath);
+			const pathURL = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
 			const downloads = await Promise.allSettled(
 				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
 					.map(async element => {
