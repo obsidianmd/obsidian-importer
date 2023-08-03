@@ -3,4 +3,4 @@ export const languageItems = {
 	italic: '_',
 	highlight: '==',
 	strikethrough: '~~',
-}
+};

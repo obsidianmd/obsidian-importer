@@ -1,17 +1,17 @@
-import { FormatImporter } from '../format-importer';
 import { FileSystemAdapter, Notice } from 'obsidian';
-import * as path from 'path';
+import { path } from '../filesystem';
+import { FormatImporter } from '../format-importer';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
 	init() {
-		this.addFileOrFolderChooserSetting('Evernote (.enex)', ['enex']);
+		this.addFileChooserSetting('Evernote (.enex)', ['enex']);
 		this.addOutputLocationSetting('Evernote');
 	}
 
 	async import() {
-		let { filePaths } = this;
-		if (filePaths.length === 0) {
+		let { files } = this;
+		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
 		}
@@ -29,7 +29,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let yarleOptions = {
 			...defaultYarleOptions,
 			...{
-				enexSources: filePaths,
+				enexSources: files,
 				outputDir: path.join(adapter.getBasePath(), folder.path),
 			},
 		};

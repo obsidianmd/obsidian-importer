@@ -49,8 +49,7 @@ export const processNode = (note: any, notebookName: string): void => {
 	} catch (e) {
 		console.error(`Failed to convert note: ${noteData.title}`, e);
 		throw e;
-	}
-	finally {
+	} finally {
 		const dateFinished: Date = new Date();
 		const conversionDuration = (dateFinished.getTime() - dateStarted.getTime()) / 1000; // in seconds.
 		console.log(`Conversion for note "${noteData.title}" finished at ${dateFinished}. Took ${conversionDuration} seconds`);

@@ -1,8 +1,8 @@
+import { App, Modal, Plugin, Setting } from 'obsidian';
 import { NotionImporter } from 'formats/notion';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { App, Modal, Plugin, Setting } from 'obsidian';
 
 declare global {
 	interface Window {
@@ -64,14 +64,17 @@ export class ImporterModal extends Modal {
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
 
-		let keys = Object.keys(this.importers);
+		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
 			this.updateContent(keys[0]);
 		}
 	}
 
 	updateContent(selectedId: string) {
-		const { contentEl, importers } = this;
+		const {
+			contentEl,
+			plugin: { importers },
+		} = this;
 		contentEl.empty();
 
 		new Setting(contentEl)
@@ -111,10 +114,6 @@ export class ImporterModal extends Modal {
 				);
 			});
 		}
-	}
-
-	get importers() {
-		return this.plugin.importers;
 	}
 
 	onClose() {

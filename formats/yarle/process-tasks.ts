@@ -10,7 +10,7 @@ const DUE_DATE_ICON = '📅';
 const SCHEDULE_DATE_ICON = '⏳';
 
 export const convertTasktoMd = (task: EvernoteTask, notebookName: string): string => {
-	const taskStatusMd = getTaskStatusMd(task)
+	const taskStatusMd = getTaskStatusMd(task);
 	const title = task.title ? ` ${task.title}` : '';
 	const tag = yarleOptions.obsidianTaskTag !== '' ? ` ${yarleOptions.obsidianTaskTag}` : '';
 	const duedate = task.duedate && !isNaN(task.duedate.getTime())

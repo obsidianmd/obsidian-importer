@@ -7,6 +7,6 @@ export const italicRule = {
 	replacement: (content: any) => {
 		return (content.trim() !== '')
 			? `${languageItems.italic}${content}${languageItems.italic}`
-			: content
+			: content;
 	},
 };
