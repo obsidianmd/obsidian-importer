@@ -102,7 +102,7 @@ export class HtmlImporter extends FormatImporter {
 						try {
 							src = element.getAttribute("src"); // `element.src` does not give the raw `src` string
 							return [
-								decodeURI(src),
+								decodeURIComponent(src),
 								await this.downloadAttachmentCached(
 									mdFile,
 									element.tagName.toLowerCase() as TagNames,
@@ -293,7 +293,7 @@ function escapeRegExp(str: string) {
 }
 
 function getURLFilename(url: URL) {
-	return pathToFilename(normalizePath(decodeURI(url.pathname)));
+	return pathToFilename(normalizePath(decodeURIComponent(url.pathname)));
 }
 
 async function imageSize(data: Blob) {
