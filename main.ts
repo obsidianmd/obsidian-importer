@@ -1,4 +1,5 @@
 import { App, Modal, Plugin, Setting } from 'obsidian';
+import { NotionImporter } from './formats/notion';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
@@ -58,15 +59,19 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
-			'evernote': {
+			evernote: {
 				name: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
 			},
-			'html': {
+			html: {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
 			},
-			'bear': {
+			notion: {
+				name: 'Notion (.zip)',
+				importer: NotionImporter,
+			},
+			bear: {
 				name: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
 			},
@@ -99,9 +104,7 @@ export default class ImporterPlugin extends Plugin {
 		*/
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 }
 
 export class ImporterModal extends Modal {
