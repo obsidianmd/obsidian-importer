@@ -99,7 +99,7 @@ export class HtmlImporter extends FormatImporter {
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
 			fixDocument(dom);
 
-			const base = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
+			const base = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : undefined;
 			const attachments = (await Promise.all(
 				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
 					.map(element => this.processAttachment(result, mdFile, element, base))
@@ -148,7 +148,7 @@ export class HtmlImporter extends FormatImporter {
 		}
 	}
 
-	async processAttachment(result: Result, mdFile: TFile, element: HTMLAudioElement | HTMLImageElement | HTMLVideoElement, base?: URL) {
+	async processAttachment(result: Result, mdFile: TFile, element: HTMLAudioElement | HTMLImageElement | HTMLVideoElement, base?: string) {
 		type TagNames = keyof {
 			[K in keyof HTMLElementTagNameMap as HTMLElementTagNameMap[K] extends typeof element ? K : never]: never
 		};
