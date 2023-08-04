@@ -1,6 +1,6 @@
 import { TemplateBlockSettings } from '../template-settings';
 
-export const getTemplateBlockSettings = (text: string, check: Function, T: any, value: string): TemplateBlockSettings => {
+export const getTemplateBlockSettings = (text: string, check: Function, T: any, value?: string): TemplateBlockSettings => {
 	return {
 		template: text,
 		check,

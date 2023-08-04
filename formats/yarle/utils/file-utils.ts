@@ -6,7 +6,8 @@ export const writeFile = (absFilePath: string, data: any, note: any): void => {
 	try {
 		fs.writeFileSync(absFilePath, data);
 		setFileDates(absFilePath, note);
-	} catch (e) {
+	}
+	catch (e) {
 		console.error('Cannot write file ', e);
 		throw e;
 	}

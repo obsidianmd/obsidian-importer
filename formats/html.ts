@@ -1,6 +1,6 @@
 import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportResult } from '../main';
+import { ProgressReporter } from '../main';
 import { fsPromises, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
 import { PromiseExecutor, sanitizeFileName } from '../util';
 import { extension } from '../mime';
@@ -58,7 +58,7 @@ export class HtmlImporter extends FormatImporter {
 				}))
 	}
 
-	async import() {
+	async import(progress: ProgressReporter): Promise<void> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -71,29 +71,18 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const result: Result = {
-			total: 0,
-			skipped: [],
-			failed: [],
-			errors: [],
-		};
-
-		for (const file of files) {
-			await this.processFile(result, folder, file);
-		}
-
-		this.showResult(result);
-		if (result.errors.length > 0) {
-			console.error(result.errors);
+		progress.reportProgress(0, files.length);
+		for (const [index, file] of Object.entries(files)) {
+			await this.processFile(progress, folder, file);
+			progress.reportProgress(Number(index + 1), files.length);
 		}
 	}
 
-	async processFile(result: Result, folder: TFolder, file: PickedFile) {
-		let mdFile: TFile | null = null;
+	async processFile(progress: ProgressReporter, folder: TFolder, file: PickedFile) {
+		let mdFile0 = null;
 		try {
-			++result.total;
 			const htmlContent = await file.readText();
-			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
+			const mdFile = mdFile0 = await this.saveAsMarkdownFile(folder, file.basename, "");
 
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
 			fixDocument(dom);
@@ -101,7 +90,7 @@ export class HtmlImporter extends FormatImporter {
 			const base = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : undefined;
 			const attachments = [];
 			for (const element of Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))) {
-				const ret = await this.processAttachment(result, mdFile, element, base);
+				const ret = await this.processAttachment(progress, mdFile, element, base);
 				if (ret) {
 					attachments.push(ret);
 				}
@@ -129,7 +118,7 @@ export class HtmlImporter extends FormatImporter {
 						}
 						return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
 					})
-					.filter(entry => entry));
+					.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
 				if (Object.keys(embeds).length > 0) {
 					const embedOriginals = alternativeRegExp(Object.keys(embeds));
 					await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
@@ -137,39 +126,36 @@ export class HtmlImporter extends FormatImporter {
 			} else {
 				await this.app.vault.modify(mdFile, mdContent);
 			}
+			progress.reportNoteSuccess(file.name);
 		} catch (e) {
-			result.errors.push(e);
-			result.failed.push(file.toString());
-			if (mdFile) {
+			progress.reportFailed(file.name, e);
+			if (mdFile0) {
 				try {
-					await this.app.vault.delete(mdFile);
+					await this.app.vault.delete(mdFile0);
 				} catch (e) {
-					result.errors.push(e);
+					console.error(e);
 				}
 			}
 		}
 	}
 
-	async processAttachment(result: Result, mdFile: TFile, element: HTMLAudioElement | HTMLImageElement | HTMLVideoElement, base?: string) {
+	async processAttachment(progress: ProgressReporter, mdFile: TFile, element: HTMLAudioElement | HTMLImageElement | HTMLVideoElement, base?: string) {
 		type TagNames = keyof {
 			[K in keyof HTMLElementTagNameMap as HTMLElementTagNameMap[K] extends typeof element ? K : never]: never
 		};
-		let src = "";
 		try {
-			++result.total;
-			src = element.getAttribute("src");
-			const download = await this.downloadAttachmentCached(
-				mdFile,
-				element.tagName.toLowerCase() as TagNames,
-				new URL(src.startsWith("//") ? `https:${src}` : src, base),
-			)
+			const src = element.getAttribute("src");
+			if (src === null) {
+				return null;
+			}
+			const url = new URL(src.startsWith("//") ? `https:${src}` : src, base)
+			const download = await this.downloadAttachmentCached(mdFile, element.tagName.toLowerCase() as TagNames, url)
 			if (download) {
+				progress.reportAttachmentSuccess(parseURL(url).name);
 				return [src, download] as const;
 			}
-			result.skipped.push(decodeURIComponent(src));
 		} catch (e) {
-			result.errors.push(e);
-			result.failed.push(decodeURIComponent(src));
+			console.error(e);
 		}
 		return null;
 	}
@@ -281,14 +267,11 @@ interface TypedResponse {
 	extension: string;
 }
 
-interface Result extends ImportResult {
-	errors: unknown[]
-}
-
 function fixDocument(document: Document) {
 	function fixElement(element: Element, attribute: string) {
-		if (element.hasAttribute(attribute)) {
-			element.setAttribute(attribute, element.getAttribute(attribute).replace(/ /gu, "%20"));
+		const value = element.getAttribute(attribute);
+		if (value !== null) {
+			element.setAttribute(attribute, value.replace(/ /gu, "%20"));
 		}
 	}
 	document.querySelectorAll("a").forEach(element => fixElement(element, "href"));

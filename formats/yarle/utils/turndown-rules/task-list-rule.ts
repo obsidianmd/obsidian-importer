@@ -48,5 +48,5 @@ export const taskListRule = {
 		ret = (prefix + singleLineContent + (node.nextSibling && !/\n$/.test(singleLineContent) ? '\n' : ''));
 
 		return ret;
-	}
+	},
 };

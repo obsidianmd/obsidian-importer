@@ -2,7 +2,7 @@ import { BlobWriter, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
 import { normalizePath, Notice } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportResult } from '../main';
+import { ProgressReporter } from '../main';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -10,7 +10,7 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addOutputLocationSetting('Bear');
 	}
 
-	async import(): Promise<void> {
+	async import(progress: ProgressReporter): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -23,56 +23,50 @@ export class Bear2bkImporter extends FormatImporter {
 			return;
 		}
 
-		let results: ImportResult = {
-			total: 0,
-			skipped: [],
-			failed: []
-		};
+		let outputFolder = folder;
 
 		const attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
 		const assetMatcher = /!\[\]\(assets\//g;
 
 		for (let file of files) {
 			await file.readZip(async zip => {
-				for (let zipFileEntry of await zip.getEntries()) {
-					if (!zipFileEntry || zipFileEntry.directory) continue;
-					let { filename } = zipFileEntry;
-					let { parent, name, basename, extension } = parseFilePath(filename);
+				for (let entry of await zip.getEntries()) {
+					if (!entry || entry.directory || !entry.getData) continue;
+					let { filename } = entry;
+					let { parent, name, extension } = parseFilePath(filename);
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
-							let mdContent = await zipFileEntry.getData(new TextWriter());
+							let mdContent = await entry.getData(new TextWriter());
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
 							}
 							let filePath = normalizePath(mdFilename);
-							await this.saveAsMarkdownFile(folder, filePath, mdContent);
-							results.total++;
+							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
+							progress.reportNoteSuccess(mdFilename);
 						}
 						else if (filename.match(/\/assets\//g)) {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								results.skipped.push(filename);
+								progress.reportSkipped(filename);
 							}
 							else {
-								const assetData = await zipFileEntry.getData(new BlobWriter());
+								const assetData = await entry.getData(new BlobWriter());
 								await this.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
+								progress.reportAttachmentSuccess(filename);
 							}
-							results.total++;
 						}
 						else {
-							results.skipped.push(filename);
-							results.total++;
+							progress.reportSkipped(filename);
 						}
-
-					} catch (error) {
-						results.failed.push(filename);
+					}
+					catch (e) {
+						progress.reportFailed(filename, e);
 					}
 				}
 			});
 		}
-		this.showResult(results);
 	}
 }

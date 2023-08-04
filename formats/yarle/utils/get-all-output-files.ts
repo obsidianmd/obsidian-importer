@@ -9,8 +9,9 @@ export const getAllOutputFilesWithExtension = (dirPath: string, arrayOfFiles: Ar
 			arrayOfFiles = getAllOutputFilesWithExtension(`${dirPath}${path.sep}${file}`, arrayOfFiles, extension);
 		}
 		else {
-			if ((extension && path.extname(file) == `.${extension}`) || !extension)
+			if ((extension && path.extname(file) == `.${extension}`) || !extension) {
 				arrayOfFiles.push(path.join(dirPath, '/', file));
+			}
 		}
 	});
 
