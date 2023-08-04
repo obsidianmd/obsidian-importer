@@ -1,11 +1,9 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, Platform, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
-import { fsPromises, NodePickedFile, parseFilePath, PickedFile } from '../filesystem';
+import { fsPromises, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
 import { PromiseExecutor, sanitizeFileName } from '../util';
 import { extension } from '../mime';
-
-const nodeUrl: typeof import("node:url") = Platform.isDesktopApp ? window.require("node:url") : null;
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
