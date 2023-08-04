@@ -48,8 +48,6 @@ export class NotionImporter extends FormatImporter {
 			'attachmentFolderPath'
 		);
 
-		console.log(pathsToAttachmentInfo);
-
 		cleanDuplicates({
 			idsToFileInfo,
 			pathsToAttachmentInfo,

@@ -42,38 +42,42 @@ export async function parseFiles(
 
 			for (let file of entries) {
 				if (isDatabaseCSV(file.filename)) continue;
-
-				if (file.filename.endsWith('.html')) {
+				try {
 					results.total++;
-					const text = await file.getData(new TextWriter());
+					if (file.filename.endsWith('.html')) {
+						const text = await file.getData(new TextWriter());
 
-					const { id, fileInfo } = parseFileInfo({
-						text,
-						file,
-						parser,
-						attachmentFileNames,
-					});
+						const { id, fileInfo } = parseFileInfo({
+							text,
+							file,
+							parser,
+							attachmentFileNames,
+						});
 
-					idsToFileInfo[id] = fileInfo;
-				} else {
-					const basicFileName = matchFilename(file.filename);
-					// maybe shouldn't save data in the object? But for now it's simpler.
-					const data = await (
-						await file.getData(new BlobWriter())
-					).arrayBuffer();
-					const attachmentInfo: NotionAttachmentInfo = {
-						nameWithExtension: sanitizeFileName(
-							`${basicFileName || 'Untitled'}.${getFileExtension(
-								file.filename
-							)}`
-						),
-						targetParentFolder: '',
-						fullLinkPathNeeded: false,
-						parentIds: parseParentIds(file.filename),
-						path: file.filename,
-						data,
-					};
-					pathsToAttachmentInfo[file.filename] = attachmentInfo;
+						idsToFileInfo[id] = fileInfo;
+					} else {
+						const basicFileName = matchFilename(file.filename);
+						// maybe shouldn't save data in the object? But for now it's simpler.
+						const data = await (
+							await file.getData(new BlobWriter())
+						).arrayBuffer();
+						const attachmentInfo: NotionAttachmentInfo = {
+							nameWithExtension: sanitizeFileName(
+								`${
+									basicFileName || 'Untitled'
+								}.${getFileExtension(file.filename)}`
+							),
+							targetParentFolder: '',
+							fullLinkPathNeeded: false,
+							parentIds: parseParentIds(file.filename),
+							path: file.filename,
+							data,
+						};
+						pathsToAttachmentInfo[file.filename] = attachmentInfo;
+					}
+				} catch (e) {
+					console.error(e);
+					results.failed.push(file.filename);
 				}
 			}
 		});
