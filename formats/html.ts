@@ -160,16 +160,15 @@ export class HtmlImporter extends FormatImporter {
 				element.tagName.toLowerCase() as TagNames,
 				new URL(src.startsWith("//") ? `https:${src}` : src, base),
 			)
-			if (!download) {
-				result.skipped.push(src);
-				return null;
+			if (download) {
+				return [src, download] as const;
 			}
-			return [src, download] as const;
+			result.skipped.push(src);
 		} catch (e) {
 			result.errors.push(e);
 			result.failed.push(src);
-			return null;
 		}
+		return null;
 	}
 
 	downloadAttachmentCached(mdFile: TFile, type: TypedResponse["type"], url: URL) {
