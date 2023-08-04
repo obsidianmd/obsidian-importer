@@ -51,6 +51,20 @@ export default class ImporterPlugin extends Plugin {
 				new ImporterModal(this.app, this).open();
 			}
 		});
+
+		// For development, un-comment this and tweak it to your importer:
+
+		/*
+		// Create and open the importer on boot
+		let modal = new ImporterModal(this.app, this);
+		modal.open();
+		// Select my importer
+		modal.updateContent('html');
+		if (modal.importer instanceof HtmlImporter) {
+			// Automatically pick file
+			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
+		}
+		*/
 	}
 
 	onunload() {
@@ -60,6 +74,7 @@ export default class ImporterPlugin extends Plugin {
 
 export class ImporterModal extends Modal {
 	plugin: ImporterPlugin;
+	importer: FormatImporter;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
@@ -94,7 +109,7 @@ export class ImporterModal extends Modal {
 			});
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
-			let importer = new importers[selectedId].importer(this.app, this);
+			let importer = this.importer = new importers[selectedId].importer(this.app, this);
 
 			contentEl.createDiv('button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
