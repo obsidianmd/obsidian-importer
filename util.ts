@@ -71,7 +71,8 @@ export function escapeHashtags(body: string) {
 		}
 		lines[i] = newLine;
 	}
-	return lines.join('\n');
+	body = lines.join('\n');
+	return body;
 }
 
 export function fixDuplicateSlashes(path: string) {

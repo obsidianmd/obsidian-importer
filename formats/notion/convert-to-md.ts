@@ -35,6 +35,7 @@ export function convertNotesToMd({
 		fixNotionDates(fileInfo.body);
 		fixNotionLists(fileInfo.body);
 		replaceTableOfContents(fileInfo.body);
+		formatDatabases(fileInfo.body);
 
 		let htmlString = fileInfo.body.innerHTML;
 		// Simpler to just use the HTML string for this replacement
@@ -43,6 +44,7 @@ export function convertNotesToMd({
 
 		fileInfo.markdownBody = htmlToMarkdown(htmlString);
 		fileInfo.markdownBody = escapeHashtags(fileInfo.markdownBody);
+		fileInfo.markdownBody = fixDoubleBackslash(fileInfo.markdownBody);
 
 		if (fileInfo.properties) {
 			fileInfo.yamlProperties = fileInfo.properties.map((property) =>
@@ -56,6 +58,59 @@ export function convertNotesToMd({
 		}
 	}
 }
+
+const fixDoubleBackslash = (markdownBody: string) => {
+	const slashSearch = /\[\[[^\]]*(\\\\)[^\]]*\]\]/;
+	const doubleSlashes = markdownBody.match(new RegExp(slashSearch, 'g'));
+	doubleSlashes?.forEach((slash) => {
+		console.log(slash, slash.replace(/\\\\/g, '\u005C'));
+		console.log(markdownBody.match(slash));
+
+		markdownBody = markdownBody.replace(
+			slash,
+			slash.replace(/\\\\/g, '\u005C')
+		);
+	});
+
+	return markdownBody;
+};
+
+const formatDatabases = (body: HTMLElement) => {
+	// Notion includes user SVGs which aren't relevant to Markdown, so change them to pure text. Safe because it's a part of Notion UI and not nested.
+	const users = body.querySelectorAll('span[class=user]');
+	users.forEach((user) => {
+		user.innerHTML = user.textContent;
+	});
+
+	const checkboxes = body.querySelectorAll('td div[class*=checkbox]');
+	checkboxes.forEach((checkbox) => {
+		const newCheckbox = document.createElement('span');
+		newCheckbox.setText(
+			checkbox.className.contains('checkbox-on') ? 'X' : ''
+		);
+		checkbox.replaceWith(newCheckbox);
+	});
+
+	const selectedValues = body.querySelectorAll(
+		'table span[class*=selected-value]'
+	);
+	selectedValues.forEach((select) => {
+		const lastChild = select.parentElement.lastElementChild;
+		if (lastChild === select) return;
+		select.setText(select.textContent + ', ');
+	});
+
+	const linkValues = body.querySelectorAll(
+		'a[href]'
+	) as NodeListOf<HTMLAnchorElement>;
+	linkValues.forEach((a) => {
+		if (a.href.startsWith('app://obsidian.md')) {
+			const strippedURL = document.createElement('span');
+			strippedURL.setText(a.textContent);
+			a.replaceWith(strippedURL);
+		}
+	});
+};
 
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 	body.querySelectorAll(tag).forEach((el) => {
@@ -108,7 +163,9 @@ const stripLinkFormatting = (body: HTMLDivElement) => {
 };
 
 const fixNotionDates = (body: HTMLDivElement) => {
-	body.innerHTML = body.innerHTML.replace(/@(\w+ \d\d?, \d{4})/g, '$1');
+	body.querySelectorAll('time').forEach((time) => {
+		time.textContent = time.textContent.replace(/@/g, '');
+	});
 };
 
 const fixNotionLists = (body: HTMLDivElement) => {
@@ -223,15 +280,15 @@ function convertLinksToObsidian(
 					);
 					linkContent = `[[${stripNotionId(extractedFilename)}]]`;
 				} else {
+					const isInTable = link.a.closest('table');
 					linkContent = `[[${
 						linkInfo.fullLinkPathNeeded
-							? assembleParentIds(linkInfo, idsToFileInfo).join(
-									''
-							  ) +
-							  linkInfo.title +
-							  '\\' +
-							  '|' +
-							  linkInfo.title
+							? `${assembleParentIds(
+									linkInfo,
+									idsToFileInfo
+							  ).join('')}${linkInfo.title}${
+									isInTable ? '\u005C' : ''
+							  }|${linkInfo.title}`
 							: linkInfo.title
 					}]]`;
 				}

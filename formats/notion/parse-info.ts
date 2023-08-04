@@ -41,7 +41,7 @@ export async function parseFiles(
 				.map((entry) => entry.filename);
 
 			for (let file of entries) {
-				if (isDatabaseCSV(file.filename)) continue;
+				if (isDatabaseCSV(file.filename) || file.directory) continue;
 				try {
 					results.total++;
 					if (file.filename.endsWith('.html')) {
@@ -100,6 +100,7 @@ const parseFileInfo = ({
 	const parentIds = parseParentIds(file.filename);
 
 	const document = parser.parseFromString(text, 'text/html');
+
 	const id = getNotionId(
 		document.querySelector('article').getAttribute('id')
 	);
