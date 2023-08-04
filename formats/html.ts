@@ -1,6 +1,6 @@
 import { htmlToMarkdown, Notice } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportResult } from '../main';
+import { ProgressReporter } from '../main';
 
 export class HtmlImporter extends FormatImporter {
 	init() {
@@ -8,7 +8,7 @@ export class HtmlImporter extends FormatImporter {
 		this.addOutputLocationSetting('HTML');
 	}
 
-	async import(): Promise<void> {
+	async import(progress: ProgressReporter): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -21,24 +21,18 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		let results: ImportResult = {
-			total: 0,
-			skipped: [],
-			failed: []
-		};
-
+		let i = 0;
 		for (let file of files) {
+			progress.reportProgress(i, files.length);
+			i++;
 			try {
 				let htmlContent = await file.readText();
 				let mdContent = htmlToMarkdown(htmlContent);
 				await this.saveAsMarkdownFile(folder, file.basename, mdContent);
-				results.total++;
+				progress.reportNoteSuccess(file.name);
 			} catch (e) {
-				console.error(e);
-				results.failed.push(file.toString());
+				progress.reportFailed(file.name, e);
 			}
 		}
-
-		this.showResult(results);
 	}
 }

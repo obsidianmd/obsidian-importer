@@ -2,7 +2,7 @@ import { BlobWriter, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
 import { normalizePath, Notice } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportResult } from '../main';
+import { ProgressReporter } from '../main';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -10,7 +10,7 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addOutputLocationSetting('Bear');
 	}
 
-	async import(): Promise<void> {
+	async import(progress: ProgressReporter): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -24,12 +24,6 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 
 		let outputFolder = folder;
-
-		let results: ImportResult = {
-			total: 0,
-			skipped: [],
-			failed: []
-		};
 
 		const attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
 		const assetMatcher = /!\[\]\(assets\//g;
@@ -50,31 +44,29 @@ export class Bear2bkImporter extends FormatImporter {
 							}
 							let filePath = normalizePath(mdFilename);
 							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
-							results.total++;
+							progress.reportNoteSuccess(mdFilename);
 						}
 						else if (filename.match(/\/assets\//g)) {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								results.skipped.push(filename);
+								progress.reportSkipped(filename);
 							}
 							else {
 								const assetData = await entry.getData(new BlobWriter());
 								await this.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
+								progress.reportAttachmentSuccess(filename);
 							}
-							results.total++;
 						}
 						else {
-							results.skipped.push(filename);
-							results.total++;
+							progress.reportSkipped(filename);
 						}
 
-					} catch (error) {
-						results.failed.push(filename);
+					} catch (e) {
+						progress.reportFailed(filename, e);
 					}
 				}
 			});
 		}
-		this.showResult(results);
 	}
 }

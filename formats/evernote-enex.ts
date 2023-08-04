@@ -1,6 +1,7 @@
 import { FileSystemAdapter, Notice } from 'obsidian';
 import { path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
+import { ProgressReporter } from '../main';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
@@ -9,7 +10,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 		this.addOutputLocationSetting('Evernote');
 	}
 
-	async import() {
+	async import(progress: ProgressReporter) {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -34,8 +35,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 			}
 		};
 
-		let results = await dropTheRope(yarleOptions);
-
-		this.showResult(results);
+		await dropTheRope(yarleOptions, progress);
 	}
 }

@@ -15,10 +15,42 @@ interface ImporterDefinition {
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
 
+// Deprecated, only here until current PRs are closed
 export interface ImportResult {
 	total: number,
 	failed: string[],
 	skipped: string[]
+}
+
+export class ProgressReporter {
+	notes = 0;
+	attachments = 0;
+	skipped: string[] = [];
+	failed: string[] = [];
+
+	reportNoteSuccess(name: string) {
+		this.notes++;
+		console.log('Import success', name);
+	}
+
+	reportAttachmentSuccess(name: string) {
+		this.attachments++;
+		console.log('Import success', name);
+	}
+
+	reportSkipped(name: string, reason?: any) {
+		this.skipped.push(name);
+		console.log('Import skipped', name, reason);
+	}
+
+	reportFailed(name: string, reason?: any) {
+		this.failed.push(name);
+		console.log('Import failed', name, reason);
+	}
+
+	reportProgress(current: number, total: number) {
+		console.log('Current progress:', (100 * current / total).toFixed(1) + '%');
+	}
 }
 
 export default class ImporterPlugin extends Plugin {
@@ -114,16 +146,61 @@ export class ImporterModal extends Modal {
 			contentEl.createDiv('button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
+						let progress = new ProgressReporter();
 						this.modalEl.addClass('is-loading');
 						try {
-							await importer.import();
+							await importer.import(progress);
 						} finally {
 							this.modalEl.removeClass('is-loading');
+							this.showResult(progress);
 						}
 					});
 				});
 			});
 		}
+	}
+
+	showResult(result: ProgressReporter) {
+		let { contentEl } = this;
+		let { notes, attachments, skipped, failed } = result;
+
+		contentEl.empty();
+
+		let numNotes = `${notes} notes`;
+		if (attachments > 0) {
+			numNotes += ` and ${attachments} attachments`;
+		}
+		contentEl.createEl('p', { text: `You successfully imported ${numNotes}!` });
+
+		if (skipped.length > 0 || failed.length > 0) {
+			contentEl.createEl('p', { text: `${skipped.length} notes were skipped and ${failed.length} notes failed to import.` });
+		}
+
+		if (skipped.length > 0) {
+			contentEl.createEl('p', { text: `Skipped notes:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of skipped) {
+					el.createEl('li', { text: note });
+				}
+			});
+		}
+
+		if (failed.length > 0) {
+			contentEl.createEl('p', { text: `Failed to import:` });
+			contentEl.createEl('ul', {}, el => {
+				for (let note of failed) {
+					el.createEl('li', { text: note });
+				}
+			});
+		}
+
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+				el.addEventListener('click', async () => {
+					this.close();
+				});
+			});
+		});
 	}
 
 	onClose() {
