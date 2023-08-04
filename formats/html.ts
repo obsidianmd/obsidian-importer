@@ -145,11 +145,8 @@ export class HtmlImporter extends FormatImporter {
 					const cache = new Promise<CachedMetadata>(resolve => {
 						const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
 							if (file.path === mdFile.path) {
-								try {
-									resolve(cache);
-								} finally {
-									this.app.metadataCache.offref(ref);
-								}
+								this.app.metadataCache.offref(ref);
+								resolve(cache);
 							}
 						});
 					});
