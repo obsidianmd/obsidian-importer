@@ -4,12 +4,11 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 ## Supported formats
 
-Currently supports HTML files and Evernote `.enex` with more formats in progress. You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
-
-Planned formats:
+You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 - [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
 - [x] HTML, folder of files
+- [x] Bear `.bear2bk` (Credits @arthurtyukayev)
 - [ ] Notion
 - [ ] Apple Notes
 - [ ] Microsoft OneNote

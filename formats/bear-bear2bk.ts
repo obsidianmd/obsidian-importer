@@ -1,12 +1,12 @@
-import { FormatImporter } from "../format-importer";
+import { BlobWriter, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
-import { BlobWriter, TextWriter } from "@zip.js/zip.js";
-import { Notice, normalizePath } from "obsidian";
+import { normalizePath, Notice } from 'obsidian';
+import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
-		this.addFileChooserSetting('Bear2bk (.bear2bk)', ['bear2bk']);
+		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
 	}
 
@@ -35,12 +35,12 @@ export class Bear2bkImporter extends FormatImporter {
 		for (let file of files) {
 			await file.readZip(async zip => {
 				for (let zipFileEntry of await zip.getEntries()) {
+					if (!zipFileEntry || zipFileEntry.directory) continue;
+					let { filename } = zipFileEntry;
+					let { parent, name, basename, extension } = parseFilePath(filename);
 					try {
-						if (!zipFileEntry) continue;
-						let { extension } = parseFilePath(zipFileEntry.filename);
 						if (extension === 'md' || extension === 'markdown') {
-							const paths = zipFileEntry.filename.replace(`/${parseFilePath(zipFileEntry.filename).basename}`, '').split('/');
-							const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
+							const mdFilename = parseFilePath(parent).basename;
 							let mdContent = await zipFileEntry.getData(new TextWriter());
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
@@ -49,28 +49,26 @@ export class Bear2bkImporter extends FormatImporter {
 							let filePath = normalizePath(mdFilename);
 							await this.saveAsMarkdownFile(folder, filePath, mdContent);
 							results.total++;
-							continue;
-						} else if (zipFileEntry.filename.match(/\/assets\//g)) {
-							const assetData = await zipFileEntry.getData(new BlobWriter());
-							const { basename: assetFilename, extension: assetExtension } = parseFilePath(zipFileEntry.filename);
-							const assetFileVaultPath = `${attachmentsFolderPath.path}/${assetFilename}.${assetExtension}`;
-							const existingFile = this.app.vault.getAbstractFileByPath(assetFileVaultPath)
+						}
+						else if (filename.match(/\/assets\//g)) {
+							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
+							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								results.skipped.push(zipFileEntry.filename);
-							} else {
-								await this.app.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
+								results.skipped.push(filename);
+							}
+							else {
+								const assetData = await zipFileEntry.getData(new BlobWriter());
+								await this.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
 							}
 							results.total++;
-							continue;
-						} else {
-							results.skipped.push(zipFileEntry.filename);
+						}
+						else {
+							results.skipped.push(filename);
 							results.total++;
-							continue;
 						}
 
 					} catch (error) {
-						results.failed.push(zipFileEntry.filename);
-						continue;
+						results.failed.push(filename);
 					}
 				}
 			});
