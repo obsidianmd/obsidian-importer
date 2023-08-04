@@ -92,6 +92,7 @@ export class HtmlImporter extends FormatImporter {
 	async processFile(result: ImportResult & { errors: unknown[] }, folder: TFolder, file: PickedFile) {
 		let mdFile: TFile | null = null;
 		try {
+			++result.total;
 			const htmlContent = await file.readText();
 			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
 
