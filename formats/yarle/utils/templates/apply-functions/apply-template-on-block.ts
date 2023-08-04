@@ -1,12 +1,12 @@
 import { TemplateBlockSettings } from './../template-settings';
 
 export const applyTemplateOnBlock = ({
-	                                     template,
-	                                     check,
-	                                     startBlockPlaceholder,
-	                                     endBlockPlaceholder,
-	                                     valuePlaceholder,
-	                                     value,
+	template,
+	check,
+	startBlockPlaceholder,
+	endBlockPlaceholder,
+	valuePlaceholder,
+	value,
 }: TemplateBlockSettings): string => {
 	if (value && check()) {
 		return template
