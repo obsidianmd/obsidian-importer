@@ -1,23 +1,20 @@
-import * as path from 'path'
-import * as fs from 'fs'
 import { FormatImporter } from "../format-importer";
+import { parseFilePath } from 'filesystem';
+import { BlobWriter, TextWriter } from "@zip.js/zip.js";
 import { Notice, normalizePath } from "obsidian";
-import { ZipReader, BlobReader } from '@zip.js/zip.js';
-import { Blob } from 'buffer';
-import { pathToFilename } from '../util';
 import { ImportResult } from '../main';
 
 const EXPORTED_ASSETS_FOLDER_NAME = 'bear-assets';
 
 export class Bear2bkImporter extends FormatImporter {
   init() {
-    this.addFileOrFolderChooserSetting('Bear2bk (.bear2bk)', ['bear2bk']);
+    this.addFileChooserSetting('Bear2bk (.bear2bk)', ['bear2bk']);
     this.addOutputLocationSetting('Bear');
   }
 
   async import(): Promise<void> {
-    let { filePaths } = this;
-    if (filePaths.length === 0) {
+    let { files } = this;
+    if (files.length === 0) {
       new Notice('Please pick at least one file to import.');
       return;
     }
@@ -35,55 +32,48 @@ export class Bear2bkImporter extends FormatImporter {
     };
 
     // @ts-ignore
-    const attachmentsFolderPath = await this.app.vault.getAvailablePathForAttachments(EXPORTED_ASSETS_FOLDER_NAME);
-    const existingAssetAttachmentsFolder = this.app.vault.getAbstractFileByPath(attachmentsFolderPath);
+    const attachmentsFolderPath = await this.createFolders(EXPORTED_ASSETS_FOLDER_NAME);
     const assetMatcher = /!\[\]\(assets\//g;
 
-    // Create folder for text bundle assets inside of vault's media folder.
-    if (!existingAssetAttachmentsFolder) {
-      await this.app.vault.createFolder(attachmentsFolderPath);
-    }
-
-    for (let filePath of filePaths) {
-      const fileBlob = new Blob([fs.readFileSync(filePath)]);
-      const zip = new ZipReader(new BlobReader(fileBlob));
-      for (let file of await zip.getEntries()) {
-        try {
-          if (!file) continue;
-          if (file.filename.match(/\.md|.markdown$/)) {
-            const markdownFileStream = new TransformStream();
-            const markdownFileTextPromise = new Response(markdownFileStream.readable).text();
-
-            await file.getData(markdownFileStream.writable);
-            const paths = file.filename.replace(`/${path.basename(file.filename)}`, '').split('/');
-            const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
-
-            let mdContent = await markdownFileTextPromise;
-            if (mdContent.match(assetMatcher)) {
-              // Replace asset paths with new asset folder path.
-              mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath}/`);
+    for (let file of files) {
+      await file.readZip(async zip => {
+        for (let zipFileEntry of await zip.getEntries()) {
+          try {
+            if (!zipFileEntry) continue;
+            if (zipFileEntry.filename.match(/\.md|.markdown$/)) {
+              const paths = zipFileEntry.filename.replace(`/${parseFilePath(zipFileEntry.filename).basename}`, '').split('/');
+              const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
+              let mdContent = await zipFileEntry.getData(new TextWriter());
+              if (mdContent.match(assetMatcher)) {
+                // Replace asset paths with new asset folder path.
+                mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
+                let filePath = normalizePath(mdFilename);
+                await this.saveAsMarkdownFile(folder, filePath, mdContent);
+                results.total++;
+                continue;
+              }
             }
-            let filePath = normalizePath(mdFilename);
-            await this.saveAsMarkdownFile(folder, pathToFilename(filePath), mdContent);
-            results.total++;
+
+            if (zipFileEntry.filename.match(/\/assets\//g)) {
+              const assetData = await zipFileEntry.getData(new BlobWriter());
+              const { basename: assetFilename, extension: assetExtension } = parseFilePath(zipFileEntry.filename);
+              const assetFileVaultPath = `${attachmentsFolderPath.path}/${assetFilename}.${assetExtension}`;
+              const existingFile = this.app.vault.getAbstractFileByPath(assetFileVaultPath)
+              if (existingFile) {
+                results.skipped.push(zipFileEntry.filename);
+              } else {
+                await this.app.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
+              }
+              results.total++;
+              continue;
+            }
+
+          } catch (error) {
+            results.failed.push(zipFileEntry.filename);
             continue;
           }
-
-          if (file.filename.match(/\/assets\//g)) {
-            const assetFileStream = new TransformStream();
-            const assetFileBufferPromise = new Response(assetFileStream.readable).arrayBuffer();
-
-            await file.getData(assetFileStream.writable);
-            const assetFilename = path.basename(file.filename);
-            const assetFileVaultPath = `${attachmentsFolderPath}/${assetFilename}`;
-            await this.app.vault.createBinary(assetFileVaultPath, await assetFileBufferPromise);
-            continue;
-          }
-        } catch (error) {
-          results.failed.push(file.filename);
-          continue;
         }
-      }
+      });
     }
     this.showResult(results);
   }
