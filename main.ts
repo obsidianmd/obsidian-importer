@@ -7,6 +7,7 @@ import { HtmlImporter } from './formats/html';
 declare global {
 	interface Window {
 		electron: any;
+		require: NodeRequire;
 	}
 }
 
