@@ -164,10 +164,10 @@ export class HtmlImporter extends FormatImporter {
 			if (download) {
 				return [src, download] as const;
 			}
-			result.skipped.push(src);
+			result.skipped.push(decodeURIComponent(src));
 		} catch (e) {
 			result.errors.push(e);
-			result.failed.push(src);
+			result.failed.push(decodeURIComponent(src));
 		}
 		return null;
 	}
