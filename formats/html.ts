@@ -7,7 +7,7 @@ import { extension } from '../mime';
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
-	requestHTTPExecutor = new PromiseExecutor(5);
+	downloadAttachmentExecutor = new PromiseExecutor(5);
 	writeAttachmentExecutor = new PromiseExecutor(1);
 
 	attachmentSizeLimit: number;
@@ -176,37 +176,39 @@ export class HtmlImporter extends FormatImporter {
 		return this.attachments[url.href] ??= this.downloadAttachment(mdFile, type, url);
 	}
 
-	async downloadAttachment(mdFile: TFile, type: TypedResponse["type"], url: URL) {
-		let response;
-		switch (url.protocol) {
-			case "file:":
-				response = await this.requestFile(type, url);
-				break;
-			case "https:":
-			case "http:":
-				response = await this.requestHTTP(type, url);
-				break;
-			default:
-				throw new Error(url.href);
-		}
-		if (!await this.filterAttachment(response)) {
-			return null;
-		}
-		const { data, extension } = response;
-		const filename = parseURL(url);
-		let { name } = filename;
-		if (extension) {
-			if (filename.extension !== extension) {
-				name += `.${extension}`;
+	downloadAttachment(mdFile: TFile, type: TypedResponse["type"], url: URL) {
+		return this.downloadAttachmentExecutor.run(async () => {
+			let response;
+			switch (url.protocol) {
+				case "file:":
+					response = await this.requestFile(type, url);
+					break;
+				case "https:":
+				case "http:":
+					response = await this.requestHTTP(type, url);
+					break;
+				default:
+					throw new Error(url.href);
 			}
-		} else {
-			name += `.noext.${{
-				"audio": "mp3",
-				"img": "png",
-				"video": "mp4",
-			}[type]}`;
-		}
-		return await this.writeAttachment(mdFile, name, data);
+			if (!await this.filterAttachment(response)) {
+				return null;
+			}
+			const { data, extension } = response;
+			const filename = parseURL(url);
+			let { name } = filename;
+			if (extension) {
+				if (filename.extension !== extension) {
+					name += `.${extension}`;
+				}
+			} else {
+				name += `.noext.${{
+					"audio": "mp3",
+					"img": "png",
+					"video": "mp4",
+				}[type]}`;
+			}
+			return await this.writeAttachment(mdFile, name, data);
+		});
 	}
 
 	async requestFile(type: TypedResponse["type"], url: URL) {
@@ -217,27 +219,25 @@ export class HtmlImporter extends FormatImporter {
 		};
 	}
 
-	requestHTTP(type: TypedResponse["type"], url: URL) {
-		return this.requestHTTPExecutor.run(async () => {
-			url = new URL(url.href);
-			let response;
+	async requestHTTP(type: TypedResponse["type"], url: URL) {
+		url = new URL(url.href);
+		let response;
+		try {
+			url.protocol = "https:";
+			response = await requestURL(url);
+		} catch (e) {
 			try {
-				url.protocol = "https:";
+				url.protocol = "http:";
 				response = await requestURL(url);
-			} catch (e) {
-				try {
-					url.protocol = "http:";
-					response = await requestURL(url);
-				} catch {
-					throw e;
-				}
+			} catch {
+				throw e;
 			}
-			return {
-				type,
-				data: response.data,
-				extension: extension(response.mime) || parseURL(url).extension,
-			};
-		});
+		}
+		return {
+			type,
+			data: response.data,
+			extension: extension(response.mime) || parseURL(url).extension,
+		};
 	}
 
 	writeAttachment(mdFile: TFile, filename: string, data: ArrayBufferLike) {
