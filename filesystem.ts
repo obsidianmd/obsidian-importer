@@ -189,14 +189,16 @@ export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?:
 }
 
 /**
- * Parse a filepath to get a file's name, basename (name without extension), and extension (lowercase).
- * For example, "path/to/my/file.md" would become `{name: "file.md", basename: "file", extension: "md"}`
+ * Parse a filepath to get a file's parent path, name, basename (name without extension), and extension (lowercase).
+ * For example, "path/to/my/file.md" would become `{parent: "path/to/my", name: "file.md", basename: "file", extension: "md"}`
  */
-export function parseFilePath(filepath: string): { name: string, basename: string, extension: string } {
+export function parseFilePath(filepath: string): { parent: string, name: string, basename: string, extension: string } {
 	let lastIndex = Math.max(filepath.lastIndexOf('/'), filepath.lastIndexOf('\\'));
 	let name = filepath;
+	let parent = '';
 	if (lastIndex >= 0) {
 		name = filepath.substring(lastIndex + 1);
+		parent = filepath.substring(0, lastIndex);
 	}
 
 	let dotIndex = name.lastIndexOf('.');
@@ -207,7 +209,7 @@ export function parseFilePath(filepath: string): { name: string, basename: strin
 		extension = name.substring(dotIndex + 1).toLowerCase();
 	}
 
-	return { name, basename, extension };
+	return { parent, name, basename, extension };
 }
 
 class FSReader extends Reader<NodeFS.promises.FileHandle> {
