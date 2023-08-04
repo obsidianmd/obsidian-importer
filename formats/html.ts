@@ -86,7 +86,9 @@ export class HtmlImporter extends FormatImporter {
 			.map(({ reason }) => reason));
 
 		this.showResult(result);
-		console.error(result.errors);
+		if (result.errors.length > 0) {
+			console.error(result.errors);
+		}
 	}
 
 	async processFile(result: ImportResult & { errors: unknown[] }, folder: TFolder, file: PickedFile) {
