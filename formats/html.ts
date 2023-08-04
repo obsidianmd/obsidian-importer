@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { fsPromises, nodeBufferToArrayBuffer, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
@@ -68,9 +68,62 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
+		const processedFiles = [];
+		progress.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			progress.reportProgress(i, files.length);
-			await this.processFile(progress, folder, files[i]);
+			const ret = await this.processFile(progress, folder, files[i]);
+			if (ret) {
+				processedFiles.push(ret);
+			}
+		}
+
+		const pf0 = processedFiles[0];
+		if (pf0) {
+			const resolved = new Promise<void>(resolve => {
+				const ref = this.app.metadataCache.on('resolved', () => {
+					try {
+						resolve();
+					}
+					finally {
+						this.app.metadataCache.offref(ref);
+					}
+				});
+			});
+			const appended = '\n';
+			await this.app.vault.append(pf0[1], appended);
+			await resolved;
+			await this.app.vault.process(pf0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
+		}
+
+		const interlinks = Object.fromEntries(processedFiles
+			.map(([file, tFile]) => [
+				file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : `${tFile.basename}.${file.extension}`,
+				tFile,
+			]));
+		for (const [file, tFile] of processedFiles) {
+			try {
+				const cache = this.app.metadataCache.getFileCache(tFile);
+				const replacements = Object.fromEntries((cache?.links ?? [])
+					.map(({ link, original, displayText }) => {
+						const { path, subpath } = parseLinktext(link);
+						const linkFile = interlinks[file instanceof NodePickedFile
+							? new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href
+							: parseFilePath(decodeURIComponent(path)).name];
+						if (!linkFile) {
+							return null;
+						}
+						return [original, this.app.fileManager.generateMarkdownLink(linkFile, tFile.path, subpath, displayText)];
+					})
+					.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
+				if (Object.keys(replacements).length > 0) {
+					const originals = alternativeRegExp(Object.keys(replacements));
+					await this.app.vault.process(tFile, data => data.replace(originals, sstr => replacements[sstr]));
+				}
+			}
+			catch (e) {
+				progress.reportFailed(file.toString(), e);
+			}
 		}
 	}
 
@@ -168,10 +221,12 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			progress.reportNoteSuccess(file.name);
+			return [file, mdFile] as const;
 		}
 		catch (e) {
 			progress.reportFailed(file.name, e);
 		}
+		return null;
 	}
 
 	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL) {
@@ -297,4 +352,18 @@ async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width:
 	finally {
 		URL.revokeObjectURL(url);
 	}
+}
+
+function escapeRegExp(str: string) {
+	return str.replace(/[\\^$.*+?()[\]{}|]/gu, '\\$&');
+}
+
+function alternativeRegExp(strs: readonly string[]) {
+	return strs.length > 0 ? new RegExp(
+		[...strs]
+			.sort(({ length: left }, { length: right }) => right - left)
+			.map(escapeRegExp)
+			.join('|'),
+		'gu',
+	) : /^\b$/gu;
 }
