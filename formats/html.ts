@@ -4,7 +4,7 @@ import { ImportResult } from '../main';
 
 export class HtmlImporter extends FormatImporter {
 	init() {
-		this.addFileChooserSetting('HTML (.htm .html)', ['htm', 'html']);
+		this.addFileChooserSetting('HTML', ['htm', 'html']);
 		this.addOutputLocationSetting('HTML');
 	}
 
