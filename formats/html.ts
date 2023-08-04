@@ -94,34 +94,35 @@ export class HtmlImporter extends FormatImporter {
 			await this.app.vault.append(pf0[1], appended);
 			await resolved;
 			await this.app.vault.process(pf0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
-		}
-		const interlinks = Object.fromEntries(processedFiles
-			.map(([file, tFile]) => [
-				file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : `${tFile.basename}.${file.extension}`,
-				tFile,
-			]));
-		for (const [file, tFile] of processedFiles) {
-			try {
-				const cache = this.app.metadataCache.getFileCache(tFile);
-				const replacements = Object.fromEntries((cache?.links ?? [])
-					.map(({ link, original, displayText }) => {
-						const { path, subpath } = parseLinktext(link);
-						const linkFile = interlinks[file instanceof NodePickedFile
-							? new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href
-							: parseFilePath(decodeURIComponent(path)).name];
-						if (!linkFile) {
-							return null;
-						}
-						return [original, this.app.fileManager.generateMarkdownLink(linkFile, tFile.path, subpath, displayText)];
-					})
-					.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
-				if (Object.keys(replacements).length > 0) {
-					const originals = alternativeRegExp(Object.keys(replacements));
-					await this.app.vault.process(tFile, data => data.replace(originals, sstr => replacements[sstr]));
+
+			const interlinks = Object.fromEntries(processedFiles
+				.map(([file, tFile]) => [
+					file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : `${tFile.basename}.${file.extension}`,
+					tFile,
+				]));
+			for (const [file, tFile] of processedFiles) {
+				try {
+					const cache = this.app.metadataCache.getFileCache(tFile);
+					const replacements = Object.fromEntries((cache?.links ?? [])
+						.map(({ link, original, displayText }) => {
+							const { path, subpath } = parseLinktext(link);
+							const linkFile = interlinks[file instanceof NodePickedFile
+								? new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href
+								: parseFilePath(decodeURIComponent(path)).name];
+							if (!linkFile) {
+								return null;
+							}
+							return [original, this.app.fileManager.generateMarkdownLink(linkFile, tFile.path, subpath, displayText)];
+						})
+						.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
+					if (Object.keys(replacements).length > 0) {
+						const originals = alternativeRegExp(Object.keys(replacements));
+						await this.app.vault.process(tFile, data => data.replace(originals, sstr => replacements[sstr]));
+					}
 				}
-			}
-			catch (e) {
-				progress.reportFailed(file.toString(), e);
+				catch (e) {
+					progress.reportFailed(file.toString(), e);
+				}
 			}
 		}
 	}
