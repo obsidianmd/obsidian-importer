@@ -82,12 +82,8 @@ export class HtmlImporter extends FormatImporter {
 		if (pf0) {
 			const resolved = new Promise<void>(resolve => {
 				const ref = this.app.metadataCache.on('resolved', () => {
-					try {
-						resolve();
-					}
-					finally {
-						this.app.metadataCache.offref(ref);
-					}
+					this.app.metadataCache.offref(ref);
+					resolve();
 				});
 			});
 			const appended = '\n';
