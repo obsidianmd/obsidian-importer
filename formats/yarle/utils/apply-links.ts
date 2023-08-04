@@ -17,7 +17,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 
 	const allconvertedFiles: Array<string> = [];
 	for (const outputFolder of outputNotebookFolders) {
-		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, undefined);
+		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, '');
 	}
 
 	for (const notebookFolder of outputNotebookFolders) {

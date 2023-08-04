@@ -23,6 +23,8 @@ export class Bear2bkImporter extends FormatImporter {
 			return;
 		}
 
+		let outputFolder = folder;
+
 		let results: ImportResult = {
 			total: 0,
 			skipped: [],
@@ -34,20 +36,20 @@ export class Bear2bkImporter extends FormatImporter {
 
 		for (let file of files) {
 			await file.readZip(async zip => {
-				for (let zipFileEntry of await zip.getEntries()) {
-					if (!zipFileEntry || zipFileEntry.directory) continue;
-					let { filename } = zipFileEntry;
-					let { parent, name, basename, extension } = parseFilePath(filename);
+				for (let entry of await zip.getEntries()) {
+					if (!entry || entry.directory || !entry.getData) continue;
+					let { filename } = entry;
+					let { parent, name, extension } = parseFilePath(filename);
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
-							let mdContent = await zipFileEntry.getData(new TextWriter());
+							let mdContent = await entry.getData(new TextWriter());
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
 							}
 							let filePath = normalizePath(mdFilename);
-							await this.saveAsMarkdownFile(folder, filePath, mdContent);
+							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
 							results.total++;
 						}
 						else if (filename.match(/\/assets\//g)) {
@@ -57,7 +59,7 @@ export class Bear2bkImporter extends FormatImporter {
 								results.skipped.push(filename);
 							}
 							else {
-								const assetData = await zipFileEntry.getData(new BlobWriter());
+								const assetData = await entry.getData(new BlobWriter());
 								await this.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
 							}
 							results.total++;

@@ -1,12 +1,10 @@
 import { fs } from 'filesystem';
 import { moment } from 'obsidian';
-import { NoteData } from './../models';
 import { MetaData } from './../models/MetaData';
 import { yarleOptions } from './../yarle';
 import { escapeStringRegexp } from './escape-string-regexp';
 
 export const getMetadata = (note: any, notebookName: string): MetaData => {
-
 	return {
 		createdAt: getCreationTime(note),
 		updatedAt: getUpdateTime(note),
@@ -26,24 +24,20 @@ export const getTitle = (note: any): string => {
 export const getCreationTime = (note: any): string => {
 	return !yarleOptions.skipCreationTime && note.created
 		? moment(note.created).format(yarleOptions.dateFormat)
-		: undefined;
+		: '';
 };
 
 export const getUpdateTime = (note: any): string => {
 	return !yarleOptions.skipUpdateTime && note.updated
 		? moment(note.updated).format(yarleOptions.dateFormat)
-		: undefined;
+		: '';
 };
 
 export const getSourceUrl = (note: any): string => {
 	return !yarleOptions.skipSourceUrl &&
 	note['note-attributes']
 		? note['note-attributes']['source-url']
-		: undefined;
-};
-
-export const getLinkToOriginal = (note: any): string => {
-	return undefined;
+		: '';
 };
 
 export const getLatLong = (note: any): string => {
@@ -51,34 +45,34 @@ export const getLatLong = (note: any): string => {
 	note['note-attributes'] &&
 	note['note-attributes'].longitude
 		? `${note['note-attributes'].latitude},${note['note-attributes'].longitude}`
-		: undefined;
+		: '';
 };
 export const getReminderTime = (note: any): string => {
 	return !yarleOptions.skipReminderTime &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-time']
 		? moment(note['note-attributes']['reminder-time']).format(yarleOptions.dateFormat)
-		: undefined;
+		: '';
 };
 export const getReminderOrder = (note: any): string => {
 	return !yarleOptions.skipReminderOrder &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-order']
 		? note['note-attributes']['reminder-order']
-		: undefined;
+		: '';
 };
 export const getReminderDoneTime = (note: any): string => {
 	return !yarleOptions.skipReminderDoneTime &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-done-time']
 		? moment(note['note-attributes']['reminder-done-time']).format(yarleOptions.dateFormat)
-		: undefined;
+		: '';
 };
 /*
 <reminder-order>
 <reminder-time>
 <reminder-done-time> */
-export const getTags = (note: any): NoteData => {
+export const getTags = (note: any): { tags: string } => {
 	return { tags: logTags(note) };
 
 };
@@ -106,7 +100,7 @@ export const logTags = (note: any): string => {
 		return tags.join(' ');
 	}
 
-	return undefined;
+	return '';
 };
 
 let btime: any;

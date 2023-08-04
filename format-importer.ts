@@ -47,6 +47,7 @@ export abstract class FormatImporter {
 						inputEl.type = 'file';
 						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 						inputEl.addEventListener('change', () => {
+							if (!inputEl.files) return;
 							let files = Array.from(inputEl.files);
 							if (files.length > 0) {
 								this.files = files.map(file => new WebPickedFile(file))
@@ -96,7 +97,7 @@ export abstract class FormatImporter {
 				.then(text => this.outputLocationSettingInput = text));
 	}
 
-	async getOutputFolder(): Promise<TFolder> | null {
+	async getOutputFolder(): Promise<TFolder | null> {
 		let { vault } = this.app;
 
 		let folderPath = this.outputLocationSettingInput.getValue();

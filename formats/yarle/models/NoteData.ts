@@ -3,9 +3,9 @@ import { InternalLink } from './InternalLink';
 export interface NoteData {
 	title?: string;
 	tags?: string;
-	content?: string;
+	content: string;
 	originalContent?: string;
-	htmlContent?: string;
+	htmlContent: string;
 	createdAt?: string;
 	updatedAt?: string;
 	sourceUrl?: string;

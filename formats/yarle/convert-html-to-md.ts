@@ -8,7 +8,7 @@ const unwrapElement = (node: Element) => {
 };
 
 const swapParent = (wrapper: Element) => {
-	const inner = wrapper.parentElement;
+	const inner = wrapper.parentElement!;
 	inner.replaceWith(...Array.from(inner.childNodes));
 	inner.append(...Array.from(wrapper.childNodes));
 	wrapper.appendChild(inner);
@@ -41,8 +41,8 @@ const fixSublists = (node: HTMLElement) => {
 	const listElements = ulElements.concat(olElements);
 
 	listElements.forEach(listNode => {
-		if (listNode.parentElement.tagName === 'LI') {
-			listNode.parentElement.replaceWith(listNode);
+		if (listNode.parentElement!.tagName === 'LI') {
+			listNode.parentElement!.replaceWith(listNode);
 		}
 		if (
 			listNode.previousElementSibling &&
@@ -81,8 +81,7 @@ const fixSublists = (node: HTMLElement) => {
 	return node;
 };
 
-export const convertHtml2Md = (yarleOptions: YarleOptions, { htmlContent }: NoteData): NoteData => {
-
+export const convertHtml2Md = (yarleOptions: YarleOptions, { htmlContent }: NoteData): {content: string} => {
 	const content = htmlContent.replace(/<!DOCTYPE en-note [^>]*>/, '<!DOCTYPE html>')
 		.replace(/(<a [^>]*)\/>/, '$1></a>').replace(/<div[^\/\<]*\/>/g, '');
 

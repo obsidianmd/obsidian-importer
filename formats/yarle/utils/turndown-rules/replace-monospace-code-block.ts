@@ -46,7 +46,7 @@ const isMonospaceCodeBlock: (node: any) => boolean = node => {
 
 	const font = deepestFont(node);
 
-	return font && reMonospaceFont.test(font);
+	return !!font && reMonospaceFont.test(font);
 };
 /*
 export const monospaceCodeBlockRule = {
