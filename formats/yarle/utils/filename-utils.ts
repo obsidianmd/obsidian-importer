@@ -67,7 +67,7 @@ export const getNoteFileName = (dstPath: string, note: any, extension: string = 
 export const getExtensionFromResourceFileName = (resource: any): string => {
 	if (!(resource['resource-attributes'] &&
 		resource['resource-attributes']['file-name'])) {
-		return undefined;
+		return '';
 	}
 	const splitFileName = resource['resource-attributes']['file-name'].split('.');
 
@@ -78,10 +78,10 @@ export const getExtensionFromResourceFileName = (resource: any): string => {
 export const getExtensionFromMime = (resource: any): string => {
 	const mimeType = resource.mime;
 	if (!mimeType) {
-		return undefined;
+		return '';
 	}
 
-	return extension(mimeType) || undefined;
+	return extension(mimeType) || '';
 };
 
 export const getExtension = (resource: any): string => {

@@ -4,8 +4,8 @@ import { TagSeparatorReplaceOptions } from './models';
 export interface YarleOptions {
 	enexSources: PickedFile[];
 	templateFile?: string;
-	currentTemplate?: string;
-	outputDir?: string;
+	currentTemplate: string;
+	outputDir: string;
 	isMetadataNeeded?: boolean;
 	isNotebookNameNeeded?: boolean;
 	isZettelkastenNeeded?: boolean;
@@ -28,7 +28,7 @@ export interface YarleOptions {
 	keepMDCharactersOfENNotes?: boolean;
 	urlEncodeFileNamesAndLinks?: boolean;
 	sanitizeResourceNameSpaces?: boolean;
-	replacementChar?: string;
+	replacementChar: string;
 	monospaceIsCodeBlock?: boolean;
 	dateFormat?: string;
 	nestedTags?: TagSeparatorReplaceOptions;
@@ -37,7 +37,7 @@ export interface YarleOptions {
 	generateNakedUrls?: boolean;
 	addExtensionToInternalLinks?: boolean;
 	pathSeparator?: string;
-	resourcesDir?: string;
+	resourcesDir: string;
 	turndownOptions?: Record<string, any>;
 	obsidianTaskTag?: string;
 	useUniqueUnknownFileNames?: boolean;

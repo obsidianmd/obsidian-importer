@@ -7,7 +7,7 @@ import { yarleOptions } from './yarle';
 
 const getResourceWorkDirs = (note: any) => {
 	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
-	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, yarleOptions.pathSeparator);
+	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, yarleOptions.pathSeparator || '/');
 	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,yarleOptions.pathSeparator)
 
 	return { absoluteResourceWorkDir, relativeResourceWorkDir };
@@ -27,14 +27,14 @@ export const processResources = (note: any): string => {
 		for (const resource of note.resource) {
 			resourceHashes = {
 				...resourceHashes,
-				...processResource(absoluteResourceWorkDir, resource)
+				...processResource(absoluteResourceWorkDir, resource),
 			};
 		}
 	}
 	else {
 		resourceHashes = {
 			...resourceHashes,
-			...processResource(absoluteResourceWorkDir, note.resource)
+			...processResource(absoluteResourceWorkDir, note.resource),
 		};
 	}
 
@@ -158,7 +158,7 @@ const createResourceFromData = (
 
 const extensionForMimeType = (mediatype: string): string => {
 	// image/jpeg or image/svg+xml or audio/wav or ...
-	const subtype = mediatype.split('/').pop(); // jpeg or svg+xml or wav
+	const subtype = mediatype.split('/').pop()!; // jpeg or svg+xml or wav
 
 	return subtype.split('+')[0]; // jpeg or svg or wav
 };

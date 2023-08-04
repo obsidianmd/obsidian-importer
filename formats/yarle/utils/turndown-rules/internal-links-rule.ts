@@ -67,7 +67,7 @@ let htmlUnescapes: any = {
 	'&lt;': '<',
 	'&gt;': '>',
 	'&quot;': '"',
-	'&#39;': '\''
+	'&#39;': '\'',
 };
 
 let reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g;

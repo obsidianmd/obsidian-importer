@@ -1,15 +1,15 @@
-import { App, normalizePath, Platform, Setting, TextComponent, TFile, TFolder, Vault } from 'obsidian';
+import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
-import { ImporterModal, ImportResult } from './main';
+import { ImporterModal, ProgressReporter } from './main';
 import { sanitizeFileName } from './util';
 
 export abstract class FormatImporter {
 	app: App;
 	vault: Vault;
 	modal: ImporterModal;
-	files: PickedFile[] = [];
 
-	outputLocationSettingInput: TextComponent;
+	files: PickedFile[] = [];
+	outputLocation: string = '';
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
@@ -47,6 +47,7 @@ export abstract class FormatImporter {
 						inputEl.type = 'file';
 						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 						inputEl.addEventListener('change', () => {
+							if (!inputEl.files) return;
 							let files = Array.from(inputEl.files);
 							if (files.length > 0) {
 								this.files = files.map(file => new WebPickedFile(file))
@@ -80,26 +81,26 @@ export abstract class FormatImporter {
 
 		let updateFiles = () => {
 			let descriptionFragment = document.createDocumentFragment();
-			descriptionFragment.createEl('span', { text: `These files will be imported: ` });
+			descriptionFragment.createEl('span', { text: 'These files will be imported: ' });
 			descriptionFragment.createEl('br');
 			descriptionFragment.createEl('span', { cls: 'u-pop', text: this.files.map(f => f.name).join(', ') });
 			fileLocationSetting.setDesc(descriptionFragment);
 		};
 	}
 
-	addOutputLocationSetting(defaultExportFolerName: string) {
+	addOutputLocationSetting(defaultExportFolderName: string) {
 		new Setting(this.modal.contentEl)
 			.setName('Output folder')
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
-				.setValue(defaultExportFolerName)
-				.then(text => this.outputLocationSettingInput = text));
+				.setValue(defaultExportFolderName)
+				.onChange(value => this.outputLocation = value));
 	}
 
-	async getOutputFolder(): Promise<TFolder> | null {
+	async getOutputFolder(): Promise<TFolder | null> {
 		let { vault } = this.app;
 
-		let folderPath = this.outputLocationSettingInput.getValue();
+		let folderPath = this.outputLocation;
 		if (folderPath === '') {
 			folderPath = '/';
 		}
@@ -118,45 +119,11 @@ export abstract class FormatImporter {
 		return null;
 	}
 
-	abstract import(): Promise<void>;
+	abstract import(progress: ProgressReporter): Promise<any>;
 
-	showResult(result: ImportResult) {
-		let { modal } = this;
-		let { contentEl } = modal;
-
-		contentEl.empty();
-
-		contentEl.createEl('p', { text: `You successfully imported ${result.total - result.failed.length - result.skipped.length} notes, out of ${result.total} total notes!` });
-
-		if (result.skipped.length > 0 || result.failed.length > 0) {
-			contentEl.createEl('p', { text: `${result.skipped.length} notes were skipped and ${result.failed.length} notes failed to import.` });
-		}
-
-		if (result.skipped.length > 0) {
-			contentEl.createEl('p', { text: `Skipped notes:` });
-			contentEl.createEl('ul', {}, el => {
-				for (let note of result.skipped) {
-					el.createEl('li', { text: note });
-				}
-			});
-		}
-
-		if (result.failed.length > 0) {
-			contentEl.createEl('p', { text: `Failed to import:` });
-			contentEl.createEl('ul', {}, el => {
-				for (let note of result.failed) {
-					el.createEl('li', { text: note });
-				}
-			});
-		}
-
-		contentEl.createDiv('button-container u-center-text', el => {
-			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
-				el.addEventListener('click', async () => {
-					modal.close();
-				});
-			});
-		});
+	// Deprecated, only here until current PRs are closed
+	showResult(result: any) {
+		console.log(result);
 	}
 
 	// Utility functions for vault

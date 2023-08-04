@@ -963,7 +963,7 @@ let extensions: Record<string, string> = {
 	'video/x-msvideo': 'avi',
 	'video/x-sgi-movie': 'movie',
 	'video/x-smv': 'smv',
-	'x-conference/x-cooltalk': 'ice'
+	'x-conference/x-cooltalk': 'ice',
 };
 
 /*
