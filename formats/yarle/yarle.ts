@@ -1,7 +1,8 @@
-import flow from 'xml-flow';
+import { Platform } from 'obsidian';
 import { fs, NodePickedFile, path, PickedFile } from '../../filesystem';
 import { ImportResult } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
+import { YarleOptions } from './options';
 import { processNode } from './process-node';
 import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
@@ -11,7 +12,8 @@ import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
 import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
-import { YarleOptions } from './YarleOptions';
+
+const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
 
 export const defaultYarleOptions: YarleOptions = {
 	enexSources: [],

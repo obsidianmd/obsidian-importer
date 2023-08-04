@@ -63,14 +63,20 @@ export abstract class FormatImporter {
 									}
 								);
 
-							if (
-								!result.canceled &&
-								result.filePaths.length > 0
-							) {
-								this.files = result.filePaths.map(
-									(filepath: string) =>
-										new NodePickedFile(filepath)
-								);
+						if (!result.canceled && result.filePaths.length > 0) {
+							this.files = result.filePaths.map((filepath: string) => new NodePickedFile(filepath));
+							updateFiles();
+						}
+					}
+					else {
+						let inputEl = createEl('input');
+						inputEl.type = 'file';
+						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
+						inputEl.addEventListener('change', () => {
+							let files = Array.from(inputEl.files);
+							if (files.length > 0) {
+								this.files = files.map(file => new WebPickedFile(file))
+									.filter(file => extensions.contains(file.extension));
 								updateFiles();
 							}
 						} else {

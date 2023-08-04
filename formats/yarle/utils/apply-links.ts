@@ -1,7 +1,7 @@
 import { fs, path } from '../../../filesystem';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
-import { YarleOptions } from './../YarleOptions';
+import { YarleOptions } from '../options';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { truncatFileName } from './folder-utils';
 import { getAllOutputFilesWithExtension } from './get-all-output-files';
