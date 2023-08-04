@@ -1,9 +1,0 @@
-{
-	"printWidth": 120,
-	"bracketSameLine": true,
-	"useTabs": true,
-	"tabWidth": 2,
-	"semi": true,
-	"quoteProps": "consistent",
-	"arrowParens": "avoid"
-}
