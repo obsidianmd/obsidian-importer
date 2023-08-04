@@ -153,7 +153,7 @@ export class HtmlImporter extends FormatImporter {
 							}
 						});
 					});
-					await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
+					await this.app.vault.modify(mdFile, mdContent);
 
 					const embeds = Object.fromEntries(((await cache).embeds ?? [])
 						.map(({ link, original, displayText }) => {
@@ -169,7 +169,7 @@ export class HtmlImporter extends FormatImporter {
 						await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
 					}
 				} else {
-					await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
+					await this.app.vault.modify(mdFile, mdContent);
 				}
 			}
 
