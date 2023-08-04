@@ -9,13 +9,13 @@ import { parseFiles } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
 	init() {
-		this.addFileChooserSetting('Notion HTML export folder', ['html'], true);
+		this.addFileChooserSetting('Exported Notion .zip', ['zip'], true);
 		this.addOutputLocationSetting('Notion');
 	}
 
 	async import(): Promise<void> {
 		let { app, files } = this;
-		this.files;
+
 		let targetFolderPath = (await this.getOutputFolder()).path;
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath.endsWith('/')) targetFolderPath += '/';
@@ -25,12 +25,6 @@ export class NotionImporter extends FormatImporter {
 			new Notice('Please pick at least one folder to import.');
 			return;
 		}
-
-		const folderPathsReplacement = new RegExp(
-			`^(${folderPaths
-				.map((folderPath) => escapeRegex('/' + folderPath))
-				.join('|')})`
-		);
 
 		let results: ImportResult = {
 			total: 0,
@@ -45,10 +39,7 @@ export class NotionImporter extends FormatImporter {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			results,
-			folderPathsReplacement,
 		});
-
-		results.total = files.length;
 
 		const attachmentFolderPath = app.vault.getConfig(
 			'attachmentFolderPath'

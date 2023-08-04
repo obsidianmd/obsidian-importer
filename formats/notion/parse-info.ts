@@ -9,6 +9,7 @@ import {
 import { getNotionId } from './notion-utils';
 import { htmlToMarkdown } from 'obsidian';
 import { PickedFile } from 'filesystem';
+import { BlobWriter, Entry, TextWriter } from '@zip.js/zip.js';
 
 export async function parseFiles(
 	files: PickedFile[],
@@ -16,76 +17,84 @@ export async function parseFiles(
 		idsToFileInfo,
 		pathsToAttachmentInfo,
 		results,
-		folderPathsReplacement,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 		results: ImportResult;
-		folderPathsReplacement: RegExp;
 	}
 ) {
-	for (let file of files) {
-		try {
-			const normalizedFilePath = file.basename.replace(
-				folderPathsReplacement,
-				''
-			);
+	const parser = new DOMParser();
 
-			const text = await file.readText();
-			const { id, fileInfo } = parseFileInfo({
-				text,
-				file,
-				normalizedFilePath,
-			});
+	for (let zip of files) {
+		await zip.readZip(async (zip) => {
+			const entries = await zip.getEntries();
 
-			for (let link of fileInfo.notionLinks) {
-				if (
-					link.type !== 'attachment' ||
-					pathsToAttachmentInfo[link.path]
-				)
-					continue;
-				const basicFileName = matchFilename(link.path);
-				const attachmentInfo: NotionAttachmentInfo = {
-					nameWithExtension: sanitizeFileName(
-						`${basicFileName || 'Untitled'}.${getFileExtension(
-							link.path
-						)}`
-					),
-					parentFolderPath: '',
-					fullLinkPathNeeded: false,
-					parentIds: fileInfo.parentIds,
-					path: link.path,
-				};
-				pathsToAttachmentInfo[link.path] = attachmentInfo;
+			for (let file of entries.filter((file) =>
+				file.filename.endsWith('.html')
+			)) {
+				console.log('getting text', file.filename);
+
+				// Stuck on this line which throws a failed GET request to app://obsidian.md/undefined
+				const text = await file.getData(new TextWriter('utf-8'));
+
+				console.log('got text', text);
+
+				const { id, fileInfo } = parseFileInfo({
+					text,
+					file,
+					parser,
+				});
+
+				for (let link of fileInfo.notionLinks) {
+					if (
+						link.type !== 'attachment' ||
+						pathsToAttachmentInfo[link.path]
+					)
+						continue;
+					const basicFileName = matchFilename(link.path);
+					const attachmentInfo: NotionAttachmentInfo = {
+						nameWithExtension: sanitizeFileName(
+							`${basicFileName || 'Untitled'}.${getFileExtension(
+								link.path
+							)}`
+						),
+						parentFolderPath: '',
+						fullLinkPathNeeded: false,
+						parentIds: fileInfo.parentIds,
+						path: link.path,
+					};
+					pathsToAttachmentInfo[link.path] = attachmentInfo;
+				}
+
+				idsToFileInfo[id] = fileInfo;
 			}
-
-			idsToFileInfo[id] = fileInfo;
-		} catch (e) {
-			console.error(e);
-			results.failed.push(filePath);
-		}
+		});
 	}
 }
 
 const parseFileInfo = ({
 	text,
 	file,
-	normalizedFilePath,
+	parser,
 }: {
 	text: string;
-	file: PickedFile;
-	normalizedFilePath: string;
+	file: Entry;
+	parser: DOMParser;
 }) => {
-	const parentIds = getParentFolder(normalizedFilePath)
+	const filePath = file.filename;
+
+	console.log(text, file.filename);
+
+	const parentIds = getParentFolder(file.filename)
 		.split('/')
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id);
 
-	const document = new DOMParser().parseFromString(text, 'text/html');
+	const document = parser.parseFromString(text, 'text/html');
 	const id = getNotionId(
 		document.querySelector('article').getAttribute('id')
 	);
-	if (!id) throw new Error('no id found for: ' + filePath);
+	if (!id) throw new Error('no id found for: ' + file.filename);
 	const parsedTitle =
 		document.querySelector('title').textContent || 'Untitled';
 
