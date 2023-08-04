@@ -48,7 +48,7 @@ export class RoamJSONImporter extends FormatImporter {
 			downloadAttachments:this.downloadAttachments
 		};
 
-		let results = await importRoamJson(roamOptions);
+		let results = await importRoamJson([roamOptions]);
 
 		this.showResult(results);
 	}

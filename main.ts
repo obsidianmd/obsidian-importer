@@ -88,8 +88,9 @@ export default class ImporterPlugin extends Plugin {
 		};
 
 
-		let results = await importRoamJson(myPickedFile);
+		let results = await importRoamJson([myPickedFile]);
 		console.log(results)
+		throw ""
 		//
 		//
 		this.importers = {
