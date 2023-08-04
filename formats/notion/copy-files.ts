@@ -8,6 +8,8 @@ import {
 	escapeRegex,
 	getParentFolder,
 } from '../../util';
+import { PickedFile } from 'filesystem';
+import { BlobReader, BlobWriter } from '@zip.js/zip.js';
 
 export async function copyFiles({
 	idsToFileInfo,
@@ -32,7 +34,7 @@ export async function copyFiles({
 		)
 		.concat(
 			Object.values(pathsToAttachmentInfo).map(
-				(attachmentInfo) => attachmentInfo.parentFolderPath
+				(attachmentInfo) => attachmentInfo.targetParentFolder
 			)
 		);
 
@@ -73,16 +75,16 @@ export async function copyFiles({
 	}
 
 	for (let path of Object.keys(pathsToAttachmentInfo)) {
-		const attachmentInfo = pathsToAttachmentInfo[path];
-		console.log(path);
+		const attachment = pathsToAttachmentInfo[path];
 
 		try {
-			const data = await readFile(path);
+			const attachmentInfo = pathsToAttachmentInfo[path];
+
 			await app.vault.adapter.writeBinary(
 				normalizePath(
-					`${attachmentInfo.parentFolderPath}${attachmentInfo.nameWithExtension}`
+					`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`
 				),
-				data
+				attachment.data
 			);
 		} catch (e) {
 			console.error(e);

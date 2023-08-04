@@ -6,6 +6,7 @@ import { cleanDuplicates } from './notion/clean-duplicates';
 import { convertNotesToMd } from './notion/convert-to-md';
 import { copyFiles } from './notion/copy-files';
 import { parseFiles } from './notion/parse-info';
+import { ZipReader } from '@zip.js/zip.js';
 
 export class NotionImporter extends FormatImporter {
 	init() {
@@ -41,9 +42,13 @@ export class NotionImporter extends FormatImporter {
 			results,
 		});
 
+		results.total += Object.keys(pathsToAttachmentInfo).length;
+
 		const attachmentFolderPath = app.vault.getConfig(
 			'attachmentFolderPath'
 		);
+
+		console.log(pathsToAttachmentInfo);
 
 		cleanDuplicates({
 			idsToFileInfo,

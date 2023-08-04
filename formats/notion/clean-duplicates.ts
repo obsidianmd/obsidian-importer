@@ -143,7 +143,7 @@ function cleanDuplicateAttachments({
 			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
 		}
 
-		attachmentInfo.parentFolderPath = parentFolderPath;
+		attachmentInfo.targetParentFolder = parentFolderPath;
 
 		attachmentPaths.add(
 			parentFolderPath + attachmentInfo.nameWithExtension

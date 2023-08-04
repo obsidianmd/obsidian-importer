@@ -1,3 +1,5 @@
+import { Entry } from '@zip.js/zip.js';
+import { PickedFile } from 'filesystem';
 import 'obsidian';
 import { FileSystemAdapter } from 'obsidian';
 
@@ -66,9 +68,10 @@ declare global {
 	type NotionAttachmentInfo = {
 		path: string;
 		nameWithExtension: string;
-		parentFolderPath: string;
+		targetParentFolder: string;
 		fullLinkPathNeeded: boolean;
 		parentIds: string[];
+		data: ArrayBuffer;
 	};
 }
 

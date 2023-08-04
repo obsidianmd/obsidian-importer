@@ -1,4 +1,9 @@
-import { escapeRegex, matchFilename, pathToFilename } from '../../util';
+import {
+	escapeRegex,
+	getParentFolder,
+	matchFilename,
+	pathToFilename,
+} from '../../util';
 
 export const isNotionId = (id: string) =>
 	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
@@ -10,6 +15,12 @@ export const stripNotionId = (id: string) => {
 export const getNotionId = (id: string) => {
 	return id.replace(/-/g, '').match(/([a-z0-9]{32})(\?|\.|$)/)?.[1];
 };
+
+export const parseParentIds = (filename: string) =>
+	getParentFolder(filename)
+		.split('/')
+		.map((parentNote) => getNotionId(parentNote))
+		.filter((id) => id);
 
 export const assembleParentIds = (
 	fileInfo: NotionFileInfo | NotionAttachmentInfo,

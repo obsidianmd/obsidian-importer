@@ -59,7 +59,8 @@ export function convertNotesToMd({
 
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 	body.querySelectorAll(tag).forEach((el) => {
-		if (el.parentElement.tagName === tag.toUpperCase()) return;
+		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase())
+			return;
 		let firstNested = el.querySelector(tag);
 		while (firstNested) {
 			const childrenOfNested = firstNested.childNodes;
@@ -243,7 +244,7 @@ function convertLinksToObsidian(
 				}
 				linkContent = `${embedAttachments ? '!' : ''}[[${
 					attachmentInfo.fullLinkPathNeeded
-						? attachmentInfo.parentFolderPath +
+						? attachmentInfo.targetParentFolder +
 						  attachmentInfo.nameWithExtension +
 						  '|' +
 						  attachmentInfo.nameWithExtension

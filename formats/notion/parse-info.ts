@@ -6,7 +6,7 @@ import {
 	matchFilename,
 	sanitizeFileName,
 } from '../../util';
-import { getNotionId } from './notion-utils';
+import { assembleParentIds, getNotionId, parseParentIds } from './notion-utils';
 import { htmlToMarkdown } from 'obsidian';
 import { PickedFile } from 'filesystem';
 import { BlobWriter, Entry, TextWriter } from '@zip.js/zip.js';
@@ -25,48 +25,56 @@ export async function parseFiles(
 ) {
 	const parser = new DOMParser();
 
-	for (let zip of files) {
-		await zip.readZip(async (zip) => {
+	for (let zipFile of files) {
+		await zipFile.readZip(async (zip) => {
 			const entries = await zip.getEntries();
 
-			for (let file of entries.filter((file) =>
-				file.filename.endsWith('.html')
-			)) {
-				console.log('getting text', file.filename);
+			const isDatabaseCSV = (filename: string) =>
+				filename.endsWith('.csv') && getNotionId(filename);
 
-				// Stuck on this line which throws a failed GET request to app://obsidian.md/undefined
-				const text = await file.getData(new TextWriter('utf-8'));
+			const attachmentFileNames = entries
+				.filter(
+					(file) =>
+						!file.filename.endsWith('.html') &&
+						!isDatabaseCSV(file.filename)
+				)
+				.map((entry) => entry.filename);
 
-				console.log('got text', text);
+			for (let file of entries) {
+				if (isDatabaseCSV(file.filename)) continue;
 
-				const { id, fileInfo } = parseFileInfo({
-					text,
-					file,
-					parser,
-				});
+				if (file.filename.endsWith('.html')) {
+					results.total++;
+					const text = await file.getData(new TextWriter());
 
-				for (let link of fileInfo.notionLinks) {
-					if (
-						link.type !== 'attachment' ||
-						pathsToAttachmentInfo[link.path]
-					)
-						continue;
-					const basicFileName = matchFilename(link.path);
+					const { id, fileInfo } = parseFileInfo({
+						text,
+						file,
+						parser,
+						attachmentFileNames,
+					});
+
+					idsToFileInfo[id] = fileInfo;
+				} else {
+					const basicFileName = matchFilename(file.filename);
+					// maybe shouldn't save data in the object? But for now it's simpler.
+					const data = await (
+						await file.getData(new BlobWriter())
+					).arrayBuffer();
 					const attachmentInfo: NotionAttachmentInfo = {
 						nameWithExtension: sanitizeFileName(
 							`${basicFileName || 'Untitled'}.${getFileExtension(
-								link.path
+								file.filename
 							)}`
 						),
-						parentFolderPath: '',
+						targetParentFolder: '',
 						fullLinkPathNeeded: false,
-						parentIds: fileInfo.parentIds,
-						path: link.path,
+						parentIds: parseParentIds(file.filename),
+						path: file.filename,
+						data,
 					};
-					pathsToAttachmentInfo[link.path] = attachmentInfo;
+					pathsToAttachmentInfo[file.filename] = attachmentInfo;
 				}
-
-				idsToFileInfo[id] = fileInfo;
 			}
 		});
 	}
@@ -76,19 +84,16 @@ const parseFileInfo = ({
 	text,
 	file,
 	parser,
+	attachmentFileNames,
 }: {
 	text: string;
 	file: Entry;
 	parser: DOMParser;
+	attachmentFileNames: string[];
 }) => {
 	const filePath = file.filename;
 
-	console.log(text, file.filename);
-
-	const parentIds = getParentFolder(file.filename)
-		.split('/')
-		.map((parentNote) => getNotionId(parentNote))
-		.filter((id) => id);
+	const parentIds = parseParentIds(file.filename);
 
 	const document = parser.parseFromString(text, 'text/html');
 	const id = getNotionId(
@@ -126,7 +131,10 @@ const parseFileInfo = ({
 	if (rawProperties) {
 		for (let i = 0; i < rawProperties.length; i++) {
 			const row = rawProperties.item(i) as HTMLTableRowElement;
-			const property = getProperty(row, filePath);
+			const property = getProperty(row, {
+				filePath,
+				attachmentFileNames,
+			});
 			if (property.body.textContent) properties.push(property);
 		}
 	}
@@ -135,7 +143,10 @@ const parseFileInfo = ({
 		`div[class=page-body]`
 	) as HTMLDivElement;
 
-	const notionLinks = getNotionLinks(body, filePath);
+	const notionLinks = getNotionLinks(body, {
+		filePath,
+		attachmentFileNames,
+	});
 	const fileInfo: NotionFileInfo = {
 		path: filePath,
 		parentIds,
@@ -153,7 +164,13 @@ const parseFileInfo = ({
 	};
 };
 
-const getProperty = (property: HTMLTableRowElement, filePath: string) => {
+const getProperty = (
+	property: HTMLTableRowElement,
+	{
+		filePath,
+		attachmentFileNames,
+	}: { filePath: string; attachmentFileNames: string[] }
+) => {
 	const notionType = property.className.match(
 		/property-row-(.*)/
 	)?.[1] as NotionPropertyType;
@@ -195,23 +212,33 @@ const getProperty = (property: HTMLTableRowElement, filePath: string) => {
 		type: obsidianType,
 		notionType,
 		body,
-		links: getNotionLinks(body, filePath),
+		links: getNotionLinks(body, { filePath, attachmentFileNames }),
 	};
 
 	return parsedProperty;
 };
 
-export const getNotionLinks = (body: HTMLElement, filePath: string) => {
-	const thisFileHref = matchFilename(filePath);
+export const getNotionLinks = (
+	body: HTMLElement,
+	{
+		filePath,
+		attachmentFileNames,
+	}: {
+		filePath: string;
+		attachmentFileNames: string[];
+	}
+) => {
 	const links: NotionLink[] = [];
 	const parentFolder = getParentFolder(filePath);
 
 	body.querySelectorAll('a').forEach((a) => {
 		const decodedURI = decodeURI(a.getAttribute('href'));
 		const id = getNotionId(decodedURI);
+
 		if (
-			decodedURI.includes(thisFileHref) &&
-			!decodedURI.endsWith('.html')
+			attachmentFileNames.find((filename) =>
+				filename.includes(decodedURI)
+			)
 		) {
 			links.push({
 				type: 'attachment',
@@ -222,8 +249,6 @@ export const getNotionLinks = (body: HTMLElement, filePath: string) => {
 			links.push({ type: 'relation', a, id });
 		}
 	});
-
-	console.log('links', links);
 
 	return links;
 };
