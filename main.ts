@@ -2,7 +2,7 @@ import { App, Modal, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { Bear2bkImporter } from 'formats/bear-bear2bk';
+import { Bear2bkImporter } from './formats/bear-bear2bk';
 
 declare global {
 	interface Window {
@@ -35,7 +35,7 @@ export default class ImporterPlugin extends Plugin {
 				importer: HtmlImporter,
 			},
       'bear': {
-        name: 'Bear (.bearbk)',
+        name: 'Bear (.bear2bk)',
         importer: Bear2bkImporter,
       }
 		};

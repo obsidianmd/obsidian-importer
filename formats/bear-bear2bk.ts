@@ -4,8 +4,6 @@ import { BlobWriter, TextWriter } from "@zip.js/zip.js";
 import { Notice, normalizePath } from "obsidian";
 import { ImportResult } from '../main';
 
-const EXPORTED_ASSETS_FOLDER_NAME = 'bear-assets';
-
 export class Bear2bkImporter extends FormatImporter {
   init() {
     this.addFileChooserSetting('Bear2bk (.bear2bk)', ['bear2bk']);
@@ -31,8 +29,7 @@ export class Bear2bkImporter extends FormatImporter {
       failed: []
     };
 
-    // @ts-ignore
-    const attachmentsFolderPath = await this.createFolders(EXPORTED_ASSETS_FOLDER_NAME);
+    const attachmentsFolderPath = await this.createFolders(`${(await this.getOutputFolder()).path}/assets`);
     const assetMatcher = /!\[\]\(assets\//g;
 
     for (let file of files) {
@@ -40,21 +37,20 @@ export class Bear2bkImporter extends FormatImporter {
         for (let zipFileEntry of await zip.getEntries()) {
           try {
             if (!zipFileEntry) continue;
-            if (zipFileEntry.filename.match(/\.md|.markdown$/)) {
+            let { extension } = parseFilePath(zipFileEntry.filename);
+            if (extension === 'md' || extension === 'markdown') {
               const paths = zipFileEntry.filename.replace(`/${parseFilePath(zipFileEntry.filename).basename}`, '').split('/');
               const mdFilename = paths[paths.length - 1]?.replace('.textbundle', '');
               let mdContent = await zipFileEntry.getData(new TextWriter());
               if (mdContent.match(assetMatcher)) {
                 // Replace asset paths with new asset folder path.
                 mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
-                let filePath = normalizePath(mdFilename);
-                await this.saveAsMarkdownFile(folder, filePath, mdContent);
-                results.total++;
-                continue;
               }
-            }
-
-            if (zipFileEntry.filename.match(/\/assets\//g)) {
+              let filePath = normalizePath(mdFilename);
+              await this.saveAsMarkdownFile(folder, filePath, mdContent);
+              results.total++;
+              continue;
+            } else if (zipFileEntry.filename.match(/\/assets\//g)) {
               const assetData = await zipFileEntry.getData(new BlobWriter());
               const { basename: assetFilename, extension: assetExtension } = parseFilePath(zipFileEntry.filename);
               const assetFileVaultPath = `${attachmentsFolderPath.path}/${assetFilename}.${assetExtension}`;
@@ -64,6 +60,10 @@ export class Bear2bkImporter extends FormatImporter {
               } else {
                 await this.app.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
               }
+              results.total++;
+              continue;
+            } else {
+              results.skipped.push(zipFileEntry.filename);
               results.total++;
               continue;
             }
