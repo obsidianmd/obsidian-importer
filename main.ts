@@ -34,10 +34,10 @@ export default class ImporterPlugin extends Plugin {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
 			},
-      'bear': {
-        name: 'Bear (.bear2bk)',
-        importer: Bear2bkImporter,
-      }
+            'bear': {
+              name: 'Bear (.bear2bk)',
+              importer: Bear2bkImporter,
+            }
 		};
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
