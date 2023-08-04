@@ -21,10 +21,6 @@ data.json
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 
-# Ignore artifacts:
-build
-coverage
-
 package-lock.json
 .devtarget
 
