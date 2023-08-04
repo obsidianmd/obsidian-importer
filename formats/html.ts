@@ -80,10 +80,7 @@ export class HtmlImporter extends FormatImporter {
 		};
 
 		const executor = new PromiseExecutor(2);
-		const processed = await Promise.allSettled(files.map(file => executor.run(() => this.processFile(result, folder, file))));
-		result.errors = result.errors.concat(processed
-			.filter((p): p is typeof p & { status: "rejected" } => p.status === "rejected")
-			.map(({ reason }) => reason));
+		await Promise.all(files.map(file => executor.run(() => this.processFile(result, folder, file))));
 
 		this.showResult(result);
 		if (result.errors.length > 0) {
@@ -137,9 +134,8 @@ export class HtmlImporter extends FormatImporter {
 			} else {
 				await this.app.vault.modify(mdFile, mdContent);
 			}
-
-			return [file, mdFile] as const;
 		} catch (e) {
+			result.errors.push(e);
 			result.failed.push(file.toString());
 			if (mdFile) {
 				try {
@@ -148,7 +144,6 @@ export class HtmlImporter extends FormatImporter {
 					result.errors.push(e);
 				}
 			}
-			throw e;
 		}
 	}
 
