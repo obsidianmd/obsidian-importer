@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
@@ -99,6 +99,8 @@ export class HtmlImporter extends FormatImporter {
 			mdFile = await this.saveAsMarkdownFile(folder, file.basename, "");
 
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
+			fixDocument(dom);
+
 			const pathURL = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
 			const downloads = await Promise.allSettled(
 				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
@@ -123,7 +125,7 @@ export class HtmlImporter extends FormatImporter {
 						}
 					})
 			);
-			const links = Array.from(dom.querySelectorAll("a")).map(a => a.getAttribute("href")).filter(href => href);
+
 			result.total += downloads.length;
 			result.failed = result.failed.concat(downloads
 				.filter((dl): dl is typeof dl & { status: "rejected" } => dl.status === "rejected")
@@ -132,16 +134,12 @@ export class HtmlImporter extends FormatImporter {
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
 				.map(({ value: [src] }) => decodeURIComponent(src)));
 
-			let mdContent = htmlToMarkdown(htmlContent);
+			const mdContent = htmlToMarkdown(new XMLSerializer().serializeToString(dom));
 			if (mdContent) {
 				const attachments = Object.fromEntries(downloads
 					.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
 					.map(({ value }) => value));
 				if (Object.keys(attachments).length > 0) {
-					mdContent = mdContent.replace(
-						alternativeRegExp([...links, ...Object.keys(attachments)]),
-						sstr => sstr.replace(/ /gu, "%20"),
-					);
 					const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
 
 					const cache = new Promise<CachedMetadata>(resolve => {
@@ -171,7 +169,6 @@ export class HtmlImporter extends FormatImporter {
 						await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
 					}
 				} else {
-					mdContent = mdContent.replace(alternativeRegExp(links), sstr => sstr.replace(/ /gu, "%20"));
 					await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 				}
 			}
@@ -297,6 +294,16 @@ interface TypedResponse {
 	type: "audio" | "img" | "video";
 	data: ArrayBufferLike;
 	extension: string;
+}
+
+function fixDocument(document: Document) {
+	function fixElement(element: Element, attribute: string) {
+		if (element.hasAttribute(attribute)) {
+			element.setAttribute(attribute, element.getAttribute(attribute).replace(/ /gu, "%20"));
+		}
+	}
+	document.querySelectorAll("a").forEach(element => fixElement(element, "href"));
+	document.querySelectorAll("audio, img, video").forEach(element => fixElement(element, "src"));
 }
 
 function escapeRegExp(str: string) {
