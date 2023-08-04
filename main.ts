@@ -1,6 +1,7 @@
 import { App, Modal, Plugin, Setting } from 'obsidian';
 import { NotionImporter } from 'formats/notion';
 import { FormatImporter } from './format-importer';
+import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 
@@ -35,8 +36,12 @@ export default class ImporterPlugin extends Plugin {
 				importer: HtmlImporter,
 			},
 			notion: {
-				name: 'Notion (.html)',
+				name: 'Notion (.zip)',
 				importer: NotionImporter,
+			},
+			bear: {
+				name: 'Bear (.bear2bk)',
+				importer: Bear2bkImporter,
 			},
 		};
 
@@ -51,6 +56,20 @@ export default class ImporterPlugin extends Plugin {
 				new ImporterModal(this.app, this).open();
 			},
 		});
+
+		// For development, un-comment this and tweak it to your importer:
+
+		/*
+		// Create and open the importer on boot
+		let modal = new ImporterModal(this.app, this);
+		modal.open();
+		// Select my importer
+		modal.updateContent('html');
+		if (modal.importer instanceof HtmlImporter) {
+			// Automatically pick file
+			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
+		}
+		*/
 	}
 
 	onunload() {}
@@ -58,6 +77,7 @@ export default class ImporterPlugin extends Plugin {
 
 export class ImporterModal extends Modal {
 	plugin: ImporterPlugin;
+	importer: FormatImporter;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
@@ -95,7 +115,10 @@ export class ImporterModal extends Modal {
 			});
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
-			let importer = new importers[selectedId].importer(this.app, this);
+			let importer = (this.importer = new importers[selectedId].importer(
+				this.app,
+				this
+			));
 
 			contentEl.createDiv('button-container u-center-text', (el) => {
 				el.createEl(

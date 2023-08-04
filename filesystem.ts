@@ -1,8 +1,11 @@
-import { BlobReader, Reader, ZipReader } from '@zip.js/zip.js';
+import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
 import type * as NodeFS from 'node:fs';
 import type * as NodePath from 'node:path';
 import type * as NodeUrl from 'node:url';
 import { Platform } from 'obsidian';
+import { configureWebWorker } from './zip/z-worker-inline';
+
+configureWebWorker(configure);
 
 export interface PickedFile {
 	type: 'file';
