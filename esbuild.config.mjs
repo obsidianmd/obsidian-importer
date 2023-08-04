@@ -1,6 +1,8 @@
-import esbuild from "esbuild";
-import process from "process";
 import builtins from "builtin-modules";
+import esbuild from "esbuild";
+import fs from "fs";
+import path from "path";
+import process from "process";
 
 const banner =
 `/*
@@ -10,6 +12,13 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+
+let outfile = "main.js";
+if (fs.existsSync('./.devtarget')) {
+	outfile = path.join(fs.readFileSync('./.devtarget', 'utf8').trim(), outfile);
+	console.log('Temporary output location:', outfile);
+}
+
 
 const context = await esbuild.context({
 	banner: {
@@ -43,8 +52,7 @@ const context = await esbuild.context({
 	minify: prod,
 	platform: 'browser',
 	treeShaking: true,
-	// for temp development
-	outfile: "main.js",
+	outfile,
 });
 
 if (prod) {
