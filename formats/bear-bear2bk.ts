@@ -29,7 +29,7 @@ export class Bear2bkImporter extends FormatImporter {
       failed: []
     };
 
-    const attachmentsFolderPath = await this.createFolders(`${(await this.getOutputFolder()).path}/assets`);
+    const attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
     const assetMatcher = /!\[\]\(assets\//g;
 
     for (let file of files) {
