@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportResult } from '../main';
 import { fsPromises, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
@@ -121,6 +121,7 @@ export class HtmlImporter extends FormatImporter {
 						}
 					})
 			);
+			const links = Array.from(dom.querySelectorAll("a")).map(a => a.getAttribute("href")).filter(href => href);
 			result.total += downloads.length;
 			result.failed = result.failed.concat(downloads
 				.filter((dl): dl is typeof dl & { status: "rejected" } => dl.status === "rejected")
@@ -129,54 +130,52 @@ export class HtmlImporter extends FormatImporter {
 				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
 				.map(({ value: [src] }) => decodeURIComponent(src)));
 
-			const mdContent = htmlToMarkdown(htmlContent);
-			if (!mdContent) {
-				return;
-			}
-			const attachments = Object.fromEntries(downloads
-				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
-				.map(({ value }) => value));
-			if (Object.keys(attachments).length > 0) {
-				const unencodedURIs = new RegExp(Object.keys(attachments)
-					.sort(({ length: left }, { length: right }) => right - left)
-					.map(escapeRegExp)
-					.join("|"), "gu");
-				const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
+			let mdContent = htmlToMarkdown(htmlContent);
+			if (mdContent) {
+				const attachments = Object.fromEntries(downloads
+					.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
+					.map(({ value }) => value));
+				if (Object.keys(attachments).length > 0) {
+					mdContent = mdContent.replace(
+						alternativeRegExp([...links, ...Object.keys(attachments)]),
+						sstr => sstr.replace(/ /gu, "%20"),
+					);
+					const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
 
-				const cache = new Promise<CachedMetadata>(resolve => {
-					const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
-						if (file.path === mdFile.path) {
-							try {
-								resolve(cache);
-							} finally {
-								this.app.metadataCache.offref(ref);
+					const cache = new Promise<CachedMetadata>(resolve => {
+						const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
+							if (file.path === mdFile.path) {
+								try {
+									resolve(cache);
+								} finally {
+									this.app.metadataCache.offref(ref);
+								}
 							}
-						}
+						});
 					});
-				});
-				await this.app.vault.process(mdFile, data => `${data}${mdContent.replace(unencodedURIs, encodeURIComponent)}`);
+					await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 
-				const embeds = Object.fromEntries(((await cache).embeds ?? [])
-					.map(({ link, original, displayText }) => {
-						const { [decodeURIComponent(link)]: attachment } = attachments2;
-						if (!attachment) {
-							return null;
-						}
-						return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
-					})
-					.filter(entry => entry));
-				if (Object.keys(embeds).length > 0) {
-					const embedOriginals = new RegExp(Object.keys(embeds)
-						.sort(({ length: left }, { length: right }) => right - left)
-						.map(escapeRegExp)
-						.join("|"), "gu")
-					await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
+					const embeds = Object.fromEntries(((await cache).embeds ?? [])
+						.map(({ link, original, displayText }) => {
+							const { [decodeURIComponent(link)]: attachment } = attachments2;
+							if (!attachment) {
+								return null;
+							}
+							return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
+						})
+						.filter(entry => entry));
+					if (Object.keys(embeds).length > 0) {
+						const embedOriginals = alternativeRegExp(Object.keys(embeds));
+						await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
+					}
+				} else {
+					mdContent = mdContent.replace(alternativeRegExp(links), sstr => sstr.replace(/ /gu, "%20"));
+					await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 				}
-			} else {
-				await this.app.vault.process(mdFile, data => `${data}${mdContent}`);
 			}
+
+			return [file, mdFile] as const;
 		} catch (e) {
-			result.errors.push(e);
 			result.failed.push(file.toString());
 			if (mdFile) {
 				try {
@@ -185,6 +184,7 @@ export class HtmlImporter extends FormatImporter {
 					result.errors.push(e);
 				}
 			}
+			throw e;
 		}
 	}
 
@@ -299,6 +299,16 @@ interface TypedResponse {
 
 function escapeRegExp(str: string) {
 	return str.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
+}
+
+function alternativeRegExp(strs: readonly string[]) {
+	return strs.length > 0 ? new RegExp(
+		[...strs]
+			.sort(({ length: left }, { length: right }) => right - left)
+			.map(escapeRegExp)
+			.join("|"),
+		"gu",
+	) : /^\b$/gu;
 }
 
 function parseURL(url: URL) {
