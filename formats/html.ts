@@ -101,73 +101,41 @@ export class HtmlImporter extends FormatImporter {
 			const dom = new DOMParser().parseFromString(htmlContent, "text/html");
 			fixDocument(dom);
 
-			const pathURL = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
-			const downloads = await Promise.allSettled(
+			const base = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
+			const attachments = (await Promise.all(
 				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
-					.map(async element => {
-						type TagNames = keyof {
-							[K in keyof HTMLElementTagNameMap as HTMLElementTagNameMap[K] extends typeof element ? K : never]: never
-						};
-						let src = "";
-						try {
-							src = element.getAttribute("src"); // `element.src` does not give the raw `src` string
-							return [
-								src,
-								await this.downloadAttachmentCached(
-									mdFile,
-									element.tagName.toLowerCase() as TagNames,
-									new URL(src.startsWith("//") ? `https:${src}` : src, pathURL),
-								),
-							] as const;
-						} catch (e) {
-							result.errors.push(e);
-							throw src;
-						}
-					})
-			);
-
-			result.total += downloads.length;
-			result.failed = result.failed.concat(downloads
-				.filter((dl): dl is typeof dl & { status: "rejected" } => dl.status === "rejected")
-				.map(({ reason }) => decodeURIComponent(reason)));
-			result.skipped = result.skipped.concat(downloads
-				.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && !dl.value[1])
-				.map(({ value: [src] }) => decodeURIComponent(src)));
+					.map(element => this.processAttachment(result, mdFile, element, base))
+			)).filter(entry => entry);
 
 			const mdContent = htmlToMarkdown(new XMLSerializer().serializeToString(dom));
-			if (mdContent) {
-				const attachments = Object.fromEntries(downloads
-					.filter((dl): dl is typeof dl & { status: "fulfilled" } => dl.status === "fulfilled" && Boolean(dl.value[1]))
-					.map(({ value }) => value));
-				if (Object.keys(attachments).length > 0) {
-					const attachments2 = Object.fromEntries(Object.entries(attachments).map(([key, value]) => [decodeURIComponent(key), value]));
+			if (attachments.length > 0) {
+				const attachments2 = Object.fromEntries(attachments.map(([key, value]) => [decodeURIComponent(key), value]));
 
-					const cache = new Promise<CachedMetadata>(resolve => {
-						const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
-							if (file.path === mdFile.path) {
-								this.app.metadataCache.offref(ref);
-								resolve(cache);
-							}
-						});
+				const cache = new Promise<CachedMetadata>(resolve => {
+					const ref = this.app.metadataCache.on("changed", (file, _1, cache) => {
+						if (file.path === mdFile.path) {
+							this.app.metadataCache.offref(ref);
+							resolve(cache);
+						}
 					});
-					await this.app.vault.modify(mdFile, mdContent);
+				});
+				await this.app.vault.modify(mdFile, mdContent);
 
-					const embeds = Object.fromEntries(((await cache).embeds ?? [])
-						.map(({ link, original, displayText }) => {
-							const { [decodeURIComponent(link)]: attachment } = attachments2;
-							if (!attachment) {
-								return null;
-							}
-							return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
-						})
-						.filter(entry => entry));
-					if (Object.keys(embeds).length > 0) {
-						const embedOriginals = alternativeRegExp(Object.keys(embeds));
-						await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
-					}
-				} else {
-					await this.app.vault.modify(mdFile, mdContent);
+				const embeds = Object.fromEntries(((await cache).embeds ?? [])
+					.map(({ link, original, displayText }) => {
+						const { [decodeURIComponent(link)]: attachment } = attachments2;
+						if (!attachment) {
+							return null;
+						}
+						return [original, this.app.fileManager.generateMarkdownLink(attachment, mdFile.path, "", displayText)] as const;
+					})
+					.filter(entry => entry));
+				if (Object.keys(embeds).length > 0) {
+					const embedOriginals = alternativeRegExp(Object.keys(embeds));
+					await this.app.vault.process(mdFile, data => data.replace(embedOriginals, orig => embeds[orig]));
 				}
+			} else {
+				await this.app.vault.modify(mdFile, mdContent);
 			}
 
 			return [file, mdFile] as const;
@@ -181,6 +149,31 @@ export class HtmlImporter extends FormatImporter {
 				}
 			}
 			throw e;
+		}
+	}
+
+	async processAttachment(result: Result, mdFile: TFile, element: HTMLAudioElement | HTMLImageElement | HTMLVideoElement, base?: URL) {
+		type TagNames = keyof {
+			[K in keyof HTMLElementTagNameMap as HTMLElementTagNameMap[K] extends typeof element ? K : never]: never
+		};
+		let src = "";
+		try {
+			++result.total;
+			src = element.getAttribute("src");
+			const download = await this.downloadAttachmentCached(
+				mdFile,
+				element.tagName.toLowerCase() as TagNames,
+				new URL(src.startsWith("//") ? `https:${src}` : src, base),
+			)
+			if (!download) {
+				result.skipped.push(src);
+				return null;
+			}
+			return [src, download] as const;
+		} catch (e) {
+			result.errors.push(e);
+			result.failed.push(src);
+			return null;
 		}
 	}
 
