@@ -95,7 +95,6 @@ export class HtmlImporter extends FormatImporter {
 			await resolved;
 			await this.app.vault.process(pf0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 		}
-
 		const interlinks = Object.fromEntries(processedFiles
 			.map(([file, tFile]) => [
 				file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : `${tFile.basename}.${file.extension}`,
