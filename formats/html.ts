@@ -30,7 +30,8 @@ export class HtmlImporter extends FormatImporter {
 				let mdContent = htmlToMarkdown(htmlContent);
 				await this.saveAsMarkdownFile(folder, file.basename, mdContent);
 				progress.reportNoteSuccess(file.name);
-			} catch (e) {
+			}
+			catch (e) {
 				progress.reportFailed(file.name, e);
 			}
 		}

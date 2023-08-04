@@ -13,7 +13,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 	let entries = Object.entries(allLinks);
 	if (entries.length === 0) return;
 
-	console.log(`About to update links...`);
+	console.log('About to update links...');
 
 	const allconvertedFiles: Array<string> = [];
 	for (const outputFolder of outputNotebookFolders) {
@@ -60,6 +60,6 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 		}
 	}
 
-	console.log(`Link update complete.`);
+	console.log('Link update complete.');
 };
 

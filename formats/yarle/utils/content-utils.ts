@@ -106,8 +106,8 @@ export const logTags = (note: any): string => {
 let btime: any;
 try {
 	btime = window.require('btime');
-} catch (e) {
 }
+catch (e) {}
 
 export const setFileDates = (path: string, note: any): void => {
 	// also set creation time if supported

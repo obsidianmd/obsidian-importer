@@ -32,7 +32,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 			...{
 				enexSources: files,
 				outputDir: path.join(adapter.getBasePath(), folder.path),
-			}
+			},
 		};
 
 		await dropTheRope(yarleOptions, progress);

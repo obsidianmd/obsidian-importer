@@ -127,7 +127,8 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				try {
 					processNode(note, notebookName);
 					progress.reportNoteSuccess(notebookName + '/' + note.title);
-				} catch (e) {
+				}
+				catch (e) {
 					progress.reportFailed(note.title || enexSource, e);
 					return resolve();
 				}

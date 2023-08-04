@@ -81,7 +81,7 @@ export abstract class FormatImporter {
 
 		let updateFiles = () => {
 			let descriptionFragment = document.createDocumentFragment();
-			descriptionFragment.createEl('span', { text: `These files will be imported: ` });
+			descriptionFragment.createEl('span', { text: 'These files will be imported: ' });
 			descriptionFragment.createEl('br');
 			descriptionFragment.createEl('span', { cls: 'u-pop', text: this.files.map(f => f.name).join(', ') });
 			fileLocationSetting.setDesc(descriptionFragment);

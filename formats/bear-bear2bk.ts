@@ -61,8 +61,8 @@ export class Bear2bkImporter extends FormatImporter {
 						else {
 							progress.reportSkipped(filename);
 						}
-
-					} catch (e) {
+					}
+					catch (e) {
 						progress.reportFailed(filename, e);
 					}
 				}

@@ -27,14 +27,14 @@ export const processResources = (note: any): string => {
 		for (const resource of note.resource) {
 			resourceHashes = {
 				...resourceHashes,
-				...processResource(absoluteResourceWorkDir, resource)
+				...processResource(absoluteResourceWorkDir, resource),
 			};
 		}
 	}
 	else {
 		resourceHashes = {
 			...resourceHashes,
-			...processResource(absoluteResourceWorkDir, note.resource)
+			...processResource(absoluteResourceWorkDir, note.resource),
 		};
 	}
 

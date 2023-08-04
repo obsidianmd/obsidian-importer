@@ -69,7 +69,7 @@ export default class ImporterPlugin extends Plugin {
 			'bear': {
 				name: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
-			}
+			},
 		};
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
@@ -81,7 +81,7 @@ export default class ImporterPlugin extends Plugin {
 			name: 'Open importer',
 			callback: () => {
 				new ImporterModal(this.app, this).open();
-			}
+			},
 		});
 
 		// For development, un-comment this and tweak it to your importer:
@@ -150,7 +150,8 @@ export class ImporterModal extends Modal {
 						this.modalEl.addClass('is-loading');
 						try {
 							await importer.import(progress);
-						} finally {
+						}
+						finally {
 							this.modalEl.removeClass('is-loading');
 							this.showResult(progress);
 						}
@@ -177,7 +178,7 @@ export class ImporterModal extends Modal {
 		}
 
 		if (skipped.length > 0) {
-			contentEl.createEl('p', { text: `Skipped notes:` });
+			contentEl.createEl('p', { text: 'Skipped notes:' });
 			contentEl.createEl('ul', {}, el => {
 				for (let note of skipped) {
 					el.createEl('li', { text: note });
@@ -186,7 +187,7 @@ export class ImporterModal extends Modal {
 		}
 
 		if (failed.length > 0) {
-			contentEl.createEl('p', { text: `Failed to import:` });
+			contentEl.createEl('p', { text: 'Failed to import:' });
 			contentEl.createEl('ul', {}, el => {
 				for (let note of failed) {
 					el.createEl('li', { text: note });

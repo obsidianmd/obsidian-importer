@@ -76,7 +76,8 @@ export class NodePickedFile implements PickedFile {
 			fd = await fsPromises.open(this.filepath, 'r');
 			let stat = await fd.stat();
 			return await callback(new ZipReader(new FSReader(fd, stat.size)));
-		} finally {
+		}
+		finally {
 			await fd?.close();
 		}
 	}

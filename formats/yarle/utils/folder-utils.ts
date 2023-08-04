@@ -12,7 +12,7 @@ export interface Path {
 
 export const paths: Path = {
 	mdPath: '',
-	resourcePath: ''
+	resourcePath: '',
 };
 const MAX_PATH = 249;
 

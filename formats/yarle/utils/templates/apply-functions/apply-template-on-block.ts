@@ -7,7 +7,7 @@ export const applyTemplateOnBlock = ({
 	                                     endBlockPlaceholder,
 	                                     valuePlaceholder,
 	                                     value,
-                                     }: TemplateBlockSettings): string => {
+}: TemplateBlockSettings): string => {
 	if (value && check()) {
 		return template
 			.replace(new RegExp(`${startBlockPlaceholder}`, 'g'), '')
