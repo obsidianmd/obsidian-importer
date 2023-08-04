@@ -7,7 +7,6 @@ import { extension } from '../mime';
 
 export class HtmlImporter extends FormatImporter {
 	attachments: Record<string, ReturnType<typeof this.downloadAttachment>> = {};
-	downloadAttachmentExecutor = new PromiseExecutor(5);
 	writeAttachmentExecutor = new PromiseExecutor(1);
 
 	attachmentSizeLimit: number;
@@ -100,10 +99,13 @@ export class HtmlImporter extends FormatImporter {
 			fixDocument(dom);
 
 			const base = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : undefined;
-			const attachments = (await Promise.all(
-				Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))
-					.map(element => this.processAttachment(result, mdFile, element, base))
-			)).filter(entry => entry);
+			const attachments = [];
+			for (const element of Array.from(dom.querySelectorAll<HTMLAudioElement | HTMLImageElement | HTMLVideoElement>("audio, img, video"))) {
+				const ret = await this.processAttachment(result, mdFile, element, base);
+				if (ret) {
+					attachments.push(ret);
+				}
+			}
 
 			const mdContent = htmlToMarkdown(new XMLSerializer().serializeToString(dom));
 			if (attachments.length > 0) {
@@ -176,39 +178,37 @@ export class HtmlImporter extends FormatImporter {
 		return this.attachments[url.href] ??= this.downloadAttachment(mdFile, type, url);
 	}
 
-	downloadAttachment(mdFile: TFile, type: TypedResponse["type"], url: URL) {
-		return this.downloadAttachmentExecutor.run(async () => {
-			let response;
-			switch (url.protocol) {
-				case "file:":
-					response = await this.requestFile(type, url);
-					break;
-				case "https:":
-				case "http:":
-					response = await this.requestHTTP(type, url);
-					break;
-				default:
-					throw new Error(url.href);
+	async downloadAttachment(mdFile: TFile, type: TypedResponse["type"], url: URL) {
+		let response;
+		switch (url.protocol) {
+			case "file:":
+				response = await this.requestFile(type, url);
+				break;
+			case "https:":
+			case "http:":
+				response = await this.requestHTTP(type, url);
+				break;
+			default:
+				throw new Error(url.href);
+		}
+		if (!await this.filterAttachment(response)) {
+			return null;
+		}
+		const { data, extension } = response;
+		const filename = parseURL(url);
+		let { name } = filename;
+		if (extension) {
+			if (filename.extension !== extension) {
+				name += `.${extension}`;
 			}
-			if (!await this.filterAttachment(response)) {
-				return null;
-			}
-			const { data, extension } = response;
-			const filename = parseURL(url);
-			let { name } = filename;
-			if (extension) {
-				if (filename.extension !== extension) {
-					name += `.${extension}`;
-				}
-			} else {
-				name += `.noext.${{
-					"audio": "mp3",
-					"img": "png",
-					"video": "mp4",
-				}[type]}`;
-			}
-			return await this.writeAttachment(mdFile, name, data);
-		});
+		} else {
+			name += `.noext.${{
+				"audio": "mp3",
+				"img": "png",
+				"video": "mp4",
+			}[type]}`;
+		}
+		return await this.writeAttachment(mdFile, name, data);
 	}
 
 	async requestFile(type: TypedResponse["type"], url: URL) {
