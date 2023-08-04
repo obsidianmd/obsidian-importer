@@ -8,7 +8,7 @@ export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
 
 	init() {
-		this.addFileOrFolderChooserSetting('Roam (.json)', ['json']);
+		this.addFileChooserSetting('Roam (.json)', ['json']);
 		this.addOutputLocationSetting('Roam');
 		this.modal.contentEl.createEl('h3', {text: 'Import Settings'});
 
@@ -25,10 +25,9 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	async import() {
-		console.log(this)
-		let { filePaths } = this;
-		if (filePaths.length === 0) {
-			new Notice('Please pick at least one JSON file to import.');
+		let { files } = this;
+		if (files.length === 0) {
+			new Notice('Please pick at least one file to import.');
 			return;
 		}
 
@@ -44,7 +43,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		let roamOptions = {
 			saveAttachments: true,
-			jsonSources: filePaths,
+			jsonSources: files,
 			outputDir: path.join(adapter.getBasePath(), folder.path),
 			downloadAttachments:this.downloadAttachments
 		};

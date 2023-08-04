@@ -5,6 +5,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { importRoamJson } from 'formats/roam/roam'; //TODO remove after testing
+import { PickedFile, path } from 'filesystem'; //TODO remove after testing
 
 declare global {
 	interface Window {
@@ -62,17 +63,32 @@ export default class ImporterPlugin extends Plugin {
 	async onload() {
 
 		//TODO remove after testing
-		const filePaths = [
-			"/Users/mtvogel/Downloads/roam json exports/Theme Tester.json",
-			// "/Users/mtvogel/Downloads/roam json exports/test-graph.json",
-		]
-		let roamOptions = {
-			saveAttachments: true,
-			jsonSources: filePaths,
+		let filePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
+		
+		const fileName = filePath.split('/').pop()
+
+		const myPickedFile: PickedFile = {
+			type: 'file',
+			name: fileName,
+			basename: fileName.split(".")[0],
+			extension: fileName.split(".")[1],
+			readText: function (): Promise<string> {
+				throw new Error('Function not implemented.');
+			},
+			read: function (): Promise<ArrayBuffer> {
+				throw new Error('Function not implemented.');
+			},
+			readZip: function (): Promise<ArrayBuffer> {
+				throw new Error('Function not implemented.');
+			},
+			jsonSources: filePath,
+			saveAttachments: true, 
 			outputDir: "/Users/mtvogel/Documents/Obsidian/dev vault/Roam",
 			downloadAttachments:false
 		};
-		let results = await importRoamJson(roamOptions);
+
+
+		let results = await importRoamJson(myPickedFile);
 		console.log(results)
 		//
 		//
