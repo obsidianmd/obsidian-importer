@@ -79,8 +79,9 @@ export class HtmlImporter extends FormatImporter {
 			errors: [],
 		};
 
-		const executor = new PromiseExecutor(2);
-		await Promise.all(files.map(file => executor.run(() => this.processFile(result, folder, file))));
+		for (const file of files) {
+			await this.processFile(result, folder, file);
+		}
 
 		this.showResult(result);
 		if (result.errors.length > 0) {
