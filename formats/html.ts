@@ -72,7 +72,7 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const result: ImportResult & { errors: unknown[] } = {
+		const result: Result = {
 			total: 0,
 			skipped: [],
 			failed: [],
@@ -91,7 +91,7 @@ export class HtmlImporter extends FormatImporter {
 		}
 	}
 
-	async processFile(result: ImportResult & { errors: unknown[] }, folder: TFolder, file: PickedFile) {
+	async processFile(result: Result, folder: TFolder, file: PickedFile) {
 		let mdFile: TFile | null = null;
 		try {
 			++result.total;
@@ -291,6 +291,10 @@ interface TypedResponse {
 	type: "audio" | "img" | "video";
 	data: ArrayBufferLike;
 	extension: string;
+}
+
+interface Result extends ImportResult {
+	errors: unknown[]
 }
 
 function fixDocument(document: Document) {
