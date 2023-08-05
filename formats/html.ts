@@ -80,7 +80,7 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		if (fileLookup.size > 0) {
-			let { metadataCache } = this.app;
+			const { metadataCache } = this.app;
 			// @ts-ignore
 			if (!metadataCache.computeMetadataAsync) {
 				const aFile = fileLookup.values().next().value;
@@ -108,8 +108,8 @@ export class HtmlImporter extends FormatImporter {
 					}
 					else {
 						cache = metadataCache.getFileCache(file);
+						if (!cache) continue;
 					}
-					if (!cache) continue;
 
 					// Gather changes to make to the document
 					const changes = [];
@@ -119,7 +119,7 @@ export class HtmlImporter extends FormatImporter {
 							const linkURL = nodeUrl
 								// `pathToFileURL(fileURLToPath(...))` is used to normalize file URLs like removing hashes and query parameters
 								? nodeUrl.pathToFileURL(nodeUrl.fileURLToPath(new URL(path, fileURL))).href
-								: parseFilePath(decodeURIComponent(path)).name;
+								: parseFilePath(path).name;
 							if (fileLookup.has(linkURL)) {
 								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkURL)!, file.path, subpath, displayText);
 								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
@@ -129,7 +129,7 @@ export class HtmlImporter extends FormatImporter {
 
 					// Apply changes from last to first
 					changes.sort((a, b) => b.from - a.from);
-					for (let change of changes) {
+					for (const change of changes) {
 						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 					}
 
