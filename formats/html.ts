@@ -68,18 +68,18 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const processedFiles = [];
+		const processed = [];
 		progress.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			progress.reportProgress(i, files.length);
 			const ret = await this.processFile(progress, folder, files[i]);
 			if (ret) {
-				processedFiles.push(ret);
+				processed.push(ret);
 			}
 		}
 
-		const pf0 = processedFiles[0];
-		if (pf0) {
+		const processed0 = processed[0];
+		if (processed0) {
 			const resolved = new Promise<void>(resolve => {
 				const ref = this.app.metadataCache.on('resolved', () => {
 					this.app.metadataCache.offref(ref);
@@ -87,16 +87,16 @@ export class HtmlImporter extends FormatImporter {
 				});
 			});
 			const appended = '\n';
-			await this.app.vault.append(pf0[1], appended);
+			await this.app.vault.append(processed0[1], appended);
 			await resolved;
-			await this.app.vault.process(pf0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
+			await this.app.vault.process(processed0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 
-			const interlinks = Object.fromEntries(processedFiles
+			const interlinks = Object.fromEntries(processed
 				.map(([file, tFile]) => [
 					file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name,
 					tFile,
 				]));
-			for (const [file, tFile] of processedFiles) {
+			for (const [file, tFile] of processed) {
 				try {
 					const cache = this.app.metadataCache.getFileCache(tFile);
 					const replacements = Object.fromEntries((cache?.links ?? [])
