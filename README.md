@@ -44,6 +44,19 @@ First install Importer in Obsidian → Community Plugins
 
 Currently, the import does not have any special settings, if you want more control over the output, consider using [Yarle](https://github.com/akosbalasko/yarle).
 
+### Import notes from HTML
+
+- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
+- Under **File format** select **HTML (.html)**
+- Choose the HTML files or folders you want to import
+- Optionally, select a folder for the import — your Markdown files will be created in this folder within your vault.
+- Click **Import**
+
+**Special settings**
+
+- **Attachment size limit**: Skip importing attachments larger than the specified size.
+- **Minimum image size**: Skip importing images smaller than the specified size in either dimension. Can be used to skip icons and logos.
+
 ![Obsidian Importer screenshot](/images/screenshot.png)
 
 ## Contributing

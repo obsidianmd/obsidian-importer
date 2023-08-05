@@ -63,21 +63,39 @@ export function escapeHashtags(body: string) {
 	return body;
 }
 
-// export async function createFolderStructure(paths: Set<string>, app: App) {
-// 	const createdFolders = new Set<string>();
+export class PromiseExecutor {
+	readonly pool: PromiseLike<number>[];
+	revision: object = {};
 
-// 	for (let path of paths) {
-// 		const nestedFolders = path.split('/').filter((path) => path);
-// 		let createdFolder = '';
-// 		for (let folder of nestedFolders) {
-// 			createdFolder += folder + '/';
-// 			if (!createdFolders.has(createdFolder)) {
-// 				createdFolders.add(createdFolder);
-// 				// Apparently Obsidian serializes everything so doing it in parallel doesn't make a difference.
-// 				await app.vault.createFolder(createdFolder).catch(() => {
-// 					console.warn(`Skipping created folder: ${createdFolder}`);
-// 				});
-// 			}
-// 		}
-// 	}
-// }
+	constructor(concurrency: number) {
+		this.pool = [...new Array(concurrency)].map((_0, index) => Promise.resolve(index));
+	}
+
+	async run<T>(func: () => PromiseLike<T>): Promise<T> {
+		if (this.pool.length <= 0) {
+			return await func();
+		}
+		let { revision } = this;
+		let index = await Promise.race(this.pool);
+		while (this.revision !== revision) {
+			revision = this.revision;
+			index = await Promise.race(this.pool);
+		}
+		this.revision = {};
+		const ret = func();
+		this.pool[index] = ret.then(() => index, () => index);
+		return await ret;
+	}
+}
+
+export function parseHTML(html: string): HTMLElement {
+	return new DOMParser().parseFromString(html, 'text/html').body;
+}
+
+export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
+	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+}
+
+export function stringToUtf8(text: string): ArrayBuffer {
+	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
+}

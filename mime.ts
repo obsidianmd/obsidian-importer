@@ -984,7 +984,7 @@ console.log(extensions);
 
 let EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
 
-export function extension(type: string) {
+export function extensionForMime(type: string) {
 	if (!type || typeof type !== 'string') {
 		return '';
 	}

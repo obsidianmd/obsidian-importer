@@ -19,7 +19,7 @@ We're still experimenting with contributions, if you have any questions, please 
 - Follow our [Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
 - Your contribution must be implemented in TypeScript.
 - Keep it lightweight. The fewer the dependencies, the better. For example, if you import `lodash` and only use two functions don't it, re-consider.
-- Your code should be self-explanatory. There's no need to over-comment your code, class names and function names should explain most things. Reserve comments for unusual situations and avoid commenting for the sake of commenting.
+- Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
 - Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
 - Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
 
