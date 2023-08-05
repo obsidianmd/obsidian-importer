@@ -96,6 +96,9 @@ export class HtmlImporter extends FormatImporter {
 				}
 			}
 
+			dom.querySelectorAll('audio, img, video').forEach(element => {
+				element.outerHTML = element.outerHTML.replace(new RegExp(`^<${element.tagName.toLowerCase()}`, 'u'), '<img'); // `htmlToMarkdown` does not convert `<audio>` and `<video>` into embeds
+			});
 			const mdContent = htmlToMarkdown(new XMLSerializer().serializeToString(dom));
 			if (attachments.length > 0) {
 				const attachments2 = Object.fromEntries(attachments.map(([key, value]) => [decodeURIComponent(key), value]));
@@ -283,10 +286,7 @@ function fixDocument(document: Document) {
 		}
 	}
 	document.querySelectorAll('a').forEach(element => fixElementRef(element, 'href'));
-	document.querySelectorAll('audio, img, video').forEach(element => {
-		fixElementRef(element, 'src');
-		element.outerHTML = element.outerHTML.replace(new RegExp(`^<${element.tagName.toLowerCase()}`, 'u'), '<img'); // `htmlToMarkdown` does not convert `<audio>` and `<video>` into embeds
-	});
+	document.querySelectorAll('audio, img, video').forEach(element => fixElementRef(element, 'src'));
 }
 
 function escapeRegExp(str: string) {
