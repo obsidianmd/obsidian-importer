@@ -56,13 +56,7 @@ declare global {
 		title: string;
 		parentIds: string[];
 		path: string;
-		properties?: NotionProperty[];
-		yamlProperties?: YamlProperty[];
-		body: HTMLDivElement;
-		markdownBody?: string;
-		description?: string;
 		fullLinkPathNeeded: boolean;
-		notionLinks: NotionLink[];
 	};
 
 	type NotionAttachmentInfo = {
@@ -71,7 +65,6 @@ declare global {
 		targetParentFolder: string;
 		fullLinkPathNeeded: boolean;
 		parentIds: string[];
-		data: ArrayBuffer;
 	};
 }
 

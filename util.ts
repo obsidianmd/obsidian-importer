@@ -1,3 +1,5 @@
+import { App } from 'obsidian';
+
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
@@ -11,10 +13,6 @@ export function sanitizeFileName(name: string) {
 		.replace(reservedRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '');
-}
-
-export function matchFilename(path: string) {
-	return path.match(/([^\/\.]*)(\.[^\/]+)?$/)?.[1];
 }
 
 export function pathToFilename(path: string) {
@@ -41,16 +39,6 @@ export function genUid(length: number): string {
 	return array.join('');
 }
 
-export function getFileExtension(path: string) {
-	return path.contains('.') && path.lastIndexOf('.') !== 0
-		? path.slice(path.lastIndexOf('.') + 1)
-		: '';
-}
-
-export function getParentFolder(path: string) {
-	return path.contains('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
-}
-
 export function escapeHashtags(body: string) {
 	const tagExp = /#[a-z0-9\-]+/gi;
 
@@ -61,6 +49,7 @@ export function escapeHashtags(body: string) {
 		if (!hashtags) continue;
 		let newLine = lines[i];
 		for (let hashtag of hashtags) {
+			// skipping any internal links [[ # ]], URLS [ # ]() or []( # ), or already escaped hashtags \#, replace all tag-like things #<word> in the document with \#<word>. Useful for programs (like Notion) that don't support #<word> tags.
 			const hashtagInLink = new RegExp(
 				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
 			);
@@ -74,25 +63,21 @@ export function escapeHashtags(body: string) {
 	return body;
 }
 
-export function fixDuplicateSlashes(path: string) {
-	return path.replace(/\/\/+/g, '/');
-}
+// export async function createFolderStructure(paths: Set<string>, app: App) {
+// 	const createdFolders = new Set<string>();
 
-export async function createFolderStructure(paths: Set<string>, app: App) {
-	const createdFolders = new Set<string>();
-
-	for (let path of paths) {
-		const nestedFolders = path.split('/').filter((path) => path);
-		let createdFolder = '';
-		for (let folder of nestedFolders) {
-			createdFolder += folder + '/';
-			if (!createdFolders.has(createdFolder)) {
-				createdFolders.add(createdFolder);
-				// Apparently Obsidian serializes everything so doing it in parallel doesn't make a difference.
-				await app.vault.createFolder(createdFolder).catch(() => {
-					console.warn(`Skipping created folder: ${createdFolder}`);
-				});
-			}
-		}
-	}
-}
+// 	for (let path of paths) {
+// 		const nestedFolders = path.split('/').filter((path) => path);
+// 		let createdFolder = '';
+// 		for (let folder of nestedFolders) {
+// 			createdFolder += folder + '/';
+// 			if (!createdFolders.has(createdFolder)) {
+// 				createdFolders.add(createdFolder);
+// 				// Apparently Obsidian serializes everything so doing it in parallel doesn't make a difference.
+// 				await app.vault.createFolder(createdFolder).catch(() => {
+// 					console.warn(`Skipping created folder: ${createdFolder}`);
+// 				});
+// 			}
+// 		}
+// 	}
+// }

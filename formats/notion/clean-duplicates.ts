@@ -1,10 +1,6 @@
-import { App, TAbstractFile } from 'obsidian';
-import {
-	fixDuplicateSlashes,
-	getFileExtension,
-	matchFilename,
-} from '../../util';
+import { App, TAbstractFile, normalizePath } from 'obsidian';
 import { assembleParentIds } from './notion-utils';
+import { parseFilePath } from 'filesystem';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -103,6 +99,7 @@ function cleanDuplicateAttachments({
 	);
 
 	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
+	// Obsidian formatting for attachments in subfolders is ./<folder>
 	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
 	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
@@ -111,7 +108,7 @@ function cleanDuplicateAttachments({
 
 		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
-			parentFolderPath = fixDuplicateSlashes(
+			parentFolderPath = normalizePath(
 				`${targetFolderPath}/${assembleParentIds(
 					attachmentInfo,
 					idsToFileInfo
@@ -120,8 +117,11 @@ function cleanDuplicateAttachments({
 				}`
 			);
 		} else {
-			parentFolderPath = fixDuplicateSlashes(attachmentFolderPath + '/');
+			parentFolderPath = normalizePath(attachmentFolderPath + '/');
 		}
+		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
+
+		console.log(parentFolderPath);
 
 		if (
 			attachmentPaths.has(
@@ -129,10 +129,7 @@ function cleanDuplicateAttachments({
 			)
 		) {
 			let duplicateResolutionIndex = 2;
-			const name = matchFilename(attachmentInfo.nameWithExtension);
-			const extension = getFileExtension(
-				attachmentInfo.nameWithExtension
-			);
+			const { name, extension } = parseFilePath(attachmentInfo.path);
 			while (
 				attachmentPaths.has(
 					`${parentFolderPath}/${name} ${duplicateResolutionIndex}.${extension}`

@@ -1,10 +1,5 @@
 import { htmlToMarkdown } from 'obsidian';
-import {
-	escapeHashtags,
-	escapeRegex,
-	getParentFolder,
-	matchFilename,
-} from '../../util';
+import { escapeHashtags } from '../../util';
 import {
 	assembleParentIds,
 	getNotionId,
@@ -12,63 +7,237 @@ import {
 	parseDate,
 } from './notion-utils';
 import { moment } from 'obsidian';
+import { Entry, TextReader, TextWriter } from '@zip.js/zip.js';
+import { parseFilePath } from 'filesystem';
 
-export function convertNotesToMd({
-	idsToFileInfo,
-	pathsToAttachmentInfo,
-	attachmentFolderPath,
-}: {
-	idsToFileInfo: Record<string, NotionFileInfo>;
-	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	attachmentFolderPath: string;
-}) {
-	for (let fileInfo of Object.values(idsToFileInfo)) {
-		convertLinksToObsidian(fileInfo.notionLinks, {
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-		});
+export async function readToMarkdown(
+	file: Entry,
+	{
+		attachmentPaths,
+		idsToFileInfo,
+		pathsToAttachmentInfo,
+		parser,
+	}: {
+		attachmentPaths: string[];
+		idsToFileInfo: Record<string, NotionFileInfo>;
+		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+		parser: DOMParser;
+	}
+): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
+	if (!file.getData)
+		throw new Error("can't get data in file, " + file.filename);
+	const filePath = file.filename;
 
-		replaceNestedTags(fileInfo.body, 'strong');
-		replaceNestedTags(fileInfo.body, 'em');
-		stripLinkFormatting(fileInfo.body);
-		encodeNewlinesToBr(fileInfo.body);
-		fixNotionDates(fileInfo.body);
-		fixNotionLists(fileInfo.body);
-		replaceTableOfContents(fileInfo.body);
-		formatDatabases(fileInfo.body);
+	const text = await file.getData(new TextWriter());
 
-		let htmlString = fileInfo.body.innerHTML;
-		// Simpler to just use the HTML string for this replacement
-		splitBrsInFormatting(htmlString, 'strong');
-		splitBrsInFormatting(htmlString, 'em');
+	const document = parser.parseFromString(text, 'text/html');
+	// read the files etc.
+	const body = document.querySelector(
+		`div[class=page-body]`
+	) as HTMLDivElement;
 
-		fileInfo.markdownBody = htmlToMarkdown(htmlString);
-		fileInfo.markdownBody = escapeHashtags(fileInfo.markdownBody);
-		fileInfo.markdownBody = fixDoubleBackslash(fileInfo.markdownBody);
+	const description = document.querySelector(
+		`p[class*=page-description]`
+	)?.innerHTML;
 
-		if (fileInfo.properties) {
-			fileInfo.yamlProperties = fileInfo.properties.map((property) =>
-				convertPropertyToYAML(property, {
-					fileInfo,
-					idsToFileInfo,
-					pathsToAttachmentInfo,
-					attachmentFolderPath,
-				})
-			);
+	const notionLinks = getNotionLinks(body, {
+		filePath,
+		attachmentPaths,
+	});
+
+	convertLinksToObsidian(notionLinks, {
+		idsToFileInfo,
+		pathsToAttachmentInfo,
+	});
+
+	replaceNestedTags(body, 'strong');
+	replaceNestedTags(body, 'em');
+	stripLinkFormatting(body);
+	encodeNewlinesToBr(body);
+	fixNotionDates(body);
+	fixNotionLists(body);
+	replaceTableOfContents(body);
+	formatDatabases(body);
+
+	let htmlString = body.innerHTML;
+	// Simpler to just use the HTML string for this replacement
+	splitBrsInFormatting(htmlString, 'strong');
+	splitBrsInFormatting(htmlString, 'em');
+
+	let markdownBody = htmlToMarkdown(htmlString);
+	markdownBody = escapeHashtags(markdownBody);
+	markdownBody = fixDoubleBackslash(markdownBody);
+
+	const rawProperties = document
+		.querySelector(`table[class=properties]`)
+		?.querySelector('tbody')?.children;
+
+	const properties: YamlProperty[] = [];
+
+	if (rawProperties) {
+		for (let i = 0; i < rawProperties.length; i++) {
+			const row = rawProperties.item(i) as HTMLTableRowElement;
+			const property = parseProperty(row, {
+				filePath,
+				attachmentPaths,
+				idsToFileInfo,
+				pathsToAttachmentInfo,
+			});
+			properties.push(property);
 		}
 	}
+
+	return { markdownBody, properties };
 }
 
+const parseProperty = (
+	property: HTMLTableRowElement,
+	{
+		filePath,
+		attachmentPaths,
+		idsToFileInfo,
+		pathsToAttachmentInfo,
+	}: {
+		filePath: string;
+		attachmentPaths: string[];
+		idsToFileInfo: Record<string, NotionFileInfo>;
+		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+	}
+): YamlProperty => {
+	const notionType = property.className.match(
+		/property-row-(.*)/
+	)?.[1] as NotionPropertyType;
+	if (!notionType)
+		throw new Error('property type not found for: ' + property);
+
+	const title = htmlToMarkdown(property.cells[0].textContent ?? '');
+
+	const body = property.cells[1];
+
+	const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
+		checkbox: ['checkbox'],
+		date: ['created_time', 'last_edited_time', 'date'],
+		list: ['file', 'multi_select', 'relation'],
+		number: ['number', 'auto_increment_id'],
+		text: [
+			'email',
+			'person',
+			'phone_number',
+			'text',
+			'url',
+			'status',
+			'select',
+			'formula',
+			'rollup',
+			'last_edited_by',
+			'created_by',
+		],
+	};
+
+	let type = Object.keys(typesMap).find((type: keyof typeof typesMap) =>
+		typesMap[type].includes(notionType)
+	) as NotionProperty['type'];
+
+	if (!type) throw new Error('type not found for: ' + body);
+
+	let content: YamlProperty['content'] = '';
+
+	const links = getNotionLinks(body, { filePath, attachmentPaths });
+
+	if (['text', 'list'].includes(type)) {
+		convertLinksToObsidian(links, {
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			embedAttachments: false,
+		});
+		convertHtmlLinksToURLs(body);
+	}
+
+	switch (type) {
+		case 'checkbox':
+			// checkbox-on: checked, checkbox-off: unchecked.
+			content = body.innerHTML.includes('checkbox-on');
+			break;
+		case 'number':
+			content = Number(body.textContent);
+			break;
+		case 'date':
+			fixNotionDates(body);
+			const dates = body.getElementsByTagName('time');
+			if (dates.length === 0) {
+				content = '';
+			} else if (dates.length === 1) {
+				content = parseDate(moment(dates.item(0)?.textContent));
+			} else {
+				const dateList = [];
+				for (let i = 0; i < dates.length; i++) {
+					dateList.push(
+						parseDate(moment(dates.item(i)?.textContent))
+					);
+				}
+				content = dateList.join(' - ');
+			}
+			break;
+		case 'list':
+			const children = body.children;
+			const childList: string[] = [];
+			for (let i = 0; i < children.length; i++) {
+				childList.push(children.item(i)?.textContent ?? '');
+			}
+			content = childList;
+			break;
+		case 'text':
+			content = body.textContent ?? '';
+			break;
+	}
+
+	return {
+		title,
+		content,
+	};
+};
+
+const getNotionLinks = (
+	body: HTMLElement,
+	{
+		filePath,
+		attachmentPaths,
+	}: {
+		filePath: string;
+		attachmentPaths: string[];
+	}
+) => {
+	const links: NotionLink[] = [];
+	const { parent } = parseFilePath(filePath);
+
+	body.querySelectorAll('a').forEach((a) => {
+		const decodedURI = decodeURI(a.getAttribute('href') ?? '');
+		const id = getNotionId(decodedURI);
+
+		if (attachmentPaths.find((filename) => filename.includes(decodedURI))) {
+			links.push({
+				type: 'attachment',
+				a,
+				path: parent + decodedURI,
+			});
+		} else if (id && decodedURI.endsWith('.html')) {
+			links.push({ type: 'relation', a, id });
+		}
+	});
+
+	return links;
+};
+
 const fixDoubleBackslash = (markdownBody: string) => {
-	const slashSearch = /\[\[[^\]]*(\\\\)[^\]]*\]\]/;
+	// Persistent error during conversion where backslashes in full-path links written as '\\|' become double-slashes \\| in the markdown.
+	// In tables, we have to use \| in internal links. This corrects the erroneous \\| in markdown.
+
+	const slashSearch = /\[\[[^\]]*(\\\\)\|[^\]]*\]\]/;
 	const doubleSlashes = markdownBody.match(new RegExp(slashSearch, 'g'));
 	doubleSlashes?.forEach((slash) => {
-		console.log(slash, slash.replace(/\\\\/g, '\u005C'));
-		console.log(markdownBody.match(slash));
-
 		markdownBody = markdownBody.replace(
 			slash,
-			slash.replace(/\\\\/g, '\u005C')
+			slash.replace(/\\\\\|/g, '\u005C|')
 		);
 	});
 
@@ -76,10 +245,12 @@ const fixDoubleBackslash = (markdownBody: string) => {
 };
 
 const formatDatabases = (body: HTMLElement) => {
-	// Notion includes user SVGs which aren't relevant to Markdown, so change them to pure text. Safe because it's a part of Notion UI and not nested.
-	const users = body.querySelectorAll('span[class=user]');
+	// Notion includes user SVGs which aren't relevant to Markdown, so change them to pure text.
+	const users = body.querySelectorAll(
+		'span[class=user]'
+	) as NodeListOf<HTMLSpanElement>;
 	users.forEach((user) => {
-		user.innerHTML = user.textContent;
+		user.innerText = user.textContent ?? '';
 	});
 
 	const checkboxes = body.querySelectorAll('td div[class*=checkbox]');
@@ -95,7 +266,7 @@ const formatDatabases = (body: HTMLElement) => {
 		'table span[class*=selected-value]'
 	);
 	selectedValues.forEach((select) => {
-		const lastChild = select.parentElement.lastElementChild;
+		const lastChild = select.parentElement?.lastElementChild;
 		if (lastChild === select) return;
 		select.setText(select.textContent + ', ');
 	});
@@ -104,9 +275,10 @@ const formatDatabases = (body: HTMLElement) => {
 		'a[href]'
 	) as NodeListOf<HTMLAnchorElement>;
 	linkValues.forEach((a) => {
+		// Any <a> with an email, phone number, or non-URL value registers as an internal link in Obsidian. [email@gmail.com](email@gmail.com) will create a new note when clicked. This strips these erroneous links.
 		if (a.href.startsWith('app://obsidian.md')) {
 			const strippedURL = document.createElement('span');
-			strippedURL.setText(a.textContent);
+			strippedURL.setText(a.textContent ?? '');
 			a.replaceWith(strippedURL);
 		}
 	});
@@ -146,7 +318,7 @@ function replaceTableOfContents(body: HTMLDivElement) {
 	) as NodeListOf<HTMLAnchorElement>;
 	if (tocLinks.length === 0) return body;
 	tocLinks.forEach((link) => {
-		if (link.getAttribute('href').startsWith('#')) {
+		if (link.getAttribute('href')?.startsWith('#')) {
 			link.setAttribute('href', '#' + link.textContent);
 		}
 	});
@@ -158,17 +330,19 @@ const encodeNewlinesToBr = (body: HTMLDivElement) => {
 
 const stripLinkFormatting = (body: HTMLDivElement) => {
 	body.querySelectorAll('link').forEach((link) => {
-		link.innerHTML = link.textContent;
+		link.innerText = link.textContent ?? '';
 	});
 };
 
 const fixNotionDates = (body: HTMLDivElement) => {
+	// Notion dates always start with @
 	body.querySelectorAll('time').forEach((time) => {
-		time.textContent = time.textContent.replace(/@/g, '');
+		time.textContent = time.textContent?.replace(/@/g, '') ?? '';
 	});
 };
 
 const fixNotionLists = (body: HTMLDivElement) => {
+	// Notion encodes lists as strings of <ul>s or <ol>s (because of its block structure), which results in newlines between all list items.
 	body.innerHTML = body.innerHTML
 		.replace(
 			/<\/li><\/ul><ul id=".*?" [^>]*><li [^>]*>/g,
@@ -177,78 +351,14 @@ const fixNotionLists = (body: HTMLDivElement) => {
 		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
 };
 
-function convertPropertyToYAML(
-	property: NotionFileInfo['properties'][number],
-	{
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-		fileInfo,
-		attachmentFolderPath,
-	}: {
-		idsToFileInfo: Record<string, NotionFileInfo>;
-		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		fileInfo: NotionFileInfo;
-		attachmentFolderPath: string;
-	}
-): YamlProperty {
-	let content: YamlProperty['content'];
-
-	if (['text', 'list'].includes(property.type)) {
-		convertLinksToObsidian(property.links, {
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-			embedAttachments: false,
-		});
-		convertHtmlLinksToURLs(property.body);
-	}
-
-	switch (property.type) {
-		case 'checkbox':
-			content = property.body.innerHTML.includes('checkbox-on');
-			break;
-		case 'number':
-			content = Number(property.body.textContent);
-			break;
-		case 'date':
-			fixNotionDates(property.body);
-			const dates = property.body.getElementsByTagName('time');
-			if (dates.length === 0) {
-				content = '';
-			} else if (dates.length === 1) {
-				content = parseDate(moment(dates.item(0).textContent));
-			} else {
-				const dateList = [];
-				for (let i = 0; i < dates.length; i++) {
-					dateList.push(parseDate(moment(dates.item(i).textContent)));
-				}
-				content = dateList.join(' - ');
-			}
-			break;
-		case 'list':
-			const children = property.body.children;
-			const childList: string[] = [];
-			for (let i = 0; i < children.length; i++) {
-				childList.push(children.item(i).textContent);
-			}
-			content = childList;
-			break;
-		case 'text':
-			content = property.body.textContent;
-			break;
-	}
-	return {
-		title: htmlToMarkdown(property.title),
-		content,
-	};
-}
-
 function convertHtmlLinksToURLs(content: HTMLElement) {
 	const links = content.getElementsByTagName('a');
 	if (links.length === 0) return content;
 	for (let i = 0; i < links.length; i++) {
 		const link = links.item(i);
+		if (!link) continue;
 		const span = document.createElement('span');
-		span.setText(link.getAttribute('href'));
+		span.setText(link.getAttribute('href') ?? '');
 		link.replaceWith(span);
 	}
 	return content;
@@ -275,10 +385,11 @@ function convertLinksToObsidian(
 				const linkInfo = idsToFileInfo[link.id];
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
-					const extractedFilename = matchFilename(
-						decodeURI(link.a.getAttribute('href'))
+					const { name } = parseFilePath(
+						decodeURI(link.a.getAttribute('href') ?? '')
 					);
-					linkContent = `[[${stripNotionId(extractedFilename)}]]`;
+
+					linkContent = `[[${stripNotionId(name ?? '')}]]`;
 				} else {
 					const isInTable = link.a.closest('table');
 					linkContent = `[[${

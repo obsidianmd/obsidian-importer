@@ -1,9 +1,4 @@
-import {
-	escapeRegex,
-	getParentFolder,
-	matchFilename,
-	pathToFilename,
-} from '../../util';
+import { getParentFolder, matchFilename, pathToFilename } from '../../util';
 
 export const isNotionId = (id: string) =>
 	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
@@ -12,6 +7,7 @@ export const stripNotionId = (id: string) => {
 	return id.replace(/-/g, '').replace(/[ -]?[a-z0-9]{32}(\.|$)/, '$1');
 };
 
+// Notion UUIDs come at the end of filenames/URL paths and are always 32 characters long.
 export const getNotionId = (id: string) => {
 	return id.replace(/-/g, '').match(/([a-z0-9]{32})(\?|\.|$)/)?.[1];
 };
@@ -20,7 +16,7 @@ export const parseParentIds = (filename: string) =>
 	getParentFolder(filename)
 		.split('/')
 		.map((parentNote) => getNotionId(parentNote))
-		.filter((id) => id);
+		.filter((id) => id) as string[];
 
 export const assembleParentIds = (
 	fileInfo: NotionFileInfo | NotionAttachmentInfo,
