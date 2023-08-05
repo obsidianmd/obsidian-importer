@@ -89,6 +89,7 @@ export abstract class FormatImporter {
 	}
 
 	addOutputLocationSetting(defaultExportFolderName: string) {
+		this.outputLocation = defaultExportFolderName;
 		new Setting(this.modal.contentEl)
 			.setName('Output folder')
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
