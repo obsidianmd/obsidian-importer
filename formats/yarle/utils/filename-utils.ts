@@ -6,7 +6,7 @@ import { yarleOptions } from '../yarle';
 
 import { ResourceFileProperties } from './../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { extension } from '../../../mime';
+import { extensionForMime } from '../../../mime';
 
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
@@ -79,7 +79,7 @@ export const getExtensionFromMime = (resource: any): string => {
 		return '';
 	}
 
-	return extension(mimeType) || '';
+	return extensionForMime(mimeType) || '';
 };
 
 export const getExtension = (resource: any): string => {

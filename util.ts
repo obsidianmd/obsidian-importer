@@ -45,3 +45,15 @@ export class PromiseExecutor {
 		return await ret;
 	}
 }
+
+export function parseHTML(html: string): HTMLElement {
+	return new DOMParser().parseFromString(html, 'text/html').body;
+}
+
+export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
+	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+}
+
+export function stringToUtf8(text: string): ArrayBuffer {
+	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
+}
