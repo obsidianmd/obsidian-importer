@@ -148,8 +148,8 @@ export abstract class FormatImporter {
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
-		let santizedName = sanitizeFileName(title);
+		let sanitizedName = sanitizeFileName(title);
 		// @ts-ignore
-		return await this.app.fileManager.createNewMarkdownFile(folder, santizedName, content);
+		return await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
 	}
 }

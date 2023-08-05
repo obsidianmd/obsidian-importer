@@ -1,12 +1,16 @@
-function escapeRegex(str: string): string {
-	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
-}
-
-const ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
-const ILLEGAL_FILENAME_RE = new RegExp('[' + escapeRegex(ILLEGAL_CHARACTERS) + ']', 'g');
+let illegalRe = /[\/\?<>\\:\*\|"]/g;
+let controlRe = /[\x00-\x1f\x80-\x9f]/g;
+let reservedRe = /^\.+$/;
+let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
+let windowsTrailingRe = /[\. ]+$/;
 
 export function sanitizeFileName(name: string) {
-	return name.replace(ILLEGAL_FILENAME_RE, '');
+	return name
+		.replace(illegalRe, '')
+		.replace(controlRe, '')
+		.replace(reservedRe, '')
+		.replace(windowsReservedRe, '')
+		.replace(windowsTrailingRe, '');
 }
 
 export function genUid(length: number): string {
