@@ -68,57 +68,75 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const processed = [];
+		const fileLookup = new Map<string, TFile>;
 		progress.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			progress.reportProgress(i, files.length);
-			const ret = await this.processFile(progress, folder, files[i]);
-			if (ret) {
-				processed.push(ret);
+			const file = files[i];
+			const tFile = await this.processFile(progress, folder, file);
+			if (tFile) {
+				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, tFile);
 			}
 		}
 
-		const processed0 = processed[0];
-		if (processed0) {
-			const resolved = new Promise<void>(resolve => {
-				const ref = this.app.metadataCache.on('resolved', () => {
-					this.app.metadataCache.offref(ref);
-					resolve();
+		if (fileLookup.size > 0) {
+			let { metadataCache } = this.app;
+			// @ts-ignore
+			if (!metadataCache.computeMetadataAsync) {
+				const aFile = fileLookup.values().next().value;
+				const resolved = new Promise<void>(resolve => {
+					const ref = this.app.metadataCache.on('resolved', () => {
+						this.app.metadataCache.offref(ref);
+						resolve();
+					});
 				});
-			});
-			const appended = '\n';
-			await this.app.vault.append(processed0[1], appended);
-			await resolved;
-			await this.app.vault.process(processed0[1], data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
+				const appended = '\n';
+				await this.app.vault.append(aFile, appended);
+				await resolved;
+				await this.app.vault.process(aFile, data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
+			}
 
-			const interlinks = Object.fromEntries(processed
-				.map(([file, tFile]) => [
-					file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name,
-					tFile,
-				]));
-			for (const [file, tFile] of processed) {
+			for (const [fileURL, file] of fileLookup) {
 				try {
-					const cache = this.app.metadataCache.getFileCache(tFile);
-					const replacements = Object.fromEntries((cache?.links ?? [])
-						.map(({ link, original, displayText }) => {
-							const { path, subpath } = parseLinktext(link);
-							const linkFile = interlinks[file instanceof NodePickedFile
-								// `pathToFileURL(fileURLToPath(...))` is used to normalize file URLs like removing hashes and query parameters
-								? nodeUrl.pathToFileURL(nodeUrl.fileURLToPath(new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href)).href
-								: parseFilePath(decodeURIComponent(path)).name];
-							if (!linkFile) {
-								return null;
-							}
-							return [original, this.app.fileManager.generateMarkdownLink(linkFile, tFile.path, subpath, displayText)];
-						})
-						.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
-					if (Object.keys(replacements).length > 0) {
-						const originals = alternativeRegExp(Object.keys(replacements));
-						await this.app.vault.process(tFile, data => data.replace(originals, sstr => replacements[sstr]));
+					// Attempt to parse links using MetadataCache
+					let mdContent = await this.app.vault.cachedRead(file);
+					let cache;
+					// @ts-ignore
+					if (metadataCache.computeMetadataAsync) {
+						// @ts-ignore
+						cache = await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata;
 					}
+					else {
+						cache = metadataCache.getFileCache(file);
+					}
+					if (!cache) continue;
+
+					// Gather changes to make to the document
+					const changes = [];
+					if (cache.links) {
+						for (const { link, position, displayText } of cache.links) {
+							const { path, subpath } = parseLinktext(link);
+							const linkURL = nodeUrl
+								// `pathToFileURL(fileURLToPath(...))` is used to normalize file URLs like removing hashes and query parameters
+								? nodeUrl.pathToFileURL(nodeUrl.fileURLToPath(new URL(path, fileURL))).href
+								: parseFilePath(decodeURIComponent(path)).name;
+							if (fileLookup.has(linkURL)) {
+								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkURL)!, file.path, subpath, displayText);
+								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
+							}
+						}
+					}
+
+					// Apply changes from last to first
+					changes.sort((a, b) => b.from - a.from);
+					for (let change of changes) {
+						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
+					}
+
+					await this.vault.modify(file, mdContent);
 				}
 				catch (e) {
-					progress.reportFailed(file.toString(), e);
+					progress.reportFailed(file.name, e);
 				}
 			}
 		}
@@ -218,7 +236,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			progress.reportNoteSuccess(file.name);
-			return [file, mdFile] as const;
+			return mdFile;
 		}
 		catch (e) {
 			progress.reportFailed(file.name, e);
@@ -349,18 +367,4 @@ async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width:
 	finally {
 		URL.revokeObjectURL(url);
 	}
-}
-
-function escapeRegExp(str: string) {
-	return str.replace(/[\\^$.*+?()[\]{}|]/gu, '\\$&');
-}
-
-function alternativeRegExp(strs: readonly string[]) {
-	return strs.length > 0 ? new RegExp(
-		[...strs]
-			.sort(({ length: left }, { length: right }) => right - left)
-			.map(escapeRegExp)
-			.join('|'),
-		'gu',
-	) : /^\b$/gu;
 }
