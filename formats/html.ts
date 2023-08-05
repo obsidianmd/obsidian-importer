@@ -74,7 +74,7 @@ export class HtmlImporter extends FormatImporter {
 		progress.reportProgress(0, files.length);
 		for (const [index, file] of Object.entries(files)) {
 			await this.processFile(progress, folder, file);
-			progress.reportProgress(Number(index + 1), files.length);
+			progress.reportProgress(Number(index) + 1, files.length);
 		}
 	}
 
