@@ -103,6 +103,7 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		const attachmentPaths = Object.keys(pathsToAttachmentInfo);
+		console.log(attachmentPaths);
 
 		await processZips(
 			files,

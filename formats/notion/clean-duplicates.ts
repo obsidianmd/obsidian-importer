@@ -1,6 +1,6 @@
+import { parseFilePath } from 'filesystem';
 import { App, TAbstractFile, normalizePath } from 'obsidian';
 import { assembleParentIds } from './notion-utils';
-import { parseFilePath } from 'filesystem';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -121,23 +121,21 @@ function cleanDuplicateAttachments({
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		console.log(parentFolderPath);
-
 		if (
 			attachmentPaths.has(
 				parentFolderPath + attachmentInfo.nameWithExtension
 			)
 		) {
 			let duplicateResolutionIndex = 2;
-			const { name, extension } = parseFilePath(attachmentInfo.path);
+			const { basename, extension } = parseFilePath(attachmentInfo.path);
 			while (
 				attachmentPaths.has(
-					`${parentFolderPath}/${name} ${duplicateResolutionIndex}.${extension}`
+					`${parentFolderPath}/${basename} ${duplicateResolutionIndex}.${extension}`
 				)
 			) {
 				duplicateResolutionIndex++;
 			}
-			attachmentInfo.nameWithExtension = `${name} ${duplicateResolutionIndex}.${extension}`;
+			attachmentInfo.nameWithExtension = `${basename} ${duplicateResolutionIndex}.${extension}`;
 		}
 
 		attachmentInfo.targetParentFolder = parentFolderPath;

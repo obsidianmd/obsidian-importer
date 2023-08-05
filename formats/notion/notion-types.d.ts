@@ -1,7 +1,4 @@
-import { Entry } from '@zip.js/zip.js';
-import { PickedFile } from 'filesystem';
 import 'obsidian';
-import { FileSystemAdapter } from 'obsidian';
 
 declare global {
 	type NotionPropertyType =

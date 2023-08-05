@@ -1,14 +1,13 @@
-import { htmlToMarkdown } from 'obsidian';
+import { Entry, TextWriter } from '@zip.js/zip.js';
+import { parseFilePath } from 'filesystem';
+import { htmlToMarkdown, moment } from 'obsidian';
 import { escapeHashtags } from '../../util';
 import {
 	assembleParentIds,
 	getNotionId,
-	stripNotionId,
 	parseDate,
+	stripNotionId,
 } from './notion-utils';
-import { moment } from 'obsidian';
-import { Entry, TextReader, TextWriter } from '@zip.js/zip.js';
-import { parseFilePath } from 'filesystem';
 
 export async function readToMarkdown(
 	file: Entry,
@@ -36,12 +35,7 @@ export async function readToMarkdown(
 		`div[class=page-body]`
 	) as HTMLDivElement;
 
-	const description = document.querySelector(
-		`p[class*=page-description]`
-	)?.innerHTML;
-
 	const notionLinks = getNotionLinks(body, {
-		filePath,
 		attachmentPaths,
 	});
 
@@ -49,6 +43,33 @@ export async function readToMarkdown(
 		idsToFileInfo,
 		pathsToAttachmentInfo,
 	});
+
+	const rawProperties = document.querySelector(
+		`table[class=properties] > tbody`
+	) as HTMLTableSectionElement | null;
+
+	if (rawProperties) {
+		const propertyLinks = getNotionLinks(rawProperties, {
+			attachmentPaths,
+		});
+		convertLinksToObsidian(propertyLinks, {
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+			embedAttachments: false,
+		});
+		// YAML only takes raw URLS
+		convertHtmlLinksToURLs(rawProperties);
+	}
+
+	const properties: YamlProperty[] = [];
+
+	if (rawProperties) {
+		for (let i = 0; i < rawProperties.children.length; i++) {
+			const row = rawProperties.children.item(i) as HTMLTableRowElement;
+			const property = parseProperty(row);
+			if (property) properties.push(property);
+		}
+	}
 
 	replaceNestedTags(body, 'strong');
 	replaceNestedTags(body, 'em');
@@ -68,42 +89,17 @@ export async function readToMarkdown(
 	markdownBody = escapeHashtags(markdownBody);
 	markdownBody = fixDoubleBackslash(markdownBody);
 
-	const rawProperties = document
-		.querySelector(`table[class=properties]`)
-		?.querySelector('tbody')?.children;
-
-	const properties: YamlProperty[] = [];
-
-	if (rawProperties) {
-		for (let i = 0; i < rawProperties.length; i++) {
-			const row = rawProperties.item(i) as HTMLTableRowElement;
-			const property = parseProperty(row, {
-				filePath,
-				attachmentPaths,
-				idsToFileInfo,
-				pathsToAttachmentInfo,
-			});
-			properties.push(property);
-		}
-	}
+	const description = document.querySelector(
+		`p[class*=page-description]`
+	)?.textContent;
+	if (description) markdownBody = description + '\n' + markdownBody;
 
 	return { markdownBody, properties };
 }
 
 const parseProperty = (
-	property: HTMLTableRowElement,
-	{
-		filePath,
-		attachmentPaths,
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-	}: {
-		filePath: string;
-		attachmentPaths: string[];
-		idsToFileInfo: Record<string, NotionFileInfo>;
-		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	}
-): YamlProperty => {
+	property: HTMLTableRowElement
+): YamlProperty | undefined => {
 	const notionType = property.className.match(
 		/property-row-(.*)/
 	)?.[1] as NotionPropertyType;
@@ -142,17 +138,6 @@ const parseProperty = (
 
 	let content: YamlProperty['content'] = '';
 
-	const links = getNotionLinks(body, { filePath, attachmentPaths });
-
-	if (['text', 'list'].includes(type)) {
-		convertLinksToObsidian(links, {
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-			embedAttachments: false,
-		});
-		convertHtmlLinksToURLs(body);
-	}
-
 	switch (type) {
 		case 'checkbox':
 			// checkbox-on: checked, checkbox-off: unchecked.
@@ -160,6 +145,7 @@ const parseProperty = (
 			break;
 		case 'number':
 			content = Number(body.textContent);
+			if (isNaN(content)) return;
 			break;
 		case 'date':
 			fixNotionDates(body);
@@ -177,17 +163,22 @@ const parseProperty = (
 				}
 				content = dateList.join(' - ');
 			}
+			if (content.length === 0) return;
 			break;
 		case 'list':
 			const children = body.children;
 			const childList: string[] = [];
 			for (let i = 0; i < children.length; i++) {
-				childList.push(children.item(i)?.textContent ?? '');
+				const itemContent = children.item(i)?.textContent;
+				if (!itemContent) continue;
+				childList.push(itemContent);
 			}
 			content = childList;
+			if (content.length === 0) return;
 			break;
 		case 'text':
 			content = body.textContent ?? '';
+			if (content.length === 0) return;
 			break;
 	}
 
@@ -200,25 +191,25 @@ const parseProperty = (
 const getNotionLinks = (
 	body: HTMLElement,
 	{
-		filePath,
 		attachmentPaths,
 	}: {
-		filePath: string;
 		attachmentPaths: string[];
 	}
 ) => {
 	const links: NotionLink[] = [];
-	const { parent } = parseFilePath(filePath);
 
 	body.querySelectorAll('a').forEach((a) => {
 		const decodedURI = decodeURI(a.getAttribute('href') ?? '');
 		const id = getNotionId(decodedURI);
 
-		if (attachmentPaths.find((filename) => filename.includes(decodedURI))) {
+		const attachmentPath = attachmentPaths.find((filename) =>
+			filename.includes(decodedURI)
+		);
+		if (attachmentPath) {
 			links.push({
 				type: 'attachment',
 				a,
-				path: parent + decodedURI,
+				path: attachmentPath,
 			});
 		} else if (id && decodedURI.endsWith('.html')) {
 			links.push({ type: 'relation', a, id });
@@ -385,11 +376,11 @@ function convertLinksToObsidian(
 				const linkInfo = idsToFileInfo[link.id];
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
-					const { name } = parseFilePath(
+					const { basename } = parseFilePath(
 						decodeURI(link.a.getAttribute('href') ?? '')
 					);
 
-					linkContent = `[[${stripNotionId(name ?? '')}]]`;
+					linkContent = `[[${stripNotionId(basename)}]]`;
 				} else {
 					const isInTable = link.a.closest('table');
 					linkContent = `[[${

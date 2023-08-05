@@ -1,10 +1,8 @@
-import { FormatImporter } from 'format-importer';
+import { Entry, TextWriter } from '@zip.js/zip.js';
+import { parseFilePath } from 'filesystem';
 import { ImportResult } from 'main';
 import { sanitizeFileName } from '../../util';
-import { assembleParentIds, getNotionId, parseParentIds } from './notion-utils';
-import { htmlToMarkdown } from 'obsidian';
-import { PickedFile, parseFilePath } from 'filesystem';
-import { BlobWriter, Entry, TextWriter } from '@zip.js/zip.js';
+import { getNotionId, parseParentIds } from './notion-utils';
 
 export async function parseFileInfo(
 	file: Entry,
@@ -28,15 +26,14 @@ export async function parseFileInfo(
 		const text = await file.getData(new TextWriter());
 
 		const filePath = file.filename;
-
 		const parentIds = parseParentIds(file.filename);
-
 		const document = parser.parseFromString(text, 'text/html');
 
 		const id = getNotionId(
 			document.querySelector('article')?.getAttribute('id') ?? ''
 		);
 		if (!id) throw new Error('no id found for: ' + file.filename);
+		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full wrods. Worth the extra processing time.
 		const parsedTitle =
 			document.querySelector('title')?.textContent || 'Untitled';
 
@@ -51,7 +48,7 @@ export async function parseFileInfo(
 		);
 
 		// just in case title names are too long
-		while (title.length > 100) {
+		while (title.length > 200) {
 			const wordList = title.split(' ');
 			title = wordList.slice(0, wordList.length - 1).join(' ') + '...';
 		}
@@ -65,10 +62,11 @@ export async function parseFileInfo(
 
 		idsToFileInfo[id] = fileInfo;
 	} else {
-		const { name, extension } = parseFilePath(file.filename);
+		const { basename, extension } = parseFilePath(file.filename);
+
 		const attachmentInfo: NotionAttachmentInfo = {
 			nameWithExtension: sanitizeFileName(
-				`${name || 'Untitled'}.${extension}`
+				`${basename || 'Untitled'}.${extension}`
 			),
 			targetParentFolder: '',
 			fullLinkPathNeeded: false,
