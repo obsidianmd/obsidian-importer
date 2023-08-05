@@ -96,12 +96,25 @@ export class HtmlImporter extends FormatImporter {
 				}
 			}
 
+			const mapper = Object.fromEntries(attachments
+				.map(([src]) => {
+					const ret = src.replace(/^[^:/]*?:/u, '');
+					if (ret === src) {
+						return null;
+					}
+					return [src, ret] as const;
+				})
+				.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
 			dom.querySelectorAll('audio, img, video').forEach(element => {
+				const src = element.getAttribute('src');
+				if (src !== null) {
+					element.setAttribute('src', mapper[src] ?? src); // `MetadataCache` does not cache external embeds
+				}
 				element.outerHTML = element.outerHTML.replace(new RegExp(`^<${element.tagName.toLowerCase()}`, 'u'), '<img'); // `htmlToMarkdown` does not convert `<audio>` and `<video>` into embeds
 			});
 			const mdContent = htmlToMarkdown(new XMLSerializer().serializeToString(dom));
 			if (attachments.length > 0) {
-				const attachments2 = Object.fromEntries(attachments.map(([key, value]) => [decodeURIComponent(key), value]));
+				const attachments2 = Object.fromEntries(attachments.map(([key, value]) => [decodeURIComponent(mapper[key] ?? key), value]));
 
 				const cache = new Promise<CachedMetadata>(resolve => {
 					const ref = this.app.metadataCache.on('changed', (file, _1, cache) => {
