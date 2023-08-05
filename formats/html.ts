@@ -276,14 +276,17 @@ interface TypedResponse {
 }
 
 function fixDocument(document: Document) {
-	function fixElement(element: Element, attribute: string) {
+	function fixElementRef(element: Element, attribute: string) {
 		const value = element.getAttribute(attribute);
 		if (value !== null) {
 			element.setAttribute(attribute, value.replace(/ /gu, '%20'));
 		}
 	}
-	document.querySelectorAll('a').forEach(element => fixElement(element, 'href'));
-	document.querySelectorAll('audio, img, video').forEach(element => fixElement(element, 'src'));
+	document.querySelectorAll('a').forEach(element => fixElementRef(element, 'href'));
+	document.querySelectorAll('audio, img, video').forEach(element => {
+		fixElementRef(element, 'src');
+		element.outerHTML = element.outerHTML.replace(new RegExp(`^<${element.tagName.toLowerCase()}`, 'u'), '<img'); // `htmlToMarkdown` does not convert `<audio>` and `<video>` into embeds
+	});
 }
 
 function escapeRegExp(str: string) {
