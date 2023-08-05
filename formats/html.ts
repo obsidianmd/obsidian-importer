@@ -93,7 +93,7 @@ export class HtmlImporter extends FormatImporter {
 
 			const interlinks = Object.fromEntries(processedFiles
 				.map(([file, tFile]) => [
-					file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : `${tFile.basename}.${file.extension}`,
+					file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name,
 					tFile,
 				]));
 			for (const [file, tFile] of processedFiles) {
@@ -103,7 +103,8 @@ export class HtmlImporter extends FormatImporter {
 						.map(({ link, original, displayText }) => {
 							const { path, subpath } = parseLinktext(link);
 							const linkFile = interlinks[file instanceof NodePickedFile
-								? new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href
+								// `pathToFileURL(fileURLToPath(...))` is used to normalize file URLs like removing hashes and query parameters
+								? nodeUrl.pathToFileURL(nodeUrl.fileURLToPath(new URL(path, nodeUrl.pathToFileURL(file.filepath).href).href)).href
 								: parseFilePath(decodeURIComponent(path)).name];
 							if (!linkFile) {
 								return null;
