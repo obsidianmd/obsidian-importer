@@ -4,9 +4,9 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { RoamJSONImporter } from 'formats/roam-json';
+import { NodePickedFile } from 'filesystem';
 import { importRoamJson } from 'formats/roam/roam'; //TODO remove after testing
 import { PickedFile, path } from 'filesystem'; //TODO remove after testing
-
 declare global {
 	interface Window {
 		electron: any;
@@ -61,38 +61,6 @@ export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
 	async onload() {
-
-		//TODO remove after testing
-		let filePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
-		
-		const fileName = filePath.split('/').pop()
-
-		const myPickedFile: PickedFile = {
-			type: 'file',
-			name: fileName,
-			basename: fileName.split(".")[0],
-			extension: fileName.split(".")[1],
-			readText: function (): Promise<string> {
-				throw new Error('Function not implemented.');
-			},
-			read: function (): Promise<ArrayBuffer> {
-				throw new Error('Function not implemented.');
-			},
-			readZip: function (): Promise<ArrayBuffer> {
-				throw new Error('Function not implemented.');
-			},
-			jsonSources: filePath,
-			saveAttachments: true, 
-			outputDir: "/Users/mtvogel/Documents/Obsidian/dev vault/Roam",
-			downloadAttachments:false
-		};
-
-
-		let results = await importRoamJson([myPickedFile]);
-		console.log(results)
-		throw ""
-		//
-		//
 		this.importers = {
 			'evernote': {
 				name: 'Evernote (.enex)',
@@ -126,17 +94,22 @@ export default class ImporterPlugin extends Plugin {
 
 		// For development, un-comment this and tweak it to your importer:
 
-		/*
 		// Create and open the importer on boot
 		let modal = new ImporterModal(this.app, this);
 		modal.open();
 		// Select my importer
-		modal.updateContent('html');
-		if (modal.importer instanceof HtmlImporter) {
+		modal.updateContent('roam-json');
+		if (modal.importer instanceof RoamJSONImporter) {
 			// Automatically pick file
-			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
+			let importFilePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
+			importFilePath = "/Users/mtvogel/Downloads/roam json exports/test-graph.json"
+			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
+			modal.importer.downloadAttachments = false;
+			modal.importer.files = [new NodePickedFile(importFilePath)];
+			document.getElementsByClassName("mod-cta")[0].click()
+			modal.close();
 		}
-		*/
+		
 	}
 
 	onunload() {

@@ -1,17 +1,15 @@
 import { FormatImporter } from "../format-importer";
 import { FileSystemAdapter, Notice, Setting } from "obsidian";
-import * as path from 'path';
 import { importRoamJson } from "./roam/roam";
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachmentsSetting: Setting;
 	downloadAttachments: boolean = false;
-
+	
 	init() {
 		this.addFileChooserSetting('Roam (.json)', ['json']);
 		this.addOutputLocationSetting('Roam');
 		this.modal.contentEl.createEl('h3', {text: 'Import Settings'});
-
 
 		this.downloadAttachmentsSetting = new Setting(this.modal.contentEl)
             .setName('Download all Attachments')
@@ -39,16 +37,9 @@ export class RoamJSONImporter extends FormatImporter {
 
 		let { app } = this;
 		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
+		if (!(adapter instanceof FileSystemAdapter)) return;		
 
-		let roamOptions = {
-			saveAttachments: true,
-			jsonSources: files,
-			outputDir: path.join(adapter.getBasePath(), folder.path),
-			downloadAttachments:this.downloadAttachments
-		};
-
-		let results = await importRoamJson([roamOptions]);
+		let results = await importRoamJson(this, files, folder);
 
 		this.showResult(results);
 	}
