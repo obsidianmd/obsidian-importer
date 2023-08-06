@@ -1,5 +1,4 @@
 import { ImportResult } from '../../main';
-import { readFileSync } from "fs"
 import { RoamPage, RoamBlock, JsonObject, BlockParentTitle, BlockInfo } from './models/roam-json';
 import { PickedFile, path, fs } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
@@ -192,7 +191,8 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
         importer.createFolders(graphFolder)
 
         // read the graph
-        const data = readFileSync(file.filepath, "utf8")
+		// TODO is this async?
+        const data = fs.readFileSync(file.filepath, "utf8")
         const allPages = JSON.parse(data) as RoamPage[]
         //set the total pages to be imported
         results.total=allPages.length
@@ -214,11 +214,9 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
                 await importer.createFolders(path.dirname(filename))
 				const existingFile = app.vault.getAbstractFileByPath(filename);
 				if (existingFile) {
-					
 					await app.vault.adapter.write(existingFile.path, markdownOutput);
 					// console.log("Markdown replaced in existing file:", existingFile.path);
 				} else {
-					
 					const newFile = await app.vault.create(filename, markdownOutput);
 					// console.log("Markdown saved to new file:", newFile.path);
 				}
@@ -226,9 +224,6 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 				console.error("Error saving Markdown to file:", filename, error);
                 results.failed.push(pageName)
 			}
-               
-            
-            
         }
 		// POST-PROCESS: fix block refs //
 
