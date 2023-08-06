@@ -1,12 +1,10 @@
 import { ImportResult } from '../../main';
 import { readFileSync } from "fs"
 import { RoamPage, RoamBlock, JsonObject, BlockParentTitle, BlockInfo } from './models/roam-json';
-import { PickedFile } from 'filesystem';
+import { PickedFile, path, fs } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName, sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from '../../util';
 import { TFolder } from 'obsidian';
-import path from 'path';
-import { Console } from 'console';
 
 const userDNPFormat = getUserDNPFormat();
 
@@ -178,7 +176,7 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
             // 	1. Save the file name and line number
             // 	2. look up the referenced block
             // 	3. save the referenced
-// ### Save to markdown file
+// ### Write-process
     // 	General markdown processing needs to happen here
     // 	Sanatize file names
 // ### Post-Process
@@ -189,7 +187,7 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 	// convert each roam .json output selected by the user
     for (let file of files) {
         const graphName = sanitizeFileName(file.basename);
-        const graphFolder = folder.path+"/"+graphName
+        const graphFolder = path.join(folder.path, graphName)
         // create the base graph folder
         importer.createFolders(graphFolder)
 
@@ -198,28 +196,31 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
         const allPages = JSON.parse(data) as RoamPage[]
         //set the total pages to be imported
         results.total=allPages.length
-        // map the blocks for easy lookup
+
+        // PRE-PROCESS: map the blocks for easy lookup //
         const blockLocations = preprocess(allPages)
 
-        // now create the actual pages
+        // WRITE-PROCESS: create the actual pages //
         for (let index in allPages) {
             const pageData = allPages[index]
-			//TODO fix sanitization for nested pages
-            const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
-            const filename = graphFolder + "/" + pageName + ".md";
+
+			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
+            const filename =  path.join(graphFolder, `${pageName}.md`)
             // convert json to nested markdown
             const markdownOutput = jsonToMarkdown(graphFolder, pageData);
             
-
             try {
-                console.log(filename)
+				//create folders for nested pages [[some/nested/subfolder/page]]
+                await importer.createFolders(path.dirname(filename))
 				const existingFile = app.vault.getAbstractFileByPath(filename);
 				if (existingFile) {
+					
 					await app.vault.adapter.write(existingFile.path, markdownOutput);
-					console.log("Markdown replaced in existing file:", existingFile.path);
+					// console.log("Markdown replaced in existing file:", existingFile.path);
 				} else {
+					
 					const newFile = await app.vault.create(filename, markdownOutput);
-					console.log("Markdown saved to new file:", newFile.path);
+					// console.log("Markdown saved to new file:", newFile.path);
 				}
 			} catch (error) {
 				console.error("Error saving Markdown to file:", filename, error);
@@ -229,6 +230,8 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
             
             
         }
+		// POST-PROCESS: fix block refs //
+
     }
     console.log(results)
     throw "DevBreak"

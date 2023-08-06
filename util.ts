@@ -84,7 +84,6 @@ export function getUserDNPFormat(){
 	return dailyPageFormat;
 }
 
-
 export function convertDateString(dateString: string, newFormat: string): string | null {
 	const validFormat = 'MMMM Do, YYYY';
 	const dateObj = moment(dateString, validFormat);
