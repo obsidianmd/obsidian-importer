@@ -116,10 +116,16 @@ export class HtmlImporter extends FormatImporter {
 					if (cache.links) {
 						for (const { link, position, displayText } of cache.links) {
 							const { path, subpath } = parseLinktext(link);
-							const linkURL = nodeUrl
-								// `pathToFileURL(fileURLToPath(...))` is used to normalize file URLs like removing hashes and query parameters
-								? nodeUrl.pathToFileURL(nodeUrl.fileURLToPath(new URL(path, fileURL))).href
-								: parseFilePath(path).name;
+							let linkURL;
+							if (nodeUrl) {
+								const url = new URL(encodeURI(path), fileURL);
+								url.hash = '';
+								url.search = '';
+								linkURL = decodeURIComponent(url.href);
+							}
+							else {
+								linkURL = parseFilePath(path.replace(/#/gu, '%23')).name;
+							}
 							if (fileLookup.has(linkURL)) {
 								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkURL)!, file.path, subpath, displayText);
 								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
