@@ -97,19 +97,18 @@ export default class ImporterPlugin extends Plugin {
 		// For development, un-comment this and tweak it to your importer:
 
 		// Create and open the importer on boot
-		let modal = new ImporterModal(this.app, this);
-		modal.open();
-		// Select my importer
-		modal.updateContent('notion');
-		if (modal.importer instanceof NotionImporter) {
-			// Automatically pick file
-			modal.importer.files = [
-				new NodePickedFile(
-					'/Users/jreinier/Documents/Me/1 now/notion-export/import-tests/zips/sample-data.zip'
-				),
-			];
-			console.log(modal.importer.files);
-		}
+		// let modal = new ImporterModal(this.app, this);
+		// modal.open();
+		// // Select my importer
+		// modal.updateContent('notion');
+		// if (modal.importer instanceof NotionImporter) {
+		// 	// Automatically pick file
+		// 	modal.importer.files = [
+		// 		new NodePickedFile(
+		// 			'sample file'
+		// 		),
+		// 	];
+		// }
 	}
 
 	onunload() {}

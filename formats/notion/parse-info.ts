@@ -2,7 +2,11 @@ import { Entry, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
 import { ImportResult } from 'main';
 import { sanitizeFileName } from '../../util';
-import { getNotionId, parseParentIds } from './notion-utils';
+import {
+	getNotionId,
+	parseAttachmentFolderPath,
+	parseParentIds,
+} from './notion-utils';
 
 export async function parseFileInfo(
 	file: Entry,
@@ -11,14 +15,19 @@ export async function parseFileInfo(
 		pathsToAttachmentInfo,
 		results,
 		parser,
+		attachmentFolderPath,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 		results: ImportResult;
 		parser: DOMParser;
+		attachmentFolderPath: string;
 	}
 ) {
 	if (!file.getData) return;
+
+	const { attachmentsInCurrentFolder } =
+		parseAttachmentFolderPath(attachmentFolderPath);
 
 	results.total++;
 
@@ -70,7 +79,9 @@ export async function parseFileInfo(
 			),
 			targetParentFolder: '',
 			fullLinkPathNeeded: false,
-			parentIds: parseParentIds(file.filename),
+			parentIds: attachmentsInCurrentFolder
+				? parseParentIds(file.filename)
+				: [],
 			path: file.filename,
 		};
 		pathsToAttachmentInfo[file.filename] = attachmentInfo;

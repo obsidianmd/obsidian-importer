@@ -1,6 +1,6 @@
 import { parseFilePath } from 'filesystem';
 import { App, TAbstractFile, normalizePath } from 'obsidian';
-import { assembleParentIds } from './notion-utils';
+import { assembleParentIds, parseAttachmentFolderPath } from './notion-utils';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -8,18 +8,26 @@ export function cleanDuplicates({
 	attachmentFolderPath,
 	app,
 	targetFolderPath,
+	parentsInSubfolders,
 }: {
 	idsToFileInfo: Record<string, NotionFileInfo>;
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	attachmentFolderPath: string;
 	app: App;
 	targetFolderPath: string;
+	parentsInSubfolders: boolean;
 }) {
 	const loadedFiles = app.vault.getAllLoadedFiles();
 	const pathDuplicateChecks = new Set<string>();
 	const titleDuplicateChecks = new Set<string>(
 		loadedFiles.map((file) => file.name)
 	);
+
+	if (parentsInSubfolders)
+		moveParentsToSubfolders({
+			idsToFileInfo,
+			pathsToAttachmentInfo,
+		});
 
 	cleanDuplicateNotes({
 		pathDuplicateChecks,
@@ -77,6 +85,35 @@ function cleanDuplicateNotes({
 	}
 }
 
+function moveParentsToSubfolders({
+	idsToFileInfo,
+	pathsToAttachmentInfo,
+}: {
+	idsToFileInfo: Record<string, NotionFileInfo>;
+	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
+}) {
+	const notesByLastParent = new Set(
+		(Object.values(idsToFileInfo) as Pick<NotionFileInfo, 'parentIds'>[])
+			.concat(
+				Object.values(pathsToAttachmentInfo) as Pick<
+					NotionAttachmentInfo,
+					'parentIds'
+				>[]
+			)
+			.map((fileInfo) =>
+				fileInfo.parentIds.length > 0
+					? fileInfo.parentIds[fileInfo.parentIds.length - 1]
+					: ''
+			)
+	);
+	for (let id of Object.keys(idsToFileInfo)) {
+		if (notesByLastParent.has(id)) {
+			// Nest any notes with children under the same subfolder, this supports Folder Note plugins in Obsidian
+			idsToFileInfo[id].parentIds.push(id);
+		}
+	}
+}
+
 function cleanDuplicateAttachments({
 	loadedFiles,
 	pathsToAttachmentInfo,
@@ -98,9 +135,8 @@ function cleanDuplicateAttachments({
 			.map((file) => file.path)
 	);
 
-	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
-	// Obsidian formatting for attachments in subfolders is ./<folder>
-	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
+	const { attachmentsInCurrentFolder, attachmentSubfolder } =
+		parseAttachmentFolderPath(attachmentFolderPath);
 
 	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
@@ -109,12 +145,10 @@ function cleanDuplicateAttachments({
 		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
 			parentFolderPath = normalizePath(
-				`${targetFolderPath}/${assembleParentIds(
+				`${targetFolderPath}${assembleParentIds(
 					attachmentInfo,
 					idsToFileInfo
-				).join('')}${
-					attachmentSubfolder ? attachmentSubfolder + '/' : ''
-				}`
+				).join('')}${attachmentSubfolder ?? ''}`
 			);
 		} else {
 			parentFolderPath = normalizePath(attachmentFolderPath + '/');

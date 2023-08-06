@@ -47,3 +47,10 @@ export function parseDate(content: moment.Moment) {
 		return content.format('YYYY-MM-DDTHH:mm');
 	}
 }
+
+export function parseAttachmentFolderPath(attachmentFolderPath: string) {
+	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
+	// Obsidian formatting for attachments in subfolders is ./<folder>
+	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
+	return { attachmentsInCurrentFolder, attachmentSubfolder };
+}

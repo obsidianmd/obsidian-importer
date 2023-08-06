@@ -3,6 +3,7 @@ import { ImportResult } from 'main';
 import {
 	FileSystemAdapter,
 	Notice,
+	Setting,
 	TAbstractFile,
 	TFolder,
 	moment,
@@ -20,25 +21,31 @@ import { BlobWriter, Entry } from '@zip.js/zip.js';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
+	parentsInSubfolders: boolean;
+
 	init() {
+		this.parentsInSubfolders = true;
 		this.addFileChooserSetting('Exported Notion .zip', ['zip'], true);
 		this.addOutputLocationSetting('Notion');
+		new Setting(this.modal.contentEl)
+			.setName('Save parents in subfolders')
+			.setDesc(
+				"Move parents to their children's subfolder to support Folder Notes. If not selected, parents are placed outside of their children's subfolder."
+			)
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.parentsInSubfolders)
+					.onChange((value) => (this.parentsInSubfolders = value));
+			});
 	}
 
 	async import(): Promise<void> {
-		let { app, files } = this;
-
-		await this.app.vault.delete(
-			this.app.vault.getAbstractFileByPath('Notion') as TAbstractFile,
-			true
-		);
+		let { app, files, parentsInSubfolders } = this;
 
 		let targetFolderPath = (await this.getOutputFolder())?.path ?? '';
 		targetFolderPath = normalizePath(targetFolderPath);
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
-
-		targetFolderPath = 'Notion/';
 
 		if (files.length === 0) {
 			new Notice('Please pick at least one folder to import.');
@@ -55,6 +62,8 @@ export class NotionImporter extends FormatImporter {
 		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 		const failedResults = new Set<string>();
 		const parser = new DOMParser();
+		const attachmentFolderPath =
+			app.vault.getConfig('attachmentFolderPath') ?? '';
 
 		// loads in only path & title information to objects
 		await processZips(
@@ -65,6 +74,7 @@ export class NotionImporter extends FormatImporter {
 					pathsToAttachmentInfo,
 					results,
 					parser,
+					attachmentFolderPath,
 				});
 			},
 			(file) => {
@@ -72,15 +82,13 @@ export class NotionImporter extends FormatImporter {
 			}
 		);
 
-		const attachmentFolderPath =
-			app.vault.getConfig('attachmentFolderPath') ?? '';
-
 		cleanDuplicates({
 			app,
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
 			targetFolderPath,
+			parentsInSubfolders,
 		});
 
 		const flatFolderPaths = new Set<string>([targetFolderPath]);
