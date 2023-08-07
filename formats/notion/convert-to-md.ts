@@ -7,6 +7,7 @@ import {
 	getNotionId,
 	parseDate,
 	stripNotionId,
+	stripParentDirectories,
 } from './notion-utils';
 
 export async function readToMarkdown(
@@ -199,7 +200,9 @@ const getNotionLinks = (
 	const links: NotionLink[] = [];
 
 	body.querySelectorAll('a').forEach((a) => {
-		const decodedURI = decodeURI(a.getAttribute('href') ?? '');
+		const decodedURI = stripParentDirectories(
+			decodeURI(a.getAttribute('href') ?? '')
+		);
 		const id = getNotionId(decodedURI);
 
 		const attachmentPath = attachmentPaths.find((filename) =>

@@ -56,5 +56,5 @@ export function parseAttachmentFolderPath(attachmentFolderPath: string) {
 }
 
 export function stripParentDirectories(relativeURI: string) {
-	return relativeURI.replace(/\.\.\//g, '');
+	return relativeURI.replace(/^(\.\.\/)+/, '');
 }
