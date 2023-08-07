@@ -4,6 +4,7 @@ import { PickedFile, path, fs } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName, sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from '../../util';
 import { TFolder } from 'obsidian';
+import { downloadFirebaseFile } from './roam_dl_attachment';
 
 const userDNPFormat = getUserDNPFormat();
 
@@ -49,7 +50,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo> {
 	return blockLocations;
 }
 
-const roamMarkupScrubber = (graphFolder:string, blockText: string, downloadAttachments: boolean = false) => {
+const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, blockText: string, downloadAttachments: boolean = false) => {
 	// get rid of roam-specific components
 	if (
 	  blockText.substring(0, 9) == "{{[[query" ||
@@ -102,6 +103,13 @@ const roamMarkupScrubber = (graphFolder:string, blockText: string, downloadAttac
 	blockText = blockText.replaceAll(/\_\_(.+?)\_\_/g, "*$1*"); // __ __ itallic
 	blockText = blockText.replaceAll(/\^\^(.+?)\^\^/g, "==$1=="); // ^^ ^^ highlight
     
+	// download files uploaded to Roam
+	if (downloadAttachments) {
+		if (blockText.includes('firebasestorage')) {
+			// console.log(app)
+			blockText =  await downloadFirebaseFile(blockText, attachmentsFolder)
+		}
+	}
     // blockText = blockText.replaceAll("{{[[table]]}}", ""); 
 	// blockText = blockText.replaceAll("{{[[kanban]]}}", "");
 	// blockText = blockText.replaceAll("{{mermaid}}", "");
@@ -139,7 +147,7 @@ const roamMarkupScrubber = (graphFolder:string, blockText: string, downloadAttac
 	return blockText;
   };
 
-function jsonToMarkdown(graphFolder:string, json: JsonObject, indent: string = '', isChild: boolean = false ): string {
+async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, downloadAttachments:boolean,json: JsonObject, indent: string = '', isChild: boolean = false ): Promise<string> {
     let markdown = '';
 
     if (json.string) {
@@ -147,12 +155,12 @@ function jsonToMarkdown(graphFolder:string, json: JsonObject, indent: string = '
         if (json.heading) {
             prefix = '#'.repeat(json.heading) + ' ';
         }
-        markdown += `${isChild ? indent + '* ' : indent}${prefix}${(roamMarkupScrubber(graphFolder, json.string))}\n`;
+        markdown += `${isChild ? indent + '* ' : indent}${prefix}${(await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments))}\n`;
     }
 
     if (json.children) {
         for (const child of json.children) {
-            markdown += jsonToMarkdown(graphFolder,child, indent + '  ', true);
+            markdown += await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true);
         }
     }
 
@@ -161,7 +169,7 @@ function jsonToMarkdown(graphFolder:string, json: JsonObject, indent: string = '
 
 
 
-export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile[], folder:TFolder,): Promise<ImportResult> => {
+export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true): Promise<ImportResult> => {
     let results: ImportResult = {
 		total: 0,
 		failed: [],
@@ -186,11 +194,13 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 	// convert each roam .json output selected by the user
     for (let file of files) {
         const graphName = sanitizeFileName(file.basename);
-        const graphFolder = path.join(folder.path, graphName)
-        // create the base graph folder
-        importer.createFolders(graphFolder)
+        const graphFolder = path.join(folder.path, graphName);
+		const attachmentsFolder = path.join(folder.path, graphName, "Attachments")
+        // create the base graph folders
+        await importer.createFolders(graphFolder)
+		await importer.createFolders(attachmentsFolder)
 
-        // read the graph
+		// read the graph
 		// TODO is this async?
         const data = fs.readFileSync(file.filepath, "utf8")
         const allPages = JSON.parse(data) as RoamPage[]
@@ -207,7 +217,7 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
             const filename =  path.join(graphFolder, `${pageName}.md`)
             // convert json to nested markdown
-            const markdownOutput = jsonToMarkdown(graphFolder, pageData);
+            const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
             
             try {
 				//create folders for nested pages [[some/nested/subfolder/page]]
