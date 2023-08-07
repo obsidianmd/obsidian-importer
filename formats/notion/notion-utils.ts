@@ -54,3 +54,7 @@ export function parseAttachmentFolderPath(attachmentFolderPath: string) {
 	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 	return { attachmentsInCurrentFolder, attachmentSubfolder };
 }
+
+export function stripParentDirectories(relativeURI: string) {
+	return relativeURI.replace(/\.\.\//g, '');
+}

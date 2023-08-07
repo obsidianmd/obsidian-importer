@@ -205,14 +205,14 @@ const getNotionLinks = (
 		const attachmentPath = attachmentPaths.find((filename) =>
 			filename.includes(decodedURI)
 		);
-		if (attachmentPath) {
+		if (id && decodedURI.endsWith('.html')) {
+			links.push({ type: 'relation', a, id });
+		} else if (attachmentPath) {
 			links.push({
 				type: 'attachment',
 				a,
 				path: attachmentPath,
 			});
-		} else if (id && decodedURI.endsWith('.html')) {
-			links.push({ type: 'relation', a, id });
 		}
 	});
 
