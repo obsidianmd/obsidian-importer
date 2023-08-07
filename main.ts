@@ -5,8 +5,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { NodePickedFile } from 'filesystem';
-import { importRoamJson } from 'formats/roam/roam'; //TODO remove after testing
-import { PickedFile, path } from 'filesystem'; //TODO remove after testing
+
 declare global {
 	interface Window {
 		electron: any;
@@ -104,7 +103,7 @@ export default class ImporterPlugin extends Plugin {
 			let importFilePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
 			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/test-graph.json"
 			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
-			modal.importer.downloadAttachments = true;
+			modal.importer.downloadAttachments = false;
 			modal.importer.files = [new NodePickedFile(importFilePath)];
 			document.getElementsByClassName("mod-cta")[0].click()
 			modal.close();

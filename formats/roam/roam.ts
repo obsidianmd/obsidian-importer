@@ -1,17 +1,19 @@
 import { ImportResult } from '../../main';
-import { RoamPage, RoamBlock, JsonObject, BlockParentTitle, BlockInfo } from './models/roam-json';
+import { RoamPage, RoamBlock, JsonObject, BlockInfo } from './models/roam-json';
 import { PickedFile, path, fs } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName, sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from '../../util';
 import { TFolder } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
+import { toNamespacedPath } from 'path';
 
 const userDNPFormat = getUserDNPFormat();
 
-function preprocess(pages: RoamPage[]): Map<string, BlockInfo> {
+function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
     // preprocess/map the graph so each block can be quickly found 
     // as well as it's line in the markdown file
 	let blockLocations: Map<string, BlockInfo> = new Map();
+	let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
 
 	for (let page of pages) {
 		let lineNumber = 0;
@@ -27,9 +29,18 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo> {
 					const newPageTitle = convertDateString(page.title, userDNPFormat)
 					page.title = newPageTitle
 				}
+				
+				if (/\(\(.*\)\)/.test(block.string)) {
+					toPostProcessblockLocations.set(block.uid, {
+						pageName: page.title,
+						lineNumber: lineNumber,
+						blockString:block.string,
+					});
+				}
 				blockLocations.set(block.uid, {
-				pageName: page.title,
-				lineNumber: lineNumber
+					pageName: page.title,
+					lineNumber: lineNumber,
+					blockString:block.string,
 				});
 			}
 
@@ -47,7 +58,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo> {
 		}
 	}
 
-	return blockLocations;
+	return [blockLocations, toPostProcessblockLocations];
 }
 
 const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, blockText: string, downloadAttachments: boolean = false) => {
@@ -167,8 +178,6 @@ async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, down
     return markdown;
 }
 
-
-
 export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true): Promise<ImportResult> => {
     let results: ImportResult = {
 		total: 0,
@@ -208,8 +217,8 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
         results.total=allPages.length
 
         // PRE-PROCESS: map the blocks for easy lookup //
-        const blockLocations = preprocess(allPages)
-
+        const [blockLocations, toPostProcess] = preprocess(allPages)
+		
         // WRITE-PROCESS: create the actual pages //
         for (let index in allPages) {
             const pageData = allPages[index]
@@ -217,6 +226,7 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
             const filename =  path.join(graphFolder, `${pageName}.md`)
             // convert json to nested markdown
+			console.log(downloadAttachments)
             const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
             
             try {
@@ -236,9 +246,56 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			}
         }
 		// POST-PROCESS: fix block refs //
+		function modifyBlockString(pages: RoamPage[], uid: string): void {
+			for (const page of pages) {
+			  if (page.children) {
+				for (const block of page.children) {
+				  if (block.uid === uid && block.string) {
+					if (!block.string.endsWith("^" + uid)) {
+					  block.string += ' ^' + uid;
+					}
+				  }
+				  if (block.children) {
+					modifyBlockString([{
+					  title: '',
+					  children: block.children,
+					  uid: ''
+					}], uid);
+				  }
+				}
+			  }
+			}
+		  }
+		
+		//   matches.forEach(match => {
+		// 			// const modifiedMatch = modifyBlockString(match);
+		// 			// inputString = inputString.replace(match, modifiedMatch);
+		// 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
+		// 			const sourceBlock = blockMap.get(match.slice(2, -2));
+		// 			// console.log("blockRef",match.slice(2, -2),sourceBlock);
+		// 			if (sourceBlock) {
+		// 				const newString = roamMarkupScrubber(sourceBlock.block.string, blockMap, stripFormatting=true)
+		// 				const newBlock = `[${newString}]([[${sourceBlock.parentTitle}#^${sourceBlock.block.uid}]])`
+		// 				// console.log(newBlock)
+		// 			}
+		// 		});
+		toPostProcess.forEach((value, key) => {
+			// first Edit the referenced Bloc to add in a block UID
+
+			// Then go back and update the original block with the new reference syntax
+			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
+			const sourceBlock = blockLocations.get(key);
+			// console.log(`Key: ${key}, Value: ${value}`);
+			// console.log(sourceBlock);
+			// TODO how to deal with files in subfolders
+			const file = app.vault.getAbstractFileByPath(path.join(graphFolder,value.pageName)+".md");
+			// console.log(file)
+			
+		  });
 
     }
-    console.log(results)
+    
+	console.log(results)
     throw "DevBreak"
 
 

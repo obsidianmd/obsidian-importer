@@ -39,7 +39,7 @@ export class RoamJSONImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;		
 
-		let results = await importRoamJson(this, files, folder);
+		let results = await importRoamJson(this, files, folder,this.downloadAttachments);
 
 		this.showResult(results);
 	}

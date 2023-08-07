@@ -34,6 +34,7 @@ export interface RoamBlock {
 interface BlockInfo {
   pageName: string;
   lineNumber: number;
+  blockString: string;
 }
 
 export interface Ref {
@@ -52,9 +53,5 @@ export interface  JsonObject {
   children?: JsonObject[];
 }
 
-export interface  BlockParentTitle {
-  block: JsonObject,
-  parentTitle: string | null,
-}
   
   
