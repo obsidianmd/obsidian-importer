@@ -7,6 +7,16 @@ import { TFile, TFolder } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
 import { ProgressReporter } from '../../main';
 
+// ### APPROACH 
+// ## Pre-process
+//		create a map of the json import and which blocks contain block refs
+// ## Write-process
+//		process and write pages to markdown
+// 		Sanatize file names
+// ## Post-Process
+// 		process markdown and fix block refs (using the pre-process map)
+// 		confirm page names match
+
 const userDNPFormat = getUserDNPFormat();
 
 function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
@@ -167,29 +177,7 @@ async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, down
     return markdown;
 }
 
-export const importRoamJson = async (importer:RoamJSONImporter, progress: ProgressReporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true): Promise<ImportResult> => {
-    let results: ImportResult = {
-		total: 0,
-		failed: [],
-		skipped: []
-	};
-    // loop through jsonSources
-    // for each source import
-//     ### Pre-process
-        // 1. load in the json 
-        // 2. if a line has a block ref
-            // 	1. Save the file name and line number
-            // 	2. look up the referenced block
-            // 	3. save the referenced
-// ### Write-process
-    // 	General markdown processing needs to happen here
-    // 	Sanatize file names
-// ### Post-Process
-    // 	go back into markdown and fix everything so it matches
-    // 		1. make sure page names match
-    // 		2. for lines that have a block ref
-
-	// convert each roam .json output selected by the user
+export async function importRoamJson (importer:RoamJSONImporter, progress: ProgressReporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true) {
     for (let file of files) {
         const graphName = sanitizeFileName(file.basename);
         const graphFolder = path.join(folder.path, graphName);
@@ -202,8 +190,6 @@ export const importRoamJson = async (importer:RoamJSONImporter, progress: Progre
 		// TODO is this async?
         const data = fs.readFileSync(file.filepath, "utf8")
         const allPages = JSON.parse(data) as RoamPage[]
-        //set the total pages to be imported
-        results.total=allPages.length
 
         // PRE-PROCESS: map the blocks for easy lookup //
         const [blockLocations, toPostProcess] = preprocess(allPages)
@@ -265,7 +251,6 @@ export const importRoamJson = async (importer:RoamJSONImporter, progress: Progre
 				
 			} 
 		}
-		
 		
 		async function extractAndProcessBlockReferences(inputString: string): Promise<string> {
 			const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
@@ -338,12 +323,5 @@ export const importRoamJson = async (importer:RoamJSONImporter, progress: Progre
 			}
 
 		  };
-
     }
-    
-	console.log(results)
-    //throw "DevBreak"
-
-
-    return results;
 }
