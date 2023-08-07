@@ -5,6 +5,7 @@ import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName, sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from '../../util';
 import { TFile, TFolder } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
+import { ProgressReporter } from '../../main';
 
 const userDNPFormat = getUserDNPFormat();
 
@@ -32,13 +33,13 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 				const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g
 				if (blockRefRegex.test(block.string)) {
 					toPostProcessblockLocations.set(block.uid, {
-						pageName: page.title,
+						pageName: sanitizeFileNameKeepPath(page.title),
 						lineNumber: lineNumber,
 						blockString:block.string,
 					});
 				}
 				blockLocations.set(block.uid, {
-					pageName: page.title,
+					pageName: sanitizeFileNameKeepPath(page.title),
 					lineNumber: lineNumber,
 					blockString:block.string,
 				});
@@ -83,9 +84,14 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
 	//check for roam DNP and convert to obsidian DNP
 	blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), userDNPFormat)}]]`);
 	
+
     // Regular expression to find nested pages [[SOME/TEXT]]     
     // Replace each match with an Obsidian alias [[Artificial Intelligence|AI]]
 	blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_, group1) => `[[${graphFolder}/${group1}|${group1}]]`);
+	// regular block alias
+	blockText = blockText.replaceAll(/\[.+?\]\((\(.+?\)\))\)/g, "$1")
+	// page alias
+	blockText = blockText.replaceAll(/\[(.+?)\]\(\[\[(.+?)\]\]\)/g, "[[$2|$1]]")
 
 	blockText = blockText.replaceAll("[[>]]", ">");
 	blockText = blockText.replaceAll("{{TODO}}", "[ ]");
@@ -161,7 +167,7 @@ async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, down
     return markdown;
 }
 
-export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true): Promise<ImportResult> => {
+export const importRoamJson = async (importer:RoamJSONImporter, progress: ProgressReporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true): Promise<ImportResult> => {
     let results: ImportResult = {
 		total: 0,
 		failed: [],
@@ -223,9 +229,10 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 					const newFile = await app.vault.create(filename, markdownOutput);
 					// console.log("Markdown saved to new file:", newFile.path);
 				}
+				progress.reportNoteSuccess(filename);
 			} catch (error) {
 				console.error("Error saving Markdown to file:", filename, error);
-                results.failed.push(pageName)
+				progress.reportFailed(pageName);
 			}
         }
 
@@ -280,8 +287,8 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 					// the source block string needs to be stripped of any page syntax or the alias won't work
 					let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '')
 					// create the obsidian alias []()
-					let processedBlock = `[${strippedSourceBlockString}](${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID})`;
-
+					// let processedBlock = `[${strippedSourceBlockString}](${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID})`;
+					let processedBlock = `[[${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID}|${strippedSourceBlockString}]]`
 					// Modify the source block markdown page asynchronously so the new obsidian alias points to something
 					await modifySourceBlockString(sourceBlockUID);
 					
@@ -335,7 +342,7 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
     }
     
 	console.log(results)
-    throw "DevBreak"
+    //throw "DevBreak"
 
 
     return results;

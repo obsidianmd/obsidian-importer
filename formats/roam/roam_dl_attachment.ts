@@ -2,7 +2,7 @@ import { ColorComponent, Vault } from 'obsidian';
 import axios from 'axios';
 import { fs, path } from 'filesystem';
 
-export async function downloadFirebaseFile(line: string, attachmentsFolder:string): Promise<string | null> {
+export async function downloadFirebaseFile(line: string, attachmentsFolder:string) {
     try {
         let link: RegExpMatchArray | null;
         let syntaxLink: RegExpMatchArray | null;

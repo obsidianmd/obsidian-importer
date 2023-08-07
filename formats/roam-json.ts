@@ -1,6 +1,7 @@
 import { FormatImporter } from "../format-importer";
 import { FileSystemAdapter, Notice, Setting } from "obsidian";
 import { importRoamJson } from "./roam/roam";
+import { ProgressReporter } from "main";
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachmentsSetting: Setting;
@@ -22,7 +23,8 @@ export class RoamJSONImporter extends FormatImporter {
             });
 	}
 
-	async import() {
+	
+	async import(progress: ProgressReporter) {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -39,7 +41,7 @@ export class RoamJSONImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;		
 
-		let results = await importRoamJson(this, files, folder,this.downloadAttachments);
+		let results = await importRoamJson(this, progress, files, folder, this.downloadAttachments);
 
 		this.showResult(results);
 	}

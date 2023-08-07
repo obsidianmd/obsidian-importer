@@ -92,17 +92,17 @@ export default class ImporterPlugin extends Plugin {
 		});
 
 		// For development, un-comment this and tweak it to your importer:
-
 		// Create and open the importer on boot
 		let modal = new ImporterModal(this.app, this);
 		modal.open();
 		// Select my importer
 		modal.updateContent('roam-json');
+		
 		if (modal.importer instanceof RoamJSONImporter) {
 			// Automatically pick file
-			let importFilePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
+			let importFilePath = "/Users/mtvogel/Downloads/roam json exports/small-test-graph.json"
 			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/test-graph.json"
-			importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
+			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
 			modal.importer.downloadAttachments = false;
 			modal.importer.files = [new NodePickedFile(importFilePath)];
 			document.getElementsByClassName("mod-cta")[0].click()
