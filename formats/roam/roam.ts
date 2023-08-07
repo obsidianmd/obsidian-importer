@@ -234,7 +234,6 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			const sourceBlock = blockLocations.get(sourceBlockUID);
 			
 			if (!sourceBlock.blockString.endsWith("^" + sourceBlockUID)) {
-				console.log()
 				const sourceBlockFilePath = path.join(graphFolder,sourceBlock.pageName) + ".md"
 				let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath)
 
@@ -310,7 +309,6 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			// Then go back and update the original block with the new reference syntax
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
 			const callingBlockStringScrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, false)
-			console.log(callingBlockStringScrubbed);
 			
 			const newCallingBlockReferences = await extractAndProcessBlockReferences(callingBlock.blockString)
 
