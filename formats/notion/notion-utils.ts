@@ -35,7 +35,7 @@ export const assembleParentIds = (
 						?.replace(` ${parentId}`, '')
 			)
 			// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
-			// .filter((parentId) => parentId)
+			.filter((parentId) => parentId)
 			.map((folder) => folder + '/')
 	);
 };

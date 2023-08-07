@@ -346,16 +346,19 @@ const fixNotionLists = (body: HTMLDivElement) => {
 };
 
 function convertHtmlLinksToURLs(content: HTMLElement) {
-	const links = content.getElementsByTagName('a');
+	const links = content.querySelectorAll('a');
+	const log = content.innerHTML.includes(
+		'https://tabelog.com/en/tokyo/A1310/A131002/13011591/'
+	);
+	if (log) console.log(links);
+
 	if (links.length === 0) return content;
-	for (let i = 0; i < links.length; i++) {
-		const link = links.item(i);
-		if (!link) continue;
+	links.forEach((link) => {
 		const span = document.createElement('span');
 		span.setText(link.getAttribute('href') ?? '');
 		link.replaceWith(span);
-	}
-	return content;
+		if (log) console.log(span);
+	});
 }
 
 function convertLinksToObsidian(
