@@ -102,7 +102,7 @@ export default class ImporterPlugin extends Plugin {
 			// Automatically pick file
 			let importFilePath = "/Users/mtvogel/Downloads/roam json exports/Theme Tester.json"
 			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/test-graph.json"
-			// importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
+			importFilePath = "/Users/mtvogel/Downloads/roam json exports/help.json"
 			modal.importer.downloadAttachments = false;
 			modal.importer.files = [new NodePickedFile(importFilePath)];
 			document.getElementsByClassName("mod-cta")[0].click()
@@ -110,7 +110,6 @@ export default class ImporterPlugin extends Plugin {
 		}
 		
 	}
-
 	onunload() {
 
 	}

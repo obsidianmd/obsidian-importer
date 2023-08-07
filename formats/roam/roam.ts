@@ -3,9 +3,8 @@ import { RoamPage, RoamBlock, JsonObject, BlockInfo } from './models/roam-json';
 import { PickedFile, path, fs } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName, sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from '../../util';
-import { TFolder } from 'obsidian';
+import { TFile, TFolder } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
-import { toNamespacedPath } from 'path';
 
 const userDNPFormat = getUserDNPFormat();
 
@@ -29,8 +28,9 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 					const newPageTitle = convertDateString(page.title, userDNPFormat)
 					page.title = newPageTitle
 				}
-				
-				if (/\(\(.*\)\)/.test(block.string)) {
+				// TODO why is lineNumber sometimes innaccurate?
+				const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g
+				if (blockRefRegex.test(block.string)) {
 					toPostProcessblockLocations.set(block.uid, {
 						pageName: page.title,
 						lineNumber: lineNumber,
@@ -98,8 +98,8 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
 	blockText = blockText.replaceAll("{{POMO}}", "");
 	blockText = blockText.replaceAll("{{slider}}", "");
 	blockText = blockText.replaceAll("{{[[slider]]}}", "");
-    blockText = blockText.replaceAll("{{encrypt}}", "[ ]");
-	blockText = blockText.replaceAll("{{[[encrypt]]}}", "[ ]");
+    blockText = blockText.replaceAll("{{encrypt}}", "");
+	blockText = blockText.replaceAll("{{[[encrypt]]}}", "");
 
 	blockText = blockText.replaceAll("{{TaoOfRoam}}", "");
 	blockText = blockText.replaceAll("{{orphans}}", "");
@@ -107,13 +107,17 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
 	blockText = blockText.replaceAll("{{count}}", "");
 	blockText = blockText.replaceAll("{{character-count}}", "");
 	blockText = blockText.replaceAll("{{comment-button}}", "");
-	blockText = blockText.replace("::", ":"); // ::
-	
-	blockText = blockText.replaceAll(/{{\[\[roam\/render\]\][^}]*}}/g, ""); 
-	blockText = blockText.replaceAll(/{{roam\/render[^}]*}}/g, ""); 
+	blockText = blockText.replace("::", ":"); // Attributes::
+
+	blockText = blockText.replaceAll(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, "![]($1)"); // youtube embeds
+	blockText = blockText.replaceAll(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, "![]($1)"); // twitter embeds
+	blockText = blockText.replaceAll(/{{.*?roam\/render[^}]*}}/g, ""); // {{roam/render}} components
 	blockText = blockText.replaceAll(/\_\_(.+?)\_\_/g, "*$1*"); // __ __ itallic
 	blockText = blockText.replaceAll(/\^\^(.+?)\^\^/g, "==$1=="); // ^^ ^^ highlight
     
+	// block and page embeds
+	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\(\(.*?\)\)).*?}}/g, "$1")
+	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\[\[.*?\]\]).*?}}/g, "$1")
 	// download files uploaded to Roam
 	if (downloadAttachments) {
 		if (blockText.includes('firebasestorage')) {
@@ -127,27 +131,6 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
 	// blockText = blockText.replaceAll("{{[[mermaid]]}}", "");
     // blockText = blockText.replaceAll("{{diagram}}", "");
 	// blockText = blockText.replaceAll("{{[[diagram]]}}", "");
-
-	// block refs
-	// blockText = blockText.replaceAll(/\(\((.+?)\)\)/g, "$1"); // (())
-	// match and replace block refs with obsidian syntax
-	// const regex = /\(\((.*?)\)\)/g;
-	// const matches = blockText.match(regex)//.map(match => match.slice(2, -2));
-	// if (matches) {
-	// 	matches.forEach(match => {
-	// 		// const modifiedMatch = modifyBlockString(match);
-	// 		// inputString = inputString.replace(match, modifiedMatch);
-	// 		// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
-	// 		const sourceBlock = blockMap.get(match.slice(2, -2));
-	// 		// console.log("blockRef",match.slice(2, -2),sourceBlock);
-	// 		if (sourceBlock) {
-	// 			const newString = roamMarkupScrubber(sourceBlock.block.string, blockMap, stripFormatting=true)
-	// 			const newBlock = `[${newString}]([[${sourceBlock.parentTitle}#^${sourceBlock.block.uid}]])`
-	// 			// console.log(newBlock)
-	// 		}
-	// 	});
-	// }
-
 
 	//   blockText = blockText.replaceAll(/\!\[(.+?)\]\((.+?)\)/g, "$1 $2"); //images with description
 	//   blockText = blockText.replaceAll(/\!\[\]\((.+?)\)/g, "$1"); //imags with no description
@@ -226,8 +209,8 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
 			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
             const filename =  path.join(graphFolder, `${pageName}.md`)
             // convert json to nested markdown
-			console.log(downloadAttachments)
-            const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
+
+			const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
             
             try {
 				//create folders for nested pages [[some/nested/subfolder/page]]
@@ -245,53 +228,111 @@ export const importRoamJson = async (importer:RoamJSONImporter, files:PickedFile
                 results.failed.push(pageName)
 			}
         }
+
 		// POST-PROCESS: fix block refs //
-		function modifyBlockString(pages: RoamPage[], uid: string): void {
-			for (const page of pages) {
-			  if (page.children) {
-				for (const block of page.children) {
-				  if (block.uid === uid && block.string) {
-					if (!block.string.endsWith("^" + uid)) {
-					  block.string += ' ^' + uid;
+		async function modifySourceBlockString(sourceBlockUID:string) {
+			const sourceBlock = blockLocations.get(sourceBlockUID);
+			
+			if (!sourceBlock.blockString.endsWith("^" + sourceBlockUID)) {
+				console.log()
+				const sourceBlockFilePath = path.join(graphFolder,sourceBlock.pageName) + ".md"
+				let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath)
+
+				if (sourceBlockFile instanceof TFile) {
+					let fileContent = await this.app.vault.read(sourceBlockFile);
+					let lines = fileContent.split('\n');
+
+					// Edit the specific line, for example, the 5th line.
+					let index = lines.findIndex((item: string) => item.contains( "* "+sourceBlock.blockString));
+					// console.log(sourceBlock)
+					if (index !== -1) {
+						let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
+						// replace the line before updating sourceBlock
+						lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);	
+						sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
 					}
-				  }
-				  if (block.children) {
-					modifyBlockString([{
-					  title: '',
-					  children: block.children,
-					  uid: ''
-					}], uid);
-				  }
+						let newContent = lines.join('\n');
+						
+						await this.app.vault.modify(sourceBlockFile, newContent);
+
 				}
-			  }
-			}
-		  }
+				
+			} 
+		}
 		
-		//   matches.forEach(match => {
-		// 			// const modifiedMatch = modifyBlockString(match);
-		// 			// inputString = inputString.replace(match, modifiedMatch);
-		// 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
-		// 			const sourceBlock = blockMap.get(match.slice(2, -2));
-		// 			// console.log("blockRef",match.slice(2, -2),sourceBlock);
-		// 			if (sourceBlock) {
-		// 				const newString = roamMarkupScrubber(sourceBlock.block.string, blockMap, stripFormatting=true)
-		// 				const newBlock = `[${newString}]([[${sourceBlock.parentTitle}#^${sourceBlock.block.uid}]])`
-		// 				// console.log(newBlock)
-		// 			}
-		// 		});
-		toPostProcess.forEach((value, key) => {
+		
+		async function extractAndProcessBlockReferences(inputString: string): Promise<string> {
+			const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
+		
+			// Find all the matches using the regular expression
+			const blockReferences = inputString.match(blockRefRegex);
+		
+			// If there are no block references, return the input string as is
+			if (!blockReferences) {
+				return inputString;
+			}
+		
+			// Asynchronously process each block reference
+			let processedBlocks: string[] = [];
+
+			for (const sourceBlockUID of blockReferences) {
+				try {
+					const sourceBlock = blockLocations.get(sourceBlockUID);
+					// the source block string needs to be stripped of any page syntax or the alias won't work
+					let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '')
+					// create the obsidian alias []()
+					let processedBlock = `[${strippedSourceBlockString}](${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID})`;
+
+					// Modify the source block markdown page asynchronously so the new obsidian alias points to something
+					await modifySourceBlockString(sourceBlockUID);
+					
+					processedBlocks.push(processedBlock);
+				} catch (error) {
+					// no block with that uid exists
+					// most likely just double ((WITH_REGULAR_TEXT))
+					// console.error(error)
+					// console.error(error)
+					processedBlocks.push(sourceBlockUID);
+				}
+			}
+		
+			// Replace the block references in the input string with the processed ones
+			let index = 0;
+			const processedString = inputString.replace(/\(\(\b.*?\b\)\)/g, () => processedBlocks[index++]);
+			
+			return processedString;
+		}
+
+		for (const [callingBlockUID, callingBlock] of toPostProcess.entries()) {
+			// extract UIDs from the callingBlock.blockString
 			// first Edit the referenced Bloc to add in a block UID
 
 			// Then go back and update the original block with the new reference syntax
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
-			const sourceBlock = blockLocations.get(key);
-			// console.log(`Key: ${key}, Value: ${value}`);
-			// console.log(sourceBlock);
-			// TODO how to deal with files in subfolders
-			const file = app.vault.getAbstractFileByPath(path.join(graphFolder,value.pageName)+".md");
-			// console.log(file)
+			const callingBlockStringScrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, false)
+			console.log(callingBlockStringScrubbed);
 			
-		  });
+			const newCallingBlockReferences = await extractAndProcessBlockReferences(callingBlock.blockString)
+
+			const callingBlockFilePath = path.join(graphFolder,callingBlock.pageName) + ".md"
+			let callingBlockFile = app.vault.getAbstractFileByPath(callingBlockFilePath)
+			
+			if (callingBlockFile instanceof TFile) {
+				let fileContent = await app.vault.read(callingBlockFile);
+				let lines = fileContent.split('\n');
+
+				let index = lines.findIndex((item: string) => item.contains( "* "+callingBlock.blockString));
+				if (index !== -1) {
+					lines[index] = lines[index].replace(callingBlock.blockString, newCallingBlockReferences);	
+									
+				}
+					let newContent = lines.join('\n');
+					
+					await app.vault.modify(callingBlockFile, newContent);
+
+			}
+
+		  };
 
     }
     
