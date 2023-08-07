@@ -3,6 +3,7 @@ import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
+import { OneNoteImporter } from 'formats/onenote';
 
 declare global {
 	interface Window {
@@ -70,6 +71,10 @@ export default class ImporterPlugin extends Plugin {
 			'bear': {
 				name: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
+			},
+			'onenote': {
+				name: 'OneNote',
+				importer: OneNoteImporter,
 			},
 		};
 
