@@ -1,11 +1,3 @@
-import moment from "moment";
-
-function escapeRegex(str: string): string {
-	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
-}
-
-let ILLEGAL_CHARACTERS = '\\/:*?<>\"|';
-let illegalReNoDir = /[\?<>\\:\*\|"]/g;
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
@@ -25,18 +17,6 @@ export function sanitizeFileName(name: string) {
 		.replace(squareBracketOpenRe, '') 
 		.replace(squareBracketCloseRe, '')
 		.replace(startsWithDotRe, ''); 
-}
-
-export function sanitizeFileNameKeepPath(name: string) {
-	return name
-		.replace(illegalReNoDir, '')
-		.replace(controlRe, '')
-		.replace(reservedRe, '')
-		.replace(windowsReservedRe, '')
-		.replace(windowsTrailingRe, '')
-		.replace(squareBracketOpenRe, '') 
-		.replace(squareBracketCloseRe, '') 
-		.replace(startsWithDotRe, '');
 }
 
 export function genUid(length: number): string {
@@ -83,30 +63,3 @@ export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
 export function stringToUtf8(text: string): ArrayBuffer {
 	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
 }
-export function getUserDNPFormat(){
-	// @ts-expect-error : Internal Method
-	const dailyNotePluginInstance = app.internalPlugins.getPluginById("daily-notes").instance;
-	if (!dailyNotePluginInstance) throw new Error("Daily note plugin is not enabled");
-	let dailyPageFormat = dailyNotePluginInstance.options.format;
-	if (!dailyPageFormat) {
-		dailyPageFormat = "YYYY-MM-DD"; // Default format
-	}
-	return dailyPageFormat;
-}
-
-export function convertDateString(dateString: string, newFormat: string): string{
-	const validFormat = 'MMMM Do, YYYY';
-	const dateObj = moment(dateString, validFormat);
-  
-	if (dateObj.format(validFormat) !== dateString) {
-	  // The input date string does not match the specified format
-	  return dateString;
-	}
-  
-	if (dateObj.isValid()) {
-	  return dateObj.format(newFormat);
-	} else {
-	  // Handle the case where the input string is not a valid date
-	  return dateString;
-	}
-  }
