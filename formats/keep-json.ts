@@ -2,7 +2,7 @@ import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting, TFile } from "obsidian";
 import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
-import { KeepJson, convertStringToKeepJson } from "./keep/models/KeepJson";
+import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
 import { toSentenceCase } from "../util";
 
 

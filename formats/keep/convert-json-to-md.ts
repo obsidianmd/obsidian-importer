@@ -1,5 +1,5 @@
 import { sanitizeTags } from '../../util';
-import { KeepJson } from "./models/KeepJson";
+import { KeepJson } from "./models/keep-json";
 
 /**
  * Reads a Google Keep JSON file and returns a markdown string.
