@@ -171,12 +171,11 @@ export abstract class FormatImporter {
 	}
 
 	/**
- * Adds a single tag to the tag property in frontmatter and santises it.
- * Must pass in app.fileManager.
- */
-async addTagToFrontmatter(tag: string, fileRef: TFile) {
-	const sanitizedTag = sanitizeTag(tag);
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+	 * Adds a single tag to the tag property in frontmatter and santises it.
+	 * Must pass in app.fileManager.
+	 */
+	addTagToFrontmatter(tag: string, fileRef: TFile, frontmatter: any) {
+		const sanitizedTag = sanitizeTag(tag);
 		if(!frontmatter['tags']) {
 			frontmatter['tags'] = [sanitizedTag];
 		} else {
@@ -185,27 +184,24 @@ async addTagToFrontmatter(tag: string, fileRef: TFile) {
 			}
 			frontmatter['tags'].push(sanitizedTag);
 		}
-	});
-}
+	}
 
-/**
- * Adds an alias to the note's frontmatter.
- * Only linebreak sanitization is performed in this function.
- * Must pass in app.fileManager.
-*/
-async addAliasToFrontmatter(alias: string, fileRef: TFile) {
-	const sanitizedAlias = alias.split('\n').join(', ');
-	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
-		if(!frontmatter['aliases']) {
-			frontmatter['aliases'] = [sanitizedAlias];
-		} else {
-			if (!Array.isArray(frontmatter['aliases'])) {
-				frontmatter['aliases'] = frontmatter['aliases'].split(' ');
+	/**
+	 * Adds an alias to the note's frontmatter.
+	 * Only linebreak sanitization is performed in this function.
+	 * Must pass in app.fileManager.
+	*/
+	async addAliasToFrontmatter(alias: string, fileRef: TFile, frontmatter: any) {
+		const sanitizedAlias = alias.split('\n').join(', ');
+			if(!frontmatter['aliases']) {
+				frontmatter['aliases'] = [sanitizedAlias];
+			} else {
+				if (!Array.isArray(frontmatter['aliases'])) {
+					frontmatter['aliases'] = frontmatter['aliases'].split(' ');
+				}
+				frontmatter['aliases'].push(sanitizedAlias);
 			}
-			frontmatter['aliases'].push(sanitizedAlias);
-		}
-	});
-}
+	}
 
 }
 

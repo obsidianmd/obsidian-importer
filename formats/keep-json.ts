@@ -133,25 +133,27 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {
+		await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
 
-		if (keepJson.title) this.addAliasToFrontmatter(keepJson.title, fileRef);
-	
-		// Add in tags to represent Keep properties
-		if(keepJson.color && keepJson.color !== 'DEFAULT') {
-			let colorName = keepJson.color.toLowerCase();
-			colorName = toSentenceCase(colorName);
-			await this.addTagToFrontmatter(`Keep/Color/${colorName}`, fileRef);
-		}
-		if(keepJson.isPinned)    	await this.addTagToFrontmatter(`Keep/Pinned`, fileRef);
-		if(keepJson.attachments)	await this.addTagToFrontmatter(`Keep/Attachment`, fileRef);
-		if(keepJson.isArchived)		await this.addTagToFrontmatter(`Keep/Archived`, fileRef);
-		if(keepJson.isTrashed) 		await this.addTagToFrontmatter(`Keep/Deleted`, fileRef);
-	
-		if (keepJson.labels) {
-			let labels = '';
-			for (let i = 0; i < keepJson.labels.length; i++) {
-				await this.addTagToFrontmatter(`Keep/Label/${keepJson.labels[i].name}`, fileRef);
+			if (keepJson.title) this.addAliasToFrontmatter(keepJson.title, fileRef, frontmatter);
+		
+			// Add in tags to represent Keep properties
+			if(keepJson.color && keepJson.color !== 'DEFAULT') {
+				let colorName = keepJson.color.toLowerCase();
+				colorName = toSentenceCase(colorName);
+				this.addTagToFrontmatter(`Keep/Color/${colorName}`, fileRef, frontmatter);
 			}
-		};
+			if(keepJson.isPinned)    	this.addTagToFrontmatter(`Keep/Pinned`, fileRef, frontmatter);
+			if(keepJson.attachments)	this.addTagToFrontmatter(`Keep/Attachment`, fileRef, frontmatter);
+			if(keepJson.isArchived)		this.addTagToFrontmatter(`Keep/Archived`, fileRef, frontmatter);
+			if(keepJson.isTrashed) 		this.addTagToFrontmatter(`Keep/Deleted`, fileRef, frontmatter);
+		
+			if (keepJson.labels) {
+				for (let i = 0; i < keepJson.labels.length; i++) {
+					this.addTagToFrontmatter(`Keep/Label/${keepJson.labels[i].name}`, fileRef, frontmatter);
+				}
+			};
+
+		});
 	}
 }
