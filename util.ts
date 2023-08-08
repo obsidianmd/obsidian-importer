@@ -1,20 +1,10 @@
-import { DataWriteOptions, FileManager, TFile, TFolder, Vault, normalizePath } from "obsidian";
-import { PickedFile } from "filesystem";
-
-
-function escapeRegex(str: string): string {
-	return str.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&');
-}
-const ILLEGAL_TAG_CHARACTERS = '\\:*?<>\"|!@#$%^&()+=\`\'~;,.';
-const ILLEGAL_TAG_RE = new RegExp('[' + escapeRegex(ILLEGAL_TAG_CHARACTERS) + ']', 'g');
-// Finds any non-whitespace sections starting with #
-const POTENTIAL_TAGS_RE = new RegExp(/(#[^ ^#]*)/, 'g');
-
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 let windowsTrailingRe = /[\. ]+$/;
+let potentialTagsRe = /(#[^ ^#]*)/g; // Finds any non-whitespace sections starting with #
+let illegalTagCharsRe = /[\\:*?<>\"|!@#$%^&()+=\`\'~;,.]/g;
 
 export function sanitizeFileName(name: string) {
 	return name
@@ -30,11 +20,18 @@ export function sanitizeFileName(name: string) {
  * If the # symbol is included at the start or anywhere else it will be removed.
  */
 export function sanitizeTag(name: string): string {
-	let tagName = name.replace(ILLEGAL_TAG_RE, '');
+	// Remove problem characters
+	let tagName = name
+		.replace(illegalTagCharsRe, '')
+		.replace(reservedRe, '')
+		.replace(windowsReservedRe, '');
+	// Convert spaces to hyphens	
 	tagName = tagName.split(' ').join('-');
+	// Prevent tags starting with a number
 	if(!isNaN(tagName[0] as any)) {
 		tagName = '_' + tagName;
 	}
+	
 	return tagName;
 }
 
@@ -43,7 +40,7 @@ export function sanitizeTag(name: string): string {
  * Returns a string with those hastags normalised.
  */
 export function sanitizeTags(str: string): string {
-	const newStr = str.replace(POTENTIAL_TAGS_RE, (str: string) : string => {
+	const newStr = str.replace(potentialTagsRe, (str: string) : string => {
 		return '#' + sanitizeTag(str);
 	});
 	return newStr;
