@@ -36,7 +36,8 @@ export const assembleParentIds = (
 			)
 			// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
 			.filter((parentId) => parentId)
-			.map((folder) => folder + '/')
+			// Folder names can't end in a dot or a space
+			.map((folder) => folder.replace(/[\. ]+$/, '') + '/')
 	);
 };
 
@@ -57,4 +58,28 @@ export function parseAttachmentFolderPath(attachmentFolderPath: string) {
 
 export function stripParentDirectories(relativeURI: string) {
 	return relativeURI.replace(/^(\.\.\/)+/, '');
+}
+('');
+export function escapeHashtags(body: string) {
+	const tagExp = /#[a-z0-9\-]+/gi;
+
+	if (!tagExp.test(body)) return body;
+	const lines = body.split('\n');
+	for (let i = 0; i < lines.length; i++) {
+		const hashtags = lines[i].match(tagExp);
+		if (!hashtags) continue;
+		let newLine = lines[i];
+		for (let hashtag of hashtags) {
+			// skipping any internal links [[ # ]], URLS [ # ]() or []( # ), or already escaped hashtags \#, replace all tag-like things #<word> in the document with \#<word>. Useful for programs (like Notion) that don't support #<word> tags.
+			const hashtagInLink = new RegExp(
+				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
+			);
+
+			if (hashtagInLink.test(newLine)) continue;
+			newLine = newLine.replace(hashtag, '\\' + hashtag);
+		}
+		lines[i] = newLine;
+	}
+	body = lines.join('\n');
+	return body;
 }

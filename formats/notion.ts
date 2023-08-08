@@ -1,5 +1,5 @@
 import { FormatImporter } from 'format-importer';
-import { ImportResult } from 'main';
+import { ImportResult, ProgressReporter } from 'main';
 import {
 	FileSystemAdapter,
 	Notice,
@@ -39,7 +39,7 @@ export class NotionImporter extends FormatImporter {
 			});
 	}
 
-	async import(): Promise<void> {
+	async import(results: ProgressReporter): Promise<void> {
 		let { app, files, parentsInSubfolders } = this;
 
 		let targetFolderPath = (await this.getOutputFolder())?.path ?? '';
@@ -52,15 +52,8 @@ export class NotionImporter extends FormatImporter {
 			return;
 		}
 
-		let results: ImportResult = {
-			total: 0,
-			skipped: [],
-			failed: [],
-		};
-
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
 		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
-		const failedResults = new Set<string>();
 		const parser = new DOMParser();
 		const attachmentFolderPath =
 			app.vault.getConfig('attachmentFolderPath') ?? '';
@@ -72,15 +65,18 @@ export class NotionImporter extends FormatImporter {
 				await parseFileInfo(file, {
 					idsToFileInfo,
 					pathsToAttachmentInfo,
-					results,
 					parser,
 					attachmentFolderPath,
 				});
 			},
 			(file) => {
-				failedResults.add(file.filename);
+				results.reportSkipped(file.filename);
 			}
 		);
+
+		const notes = Object.keys(idsToFileInfo).length;
+		const attachments = Object.keys(pathsToAttachmentInfo).length;
+		const total = notes + attachments;
 
 		cleanDuplicates({
 			app,
@@ -111,11 +107,14 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		const attachmentPaths = Object.keys(pathsToAttachmentInfo);
-		console.log(attachmentPaths);
+
+		let current = 0;
 
 		await processZips(
 			files,
 			async (file) => {
+				current++;
+				results.reportProgress(current, total);
 				if (!file.getData)
 					throw new Error("can't get data for " + file.filename);
 				if (file.filename.endsWith('.html')) {
@@ -154,6 +153,7 @@ export class NotionImporter extends FormatImporter {
 							}
 						);
 					}
+					results.reportNoteSuccess(file.filename);
 				} else {
 					const attachmentInfo = pathsToAttachmentInfo[file.filename];
 					if (!attachmentInfo)
@@ -170,14 +170,13 @@ export class NotionImporter extends FormatImporter {
 						),
 						data
 					);
+					results.reportAttachmentSuccess(file.filename);
 				}
 			},
 			(file) => {
-				failedResults.add(file.filename);
+				results.reportFailed(file.filename);
 			}
 		);
-
-		results.failed = [...failedResults];
 
 		const allMarkdownFiles = app.vault
 			.getMarkdownFiles()
@@ -186,9 +185,9 @@ export class NotionImporter extends FormatImporter {
 		const skippedFiles = loadedNotes
 			.filter((note) => !allMarkdownFiles.includes(note.title + '.md'))
 			.map((note) => note.path);
-		results.skipped.push(...skippedFiles);
-
-		this.showResult(results);
+		for (let file of skippedFiles) {
+			results.reportSkipped(file);
+		}
 	}
 }
 

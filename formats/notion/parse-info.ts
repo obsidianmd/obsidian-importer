@@ -1,6 +1,6 @@
 import { Entry, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
-import { ImportResult } from 'main';
+import { ImportResult, ProgressReporter } from 'main';
 import { sanitizeFileName } from '../../util';
 import {
 	getNotionId,
@@ -13,13 +13,11 @@ export async function parseFileInfo(
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
-		results,
 		parser,
 		attachmentFolderPath,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		results: ImportResult;
 		parser: DOMParser;
 		attachmentFolderPath: string;
 	}
@@ -28,8 +26,6 @@ export async function parseFileInfo(
 
 	const { attachmentsInCurrentFolder } =
 		parseAttachmentFolderPath(attachmentFolderPath);
-
-	results.total++;
 
 	if (file.filename.endsWith('.html')) {
 		const text = await file.getData(new TextWriter());

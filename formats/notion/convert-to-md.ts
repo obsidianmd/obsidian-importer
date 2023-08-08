@@ -1,9 +1,9 @@
 import { Entry, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
 import { htmlToMarkdown, moment } from 'obsidian';
-import { escapeHashtags } from '../../util';
 import {
 	assembleParentIds,
+	escapeHashtags,
 	getNotionId,
 	parseDate,
 	stripNotionId,
@@ -26,7 +26,6 @@ export async function readToMarkdown(
 ): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
 	if (!file.getData)
 		throw new Error("can't get data in file, " + file.filename);
-	const filePath = file.filename;
 
 	const text = await file.getData(new TextWriter());
 
@@ -199,7 +198,7 @@ const getNotionLinks = (
 ) => {
 	const links: NotionLink[] = [];
 
-	body.querySelectorAll('a').forEach((a) => {
+	body.findAll('a').forEach((a: HTMLAnchorElement) => {
 		const decodedURI = stripParentDirectories(
 			decodeURI(a.getAttribute('href') ?? '')
 		);
@@ -240,14 +239,12 @@ const fixDoubleBackslash = (markdownBody: string) => {
 
 const formatDatabases = (body: HTMLElement) => {
 	// Notion includes user SVGs which aren't relevant to Markdown, so change them to pure text.
-	const users = body.querySelectorAll(
-		'span[class=user]'
-	) as NodeListOf<HTMLSpanElement>;
+	const users = body.findAll('span[class=user]') as HTMLSpanElement[];
 	users.forEach((user) => {
 		user.innerText = user.textContent ?? '';
 	});
 
-	const checkboxes = body.querySelectorAll('td div[class*=checkbox]');
+	const checkboxes = body.findAll('td div[class*=checkbox]');
 	checkboxes.forEach((checkbox) => {
 		const newCheckbox = document.createElement('span');
 		newCheckbox.setText(
@@ -256,21 +253,17 @@ const formatDatabases = (body: HTMLElement) => {
 		checkbox.replaceWith(newCheckbox);
 	});
 
-	const selectedValues = body.querySelectorAll(
-		'table span[class*=selected-value]'
-	);
+	const selectedValues = body.findAll('table span[class*=selected-value]');
 	selectedValues.forEach((select) => {
 		const lastChild = select.parentElement?.lastElementChild;
 		if (lastChild === select) return;
 		select.setText(select.textContent + ', ');
 	});
 
-	const linkValues = body.querySelectorAll(
-		'a[href]'
-	) as NodeListOf<HTMLAnchorElement>;
+	const linkValues = body.findAll('a[href]') as HTMLAnchorElement[];
 	linkValues.forEach((a) => {
-		// Any <a> with an email, phone number, or non-URL value registers as an internal link in Obsidian. [email@gmail.com](email@gmail.com) will create a new note when clicked. This strips these erroneous links.
-		if (a.href.startsWith('app://obsidian.md')) {
+		// Strip URLs which aren't valid, changing them to normal text.
+		if (!/^(https?:\/\/|www\.)/.test(a.href)) {
 			const strippedURL = document.createElement('span');
 			strippedURL.setText(a.textContent ?? '');
 			a.replaceWith(strippedURL);
@@ -279,7 +272,7 @@ const formatDatabases = (body: HTMLElement) => {
 };
 
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
-	body.querySelectorAll(tag).forEach((el) => {
+	body.findAll(tag).forEach((el) => {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase())
 			return;
 		let firstNested = el.querySelector(tag);
@@ -307,9 +300,7 @@ const splitBrsInFormatting = (htmlString: string, tag: 'strong' | 'em') => {
 };
 
 function replaceTableOfContents(body: HTMLDivElement) {
-	const tocLinks = body.querySelectorAll(
-		'a[href*=\\#]'
-	) as NodeListOf<HTMLAnchorElement>;
+	const tocLinks = body.findAll('a[href*=\\#]') as HTMLAnchorElement[];
 	if (tocLinks.length === 0) return body;
 	tocLinks.forEach((link) => {
 		if (link.getAttribute('href')?.startsWith('#')) {
@@ -323,14 +314,14 @@ const encodeNewlinesToBr = (body: HTMLDivElement) => {
 };
 
 const stripLinkFormatting = (body: HTMLDivElement) => {
-	body.querySelectorAll('link').forEach((link) => {
+	body.findAll('link').forEach((link) => {
 		link.innerText = link.textContent ?? '';
 	});
 };
 
 const fixNotionDates = (body: HTMLDivElement) => {
 	// Notion dates always start with @
-	body.querySelectorAll('time').forEach((time) => {
+	body.findAll('time').forEach((time) => {
 		time.textContent = time.textContent?.replace(/@/g, '') ?? '';
 	});
 };
@@ -346,7 +337,7 @@ const fixNotionLists = (body: HTMLDivElement) => {
 };
 
 function convertHtmlLinksToURLs(content: HTMLElement) {
-	const links = content.querySelectorAll('a');
+	const links = content.findAll('a') as HTMLAnchorElement[];
 
 	if (links.length === 0) return content;
 	links.forEach((link) => {

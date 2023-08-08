@@ -1,10 +1,8 @@
 import { App, Modal, Plugin, Setting } from 'obsidian';
-import { NotionImporter } from './formats/notion';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { NodePickedFile } from 'filesystem';
 
 declare global {
 	interface Window {
@@ -20,9 +18,9 @@ interface ImporterDefinition {
 
 // Deprecated, only here until current PRs are closed
 export interface ImportResult {
-	total: number;
-	failed: string[];
-	skipped: string[];
+	total: number,
+	failed: string[],
+	skipped: string[]
 }
 
 export class ProgressReporter {
@@ -52,10 +50,7 @@ export class ProgressReporter {
 	}
 
 	reportProgress(current: number, total: number) {
-		console.log(
-			'Current progress:',
-			((100 * current) / total).toFixed(1) + '%'
-		);
+		console.log('Current progress:', (100 * current / total).toFixed(1) + '%');
 	}
 }
 
@@ -64,19 +59,15 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
-			evernote: {
+			'evernote': {
 				name: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
 			},
-			html: {
+			'html': {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
 			},
-			notion: {
-				name: 'Notion (.zip)',
-				importer: NotionImporter,
-			},
-			bear: {
+			'bear': {
 				name: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
 			},
@@ -96,22 +87,22 @@ export default class ImporterPlugin extends Plugin {
 
 		// For development, un-comment this and tweak it to your importer:
 
+		/*
 		// Create and open the importer on boot
-		// let modal = new ImporterModal(this.app, this);
-		// modal.open();
-		// // Select my importer
-		// modal.updateContent('notion');
-		// if (modal.importer instanceof NotionImporter) {
-		// 	// Automatically pick file
-		// 	modal.importer.files = [
-		// 		new NodePickedFile(
-		// 			'sample file'
-		// 		),
-		// 	];
-		// }
+		let modal = new ImporterModal(this.app, this);
+		modal.open();
+		// Select my importer
+		modal.updateContent('html');
+		if (modal.importer instanceof HtmlImporter) {
+			// Automatically pick file
+			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
+		}
+		*/
 	}
 
-	onunload() {}
+	onunload() {
+
+	}
 }
 
 export class ImporterModal extends Modal {
@@ -130,16 +121,13 @@ export class ImporterModal extends Modal {
 	}
 
 	updateContent(selectedId: string) {
-		const {
-			contentEl,
-			plugin: { importers },
-		} = this;
+		const { contentEl, plugin: { importers } } = this;
 		contentEl.empty();
 
 		new Setting(contentEl)
 			.setName('File format')
 			.setDesc('The format to be imported.')
-			.addDropdown((dropdown) => {
+			.addDropdown(dropdown => {
 				for (let id in importers) {
 					if (importers.hasOwnProperty(id)) {
 						dropdown.addOption(id, importers[id].name);
@@ -154,28 +142,22 @@ export class ImporterModal extends Modal {
 			});
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
-			let importer = (this.importer = new importers[selectedId].importer(
-				this.app,
-				this
-			));
+			let importer = this.importer = new importers[selectedId].importer(this.app, this);
 
-			contentEl.createDiv('button-container u-center-text', (el) => {
-				el.createEl(
-					'button',
-					{ cls: 'mod-cta', text: 'Import' },
-					(el) => {
-						el.addEventListener('click', async () => {
-							let progress = new ProgressReporter();
-							this.modalEl.addClass('is-loading');
-							try {
-								await importer.import(progress);
-							} finally {
-								this.modalEl.removeClass('is-loading');
-								this.showResult(progress);
-							}
-						});
-					}
-				);
+			contentEl.createDiv('button-container u-center-text', el => {
+				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
+					el.addEventListener('click', async () => {
+						let progress = new ProgressReporter();
+						this.modalEl.addClass('is-loading');
+						try {
+							await importer.import(progress);
+						}
+						finally {
+							this.modalEl.removeClass('is-loading');
+							this.showResult(progress);
+						}
+					});
+				});
 			});
 		}
 	}
@@ -190,19 +172,15 @@ export class ImporterModal extends Modal {
 		if (attachments > 0) {
 			numNotes += ` and ${attachments} attachments`;
 		}
-		contentEl.createEl('p', {
-			text: `You successfully imported ${numNotes}!`,
-		});
+		contentEl.createEl('p', { text: `You successfully imported ${numNotes}!` });
 
 		if (skipped.length > 0 || failed.length > 0) {
-			contentEl.createEl('p', {
-				text: `${skipped.length} notes were skipped and ${failed.length} notes failed to import.`,
-			});
+			contentEl.createEl('p', { text: `${skipped.length} notes were skipped and ${failed.length} notes failed to import.` });
 		}
 
 		if (skipped.length > 0) {
 			contentEl.createEl('p', { text: 'Skipped notes:' });
-			contentEl.createEl('ul', {}, (el) => {
+			contentEl.createEl('ul', {}, el => {
 				for (let note of skipped) {
 					el.createEl('li', { text: note });
 				}
@@ -211,15 +189,15 @@ export class ImporterModal extends Modal {
 
 		if (failed.length > 0) {
 			contentEl.createEl('p', { text: 'Failed to import:' });
-			contentEl.createEl('ul', {}, (el) => {
+			contentEl.createEl('ul', {}, el => {
 				for (let note of failed) {
 					el.createEl('li', { text: note });
 				}
 			});
 		}
 
-		contentEl.createDiv('button-container u-center-text', (el) => {
-			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, (el) => {
+		contentEl.createDiv('button-container u-center-text', el => {
+			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 				el.addEventListener('click', async () => {
 					this.close();
 				});
@@ -232,3 +210,4 @@ export class ImporterModal extends Modal {
 		contentEl.empty();
 	}
 }
+
