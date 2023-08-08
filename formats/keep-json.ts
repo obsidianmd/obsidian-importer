@@ -4,8 +4,8 @@ import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
 import { addAliasToFrontmatter, addTagToFrontmatter, toSentenceCase } from "../util";
-import { PickedFolder, parseFilePath } from "filesystem";
-import { BlobWriter, TextWriter } from "@zip.js/zip.js";
+import { PickedFile, PickedFolder, parseFilePath } from "filesystem";
+import { BlobWriter, Entry, TextWriter } from "@zip.js/zip.js";
 import { Transform } from "stream";
 
 
@@ -90,65 +90,15 @@ export class KeepImporter extends FormatImporter {
 		for (let file of files) {
 			try {
 				if(file.extension === 'zip') {
-					await file.readZip(async zip => {
-						for (let entry of await zip.getEntries()) {
-							if (!entry || entry.directory || !entry.getData) continue;
-							let innerFileProps = parseFilePath(entry.filename);
-							if(innerFileProps.extension === 'json') {
-								let rawContent = await entry.getData(new TextWriter());
-								let keepJson = convertStringToKeepJson(rawContent);
-
-								if(!keepJson) {
-									progress.reportFailed(innerFileProps.name, 'NOT A GOOGLE KEEP JSON');
-									continue;
-								}
-								if(keepJson.isArchived && !this.importArchived) {
-									progress.reportSkipped(innerFileProps.name, 'ARCHIVED NOTE');
-									continue;
-								}
-								if(keepJson.isTrashed && !this.importTrashed) {
-									progress.reportSkipped(innerFileProps.name, 'DELETED NOTE');
-									continue;
-								}
-
-								this.convertKeepJson(keepJson, folder, innerFileProps.basename);
-								progress.reportNoteSuccess(innerFileProps.basename);
-
-							} else {
-								// TODO: Limit to only files that are supported
-								console.log('innerFileProps.basename', innerFileProps.basename);
-								let assetFolder = await this.createFolders(assetFolderPath);
-								// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-								const assetData = await entry.getData(new BlobWriter());
-								await this.vault.createBinary(`${assetFolder.path}/${innerFileProps.name}`, await assetData.arrayBuffer());
-							}
-						}
-					})
+					await this.readZipEntries(file, folder, assetFolderPath, progress);
+					
 				} else if(file.extension === 'json') {
 					let rawContent = await file.readText();
-					let keepJson = convertStringToKeepJson(rawContent);
-
-					if(!keepJson) {
-						progress.reportFailed(file.name, 'NOT VALID KEEP JSON');
-						continue;
-					}
-					if(keepJson.isArchived && !this.importArchived) {
-						progress.reportSkipped(file.name, 'Archived note');
-						continue;
-					}
-					if(keepJson.isTrashed && !this.importTrashed) {
-						progress.reportSkipped(file.name, 'Deleted note');
-						continue;
-					}
-
-					this.convertKeepJson(keepJson, folder, file.basename);
-					progress.reportNoteSuccess(file.name);
+					await this.importKeepNote(rawContent, folder, file.basename, progress);
 
 				} else {
-					let assetFolder = await this.createFolders(assetFolderPath);
-					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-					await this.copyFile(file, `${assetFolder.path}/${file.name}`);
-					progress.reportNoteSuccess(file.name);
+					const arrayBuffer = await file.read();
+					await this.copyFile(arrayBuffer, assetFolderPath, file.name, progress);
 				}
 
 			} catch (e) {
@@ -157,6 +107,60 @@ export class KeepImporter extends FormatImporter {
 			}
 		}
 
+	}
+
+	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, progress: ProgressReporter) {
+		await file.readZip(async zip => {
+			for (let entry of await zip.getEntries()) {
+				if (!entry || entry.directory || !entry.getData) return;
+				let curInnerFilename = '';
+				try {
+					let innerFileProps = parseFilePath(entry.filename);
+					curInnerFilename = innerFileProps.name;
+		
+					if(innerFileProps.extension === 'json') {
+						let rawContent = await entry.getData(new TextWriter());
+						await this.importKeepNote(rawContent, folder, innerFileProps.basename, progress);
+		
+					} else if(ATTACHMENT_EXTS.contains(innerFileProps.extension)) {
+						const rawContent = await entry.getData(new BlobWriter());
+						const arrayBuffer = await rawContent.arrayBuffer();
+						await this.copyFile(arrayBuffer, assetFolderPath, innerFileProps.name, progress);
+					}
+					// else: Silently skip any other unsupported files in the zip
+		
+				} catch(e) {
+					console.error(`${file.name} ::: ${curInnerFilename ?? curInnerFilename}`, e);
+					progress.reportFailed(`${file.name} / ${curInnerFilename}`, e);
+				}
+			}
+		})
+	}
+
+	async importKeepNote(rawContent: string, folder: TFolder, title: string, progress: ProgressReporter) {
+		let keepJson = convertStringToKeepJson(rawContent);
+		if(!keepJson) {
+			progress.reportFailed(`${title}.json`, 'NOT A GOOGLE KEEP JSON');
+			return;
+		}
+		if(keepJson.isArchived && !this.importArchived) {
+			progress.reportSkipped(`${title}.json`, 'ARCHIVED NOTE');
+			return;
+		}
+		if(keepJson.isTrashed && !this.importTrashed) {
+			progress.reportSkipped(`${title}.json`, 'DELETED NOTE');
+			return
+		}
+
+		await this.convertKeepJson(keepJson, folder, title);
+		progress.reportNoteSuccess(`${title}.json`);
+	}
+
+	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
+	async copyFile(arrayBuffer: ArrayBuffer, folderPath: string, filename: string, progress: ProgressReporter) {
+		let assetFolder = await this.createFolders(folderPath);
+		await this.vault.createBinary(`${assetFolder.path}/${filename}`, arrayBuffer);
+		progress.reportNoteSuccess(filename);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
