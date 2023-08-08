@@ -1,11 +1,15 @@
 import { FormatImporter } from "../format-importer";
-import { DataWriteOptions, Notice, Setting, TFile } from "obsidian";
+import { DataWriteOptions, Notice, Setting, TFile, TFolder } from "obsidian";
 import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
 import { addAliasToFrontmatter, addTagToFrontmatter, toSentenceCase } from "../util";
+import { PickedFolder, parseFilePath } from "filesystem";
+import { BlobWriter, TextWriter } from "@zip.js/zip.js";
+import { Transform } from "stream";
 
 
+const BUNDLE_EXTS = ['zip'];
 const NOTE_EXTS = ['json'];
 // Google Keep supports attachment formats that might change and exports in the original format uploaded, so limiting to binary formats Obsidian supports
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
@@ -42,7 +46,7 @@ export class KeepImporter extends FormatImporter {
 
 		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
 
-		this.addFileChooserSetting('Notes & attachments', [...NOTE_EXTS, ...ATTACHMENT_EXTS]);
+		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS]);
 
 		this.importArchivedSetting = new Setting(this.modal.contentEl)
             .setName('Import archived notes')
@@ -85,11 +89,49 @@ export class KeepImporter extends FormatImporter {
 
 		for (let file of files) {
 			try {
-				if(file.extension === 'json') {
+				if(file.extension === 'zip') {
+					await file.readZip(async zip => {
+						for (let entry of await zip.getEntries()) {
+							if (!entry || entry.directory || !entry.getData) continue;
+							let innerFileProps = parseFilePath(entry.filename);
+							if(innerFileProps.extension === 'json') {
+								let rawContent = await entry.getData(new TextWriter());
+								let keepJson = convertStringToKeepJson(rawContent);
+
+								if(!keepJson) {
+									progress.reportFailed(innerFileProps.name, 'NOT A GOOGLE KEEP JSON');
+									continue;
+								}
+								if(keepJson.isArchived && !this.importArchived) {
+									progress.reportSkipped(innerFileProps.name, 'ARCHIVED NOTE');
+									continue;
+								}
+								if(keepJson.isTrashed && !this.importTrashed) {
+									progress.reportSkipped(innerFileProps.name, 'DELETED NOTE');
+									continue;
+								}
+
+								this.convertKeepJson(keepJson, folder, innerFileProps.basename);
+								progress.reportNoteSuccess(innerFileProps.basename);
+
+							} else {
+								// TODO: Limit to only files that are supported
+								console.log('innerFileProps.basename', innerFileProps.basename);
+								let assetFolder = await this.createFolders(assetFolderPath);
+								// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
+								const assetData = await entry.getData(new BlobWriter());
+								await this.vault.createBinary(`${assetFolder.path}/${innerFileProps.name}`, await assetData.arrayBuffer());
+							}
+						}
+					})
+				} else if(file.extension === 'json') {
 					let rawContent = await file.readText();
 					let keepJson = convertStringToKeepJson(rawContent);
-					if(!keepJson) throw(`JSON file doesn't match expected Google Keep format.`);
-					
+
+					if(!keepJson) {
+						progress.reportFailed(file.name, 'NOT VALID KEEP JSON');
+						continue;
+					}
 					if(keepJson.isArchived && !this.importArchived) {
 						progress.reportSkipped(file.name, 'Archived note');
 						continue;
@@ -98,24 +140,16 @@ export class KeepImporter extends FormatImporter {
 						progress.reportSkipped(file.name, 'Deleted note');
 						continue;
 					}
-					
-					let mdContent = convertJsonToMd(keepJson);
-					const fileRef = await this.saveAsMarkdownFile(folder, file.basename, mdContent);
-					await this.addKeepFrontMatter(fileRef, keepJson);					
-					
-					const writeOptions: DataWriteOptions = {
-						ctime: keepJson.createdTimestampUsec/1000,
-						mtime: keepJson.userEditedTimestampUsec/1000
-					}
-					this.modifyWriteOptions(fileRef, writeOptions);
+
+					this.convertKeepJson(keepJson, folder, file.basename);
+					progress.reportNoteSuccess(file.name);
 
 				} else {
 					let assetFolder = await this.createFolders(assetFolderPath);
 					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
 					await this.copyFile(file, `${assetFolder.path}/${file.name}`);
-					
+					progress.reportNoteSuccess(file.name);
 				}
-				progress.reportNoteSuccess(file.name);
 
 			} catch (e) {
 				console.error(`${file.name} ::: `, e);
@@ -123,6 +157,18 @@ export class KeepImporter extends FormatImporter {
 			}
 		}
 
+	}
+
+	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
+		let mdContent = convertJsonToMd(keepJson);
+		const fileRef = await this.saveAsMarkdownFile(folder, filename, mdContent);
+		await this.addKeepFrontMatter(fileRef, keepJson);					
+		
+		const writeOptions: DataWriteOptions = {
+			ctime: keepJson.createdTimestampUsec/1000,
+			mtime: keepJson.userEditedTimestampUsec/1000
+		}
+		this.modifyWriteOptions(fileRef, writeOptions);
 	}
 
 	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {

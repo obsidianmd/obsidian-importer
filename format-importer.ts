@@ -155,14 +155,6 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * Copies a file into the vault without parsing it or checking for duplicates.
-	 * Designed primarily for Binary files.
-	 */
-	async copyFile(file: PickedFile, relOutputFilepath: string) {
-		await this.vault.createBinary(relOutputFilepath, await file.read());
-	}
-
-	/**
 	 * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file.
 	 * Must pass in the relevant vault.
 	 */
