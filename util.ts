@@ -58,15 +58,6 @@ export function genUid(length: number): string {
 }
 
 /**
- * Copies a file into the vault without parsing it or checking for duplicates.
- * Designed primarily for Binary files.
- * Must pass in the relevant vault.
- */
-export async function copyFile(file: PickedFile, relOutputFilepath: string, vault: Vault) {
-	await vault.createBinary(relOutputFilepath, await file.read());
-}
-
-/**
  * Adds a single tag to the tag property in frontmatter and santises it.
  * Must pass in app.fileManager.
  */
@@ -103,13 +94,6 @@ export async function addAliasToFrontmatter(alias: string, fileRef: TFile, fileM
 	});
 }
 
-/**
- * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file.
- * Must pass in the relevant vault.
- */
-export async function modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions, vault: Vault) {
-	await vault.append(fileRef, '', writeOptions);
-}
 export class PromiseExecutor {
 	readonly pool: PromiseLike<number>[];
 	revision: object = {};

@@ -1,4 +1,4 @@
-import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ProgressReporter } from './main';
 import { sanitizeFileName } from './util';
@@ -152,6 +152,22 @@ export abstract class FormatImporter {
 		let sanitizedName = sanitizeFileName(title);
 		// @ts-ignore
 		return await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+	}
+
+	/**
+	 * Copies a file into the vault without parsing it or checking for duplicates.
+	 * Designed primarily for Binary files.
+	 */
+	async copyFile(file: PickedFile, relOutputFilepath: string) {
+		await this.vault.createBinary(relOutputFilepath, await file.read());
+	}
+
+	/**
+	 * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file.
+	 * Must pass in the relevant vault.
+	 */
+	async modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions) {
+		await this.vault.append(fileRef, '', writeOptions);
 	}
 
 }

@@ -1,6 +1,5 @@
 import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting } from "obsidian";
-import { copyFile, getOrCreateFolder, modifyWriteOptions } from '../util';
 import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { convertStringToKeepJson } from "./keep/models/KeepJson";
@@ -114,12 +113,12 @@ export class KeepImporter extends FormatImporter {
 						ctime: keepJson.createdTimestampUsec/1000,
 						mtime: keepJson.userEditedTimestampUsec/1000
 					}
-					modifyWriteOptions(fileRef, writeOptions, this.app.vault);
+					this.modifyWriteOptions(fileRef, writeOptions);
 
 				} else {
 					let assetFolder = await this.createFolders(assetFolderPath);
 					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-					await copyFile(file, `${assetFolder.path}/${file.name}`, this.app.vault);
+					await this.copyFile(file, `${assetFolder.path}/${file.name}`);
 					
 				}
 				progress.reportNoteSuccess(file.name);
