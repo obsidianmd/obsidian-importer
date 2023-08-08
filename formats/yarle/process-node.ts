@@ -2,7 +2,7 @@ import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { RuntimePropertiesSingleton } from './runtime-properties';
-import { getMetadata, getTags, isComplex, saveMdFile, } from './utils';
+import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
 import { applyTemplate } from './utils/templates/templates';
 import { yarleOptions } from './yarle';
@@ -46,10 +46,12 @@ export const processNode = (note: any, notebookName: string): void => {
 		  noteIdNameMap.extendNoteIdNameMap(noteData);
 		}*/
 
-	} catch (e) {
+	}
+	catch (e) {
 		console.error(`Failed to convert note: ${noteData.title}`, e);
 		throw e;
-	} finally {
+	}
+	finally {
 		const dateFinished: Date = new Date();
 		const conversionDuration = (dateFinished.getTime() - dateStarted.getTime()) / 1000; // in seconds.
 		console.log(`Conversion for note "${noteData.title}" finished at ${dateFinished}. Took ${conversionDuration} seconds`);

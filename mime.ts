@@ -963,7 +963,7 @@ let extensions: Record<string, string> = {
 	'video/x-msvideo': 'avi',
 	'video/x-sgi-movie': 'movie',
 	'video/x-smv': 'smv',
-	'x-conference/x-cooltalk': 'ice'
+	'x-conference/x-cooltalk': 'ice',
 };
 
 /*
@@ -984,7 +984,7 @@ console.log(extensions);
 
 let EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
 
-export function extension(type: string) {
+export function extensionForMime(type: string) {
 	if (!type || typeof type !== 'string') {
 		return '';
 	}

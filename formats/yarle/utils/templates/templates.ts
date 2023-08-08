@@ -1,10 +1,10 @@
 import { NoteData } from '../../models/NoteData';
 
-import { YarleOptions } from '../../YarleOptions';
-import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate, applyTagsArrayTemplate, applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate, } from './apply-functions';
+import { YarleOptions } from '../../options';
+import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate, applyTagsArrayTemplate, applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate } from './apply-functions';
 
 import * as T from './placeholders/metadata-placeholders';
-import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder, } from './remove-functions';
+import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
 
 export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) => {
 

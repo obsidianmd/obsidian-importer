@@ -1,7 +1,7 @@
 import { fs, path } from '../../../filesystem';
-import { RuntimePropertiesSingleton } from './../runtime-properties';
 
-import { YarleOptions } from './../YarleOptions';
+import { YarleOptions } from '../options';
+import { RuntimePropertiesSingleton } from './../runtime-properties';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { truncatFileName } from './folder-utils';
 import { getAllOutputFilesWithExtension } from './get-all-output-files';
@@ -13,11 +13,11 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 	let entries = Object.entries(allLinks);
 	if (entries.length === 0) return;
 
-	console.log(`About to update links...`);
+	console.log('About to update links...');
 
 	const allconvertedFiles: Array<string> = [];
 	for (const outputFolder of outputNotebookFolders) {
-		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, undefined);
+		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, '');
 	}
 
 	for (const notebookFolder of outputNotebookFolders) {
@@ -60,6 +60,6 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 		}
 	}
 
-	console.log(`Link update complete.`);
+	console.log('Link update complete.');
 };
 

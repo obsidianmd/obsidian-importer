@@ -1,17 +1,15 @@
 import { moment } from 'obsidian';
-import sanitize from 'sanitize-filename';
 import { fs, path } from '../../../filesystem';
+import { sanitizeFileName } from '../../../util';
 
 import { yarleOptions } from '../yarle';
 
 import { ResourceFileProperties } from './../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { extension } from './mime';
+import { extensionForMime } from '../../../mime';
 
 export const normalizeTitle = (title: string) => {
-	// Allow setting a specific replacement character for file and resource names
-	// Default to a retrocompatible value
-	return sanitize(title, { replacement: yarleOptions.replacementChar || '_' }).replace(/[\[\]\#\^]/g, '');
+	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
 };
 
 export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | string => {
@@ -67,7 +65,7 @@ export const getNoteFileName = (dstPath: string, note: any, extension: string = 
 export const getExtensionFromResourceFileName = (resource: any): string => {
 	if (!(resource['resource-attributes'] &&
 		resource['resource-attributes']['file-name'])) {
-		return undefined;
+		return '';
 	}
 	const splitFileName = resource['resource-attributes']['file-name'].split('.');
 
@@ -78,10 +76,10 @@ export const getExtensionFromResourceFileName = (resource: any): string => {
 export const getExtensionFromMime = (resource: any): string => {
 	const mimeType = resource.mime;
 	if (!mimeType) {
-		return undefined;
+		return '';
 	}
 
-	return extension(mimeType) || undefined;
+	return extensionForMime(mimeType) || '';
 };
 
 export const getExtension = (resource: any): string => {

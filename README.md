@@ -4,12 +4,11 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 ## Supported formats
 
-Currently supports HTML files and Evernote `.enex` with more formats in progress. You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
-
-Planned formats:
+You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 - [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
 - [x] HTML, folder of files
+- [x] Bear `.bear2bk` (Credits @arthurtyukayev)
 - [ ] Notion
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
@@ -31,6 +30,19 @@ First install Importer in Obsidian → Community Plugins
 - Click **Import**
 
 Currently, the import does not have any special settings, if you want more control over the output, consider using [Yarle](https://github.com/akosbalasko/yarle).
+
+### Import notes from HTML
+
+- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
+- Under **File format** select **HTML (.html)**
+- Choose the HTML files or folders you want to import
+- Optionally, select a folder for the import — your Markdown files will be created in this folder within your vault.
+- Click **Import**
+
+**Special settings**
+
+- **Attachment size limit**: Skip importing attachments larger than the specified size.
+- **Minimum image size**: Skip importing images smaller than the specified size in either dimension. Can be used to skip icons and logos.
 
 ![Obsidian Importer screenshot](/images/screenshot.png)
 

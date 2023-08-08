@@ -19,8 +19,9 @@ We're still experimenting with contributions, if you have any questions, please 
 - Follow our [Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
 - Your contribution must be implemented in TypeScript.
 - Keep it lightweight. The fewer the dependencies, the better. For example, if you import `lodash` and only use two functions don't it, re-consider.
-- Be extremely performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
-- Your code should be self-explanatory. There's no need to over-comment your code, class names and function names should explain most things. Reserve comments for unusual situations and avoid commenting for the sake of commenting.
+- Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
+- Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
+- Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
 
 ### Bounties
 
@@ -34,5 +35,5 @@ Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidi
 3. **Fork repo** — if you have questions during the development you can ask in the Obsidian Discord channel *#importer* (under #plugin-dev)
 4. **Submit your PR** — submit your code within the bounty timeframe. If the timeframe elapses, the bounty will be reassigned to another developer.
 5. **Pass code review** — your code must meet the requirements listed in the issue, and the code standards above
-6. **Agree to CLA** — the [Contributor License Agreement](https://github.com/obsidianmd/obsidian-releases/blob/master/cla.md) grants us license to use your code
+6. **Agree to CLA** — the [Contributor License Agreement](https://github.com/obsidianmd/obsidian-releases/blob/master/cla.md) grants Obsidian license to use your code.
 7. **Merging and payment** — once your PR is merged, we will submit payment via PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.

@@ -1,7 +1,7 @@
 import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting } from "obsidian";
 import { copyFile, getOrCreateFolder, modifyWriteOptions } from '../util';
-import { ImportResult } from '../main';
+import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { convertStringToKeepJson } from "./keep/models/KeepJson";
 import { addKeepFrontMatter } from "./keep/add-keep-frontmatter";
@@ -69,7 +69,7 @@ export class KeepImporter extends FormatImporter {
 
 	}
 
-	async import(): Promise<void> {
+	async import(progress: ProgressReporter): Promise<void> {
 
 		let { files } = this;
 		if (files.length === 0) {
@@ -98,11 +98,11 @@ export class KeepImporter extends FormatImporter {
 					if(!keepJson) throw(`JSON file doesn't match expected Google Keep format.`);
 					
 					if(keepJson.isArchived && !this.importArchived) {
-						results.skipped.push(`${file.name} (Archived note)`);
+						progress.reportSkipped(file.name, 'Archived note');
 						continue;
 					}
 					if(keepJson.isTrashed && !this.importTrashed) {
-						results.skipped.push(`${file.name} (Deleted note)`);
+						progress.reportSkipped(file.name, 'Deleted note');
 						continue;
 					}
 					
@@ -122,11 +122,11 @@ export class KeepImporter extends FormatImporter {
 					await copyFile(file, `${assetFolder.path}/${file.name}`, this.app.vault);
 					
 				}
-				results.total++;
+				progress.reportNoteSuccess(file.name);
 
 			} catch (e) {
 				console.error(`${file.name} ::: `, e);
-				results.failed.push(`${file.name}`);
+				progress.reportFailed(file.name, e);
 			}
 		}
 

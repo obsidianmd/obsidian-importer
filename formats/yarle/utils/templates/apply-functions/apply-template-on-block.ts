@@ -1,13 +1,13 @@
 import { TemplateBlockSettings } from './../template-settings';
 
 export const applyTemplateOnBlock = ({
-	                                     template,
-	                                     check,
-	                                     startBlockPlaceholder,
-	                                     endBlockPlaceholder,
-	                                     valuePlaceholder,
-	                                     value,
-                                     }: TemplateBlockSettings): string => {
+	template,
+	check,
+	startBlockPlaceholder,
+	endBlockPlaceholder,
+	valuePlaceholder,
+	value,
+}: TemplateBlockSettings): string => {
 	if (value && check()) {
 		return template
 			.replace(new RegExp(`${startBlockPlaceholder}`, 'g'), '')

@@ -4,5 +4,5 @@ export interface TemplateBlockSettings {
 	startBlockPlaceholder: string;
 	endBlockPlaceholder: string;
 	valuePlaceholder: string;
-	value: string;
+	value?: string;
 }

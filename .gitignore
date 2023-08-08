@@ -22,6 +22,8 @@ data.json
 .DS_Store
 
 package-lock.json
+pnpm-lock.yaml
+.devtarget
 
 # Exclude files specific to personal development process
 .hotreload

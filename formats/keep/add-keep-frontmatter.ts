@@ -9,7 +9,7 @@ export async function addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson, fil
 	if (keepJson.title) addAliasToFrontmatter(keepJson.title, fileRef, fileManager);
 
 	// Add in tags to represent Keep properties
-	if(keepJson.color !== 'DEFAULT') {
+	if(keepJson.color && keepJson.color !== 'DEFAULT') {
 		let colorName = keepJson.color.toLowerCase();
 		colorName = capitalizeFirstLetter(colorName);
 		await addTagToFrontmatter(`Keep/Color/${colorName}`, fileRef, fileManager);

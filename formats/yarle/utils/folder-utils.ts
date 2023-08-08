@@ -1,12 +1,19 @@
 import { fs, path, PickedFile } from 'filesystem';
 import { genUid } from '../../../util';
-import { Path } from '../paths';
 import { yarleOptions } from '../yarle';
 import { RuntimePropertiesSingleton } from './../runtime-properties';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
 
-export const paths: Path = {};
+export interface Path {
+	mdPath: string;
+	resourcePath: string;
+}
+
+export const paths: Path = {
+	mdPath: '',
+	resourcePath: '',
+};
 const MAX_PATH = 249;
 
 export const getResourceDir = (dstPath: string, note: any): string => {
@@ -102,7 +109,7 @@ export const clearResourceDir = (note: any): void => {
 		resourceDirClears.set(resPath, 0);
 	}
 
-	const clears = resourceDirClears.get(resPath);
+	const clears = resourceDirClears.get(resPath) || 0;
 	// we're sharing a resource dir, so we can can't clean it more than once
 	if ((yarleOptions.haveEnexLevelResources || yarleOptions.haveGlobalResources) && clears >= 1) {
 		return;
