@@ -75,21 +75,12 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 
 const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, blockText: string, downloadAttachments: boolean = false) => {
 	// get rid of roam-specific components
-	if (
-	  blockText.substring(0, 9) == "{{[[query" ||
-	  blockText.substring(0, 7) == "{{query"
-	)
-	  return "";
-	if (
-		blockText.substring(0, 10) == "{{[[streak" ||
-		blockText.substring(0, 8) == "{{streak"
-	)
-		return "";
-	if (blockText.substring(0, 12) == "{{attr-table") return "";
-	if (blockText.substring(0, 15) == "{{[[mentions]]:") return "";
+	let stringsToReplace = ["POMO","word-count","date","slider","encrypt","TaoOfRoam","orphans","count","character-count","comment-button", "query","streak","attr-table","mentions","search","roam\/render","calc"];
+	const regexPatterns = new RegExp(`\\{\\{(\\[\\[)?(${stringsToReplace.join("|")})(\\]\\])?.*?\\}\\}`, "g");
+	blockText = blockText.replace(regexPatterns, "");
+
 	if (blockText.substring(0, 8) == ":hiccup " && blockText.includes(":hr"))
 	  return "---"; // Horizontal line in markup, replace it with MD
-    if (blockText.substring(0, 9) == "{{[[search") return "";
 
     //sanatize [[page names]]
 	//check for roam DNP and convert to obsidian DNP
@@ -109,36 +100,19 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
 	blockText = blockText.replaceAll("{{[[TODO]]}}", "[ ]");
 	blockText = blockText.replaceAll("{{DONE}}", "[x]");
 	blockText = blockText.replaceAll("{{[[DONE]]}}", "[x]");
-	blockText = blockText.replaceAll("{{word-count}}", "");
-	blockText = blockText.replaceAll("{{date}}", "");
-	blockText = blockText.replaceAll("{{[[POMO]]}}", "");
-	blockText = blockText.replaceAll("{{POMO}}", "");
-	blockText = blockText.replaceAll("{{slider}}", "");
-	blockText = blockText.replaceAll("{{[[slider]]}}", "");
-    blockText = blockText.replaceAll("{{encrypt}}", "");
-	blockText = blockText.replaceAll("{{[[encrypt]]}}", "");
-
-	blockText = blockText.replaceAll("{{TaoOfRoam}}", "");
-	blockText = blockText.replaceAll("{{orphans}}", "");
-	blockText = blockText.replaceAll("{{[[orphans]]}}", "");
-	blockText = blockText.replaceAll("{{count}}", "");
-	blockText = blockText.replaceAll("{{character-count}}", "");
-	blockText = blockText.replaceAll("{{comment-button}}", "");
 	blockText = blockText.replace("::", ":"); // Attributes::
 
 	blockText = blockText.replaceAll(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, "![]($1)"); // youtube embeds
 	blockText = blockText.replaceAll(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, "![]($1)"); // twitter embeds
-	blockText = blockText.replaceAll(/{{.*?roam\/render[^}]*}}/g, ""); // {{roam/render}} components
 	blockText = blockText.replaceAll(/\_\_(.+?)\_\_/g, "*$1*"); // __ __ itallic
 	blockText = blockText.replaceAll(/\^\^(.+?)\^\^/g, "==$1=="); // ^^ ^^ highlight
     
-	// block and page embeds
+	// block and page embeds {{embed: ((asdf))}} {{[[embed]]: [[asadf]]}}
 	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\(\(.*?\)\)).*?}}/g, "$1")
 	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\[\[.*?\]\]).*?}}/g, "$1")
 	// download files uploaded to Roam
 	if (downloadAttachments) {
 		if (blockText.includes('firebasestorage')) {
-			// console.log(app)
 			blockText =  await downloadFirebaseFile(blockText, attachmentsFolder)
 		}
 	}
