@@ -117,7 +117,7 @@ export class KeepImporter extends FormatImporter {
 					modifyWriteOptions(fileRef, writeOptions, this.app.vault);
 
 				} else {
-					let assetFolder = await getOrCreateFolder(assetFolderPath, this.app.vault);
+					let assetFolder = await this.createFolders(assetFolderPath);
 					// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
 					await copyFile(file, `${assetFolder.path}/${file.name}`, this.app.vault);
 					

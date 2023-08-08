@@ -58,26 +58,6 @@ export function genUid(length: number): string {
 }
 
 /**
- * Retrieves a reference to a specific folder in a vault. Creates it first if it doesn't exist.
- * Must pass in the relevant vault.
- */
-export async function getOrCreateFolder(folderPath: string, vault: Vault): Promise<TFolder> {
-	let normalizedPath = normalizePath(folderPath)
-	if(normalizedPath === '') {
-		normalizedPath = '/';
-	}
-
-	const folder = vault.getAbstractFileByPath(normalizedPath);
-	if(folder instanceof TFolder) {
-		return folder;
-	}
-	
-	await vault.createFolder(normalizedPath);
-	const newFolder = vault.getAbstractFileByPath(normalizedPath) as TFolder;
-	return newFolder;
-}
-
-/**
  * Copies a file into the vault without parsing it or checking for duplicates.
  * Designed primarily for Binary files.
  * Must pass in the relevant vault.
