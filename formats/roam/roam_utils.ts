@@ -1,6 +1,6 @@
-import moment from "moment";
+import { moment } from "obsidian";
+
 let illegalReNoDir = /[\?<>\\:\*\|"]/g;
-let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;

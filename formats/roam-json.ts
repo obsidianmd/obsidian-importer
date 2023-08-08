@@ -35,11 +35,7 @@ export class RoamJSONImporter extends FormatImporter {
 		if (!folder) {
 			new Notice('Please select a location to export to.');
 			return;
-		}
-
-		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;		
+		}		
 
 		await importRoamJson(this, progress, files, folder, this.downloadAttachments);
 	}
