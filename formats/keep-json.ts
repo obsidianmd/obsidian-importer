@@ -69,8 +69,8 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async import(progress: ProgressReporter): Promise<void> {
-
 		let { files } = this;
+
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
@@ -82,12 +82,6 @@ export class KeepImporter extends FormatImporter {
 			return;
 		}
 		let assetFolderPath = `${folder.path}/Assets`;
-
-		let results: ImportResult = {
-			total: 0,
-			skipped: [],
-			failed: []
-		};
 
 		for (let file of files) {
 			try {
@@ -129,7 +123,6 @@ export class KeepImporter extends FormatImporter {
 			}
 		}
 
-		this.showResult(results);
 	}
 
 	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {
