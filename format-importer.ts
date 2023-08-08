@@ -1,7 +1,7 @@
 import { App, DataWriteOptions, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ProgressReporter } from './main';
-import { sanitizeFileName } from './util';
+import { sanitizeFileName, sanitizeTag } from './util';
 
 export abstract class FormatImporter {
 	app: App;
@@ -169,6 +169,43 @@ export abstract class FormatImporter {
 	async modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions) {
 		await this.vault.append(fileRef, '', writeOptions);
 	}
+
+	/**
+ * Adds a single tag to the tag property in frontmatter and santises it.
+ * Must pass in app.fileManager.
+ */
+async addTagToFrontmatter(tag: string, fileRef: TFile) {
+	const sanitizedTag = sanitizeTag(tag);
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+		if(!frontmatter['tags']) {
+			frontmatter['tags'] = [sanitizedTag];
+		} else {
+			if (!Array.isArray(frontmatter['tags'])) {
+				frontmatter['tags'] = frontmatter['tags'].split(' ');
+			}
+			frontmatter['tags'].push(sanitizedTag);
+		}
+	});
+}
+
+/**
+ * Adds an alias to the note's frontmatter.
+ * Only linebreak sanitization is performed in this function.
+ * Must pass in app.fileManager.
+*/
+async addAliasToFrontmatter(alias: string, fileRef: TFile) {
+	const sanitizedAlias = alias.split('\n').join(', ');
+	await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {      
+		if(!frontmatter['aliases']) {
+			frontmatter['aliases'] = [sanitizedAlias];
+		} else {
+			if (!Array.isArray(frontmatter['aliases'])) {
+				frontmatter['aliases'] = frontmatter['aliases'].split(' ');
+			}
+			frontmatter['aliases'].push(sanitizedAlias);
+		}
+	});
+}
 
 }
 

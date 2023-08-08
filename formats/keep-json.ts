@@ -1,9 +1,9 @@
 import { FormatImporter } from "../format-importer";
-import { DataWriteOptions, Notice, Setting } from "obsidian";
+import { DataWriteOptions, Notice, Setting, TFile } from "obsidian";
 import { ImportResult, ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
-import { convertStringToKeepJson } from "./keep/models/KeepJson";
-import { addKeepFrontMatter } from "./keep/add-keep-frontmatter";
+import { KeepJson, convertStringToKeepJson } from "./keep/models/KeepJson";
+import { toSentenceCase } from "../util";
 
 
 const NOTE_EXTS = ['json'];
@@ -107,7 +107,7 @@ export class KeepImporter extends FormatImporter {
 					
 					let mdContent = convertJsonToMd(keepJson);
 					const fileRef = await this.saveAsMarkdownFile(folder, file.basename, mdContent);
-					await addKeepFrontMatter(fileRef, keepJson, this.app.fileManager);					
+					await this.addKeepFrontMatter(fileRef, keepJson);					
 					
 					const writeOptions: DataWriteOptions = {
 						ctime: keepJson.createdTimestampUsec/1000,
@@ -130,5 +130,28 @@ export class KeepImporter extends FormatImporter {
 		}
 
 		this.showResult(results);
+	}
+
+	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {
+
+		if (keepJson.title) this.addAliasToFrontmatter(keepJson.title, fileRef);
+	
+		// Add in tags to represent Keep properties
+		if(keepJson.color && keepJson.color !== 'DEFAULT') {
+			let colorName = keepJson.color.toLowerCase();
+			colorName = toSentenceCase(colorName);
+			await this.addTagToFrontmatter(`Keep/Color/${colorName}`, fileRef);
+		}
+		if(keepJson.isPinned)    	await this.addTagToFrontmatter(`Keep/Pinned`, fileRef);
+		if(keepJson.attachments)	await this.addTagToFrontmatter(`Keep/Attachment`, fileRef);
+		if(keepJson.isArchived)		await this.addTagToFrontmatter(`Keep/Archived`, fileRef);
+		if(keepJson.isTrashed) 		await this.addTagToFrontmatter(`Keep/Deleted`, fileRef);
+	
+		if (keepJson.labels) {
+			let labels = '';
+			for (let i = 0; i < keepJson.labels.length; i++) {
+				await this.addTagToFrontmatter(`Keep/Label/${keepJson.labels[i].name}`, fileRef);
+			}
+		};
 	}
 }
