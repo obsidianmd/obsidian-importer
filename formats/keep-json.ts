@@ -42,7 +42,7 @@ export class KeepImporter extends FormatImporter {
 			text: 'Google Takeout',
 			href: 'https://takeout.google.com/'
 		});
-		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, unzip it and and import the files below before clicking import.');
+		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, you can import it directly below or unzip it and select individual files.');
 
 		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
 
@@ -140,15 +140,15 @@ export class KeepImporter extends FormatImporter {
 	async importKeepNote(rawContent: string, folder: TFolder, title: string, progress: ProgressReporter) {
 		let keepJson = convertStringToKeepJson(rawContent);
 		if(!keepJson) {
-			progress.reportFailed(`${title}.json`, 'NOT A GOOGLE KEEP JSON');
+			progress.reportFailed(`${title}.json (Invalid format)`, 'NOT A GOOGLE KEEP JSON');
 			return;
 		}
 		if(keepJson.isArchived && !this.importArchived) {
-			progress.reportSkipped(`${title}.json`, 'ARCHIVED NOTE');
+			progress.reportSkipped(`${title}.json (Archived note)`, 'ARCHIVED NOTE');
 			return;
 		}
 		if(keepJson.isTrashed && !this.importTrashed) {
-			progress.reportSkipped(`${title}.json`, 'DELETED NOTE');
+			progress.reportSkipped(`${title}.json (Deleted note)`, 'DELETED NOTE');
 			return
 		}
 

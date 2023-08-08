@@ -73,7 +73,7 @@ export default class ImporterPlugin extends Plugin {
 				importer: Bear2bkImporter,
 			},
 			'keep': {
-				name: 'Google Keep (.json)',
+				name: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
 			},
 		};
