@@ -1,5 +1,5 @@
 import { FileManager, TFile } from "obsidian";
-import { addAliasToFrontmatter, addTagToFrontmatter, sanitizeHashtag } from '../../util';
+import { addAliasToFrontmatter, addTagToFrontmatter } from '../../util';
 import { KeepJson } from "./models/KeepJson";
 
 

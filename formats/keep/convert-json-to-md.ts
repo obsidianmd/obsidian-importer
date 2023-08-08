@@ -1,4 +1,4 @@
-import { sanitizeHashtag, sanitizeHashtags } from '../../util';
+import { sanitizeTags } from '../../util';
 import { KeepJson } from "./models/KeepJson";
 
 /**
@@ -8,7 +8,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     let mdContent = '';
 
     if(jsonContent.textContent) {
-        const normalizedTextContent = sanitizeHashtags(jsonContent.textContent);
+        const normalizedTextContent = sanitizeTags(jsonContent.textContent);
         mdContent += `${normalizedTextContent}\n`;
     }
 
@@ -21,7 +21,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
             if(!listItem.text) continue;
             
             let listItemContent = `- [${listItem.isChecked ? 'X' : ' '}] ${listItem.text}\n`;
-            mdContent += sanitizeHashtags(listItemContent);
+            mdContent += sanitizeTags(listItemContent);
         }
     }
 

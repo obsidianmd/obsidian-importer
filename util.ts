@@ -20,10 +20,10 @@ export function sanitizeFileName(name: string) {
 }
 
 /**
- * Searches a string for characters unsupported by Obsidian in the hashtag body and returns a snaitized string.
+ * Searches a string for characters unsupported by Obsidian in the tag body and returns a sanitized string.
  * If the # symbol is included at the start or anywhere else it will be removed.
  */
-export function sanitizeHashtag(name: string): string {
+export function sanitizeTag(name: string): string {
 	let tagName = name.replace(ILLEGAL_TAG_RE, '');
 	tagName = tagName.split(' ').join('-');
 	if(!isNaN(tagName[0] as any)) {
@@ -33,12 +33,12 @@ export function sanitizeHashtag(name: string): string {
 }
 
 /**
- * Searches a string for hashtags that include characters unsupported in hashtags by Obsidian.
+ * Searches a string for tags that include characters unsupported in tags by Obsidian.
  * Returns a string with those hastags normalised.
  */
-export function sanitizeHashtags(str: string): string {
+export function sanitizeTags(str: string): string {
 	const newStr = str.replace(POTENTIAL_TAGS_RE, (str: string) : string => {
-		return '#' + sanitizeHashtag(str);
+		return '#' + sanitizeTag(str);
 	});
 	return newStr;
 }
@@ -85,7 +85,7 @@ export async function copyFile(file: PickedFile, relOutputFilepath: string, vaul
  * Must pass in app.fileManager.
  */
 export async function addTagToFrontmatter(tag: string, fileRef: TFile, fileManager: FileManager) {
-	const sanitizedTag = sanitizeHashtag(tag);
+	const sanitizedTag = sanitizeTag(tag);
 	await fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
 		if(!frontmatter['tags']) {
 			frontmatter['tags'] = [sanitizedTag];
