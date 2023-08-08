@@ -64,6 +64,39 @@ export function toSentenceCase(str: string) {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
+/**
+ * Adds a single tag to the tag property in frontmatter and santises it.
+ * Must pass in app.fileManager.
+ */
+export function addTagToFrontmatter(frontmatter: any, tag: string) {
+	const sanitizedTag = sanitizeTag(tag);
+	if(!frontmatter['tags']) {
+		frontmatter['tags'] = [sanitizedTag];
+	} else {
+		if (!Array.isArray(frontmatter['tags'])) {
+			frontmatter['tags'] = frontmatter['tags'].split(' ');
+		}
+		frontmatter['tags'].push(sanitizedTag);
+	}
+}
+
+/**
+ * Adds an alias to the note's frontmatter.
+ * Only linebreak sanitization is performed in this function.
+ * Must pass in app.fileManager.
+*/
+export function addAliasToFrontmatter(frontmatter: any, alias: string) {
+	const sanitizedAlias = alias.split('\n').join(', ');
+	if(!frontmatter['aliases']) {
+		frontmatter['aliases'] = [sanitizedAlias];
+	} else {
+		if (!Array.isArray(frontmatter['aliases'])) {
+			frontmatter['aliases'] = frontmatter['aliases'].split(' ');
+		}
+		frontmatter['aliases'].push(sanitizedAlias);
+	}
+}
+
 export class PromiseExecutor {
 	readonly pool: PromiseLike<number>[];
 	revision: object = {};
