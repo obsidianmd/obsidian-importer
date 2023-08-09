@@ -1,4 +1,4 @@
-export interface DeviceCode {
+export interface deviceCode {
     device_code: string;
     user_code: string;
     verification_uri: URL;
@@ -6,7 +6,7 @@ export interface DeviceCode {
     interval: number;
     message: string;
 }
-export interface TokenResponse {
+export interface tokenResponse {
     token_type: string;
     scope: string;
     expires_in: number;

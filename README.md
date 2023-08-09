@@ -44,6 +44,20 @@ Currently, the import does not have any special settings, if you want more contr
 - **Attachment size limit**: Skip importing attachments larger than the specified size.
 - **Minimum image size**: Skip importing images smaller than the specified size in either dimension. Can be used to skip icons and logos.
 
+### Import notes from OneNote
+
+- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
+- Under **File format** select **OneNote**
+- Sign in by entering the device code
+- Choose which OneNote sections to import
+- Optionally, select a folder for the import — your Markdown files will be created in this folder within your vault.
+- Click **Import**
+
+**Special settings**
+
+- **Use default attachment folder**: When disabled, creates an attachment folder in the export location.
+- **Import incompatible attachments**: Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+
 ![Obsidian Importer screenshot](/images/screenshot.png)
 
 ## Contributing

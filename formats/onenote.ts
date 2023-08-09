@@ -3,17 +3,19 @@ import { ProgressReporter } from 'main';
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, requestUrl } from 'obsidian';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup } from '@microsoft/microsoft-graph-types';
 import { parseHTML } from '../util';
-import { DeviceCode, TokenResponse } from './onenote/models/device-code';
+import { deviceCode, tokenResponse } from './onenote/models/device-code';
 
 const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
-const ATTACHMENT_EXTS: string[] = ['png','webp','jpg','jpeg','gif','bmp','svg','mpg','m4a','webm','wav','ogv','3gp','mov','mp4','mkv','pdf'];
+// TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
+const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
 export class OneNoteImporter extends FormatImporter {
-	attachmentQueue: {name: string, url: string } [] = [];
-	requestParams: RequestInit;
-	useDefaultAttachmentFolder: boolean;
+	useDefaultAttachmentFolder: boolean = true;
 	importIncompatibleAttachments: boolean;
+	contentArea: HTMLDivElement;
+	requestParams: RequestInit;
+	attachmentQueue: {name: string, url: string } [] = [];
 	selectedSections: OnenoteSection[] = [];
 
 	init() {
@@ -26,33 +28,32 @@ export class OneNoteImporter extends FormatImporter {
 		new Setting(this.modal.contentEl)
 			.setName('Use the default attachment folder')
 			.setDesc('If disabled, attachments will be stored in the export folder in the OneNote Attachments folder.')
-			.addToggle((toggle) => {
-				toggle.setValue(true).onChange((value) => (this.useDefaultAttachmentFolder = value));
-			});
+			.addToggle((toggle) => toggle
+				.setValue(true)
+				.onChange((value) => (this.useDefaultAttachmentFolder = value))
+			);
 		new Setting(this.modal.contentEl)
 			.setName('Import incompatible attachments')
 			.setDesc('Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.')
-			.addToggle((toggle) => {
-				toggle.setValue(false);
-				toggle.onChange((value) => (this.importIncompatibleAttachments = value));
-			});
-
+			.addToggle((toggle) => toggle
+				.setValue(false)
+				.onChange((value) => (this.importIncompatibleAttachments = value))
+			);
+		this.contentArea = this.modal.contentEl.createEl('div');
 		// Create a wrapper for sign in related settings in order to hide them later
-		const contentArea = this.modal.contentEl.createDiv({
-			cls: 'contentArea',
-		});
-		contentArea.createEl('h3', {
+		this.contentArea.createEl('h3', {
 			text: 'Sign in to your Microsoft Account',
 			cls: 'modal-title',
 		});
-		let description = contentArea.createEl('p');
+		let description = this.contentArea.createEl('p');
 		// This could possibly use the version from DeviceCode.message, as it returns a string in the user's language?
 		description.innerHTML = `Go to <a href="https://microsoft.com/devicelogin">microsoft.com/devicelogin</a> on your PC or phone and enter this code: <b>${await this.generateLoginCode()}</b>`;
 
-		new Setting(contentArea)
+		new Setting(this.contentArea)
 			.setName('Custom user access token')
 			.setDesc('If you are having troubles with the device code, use a custom access token from Microsoft Graph Explorer by going to the access token tab under the address bar.')
-			.addText((text) => text.setPlaceholder('Paste token here').onChange(async (e) => this.signIn(e)));
+			.addText((text) => text.setPlaceholder('Paste token here')
+				.onChange(async (e) => this.signIn(e)));
 	}
 
 	async generateLoginCode(): Promise<string> {
@@ -66,12 +67,12 @@ export class OneNoteImporter extends FormatImporter {
 			`https://login.microsoftonline.com/common/oauth2/v2.0/devicecode?${requestBody.toString()}`
 		);
 
-		const deviceCodeData: DeviceCode = await tokenResponse.json;
+		const deviceCodeData: deviceCode = await tokenResponse.json;
 		await this.pollForAccessToken(deviceCodeData);
 		return deviceCodeData.user_code;
 	}
 
-	async pollForAccessToken(deviceCodeRequest: DeviceCode) {
+	async pollForAccessToken(deviceCodeRequest: deviceCode) {
 		const requestBody = new URLSearchParams({
 			grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
 			client_id: GRAPH_CLIENT_ID,
@@ -85,7 +86,7 @@ export class OneNoteImporter extends FormatImporter {
 					contentType: 'application/x-www-form-urlencoded',
 					body: requestBody.toString(),
 				});
-				const tokenData: TokenResponse = tokenResponse.json;
+				const tokenData: tokenResponse = tokenResponse.json;
 				await this.signIn(tokenData.access_token);
 				clearInterval(intervalId);
 			}
@@ -113,19 +114,20 @@ export class OneNoteImporter extends FormatImporter {
 		const notebooks: Notebook[] = data.value;
 
 		// Replace the sign in area to declutter the UI
-		const contentArea: HTMLDivElement = this.modal.contentEl.querySelector('.contentArea')!;
-		contentArea.innerHTML = '';
-		contentArea.createEl('h3', {
+		this.contentArea.empty();
+
+		this.contentArea.createEl('h3', {
 			text: 'Choose what to import',
 			cls: 'modal-title',
 		});
-		contentArea.createEl('hr');
+		this.contentArea.createEl('hr');
 
 		notebooks.forEach((notebook) => {
-			contentArea.createEl('h5', {
+			this.contentArea.createEl('h5', {
 				text: notebook.displayName!,
 				cls: 'modal-title',
 			});
+
 			let sections: OnenoteSection[] = notebook.sections!;
 			// All notebooks have sections but not all notebooks have section groups
 			let sectionGroups: SectionGroup[] | undefined | null = notebook?.sectionGroups;
@@ -141,10 +143,8 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	createSectionList(sections: OnenoteSection[]) {
-		const contentArea: HTMLDivElement = this.modal.contentEl.querySelector('.contentArea')!;
-
 		sections?.forEach((section) => {
-			let label = contentArea.createEl('label');
+			let label = this.contentArea.createEl('label');
 			let checkbox = label.createEl('input');
 			label.appendChild(document.createTextNode(section.displayName!));
 			checkbox.type = 'checkbox';
@@ -171,8 +171,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		for (let section of this.selectedSections) {
-			let notebookFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.parentNotebook?.displayName);
-			let sectionFolder: TFolder = await this.createFolders(notebookFolder.path + '/' + section.displayName);
+			let sectionFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
 
 			let pages: OnenotePage[] = (await (await fetch(`
 					https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`,
@@ -189,10 +188,9 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			const splitContent = this.convertFormat(content);
 
-			let parsedPage = parseHTML(splitContent.html);
+			let parsedPage: HTMLElement = this.getAllAttachments(splitContent.html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertTags(parsedPage);
-			parsedPage = this.getAllAttachments(parsedPage);
 
 			let mdContent = htmlToMarkdown(parsedPage).trim();
 			const fileRef = await this.saveAsMarkdownFile(folder, page.title!, mdContent);
@@ -257,7 +255,8 @@ export class OneNoteImporter extends FormatImporter {
 			if (element.getAttribute('data-tag')?.contains('to-do')) {
 				const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
 				const check = isChecked ? '[x]' : '[ ]';
-				element.textContent = `- ${check} ${element.textContent}\n`;
+				// We need to use innerHTML in case an image was marked as TODO
+				element.innerHTML = `- ${check} ${element.innerHTML}`;
 			}
 			// All other OneNote tags are already in the Obsidian tag format ;)
 			else {
@@ -284,62 +283,113 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 
-	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file format
-	getAllAttachments(pageHTML: HTMLElement): HTMLElement {
-		try {
-			const objects: HTMLElement[] = pageHTML.findAll('object');
-			const images: HTMLElement[] = pageHTML.findAll('img');
+	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file formats
+	getAllAttachments(pageHTML: string): HTMLElement {
+		// The OneNote API has a weird bug when you export with InkML - it doesn't close <object> tags properly,
+		// so we need to close them using regex
+		const regex = /<object([^>]*)\/>/g;
+		const pageElement = parseHTML(pageHTML.replace(regex, '<object$1></object>'));
 
-			objects.forEach(async (object) => {
-				let split: string[] = object.getAttribute('data-attachment')!.split('.');
-				const extension: string = split[split.length - 1];
+		const objects: HTMLElement[] = pageElement.findAll('object');
+		const images: HTMLImageElement[] = pageElement.findAll('img') as HTMLImageElement[];
+		// Online videos are implemented as iframes, normal videos are just <object>s
+		const videos: HTMLIFrameElement[] = pageElement.findAll('iframe') as HTMLIFrameElement[];
 
-				// If the page contains an incompatible file and user doesn't want to import them, skip
-				if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
-					return;
-				}
-				else {
-					this.attachmentQueue.push({
-						name: object.getAttribute('data-attachment')!,
-						url: object.getAttribute('data')!,
-					});
+		objects.forEach(async (object) => {
+			let split: string[] = object.getAttribute('data-attachment')!.split('.');
+			const extension: string = split[split.length - 1];
 
-					// The OneNote API has a weird bug when you export with InkML - it doesn't close the <object> tag properly,
-					// so we need to first get everything out of it and then replace it with the Markdown style link
-					const parentElement = object.parentNode as HTMLElement;
-			
-					// Add the content of the <object> tag to its parent node's innerHTML
-					parentElement.innerHTML += object.innerHTML;
-			
-					// Create a new <p> element with the Markdown-style link
-					const markdownLink = document.createElement('p');
-					markdownLink.innerText = `![[${object.getAttribute('data-attachment') || ''}]]`;
-			
-					// Replace the <object> tag with the new <p> element
-					parentElement.replaceChild(markdownLink, object);
-				}
+			// If the page contains an incompatible file and user doesn't want to import them, skip
+			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
+				return;
+			}
+			else {
+				this.attachmentQueue.push({
+					name: object.getAttribute('data-attachment')!,
+					url: object.getAttribute('data')!,
+				});
+		
+				// Create a new <p> element with the Markdown-style link
+				const markdownLink = document.createElement('p');
+				markdownLink.innerText = `![[${object.getAttribute('data-attachment')}]]`;
+		
+				// Replace the <object> tag with the new <p> element
+				object.parentNode?.replaceChild(markdownLink, object);
+			}
+		});
+
+		images.forEach(async (image) => {
+			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
+			const extension: string = split[1];
+			// TODO: there may be a similar function in the Obsidian API but I couldn't find it
+			const currentDate = (new Date).toISOString().replace(/[-:.TZ]/g, '').substring(0, 14);
+			const fileName: string = `Exported image ${currentDate}.${extension}`;
+
+			this.attachmentQueue.push({
+				name: fileName,
+				url: image.getAttribute('data-fullres-src')!,
 			});
-		}
-		catch (e) {
-			console.log('OneNote attachment import error:', e);
-		}
-		return pageHTML;
+
+			image.src = encodeURIComponent(fileName);
+			if(!image.alt) image.alt = 'Exported image';
+		});
+
+		videos.forEach(async (video) => {
+			// Obsidian only supports embedding YouTube videos, unlike OneNote
+			if(video.src.contains('youtube.com') || video.src.contains('youtu.be')) {
+				const embedNode = document.createTextNode(`![Embedded YouTube video](${video.src})`);
+				video.parentNode?.replaceChild(embedNode, video);
+			}
+			else {
+				// If it's any other website, convert to a basic link
+				const linkNode = document.createElement('a');
+				linkNode.href = video.src;
+				video.parentNode?.replaceChild(linkNode, video);
+			}
+		});
+		return pageElement;
 	}
 
 	// Downloads attachments from the attachmentQueue once the file has been created.
 	async fetchAttachmentQueue(progress: ProgressReporter, currentFile: TFile) {
-		//@ts-ignore
-		let attachmentPath: string = await this.app.vault.getAvailablePathForAttachments(currentFile.basename, currentFile.extension, currentFile);
-		if (!this.useDefaultAttachmentFolder) attachmentPath = (await this.getOutputFolder())!.path + '/OneNote Attachments';
+		if (this.attachmentQueue.length >= 1) {
+			let attachmentPath: string = (await this.getOutputFolder())!.path + '/OneNote Attachments';
 
-		this.attachmentQueue.forEach(async attachment => {
-			console.log(attachmentPath);
+			// @ts-ignore
+			// Bug: This function always returns the path + "Note name.md" rather than just the path for some reason
+			if (this.useDefaultAttachmentFolder) attachmentPath = await this.app.vault.getAvailablePathForAttachments(currentFile.basename, currentFile.extension, currentFile);
+	
+			// Create the attachment folder if it doesn't exist yet
+			try {
+				console.log(attachmentPath);
+				this.vault.createFolder(attachmentPath);
+			}
+			catch (e) { }
+	
+			this.attachmentQueue.forEach(async attachment => {
+				try {
+					const data = await (await fetch(attachment.url, this.requestParams)).arrayBuffer();
+					await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
+		
+					progress.reportAttachmentSuccess(attachment.name);	
+				}
+				catch (e) {
+					progress.reportFailed(attachment.name, e);
+				}
+			});
+	
+			// Clear the attachment queue after every note
+			this.attachmentQueue = [];		
+		}
+		else { }
+	}
+	
+	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
+	styledElementToHTML() {
+		// All p/span with Consolas are preformatted text/code blocks
 
-			const data = await (await fetch(attachment.url, this.requestParams)).arrayBuffer();
-			await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
-			progress.reportAttachmentSuccess(attachment.name);	
-		});
+		// All spans with styles are text styles such as bold, italic, underline, strikethrough
 
-		this.attachmentQueue = [];
+		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug)
 	}
 }
