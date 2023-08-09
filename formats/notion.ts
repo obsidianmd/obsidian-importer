@@ -177,17 +177,6 @@ export class NotionImporter extends FormatImporter {
 				results.reportFailed(file.filename);
 			}
 		);
-
-		const allMarkdownFiles = app.vault
-			.getMarkdownFiles()
-			.map((file) => file.name);
-		const loadedNotes = Object.values(idsToFileInfo);
-		const skippedFiles = loadedNotes
-			.filter((note) => !allMarkdownFiles.includes(note.title + '.md'))
-			.map((note) => note.path);
-		for (let file of skippedFiles) {
-			results.reportSkipped(file);
-		}
 	}
 }
 
