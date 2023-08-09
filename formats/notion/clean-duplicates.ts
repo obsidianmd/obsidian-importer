@@ -165,7 +165,7 @@ function cleanDuplicateAttachments({
 			const { basename, extension } = parseFilePath(attachmentInfo.path);
 			while (
 				attachmentPaths.has(
-					`${parentFolderPath}/${basename} ${duplicateResolutionIndex}.${extension}`
+					`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`
 				)
 			) {
 				duplicateResolutionIndex++;
