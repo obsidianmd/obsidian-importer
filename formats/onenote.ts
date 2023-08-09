@@ -120,7 +120,6 @@ export class OneNoteImporter extends FormatImporter {
 			text: 'Choose what to import',
 			cls: 'modal-title',
 		});
-		this.contentArea.createEl('hr');
 
 		notebooks.forEach((notebook) => {
 			this.contentArea.createEl('h5', {
@@ -128,11 +127,11 @@ export class OneNoteImporter extends FormatImporter {
 				cls: 'modal-title',
 			});
 
-			let sections: OnenoteSection[] = notebook.sections!;
-			// All notebooks have sections but not all notebooks have section groups
+			let sections: OnenoteSection[] | undefined | null = notebook?.sections;
 			let sectionGroups: SectionGroup[] | undefined | null = notebook?.sectionGroups;
 
-			this.createSectionList(sections);
+			if (sections) this.createSectionList(sections);
+
 			sectionGroups?.forEach((sectionGroup) => {
 				this.modal.contentEl.createEl('h6', {
 					text: sectionGroup.displayName!,
@@ -143,11 +142,16 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	createSectionList(sections: OnenoteSection[]) {
+		const list = this.contentArea.createEl('ul');
 		sections?.forEach((section) => {
-			let label = this.contentArea.createEl('label');
+			const listElement = list.createEl('li');
+
+			let label = listElement.createEl('label');
+
 			let checkbox = label.createEl('input');
-			label.appendChild(document.createTextNode(section.displayName!));
 			checkbox.type = 'checkbox';
+
+			label.appendChild(document.createTextNode(section.displayName!));
 			label.createEl('br');
 
 			// Add/remove a section from this.selectedSections
@@ -189,8 +193,10 @@ export class OneNoteImporter extends FormatImporter {
 			const splitContent = this.convertFormat(content);
 
 			let parsedPage: HTMLElement = this.getAllAttachments(splitContent.html);
-			parsedPage = this.convertInternalLinks(parsedPage);
+			parsedPage = this.styledElementToHTML(parsedPage);
 			parsedPage = this.convertTags(parsedPage);
+			parsedPage = this.convertInternalLinks(parsedPage);
+			parsedPage = await this.convertDrawings(parsedPage);
 
 			let mdContent = htmlToMarkdown(parsedPage).trim();
 			const fileRef = await this.saveAsMarkdownFile(folder, page.title!, mdContent);
@@ -385,11 +391,62 @@ export class OneNoteImporter extends FormatImporter {
 	}
 	
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
-	styledElementToHTML() {
-		// All p/span with Consolas are preformatted text/code blocks
+	styledElementToHTML(pageElement: HTMLElement) {
+		const styledElements = pageElement.querySelectorAll('[style]');
+		
+		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug), so we do it ourselves temporarily
+		const cites = pageElement.findAll('cite');
+		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
 
-		// All spans with styles are text styles such as bold, italic, underline, strikethrough
+		// Map styles to their elements
+		const styleMap: { [key: string]: string } = {
+			'font-weight:bold': 'b',
+			'font-style:italic': 'i',
+			'text-decoration:underline': 'u',
+			'text-decoration:line-through': 's',
+			'background-color': 'mark',
+			'font-family:Consolas': 'pre',
+		};
 
-		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug)
+		styledElements.forEach(element => {
+			const style = element.getAttribute('style') || '';
+			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
+	
+			if (matchingStyle) {
+				const newElementTag = styleMap[matchingStyle];
+				const newElement = document.createElement(newElementTag);
+
+				if (newElementTag === 'pre') {
+					const code = newElement.createEl('code');
+					code.textContent = element.textContent;
+				}
+
+				else newElement.innerHTML = element.innerHTML;
+				element.replaceWith(newElement);
+			}
+		});
+
+		return pageElement;
+	}
+
+	async convertDrawings(element: HTMLElement, currentFile: TFile | undefined = undefined) {
+		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
+		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
+  
+		while (walker.nextNode()) {
+		  const commentNode = walker.currentNode as Comment;
+		  if (commentNode.nodeValue?.trim() === 'InkNode is not supported') {
+				const textNode = document.createTextNode('> [!caution] This page contained an drawing which was not converted. Try exporting again later, into the same output folder.');
+				commentNode.parentNode?.replaceChild(textNode, commentNode);
+		  }
+		}
+		
+		for (let i = 0; i < element.children.length; i++) {
+			const child = element.children[i];
+			if (child instanceof HTMLElement) {
+				this.convertDrawings(child);
+			}
+		}
+		return element;
 	}
 }
