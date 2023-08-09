@@ -76,7 +76,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, blockText: string, downloadAttachments: boolean = false) => {
 	// get rid of roam-specific components
 	let stringsToReplace = ["POMO","word-count","date","slider","encrypt","TaoOfRoam","orphans","count","character-count","comment-button", "query","streak","attr-table","mentions","search","roam\/render","calc"];
-	const regexPatterns = new RegExp(`\\{\\{(\\[\\[)?(${stringsToReplace.join("|")})(\\]\\])?.*?\\}\\}`, "g");
+	const regexPatterns = new RegExp(`\\{\\{(\\[\\[)?(${stringsToReplace.join("|")})(\\]\\])?.*?\\}\\}(\\})?`, "g");
 	blockText = blockText.replace(regexPatterns, "");
 
 	if (blockText.substring(0, 8) == ":hiccup " && blockText.includes(":hr"))
