@@ -1,4 +1,4 @@
-import { App, normalizePath, TAbstractFile } from 'obsidian';
+import { normalizePath, TAbstractFile, Vault } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { assembleParentIds, parseAttachmentFolderPath } from './notion-utils';
 
@@ -6,18 +6,18 @@ export function cleanDuplicates({
 	idsToFileInfo,
 	pathsToAttachmentInfo,
 	attachmentFolderPath,
-	app,
+	vault,
 	targetFolderPath,
 	parentsInSubfolders,
 }: {
 	idsToFileInfo: Record<string, NotionFileInfo>;
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	attachmentFolderPath: string;
-	app: App;
+	vault: Vault;
 	targetFolderPath: string;
 	parentsInSubfolders: boolean;
 }) {
-	const loadedFiles = app.vault.getAllLoadedFiles();
+	const loadedFiles = vault.getAllLoadedFiles();
 	const pathDuplicateChecks = new Set<string>();
 	const titleDuplicateChecks = new Set<string>(
 		loadedFiles.map((file) => file.name)
@@ -165,18 +165,14 @@ function cleanDuplicateAttachments({
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		if (
-			attachmentPaths.has(
-				parentFolderPath + attachmentInfo.nameWithExtension
-			)
-		) {
+		if (attachmentPaths.has(
+			parentFolderPath + attachmentInfo.nameWithExtension
+		)) {
 			let duplicateResolutionIndex = 2;
 			const { basename, extension } = parseFilePath(attachmentInfo.path);
-			while (
-				attachmentPaths.has(
-					`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`
-				)
-			) {
+			while (attachmentPaths.has(
+				`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`
+			)) {
 				duplicateResolutionIndex++;
 			}
 			attachmentInfo.nameWithExtension = `${basename} ${duplicateResolutionIndex}.${extension}`;
@@ -184,9 +180,7 @@ function cleanDuplicateAttachments({
 
 		attachmentInfo.targetParentFolder = parentFolderPath;
 
-		attachmentPaths.add(
-			parentFolderPath + attachmentInfo.nameWithExtension
-		);
+		attachmentPaths.add(parentFolderPath + attachmentInfo.nameWithExtension);
 		titleDuplicateChecks.add(attachmentInfo.nameWithExtension);
 	}
 }

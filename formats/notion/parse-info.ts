@@ -1,10 +1,11 @@
-import { Entry, TextWriter } from '@zip.js/zip.js';
+import { Notice } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { sanitizeFileName } from '../../util';
+import { parseHTML, sanitizeFileName } from '../../util';
+import { ZipEntryFile } from '../../zip/util';
 import { getNotionId, parseAttachmentFolderPath, parseParentIds } from './notion-utils';
 
 export async function parseFileInfo(
-	file: Entry,
+	file: ZipEntryFile,
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
@@ -15,40 +16,35 @@ export async function parseFileInfo(
 		attachmentFolderPath: string;
 	}
 ) {
-	if (!file.getData) return;
-
 	const { attachmentsInCurrentFolder } =
 		parseAttachmentFolderPath(attachmentFolderPath);
 
-	if (file.filename.endsWith('.zip')) {
-		new Notification(
+	if (file.extension === 'zip') {
+		new Notice(
 			'Nested .zips found; please notify developer at github.com/obsidianmd/obsidian-importer.'
 		);
 		throw new Error('nested .zips, not prepared to handle');
 	}
-	if (file.filename.endsWith('.html')) {
-		const text = await file.getData(new TextWriter());
+	if (file.extension === 'html') {
+		const text = await file.readText();
 
-		const filePath = file.filename;
-		const parentIds = parseParentIds(file.filename);
-		const document = new DOMParser().parseFromString(text, 'text/html');
+		const filePath = file.filepath;
+		const parentIds = parseParentIds(file.filepath);
+		const dom = parseHTML(text);
 
 		const id = getNotionId(
-			document.querySelector('article')?.getAttribute('id') ?? ''
+			dom.find('article')?.getAttribute('id') ?? ''
 		);
-		if (!id) throw new Error('no id found for: ' + file.filename);
-		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full wrods. Worth the extra processing time.
-		const parsedTitle =
-			document.querySelector('title')?.textContent || 'Untitled';
+		if (!id) throw new Error('no id found for: ' + file.filepath);
+		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full words. Worth the extra processing time.
+		const parsedTitle = dom.find('title')?.textContent || 'Untitled';
 
 		let title = sanitizeFileName(
 			parsedTitle
 				.replace(/\n/g, ' ')
 				.replace(/:/g, '-')
 				.replace(/#/g, '')
-				.replace(/\n/g, ' ')
-				.replace(/^\s+/, '')
-				.replace(/\s+$/, '')
+				.trim()
 		);
 
 		// just in case title names are too long
@@ -67,7 +63,7 @@ export async function parseFileInfo(
 		idsToFileInfo[id] = fileInfo;
 	}
 	else {
-		const { basename, extension } = parseFilePath(file.filename);
+		const { basename, extension } = parseFilePath(file.filepath);
 
 		const attachmentInfo: NotionAttachmentInfo = {
 			nameWithExtension: sanitizeFileName(
@@ -76,10 +72,10 @@ export async function parseFileInfo(
 			targetParentFolder: '',
 			fullLinkPathNeeded: false,
 			parentIds: attachmentsInCurrentFolder
-				? parseParentIds(file.filename)
+				? parseParentIds(file.filepath)
 				: [],
-			path: file.filename,
+			path: file.filepath,
 		};
-		pathsToAttachmentInfo[file.filename] = attachmentInfo;
+		pathsToAttachmentInfo[file.filepath] = attachmentInfo;
 	}
 }

@@ -1,8 +1,8 @@
-import { BlobWriter, Entry } from '@zip.js/zip.js';
 import { normalizePath, Notice, Setting } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
+import { readZipFiles, ZipEntryFile } from '../zip/util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
 import { assembleParentIds, getNotionId } from './notion/notion-utils';
@@ -25,7 +25,7 @@ export class NotionImporter extends FormatImporter {
 	}
 
 	async import(results: ProgressReporter): Promise<void> {
-		const { app, parentsInSubfolders, files } = this;
+		const { app, vault, parentsInSubfolders, files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
@@ -44,28 +44,28 @@ export class NotionImporter extends FormatImporter {
 
 		const idsToFileInfo: Record<string, NotionFileInfo> = {};
 		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
-		const attachmentFolderPath = app.vault.getConfig('attachmentFolderPath') ?? '';
+		const attachmentFolderPath = vault.getConfig('attachmentFolderPath') ?? '';
 
 		// loads in only path & title information to objects
-		await processZips(files,
-			async (file) => {
+		await processZips(files, async (file) => {
+			try {
 				await parseFileInfo(file, {
 					idsToFileInfo,
 					pathsToAttachmentInfo,
 					attachmentFolderPath,
 				});
-			},
-			(file) => {
-				results.reportSkipped(file.filename);
 			}
-		);
+			catch (e) {
+				results.reportSkipped(file.filepath);
+			}
+		});
 
 		const notes = Object.keys(idsToFileInfo).length;
 		const attachments = Object.keys(pathsToAttachmentInfo).length;
 		const total = notes + attachments;
 
 		cleanDuplicates({
-			app,
+			vault,
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 			attachmentFolderPath,
@@ -75,10 +75,8 @@ export class NotionImporter extends FormatImporter {
 
 		const flatFolderPaths = new Set<string>([targetFolderPath]);
 		const allFolderPaths = Object.values(idsToFileInfo)
-			.map(
-				(fileInfo) =>
-					targetFolderPath +
-					assembleParentIds(fileInfo, idsToFileInfo).join('')
+			.map((fileInfo) =>
+				targetFolderPath + assembleParentIds(fileInfo, idsToFileInfo).join('')
 			)
 			.concat(
 				Object.values(pathsToAttachmentInfo).map(
@@ -96,22 +94,19 @@ export class NotionImporter extends FormatImporter {
 
 		let current = 0;
 
-		await processZips(
-			files,
-			async (file) => {
-				current++;
-				results.reportProgress(current, total);
-				if (!file.getData) {
-					throw new Error('can\'t get data for ' + file.filename);
-				}
-				if (file.filename.endsWith('.html')) {
-					const id = getNotionId(file.filename);
+		await processZips(files, async (file) => {
+			current++;
+			results.reportProgress(current, total);
+
+			try {
+				if (file.extension === 'html') {
+					const id = getNotionId(file.name);
 					if (!id) {
-						throw new Error('ids not found for ' + file.filename);
+						throw new Error('ids not found for ' + file.filepath);
 					}
 					const fileInfo = idsToFileInfo[id];
 					if (!fileInfo) {
-						throw new Error('file info not found for ' + file.filename);
+						throw new Error('file info not found for ' + file.filepath);
 					}
 
 					const { markdownBody, properties } = await readToMarkdown(
@@ -127,7 +122,7 @@ export class NotionImporter extends FormatImporter {
 						fileInfo,
 						idsToFileInfo
 					).join('')}${fileInfo.title}.md`;
-					const newFile = await app.vault.create(path, markdownBody);
+					const newFile = await vault.create(path, markdownBody);
 					if (properties.length > 0) {
 						await app.fileManager.processFrontMatter(
 							newFile,
@@ -139,62 +134,43 @@ export class NotionImporter extends FormatImporter {
 							}
 						);
 					}
-					results.reportNoteSuccess(file.filename);
+					results.reportNoteSuccess(file.filepath);
 				}
 				else {
-					const attachmentInfo = pathsToAttachmentInfo[file.filename];
+					const attachmentInfo = pathsToAttachmentInfo[file.filepath];
 					if (!attachmentInfo) {
 						throw new Error(
-							'attachment info not found for ' + file.filename
+							'attachment info not found for ' + file.filepath
 						);
 					}
 
-					const data = await (
-						await file.getData(new BlobWriter())
-					).arrayBuffer();
-					await app.vault.adapter.writeBinary(
+					const data = await file.read();
+					await vault.adapter.writeBinary(
 						normalizePath(
 							`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`
 						),
 						data
 					);
-					results.reportAttachmentSuccess(file.filename);
+					results.reportAttachmentSuccess(file.filepath);
 				}
-			},
-			(file) => {
-				results.reportFailed(file.filename);
 			}
-		);
+			catch (e) {
+				results.reportFailed(file.filepath, e);
+			}
+		});
 	}
 }
 
-async function processZips(
-	files: PickedFile[],
-	callback: (file: Entry) => Promise<void>,
-	errorCallback: (file: Entry) => void
-) {
+const isDatabaseCSV = (filename: string) => filename.endsWith('.csv') && getNotionId(filename);
+
+async function processZips(files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
 		await zipFile.readZip(async (zip) => {
-			const entries = await zip.getEntries();
+			let files = await readZipFiles(zip);
 
-			const isDatabaseCSV = (filename: string) =>
-				filename.endsWith('.csv') && getNotionId(filename);
-
-			for (let file of entries) {
-				if (
-					isDatabaseCSV(file.filename) ||
-					file.directory ||
-					!file.getData
-				) {
-					continue;
-				}
-				try {
-					await callback(file);
-				}
-				catch (e) {
-					console.error(e);
-					errorCallback(file);
-				}
+			for (let file of files) {
+				if (isDatabaseCSV(file.filepath)) continue;
+				await callback(file);
 			}
 		});
 	}

@@ -1,8 +1,5 @@
 import { parseFilePath } from '../../filesystem';
 
-export const isNotionId = (id: string) =>
-	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
-
 export const stripNotionId = (id: string) => {
 	return id.replace(/-/g, '').replace(/[ -]?[a-z0-9]{32}(\.|$)/, '$1');
 };

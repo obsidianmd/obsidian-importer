@@ -1,10 +1,18 @@
-import { Entry, TextWriter } from '@zip.js/zip.js';
 import { htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { assembleParentIds, escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
+import { parseHTML } from '../../util';
+import { ZipEntryFile } from '../../zip/util';
+import {
+	assembleParentIds,
+	escapeHashtags,
+	getNotionId,
+	parseDate,
+	stripNotionId,
+	stripParentDirectories,
+} from './notion-utils';
 
 export async function readToMarkdown(
-	file: Entry,
+	file: ZipEntryFile,
 	{
 		attachmentPaths,
 		idsToFileInfo,
@@ -15,35 +23,22 @@ export async function readToMarkdown(
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
 	}
 ): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
-	if (!file.getData) {
-		throw new Error('can\'t get data in file, ' + file.filename);
-	}
+	const text = await file.readText();
 
-	const text = await file.getData(new TextWriter());
-
-	const document = new DOMParser().parseFromString(text, 'text/html');
+	const dom = parseHTML(text);
 	// read the files etc.
-	const body = document.querySelector(
-		'div[class=page-body]'
-	) as HTMLDivElement;
+	const body = dom.find('div[class=page-body]');
 
-	const notionLinks = getNotionLinks(body, {
-		attachmentPaths,
-	});
+	const notionLinks = getNotionLinks(body, attachmentPaths);
 
 	convertLinksToObsidian(notionLinks, {
 		idsToFileInfo,
 		pathsToAttachmentInfo,
 	});
 
-	const rawProperties = document.querySelector(
-		'table[class=properties] > tbody'
-	) as HTMLTableSectionElement | null;
-
+	const rawProperties = dom.find('table[class=properties] > tbody');
 	if (rawProperties) {
-		const propertyLinks = getNotionLinks(rawProperties, {
-			attachmentPaths,
-		});
+		const propertyLinks = getNotionLinks(rawProperties, attachmentPaths);
 		convertLinksToObsidian(propertyLinks, {
 			idsToFileInfo,
 			pathsToAttachmentInfo,
@@ -81,20 +76,34 @@ export async function readToMarkdown(
 	markdownBody = escapeHashtags(markdownBody);
 	markdownBody = fixDoubleBackslash(markdownBody);
 
-	const description = document.querySelector(
-		'p[class*=page-description]'
-	)?.textContent;
+	const description = dom.find('p[class*=page-description]')?.textContent;
 	if (description) markdownBody = description + '\n\n' + markdownBody;
 
 	return { markdownBody, properties };
 }
 
-const parseProperty = (
-	property: HTMLTableRowElement
-): YamlProperty | undefined => {
-	const notionType = property.className.match(
-		/property-row-(.*)/
-	)?.[1] as NotionPropertyType;
+const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
+	checkbox: ['checkbox'],
+	date: ['created_time', 'last_edited_time', 'date'],
+	list: ['file', 'multi_select', 'relation'],
+	number: ['number', 'auto_increment_id'],
+	text: [
+		'email',
+		'person',
+		'phone_number',
+		'text',
+		'url',
+		'status',
+		'select',
+		'formula',
+		'rollup',
+		'last_edited_by',
+		'created_by',
+	],
+};
+
+const parseProperty = (property: HTMLTableRowElement): YamlProperty | undefined => {
+	const notionType = property.className.match(/property-row-(.*)/)?.[1] as NotionPropertyType;
 	if (!notionType) {
 		throw new Error('property type not found for: ' + property);
 	}
@@ -102,26 +111,6 @@ const parseProperty = (
 	const title = htmlToMarkdown(property.cells[0].textContent ?? '');
 
 	const body = property.cells[1];
-
-	const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
-		checkbox: ['checkbox'],
-		date: ['created_time', 'last_edited_time', 'date'],
-		list: ['file', 'multi_select', 'relation'],
-		number: ['number', 'auto_increment_id'],
-		text: [
-			'email',
-			'person',
-			'phone_number',
-			'text',
-			'url',
-			'status',
-			'select',
-			'formula',
-			'rollup',
-			'last_edited_by',
-			'created_by',
-		],
-	};
 
 	let type = Object.keys(typesMap).find((type: keyof typeof typesMap) =>
 		typesMap[type].includes(notionType)
@@ -183,14 +172,7 @@ const parseProperty = (
 	};
 };
 
-const getNotionLinks = (
-	body: HTMLElement,
-	{
-		attachmentPaths,
-	}: {
-		attachmentPaths: string[];
-	}
-) => {
+const getNotionLinks = (body: HTMLElement, attachmentPaths: string[]) => {
 	const links: NotionLink[] = [];
 
 	body.findAll('a').forEach((a: HTMLAnchorElement) => {
@@ -242,7 +224,7 @@ const formatDatabases = (body: HTMLElement) => {
 
 	const checkboxes = body.findAll('td div[class*=checkbox]');
 	checkboxes.forEach((checkbox) => {
-		const newCheckbox = document.createElement('span');
+		const newCheckbox = createSpan();
 		newCheckbox.setText(
 			checkbox.className.contains('checkbox-on') ? 'X' : ''
 		);
@@ -260,7 +242,7 @@ const formatDatabases = (body: HTMLElement) => {
 	linkValues.forEach((a) => {
 		// Strip URLs which aren't valid, changing them to normal text.
 		if (!/^(https?:\/\/|www\.)/.test(a.href)) {
-			const strippedURL = document.createElement('span');
+			const strippedURL = createSpan();
 			strippedURL.setText(a.textContent ?? '');
 			a.replaceWith(strippedURL);
 		}
@@ -275,7 +257,7 @@ const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 		let firstNested = el.querySelector(tag);
 		while (firstNested) {
 			const childrenOfNested = firstNested.childNodes;
-			const hoistedChildren = document.createDocumentFragment();
+			const hoistedChildren = createFragment();
 			childrenOfNested.forEach((child) =>
 				hoistedChildren.appendChild(child)
 			);
@@ -296,7 +278,7 @@ const splitBrsInFormatting = (htmlString: string, tag: 'strong' | 'em') => {
 	}
 };
 
-function replaceTableOfContents(body: HTMLDivElement) {
+function replaceTableOfContents(body: HTMLElement) {
 	const tocLinks = body.findAll('a[href*=\\#]') as HTMLAnchorElement[];
 	if (tocLinks.length === 0) return body;
 	tocLinks.forEach((link) => {
@@ -306,24 +288,24 @@ function replaceTableOfContents(body: HTMLDivElement) {
 	});
 }
 
-const encodeNewlinesToBr = (body: HTMLDivElement) => {
+const encodeNewlinesToBr = (body: HTMLElement) => {
 	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
 };
 
-const stripLinkFormatting = (body: HTMLDivElement) => {
+const stripLinkFormatting = (body: HTMLElement) => {
 	body.findAll('link').forEach((link) => {
 		link.innerText = link.textContent ?? '';
 	});
 };
 
-const fixNotionDates = (body: HTMLDivElement) => {
+const fixNotionDates = (body: HTMLElement) => {
 	// Notion dates always start with @
 	body.findAll('time').forEach((time) => {
 		time.textContent = time.textContent?.replace(/@/g, '') ?? '';
 	});
 };
 
-const fixNotionLists = (body: HTMLDivElement) => {
+const fixNotionLists = (body: HTMLElement) => {
 	// Notion encodes lists as strings of <ul>s or <ol>s (because of its block structure), which results in newlines between all list items.
 	body.innerHTML = body.innerHTML
 		.replace(
@@ -338,7 +320,7 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 
 	if (links.length === 0) return content;
 	links.forEach((link) => {
-		const span = document.createElement('span');
+		const span = createSpan();
 		span.setText(link.getAttribute('href') ?? '');
 		link.replaceWith(span);
 	});
@@ -357,7 +339,7 @@ function convertLinksToObsidian(
 	}
 ) {
 	for (let link of notionLinks) {
-		let obsidianLink = document.createElement('span');
+		let obsidianLink = createSpan();
 		let linkContent: string;
 
 		switch (link.type) {
