@@ -1,12 +1,11 @@
 import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting, TFile, TFolder } from "obsidian";
-import { ImportResult, ProgressReporter } from '../main';
+import { ProgressReporter } from '../main';
 import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
 import { addAliasToFrontmatter, addTagToFrontmatter, toSentenceCase } from "../util";
-import { PickedFile, PickedFolder, parseFilePath } from "filesystem";
-import { BlobWriter, Entry, TextWriter } from "@zip.js/zip.js";
-import { Transform } from "stream";
+import { PickedFile, parseFilePath } from "filesystem";
+import { BlobWriter, TextWriter } from "@zip.js/zip.js";
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -102,7 +101,6 @@ export class KeepImporter extends FormatImporter {
 				}
 
 			} catch (e) {
-				console.error(`${file.name} ::: `, e);
 				progress.reportFailed(file.name, e);
 			}
 		}
@@ -130,7 +128,6 @@ export class KeepImporter extends FormatImporter {
 					// else: Silently skip any other unsupported files in the zip
 		
 				} catch(e) {
-					console.error(`${file.name} ::: ${curInnerFilename ?? curInnerFilename}`, e);
 					progress.reportFailed(`${file.name} / ${curInnerFilename}`, e);
 				}
 			}
