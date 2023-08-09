@@ -1,3 +1,5 @@
+import { parseFrontMatterAliases, parseFrontMatterTags } from "obsidian";
+
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
@@ -70,7 +72,7 @@ export function addTagToFrontmatter(frontmatter: any, tag: string) {
 		frontmatter['tags'] = [sanitizedTag];
 	} else {
 		if (!Array.isArray(frontmatter['tags'])) {
-			frontmatter['tags'] = frontmatter['tags'].split(' ');
+			frontmatter['tags'] = parseFrontMatterTags(frontmatter['tags']);
 		}
 		frontmatter['tags'].push(sanitizedTag);
 	}
@@ -87,7 +89,7 @@ export function addAliasToFrontmatter(frontmatter: any, alias: string) {
 		frontmatter['aliases'] = [sanitizedAlias];
 	} else {
 		if (!Array.isArray(frontmatter['aliases'])) {
-			frontmatter['aliases'] = frontmatter['aliases'].split(' ');
+			frontmatter['aliases'] = parseFrontMatterAliases(frontmatter['aliases']);
 		}
 		frontmatter['aliases'].push(sanitizedAlias);
 	}
