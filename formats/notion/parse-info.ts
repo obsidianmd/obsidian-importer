@@ -8,12 +8,10 @@ export async function parseFileInfo(
 	{
 		idsToFileInfo,
 		pathsToAttachmentInfo,
-		parser,
 		attachmentFolderPath,
 	}: {
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		parser: DOMParser;
 		attachmentFolderPath: string;
 	}
 ) {
@@ -33,7 +31,7 @@ export async function parseFileInfo(
 
 		const filePath = file.filename;
 		const parentIds = parseParentIds(file.filename);
-		const document = parser.parseFromString(text, 'text/html');
+		const document = new DOMParser().parseFromString(text, 'text/html');
 
 		const id = getNotionId(
 			document.querySelector('article')?.getAttribute('id') ?? ''

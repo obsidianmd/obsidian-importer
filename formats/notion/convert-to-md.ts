@@ -9,12 +9,10 @@ export async function readToMarkdown(
 		attachmentPaths,
 		idsToFileInfo,
 		pathsToAttachmentInfo,
-		parser,
 	}: {
 		attachmentPaths: string[];
 		idsToFileInfo: Record<string, NotionFileInfo>;
 		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		parser: DOMParser;
 	}
 ): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
 	if (!file.getData) {
@@ -23,7 +21,7 @@ export async function readToMarkdown(
 
 	const text = await file.getData(new TextWriter());
 
-	const document = parser.parseFromString(text, 'text/html');
+	const document = new DOMParser().parseFromString(text, 'text/html');
 	// read the files etc.
 	const body = document.querySelector(
 		'div[class=page-body]'
