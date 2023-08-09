@@ -92,7 +92,7 @@ export async function readToMarkdown(
 	const description = document.querySelector(
 		`p[class*=page-description]`
 	)?.textContent;
-	if (description) markdownBody = description + '\n' + markdownBody;
+	if (description) markdownBody = description + '\n\n' + markdownBody;
 
 	return { markdownBody, properties };
 }

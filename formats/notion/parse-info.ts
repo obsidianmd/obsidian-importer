@@ -27,6 +27,12 @@ export async function parseFileInfo(
 	const { attachmentsInCurrentFolder } =
 		parseAttachmentFolderPath(attachmentFolderPath);
 
+	if (file.filename.endsWith('.zip')) {
+		new Notification(
+			'Nested .zips found; please notify developer at github.com/obsidianmd/obsidian-importer.'
+		);
+		throw new Error('nested .zips, not prepared to handle');
+	}
 	if (file.filename.endsWith('.html')) {
 		const text = await file.getData(new TextWriter());
 
