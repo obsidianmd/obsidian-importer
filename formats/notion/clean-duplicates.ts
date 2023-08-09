@@ -1,6 +1,7 @@
 import { parseFilePath } from 'filesystem';
 import { App, TAbstractFile, normalizePath } from 'obsidian';
 import { assembleParentIds, parseAttachmentFolderPath } from './notion-utils';
+import { replaceCodeBlock } from '../yarle/utils/turndown-rules/replace-code-block';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -55,21 +56,28 @@ function cleanDuplicateNotes({
 	titleDuplicateChecks: Set<string>;
 }) {
 	for (let fileInfo of Object.values(idsToFileInfo)) {
-		let pathDuplicateCheck = `${assembleParentIds(
-			fileInfo,
-			idsToFileInfo
-		).join('')}${fileInfo.title}`;
-
-		if (pathDuplicateChecks.has(pathDuplicateCheck)) {
+		if (
+			pathDuplicateChecks.has(
+				`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
+					fileInfo.title
+				}`
+			)
+		) {
 			let duplicateResolutionIndex = 2;
+			fileInfo.title = fileInfo.title + ' ' + duplicateResolutionIndex;
 			while (
 				pathDuplicateChecks.has(
-					`${pathDuplicateCheck} ${duplicateResolutionIndex}`
+					`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
+						fileInfo.title
+					}`
 				)
 			) {
 				duplicateResolutionIndex++;
+				fileInfo.title = `${fileInfo.title.replace(
+					/ \d+$/,
+					''
+				)} ${duplicateResolutionIndex}`;
 			}
-			fileInfo.title = `${fileInfo.title} ${duplicateResolutionIndex}`;
 		}
 
 		if (titleDuplicateChecks.has(fileInfo.title + '.md')) {
