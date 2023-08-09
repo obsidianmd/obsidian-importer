@@ -63,7 +63,6 @@ export function toSentenceCase(str: string) {
 
 /**
  * Adds a single tag to the tag property in frontmatter and santises it.
- * Must pass in app.fileManager.
  */
 export function addTagToFrontmatter(frontmatter: any, tag: string) {
 	const sanitizedTag = sanitizeTag(tag);

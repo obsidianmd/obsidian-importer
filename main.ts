@@ -3,7 +3,7 @@ import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
+import { App, Modal, Plugin, Setting } from 'obsidian';
 
 declare global {
 	interface Window {
@@ -154,7 +154,6 @@ export class ImporterModal extends Modal {
 					el.addEventListener('click', async () => {
 						let progress = new ProgressReporter();
 						this.modalEl.addClass('is-loading');
-						new Notice('Import started.');
 						try {
 							await importer.import(progress);
 						}
@@ -162,7 +161,6 @@ export class ImporterModal extends Modal {
 							this.modalEl.removeClass('is-loading');
 							this.showResult(progress);
 						}
-						new Notice('Import complete.');
 					});
 				});
 			});

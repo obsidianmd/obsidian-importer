@@ -28,12 +28,12 @@ export interface KeepJson {
     //
 	title?: string;
 	textContent?: string;
-	listContent?: Array<KeepListItem>;
-	attachments?: Array<KeepAttachment>;
+	listContent?: KeepListItem[];
+	attachments?: KeepAttachment[];
     //
 	color?: string;
-	labels?: Array<KeepLabel>;
-	sharees?: Array<KeepSharee>;
+	labels?: KeepLabel[];
+	sharees?: KeepSharee[];
 }
 
 /**

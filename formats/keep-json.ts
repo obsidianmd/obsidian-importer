@@ -157,7 +157,7 @@ export class KeepImporter extends FormatImporter {
 	async copyFile(arrayBuffer: ArrayBuffer, folderPath: string, filename: string, progress: ProgressReporter) {
 		let assetFolder = await this.createFolders(folderPath);
 		await this.vault.createBinary(`${assetFolder.path}/${filename}`, arrayBuffer);
-		progress.reportNoteSuccess(filename);
+		progress.reportAttachmentSuccess(filename);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
