@@ -133,23 +133,23 @@ const roamMarkupScrubber = async (graphFolder:string, attachmentsFolder:string, 
   };
 
 async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, downloadAttachments:boolean,json: JsonObject, indent: string = '', isChild: boolean = false ): Promise<string> {
-    let markdown = '';
+    let markdown : string[] = [];
 
     if (json.string) {
         let prefix = '';
         if (json.heading) {
             prefix = '#'.repeat(json.heading) + ' ';
         }
-        markdown += `${isChild ? indent + '* ' : indent}${prefix}${(await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments))}\n`;
+        markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${(await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments))}`);
     }
 
     if (json.children) {
         for (const child of json.children) {
-            markdown += await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true);
+            markdown.push(await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true));
         }
     }
-
-    return markdown;
+	const joinedMarkdown: string = markdown.join("\n");
+    return joinedMarkdown;
 }
 
 export async function importRoamJson (importer:RoamJSONImporter, progress: ProgressReporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true) {
