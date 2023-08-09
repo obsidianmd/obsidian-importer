@@ -4,6 +4,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { OneNoteImporter } from 'formats/onenote';
+import { NotionImporter } from './formats/notion';
 
 declare global {
 	interface Window {
@@ -67,6 +68,10 @@ export default class ImporterPlugin extends Plugin {
 			'html': {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
+			},
+			'notion': {
+				name: 'Notion (.zip)',
+				importer: NotionImporter,
 			},
 			'bear': {
 				name: 'Bear (.bear2bk)',
