@@ -1,7 +1,6 @@
-import { parseFilePath } from 'filesystem';
-import { App, TAbstractFile, normalizePath } from 'obsidian';
+import { App, normalizePath, TAbstractFile } from 'obsidian';
+import { parseFilePath } from '../../filesystem';
 import { assembleParentIds, parseAttachmentFolderPath } from './notion-utils';
-import { replaceCodeBlock } from '../yarle/utils/turndown-rules/replace-code-block';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -24,11 +23,12 @@ export function cleanDuplicates({
 		loadedFiles.map((file) => file.name)
 	);
 
-	if (parentsInSubfolders)
+	if (parentsInSubfolders) {
 		moveParentsToSubfolders({
 			idsToFileInfo,
 			pathsToAttachmentInfo,
 		});
+	}
 
 	cleanDuplicateNotes({
 		pathDuplicateChecks,
@@ -159,7 +159,8 @@ function cleanDuplicateAttachments({
 					idsToFileInfo
 				).join('')}${attachmentSubfolder ?? ''}`
 			);
-		} else {
+		}
+		else {
 			parentFolderPath = normalizePath(attachmentFolderPath + '/');
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';

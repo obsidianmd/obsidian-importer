@@ -1,23 +1,11 @@
-import { FormatImporter } from 'format-importer';
-import { ImportResult, ProgressReporter } from 'main';
-import {
-	FileSystemAdapter,
-	Notice,
-	Setting,
-	TAbstractFile,
-	TFolder,
-	moment,
-	normalizePath,
-} from 'obsidian';
+import { BlobWriter, Entry } from '@zip.js/zip.js';
+import { normalizePath, Notice, Setting } from 'obsidian';
+import { PickedFile } from '../filesystem';
+import { FormatImporter } from '../format-importer';
+import { ProgressReporter } from '../main';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
-import { PickedFile } from 'filesystem';
-import {
-	assembleParentIds,
-	getNotionId,
-	parseDate,
-} from './notion/notion-utils';
-import { BlobWriter, Entry } from '@zip.js/zip.js';
+import { assembleParentIds, getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
@@ -30,7 +18,7 @@ export class NotionImporter extends FormatImporter {
 		new Setting(this.modal.contentEl)
 			.setName('Save parents in subfolders')
 			.setDesc(
-				"Move parents to their children's subfolder to support Folder Notes. If not selected, parents are placed outside of their children's subfolder."
+				'Move parents to their children\'s subfolder to support Folder Notes. If not selected, parents are placed outside of their children\'s subfolder.'
 			)
 			.addToggle((toggle) => {
 				toggle
@@ -115,17 +103,18 @@ export class NotionImporter extends FormatImporter {
 			async (file) => {
 				current++;
 				results.reportProgress(current, total);
-				if (!file.getData)
-					throw new Error("can't get data for " + file.filename);
+				if (!file.getData) {
+					throw new Error('can\'t get data for ' + file.filename);
+				}
 				if (file.filename.endsWith('.html')) {
 					const id = getNotionId(file.filename);
-					if (!id)
+					if (!id) {
 						throw new Error('ids not found for ' + file.filename);
+					}
 					const fileInfo = idsToFileInfo[id];
-					if (!fileInfo)
-						throw new Error(
-							'file info not found for ' + file.filename
-						);
+					if (!fileInfo) {
+						throw new Error('file info not found for ' + file.filename);
+					}
 
 					const { markdownBody, properties } = await readToMarkdown(
 						file,
@@ -154,12 +143,14 @@ export class NotionImporter extends FormatImporter {
 						);
 					}
 					results.reportNoteSuccess(file.filename);
-				} else {
+				}
+				else {
 					const attachmentInfo = pathsToAttachmentInfo[file.filename];
-					if (!attachmentInfo)
+					if (!attachmentInfo) {
 						throw new Error(
 							'attachment info not found for ' + file.filename
 						);
+					}
 
 					const data = await (
 						await file.getData(new BlobWriter())
@@ -197,12 +188,14 @@ async function processZips(
 					isDatabaseCSV(file.filename) ||
 					file.directory ||
 					!file.getData
-				)
+				) {
 					continue;
+				}
 				try {
 					if (!file.getData) continue;
 					await callback(file);
-				} catch (e) {
+				}
+				catch (e) {
 					console.error(e);
 					errorCallback(file);
 				}

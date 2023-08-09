@@ -1,4 +1,4 @@
-import { parseFilePath } from 'filesystem';
+import { parseFilePath } from '../../filesystem';
 
 export const isNotionId = (id: string) =>
 	/ ?[a-z0-9]{32}(\.(md|csv))?$/.test(id);
@@ -44,7 +44,8 @@ export const assembleParentIds = (
 export function parseDate(content: moment.Moment) {
 	if (content.hour() === 0 && content.minute() === 0) {
 		return content.format('YYYY-MM-DD');
-	} else {
+	}
+	else {
 		return content.format('YYYY-MM-DDTHH:mm');
 	}
 }
@@ -59,7 +60,7 @@ export function parseAttachmentFolderPath(attachmentFolderPath: string) {
 export function stripParentDirectories(relativeURI: string) {
 	return relativeURI.replace(/^(\.\.\/)+/, '');
 }
-('');
+
 export function escapeHashtags(body: string) {
 	const tagExp = /#[a-z0-9\-]+/gi;
 

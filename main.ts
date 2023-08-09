@@ -3,7 +3,7 @@ import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { NotionImporter } from 'formats/notion';
+import { NotionImporter } from './formats/notion';
 
 declare global {
 	interface Window {
@@ -70,7 +70,7 @@ export default class ImporterPlugin extends Plugin {
 			},
 			'notion': {
 				name: 'Notion (.zip)',
-				importer: NotionImporter
+				importer: NotionImporter,
 			},
 			'bear': {
 				name: 'Bear (.bear2bk)',

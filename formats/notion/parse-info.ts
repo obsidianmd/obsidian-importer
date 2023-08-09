@@ -1,12 +1,7 @@
 import { Entry, TextWriter } from '@zip.js/zip.js';
-import { parseFilePath } from 'filesystem';
-import { ImportResult, ProgressReporter } from 'main';
+import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
-import {
-	getNotionId,
-	parseAttachmentFolderPath,
-	parseParentIds,
-} from './notion-utils';
+import { getNotionId, parseAttachmentFolderPath, parseParentIds } from './notion-utils';
 
 export async function parseFileInfo(
 	file: Entry,
@@ -72,7 +67,8 @@ export async function parseFileInfo(
 		};
 
 		idsToFileInfo[id] = fileInfo;
-	} else {
+	}
+	else {
 		const { basename, extension } = parseFilePath(file.filename);
 
 		const attachmentInfo: NotionAttachmentInfo = {

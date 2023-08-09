@@ -1,14 +1,7 @@
 import { Entry, TextWriter } from '@zip.js/zip.js';
-import { parseFilePath } from 'filesystem';
 import { htmlToMarkdown, moment } from 'obsidian';
-import {
-	assembleParentIds,
-	escapeHashtags,
-	getNotionId,
-	parseDate,
-	stripNotionId,
-	stripParentDirectories,
-} from './notion-utils';
+import { parseFilePath } from '../../filesystem';
+import { assembleParentIds, escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
 
 export async function readToMarkdown(
 	file: Entry,
@@ -24,15 +17,16 @@ export async function readToMarkdown(
 		parser: DOMParser;
 	}
 ): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
-	if (!file.getData)
-		throw new Error("can't get data in file, " + file.filename);
+	if (!file.getData) {
+		throw new Error('can\'t get data in file, ' + file.filename);
+	}
 
 	const text = await file.getData(new TextWriter());
 
 	const document = parser.parseFromString(text, 'text/html');
 	// read the files etc.
 	const body = document.querySelector(
-		`div[class=page-body]`
+		'div[class=page-body]'
 	) as HTMLDivElement;
 
 	const notionLinks = getNotionLinks(body, {
@@ -45,7 +39,7 @@ export async function readToMarkdown(
 	});
 
 	const rawProperties = document.querySelector(
-		`table[class=properties] > tbody`
+		'table[class=properties] > tbody'
 	) as HTMLTableSectionElement | null;
 
 	if (rawProperties) {
@@ -90,7 +84,7 @@ export async function readToMarkdown(
 	markdownBody = fixDoubleBackslash(markdownBody);
 
 	const description = document.querySelector(
-		`p[class*=page-description]`
+		'p[class*=page-description]'
 	)?.textContent;
 	if (description) markdownBody = description + '\n\n' + markdownBody;
 
@@ -103,8 +97,9 @@ const parseProperty = (
 	const notionType = property.className.match(
 		/property-row-(.*)/
 	)?.[1] as NotionPropertyType;
-	if (!notionType)
+	if (!notionType) {
 		throw new Error('property type not found for: ' + property);
+	}
 
 	const title = htmlToMarkdown(property.cells[0].textContent ?? '');
 
@@ -152,9 +147,11 @@ const parseProperty = (
 			const dates = body.getElementsByTagName('time');
 			if (dates.length === 0) {
 				content = '';
-			} else if (dates.length === 1) {
+			}
+			else if (dates.length === 1) {
 				content = parseDate(moment(dates.item(0)?.textContent));
-			} else {
+			}
+			else {
 				const dateList = [];
 				for (let i = 0; i < dates.length; i++) {
 					dateList.push(
@@ -209,7 +206,8 @@ const getNotionLinks = (
 		);
 		if (id && decodedURI.endsWith('.html')) {
 			links.push({ type: 'relation', a, id });
-		} else if (attachmentPath) {
+		}
+		else if (attachmentPath) {
 			links.push({
 				type: 'attachment',
 				a,
@@ -273,8 +271,9 @@ const formatDatabases = (body: HTMLElement) => {
 
 const replaceNestedTags = (body: HTMLElement, tag: 'strong' | 'em') => {
 	body.findAll(tag).forEach((el) => {
-		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase())
+		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			return;
+		}
 		let firstNested = el.querySelector(tag);
 		while (firstNested) {
 			const childrenOfNested = firstNested.childNodes;
@@ -373,16 +372,17 @@ function convertLinksToObsidian(
 					);
 
 					linkContent = `[[${stripNotionId(basename)}]]`;
-				} else {
+				}
+				else {
 					const isInTable = link.a.closest('table');
 					linkContent = `[[${
 						linkInfo.fullLinkPathNeeded
 							? `${assembleParentIds(
-									linkInfo,
-									idsToFileInfo
-							  ).join('')}${linkInfo.title}${
-									isInTable ? '\u005C' : ''
-							  }|${linkInfo.title}`
+								linkInfo,
+								idsToFileInfo
+							).join('')}${linkInfo.title}${
+								isInTable ? '\u005C' : ''
+							}|${linkInfo.title}`
 							: linkInfo.title
 					}]]`;
 				}
@@ -396,9 +396,9 @@ function convertLinksToObsidian(
 				linkContent = `${embedAttachments ? '!' : ''}[[${
 					attachmentInfo.fullLinkPathNeeded
 						? attachmentInfo.targetParentFolder +
-						  attachmentInfo.nameWithExtension +
-						  '|' +
-						  attachmentInfo.nameWithExtension
+						attachmentInfo.nameWithExtension +
+						'|' +
+						attachmentInfo.nameWithExtension
 						: attachmentInfo.nameWithExtension
 				}]]`;
 				break;
