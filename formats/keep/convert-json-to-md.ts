@@ -14,9 +14,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
 
     if(jsonContent.listContent) {
         if(mdContent) mdContent += `\n\n`;
-        for(let i=0; i<jsonContent.listContent.length; i++) {
-            const listItem = jsonContent.listContent[i];
-            
+        for (const listItem of jsonContent.listContent) {
             // Don't put in blank checkbox items
             if(!listItem.text) continue;
             
@@ -26,8 +24,7 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     }
 
     if(jsonContent.attachments) {
-        for(let i=0; i<jsonContent.attachments.length; i++) {
-            const attachment = jsonContent.attachments[i];
+        for (const attachment of jsonContent.attachments) {
             mdContent += `\n\n![[${attachment.filePath}]]`
         }
     }
