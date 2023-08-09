@@ -139,8 +139,9 @@ function cleanDuplicateAttachments({
 		parseAttachmentFolderPath(attachmentFolderPath);
 
 	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
-		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension))
+		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension)) {
 			attachmentInfo.fullLinkPathNeeded = true;
+		}
 
 		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
@@ -177,5 +178,6 @@ function cleanDuplicateAttachments({
 		attachmentPaths.add(
 			parentFolderPath + attachmentInfo.nameWithExtension
 		);
+		titleDuplicateChecks.add(attachmentInfo.nameWithExtension);
 	}
 }
