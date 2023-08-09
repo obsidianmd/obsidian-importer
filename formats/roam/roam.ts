@@ -180,12 +180,13 @@ export async function importRoamJson (importer:RoamJSONImporter, progress: Progr
 
 			const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
             
+			
             try {
 				//create folders for nested pages [[some/nested/subfolder/page]]
                 await importer.createFolders(path.dirname(filename))
-				const existingFile = app.vault.getAbstractFileByPath(filename);
+				const existingFile = app.vault.getAbstractFileByPath(filename) as TFile;
 				if (existingFile) {
-					await app.vault.adapter.write(existingFile.path, markdownOutput);
+					await app.vault.modify(existingFile, markdownOutput);
 					// console.log("Markdown replaced in existing file:", existingFile.path);
 				} else {
 					const newFile = await app.vault.create(filename, markdownOutput);
