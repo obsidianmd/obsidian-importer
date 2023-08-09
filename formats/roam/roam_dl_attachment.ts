@@ -33,7 +33,7 @@ export async function downloadFirebaseFile(line: string, attachmentsFolder:strin
             if (reg) {
                 const ext = '.' + reg[2];
 
-                const newFilePath = path.join(attachmentsFolder, `${timestamp}${ext}`)
+                const newFilePath = `${attachmentsFolder}/${timestamp}${ext}`
                 // Convert ArrayBuffer to Buffer
                 const data = Buffer.from(response.data);
                 // Write the file using Node.js's fs module

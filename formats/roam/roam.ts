@@ -1,6 +1,5 @@
-import { ImportResult } from '../../main';
 import { RoamPage, RoamBlock, JsonObject, BlockInfo } from './models/roam-json';
-import { PickedFile, path, fs } from 'filesystem';
+import { PickedFile, path} from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName} from '../../util';
 import { sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString  } from './roam_utils';
@@ -155,16 +154,18 @@ async function jsonToMarkdown(graphFolder:string, attachmentsFolder:string, down
 export async function importRoamJson (importer:RoamJSONImporter, progress: ProgressReporter, files:PickedFile[], folder:TFolder, downloadAttachments:boolean = true) {
     for (let file of files) {
         const graphName = sanitizeFileName(file.basename);
-        const graphFolder = path.join(folder.path, graphName);
-		const attachmentsFolder = path.join(folder.path, graphName, "Attachments")
+        const graphFolder = `${folder.path}/${graphName}`
+		const attachmentsFolder = `${folder.path}/${graphName}/Attachments`
         // create the base graph folders
         await importer.createFolders(graphFolder)
 		await importer.createFolders(attachmentsFolder)
 
 		// read the graph
 		// TODO is this async?
-        const data = fs.readFileSync(file.filepath, "utf8")
+        // const data = fs.readFileSync(file.filepath, "utf8")
+		const data = await file.readText(file.filepath)
         const allPages = JSON.parse(data) as RoamPage[]
+
 
         // PRE-PROCESS: map the blocks for easy lookup //
         const [blockLocations, toPostProcess] = preprocess(allPages)
@@ -174,7 +175,7 @@ export async function importRoamJson (importer:RoamJSONImporter, progress: Progr
             const pageData = allPages[index]
 
 			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat)
-            const filename =  path.join(graphFolder, `${pageName}.md`)
+            const filename =  `${graphFolder}/${pageName}.md`
             // convert json to nested markdown
 
 			const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
@@ -202,7 +203,7 @@ export async function importRoamJson (importer:RoamJSONImporter, progress: Progr
 			const sourceBlock = blockLocations.get(sourceBlockUID);
 			
 			if (!sourceBlock.blockString.endsWith("^" + sourceBlockUID)) {
-				const sourceBlockFilePath = path.join(graphFolder,sourceBlock.pageName) + ".md"
+				const sourceBlockFilePath = `${graphFolder}/${sourceBlock.pageName}.md`
 				let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath)
 
 				if (sourceBlockFile instanceof TFile) {
@@ -247,8 +248,7 @@ export async function importRoamJson (importer:RoamJSONImporter, progress: Progr
 					// the source block string needs to be stripped of any page syntax or the alias won't work
 					let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '')
 					// create the obsidian alias []()
-					// let processedBlock = `[${strippedSourceBlockString}](${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID})`;
-					let processedBlock = `[[${path.join(graphFolder,sourceBlock.pageName)}#^${sourceBlockUID}|${strippedSourceBlockString}]]`
+					let processedBlock = `[[${graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`
 					// Modify the source block markdown page asynchronously so the new obsidian alias points to something
 					await modifySourceBlockString(sourceBlockUID);
 					
@@ -279,7 +279,7 @@ export async function importRoamJson (importer:RoamJSONImporter, progress: Progr
 			
 			const newCallingBlockReferences = await extractAndProcessBlockReferences(callingBlock.blockString)
 
-			const callingBlockFilePath = path.join(graphFolder,callingBlock.pageName) + ".md"
+			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`
 			let callingBlockFile = app.vault.getAbstractFileByPath(callingBlockFilePath)
 			
 			if (callingBlockFile instanceof TFile) {
