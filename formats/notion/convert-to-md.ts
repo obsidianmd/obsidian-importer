@@ -1,11 +1,11 @@
-import { htmlToMarkdown, moment } from 'obsidian';
+import { FrontMatterCache, htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { parseHTML } from '../../util';
+import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip/util';
 import { NotionLink, NotionResolverInfo, NotionProperty, NotionPropertyType, YamlProperty } from './notion-types';
 import { escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
 
-export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
+export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	const text = await file.readText();
 
 	const dom = parseHTML(text);
@@ -16,21 +16,20 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 
 	convertLinksToObsidian(info, notionLinks, true);
 
-	const rawProperties = dom.find('table[class=properties] > tbody');
+	let frontMatter: FrontMatterCache = {};
+
+	const rawProperties = dom.find('table[class=properties] > tbody') as HTMLTableSectionElement;
 	if (rawProperties) {
 		const propertyLinks = getNotionLinks(info, rawProperties);
 		convertLinksToObsidian(info, propertyLinks, false);
 		// YAML only takes raw URLS
 		convertHtmlLinksToURLs(rawProperties);
-	}
 
-	const properties: YamlProperty[] = [];
-
-	if (rawProperties) {
-		for (let i = 0; i < rawProperties.children.length; i++) {
-			const row = rawProperties.children.item(i) as HTMLTableRowElement;
+		for (let row of Array.from(rawProperties.rows)) {
 			const property = parseProperty(row);
-			if (property) properties.push(property);
+			if (property) {
+				frontMatter[property.title] = property.content;
+			}
 		}
 	}
 
@@ -55,7 +54,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	const description = dom.find('p[class*=page-description]')?.textContent;
 	if (description) markdownBody = description + '\n\n' + markdownBody;
 
-	return { markdownBody, properties };
+	return serializeFrontMatter(frontMatter) + markdownBody;
 }
 
 const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {

@@ -1,7 +1,8 @@
-import { DataWriteOptions, FrontMatterCache, Notice, Setting, stringifyYaml, TFile, TFolder } from 'obsidian';
+import { DataWriteOptions, FrontMatterCache, Notice, Setting, TFile, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
+import { serializeFrontMatter } from '../util';
 import { readZip } from '../zip/util';
 import { KeepJson } from './keep/models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
@@ -200,11 +201,7 @@ export class KeepImporter extends FormatImporter {
 			frontMatter['tags'] = tags.map(tag => sanitizeTag(tag));
 		}
 
-		if (!Object.isEmpty(frontMatter)) {
-			return '---\n' + stringifyYaml(frontMatter) + '---\n';
-		}
-
-		return '';
+		return serializeFrontMatter(frontMatter);
 	}
 
 	/**

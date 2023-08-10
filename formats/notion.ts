@@ -95,17 +95,10 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('file info not found for ' + file.filepath);
 					}
 
-					const { markdownBody, properties } = await readToMarkdown(info, file);
+					const markdownBody = await readToMarkdown(info, file);
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
-					const newFile = await vault.create(path, markdownBody);
-					if (properties.length > 0) {
-						await app.fileManager.processFrontMatter(newFile, (frontMatter) => {
-							for (let property of properties) {
-								frontMatter[property.title] = property.content;
-							}
-						});
-					}
+					await vault.create(path, markdownBody);
 					results.reportNoteSuccess(file.fullpath);
 				}
 				else {
@@ -115,12 +108,7 @@ export class NotionImporter extends FormatImporter {
 					}
 
 					const data = await file.read();
-					await vault.adapter.writeBinary(
-						normalizePath(
-							`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`
-						),
-						data
-					);
+					await vault.createBinary(`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`, data);
 					results.reportAttachmentSuccess(file.fullpath);
 				}
 			}

@@ -1,3 +1,5 @@
+import { FrontMatterCache, stringifyYaml } from 'obsidian';
+
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
@@ -31,4 +33,12 @@ export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
 
 export function stringToUtf8(text: string): ArrayBuffer {
 	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
+}
+
+export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
+	if (!Object.isEmpty(frontMatter)) {
+		return '---\n' + stringifyYaml(frontMatter) + '---\n';
+	}
+
+	return '';
 }
