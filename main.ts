@@ -40,7 +40,7 @@ export class ProgressReporter {
 		el.empty();
 
 		el.createDiv('importer-progress-bar', el => {
-			this.progressBarEl = el.createDiv('importer-progress-bar-inner')
+			this.progressBarEl = el.createDiv('importer-progress-bar-inner');
 		});
 
 		el.createDiv('import-stats-container', el => {
@@ -90,7 +90,7 @@ export class ProgressReporter {
 
 		this.skippedCountEl.setText(this.skipped.length.toString());
 		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'import-error', text: `Skipped: ` });
+			el.createSpan({ cls: 'import-error', text: 'Skipped: ' });
 			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
@@ -106,7 +106,7 @@ export class ProgressReporter {
 
 		this.failedCountEl.setText(this.failed.length.toString());
 		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'import-error', text: `Failed: ` });
+			el.createSpan({ cls: 'import-error', text: 'Failed: ' });
 			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
