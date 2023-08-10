@@ -15,6 +15,8 @@ declare global {
 
 interface ImporterDefinition {
 	name: string;
+	optionText: string;
+	helpPermalink: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
 
@@ -136,24 +138,34 @@ export default class ImporterPlugin extends Plugin {
 	async onload() {
 		this.importers = {
 			'bear': {
-				name: 'Bear (.bear2bk)',
+				name: 'Bear',
+				optionText: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
+				helpPermalink: 'import/bear'
 			},
 			'evernote': {
-				name: 'Evernote (.enex)',
+				name: 'Evernote',
+				optionText: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
+				helpPermalink: 'import/evernote'
 			},
 			'html': {
-				name: 'HTML (.html)',
+				name: 'HTML files',
+				optionText: 'HTML (.html)',
 				importer: HtmlImporter,
+				helpPermalink: 'import/html'
 			},
 			'keep': {
-				name: 'Google Keep (.zip/.json)',
+				name: 'Google Keep',
+				optionText: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
+				helpPermalink: 'import/google-keep'
 			},
 			'notion': {
-				name: 'Notion (.zip)',
+				name: 'Notion',
+				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
+				helpPermalink: 'import/notion'
 			},
 		};
 
@@ -192,6 +204,7 @@ export default class ImporterPlugin extends Plugin {
 export class ImporterModal extends Modal {
 	plugin: ImporterPlugin;
 	importer: FormatImporter;
+	selectedId: string;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
@@ -200,33 +213,42 @@ export class ImporterModal extends Modal {
 
 		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
-			this.updateContent(keys[0]);
+			this.selectedId = keys[0];
+			this.updateContent();
 		}
 	}
 
-	updateContent(selectedId: string) {
-		const { contentEl, plugin: { importers } } = this;
+	updateContent() {
+		const { contentEl, selectedId } = this;
+		let importers = this.plugin.importers;
+		let selectedImporter = importers[selectedId];
 		contentEl.empty();
+
+		let descriptionFragment = new DocumentFragment();
+		descriptionFragment.createSpan({ text: 'The format to be imported.' });
+		descriptionFragment.createEl('br');
+		descriptionFragment.createEl('a', { text: `Learn more about importing ${selectedImporter.name}.`, href: `https://help.obsidian.md/${selectedImporter.helpPermalink}` });
 
 		new Setting(contentEl)
 			.setName('File format')
-			.setDesc('The format to be imported.')
+			.setDesc(descriptionFragment)
 			.addDropdown(dropdown => {
 				for (let id in importers) {
 					if (importers.hasOwnProperty(id)) {
-						dropdown.addOption(id, importers[id].name);
+						dropdown.addOption(id, importers[id].optionText);
 					}
 				}
 				dropdown.onChange((value) => {
 					if (importers.hasOwnProperty(value)) {
-						this.updateContent(value);
+						this.selectedId = value;
+						this.updateContent();
 					}
 				});
-				dropdown.setValue(selectedId);
+				dropdown.setValue(this.selectedId);
 			});
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
-			let importer = this.importer = new importers[selectedId].importer(this.app, this);
+			let importer = this.importer = new selectedImporter.importer(this.app, this);
 
 			contentEl.createDiv('button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
