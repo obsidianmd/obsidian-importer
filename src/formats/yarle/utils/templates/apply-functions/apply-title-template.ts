@@ -1,5 +1,5 @@
 import { NoteData } from '../../../models/NoteData';
-import * as P from './../placeholders/title-placeholders';
+import * as P from '../placeholders/title-placeholders';
 
 import { applyTemplateOnBlock } from './apply-template-on-block';
 import { getTemplateBlockSettings } from './get-templateblock-settings';

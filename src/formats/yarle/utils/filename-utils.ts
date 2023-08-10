@@ -4,7 +4,7 @@ import { sanitizeFileName } from '../../../util';
 
 import { yarleOptions } from '../yarle';
 
-import { ResourceFileProperties } from './../models/ResourceFileProperties';
+import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { extensionForMime } from '../../../mime';
 

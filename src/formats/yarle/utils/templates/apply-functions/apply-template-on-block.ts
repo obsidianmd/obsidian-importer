@@ -1,4 +1,4 @@
-import { TemplateBlockSettings } from './../template-settings';
+import { TemplateBlockSettings } from '../template-settings';
 
 export const applyTemplateOnBlock = ({
 	template,

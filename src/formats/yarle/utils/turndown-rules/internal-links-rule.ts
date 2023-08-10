@@ -4,7 +4,7 @@ import { yarleOptions } from '../../yarle';
 
 import { normalizeTitle } from '../filename-utils';
 import { getTurndownService } from '../turndown-service';
-import { isTOC } from './../../utils/is-toc';
+import { isTOC } from '../is-toc';
 
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';

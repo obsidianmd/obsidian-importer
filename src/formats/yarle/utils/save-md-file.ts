@@ -1,4 +1,4 @@
-import { RuntimePropertiesSingleton } from './../runtime-properties';
+import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { writeFile } from './file-utils';
 import { getMdFilePath } from './folder-utils';
 

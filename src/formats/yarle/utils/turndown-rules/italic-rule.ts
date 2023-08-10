@@ -1,4 +1,4 @@
-import { languageItems } from './../../outputLanguages';
+import { languageItems } from '../../outputLanguages';
 
 // Note: this rule must appear *after* use(gfm) so it can override
 // turndown-plugin-gfm rule for strikethrough (which always uses single '~')

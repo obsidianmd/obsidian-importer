@@ -1,7 +1,7 @@
-import { fs, path, PickedFile } from 'filesystem';
+import { fs, path, PickedFile } from '../../../filesystem';
 import { genUid } from '../../../util';
+import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { yarleOptions } from '../yarle';
-import { RuntimePropertiesSingleton } from './../runtime-properties';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
 

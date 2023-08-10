@@ -1,4 +1,4 @@
-import { checkboxDone, checkboxTodo } from './../../constants';
+import { checkboxDone, checkboxTodo } from '../../constants';
 
 import { getAttributeProxy } from './get-attribute-proxy';
 

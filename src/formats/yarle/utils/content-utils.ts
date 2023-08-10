@@ -1,7 +1,7 @@
-import { fs } from 'filesystem';
 import { moment } from 'obsidian';
-import { MetaData } from './../models/MetaData';
-import { yarleOptions } from './../yarle';
+import { fs } from '../../../filesystem';
+import { MetaData } from '../models/MetaData';
+import { yarleOptions } from '../yarle';
 import { escapeStringRegexp } from './escape-string-regexp';
 
 export const getMetadata = (note: any, notebookName: string): MetaData => {

@@ -1,5 +1,5 @@
-import { parseFilePath } from 'filesystem';
 import { normalizePath, Notice } from 'obsidian';
+import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
 import { readZip } from '../zip/util';
