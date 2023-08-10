@@ -135,6 +135,10 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
+			'bear': {
+				name: 'Bear (.bear2bk)',
+				importer: Bear2bkImporter,
+			},
 			'evernote': {
 				name: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
@@ -143,17 +147,13 @@ export default class ImporterPlugin extends Plugin {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
 			},
-			'notion': {
-				name: 'Notion (.zip)',
-				importer: NotionImporter,
-			},
-			'bear': {
-				name: 'Bear (.bear2bk)',
-				importer: Bear2bkImporter,
-			},
 			'keep': {
 				name: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
+			},
+			'notion': {
+				name: 'Notion (.zip)',
+				importer: NotionImporter,
 			},
 		};
 
