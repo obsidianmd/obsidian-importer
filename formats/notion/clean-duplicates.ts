@@ -1,18 +1,14 @@
 import { normalizePath, TAbstractFile, Vault } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { assembleParentIds } from './notion-utils';
+import { NotionResolverInfo } from './notion-types';
 
 export function cleanDuplicates({
-	idsToFileInfo,
-	pathsToAttachmentInfo,
-	attachmentFolderPath,
+	info,
 	vault,
 	targetFolderPath,
 	parentsInSubfolders,
 }: {
-	idsToFileInfo: Record<string, NotionFileInfo>;
-	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	attachmentFolderPath: string;
+	info: NotionResolverInfo;
 	vault: Vault;
 	targetFolderPath: string;
 	parentsInSubfolders: boolean;
@@ -24,42 +20,39 @@ export function cleanDuplicates({
 	);
 
 	if (parentsInSubfolders) {
-		moveParentsToSubfolders({
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-		});
+		moveParentsToSubfolders(info);
 	}
 
 	cleanDuplicateNotes({
+		info,
 		pathDuplicateChecks,
 		titleDuplicateChecks,
-		idsToFileInfo,
 	});
 
 	cleanDuplicateAttachments({
+		info,
 		loadedFiles,
-		pathsToAttachmentInfo,
 		titleDuplicateChecks,
-		attachmentFolderPath,
 		targetFolderPath,
-		idsToFileInfo,
 	});
 }
 
 function cleanDuplicateNotes({
-	idsToFileInfo,
+	info,
 	pathDuplicateChecks,
 	titleDuplicateChecks,
 }: {
-	idsToFileInfo: Record<string, NotionFileInfo>;
+	info: NotionResolverInfo;
 	pathDuplicateChecks: Set<string>;
 	titleDuplicateChecks: Set<string>;
 }) {
-	for (let fileInfo of Object.values(idsToFileInfo)) {
-		if (pathDuplicateChecks.has(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`)) {
+	for (let fileInfo of Object.values(info.idsToFileInfo)) {
+		let path = info.getPathForFile(fileInfo);
+
+		if (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
 			let duplicateResolutionIndex = 2;
 			fileInfo.title = fileInfo.title + ' ' + duplicateResolutionIndex;
-			while (pathDuplicateChecks.has(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`)) {
+			while (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
 				duplicateResolutionIndex++;
 				fileInfo.title = `${fileInfo.title.replace(/ \d+$/, '')} ${duplicateResolutionIndex}`;
 			}
@@ -69,53 +62,34 @@ function cleanDuplicateNotes({
 			fileInfo.fullLinkPathNeeded = true;
 		}
 
-		pathDuplicateChecks.add(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`);
+		pathDuplicateChecks.add(`${path}${fileInfo.title}`);
 		titleDuplicateChecks.add(fileInfo.title + '.md');
 	}
 }
 
-function moveParentsToSubfolders({
-	idsToFileInfo,
-	pathsToAttachmentInfo,
-}: {
-	idsToFileInfo: Record<string, NotionFileInfo>;
-	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-}) {
+function moveParentsToSubfolders(info: NotionResolverInfo) {
 	const notesByLastParent = new Set(
-		(Object.values(idsToFileInfo) as Pick<NotionFileInfo, 'parentIds'>[])
-			.concat(
-				Object.values(pathsToAttachmentInfo) as Pick<
-					NotionAttachmentInfo,
-					'parentIds'
-				>[]
-			)
-			.map((fileInfo) =>
-				fileInfo.parentIds.length > 0
-					? fileInfo.parentIds[fileInfo.parentIds.length - 1]
-					: ''
-			)
+		Object.values(info.idsToFileInfo).map(info => info.parentIds)
+			.concat(Object.values(info.pathsToAttachmentInfo).map(info => info.parentIds))
+			.map((parentIds) => parentIds.length > 0 ? parentIds[parentIds.length - 1] : '')
 	);
-	for (let id of Object.keys(idsToFileInfo)) {
+	for (let id of Object.keys(info.idsToFileInfo)) {
 		if (notesByLastParent.has(id)) {
 			// Nest any notes with children under the same subfolder, this supports Folder Note plugins in Obsidian
-			idsToFileInfo[id].parentIds.push(id);
+			info.idsToFileInfo[id].parentIds.push(id);
 		}
 	}
 }
 
 function cleanDuplicateAttachments({
+	info,
 	loadedFiles,
-	pathsToAttachmentInfo,
-	idsToFileInfo,
 	titleDuplicateChecks,
-	attachmentFolderPath,
 	targetFolderPath,
 }: {
+	info: NotionResolverInfo;
 	loadedFiles: TAbstractFile[];
-	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	idsToFileInfo: Record<string, NotionFileInfo>;
 	titleDuplicateChecks: Set<string>;
-	attachmentFolderPath: string;
 	targetFolderPath: string;
 }) {
 	const attachmentPaths = new Set(
@@ -124,11 +98,12 @@ function cleanDuplicateAttachments({
 			.map((file) => file.path)
 	);
 
-	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
+	let attachmentFolderPath = info.attachmentPath;
+	let attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
 	// Obsidian formatting for attachments in subfolders is ./<folder>
-	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
+	let attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
-	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
+	for (let attachmentInfo of Object.values(info.pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension)) {
 			attachmentInfo.fullLinkPathNeeded = true;
 		}
@@ -136,10 +111,7 @@ function cleanDuplicateAttachments({
 		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
 			parentFolderPath = normalizePath(
-				`${targetFolderPath}${assembleParentIds(
-					attachmentInfo,
-					idsToFileInfo
-				).join('')}${attachmentSubfolder ?? ''}`
+				`${targetFolderPath}${info.getPathForFile(attachmentInfo)}${attachmentSubfolder ?? ''}`
 			);
 		}
 		else {

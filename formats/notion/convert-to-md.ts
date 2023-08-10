@@ -2,48 +2,24 @@ import { htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { parseHTML } from '../../util';
 import { ZipEntryFile } from '../../zip/util';
-import {
-	assembleParentIds,
-	escapeHashtags,
-	getNotionId,
-	parseDate,
-	stripNotionId,
-	stripParentDirectories,
-} from './notion-utils';
+import { NotionLink, NotionResolverInfo, NotionProperty, NotionPropertyType, YamlProperty } from './notion-types';
+import { escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
 
-export async function readToMarkdown(
-	file: ZipEntryFile,
-	{
-		attachmentPaths,
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-	}: {
-		attachmentPaths: string[];
-		idsToFileInfo: Record<string, NotionFileInfo>;
-		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	}
-): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
+export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<{ markdownBody: string; properties: YamlProperty[] }> {
 	const text = await file.readText();
 
 	const dom = parseHTML(text);
 	// read the files etc.
 	const body = dom.find('div[class=page-body]');
 
-	const notionLinks = getNotionLinks(body, attachmentPaths);
+	const notionLinks = getNotionLinks(info, body);
 
-	convertLinksToObsidian(notionLinks, {
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-	});
+	convertLinksToObsidian(info, notionLinks, true);
 
 	const rawProperties = dom.find('table[class=properties] > tbody');
 	if (rawProperties) {
-		const propertyLinks = getNotionLinks(rawProperties, attachmentPaths);
-		convertLinksToObsidian(propertyLinks, {
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-			embedAttachments: false,
-		});
+		const propertyLinks = getNotionLinks(info, rawProperties);
+		convertLinksToObsidian(info, propertyLinks, false);
 		// YAML only takes raw URLS
 		convertHtmlLinksToURLs(rawProperties);
 	}
@@ -172,7 +148,7 @@ const parseProperty = (property: HTMLTableRowElement): YamlProperty | undefined 
 	};
 };
 
-const getNotionLinks = (body: HTMLElement, attachmentPaths: string[]) => {
+const getNotionLinks = (info: NotionResolverInfo, body: HTMLElement) => {
 	const links: NotionLink[] = [];
 
 	body.findAll('a').forEach((a: HTMLAnchorElement) => {
@@ -181,7 +157,7 @@ const getNotionLinks = (body: HTMLElement, attachmentPaths: string[]) => {
 		);
 		const id = getNotionId(decodedURI);
 
-		const attachmentPath = attachmentPaths.find((filename) =>
+		const attachmentPath = Object.keys(info.pathsToAttachmentInfo).find((filename) =>
 			filename.includes(decodedURI)
 		);
 		if (id && decodedURI.endsWith('.html')) {
@@ -326,25 +302,14 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 	});
 }
 
-function convertLinksToObsidian(
-	notionLinks: NotionLink[],
-	{
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-		embedAttachments = true,
-	}: {
-		idsToFileInfo: Record<string, NotionFileInfo>;
-		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-		embedAttachments?: boolean;
-	}
-) {
+function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLink[], embedAttachments: boolean) {
 	for (let link of notionLinks) {
 		let obsidianLink = createSpan();
 		let linkContent: string;
 
 		switch (link.type) {
 			case 'relation':
-				const linkInfo = idsToFileInfo[link.id];
+				const linkInfo = info.idsToFileInfo[link.id];
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
 					const { basename } = parseFilePath(
@@ -357,18 +322,13 @@ function convertLinksToObsidian(
 					const isInTable = link.a.closest('table');
 					linkContent = `[[${
 						linkInfo.fullLinkPathNeeded
-							? `${assembleParentIds(
-								linkInfo,
-								idsToFileInfo
-							).join('')}${linkInfo.title}${
-								isInTable ? '\u005C' : ''
-							}|${linkInfo.title}`
+							? `${info.getPathForFile(linkInfo)}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
 							: linkInfo.title
 					}]]`;
 				}
 				break;
 			case 'attachment':
-				const attachmentInfo = pathsToAttachmentInfo[link.path];
+				const attachmentInfo = info.pathsToAttachmentInfo[link.path];
 				if (!attachmentInfo) {
 					console.warn('missing attachment data for: ' + link.path);
 					continue;

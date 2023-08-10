@@ -5,7 +5,8 @@ import { ProgressReporter } from '../main';
 import { readZipFiles, ZipEntryFile } from '../zip/util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
-import { assembleParentIds, getNotionId } from './notion/notion-utils';
+import { NotionResolverInfo } from './notion/notion-types';
+import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
@@ -42,54 +43,41 @@ export class NotionImporter extends FormatImporter {
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
 
-		const idsToFileInfo: Record<string, NotionFileInfo> = {};
-		const pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
-		const attachmentFolderPath = vault.getConfig('attachmentFolderPath') ?? '';
+		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '');
 
 		// loads in only path & title information to objects
 		await processZips(files, async (file) => {
 			try {
-				await parseFileInfo(file, {
-					idsToFileInfo,
-					pathsToAttachmentInfo,
-				});
+				await parseFileInfo(info, file);
 			}
 			catch (e) {
 				results.reportSkipped(file.filepath);
 			}
 		});
 
-		const notes = Object.keys(idsToFileInfo).length;
-		const attachments = Object.keys(pathsToAttachmentInfo).length;
+		const notes = Object.keys(info.idsToFileInfo).length;
+		const attachments = Object.keys(info.pathsToAttachmentInfo).length;
 		const total = notes + attachments;
 
 		cleanDuplicates({
 			vault,
-			idsToFileInfo,
-			pathsToAttachmentInfo,
-			attachmentFolderPath,
+			info,
 			targetFolderPath,
 			parentsInSubfolders,
 		});
 
 		const flatFolderPaths = new Set<string>([targetFolderPath]);
-		const allFolderPaths = Object.values(idsToFileInfo)
-			.map((fileInfo) =>
-				targetFolderPath + assembleParentIds(fileInfo, idsToFileInfo).join('')
-			)
-			.concat(
-				Object.values(pathsToAttachmentInfo).map(
-					(attachmentInfo) => attachmentInfo.targetParentFolder
-				)
-			);
+		const allFolderPaths = Object.values(info.idsToFileInfo)
+			.map((fileInfo) => targetFolderPath + info.getPathForFile(fileInfo))
+			.concat(Object.values(info.pathsToAttachmentInfo).map(
+				(attachmentInfo) => attachmentInfo.targetParentFolder
+			));
 		for (let folderPath of allFolderPaths) {
 			flatFolderPaths.add(folderPath);
 		}
 		for (let path of flatFolderPaths) {
 			await this.createFolders(path);
 		}
-
-		const attachmentPaths = Object.keys(pathsToAttachmentInfo);
 
 		let current = 0;
 
@@ -103,24 +91,14 @@ export class NotionImporter extends FormatImporter {
 					if (!id) {
 						throw new Error('ids not found for ' + file.filepath);
 					}
-					const fileInfo = idsToFileInfo[id];
+					const fileInfo = info.idsToFileInfo[id];
 					if (!fileInfo) {
 						throw new Error('file info not found for ' + file.filepath);
 					}
 
-					const { markdownBody, properties } = await readToMarkdown(
-						file,
-						{
-							attachmentPaths,
-							idsToFileInfo,
-							pathsToAttachmentInfo,
-						}
-					);
+					const { markdownBody, properties } = await readToMarkdown(info, file);
 
-					const path = `${targetFolderPath}${assembleParentIds(
-						fileInfo,
-						idsToFileInfo
-					).join('')}${fileInfo.title}.md`;
+					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
 					const newFile = await vault.create(path, markdownBody);
 					if (properties.length > 0) {
 						await app.fileManager.processFrontMatter(newFile, (frontMatter) => {
@@ -132,7 +110,7 @@ export class NotionImporter extends FormatImporter {
 					results.reportNoteSuccess(file.filepath);
 				}
 				else {
-					const attachmentInfo = pathsToAttachmentInfo[file.filepath];
+					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];
 					if (!attachmentInfo) {
 						throw new Error('attachment info not found for ' + file.filepath);
 					}

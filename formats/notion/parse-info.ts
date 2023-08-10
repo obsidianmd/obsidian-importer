@@ -1,17 +1,9 @@
 import { parseHTML, sanitizeFileName } from '../../util';
 import { ZipEntryFile } from '../../zip/util';
+import { NotionResolverInfo } from './notion-types';
 import { getNotionId, parseParentIds } from './notion-utils';
 
-export async function parseFileInfo(
-	file: ZipEntryFile,
-	{
-		idsToFileInfo,
-		pathsToAttachmentInfo,
-	}: {
-		idsToFileInfo: Record<string, NotionFileInfo>;
-		pathsToAttachmentInfo: Record<string, NotionAttachmentInfo>;
-	}
-) {
+export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile) {
 	let { filepath } = file;
 
 	if (file.extension === 'html') {
@@ -39,7 +31,7 @@ export async function parseFileInfo(
 			title = wordList.slice(0, wordList.length - 1).join(' ') + '...';
 		}
 
-		idsToFileInfo[id] = {
+		info.idsToFileInfo[id] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
 			title,
@@ -47,7 +39,7 @@ export async function parseFileInfo(
 		};
 	}
 	else {
-		pathsToAttachmentInfo[filepath] = {
+		info.pathsToAttachmentInfo[filepath] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
 			nameWithExtension: sanitizeFileName(file.name),

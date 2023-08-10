@@ -18,27 +18,6 @@ export const parseParentIds = (filename: string) => {
 		.filter((id) => id) as string[];
 };
 
-export const assembleParentIds = (
-	fileInfo: NotionFileInfo | NotionAttachmentInfo,
-	idsToFileInfo: Record<string, NotionFileInfo>
-) => {
-	const pathNames = fileInfo.path.split('/');
-	return (
-		fileInfo.parentIds
-			.map(
-				(parentId) =>
-					idsToFileInfo[parentId]?.title ??
-					pathNames
-						.find((pathSegment) => pathSegment.contains(parentId))
-						?.replace(` ${parentId}`, '')
-			)
-			// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
-			.filter((parentId) => parentId)
-			// Folder names can't end in a dot or a space
-			.map((folder) => folder.replace(/[\. ]+$/, '') + '/')
-	);
-};
-
 export function parseDate(content: Moment) {
 	if (content.hour() === 0 && content.minute() === 0) {
 		return content.format('YYYY-MM-DD');
