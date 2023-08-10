@@ -227,7 +227,7 @@ export class ImporterModal extends Modal {
 		let descriptionFragment = new DocumentFragment();
 		descriptionFragment.createSpan({ text: 'The format to be imported.' });
 		descriptionFragment.createEl('br');
-		descriptionFragment.createEl('a', { text: `Learn more about importing ${selectedImporter.name}.`, href: `https://help.obsidian.md/${selectedImporter.helpPermalink}` });
+		descriptionFragment.createEl('a', { text: `Learn more about importing from ${selectedImporter.name}.`, href: `https://help.obsidian.md/${selectedImporter.helpPermalink}` });
 
 		new Setting(contentEl)
 			.setName('File format')
