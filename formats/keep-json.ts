@@ -1,8 +1,8 @@
-import { BlobWriter, TextWriter } from '@zip.js/zip.js';
 import { DataWriteOptions, Notice, Setting, TFile, TFolder } from 'obsidian';
-import { parseFilePath, PickedFile } from '../filesystem';
+import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
+import { readZipFiles } from '../zip/util';
 import { convertStringToKeepJson, KeepJson } from './keep/models';
 import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from './keep/util';
 
@@ -92,13 +92,11 @@ export class KeepImporter extends FormatImporter {
 
 				}
 				else if (file.extension === 'json') {
-					let rawContent = await file.readText();
-					await this.importKeepNote(rawContent, folder, file.basename, progress);
+					await this.importKeepNote(file, folder, progress);
 
 				}
 				else {
-					const arrayBuffer = await file.read();
-					await this.copyFile(arrayBuffer, assetFolderPath, file.name, progress);
+					await this.copyFile(file, assetFolderPath, progress);
 				}
 
 			}
@@ -111,57 +109,54 @@ export class KeepImporter extends FormatImporter {
 
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, progress: ProgressReporter) {
 		await file.readZip(async zip => {
-			for (let entry of await zip.getEntries()) {
-				if (!entry || entry.directory || !entry.getData) return;
-				let curInnerFilename = '';
+			let files = await readZipFiles(zip);
+			for (let entry of files) {
+				let fullPath = `${file.name}/${entry.filepath}`;
 				try {
-					let innerFileProps = parseFilePath(entry.filename);
-					curInnerFilename = innerFileProps.name;
-
-					if (innerFileProps.extension === 'json') {
-						let rawContent = await entry.getData(new TextWriter());
-						await this.importKeepNote(rawContent, folder, innerFileProps.basename, progress);
-
+					let { extension } = entry;
+					if (extension === 'json') {
+						await this.importKeepNote(entry, folder, progress);
 					}
-					else if (ATTACHMENT_EXTS.contains(innerFileProps.extension)) {
-						const rawContent = await entry.getData(new BlobWriter());
-						const arrayBuffer = await rawContent.arrayBuffer();
-						await this.copyFile(arrayBuffer, assetFolderPath, innerFileProps.name, progress);
+					else if (ATTACHMENT_EXTS.contains(extension)) {
+						await this.copyFile(entry, assetFolderPath, progress);
 					}
-					// else: Silently skip any other unsupported files in the zip
-
+					else {
+						progress.reportSkipped(fullPath);
+					}
 				}
 				catch (e) {
-					progress.reportFailed(`${file.name}/${curInnerFilename}`, e);
+					progress.reportFailed(fullPath, e);
 				}
 			}
 		});
 	}
 
-	async importKeepNote(rawContent: string, folder: TFolder, title: string, progress: ProgressReporter) {
-		let keepJson = convertStringToKeepJson(rawContent);
+	async importKeepNote(file: PickedFile, folder: TFolder, progress: ProgressReporter) {
+		let content = await file.readText();
+		let keepJson = convertStringToKeepJson(content);
 		if (!keepJson) {
-			progress.reportFailed(`${title}.json`, 'Invalid Google Keep JSON');
+			progress.reportFailed(file.name, 'Invalid Google Keep JSON');
 			return;
 		}
 		if (keepJson.isArchived && !this.importArchived) {
-			progress.reportSkipped(`${title}.json`, 'Archived note');
+			progress.reportSkipped(file.name, 'Archived note');
 			return;
 		}
 		if (keepJson.isTrashed && !this.importTrashed) {
-			progress.reportSkipped(`${title}.json`, 'Deleted note');
+			progress.reportSkipped(file.name, 'Deleted note');
 			return;
 		}
 
-		await this.convertKeepJson(keepJson, folder, title);
-		progress.reportNoteSuccess(`${title}.json`);
+		await this.convertKeepJson(keepJson, folder, file.basename);
+		progress.reportNoteSuccess(file.name);
 	}
 
 	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-	async copyFile(arrayBuffer: ArrayBuffer, folderPath: string, filename: string, progress: ProgressReporter) {
+	async copyFile(file: PickedFile, folderPath: string, progress: ProgressReporter) {
 		let assetFolder = await this.createFolders(folderPath);
-		await this.vault.createBinary(`${assetFolder.path}/${filename}`, arrayBuffer);
-		progress.reportAttachmentSuccess(filename);
+		let data = await file.read();
+		await this.vault.createBinary(`${assetFolder.path}/${file.name}`, data);
+		progress.reportAttachmentSuccess(file.name);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
@@ -169,11 +164,10 @@ export class KeepImporter extends FormatImporter {
 		const fileRef = await this.saveAsMarkdownFile(folder, filename, mdContent);
 		await this.addKeepFrontMatter(fileRef, keepJson);
 
-		const writeOptions: DataWriteOptions = {
+		await this.modifyWriteOptions(fileRef, {
 			ctime: keepJson.createdTimestampUsec / 1000,
 			mtime: keepJson.userEditedTimestampUsec / 1000,
-		};
-		this.modifyWriteOptions(fileRef, writeOptions);
+		});
 	}
 
 	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {
@@ -197,8 +191,13 @@ export class KeepImporter extends FormatImporter {
 					addTagToFrontmatter(frontmatter, `Keep/Label/${keepJson.labels[i].name}`);
 				}
 			}
-			;
-
 		});
+	}
+
+	/**
+	 * Allows modifying the write options (such as creation and last edited date) without adding or removing anything to the file.
+	 */
+	async modifyWriteOptions(fileRef: TFile, writeOptions: DataWriteOptions) {
+		await this.vault.append(fileRef, '', writeOptions);
 	}
 }

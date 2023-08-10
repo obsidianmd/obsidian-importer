@@ -34,7 +34,7 @@ export interface PickedFolder {
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 }
 
-export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:fs') : null;
+export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null!;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
 export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;

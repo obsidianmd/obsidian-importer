@@ -1,8 +1,7 @@
-import { App, DataWriteOptions, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ProgressReporter } from './main';
 import { sanitizeFileName } from './util';
-import { sanitizeTag } from 'formats/keep/util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -156,14 +155,5 @@ export abstract class FormatImporter {
 		// @ts-ignore
 		return await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
 	}
-
-	/**
-	 * Allows modiying the write options (such as creation and last edited date) without adding or removing anything to the file.
-	 * Must pass in the relevant vault.
-	 */
-	async modifyWriteOptions(fileRef:TFile, writeOptions: DataWriteOptions) {
-		await this.vault.append(fileRef, '', writeOptions);
-	}
-
 }
 
