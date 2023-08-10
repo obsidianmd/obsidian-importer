@@ -24,28 +24,76 @@ export class ProgressReporter {
 	skipped: string[] = [];
 	failed: string[] = [];
 
+	el: HTMLElement;
+	progressBarEl: HTMLElement;
+	importedCountEl: HTMLElement;
+	attachmentCountEl: HTMLElement;
+	remainingCountEl: HTMLElement;
+	skippedCountEl: HTMLElement;
+	failedCountEl: HTMLElement;
+
+	constructor(el: HTMLElement) {
+		this.el = el;
+
+		el.empty();
+
+		el.createDiv('importer-progress-bar', el => {
+			this.progressBarEl = el.createDiv('importer-progress-bar-inner')
+		});
+
+		el.createDiv('import-stats-container', el => {
+			el.createDiv('import-stat mod-imported', el => {
+				this.importedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				el.createDiv({ cls: 'import-stat-name', text: 'imported' });
+			});
+			el.createDiv('import-stat mod-attachments', el => {
+				this.attachmentCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				el.createDiv({ cls: 'import-stat-name', text: 'attachments' });
+			});
+			el.createDiv('import-stat mod-remaining', el => {
+				this.remainingCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				el.createDiv({ cls: 'import-stat-name', text: 'remaining' });
+			});
+			el.createDiv('import-stat mod-skipped', el => {
+				this.skippedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				el.createDiv({ cls: 'import-stat-name', text: 'skipped' });
+			});
+			el.createDiv('import-stat mod-failed', el => {
+				this.failedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				el.createDiv({ cls: 'import-stat-name', text: 'failed' });
+			});
+		});
+	}
+
 	reportNoteSuccess(name: string) {
 		this.notes++;
 		console.log('Import success', name);
+		this.importedCountEl.setText(this.skipped.length.toString());
 	}
 
 	reportAttachmentSuccess(name: string) {
 		this.attachments++;
 		console.log('Import success', name);
+		this.attachmentCountEl.setText(this.skipped.length.toString());
 	}
 
 	reportSkipped(name: string, reason?: any) {
 		this.skipped.push(name);
 		console.log('Import skipped', name, reason);
+		this.failedCountEl.setText(this.skipped.length.toString());
 	}
 
 	reportFailed(name: string, reason?: any) {
 		this.failed.push(name);
 		console.log('Import failed', name, reason);
+		this.failedCountEl.setText(this.failed.length.toString());
 	}
 
 	reportProgress(current: number, total: number) {
 		console.log('Current progress:', (100 * current / total).toFixed(1) + '%');
+		this.remainingCountEl.setText((total - current).toString());
+		this.importedCountEl.setText(current.toString());
+		this.progressBarEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 }
 
@@ -150,14 +198,17 @@ export class ImporterModal extends Modal {
 			contentEl.createDiv('button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
-						let progress = new ProgressReporter();
-						this.modalEl.addClass('is-loading');
+
+						contentEl.empty();
+						let progressEl = contentEl.createDiv();
+						let progress = new ProgressReporter(progressEl);
+						// this.modalEl.addClass('is-loading');
 						try {
 							await importer.import(progress);
 						}
 						finally {
-							this.modalEl.removeClass('is-loading');
-							this.showResult(progress);
+							// this.modalEl.removeClass('is-loading');
+							// this.showResult(progress);
 						}
 					});
 				});
