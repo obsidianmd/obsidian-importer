@@ -1,6 +1,6 @@
 import { normalizePath, TAbstractFile, Vault } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { assembleParentIds, parseAttachmentFolderPath } from './notion-utils';
+import { assembleParentIds } from './notion-utils';
 
 export function cleanDuplicates({
 	idsToFileInfo,
@@ -56,27 +56,12 @@ function cleanDuplicateNotes({
 	titleDuplicateChecks: Set<string>;
 }) {
 	for (let fileInfo of Object.values(idsToFileInfo)) {
-		if (
-			pathDuplicateChecks.has(
-				`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
-					fileInfo.title
-				}`
-			)
-		) {
+		if (pathDuplicateChecks.has(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`)) {
 			let duplicateResolutionIndex = 2;
 			fileInfo.title = fileInfo.title + ' ' + duplicateResolutionIndex;
-			while (
-				pathDuplicateChecks.has(
-					`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
-						fileInfo.title
-					}`
-				)
-			) {
+			while (pathDuplicateChecks.has(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`)) {
 				duplicateResolutionIndex++;
-				fileInfo.title = `${fileInfo.title.replace(
-					/ \d+$/,
-					''
-				)} ${duplicateResolutionIndex}`;
+				fileInfo.title = `${fileInfo.title.replace(/ \d+$/, '')} ${duplicateResolutionIndex}`;
 			}
 		}
 
@@ -84,11 +69,7 @@ function cleanDuplicateNotes({
 			fileInfo.fullLinkPathNeeded = true;
 		}
 
-		pathDuplicateChecks.add(
-			`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${
-				fileInfo.title
-			}`
-		);
+		pathDuplicateChecks.add(`${assembleParentIds(fileInfo, idsToFileInfo).join('')}${fileInfo.title}`);
 		titleDuplicateChecks.add(fileInfo.title + '.md');
 	}
 }
@@ -143,8 +124,9 @@ function cleanDuplicateAttachments({
 			.map((file) => file.path)
 	);
 
-	const { attachmentsInCurrentFolder, attachmentSubfolder } =
-		parseAttachmentFolderPath(attachmentFolderPath);
+	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
+	// Obsidian formatting for attachments in subfolders is ./<folder>
+	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
 	for (let attachmentInfo of Object.values(pathsToAttachmentInfo)) {
 		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension)) {
@@ -165,9 +147,7 @@ function cleanDuplicateAttachments({
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		if (attachmentPaths.has(
-			parentFolderPath + attachmentInfo.nameWithExtension
-		)) {
+		if (attachmentPaths.has(parentFolderPath + attachmentInfo.nameWithExtension)) {
 			let duplicateResolutionIndex = 2;
 			const { basename, extension } = parseFilePath(attachmentInfo.path);
 			while (attachmentPaths.has(

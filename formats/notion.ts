@@ -52,7 +52,6 @@ export class NotionImporter extends FormatImporter {
 				await parseFileInfo(file, {
 					idsToFileInfo,
 					pathsToAttachmentInfo,
-					attachmentFolderPath,
 				});
 			}
 			catch (e) {
@@ -124,24 +123,18 @@ export class NotionImporter extends FormatImporter {
 					).join('')}${fileInfo.title}.md`;
 					const newFile = await vault.create(path, markdownBody);
 					if (properties.length > 0) {
-						await app.fileManager.processFrontMatter(
-							newFile,
-							(frontMatter) => {
-								for (let property of properties) {
-									frontMatter[property.title] =
-										property.content;
-								}
+						await app.fileManager.processFrontMatter(newFile, (frontMatter) => {
+							for (let property of properties) {
+								frontMatter[property.title] = property.content;
 							}
-						);
+						});
 					}
 					results.reportNoteSuccess(file.filepath);
 				}
 				else {
 					const attachmentInfo = pathsToAttachmentInfo[file.filepath];
 					if (!attachmentInfo) {
-						throw new Error(
-							'attachment info not found for ' + file.filepath
-						);
+						throw new Error('attachment info not found for ' + file.filepath);
 					}
 
 					const data = await file.read();
@@ -161,16 +154,19 @@ export class NotionImporter extends FormatImporter {
 	}
 }
 
-const isDatabaseCSV = (filename: string) => filename.endsWith('.csv') && getNotionId(filename);
-
 async function processZips(files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
 		await zipFile.readZip(async (zip) => {
 			let files = await readZipFiles(zip);
-
 			for (let file of files) {
-				if (isDatabaseCSV(file.filepath)) continue;
-				await callback(file);
+				if (file.extension === 'csv' && getNotionId(file.name)) continue;
+
+				if (file.extension === 'zip') {
+					await processZips([file], callback);
+				}
+				else {
+					await callback(file);
+				}
 			}
 		});
 	}

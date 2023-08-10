@@ -1,3 +1,4 @@
+import type { Moment } from 'moment';
 import { parseFilePath } from '../../filesystem';
 
 export const stripNotionId = (id: string) => {
@@ -38,20 +39,13 @@ export const assembleParentIds = (
 	);
 };
 
-export function parseDate(content: moment.Moment) {
+export function parseDate(content: Moment) {
 	if (content.hour() === 0 && content.minute() === 0) {
 		return content.format('YYYY-MM-DD');
 	}
 	else {
 		return content.format('YYYY-MM-DDTHH:mm');
 	}
-}
-
-export function parseAttachmentFolderPath(attachmentFolderPath: string) {
-	const attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
-	// Obsidian formatting for attachments in subfolders is ./<folder>
-	const attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
-	return { attachmentsInCurrentFolder, attachmentSubfolder };
 }
 
 export function stripParentDirectories(relativeURI: string) {
