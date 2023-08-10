@@ -139,31 +139,31 @@ export default class ImporterPlugin extends Plugin {
 				name: 'Bear',
 				optionText: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
-				helpPermalink: 'import/bear'
+				helpPermalink: 'import/bear',
 			},
 			'evernote': {
 				name: 'Evernote',
 				optionText: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
-				helpPermalink: 'import/evernote'
+				helpPermalink: 'import/evernote',
 			},
 			'keep': {
 				name: 'Google Keep',
 				optionText: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
-				helpPermalink: 'import/google-keep'
+				helpPermalink: 'import/google-keep',
 			},
 			'html': {
 				name: 'HTML files',
 				optionText: 'HTML (.html)',
 				importer: HtmlImporter,
-				helpPermalink: 'import/html'
+				helpPermalink: 'import/html',
 			},
 			'notion': {
 				name: 'Notion',
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
-				helpPermalink: 'import/notion'
+				helpPermalink: 'import/notion',
 			},
 		};
 
