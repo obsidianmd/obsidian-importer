@@ -1,12 +1,13 @@
-import { BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js';
-import { parseFilePath } from '../filesystem';
+import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js';
+import { parseFilePath, PickedFile } from '../filesystem';
 
 interface FileEntry extends Entry {
 	directory: false;
 	getData: NonNullable<Entry['getData']>;
 }
 
-export class ZipEntryFile {
+export class ZipEntryFile implements PickedFile {
+	type: 'file' = 'file';
 	entry: FileEntry;
 	parent: string;
 	name: string;
@@ -44,6 +45,10 @@ export class ZipEntryFile {
 
 	get mtime() {
 		return this.entry.lastModDate;
+	}
+
+	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+		return callback(new ZipReader(new BlobReader(new Blob([await this.read()]))));
 	}
 }
 
