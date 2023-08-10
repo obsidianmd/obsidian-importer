@@ -1,7 +1,7 @@
 import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting, TFile, TFolder } from "obsidian";
 import { ProgressReporter } from '../main';
-import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
+import { KeepJson, convertStringToKeepJson } from "./keep/models";
 import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from "formats/keep/util";
 import { PickedFile, parseFilePath } from "filesystem";
 import { BlobWriter, TextWriter } from "@zip.js/zip.js";
@@ -127,7 +127,7 @@ export class KeepImporter extends FormatImporter {
 					// else: Silently skip any other unsupported files in the zip
 		
 				} catch(e) {
-					progress.reportFailed(`${file.name} / ${curInnerFilename}`, e);
+					progress.reportFailed(`${file.name}/${curInnerFilename}`, e);
 				}
 			}
 		})
@@ -136,15 +136,15 @@ export class KeepImporter extends FormatImporter {
 	async importKeepNote(rawContent: string, folder: TFolder, title: string, progress: ProgressReporter) {
 		let keepJson = convertStringToKeepJson(rawContent);
 		if(!keepJson) {
-			progress.reportFailed(`${title}.json (Invalid format)`, 'NOT A GOOGLE KEEP JSON');
+			progress.reportFailed(`${title}.json`, 'Invalid Google Keep JSON');
 			return;
 		}
 		if(keepJson.isArchived && !this.importArchived) {
-			progress.reportSkipped(`${title}.json (Archived note)`, 'ARCHIVED NOTE');
+			progress.reportSkipped(`${title}.json`, 'Archived note');
 			return;
 		}
 		if(keepJson.isTrashed && !this.importTrashed) {
-			progress.reportSkipped(`${title}.json (Deleted note)`, 'DELETED NOTE');
+			progress.reportSkipped(`${title}.json`, 'Deleted note');
 			return
 		}
 
