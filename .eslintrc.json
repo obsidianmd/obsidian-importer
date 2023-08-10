@@ -4,7 +4,9 @@
 	"plugins": ["@typescript-eslint"],
 	"root": true,
 	"rules": {
-		"indent": ["error", "tab"],
+		"indent": ["error", "tab", {
+			"SwitchCase": 1
+		}],
 		"prefer-const": 0,
 		"curly": ["error", "multi-line"],
 		"brace-style": ["error", "stroustrup"],

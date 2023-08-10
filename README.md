@@ -8,17 +8,30 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 - [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
 - [x] HTML, folder of files
-- [x] Bear `.bear2bk` (Credits @arthurtyukayev)
-- [ ] Notion
+- [x] Notion, `.zip` of HTML files (thanks to @joshuatazrein)
+- [x] Bear `.bear2bk` (thanks to @arthurtyukayev)
+- [x] Google Keep (thanks to @daledesilva)
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
-- [ ] Google Keep
 - [ ] Roam Research
 - [ ] Other Markdown flavors
 
 ## Usage
 
 First install Importer in Obsidian → Community Plugins
+
+### Import notes from Notion
+- Export your Notion files to `HTML` format. You can export a whole top-level page or database from Notion by clicking **More actions** (`...` icon) and chose **Export.** Chose the following settings:
+
+<img src="images/notion-export-settings.png" width="300" />
+
+- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
+- Under **File format** select **Notion (.html)**
+- Choose the folder(s) of Notion notes you want to import. 
+  - Select the unzipped folder(s), not anything inside of them.
+  - **Note:** *It's recommended to import all your Notion at once so internal links can be reconciled correctly!*
+- Select a folder for the import — your Notion pages and databases will be nested inside this folder.
+- Click **Import**
 
 ### Import notes from Evernote
 
