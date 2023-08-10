@@ -20,30 +20,6 @@ export class KeepImporter extends FormatImporter {
 	importTrashed: boolean = false;
 
 	init() {
-		this.modal.contentEl.createEl('h3', { text: 'Supported features' });
-		const listEl = this.modal.contentEl.createEl('ul');
-		listEl.createEl('li', {
-			text: 'All checklists will import as first level items as Google Keep doesn\'t export indentation information.',
-		});
-		listEl.createEl('li', {
-			text: 'Reminders and user assignments on notes won\'t import as they are not supported by Obsidian.',
-		});
-		listEl.createEl('li', {
-			text: 'All other information should import as a combination of content and tags.',
-		});
-
-		this.modal.contentEl.createEl('h3', { text: 'Exporting from Google Keep' });
-		const firstParaEl = this.modal.contentEl.createEl('p', {
-			text: 'To export your files from Google Keep, open ',
-		});
-		firstParaEl.createEl('a', {
-			text: 'Google Takeout',
-			href: 'https://takeout.google.com/',
-		});
-		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, you can import it directly below or unzip it and select individual files.');
-
-		this.modal.contentEl.createEl('h2', { text: 'Prepare your import' });
-
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
 		this.importArchivedSetting = new Setting(this.modal.contentEl)

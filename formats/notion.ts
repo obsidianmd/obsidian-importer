@@ -17,9 +17,8 @@ export class NotionImporter extends FormatImporter {
 		this.addFileChooserSetting('Exported Notion', ['zip']);
 		this.addOutputLocationSetting('Notion');
 		new Setting(this.modal.contentEl)
-			.setName('Save parents in subfolders')
-			.setDesc('Move parents to their children\'s subfolder to support Folder Notes. ' +
-				'If not selected, parents are placed outside of their children\'s subfolder.')
+			.setName('Save parent pages in subfolders')
+			.setDesc('Places the parent database pages in the same folder as the nested content.')
 			.addToggle((toggle) => toggle
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
