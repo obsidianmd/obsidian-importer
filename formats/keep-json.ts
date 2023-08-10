@@ -1,10 +1,10 @@
-import { DataWriteOptions, Notice, Setting, TFile, TFolder } from 'obsidian';
+import { DataWriteOptions, FrontMatterCache, Notice, Setting, stringifyYaml, TFile, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
 import { readZip } from '../zip/util';
-import { convertStringToKeepJson, KeepJson } from './keep/models';
-import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from './keep/util';
+import { KeepJson } from './keep/models';
+import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -86,46 +86,36 @@ export class KeepImporter extends FormatImporter {
 		let assetFolderPath = `${folder.path}/Assets`;
 
 		for (let file of files) {
-			let { fullpath, extension } = file;
-			try {
-				if (extension === 'zip') {
-					await this.readZipEntries(file, folder, assetFolderPath, progress);
-				}
-				else if (extension === 'json') {
-					await this.importKeepNote(file, folder, progress);
-				}
-				else if (ATTACHMENT_EXTS.contains(extension)) {
-					await this.copyFile(file, assetFolderPath, progress);
-				}
-				else {
-					progress.reportSkipped(fullpath);
-				}
+			await this.handleFile(file, folder, assetFolderPath, progress);
+		}
+	}
+
+	async handleFile(file: PickedFile, folder: TFolder, assetFolderPath: string, progress: ProgressReporter) {
+		let { fullpath, extension } = file;
+		try {
+			if (extension === 'zip') {
+				await this.readZipEntries(file, folder, assetFolderPath, progress);
 			}
-			catch (e) {
-				progress.reportFailed(fullpath, e);
+			else if (extension === 'json') {
+				await this.importKeepNote(file, folder, progress);
+			}
+			else if (ATTACHMENT_EXTS.contains(extension)) {
+				await this.copyFile(file, assetFolderPath);
+				progress.reportAttachmentSuccess(fullpath);
+			}
+			else {
+				progress.reportSkipped(fullpath);
 			}
 		}
-
+		catch (e) {
+			progress.reportFailed(fullpath, e);
+		}
 	}
 
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, progress: ProgressReporter) {
 		await readZip(file, async (zip, entries) => {
 			for (let entry of entries) {
-				let { fullpath, extension } = file;
-				try {
-					if (extension === 'json') {
-						await this.importKeepNote(entry, folder, progress);
-					}
-					else if (ATTACHMENT_EXTS.contains(extension)) {
-						await this.copyFile(entry, assetFolderPath, progress);
-					}
-					else {
-						progress.reportSkipped(fullpath);
-					}
-				}
-				catch (e) {
-					progress.reportFailed(fullpath, e);
-				}
+				await this.handleFile(entry, folder, assetFolderPath, progress);
 			}
 		});
 	}
@@ -133,8 +123,9 @@ export class KeepImporter extends FormatImporter {
 	async importKeepNote(file: PickedFile, folder: TFolder, progress: ProgressReporter) {
 		let { fullpath } = file;
 		let content = await file.readText();
-		let keepJson = convertStringToKeepJson(content);
-		if (!keepJson) {
+
+		const keepJson = JSON.parse(content) as KeepJson;
+		if (!keepJson || !keepJson.userEditedTimestampUsec || !keepJson.createdTimestampUsec) {
 			progress.reportFailed(fullpath, 'Invalid Google Keep JSON');
 			return;
 		}
@@ -152,46 +143,92 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
-	async copyFile(file: PickedFile, folderPath: string, progress: ProgressReporter) {
+	async copyFile(file: PickedFile, folderPath: string) {
 		let assetFolder = await this.createFolders(folderPath);
 		let data = await file.read();
 		await this.vault.createBinary(`${assetFolder.path}/${file.name}`, data);
-		progress.reportAttachmentSuccess(file.fullpath);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
-		let mdContent = convertJsonToMd(keepJson);
-		const fileRef = await this.saveAsMarkdownFile(folder, filename, mdContent);
-		await this.addKeepFrontMatter(fileRef, keepJson);
-
-		await this.modifyWriteOptions(fileRef, {
+		let mdContent = this.convertJsonToMd(keepJson);
+		const file = await this.saveAsMarkdownFile(folder, filename, mdContent);
+		await this.modifyWriteOptions(file, {
 			ctime: keepJson.createdTimestampUsec / 1000,
 			mtime: keepJson.userEditedTimestampUsec / 1000,
 		});
 	}
 
-	async addKeepFrontMatter(fileRef: TFile, keepJson: KeepJson) {
-		await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
+	convertJsonToMd(jsonContent: KeepJson): string {
+		let mdContent: string[] = [];
 
-			if (keepJson.title) addAliasToFrontmatter(frontmatter, keepJson.title);
+		mdContent.push(this.addKeepFrontMatter(jsonContent));
 
-			// Add in tags to represent Keep properties
-			if (keepJson.color && keepJson.color !== 'DEFAULT') {
-				let colorName = keepJson.color.toLowerCase();
-				colorName = toSentenceCase(colorName);
-				addTagToFrontmatter(frontmatter, `Keep/Color/${colorName}`);
+		if (jsonContent.textContent) {
+			mdContent.push('\n');
+			const normalizedTextContent = sanitizeTags(jsonContent.textContent);
+			mdContent.push(`${normalizedTextContent}`);
+		}
+
+		if (jsonContent.listContent) {
+			let mdListContent = [];
+			for (const listItem of jsonContent.listContent) {
+				// Don't put in blank checkbox items
+				if (!listItem.text) continue;
+
+				let listItemContent = `- [${listItem.isChecked ? 'X' : ' '}] ${listItem.text}`;
+				mdListContent.push(sanitizeTags(listItemContent));
 			}
-			if (keepJson.isPinned) addTagToFrontmatter(frontmatter, 'Keep/Pinned');
-			if (keepJson.attachments) addTagToFrontmatter(frontmatter, 'Keep/Attachment');
-			if (keepJson.isArchived) addTagToFrontmatter(frontmatter, 'Keep/Archived');
-			if (keepJson.isTrashed) addTagToFrontmatter(frontmatter, 'Keep/Deleted');
 
-			if (keepJson.labels) {
-				for (let i = 0; i < keepJson.labels.length; i++) {
-					addTagToFrontmatter(frontmatter, `Keep/Label/${keepJson.labels[i].name}`);
-				}
+			mdContent.push('\n\n');
+			mdContent.push(mdListContent.join('\n'));
+		}
+
+		if (jsonContent.attachments) {
+			mdContent.push('\n\n');
+			for (const attachment of jsonContent.attachments) {
+				mdContent.push(`![[${attachment.filePath}]]`);
 			}
-		});
+		}
+
+
+		return mdContent.join('');
+	}
+
+	addKeepFrontMatter(keepJson: KeepJson) {
+		let frontMatter: FrontMatterCache = {};
+
+		if (keepJson.title) {
+			frontMatter['aliases'] = keepJson.title.split('\n').join(', ');
+		}
+
+		let tags = [];
+
+		// Add in tags to represent Keep properties
+		if (keepJson.color && keepJson.color !== 'DEFAULT') {
+			let colorName = keepJson.color.toLowerCase();
+			colorName = toSentenceCase(colorName);
+			tags.push(`Keep/Color/${colorName}`);
+		}
+		if (keepJson.isPinned) tags.push('Keep/Pinned');
+		if (keepJson.attachments) tags.push('Keep/Attachment');
+		if (keepJson.isArchived) tags.push('Keep/Archived');
+		if (keepJson.isTrashed) tags.push('Keep/Deleted');
+
+		if (keepJson.labels) {
+			for (let i = 0; i < keepJson.labels.length; i++) {
+				tags.push(`Keep/Label/${keepJson.labels[i].name}`);
+			}
+		}
+
+		if (tags.length > 0) {
+			frontMatter['tags'] = tags.map(tag => sanitizeTag(tag));
+		}
+
+		if (!Object.isEmpty(frontMatter)) {
+			return '---\n' + stringifyYaml(frontMatter) + '---\n';
+		}
+
+		return '';
 	}
 
 	/**

@@ -35,16 +35,3 @@ export interface KeepJson {
 	labels?: KeepLabel[];
 	sharees?: KeepSharee[];
 }
-
-/**
- * Accepts a string and attempts to parse it into a valid Google Keep JSON
- */
-export function convertStringToKeepJson(rawContent: string): KeepJson | null {
-	const keepJson = JSON.parse(rawContent);
-
-	// Check file matches expected mandatory items in Keep interface
-	if (typeof keepJson.userEditedTimestampUsec === 'undefined') return null;
-	if (typeof keepJson.createdTimestampUsec === 'undefined') return null;
-
-	return keepJson;
-}
