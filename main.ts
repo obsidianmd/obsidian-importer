@@ -147,17 +147,17 @@ export default class ImporterPlugin extends Plugin {
 				importer: EvernoteEnexImporter,
 				helpPermalink: 'import/evernote'
 			},
-			'html': {
-				name: 'HTML files',
-				optionText: 'HTML (.html)',
-				importer: HtmlImporter,
-				helpPermalink: 'import/html'
-			},
 			'keep': {
 				name: 'Google Keep',
 				optionText: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
 				helpPermalink: 'import/google-keep'
+			},
+			'html': {
+				name: 'HTML files',
+				optionText: 'HTML (.html)',
+				importer: HtmlImporter,
+				helpPermalink: 'import/html'
 			},
 			'notion': {
 				name: 'Notion',
