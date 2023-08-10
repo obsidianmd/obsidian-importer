@@ -34,13 +34,13 @@ export abstract class FormatImporter {
 						if (allowMultiple) {
 							properties.push('multiSelections');
 						}
-						let result = await window.electron.remote.dialog.showOpenDialog({
+						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
 							title: 'Pick files to import', properties,
 							filters: [{ name, extensions }],
 						});
 
-						if (!result.canceled && result.filePaths.length > 0) {
-							this.files = result.filePaths.map((filepath: string) => new NodePickedFile(filepath));
+						if (filePaths.length > 0) {
+							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
 							updateFiles();
 						}
 					}
@@ -66,14 +66,14 @@ export abstract class FormatImporter {
 				.setButtonText('Choose folders')
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
-						let result = await window.electron.remote.dialog.showOpenDialog({
+						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
 							title: 'Pick folders to import',
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 						});
 
-						if (!result.canceled && result.filePaths.length > 0) {
+						if (filePaths.length > 0) {
 							fileLocationSetting.setDesc('Reading folders...');
-							let folders = result.filePaths.map((filepath: string) => new NodePickedFolder(filepath));
+							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
 							updateFiles();
 						}
