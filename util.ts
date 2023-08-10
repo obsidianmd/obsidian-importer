@@ -1,4 +1,3 @@
-
 let illegalRe = /[\/\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
@@ -14,29 +13,12 @@ export function sanitizeFileName(name: string) {
 		.replace(windowsTrailingRe, '');
 }
 
-export class PromiseExecutor {
-	readonly pool: PromiseLike<number>[];
-	revision: object = {};
-
-	constructor(concurrency: number) {
-		this.pool = [...new Array(concurrency)].map((_0, index) => Promise.resolve(index));
+export function genUid(length: number): string {
+	let array: string[] = [];
+	for (let i = 0; i < length; i++) {
+		array.push((Math.random() * 16 | 0).toString(16));
 	}
-
-	async run<T>(func: () => PromiseLike<T>): Promise<T> {
-		if (this.pool.length <= 0) {
-			return await func();
-		}
-		let { revision } = this;
-		let index = await Promise.race(this.pool);
-		while (this.revision !== revision) {
-			revision = this.revision;
-			index = await Promise.race(this.pool);
-		}
-		this.revision = {};
-		const ret = func();
-		this.pool[index] = ret.then(() => index, () => index);
-		return await ret;
-	}
+	return array.join('');
 }
 
 export function parseHTML(html: string): HTMLElement {
