@@ -88,26 +88,31 @@ export function convertJsonToMd(jsonContent: KeepJson): string {
     let mdContent = [];
 
     if(jsonContent.textContent) {
+		mdContent.push(`\n`);
         const normalizedTextContent = sanitizeTags(jsonContent.textContent);
-        mdContent.push(`${normalizedTextContent}\n`);
+        mdContent.push(`${normalizedTextContent}`);
     }
-
+	
     if(jsonContent.listContent) {
-        if(mdContent) mdContent.push(`\n\n`);
+		let mdListContent = [];
         for (const listItem of jsonContent.listContent) {
-            // Don't put in blank checkbox items
+			// Don't put in blank checkbox items
             if(!listItem.text) continue;
             
-            let listItemContent = `- [${listItem.isChecked ? 'X' : ' '}] ${listItem.text}\n`;
-            mdContent.push(sanitizeTags(listItemContent));
+            let listItemContent = `- [${listItem.isChecked ? 'X' : ' '}] ${listItem.text}`;
+            mdListContent.push(sanitizeTags(listItemContent));
         }
+		
+		mdContent.push(`\n\n`);
+		mdContent.push(mdListContent.join('\n'));
     }
-
+	
     if(jsonContent.attachments) {
+		mdContent.push(`\n\n`);
         for (const attachment of jsonContent.attachments) {
-            mdContent.push(`\n\n![[${attachment.filePath}]]`);
+			mdContent.push(`![[${attachment.filePath}]]`);
         }
     }
 
-    return mdContent.join('');	
+    return mdContent.join('');
 }
