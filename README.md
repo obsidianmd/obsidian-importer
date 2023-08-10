@@ -12,7 +12,7 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 - [x] Bear `.bear2bk` (Credits @arthurtyukayev)
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
-- [ ] Google Keep
+- [x] Google Keep
 - [ ] Roam Research
 - [ ] Other Markdown flavors
 

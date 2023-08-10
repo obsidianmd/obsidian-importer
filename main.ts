@@ -1,8 +1,9 @@
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { KeepImporter } from 'formats/keep-json';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
+import { App, Modal, Plugin, Setting } from 'obsidian';
 import { NotionImporter } from './formats/notion';
 
 declare global {
@@ -68,6 +69,10 @@ export default class ImporterPlugin extends Plugin {
 			'bear': {
 				name: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
+			},
+			'keep': {
+				name: 'Google Keep (.zip/.json)',
+				importer: KeepImporter,
 			},
 		};
 
