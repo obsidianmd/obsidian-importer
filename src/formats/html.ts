@@ -68,14 +68,14 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const fileLookup = new Map<string, TFile>;
+		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
 		progress.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			progress.reportProgress(i, files.length);
 			const file = files[i];
 			const tFile = await this.processFile(progress, folder, file);
 			if (tFile) {
-				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, tFile);
+				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, { file, tFile });
 			}
 		}
 
@@ -96,10 +96,10 @@ export class HtmlImporter extends FormatImporter {
 				await this.app.vault.process(aFile, data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 			}
 
-			for (const [fileURL, file] of fileLookup) {
+			for (const [fileKey, { file, tFile }] of fileLookup) {
 				try {
 					// Attempt to parse links using MetadataCache
-					let mdContent = await this.app.vault.cachedRead(file);
+					let mdContent = await this.app.vault.cachedRead(tFile);
 					let cache;
 					// @ts-ignore
 					if (metadataCache.computeMetadataAsync) {
@@ -107,7 +107,7 @@ export class HtmlImporter extends FormatImporter {
 						cache = await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata;
 					}
 					else {
-						cache = metadataCache.getFileCache(file);
+						cache = metadataCache.getFileCache(tFile);
 						if (!cache) continue;
 					}
 
@@ -116,18 +116,18 @@ export class HtmlImporter extends FormatImporter {
 					if (cache.links) {
 						for (const { link, position, displayText } of cache.links) {
 							const { path, subpath } = parseLinktext(link);
-							let linkURL;
+							let linkKey;
 							if (nodeUrl) {
-								const url = new URL(encodeURI(path), fileURL);
+								const url = new URL(encodeURI(path), fileKey);
 								url.hash = '';
 								url.search = '';
-								linkURL = decodeURIComponent(url.href);
+								linkKey = decodeURIComponent(url.href);
 							}
 							else {
-								linkURL = parseFilePath(path.replace(/#/gu, '%23')).name;
+								linkKey = parseFilePath(path.replace(/#/gu, '%23')).name;
 							}
-							if (fileLookup.has(linkURL)) {
-								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkURL)!, file.path, subpath, displayText);
+							if (fileLookup.has(linkKey)) {
+								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkKey)!.tFile, tFile.path, subpath, displayText);
 								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
 							}
 						}
@@ -139,10 +139,10 @@ export class HtmlImporter extends FormatImporter {
 						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 					}
 
-					await this.vault.modify(file, mdContent);
+					await this.vault.modify(tFile, mdContent);
 				}
 				catch (e) {
-					progress.reportFailed(file.name, e);
+					progress.reportFailed(file.fullpath, e);
 				}
 			}
 		}
