@@ -81,7 +81,7 @@ export class ProgressReporter {
 	reportAttachmentSuccess(name: string) {
 		this.attachments++;
 
-		this.attachmentCountEl.setText(this.skipped.length.toString());
+		this.attachmentCountEl.setText(attachments.toString());
 	}
 
 	reportSkipped(name: string, reason?: any) {
