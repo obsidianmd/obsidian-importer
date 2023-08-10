@@ -1,7 +1,8 @@
 import { App, DataWriteOptions, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ProgressReporter } from './main';
-import { sanitizeFileName, sanitizeTag } from './util';
+import { sanitizeFileName } from './util';
+import { sanitizeTag } from "formats/keep/util";
 
 export abstract class FormatImporter {
 	app: App;

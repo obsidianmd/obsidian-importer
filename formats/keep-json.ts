@@ -1,9 +1,8 @@
 import { FormatImporter } from "../format-importer";
 import { DataWriteOptions, Notice, Setting, TFile, TFolder } from "obsidian";
 import { ProgressReporter } from '../main';
-import { convertJsonToMd } from "./keep/convert-json-to-md";
 import { KeepJson, convertStringToKeepJson } from "./keep/models/keep-json";
-import { addAliasToFrontmatter, addTagToFrontmatter, toSentenceCase } from "../util";
+import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from "formats/keep/util";
 import { PickedFile, parseFilePath } from "filesystem";
 import { BlobWriter, TextWriter } from "@zip.js/zip.js";
 
