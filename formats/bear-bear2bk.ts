@@ -1,8 +1,8 @@
-import { BlobWriter, TextWriter } from '@zip.js/zip.js';
 import { parseFilePath } from 'filesystem';
 import { normalizePath, Notice } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
+import { readZipFiles } from '../zip/util';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -30,14 +30,13 @@ export class Bear2bkImporter extends FormatImporter {
 
 		for (let file of files) {
 			await file.readZip(async zip => {
-				for (let entry of await zip.getEntries()) {
-					if (!entry || entry.directory || !entry.getData) continue;
-					let { filename } = entry;
-					let { parent, name, extension } = parseFilePath(filename);
+				for (let entry of await readZipFiles(zip)) {
+					let { filepath, parent, name, extension } = entry;
+					let fullname = file.name + '/' + filepath;
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
-							let mdContent = await entry.getData(new TextWriter());
+							let mdContent = await entry.readText();
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
@@ -46,24 +45,24 @@ export class Bear2bkImporter extends FormatImporter {
 							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
 							progress.reportNoteSuccess(mdFilename);
 						}
-						else if (filename.match(/\/assets\//g)) {
+						else if (filepath.match(/\/assets\//g)) {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								progress.reportSkipped(filename);
+								progress.reportSkipped(fullname);
 							}
 							else {
-								const assetData = await entry.getData(new BlobWriter());
-								await this.vault.createBinary(assetFileVaultPath, await assetData.arrayBuffer());
-								progress.reportAttachmentSuccess(filename);
+								const assetData = await entry.read();
+								await this.vault.createBinary(assetFileVaultPath, assetData);
+								progress.reportAttachmentSuccess(fullname);
 							}
 						}
 						else {
-							progress.reportSkipped(filename);
+							progress.reportSkipped(fullname);
 						}
 					}
 					catch (e) {
-						progress.reportFailed(filename, e);
+						progress.reportFailed(fullname, e);
 					}
 				}
 			});

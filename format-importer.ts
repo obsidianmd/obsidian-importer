@@ -20,7 +20,7 @@ export abstract class FormatImporter {
 
 	abstract init(): void;
 
-	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = true) {
+	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false) {
 		let fileLocationSetting = new Setting(this.modal.contentEl)
 			.setName('Files to import')
 			.setDesc('Pick the files that you want to import.')
@@ -121,11 +121,6 @@ export abstract class FormatImporter {
 	}
 
 	abstract import(progress: ProgressReporter): Promise<any>;
-
-	// Deprecated, only here until current PRs are closed
-	showResult(result: any) {
-		console.log(result);
-	}
 
 	// Utility functions for vault
 

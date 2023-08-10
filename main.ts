@@ -4,6 +4,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { App, Modal, Plugin, Setting } from 'obsidian';
+import { NotionImporter } from './formats/notion';
 
 declare global {
 	interface Window {
@@ -15,13 +16,6 @@ declare global {
 interface ImporterDefinition {
 	name: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
-}
-
-// Deprecated, only here until current PRs are closed
-export interface ImportResult {
-	total: number,
-	failed: string[],
-	skipped: string[]
 }
 
 export class ProgressReporter {
@@ -67,6 +61,10 @@ export default class ImporterPlugin extends Plugin {
 			'html': {
 				name: 'HTML (.html)',
 				importer: HtmlImporter,
+			},
+			'notion': {
+				name: 'Notion (.zip)',
+				importer: NotionImporter,
 			},
 			'bear': {
 				name: 'Bear (.bear2bk)',

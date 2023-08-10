@@ -45,7 +45,7 @@ export class KeepImporter extends FormatImporter {
 
 		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
 
-		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS]);
+		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
 		this.importArchivedSetting = new Setting(this.modal.contentEl)
             .setName('Import archived notes')
