@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-importer",
 	"name": "Importer",
-	"version": "1.0.4",
+	"version": "1.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Import notes from other apps like Evernote.",
 	"author": "Obsidian",
