@@ -63,7 +63,7 @@ export abstract class FormatImporter {
 
 		if (allowMultiple && Platform.isDesktopApp) {
 			fileLocationSetting.addButton(button => button
-				.setButtonText('Choose folder')
+				.setButtonText('Choose folders')
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
 						let result = await window.electron.remote.dialog.showOpenDialog({
