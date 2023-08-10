@@ -3,6 +3,8 @@ import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFil
 import { ImporterModal, ProgressReporter } from './main';
 import { sanitizeFileName } from './util';
 
+const MAX_PATH_DESCRIPTION_LENGTH = 300;
+
 export abstract class FormatImporter {
 	app: App;
 	vault: Vault;
@@ -81,9 +83,14 @@ export abstract class FormatImporter {
 
 		let updateFiles = () => {
 			let descriptionFragment = document.createDocumentFragment();
-			descriptionFragment.createEl('span', { text: 'These files will be imported: ' });
+			let fileCount = this.files.length;
+			let pathText = this.files.map(f => f.name).join(', ');
+			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
+				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
+			}
+			descriptionFragment.createEl('span', { text: `These ${fileCount} files will be imported: ` });
 			descriptionFragment.createEl('br');
-			descriptionFragment.createEl('span', { cls: 'u-pop', text: this.files.map(f => f.name).join(', ') });
+			descriptionFragment.createEl('span', { cls: 'u-pop', text: pathText});
 			fileLocationSetting.setDesc(descriptionFragment);
 		};
 	}
