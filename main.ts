@@ -23,6 +23,7 @@ export class ProgressReporter {
 	attachments = 0;
 	skipped: string[] = [];
 	failed: string[] = [];
+	maxFileNameLength: number = 100;
 
 	el: HTMLElement;
 	progressBarEl: HTMLElement;
@@ -31,6 +32,7 @@ export class ProgressReporter {
 	remainingCountEl: HTMLElement;
 	skippedCountEl: HTMLElement;
 	failedCountEl: HTMLElement;
+	importLogEl: HTMLElement;
 
 	constructor(el: HTMLElement) {
 		this.el = el;
@@ -43,50 +45,72 @@ export class ProgressReporter {
 
 		el.createDiv('import-stats-container', el => {
 			el.createDiv('import-stat mod-imported', el => {
-				this.importedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				this.importedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
 				el.createDiv({ cls: 'import-stat-name', text: 'imported' });
 			});
 			el.createDiv('import-stat mod-attachments', el => {
-				this.attachmentCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				this.attachmentCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
 				el.createDiv({ cls: 'import-stat-name', text: 'attachments' });
 			});
 			el.createDiv('import-stat mod-remaining', el => {
-				this.remainingCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				this.remainingCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
 				el.createDiv({ cls: 'import-stat-name', text: 'remaining' });
 			});
 			el.createDiv('import-stat mod-skipped', el => {
-				this.skippedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				this.skippedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
 				el.createDiv({ cls: 'import-stat-name', text: 'skipped' });
 			});
 			el.createDiv('import-stat mod-failed', el => {
-				this.failedCountEl = el.createDiv({cls: 'import-stat-count', text: '0'});
+				this.failedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
 				el.createDiv({ cls: 'import-stat-name', text: 'failed' });
 			});
 		});
+
+		this.importLogEl = el.createDiv('import-log');
+		this.importLogEl.hide();
 	}
 
 	reportNoteSuccess(name: string) {
 		this.notes++;
-		console.log('Import success', name);
+
 		this.importedCountEl.setText(this.skipped.length.toString());
 	}
 
 	reportAttachmentSuccess(name: string) {
 		this.attachments++;
-		console.log('Import success', name);
+
 		this.attachmentCountEl.setText(this.skipped.length.toString());
 	}
 
 	reportSkipped(name: string, reason?: any) {
+		let { importLogEl } = this;
 		this.skipped.push(name);
+
 		console.log('Import skipped', name, reason);
-		this.failedCountEl.setText(this.skipped.length.toString());
+
+		this.skippedCountEl.setText(this.skipped.length.toString());
+		this.importLogEl.createDiv('list-item', el => {
+			el.createSpan({ cls: 'import-error', text: `Skipped: ` });
+			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
+		});
+		importLogEl.scrollTop = importLogEl.scrollHeight;
+		importLogEl.show();
 	}
 
 	reportFailed(name: string, reason?: any) {
+		let { importLogEl } = this;
+
 		this.failed.push(name);
+
 		console.log('Import failed', name, reason);
+
 		this.failedCountEl.setText(this.failed.length.toString());
+		this.importLogEl.createDiv('list-item', el => {
+			el.createSpan({ cls: 'import-error', text: `Failed: ` });
+			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
+		});
+		importLogEl.scrollTop = importLogEl.scrollHeight;
+		importLogEl.show();
 	}
 
 	reportProgress(current: number, total: number) {
@@ -95,6 +119,15 @@ export class ProgressReporter {
 		this.importedCountEl.setText(current.toString());
 		this.progressBarEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
+
+	truncateText(text: string) {
+		if (text.length < this.maxFileNameLength) {
+			return text;
+		}
+
+		return text.substring(0, 100) + '...';
+	}
+
 }
 
 export default class ImporterPlugin extends Plugin {
@@ -198,65 +231,26 @@ export class ImporterModal extends Modal {
 			contentEl.createDiv('button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
-
 						contentEl.empty();
 						let progressEl = contentEl.createDiv();
+
 						let progress = new ProgressReporter(progressEl);
-						// this.modalEl.addClass('is-loading');
 						try {
 							await importer.import(progress);
 						}
 						finally {
-							// this.modalEl.removeClass('is-loading');
-							// this.showResult(progress);
+							contentEl.createDiv('button-container u-center-text', el => {
+								el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+									el.addEventListener('click', async () => {
+										this.close();
+									});
+								});
+							});
 						}
 					});
 				});
 			});
 		}
-	}
-
-	showResult(result: ProgressReporter) {
-		let { contentEl } = this;
-		let { notes, attachments, skipped, failed } = result;
-
-		contentEl.empty();
-
-		let numNotes = `${notes} notes`;
-		if (attachments > 0) {
-			numNotes += ` and ${attachments} attachments`;
-		}
-		contentEl.createEl('p', { text: `You successfully imported ${numNotes}!` });
-
-		if (skipped.length > 0 || failed.length > 0) {
-			contentEl.createEl('p', { text: `${skipped.length} notes were skipped and ${failed.length} notes failed to import.` });
-		}
-
-		if (skipped.length > 0) {
-			contentEl.createEl('p', { text: 'Skipped notes:' });
-			contentEl.createEl('ul', {}, el => {
-				for (let note of skipped) {
-					el.createEl('li', { text: note });
-				}
-			});
-		}
-
-		if (failed.length > 0) {
-			contentEl.createEl('p', { text: 'Failed to import:' });
-			contentEl.createEl('ul', {}, el => {
-				for (let note of failed) {
-					el.createEl('li', { text: note });
-				}
-			});
-		}
-
-		contentEl.createDiv('button-container u-center-text', el => {
-			el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
-				el.addEventListener('click', async () => {
-					this.close();
-				});
-			});
-		});
 	}
 
 	onClose() {
