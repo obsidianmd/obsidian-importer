@@ -9,6 +9,8 @@ configureWebWorker(configure);
 
 export interface PickedFile {
 	type: 'file';
+	/** Full path, including container zip names, for debugging/reporting purposes */
+	fullpath: string;
 	/** File name, including extension */
 	name: string;
 	/** Base file name, without extension */
@@ -47,6 +49,7 @@ export class NodePickedFile implements PickedFile {
 	type: 'file' = 'file';
 	filepath: string;
 
+	fullpath: string;
 	name: string;
 	basename: string;
 	extension: string;
@@ -54,6 +57,8 @@ export class NodePickedFile implements PickedFile {
 	constructor(filepath: string) {
 		this.filepath = filepath;
 		let name = this.name = path.basename(filepath);
+		// Use only the name here since the parent folder isn't relevant
+		this.fullpath = name;
 		// Extension with dot
 		let extension = path.extname(name);
 		// Extension without dot
@@ -128,6 +133,7 @@ export class WebPickedFile implements PickedFile {
 	type: 'file' = 'file';
 	file: File;
 
+	fullpath: string;
 	name: string;
 	basename: string;
 	extension: string;
@@ -135,6 +141,7 @@ export class WebPickedFile implements PickedFile {
 	constructor(file: File) {
 		this.file = file;
 		let name = this.name = file.name;
+		this.fullpath = name;
 
 		let { basename, extension } = parseFilePath(name);
 

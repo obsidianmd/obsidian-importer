@@ -2,7 +2,7 @@ import { parseFilePath } from 'filesystem';
 import { normalizePath, Notice } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { readZipFiles } from '../zip/util';
+import { readZip } from '../zip/util';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -29,10 +29,9 @@ export class Bear2bkImporter extends FormatImporter {
 		const assetMatcher = /!\[\]\(assets\//g;
 
 		for (let file of files) {
-			await file.readZip(async zip => {
-				for (let entry of await readZipFiles(zip)) {
-					let { filepath, parent, name, extension } = entry;
-					let fullname = file.name + '/' + filepath;
+			await readZip(file, async (zip, entries) => {
+				for (let entry of entries) {
+					let { fullpath, filepath, parent, name, extension } = entry;
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
@@ -49,20 +48,20 @@ export class Bear2bkImporter extends FormatImporter {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								progress.reportSkipped(fullname);
+								progress.reportSkipped(fullpath);
 							}
 							else {
 								const assetData = await entry.read();
 								await this.vault.createBinary(assetFileVaultPath, assetData);
-								progress.reportAttachmentSuccess(fullname);
+								progress.reportAttachmentSuccess(fullpath);
 							}
 						}
 						else {
-							progress.reportSkipped(fullname);
+							progress.reportSkipped(fullpath);
 						}
 					}
 					catch (e) {
-						progress.reportFailed(fullname, e);
+						progress.reportFailed(fullpath, e);
 					}
 				}
 			});

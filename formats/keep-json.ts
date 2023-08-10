@@ -2,7 +2,7 @@ import { DataWriteOptions, Notice, Setting, TFile, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { readZipFiles } from '../zip/util';
+import { readZip } from '../zip/util';
 import { convertStringToKeepJson, KeepJson } from './keep/models';
 import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from './keep/util';
 
@@ -86,34 +86,33 @@ export class KeepImporter extends FormatImporter {
 		let assetFolderPath = `${folder.path}/Assets`;
 
 		for (let file of files) {
+			let { fullpath, extension } = file;
 			try {
-				if (file.extension === 'zip') {
+				if (extension === 'zip') {
 					await this.readZipEntries(file, folder, assetFolderPath, progress);
-
 				}
-				else if (file.extension === 'json') {
+				else if (extension === 'json') {
 					await this.importKeepNote(file, folder, progress);
-
 				}
-				else {
+				else if (ATTACHMENT_EXTS.contains(extension)) {
 					await this.copyFile(file, assetFolderPath, progress);
 				}
-
+				else {
+					progress.reportSkipped(fullpath);
+				}
 			}
 			catch (e) {
-				progress.reportFailed(file.name, e);
+				progress.reportFailed(fullpath, e);
 			}
 		}
 
 	}
 
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, progress: ProgressReporter) {
-		await file.readZip(async zip => {
-			let files = await readZipFiles(zip);
-			for (let entry of files) {
-				let fullPath = `${file.name}/${entry.filepath}`;
+		await readZip(file, async (zip, entries) => {
+			for (let entry of entries) {
+				let { fullpath, extension } = file;
 				try {
-					let { extension } = entry;
 					if (extension === 'json') {
 						await this.importKeepNote(entry, folder, progress);
 					}
@@ -121,34 +120,35 @@ export class KeepImporter extends FormatImporter {
 						await this.copyFile(entry, assetFolderPath, progress);
 					}
 					else {
-						progress.reportSkipped(fullPath);
+						progress.reportSkipped(fullpath);
 					}
 				}
 				catch (e) {
-					progress.reportFailed(fullPath, e);
+					progress.reportFailed(fullpath, e);
 				}
 			}
 		});
 	}
 
 	async importKeepNote(file: PickedFile, folder: TFolder, progress: ProgressReporter) {
+		let { fullpath } = file;
 		let content = await file.readText();
 		let keepJson = convertStringToKeepJson(content);
 		if (!keepJson) {
-			progress.reportFailed(file.name, 'Invalid Google Keep JSON');
+			progress.reportFailed(fullpath, 'Invalid Google Keep JSON');
 			return;
 		}
 		if (keepJson.isArchived && !this.importArchived) {
-			progress.reportSkipped(file.name, 'Archived note');
+			progress.reportSkipped(fullpath, 'Archived note');
 			return;
 		}
 		if (keepJson.isTrashed && !this.importTrashed) {
-			progress.reportSkipped(file.name, 'Deleted note');
+			progress.reportSkipped(fullpath, 'Deleted note');
 			return;
 		}
 
 		await this.convertKeepJson(keepJson, folder, file.basename);
-		progress.reportNoteSuccess(file.name);
+		progress.reportNoteSuccess(fullpath);
 	}
 
 	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
@@ -156,7 +156,7 @@ export class KeepImporter extends FormatImporter {
 		let assetFolder = await this.createFolders(folderPath);
 		let data = await file.read();
 		await this.vault.createBinary(`${assetFolder.path}/${file.name}`, data);
-		progress.reportAttachmentSuccess(file.name);
+		progress.reportAttachmentSuccess(file.fullpath);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {

@@ -2,7 +2,7 @@ import { normalizePath, Notice, Setting } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { readZipFiles, ZipEntryFile } from '../zip/util';
+import { readZip, ZipEntryFile } from '../zip/util';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
 import { NotionResolverInfo } from './notion/notion-types';
@@ -51,7 +51,7 @@ export class NotionImporter extends FormatImporter {
 				await parseFileInfo(info, file);
 			}
 			catch (e) {
-				results.reportSkipped(file.filepath);
+				results.reportSkipped(file.fullpath);
 			}
 		});
 
@@ -107,7 +107,7 @@ export class NotionImporter extends FormatImporter {
 							}
 						});
 					}
-					results.reportNoteSuccess(file.filepath);
+					results.reportNoteSuccess(file.fullpath);
 				}
 				else {
 					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];
@@ -122,11 +122,11 @@ export class NotionImporter extends FormatImporter {
 						),
 						data
 					);
-					results.reportAttachmentSuccess(file.filepath);
+					results.reportAttachmentSuccess(file.fullpath);
 				}
 			}
 			catch (e) {
-				results.reportFailed(file.filepath, e);
+				results.reportFailed(file.fullpath, e);
 			}
 		});
 	}
@@ -134,16 +134,15 @@ export class NotionImporter extends FormatImporter {
 
 async function processZips(files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
-		await zipFile.readZip(async (zip) => {
-			let files = await readZipFiles(zip);
-			for (let file of files) {
-				if (file.extension === 'csv' && getNotionId(file.name)) continue;
+		await readZip(zipFile, async (zip, entries) => {
+			for (let entry of entries) {
+				if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
 
-				if (file.extension === 'zip') {
-					await processZips([file], callback);
+				if (entry.extension === 'zip') {
+					await processZips([entry], callback);
 				}
 				else {
-					await callback(file);
+					await callback(entry);
 				}
 			}
 		});

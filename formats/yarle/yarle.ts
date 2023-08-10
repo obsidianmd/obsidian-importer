@@ -103,7 +103,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 
 	return new Promise((resolve, reject) => {
 		const logAndReject = (e: Error) => {
-			progress.reportFailed(enexSource.toString(), e);
+			progress.reportFailed(enexSource.fullpath, e);
 			return reject(e);
 		};
 

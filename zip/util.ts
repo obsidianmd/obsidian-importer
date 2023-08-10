@@ -9,13 +9,15 @@ interface FileEntry extends Entry {
 export class ZipEntryFile implements PickedFile {
 	type: 'file' = 'file';
 	entry: FileEntry;
+	fullpath: string;
 	parent: string;
 	name: string;
 	basename: string;
 	extension: string;
 
-	constructor(entry: FileEntry) {
+	constructor(zip: PickedFile, entry: FileEntry) {
 		this.entry = entry;
+		this.fullpath = zip.fullpath + '/' + entry.filename;
 		let { parent, name, basename, extension } = parseFilePath(entry.filename);
 		this.parent = parent;
 		this.name = name;
@@ -52,7 +54,13 @@ export class ZipEntryFile implements PickedFile {
 	}
 }
 
-export async function readZipFiles(zip: ZipReader<any>) {
-	let entries = await zip.getEntries();
-	return entries.filter((entry): entry is FileEntry => !entry.directory && !!entry.getData).map(entry => new ZipEntryFile(entry));
+export async function readZip(file: PickedFile, callback: (zip: ZipReader<any>, entries: ZipEntryFile[]) => Promise<void>) {
+	await file.readZip(async zip => {
+		let entries = await zip.getEntries();
+		let files = entries
+			.filter((entry): entry is FileEntry => !entry.directory && !!entry.getData)
+			.map(entry => new ZipEntryFile(file, entry));
+
+		return callback(zip, files);
+	});
 }

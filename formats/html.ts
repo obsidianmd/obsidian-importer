@@ -167,10 +167,10 @@ export class HtmlImporter extends FormatImporter {
 				await this.vault.modify(mdFile, mdContent);
 			}
 
-			progress.reportNoteSuccess(file.name);
+			progress.reportNoteSuccess(file.fullpath);
 		}
 		catch (e) {
-			progress.reportFailed(file.name, e);
+			progress.reportFailed(file.fullpath, e);
 		}
 	}
 
