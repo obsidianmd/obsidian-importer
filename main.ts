@@ -74,23 +74,21 @@ export class ProgressReporter {
 
 	reportNoteSuccess(name: string) {
 		this.notes++;
-
-		this.importedCountEl.setText(this.skipped.length.toString());
+		this.importedCountEl.setText(this.notes.toString());
 	}
 
 	reportAttachmentSuccess(name: string) {
 		this.attachments++;
-
 		this.attachmentCountEl.setText(this.attachments.toString());
 	}
 
 	reportSkipped(name: string, reason?: any) {
 		let { importLogEl } = this;
 		this.skipped.push(name);
+		this.skippedCountEl.setText(this.skipped.length.toString());
 
 		console.log('Import skipped', name, reason);
 
-		this.skippedCountEl.setText(this.skipped.length.toString());
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'import-error', text: 'Skipped: ' });
 			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
@@ -103,10 +101,10 @@ export class ProgressReporter {
 		let { importLogEl } = this;
 
 		this.failed.push(name);
+		this.failedCountEl.setText(this.failed.length.toString());
 
 		console.log('Import failed', name, reason);
 
-		this.failedCountEl.setText(this.failed.length.toString());
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'import-error', text: 'Failed: ' });
 			el.createSpan({ text: `"${this.truncateText(name)}"` + (reason ? ` because ${this.truncateText(reason.toString())}` : '') });
