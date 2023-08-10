@@ -17,13 +17,6 @@ interface ImporterDefinition {
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
 
-// Deprecated, only here until current PRs are closed
-export interface ImportResult {
-	total: number,
-	failed: string[],
-	skipped: string[]
-}
-
 export class ProgressReporter {
 	notes = 0;
 	attachments = 0;
