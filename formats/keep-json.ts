@@ -1,10 +1,10 @@
-import { FormatImporter } from "../format-importer";
-import { DataWriteOptions, Notice, Setting, TFile, TFolder } from "obsidian";
+import { BlobWriter, TextWriter } from '@zip.js/zip.js';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder } from 'obsidian';
+import { parseFilePath, PickedFile } from '../filesystem';
+import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { KeepJson, convertStringToKeepJson } from "./keep/models";
-import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from "formats/keep/util";
-import { PickedFile, parseFilePath } from "filesystem";
-import { BlobWriter, TextWriter } from "@zip.js/zip.js";
+import { convertStringToKeepJson, KeepJson } from './keep/models';
+import { addAliasToFrontmatter, addTagToFrontmatter, convertJsonToMd, toSentenceCase } from './keep/util';
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -20,51 +20,51 @@ export class KeepImporter extends FormatImporter {
 	importTrashed: boolean = false;
 
 	init() {
-		this.modal.contentEl.createEl('h3', {text: 'Supported features'});
+		this.modal.contentEl.createEl('h3', { text: 'Supported features' });
 		const listEl = this.modal.contentEl.createEl('ul');
 		listEl.createEl('li', {
-			text: `All checklists will import as first level items as Google Keep doesn't export indentation information.`,
+			text: 'All checklists will import as first level items as Google Keep doesn\'t export indentation information.',
 		});
 		listEl.createEl('li', {
-			text: `Reminders and user assignments on notes won't import as they are not supported by Obsidian.`,
+			text: 'Reminders and user assignments on notes won\'t import as they are not supported by Obsidian.',
 		});
 		listEl.createEl('li', {
-			text: `All other information should import as a combination of content and tags.`,
+			text: 'All other information should import as a combination of content and tags.',
 		});
 
-		this.modal.contentEl.createEl('h3', {text: 'Exporting from Google Keep'});
+		this.modal.contentEl.createEl('h3', { text: 'Exporting from Google Keep' });
 		const firstParaEl = this.modal.contentEl.createEl('p', {
 			text: 'To export your files from Google Keep, open ',
 		});
 		firstParaEl.createEl('a', {
 			text: 'Google Takeout',
-			href: 'https://takeout.google.com/'
+			href: 'https://takeout.google.com/',
 		});
 		firstParaEl.appendText(' and select only Google Keep files. Once you have the exported zip, you can import it directly below or unzip it and select individual files.');
 
-		this.modal.contentEl.createEl('h2', {text: 'Prepare your import'});
+		this.modal.contentEl.createEl('h2', { text: 'Prepare your import' });
 
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
 		this.importArchivedSetting = new Setting(this.modal.contentEl)
-            .setName('Import archived notes')
+			.setName('Import archived notes')
 			.setDesc('If imported, files archived in Google Keep will be tagged as archived.')
-            .addToggle(toggle => {
-                toggle.setValue(this.importArchived)
-                toggle.onChange(async (value) => {
-                    this.importArchived = value;
-                });
-            });
-        
+			.addToggle(toggle => {
+				toggle.setValue(this.importArchived);
+				toggle.onChange(async (value) => {
+					this.importArchived = value;
+				});
+			});
+
 		this.importTrashedSetting = new Setting(this.modal.contentEl)
-            .setName('Import deleted notes')
+			.setName('Import deleted notes')
 			.setDesc('If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.')
-            .addToggle(toggle => {
-                toggle.setValue(this.importTrashed)
-                toggle.onChange(async (value) => {
-                    this.importTrashed = value;
-                });
-            });
+			.addToggle(toggle => {
+				toggle.setValue(this.importTrashed);
+				toggle.onChange(async (value) => {
+					this.importTrashed = value;
+				});
+			});
 
 		this.addOutputLocationSetting('Google Keep');
 
@@ -87,19 +87,22 @@ export class KeepImporter extends FormatImporter {
 
 		for (let file of files) {
 			try {
-				if(file.extension === 'zip') {
+				if (file.extension === 'zip') {
 					await this.readZipEntries(file, folder, assetFolderPath, progress);
-					
-				} else if(file.extension === 'json') {
+
+				}
+				else if (file.extension === 'json') {
 					let rawContent = await file.readText();
 					await this.importKeepNote(rawContent, folder, file.basename, progress);
 
-				} else {
+				}
+				else {
 					const arrayBuffer = await file.read();
 					await this.copyFile(arrayBuffer, assetFolderPath, file.name, progress);
 				}
 
-			} catch (e) {
+			}
+			catch (e) {
 				progress.reportFailed(file.name, e);
 			}
 		}
@@ -114,38 +117,40 @@ export class KeepImporter extends FormatImporter {
 				try {
 					let innerFileProps = parseFilePath(entry.filename);
 					curInnerFilename = innerFileProps.name;
-		
-					if(innerFileProps.extension === 'json') {
+
+					if (innerFileProps.extension === 'json') {
 						let rawContent = await entry.getData(new TextWriter());
 						await this.importKeepNote(rawContent, folder, innerFileProps.basename, progress);
-		
-					} else if(ATTACHMENT_EXTS.contains(innerFileProps.extension)) {
+
+					}
+					else if (ATTACHMENT_EXTS.contains(innerFileProps.extension)) {
 						const rawContent = await entry.getData(new BlobWriter());
 						const arrayBuffer = await rawContent.arrayBuffer();
 						await this.copyFile(arrayBuffer, assetFolderPath, innerFileProps.name, progress);
 					}
 					// else: Silently skip any other unsupported files in the zip
-		
-				} catch(e) {
+
+				}
+				catch (e) {
 					progress.reportFailed(`${file.name}/${curInnerFilename}`, e);
 				}
 			}
-		})
+		});
 	}
 
 	async importKeepNote(rawContent: string, folder: TFolder, title: string, progress: ProgressReporter) {
 		let keepJson = convertStringToKeepJson(rawContent);
-		if(!keepJson) {
+		if (!keepJson) {
 			progress.reportFailed(`${title}.json`, 'Invalid Google Keep JSON');
 			return;
 		}
-		if(keepJson.isArchived && !this.importArchived) {
+		if (keepJson.isArchived && !this.importArchived) {
 			progress.reportSkipped(`${title}.json`, 'Archived note');
 			return;
 		}
-		if(keepJson.isTrashed && !this.importTrashed) {
+		if (keepJson.isTrashed && !this.importTrashed) {
 			progress.reportSkipped(`${title}.json`, 'Deleted note');
-			return
+			return;
 		}
 
 		await this.convertKeepJson(keepJson, folder, title);
@@ -162,12 +167,12 @@ export class KeepImporter extends FormatImporter {
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
 		let mdContent = convertJsonToMd(keepJson);
 		const fileRef = await this.saveAsMarkdownFile(folder, filename, mdContent);
-		await this.addKeepFrontMatter(fileRef, keepJson);					
-		
+		await this.addKeepFrontMatter(fileRef, keepJson);
+
 		const writeOptions: DataWriteOptions = {
-			ctime: keepJson.createdTimestampUsec/1000,
-			mtime: keepJson.userEditedTimestampUsec/1000
-		}
+			ctime: keepJson.createdTimestampUsec / 1000,
+			mtime: keepJson.userEditedTimestampUsec / 1000,
+		};
 		this.modifyWriteOptions(fileRef, writeOptions);
 	}
 
@@ -175,23 +180,24 @@ export class KeepImporter extends FormatImporter {
 		await this.app.fileManager.processFrontMatter(fileRef, (frontmatter: any) => {
 
 			if (keepJson.title) addAliasToFrontmatter(frontmatter, keepJson.title);
-		
+
 			// Add in tags to represent Keep properties
-			if(keepJson.color && keepJson.color !== 'DEFAULT') {
+			if (keepJson.color && keepJson.color !== 'DEFAULT') {
 				let colorName = keepJson.color.toLowerCase();
 				colorName = toSentenceCase(colorName);
 				addTagToFrontmatter(frontmatter, `Keep/Color/${colorName}`);
 			}
-			if(keepJson.isPinned)    	addTagToFrontmatter(frontmatter, `Keep/Pinned`);
-			if(keepJson.attachments)	addTagToFrontmatter(frontmatter, `Keep/Attachment`);
-			if(keepJson.isArchived)		addTagToFrontmatter(frontmatter, `Keep/Archived`);
-			if(keepJson.isTrashed) 		addTagToFrontmatter(frontmatter, `Keep/Deleted`);
-		
+			if (keepJson.isPinned) addTagToFrontmatter(frontmatter, 'Keep/Pinned');
+			if (keepJson.attachments) addTagToFrontmatter(frontmatter, 'Keep/Attachment');
+			if (keepJson.isArchived) addTagToFrontmatter(frontmatter, 'Keep/Archived');
+			if (keepJson.isTrashed) addTagToFrontmatter(frontmatter, 'Keep/Deleted');
+
 			if (keepJson.labels) {
 				for (let i = 0; i < keepJson.labels.length; i++) {
 					addTagToFrontmatter(frontmatter, `Keep/Label/${keepJson.labels[i].name}`);
 				}
-			};
+			}
+			;
 
 		});
 	}

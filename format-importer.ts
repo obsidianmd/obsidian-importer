@@ -2,7 +2,7 @@ import { App, DataWriteOptions, normalizePath, Platform, Setting, TFile, TFolder
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ProgressReporter } from './main';
 import { sanitizeFileName } from './util';
-import { sanitizeTag } from "formats/keep/util";
+import { sanitizeTag } from 'formats/keep/util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -91,7 +91,7 @@ export abstract class FormatImporter {
 			}
 			descriptionFragment.createEl('span', { text: `These ${fileCount} files will be imported: ` });
 			descriptionFragment.createEl('br');
-			descriptionFragment.createEl('span', { cls: 'u-pop', text: pathText});
+			descriptionFragment.createEl('span', { cls: 'u-pop', text: pathText });
 			fileLocationSetting.setDesc(descriptionFragment);
 		};
 	}

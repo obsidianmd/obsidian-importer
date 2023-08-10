@@ -19,18 +19,18 @@ export interface KeepLabel {
 }
 
 export interface KeepJson {
-    createdTimestampUsec: number;
+	createdTimestampUsec: number;
 	userEditedTimestampUsec: number;
-    //
+	//
 	isArchived?: boolean;
 	isPinned?: boolean;
 	isTrashed?: boolean;
-    //
+	//
 	title?: string;
 	textContent?: string;
 	listContent?: KeepListItem[];
 	attachments?: KeepAttachment[];
-    //
+	//
 	color?: string;
 	labels?: KeepLabel[];
 	sharees?: KeepSharee[];
@@ -43,8 +43,8 @@ export function convertStringToKeepJson(rawContent: string): KeepJson | null {
 	const keepJson = JSON.parse(rawContent);
 
 	// Check file matches expected mandatory items in Keep interface
-	if(typeof keepJson.userEditedTimestampUsec === 'undefined') return null;
-	if(typeof keepJson.createdTimestampUsec === 'undefined') return null;
+	if (typeof keepJson.userEditedTimestampUsec === 'undefined') return null;
+	if (typeof keepJson.createdTimestampUsec === 'undefined') return null;
 
 	return keepJson;
 }

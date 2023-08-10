@@ -1,9 +1,9 @@
-import { KeepImporter } from 'formats/keep-json';
+import { App, Modal, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
 
 declare global {
