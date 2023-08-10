@@ -8,11 +8,11 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 - [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
 - [x] HTML, folder of files
-- [x] Notion, `.zip` of HTML files (credit @joshuatazrein)
-- [x] Bear `.bear2bk` (Credits @arthurtyukayev)
+- [x] Notion, `.zip` of HTML files (thanks to @joshuatazrein)
+- [x] Bear `.bear2bk` (thanks to @arthurtyukayev)
+- [x] Google Keep (thanks to @daledesilva)
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
-- [x] Google Keep
 - [ ] Roam Research
 - [ ] Other Markdown flavors
 
