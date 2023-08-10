@@ -2,7 +2,7 @@ import { normalizePath, Notice } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { readZip } from '../zip/util';
+import { readZip } from '../zip';
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {

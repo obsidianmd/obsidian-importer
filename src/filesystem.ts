@@ -3,7 +3,7 @@ import type * as NodeFS from 'node:fs';
 import type * as NodePath from 'node:path';
 import type * as NodeUrl from 'node:url';
 import { Platform } from 'obsidian';
-import { configureWebWorker } from './zip/z-worker-inline';
+import { configureWebWorker } from './z-worker-inline';
 
 configureWebWorker(configure);
 

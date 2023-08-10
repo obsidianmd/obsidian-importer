@@ -3,7 +3,7 @@ import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
 import { serializeFrontMatter } from '../util';
-import { readZip } from '../zip/util';
+import { readZip } from '../zip';
 import { KeepJson } from './keep/models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 

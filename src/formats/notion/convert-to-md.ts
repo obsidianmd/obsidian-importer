@@ -1,7 +1,7 @@
 import { FrontMatterCache, htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { parseHTML, serializeFrontMatter } from '../../util';
-import { ZipEntryFile } from '../../zip/util';
+import { ZipEntryFile } from '../../zip';
 import { NotionLink, NotionResolverInfo, NotionProperty, NotionPropertyType, YamlProperty } from './notion-types';
 import { escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
 

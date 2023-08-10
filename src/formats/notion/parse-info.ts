@@ -1,5 +1,5 @@
 import { parseHTML, sanitizeFileName } from '../../util';
-import { ZipEntryFile } from '../../zip/util';
+import { ZipEntryFile } from '../../zip';
 import { NotionResolverInfo } from './notion-types';
 import { getNotionId, parseParentIds } from './notion-utils';
 

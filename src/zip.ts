@@ -1,5 +1,5 @@
 import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js';
-import { parseFilePath, PickedFile } from '../filesystem';
+import { parseFilePath, PickedFile } from './filesystem';
 
 interface FileEntry extends Entry {
 	directory: false;

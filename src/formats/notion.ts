@@ -2,7 +2,7 @@ import { normalizePath, Notice, Setting } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
-import { readZip, ZipEntryFile } from '../zip/util';
+import { readZip, ZipEntryFile } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
 import { NotionResolverInfo } from './notion/notion-types';
