@@ -47,7 +47,7 @@ export class PromiseExecutor {
 }
 
 export function parseHTML(html: string): HTMLElement {
-	return new DOMParser().parseFromString(html, 'text/html').body;
+	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
 export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
