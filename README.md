@@ -26,7 +26,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Bear](https://help.obsidian.md/import/bear)
 - [Import from Evernote](https://help.obsidian.md/import/evernote)
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)
-- [Import from OneNote](https://help.obsidian.md/import/onenote)
+- [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
