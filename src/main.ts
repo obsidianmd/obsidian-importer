@@ -9,6 +9,7 @@ import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { truncateText } from './util';
+import { TextbundleImporter } from './formats/textbundle';
 
 declare global {
 	interface Window {
@@ -259,6 +260,14 @@ export default class ImporterPlugin extends Plugin {
 				importer: RoamJSONImporter,
 				helpPermalink: 'import/roam',
 				formatDescription: 'Export your Roam Research workspace to JSON format.',
+			},
+			'textbundle': {
+				name: 'Textbundle files',
+				optionText: 'Textbundle (.textbundle)',
+				importer: TextbundleImporter,
+				// Not yet created
+				// helpPermalink: 'import/textbundle',
+				helpPermalink: '',
 			},
 		};
 
