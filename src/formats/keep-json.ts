@@ -3,7 +3,7 @@ import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
 import { serializeFrontMatter } from '../util';
-import { readZip } from '../zip';
+import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 
@@ -12,7 +12,11 @@ const BUNDLE_EXTS = ['zip'];
 const NOTE_EXTS = ['json'];
 // Google Keep supports attachment formats that might change and exports in the original format uploaded, so limiting to binary formats Obsidian supports
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
-
+// Ignore the following files:
+// - Html duplicates
+// - Another html summary
+// - A text file with labels summary
+const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
 	importArchivedSetting: Setting;
@@ -80,7 +84,8 @@ export class KeepImporter extends FormatImporter {
 				await this.copyFile(file, assetFolderPath);
 				progress.reportAttachmentSuccess(fullpath);
 			}
-			else {
+			// Don't mention skipped files when parsing zips, because
+			else if (!(file instanceof ZipEntryFile) && !ZIP_IGNORED_EXTS.contains(extension)) {
 				progress.reportSkipped(fullpath);
 			}
 		}
