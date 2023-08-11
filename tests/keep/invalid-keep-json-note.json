@@ -1,0 +1,10 @@
+{
+    "color": "DEFAULT",
+    "isTrashed": false,
+    "isPinned": false,
+    "isArchived": false,
+    "textContent": "This is just a plain text note.     This sentence has more than one space before it.\n\n\nThis sentence has more than one new line before it.\n\n   This sentence has more than one new line and spaces before it.",
+    "title": "_Text note",
+
+    "createdTimestampUsec": 1690426307496000
+}
