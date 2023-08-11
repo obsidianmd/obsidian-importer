@@ -6,11 +6,11 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
-- [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
+- [x] Evernote `.enex`
 - [x] HTML, folder of files
-- [x] Notion, `.zip` of HTML files (thanks to @joshuatazrein)
-- [x] Bear `.bear2bk` (thanks to @arthurtyukayev)
-- [x] Google Keep (thanks to @daledesilva)
+- [x] Notion, `.zip` of HTML files
+- [x] Bear `.bear2bk`
+- [x] Google Keep
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
 - [ ] Roam Research
@@ -43,3 +43,7 @@ This repo accepts contributions. Some issues have been [tagged with #bounty](htt
 This plugin relies on important contributions:
 
 - [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for `.enex` conversion, [support his work](https://www.buymeacoffee.com/akosbalasko)
+- @daledesilva for Google Keep import
+- @arthurtyukayev for Bear import
+- @joshuatazrein for Notion import
+- @polyipseity for HTML attachments import
