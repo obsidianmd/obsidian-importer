@@ -20,8 +20,6 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 Install Importer in Obsidian → Community Plugins.
 
-### Import guides
-
 Import guides are hosted on the [official Obsidian Help site](https://help.obsidian.md/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
 
 - [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
@@ -33,7 +31,6 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
 
-
 ## Contributing
 
 This repo accepts contributions. Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). See [Contribution guidelines](/CONTRIBUTING.md) for more information.
@@ -42,7 +39,7 @@ This repo accepts contributions. Some issues have been [tagged with #bounty](htt
 
 This plugin relies on important contributions:
 
-- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for `.enex` conversion, [support his work](https://www.buymeacoffee.com/akosbalasko)
+- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for Evernote import
 - @daledesilva for Google Keep import
 - @arthurtyukayev for Bear import
 - @joshuatazrein for Notion import
