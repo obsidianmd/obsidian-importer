@@ -180,7 +180,7 @@ export class KeepImporter extends FormatImporter {
 		let frontMatter: FrontMatterCache = {};
 
 		if (keepJson.title) {
-			frontMatter['aliases'] = keepJson.title.split('\n').join(', ');
+			frontMatter['aliases'] = keepJson.title.split('\n');
 		}
 
 		let tags = [];
