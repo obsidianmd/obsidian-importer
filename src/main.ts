@@ -34,6 +34,7 @@ export class ProgressReporter {
 	remainingCountEl: HTMLElement;
 	skippedCountEl: HTMLElement;
 	failedCountEl: HTMLElement;
+	statusEl: HTMLElement;
 	importLogEl: HTMLElement;
 
 	constructor(el: HTMLElement) {
@@ -68,8 +69,14 @@ export class ProgressReporter {
 			});
 		});
 
+		this.statusEl = el.createDiv('importer-status');
+
 		this.importLogEl = el.createDiv('import-log');
 		this.importLogEl.hide();
+	}
+
+	status(message: string) {
+		this.statusEl.setText(message);
 	}
 
 	reportNoteSuccess(name: string) {
@@ -225,7 +232,10 @@ export class ImporterModal extends Modal {
 		let descriptionFragment = new DocumentFragment();
 		descriptionFragment.createSpan({ text: 'The format to be imported.' });
 		descriptionFragment.createEl('br');
-		descriptionFragment.createEl('a', { text: `Learn more about importing from ${selectedImporter.name}.`, href: `https://help.obsidian.md/${selectedImporter.helpPermalink}` });
+		descriptionFragment.createEl('a', {
+			text: `Learn more about importing from ${selectedImporter.name}.`,
+			href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`
+		});
 
 		new Setting(contentEl)
 			.setName('File format')

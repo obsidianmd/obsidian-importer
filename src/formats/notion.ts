@@ -45,18 +45,19 @@ export class NotionImporter extends FormatImporter {
 		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '');
 
 		// loads in only path & title information to objects
+		results.status('Looking for files to import');
+		let total = 0;
 		await processZips(files, async (file) => {
 			try {
 				await parseFileInfo(info, file);
+				total = Object.keys(info.idsToFileInfo).length + Object.keys(info.pathsToAttachmentInfo).length;
+				results.reportProgress(0, total);
 			}
 			catch (e) {
 				results.reportSkipped(file.fullpath);
 			}
 		});
 
-		const notes = Object.keys(info.idsToFileInfo).length;
-		const attachments = Object.keys(info.pathsToAttachmentInfo).length;
-		const total = notes + attachments;
 
 		cleanDuplicates({
 			vault,

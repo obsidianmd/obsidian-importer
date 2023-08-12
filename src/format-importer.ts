@@ -39,7 +39,7 @@ export abstract class FormatImporter {
 							filters: [{ name, extensions }],
 						});
 
-						if (filePaths.length > 0) {
+						if (filePaths && filePaths.length > 0) {
 							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
 							updateFiles();
 						}
@@ -71,7 +71,7 @@ export abstract class FormatImporter {
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 						});
 
-						if (filePaths.length > 0) {
+						if (filePaths && filePaths.length > 0) {
 							fileLocationSetting.setDesc('Reading folders...');
 							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
