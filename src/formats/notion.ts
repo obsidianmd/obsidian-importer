@@ -10,7 +10,7 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
-	parentsInSubfolders: boolean = false;
+	parentsInSubfolders: boolean;
 
 	init() {
 		this.parentsInSubfolders = true;
@@ -25,7 +25,7 @@ export class NotionImporter extends FormatImporter {
 	}
 
 	async import(results: ProgressReporter): Promise<void> {
-		const { app, vault, parentsInSubfolders, files } = this;
+		const { vault, parentsInSubfolders, files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
