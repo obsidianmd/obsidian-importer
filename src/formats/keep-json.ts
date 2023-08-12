@@ -1,4 +1,4 @@
-import { DataWriteOptions, FrontMatterCache, Notice, Setting, TFile, TFolder } from 'obsidian';
+import { FrontMatterCache, Notice, Setting, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
@@ -132,28 +132,53 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
-		let mdContent = this.convertJsonToMd(keepJson);
-		const file = await this.saveAsMarkdownFile(folder, filename, mdContent);
-		await this.modifyWriteOptions(file, {
-			ctime: keepJson.createdTimestampUsec / 1000,
-			mtime: keepJson.userEditedTimestampUsec / 1000,
-		});
-	}
-
-	convertJsonToMd(jsonContent: KeepJson): string {
 		let mdContent: string[] = [];
 
-		mdContent.push(this.addKeepFrontMatter(jsonContent));
+		// First let's gather some metadata
+		let frontMatter: FrontMatterCache = {};
 
-		if (jsonContent.textContent) {
-			mdContent.push('\n');
-			const normalizedTextContent = sanitizeTags(jsonContent.textContent);
-			mdContent.push(`${normalizedTextContent}`);
+		// Aliases
+		if (keepJson.title) {
+			let aliases = keepJson.title.split('\n').filter(a => a !== filename);
+
+			if (aliases.length > 0) {
+				frontMatter['aliases'] = aliases;
+			}
 		}
 
-		if (jsonContent.listContent) {
+		let tags: string[] = [];
+		// Add in tags to represent Keep properties
+		if (keepJson.color && keepJson.color !== 'DEFAULT') {
+			let colorName = keepJson.color.toLowerCase();
+			colorName = toSentenceCase(colorName);
+			tags.push(`Keep/Color/${colorName}`);
+		}
+		if (keepJson.isPinned) tags.push('Keep/Pinned');
+		if (keepJson.attachments) tags.push('Keep/Attachment');
+		if (keepJson.isArchived) tags.push('Keep/Archived');
+		if (keepJson.isTrashed) tags.push('Keep/Deleted');
+		if (keepJson.labels) {
+			for (let label of keepJson.labels) {
+				tags.push(`Keep/Label/${label.name}`);
+			}
+		}
+
+		if (tags.length > 0) {
+			frontMatter['tags'] = tags.map(tag => sanitizeTag(tag));
+		}
+
+		mdContent.push(serializeFrontMatter(frontMatter));
+
+		// Actual content
+
+		if (keepJson.textContent) {
+			mdContent.push('\n');
+			mdContent.push(sanitizeTags(keepJson.textContent));
+		}
+
+		if (keepJson.listContent) {
 			let mdListContent = [];
-			for (const listItem of jsonContent.listContent) {
+			for (const listItem of keepJson.listContent) {
 				// Don't put in blank checkbox items
 				if (!listItem.text) continue;
 
@@ -165,54 +190,19 @@ export class KeepImporter extends FormatImporter {
 			mdContent.push(mdListContent.join('\n'));
 		}
 
-		if (jsonContent.attachments) {
+		if (keepJson.attachments) {
 			mdContent.push('\n\n');
-			for (const attachment of jsonContent.attachments) {
+			for (const attachment of keepJson.attachments) {
 				mdContent.push(`![[${attachment.filePath}]]`);
 			}
 		}
 
+		const file = await this.saveAsMarkdownFile(folder, filename, mdContent.join(''));
 
-		return mdContent.join('');
-	}
-
-	addKeepFrontMatter(keepJson: KeepJson) {
-		let frontMatter: FrontMatterCache = {};
-
-		if (keepJson.title) {
-			frontMatter['aliases'] = keepJson.title.split('\n');
-		}
-
-		let tags = [];
-
-		// Add in tags to represent Keep properties
-		if (keepJson.color && keepJson.color !== 'DEFAULT') {
-			let colorName = keepJson.color.toLowerCase();
-			colorName = toSentenceCase(colorName);
-			tags.push(`Keep/Color/${colorName}`);
-		}
-		if (keepJson.isPinned) tags.push('Keep/Pinned');
-		if (keepJson.attachments) tags.push('Keep/Attachment');
-		if (keepJson.isArchived) tags.push('Keep/Archived');
-		if (keepJson.isTrashed) tags.push('Keep/Deleted');
-
-		if (keepJson.labels) {
-			for (let i = 0; i < keepJson.labels.length; i++) {
-				tags.push(`Keep/Label/${keepJson.labels[i].name}`);
-			}
-		}
-
-		if (tags.length > 0) {
-			frontMatter['tags'] = tags.map(tag => sanitizeTag(tag));
-		}
-
-		return serializeFrontMatter(frontMatter);
-	}
-
-	/**
-	 * Allows modifying the write options (such as creation and last edited date) without adding or removing anything to the file.
-	 */
-	async modifyWriteOptions(fileRef: TFile, writeOptions: DataWriteOptions) {
-		await this.vault.append(fileRef, '', writeOptions);
+		// Modifying the creation and modified timestamps without changing file contents.
+		await this.vault.append(file, '', {
+			ctime: keepJson.createdTimestampUsec / 1000,
+			mtime: keepJson.userEditedTimestampUsec / 1000,
+		});
 	}
 }
