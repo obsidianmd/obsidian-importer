@@ -10,6 +10,13 @@
 	background-color: var(--interactive-accent);
 }
 
+.importer-status {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding: var(--size-4-2) 0;
+}
+
 .import-stats-container {
 	display: flex;
 	justify-content: space-evenly;

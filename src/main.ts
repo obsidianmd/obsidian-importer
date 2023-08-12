@@ -42,6 +42,8 @@ export class ProgressReporter {
 
 		el.empty();
 
+		this.statusEl = el.createDiv('importer-status');
+
 		el.createDiv('importer-progress-bar', el => {
 			this.progressBarEl = el.createDiv('importer-progress-bar-inner');
 		});
@@ -68,8 +70,6 @@ export class ProgressReporter {
 				el.createDiv({ cls: 'import-stat-name', text: 'failed' });
 			});
 		});
-
-		this.statusEl = el.createDiv('importer-status');
 
 		this.importLogEl = el.createDiv('import-log');
 		this.importLogEl.hide();
