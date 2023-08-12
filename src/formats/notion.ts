@@ -58,6 +58,7 @@ export class NotionImporter extends FormatImporter {
 			}
 		});
 
+		results.status('Resolving links and de-duplicating files');
 
 		cleanDuplicates({
 			vault,
@@ -80,7 +81,7 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		let current = 0;
-
+		results.status('Starting import');
 		await processZips(files, async (file) => {
 			current++;
 			results.reportProgress(current, total);
@@ -96,6 +97,8 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('file info not found for ' + file.filepath);
 					}
 
+					results.status(`Importing note ${fileInfo.title}`);
+
 					const markdownBody = await readToMarkdown(info, file);
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
@@ -107,6 +110,8 @@ export class NotionImporter extends FormatImporter {
 					if (!attachmentInfo) {
 						throw new Error('attachment info not found for ' + file.filepath);
 					}
+
+					results.status(`Importing attachment ${file.name}`);
 
 					const data = await file.read();
 					await vault.createBinary(`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`, data);
