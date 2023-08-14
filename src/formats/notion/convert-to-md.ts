@@ -38,7 +38,9 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	stripLinkFormatting(body);
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
-	fixNotionLists(body);
+	fixIndented(body)
+	fixNotionLists(body, 'ul');
+	fixNotionLists(body, 'ol');
 	addCheckboxes(body);
 	replaceTableOfContents(body);
 	formatDatabases(body);
@@ -281,22 +283,46 @@ function fixNotionDates(body: HTMLElement) {
 	});
 }
 
-function fixNotionLists(body: HTMLElement) {
-	// Notion encodes lists as strings of <ul>s or <ol>s (because of its block structure), which results in newlines between all list items.
-	body.innerHTML = body.innerHTML
-		.replace(
-			/<\/li><\/ul><ul id=".*?" [^>]*><li [^>]*>/g,
-			'</li><li style="list-style-type:disc">'
-		)
-		.replace(/<\/li><\/ol><ol [^>]*><li>/g, '</li><li>');
+function fixIndented (body: HTMLElement) {
+	body.findAll('div.indented').forEach(div => div.remove())
+}
+
+function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
+	// Notion creates each list item within a <ol> or <ul>, messing up newlines in the converted Markdown. 
+	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
+	const unorderedLists = body.findAll(tagName)
+	
+	unorderedLists.forEach((htmlList: HTMLElement) => {
+		const htmlLists: HTMLElement[] = []
+		const listItems: HTMLElement[] = []
+		let nextAdjacentList: HTMLElement = htmlList
+
+		while (nextAdjacentList.tagName === tagName.toUpperCase()) {
+			htmlLists.push(nextAdjacentList)
+			for (let i = 0; i < nextAdjacentList.children.length; i ++) {
+				listItems.push(nextAdjacentList.children[i] as HTMLElement)
+			}
+			// classes are always "to-do-list, bulleted-list, or numbered-list"
+			if (!nextAdjacentList.nextElementSibling || nextAdjacentList.getAttribute('class') !== nextAdjacentList.nextElementSibling.getAttribute('class')) break
+			nextAdjacentList = nextAdjacentList.nextElementSibling as HTMLElement
+		}
+
+		
+		const joinedList = body.createEl(tagName)
+		listItems.forEach(li => joinedList.appendChild(li))
+		console.log('joined', joinedList, htmlLists.concat(), listItems.concat());
+		
+		htmlLists[0].replaceWith(joinedList)
+		htmlLists.slice(1).forEach(htmlList => htmlList.remove())
+	})
 }
 
 function addCheckboxes(body: HTMLElement) {
 	for (let checkboxEl of body.findAll('.checkbox.checkbox-on')) {
-		checkboxEl.setText('[x] ');
+		checkboxEl.replaceWith('[x] ');
 	}
 	for (let checkboxEl of body.findAll('.checkbox.checkbox-off')) {
-		checkboxEl.setText('[ ] ');
+		checkboxEl.replaceWith('[ ] ');
 	}
 }
 
