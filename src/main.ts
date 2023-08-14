@@ -234,7 +234,7 @@ export class ImporterModal extends Modal {
 		descriptionFragment.createEl('br');
 		descriptionFragment.createEl('a', {
 			text: `Learn more about importing from ${selectedImporter.name}.`,
-			href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`
+			href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
 		});
 
 		new Setting(contentEl)
