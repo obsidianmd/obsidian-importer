@@ -91,7 +91,7 @@ export class ImportContext {
 	 * @param message
 	 */
 	status(message: string) {
-		this.statusEl.setText(message);
+		this.statusEl.setText(message.trim() + '...');
 	}
 
 	/**
