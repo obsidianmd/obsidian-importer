@@ -38,7 +38,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	stripLinkFormatting(body);
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
-	fixIndented(body)
+	fixIndented(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
 	addCheckboxes(body);
@@ -283,38 +283,38 @@ function fixNotionDates(body: HTMLElement) {
 	});
 }
 
-function fixIndented (body: HTMLElement) {
-	body.findAll('div.indented').forEach(div => div.remove())
+function fixIndented(body: HTMLElement) {
+	body.findAll('div.indented').forEach(div => div.remove());
 }
 
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 	// Notion creates each list item within a <ol> or <ul>, messing up newlines in the converted Markdown. 
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
-	const unorderedLists = body.findAll(tagName)
-	
+	const unorderedLists = body.findAll(tagName);
+
 	unorderedLists.forEach((htmlList: HTMLElement) => {
-		const htmlLists: HTMLElement[] = []
-		const listItems: HTMLElement[] = []
-		let nextAdjacentList: HTMLElement = htmlList
+		const htmlLists: HTMLElement[] = [];
+		const listItems: HTMLElement[] = [];
+		let nextAdjacentList: HTMLElement = htmlList;
 
 		while (nextAdjacentList.tagName === tagName.toUpperCase()) {
-			htmlLists.push(nextAdjacentList)
-			for (let i = 0; i < nextAdjacentList.children.length; i ++) {
-				listItems.push(nextAdjacentList.children[i] as HTMLElement)
+			htmlLists.push(nextAdjacentList);
+			for (let i = 0; i < nextAdjacentList.children.length; i++) {
+				listItems.push(nextAdjacentList.children[i] as HTMLElement);
 			}
 			// classes are always "to-do-list, bulleted-list, or numbered-list"
-			if (!nextAdjacentList.nextElementSibling || nextAdjacentList.getAttribute('class') !== nextAdjacentList.nextElementSibling.getAttribute('class')) break
-			nextAdjacentList = nextAdjacentList.nextElementSibling as HTMLElement
+			if (!nextAdjacentList.nextElementSibling || nextAdjacentList.getAttribute('class') !== nextAdjacentList.nextElementSibling.getAttribute('class')) break;
+			nextAdjacentList = nextAdjacentList.nextElementSibling as HTMLElement;
 		}
 
-		
-		const joinedList = body.createEl(tagName)
-		listItems.forEach(li => joinedList.appendChild(li))
+
+		const joinedList = body.createEl(tagName);
+		listItems.forEach(li => joinedList.appendChild(li));
 		console.log('joined', joinedList, htmlLists.concat(), listItems.concat());
-		
-		htmlLists[0].replaceWith(joinedList)
-		htmlLists.slice(1).forEach(htmlList => htmlList.remove())
-	})
+
+		htmlLists[0].replaceWith(joinedList);
+		htmlLists.slice(1).forEach(htmlList => htmlList.remove());
+	});
 }
 
 function addCheckboxes(body: HTMLElement) {
