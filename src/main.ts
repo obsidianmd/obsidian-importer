@@ -5,6 +5,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { TextbundleImporter } from './formats/textbundle';
 
 declare global {
 	interface Window {
@@ -171,6 +172,14 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
+			},
+			'textbundle': {
+				name: 'Textbundle files',
+				optionText: 'Textbundle (.textbundle)',
+				importer: TextbundleImporter,
+				// Not yet created
+				// helpPermalink: 'import/textbundle',
+				helpPermalink: '',
 			},
 		};
 
