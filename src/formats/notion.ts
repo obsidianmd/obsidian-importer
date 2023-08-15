@@ -1,7 +1,7 @@
 import { normalizePath, Notice, Setting } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ProgressReporter } from '../main';
+import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
@@ -24,7 +24,7 @@ export class NotionImporter extends FormatImporter {
 				.onChange((value) => (this.parentsInSubfolders = value)));
 	}
 
-	async import(results: ProgressReporter): Promise<void> {
+	async import(ctx: ImportContext): Promise<void> {
 		const { vault, parentsInSubfolders, files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -45,20 +45,20 @@ export class NotionImporter extends FormatImporter {
 		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '');
 
 		// loads in only path & title information to objects
-		results.status('Looking for files to import');
+		ctx.status('Looking for files to import');
 		let total = 0;
 		await processZips(files, async (file) => {
 			try {
 				await parseFileInfo(info, file);
 				total = Object.keys(info.idsToFileInfo).length + Object.keys(info.pathsToAttachmentInfo).length;
-				results.reportProgress(0, total);
+				ctx.reportProgress(0, total);
 			}
 			catch (e) {
-				results.reportSkipped(file.fullpath);
+				ctx.reportSkipped(file.fullpath);
 			}
 		});
 
-		results.status('Resolving links and de-duplicating files');
+		ctx.status('Resolving links and de-duplicating files');
 
 		cleanDuplicates({
 			vault,
@@ -81,10 +81,10 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		let current = 0;
-		results.status('Starting import');
+		ctx.status('Starting import');
 		await processZips(files, async (file) => {
 			current++;
-			results.reportProgress(current, total);
+			ctx.reportProgress(current, total);
 
 			try {
 				if (file.extension === 'html') {
@@ -97,13 +97,13 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('file info not found for ' + file.filepath);
 					}
 
-					results.status(`Importing note ${fileInfo.title}`);
+					ctx.status(`Importing note ${fileInfo.title}`);
 
 					const markdownBody = await readToMarkdown(info, file);
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
 					await vault.create(path, markdownBody);
-					results.reportNoteSuccess(file.fullpath);
+					ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
 					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];
@@ -111,15 +111,15 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('attachment info not found for ' + file.filepath);
 					}
 
-					results.status(`Importing attachment ${file.name}`);
+					ctx.status(`Importing attachment ${file.name}`);
 
 					const data = await file.read();
 					await vault.createBinary(`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`, data);
-					results.reportAttachmentSuccess(file.fullpath);
+					ctx.reportAttachmentSuccess(file.fullpath);
 				}
 			}
 			catch (e) {
-				results.reportFailed(file.fullpath, e);
+				ctx.reportFailed(file.fullpath, e);
 			}
 		});
 	}

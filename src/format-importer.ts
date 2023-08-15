@@ -1,6 +1,6 @@
 import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
-import { ImporterModal, ProgressReporter } from './main';
+import { ImporterModal, ImportContext } from './main';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -127,7 +127,7 @@ export abstract class FormatImporter {
 		return null;
 	}
 
-	abstract import(progress: ProgressReporter): Promise<any>;
+	abstract import(ctx: ImportContext): Promise<any>;
 
 	// Utility functions for vault
 

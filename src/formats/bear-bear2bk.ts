@@ -1,7 +1,7 @@
 import { normalizePath, Notice } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ProgressReporter } from '../main';
+import { ImportContext } from '../main';
 import { readZip } from '../zip';
 
 export class Bear2bkImporter extends FormatImporter {
@@ -10,7 +10,7 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addOutputLocationSetting('Bear');
 	}
 
-	async import(progress: ProgressReporter): Promise<void> {
+	async import(ctx: ImportContext): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -29,6 +29,7 @@ export class Bear2bkImporter extends FormatImporter {
 		const assetMatcher = /!\[\]\(assets\//g;
 
 		for (let file of files) {
+			ctx.status('Looking for files to import');
 			await readZip(file, async (zip, entries) => {
 				for (let entry of entries) {
 					let { fullpath, filepath, parent, name, extension } = entry;
@@ -42,26 +43,26 @@ export class Bear2bkImporter extends FormatImporter {
 							}
 							let filePath = normalizePath(mdFilename);
 							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
-							progress.reportNoteSuccess(mdFilename);
+							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								progress.reportSkipped(fullpath);
+								ctx.reportSkipped(fullpath);
 							}
 							else {
 								const assetData = await entry.read();
 								await this.vault.createBinary(assetFileVaultPath, assetData);
-								progress.reportAttachmentSuccess(fullpath);
+								ctx.reportAttachmentSuccess(fullpath);
 							}
 						}
 						else {
-							progress.reportSkipped(fullpath);
+							ctx.reportSkipped(fullpath);
 						}
 					}
 					catch (e) {
-						progress.reportFailed(fullpath, e);
+						ctx.reportFailed(fullpath, e);
 					}
 				}
 			});

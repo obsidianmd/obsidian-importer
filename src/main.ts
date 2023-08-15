@@ -20,7 +20,10 @@ interface ImporterDefinition {
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
 
-export class ProgressReporter {
+// Temporary compatibility for in progress PRs
+export type ProgressReporter = ImportContext;
+
+export class ImportContext {
 	notes = 0;
 	attachments = 0;
 	skipped: string[] = [];
@@ -132,7 +135,7 @@ export class ProgressReporter {
 			return text;
 		}
 
-		return text.substring(0, 100) + '...';
+		return text.substring(0, this.maxFileNameLength) + '...';
 	}
 
 }
@@ -264,17 +267,15 @@ export class ImporterModal extends Modal {
 						contentEl.empty();
 						let progressEl = contentEl.createDiv();
 
-						let progress = new ProgressReporter(progressEl);
+						let progress = new ImportContext(progressEl);
+
+						let buttonsEl = contentEl.createDiv('button-container u-center-text');
 						try {
 							await importer.import(progress);
 						}
 						finally {
-							contentEl.createDiv('button-container u-center-text', el => {
-								el.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
-									el.addEventListener('click', async () => {
-										this.close();
-									});
-								});
+							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+								el.addEventListener('click', () => this.close());
 							});
 						}
 					});

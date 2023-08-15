@@ -1,7 +1,7 @@
 import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import { fsPromises, nodeBufferToArrayBuffer, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ProgressReporter } from '../main';
+import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
 import { parseHTML, stringToUtf8 } from '../util';
 
@@ -55,7 +55,7 @@ export class HtmlImporter extends FormatImporter {
 				}));
 	}
 
-	async import(progress: ProgressReporter): Promise<void> {
+	async import(ctx: ImportContext): Promise<void> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -69,12 +69,12 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		for (let i = 0; i < files.length; i++) {
-			progress.reportProgress(i, files.length);
-			await this.processFile(progress, folder, files[i]);
+			ctx.reportProgress(i, files.length);
+			await this.processFile(ctx, folder, files[i]);
 		}
 	}
 
-	async processFile(progress: ProgressReporter, folder: TFolder, file: PickedFile) {
+	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
 		try {
 			const htmlContent = await file.readText();
 
@@ -99,10 +99,10 @@ export class HtmlImporter extends FormatImporter {
 						attachments.set(key, attachmentFile);
 						if (attachmentFile) {
 							attachmentLookup.set(attachmentFile.path, attachmentFile);
-							progress.reportAttachmentSuccess(attachmentFile.name);
+							ctx.reportAttachmentSuccess(attachmentFile.name);
 						}
 						else {
-							progress.reportSkipped(src);
+							ctx.reportSkipped(src);
 						}
 					}
 
@@ -117,7 +117,7 @@ export class HtmlImporter extends FormatImporter {
 					}
 				}
 				catch (e) {
-					progress.reportFailed(src, e);
+					ctx.reportFailed(src, e);
 				}
 			}
 
@@ -167,10 +167,10 @@ export class HtmlImporter extends FormatImporter {
 				await this.vault.modify(mdFile, mdContent);
 			}
 
-			progress.reportNoteSuccess(file.fullpath);
+			ctx.reportNoteSuccess(file.fullpath);
 		}
 		catch (e) {
-			progress.reportFailed(file.fullpath, e);
+			ctx.reportFailed(file.fullpath, e);
 		}
 	}
 
