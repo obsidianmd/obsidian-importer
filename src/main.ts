@@ -18,6 +18,7 @@ interface ImporterDefinition {
 	name: string;
 	optionText: string;
 	helpPermalink: string;
+	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
 
@@ -282,7 +283,7 @@ export class ImporterModal extends Modal {
 		descriptionFragment.createSpan({ text: 'The format to be imported.' });
 		if (selectedImporter.formatDescription) {
 			descriptionFragment.createEl('br');
-			descriptionFragment.createSpan({ text: `${selectedImporter.formatDescription}` });
+			descriptionFragment.createSpan({ text: selectedImporter.formatDescription });
 		}
 		descriptionFragment.createEl('br');
 		descriptionFragment.createEl('a', {
