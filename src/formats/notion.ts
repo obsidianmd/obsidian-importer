@@ -131,8 +131,8 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 	for (let zipFile of files) {
 		if (ctx.isCancelled()) return;
 		await readZip(zipFile, async (zip, entries) => {
-			if (ctx.isCancelled()) return;
 			for (let entry of entries) {
+				if (ctx.isCancelled()) return;
 				if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
 
 				if (entry.extension === 'zip') {
