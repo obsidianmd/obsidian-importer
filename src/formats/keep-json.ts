@@ -67,12 +67,14 @@ export class KeepImporter extends FormatImporter {
 		let assetFolderPath = `${folder.path}/Assets`;
 
 		for (let file of files) {
+			if (ctx.isCancelled()) return;
 			await this.handleFile(file, folder, assetFolderPath, ctx);
 		}
 	}
 
 	async handleFile(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
-		let { fullpath, extension } = file;
+		let { fullpath, name, extension } = file;
+		ctx.status('Processing ' + name);
 		try {
 			if (extension === 'zip') {
 				await this.readZipEntries(file, folder, assetFolderPath, ctx);
@@ -81,6 +83,7 @@ export class KeepImporter extends FormatImporter {
 				await this.importKeepNote(file, folder, ctx);
 			}
 			else if (ATTACHMENT_EXTS.contains(extension)) {
+				ctx.status('Importing attachment ' + name);
 				await this.copyFile(file, assetFolderPath);
 				ctx.reportAttachmentSuccess(fullpath);
 			}
@@ -97,13 +100,16 @@ export class KeepImporter extends FormatImporter {
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
 		await readZip(file, async (zip, entries) => {
 			for (let entry of entries) {
+				if (ctx.isCancelled()) return;
 				await this.handleFile(entry, folder, assetFolderPath, ctx);
 			}
 		});
 	}
 
 	async importKeepNote(file: PickedFile, folder: TFolder, ctx: ImportContext) {
-		let { fullpath } = file;
+		let { fullpath, basename } = file;
+		ctx.status('Importing note ' + basename);
+
 		let content = await file.readText();
 
 		const keepJson = JSON.parse(content) as KeepJson;
@@ -120,7 +126,7 @@ export class KeepImporter extends FormatImporter {
 			return;
 		}
 
-		await this.convertKeepJson(keepJson, folder, file.basename);
+		await this.convertKeepJson(keepJson, folder, basename);
 		ctx.reportNoteSuccess(fullpath);
 	}
 

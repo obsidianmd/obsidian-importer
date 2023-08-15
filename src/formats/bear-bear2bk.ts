@@ -29,13 +29,17 @@ export class Bear2bkImporter extends FormatImporter {
 		const assetMatcher = /!\[\]\(assets\//g;
 
 		for (let file of files) {
-			ctx.status('Looking for files to import');
+			if (ctx.isCancelled()) return;
+			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
 				for (let entry of entries) {
+					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
+					ctx.status('Processing ' + name);
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
+							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
@@ -46,6 +50,7 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
+							ctx.status('Importing asset ' + name);
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {

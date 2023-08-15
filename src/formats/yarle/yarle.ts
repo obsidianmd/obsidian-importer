@@ -10,7 +10,14 @@ import { RuntimePropertiesSingleton } from './runtime-properties';
 import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
-import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
+import {
+	hasAnyTagsInTemplate,
+	hasCreationTimeInTemplate,
+	hasLocationInTemplate,
+	hasNotebookInTemplate,
+	hasSourceURLInTemplate,
+	hasUpdateTimeInTemplate,
+} from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 
 const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
@@ -96,6 +103,7 @@ interface TaskGroups {
 
 export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
+	ctx.status('Processing ' + enexSource.name);
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
@@ -119,6 +127,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				ctx.reportSkipped(note.title);
 			}
 			else {
+				ctx.status('Importing note ' + note.title);
 				if (noteAttributes) {
 					// make sure single attributes are not collapsed
 					note['note-attributes'] = noteAttributes;

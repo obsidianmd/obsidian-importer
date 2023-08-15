@@ -1,5 +1,12 @@
 import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
-import { fsPromises, nodeBufferToArrayBuffer, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
+import {
+	fsPromises,
+	nodeBufferToArrayBuffer,
+	NodePickedFile,
+	parseFilePath,
+	PickedFile,
+	url as nodeUrl,
+} from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
@@ -69,12 +76,14 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		for (let i = 0; i < files.length; i++) {
+			if (ctx.isCancelled()) return;
 			ctx.reportProgress(i, files.length);
 			await this.processFile(ctx, folder, files[i]);
 		}
 	}
 
 	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
+		ctx.status('Processing ' + file.name);
 		try {
 			const htmlContent = await file.readText();
 
@@ -86,6 +95,8 @@ export class HtmlImporter extends FormatImporter {
 			const attachments = new Map<string, TFile | null>;
 			const attachmentLookup = new Map<string, TFile>;
 			for (let el of dom.findAll('img, audio, video')) {
+				if (ctx.isCancelled()) return;
+
 				let src = el.getAttribute('src');
 				if (!src) continue;
 
@@ -95,6 +106,7 @@ export class HtmlImporter extends FormatImporter {
 					let key = url.href;
 					let attachmentFile = attachments.get(key);
 					if (!attachments.has(key)) {
+						ctx.status('Downloading attachment for ' + file.name);
 						attachmentFile = await this.downloadAttachment(folder, el, url);
 						attachments.set(key, attachmentFile);
 						if (attachmentFile) {
@@ -112,7 +124,12 @@ export class HtmlImporter extends FormatImporter {
 
 						// Convert `<audio>` and `<video>` into `<img>` so that htmlToMarkdown can properly parse it.
 						if (!(el instanceof HTMLImageElement)) {
-							el.replaceWith(createEl('img', { attr: { src: attachmentFile.path.replace(/ /g, '%20'), alt: el.getAttr('alt') } }));
+							el.replaceWith(createEl('img', {
+								attr: {
+									src: attachmentFile.path.replace(/ /g, '%20'),
+									alt: el.getAttr('alt'),
+								},
+							}));
 						}
 					}
 				}
