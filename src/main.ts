@@ -213,6 +213,7 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
+				formatDescription: 'Export your Notion workspace to HTML format.',
 			},
 		};
 
@@ -276,6 +277,10 @@ export class ImporterModal extends Modal {
 
 		let descriptionFragment = new DocumentFragment();
 		descriptionFragment.createSpan({ text: 'The format to be imported.' });
+		if (selectedImporter.formatDescription) {
+			descriptionFragment.createEl('br');
+			descriptionFragment.createSpan({ text: `${selectedImporter.formatDescription}` });
+		}
 		descriptionFragment.createEl('br');
 		descriptionFragment.createEl('a', {
 			text: `Learn more about importing from ${selectedImporter.name}.`,
