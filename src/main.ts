@@ -341,7 +341,7 @@ export class ImporterModal extends Modal {
 							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 								el.addEventListener('click', () => this.close());
 							});
-							buttonsEl.createEl('button', { text: 'Import again' }, el => {
+							buttonsEl.createEl('button', { text: 'Back' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
 						}
