@@ -35,6 +35,7 @@ export class ImportContext {
 
 	el: HTMLElement;
 	progressBarEl: HTMLElement;
+	progressBarInnerEl: HTMLElement;
 	importedCountEl: HTMLElement;
 	attachmentCountEl: HTMLElement;
 	remainingCountEl: HTMLElement;
@@ -50,8 +51,8 @@ export class ImportContext {
 
 		this.statusEl = el.createDiv('importer-status');
 
-		el.createDiv('importer-progress-bar', el => {
-			this.progressBarEl = el.createDiv('importer-progress-bar-inner');
+		this.progressBarEl = el.createDiv('importer-progress-bar', el => {
+			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
 		});
 
 		el.createDiv('importer-stats-container', el => {
@@ -164,11 +165,13 @@ export class ImportContext {
 		console.log('Current progress:', (100 * current / total).toFixed(1) + '%');
 		this.remainingCountEl.setText((total - current).toString());
 		this.importedCountEl.setText(current.toString());
-		this.progressBarEl.style.width = (100 * current / total).toFixed(1) + '%';
+		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
 	cancel() {
 		this.cancelled = true;
+		this.progressBarEl.hide();
+		this.statusEl.hide();
 	}
 
 	/**
