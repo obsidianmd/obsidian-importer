@@ -17,22 +17,26 @@
 	padding: var(--size-4-2) 0;
 }
 
-.import-stats-container {
+.modal.mod-importer .modal-button-container {
+	justify-content: center;
+}
+
+.importer-stats-container {
 	display: flex;
 	justify-content: space-evenly;
 	margin-top: var(--size-4-5);
 	margin-bottom: var(--size-4-5);
 }
 
-.import-stat {
+.importer-stat {
 	text-align: center;
 }
 
-.import-stat-count {
+.importer-stat-count {
 	font-size: var(--font-ui-large);
 }
 
-.import-log {
+.importer-log {
 	overflow: auto;
 	flex-grow: 1;
 	font-family: var(--font-monospace);
@@ -47,13 +51,13 @@
 	max-height: 300px;
 }
 
-.import-log .list-item {
+.importer-log .list-item {
 	display: inline-block;
 	line-height: var(--line-height-normal);
 	white-space: pre;
 	margin: var(--size-2-1);
 }
 
-.import-error {
+.importer-error {
 	color: var(--text-error);
 }

@@ -54,30 +54,30 @@ export class ImportContext {
 			this.progressBarEl = el.createDiv('importer-progress-bar-inner');
 		});
 
-		el.createDiv('import-stats-container', el => {
-			el.createDiv('import-stat mod-imported', el => {
-				this.importedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
-				el.createDiv({ cls: 'import-stat-name', text: 'imported' });
+		el.createDiv('importer-stats-container', el => {
+			el.createDiv('importer-stat mod-imported', el => {
+				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
 			});
-			el.createDiv('import-stat mod-attachments', el => {
-				this.attachmentCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
-				el.createDiv({ cls: 'import-stat-name', text: 'attachments' });
+			el.createDiv('importer-stat mod-attachments', el => {
+				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				el.createDiv({ cls: 'importer-stat-name', text: 'attachments' });
 			});
-			el.createDiv('import-stat mod-remaining', el => {
-				this.remainingCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
-				el.createDiv({ cls: 'import-stat-name', text: 'remaining' });
+			el.createDiv('importer-stat mod-remaining', el => {
+				this.remainingCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				el.createDiv({ cls: 'importer-stat-name', text: 'remaining' });
 			});
-			el.createDiv('import-stat mod-skipped', el => {
-				this.skippedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
-				el.createDiv({ cls: 'import-stat-name', text: 'skipped' });
+			el.createDiv('importer-stat mod-skipped', el => {
+				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				el.createDiv({ cls: 'importer-stat-name', text: 'skipped' });
 			});
-			el.createDiv('import-stat mod-failed', el => {
-				this.failedCountEl = el.createDiv({ cls: 'import-stat-count', text: '0' });
-				el.createDiv({ cls: 'import-stat-name', text: 'failed' });
+			el.createDiv('importer-stat mod-failed', el => {
+				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				el.createDiv({ cls: 'importer-stat-name', text: 'failed' });
 			});
 		});
 
-		this.importLogEl = el.createDiv('import-log');
+		this.importLogEl = el.createDiv('importer-log');
 		this.importLogEl.hide();
 	}
 
@@ -125,7 +125,7 @@ export class ImportContext {
 		console.log('Import skipped', name, reason);
 
 		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'import-error', text: 'Skipped: ' });
+			el.createSpan({ cls: 'importer-error', text: 'Skipped: ' });
 			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
@@ -146,7 +146,7 @@ export class ImportContext {
 		console.log('Import failed', name, reason);
 
 		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'import-error', text: 'Failed: ' });
+			el.createSpan({ cls: 'importer-error', text: 'Failed: ' });
 			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
@@ -259,6 +259,7 @@ export class ImporterModal extends Modal {
 		super(app);
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
+		this.modalEl.addClass('mod-importer');
 
 		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
@@ -302,7 +303,7 @@ export class ImporterModal extends Modal {
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
 
-			contentEl.createDiv('button-container u-center-text', el => {
+			contentEl.createDiv('modal-button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
 						if (this.current) {
@@ -313,7 +314,7 @@ export class ImporterModal extends Modal {
 
 						let ctx = this.current = new ImportContext(progressEl);
 
-						let buttonsEl = contentEl.createDiv('button-container u-center-text');
+						let buttonsEl = contentEl.createDiv('modal-button-container u-center-text');
 						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
 							el.addEventListener('click', () => {
 								ctx.cancel();
