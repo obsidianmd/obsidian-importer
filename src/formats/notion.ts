@@ -47,7 +47,7 @@ export class NotionImporter extends FormatImporter {
 		// loads in only path & title information to objects
 		ctx.status('Looking for files to import');
 		let total = 0;
-		await processZips(files, async (file) => {
+		await processZips(ctx, files, async (file) => {
 			try {
 				await parseFileInfo(info, file);
 				total = Object.keys(info.idsToFileInfo).length + Object.keys(info.pathsToAttachmentInfo).length;
@@ -57,6 +57,7 @@ export class NotionImporter extends FormatImporter {
 				ctx.reportSkipped(file.fullpath);
 			}
 		});
+		if (ctx.isCancelled()) return;
 
 		ctx.status('Resolving links and de-duplicating files');
 
@@ -77,12 +78,13 @@ export class NotionImporter extends FormatImporter {
 			flatFolderPaths.add(folderPath);
 		}
 		for (let path of flatFolderPaths) {
+			if (ctx.isCancelled()) return;
 			await this.createFolders(path);
 		}
 
 		let current = 0;
 		ctx.status('Starting import');
-		await processZips(files, async (file) => {
+		await processZips(ctx, files, async (file) => {
 			current++;
 			ctx.reportProgress(current, total);
 
@@ -125,14 +127,16 @@ export class NotionImporter extends FormatImporter {
 	}
 }
 
-async function processZips(files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
+async function processZips(ctx: ImportContext, files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
+		if (ctx.isCancelled()) return;
 		await readZip(zipFile, async (zip, entries) => {
+			if (ctx.isCancelled()) return;
 			for (let entry of entries) {
 				if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
 
 				if (entry.extension === 'zip') {
-					await processZips([entry], callback);
+					await processZips(ctx, [entry], callback);
 				}
 				else {
 					await callback(entry);

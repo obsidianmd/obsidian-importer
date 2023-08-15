@@ -123,6 +123,11 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 		});
 
 		xml.on('tag:note', (note: any) => {
+			if (ctx.isCancelled()) {
+				stream.close();
+				return;
+			}
+
 			if (options.skipWebClips && isWebClip(note)) {
 				ctx.reportSkipped(note.title);
 			}
@@ -181,6 +186,7 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 	const outputNotebookFolders = [];
 
 	for (const enex of options.enexSources) {
+		if (ctx.isCancelled()) return;
 		utils.setPaths(enex);
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
 		runtimeProps.setCurrentNotebookName(enex.basename);
@@ -188,5 +194,6 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 		outputNotebookFolders.push(utils.getNotesPath());
 	}
 
+	if (ctx.isCancelled()) return;
 	await applyLinks(options, outputNotebookFolders);
 }
