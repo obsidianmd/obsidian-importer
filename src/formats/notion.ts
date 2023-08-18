@@ -130,18 +130,31 @@ export class NotionImporter extends FormatImporter {
 async function processZips(ctx: ImportContext, files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
 		if (ctx.isCancelled()) return;
-		await readZip(zipFile, async (zip, entries) => {
-			for (let entry of entries) {
-				if (ctx.isCancelled()) return;
-				if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
+		try {
+			await readZip(zipFile, async (zip, entries) => {
+				for (let entry of entries) {
+					if (ctx.isCancelled()) return;
+					if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
 
-				if (entry.extension === 'zip') {
-					await processZips(ctx, [entry], callback);
+					// Only recurse into zip files if they are at the root of the parent zip
+					// because users can attach zip files to Notion, and they should be considered
+					// attachment files.
+					if (entry.extension === 'zip' && entry.parent === '') {
+						try {
+							await processZips(ctx, [entry], callback);
+						}
+						catch (e) {
+							ctx.reportFailed(entry.fullpath);
+						}
+					}
+					else {
+						await callback(entry);
+					}
 				}
-				else {
-					await callback(entry);
-				}
-			}
-		});
+			});
+		}
+		catch (e) {
+			ctx.reportFailed(zipFile.fullpath);
+		}
 	}
 }
