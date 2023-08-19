@@ -39,23 +39,41 @@ export class OneNoteImporter extends FormatImporter {
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
 			);
-		this.contentArea = this.modal.contentEl.createEl('div');
+
 		// Create a wrapper for sign in related settings in order to hide them later
-		this.contentArea.createEl('h3', {
-			text: 'Sign in to your Microsoft Account',
-			cls: 'modal-title',
+		this.contentArea = this.modal.contentEl.createEl('div');
+
+		// Create an description with an link
+		let descriptionFragment = new DocumentFragment();
+		descriptionFragment.createSpan({ text: 'Go to ' });
+		descriptionFragment.createEl('a', {
+			text: 'microsoft.com/devicelogin',
+			href: 'https://microsoft.com/devicelogin',
 		});
-		let description = this.contentArea.createEl('p');
-		//TODO: make the code copyable
-		// This could possibly use the version from DeviceCode.message, as it returns a string in the user's language?
-		description.innerHTML = `Go to <a href="https://microsoft.com/devicelogin">microsoft.com/devicelogin</a> on your PC or phone and enter this code: <b>${await this.generateLoginCode()}</b>`;
+		descriptionFragment.createSpan({ text: ' and enter the code visible on the right side.' });
+	
+		const loginCode = await this.generateLoginCode();
+
+		// Add an separator
+		this.contentArea.createEl('span');
+		
+		new Setting(this.contentArea)
+			.setName('Sign in to your Microsoft Account')
+			.setDesc(descriptionFragment)
+			.addText((text) => text
+				.setValue(loginCode)
+				.setDisabled(true))
+			.addButton((button) => button
+				.setCta()
+				.setButtonText('Copy')
+				.onClick(() => navigator.clipboard.writeText(loginCode))
+			);
 
 		new Setting(this.contentArea)
 			.setName('Custom user access token')
 			.setDesc('If you are having troubles with the device code, use a custom access token from Microsoft Graph Explorer by going to the access token tab under the address bar.')
 			.addText((text) => text.setPlaceholder('Paste token here')
 				.onChange(async (e) => this.signIn(e)));
-		//TODO: "If your pages did not import, try the steps in this help article", update Microsoft OneNote logo
 	}
 
 	async generateLoginCode(): Promise<string> {
@@ -196,6 +214,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			let parsedPage: HTMLElement = this.getAllAttachments(splitContent.html);
 			parsedPage = this.styledElementToHTML(parsedPage);
+			parsedPage = this.fixTables(parsedPage);
 			parsedPage = this.convertTags(parsedPage);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = await this.convertDrawings(parsedPage);
@@ -393,7 +412,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 	
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
-	styledElementToHTML(pageElement: HTMLElement) {
+	styledElementToHTML(pageElement: HTMLElement): HTMLElement {
 		const styledElements = pageElement.querySelectorAll('[style]');
 		
 		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug), so we do it ourselves temporarily
@@ -430,8 +449,19 @@ export class OneNoteImporter extends FormatImporter {
 
 		return pageElement;
 	}
+	
+	// OneNote returns tables with an extra empty row at the top, which we need to remove
+	fixTables(pageElement: HTMLElement): HTMLElement {
+		const tables = pageElement.querySelectorAll('table');
+  
+		tables.forEach(table => {
+			if (table.rows.length > 1) table.deleteRow(0); 
+		});
+		
+		return pageElement;
+	}
 
-	async convertDrawings(element: HTMLElement, currentFile: TFile | undefined = undefined) {
+	async convertDrawings(element: HTMLElement, currentFile: TFile | undefined = undefined): Promise<HTMLElement> {
 		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
   

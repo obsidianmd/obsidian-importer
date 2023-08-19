@@ -6,6 +6,7 @@ import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
 import { truncateText } from './util';
+import { OneNoteImporter } from 'formats/onenote';
 
 declare global {
 	interface Window {
@@ -219,6 +220,12 @@ export default class ImporterPlugin extends Plugin {
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
 			},
+			'onenote': {
+				name: 'OneNote',
+				optionText: 'OneNote',
+				importer: OneNoteImporter,
+				helpPermalink: 'import/onenote',
+			},
 		};
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
@@ -359,4 +366,3 @@ export class ImporterModal extends Modal {
 		}
 	}
 }
-
