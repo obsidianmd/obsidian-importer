@@ -464,19 +464,24 @@ export class OneNoteImporter extends FormatImporter {
 	async convertDrawings(element: HTMLElement, currentFile: TFile | undefined = undefined): Promise<HTMLElement> {
 		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
-  
+		let hasDrawings: boolean = false;
+
 		while (walker.nextNode()) {
 		  const commentNode = walker.currentNode as Comment;
-		  if (commentNode.nodeValue?.trim() === 'InkNode is not supported') {
-				const textNode = document.createTextNode('> [!caution] This page contained an drawing which was not converted. Try exporting again later, into the same output folder.');
-				commentNode.parentNode?.replaceChild(textNode, commentNode);
-		  }
+		  if (commentNode.nodeValue?.trim() === 'InkNode is not supported') hasDrawings = true;
 		}
-		
-		for (let i = 0; i < element.children.length; i++) {
-			const child = element.children[i];
-			if (child instanceof HTMLElement) {
-				this.convertDrawings(child);
+
+		if (hasDrawings) {
+			const textNode = document.createTextNode('> [!caution] This page contained an drawing which was not converted. Try exporting again later, into the same output folder.');
+			// Insert the notice at the top of the page
+			element.insertBefore(textNode, element.firstChild);	
+		}
+		else {
+			for (let i = 0; i < element.children.length; i++) {
+				const child = element.children[i];
+				if (child instanceof HTMLElement) {
+					this.convertDrawings(child);
+				}
 			}
 		}
 		return element;
