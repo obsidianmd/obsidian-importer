@@ -195,6 +195,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		for (let section of this.selectedSections) {
+			// TODO: It would be nice to have some error handling in here, so we can notify if we fail to load a page from a notebook.
 			let sectionFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
 
 			let pages: OnenotePage[] = (await (await fetch(`
@@ -472,7 +473,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		if (hasDrawings) {
-			const textNode = document.createTextNode('> [!caution] This page contained an drawing which was not converted. Try exporting again later, into the same output folder.');
+			const textNode = document.createTextNode('> [!caution] This page contained a drawing which was not converted. Try exporting again later into the same output folder.');
 			// Insert the notice at the top of the page
 			element.insertBefore(textNode, element.firstChild);	
 		}
