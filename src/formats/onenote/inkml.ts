@@ -70,8 +70,8 @@ export default class Ink {
 
 		// iterate over the traces
 		inkMLDocument.querySelectorAll('inkml\\:trace, trace').forEach((el) => {
-			var trace = new InkTrace(this, el);
-			var id = el.getAttribute('xml:id');
+			let trace = new InkTrace(this, el);
+			let id = el.getAttribute('xml:id');
 			id = '#' + id;
 			this.traces[id] = trace;
 		});
