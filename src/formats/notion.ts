@@ -134,12 +134,17 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 			await readZip(zipFile, async (zip, entries) => {
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
+
+					// Skip databses in CSV format
 					if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
+
+					// Skip summary files
+					if (entry.name === 'index.html') continue;
 
 					// Only recurse into zip files if they are at the root of the parent zip
 					// because users can attach zip files to Notion, and they should be considered
 					// attachment files.
-					if (entry.extension === 'zip' && entry.parent === '') {
+					if (entry.extension === 'zip' && entry.parent === '' && getNotionId(entry.name)) {
 						try {
 							await processZips(ctx, [entry], callback);
 						}
