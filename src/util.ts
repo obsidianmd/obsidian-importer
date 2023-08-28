@@ -42,3 +42,11 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 
 	return '';
 }
+
+export function truncateText(text: string, limit: number, ellipses: string = '...') {
+	if (text.length < limit) {
+		return text;
+	}
+
+	return text.substring(0, limit) + ellipses;
+}

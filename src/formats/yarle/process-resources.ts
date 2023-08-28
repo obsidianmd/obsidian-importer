@@ -97,7 +97,7 @@ const processResource = (workDir: string, resource: any): any => {
 
 	if (resource.recognition && fileName) {
 		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
-		console.log(`resource ${fileName} addid in hash ${hashIndex}`);
+		console.log(`resource ${fileName} added with hash ${hashIndex}`);
 		resourceHash[hashIndex as any] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 	else {

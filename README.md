@@ -6,11 +6,11 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
-- [x] Evernote `.enex` (powered by [Yarle](https://github.com/akosbalasko/yarle))
+- [x] Evernote `.enex`
 - [x] HTML, folder of files
-- [x] Notion, `.zip` of HTML files (thanks to @joshuatazrein)
-- [x] Bear `.bear2bk` (thanks to @arthurtyukayev)
-- [x] Google Keep (thanks to @daledesilva)
+- [x] Notion, `.zip` of HTML files
+- [x] Bear `.bear2bk`
+- [x] Google Keep
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
 - [ ] Roam Research
@@ -18,46 +18,19 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 ## Usage
 
-First install Importer in Obsidian → Community Plugins
+Install Importer in Obsidian → Community Plugins.
 
-### Import notes from Notion
-- Export your Notion files to `HTML` format. You can export a whole top-level page or database from Notion by clicking **More actions** (`...` icon) and chose **Export.** Chose the following settings:
+Import guides are hosted on the [official Obsidian Help site](https://help.obsidian.md/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
 
-<img src="images/notion-export-settings.png" width="300" />
-
-- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
-- Under **File format** select **Notion (.html)**
-- Choose the folder(s) of Notion notes you want to import. 
-  - Select the unzipped folder(s), not anything inside of them.
-  - **Note:** *It's recommended to import all your Notion at once so internal links can be reconciled correctly!*
-- Select a folder for the import — your Notion pages and databases will be nested inside this folder.
-- Click **Import**
-
-### Import notes from Evernote
-
-- Export your Evernote files to `.enex` format. You can export a whole notebook in the desktop client by going to the Notebooks screen, click on **More actions** (`...` icon) and choose **Export Notebook...**
-- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
-- Under **File format** select **Evernote (.enex)**
-- Choose the `.enex` file you want to import
-- Optionally, select a folder for the import — your Markdown files will be created in this folder within your vault.
-- Click **Import**
-
-Currently, the import does not have any special settings, if you want more control over the output, consider using [Yarle](https://github.com/akosbalasko/yarle).
-
-### Import notes from HTML
-
-- Open the **Importer** plugin in Obsidian via the command palette or ribbon icon
-- Under **File format** select **HTML (.html)**
-- Choose the HTML files or folders you want to import
-- Optionally, select a folder for the import — your Markdown files will be created in this folder within your vault.
-- Click **Import**
-
-**Special settings**
-
-- **Attachment size limit**: Skip importing attachments larger than the specified size.
-- **Minimum image size**: Skip importing images smaller than the specified size in either dimension. Can be used to skip icons and logos.
-
-![Obsidian Importer screenshot](/images/screenshot.png)
+- [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
+- [Import from Bear](https://help.obsidian.md/import/bear)
+- [Import from Evernote](https://help.obsidian.md/import/evernote)
+- [Import from Google Keep](https://help.obsidian.md/import/google-keep)
+- [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)
+- [Import from Notion](https://help.obsidian.md/import/notion)
+- [Import from Roam Research](https://help.obsidian.md/import/roam)
+- [Import from HTML files](https://help.obsidian.md/import/html)
+- [Import from Markdown files](https://help.obsidian.md/import/markdown)
 
 ## Contributing
 
@@ -67,4 +40,8 @@ This repo accepts contributions. Some issues have been [tagged with #bounty](htt
 
 This plugin relies on important contributions:
 
-- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for `.enex` conversion, [support his work](https://www.buymeacoffee.com/akosbalasko)
+- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for Evernote import
+- @daledesilva for Google Keep import
+- @arthurtyukayev for Bear import
+- @joshuatazrein for Notion import
+- @polyipseity for HTML attachments import

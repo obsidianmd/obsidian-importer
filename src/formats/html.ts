@@ -1,7 +1,14 @@
 import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
-import { fsPromises, nodeBufferToArrayBuffer, NodePickedFile, parseFilePath, PickedFile, url as nodeUrl } from '../filesystem';
+import {
+	fsPromises,
+	nodeBufferToArrayBuffer,
+	NodePickedFile,
+	parseFilePath,
+	PickedFile,
+	url as nodeUrl,
+} from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ProgressReporter } from '../main';
+import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
 import { parseHTML, stringToUtf8 } from '../util';
 
@@ -55,7 +62,7 @@ export class HtmlImporter extends FormatImporter {
 				}));
 	}
 
-	async import(progress: ProgressReporter): Promise<void> {
+	async import(ctx: ImportContext): Promise<void> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -69,11 +76,12 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
-		progress.reportProgress(0, files.length);
+		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
-			progress.reportProgress(i, files.length);
+			if (ctx.isCancelled()) return;
+			ctx.reportProgress(i, files.length);
 			const file = files[i];
-			const tFile = await this.processFile(progress, folder, file);
+			const tFile = await this.processFile(ctx, folder, file);
 			if (tFile) {
 				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, { file, tFile });
 			}
@@ -97,6 +105,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			for (const [fileKey, { file, tFile }] of fileLookup) {
+				if (ctx.isCancelled()) return;
 				try {
 					// Attempt to parse links using MetadataCache
 					let mdContent = await this.app.vault.cachedRead(tFile);
@@ -142,13 +151,14 @@ export class HtmlImporter extends FormatImporter {
 					await this.vault.modify(tFile, mdContent);
 				}
 				catch (e) {
-					progress.reportFailed(file.fullpath, e);
+					ctx.reportFailed(file.fullpath, e);
 				}
 			}
 		}
 	}
 
-	async processFile(progress: ProgressReporter, folder: TFolder, file: PickedFile) {
+	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
+		ctx.status('Processing ' + file.name);
 		try {
 			const htmlContent = await file.readText();
 
@@ -160,6 +170,8 @@ export class HtmlImporter extends FormatImporter {
 			const attachments = new Map<string, TFile | null>;
 			const attachmentLookup = new Map<string, TFile>;
 			for (let el of dom.findAll('img, audio, video')) {
+				if (ctx.isCancelled()) return;
+
 				let src = el.getAttribute('src');
 				if (!src) continue;
 
@@ -169,14 +181,15 @@ export class HtmlImporter extends FormatImporter {
 					let key = url.href;
 					let attachmentFile = attachments.get(key);
 					if (!attachments.has(key)) {
+						ctx.status('Downloading attachment for ' + file.name);
 						attachmentFile = await this.downloadAttachment(folder, el, url);
 						attachments.set(key, attachmentFile);
 						if (attachmentFile) {
 							attachmentLookup.set(attachmentFile.path, attachmentFile);
-							progress.reportAttachmentSuccess(attachmentFile.name);
+							ctx.reportAttachmentSuccess(attachmentFile.name);
 						}
 						else {
-							progress.reportSkipped(src);
+							ctx.reportSkipped(src);
 						}
 					}
 
@@ -186,12 +199,17 @@ export class HtmlImporter extends FormatImporter {
 
 						// Convert `<audio>` and `<video>` into `<img>` so that htmlToMarkdown can properly parse it.
 						if (!(el instanceof HTMLImageElement)) {
-							el.replaceWith(createEl('img', { attr: { src: attachmentFile.path.replace(/ /g, '%20'), alt: el.getAttr('alt') } }));
+							el.replaceWith(createEl('img', {
+								attr: {
+									src: attachmentFile.path.replace(/ /g, '%20'),
+									alt: el.getAttr('alt'),
+								},
+							}));
 						}
 					}
 				}
 				catch (e) {
-					progress.reportFailed(src, e);
+					ctx.reportFailed(src, e);
 				}
 			}
 
@@ -241,11 +259,11 @@ export class HtmlImporter extends FormatImporter {
 				await this.vault.modify(mdFile, mdContent);
 			}
 
-			progress.reportNoteSuccess(file.fullpath);
+			ctx.reportNoteSuccess(file.fullpath);
 			return mdFile;
 		}
 		catch (e) {
-			progress.reportFailed(file.fullpath, e);
+			ctx.reportFailed(file.fullpath, e);
 		}
 		return null;
 	}

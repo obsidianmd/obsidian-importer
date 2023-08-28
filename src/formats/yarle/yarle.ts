@@ -1,6 +1,6 @@
 import { Platform } from 'obsidian';
 import { fs, NodePickedFile, path, PickedFile } from '../../filesystem';
-import { ProgressReporter } from '../../main';
+import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { YarleOptions } from './options';
 import { processNode } from './process-node';
@@ -10,7 +10,14 @@ import { RuntimePropertiesSingleton } from './runtime-properties';
 import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
-import { hasAnyTagsInTemplate, hasCreationTimeInTemplate, hasLocationInTemplate, hasNotebookInTemplate, hasSourceURLInTemplate, hasUpdateTimeInTemplate } from './utils/templates/checker-functions';
+import {
+	hasAnyTagsInTemplate,
+	hasCreationTimeInTemplate,
+	hasLocationInTemplate,
+	hasNotebookInTemplate,
+	hasSourceURLInTemplate,
+	hasUpdateTimeInTemplate,
+} from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 
 const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
@@ -94,8 +101,9 @@ interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: PickedFile, progress: ProgressReporter): Promise<void> => {
+export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
+	ctx.status('Processing ' + enexSource.name);
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
@@ -103,7 +111,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 
 	return new Promise((resolve, reject) => {
 		const logAndReject = (e: Error) => {
-			progress.reportFailed(enexSource.fullpath, e);
+			ctx.reportFailed(enexSource.fullpath, e);
 			return reject(e);
 		};
 
@@ -115,10 +123,16 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 		});
 
 		xml.on('tag:note', (note: any) => {
+			if (ctx.isCancelled()) {
+				stream.close();
+				return;
+			}
+
 			if (options.skipWebClips && isWebClip(note)) {
-				progress.reportSkipped(note.title);
+				ctx.reportSkipped(note.title);
 			}
 			else {
+				ctx.status('Importing note ' + note.title);
 				if (noteAttributes) {
 					// make sure single attributes are not collapsed
 					note['note-attributes'] = noteAttributes;
@@ -126,10 +140,10 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 
 				try {
 					processNode(note, notebookName);
-					progress.reportNoteSuccess(notebookName + '/' + note.title);
+					ctx.reportNoteSuccess(notebookName + '/' + note.title);
 				}
 				catch (e) {
-					progress.reportFailed(note.title || enexSource, e);
+					ctx.reportFailed(note.title || enexSource, e);
 					return resolve();
 				}
 			}
@@ -167,17 +181,19 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	});
 };
 
-export async function dropTheRope(options: YarleOptions, progress: ProgressReporter): Promise<void> {
+export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
 	const outputNotebookFolders = [];
 
 	for (const enex of options.enexSources) {
+		if (ctx.isCancelled()) return;
 		utils.setPaths(enex);
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
 		runtimeProps.setCurrentNotebookName(enex.basename);
-		await parseStream(options, enex, progress);
+		await parseStream(options, enex, ctx);
 		outputNotebookFolders.push(utils.getNotesPath());
 	}
 
+	if (ctx.isCancelled()) return;
 	await applyLinks(options, outputNotebookFolders);
 }
