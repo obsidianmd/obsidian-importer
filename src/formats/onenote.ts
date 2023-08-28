@@ -71,7 +71,7 @@ export class OneNoteImporter extends FormatImporter {
 		this.microsoftAccountSetting =
 		new Setting(this.modal.contentEl)
 			.setName('Sign in with your Microsoft Account')
-			.setDesc('You need to sign in in order to import your OneNote data.')
+			.setDesc('You need to sign in to import your OneNote data.')
 			.addButton((button) => button
 				.setCta()
 				.setButtonText('Sign in')
