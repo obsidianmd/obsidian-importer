@@ -1,28 +1,15 @@
 import { ObsidianProtocolData, requestUrl } from 'obsidian';
-import { tokenResponse } from './models/tokenResponse';
+import { accessTokenResponse } from './models/tokenResponse';
 
 const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
+const GRAPH_DATA = {
+	state: crypto.randomUUID(),
+	accessToken: '',
+};
 const REDIRECT_URI: string = 'obsidian://importer-onenote-signin/';
 
 export class MicrosoftGraphHelper {
-	accessToken: string = '';
-	state: string = this.generateRandomState(32);
-
-	// Generate state for OAuth authentication
-	generateRandomState(length: number): string {
-		const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-		let state = '';
-		
-		// Secure enough to prevent basic CSRF :)
-		for (let i = 0; i < length; i++) {
-		  const randomIndex = Math.floor(Math.random() * charset.length);
-		  state += charset.charAt(randomIndex);
-		}
-		
-		return state;
-	}
-	  
 	openOAuthPage() {
 		const requestBody = new URLSearchParams({
 			client_id: GRAPH_CLIENT_ID,
@@ -30,34 +17,36 @@ export class MicrosoftGraphHelper {
 			response_type: 'code',
 			redirect_uri: REDIRECT_URI,
 			response_mode: 'query',
-			state: this.state,
+			state: GRAPH_DATA.state,
 		});
-
 		window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 	}
 
 	async requestAccessToken(protocolData: ObsidianProtocolData) {
 		try {
-			const requestBody = new URLSearchParams({
-				client_id: GRAPH_CLIENT_ID,
-				scope: GRAPH_SCOPES.join(' '),
-				code: protocolData['code'],
-				redirect_uri: REDIRECT_URI,
-				grant_type: 'authorization_code',
-				state: protocolData['state'],
-			});
+			if (protocolData['state'] === GRAPH_DATA.state) {
+				const requestBody = new URLSearchParams({
+					client_id: GRAPH_CLIENT_ID,
+					scope: GRAPH_SCOPES.join(' '),
+					code: protocolData['code'],
+					redirect_uri: REDIRECT_URI,
+					grant_type: 'authorization_code',
+				});
 
-			const tokenResponse: tokenResponse = await requestUrl({
-				method: 'POST',
-				url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-				contentType: 'application/x-www-form-urlencoded',
-				body: requestBody.toString(),
-			}).json;
+				const tokenResponse: accessTokenResponse = await requestUrl({
+					method: 'POST',
+					url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+					contentType: 'application/x-www-form-urlencoded',
+					body: requestBody.toString(),
+				}).json;
 
-			this.accessToken = tokenResponse.access_token;
+				if (tokenResponse.access_token !== undefined) GRAPH_DATA.accessToken = tokenResponse.access_token;
+				else throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
 
-			// Notify the OneNote importer that sign in is complete
-			document.dispatchEvent(new Event('graphSignedIn'));
+				// Notify the OneNote importer that sign in is complete
+				document.dispatchEvent(new Event('graphSignedIn'));
+			}
+			else throw new Error(`An incorrect state was returned.\nExpected state: ${GRAPH_DATA.state}\nReturned state: ${protocolData['state']}`);
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
@@ -68,7 +57,7 @@ export class MicrosoftGraphHelper {
 
 	async requestUrl(url: string, returnType: string = 'json'): Promise<any | string | ArrayBuffer > {
     	try {
-			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.accessToken}` } });
+			let response = await fetch(url, { headers: { Authorization: `Bearer ${GRAPH_DATA.accessToken}` } });
 			let responseBody;
 			
 			switch (returnType) {

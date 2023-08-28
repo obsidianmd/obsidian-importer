@@ -1,5 +1,5 @@
 import { FormatImporter } from 'format-importer';
-import { ProgressReporter } from 'main';
+import { ImportContext } from 'main';
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown } from 'obsidian';
 import { parseHTML } from '../util';
 import { MicrosoftGraphHelper } from './onenote/graph-helper';
@@ -26,15 +26,28 @@ export class OneNoteImporter extends FormatImporter {
 		this.addOutputLocationSetting('OneNote');
 		this.showUI();
 		// Required for the OAuth sign in flow
-		this.modal.plugin.registerObsidianProtocolHandler('importer-onenote-signin', (data) => {
-			try {
-				this.graphHelper.requestAccessToken(data);
-			}
-			catch (e) {
-				this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
-					.createEl('details', { text: e })
-					.createEl('summary', { text: 'Click here to show error details' });
-			}
+		try {
+			this.modal.plugin.registerObsidianProtocolHandler('importer-onenote-signin', (data) => {
+				try {
+					this.graphHelper.requestAccessToken(data);
+				}
+				catch (e) {
+					this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
+						.createEl('details', { text: e })
+						.createEl('summary', { text: 'Click here to show error details' });
+				}
+			});	
+		}
+		catch (e) {
+			console.log('Protocol handler was not registered: ' + e);
+		}
+
+		document.addEventListener('graphSignedIn', async () => {
+			const userData: User = await this.graphHelper.requestUrl('https://graph.microsoft.com/v1.0/me');
+			this.microsoftAccountSetting.setDesc(
+				`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
+			);
+			await this.showSectionPickerUI();
 		});
 	}
 
@@ -62,18 +75,7 @@ export class OneNoteImporter extends FormatImporter {
 			.addButton((button) => button
 				.setCta()
 				.setButtonText('Sign in')
-				.onClick(() => {
-					this.graphHelper.openOAuthPage();
-
-					document.addEventListener('graphSignedIn', async () => {
-						const userData: User = await this.graphHelper.requestUrl('https://graph.microsoft.com/v1.0/me');
-						this.microsoftAccountSetting.setDesc(
-							`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-						);
-
-						await this.showSectionPickerUI();
-					});
-				})
+				.onClick(() => this.graphHelper.openOAuthPage())
 			);
 	}
 
@@ -131,35 +133,49 @@ export class OneNoteImporter extends FormatImporter {
 		});
 	}
 
-	async import(progress: ProgressReporter): Promise<void> {
+	async import(progress: ImportContext): Promise<void> {
 		let outputFolder = await this.getOutputFolder();
+		let remainingSections = this.selectedSections.length;
 
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
 
+		progress.status('Starting OneNote import');
+
 		for (let section of this.selectedSections) {
+			progress.reportProgress(0, remainingSections);
+			remainingSections--;
+
+			let pageCount: number = 0;
 			let sectionFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
 			let pages: OnenotePage[] = (await this.graphHelper.requestUrl(pagesUrl)).value;
 
+			progress.reportProgress(0, pages.length);
+
 			pages.forEach(async (page) => {
 				try {
+					pageCount++;
+					progress.status(`Importing note ${page.title}`);
+
 					this.processFile(progress,
 						sectionFolder,
 						await this.graphHelper.requestUrl(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text')
 						,page);
+					progress.reportProgress(pageCount, pages.length);
 				}
 				catch (e) {
 					progress.reportFailed(page.title!, e.toString());
 				}
 			});
 		}
+		progress.status('Finished importing notes from OneNote');
 	}
 
-	async processFile(progress: ProgressReporter, folder: TFolder, content: string, page: OnenotePage) {
+	async processFile(progress: ImportContext, folder: TFolder, content: string, page: OnenotePage) {
 		try {
 			const splitContent = this.convertFormat(content);
 
@@ -225,7 +241,7 @@ export class OneNoteImporter extends FormatImporter {
 		else {
 			throw new Error('The input string is incorrect and may be missing data. Inputted string: ' + input);
 		}
-		console.log(output.html);
+		
 		return output;
 	}
 
@@ -333,7 +349,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Downloads attachments from the attachmentQueue once the file has been created.
-	async fetchAttachmentQueue(progress: ProgressReporter, currentFile: TFile) {
+	async fetchAttachmentQueue(progress: ImportContext, currentFile: TFile) {
 		if (this.attachmentQueue.length >= 1) {
 			let attachmentPath: string = (await this.getOutputFolder())!.path + '/OneNote Attachments';
 
