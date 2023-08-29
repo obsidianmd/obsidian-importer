@@ -24,41 +24,39 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	let blockLocations: Map<string, BlockInfo> = new Map();
 	let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
 
-	for (let page of pages) {
-
-		function processBlock(block: RoamBlock, level: number) {
-
-			if (block.uid) {
-				//check for roam DNP and convert to obsidian DNP
-				const dateObject = new Date(page.uid);
-				if (!isNaN(dateObject.getTime())) {
-					// The string can be converted to a Date object
-					const newPageTitle = convertDateString(page.title, userDNPFormat);
-					page.title = newPageTitle;
-				}
-				const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
-				if (blockRefRegex.test(block.string)) {
-					toPostProcessblockLocations.set(block.uid, {
-						pageName: sanitizeFileNameKeepPath(page.title),
-						blockString: block.string,
-					});
-				}
-				blockLocations.set(block.uid, {
+	function processBlock(page: RoamPage, block: RoamBlock, level: number) {
+		if (block.uid) {
+			//check for roam DNP and convert to obsidian DNP
+			const dateObject = new Date(page.uid);
+			if (!isNaN(dateObject.getTime())) {
+				// The string can be converted to a Date object
+				const newPageTitle = convertDateString(page.title, userDNPFormat);
+				page.title = newPageTitle;
+			}
+			const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
+			if (blockRefRegex.test(block.string)) {
+				toPostProcessblockLocations.set(block.uid, {
 					pageName: sanitizeFileNameKeepPath(page.title),
 					blockString: block.string,
 				});
 			}
-
-			if (block.children) {
-				for (let child of block.children) {
-					processBlock(child, level + 1);
-				}
-			}
+			blockLocations.set(block.uid, {
+				pageName: sanitizeFileNameKeepPath(page.title),
+				blockString: block.string,
+			});
 		}
 
+		if (block.children) {
+			for (let child of block.children) {
+				processBlock(page, child, level + 1);
+			}
+		}
+	}
+
+	for (let page of pages) {
 		if (page.children) {
 			for (let block of page.children) {
-				processBlock(block, 0);
+				processBlock(page, block, 0);
 			}
 		}
 	}
