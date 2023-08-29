@@ -27,7 +27,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	let blockLocations: Map<string, BlockInfo> = new Map();
 	let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
 
-	function processBlock(page: RoamPage, block: RoamBlock, level: number) {
+	function processBlock(page: RoamPage, block: RoamBlock) {
 		if (block.uid) {
 			//check for roam DNP and convert to obsidian DNP
 			const dateObject = new Date(page.uid);
@@ -36,22 +36,22 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 				const newPageTitle = convertDateString(page.title, userDNPFormat);
 				page.title = newPageTitle;
 			}
-			const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
-			if (blockRefRegex.test(block.string)) {
-				toPostProcessblockLocations.set(block.uid, {
-					pageName: sanitizeFileNameKeepPath(page.title),
-					blockString: block.string,
-				});
-			}
-			blockLocations.set(block.uid, {
+
+			const info = {
 				pageName: sanitizeFileNameKeepPath(page.title),
 				blockString: block.string,
-			});
+			};
+
+			const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
+			if (blockRefRegex.test(block.string)) {
+				toPostProcessblockLocations.set(block.uid, info);
+			}
+			blockLocations.set(block.uid, info);
 		}
 
 		if (block.children) {
 			for (let child of block.children) {
-				processBlock(page, child, level + 1);
+				processBlock(page, child);
 			}
 		}
 	}
@@ -59,7 +59,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	for (let page of pages) {
 		if (page.children) {
 			for (let block of page.children) {
-				processBlock(page, block, 0);
+				processBlock(page, block);
 			}
 		}
 	}
