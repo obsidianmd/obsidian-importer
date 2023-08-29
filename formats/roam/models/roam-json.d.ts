@@ -33,7 +33,6 @@ export interface RoamBlock {
 
 interface BlockInfo {
   pageName: string;
-  lineNumber: number;
   blockString: string;
 }
 

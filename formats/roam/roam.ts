@@ -21,15 +21,12 @@ const userDNPFormat = getUserDNPFormat();
 
 function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	// preprocess/map the graph so each block can be quickly found 
-	// as well as it's line in the markdown file
 	let blockLocations: Map<string, BlockInfo> = new Map();
 	let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
 
 	for (let page of pages) {
-		let lineNumber = 0;
 
 		function processBlock(block: RoamBlock, level: number) {
-			lineNumber++;
 
 			if (block.uid) {
 				//check for roam DNP and convert to obsidian DNP
@@ -39,18 +36,15 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 					const newPageTitle = convertDateString(page.title, userDNPFormat);
 					page.title = newPageTitle;
 				}
-				// TODO why is lineNumber sometimes innaccurate?
 				const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
 				if (blockRefRegex.test(block.string)) {
 					toPostProcessblockLocations.set(block.uid, {
 						pageName: sanitizeFileNameKeepPath(page.title),
-						lineNumber: lineNumber,
 						blockString: block.string,
 					});
 				}
 				blockLocations.set(block.uid, {
 					pageName: sanitizeFileNameKeepPath(page.title),
-					lineNumber: lineNumber,
 					blockString: block.string,
 				});
 			}
