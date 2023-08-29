@@ -235,7 +235,13 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 		for (let index in allPages) {
 			const pageData = allPages[index];
 
-			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat);
+			let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat).trim();
+			if (pageName === '') {
+				progress.reportFailed(pageData.uid, 'Title is empty');
+				console.error('Cannot import data with an empty title', pageData);
+				continue;
+			}
+
 			const filename = `${graphFolder}/${pageName}.md`;
 			// convert json to nested markdown
 
