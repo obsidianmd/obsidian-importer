@@ -153,26 +153,33 @@ export class OneNoteImporter extends FormatImporter {
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
 			let pages: OnenotePage[] = (await this.graphHelper.requestUrl(pagesUrl)).value;
-
+			
 			progress.reportProgress(0, pages.length);
 
-			pages.forEach(async (page) => {
+			for (let i = 0; i < pages.length; i++) {
+				const page = pages[i];
+
 				try {
 					pageCount++;
 					progress.status(`Importing note ${page.title}`);
 
+					// Every 50 items, do a few second break to prevent rate limiting
+					if (i !== 0 && i % 50 === 0) {
+						await new Promise(resolve => setTimeout(resolve, 5000));
+					}
 					this.processFile(progress,
 						sectionFolder,
 						await this.graphHelper.requestUrl(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text')
 						,page);
-					progress.reportProgress(pageCount, pages.length);
+					
+					progress.reportProgress(pageCount, pages.length);	
+
 				}
 				catch (e) {
 					progress.reportFailed(page.title!, e.toString());
 				}
-			});
+			}
 		}
-		progress.status('Finished importing notes from OneNote');
 	}
 
 	async processFile(progress: ImportContext, folder: TFolder, content: string, page: OnenotePage) {

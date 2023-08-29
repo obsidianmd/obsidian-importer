@@ -69,6 +69,9 @@ export class MicrosoftGraphHelper {
 					break;
 				default:
 					responseBody = await response.json();
+					if ('@odata.nextLink' in responseBody) {
+						responseBody.value.push(...(await this.requestUrl(responseBody['@odata.nextLink'])).value);
+					}
 					break;
 			}
 			
