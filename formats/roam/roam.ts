@@ -225,11 +225,8 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 		await importer.createFolders(attachmentsFolder);
 
 		// read the graph
-		// TODO is this async?
-		// const data = fs.readFileSync(file.filepath, "utf8")
-		const data = await file.readText(file.filepath);
+		const data = await file.readText();
 		const allPages = JSON.parse(data) as RoamPage[];
-
 
 		// PRE-PROCESS: map the blocks for easy lookup //
 		const [blockLocations, toPostProcess] = preprocess(userDNPFormat, allPages);
@@ -267,7 +264,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 		// POST-PROCESS: fix block refs //
 		for (const [callingBlockUID, callingBlock] of toPostProcess.entries()) {
 			// extract UIDs from the callingBlock.blockString
-			// first Edit the referenced Bloc to add in a block UID
+			// first Edit the referenced Block to add in a block UID
 
 			// Then go back and update the original block with the new reference syntax
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])

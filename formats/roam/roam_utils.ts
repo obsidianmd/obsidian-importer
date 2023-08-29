@@ -1,13 +1,13 @@
 import { moment } from 'obsidian';
 
-let illegalReNoDir = /[\?<>\\:\*\|"]/g;
-let controlRe = /[\x00-\x1f\x80-\x9f]/g;
-let reservedRe = /^\.+$/;
-let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
-let windowsTrailingRe = /[\. ]+$/;
-let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
-let squareBracketOpenRe = /\[/g; // Regular expression to match "["
-let squareBracketCloseRe = /\]/g; // Regular expression to match "]"
+const illegalReNoDir = /[\?<>\\:\*\|"]/g;
+const controlRe = /[\x00-\x1f\x80-\x9f]/g;
+const reservedRe = /^\.+$/;
+const windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
+const windowsTrailingRe = /[\. ]+$/;
+const startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
+const squareBracketOpenRe = /\[/g; // Regular expression to match "["
+const squareBracketCloseRe = /\]/g; // Regular expression to match "]"
 
 export function sanitizeFileNameKeepPath(name: string) {
 	return name
