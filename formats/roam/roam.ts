@@ -144,6 +144,79 @@ async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, do
 	return joinedMarkdown;
 }
 
+async function modifySourceBlockString(sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {
+	if (!sourceBlock.blockString.endsWith('^' + sourceBlockUID)) {
+		const sourceBlockFilePath = `${graphFolder}/${sourceBlock.pageName}.md`;
+		let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath);
+
+		if (sourceBlockFile instanceof TFile) {
+			let fileContent = await this.app.vault.read(sourceBlockFile);
+			let lines = fileContent.split('\n');
+
+			// Edit the specific line, for example, the 5th line.
+			let index = lines.findIndex((item: string) => item.contains('* ' + sourceBlock.blockString));
+			// console.log(sourceBlock)
+			if (index !== -1) {
+				let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
+				// replace the line before updating sourceBlock
+				lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);
+				sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
+			}
+			let newContent = lines.join('\n');
+
+			await this.app.vault.modify(sourceBlockFile, newContent);
+		}
+	}
+}
+
+async function extractAndProcessBlockReferences(blockLocations: Map<string, BlockInfo>, graphFolder: string, inputString: string): Promise<string> {
+	const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
+
+	// Find all the matches using the regular expression
+	const blockReferences = inputString.match(blockRefRegex);
+
+	// If there are no block references, return the input string as is
+	if (!blockReferences) {
+		return inputString;
+	}
+
+	// Asynchronously process each block reference
+	let processedBlocks: string[] = [];
+
+	for (const sourceBlockUID of blockReferences) {
+		try {
+			const sourceBlock = blockLocations.get(sourceBlockUID);
+
+			if (!sourceBlock) {
+				// no block with that uid exists
+				// most likely just double ((WITH_REGULAR_TEXT))
+				processedBlocks.push(sourceBlockUID);
+				continue;
+			}
+
+			// the source block string needs to be stripped of any page syntax or the alias won't work
+			let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '');
+			// create the obsidian alias []()
+			let processedBlock = `[[${graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`;
+			// Modify the source block markdown page asynchronously so the new obsidian alias points to something
+			await modifySourceBlockString(sourceBlock, graphFolder, sourceBlockUID);
+
+			processedBlocks.push(processedBlock);
+		}
+		catch (error) {
+			// no block with that uid exists
+			// most likely just double ((WITH_REGULAR_TEXT))
+			processedBlocks.push(sourceBlockUID);
+		}
+	}
+
+	// Replace the block references in the input string with the processed ones
+	let index = 0;
+	const processedString = inputString.replace(/\(\(\b.*?\b\)\)/g, () => processedBlocks[index++]);
+
+	return processedString;
+}
+
 export async function importRoamJson(importer: RoamJSONImporter, progress: ProgressReporter, files: PickedFile[], outputFolder: TFolder, downloadAttachments: boolean = true) {
 	for (let file of files) {
 		const graphName = sanitizeFileName(file.basename);
@@ -196,77 +269,6 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 		}
 
 		// POST-PROCESS: fix block refs //
-		async function modifySourceBlockString(sourceBlockUID: string) {
-			const sourceBlock = blockLocations.get(sourceBlockUID);
-
-			if (!sourceBlock.blockString.endsWith('^' + sourceBlockUID)) {
-				const sourceBlockFilePath = `${graphFolder}/${sourceBlock.pageName}.md`;
-				let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath);
-
-				if (sourceBlockFile instanceof TFile) {
-					let fileContent = await this.app.vault.read(sourceBlockFile);
-					let lines = fileContent.split('\n');
-
-					// Edit the specific line, for example, the 5th line.
-					let index = lines.findIndex((item: string) => item.contains('* ' + sourceBlock.blockString));
-					// console.log(sourceBlock)
-					if (index !== -1) {
-						let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-						// replace the line before updating sourceBlock
-						lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);
-						sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-					}
-					let newContent = lines.join('\n');
-
-					await this.app.vault.modify(sourceBlockFile, newContent);
-
-				}
-
-			}
-		}
-
-		async function extractAndProcessBlockReferences(inputString: string): Promise<string> {
-			const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
-
-			// Find all the matches using the regular expression
-			const blockReferences = inputString.match(blockRefRegex);
-
-			// If there are no block references, return the input string as is
-			if (!blockReferences) {
-				return inputString;
-			}
-
-			// Asynchronously process each block reference
-			let processedBlocks: string[] = [];
-
-			for (const sourceBlockUID of blockReferences) {
-				try {
-					const sourceBlock = blockLocations.get(sourceBlockUID);
-					// the source block string needs to be stripped of any page syntax or the alias won't work
-					let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '');
-					// create the obsidian alias []()
-					let processedBlock = `[[${graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`;
-					// Modify the source block markdown page asynchronously so the new obsidian alias points to something
-					await modifySourceBlockString(sourceBlockUID);
-
-					processedBlocks.push(processedBlock);
-				}
-				catch (error) {
-					// no block with that uid exists
-					// most likely just double ((WITH_REGULAR_TEXT))
-					// console.error(error)
-					// console.error(error)
-					processedBlocks.push(sourceBlockUID);
-				}
-			}
-
-			// Replace the block references in the input string with the processed ones
-			let index = 0;
-			const processedString = inputString.replace(/\(\(\b.*?\b\)\)/g, () => processedBlocks[index++]);
-
-			return processedString;
-		}
-
 		for (const [callingBlockUID, callingBlock] of toPostProcess.entries()) {
 			// extract UIDs from the callingBlock.blockString
 			// first Edit the referenced Bloc to add in a block UID
@@ -275,7 +277,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
 			const callingBlockStringScrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, false);
 
-			const newCallingBlockReferences = await extractAndProcessBlockReferences(callingBlock.blockString);
+			const newCallingBlockReferences = await extractAndProcessBlockReferences(blockLocations, graphFolder, callingBlock.blockString);
 
 			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
 			let callingBlockFile = app.vault.getAbstractFileByPath(callingBlockFilePath);
@@ -287,14 +289,11 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlock.blockString));
 				if (index !== -1) {
 					lines[index] = lines[index].replace(callingBlock.blockString, newCallingBlockReferences);
-
 				}
 				let newContent = lines.join('\n');
 
 				await app.vault.modify(callingBlockFile, newContent);
-
 			}
-
 		};
 	}
 }
