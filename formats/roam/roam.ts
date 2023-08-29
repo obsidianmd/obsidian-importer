@@ -2,8 +2,8 @@ import { RoamPage, RoamBlock, BlockInfo } from './models/roam-json';
 import { PickedFile, path } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName } from '../../util';
-import { sanitizeFileNameKeepPath, getUserDNPFormat, convertDateString } from './roam_utils';
-import { TFile, TFolder } from 'obsidian';
+import { sanitizeFileNameKeepPath, convertDateString } from './roam_utils';
+import { TFile, TFolder, Vault } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
 import { ProgressReporter } from '../../main';
 
@@ -17,12 +17,10 @@ import { ProgressReporter } from '../../main';
 // 		process markdown and fix block refs (using the pre-process map)
 // 		confirm page names match
 
-const userDNPFormat = getUserDNPFormat();
-
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
-function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
+function preprocess(userDNPFormat: string, pages: RoamPage[]): Map<string, BlockInfo>[] {
 	// preprocess/map the graph so each block can be quickly found 
 	let blockLocations: Map<string, BlockInfo> = new Map();
 	let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
@@ -67,7 +65,7 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	return [blockLocations, toPostProcessblockLocations];
 }
 
-async function roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, downloadAttachments: boolean): Promise<string> {
+async function roamMarkupScrubber(vault: Vault, userDNPFormat: string, graphFolder: string, attachmentsFolder: string, blockText: string, downloadAttachments: boolean): Promise<string> {
 	// Remove roam-specific components
 	blockText = blockText.replace(roamSpecificMarkupRe, '');
 
@@ -103,7 +101,7 @@ async function roamMarkupScrubber(graphFolder: string, attachmentsFolder: string
 	// download files uploaded to Roam
 	if (downloadAttachments) {
 		if (blockText.includes('firebasestorage')) {
-			blockText = await downloadFirebaseFile(blockText, attachmentsFolder);
+			blockText = await downloadFirebaseFile(vault, blockText, attachmentsFolder);
 		}
 	}
 	// blockText = blockText.replaceAll("{{[[table]]}}", ""); 
@@ -122,18 +120,18 @@ async function roamMarkupScrubber(graphFolder: string, attachmentsFolder: string
 	return blockText;
 };
 
-async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, downloadAttachments: boolean, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
+async function jsonToMarkdown(vault: Vault, userDNPFormat: string, graphFolder: string, attachmentsFolder: string, downloadAttachments: boolean, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
 	let markdown: string[] = [];
 
 	if ('string' in json && json.string) {
 		const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
-		const scrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments);
+		const scrubbed = await roamMarkupScrubber(vault, userDNPFormat, graphFolder, attachmentsFolder, json.string, downloadAttachments);
 		markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
 	}
 
 	if (json.children) {
 		for (const child of json.children) {
-			markdown.push(await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true));
+			markdown.push(await jsonToMarkdown(vault, userDNPFormat, graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true));
 		}
 	}
 
@@ -214,6 +212,9 @@ async function extractAndProcessBlockReferences(blockLocations: Map<string, Bloc
 }
 
 export async function importRoamJson(importer: RoamJSONImporter, progress: ProgressReporter, files: PickedFile[], outputFolder: TFolder, downloadAttachments: boolean = true) {
+	const { vault } = importer;
+	const userDNPFormat = importer.getUserDNPFormat();
+
 	for (let file of files) {
 		const graphName = sanitizeFileName(file.basename);
 		const graphFolder = `${outputFolder.path}/${graphName}`;
@@ -231,7 +232,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 
 
 		// PRE-PROCESS: map the blocks for easy lookup //
-		const [blockLocations, toPostProcess] = preprocess(allPages);
+		const [blockLocations, toPostProcess] = preprocess(userDNPFormat, allPages);
 
 		// WRITE-PROCESS: create the actual pages //
 		for (let index in allPages) {
@@ -241,19 +242,18 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 			const filename = `${graphFolder}/${pageName}.md`;
 			// convert json to nested markdown
 
-			const markdownOutput = await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, pageData);
-
+			const markdownOutput = await jsonToMarkdown(vault, userDNPFormat, graphFolder, attachmentsFolder, downloadAttachments, pageData);
 
 			try {
 				//create folders for nested pages [[some/nested/subfolder/page]]
 				await importer.createFolders(path.dirname(filename));
-				const existingFile = app.vault.getAbstractFileByPath(filename) as TFile;
+				const existingFile = vault.getAbstractFileByPath(filename) as TFile;
 				if (existingFile) {
-					await app.vault.modify(existingFile, markdownOutput);
+					await vault.modify(existingFile, markdownOutput);
 					// console.log("Markdown replaced in existing file:", existingFile.path);
 				}
 				else {
-					const newFile = await app.vault.create(filename, markdownOutput);
+					const newFile = await vault.create(filename, markdownOutput);
 					// console.log("Markdown saved to new file:", newFile.path);
 				}
 				progress.reportNoteSuccess(filename);
@@ -271,15 +271,15 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 
 			// Then go back and update the original block with the new reference syntax
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
-			const callingBlockStringScrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, false);
+			const callingBlockStringScrubbed = await roamMarkupScrubber(vault, userDNPFormat, graphFolder, attachmentsFolder, callingBlock.blockString, false);
 
 			const newCallingBlockReferences = await extractAndProcessBlockReferences(blockLocations, graphFolder, callingBlock.blockString);
 
 			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
-			let callingBlockFile = app.vault.getAbstractFileByPath(callingBlockFilePath);
+			let callingBlockFile = vault.getAbstractFileByPath(callingBlockFilePath);
 
 			if (callingBlockFile instanceof TFile) {
-				let fileContent = await app.vault.read(callingBlockFile);
+				let fileContent = await vault.read(callingBlockFile);
 				let lines = fileContent.split('\n');
 
 				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlock.blockString));
@@ -288,7 +288,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 				}
 				let newContent = lines.join('\n');
 
-				await app.vault.modify(callingBlockFile, newContent);
+				await vault.modify(callingBlockFile, newContent);
 			}
 		};
 	}

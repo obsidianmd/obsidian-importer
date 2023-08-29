@@ -21,17 +21,6 @@ export function sanitizeFileNameKeepPath(name: string) {
 		.replace(startsWithDotRe, '');
 }
 
-export function getUserDNPFormat() {
-	// @ts-expect-error : Internal Method
-	const dailyNotePluginInstance = app.internalPlugins.getPluginById('daily-notes').instance;
-	if (!dailyNotePluginInstance) throw new Error('Daily note plugin is not enabled');
-	let dailyPageFormat = dailyNotePluginInstance.options.format;
-	if (!dailyPageFormat) {
-		dailyPageFormat = 'YYYY-MM-DD'; // Default format
-	}
-	return dailyPageFormat;
-}
-
 export function convertDateString(dateString: string, newFormat: string): string {
 	const validFormat = 'MMMM Do, YYYY';
 	const dateObj = moment(dateString, validFormat);

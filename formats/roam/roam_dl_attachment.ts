@@ -1,8 +1,10 @@
 import { ColorComponent, Vault } from 'obsidian';
 import axios from 'axios';
 import { fs, path } from 'filesystem';
+import { Vault } from 'obsidian';
 
 export async function downloadFirebaseFile(line: string, attachmentsFolder: string) {
+export async function downloadFirebaseFile(vault: Vault, line: string, attachmentsFolder: string): Promise<string> {
 	try {
 		let link: RegExpMatchArray | null;
 		let syntaxLink: RegExpMatchArray | null;
@@ -33,15 +35,10 @@ export async function downloadFirebaseFile(line: string, attachmentsFolder: stri
 			const timestamp = Math.floor(Date.now() / 1000);
 			const reg = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
 			if (reg) {
-				const ext = '.' + reg[2];
-
-				const newFilePath = `${attachmentsFolder}/${timestamp}${ext}`;
-				// Convert ArrayBuffer to Buffer
-				const data = Buffer.from(response.data);
-				// Write the file using Node.js's fs module
-				await fs.writeFileSync(path.join(app.vault.adapter.basePath, newFilePath), data);
 				// const newLine = line.replace(link.input, newFilePath)
 				const newLine = line.replace(syntaxLink[0], `![[${newFilePath}]]`);
+				const newFilePath = `${attachmentsFolder}/${timestamp}.${extMatch[2]}`;
+				await vault.createBinary(newFilePath, data);
 
 				return newLine;
 			}

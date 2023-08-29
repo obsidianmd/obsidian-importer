@@ -39,4 +39,17 @@ export class RoamJSONImporter extends FormatImporter {
 
 		await importRoamJson(this, progress, files, outputFolder, this.downloadAttachments);
 	}
+
+	public getUserDNPFormat(): string {
+		// @ts-expect-error : Internal Method
+		const dailyNotePluginInstance = this.app.internalPlugins.getPluginById('daily-notes').instance;
+		if (!dailyNotePluginInstance) {
+			console.log('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
+			return 'YYYY-MM-DD';
+		}
+
+		let dailyPageFormat = dailyNotePluginInstance.options.format;
+		return dailyPageFormat || 'YYYY-MM-DD';
+	}
+
 }
