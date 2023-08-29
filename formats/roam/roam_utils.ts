@@ -1,4 +1,4 @@
-import { moment } from "obsidian";
+import { moment } from 'obsidian';
 
 let illegalReNoDir = /[\?<>\\:\*\|"]/g;
 let controlRe = /[\x00-\x1f\x80-\x9f]/g;
@@ -16,35 +16,36 @@ export function sanitizeFileNameKeepPath(name: string) {
 		.replace(reservedRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '')
-		.replace(squareBracketOpenRe, '') 
-		.replace(squareBracketCloseRe, '') 
+		.replace(squareBracketOpenRe, '')
+		.replace(squareBracketCloseRe, '')
 		.replace(startsWithDotRe, '');
 }
 
-export function getUserDNPFormat(){
+export function getUserDNPFormat() {
 	// @ts-expect-error : Internal Method
-	const dailyNotePluginInstance = app.internalPlugins.getPluginById("daily-notes").instance;
-	if (!dailyNotePluginInstance) throw new Error("Daily note plugin is not enabled");
+	const dailyNotePluginInstance = app.internalPlugins.getPluginById('daily-notes').instance;
+	if (!dailyNotePluginInstance) throw new Error('Daily note plugin is not enabled');
 	let dailyPageFormat = dailyNotePluginInstance.options.format;
 	if (!dailyPageFormat) {
-		dailyPageFormat = "YYYY-MM-DD"; // Default format
+		dailyPageFormat = 'YYYY-MM-DD'; // Default format
 	}
 	return dailyPageFormat;
 }
 
-export function convertDateString(dateString: string, newFormat: string): string{
+export function convertDateString(dateString: string, newFormat: string): string {
 	const validFormat = 'MMMM Do, YYYY';
 	const dateObj = moment(dateString, validFormat);
-  
+
 	if (dateObj.format(validFormat) !== dateString) {
-	  // The input date string does not match the specified format
-	  return dateString;
+		// The input date string does not match the specified format
+		return dateString;
 	}
-  
+
 	if (dateObj.isValid()) {
-	  return dateObj.format(newFormat);
-	} else {
-	  // Handle the case where the input string is not a valid date
-	  return dateString;
+		return dateObj.format(newFormat);
 	}
-  }
+	else {
+		// Handle the case where the input string is not a valid date
+		return dateString;
+	}
+}
