@@ -146,11 +146,12 @@ async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, do
 	return joinedMarkdown;
 }
 
-export async function importRoamJson(importer: RoamJSONImporter, progress: ProgressReporter, files: PickedFile[], folder: TFolder, downloadAttachments: boolean = true) {
+export async function importRoamJson(importer: RoamJSONImporter, progress: ProgressReporter, files: PickedFile[], outputFolder: TFolder, downloadAttachments: boolean = true) {
 	for (let file of files) {
 		const graphName = sanitizeFileName(file.basename);
-		const graphFolder = `${folder.path}/${graphName}`;
-		const attachmentsFolder = `${folder.path}/${graphName}/Attachments`;
+		const graphFolder = `${outputFolder.path}/${graphName}`;
+		const attachmentsFolder = `${outputFolder.path}/${graphName}/Attachments`;
+
 		// create the base graph folders
 		await importer.createFolders(graphFolder);
 		await importer.createFolders(attachmentsFolder);

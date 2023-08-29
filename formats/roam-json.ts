@@ -31,12 +31,12 @@ export class RoamJSONImporter extends FormatImporter {
 			return;
 		}
 
-		let folder = await this.getOutputFolder();
-		if (!folder) {
+		let outputFolder = await this.getOutputFolder();
+		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
 
-		await importRoamJson(this, progress, files, folder, this.downloadAttachments);
+		await importRoamJson(this, progress, files, outputFolder, this.downloadAttachments);
 	}
 }
