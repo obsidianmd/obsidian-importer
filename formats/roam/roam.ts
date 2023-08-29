@@ -1,4 +1,4 @@
-import { RoamPage, RoamBlock, JsonObject, BlockInfo } from './models/roam-json';
+import { RoamPage, RoamBlock, BlockInfo } from './models/roam-json';
 import { PickedFile, path } from 'filesystem';
 import { RoamJSONImporter } from 'formats/roam-json';
 import { sanitizeFileName } from '../../util';
@@ -122,15 +122,13 @@ async function roamMarkupScrubber(graphFolder: string, attachmentsFolder: string
 	return blockText;
 };
 
-async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, downloadAttachments: boolean, json: JsonObject, indent: string = '', isChild: boolean = false): Promise<string> {
+async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, downloadAttachments: boolean, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
 	let markdown: string[] = [];
 
-	if (json.string) {
-		let prefix = '';
-		if (json.heading) {
-			prefix = '#'.repeat(json.heading) + ' ';
-		}
-		markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${(await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments))}`);
+	if ('string' in json && json.string) {
+		const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
+		const scrubbed = await roamMarkupScrubber(graphFolder, attachmentsFolder, json.string, downloadAttachments);
+		markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
 	}
 
 	if (json.children) {
@@ -138,8 +136,8 @@ async function jsonToMarkdown(graphFolder: string, attachmentsFolder: string, do
 			markdown.push(await jsonToMarkdown(graphFolder, attachmentsFolder, downloadAttachments, child, indent + '  ', true));
 		}
 	}
-	const joinedMarkdown: string = markdown.join('\n');
-	return joinedMarkdown;
+
+	return markdown.join('\n');
 }
 
 async function modifySourceBlockString(sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {

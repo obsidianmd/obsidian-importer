@@ -43,13 +43,3 @@ export interface Ref {
 export interface DRef {
   ':block/uid': string
 }
-
-export interface JsonObject {
-  string?: string;
-  heading?: number;
-  uid?: string;
-  title?: string;
-  children?: JsonObject[];
-}
-
-
