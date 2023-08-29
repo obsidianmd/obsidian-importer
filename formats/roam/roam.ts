@@ -19,6 +19,9 @@ import { ProgressReporter } from '../../main';
 
 const userDNPFormat = getUserDNPFormat();
 
+const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
+const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
+
 function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	// preprocess/map the graph so each block can be quickly found 
 	let blockLocations: Map<string, BlockInfo> = new Map();
@@ -64,44 +67,39 @@ function preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 	return [blockLocations, toPostProcessblockLocations];
 }
 
-const roamMarkupScrubber = async (graphFolder: string, attachmentsFolder: string, blockText: string, downloadAttachments: boolean = false) => {
-	// get rid of roam-specific components
-	let stringsToReplace = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
-	const regexPatterns = new RegExp(`\\{\\{(\\[\\[)?(${stringsToReplace.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
-	blockText = blockText.replace(regexPatterns, '');
+async function roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, downloadAttachments: boolean): Promise<string> {
+	// Remove roam-specific components
+	blockText = blockText.replace(roamSpecificMarkupRe, '');
 
 	if (blockText.substring(0, 8) == ':hiccup ' && blockText.includes(':hr')) {
 		return '---';
 	} // Horizontal line in markup, replace it with MD
 
-	//sanatize [[page names]]
+	//sanitize [[page names]]
 	//check for roam DNP and convert to obsidian DNP
 	blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), userDNPFormat)}]]`);
-
 
 	// Regular expression to find nested pages [[SOME/TEXT]]     
 	// Replace each match with an Obsidian alias [[Artificial Intelligence|AI]]
 	blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_, group1) => `[[${graphFolder}/${group1}|${group1}]]`);
 	// regular block alias
-	blockText = blockText.replaceAll(/\[.+?\]\((\(.+?\)\))\)/g, '$1');
+	blockText = blockText.replace(/\[.+?\]\((\(.+?\)\))\)/g, '$1');
 	// page alias
-	blockText = blockText.replaceAll(/\[(.+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
+	blockText = blockText.replace(/\[(.+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
 
-	blockText = blockText.replaceAll('[[>]]', '>');
-	blockText = blockText.replaceAll('{{TODO}}', '[ ]');
-	blockText = blockText.replaceAll('{{[[TODO]]}}', '[ ]');
-	blockText = blockText.replaceAll('{{DONE}}', '[x]');
-	blockText = blockText.replaceAll('{{[[DONE]]}}', '[x]');
+	blockText = blockText.replace(/\[\[>\]\]/g, '>');
+	blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
+	blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
 	blockText = blockText.replace('::', ':'); // Attributes::
 
-	blockText = blockText.replaceAll(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, '![]($1)'); // youtube embeds
-	blockText = blockText.replaceAll(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, '![]($1)'); // twitter embeds
-	blockText = blockText.replaceAll(/\_\_(.+?)\_\_/g, '*$1*'); // __ __ itallic
-	blockText = blockText.replaceAll(/\^\^(.+?)\^\^/g, '==$1=='); // ^^ ^^ highlight
+	blockText = blockText.replace(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, '![]($1)'); // youtube embeds
+	blockText = blockText.replace(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, '![]($1)'); // twitter embeds
+	blockText = blockText.replace(/\_\_(.+?)\_\_/g, '*$1*'); // __ __ itallic
+	blockText = blockText.replace(/\^\^(.+?)\^\^/g, '==$1=='); // ^^ ^^ highlight
 
 	// block and page embeds {{embed: ((asdf))}} {{[[embed]]: [[asadf]]}}
-	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\(\(.*?\)\)).*?}}/g, '$1');
-	blockText = blockText.replaceAll(/{{\[{0,2}embed.*?(\[\[.*?\]\]).*?}}/g, '$1');
+	blockText = blockText.replace(/{{\[{0,2}embed.*?(\(\(.*?\)\)).*?}}/g, '$1');
+	blockText = blockText.replace(/{{\[{0,2}embed.*?(\[\[.*?\]\]).*?}}/g, '$1');
 	// download files uploaded to Roam
 	if (downloadAttachments) {
 		if (blockText.includes('firebasestorage')) {
@@ -115,11 +113,11 @@ const roamMarkupScrubber = async (graphFolder: string, attachmentsFolder: string
 	// blockText = blockText.replaceAll("{{diagram}}", "");
 	// blockText = blockText.replaceAll("{{[[diagram]]}}", "");
 
-	//   blockText = blockText.replaceAll(/\!\[(.+?)\]\((.+?)\)/g, "$1 $2"); //images with description
-	//   blockText = blockText.replaceAll(/\!\[\]\((.+?)\)/g, "$1"); //imags with no description
-	//   blockText = blockText.replaceAll(/\[(.+?)\]\((.+?)\)/g, "$1: $2"); //alias with description
-	//   blockText = blockText.replaceAll(/\[\]\((.+?)\)/g, "$1"); //alias with no description
-	//   blockText = blockText.replaceAll(/\[(.+?)\](?!\()(.+?)\)/g, "$1"); //alias with embeded block (Odd side effect of parser)
+	// blockText = blockText.replace(/\!\[(.+?)\]\((.+?)\)/g, "$1 $2"); //images with description
+	// blockText = blockText.replace(/\!\[\]\((.+?)\)/g, "$1"); //imags with no description
+	// blockText = blockText.replace(/\[(.+?)\]\((.+?)\)/g, "$1: $2"); //alias with description
+	// blockText = blockText.replace(/\[\]\((.+?)\)/g, "$1"); //alias with no description
+	// blockText = blockText.replace(/\[(.+?)\](?!\()(.+?)\)/g, "$1"); //alias with embeded block (Odd side effect of parser)
 
 	return blockText;
 };
