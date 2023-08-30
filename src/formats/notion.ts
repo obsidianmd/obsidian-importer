@@ -144,7 +144,7 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 					// Only recurse into zip files if they are at the root of the parent zip
 					// because users can attach zip files to Notion, and they should be considered
 					// attachment files.
-					if (entry.extension === 'zip' && entry.parent === '' && getNotionId(entry.name)) {
+					if (entry.extension === 'zip' && entry.parent === '') {
 						try {
 							await processZips(ctx, [entry], callback);
 						}
