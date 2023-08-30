@@ -3,22 +3,28 @@ import { Notice, Setting, TFile } from 'obsidian';
 import { ProgressReporter } from 'main';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/roam_utils';
-import { downloadFirebaseFile } from './roam/roam_dl_attachment';
 import { sanitizeFileName } from '../util';
 import { path } from '../filesystem';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
+const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
+const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
+const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
+
 const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
+	progress: ProgressReporter;
+	userDNPFormat: string;
 
 	init() {
 		this.addFileChooserSetting('Roam (.json)', ['json']);
 		this.addOutputLocationSetting('Roam');
 		this.modal.contentEl.createEl('h3', { text: 'Import Settings' });
+		this.userDNPFormat = this.getUserDNPFormat();
 
 		new Setting(this.modal.contentEl)
 			.setName('Download all Attachments')
@@ -32,6 +38,7 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	async import(progress: ProgressReporter) {
+		this.progress = progress;
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -44,9 +51,11 @@ export class RoamJSONImporter extends FormatImporter {
 			return;
 		}
 
-		const userDNPFormat = this.getUserDNPFormat();
-
 		for (let file of files) {
+			if (progress.isCancelled()) {
+				return;
+			}
+
 			const graphName = sanitizeFileName(file.basename);
 			const graphFolder = `${outputFolder.path}/${graphName}`;
 			const attachmentsFolder = `${outputFolder.path}/${graphName}/Attachments`;
@@ -60,13 +69,13 @@ export class RoamJSONImporter extends FormatImporter {
 			const allPages = JSON.parse(data) as RoamPage[];
 
 			// PRE-PROCESS: map the blocks for easy lookup //
-			const [blockLocations, toPostProcess] = this.preprocess(userDNPFormat, allPages);
+			const [blockLocations, toPostProcess] = this.preprocess(allPages);
 
 			const markdownPages: Map<string, string> = new Map();
 			for (let index in allPages) {
 				const pageData = allPages[index];
 
-				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), userDNPFormat).trim();
+				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.userDNPFormat).trim();
 				if (pageName === '') {
 					progress.reportFailed(pageData.uid, 'Title is empty');
 					console.error('Cannot import data with an empty title', pageData);
@@ -74,13 +83,13 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 				const filename = `${graphFolder}/${pageName}.md`;
 
-				const markdownOutput = await this.jsonToMarkdown(userDNPFormat, graphFolder, attachmentsFolder, pageData);
+				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData);
 				markdownPages.set(filename, markdownOutput);
 			}
 
 			// POST-PROCESS: fix block refs //
 			for (const [_, callingBlock] of toPostProcess.entries()) {
-				const callingBlockStringScrubbed = await this.roamMarkupScrubber(userDNPFormat, graphFolder, attachmentsFolder, callingBlock.blockString, true);
+				const callingBlockStringScrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, true);
 				const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
 
 				const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
@@ -99,7 +108,13 @@ export class RoamJSONImporter extends FormatImporter {
 
 			// WRITE-PROCESS: create the actual pages //
 			const { vault } = this;
+			const totalCount = markdownPages.size;
+			let index = 1;
 			for (const [filename, markdownOutput] of markdownPages.entries()) {
+				if (progress.isCancelled()) {
+					return;
+				}
+
 				try {
 					//create folders for nested pages [[some/nested/subfolder/page]]
 					await this.createFolders(path.dirname(filename));
@@ -111,11 +126,14 @@ export class RoamJSONImporter extends FormatImporter {
 						await vault.create(filename, markdownOutput);
 					}
 					progress.reportNoteSuccess(filename);
+					progress.reportProgress(index, totalCount);
 				}
 				catch (error) {
 					console.error('Error saving Markdown to file:', filename, error);
 					progress.reportFailed(filename);
 				}
+
+				index++;
 			}
 		}
 	}
@@ -132,10 +150,11 @@ export class RoamJSONImporter extends FormatImporter {
 		return dailyPageFormat || 'YYYY-MM-DD';
 	}
 
-	private preprocess(userDNPFormat: string, pages: RoamPage[]): Map<string, BlockInfo>[] {
+	private preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
 		// preprocess/map the graph so each block can be quickly found 
 		let blockLocations: Map<string, BlockInfo> = new Map();
 		let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
+		const userDNPFormat = this.userDNPFormat;
 
 		function processBlock(page: RoamPage, block: RoamBlock) {
 			if (block.uid) {
@@ -177,7 +196,7 @@ export class RoamJSONImporter extends FormatImporter {
 		return [blockLocations, toPostProcessblockLocations];
 	}
 
-	private async roamMarkupScrubber(userDNPFormat: string, graphFolder: string, attachmentsFolder: string, blockText: string, skipDownload: boolean = false): Promise<string> {
+	private async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, skipDownload: boolean = false): Promise<string> {
 		// Remove roam-specific components
 		blockText = blockText.replace(roamSpecificMarkupRe, '');
 
@@ -187,7 +206,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		//sanitize [[page names]]
 		//check for roam DNP and convert to obsidian DNP
-		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), userDNPFormat)}]]`);
+		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
 
 		// Regular expression to find nested pages [[SOME/TEXT]]     
 		// Replace each match with an Obsidian alias [[Artificial Intelligence|AI]]
@@ -213,7 +232,7 @@ export class RoamJSONImporter extends FormatImporter {
 		// download files uploaded to Roam
 		if (this.downloadAttachments && !skipDownload) {
 			if (blockText.includes('firebasestorage')) {
-				blockText = await downloadFirebaseFile(this.vault, blockText, attachmentsFolder);
+				blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
 			}
 		}
 		// blockText = blockText.replaceAll("{{[[table]]}}", ""); 
@@ -232,18 +251,18 @@ export class RoamJSONImporter extends FormatImporter {
 		return blockText;
 	};
 
-	private async jsonToMarkdown(userDNPFormat: string, graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
+	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
 		let markdown: string[] = [];
 
 		if ('string' in json && json.string) {
 			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
-			const scrubbed = await this.roamMarkupScrubber(userDNPFormat, graphFolder, attachmentsFolder, json.string);
+			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
 			markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
 		}
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(userDNPFormat, graphFolder, attachmentsFolder, child, indent + '  ', true));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true));
 			}
 		}
 
@@ -317,5 +336,80 @@ export class RoamJSONImporter extends FormatImporter {
 		const processedString = inputString.replace(/\(\(\b.*?\b\)\)/g, () => processedBlocks[index++]);
 
 		return processedString;
+	}
+
+	private async downloadFirebaseFile(line: string, attachmentsFolder: string): Promise<string> {
+		const { progress, vault } = this;
+
+		let url = '';
+		try {
+			let link: RegExpMatchArray | null;
+			let syntaxLink: RegExpMatchArray | null;
+			if (regex.test(line)) {
+				link = line.match(/https:\/\/firebasestorage(.*?)\?alt(.*?)\}/);
+				syntaxLink = line.match(/{{.*https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
+
+			}
+			else if (imageRegex.test(line)) {
+				link = line.match(imageRegex);
+				syntaxLink = line.match(/!\[.*https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
+			}
+			else {
+				// I expect this to be a bare link which is typically a binary file
+				link = line.match(binaryRegex);
+				syntaxLink = line.match(/https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
+			}
+
+			if (link && syntaxLink) {
+				const firebaseShort = 'https://firebasestorage' + link[1];
+
+				let filename = decodeURIComponent(firebaseShort.split('/').last() || '');
+				if (filename) {
+					// Ensure the required subfolders exist
+					const filenameParts = filename.split('/');
+					if (filenameParts.length > 1) {
+						filenameParts.splice(-1, 1);
+						this.createFolders(`${attachmentsFolder}/${filenameParts.join('/')}`);
+					}
+				}
+				else {
+					// If we can't find the filename, then generate one with a timestamp and the original extension.
+					const timestamp = Math.floor(Date.now() / 1000);
+					const extMatch = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
+					if (!extMatch) {
+						progress.reportSkipped(link[1], 'Unexpected file extension');
+						return line;
+					}
+
+					filename = `${timestamp}.${extMatch[2]}`;
+				}
+
+				const newFilePath = `${attachmentsFolder}/${filename}`;
+
+				const existingFile = vault.getAbstractFileByPath(newFilePath);
+				if (existingFile) {
+					progress.reportSkipped(link[1], 'File already exists');
+					return line;
+				}
+
+				url = link[0].slice(0, -1);
+				const response = await fetch(url, {});
+				const data = await response.arrayBuffer();
+
+				await vault.createBinary(newFilePath, data);
+
+				progress.reportAttachmentSuccess(url);
+
+				// const newLine = line.replace(link.input, newFilePath)
+				return line.replace(syntaxLink[0], `![[${newFilePath}]]`);
+
+			}
+		}
+		catch (error) {
+			console.error(error);
+			progress.reportFailed(url, error);
+		}
+
+		return line;
 	}
 }
