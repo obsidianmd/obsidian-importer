@@ -276,7 +276,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
 			const callingBlockStringScrubbed = await roamMarkupScrubber(vault, userDNPFormat, graphFolder, attachmentsFolder, callingBlock.blockString, false);
 
-			const newCallingBlockReferences = await extractAndProcessBlockReferences(blockLocations, graphFolder, callingBlock.blockString);
+			const newCallingBlockReferences = await extractAndProcessBlockReferences(blockLocations, graphFolder, callingBlockStringScrubbed);
 
 			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
 			let callingBlockFile = vault.getAbstractFileByPath(callingBlockFilePath);
@@ -285,9 +285,9 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 				let fileContent = await vault.read(callingBlockFile);
 				let lines = fileContent.split('\n');
 
-				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlock.blockString));
+				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlockStringScrubbed));
 				if (index !== -1) {
-					lines[index] = lines[index].replace(callingBlock.blockString, newCallingBlockReferences);
+					lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
 				}
 				let newContent = lines.join('\n');
 
