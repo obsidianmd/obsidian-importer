@@ -7,18 +7,10 @@ import { TFile, TFolder, Vault } from 'obsidian';
 import { downloadFirebaseFile } from './roam_dl_attachment';
 import { ProgressReporter } from '../../main';
 
-// ### APPROACH 
-// ## Pre-process
-//		create a map of the json import and which blocks contain block refs
-// ## Write-process
-//		process and write pages to markdown
-// 		Sanatize file names
-// ## Post-Process
-// 		process markdown and fix block refs (using the pre-process map)
-// 		confirm page names match
-
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
+
+const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
 
 function preprocess(userDNPFormat: string, pages: RoamPage[]): Map<string, BlockInfo>[] {
 	// preprocess/map the graph so each block can be quickly found 
@@ -138,34 +130,30 @@ async function jsonToMarkdown(vault: Vault, userDNPFormat: string, graphFolder: 
 	return markdown.join('\n');
 }
 
-async function modifySourceBlockString(sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {
+async function modifySourceBlockString(markdownPages: Map<string, string>, sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {
 	if (!sourceBlock.blockString.endsWith('^' + sourceBlockUID)) {
 		const sourceBlockFilePath = `${graphFolder}/${sourceBlock.pageName}.md`;
-		let sourceBlockFile = this.app.vault.getAbstractFileByPath(sourceBlockFilePath);
+		let markdown = markdownPages.get(sourceBlockFilePath);
 
-		if (sourceBlockFile instanceof TFile) {
-			let fileContent = await this.app.vault.read(sourceBlockFile);
-			let lines = fileContent.split('\n');
+		if (markdown) {
+			let lines = markdown.split('\n');
 
 			// Edit the specific line, for example, the 5th line.
 			let index = lines.findIndex((item: string) => item.contains('* ' + sourceBlock.blockString));
-			// console.log(sourceBlock)
 			if (index !== -1) {
 				let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
+
 				// replace the line before updating sourceBlock
 				lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);
 				sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
 			}
-			let newContent = lines.join('\n');
 
-			await this.app.vault.modify(sourceBlockFile, newContent);
+			markdownPages.set(sourceBlockFilePath, lines.join('\n'));
 		}
 	}
 }
 
-async function extractAndProcessBlockReferences(blockLocations: Map<string, BlockInfo>, graphFolder: string, inputString: string): Promise<string> {
-	const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
-
+async function extractAndProcessBlockReferences(markdownPages: Map<string, string>, blockLocations: Map<string, BlockInfo>, graphFolder: string, inputString: string): Promise<string> {
 	// Find all the matches using the regular expression
 	const blockReferences = inputString.match(blockRefRegex);
 
@@ -193,7 +181,7 @@ async function extractAndProcessBlockReferences(blockLocations: Map<string, Bloc
 			// create the obsidian alias []()
 			let processedBlock = `[[${graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`;
 			// Modify the source block markdown page asynchronously so the new obsidian alias points to something
-			await modifySourceBlockString(sourceBlock, graphFolder, sourceBlockUID);
+			await modifySourceBlockString(markdownPages, sourceBlock, graphFolder, sourceBlockUID);
 
 			processedBlocks.push(processedBlock);
 		}
@@ -231,7 +219,7 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 		// PRE-PROCESS: map the blocks for easy lookup //
 		const [blockLocations, toPostProcess] = preprocess(userDNPFormat, allPages);
 
-		// WRITE-PROCESS: create the actual pages //
+		const markdownPages: Map<string, string> = new Map();
 		for (let index in allPages) {
 			const pageData = allPages[index];
 
@@ -241,58 +229,49 @@ export async function importRoamJson(importer: RoamJSONImporter, progress: Progr
 				console.error('Cannot import data with an empty title', pageData);
 				continue;
 			}
-
 			const filename = `${graphFolder}/${pageName}.md`;
-			// convert json to nested markdown
 
 			const markdownOutput = await jsonToMarkdown(vault, userDNPFormat, graphFolder, attachmentsFolder, downloadAttachments, pageData);
+			markdownPages.set(filename, markdownOutput);
+		}
 
+		// POST-PROCESS: fix block refs //
+		for (const [_, callingBlock] of toPostProcess.entries()) {
+			const callingBlockStringScrubbed = await roamMarkupScrubber(vault, userDNPFormat, graphFolder, attachmentsFolder, callingBlock.blockString, false);
+			const newCallingBlockReferences = await extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
+
+			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
+			const callingBlockMarkdown = markdownPages.get(callingBlockFilePath);
+			if (callingBlockMarkdown) {
+				let lines = callingBlockMarkdown.split('\n');
+
+				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlockStringScrubbed));
+				if (index !== -1) {
+					lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
+				}
+
+				markdownPages.set(callingBlockFilePath, lines.join('\n'));
+			}
+		}
+
+		// WRITE-PROCESS: create the actual pages //
+		for (const [filename, markdownOutput] of markdownPages.entries()) {
 			try {
 				//create folders for nested pages [[some/nested/subfolder/page]]
 				await importer.createFolders(path.dirname(filename));
 				const existingFile = vault.getAbstractFileByPath(filename) as TFile;
 				if (existingFile) {
 					await vault.modify(existingFile, markdownOutput);
-					// console.log("Markdown replaced in existing file:", existingFile.path);
 				}
 				else {
-					const newFile = await vault.create(filename, markdownOutput);
-					// console.log("Markdown saved to new file:", newFile.path);
+					await vault.create(filename, markdownOutput);
 				}
 				progress.reportNoteSuccess(filename);
 			}
 			catch (error) {
 				console.error('Error saving Markdown to file:', filename, error);
-				progress.reportFailed(pageName);
+				progress.reportFailed(filename);
 			}
 		}
-
-		// POST-PROCESS: fix block refs //
-		for (const [callingBlockUID, callingBlock] of toPostProcess.entries()) {
-			// extract UIDs from the callingBlock.blockString
-			// first Edit the referenced Block to add in a block UID
-
-			// Then go back and update the original block with the new reference syntax
-			// [SOURCE_TEXT]([[SOURCE_PAGE#^SOURCE_BLOCK_UID]])
-			const callingBlockStringScrubbed = await roamMarkupScrubber(vault, userDNPFormat, graphFolder, attachmentsFolder, callingBlock.blockString, false);
-
-			const newCallingBlockReferences = await extractAndProcessBlockReferences(blockLocations, graphFolder, callingBlockStringScrubbed);
-
-			const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
-			let callingBlockFile = vault.getAbstractFileByPath(callingBlockFilePath);
-
-			if (callingBlockFile instanceof TFile) {
-				let fileContent = await vault.read(callingBlockFile);
-				let lines = fileContent.split('\n');
-
-				let index = lines.findIndex((item: string) => item.contains('* ' + callingBlockStringScrubbed));
-				if (index !== -1) {
-					lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
-				}
-				let newContent = lines.join('\n');
-
-				await vault.modify(callingBlockFile, newContent);
-			}
-		};
 	}
 }
