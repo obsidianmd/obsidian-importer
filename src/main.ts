@@ -4,7 +4,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
-import { RoamJSONImporter } from 'formats/roam-json';
+import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
 import { truncateText } from './util';
 

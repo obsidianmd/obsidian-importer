@@ -56,4 +56,3 @@ export function truncateText(text: string, limit: number, ellipses: string = '..
 
 	return text.substring(0, limit) + ellipses;
 }
-}
