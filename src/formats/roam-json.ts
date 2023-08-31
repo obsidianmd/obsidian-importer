@@ -2,9 +2,9 @@ import { FormatImporter } from '../format-importer';
 import { Notice, Setting, TFile } from 'obsidian';
 import { ProgressReporter } from 'main';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
-import { convertDateString, sanitizeFileNameKeepPath } from './roam/roam_utils';
+import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
 import { sanitizeFileName } from '../util';
-import { path } from '../filesystem';
+import { parseFilePath } from '../filesystem';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -117,7 +117,8 @@ export class RoamJSONImporter extends FormatImporter {
 
 				try {
 					//create folders for nested pages [[some/nested/subfolder/page]]
-					await this.createFolders(path.dirname(filename));
+					const { parent } = parseFilePath(filename);
+					await this.createFolders(parent);
 					const existingFile = vault.getAbstractFileByPath(filename) as TFile;
 					if (existingFile) {
 						await vault.modify(existingFile, markdownOutput);

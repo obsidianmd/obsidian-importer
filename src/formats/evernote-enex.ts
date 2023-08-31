@@ -12,7 +12,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 	async import(ctx: ImportContext) {
 		let { files } = this;
-		console.log(files)
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
