@@ -5,8 +5,8 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { OneNoteImporter } from './formats/onenote';
 import { truncateText } from './util';
-import { OneNoteImporter } from 'formats/onenote';
 
 declare global {
 	interface Window {

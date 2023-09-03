@@ -1,10 +1,13 @@
-import { FormatImporter } from 'format-importer';
-import { ImportContext } from 'main';
-import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown } from 'obsidian';
-import { parseHTML } from '../util';
-import { MicrosoftGraphHelper } from './onenote/graph-helper';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { genUid, parseHTML } from '../util';
+import { FormatImporter } from '../format-importer';
+import { ImportContext } from '../main';
+import { AccessTokenResponse } from './onenote/models';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
 
+const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
+const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
+const REDIRECT_URI: string = 'obsidian://importer-onenote-signin/';
 // TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
@@ -19,17 +22,20 @@ export class OneNoteImporter extends FormatImporter {
 
 	attachmentQueue: FileAttachment[] = [];
 	selectedSections: OnenoteSection[] = [];
-
-	graphHelper: MicrosoftGraphHelper = new MicrosoftGraphHelper();
+	graphData = {
+		state: genUid(32),
+		accessToken: '',
+	};
 
 	init() {
 		this.addOutputLocationSetting('OneNote');
 		this.showUI();
 		// Required for the OAuth sign in flow
+
 		try {
 			this.modal.plugin.registerObsidianProtocolHandler('importer-onenote-signin', (data) => {
 				try {
-					this.graphHelper.requestAccessToken(data);
+					this.authenticateUser(data);
 				}
 				catch (e) {
 					this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
@@ -41,14 +47,43 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			console.log('Protocol handler was not registered: ' + e);
 		}
+	}
 
-		document.addEventListener('graphSignedIn', async () => {
-			const userData: User = await this.graphHelper.requestUrl('https://graph.microsoft.com/v1.0/me');
-			this.microsoftAccountSetting.setDesc(
-				`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-			);
-			await this.showSectionPickerUI();
-		});
+	async authenticateUser(protocolData: ObsidianProtocolData) {
+		try {
+			if (protocolData['state'] === this.graphData.state) {
+				const requestBody = new URLSearchParams({
+					client_id: GRAPH_CLIENT_ID,
+					scope: GRAPH_SCOPES.join(' '),
+					code: protocolData['code'],
+					redirect_uri: REDIRECT_URI,
+					grant_type: 'authorization_code',
+				});
+
+				const tokenResponse: AccessTokenResponse = await requestUrl({
+					method: 'POST',
+					url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+					contentType: 'application/x-www-form-urlencoded',
+					body: requestBody.toString(),
+				}).json;
+
+				if (tokenResponse.access_token !== undefined) {
+					this.graphData.accessToken = tokenResponse.access_token;
+					const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
+					this.microsoftAccountSetting.setDesc(
+						`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
+					);
+					await this.showSectionPickerUI();
+				} 
+				else throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
+			}
+			else throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
+		}
+		catch (e) {
+			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
+
+			throw e;
+		}
 	}
 
 	showUI() {
@@ -75,43 +110,55 @@ export class OneNoteImporter extends FormatImporter {
 			.addButton((button) => button
 				.setCta()
 				.setButtonText('Sign in')
-				.onClick(() => this.graphHelper.openOAuthPage())
+				.onClick(() => {
+					const requestBody = new URLSearchParams({
+						client_id: GRAPH_CLIENT_ID,
+						scope: GRAPH_SCOPES.join(' '),
+						response_type: 'code',
+						redirect_uri: REDIRECT_URI,
+						response_mode: 'query',
+						state: this.graphData.state,
+					});
+					window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
+				})
 			);
 	}
 
 	async showSectionPickerUI() {
 		const sectionsUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks?$expand=sections($select=id,displayName)&$select=id,displayName&$orderby=createdDateTime';
-		const notebooks: Notebook[] = (await this.graphHelper.requestUrl(sectionsUrl)).value;
+		const notebooks: Notebook[] = (await this.fetchResource(sectionsUrl, 'json')).value;
+
+		// Make sure the element is empty, in case the user signs in twice
+		this.contentArea.empty();
 
 		this.contentArea.createEl('h3', {
 			text: 'Choose what to import',
 			cls: 'modal-title',
 		});
 
-		notebooks.forEach((notebook) => {
+		for (const notebook of notebooks) {
 			this.contentArea.createEl('h5', {
 				text: notebook.displayName!,
 				cls: 'modal-title',
 			});
 
-			let sections: OnenoteSection[] | undefined | null = notebook?.sections;
-			let sectionGroups: SectionGroup[] | undefined | null = notebook?.sectionGroups;
+			let sections: OnenoteSection[] | null | undefined = notebook.sections;
+			let sectionGroups: SectionGroup[] | null | undefined = notebook.sectionGroups;
 
 			if (sections) this.createSectionList(sections);
 
-			sectionGroups?.forEach((sectionGroup) => {
+			for (const sectionGroup of sectionGroups || []) {
 				this.contentArea.createEl('h6', {
 					text: sectionGroup.displayName!,
 				});
 				this.createSectionList(sectionGroup.sections!);
-			});
-		});
+			}
+		}
 	}
 
 	createSectionList(sections: OnenoteSection[]) {
 		const list = this.contentArea.createEl('ul');
-
-		sections?.forEach((section) => {
+		for (const section of sections) {
 			const listElement = list.createEl('li');
 			let label = listElement.createEl('label');
 			let checkbox = label.createEl('input');
@@ -130,7 +177,7 @@ export class OneNoteImporter extends FormatImporter {
 					}
 				}
 			});
-		});
+		}
 	}
 
 	async import(progress: ImportContext): Promise<void> {
@@ -152,7 +199,7 @@ export class OneNoteImporter extends FormatImporter {
 			let sectionFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
-			let pages: OnenotePage[] = (await this.graphHelper.requestUrl(pagesUrl)).value;
+			let pages: OnenotePage[] = (await this.fetchResource(pagesUrl, 'json')).value;
 			
 			progress.reportProgress(0, pages.length);
 
@@ -161,7 +208,7 @@ export class OneNoteImporter extends FormatImporter {
 
 				try {
 					pageCount++;
-					progress.status(`Importing note ${page.title}`);
+					progress.status(`Importing note ${page.title || 'Untitled'}`);
 
 					// Every 50 items, do a few second break to prevent rate limiting
 					if (i !== 0 && i % 50 === 0) {
@@ -169,20 +216,21 @@ export class OneNoteImporter extends FormatImporter {
 					}
 					this.processFile(progress,
 						sectionFolder,
-						await this.graphHelper.requestUrl(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text')
+						outputFolder,
+						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text')
 						,page);
 					
 					progress.reportProgress(pageCount, pages.length);	
 
 				}
 				catch (e) {
-					progress.reportFailed(page.title!, e.toString());
+					progress.reportFailed(page.title || 'Untitled note', e.toString());
 				}
 			}
 		}
 	}
 
-	async processFile(progress: ImportContext, folder: TFolder, content: string, page: OnenotePage) {
+	async processFile(progress: ImportContext, sectionFolder: TFolder, outputFolder: TFolder, content: string, page: OnenotePage) {
 		try {
 			const splitContent = this.convertFormat(content);
 
@@ -197,25 +245,25 @@ export class OneNoteImporter extends FormatImporter {
 				parsedPage = this.convertDrawings(parsedPage);
 
 				let mdContent = htmlToMarkdown(parsedPage).trim();
-				const fileRef = await this.saveAsMarkdownFile(folder, page.title!, mdContent);
+				const fileRef = await this.saveAsMarkdownFile(sectionFolder, page.title!, mdContent);
 
-				await this.fetchAttachmentQueue(progress, fileRef);
+				await this.fetchAttachmentQueue(progress, fileRef, outputFolder);
 
 				// Add the last modified and creation time metadata
 				const writeOptions: DataWriteOptions = {
-					ctime: Date.parse(page.createdDateTime!.toString()) ||
-						Date.parse(page.lastModifiedDateTime!.toString()) ||
-						Date.now(),
-					mtime: Date.parse(page?.lastModifiedDateTime!.toString()) ||
-						Date.parse(page?.createdDateTime!.toString()) ||
-						Date.now(),
+					ctime: page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime.toString()) :
+						page?.createdDateTime ? Date.parse(page.createdDateTime.toString()) :
+							Date.now(),
+					mtime: page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime.toString()) :
+						page?.createdDateTime ? Date.parse(page.createdDateTime.toString()) :
+							Date.now(),
 				};
 				await this.vault.append(fileRef, '', writeOptions);
 				progress.reportNoteSuccess(page.title!);
 			}
 		}
 		catch (e) {
-			progress.reportFailed(page.title!, e);
+			progress.reportFailed(page.title || 'Untitled note', e);
 		}
 	}
 
@@ -230,7 +278,7 @@ export class OneNoteImporter extends FormatImporter {
 		const parts: string[] = input.split(boundary); // Split the file into 2 parts
 		parts.shift(); // Remove the first array item as it's just an empty string
 
-		if (parts?.length === 2) {
+		if (parts.length === 2) {
 			for (let part of parts) {
 				let contentTypeLine = part.split('\n').find((line) => line.includes('Content-Type'));
 				let contentType = contentTypeLine!
@@ -253,9 +301,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	convertTags(pageElement: HTMLElement): HTMLElement {
-		const tagElements = pageElement.querySelectorAll('[data-tag]');
+		const tagElements = Array.from(pageElement.querySelectorAll('[data-tag]'));
 
-		tagElements.forEach((element) => {
+		for (const element of tagElements) {
 			// If a to-do tag, then convert it into a Markdown task list
 			if (element.getAttribute('data-tag')?.contains('to-do')) {
 				const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
@@ -270,21 +318,20 @@ export class OneNoteImporter extends FormatImporter {
 					element.innerHTML = element.innerHTML + ` #${tag.replace(':', '-')} `;
 				});
 			}
-		});
+		}
 		return pageElement;
 	}
 
 	// TODO: Dirty working hack, but do this the correct way using this.app.fileManager.generateMarkdownLink
 	convertInternalLinks(pageElement: HTMLElement): HTMLElement {
-		const links: HTMLElement[] = pageElement.findAll('a');
-
-		links.forEach((link: HTMLAnchorElement) => {
+		const links: HTMLAnchorElement[] = pageElement.findAll('a') as HTMLAnchorElement[];
+		for (const link of links) {
 			if (link.href.startsWith('onenote:')) {
 				const startIdx = link.href.indexOf('#') + 1;
 				const endIdx = link.href.indexOf('&', startIdx);
 				link.href = link.href.slice(startIdx, endIdx);
 			}
-		});
+		}
 		return pageElement;
 	}
 
@@ -300,13 +347,13 @@ export class OneNoteImporter extends FormatImporter {
 		// Online videos are implemented as iframes, normal videos are just <object>s
 		const videos: HTMLIFrameElement[] = pageElement.findAll('iframe') as HTMLIFrameElement[];
 
-		objects.forEach(async (object) => {
+		for (const object of objects) {
 			let split: string[] = object.getAttribute('data-attachment')!.split('.');
 			const extension: string = split[split.length - 1];
 
 			// If the page contains an incompatible file and user doesn't want to import them, skip
 			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
-				return;
+				continue;
 			}
 			else {
 				this.attachmentQueue.push({
@@ -321,13 +368,12 @@ export class OneNoteImporter extends FormatImporter {
 				// Replace the <object> tag with the new <p> element
 				object.parentNode?.replaceChild(markdownLink, object);
 			}
-		});
+		}
 
-		images.forEach(async (image) => {
+		for (const image of images) {
 			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
 			const extension: string = split[1];
-			// TODO: there may be a similar function in the Obsidian API but I couldn't find it
-			const currentDate = (new Date).toISOString().replace(/[-:.TZ]/g, '').substring(0, 14);
+			const currentDate = moment().format('YYYYMMDDHHmmss');
 			const fileName: string = `Exported image ${currentDate}.${extension}`;
 
 			this.attachmentQueue.push({
@@ -337,9 +383,9 @@ export class OneNoteImporter extends FormatImporter {
 
 			image.src = encodeURIComponent(fileName);
 			if(!image.alt) image.alt = 'Exported image';
-		});
+		}
 
-		videos.forEach(async (video) => {
+		for (const video of videos) {
 			// Obsidian only supports embedding YouTube videos, unlike OneNote
 			if(video.src.contains('youtube.com') || video.src.contains('youtu.be')) {
 				const embedNode = document.createTextNode(`![Embedded YouTube video](${video.src})`);
@@ -351,14 +397,14 @@ export class OneNoteImporter extends FormatImporter {
 				linkNode.href = video.src;
 				video.parentNode?.replaceChild(linkNode, video);
 			}
-		});
+		}
 		return pageElement;
 	}
 
 	// Downloads attachments from the attachmentQueue once the file has been created.
-	async fetchAttachmentQueue(progress: ImportContext, currentFile: TFile) {
+	async fetchAttachmentQueue(progress: ImportContext, currentFile: TFile, outputFolder: TFolder) {
 		if (this.attachmentQueue.length >= 1) {
-			let attachmentPath: string = (await this.getOutputFolder())!.path + '/OneNote Attachments';
+			let attachmentPath: string = outputFolder.path + '/OneNote Attachments';
 
 			// @ts-ignore
 			// Bug: This function always returns the path + "Note name.md" rather than just the path for some reason
@@ -369,10 +415,9 @@ export class OneNoteImporter extends FormatImporter {
 				this.vault.createFolder(attachmentPath);
 			}
 			catch (e) { }
-	
-			this.attachmentQueue.forEach(async attachment => {
+			for (const attachment of this.attachmentQueue) {
 				try {
-					const data = (await this.graphHelper.requestUrl(attachment.contentLocation!, 'file')) as ArrayBuffer;
+					const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
 					await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
 		
 					progress.reportAttachmentSuccess(attachment.name!);	
@@ -380,7 +425,7 @@ export class OneNoteImporter extends FormatImporter {
 				catch (e) {
 					progress.reportFailed(attachment.name!, e);
 				}
-			});
+			}
 	
 			// Clear the attachment queue after every note
 			this.attachmentQueue = [];		
@@ -418,7 +463,6 @@ export class OneNoteImporter extends FormatImporter {
 					const code = newElement.createEl('code');
 					code.textContent = element.textContent;
 				}
-
 				else newElement.innerHTML = element.innerHTML;
 				element.replaceWith(newElement);
 			}
@@ -427,21 +471,9 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 	
-	/* Commented out for possible future use. As of now, it seems like it's htmlToMarkdown's fault rather than OneNote's
-		fixTables(pageElement: HTMLElement): HTMLElement {
-			const tables = pageElement.querySelectorAll('table');
-	
-			tables.forEach(table => {
-				if (table.rows.length > 1) table.deleteRow(0); 
-			});
-			
-			return pageElement;
-		}
-	*/
-
-	convertDrawings(element: HTMLElement, currentFile: TFile | undefined = undefined): HTMLElement {
+	convertDrawings(element: HTMLElement): HTMLElement {
 		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
-		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
+		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT);
 		let hasDrawings: boolean = false;
 
 		while (walker.nextNode()) {
@@ -463,5 +495,36 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 		return element;
+	}
+	async fetchResource(url: string, returnType: 'text'): Promise<string>;
+	async fetchResource(url: string, returnType: 'file'): Promise<ArrayBuffer>;
+	async fetchResource(url: string, returnType: 'json'): Promise<any>;
+	async fetchResource(url: string, returnType: 'text' | 'file' | 'json' = 'json'): Promise<string | ArrayBuffer | any> {
+		try {
+			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
+			let responseBody;
+			
+			switch (returnType) {
+				case 'text':
+					responseBody = await response.text();
+					break;
+				case 'file':
+					responseBody = await response.arrayBuffer();
+					break;
+				default:
+					responseBody = await response.json();
+					if ('@odata.nextLink' in responseBody) {
+						responseBody.value.push(...(await this.fetchResource(responseBody['@odata.nextLink'], 'json')).value);
+					}
+					break;
+			}
+			
+			return responseBody;
+		}
+		catch (e) {
+			console.error(`An error occurred while trying to fetch '${url}'. Error details: `, e);
+
+			throw e;
+		}
 	}
 }

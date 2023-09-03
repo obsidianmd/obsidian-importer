@@ -1,4 +1,4 @@
-export interface errorResponse {
+export interface ErrorResponse {
     error: string;
     error_description: string;
     error_codes: number[];
@@ -7,7 +7,7 @@ export interface errorResponse {
     correlation_id: string;
 }
 
-export interface accessTokenResponse {
+export interface AccessTokenResponse {
     token_type: string;
     scope: string;
     expires_in: number;
