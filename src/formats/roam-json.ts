@@ -1,6 +1,6 @@
 import { FormatImporter } from '../format-importer';
 import { Notice, Setting, TFile } from 'obsidian';
-import { ProgressReporter } from 'main';
+import { ImportContext } from 'main';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
 import { sanitizeFileName } from '../util';
@@ -17,7 +17,7 @@ const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
-	progress: ProgressReporter;
+	progress: ImportContext;
 	userDNPFormat: string;
 
 	init() {
@@ -37,7 +37,7 @@ export class RoamJSONImporter extends FormatImporter {
 			});
 	}
 
-	async import(progress: ProgressReporter) {
+	async import(progress: ImportContext) {
 		this.progress = progress;
 		let { files } = this;
 		if (files.length === 0) {
