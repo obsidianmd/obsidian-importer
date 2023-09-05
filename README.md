@@ -11,9 +11,9 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 - [x] Notion, `.zip` of HTML files
 - [x] Bear `.bear2bk`
 - [x] Google Keep
+- [x] Roam Research
 - [ ] Apple Notes
 - [ ] Microsoft OneNote
-- [ ] Roam Research
 - [ ] Other Markdown flavors
 
 ## Usage
