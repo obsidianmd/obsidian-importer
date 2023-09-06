@@ -6,6 +6,7 @@ import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
+import { OneNoteImporter } from './formats/onenote';
 import { truncateText } from './util';
 import { NodePickedFile, PickedFile } from './filesystem';
 
@@ -221,6 +222,12 @@ export default class ImporterPlugin extends Plugin {
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
 			},
+			'onenote': {
+				name: 'OneNote',
+				optionText: 'OneNote',
+				importer: OneNoteImporter,
+				helpPermalink: 'import/onenote',
+      },
 			'roam-json': {
 				name: 'Roam',
 				optionText: 'Roam (.json)',
@@ -370,4 +377,3 @@ export class ImporterModal extends Modal {
 		}
 	}
 }
-
