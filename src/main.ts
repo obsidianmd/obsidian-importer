@@ -188,6 +188,8 @@ export class ImportContext {
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
+	onenoteImporter: OneNoteImporter;
+
 	async onload() {
 		this.importers = {
 			'bear': {
@@ -247,6 +249,14 @@ export default class ImporterPlugin extends Plugin {
 				new ImporterModal(this.app, this).open();
 			},
 		});
+
+		this.registerObsidianProtocolHandler('importer-onenote-signin',
+			// Handle callback for OneNote OAuth signin.
+			(data) => {
+				if (this.onenoteImporter) {
+					this.onenoteImporter.authenticateUser(data);
+				}
+			});
 
 		// For development, un-comment this and tweak it to your importer:
 
@@ -326,6 +336,12 @@ export class ImporterModal extends Modal {
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
+
+			if (selectedId === 'onenote') {
+				// Pass a reference to the importer back to the plugin for use
+				// by the registered protocol handler.
+				this.plugin.onenoteImporter = importer as OneNoteImporter;
+			}
 
 			contentEl.createDiv('modal-button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {

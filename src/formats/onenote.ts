@@ -30,23 +30,6 @@ export class OneNoteImporter extends FormatImporter {
 	init() {
 		this.addOutputLocationSetting('OneNote');
 		this.showUI();
-		// Required for the OAuth sign in flow
-
-		try {
-			this.modal.plugin.registerObsidianProtocolHandler('importer-onenote-signin', (data) => {
-				try {
-					this.authenticateUser(data);
-				}
-				catch (e) {
-					this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
-						.createEl('details', { text: e })
-						.createEl('summary', { text: 'Click here to show error details' });
-				}
-			});	
-		}
-		catch (e) {
-			console.log('Protocol handler was not registered: ' + e);
-		}
 	}
 
 	async authenticateUser(protocolData: ObsidianProtocolData) {
@@ -81,8 +64,9 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-
-			throw e;
+			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
+				.createEl('details', { text: e })
+				.createEl('summary', { text: 'Click here to show error details' });
 		}
 	}
 
