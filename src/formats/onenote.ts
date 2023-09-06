@@ -29,48 +29,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	init() {
 		this.addOutputLocationSetting('OneNote');
-		this.showUI();
-	}
 
-	async authenticateUser(protocolData: ObsidianProtocolData) {
-		try {
-			if (protocolData['state'] === this.graphData.state) {
-				const requestBody = new URLSearchParams({
-					client_id: GRAPH_CLIENT_ID,
-					scope: GRAPH_SCOPES.join(' '),
-					code: protocolData['code'],
-					redirect_uri: REDIRECT_URI,
-					grant_type: 'authorization_code',
-				});
-
-				const tokenResponse: AccessTokenResponse = await requestUrl({
-					method: 'POST',
-					url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-					contentType: 'application/x-www-form-urlencoded',
-					body: requestBody.toString(),
-				}).json;
-
-				if (tokenResponse.access_token !== undefined) {
-					this.graphData.accessToken = tokenResponse.access_token;
-					const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
-					this.microsoftAccountSetting.setDesc(
-						`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-					);
-					await this.showSectionPickerUI();
-				}
-				else throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
-			}
-			else throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
-		}
-		catch (e) {
-			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
-				.createEl('details', { text: e })
-				.createEl('summary', { text: 'Click here to show error details' });
-		}
-	}
-
-	showUI() {
 		new Setting(this.modal.contentEl)
 			.setName('Use the default attachment folder')
 			.setDesc('If disabled, attachments will be stored in the export folder in the OneNote Attachments folder.')
@@ -106,6 +65,48 @@ export class OneNoteImporter extends FormatImporter {
 						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 					})
 				);
+	}
+
+	async authenticateUser(protocolData: ObsidianProtocolData) {
+		try {
+			if (protocolData['state'] !== this.graphData.state) {
+				throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
+			}
+
+			const requestBody = new URLSearchParams({
+				client_id: GRAPH_CLIENT_ID,
+				scope: GRAPH_SCOPES.join(' '),
+				code: protocolData['code'],
+				redirect_uri: REDIRECT_URI,
+				grant_type: 'authorization_code',
+			});
+
+			const tokenResponse: AccessTokenResponse = await requestUrl({
+				method: 'POST',
+				url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+				contentType: 'application/x-www-form-urlencoded',
+				body: requestBody.toString(),
+			}).json;
+
+			if (!tokenResponse.access_token) {
+				throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
+			}
+
+			this.graphData.accessToken = tokenResponse.access_token;
+			const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
+			this.microsoftAccountSetting.setDesc(
+				`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
+			);
+
+			// Async
+			this.showSectionPickerUI();
+		}
+		catch (e) {
+			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
+			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
+				.createEl('details', { text: e })
+				.createEl('summary', { text: 'Click here to show error details' });
+		}
 	}
 
 	async showSectionPickerUI() {
