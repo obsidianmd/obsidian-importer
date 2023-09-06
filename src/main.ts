@@ -4,6 +4,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
+import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { truncateText } from './util';
@@ -225,6 +226,13 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
+      },
+			'roam-json': {
+				name: 'Roam',
+				optionText: 'Roam (.json)',
+				importer: RoamJSONImporter,
+				helpPermalink: 'import/roam',
+				formatDescription: 'Export your Roam workspace to JSON format.',
 			},
 		};
 
