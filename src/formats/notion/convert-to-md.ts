@@ -41,7 +41,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	fixEquations(body);
 	// Some annoying elements Notion throws in as wrappers, which mess up .md
 	replaceElementsWithChildren(body, 'div.indented');
-	replaceElementsWithChildren(body, 'details')
+	replaceElementsWithChildren(body, 'details');
 	fixToggleHeadings(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
@@ -201,25 +201,25 @@ function fixDoubleBackslash(markdownBody: string) {
 }
 
 function fixEquations(body: HTMLElement) {
-	const katexEls = body.findAll('.katex')
-	katexEls.forEach(katex => {
-		const annotation = katex.querySelector('annotation')
-		if (!annotation) return
-		annotation.setText(`$${annotation.textContent}$`)
-		katex.replaceWith(annotation)
-	})
+	const katexEls = body.findAll('.katex');
+	for (let katex of katexEls) {
+		const annotation = katex.find('annotation');
+		if (!annotation) return;
+		annotation.setText(`$${annotation.textContent}$`);
+		katex.replaceWith(annotation);
+	};
 }
 
 function fixNotionEmbeds(body: HTMLElement) {
 	// Notion embeds are a box with images and description, we simplify for Obsidian.
-	const embeds = body.findAll('a.bookmark.source')
+	const embeds = body.findAll('a.bookmark.source');
 	embeds.forEach((embed: HTMLAnchorElement) => {
-		const link = embed.getAttribute('href')
-		const title = embed.querySelector('div.bookmark-title')?.textContent
-		const description = embed.querySelector('div.bookmark-description')?.textContent
-		const calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`
-		embed.replaceWith(calloutBlock)
-	})
+		const link = embed.getAttribute('href');
+		const title = embed.find('div.bookmark-title')?.textContent;
+		const description = embed.find('div.bookmark-description')?.textContent;
+		const calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
+		embed.replaceWith(calloutBlock);
+	});
 }
 
 function formatDatabases(body: HTMLElement) {
@@ -261,7 +261,7 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			return;
 		}
-		let firstNested = el.querySelector(tag);
+		let firstNested = el.find(tag);
 		while (firstNested) {
 			const childrenOfNested = firstNested.childNodes;
 			const hoistedChildren = createFragment();
@@ -269,7 +269,7 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
 				hoistedChildren.appendChild(child)
 			);
 			firstNested.replaceWith(hoistedChildren);
-			firstNested = el.querySelector(tag);
+			firstNested = el.find(tag);
 		}
 	});
 }
@@ -298,8 +298,8 @@ function replaceTableOfContents(body: HTMLElement) {
 function encodeNewlinesToBr(body: HTMLElement) {
 	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
 	// Since <br /> is ignored in codeblocks, we replace with newlines
-	const codeBlocks = body.findAll('code')
-	codeBlocks.forEach(block => block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n'))
+	const codeBlocks = body.findAll('code');
+	codeBlocks.forEach(block => block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n'));
 }
 
 function stripLinkFormatting(body: HTMLElement) {
@@ -316,41 +316,42 @@ function fixNotionDates(body: HTMLElement) {
 }
 
 function fixToggleHeadings(body: HTMLElement) {
-	const toggleHeadings = body.findAll('summary')
+	const toggleHeadings = body.findAll('summary');
 	toggleHeadings.forEach((heading) => {
 		const fontSizeToHeadings: Record<string, 'h1' | 'h2' | 'h3'> = {
 			'1.875em': 'h1',
 			'1.5em': 'h2',
 			'1.25em': 'h3',
-		}
-		const style = heading.getAttribute('style')
+		};
+		const style = heading.getAttribute('style');
 		if (!style) {
-			return
-		} else {
+			return;
+		}
+		else {
 			for (let key of Object.keys(fontSizeToHeadings)) {
 				if (style.includes(key)) {
-					const newHeading = document.createElement(fontSizeToHeadings[key])
-					newHeading.setText(heading.textContent ?? '')
-					heading.replaceWith(newHeading)
-					return
+					const newHeading = document.createElement(fontSizeToHeadings[key]);
+					newHeading.setText(heading.textContent ?? '');
+					heading.replaceWith(newHeading);
+					return;
 				}
 			}
 		}
 		
-	})
+	});
 }
 
 function replaceElementsWithChildren(body: HTMLElement, selector: string) {
-	let element = body.querySelector(selector)
+	let element = body.find(selector);
 	while (element) {
-		const children = element.children
-		const childNodes: Element[] = []
+		const children = element.children;
+		const childNodes: Element[] = [];
 		for (let i = 0; i < children.length; i ++) {
-			childNodes.push(children[i])
+			childNodes.push(children[i]);
 		}
 		
-		element.replaceWith(...childNodes)
-		element = body.querySelector(selector)
+		element.replaceWith(...childNodes);
+		element = body.find(selector);
 	}
 }
 

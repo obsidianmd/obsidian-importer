@@ -226,7 +226,7 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
-      },
+			},
 			'roam-json': {
 				name: 'Roam',
 				optionText: 'Roam (.json)',
