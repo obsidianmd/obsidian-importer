@@ -226,13 +226,13 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
-      },
+			},
 			'roam-json': {
-				name: 'Roam',
-				optionText: 'Roam (.json)',
+				name: 'Roam Research',
+				optionText: 'Roam Research (.json)',
 				importer: RoamJSONImporter,
 				helpPermalink: 'import/roam',
-				formatDescription: 'Export your Roam workspace to JSON format.',
+				formatDescription: 'Export your Roam Research workspace to JSON format.',
 			},
 		};
 
