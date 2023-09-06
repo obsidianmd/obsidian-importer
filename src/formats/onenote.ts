@@ -1,13 +1,12 @@
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
 
 const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
-const REDIRECT_URI: string = 'obsidian://importer-onenote-signin/';
 // TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
@@ -54,11 +53,13 @@ export class OneNoteImporter extends FormatImporter {
 					.setCta()
 					.setButtonText('Sign in')
 					.onClick(() => {
+						this.registerAuthCallback(this.authenticateUser.bind(this));
+
 						const requestBody = new URLSearchParams({
 							client_id: GRAPH_CLIENT_ID,
 							scope: GRAPH_SCOPES.join(' '),
 							response_type: 'code',
-							redirect_uri: REDIRECT_URI,
+							redirect_uri: AUTH_REDIRECT_URI,
 							response_mode: 'query',
 							state: this.graphData.state,
 						});
@@ -77,7 +78,7 @@ export class OneNoteImporter extends FormatImporter {
 				client_id: GRAPH_CLIENT_ID,
 				scope: GRAPH_SCOPES.join(' '),
 				code: protocolData['code'],
-				redirect_uri: REDIRECT_URI,
+				redirect_uri: AUTH_REDIRECT_URI,
 				grant_type: 'authorization_code',
 			});
 

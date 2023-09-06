@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
@@ -23,6 +23,18 @@ interface ImporterDefinition {
 	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
+
+
+/**
+ * URI to use as the callback for OAuth applications. 
+ */
+export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
+
+/**
+ * AuthCallback is a function which will be called when the importer-auth
+ * protocal is opened by an OAuth callback.
+ */
+export type AuthCallback = (data: any) => void;
 
 // Temporary compatibility for in progress PRs
 export type ProgressReporter = ImportContext;
@@ -188,7 +200,7 @@ export class ImportContext {
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
-	onenoteImporter: OneNoteImporter;
+	authCallback: AuthCallback | undefined;
 
 	async onload() {
 		this.importers = {
@@ -250,12 +262,14 @@ export default class ImporterPlugin extends Plugin {
 			},
 		});
 
-		this.registerObsidianProtocolHandler('importer-onenote-signin',
-			// Handle callback for OneNote OAuth signin.
+		this.registerObsidianProtocolHandler('importer-auth',
 			(data) => {
-				if (this.onenoteImporter) {
-					this.onenoteImporter.authenticateUser(data);
+				if (this.authCallback) {
+					this.authCallback(data);
+					this.authCallback = undefined;
 				}
+
+				new Notice('Unexpected auth event. Please restart the auth process.');
 			});
 
 		// For development, un-comment this and tweak it to your importer:
@@ -275,6 +289,17 @@ export default class ImporterPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	/**
+	 * Register a function to be called when the `obsidian://importer-auth/` open
+	 * event is received by Obsidian.
+	 *
+	 * Note: The callback will be cleared after being called. It must be
+	 * reregistered if a subsequent auth event is expected.
+	 */
+	public registerAuthCallback(callback: AuthCallback): void {
+		this.authCallback = callback;
 	}
 }
 
@@ -336,12 +361,6 @@ export class ImporterModal extends Modal {
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
-
-			if (selectedId === 'onenote') {
-				// Pass a reference to the importer back to the plugin for use
-				// by the registered protocol handler.
-				this.plugin.onenoteImporter = importer as OneNoteImporter;
-			}
 
 			contentEl.createDiv('modal-button-container u-center-text', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
