@@ -40,8 +40,9 @@ This repo accepts contributions. Some issues have been [tagged with #bounty](htt
 
 This plugin relies on important contributions:
 
-- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for Evernote import
-- @daledesilva for Google Keep import
-- @arthurtyukayev for Bear import
-- @joshuatazrein for Notion import
-- @polyipseity for HTML attachments import
+- [@akosbalasko](https://github.com/akosbalasko) for Evernote import via [Yarle](https://github.com/akosbalasko/yarle) (MIT)
+- [@daledesilva](https://github.com/daledesilva) for Google Keep import
+- [@arthurtyukayev](https://github.com/arthurtyukayev) for Bear import
+- [@joshuatazrein](https://github.com/joshuatazrein) for Notion import
+- [@polyipseity](https://github.com/polyipseity) for HTML attachments import
+- [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
