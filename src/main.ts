@@ -8,7 +8,6 @@ import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { truncateText } from './util';
-import { NodePickedFile, PickedFile } from './filesystem';
 
 declare global {
 	interface Window {
@@ -251,19 +250,17 @@ export default class ImporterPlugin extends Plugin {
 
 		// For development, un-comment this and tweak it to your importer:
 
-		
+		/*
 		// Create and open the importer on boot
 		let modal = new ImporterModal(this.app, this);
 		modal.open();
-		modal.selectedId = 'notion'
 		// Select my importer
-		modal.updateContent();
-		this.app.vault.adapter.rmdir('Notion', true)
-		if (modal.importer instanceof NotionImporter) {
+		modal.updateContent('html');
+		if (modal.importer instanceof HtmlImporter) {
 			// Automatically pick file
-			modal.importer.files = [new NodePickedFile('/Users/jreinier/Offline/notion-bug-squashing/tests/math/c7be567c-2da3-40bc-a527-4166db198085_Export-e855f3c9-bc66-42fd-84af-e4c94ad717d7.zip')]
+			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
 		}
-		
+		*/
 	}
 
 	onunload() {
