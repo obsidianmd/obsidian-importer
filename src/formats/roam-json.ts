@@ -23,12 +23,15 @@ export class RoamJSONImporter extends FormatImporter {
 	init() {
 		this.addFileChooserSetting('Roam (.json)', ['json']);
 		this.addOutputLocationSetting('Roam');
-		this.modal.contentEl.createEl('h3', { text: 'Import Settings' });
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		new Setting(this.modal.contentEl)
-			.setName('Download all Attachments')
-			.setDesc('If enabled, attachments previously uploaded to Roam will be downloaded to a local folder. WARNING: this can take a large amount of space.')
+			.setName('Import settings')
+			.setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Download all attachments')
+			.setDesc('If enabled, attachments previously uploaded to Roam will be downloaded to your attachments folder. WARNING: this can take a large amount of space.')
 			.addToggle(toggle => {
 				toggle.setValue(this.downloadAttachments);
 				toggle.onChange(async (value) => {
