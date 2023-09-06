@@ -12,8 +12,8 @@ You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 - [x] Bear `.bear2bk`
 - [x] Google Keep
 - [x] Roam Research
+- [x] Microsoft OneNote
 - [ ] Apple Notes
-- [ ] Microsoft OneNote
 - [ ] Other Markdown flavors
 
 ## Usage
