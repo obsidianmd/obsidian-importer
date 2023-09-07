@@ -36,4 +36,4 @@ Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidi
 4. **Submit your PR** — submit your code within the bounty timeframe. If the timeframe elapses, the bounty will be reassigned to another developer.
 5. **Pass code review** — your code must meet the requirements listed in the issue, and the code standards above
 6. **Agree to CLA** — the [Contributor License Agreement](https://github.com/obsidianmd/obsidian-releases/blob/master/cla.md) grants Obsidian license to use your code.
-7. **Merging and payment** — once your PR is merged, we will submit payment via [Obsidian Credit](https://help.obsidian.md/Licenses+and+payment/Obsidian+Credit) PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.
+7. **Merging and payment** — once your PR is merged, we will submit payment via [Obsidian Credit](https://help.obsidian.md/Licenses+and+payment/Obsidian+Credit), PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.
