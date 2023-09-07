@@ -13,7 +13,6 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	const body = dom.find('div[class=page-body]');
 
 	const notionLinks = getNotionLinks(info, body);
-
 	convertLinksToObsidian(info, notionLinks, true);
 
 	let frontMatter: FrontMatterCache = {};
@@ -35,12 +34,18 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 
 	replaceNestedTags(body, 'strong');
 	replaceNestedTags(body, 'em');
+	fixNotionEmbeds(body);
 	stripLinkFormatting(body);
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
-	fixIndented(body);
+	fixEquations(body);
+	// Some annoying elements Notion throws in as wrappers, which mess up .md
+	replaceElementsWithChildren(body, 'div.indented');
+	replaceElementsWithChildren(body, 'details');
+	fixToggleHeadings(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
+	
 	addCheckboxes(body);
 	replaceTableOfContents(body);
 	formatDatabases(body);
@@ -177,6 +182,8 @@ function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 	return links;
 }
 
+
+
 function fixDoubleBackslash(markdownBody: string) {
 	// Persistent error during conversion where backslashes in full-path links written as '\\|' become double-slashes \\| in the markdown.
 	// In tables, we have to use \| in internal links. This corrects the erroneous \\| in markdown.
@@ -191,6 +198,28 @@ function fixDoubleBackslash(markdownBody: string) {
 	});
 
 	return markdownBody;
+}
+
+function fixEquations(body: HTMLElement) {
+	const katexEls = body.findAll('.katex');
+	for (let katex of katexEls) {
+		const annotation = katex.find('annotation');
+		if (!annotation) return;
+		annotation.setText(`$${annotation.textContent}$`);
+		katex.replaceWith(annotation);
+	};
+}
+
+function fixNotionEmbeds(body: HTMLElement) {
+	// Notion embeds are a box with images and description, we simplify for Obsidian.
+	const embeds = body.findAll('a.bookmark.source');
+	embeds.forEach((embed: HTMLAnchorElement) => {
+		const link = embed.getAttribute('href');
+		const title = embed.find('div.bookmark-title')?.textContent;
+		const description = embed.find('div.bookmark-description')?.textContent;
+		const calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
+		embed.replaceWith(calloutBlock);
+	});
 }
 
 function formatDatabases(body: HTMLElement) {
@@ -232,7 +261,7 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			return;
 		}
-		let firstNested = el.querySelector(tag);
+		let firstNested = el.find(tag);
 		while (firstNested) {
 			const childrenOfNested = firstNested.childNodes;
 			const hoistedChildren = createFragment();
@@ -240,7 +269,7 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
 				hoistedChildren.appendChild(child)
 			);
 			firstNested.replaceWith(hoistedChildren);
-			firstNested = el.querySelector(tag);
+			firstNested = el.find(tag);
 		}
 	});
 }
@@ -268,6 +297,9 @@ function replaceTableOfContents(body: HTMLElement) {
 
 function encodeNewlinesToBr(body: HTMLElement) {
 	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
+	// Since <br /> is ignored in codeblocks, we replace with newlines
+	const codeBlocks = body.findAll('code');
+	codeBlocks.forEach(block => block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n'));
 }
 
 function stripLinkFormatting(body: HTMLElement) {
@@ -283,16 +315,51 @@ function fixNotionDates(body: HTMLElement) {
 	});
 }
 
-function fixIndented(body: HTMLElement) {
-	body.findAll('div.indented').forEach(div => div.remove());
+function fixToggleHeadings(body: HTMLElement) {
+	const toggleHeadings = body.findAll('summary');
+	toggleHeadings.forEach((heading) => {
+		const fontSizeToHeadings: Record<string, 'h1' | 'h2' | 'h3'> = {
+			'1.875em': 'h1',
+			'1.5em': 'h2',
+			'1.25em': 'h3',
+		};
+		const style = heading.getAttribute('style');
+		if (!style) {
+			return;
+		}
+		else {
+			for (let key of Object.keys(fontSizeToHeadings)) {
+				if (style.includes(key)) {
+					const newHeading = document.createElement(fontSizeToHeadings[key]);
+					newHeading.setText(heading.textContent ?? '');
+					heading.replaceWith(newHeading);
+					return;
+				}
+			}
+		}
+		
+	});
+}
+
+function replaceElementsWithChildren(body: HTMLElement, selector: string) {
+	let els = body.findAll(selector);
+	for (let el of els) {
+		const children = el.children;
+		const childNodes: Element[] = [];
+		for (let i = 0; i < children.length; i ++) {
+			childNodes.push(children[i]);
+		}
+		
+		el.replaceWith(...childNodes);
+	}
 }
 
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
-	// Notion creates each list item within a <ol> or <ul>, messing up newlines in the converted Markdown. 
+	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown. 
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
-	const unorderedLists = body.findAll(tagName);
+	const lists = body.findAll(tagName);
 
-	unorderedLists.forEach((htmlList: HTMLElement) => {
+	lists.forEach((htmlList: HTMLElement) => {
 		const htmlLists: HTMLElement[] = [];
 		const listItems: HTMLElement[] = [];
 		let nextAdjacentList: HTMLElement = htmlList;
