@@ -9,5 +9,7 @@ declare module 'obsidian' {
 
 	interface Vault {
 		getConfig: (key: string) => any;
+
+		getAbstractFileByPathInsensitive(path: string): TAbstractFile | null;
 	}
 }

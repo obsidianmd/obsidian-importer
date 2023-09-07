@@ -147,13 +147,13 @@ export abstract class FormatImporter {
 	 */
 	async createFolders(path: string): Promise<TFolder> {
 		let normalizedPath = normalizePath(path);
-		let folder = this.vault.getAbstractFileByPath(normalizedPath);
+		let folder = this.vault.getAbstractFileByPathInsensitive(normalizedPath);
 		if (folder && folder instanceof TFolder) {
 			return folder;
 		}
 
 		await this.vault.createFolder(normalizedPath);
-		folder = this.vault.getAbstractFileByPath(normalizedPath);
+		folder = this.vault.getAbstractFileByPathInsensitive(normalizedPath);
 		if (!(folder instanceof TFolder)) {
 			throw new Error(`Failed to create folder at "${path}"`);
 		}
