@@ -342,16 +342,15 @@ function fixToggleHeadings(body: HTMLElement) {
 }
 
 function replaceElementsWithChildren(body: HTMLElement, selector: string) {
-	let element = body.find(selector);
-	while (element) {
-		const children = element.children;
+	let els = body.findAll(selector);
+	for (let el of els) {
+		const children = el.children;
 		const childNodes: Element[] = [];
 		for (let i = 0; i < children.length; i ++) {
 			childNodes.push(children[i]);
 		}
 		
-		element.replaceWith(...childNodes);
-		element = body.find(selector);
+		el.replaceWith(...childNodes);
 	}
 }
 
