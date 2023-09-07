@@ -3,7 +3,14 @@ import { parseFilePath } from '../../filesystem';
 import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip';
 import { NotionLink, NotionProperty, NotionPropertyType, NotionResolverInfo, YamlProperty } from './notion-types';
-import { escapeHashtags, getNotionId, parseDate, stripNotionId, stripParentDirectories } from './notion-utils';
+import {
+	hoistChildren,
+	escapeHashtags,
+	getNotionId,
+	parseDate,
+	stripNotionId,
+	stripParentDirectories,
+} from './notion-utils';
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	const text = await file.readText();
@@ -45,7 +52,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	fixToggleHeadings(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
-	
+
 	addCheckboxes(body);
 	replaceTableOfContents(body);
 	formatDatabases(body);
@@ -158,15 +165,14 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 	const links: NotionLink[] = [];
 
-	body.findAll('a').forEach((a: HTMLAnchorElement) => {
+	for (const a of body.findAll('a') as HTMLAnchorElement[]) {
 		const decodedURI = stripParentDirectories(
 			decodeURI(a.getAttribute('href') ?? '')
 		);
 		const id = getNotionId(decodedURI);
 
-		const attachmentPath = Object.keys(info.pathsToAttachmentInfo).find((filename) =>
-			filename.includes(decodedURI)
-		);
+		const attachmentPath = Object.keys(info.pathsToAttachmentInfo)
+			.find(filename => filename.includes(decodedURI));
 		if (id && decodedURI.endsWith('.html')) {
 			links.push({ type: 'relation', a, id });
 		}
@@ -177,12 +183,10 @@ function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 				path: attachmentPath,
 			});
 		}
-	});
+	}
 
 	return links;
 }
-
-
 
 function fixDoubleBackslash(markdownBody: string) {
 	// Persistent error during conversion where backslashes in full-path links written as '\\|' become double-slashes \\| in the markdown.
@@ -202,76 +206,64 @@ function fixDoubleBackslash(markdownBody: string) {
 
 function fixEquations(body: HTMLElement) {
 	const katexEls = body.findAll('.katex');
-	for (let katex of katexEls) {
+	for (const katex of katexEls) {
 		const annotation = katex.find('annotation');
-		if (!annotation) return;
+		if (!annotation) continue;
 		annotation.setText(`$${annotation.textContent}$`);
 		katex.replaceWith(annotation);
-	};
+	}
 }
 
 function fixNotionEmbeds(body: HTMLElement) {
 	// Notion embeds are a box with images and description, we simplify for Obsidian.
-	const embeds = body.findAll('a.bookmark.source');
-	embeds.forEach((embed: HTMLAnchorElement) => {
+	for (let embed of body.findAll('a.bookmark.source')) {
 		const link = embed.getAttribute('href');
 		const title = embed.find('div.bookmark-title')?.textContent;
 		const description = embed.find('div.bookmark-description')?.textContent;
 		const calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
 		embed.replaceWith(calloutBlock);
-	});
+	}
 }
 
 function formatDatabases(body: HTMLElement) {
 	// Notion includes user SVGs which aren't relevant to Markdown, so change them to pure text.
-	const users = body.findAll('span[class=user]') as HTMLSpanElement[];
-	users.forEach((user) => {
+	for (const user of body.findAll('span[class=user]')) {
 		user.innerText = user.textContent ?? '';
-	});
+	}
 
-	const checkboxes = body.findAll('td div[class*=checkbox]');
-	checkboxes.forEach((checkbox) => {
+	for (const checkbox of body.findAll('td div[class*=checkbox]')) {
 		const newCheckbox = createSpan();
-		newCheckbox.setText(
-			checkbox.className.contains('checkbox-on') ? 'X' : ''
-		);
+		newCheckbox.setText(checkbox.hasClass('checkbox-on') ? 'X' : '');
 		checkbox.replaceWith(newCheckbox);
-	});
+	}
 
-	const selectedValues = body.findAll('table span[class*=selected-value]');
-	selectedValues.forEach((select) => {
+	for (const select of body.findAll('table span[class*=selected-value]')) {
 		const lastChild = select.parentElement?.lastElementChild;
-		if (lastChild === select) return;
+		if (lastChild === select) continue;
 		select.setText(select.textContent + ', ');
-	});
+	}
 
-	const linkValues = body.findAll('a[href]') as HTMLAnchorElement[];
-	linkValues.forEach((a) => {
+	for (const a of body.findAll('a[href]') as HTMLAnchorElement[]) {
 		// Strip URLs which aren't valid, changing them to normal text.
 		if (!/^(https?:\/\/|www\.)/.test(a.href)) {
 			const strippedURL = createSpan();
 			strippedURL.setText(a.textContent ?? '');
 			a.replaceWith(strippedURL);
 		}
-	});
+	}
 }
 
 function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
-	body.findAll(tag).forEach((el) => {
+	for (const el of body.findAll(tag)) {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
-			return;
+			continue;
 		}
 		let firstNested = el.find(tag);
 		while (firstNested) {
-			const childrenOfNested = firstNested.childNodes;
-			const hoistedChildren = createFragment();
-			childrenOfNested.forEach((child) =>
-				hoistedChildren.appendChild(child)
-			);
-			firstNested.replaceWith(hoistedChildren);
+			hoistChildren(firstNested);
 			firstNested = el.find(tag);
 		}
-	});
+	}
 }
 
 function splitBrsInFormatting(htmlString: string, tag: 'strong' | 'em') {
@@ -287,79 +279,66 @@ function splitBrsInFormatting(htmlString: string, tag: 'strong' | 'em') {
 
 function replaceTableOfContents(body: HTMLElement) {
 	const tocLinks = body.findAll('a[href*=\\#]') as HTMLAnchorElement[];
-	if (tocLinks.length === 0) return body;
-	tocLinks.forEach((link) => {
+	for (const link of tocLinks) {
 		if (link.getAttribute('href')?.startsWith('#')) {
 			link.setAttribute('href', '#' + link.textContent);
 		}
-	});
+	}
 }
 
 function encodeNewlinesToBr(body: HTMLElement) {
 	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
 	// Since <br /> is ignored in codeblocks, we replace with newlines
-	const codeBlocks = body.findAll('code');
-	codeBlocks.forEach(block => block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n'));
+	for (const block of body.findAll('code')) {
+		block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n');
+	}
 }
 
 function stripLinkFormatting(body: HTMLElement) {
-	body.findAll('link').forEach((link) => {
+	for (const link of body.findAll('link')) {
 		link.innerText = link.textContent ?? '';
-	});
+	}
 }
 
 function fixNotionDates(body: HTMLElement) {
 	// Notion dates always start with @
-	body.findAll('time').forEach((time) => {
+	for (const time of body.findAll('time')) {
 		time.textContent = time.textContent?.replace(/@/g, '') ?? '';
-	});
+	}
 }
+
+const fontSizeToHeadings: Record<string, 'h1' | 'h2' | 'h3'> = {
+	'1.875em': 'h1',
+	'1.5em': 'h2',
+	'1.25em': 'h3',
+};
 
 function fixToggleHeadings(body: HTMLElement) {
 	const toggleHeadings = body.findAll('summary');
-	toggleHeadings.forEach((heading) => {
-		const fontSizeToHeadings: Record<string, 'h1' | 'h2' | 'h3'> = {
-			'1.875em': 'h1',
-			'1.5em': 'h2',
-			'1.25em': 'h3',
-		};
+	for (const heading of toggleHeadings) {
 		const style = heading.getAttribute('style');
-		if (!style) {
-			return;
-		}
-		else {
-			for (let key of Object.keys(fontSizeToHeadings)) {
-				if (style.includes(key)) {
-					const newHeading = document.createElement(fontSizeToHeadings[key]);
-					newHeading.setText(heading.textContent ?? '');
-					heading.replaceWith(newHeading);
-					return;
-				}
+		if (!style) continue;
+
+		for (const key of Object.keys(fontSizeToHeadings)) {
+			if (style.includes(key)) {
+				heading.replaceWith(createEl(fontSizeToHeadings[key], { text: heading.textContent ?? '' }));
+				break;
 			}
 		}
-		
-	});
+	}
 }
 
 function replaceElementsWithChildren(body: HTMLElement, selector: string) {
 	let els = body.findAll(selector);
-	for (let el of els) {
-		const children = el.children;
-		const childNodes: Element[] = [];
-		for (let i = 0; i < children.length; i ++) {
-			childNodes.push(children[i]);
-		}
-		
-		el.replaceWith(...childNodes);
+	for (const el of els) {
+		hoistChildren(el);
 	}
 }
 
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown. 
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
-	const lists = body.findAll(tagName);
-
-	lists.forEach((htmlList: HTMLElement) => {
+	for (const htmlList of body.findAll(tagName)) {
 		const htmlLists: HTMLElement[] = [];
 		const listItems: HTMLElement[] = [];
 		let nextAdjacentList: HTMLElement = htmlList;
@@ -374,14 +353,14 @@ function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 			nextAdjacentList = nextAdjacentList.nextElementSibling as HTMLElement;
 		}
 
-
 		const joinedList = body.createEl(tagName);
-		listItems.forEach(li => joinedList.appendChild(li));
-		console.log('joined', joinedList, htmlLists.concat(), listItems.concat());
+		for (const li of listItems) {
+			joinedList.appendChild(li);
+		}
 
 		htmlLists[0].replaceWith(joinedList);
 		htmlLists.slice(1).forEach(htmlList => htmlList.remove());
-	});
+	}
 }
 
 function addCheckboxes(body: HTMLElement) {
@@ -397,11 +376,11 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 	const links = content.findAll('a') as HTMLAnchorElement[];
 
 	if (links.length === 0) return content;
-	links.forEach((link) => {
+	for (const link of links) {
 		const span = createSpan();
 		span.setText(link.getAttribute('href') ?? '');
 		link.replaceWith(span);
-	});
+	}
 }
 
 function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLink[], embedAttachments: boolean) {
