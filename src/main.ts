@@ -1,4 +1,4 @@
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
@@ -23,6 +23,18 @@ interface ImporterDefinition {
 	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
+
+
+/**
+ * URI to use as the callback for OAuth applications. 
+ */
+export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
+
+/**
+ * AuthCallback is a function which will be called when the importer-auth
+ * protocal is opened by an OAuth callback.
+ */
+export type AuthCallback = (data: any) => void;
 
 // Temporary compatibility for in progress PRs
 export type ProgressReporter = ImportContext;
@@ -188,6 +200,8 @@ export class ImportContext {
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
+	authCallback: AuthCallback | undefined;
+
 	async onload() {
 		this.importers = {
 			'bear': {
@@ -248,6 +262,16 @@ export default class ImporterPlugin extends Plugin {
 			},
 		});
 
+		this.registerObsidianProtocolHandler('importer-auth',
+			(data) => {
+				if (this.authCallback) {
+					this.authCallback(data);
+					this.authCallback = undefined;
+				}
+
+				new Notice('Unexpected auth event. Please restart the auth process.');
+			});
+
 		// For development, un-comment this and tweak it to your importer:
 
 		/*
@@ -265,6 +289,17 @@ export default class ImporterPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	/**
+	 * Register a function to be called when the `obsidian://importer-auth/` open
+	 * event is received by Obsidian.
+	 *
+	 * Note: The callback will be cleared after being called. It must be
+	 * reregistered if a subsequent auth event is expected.
+	 */
+	public registerAuthCallback(callback: AuthCallback): void {
+		this.authCallback = callback;
 	}
 }
 

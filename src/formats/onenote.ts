@@ -1,13 +1,12 @@
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
 
 const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
-const REDIRECT_URI: string = 'obsidian://importer-onenote-signin/';
 // TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
@@ -29,64 +28,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	init() {
 		this.addOutputLocationSetting('OneNote');
-		this.showUI();
-		// Required for the OAuth sign in flow
 
-		try {
-			this.modal.plugin.registerObsidianProtocolHandler('importer-onenote-signin', (data) => {
-				try {
-					this.authenticateUser(data);
-				}
-				catch (e) {
-					this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
-						.createEl('details', { text: e })
-						.createEl('summary', { text: 'Click here to show error details' });
-				}
-			});	
-		}
-		catch (e) {
-			console.log('Protocol handler was not registered: ' + e);
-		}
-	}
-
-	async authenticateUser(protocolData: ObsidianProtocolData) {
-		try {
-			if (protocolData['state'] === this.graphData.state) {
-				const requestBody = new URLSearchParams({
-					client_id: GRAPH_CLIENT_ID,
-					scope: GRAPH_SCOPES.join(' '),
-					code: protocolData['code'],
-					redirect_uri: REDIRECT_URI,
-					grant_type: 'authorization_code',
-				});
-
-				const tokenResponse: AccessTokenResponse = await requestUrl({
-					method: 'POST',
-					url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-					contentType: 'application/x-www-form-urlencoded',
-					body: requestBody.toString(),
-				}).json;
-
-				if (tokenResponse.access_token !== undefined) {
-					this.graphData.accessToken = tokenResponse.access_token;
-					const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
-					this.microsoftAccountSetting.setDesc(
-						`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-					);
-					await this.showSectionPickerUI();
-				} 
-				else throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
-			}
-			else throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
-		}
-		catch (e) {
-			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-
-			throw e;
-		}
-	}
-
-	showUI() {
 		new Setting(this.modal.contentEl)
 			.setName('Use the default attachment folder')
 			.setDesc('If disabled, attachments will be stored in the export folder in the OneNote Attachments folder.')
@@ -104,24 +46,68 @@ export class OneNoteImporter extends FormatImporter {
 		this.contentArea = this.modal.contentEl.createEl('div');
 		// TODO: Add a setting for importDrawingsOnly when InkML support is complete
 		this.microsoftAccountSetting =
-		new Setting(this.modal.contentEl)
-			.setName('Sign in with your Microsoft Account')
-			.setDesc('You need to sign in to import your OneNote data.')
-			.addButton((button) => button
-				.setCta()
-				.setButtonText('Sign in')
-				.onClick(() => {
-					const requestBody = new URLSearchParams({
-						client_id: GRAPH_CLIENT_ID,
-						scope: GRAPH_SCOPES.join(' '),
-						response_type: 'code',
-						redirect_uri: REDIRECT_URI,
-						response_mode: 'query',
-						state: this.graphData.state,
-					});
-					window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
-				})
+			new Setting(this.modal.contentEl)
+				.setName('Sign in with your Microsoft Account')
+				.setDesc('You need to sign in to import your OneNote data.')
+				.addButton((button) => button
+					.setCta()
+					.setButtonText('Sign in')
+					.onClick(() => {
+						this.registerAuthCallback(this.authenticateUser.bind(this));
+
+						const requestBody = new URLSearchParams({
+							client_id: GRAPH_CLIENT_ID,
+							scope: GRAPH_SCOPES.join(' '),
+							response_type: 'code',
+							redirect_uri: AUTH_REDIRECT_URI,
+							response_mode: 'query',
+							state: this.graphData.state,
+						});
+						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
+					})
+				);
+	}
+
+	async authenticateUser(protocolData: ObsidianProtocolData) {
+		try {
+			if (protocolData['state'] !== this.graphData.state) {
+				throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
+			}
+
+			const requestBody = new URLSearchParams({
+				client_id: GRAPH_CLIENT_ID,
+				scope: GRAPH_SCOPES.join(' '),
+				code: protocolData['code'],
+				redirect_uri: AUTH_REDIRECT_URI,
+				grant_type: 'authorization_code',
+			});
+
+			const tokenResponse: AccessTokenResponse = await requestUrl({
+				method: 'POST',
+				url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+				contentType: 'application/x-www-form-urlencoded',
+				body: requestBody.toString(),
+			}).json;
+
+			if (!tokenResponse.access_token) {
+				throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
+			}
+
+			this.graphData.accessToken = tokenResponse.access_token;
+			const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
+			this.microsoftAccountSetting.setDesc(
+				`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
 			);
+
+			// Async
+			this.showSectionPickerUI();
+		}
+		catch (e) {
+			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
+			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
+				.createEl('details', { text: e })
+				.createEl('summary', { text: 'Click here to show error details' });
+		}
 	}
 
 	async showSectionPickerUI() {
@@ -200,7 +186,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
 			let pages: OnenotePage[] = (await this.fetchResource(pagesUrl, 'json')).value;
-			
+
 			progress.reportProgress(0, pages.length);
 
 			for (let i = 0; i < pages.length; i++) {
@@ -218,9 +204,9 @@ export class OneNoteImporter extends FormatImporter {
 						sectionFolder,
 						outputFolder,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text')
-						,page);
-					
-					progress.reportProgress(pageCount, pages.length);	
+						, page);
+
+					progress.reportProgress(pageCount, pages.length);
 
 				}
 				catch (e) {
@@ -287,7 +273,7 @@ export class OneNoteImporter extends FormatImporter {
 					.trim();
 
 				// Extract the value from the part by removing the first two lines
-				let value = part.split('\n').slice(2).join('\n').trim();					
+				let value = part.split('\n').slice(2).join('\n').trim();
 
 				if (contentType === 'text/html') output.html = value;
 				else if (contentType === 'application/inkml+xml') output.inkml = value;
@@ -296,7 +282,7 @@ export class OneNoteImporter extends FormatImporter {
 		else {
 			throw new Error('The input string is incorrect and may be missing data. Inputted string: ' + input);
 		}
-		
+
 		return output;
 	}
 
@@ -360,11 +346,11 @@ export class OneNoteImporter extends FormatImporter {
 					name: object.getAttribute('data-attachment')!,
 					contentLocation: object.getAttribute('data')!,
 				});
-		
+
 				// Create a new <p> element with the Markdown-style link
 				const markdownLink = document.createElement('p');
 				markdownLink.innerText = `![[${object.getAttribute('data-attachment')}]]`;
-		
+
 				// Replace the <object> tag with the new <p> element
 				object.parentNode?.replaceChild(markdownLink, object);
 			}
@@ -382,12 +368,12 @@ export class OneNoteImporter extends FormatImporter {
 			});
 
 			image.src = encodeURIComponent(fileName);
-			if(!image.alt) image.alt = 'Exported image';
+			if (!image.alt) image.alt = 'Exported image';
 		}
 
 		for (const video of videos) {
 			// Obsidian only supports embedding YouTube videos, unlike OneNote
-			if(video.src.contains('youtube.com') || video.src.contains('youtu.be')) {
+			if (video.src.contains('youtube.com') || video.src.contains('youtu.be')) {
 				const embedNode = document.createTextNode(`![Embedded YouTube video](${video.src})`);
 				video.parentNode?.replaceChild(embedNode, video);
 			}
@@ -409,7 +395,7 @@ export class OneNoteImporter extends FormatImporter {
 			// @ts-ignore
 			// Bug: This function always returns the path + "Note name.md" rather than just the path for some reason
 			if (this.useDefaultAttachmentFolder) attachmentPath = await this.app.vault.getAvailablePathForAttachments(currentFile.basename, currentFile.extension, currentFile);
-	
+
 			// Create the attachment folder if it doesn't exist yet
 			try {
 				this.vault.createFolder(attachmentPath);
@@ -419,24 +405,24 @@ export class OneNoteImporter extends FormatImporter {
 				try {
 					const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
 					await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
-		
-					progress.reportAttachmentSuccess(attachment.name!);	
+
+					progress.reportAttachmentSuccess(attachment.name!);
 				}
 				catch (e) {
 					progress.reportFailed(attachment.name!, e);
 				}
 			}
-	
+
 			// Clear the attachment queue after every note
-			this.attachmentQueue = [];		
+			this.attachmentQueue = [];
 		}
 		else { }
 	}
-	
+
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
 	styledElementToHTML(pageElement: HTMLElement): HTMLElement {
 		const styledElements = pageElement.querySelectorAll('[style]');
-		
+
 		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug), so we do it ourselves temporarily
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
@@ -454,7 +440,7 @@ export class OneNoteImporter extends FormatImporter {
 		styledElements.forEach(element => {
 			const style = element.getAttribute('style') || '';
 			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
-	
+
 			if (matchingStyle) {
 				const newElementTag = styleMap[matchingStyle];
 				const newElement = document.createElement(newElementTag);
@@ -470,21 +456,21 @@ export class OneNoteImporter extends FormatImporter {
 
 		return pageElement;
 	}
-	
+
 	convertDrawings(element: HTMLElement): HTMLElement {
 		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT);
 		let hasDrawings: boolean = false;
 
 		while (walker.nextNode()) {
-		  const commentNode = walker.currentNode as Comment;
-		  if (commentNode.nodeValue?.trim() === 'InkNode is not supported') hasDrawings = true;
+			const commentNode = walker.currentNode as Comment;
+			if (commentNode.nodeValue?.trim() === 'InkNode is not supported') hasDrawings = true;
 		}
 
 		if (hasDrawings) {
 			const textNode = document.createTextNode('> [!caution] This page contained a drawing which was not converted.');
 			// Insert the notice at the top of the page
-			element.insertBefore(textNode, element.firstChild);	
+			element.insertBefore(textNode, element.firstChild);
 		}
 		else {
 			for (let i = 0; i < element.children.length; i++) {
@@ -503,7 +489,7 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
 			let responseBody;
-			
+
 			switch (returnType) {
 				case 'text':
 					responseBody = await response.text();
@@ -518,7 +504,7 @@ export class OneNoteImporter extends FormatImporter {
 					}
 					break;
 			}
-			
+
 			return responseBody;
 		}
 		catch (e) {

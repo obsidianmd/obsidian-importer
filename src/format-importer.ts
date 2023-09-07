@@ -1,6 +1,6 @@
 import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
-import { ImporterModal, ImportContext } from './main';
+import { ImporterModal, ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -21,6 +21,17 @@ export abstract class FormatImporter {
 	}
 
 	abstract init(): void;
+
+	/**
+	 * Register a function to be called when the `obsidian://importer-auth/` open
+	 * event is received by Obsidian.
+	 *
+	 * Note: The callback will be cleared after being called. It must be
+	 * reregistered if a subsequent auth event is expected.
+	 */
+	registerAuthCallback(callback: AuthCallback): void {
+		this.modal.plugin.registerAuthCallback(callback);
+	}
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false) {
 		let fileLocationSetting = new Setting(this.modal.contentEl)
