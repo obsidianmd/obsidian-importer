@@ -118,8 +118,7 @@ export class OneNoteImporter extends FormatImporter {
 		this.contentArea.empty();
 
 		this.contentArea.createEl('h4', {
-			text: 'Choose what to import',
-			cls: 'modal-title',
+			text: 'Choose data to import',
 		});
 
 		for (const notebook of notebooks) {

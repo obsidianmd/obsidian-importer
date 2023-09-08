@@ -362,7 +362,7 @@ export class ImporterModal extends Modal {
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
 
-			contentEl.createDiv('modal-button-container u-center-text', el => {
+			contentEl.createDiv('modal-button-container', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
 						if (this.current) {
@@ -373,7 +373,7 @@ export class ImporterModal extends Modal {
 
 						let ctx = this.current = new ImportContext(progressEl);
 
-						let buttonsEl = contentEl.createDiv('modal-button-container u-center-text');
+						let buttonsEl = contentEl.createDiv('modal-button-container');
 						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
 							el.addEventListener('click', () => {
 								ctx.cancel();
