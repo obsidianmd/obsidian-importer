@@ -5,7 +5,7 @@ import { AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
 
-const GRAPH_CLIENT_ID: string = 'c1a20926-78a8-47c8-a2a4-650e482bd8d2'; // TODO: replace with an Obsidian team owned client_Id
+const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
 const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
@@ -43,7 +43,6 @@ export class OneNoteImporter extends FormatImporter {
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
 			);
-		this.contentArea = this.modal.contentEl.createEl('div');
 		// TODO: Add a setting for importDrawingsOnly when InkML support is complete
 		this.microsoftAccountSetting =
 			new Setting(this.modal.contentEl)
@@ -66,6 +65,7 @@ export class OneNoteImporter extends FormatImporter {
 						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 					})
 				);
+		this.contentArea = this.modal.contentEl.createEl('div');
 	}
 
 	async authenticateUser(protocolData: ObsidianProtocolData) {
@@ -117,15 +117,14 @@ export class OneNoteImporter extends FormatImporter {
 		// Make sure the element is empty, in case the user signs in twice
 		this.contentArea.empty();
 
-		this.contentArea.createEl('h3', {
+		this.contentArea.createEl('h4', {
 			text: 'Choose what to import',
 			cls: 'modal-title',
 		});
 
 		for (const notebook of notebooks) {
-			this.contentArea.createEl('h5', {
+			this.contentArea.createEl('strong', {
 				text: notebook.displayName!,
-				cls: 'modal-title',
 			});
 
 			let sections: OnenoteSection[] | null | undefined = notebook.sections;
@@ -143,9 +142,15 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	createSectionList(sections: OnenoteSection[]) {
-		const list = this.contentArea.createEl('ul');
+		const list = this.contentArea.createEl('ul', {
+			attr: {
+				style: 'padding-inline-start: 1em;'
+			}
+		});
 		for (const section of sections) {
-			const listElement = list.createEl('li');
+			const listElement = list.createEl('li', {
+				cls: 'task-list-item',
+			});
 			let label = listElement.createEl('label');
 			let checkbox = label.createEl('input');
 			checkbox.type = 'checkbox';
