@@ -153,6 +153,7 @@ export class OneNoteImporter extends FormatImporter {
 			let label = listElement.createEl('label');
 			let checkbox = label.createEl('input');
 			checkbox.type = 'checkbox';
+			checkbox.checked = true;
 
 			label.appendChild(document.createTextNode(section.displayName!));
 			label.createEl('br');
