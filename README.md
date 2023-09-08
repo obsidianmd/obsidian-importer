@@ -44,5 +44,6 @@ This plugin relies on important contributions:
 - [@daledesilva](https://github.com/daledesilva) for Google Keep import
 - [@arthurtyukayev](https://github.com/arthurtyukayev) for Bear import
 - [@joshuatazrein](https://github.com/joshuatazrein) for Notion import
-- [@polyipseity](https://github.com/polyipseity) for HTML attachments import
+- [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
+- [@peridot](https://github.com/p3rid0t) for Microsoft OneNote import
