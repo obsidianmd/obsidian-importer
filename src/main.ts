@@ -228,18 +228,18 @@ export default class ImporterPlugin extends Plugin {
 				importer: HtmlImporter,
 				helpPermalink: 'import/html',
 			},
+			'onenote': {
+				name: 'Microsoft OneNote',
+				optionText: 'Microsoft OneNote',
+				importer: OneNoteImporter,
+				helpPermalink: 'import/onenote',
+			},
 			'notion': {
 				name: 'Notion',
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
-			},
-			'onenote': {
-				name: 'OneNote',
-				optionText: 'OneNote',
-				importer: OneNoteImporter,
-				helpPermalink: 'import/onenote',
 			},
 			'roam-json': {
 				name: 'Roam Research',
