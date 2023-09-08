@@ -1,7 +1,10 @@
 .importer-progress-bar {
 	width: 100%;
 	height: 8px;
-	background-color: var(--background-secondary-alt);
+	background-color: var(--background-secondary);
+	overflow: hidden;
+	box-shadow: inset 0px 0px 0px 1px var(--background-modifier-border);
+	border-radius: var(--radius-s);
 }
 
 .importer-progress-bar-inner {
@@ -42,13 +45,12 @@
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	border-top: 1px solid var(--background-modifier-border);
-	border-bottom: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--background-modifier-border);
 	padding: var(--size-4-4);
-
 	background-color: var(--background-secondary);
-
+	border-radius: var(--radius-s);
 	max-height: 300px;
+	user-select: text;
 }
 
 .importer-log .list-item {
