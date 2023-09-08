@@ -46,7 +46,7 @@ export class OneNoteImporter extends FormatImporter {
 		// TODO: Add a setting for importDrawingsOnly when InkML support is complete
 		this.microsoftAccountSetting =
 			new Setting(this.modal.contentEl)
-				.setName('Sign in with your Microsoft Account')
+				.setName('Sign in with your Microsoft account')
 				.setDesc('You need to sign in to import your OneNote data.')
 				.addButton((button) => button
 					.setCta()
