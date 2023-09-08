@@ -46,4 +46,4 @@ This plugin relies on important contributions:
 - [@joshuatazrein](https://github.com/joshuatazrein) for Notion import
 - [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
-- [@peridot](https://github.com/p3rid0t) for Microsoft OneNote import
+- [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
