@@ -267,6 +267,7 @@ export default class ImporterPlugin extends Plugin {
 				if (this.authCallback) {
 					this.authCallback(data);
 					this.authCallback = undefined;
+					return;
 				}
 
 				new Notice('Unexpected auth event. Please restart the auth process.');
