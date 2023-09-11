@@ -143,8 +143,8 @@ export class OneNoteImporter extends FormatImporter {
 	createSectionList(sections: OnenoteSection[]) {
 		const list = this.contentArea.createEl('ul', {
 			attr: {
-				style: 'padding-inline-start: 1em;'
-			}
+				style: 'padding-inline-start: 1em;',
+			},
 		});
 		for (const section of sections) {
 			const listElement = list.createEl('li', {
