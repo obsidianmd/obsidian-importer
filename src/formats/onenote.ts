@@ -258,7 +258,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// OneNote returns page data and inking data in one file, so we need to split them
-	convertFormat(input: string): { html: string; inkml: string } {
+	convertFormat(input: string): { html: string, inkml: string } {
 		const output = { html: '', inkml: '' };
 
 		// HTML and InkML files are split by a boundary, which is defined in the first line of the input

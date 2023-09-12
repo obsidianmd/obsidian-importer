@@ -1,10 +1,10 @@
-import { FormatImporter } from '../format-importer';
-import { Notice, Setting, TFile } from 'obsidian';
 import { ImportContext } from 'main';
+import { Notice, Setting, TFile } from 'obsidian';
+import { parseFilePath } from '../filesystem';
+import { FormatImporter } from '../format-importer';
+import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
-import { sanitizeFileName } from '../util';
-import { parseFilePath } from '../filesystem';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -91,7 +91,7 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			// POST-PROCESS: fix block refs //
-			for (const [_, callingBlock] of toPostProcess.entries()) {
+			for (const callingBlock of toPostProcess.values()) {
 				const callingBlockStringScrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, true);
 				const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
 

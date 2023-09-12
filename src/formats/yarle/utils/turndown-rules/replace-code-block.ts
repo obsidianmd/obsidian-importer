@@ -1,4 +1,3 @@
-import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 
 const markdownBlock = '\n```\n';
@@ -23,15 +22,7 @@ const getIntendNumber = (node: any): number => {
 
 export const unescapeMarkdown = (s: string): string => s.replace(/\\(.)/g, '$1');
 
-export const codeBlockRule = {
-	filter: filterByNodeName('DIV'),
-	replacement: (content: string, node: any) => {
-		return replaceCodeBlock(content, node);
-	},
-};
-
 export const replaceCodeBlock = (content: string, node: any): any => {
-	const nodeProxy = getAttributeProxy(node);
 	const intend = getIntendNumber(node);
 	content = `${'\t'.repeat(intend)}${content}`;
 	if (isCodeBlock(node)) {
@@ -48,13 +39,6 @@ export const replaceCodeBlock = (content: string, node: any): any => {
 	if (node.parentElement && isCodeBlock(node.parentElement)) {
 		return `\n${content}`;
 	}
-	const childHtml = node.innerHTML;
-	/*return node.isBlock
-		? childHtml !== '<br>'
-			? `\n${content}\n`
-			: `${content}`
-		: `${content}`;
-	*/
 
 	return node.isBlock ? `\n${content}\n` : content;
 };

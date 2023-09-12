@@ -278,7 +278,7 @@ function parseURL(url: URL) {
 	return parseFilePath(normalizePath(decodeURIComponent(url.pathname)));
 }
 
-async function requestURL(url: URL): Promise<{ data: ArrayBuffer; mime: string }> {
+async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }> {
 	try {
 		const response = await fetch(url, {
 			mode: 'cors',
@@ -300,7 +300,7 @@ async function requestURL(url: URL): Promise<{ data: ArrayBuffer; mime: string }
 	};
 }
 
-async function getImageSize(data: ArrayBuffer): Promise<{ height: number; width: number }> {
+async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width: number }> {
 	const image = new Image();
 	const url = URL.createObjectURL(new Blob([data]));
 	try {
