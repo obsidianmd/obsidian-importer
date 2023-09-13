@@ -8,6 +8,7 @@ import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { truncateText } from './util';
+import { AppleNotesImporter } from 'formats/apple-notes';
 
 declare global {
 	interface Window {
@@ -19,7 +20,7 @@ declare global {
 interface ImporterDefinition {
 	name: string;
 	optionText: string;
-	helpPermalink: string;
+	helpPermalink?: string;
 	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
@@ -241,12 +242,11 @@ export default class ImporterPlugin extends Plugin {
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
 			},
-			'roam-json': {
-				name: 'Roam Research',
-				optionText: 'Roam Research (.json)',
-				importer: RoamJSONImporter,
-				helpPermalink: 'import/roam',
-				formatDescription: 'Export your Roam Research workspace to JSON format.',
+			'apple': {
+				name: 'Apple Notes',
+				optionText: 'Apple Notes',
+				importer: AppleNotesImporter,
+				formatDescription: 'Auto import Apple Notes.',
 			},
 		};
 
@@ -337,10 +337,12 @@ export class ImporterModal extends Modal {
 			descriptionFragment.createSpan({ text: selectedImporter.formatDescription });
 		}
 		descriptionFragment.createEl('br');
-		descriptionFragment.createEl('a', {
-			text: `Learn more about importing from ${selectedImporter.name}.`,
-			href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
-		});
+		if (selectedImporter.helpPermalink) {	
+			descriptionFragment.createEl('a', {
+				text: `Learn more about importing from ${selectedImporter.name}.`,
+				href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
+			});
+		}
 
 		new Setting(contentEl)
 			.setName('File format')

@@ -261,7 +261,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 }
 
-function fixElementRef(element: Element, attribute: string) {
+export function fixElementRef(element: Element, attribute: string) {
 	const value = element.getAttribute(attribute);
 	if (value !== null) {
 		element.setAttribute(attribute, value.replace(/ /gu, '%20'));
@@ -269,16 +269,16 @@ function fixElementRef(element: Element, attribute: string) {
 }
 
 // Fix any links that happen to have spaces in them, since markdown links/embeds do not allow that.
-function fixDocumentUrls(el: Element) {
+export function fixDocumentUrls(el: Element) {
 	el.findAll('a').forEach(element => fixElementRef(element, 'href'));
 	el.findAll('audio, img, video').forEach(element => fixElementRef(element, 'src'));
 }
 
-function parseURL(url: URL) {
+export function parseURL(url: URL) {
 	return parseFilePath(normalizePath(decodeURIComponent(url.pathname)));
 }
 
-async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }> {
+export async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }> {
 	try {
 		const response = await fetch(url, {
 			mode: 'cors',
@@ -300,7 +300,7 @@ async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }
 	};
 }
 
-async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width: number }> {
+export async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width: number }> {
 	const image = new Image();
 	const url = URL.createObjectURL(new Blob([data]));
 	try {
