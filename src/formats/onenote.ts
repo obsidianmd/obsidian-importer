@@ -111,7 +111,15 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async showSectionPickerUI() {
-		const sectionsUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks?$expand=sections($select=id,displayName)&$select=id,displayName&$orderby=createdDateTime';
+		const baseUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks';
+
+		const params = new URLSearchParams({
+		  $expand: 'sections($select=id,displayName),sectionGroups($expand=sections)',
+		  $select: 'id,displayName',
+		  $orderby: 'createdDateTime'
+		});
+		
+		const sectionsUrl = `${baseUrl}?${params.toString()}`;
 		const notebooks: Notebook[] = (await this.fetchResource(sectionsUrl, 'json')).value;
 
 		// Make sure the element is empty, in case the user signs in twice
@@ -122,26 +130,41 @@ export class OneNoteImporter extends FormatImporter {
 		});
 
 		for (const notebook of notebooks) {
-			this.contentArea.createEl('strong', {
-				text: notebook.displayName!,
-			});
+			let sections: OnenoteSection[] = notebook.sections || [];
+			let sectionGroups: SectionGroup[] = notebook.sectionGroups || [];
 
-			let sections: OnenoteSection[] | null | undefined = notebook.sections;
-			let sectionGroups: SectionGroup[] | null | undefined = notebook.sectionGroups;
+			let notebookDiv = this.contentArea.createDiv();
 
-			if (sections) this.createSectionList(sections);
+			new Setting(notebookDiv)
+				.setName(notebook.displayName!)
+				.setDesc(`Last edited on: ${(moment.utc(notebook.createdDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
+				.addButton((button) => button
+					.setCta()
+					.setButtonText('Select all')
+					.onClick(() => {
+						notebookDiv.querySelectorAll('input[type="checkbox"]').forEach((el: HTMLInputElement) => el.checked = true);
+						this.selectedSections.push(...notebook.sections!);
+						this.selectedSections.push(...(notebook.sectionGroups || []).flatMap(element => element?.sections || []));
+					}));
+
+			if (sections) this.createSectionList(sections, notebookDiv);
 
 			for (const sectionGroup of sectionGroups || []) {
-				this.contentArea.createEl('h6', {
+				let sectionDiv = notebookDiv.createDiv();
+
+				sectionDiv.createEl('strong', {
 					text: sectionGroup.displayName!,
 				});
-				this.createSectionList(sectionGroup.sections!);
+
+				// Set the parent section group for neater folder structuring
+				sectionGroup.sections?.forEach(section => section.parentSectionGroup = sectionGroup);
+				this.createSectionList(sectionGroup.sections!, sectionDiv);
 			}
 		}
 	}
 
-	createSectionList(sections: OnenoteSection[]) {
-		const list = this.contentArea.createEl('ul', {
+	createSectionList(sections: OnenoteSection[], parentEl: HTMLDivElement) {
+		const list = parentEl.createEl('ul', {
 			attr: {
 				style: 'padding-inline-start: 1em;',
 			},
@@ -171,6 +194,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async import(progress: ImportContext): Promise<void> {
+		// Remove possible duplicates, eg. when the user selects "Select all" with existing selections.
+		this.selectedSections = this.selectedSections.filter((item, index, array) => array.indexOf(item) === index);
+
 		let outputFolder = await this.getOutputFolder();
 		let remainingSections = this.selectedSections.length;
 
@@ -186,7 +212,13 @@ export class OneNoteImporter extends FormatImporter {
 			remainingSections--;
 
 			let pageCount: number = 0;
-			let sectionFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
+
+			let sectionFolder: TFolder;
+			if (section.parentSectionGroup) {
+				let sectionGroupFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.parentSectionGroup.displayName);
+				sectionFolder = await this.createFolders(sectionGroupFolder.path + '/' + section.displayName);
+			}
+			else sectionFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
 			let pages: OnenotePage[] = (await this.fetchResource(pagesUrl, 'json')).value;
@@ -360,11 +392,13 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 
-		for (const image of images) {
+		for (let i = 0; i < images.length; i++) {
+			const image = images[i];
+
 			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
 			const extension: string = split[1];
 			const currentDate = moment().format('YYYYMMDDHHmmss');
-			const fileName: string = `Exported image ${currentDate}.${extension}`;
+			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
 
 			this.attachmentQueue.push({
 				name: fileName,
@@ -405,8 +439,13 @@ export class OneNoteImporter extends FormatImporter {
 				this.vault.createFolder(attachmentPath);
 			}
 			catch (e) { }
-			for (const attachment of this.attachmentQueue) {
+			for (let i = 0; i < this.attachmentQueue.length; i++) {
+				const attachment = this.attachmentQueue[i];
 				try {
+					// Every 7 attachments, do a few second break to prevent rate limiting
+					if (i !== 0 && i % 7 === 0) {
+						await new Promise(resolve => setTimeout(resolve, 7500));
+					}
 					const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
 					await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
 
@@ -425,12 +464,6 @@ export class OneNoteImporter extends FormatImporter {
 
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
 	styledElementToHTML(pageElement: HTMLElement): HTMLElement {
-		const styledElements = pageElement.querySelectorAll('[style]');
-
-		// For some reason cites/quotes are not converted into Markdown (possible htmlToMarkdown bug), so we do it ourselves temporarily
-		const cites = pageElement.findAll('cite');
-		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
-
 		// Map styles to their elements
 		const styleMap: { [key: string]: string } = {
 			'font-weight:bold': 'b',
@@ -438,26 +471,50 @@ export class OneNoteImporter extends FormatImporter {
 			'text-decoration:underline': 'u',
 			'text-decoration:line-through': 's',
 			'background-color': 'mark',
-			'font-family:Consolas': 'pre',
 		};
+		// Cites/quotes are not converted into Markdown (possible htmlToMarkdown bug?), so we do it ourselves temporarily
+		const cites = pageElement.findAll('cite');
+		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
+		
+		// Convert preformatted text into code blocks
+		let inCodeBlock: boolean = false;
+		let codeElement: HTMLElement = document.createElement('pre');
 
-		styledElements.forEach(element => {
+		const elements = pageElement.querySelectorAll('*');
+		elements.forEach(element => {
 			const style = element.getAttribute('style') || '';
 			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
 
-			if (matchingStyle) {
-				const newElementTag = styleMap[matchingStyle];
-				const newElement = document.createElement(newElementTag);
-
-				if (newElementTag === 'pre') {
-					const code = newElement.createEl('code');
-					code.textContent = element.textContent;
+			if (style?.contains('font-family:Consolas')) {
+				if (!inCodeBlock) {
+					inCodeBlock = true;
+					element.replaceWith(codeElement);
+					codeElement.innerHTML = '```\n' + element.innerHTML + '\n```';
 				}
-				else newElement.innerHTML = element.innerHTML;
-				element.replaceWith(newElement);
+				else {
+					element.remove();
+					// Append the content and add fences in case there's no next element
+					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
+				}
+			}
+			else if (element.nodeName === 'BR' && inCodeBlock) {
+				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
+				element.remove();
+			}
+			else {
+				if (inCodeBlock) {
+					inCodeBlock = false; 
+					codeElement = document.createElement('pre');
+				}
+
+				if (matchingStyle) {
+					const newElementTag = styleMap[matchingStyle];
+					const newElement = document.createElement(newElementTag);
+					newElement.innerHTML = element.innerHTML;
+					element.replaceWith(newElement);
+				}
 			}
 		});
-
 		return pageElement;
 	}
 

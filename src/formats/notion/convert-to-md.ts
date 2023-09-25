@@ -291,7 +291,7 @@ function encodeNewlinesToBr(body: HTMLElement) {
 	// Since <br /> is ignored in codeblocks, we replace with newlines
 	for (const block of body.findAll('code')) {
 		for (const br of block.findAll('br')) {
-			br.replaceWith('\n')
+			br.replaceWith('\n');
 		}
 	}
 }
