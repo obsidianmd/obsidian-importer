@@ -502,7 +502,10 @@ export class OneNoteImporter extends FormatImporter {
 				element.remove();
 			}
 			else {
-				if (inCodeBlock) inCodeBlock = false; codeElement = document.createElement('pre');
+				if (inCodeBlock) {
+					inCodeBlock = false; 
+					codeElement = document.createElement('pre');
+				}
 
 				if (matchingStyle) {
 					const newElementTag = styleMap[matchingStyle];
