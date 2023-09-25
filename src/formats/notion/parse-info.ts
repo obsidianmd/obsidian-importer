@@ -13,6 +13,17 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 
 		const id = getNotionId(dom.find('article')?.getAttr('id') ?? '');
 		if (!id) throw new Error('no id found for: ' + filepath);
+
+		const timeElement = dom.querySelector('td > time');
+		const dateTimeStr = timeElement ? timeElement.textContent : null;
+
+		let resultDateTime: Date | null = null;
+
+		// Parse the extracted dateTimeStr
+		if (dateTimeStr) {
+			resultDateTime = parseDateTime(dateTimeStr);
+		}
+
 		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full words. Worth the extra processing time.
 		const parsedTitle = dom.find('title')?.textContent || 'Untitled';
 
@@ -34,6 +45,7 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		info.idsToFileInfo[id] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
+			ctime: resultDateTime,
 			title,
 			fullLinkPathNeeded: false,
 		};
@@ -47,4 +59,20 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 			fullLinkPathNeeded: false,
 		};
 	}
+}
+
+// Function to parse the date-time string
+function parseDateTime(dateTimeStr: string): Date | null {
+	// If the string starts with "@", skip the first character
+	const cleanedStr = dateTimeStr.startsWith('@') ? dateTimeStr.substr(1).trim() : dateTimeStr.trim();
+
+	// Use the built-in Date constructor
+	const dateObj = new Date(cleanedStr);
+
+	// Check if the resulting date object is valid
+	if (isNaN(dateObj.getTime())) {
+		return null;
+	}
+
+	return dateObj;
 }
