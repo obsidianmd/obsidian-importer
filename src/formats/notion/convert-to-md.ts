@@ -290,7 +290,9 @@ function encodeNewlinesToBr(body: HTMLElement) {
 	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
 	// Since <br /> is ignored in codeblocks, we replace with newlines
 	for (const block of body.findAll('code')) {
-		block.innerHTML = block.innerHTML.replace(/<br \/>/g, '\n');
+		for (const br of block.findAll('br')) {
+			br.replaceWith('\n')
+		}
 	}
 }
 
