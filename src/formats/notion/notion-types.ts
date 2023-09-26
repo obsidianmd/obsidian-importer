@@ -53,6 +53,7 @@ export interface NotionFileInfo {
 	path: string;
 	fullLinkPathNeeded: boolean;
 	ctime: Date | null;
+	mtime: Date | null;
 }
 
 export interface NotionAttachmentInfo {

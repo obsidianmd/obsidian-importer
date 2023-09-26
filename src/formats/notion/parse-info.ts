@@ -14,14 +14,19 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		const id = getNotionId(dom.find('article')?.getAttr('id') ?? '');
 		if (!id) throw new Error('no id found for: ' + filepath);
 
-		const timeElement = dom.querySelector('td > time');
-		const dateTimeStr = timeElement ? timeElement.textContent : null;
-
+		const dateTimeStr = extractTimeFromDOMElement(dom, "property-row-created_time");
+		const dateTimeEditedStr = extractTimeFromDOMElement(dom, "property-row-last_edited_time");
+		
 		let resultDateTime: Date | null = null;
+		let resultDateTimeEdited: Date | null = null;
 
 		// Parse the extracted dateTimeStr
 		if (dateTimeStr) {
 			resultDateTime = parseDateTime(dateTimeStr);
+		}
+
+		if (dateTimeEditedStr) {
+			resultDateTimeEdited = parseDateTime(dateTimeEditedStr);
 		}
 
 		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full words. Worth the extra processing time.
@@ -46,6 +51,7 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 			path: filepath,
 			parentIds: parseParentIds(filepath),
 			ctime: resultDateTime,
+			mtime: resultDateTimeEdited,
 			title,
 			fullLinkPathNeeded: false,
 		};
@@ -75,4 +81,19 @@ function parseDateTime(dateTimeStr: string): Date | null {
 	}
 
 	return dateObj;
+}
+
+function extractTimeFromDOMElement(dom: HTMLElement, trClassName: string): string | null {
+	// Select the <tr> element with the specified class from the provided DOM
+	const trElement = dom.querySelector(`tr.${trClassName}`);
+
+	if (trElement) {
+		// If the <tr> element exists, select the <time> element within it
+		const timeElement = trElement.querySelector('time');
+
+		// Return the inner text of the <time> element or null if not found
+		return timeElement ? timeElement.textContent : null;
+	}
+
+	return null;
 }

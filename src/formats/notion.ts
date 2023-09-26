@@ -105,10 +105,12 @@ export class NotionImporter extends FormatImporter {
 					let writeOptions: DataWriteOptions = {}
 
 					if (fileInfo.ctime) {
-						writeOptions = {
-							ctime: fileInfo.ctime.getTime(),
-							mtime: fileInfo.ctime.getTime(),
-						}
+						writeOptions.ctime = fileInfo.ctime.getTime();
+						writeOptions.mtime = fileInfo.ctime.getTime();
+					}
+
+					if (fileInfo.mtime) {
+						writeOptions.mtime = fileInfo.mtime.getTime();
 					}
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
