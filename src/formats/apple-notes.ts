@@ -126,8 +126,12 @@ export class AppleNotesImporter extends FormatImporter {
 		this.noteCount = notes.length;
 		
 		for (let n of notes) {
-			try { await this.resolveNote(n.Z_PK); }
-			catch (e) { this.ctx.reportFailed(n.ZTITLE1, e?.message); }
+			try { 
+				await this.resolveNote(n.Z_PK); 
+			}
+			catch (e) { 
+				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
+			}
 		}
 	}
 	

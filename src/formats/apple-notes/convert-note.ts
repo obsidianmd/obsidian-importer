@@ -54,7 +54,7 @@ export class NoteConverter {
 			starting/ending at spaces, divide tokens based on that */
 			for (let fragment of attrText.split(FRAGMENT_SPLIT)) {
 				if (!fragment) continue;
-				yield {attr, fragment}; 
+				yield { attr, fragment }; 
 			}
 		}
 	}
@@ -100,14 +100,14 @@ export class NoteConverter {
 	
 	/** Format things that cover multiple ANAttributeRuns. */
 	formatMultiRun(attr: ANAttributeRun | null): string {
-		const styleType = attr?.paragraphStyle?.styleType!;
+		const styleType = attr?.paragraphStyle?.styleType;
 		let prefix = '';
 		
 		switch (this.multiRun) {
 			case ANMultiRun.List:
 				if (
 					(attr?.paragraphStyle?.indentAmount == 0 && 
-					!LIST_STYLES.includes(styleType)) ||
+					!LIST_STYLES.includes(styleType!)) ||
 					isBlockAttachment(attr!)
 				) {
 					this.multiRun = ANMultiRun.None;
@@ -135,11 +135,11 @@ export class NoteConverter {
 				this.multiRun = ANMultiRun.Monospaced;
 				prefix += '\n```\n';
 			}
-			else if (LIST_STYLES.includes(styleType)) {
+			else if (LIST_STYLES.includes(styleType!)) {
 				this.multiRun = ANMultiRun.List;
 				
 				//Apple Notes lets users start a list as indented, so add a initial non-indented bit to those
-				if (attr?.paragraphStyle?.indentAmount! > 0) prefix += '\n- &nbsp;\n';
+				if (attr?.paragraphStyle?.indentAmount) prefix += '\n- &nbsp;\n';
 			}
 			else if (attr?.paragraphStyle?.alignment) {
 				this.multiRun = ANMultiRun.Alignment;
@@ -184,7 +184,7 @@ export class NoteConverter {
 			
 			attr.fragment = 
 				`<a href="${attr.link}" rel="noopener" class="external-link"` +
-				` target="_blank"${style}>${attr.fragment}</a>`
+				` target="_blank"${style}>${attr.fragment}</a>`;
 		}
 		else if (style) {
 			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
@@ -208,7 +208,7 @@ export class NoteConverter {
 		}
 		
 		if (attr.strikethrough) attr.fragment = `~~${attr.fragment}~~`;
-		if (attr.link && attr.link != attr.fragment) attr.fragment = `[${attr.fragment}](${attr.link})`
+		if (attr.link && attr.link != attr.fragment) attr.fragment = `[${attr.fragment}](${attr.link})`;
 		
 		if (attr.atLineStart) return this.formatParagraph(attr);
 		else return attr.fragment;
@@ -307,7 +307,7 @@ export class NoteConverter {
 					SELECT ztitle, zurlstring as zhexdata FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 					
-				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`
+				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`;
 			
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`

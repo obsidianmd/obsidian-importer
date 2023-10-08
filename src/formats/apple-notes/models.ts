@@ -4,14 +4,14 @@ export { descriptor } from './descriptor';
 //A few typings for internal use
 
 export type ANAccount = {
-	name: string,
-	uuid: string
-}
+	name: string;
+	uuid: string;
+};
 
 export type ANFragmentPair = { 
-	attr: ANAttributeRun, 
-	fragment: string 
-}
+	attr: ANAttributeRun; 
+	fragment: string;
+};
 
 export enum ANMultiRun {
 	None,
@@ -28,36 +28,36 @@ export interface ANDocument extends Message {
 }
 
 export interface ANNote extends Message {
-	attributeRun: ANAttributeRun[],
-	noteText: string,
-	version: number
+	attributeRun: ANAttributeRun[];
+	noteText: string;
+	version: number;
 }
 
 export interface ANAttributeRun extends Message {
 	[member: string]: any;
 
-	length: number,
-	paragraphStyle?: ANParagraphStyle,
-	font?: ANFont,
-	fontWeight?: ANFontWeight,
-	underlined?: boolean,
-	strikethrough?: number,
-	superscript?: ANBaseline,
-	link?: string,
-	color?: ANColor,
-	attachmentInfo: ANAttachmentInfo,
+	length: number;
+	paragraphStyle?: ANParagraphStyle;
+	font?: ANFont;
+	fontWeight?: ANFontWeight;
+	underlined?: boolean;
+	strikethrough?: number;
+	superscript?: ANBaseline;
+	link?: string;
+	color?: ANColor;
+	attachmentInfo: ANAttachmentInfo;
 	
 	//internal additions, not part of the protobufs
-	fragment: string,
-	atLineStart: boolean
+	fragment: string;
+	atLineStart: boolean;
 }
 
 export interface ANParagraphStyle extends Message {
-	styleType?: ANStyleType,
-	alignment?: ANAlignment
-	indentAmount?: number,
-	checklist?: ANChecklist,
-	blockquote?: number
+	styleType?: ANStyleType;
+	alignment?: ANAlignment;
+	indentAmount?: number;
+	checklist?: ANChecklist;
+	blockquote?: number;
 }
 
 export enum ANStyleType {
@@ -80,14 +80,14 @@ export enum ANAlignment {
 }
 
 export interface ANChecklist extends Message {
-	done: number,
-	uuid: string
+	done: number;
+	uuid: string;
 }
 
 export interface ANFont extends Message {
-	fontName?: string,
-	pointSize?: number,
-	fontHints?: number
+	fontName?: string;
+	pointSize?: number;
+	fontHints?: number;
 }
 
 export enum ANFontWeight {
@@ -117,8 +117,8 @@ export enum ANFolderType {
 }
 
 export interface ANAttachmentInfo extends Message {
-	attachmentIdentifier: string,
-	typeUti: string | ANAttachment 
+	attachmentIdentifier: string;
+	typeUti: string | ANAttachment; 
 }
 
 export enum ANAttachment {
@@ -131,25 +131,25 @@ export enum ANAttachment {
 }
 
 export interface ANMergableDataProto extends Message {
-	mergableDataObject: ANMergeableDataObject
+	mergableDataObject: ANMergeableDataObject;
 }
 
 export interface ANMergeableDataObject extends Message {
-	mergeableDataObjectData: ANDataStore
+	mergeableDataObjectData: ANDataStore;
 }
 
 export interface ANDataStore extends Message {
-	mergeableDataObjectKeyItem: string[],
-	mergeableDataObjectTypeItem: string[],
-	mergeableDataObjectUuidItem: Uint8Array[],
-	mergeableDataObjectEntry: ANMergeableObjectEntry[]
+	mergeableDataObjectKeyItem: string[];
+	mergeableDataObjectTypeItem: string[];
+	mergeableDataObjectUuidItem: Uint8Array[];
+	mergeableDataObjectEntry: ANMergeableObjectEntry[];
 }
 
 export interface ANMergeableObjectEntry extends Message {
-	customMap: any,
-	dictionary: any,
-	orderedSet: any,
-	note: ANNote
+	customMap: any;
+	dictionary: any;
+	orderedSet: any;
+	note: ANNote;
 }
 
 export enum ANTableKey {
