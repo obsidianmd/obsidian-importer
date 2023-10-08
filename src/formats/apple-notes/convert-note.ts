@@ -1,0 +1,385 @@
+import { App, TFile } from 'obsidian';
+import { 
+	ANAlignment, ANAttributeRun, ANAttachment, ANBaseline, ANColor, ANFontWeight,
+	ANFragmentPair, ANMergableDataProto, ANMultiRun, ANNote, ANStyleType 
+} from './models';
+import { TableConverter } from './convert-table';
+import { AppleNotesImporter } from '../apple-notes';
+
+const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
+const NOTE_URI = /applenotes:note\/(.*)\?/;
+
+const DEFAULT_EMOJI = '.AppleColorEmojiUI';
+const LIST_STYLES = [
+	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
+];
+
+export class NoteConverter {
+	importer: AppleNotesImporter;
+	note: ANNote;
+	app: App;
+	
+	listNumber = 0;
+	listIndent = 0;
+	multiRun = ANMultiRun.None;
+	
+	constructor(importer: AppleNotesImporter, note: ANNote) {
+		this.importer = importer;
+		this.note = note;
+		this.app = importer.app;
+	}
+
+	*parseTokens(): IterableIterator<ANFragmentPair> {	
+		let i = 0;
+		let offsetStart = 0;
+		let offsetEnd = 0;
+		
+		while (i < this.note.attributeRun.length) {
+			let attr!: ANAttributeRun;
+			let attrText = '';
+			let nextIsSame = true;
+			
+			/* First, merge tokens with the same attributes */
+			while (nextIsSame) {
+				attr = this.note.attributeRun[i];
+				offsetEnd = offsetEnd + attr.length;
+				attrText += this.note.noteText.substring(offsetStart, offsetEnd);
+				
+				offsetStart = offsetEnd;
+				nextIsSame = attrEquals(attr, this.note.attributeRun[i+1]);
+				i++;
+			}
+			
+			/* Then, since Obsidian doesn't like formatting crossing new lines or 
+			starting/ending at spaces, divide tokens based on that */
+			for (let fragment of attrText.split(FRAGMENT_SPLIT)) {
+				if (!fragment) continue;
+				yield {attr, fragment}; 
+			}
+		}
+	}
+		
+	async format(table = false): Promise<string> {
+		let fragments = Array.from(this.parseTokens());
+		let firstLineSkip = !table && this.importer.omitFirstLine;
+		let converted = '';
+		
+		for (let j = 0; j < fragments.length; j++) {		
+			let {attr, fragment} = fragments[j];
+			
+			if (firstLineSkip) {
+				if (fragment.contains('\n') || attr.attachmentInfo) firstLineSkip = false;
+				else continue;
+			}
+
+			attr.fragment = fragment;		
+			attr.atLineStart = fragments[j - 1]?.fragment.contains('\n') || j == 0;
+			
+			converted += this.formatMultiRun(attr);
+			
+			if (!/\S/.test(attr.fragment) || this.multiRun == ANMultiRun.Monospaced) {
+				converted += attr.fragment;
+			}
+			else if (attr.attachmentInfo) {
+				converted += await this.formatAttachment(attr);
+			}
+			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
+				//non-html stuff doesn't play nicely with html formatting in live preview so we go all html
+				converted += this.formatHtmlAttr(attr);
+			}
+			else {
+				converted += this.formatAttr(attr);
+			}
+		}
+		
+		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun(null);
+		if (table) converted.replace('\n', '<br>').replace('|', '&#124;');
+		
+		return converted;
+	}
+	
+	/** Format things that cover multiple ANAttributeRuns. */
+	formatMultiRun(attr: ANAttributeRun | null): string {
+		const styleType = attr?.paragraphStyle?.styleType!;
+		let prefix = '';
+		
+		switch (this.multiRun) {
+			case ANMultiRun.List:
+				if (
+					(attr?.paragraphStyle?.indentAmount == 0 && 
+					!LIST_STYLES.includes(styleType)) ||
+					isBlockAttachment(attr!)
+				) {
+					this.multiRun = ANMultiRun.None;
+				}
+				break;
+			
+			case ANMultiRun.Monospaced:
+				if (styleType != ANStyleType.Monospaced || !attr) {
+					this.multiRun = ANMultiRun.None;
+					prefix += '```\n';
+				}
+				break;
+			
+			case ANMultiRun.Alignment:
+				if (!attr?.paragraphStyle?.alignment || !attr) {
+					this.multiRun = ANMultiRun.None;
+					prefix += '</p>\n';
+				}
+				break;
+		}
+		
+		//separate since one may end and another start immediately
+		if (this.multiRun == ANMultiRun.None) {
+			if (styleType == ANStyleType.Monospaced) {
+				this.multiRun = ANMultiRun.Monospaced;
+				prefix += '\n```\n';
+			}
+			else if (LIST_STYLES.includes(styleType)) {
+				this.multiRun = ANMultiRun.List;
+				
+				//Apple Notes lets users start a list as indented, so add a initial non-indented bit to those
+				if (attr?.paragraphStyle?.indentAmount! > 0) prefix += '\n- &nbsp;\n';
+			}
+			else if (attr?.paragraphStyle?.alignment) {
+				this.multiRun = ANMultiRun.Alignment;
+				const val = this.convertAlign(attr?.paragraphStyle?.alignment);
+				prefix += `\n<p style="text-align:${val};margin:0">`;
+			}
+		}
+		
+		return prefix;
+	}
+	
+	formatHtmlAttr(attr: ANAttributeRun): string {
+		if (attr.strikethrough) attr.fragment = `<s>${attr.fragment}</s>`;
+		if (attr.underlined) attr.fragment = `<u>${attr.fragment}</u>`;
+		
+		if (attr?.superscript == ANBaseline.Super) attr.fragment = `<sup>${attr.fragment}</sup>`;
+		if (attr?.superscript == ANBaseline.Sub) attr.fragment = `<sub>${attr.fragment}</sub>`;
+		
+		let style = '';
+		
+		switch (attr.fontWeight) {
+			case ANFontWeight.Bold:
+				attr.fragment = `<b>${attr.fragment}</b>`;
+				break;
+			case ANFontWeight.Italic:
+				attr.fragment = `<i>${attr.fragment}</i>`;
+				break;
+			case ANFontWeight.BoldItalic:
+				attr.fragment = `<b><i>${attr.fragment}</i></b>`;
+				break;
+		}
+		
+		if (attr.font?.fontName && attr.font.fontName !== DEFAULT_EMOJI) {
+			style += `font-family:${attr.font.fontName};`;
+		}
+		
+		if (attr.font?.pointSize) style += `font-size:${attr.font.pointSize}pt;`;
+		if (attr.color) style += `color:${this.convertColor(attr.color)};`;
+		
+		if (attr.link) {
+			if (style) style = ` style="${style}"`;
+			
+			attr.fragment = 
+				`<a href="${attr.link}" rel="noopener" class="external-link"` +
+				` target="_blank"${style}>${attr.fragment}</a>`
+		}
+		else if (style) {
+			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
+		}
+		
+		if (attr.atLineStart) return this.formatParagraph(attr);
+		else return attr.fragment;
+	}
+	
+	formatAttr(attr: ANAttributeRun): string {
+		switch (attr.fontWeight) {
+			case ANFontWeight.Bold:
+				attr.fragment = `**${attr.fragment}**`;
+				break;
+			case ANFontWeight.Italic:
+				attr.fragment = `*${attr.fragment}*`;
+				break;
+			case ANFontWeight.BoldItalic:
+				attr.fragment = `***${attr.fragment}***`;
+				break;
+		}
+		
+		if (attr.strikethrough) attr.fragment = `~~${attr.fragment}~~`;
+		if (attr.link && attr.link != attr.fragment) attr.fragment = `[${attr.fragment}](${attr.link})`
+		
+		if (attr.atLineStart) return this.formatParagraph(attr);
+		else return attr.fragment;
+	}
+	
+	formatParagraph(attr: ANAttributeRun): string {
+		const indent = '\t'.repeat(attr.paragraphStyle?.indentAmount || 0);
+		const styleType = attr?.paragraphStyle?.styleType;
+		let prelude = attr.paragraphStyle?.blockquote ? '> ' : '';
+		
+		if (
+			this.listNumber != 0 &&
+			(styleType !== ANStyleType.NumberedList ||
+			this.listIndent !== attr.paragraphStyle?.indentAmount)
+		) {
+			this.listIndent = attr.paragraphStyle?.indentAmount || 0;
+			this.listNumber = 0;
+		}
+		
+		switch (styleType) {
+			case ANStyleType.Title:
+				return `${prelude}# ${attr.fragment}`;
+				
+			case ANStyleType.Heading:
+				return `${prelude}## ${attr.fragment}`;
+				
+			case ANStyleType.Subheading:
+				return `${prelude}### ${attr.fragment}`;
+				
+			case ANStyleType.DashedList:
+			case ANStyleType.DottedList:
+				return `${prelude}${indent}- ${attr.fragment}`;
+				
+			case ANStyleType.NumberedList:
+				this.listNumber++;
+				return `${prelude}${indent}${this.listNumber}. ${attr.fragment}`;
+				
+			case ANStyleType.Checkbox:
+				const box = attr.paragraphStyle!.checklist?.done ? '[x]' : '[ ]';
+				return `${prelude}${indent}- ${box} ${attr.fragment}`;
+		}
+		
+		//Not a list but indented in line with one
+		if (this.multiRun == ANMultiRun.List) prelude += indent;
+		
+		return `${prelude}${attr.fragment}`;
+	}
+	
+	async formatAttachment(attr: ANAttributeRun): Promise<string> {
+		let row, id;
+		
+		switch (attr.attachmentInfo.typeUti) {
+			case ANAttachment.Hashtag:
+			case ANAttachment.Mention:
+				row = await this.importer.database.get`
+					SELECT zalttext FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+				
+				return row.ZALTTEXT;
+				
+			case ANAttachment.InternalLink:
+				row = await this.importer.database.get`
+					SELECT ztokencontentidentifier FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+				
+				const destIdentifier = row.ZTOKENCONTENTIDENTIFIER.match(NOTE_URI)[1];
+				
+				row = await this.importer.database.get`
+					SELECT z_pk FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${destIdentifier.toUpperCase()}`;
+					
+				if (!(row.Z_PK in this.importer.resolvedFiles)) {
+					//if we don't have the note yet, we fetch it early to get its path
+					this.importer.resolveNote(row.Z_PK);
+				}
+				
+				return this.app.fileManager.generateMarkdownLink(
+					this.importer.resolvedFiles[row.Z_PK] as TFile, 
+					this.importer.rootFolder.path
+				);
+				
+			case ANAttachment.Table:
+				row = await this.importer.database.get`
+					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+
+				const table = this.importer.decodeData<ANMergableDataProto>(
+					row.zhexdata, 'ciofecaforensics.MergableDataProto'
+				);
+				
+				const converter = new TableConverter(this.importer, table.mergableDataObject);
+				return await converter.format();
+			
+			case ANAttachment.UrlCard:
+				row = await this.importer.database.get`
+					SELECT ztitle, zurlstring as zhexdata FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+					
+				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`
+			
+			case ANAttachment.Drawing:
+				row = await this.importer.database.get`
+					SELECT z_pk FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+				
+				id = row?.Z_PK;
+				break;
+				
+			//actual file on disk (eg image, audio, video, pdf, vcard)
+			//hundreds of different utis so not in the enum
+			default:
+				row = await this.importer.database.get`
+					SELECT zmedia FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+				
+				id = row?.ZMEDIA;
+				break;
+		}
+		
+		if (!id) {
+			//doesn't have an associated file, so unknown
+			return ` **(unknown attachment: ${attr.attachmentInfo.typeUti})** `;
+		}
+		
+		await this.importer.resolveAttachment(id, attr.attachmentInfo.typeUti);
+		const link = this.app.fileManager.generateMarkdownLink(
+			this.importer.resolvedFiles[id] as TFile, '/'
+		);
+		
+		return `\n${link}\n`;	
+	}
+	
+	convertColor(color: ANColor): string {
+		let hexcode = '#';
+		
+		for (const channel of Object.values(color)) {
+			hexcode += Math.floor(channel * 255).toString(16);
+		}
+		
+		return hexcode;
+	}
+	
+	convertAlign(alignment: ANAlignment): string {
+		switch (alignment) {
+			default: return 'left';
+			case ANAlignment.Centre: return 'center';
+			case ANAlignment.Right: return 'right';
+			case ANAlignment.Justify: return 'justify';
+		}
+	}
+}
+
+function isBlockAttachment(attr: ANAttributeRun) {
+	if (attr?.attachmentInfo) return !attr?.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
+	return false;
+}
+
+function attrEquals(a: ANAttributeRun, b: ANAttributeRun): boolean {
+	if (!b || a.$type != b.$type) return false;
+	
+	for (let field of a.$type.fieldsArray) {
+		if (field.name == 'length') continue;
+		
+		if (a[field.name]?.$type && b[field.name]?.$type) {
+			//is a child ANAttributeRun
+			if (!attrEquals(a[field.name], b[field.name])) return false;
+		}
+		else {
+			if (a[field.name] != b[field.name]) return false;
+		}
+	}
+	
+	return true;
+}

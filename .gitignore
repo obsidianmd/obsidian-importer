@@ -5,6 +5,9 @@
 *.iml
 .idea
 
+# Panic Nova
+.nova
+
 # npm
 node_modules
 package-lock.json
@@ -26,3 +29,4 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
+importer-sandbox

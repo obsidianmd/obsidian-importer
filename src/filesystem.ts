@@ -1,5 +1,6 @@
 import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
 import type * as NodeFS from 'node:fs';
+import type * as NodeOS from 'node:os';
 import type * as NodePath from 'node:path';
 import type * as NodeUrl from 'node:url';
 import { Platform } from 'obsidian';
@@ -38,6 +39,7 @@ export interface PickedFolder {
 
 export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null!;
+export const os: typeof NodeOS = Platform.isDesktopApp ? window.require('node:os') : null;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
 export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
 
@@ -212,15 +214,21 @@ export function parseFilePath(filepath: string): { parent: string, name: string,
 		parent = filepath.substring(0, lastIndex);
 	}
 
+	let [basename, extension] = splitext(name);
+	return { parent, name, basename, extension };
+}
+
+export function splitext(name: string) {
 	let dotIndex = name.lastIndexOf('.');
 	let basename = name;
 	let extension = '';
+	
 	if (dotIndex > 0) {
 		basename = name.substring(0, dotIndex);
 		extension = name.substring(dotIndex + 1).toLowerCase();
 	}
-
-	return { parent, name, basename, extension };
+	
+	return [basename, extension];
 }
 
 class FSReader extends Reader<NodeFS.promises.FileHandle> {

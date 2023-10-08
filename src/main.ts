@@ -1,5 +1,6 @@
-import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Platform, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
+import { AppleNotesImporter } from './formats/apple-notes';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
@@ -234,6 +235,12 @@ export default class ImporterPlugin extends Plugin {
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
 			},
+			'apple-notes': {
+				name: 'Apple Notes',
+				optionText: 'Apple Notes',
+				importer: AppleNotesImporter,
+				helpPermalink: 'import/apple-notes'
+			},
 			'notion': {
 				name: 'Notion',
 				optionText: 'Notion (.zip)',
@@ -362,7 +369,9 @@ export class ImporterModal extends Modal {
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
-
+			
+			if (importer.notAvailable) return;
+			
 			contentEl.createDiv('modal-button-container', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {

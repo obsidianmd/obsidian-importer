@@ -12,6 +12,7 @@ export abstract class FormatImporter {
 
 	files: PickedFile[] = [];
 	outputLocation: string = '';
+	notAvailable: boolean = false;
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
