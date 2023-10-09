@@ -47,7 +47,10 @@ export class NoteConverter {
 				attrText += this.note.noteText.substring(offsetStart, offsetEnd);
 				
 				offsetStart = offsetEnd;
-				nextIsSame = attrEquals(attr, this.note.attributeRun[i+1]);
+				
+				if (i == this.note.attributeRun.length - 1) nextIsSame = false;
+				else nextIsSame = attrEquals(attr, this.note.attributeRun[i+1]);
+				
 				i++;
 			}
 			
@@ -76,7 +79,7 @@ export class NoteConverter {
 			}
 
 			attr.fragment = fragment;		
-			attr.atLineStart = fragments[j - 1]?.fragment.contains('\n') || j == 0;
+			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
 			
 			converted += this.formatMultiRun(attr);
 			
@@ -363,6 +366,8 @@ export class NoteConverter {
 		}
 	}
 }
+
+
 
 function isBlockAttachment(attr: ANAttributeRun) {
 	if (attr?.attachmentInfo) return !attr?.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
