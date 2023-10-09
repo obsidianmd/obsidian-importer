@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
@@ -370,6 +370,8 @@ export class ImporterModal extends Modal {
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
 			
+			//Hide the import buttons if it's not available.
+			//The actual message to display is handled by the importer, since it depends on what is being imported.
 			if (importer.notAvailable) return;
 			
 			contentEl.createDiv('modal-button-container', el => {

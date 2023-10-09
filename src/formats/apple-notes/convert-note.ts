@@ -29,10 +29,11 @@ export class NoteConverter {
 		this.app = importer.app;
 	}
 
-	*parseTokens(): IterableIterator<ANFragmentPair> {	
+	parseTokens(): ANFragmentPair[] {	
 		let i = 0;
 		let offsetStart = 0;
 		let offsetEnd = 0;
+		let tokens = [];
 		
 		while (i < this.note.attributeRun.length) {
 			let attr!: ANAttributeRun;
@@ -54,18 +55,20 @@ export class NoteConverter {
 			starting/ending at spaces, divide tokens based on that */
 			for (let fragment of attrText.split(FRAGMENT_SPLIT)) {
 				if (!fragment) continue;
-				yield { attr, fragment }; 
+				tokens.push({ attr, fragment }); 
 			}
 		}
+		
+		return tokens;
 	}
 		
 	async format(table = false): Promise<string> {
-		let fragments = Array.from(this.parseTokens());
+		let fragments = this.parseTokens();
 		let firstLineSkip = !table && this.importer.omitFirstLine;
 		let converted = '';
 		
 		for (let j = 0; j < fragments.length; j++) {		
-			let {attr, fragment} = fragments[j];
+			let { attr, fragment } = fragments[j];
 			
 			if (firstLineSkip) {
 				if (fragment.contains('\n') || attr.attachmentInfo) firstLineSkip = false;

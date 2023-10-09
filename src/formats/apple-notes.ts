@@ -10,7 +10,8 @@ import SQLiteTagSpawned from 'sqlite-tag-spawned';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
-const CORETIME_OFFSET = 978307200;
+/** Additional amount of seconds that Apple CoreTime datatypes start at, for convert them into Unix timestamps. */
+const CORETIME_OFFSET = 978307200; 
 
 const ROOT_DOC = Root.fromJSON(descriptor);
 
@@ -21,7 +22,7 @@ export class AppleNotesImporter extends FormatImporter {
 	
 	database: SQLiteTagSpawned;
 	resolvedAccounts: Record<number, ANAccount> = {};
-	resolvedFiles: Record<number, TAbstractFile> = {};
+	resolvedFiles: Record<number, TAbstractFile | TFolder> = {};
 	
 	multiAccount = false;
 	noteCount = 0;
@@ -29,7 +30,7 @@ export class AppleNotesImporter extends FormatImporter {
 	
 	omitFirstLine = true;
 	importTrashed = false;
-	trashedFolder = -1;
+	trashFolder = -1;
 	
 	init(): void {
 		if (!Platform.isMacOS) {
@@ -41,6 +42,8 @@ export class AppleNotesImporter extends FormatImporter {
 			this.notAvailable = true;
 			return;
 		}
+		
+		this.addOutputLocationSetting('Apple Notes');
 		
 		new Setting(this.modal.contentEl)
 			.setName('Import recently deleted notes')
@@ -63,8 +66,6 @@ export class AppleNotesImporter extends FormatImporter {
 				.setValue(true)
 				.onChange(async v => this.omitFirstLine = v)
 			);
-		
-		this.addOutputLocationSetting('Apple Notes');
 	}
 	
 	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {
@@ -106,10 +107,10 @@ export class AppleNotesImporter extends FormatImporter {
 		if (!this.database) return;
 				
 		const noteAccounts = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 13
+			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 13 /* account entity */
 		`;
 		const noteFolders = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 14
+			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 14 /* folder entity */
 		`;
 		
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
@@ -119,9 +120,9 @@ export class AppleNotesImporter extends FormatImporter {
 			SELECT
 				z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject 
 			WHERE
-				z_ent = 11
+				z_ent = 11 /* Note entity */
 				AND ztitle1 IS NOT NULL
-				AND zfolder != ${this.trashedFolder}
+				AND zfolder != ${this.trashFolder}
 		`;
 		this.noteCount = notes.length;
 		
@@ -165,7 +166,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return;	
 		}
 		else if (!this.importTrashed && folder.ZFOLDERTYPE == ANFolderType.Trash) {
-			this.trashedFolder = id;
+			this.trashFolder = id;
 			return;	
 		}
 		else if (folder.ZPARENT !== null) {
@@ -238,7 +239,7 @@ export class AppleNotesImporter extends FormatImporter {
 					(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 					ziccloudsyncingobject AS b
 				WHERE
-					a.z_ent = 10 
+					a.z_ent = 10 /* drawing entity */
 					AND a.z_pk = ${id} 
 					AND a.z_pk = b.zmedia
 			`;
@@ -257,7 +258,7 @@ export class AppleNotesImporter extends FormatImporter {
 				FROM
 					(SELECT *, NULL AS zaccount6, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 				WHERE
-					z_ent = 4 
+					z_ent = 4 /* attachment entity */
 					AND z_pk = ${id} 
 			`;
 			

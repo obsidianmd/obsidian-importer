@@ -104,10 +104,10 @@ export enum ANBaseline {
 }
 
 export interface ANColor extends Message {
-	red: number,
-	green: number,
-	blue: number,
-	alpha: number
+	red: number;
+	green: number;
+	blue: number;
+	alpha: number;
 }
 
 export enum ANFolderType {
