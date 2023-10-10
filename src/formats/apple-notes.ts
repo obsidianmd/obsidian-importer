@@ -10,7 +10,7 @@ import SQLiteTagSpawned from 'sqlite-tag-spawned';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
-/** Additional amount of seconds that Apple CoreTime datatypes start at, for convert them into Unix timestamps. */
+/** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200; 
 
 const ROOT_DOC = Root.fromJSON(descriptor);
@@ -174,6 +174,7 @@ export class AppleNotesImporter extends FormatImporter {
 			prefix = this.resolvedFiles[folder.ZPARENT].path + '/';
 		}
 		else if (this.multiAccount) {
+			//if there's a parent, the account root is already handled by that
 			const account = this.resolvedAccounts[folder.ZOWNER].name;
 			prefix = `${this.rootFolder.path}/${account}/`;
 		}

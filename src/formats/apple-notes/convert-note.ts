@@ -90,7 +90,6 @@ export class NoteConverter {
 				converted += await this.formatAttachment(attr);
 			}
 			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
-				//non-html stuff doesn't play nicely with html formatting in live preview so we go all html
 				converted += this.formatHtmlAttr(attr);
 			}
 			else {
@@ -157,6 +156,8 @@ export class NoteConverter {
 		return prefix;
 	}
 	
+	/** Since putting markdown inside inline html tags is currentlyproblematic in Live Preview, this is a separate
+	 parser for those that is activated when HTML-only stuff (eg underline, font size) is needed */
 	formatHtmlAttr(attr: ANAttributeRun): string {
 		if (attr.strikethrough) attr.fragment = `<s>${attr.fragment}</s>`;
 		if (attr.underlined) attr.fragment = `<u>${attr.fragment}</u>`;
