@@ -101,7 +101,7 @@ export class NoteConverter {
 		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun(null);
 		if (table) converted.replace('\n', '<br>').replace('|', '&#124;');
 		
-		return converted;
+		return converted.trim();
 	}
 	
 	/** Format things that cover multiple ANAttributeRuns. */
