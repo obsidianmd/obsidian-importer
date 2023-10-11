@@ -128,12 +128,12 @@ export class AppleNotesImporter extends FormatImporter {
 		this.noteCount = notes.length;
 		
 		for (let n of notes) {
-			try { 
-				await this.resolveNote(n.Z_PK); 
-			}
+			//try { 
+			await this.resolveNote(n.Z_PK); 
+			/*}
 			catch (e) { 
 				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
-			}
+			}*/
 		}
 	}
 	
@@ -293,13 +293,10 @@ export class AppleNotesImporter extends FormatImporter {
 	}
 	
 	getAttachmentPath(): string {
-		let outPath = path.join(this.outputLocation, 'Attachments');
+		let attachmentPath = this.app.vault.getConfig('attachmentFolderPath');
+		if (attachmentPath.startsWith('/')) attachmentPath = attachmentPath.substring(1);
 		
-		if (this.app.vault.getConfig('attachmentFolderPath') !== '/') {
-			outPath = path.join(
-				this.app.vault.getConfig('attachmentFolderPath'), `${this.outputLocation} Attachments`
-			);
-		}
+		const outPath = path.join(attachmentPath, `${this.outputLocation} Attachments`);
 		
 		this.createFolders(outPath);
 		return outPath;
