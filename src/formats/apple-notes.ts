@@ -171,7 +171,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return;	
 		}
 		else if (folder.ZPARENT !== null) {
-			this.resolveFolder(folder.ZPARENT);
+			await this.resolveFolder(folder.ZPARENT);
 			prefix = this.resolvedFiles[folder.ZPARENT].path + '/';
 		}
 		else if (this.multiAccount) {
