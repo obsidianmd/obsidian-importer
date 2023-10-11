@@ -36,23 +36,24 @@ export class NoteConverter {
 		let tokens = [];
 		
 		while (i < this.note.attributeRun.length) {
-			let attr!: ANAttributeRun;
+			let attr: ANAttributeRun;
 			let attrText = '';
 			let nextIsSame = true;
 			
 			/* First, merge tokens with the same attributes */
-			while (nextIsSame) {
+			do {
 				attr = this.note.attributeRun[i];
 				offsetEnd = offsetEnd + attr.length;
 				attrText += this.note.noteText.substring(offsetStart, offsetEnd);
 				
 				offsetStart = offsetEnd;
-				
-				if (i == this.note.attributeRun.length - 1) nextIsSame = false;
-				else nextIsSame = attrEquals(attr, this.note.attributeRun[i+1]);
+				nextIsSame = (i == this.note.attributeRun.length - 1)
+					? false
+					: attrEquals(attr, this.note.attributeRun[i+1]);
 				
 				i++;
 			}
+			while (nextIsSame);
 			
 			/* Then, since Obsidian doesn't like formatting crossing new lines or 
 			starting/ending at spaces, divide tokens based on that */

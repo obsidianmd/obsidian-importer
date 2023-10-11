@@ -1,6 +1,7 @@
 import { Notice, Platform, Setting, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
-import { ANAccount, ANAttachment, ANDocument, ANFolderType, descriptor } from './apple-notes/models';
+import { ANAccount, ANAttachment, ANDocument, ANFolderType } from './apple-notes/models';
+import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fs, os, path, splitext } from '../filesystem';
 import { FormatImporter } from '../format-importer';

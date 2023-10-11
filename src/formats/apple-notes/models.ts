@@ -20,6 +20,8 @@ export enum ANMultiRun {
 	List
 }
 
+export type ANTableUuidMapping = Record<string, number>;
+
 //Types for protobufs, and enums to describe their int fields
 
 export interface ANDocument extends Message {
@@ -139,13 +141,13 @@ export interface ANMergeableDataObject extends Message {
 }
 
 export interface ANDataStore extends Message {
-	mergeableDataObjectKeyItem: string[];
-	mergeableDataObjectTypeItem: string[];
+	mergeableDataObjectKeyItem: ANTableKey[];
+	mergeableDataObjectTypeItem: ANTableType[];
 	mergeableDataObjectUuidItem: Uint8Array[];
-	mergeableDataObjectEntry: ANMergeableObjectEntry[];
+	mergeableDataObjectEntry: ANTableObject[];
 }
 
-export interface ANMergeableObjectEntry extends Message {
+export interface ANTableObject extends Message {
 	customMap: any;
 	dictionary: any;
 	orderedSet: any;
