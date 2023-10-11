@@ -41,6 +41,7 @@ export class Bear2bkImporter extends FormatImporter {
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
+							mdContent = this.removeMarkdownHeader(mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
@@ -72,5 +73,16 @@ export class Bear2bkImporter extends FormatImporter {
 				}
 			});
 		}
+	}
+
+	private removeMarkdownHeader(mdContent: string): string {
+		const lines = mdContent.split('\n');
+		if (lines.length === 1 && lines[0].startsWith('#')) {
+			mdContent = '';
+		}
+		else if (mdContent.startsWith('#')) {
+			mdContent = mdContent.substring(mdContent.indexOf('\n') + 1);
+		}
+		return mdContent;
 	}
 }
