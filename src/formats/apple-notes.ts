@@ -215,6 +215,7 @@ export class AppleNotesImporter extends FormatImporter {
 		const folder = this.resolvedFiles[row.ZFOLDER] as TFolder;
 		const title = `${row.ZTITLE1}.md`;
 		
+		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = await this.saveAsMarkdownFile(folder, title, ''); 
 		
 		//notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
