@@ -205,6 +205,12 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
+			'apple-notes': {
+				name: 'Apple Notes',
+				optionText: 'Apple Notes',
+				importer: AppleNotesImporter,
+				helpPermalink: 'import/apple-notes'
+			},
 			'bear': {
 				name: 'Bear',
 				optionText: 'Bear (.bear2bk)',
@@ -234,12 +240,6 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Microsoft OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
-			},
-			'apple-notes': {
-				name: 'Apple Notes',
-				optionText: 'Apple Notes',
-				importer: AppleNotesImporter,
-				helpPermalink: 'import/apple-notes'
 			},
 			'notion': {
 				name: 'Notion',
