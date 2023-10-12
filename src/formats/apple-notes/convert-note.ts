@@ -1,7 +1,7 @@
-import { App, TFile } from 'obsidian';
+import { TFile } from 'obsidian';
 import { 
-	ANAlignment, ANAttributeRun, ANAttachment, ANBaseline, ANColor, ANFontWeight,
-	ANFragmentPair, ANMergableDataProto, ANMultiRun, ANNote, ANStyleType 
+	ANAlignment, ANAttributeRun, ANAttachment, ANBaseline, ANColor, ANConverter, ANDocument,
+	ANFontWeight, ANFragmentPair, ANMultiRun, ANNote, ANStyleType, ANTableObject
 } from './models';
 import { ScanConverter } from './convert-scan';
 import { TableConverter } from './convert-table';
@@ -15,19 +15,18 @@ const LIST_STYLES = [
 	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
 ];
 
-export class NoteConverter {
-	importer: AppleNotesImporter;
+export class NoteConverter extends ANConverter {
 	note: ANNote;
-	app: App;
 	
 	listNumber = 0;
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
 	
-	constructor(importer: AppleNotesImporter, note: ANNote) {
-		this.importer = importer;
-		this.note = note;
-		this.app = importer.app;
+	static protobufType = 'ciofecaforensics.Document';
+	
+	constructor(importer: AppleNotesImporter, document: ANDocument | ANTableObject) {
+		super(importer);
+		this.note = document.note;
 	}
 
 	parseTokens(): ANFragmentPair[] {	
@@ -304,11 +303,7 @@ export class NoteConverter {
 					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
-				const table = this.importer.decodeData<ANMergableDataProto>(
-					row.zhexdata, 'ciofecaforensics.MergableDataProto'
-				);
-				
-				converter = new TableConverter(this.importer, table.mergableDataObject);
+				converter = this.importer.decodeData(row.zhexdata, TableConverter);
 				return await converter.format();
 			
 			case ANAttachment.UrlCard:
@@ -323,11 +318,7 @@ export class NoteConverter {
 					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 				
-				const scan = this.importer.decodeData<ANMergableDataProto>(
-					row.zhexdata, 'ciofecaforensics.MergableDataProto'
-				);
-				
-				converter = new ScanConverter(this.importer, scan.mergableDataObject);
+				converter = this.importer.decodeData(row.zhexdata, ScanConverter);
 				return await converter.format();
 			
 			case ANAttachment.Drawing:

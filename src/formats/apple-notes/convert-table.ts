@@ -1,13 +1,11 @@
 import { 
-	ANMergeableDataObject, ANTableObject,
-	ANTableKey, ANTableType, ANTableUuidMapping, 
+	ANConverter, ANMergeableDataObject, ANMergableDataProto,
+	ANTableObject, ANTableKey, ANTableType, ANTableUuidMapping, 
 } from './models';
 import { NoteConverter } from './convert-note';
 import { AppleNotesImporter } from '../apple-notes';
 
-
-export class TableConverter {
-	importer: AppleNotesImporter;
+export class TableConverter extends ANConverter {
 	table: ANMergeableDataObject;
 	
 	//Apple Notes uses CRDTs to allow multiple people to work on a note at once.
@@ -28,11 +26,13 @@ export class TableConverter {
 	columnCount: number;
 	columnLocations: ANTableUuidMapping = {};
 	
-	constructor(importer: AppleNotesImporter, table: ANMergeableDataObject) {
-		this.importer = importer;
-		this.table = table;
+	static protobufType = 'ciofecaforensics.MergableDataProto';
+	
+	constructor(importer: AppleNotesImporter, table: ANMergableDataProto) {
+		super(importer);
+		this.table = table.mergableDataObject;
 		
-		const data = table.mergeableDataObjectData;
+		const data = this.table.mergeableDataObjectData;
 		
 		this.keys = data.mergeableDataObjectKeyItem; 
 		this.types = data.mergeableDataObjectTypeItem;
@@ -104,7 +104,7 @@ export class TableConverter {
 				let rowUuid = this.getTargetUuid(row.key.objectIndex);
 				let rowContent = this.objects[row.value.objectIndex];
 				
-				const converter = new NoteConverter(this.importer, rowContent.note);
+				const converter = new NoteConverter(this.importer, rowContent);
 				result[this.rowLocations[rowUuid]][this.columnLocations[columnUuid]] = await converter.format(true); 
 			}
 		}

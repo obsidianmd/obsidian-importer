@@ -1,5 +1,25 @@
+import { App } from 'obsidian';
+import { AppleNotesImporter } from '../apple-notes';
 import { Message } from 'protobufjs';
-export { descriptor } from './descriptor';
+
+export abstract class ANConverter {
+	importer: AppleNotesImporter;
+	app: App;
+	
+	static protobufType: string;
+	
+	constructor(importer: AppleNotesImporter) {
+		this.importer = importer;
+		this.app = importer.app;
+	}
+	
+	abstract format(): Promise<string>;
+}
+
+export type ANConverterType<T extends ANConverter> = {
+	new (importer: AppleNotesImporter, x: any): T;
+	protobufType: string;
+};
 
 //A few typings for internal use
 

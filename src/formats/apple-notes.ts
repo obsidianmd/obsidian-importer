@@ -1,12 +1,12 @@
 import { Notice, Platform, Setting, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
-import { ANAccount, ANAttachment, ANDocument, ANFolderType } from './apple-notes/models';
+import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fs, os, path, splitext } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ungzip } from 'pako';
-import { Root, Message } from 'protobufjs';
+import { Root } from 'protobufjs';
 import SQLiteTagSpawned from 'sqlite-tag-spawned';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
@@ -211,7 +211,6 @@ export class AppleNotesImporter extends FormatImporter {
 			return;
 		}
 		
-		const value = this.decodeData<ANDocument>(row.zhexdata).note;		
 		const folder = this.resolvedFiles[row.ZFOLDER] as TFolder;
 		const title = `${row.ZTITLE1}.md`;
 		
@@ -219,7 +218,7 @@ export class AppleNotesImporter extends FormatImporter {
 		this.resolvedFiles[id] = await this.saveAsMarkdownFile(folder, title, ''); 
 		
 		//notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
-		const converter = new NoteConverter(this, value);
+		const converter = this.decodeData(row.zhexdata, NoteConverter);
 		
 		this.vault.modify(this.resolvedFiles[id] as TFile, await converter.format(), { 
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2),
@@ -300,9 +299,10 @@ export class AppleNotesImporter extends FormatImporter {
 		this.ctx.reportAttachmentSuccess(this.resolvedFiles[id].path);
 	}
 	
-	decodeData<T extends Message>(hexdata: string, protobufType = 'ciofecaforensics.Document'): T {
-		const converted = ungzip(Buffer.from(hexdata, 'hex'));
-		return ROOT_DOC.lookupType(protobufType).decode(converted) as T;
+	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>) {
+		const unzipped = ungzip(Buffer.from(hexdata, 'hex'));
+		const decoded = ROOT_DOC.lookupType(converterType.protobufType).decode(unzipped);
+		return new converterType(this, decoded);
 	}
 	
 	decodeTime(timestamp: number): number {

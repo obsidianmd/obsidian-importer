@@ -1,23 +1,23 @@
 import { TFile } from 'obsidian';
 import { 
-	ANAttachment, ANMergeableDataObject, ANTableObject
+	ANAttachment, ANConverter, ANMergeableDataObject, ANMergableDataProto, ANTableObject
 } from './models';
 import { AppleNotesImporter } from '../apple-notes';
 
-export class ScanConverter {
-	importer: AppleNotesImporter;
+export class ScanConverter extends ANConverter {
 	scan: ANMergeableDataObject;
-
 	objects: ANTableObject[];
 	
-	constructor(importer: AppleNotesImporter, scan: ANMergeableDataObject) {
-		this.importer = importer;
-		this.scan = scan;
+	static protobufType = 'ciofecaforensics.MergableDataProto';
+	
+	constructor(importer: AppleNotesImporter, scan: ANMergableDataProto) {
+		super(importer);
 		
-		this.objects = scan.mergeableDataObjectData.mergeableDataObjectEntry;
+		this.scan = scan.mergableDataObject;
+		this.objects = this.scan.mergeableDataObjectData.mergeableDataObjectEntry;
 	}	
 	
-	async format() {
+	async format(): Promise<string> {
 		const links = [];
 		
 		for (const object of this.objects) {
@@ -28,8 +28,6 @@ export class ScanConverter {
 				SELECT z_pk FROM ziccloudsyncingobject 
 				WHERE zidentifier = ${imageUuid}`;
 			
-			console.log(imageUuid, row.Z_PK);
-				
 			await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
 			
 			links.push(this.importer.app.fileManager.generateMarkdownLink(
