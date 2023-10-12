@@ -3,6 +3,7 @@ import {
 	ANAlignment, ANAttributeRun, ANAttachment, ANBaseline, ANColor, ANFontWeight,
 	ANFragmentPair, ANMergableDataProto, ANMultiRun, ANNote, ANStyleType 
 } from './models';
+import { ScanConverter } from './convert-scan';
 import { TableConverter } from './convert-table';
 import { AppleNotesImporter } from '../apple-notes';
 
@@ -266,7 +267,7 @@ export class NoteConverter {
 	}
 	
 	async formatAttachment(attr: ANAttributeRun): Promise<string> {
-		let row, id;
+		let row, id, converter;
 		
 		switch (attr.attachmentInfo.typeUti) {
 			case ANAttachment.Hashtag:
@@ -307,7 +308,7 @@ export class NoteConverter {
 					row.zhexdata, 'ciofecaforensics.MergableDataProto'
 				);
 				
-				const converter = new TableConverter(this.importer, table.mergableDataObject);
+				converter = new TableConverter(this.importer, table.mergableDataObject);
 				return await converter.format();
 			
 			case ANAttachment.UrlCard:
@@ -316,6 +317,18 @@ export class NoteConverter {
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 					
 				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`;
+			
+			case ANAttachment.Scan:
+				row = await this.importer.database.get`
+					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
+					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+				
+				const scan = this.importer.decodeData<ANMergableDataProto>(
+					row.zhexdata, 'ciofecaforensics.MergableDataProto'
+				);
+				
+				converter = new ScanConverter(this.importer, scan.mergableDataObject);
+				return await converter.format();
 			
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`
@@ -368,8 +381,6 @@ export class NoteConverter {
 		}
 	}
 }
-
-
 
 function isBlockAttachment(attr: ANAttributeRun) {
 	if (attr?.attachmentInfo) return !attr?.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');

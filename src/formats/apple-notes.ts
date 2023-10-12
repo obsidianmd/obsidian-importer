@@ -128,12 +128,12 @@ export class AppleNotesImporter extends FormatImporter {
 		this.noteCount = notes.length;
 		
 		for (let n of notes) {
-			//try { 
-			await this.resolveNote(n.Z_PK); 
-			/*}
+			try { 
+				await this.resolveNote(n.Z_PK); 
+			}
 			catch (e) { 
 				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
-			}*/
+			}
 		}
 	}
 	
@@ -233,7 +233,24 @@ export class AppleNotesImporter extends FormatImporter {
 	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<void> {
 		let sourcePath, outName, outExt, row;
 		
-		if (uti !== ANAttachment.Drawing) {
+		if (uti === ANAttachment.Scan) {
+			row = await this.database.get`
+				SELECT
+					zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
+				FROM ziccloudsyncingobject
+				WHERE
+					z_ent = 4 /* attachment entity */
+					AND z_pk = ${id} 
+			`;
+			
+			sourcePath = path.join(
+				os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+				'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
+			);
+			outName = 'Scan Page';
+			outExt = 'jpg';
+		}
+		else if (uti !== ANAttachment.Drawing) {
 			row = await this.database.get`
 				SELECT
 					a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
@@ -242,7 +259,7 @@ export class AppleNotesImporter extends FormatImporter {
 					(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 					ziccloudsyncingobject AS b
 				WHERE
-					a.z_ent = 10 /* drawing entity */
+					a.z_ent = 10 /* attachment entity */
 					AND a.z_pk = ${id} 
 					AND a.z_pk = b.zmedia
 			`;
@@ -259,9 +276,9 @@ export class AppleNotesImporter extends FormatImporter {
 				SELECT
 					zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
 				FROM
-					(SELECT *, NULL AS zaccount6, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
+					(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 				WHERE
-					z_ent = 4 /* attachment entity */
+					z_ent = 4 /* drawing entity */
 					AND z_pk = ${id} 
 			`;
 			
@@ -269,7 +286,8 @@ export class AppleNotesImporter extends FormatImporter {
 				os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
 				'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
 			);
-			outName = 'Drawing', outExt = 'png';
+			outName = 'Drawing';
+			outExt = 'png';
 		}
 		
 		this.resolvedFiles[id] = await this.vault.createBinary(
