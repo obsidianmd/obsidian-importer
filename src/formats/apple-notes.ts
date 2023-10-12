@@ -232,61 +232,85 @@ export class AppleNotesImporter extends FormatImporter {
 	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<void> {
 		let sourcePath, outName, outExt, row;
 		
-		if (uti === ANAttachment.Scan) {
-			row = await this.database.get`
-				SELECT
-					zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
-				FROM ziccloudsyncingobject
-				WHERE
-					z_ent = 4 /* attachment entity */
-					AND z_pk = ${id} 
-			`;
+		switch (uti) {
+			case ANAttachment.ModifiedScan:
+				//A PDF only seems to be generated when you modify the scan :(
+				row = await this.database.get`
+					SELECT
+						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1
+					FROM
+						(SELECT *, NULL AS zfallbackpdfgeneration FROM ziccloudsyncingobject)
+					WHERE
+						z_ent = 4 /* attachment entity */
+						AND z_pk = ${id} 
+				`;
+				
+				sourcePath = path.join(
+					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					'FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf'
+				);
+				outName = 'Scan';
+				outExt = 'pdf';
+				break;
+		
+			case ANAttachment.Scan:
+				row = await this.database.get`
+					SELECT
+						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
+					FROM ziccloudsyncingobject
+					WHERE
+						z_ent = 4 /* attachment entity */
+						AND z_pk = ${id} 
+				`;
+				
+				sourcePath = path.join(
+					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
+				);
+				outName = 'Scan Page';
+				outExt = 'jpg';
+				break;
 			
-			sourcePath = path.join(
-				os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
-				'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
-			);
-			outName = 'Scan Page';
-			outExt = 'jpg';
-		}
-		else if (uti !== ANAttachment.Drawing) {
-			row = await this.database.get`
-				SELECT
-					a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
-					a.zgeneration1, b.zcreationdate, b.zmodificationdate
-				FROM
-					(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
-					ziccloudsyncingobject AS b
-				WHERE
-					a.z_ent = 10 /* attachment entity */
-					AND a.z_pk = ${id} 
-					AND a.z_pk = b.zmedia
-			`;
+			default:
+				row = await this.database.get`
+					SELECT
+						a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
+						a.zgeneration1, b.zcreationdate, b.zmodificationdate
+					FROM
+						(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
+						ziccloudsyncingobject AS b
+					WHERE
+						a.z_ent = 10 /* media entity */
+						AND a.z_pk = ${id} 
+						AND a.z_pk = b.zmedia
+				`;
+				
+				const account = row.ZACCOUNT6 || row.ZACCOUNT5;
+				sourcePath = path.join(
+					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[account].uuid, 
+					'Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME
+				);
+				[outName, outExt] = splitext(row.ZFILENAME);
+				break;
 			
-			const account = row.ZACCOUNT6 || row.ZACCOUNT5;
-			sourcePath = path.join(
-				os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[account].uuid, 
-				'Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME
-			);
-			[outName, outExt] = splitext(row.ZFILENAME);
-		}
-		else {
-			row = await this.database.get`
-				SELECT
-					zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
-				FROM
-					(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
-				WHERE
-					z_ent = 4 /* drawing entity */
-					AND z_pk = ${id} 
-			`;
-			
-			sourcePath = path.join(
-				os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
-				'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
-			);
-			outName = 'Drawing';
-			outExt = 'png';
+			case ANAttachment.Drawing:
+				row = await this.database.get`
+					SELECT
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
+					FROM
+						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
+					WHERE
+						z_ent = 4 /* drawing entity */
+						AND z_pk = ${id} 
+				`;
+				
+				sourcePath = path.join(
+					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
+				);
+				outName = 'Drawing';
+				outExt = 'png';
+				break;
 		}
 		
 		this.resolvedFiles[id] = await this.vault.createBinary(

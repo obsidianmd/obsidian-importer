@@ -321,6 +321,7 @@ export class NoteConverter extends ANConverter {
 				converter = this.importer.decodeData(row.zhexdata, ScanConverter);
 				return await converter.format();
 			
+			case ANAttachment.ModifiedScan:
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`
 					SELECT z_pk FROM ziccloudsyncingobject 

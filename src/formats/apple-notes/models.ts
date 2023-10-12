@@ -148,6 +148,7 @@ export enum ANAttachment {
 	Hashtag = 'com.apple.notes.inlinetextattachment.hashtag',
 	Mention = 'com.apple.notes.inlinetextattachment.mention',
 	InternalLink = 'com.apple.notes.inlinetextattachment.link',
+	ModifiedScan = 'com.apple.paper.doc.scan',
 	Scan = 'com.apple.notes.gallery',
 	Table = 'com.apple.notes.table',
 	UrlCard = 'public.url'
