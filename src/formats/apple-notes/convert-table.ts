@@ -81,8 +81,8 @@ export class TableConverter extends ANConverter {
 		}
 		
 		for (let element of object.orderedSet.ordering.contents.element) {
-			let key = this.getTargetUuid(element.key.objectIndex);
-			let value = this.getTargetUuid(element.value.objectIndex);
+			const key = this.getTargetUuid(element.key);
+			const value = this.getTargetUuid(element.value);
 			
 			indices[value] = ordering.indexOf(key);
 		}
@@ -97,15 +97,17 @@ export class TableConverter extends ANConverter {
 		
 		//put the values in the table	
 		for (let column of cellData.dictionary.element) {
-			let columnUuid = this.getTargetUuid(column.key.objectIndex);
+			let columnLocation = this.columnLocations[this.getTargetUuid(column.key)];
 			let rowData = this.objects[column.value.objectIndex];
 			
 			for (let row of rowData.dictionary.element) {
-				let rowUuid = this.getTargetUuid(row.key.objectIndex);
+				let rowLocation = this.rowLocations[this.getTargetUuid(row.key)];
 				let rowContent = this.objects[row.value.objectIndex];
 				
+				if (!(rowLocation in result) || !rowContent) continue;
+				
 				const converter = new NoteConverter(this.importer, rowContent);
-				result[this.rowLocations[rowUuid]][this.columnLocations[columnUuid]] = await converter.format(true); 
+				result[rowLocation][columnLocation] = await converter.format(true); 
 			}
 		}
 		
@@ -128,8 +130,9 @@ export class TableConverter extends ANConverter {
 	}
 	
 	/** Get the index in this.uuids from an table object (which references another object which in turn has the UUID indice) */
-	getTargetUuid(entry: number): string {
-		let uuidIndex = this.objects[entry].customMap.mapEntry[0].value.unsignedIntegerValue;
+	getTargetUuid(entry: any): string {
+		const reference = this.objects[entry.objectIndex];
+		let uuidIndex = reference.customMap.mapEntry[0].value.unsignedIntegerValue;
 		return this.uuids[uuidIndex];
 	}
 	
