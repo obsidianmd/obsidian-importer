@@ -76,13 +76,12 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private removeMarkdownHeader(mdContent: string): string {
-		const lines = mdContent.split('\n');
-		if (lines.length === 1 && lines[0].startsWith('#')) {
-			mdContent = '';
+		if (mdContent.startsWith('# ')) {
+			const idx = mdContent.indexOf('\n')
+			mdContent = idx > 0
+			  ? mdContent.substring(idx + 1)
+			  : ''
 		}
-		else if (mdContent.startsWith('#')) {
-			mdContent = mdContent.substring(mdContent.indexOf('\n') + 1);
-		}
-		return mdContent;
+		return mdContent
 	}
 }
