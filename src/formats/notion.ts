@@ -102,7 +102,7 @@ export class NotionImporter extends FormatImporter {
 					ctx.status(`Importing note ${fileInfo.title}`);
 
 					const markdownBody = await readToMarkdown(info, file);
-					let writeOptions: DataWriteOptions = {}
+					let writeOptions: DataWriteOptions = {};
 
 					if (fileInfo.ctime) {
 						writeOptions.ctime = fileInfo.ctime.getTime();

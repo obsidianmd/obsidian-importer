@@ -4,9 +4,9 @@ import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip';
 import { NotionLink, NotionProperty, NotionPropertyType, NotionResolverInfo, YamlProperty } from './notion-types';
 import {
-	hoistChildren,
 	escapeHashtags,
 	getNotionId,
+	hoistChildren,
 	parseDate,
 	stripNotionId,
 	stripParentDirectories,
@@ -34,8 +34,9 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 		for (let row of Array.from(rawProperties.rows)) {
 			const property = parseProperty(row);
 			if (property) {
-				if (property.title == "Tags")
-					property.title = "tags"
+				if (property.title == 'Tags') {
+					property.title = 'tags';
+				}
 				frontMatter[property.title] = property.content;
 			}
 		}
@@ -406,9 +407,9 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				else {
 					const isInTable = link.a.closest('table');
 					linkContent = `[[${linkInfo.fullLinkPathNeeded
-							? `${info.getPathForFile(linkInfo)}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
-							: linkInfo.title
-						}]]`;
+						? `${info.getPathForFile(linkInfo)}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
+						: linkInfo.title
+					}]]`;
 				}
 				break;
 			case 'attachment':
@@ -418,12 +419,12 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 					continue;
 				}
 				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentInfo.fullLinkPathNeeded
-						? attachmentInfo.targetParentFolder +
+					? attachmentInfo.targetParentFolder +
 						attachmentInfo.nameWithExtension +
 						'|' +
 						attachmentInfo.nameWithExtension
-						: attachmentInfo.nameWithExtension
-					}]]`;
+					: attachmentInfo.nameWithExtension
+				}]]`;
 				break;
 		}
 

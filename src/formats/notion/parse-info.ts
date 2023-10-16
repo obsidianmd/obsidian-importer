@@ -14,20 +14,8 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		const id = getNotionId(dom.find('article')?.getAttr('id') ?? '');
 		if (!id) throw new Error('no id found for: ' + filepath);
 
-		const dateTimeStr = extractTimeFromDOMElement(dom, "property-row-created_time");
-		const dateTimeEditedStr = extractTimeFromDOMElement(dom, "property-row-last_edited_time");
-		
-		let resultDateTime: Date | null = null;
-		let resultDateTimeEdited: Date | null = null;
-
-		// Parse the extracted dateTimeStr
-		if (dateTimeStr) {
-			resultDateTime = parseDateTime(dateTimeStr);
-		}
-
-		if (dateTimeEditedStr) {
-			resultDateTimeEdited = parseDateTime(dateTimeEditedStr);
-		}
+		const ctime = extractTimeFromDOMElement(dom, 'property-row-created_time');
+		const mtime = extractTimeFromDOMElement(dom, 'property-row-last_edited_time');
 
 		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full words. Worth the extra processing time.
 		const parsedTitle = dom.find('title')?.textContent || 'Untitled';
@@ -50,8 +38,8 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		info.idsToFileInfo[id] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
-			ctime: resultDateTime,
-			mtime: resultDateTimeEdited,
+			ctime,
+			mtime,
 			title,
 			fullLinkPathNeeded: false,
 		};
@@ -83,7 +71,7 @@ function parseDateTime(dateTimeStr: string): Date | null {
 	return dateObj;
 }
 
-function extractTimeFromDOMElement(dom: HTMLElement, trClassName: string): string | null {
+function extractTimeFromDOMElement(dom: HTMLElement, trClassName: string): Date | null {
 	// Select the <tr> element with the specified class from the provided DOM
 	const trElement = dom.querySelector(`tr.${trClassName}`);
 
@@ -92,7 +80,7 @@ function extractTimeFromDOMElement(dom: HTMLElement, trClassName: string): strin
 		const timeElement = trElement.querySelector('time');
 
 		// Return the inner text of the <time> element or null if not found
-		return timeElement ? timeElement.textContent : null;
+		return timeElement && timeElement.textContent ? parseDateTime(timeElement.textContent) : null;
 	}
 
 	return null;
