@@ -34,6 +34,8 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 		for (let row of Array.from(rawProperties.rows)) {
 			const property = parseProperty(row);
 			if (property) {
+				if (property.title == "Tags")
+					property.title = "tags"
 				frontMatter[property.title] = property.content;
 			}
 		}
@@ -403,11 +405,10 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				}
 				else {
 					const isInTable = link.a.closest('table');
-					linkContent = `[[${
-						linkInfo.fullLinkPathNeeded
+					linkContent = `[[${linkInfo.fullLinkPathNeeded
 							? `${info.getPathForFile(linkInfo)}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
 							: linkInfo.title
-					}]]`;
+						}]]`;
 				}
 				break;
 			case 'attachment':
@@ -416,14 +417,13 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 					console.warn('missing attachment data for: ' + link.path);
 					continue;
 				}
-				linkContent = `${embedAttachments ? '!' : ''}[[${
-					attachmentInfo.fullLinkPathNeeded
+				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentInfo.fullLinkPathNeeded
 						? attachmentInfo.targetParentFolder +
 						attachmentInfo.nameWithExtension +
 						'|' +
 						attachmentInfo.nameWithExtension
 						: attachmentInfo.nameWithExtension
-				}]]`;
+					}]]`;
 				break;
 		}
 

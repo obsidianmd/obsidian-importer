@@ -1,4 +1,4 @@
-import { normalizePath, Notice, Setting } from 'obsidian';
+import { normalizePath, Notice, Setting, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
@@ -102,9 +102,19 @@ export class NotionImporter extends FormatImporter {
 					ctx.status(`Importing note ${fileInfo.title}`);
 
 					const markdownBody = await readToMarkdown(info, file);
+					let writeOptions: DataWriteOptions = {}
+
+					if (fileInfo.ctime) {
+						writeOptions.ctime = fileInfo.ctime.getTime();
+						writeOptions.mtime = fileInfo.ctime.getTime();
+					}
+
+					if (fileInfo.mtime) {
+						writeOptions.mtime = fileInfo.mtime.getTime();
+					}
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
-					await vault.create(path, markdownBody);
+					await vault.create(path, markdownBody, writeOptions);
 					ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
