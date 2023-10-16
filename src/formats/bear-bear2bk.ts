@@ -41,7 +41,7 @@ export class Bear2bkImporter extends FormatImporter {
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
-							mdContent = this.removeMarkdownHeader(mdContent);
+							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
@@ -75,13 +75,24 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 	}
 
-	private removeMarkdownHeader(mdContent: string): string {
-		if (mdContent.startsWith('# ')) {
-			const idx = mdContent.indexOf('\n')
-			mdContent = idx > 0
-			  ? mdContent.substring(idx + 1)
-			  : ''
+	/** Removes an H1 that is the first line of the content iff it matches the filename or is empty. */
+	private removeMarkdownHeader(mdFilename: string, mdContent: string): string {
+		if (!mdContent.startsWith('# ')) {
+			return mdContent;
 		}
-		return mdContent
+
+		const idx = mdContent.indexOf('\n');
+		let heading = idx > 0
+			? mdContent.substring(2, idx)
+			: mdContent.substring(2);
+		heading = heading.trim();
+
+		if (heading !== mdFilename.trim() && heading !== '') {
+			return mdContent;
+		}
+
+		return idx > 0
+			? mdContent.substring(idx + 1)
+			: '';
 	}
 }
