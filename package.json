@@ -28,6 +28,8 @@
 	"dependencies": {
 		"@zip.js/zip.js": "2.7.20",
 		"joplin-turndown-plugin-gfm": "1.0.12",
+		"protobufjs": "^7.2.5",
+		"sqlite-tag-spawned": "^0.6.0",
 		"xml-flow": "1.0.4"
 	}
 }
