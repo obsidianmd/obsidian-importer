@@ -1,12 +1,12 @@
 {
 	"name": "obsidian-importer",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"description": "Import notes from other apps like Evernote.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
 		"lint": "eslint src --ext .ts --fix"
 	},
 	"keywords": [],
