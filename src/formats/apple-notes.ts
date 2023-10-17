@@ -234,8 +234,8 @@ export class AppleNotesImporter extends FormatImporter {
 		return file;
 	}
 	
-	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<TFile> {
-		let sourcePath, outName, outExt, row;
+	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<TFile | null> {
+		let sourcePath, outName, outExt, row, file;
 		
 		switch (uti) {
 			case ANAttachment.ModifiedScan:
@@ -318,12 +318,17 @@ export class AppleNotesImporter extends FormatImporter {
 				break;
 		}
 		
-		const file = await this.vault.createBinary(
-			//@ts-ignore
-			this.app.vault.getAvailablePath(`${this.attachmentPath}/${outName}`, outExt), 
-			await fsPromises.readFile(sourcePath), 
-			{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
-		);
+		try {
+			file = await this.vault.createBinary(
+				//@ts-ignore
+				this.app.vault.getAvailablePath(`${this.attachmentPath}/${outName}`, outExt), 
+				await fsPromises.readFile(sourcePath),
+				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
+			);
+		}
+		catch {
+			return null;
+		}	
 		
 		this.resolvedFiles[id] = file;
 		this.ctx.reportAttachmentSuccess(this.resolvedFiles[id].path);

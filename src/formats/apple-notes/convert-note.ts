@@ -341,9 +341,9 @@ export class NoteConverter extends ANConverter {
 		}
 		
 		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
-		const link = this.app.fileManager.generateMarkdownLink(attachment, '/');
+		if (!attachment) return ` **(error reading attachment)**`;
 		
-		return `\n${link}\n`;	
+		return `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n`;	
 	}
 	
 	convertColor(color: ANColor): string {

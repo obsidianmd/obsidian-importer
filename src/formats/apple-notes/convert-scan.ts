@@ -28,7 +28,7 @@ export class ScanConverter extends ANConverter {
 				WHERE zidentifier = ${imageUuid}`;
 			
 			const file = await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
-			links.push(this.importer.app.fileManager.generateMarkdownLink(file, '/'));
+			if (file) links.push(this.importer.app.fileManager.generateMarkdownLink(file, '/'));
 		}
 		
 		return `\n${links.join('\n')}\n`;
