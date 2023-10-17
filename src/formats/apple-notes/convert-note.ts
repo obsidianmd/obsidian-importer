@@ -369,8 +369,8 @@ export class NoteConverter extends ANConverter {
 }
 
 function isBlockAttachment(attr: ANAttributeRun) {
-	if (attr?.attachmentInfo) return !attr.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
-	return false;
+	if (!attr || !attr.attachmentInfo) return false;
+	return !attr.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
 }
 
 function attrEquals(a: ANAttributeRun, b: ANAttributeRun): boolean {
