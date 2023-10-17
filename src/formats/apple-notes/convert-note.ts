@@ -223,7 +223,7 @@ export class NoteConverter extends ANConverter {
 	
 	formatParagraph(attr: ANAttributeRun): string {
 		const indent = '\t'.repeat(attr.paragraphStyle?.indentAmount || 0);
-		const styleType = attr?.paragraphStyle?.styleType;
+		const styleType = attr.paragraphStyle?.styleType;
 		let prelude = attr.paragraphStyle?.blockquote ? '> ' : '';
 		
 		if (
