@@ -97,21 +97,21 @@ export class NoteConverter extends ANConverter {
 			}
 		}
 		
-		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun(null);
+		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun({} as ANAttributeRun);
 		if (table) converted.replace('\n', '<br>').replace('|', '&#124;');
 		
 		return converted.trim();
 	}
 	
 	/** Format things that cover multiple ANAttributeRuns. */
-	formatMultiRun(attr: ANAttributeRun | null): string {
-		const styleType = attr?.paragraphStyle?.styleType;
+	formatMultiRun(attr: ANAttributeRun): string {
+		const styleType = attr.paragraphStyle?.styleType;
 		let prefix = '';
 		
 		switch (this.multiRun) {
 			case ANMultiRun.List:
 				if (
-					(attr?.paragraphStyle?.indentAmount == 0 && 
+					(attr.paragraphStyle?.indentAmount == 0 && 
 					!LIST_STYLES.includes(styleType!)) ||
 					isBlockAttachment(attr)
 				) {
@@ -120,14 +120,14 @@ export class NoteConverter extends ANConverter {
 				break;
 			
 			case ANMultiRun.Monospaced:
-				if (styleType != ANStyleType.Monospaced || !attr) {
+				if (styleType != ANStyleType.Monospaced) {
 					this.multiRun = ANMultiRun.None;
 					prefix += '```\n';
 				}
 				break;
 			
 			case ANMultiRun.Alignment:
-				if (!attr?.paragraphStyle?.alignment || !attr) {
+				if (!attr.paragraphStyle?.alignment) {
 					this.multiRun = ANMultiRun.None;
 					prefix += '</p>\n';
 				}
@@ -140,13 +140,13 @@ export class NoteConverter extends ANConverter {
 				this.multiRun = ANMultiRun.Monospaced;
 				prefix += '\n```\n';
 			}
-			else if (LIST_STYLES.includes(styleType!)) {
+			else if (LIST_STYLES.includes(styleType as ANStyleType)) {
 				this.multiRun = ANMultiRun.List;
 				
 				// Apple Notes lets users start a list as indented, so add a initial non-indented bit to those
-				if (attr?.paragraphStyle?.indentAmount) prefix += '\n- &nbsp;\n';
+				if (attr.paragraphStyle?.indentAmount) prefix += '\n- &nbsp;\n';
 			}
-			else if (attr?.paragraphStyle?.alignment) {
+			else if (attr.paragraphStyle?.alignment) {
 				this.multiRun = ANMultiRun.Alignment;
 				const val = this.convertAlign(attr?.paragraphStyle?.alignment);
 				prefix += `\n<p style="text-align:${val};margin:0">`;
@@ -366,8 +366,8 @@ export class NoteConverter extends ANConverter {
 	}
 }
 
-function isBlockAttachment(attr: ANAttributeRun | null) {
-	if (!attr || !attr.attachmentInfo) return false;
+function isBlockAttachment(attr: ANAttributeRun) {
+	if (!attr.attachmentInfo) return false;
 	return !attr.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
 }
 
