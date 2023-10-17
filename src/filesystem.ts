@@ -3,6 +3,7 @@ import type * as NodeFS from 'node:fs';
 import type * as NodeOS from 'node:os';
 import type * as NodePath from 'node:path';
 import type * as NodeUrl from 'node:url';
+import type * as NodeZlib from 'node:zlib';
 import { Platform } from 'obsidian';
 import { configureWebWorker } from './z-worker-inline';
 
@@ -42,6 +43,7 @@ export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.pro
 export const os: typeof NodeOS = Platform.isDesktopApp ? window.require('node:os') : null;
 export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
 export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
+export const zlib: typeof NodeZlib = Platform.isDesktopApp ? window.require('node:zlib') : null;
 
 export function nodeBufferToArrayBuffer(buffer: Buffer, offset = 0, length = buffer.byteLength): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);

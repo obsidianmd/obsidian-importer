@@ -1,4 +1,3 @@
-import { TFile } from 'obsidian';
 import { 
 	ANAttachment, ANConverter, ANMergeableDataObject, ANMergableDataProto, ANTableObject
 } from './models';
@@ -28,11 +27,8 @@ export class ScanConverter extends ANConverter {
 				SELECT z_pk FROM ziccloudsyncingobject 
 				WHERE zidentifier = ${imageUuid}`;
 			
-			await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
-			
-			links.push(this.importer.app.fileManager.generateMarkdownLink(
-				this.importer.resolvedFiles[row.Z_PK] as TFile, '/'
-			));
+			const file = await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
+			links.push(this.importer.app.fileManager.generateMarkdownLink(file, '/'));
 		}
 		
 		return `\n${links.join('\n')}\n`;

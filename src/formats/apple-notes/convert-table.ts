@@ -8,16 +8,16 @@ import { AppleNotesImporter } from '../apple-notes';
 export class TableConverter extends ANConverter {
 	table: ANMergeableDataObject;
 	
-	//Apple Notes uses CRDTs to allow multiple people to work on a note at once.
-	//Therefore, everything is stored as references with heaps of indirection instead of directly
+	// Apple Notes uses CRDTs to allow multiple people to work on a note at once.
+	// Therefore, everything is stored as references with heaps of indirection instead of directly
 	
-	//These are used as keys for objects to reference another, by offset in these lists
-	//eg a type is stored as 9 which means whatever's in types[9]
+	// These are used as keys for objects to reference another, by offset in these lists
+	// e.g. a type is stored as 9 which means whatever's in types[9]
 	keys: ANTableKey[];
 	types: ANTableType[];
 	uuids: string[];
 	
-	//This is used to store the actual data
+	// This is used to store the actual data
 	objects: ANTableObject[];
 	
 	rowCount: number;
@@ -47,7 +47,7 @@ export class TableConverter extends ANConverter {
 	
 		let cellData: ANTableObject | null = null;
 		
-		//The root contains references which lead to the row locations, column locations, or actual cell data
+		// The root contains references which lead to the row locations, column locations, or actual cell data
 		for (const entry of root.customMap.mapEntry) {
 			const object = this.objects[entry.value.objectIndex];
 			
@@ -92,10 +92,10 @@ export class TableConverter extends ANConverter {
 	
 	/** Use the computed indices to build a table array and format each cell */
 	async computeCells(cellData: ANTableObject): Promise<string[][]> {
-		//fill the array to the table dimensions
+		// Fill the array to the table dimensions
 		let result = Array(this.rowCount).fill(0).map(() => Array(this.columnCount));
 		
-		//put the values in the table	
+		// Put the values in the table	
 		for (let column of cellData.dictionary.element) {
 			let columnLocation = this.columnLocations[this.getTargetUuid(column.key)];
 			let rowData = this.objects[column.value.objectIndex];

@@ -1,4 +1,3 @@
-import { TFile } from 'obsidian';
 import { 
 	ANAlignment, ANAttributeRun, ANAttachment, ANBaseline, ANColor, ANConverter, ANDocument,
 	ANFontWeight, ANFragmentPair, ANMultiRun, ANNote, ANStyleType, ANTableObject
@@ -135,7 +134,7 @@ export class NoteConverter extends ANConverter {
 				break;
 		}
 		
-		//separate since one may end and another start immediately
+		// Separate since one may end and another start immediately
 		if (this.multiRun == ANMultiRun.None) {
 			if (styleType == ANStyleType.Monospaced) {
 				this.multiRun = ANMultiRun.Monospaced;
@@ -144,7 +143,7 @@ export class NoteConverter extends ANConverter {
 			else if (LIST_STYLES.includes(styleType!)) {
 				this.multiRun = ANMultiRun.List;
 				
-				//Apple Notes lets users start a list as indented, so add a initial non-indented bit to those
+				// Apple Notes lets users start a list as indented, so add a initial non-indented bit to those
 				if (attr?.paragraphStyle?.indentAmount) prefix += '\n- &nbsp;\n';
 			}
 			else if (attr?.paragraphStyle?.alignment) {
@@ -163,8 +162,8 @@ export class NoteConverter extends ANConverter {
 		if (attr.strikethrough) attr.fragment = `<s>${attr.fragment}</s>`;
 		if (attr.underlined) attr.fragment = `<u>${attr.fragment}</u>`;
 		
-		if (attr?.superscript == ANBaseline.Super) attr.fragment = `<sup>${attr.fragment}</sup>`;
-		if (attr?.superscript == ANBaseline.Sub) attr.fragment = `<sub>${attr.fragment}</sub>`;
+		if (attr.superscript == ANBaseline.Super) attr.fragment = `<sup>${attr.fragment}</sup>`;
+		if (attr.superscript == ANBaseline.Sub) attr.fragment = `<sub>${attr.fragment}</sub>`;
 		
 		let style = '';
 		
@@ -259,7 +258,7 @@ export class NoteConverter extends ANConverter {
 				return `${prelude}${indent}- ${box} ${attr.fragment}`;
 		}
 		
-		//Not a list but indented in line with one
+		// Not a list but indented in line with one
 		if (this.multiRun == ANMultiRun.List) prelude += indent;
 		
 		return `${prelude}${attr.fragment}`;
@@ -268,7 +267,7 @@ export class NoteConverter extends ANConverter {
 	async formatAttachment(attr: ANAttributeRun): Promise<string> {
 		let row, id, converter;
 		
-		switch (attr.attachmentInfo.typeUti) {
+		switch (attr.attachmentInfo?.typeUti) {
 			case ANAttachment.Hashtag:
 			case ANAttachment.Mention:
 				row = await this.importer.database.get`
@@ -287,16 +286,11 @@ export class NoteConverter extends ANConverter {
 				row = await this.importer.database.get`
 					SELECT z_pk FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${destIdentifier.toUpperCase()}`;
-					
-				if (!(row.Z_PK in this.importer.resolvedFiles)) {
-					//if we don't have the note yet, we fetch it early to get its path
-					this.importer.resolveNote(row.Z_PK);
-				}
 				
-				return this.app.fileManager.generateMarkdownLink(
-					this.importer.resolvedFiles[row.Z_PK] as TFile, 
-					this.importer.rootFolder.path
-				);
+				let file = await this.importer.resolveNote(row.Z_PK);
+				if (!file) return '(unknown file link)';
+				
+				return this.app.fileManager.generateMarkdownLink(file, this.importer.rootFolder.path);
 				
 			case ANAttachment.Table:
 				row = await this.importer.database.get`
@@ -330,25 +324,25 @@ export class NoteConverter extends ANConverter {
 				id = row?.Z_PK;
 				break;
 				
-			//actual file on disk (eg image, audio, video, pdf, vcard)
-			//hundreds of different utis so not in the enum
+			// Actual file on disk (eg image, audio, video, pdf, vcard)
+			// Hundreds of different utis so not in the enum
 			default:
 				row = await this.importer.database.get`
 					SELECT zmedia FROM ziccloudsyncingobject 
-					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
+					WHERE zidentifier = ${attr.attachmentInfo?.attachmentIdentifier}`;
 				
 				id = row?.ZMEDIA;
 				break;
 		}
 		
 		if (!id) {
-			//doesn't have an associated file, so unknown
-			return ` **(unknown attachment: ${attr.attachmentInfo.typeUti})** `;
+			// Doesn't have an associated file, so unknown
+			return ` **(unknown attachment: ${attr.attachmentInfo?.typeUti})** `;
 		}
 		
-		await this.importer.resolveAttachment(id, attr.attachmentInfo.typeUti);
+		await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
 		const link = this.app.fileManager.generateMarkdownLink(
-			this.importer.resolvedFiles[id] as TFile, '/'
+			this.importer.resolvedFiles[id], '/'
 		);
 		
 		return `\n${link}\n`;	
@@ -375,7 +369,7 @@ export class NoteConverter extends ANConverter {
 }
 
 function isBlockAttachment(attr: ANAttributeRun) {
-	if (attr?.attachmentInfo) return !attr?.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
+	if (attr?.attachmentInfo) return !attr.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
 	return false;
 }
 
@@ -386,7 +380,7 @@ function attrEquals(a: ANAttributeRun, b: ANAttributeRun): boolean {
 		if (field.name == 'length') continue;
 		
 		if (a[field.name]?.$type && b[field.name]?.$type) {
-			//is a child ANAttributeRun
+			// Is a child ANAttributeRun
 			if (!attrEquals(a[field.name], b[field.name])) return false;
 		}
 		else {

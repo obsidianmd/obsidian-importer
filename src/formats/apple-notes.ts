@@ -1,11 +1,10 @@
-import { Notice, Platform, Setting, TAbstractFile, TFile, TFolder } from 'obsidian';
+import { Notice, Platform, Setting, TFile, TFolder } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
-import { fs, os, path, splitext } from '../filesystem';
+import { fsPromises, os, path, splitext, zlib } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ungzip } from 'pako';
 import { Root } from 'protobufjs';
 import SQLiteTagSpawned from 'sqlite-tag-spawned';
 
@@ -14,16 +13,17 @@ const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200; 
 
-const ROOT_DOC = Root.fromJSON(descriptor);
-
 export class AppleNotesImporter extends FormatImporter {
-	rootFolder: TFolder;
 	ctx: ImportContext;
 	attachmentPath: string;
+	rootFolder: TFolder;
 	
 	database: SQLiteTagSpawned;
+	protobufRoot: Root;
+	
 	resolvedAccounts: Record<number, ANAccount> = {};
-	resolvedFiles: Record<number, TAbstractFile | TFolder> = {};
+	resolvedFiles: Record<number, TFile> = {};
+	resolvedFolders: Record<number, TFolder> = {};
 	
 	multiAccount = false;
 	noteCount = 0;
@@ -87,15 +87,16 @@ export class AppleNotesImporter extends FormatImporter {
 		const originalDB = path.join(dataPath, NOTE_DB);
 		const clonedDB = path.join(os.tmpdir(), NOTE_DB);
 
-		fs.copyFileSync(originalDB, clonedDB);
-		fs.copyFileSync(originalDB + '-shm', clonedDB + '-shm');
-		fs.copyFileSync(originalDB + '-wal', clonedDB + '-wal');
+		await fsPromises.copyFile(originalDB, clonedDB);
+		await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
+		await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
 
 		return new SQLiteTagSpawned(clonedDB, { readonly: true, persistent: true });
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
 		this.ctx = ctx;
+		this.protobufRoot = Root.fromJSON(descriptor);
 		this.rootFolder = await this.getOutputFolder() as TFolder;
 		this.attachmentPath = this.getAttachmentPath();
 		
@@ -153,8 +154,8 @@ export class AppleNotesImporter extends FormatImporter {
 		};
 	}
 	
-	async resolveFolder(id: number): Promise<void> {
-		if (id in this.resolvedFiles) return;
+	async resolveFolder(id: number): Promise<TFolder | null> {
+		if (id in this.resolvedFiles) return this.resolvedFolders[id];
 		
 		const folder = await this.database.get`
 			SELECT ztitle2, zparent, zidentifier, zfoldertype, zowner
@@ -164,18 +165,17 @@ export class AppleNotesImporter extends FormatImporter {
 		let prefix;
 		
 		if (folder.ZFOLDERTYPE == ANFolderType.Smart) {
-			return;	
+			return null;	
 		}
 		else if (!this.importTrashed && folder.ZFOLDERTYPE == ANFolderType.Trash) {
 			this.trashFolder = id;
-			return;	
+			return null;	
 		}
 		else if (folder.ZPARENT !== null) {
-			await this.resolveFolder(folder.ZPARENT);
-			prefix = this.resolvedFiles[folder.ZPARENT].path + '/';
+			prefix = (await this.resolveFolder(folder.ZPARENT))?.path + '/';
 		}
 		else if (this.multiAccount) {
-			//if there's a parent, the account root is already handled by that
+			// If there's a parent, the account root is already handled by that
 			const account = this.resolvedAccounts[folder.ZOWNER].name;
 			prefix = `${this.rootFolder.path}/${account}/`;
 		}
@@ -184,15 +184,18 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 		
 		if (folder.ZIDENTIFIER !== 'DefaultFolder-CloudKit') {
-			//notes in the default "Notes" folder are placed in the main directory
+			// Notes in the default "Notes" folder are placed in the main directory
 			prefix += folder.ZTITLE2;
 		}
 		
-		this.resolvedFiles[id] = await this.createFolders(prefix);
+		const resolved = await this.createFolders(prefix);
+		this.resolvedFolders[id] = resolved;
+		
+		return resolved;
 	}
 	
-	async resolveNote(id: number): Promise<void> {
-		if (id in this.resolvedFiles) return;
+	async resolveNote(id: number): Promise<TFile | null> {
+		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		const row = await this.database.get`
 			SELECT 
@@ -208,33 +211,35 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		if (row.ZISPASSWORDPROTECTED) {
 			this.ctx.reportSkipped(row.ZTITLE1, 'note is password protected');
-			return;
+			return null;
 		}
 		
-		const folder = this.resolvedFiles[row.ZFOLDER] as TFolder;
+		const folder = this.resolvedFolders[row.ZFOLDER] as TFolder;
 		const title = `${row.ZTITLE1}.md`;
+		const file = await this.saveAsMarkdownFile(folder, title, '');
 		
 		this.ctx.status(`Importing note ${title}`);
-		this.resolvedFiles[id] = await this.saveAsMarkdownFile(folder, title, ''); 
+		this.resolvedFiles[id] = file; 
 		
-		//notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
+		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 		
-		this.vault.modify(this.resolvedFiles[id] as TFile, await converter.format(), { 
+		this.vault.modify(file, await converter.format(), { 
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1) 
 		});
 		
 		this.parsedNotes++;
 		this.ctx.reportProgress(this.parsedNotes, this.noteCount);
+		return file;
 	}
 	
-	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<void> {
+	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<TFile> {
 		let sourcePath, outName, outExt, row;
 		
 		switch (uti) {
 			case ANAttachment.ModifiedScan:
-				//A PDF only seems to be generated when you modify the scan :(
+				// A PDF only seems to be generated when you modify the scan :(
 				row = await this.database.get`
 					SELECT
 						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1
@@ -270,7 +275,26 @@ export class AppleNotesImporter extends FormatImporter {
 				outName = 'Scan Page';
 				outExt = 'jpg';
 				break;
-			
+						
+			case ANAttachment.Drawing:
+				row = await this.database.get`
+					SELECT
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
+					FROM
+						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
+					WHERE
+						z_ent = 4 /* drawing entity */
+						AND z_pk = ${id} 
+				`;
+				
+				sourcePath = path.join(
+					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
+				);
+				outName = 'Drawing';
+				outExt = 'png';
+				break;
+				
 			default:
 				row = await this.database.get`
 					SELECT
@@ -292,40 +316,23 @@ export class AppleNotesImporter extends FormatImporter {
 				);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
-			
-			case ANAttachment.Drawing:
-				row = await this.database.get`
-					SELECT
-						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
-					FROM
-						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
-					WHERE
-						z_ent = 4 /* drawing entity */
-						AND z_pk = ${id} 
-				`;
-				
-				sourcePath = path.join(
-					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
-					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
-				);
-				outName = 'Drawing';
-				outExt = 'png';
-				break;
 		}
 		
-		this.resolvedFiles[id] = await this.vault.createBinary(
+		const file = await this.vault.createBinary(
 			//@ts-ignore
 			this.app.vault.getAvailablePath(`${this.attachmentPath}/${outName}`, outExt), 
-			fs.readFileSync(sourcePath), 
+			await fsPromises.readFile(sourcePath), 
 			{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 		);
 		
+		this.resolvedFiles[id] = file;
 		this.ctx.reportAttachmentSuccess(this.resolvedFiles[id].path);
+		return file;
 	}
 	
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>) {
-		const unzipped = ungzip(Buffer.from(hexdata, 'hex'));
-		const decoded = ROOT_DOC.lookupType(converterType.protobufType).decode(unzipped);
+		const unzipped = zlib.gunzipSync(Buffer.from(hexdata, 'hex'));
+		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
 		return new converterType(this, decoded);
 	}
 	

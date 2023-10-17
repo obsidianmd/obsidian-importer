@@ -21,7 +21,7 @@ export type ANConverterType<T extends ANConverter> = {
 	protobufType: string;
 };
 
-//A few typings for internal use
+// A few typings for internal use
 
 export type ANAccount = {
 	name: string;
@@ -42,7 +42,7 @@ export enum ANMultiRun {
 
 export type ANTableUuidMapping = Record<string, number>;
 
-//Types for protobufs, and enums to describe their int fields
+// Types for protobufs, and enums to describe their int fields
 
 export interface ANDocument extends Message {
 	name: string; 
@@ -67,9 +67,9 @@ export interface ANAttributeRun extends Message {
 	superscript?: ANBaseline;
 	link?: string;
 	color?: ANColor;
-	attachmentInfo: ANAttachmentInfo;
+	attachmentInfo?: ANAttachmentInfo;
 	
-	//internal additions, not part of the protobufs
+	// internal additions, not part of the protobufs
 	fragment: string;
 	atLineStart: boolean;
 }
