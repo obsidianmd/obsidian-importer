@@ -287,10 +287,12 @@ export class AppleNotesImporter extends FormatImporter {
 						AND z_pk = ${id} 
 				`;
 				
+				const filename = row.ZFALLBACKIMAGEGENERATION ? 'FallbackImage.png' : `${row.ZIDENTIFIER}.jpg`;
 				sourcePath = path.join(
 					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
-					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', 'FallbackImage.png'
+					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', filename
 				);
+				
 				outName = 'Drawing';
 				outExt = 'png';
 				break;
