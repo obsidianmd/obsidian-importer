@@ -113,7 +113,7 @@ export class NoteConverter extends ANConverter {
 				if (
 					(attr?.paragraphStyle?.indentAmount == 0 && 
 					!LIST_STYLES.includes(styleType!)) ||
-					isBlockAttachment(attr!)
+					isBlockAttachment(attr)
 				) {
 					this.multiRun = ANMultiRun.None;
 				}
@@ -366,7 +366,7 @@ export class NoteConverter extends ANConverter {
 	}
 }
 
-function isBlockAttachment(attr: ANAttributeRun) {
+function isBlockAttachment(attr: ANAttributeRun | null) {
 	if (!attr || !attr.attachmentInfo) return false;
 	return !attr.attachmentInfo.typeUti.includes('com.apple.notes.inlinetextattachment');
 }
