@@ -340,10 +340,8 @@ export class NoteConverter extends ANConverter {
 			return ` **(unknown attachment: ${attr.attachmentInfo?.typeUti})** `;
 		}
 		
-		await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
-		const link = this.app.fileManager.generateMarkdownLink(
-			this.importer.resolvedFiles[id], '/'
-		);
+		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
+		const link = this.app.fileManager.generateMarkdownLink(attachment, '/');
 		
 		return `\n${link}\n`;	
 	}
