@@ -122,8 +122,8 @@ export class TableConverter extends ANConverter {
 		let converted = '\n';
 		
 		for (let i = 0; i < table.length; i++) {
-			converted += table[i].join(' | ') + '\n';
-			if (i == 0) converted += '-- | '.repeat(table[0].length - 1) + ' --\n';
+			converted += `| ${table[i].join(' | ')} |\n`;
+			if (i == 0) converted += `|${' -- |'.repeat(table[0].length)}\n`;
 		}
 		
 		return converted + '\n';
