@@ -21,6 +21,7 @@ export class AppleNotesImporter extends FormatImporter {
 	database: SQLiteTagSpawned;
 	protobufRoot: Root;
 	
+	keys: Record<string, number>;
 	resolvedAccounts: Record<number, ANAccount> = {};
 	resolvedFiles: Record<number, TFile> = {};
 	resolvedFolders: Record<number, TFolder> = {};
@@ -107,12 +108,16 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		this.database = await this.getNotesDatabase() as SQLiteTagSpawned;
 		if (!this.database) return;
+		
+		this.keys = Object.fromEntries(
+			(await this.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
+		);
 				
 		const noteAccounts = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 13 /* account entity */
+			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
 		`;
 		const noteFolders = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = 14 /* folder entity */
+			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
 		`;
 		
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
@@ -122,7 +127,7 @@ export class AppleNotesImporter extends FormatImporter {
 			SELECT
 				z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject 
 			WHERE
-				z_ent = 11 /* Note entity */
+				z_ent = ${this.keys.ICNote}
 				AND ztitle1 IS NOT NULL
 				AND zfolder != ${this.trashFolder}
 		`;
@@ -147,7 +152,7 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		const account = await this.database.get`
 			SELECT zname, zidentifier FROM ziccloudsyncingobject
-			WHERE z_ent = 13 AND z_pk = ${id}
+			WHERE z_ent = ${this.keys.ICAccount} AND z_pk = ${id}
 		`;
 			
 		this.resolvedAccounts[id] = {
@@ -163,7 +168,7 @@ export class AppleNotesImporter extends FormatImporter {
 		const folder = await this.database.get`
 			SELECT ztitle2, zparent, zidentifier, zfoldertype, zowner
 			FROM ziccloudsyncingobject
-			WHERE z_ent = 14 AND z_pk = ${id}
+			WHERE z_ent = ${this.keys.ICFolder} AND z_pk = ${id}
 		`;
 		let prefix;
 		
@@ -249,7 +254,7 @@ export class AppleNotesImporter extends FormatImporter {
 					FROM
 						(SELECT *, NULL AS zfallbackpdfgeneration FROM ziccloudsyncingobject)
 					WHERE
-						z_ent = 4 /* attachment entity */
+						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
 				`;
 				
@@ -267,7 +272,7 @@ export class AppleNotesImporter extends FormatImporter {
 						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
 					FROM ziccloudsyncingobject
 					WHERE
-						z_ent = 4 /* attachment entity */
+						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
 				`;
 				
@@ -286,7 +291,7 @@ export class AppleNotesImporter extends FormatImporter {
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
-						z_ent = 4 /* drawing entity */
+						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
 				`;
 				
@@ -316,7 +321,7 @@ export class AppleNotesImporter extends FormatImporter {
 						(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 						ziccloudsyncingobject AS b
 					WHERE
-						a.z_ent = 10 /* media entity */
+						a.z_ent = ${this.keys.ICMedia}
 						AND a.z_pk = ${id} 
 						AND a.z_pk = b.zmedia
 				`;
