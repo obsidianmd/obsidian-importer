@@ -3,6 +3,7 @@ declare module 'sqlite-tag-spawned' {
 		constructor(path: string, options?: Record<string, boolean>);
 		get(...query: any[]): Promise<SQLiteRow>;
 		all(...query: any[]): Promise<SQLiteTable>;
+		close(): void;
 		
 		version: number;
 	} 

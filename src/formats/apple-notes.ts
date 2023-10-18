@@ -136,6 +136,8 @@ export class AppleNotesImporter extends FormatImporter {
 				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
 			}
 		}
+		
+		this.database.close();
 	}
 	
 	async resolveAccount(id: number): Promise<void> {
