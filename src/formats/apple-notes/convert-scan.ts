@@ -31,7 +31,8 @@ export class ScanConverter extends ANConverter {
 			let file = await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
 			if (!file) file = await this.importer.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 			
-			links.push(this.importer.app.fileManager.generateMarkdownLink(file!, '/'));
+			if (file) links.push(this.importer.app.fileManager.generateMarkdownLink(file!, '/'));
+			else return '**Cannot decode scan**';
 		}
 		
 		return `\n${links.join('\n')}\n`;

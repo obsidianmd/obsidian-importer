@@ -290,11 +290,18 @@ export class AppleNotesImporter extends FormatImporter {
 						AND z_pk = ${id} 
 				`;
 				
-				const filename = row.ZFALLBACKIMAGEGENERATION ? 'FallbackImage.png' : `${row.ZIDENTIFIER}.jpg`;
-				sourcePath = path.join(
-					this.resolvedAccounts[row.ZACCOUNT1].path, 
-					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', filename
-				);
+				if (row.ZFALLBACKIMAGEGENERATION) {
+					// macOS 14/iOS 17 and above
+					sourcePath = path.join(
+						this.resolvedAccounts[row.ZACCOUNT1].path, 
+						'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION, 'FallbackImage.png'
+					);
+				}
+				else {
+					sourcePath = path.join(
+						this.resolvedAccounts[row.ZACCOUNT1].path, 'FallbackImages', `${row.ZIDENTIFIER}.jpg`
+					);
+				}
 				
 				outName = 'Drawing';
 				outExt = 'png';
