@@ -24,11 +24,14 @@ export class ScanConverter extends ANConverter {
 			const imageUuid = object.customMap.mapEntry[0].value.stringValue;
 			
 			const row = await this.importer.database.get`
-				SELECT z_pk FROM ziccloudsyncingobject 
+				SELECT z_pk, zmedia, ztypeuti FROM ziccloudsyncingobject 
 				WHERE zidentifier = ${imageUuid}`;
 			
-			const file = await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
-			if (file) links.push(this.importer.app.fileManager.generateMarkdownLink(file, '/'));
+			// Try to get the nicely cropped version, but fallback to the raw image if that fails
+			let file = await this.importer.resolveAttachment(row.Z_PK, ANAttachment.Scan);
+			if (!file) file = await this.importer.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
+			
+			links.push(this.importer.app.fileManager.generateMarkdownLink(file!, '/'));
 		}
 		
 		return `\n${links.join('\n')}\n`;
