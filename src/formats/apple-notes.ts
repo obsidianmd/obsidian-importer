@@ -150,7 +150,8 @@ export class AppleNotesImporter extends FormatImporter {
 			
 		this.resolvedAccounts[id] = {
 			name: account.ZNAME,
-			uuid: account.ZIDENTIFIER
+			uuid: account.ZIDENTIFIER,
+			path: path.join(os.homedir(), NOTE_FOLDER_PATH, 'Accounts', account.ZIDENTIFIER)
 		};
 	}
 	
@@ -251,7 +252,7 @@ export class AppleNotesImporter extends FormatImporter {
 				`;
 				
 				sourcePath = path.join(
-					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					this.resolvedAccounts[row.ZACCOUNT1].path, 
 					'FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf'
 				);
 				outName = 'Scan';
@@ -269,7 +270,7 @@ export class AppleNotesImporter extends FormatImporter {
 				`;
 				
 				sourcePath = path.join(
-					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					this.resolvedAccounts[row.ZACCOUNT1].path, 
 					'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
 				);
 				outName = 'Scan Page';
@@ -289,7 +290,7 @@ export class AppleNotesImporter extends FormatImporter {
 				
 				const filename = row.ZFALLBACKIMAGEGENERATION ? 'FallbackImage.png' : `${row.ZIDENTIFIER}.jpg`;
 				sourcePath = path.join(
-					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[row.ZACCOUNT1].uuid, 
+					this.resolvedAccounts[row.ZACCOUNT1].path, 
 					'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION || '', filename
 				);
 				
@@ -313,7 +314,7 @@ export class AppleNotesImporter extends FormatImporter {
 				
 				const account = row.ZACCOUNT6 || row.ZACCOUNT5;
 				sourcePath = path.join(
-					os.homedir(), NOTE_FOLDER_PATH, 'Accounts', this.resolvedAccounts[account].uuid, 
+					this.resolvedAccounts[account].path, 
 					'Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME
 				);
 				[outName, outExt] = splitext(row.ZFILENAME);

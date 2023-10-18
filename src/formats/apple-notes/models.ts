@@ -26,6 +26,7 @@ export type ANConverterType<T extends ANConverter> = {
 export type ANAccount = {
 	name: string;
 	uuid: string;
+	path: string;
 };
 
 export type ANFragmentPair = { 
