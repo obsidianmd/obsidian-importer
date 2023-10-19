@@ -1,23 +1,23 @@
 import { App } from 'obsidian';
-import { AppleNotesImporter } from '../apple-notes';
 import { Message } from 'protobufjs';
+import { AppleNotesImporter } from '../apple-notes';
 
 export abstract class ANConverter {
 	importer: AppleNotesImporter;
 	app: App;
-	
+
 	static protobufType: string;
-	
+
 	constructor(importer: AppleNotesImporter) {
 		this.importer = importer;
 		this.app = importer.app;
 	}
-	
+
 	abstract format(): Promise<string>;
 }
 
 export type ANConverterType<T extends ANConverter> = {
-	new (importer: AppleNotesImporter, x: any): T;
+	new(importer: AppleNotesImporter, x: any): T;
 	protobufType: string;
 };
 
@@ -43,8 +43,8 @@ export type ANAccount = {
 	path: string;
 };
 
-export type ANFragmentPair = { 
-	attr: ANAttributeRun; 
+export type ANFragmentPair = {
+	attr: ANAttributeRun;
 	fragment: string;
 };
 
@@ -60,7 +60,7 @@ export type ANTableUuidMapping = Record<string, number>;
 // Types for protobufs, and enums to describe their int fields
 
 export interface ANDocument extends Message {
-	name: string; 
+	name: string;
 	note: ANNote;
 }
 
@@ -83,7 +83,7 @@ export interface ANAttributeRun extends Message {
 	link?: string;
 	color?: ANColor;
 	attachmentInfo?: ANAttachmentInfo;
-	
+
 	// internal additions, not part of the protobufs
 	fragment: string;
 	atLineStart: boolean;
@@ -155,7 +155,7 @@ export enum ANFolderType {
 
 export interface ANAttachmentInfo extends Message {
 	attachmentIdentifier: string;
-	typeUti: string | ANAttachment; 
+	typeUti: string | ANAttachment;
 }
 
 export enum ANAttachment {
@@ -202,14 +202,14 @@ export enum ANTableKey {
 }
 
 export enum ANTableType {
-	Number = 'com.apple.CRDT.NSNumber', 
-	String = 'com.apple.CRDT.NSString', 
-	Uuid = 'com.apple.CRDT.NSUUID', 
-	Tuple = 'com.apple.CRDT.CRTuple', 
-	MultiValueLeast = 'com.apple.CRDT.CRRegisterMultiValueLeast', 
-	MultiValue = 'com.apple.CRDT.CRRegisterMultiValue', 
-	Tree = 'com.apple.CRDT.CRTree', 
-	Node = 'com.apple.CRDT.CRTreeNode', 
-	Table = 'com.apple.notes.CRTable', 
+	Number = 'com.apple.CRDT.NSNumber',
+	String = 'com.apple.CRDT.NSString',
+	Uuid = 'com.apple.CRDT.NSUUID',
+	Tuple = 'com.apple.CRDT.CRTuple',
+	MultiValueLeast = 'com.apple.CRDT.CRRegisterMultiValueLeast',
+	MultiValue = 'com.apple.CRDT.CRRegisterMultiValue',
+	Tree = 'com.apple.CRDT.CRTree',
+	Node = 'com.apple.CRDT.CRTreeNode',
+	Table = 'com.apple.notes.CRTable',
 	ICTable = 'com.apple.notes.ICTable'
 }

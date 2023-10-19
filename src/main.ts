@@ -5,9 +5,9 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
-import { RoamJSONImporter } from './formats/roam-json';
 import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
+import { RoamJSONImporter } from './formats/roam-json';
 import { truncateText } from './util';
 
 declare global {
@@ -27,7 +27,7 @@ interface ImporterDefinition {
 
 
 /**
- * URI to use as the callback for OAuth applications. 
+ * URI to use as the callback for OAuth applications.
  */
 export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
 
@@ -369,11 +369,11 @@ export class ImporterModal extends Modal {
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
-			
+
 			//Hide the import buttons if it's not available.
 			//The actual message to display is handled by the importer, since it depends on what is being imported.
 			if (importer.notAvailable) return;
-			
+
 			contentEl.createDiv('modal-button-container', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
