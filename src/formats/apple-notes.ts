@@ -6,7 +6,8 @@ import { ImportContext } from '../main';
 import { fsPromises, os, path, splitext, zlib } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
-import SQLiteTagSpawned from 'sqlite-tag-spawned';
+import SQLiteTag from './apple-notes/sqlite/index';
+import { SQLiteTagSpawned } from './apple-notes/models';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
@@ -35,7 +36,7 @@ export class AppleNotesImporter extends FormatImporter {
 	trashFolder = -1;
 	
 	init(): void {
-		if (!Platform.isMacOS) {
+		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.modal.contentEl.createEl('p', { text:
 				'Due to platform limitations, Apple Notes cannot be exported from this device.' +
 				' Open your vault on a Mac to export from Apple Notes.'
@@ -92,7 +93,8 @@ export class AppleNotesImporter extends FormatImporter {
 		await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
 		await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
 
-		return new SQLiteTagSpawned(clonedDB, { readonly: true, persistent: true });
+		//@ts-ignore
+		return new SQLiteTag(clonedDB, { readonly: true, persistent: true });
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
