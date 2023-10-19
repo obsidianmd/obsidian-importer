@@ -21,6 +21,20 @@ export type ANConverterType<T extends ANConverter> = {
 	protobufType: string;
 };
 
+// SQLite types 
+
+export type SQLiteTagSpawned = {
+	get(...query: any[]): Promise<SQLiteRow>;
+	all(...query: any[]): Promise<SQLiteTable>;
+	close(): void;
+};
+
+type SQLiteTable = SQLiteRow[];
+
+interface SQLiteRow extends Record<string, any> {
+	[member: string]: any;
+}
+
 // A few typings for internal use
 
 export type ANAccount = {

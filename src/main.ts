@@ -204,6 +204,7 @@ export default class ImporterPlugin extends Plugin {
 	authCallback: AuthCallback | undefined;
 
 	async onload() {
+		console.log('a');
 		this.importers = {
 			'apple-notes': {
 				name: 'Apple Notes',
