@@ -35,4 +35,4 @@ This plugin relies on important contributions:
 - [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
 - [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
-- [@mirnovov](https://github.com/mirnovov) for Apple Notes
+- [@mirnovov](https://github.com/mirnovov) for Apple Notes import
