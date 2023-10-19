@@ -7,7 +7,7 @@ import { TableConverter } from './convert-table';
 import { AppleNotesImporter } from '../apple-notes';
 
 const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
-const NOTE_URI = /applenotes:note\/(.*)\?/;
+const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
 const DEFAULT_EMOJI = '.AppleColorEmojiUI';
 const LIST_STYLES = [
@@ -90,10 +90,10 @@ export class NoteConverter extends ANConverter {
 				converted += await this.formatAttachment(attr);
 			}
 			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
-				converted += this.formatHtmlAttr(attr);
+				converted += await this.formatHtmlAttr(attr);
 			}
 			else {
-				converted += this.formatAttr(attr);
+				converted += await this.formatAttr(attr);
 			}
 		}
 		
@@ -158,7 +158,7 @@ export class NoteConverter extends ANConverter {
 	
 	/** Since putting markdown inside inline html tags is currentlyproblematic in Live Preview, this is a separate
 	 parser for those that is activated when HTML-only stuff (eg underline, font size) is needed */
-	formatHtmlAttr(attr: ANAttributeRun): string {
+	async formatHtmlAttr(attr: ANAttributeRun): Promise<string> {
 		if (attr.strikethrough) attr.fragment = `<s>${attr.fragment}</s>`;
 		if (attr.underlined) attr.fragment = `<u>${attr.fragment}</u>`;
 		
@@ -186,7 +186,7 @@ export class NoteConverter extends ANConverter {
 		if (attr.font?.pointSize) style += `font-size:${attr.font.pointSize}pt;`;
 		if (attr.color) style += `color:${this.convertColor(attr.color)};`;
 		
-		if (attr.link) {
+		if (attr.link && !NOTE_URI.test(attr.link)) {
 			if (style) style = ` style="${style}"`;
 			
 			attr.fragment = 
@@ -194,6 +194,8 @@ export class NoteConverter extends ANConverter {
 				` target="_blank"${style}>${attr.fragment}</a>`;
 		}
 		else if (style) {
+			if (attr.link) attr.fragment = await this.getInternalLink(attr.link, attr.fragment);
+			
 			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
 		}
 		
@@ -201,7 +203,7 @@ export class NoteConverter extends ANConverter {
 		else return attr.fragment;
 	}
 	
-	formatAttr(attr: ANAttributeRun): string {
+	async formatAttr(attr: ANAttributeRun): Promise<string> {
 		switch (attr.fontWeight) {
 			case ANFontWeight.Bold:
 				attr.fragment = `**${attr.fragment}**`;
@@ -215,7 +217,10 @@ export class NoteConverter extends ANConverter {
 		}
 		
 		if (attr.strikethrough) attr.fragment = `~~${attr.fragment}~~`;
-		if (attr.link && attr.link != attr.fragment) attr.fragment = `[${attr.fragment}](${attr.link})`;
+		if (attr.link && attr.link != attr.fragment) {
+			if (NOTE_URI.test(attr.link)) attr.fragment = await this.getInternalLink(attr.link, attr.fragment);
+			else attr.fragment = `[${attr.fragment}](${attr.link})`;
+		}
 		
 		if (attr.atLineStart) return this.formatParagraph(attr);
 		else return attr.fragment;
@@ -281,16 +286,7 @@ export class NoteConverter extends ANConverter {
 					SELECT ztokencontentidentifier FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 				
-				const destIdentifier = row.ZTOKENCONTENTIDENTIFIER.match(NOTE_URI)[1];
-				
-				row = await this.importer.database.get`
-					SELECT z_pk FROM ziccloudsyncingobject 
-					WHERE zidentifier = ${destIdentifier.toUpperCase()}`;
-				
-				let file = await this.importer.resolveNote(row.Z_PK);
-				if (!file) return '(unknown file link)';
-				
-				return this.app.fileManager.generateMarkdownLink(file, this.importer.rootFolder.path);
+				return await this.getInternalLink(row.ZTOKENCONTENTIDENTIFIER);
 				
 			case ANAttachment.Table:
 				row = await this.importer.database.get`
@@ -302,7 +298,7 @@ export class NoteConverter extends ANConverter {
 			
 			case ANAttachment.UrlCard:
 				row = await this.importer.database.get`
-					SELECT ztitle, zurlstring as zhexdata FROM ziccloudsyncingobject 
+					SELECT ztitle, zurlstring FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 					
 				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`;
@@ -344,6 +340,21 @@ export class NoteConverter extends ANConverter {
 		if (!attachment) return ` **(error reading attachment)**`;
 		
 		return `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n`;	
+	}
+	
+	async getInternalLink(uri: string, name: string | undefined = undefined): Promise<string> {
+		const identifier = uri.match(NOTE_URI)![1];
+		
+		const row = await this.importer.database.get`
+			SELECT z_pk FROM ziccloudsyncingobject 
+			WHERE zidentifier = ${identifier.toUpperCase()}`;
+		
+		let file = await this.importer.resolveNote(row.Z_PK);
+		if (!file) return '(unknown file link)';
+		
+		return this.app.fileManager.generateMarkdownLink(
+			file, this.importer.rootFolder.path, undefined, name
+		);
 	}
 	
 	convertColor(color: ANColor): string {
