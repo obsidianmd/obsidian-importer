@@ -2,7 +2,7 @@
 
 This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
-## Usage
+## Get started
 
 Install Importer in Obsidian → Community Plugins.
 
@@ -35,3 +35,4 @@ This plugin relies on important contributions:
 - [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
 - [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
+- [@mirnovov](https://github.com/mirnovov) for Apple Notes
