@@ -2,20 +2,6 @@
 
 This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
-## Supported formats
-
-You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
-
-- [x] Evernote `.enex`
-- [x] HTML, folder of files
-- [x] Notion, `.zip` of HTML files
-- [x] Bear `.bear2bk`
-- [x] Google Keep
-- [x] Roam Research
-- [x] Microsoft OneNote
-- [ ] Apple Notes
-- [ ] Other Markdown flavors
-
 ## Usage
 
 Install Importer in Obsidian → Community Plugins.
@@ -34,7 +20,9 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 ## Contributing
 
-This repo accepts contributions. Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). See [Contribution guidelines](/CONTRIBUTING.md) for more information.
+Is a format missing? You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
+
+Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty).
 
 ## Credits
 
