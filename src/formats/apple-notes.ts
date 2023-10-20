@@ -3,7 +3,7 @@ import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
-import { fsPromises, os, path, splitext, zlib } from '../filesystem';
+import { fsPromises, os, path, parseFilePath, splitext, zlib } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -16,7 +16,7 @@ const CORETIME_OFFSET = 978307200;
 
 export class AppleNotesImporter extends FormatImporter {
 	ctx: ImportContext;
-	attachmentPath: string;
+	cachedAttachmentPath: string;
 	rootFolder: TFolder;
 	
 	database: SQLiteTagSpawned;
@@ -101,7 +101,6 @@ export class AppleNotesImporter extends FormatImporter {
 		this.ctx = ctx;
 		this.protobufRoot = Root.fromJSON(descriptor);
 		this.rootFolder = await this.getOutputFolder() as TFolder;
-		this.attachmentPath = this.getAttachmentPath();
 		
 		if (!this.rootFolder) {
 			new Notice('Please select a location to export to.');
@@ -252,7 +251,7 @@ export class AppleNotesImporter extends FormatImporter {
 				// A PDF only seems to be generated when you modify the scan :(
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1, znote
 					FROM
 						(SELECT *, NULL AS zfallbackpdfgeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -271,7 +270,7 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Scan:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1, znote
 					FROM ziccloudsyncingobject
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
@@ -289,7 +288,7 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Drawing:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1, znote
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -318,7 +317,7 @@ export class AppleNotesImporter extends FormatImporter {
 				row = await this.database.get`
 					SELECT
 						a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
-						a.zgeneration1, b.zcreationdate, b.zmodificationdate
+						a.zgeneration1, b.zcreationdate, b.zmodificationdate, b.znote
 					FROM
 						(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 						ziccloudsyncingobject AS b
@@ -338,9 +337,11 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 		
 		try {
+			const attachmentPath = await this.getAttachmentPath(this.resolvedFiles[row.ZNOTE]);
+			
 			file = await this.vault.createBinary(
 				//@ts-ignore
-				this.app.vault.getAvailablePath(`${this.attachmentPath}/${outName}`, outExt), 
+				this.app.vault.getAvailablePath(`${attachmentPath}/${outName}`, outExt), 
 				await fsPromises.readFile(sourcePath),
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
@@ -365,13 +366,21 @@ export class AppleNotesImporter extends FormatImporter {
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 	
-	getAttachmentPath(): string {
-		let attachmentPath = this.app.vault.getConfig('attachmentFolderPath');
-		if (attachmentPath.startsWith('/')) attachmentPath = attachmentPath.substring(1);
+	async getAttachmentPath(note: TFile): Promise<string> {
+		if (this.cachedAttachmentPath) return this.cachedAttachmentPath;
 		
-		const outPath = path.join(attachmentPath, `${this.outputLocation} Attachments`);
+		let attachmentSetting = this.app.vault.getConfig('attachmentFolderPath');
+		let attachmentPath = parseFilePath(
+			//@ts-ignore
+			await this.app.vault.getAvailablePathForAttachments(note.basename, note.extension, note)
+		).parent;
 		
-		this.createFolders(outPath);
-		return outPath;
+		if (!attachmentSetting.startsWith('./')) {
+			attachmentPath = path.join(attachmentSetting, `${this.outputLocation} Attachments`);
+			this.cachedAttachmentPath = attachmentPath;
+		}
+		
+		this.createFolders(attachmentPath);
+		return attachmentPath;
 	}
 }
