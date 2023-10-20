@@ -4,6 +4,7 @@ import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } f
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fsPromises, os, path, parseFilePath, splitext, zlib } from '../filesystem';
+import { sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -118,11 +119,19 @@ export class AppleNotesImporter extends FormatImporter {
 			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
 		`;
 		const noteFolders = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
+			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
 		`;
 		
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
-		for (let f of noteFolders) await this.resolveFolder(f.Z_PK);
+		
+		for (let f of noteFolders) {
+			try { 
+				await this.resolveFolder(f.Z_PK);
+			}
+			catch (e) {
+				this.ctx.reportFailed(f.ZTITLE2, e?.message);
+			}
+		}
 		
 		const notes = await this.database.all`
 			SELECT
@@ -194,7 +203,7 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		if (folder.ZIDENTIFIER !== 'DefaultFolder-CloudKit') {
 			// Notes in the default "Notes" folder are placed in the main directory
-			prefix += folder.ZTITLE2;
+			prefix += sanitizeFileName(folder.ZTITLE2);
 		}
 		
 		const resolved = await this.createFolders(prefix);
@@ -223,7 +232,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return null;
 		}
 		
-		const folder = this.resolvedFolders[row.ZFOLDER] as TFolder;
+		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 		const title = `${row.ZTITLE1}.md`;
 		const file = await this.saveAsMarkdownFile(folder, title, '');
 		
