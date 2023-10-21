@@ -341,7 +341,8 @@ export class NoteConverter extends ANConverter {
 			case ANAttachment.ModifiedScan:
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`
-					SELECT z_pk FROM ziccloudsyncingobject 
+					SELECT z_pk, zhandwritingsummary 
+					FROM (SELECT *, NULL AS zhandwritingsummary FROM ziccloudsyncingobject) 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				id = row?.Z_PK;
@@ -368,9 +369,10 @@ export class NoteConverter extends ANConverter {
 			? `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n` 
 			: ` **(error reading attachment)**`;
 		
-		const handwriting = this.importer.handwriting[id];
-		if (handwriting) link = `\n> [!Handwriting]-\n> ${handwriting.replace('\n', '\n> ')}${link}`;
-
+		if (this.importer.includeHandwriting && row.ZHANDWRITINGSUMMARY) {
+			link = `\n> [!Handwriting]-\n> ${row.ZHANDWRITINGSUMMARY.replace('\n', '\n> ')}${link}`;
+		}
+		
 		return link;
 	}
 

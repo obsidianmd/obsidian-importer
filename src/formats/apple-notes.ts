@@ -24,6 +24,7 @@ export class AppleNotesImporter extends FormatImporter {
 	protobufRoot: Root;
 	
 	keys: Record<string, number>;
+	owners: Record<number, number> = {};
 	resolvedAccounts: Record<number, ANAccount> = {};
 	resolvedFiles: Record<number, TFile> = {};
 	resolvedFolders: Record<number, TFolder> = {};
@@ -35,9 +36,7 @@ export class AppleNotesImporter extends FormatImporter {
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-
 	trashFolders: number[] = [];
-	handwriting: Record<number, string> = {};
 	
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -221,6 +220,7 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		const resolved = await this.createFolders(prefix);
 		this.resolvedFolders[id] = resolved;
+		this.owners[id] = folder.ZOWNER;
 		
 		return resolved;
 	}
@@ -252,6 +252,7 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file; 
+		this.owners[id] = this.owners[row.ZFOLDER];
 		
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
@@ -274,7 +275,7 @@ export class AppleNotesImporter extends FormatImporter {
 				// A PDF only seems to be generated when you modify the scan :(
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1, znote
+						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, znote
 					FROM
 						(SELECT *, NULL AS zfallbackpdfgeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -282,10 +283,7 @@ export class AppleNotesImporter extends FormatImporter {
 						AND z_pk = ${id} 
 				`;
 				
-				sourcePath = path.join(
-					this.resolvedAccounts[row.ZACCOUNT1].path, 
-					'FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf'
-				);
+				sourcePath = path.join('FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf');
 				outName = 'Scan';
 				outExt = 'pdf';
 				break;
@@ -293,17 +291,14 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Scan:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1, znote
+						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, znote
 					FROM ziccloudsyncingobject
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
 				`;
 				
-				sourcePath = path.join(
-					this.resolvedAccounts[row.ZACCOUNT1].path, 
-					'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
-				);
+				sourcePath = path.join('Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`);
 				outName = 'Scan Page';
 				outExt = 'jpg';
 				break;
@@ -311,10 +306,10 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Drawing:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1, 
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, 
 						znote, zhandwritingsummary
 					FROM
-						(SELECT *, NULL AS zfallbackimagegeneration, NULL AS zhandwritingsummary FROM ziccloudsyncingobject)
+						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
@@ -322,18 +317,11 @@ export class AppleNotesImporter extends FormatImporter {
 				
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
-					sourcePath = path.join(
-						this.resolvedAccounts[row.ZACCOUNT1].path, 
-						'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION, 'FallbackImage.png'
-					);
+					sourcePath = path.join('FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION, 'FallbackImage.png');
 				}
 				else {
-					sourcePath = path.join(
-						this.resolvedAccounts[row.ZACCOUNT1].path, 'FallbackImages', `${row.ZIDENTIFIER}.jpg`
-					);
+					sourcePath = path.join('FallbackImages', `${row.ZIDENTIFIER}.jpg`);
 				}
-				
-				if (this.includeHandwriting) this.handwriting[id] = row.ZHANDWRITINGSUMMARY || '';
 				
 				outName = 'Drawing';
 				outExt = 'png';
@@ -342,10 +330,10 @@ export class AppleNotesImporter extends FormatImporter {
 			default:
 				row = await this.database.get`
 					SELECT
-						a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
+						a.zidentifier, a.zfilename, 
 						a.zgeneration1, b.zcreationdate, b.zmodificationdate, b.znote
 					FROM
-						(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
+						(SELECT *, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 						ziccloudsyncingobject AS b
 					WHERE
 						a.z_ent = ${this.keys.ICMedia}
@@ -353,17 +341,14 @@ export class AppleNotesImporter extends FormatImporter {
 						AND a.z_pk = b.zmedia
 				`;
 				
-				const account = row.ZACCOUNT6 || row.ZACCOUNT5;
-				sourcePath = path.join(
-					this.resolvedAccounts[account].path, 
-					'Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME
-				);
+				sourcePath = path.join('Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
 		}
 		
 		try {
 			const attachmentPath = await this.getAttachmentPath(this.resolvedFiles[row.ZNOTE]);
+			sourcePath = path.join(this.resolvedAccounts[this.owners[row.ZNOTE]].path, sourcePath);
 			
 			file = await this.vault.createBinary(
 				//@ts-ignore
