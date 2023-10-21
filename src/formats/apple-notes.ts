@@ -36,7 +36,7 @@ export class AppleNotesImporter extends FormatImporter {
 	importTrashed = false;
 	includeHandwriting = false;
 
-	trashFolder = -1;
+	trashFolders: number[] = [];
 	handwriting: Record<number, string> = {};
 	
 	init(): void {
@@ -152,7 +152,7 @@ export class AppleNotesImporter extends FormatImporter {
 			WHERE
 				z_ent = ${this.keys.ICNote}
 				AND ztitle1 IS NOT NULL
-				AND zfolder != ${this.trashFolder}
+				AND zfolder NOT IN (${this.trashFolders})
 		`;
 		this.noteCount = notes.length;
 		
@@ -199,7 +199,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return null;	
 		}
 		else if (!this.importTrashed && folder.ZFOLDERTYPE == ANFolderType.Trash) {
-			this.trashFolder = id;
+			this.trashFolders.push(id);
 			return null;	
 		}
 		else if (folder.ZPARENT !== null) {
@@ -214,7 +214,7 @@ export class AppleNotesImporter extends FormatImporter {
 			prefix = `${this.rootFolder.path}/`;
 		}
 		
-		if (folder.ZIDENTIFIER !== 'DefaultFolder-CloudKit') {
+		if (!folder.ZIDENTIFIER.startsWith('DefaultFolder')) {
 			// Notes in the default "Notes" folder are placed in the main directory
 			prefix += sanitizeFileName(folder.ZTITLE2);
 		}
@@ -246,6 +246,7 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 		
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
+		
 		const title = `${row.ZTITLE1}.md`;
 		const file = await this.saveAsMarkdownFile(folder, title, '');
 		
