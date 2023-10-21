@@ -142,6 +142,7 @@ export class AppleNotesImporter extends FormatImporter {
 			}
 			catch (e) {
 				this.ctx.reportFailed(f.ZTITLE2, e?.message);
+				console.error(e);
 			}
 		}
 		
@@ -161,6 +162,7 @@ export class AppleNotesImporter extends FormatImporter {
 			}
 			catch (e) { 
 				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
+				console.error(e);
 			}
 		}
 		
@@ -357,7 +359,8 @@ export class AppleNotesImporter extends FormatImporter {
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
 		}
-		catch {
+		catch (e) {
+			console.error(e);
 			return null;
 		}	
 		
