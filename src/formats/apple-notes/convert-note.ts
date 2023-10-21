@@ -364,9 +364,14 @@ export class NoteConverter extends ANConverter {
 		}
 
 		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
-		if (!attachment) return ` **(error reading attachment)**`;
+		let link = attachment
+			? `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n` 
+			: ` **(error reading attachment)**`;
+		
+		const handwriting = this.importer.handwriting[id];
+		if (handwriting) link = `\n> [!Handwriting]-\n> ${handwriting.replace('\n', '\n> ')}${link}`;
 
-		return `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n`;
+		return link;
 	}
 
 	async getInternalLink(uri: string, name: string | undefined = undefined): Promise<string> {

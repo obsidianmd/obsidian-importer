@@ -34,7 +34,10 @@ export class AppleNotesImporter extends FormatImporter {
 	
 	omitFirstLine = true;
 	importTrashed = false;
+	includeHandwriting = false;
+
 	trashFolder = -1;
+	handwriting: Record<number, string> = {};
 	
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -69,6 +72,16 @@ export class AppleNotesImporter extends FormatImporter {
 			.addToggle(t => t
 				.setValue(true)
 				.onChange(async v => this.omitFirstLine = v)
+			);
+			
+		new Setting(this.modal.contentEl)
+			.setName('Include handwriting text')
+			.setDesc(
+				'When Apple Notes has detected handwriting in drawings, include it as text before the drawing.'
+			)
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => this.includeHandwriting = v)
 			);
 	}
 	
@@ -297,9 +310,10 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Drawing:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1, znote
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1, 
+						znote, zhandwritingsummary
 					FROM
-						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
+						(SELECT *, NULL AS zfallbackimagegeneration, NULL AS zhandwritingsummary FROM ziccloudsyncingobject)
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
@@ -317,6 +331,8 @@ export class AppleNotesImporter extends FormatImporter {
 						this.resolvedAccounts[row.ZACCOUNT1].path, 'FallbackImages', `${row.ZIDENTIFIER}.jpg`
 					);
 				}
+				
+				if (this.includeHandwriting) this.handwriting[id] = row.ZHANDWRITINGSUMMARY || '';
 				
 				outName = 'Drawing';
 				outExt = 'png';
