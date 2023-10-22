@@ -1,5 +1,5 @@
 import plain from 'plain-tag';
-import { asStatic, asParams } from 'static-params/sql';
+import { asStatic, asParams } from './static-params';
 
 export const error = (rej, reason) => {
 	const code = 'SQLITE_ERROR';

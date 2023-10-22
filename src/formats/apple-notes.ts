@@ -36,7 +36,7 @@ export class AppleNotesImporter extends FormatImporter {
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-	trashFolders: number[] = [-1];
+	trashFolders: number[] = [];
 	
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
