@@ -36,7 +36,7 @@ export class AppleNotesImporter extends FormatImporter {
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-	trashFolders: number[] = [];
+	trashFolders: number[] = [-1];
 	
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -386,7 +386,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return await fsPromises.readFile(path.join(account.path, sourcePath));
 		}
 		catch (e) {
-			return await fsPromises.readFile(path.join(NOTE_FOLDER_PATH, sourcePath));
+			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
 		}
 	}
 	
