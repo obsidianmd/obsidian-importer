@@ -349,13 +349,14 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 		
 		try {
-			const attachmentPath = await this.getAttachmentPath(this.resolvedFiles[row.ZNOTE]);
-			sourcePath = path.join(this.resolvedAccounts[this.owners[row.ZNOTE]].path, sourcePath);
+			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+			//@ts-ignore
+			const outPath = this.app.vault.getAvailablePath(
+				`${await this.getAttachmentPath(this.resolvedFiles[row.ZNOTE])}/${outName}`, outExt
+			);
 			
 			file = await this.vault.createBinary(
-				//@ts-ignore
-				this.app.vault.getAvailablePath(`${attachmentPath}/${outName}`, outExt), 
-				await fsPromises.readFile(sourcePath),
+				outPath, binary,
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
 		}
@@ -378,6 +379,15 @@ export class AppleNotesImporter extends FormatImporter {
 	decodeTime(timestamp: number): number {
 		if (!timestamp || timestamp < 1) return new Date().getTime();
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
+	}
+	
+	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer> {
+		try {
+			return await fsPromises.readFile(path.join(account.path, sourcePath));
+		}
+		catch (e) {
+			return await fsPromises.readFile(path.join(NOTE_FOLDER_PATH, sourcePath));
+		}
 	}
 	
 	async getAttachmentPath(note: TFile): Promise<string> {
