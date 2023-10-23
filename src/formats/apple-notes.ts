@@ -350,10 +350,9 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		try {
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+			const attachmentFolder = await this.getAttachmentFolder(this.resolvedFiles[row.ZNOTE]);
 			//@ts-ignore
-			const outPath = this.app.vault.getAvailablePath(
-				`${await this.getAttachmentPath(this.resolvedFiles[row.ZNOTE])}/${outName}`, outExt
-			);
+			const outPath = this.app.vault.getAvailablePath(`${attachmentFolder}/${outName}`, outExt);
 			
 			file = await this.vault.createBinary(
 				outPath, binary,
@@ -390,7 +389,7 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 	}
 	
-	async getAttachmentPath(note: TFile): Promise<string> {
+	async getAttachmentFolder(note: TFile): Promise<string> {
 		if (this.cachedAttachmentPath) return this.cachedAttachmentPath;
 		
 		let attachmentSetting = this.app.vault.getConfig('attachmentFolderPath');
