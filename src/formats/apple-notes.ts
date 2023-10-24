@@ -3,7 +3,8 @@ import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
-import { fsPromises, os, path, splitext, zlib } from '../filesystem';
+import { fsPromises, os, path, parseFilePath, splitext, zlib } from '../filesystem';
+import { sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -16,13 +17,14 @@ const CORETIME_OFFSET = 978307200;
 
 export class AppleNotesImporter extends FormatImporter {
 	ctx: ImportContext;
-	attachmentPath: string;
+	cachedAttachmentPath: string;
 	rootFolder: TFolder;
 	
 	database: SQLiteTagSpawned;
 	protobufRoot: Root;
 	
 	keys: Record<string, number>;
+	owners: Record<number, number> = {};
 	resolvedAccounts: Record<number, ANAccount> = {};
 	resolvedFiles: Record<number, TFile> = {};
 	resolvedFolders: Record<number, TFolder> = {};
@@ -33,7 +35,8 @@ export class AppleNotesImporter extends FormatImporter {
 	
 	omitFirstLine = true;
 	importTrashed = false;
-	trashFolder = -1;
+	includeHandwriting = false;
+	trashFolders: number[] = [];
 	
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -69,6 +72,16 @@ export class AppleNotesImporter extends FormatImporter {
 				.setValue(true)
 				.onChange(async v => this.omitFirstLine = v)
 			);
+			
+		new Setting(this.modal.contentEl)
+			.setName('Include handwriting text')
+			.setDesc(
+				'When Apple Notes has detected handwriting in drawings, include it as text before the drawing.'
+			)
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => this.includeHandwriting = v)
+			);
 	}
 	
 	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {
@@ -101,7 +114,6 @@ export class AppleNotesImporter extends FormatImporter {
 		this.ctx = ctx;
 		this.protobufRoot = Root.fromJSON(descriptor);
 		this.rootFolder = await this.getOutputFolder() as TFolder;
-		this.attachmentPath = this.getAttachmentPath();
 		
 		if (!this.rootFolder) {
 			new Notice('Please select a location to export to.');
@@ -119,11 +131,20 @@ export class AppleNotesImporter extends FormatImporter {
 			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
 		`;
 		const noteFolders = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
+			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
 		`;
 		
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
-		for (let f of noteFolders) await this.resolveFolder(f.Z_PK);
+		
+		for (let f of noteFolders) {
+			try { 
+				await this.resolveFolder(f.Z_PK);
+			}
+			catch (e) {
+				this.ctx.reportFailed(f.ZTITLE2, e?.message);
+				console.error(e);
+			}
+		}
 		
 		const notes = await this.database.all`
 			SELECT
@@ -131,7 +152,7 @@ export class AppleNotesImporter extends FormatImporter {
 			WHERE
 				z_ent = ${this.keys.ICNote}
 				AND ztitle1 IS NOT NULL
-				AND zfolder != ${this.trashFolder}
+				AND zfolder NOT IN (${this.trashFolders})
 		`;
 		this.noteCount = notes.length;
 		
@@ -141,6 +162,7 @@ export class AppleNotesImporter extends FormatImporter {
 			}
 			catch (e) { 
 				this.ctx.reportFailed(n.ZTITLE1, e?.message); 
+				console.error(e);
 			}
 		}
 		
@@ -178,7 +200,7 @@ export class AppleNotesImporter extends FormatImporter {
 			return null;	
 		}
 		else if (!this.importTrashed && folder.ZFOLDERTYPE == ANFolderType.Trash) {
-			this.trashFolder = id;
+			this.trashFolders.push(id);
 			return null;	
 		}
 		else if (folder.ZPARENT !== null) {
@@ -193,13 +215,14 @@ export class AppleNotesImporter extends FormatImporter {
 			prefix = `${this.rootFolder.path}/`;
 		}
 		
-		if (folder.ZIDENTIFIER !== 'DefaultFolder-CloudKit') {
+		if (!folder.ZIDENTIFIER.startsWith('DefaultFolder')) {
 			// Notes in the default "Notes" folder are placed in the main directory
-			prefix += folder.ZTITLE2;
+			prefix += sanitizeFileName(folder.ZTITLE2);
 		}
 		
 		const resolved = await this.createFolders(prefix);
 		this.resolvedFolders[id] = resolved;
+		this.owners[id] = folder.ZOWNER;
 		
 		return resolved;
 	}
@@ -224,12 +247,14 @@ export class AppleNotesImporter extends FormatImporter {
 			return null;
 		}
 		
-		const folder = this.resolvedFolders[row.ZFOLDER] as TFolder;
+		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
+		
 		const title = `${row.ZTITLE1}.md`;
 		const file = await this.saveAsMarkdownFile(folder, title, '');
 		
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file; 
+		this.owners[id] = this.owners[row.ZFOLDER];
 		
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
@@ -252,7 +277,7 @@ export class AppleNotesImporter extends FormatImporter {
 				// A PDF only seems to be generated when you modify the scan :(
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zfallbackpdfgeneration, zcreationdate, zmodificationdate, znote
 					FROM
 						(SELECT *, NULL AS zfallbackpdfgeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -260,10 +285,7 @@ export class AppleNotesImporter extends FormatImporter {
 						AND z_pk = ${id} 
 				`;
 				
-				sourcePath = path.join(
-					this.resolvedAccounts[row.ZACCOUNT1].path, 
-					'FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf'
-				);
+				sourcePath = path.join('FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf');
 				outName = 'Scan';
 				outExt = 'pdf';
 				break;
@@ -271,17 +293,14 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Scan:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zsizeheight, zsizewidth, zcreationdate, zmodificationdate, znote
 					FROM ziccloudsyncingobject
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id} 
 				`;
 				
-				sourcePath = path.join(
-					this.resolvedAccounts[row.ZACCOUNT1].path, 
-					'Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`
-				);
+				sourcePath = path.join('Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`);
 				outName = 'Scan Page';
 				outExt = 'jpg';
 				break;
@@ -289,7 +308,8 @@ export class AppleNotesImporter extends FormatImporter {
 			case ANAttachment.Drawing:
 				row = await this.database.get`
 					SELECT
-						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, zaccount1
+						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate, 
+						znote, zhandwritingsummary
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -299,15 +319,10 @@ export class AppleNotesImporter extends FormatImporter {
 				
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
-					sourcePath = path.join(
-						this.resolvedAccounts[row.ZACCOUNT1].path, 
-						'FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION, 'FallbackImage.png'
-					);
+					sourcePath = path.join('FallbackImages', row.ZIDENTIFIER, row.ZFALLBACKIMAGEGENERATION, 'FallbackImage.png');
 				}
 				else {
-					sourcePath = path.join(
-						this.resolvedAccounts[row.ZACCOUNT1].path, 'FallbackImages', `${row.ZIDENTIFIER}.jpg`
-					);
+					sourcePath = path.join('FallbackImages', `${row.ZIDENTIFIER}.jpg`);
 				}
 				
 				outName = 'Drawing';
@@ -317,10 +332,10 @@ export class AppleNotesImporter extends FormatImporter {
 			default:
 				row = await this.database.get`
 					SELECT
-						a.zidentifier, a.zfilename, a.zaccount6, a.zaccount5, 
-						a.zgeneration1, b.zcreationdate, b.zmodificationdate
+						a.zidentifier, a.zfilename, 
+						a.zgeneration1, b.zcreationdate, b.zmodificationdate, b.znote
 					FROM
-						(SELECT *, NULL AS zaccount6, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
+						(SELECT *, NULL AS zgeneration1 FROM ziccloudsyncingobject) AS a,
 						ziccloudsyncingobject AS b
 					WHERE
 						a.z_ent = ${this.keys.ICMedia}
@@ -328,24 +343,24 @@ export class AppleNotesImporter extends FormatImporter {
 						AND a.z_pk = b.zmedia
 				`;
 				
-				const account = row.ZACCOUNT6 || row.ZACCOUNT5;
-				sourcePath = path.join(
-					this.resolvedAccounts[account].path, 
-					'Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME
-				);
+				sourcePath = path.join('Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
 		}
 		
 		try {
+			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+			const attachmentFolder = await this.getAttachmentFolder(this.resolvedFiles[row.ZNOTE]);
+			//@ts-ignore
+			const outPath = this.app.vault.getAvailablePath(`${attachmentFolder}/${outName}`, outExt);
+			
 			file = await this.vault.createBinary(
-				//@ts-ignore
-				this.app.vault.getAvailablePath(`${this.attachmentPath}/${outName}`, outExt), 
-				await fsPromises.readFile(sourcePath),
+				outPath, binary,
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
 		}
-		catch {
+		catch (e) {
+			console.error(e);
 			return null;
 		}	
 		
@@ -365,13 +380,30 @@ export class AppleNotesImporter extends FormatImporter {
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 	
-	getAttachmentPath(): string {
-		let attachmentPath = this.app.vault.getConfig('attachmentFolderPath');
-		if (attachmentPath.startsWith('/')) attachmentPath = attachmentPath.substring(1);
+	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer> {
+		try {
+			return await fsPromises.readFile(path.join(account.path, sourcePath));
+		}
+		catch (e) {
+			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
+		}
+	}
+	
+	async getAttachmentFolder(note: TFile): Promise<string> {
+		if (this.cachedAttachmentPath) return this.cachedAttachmentPath;
 		
-		const outPath = path.join(attachmentPath, `${this.outputLocation} Attachments`);
+		let attachmentSetting = this.app.vault.getConfig('attachmentFolderPath');
+		let attachmentPath = parseFilePath(
+			//@ts-ignore
+			await this.app.vault.getAvailablePathForAttachments(note.basename, note.extension, note)
+		).parent;
 		
-		this.createFolders(outPath);
-		return outPath;
+		if (!attachmentSetting.startsWith('./')) {
+			attachmentPath = path.join(attachmentSetting, `${this.outputLocation} Attachments`);
+			this.cachedAttachmentPath = attachmentPath;
+		}
+		
+		this.createFolders(attachmentPath);
+		return attachmentPath;
 	}
 }

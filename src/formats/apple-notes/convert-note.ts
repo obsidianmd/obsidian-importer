@@ -341,7 +341,8 @@ export class NoteConverter extends ANConverter {
 			case ANAttachment.ModifiedScan:
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`
-					SELECT z_pk FROM ziccloudsyncingobject 
+					SELECT z_pk, zhandwritingsummary 
+					FROM (SELECT *, NULL AS zhandwritingsummary FROM ziccloudsyncingobject) 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				id = row?.Z_PK;
@@ -364,9 +365,15 @@ export class NoteConverter extends ANConverter {
 		}
 
 		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
-		if (!attachment) return ` **(error reading attachment)**`;
-
-		return `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n`;
+		let link = attachment
+			? `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n` 
+			: ` **(error reading attachment)**`;
+		
+		if (this.importer.includeHandwriting && row.ZHANDWRITINGSUMMARY) {
+			link = `\n> [!Handwriting]-\n> ${row.ZHANDWRITINGSUMMARY.replace('\n', '\n> ')}${link}`;
+		}
+		
+		return link;
 	}
 
 	async getInternalLink(uri: string, name: string | undefined = undefined): Promise<string> {
