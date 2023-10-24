@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-importer",
 	"name": "Importer",
-	"version": "1.5.2",
+	"version": "1.5.3",
 	"minAppVersion": "0.15.0",
 	"description": "Import notes from various apps and formats to Obsidian.",
 	"author": "Obsidian",
