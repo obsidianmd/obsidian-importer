@@ -24,7 +24,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 
 	let frontMatter: FrontMatterCache = {};
 
-	const rawProperties = dom.find('table[class=properties] > tbody') as HTMLTableSectionElement;
+	const rawProperties = dom.find('table[class=properties] > tbody') as HTMLTableSectionElement | undefined;
 	if (rawProperties) {
 		const propertyLinks = getNotionLinks(info, rawProperties);
 		convertLinksToObsidian(info, propertyLinks, false);
@@ -36,6 +36,11 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 			if (property) {
 				if (property.title == 'Tags') {
 					property.title = 'tags';
+					if (typeof property.content === 'string') {
+						property.content = property.content.replace(/ /g, '-')
+					} else if (property.content instanceof Array) {
+						property.content = property.content.map(tag => tag.replace(/ /g, '-'))
+					}
 				}
 				frontMatter[property.title] = property.content;
 			}
@@ -45,10 +50,12 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	replaceNestedTags(body, 'strong');
 	replaceNestedTags(body, 'em');
 	fixNotionEmbeds(body);
+	fixNotionCallouts(body);
 	stripLinkFormatting(body);
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
 	fixEquations(body);
+
 	// Some annoying elements Notion throws in as wrappers, which mess up .md
 	replaceElementsWithChildren(body, 'div.indented');
 	replaceElementsWithChildren(body, 'details');
@@ -61,11 +68,17 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	formatDatabases(body);
 
 	let htmlString = body.innerHTML;
+	
 	// Simpler to just use the HTML string for this replacement
 	splitBrsInFormatting(htmlString, 'strong');
 	splitBrsInFormatting(htmlString, 'em');
+	
 
 	let markdownBody = htmlToMarkdown(htmlString);
+	if (info.singleLineBreaks) {
+		markdownBody = singleLineBreaks(markdownBody);
+	}
+	
 	markdownBody = escapeHashtags(markdownBody);
 	markdownBody = fixDoubleBackslash(markdownBody);
 
@@ -94,6 +107,10 @@ const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
 		'created_by',
 	],
 };
+
+function singleLineBreaks(markdownBody: string) {
+	return markdownBody.replace(/\n\n(?!>)/g, '\n')
+}
 
 function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined {
 	const notionType = property.className.match(/property-row-(.*)/)?.[1] as NotionPropertyType;
@@ -150,7 +167,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 				if (!itemContent) continue;
 				childList.push(itemContent);
 			}
-			content = childList;
+			content = childList;			
 			if (content.length === 0) return;
 			break;
 		case 'text':
@@ -217,13 +234,40 @@ function fixEquations(body: HTMLElement) {
 	}
 }
 
+function stripToSentence(paragraph: string) {
+	const firstSentence = paragraph.match(/^[^\.\?\!\n]*[\.\?\!]?/)?.[0]
+	return firstSentence ?? ''
+}
+
+function isCallout(element: Element) {
+	if (/callout|bookmark/.test(element.getAttribute('class') ?? '')) {
+		return true
+	}
+	return false
+}
+
+function fixNotionCallouts(body: HTMLElement) {
+	for (let callout of body.findAll('figure.callout')) {
+		const description = callout.children[1].textContent
+		let calloutBlock = `> [!important]\n> ${description}\n`
+		if (callout.nextElementSibling && isCallout(callout.nextElementSibling)) {
+			calloutBlock += '\n'
+		}
+		callout.replaceWith(calloutBlock)
+	}
+}
+
 function fixNotionEmbeds(body: HTMLElement) {
 	// Notion embeds are a box with images and description, we simplify for Obsidian.
 	for (let embed of body.findAll('a.bookmark.source')) {
 		const link = embed.getAttribute('href');
 		const title = embed.find('div.bookmark-title')?.textContent;
-		const description = embed.find('div.bookmark-description')?.textContent;
-		const calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
+		const description = stripToSentence(embed.find('div.bookmark-description')?.textContent ?? '');
+		let calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
+		if (embed.nextElementSibling && isCallout(embed.nextElementSibling)) {
+			// separate callouts with spaces
+			calloutBlock += '\n'
+		}
 		embed.replaceWith(calloutBlock);
 	}
 }
