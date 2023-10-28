@@ -148,7 +148,7 @@ export abstract class FormatImporter {
 	 */
 	async createFolders(path: string): Promise<TFolder> {
 		// can't create folders starting with a dot
-		const sanitizedPath = path.replace(/^\./g, '').replace(/\/\./g, '/');
+		const sanitizedPath = path.split('/').map(segment => segment.replace(/^\.+/, '')).join('/');
 		let normalizedPath = normalizePath(sanitizedPath);
 		let folder = this.vault.getAbstractFileByPathInsensitive(normalizedPath);
 		if (folder && folder instanceof TFolder) {

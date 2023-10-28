@@ -27,11 +27,13 @@ export class NotionImporter extends FormatImporter {
 				.onChange((value) => (this.parentsInSubfolders = value)));
 
 		new Setting(this.modal.contentEl)
-		.setName('Single line breaks')
-		.setDesc('Separate Notion blocks with only one line break (default is 2).')
-		.addToggle((toggle) => toggle
-			.setValue(this.singleLineBreaks)
-			.onChange((value) => (this.singleLineBreaks = value)));
+			.setName('Single line breaks')
+			.setDesc('Separate Notion blocks with only one line break (default is 2).')
+			.addToggle((toggle) => toggle
+				.setValue(this.singleLineBreaks)
+				.onChange((value) => {
+					this.singleLineBreaks = value;
+				}));
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -157,9 +159,9 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 
 					// throw an error for Notion Markdown exports
 					if (entry.extension === 'md' && getNotionId(entry.name)) {
-						new Notice('Notion Markdown export detected. Please export Notion data to HTML instead.')
-						ctx.cancel()
-						throw new Error('Notion importer uses only HTML exports. Please use the correct format.')
+						new Notice('Notion Markdown export detected. Please export Notion data to HTML instead.');
+						ctx.cancel();
+						throw new Error('Notion importer uses only HTML exports. Please use the correct format.');
 					}
 
 					// Skip databses in CSV format

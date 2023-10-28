@@ -72,7 +72,7 @@ export class NotionResolverInfo {
 
 	constructor(attachmentPath: string, singleLineBreaks: boolean) {
 		this.attachmentPath = attachmentPath;
-		this.singleLineBreaks = singleLineBreaks
+		this.singleLineBreaks = singleLineBreaks;
 	}
 
 	getPathForFile(fileInfo: NotionFileInfo | NotionAttachmentInfo) {
