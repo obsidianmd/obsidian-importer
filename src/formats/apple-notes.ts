@@ -233,10 +233,13 @@ export class AppleNotesImporter extends FormatImporter {
 		const row = await this.database.get`
 			SELECT 
 				nd.z_pk, hex(nd.zdata) as zhexdata, zcso.ztitle1, zfolder, 
-				zcreationdate2, zcreationdate3, zmodificationdate1, zispasswordprotected
+				zcreationdate1, zcreationdate2, zcreationdate3, zmodificationdate1, zispasswordprotected
 			FROM
 				zicnotedata AS nd, 
-				(SELECT *, NULL AS zcreationdate3 FROM ziccloudsyncingobject) AS zcso 
+				(SELECT 
+					*, NULL AS zcreationdate3, NULL AS zcreationdate2,
+					NULL AS zispasswordprotected FROM ziccloudsyncingobject
+				) AS zcso 
 			WHERE
 				zcso.z_pk = nd.znote
 				AND zcso.z_pk = ${id}
@@ -260,7 +263,7 @@ export class AppleNotesImporter extends FormatImporter {
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 		
 		this.vault.modify(file, await converter.format(), { 
-			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2),
+			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1) 
 		});
 		
