@@ -26,11 +26,12 @@ export const sqlToJson = (sql) => {
 			while (i < sql.length) {
 				if (sql[i] != '\'') {
 					// Not quote
-					token += sql[i];
-					i++;
+					const offset = sql.indexOf('\'', i);
+					token += sql.substring(i, offset);
+					i = offset;
 				}
 				else if (sql[i + 1] == '\'') {
-					// Escaped quote 
+					// Escaped quote ('')
 					token += sql[i];
 					i += 2;
 				}
@@ -48,13 +49,13 @@ export const sqlToJson = (sql) => {
 		}
 		else { 
 			// Number
-			while (i < sql.length) {
-				token += sql[i];
-				i++;
-				if (sql[i] == ',' || sql[i] == '\n') break;
-			}
+			let offset = Math.min(
+				...[sql.indexOf(',', i), sql.indexOf('\n', i)].filter(a => a > 0),
+				sql.length - 1
+			);
 			
-			token = parseFloat(token);
+			token = parseFloat(sql.substring(i, offset));
+			i = offset;
 		}
 		
 		if (columnPos == -1) columnNames.push(token);
