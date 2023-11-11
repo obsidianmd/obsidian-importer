@@ -42,7 +42,7 @@ export const sqlToJson = (sql) => {
 				}
 			}
 		}
-		else if (sql[i] == 'N') { 
+		else if (sql[i] === 'N') { 
 			// Null
 			token = null;
 			i += 4;
