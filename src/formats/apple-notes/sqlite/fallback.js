@@ -19,7 +19,7 @@ export const sqlToJson = (sql) => {
 	while (i < sql.length) {
 		let token = '';
 		
-		if (sql[i] == '\'') {
+		if (sql[i] === '\'') {
 			// String/hex-encoded blob
 			i++;
 						
