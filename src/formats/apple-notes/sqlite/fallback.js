@@ -24,7 +24,7 @@ export const sqlToJson = (sql) => {
 			i++;
 						
 			while (i < sql.length) {
-				if (sql[i] != '\'') {
+				if (sql[i] !== '\'') {
 					// Not quote
 					const offset = sql.indexOf('\'', i);
 					token += sql.substring(i, offset);
