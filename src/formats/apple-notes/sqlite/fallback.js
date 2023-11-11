@@ -30,7 +30,7 @@ export const sqlToJson = (sql) => {
 					token += sql.substring(i, offset);
 					i = offset;
 				}
-				else if (sql[i + 1] == '\'') {
+				else if (sql[i + 1] === '\'') {
 					// Escaped quote ('')
 					token += sql[i];
 					i += 2;
