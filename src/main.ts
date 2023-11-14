@@ -190,6 +190,11 @@ export class ImportContext {
 		this.statusEl.hide();
 	}
 
+	hideStatus() {
+		this.progressBarEl.hide();
+		this.statusEl.hide();
+	}
+
 	/**
 	 * Check if the user has cancelled this run.
 	 */
@@ -406,6 +411,7 @@ export class ImporterModal extends Modal {
 							buttonsEl.createEl('button', { text: 'Back' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
+							ctx.hideStatus();
 						}
 					});
 				});
