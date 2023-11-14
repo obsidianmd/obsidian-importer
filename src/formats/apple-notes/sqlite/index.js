@@ -1,12 +1,14 @@
 import { Platform } from 'obsidian';
 import { os, path } from '../../../filesystem';
+import { supportsJson, sqlToJson } from './fallback';
 import { error, raw, sql } from './utils.js';
 
-const crypto = Platform.isDesktopApp ? window.require('node:crypto') : null;
-const child_process = Platform.isDesktopApp ? window.require('node:child_process') : null;
+export const crypto = Platform.isDesktopApp ? window.require('node:crypto') : null;
+export const child_process = Platform.isDesktopApp ? window.require('node:child_process') : null;
 
 const UNIQUE_ID = crypto?.randomUUID();
-const UNIQUE_ID_LINE = `[{"_":"${UNIQUE_ID}"}]\n`;
+const UNIQUE_ID_LINE_JSON = `[{"_":"${UNIQUE_ID}"}]\n`;
+const UNIQUE_ID_LINE_SQL = `'_'\n'${UNIQUE_ID}'\n`;
 
 const { isArray } = Array;
 const { parse } = JSON;
@@ -48,10 +50,14 @@ const defaultExec = (res, rej, type, bin, args, opts) => {
 	});
 };
 
-const interactiveExec = (bin, db, timeout) => {
-	const { stdin, stdout, stderr } = child_process.spawn(bin, [db]);
-	stdin.write('.mode json\n');
+const interactiveExec = (bin, args, timeout) => {
+	const hasJson = supportsJson(bin);
+	const uniqueIdLine = hasJson ? UNIQUE_ID_LINE_JSON : UNIQUE_ID_LINE_SQL;
 	
+	const { stdin, stdout, stderr } = child_process.spawn(bin, args);
+	if (hasJson) stdin.write('.mode json\n');
+	else stdin.write(`.mode quote\n.headers on\n`);
+
 	if (timeout) stdin.write(`.timeout ${timeout}\n`);
 	let next = Promise.resolve();
 	
@@ -69,20 +75,20 @@ const interactiveExec = (bin, db, timeout) => {
 						out += data;
 						let process = false;
 						
-						while (out.endsWith(UNIQUE_ID_LINE)) {
+						while (out.endsWith(uniqueIdLine)) {
 							process = true;
-							out = out.slice(0, -UNIQUE_ID_LINE.length);
+							out = out.slice(0, -uniqueIdLine.length);
 						}
 						
 						if (process) {
 							dropListeners();
 							// this one is funny *but* apparently possible
 							/* c8 ignore next 2 */
-							while (out.startsWith(UNIQUE_ID_LINE)) out = out.slice(UNIQUE_ID_LINE.length);
+							while (out.startsWith(uniqueIdLine)) out = out.slice(uniqueIdLine.length);
 
 							if (type === 'query') res(out);
 							else {
-								const json = parse(out || '[]');
+								const json = hasJson ? parse(out || '[]') : sqlToJson(out);
 								res(type === 'get' ? json.shift() : json);
 							}
 						}
@@ -174,7 +180,7 @@ export default function SQLiteTag(db, options = {}) {
 	const json = args.concat('-json');
 	const exec = options.exec || (
 		options.persistent ?
-			interactiveExec(bin, db, timeout) :
+			interactiveExec(bin, args, timeout) :
 			defaultExec
 	);
 
