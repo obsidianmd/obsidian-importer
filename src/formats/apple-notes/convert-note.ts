@@ -78,7 +78,7 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false): Promise<string> {
 		let fragments = this.parseTokens();
-		let firstLineSkip = !table && this.importer.omitFirstLine;
+		let firstLineSkip = !table && this.importer.omitFirstLine && this.note.noteText.contains('\n');
 		let converted = '';
 
 		for (let j = 0; j < fragments.length; j++) {
