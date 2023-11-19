@@ -1,5 +1,3 @@
-import { KeepJson } from './models';
-
 let potentialTagsRe = /(#[^ ^#]*)/g; // Finds any non-whitespace sections starting with #
 let illegalTagCharsRe = /[\\:*?<>\"|!@#$%^&()+=\`\'~;,.]/g;
 

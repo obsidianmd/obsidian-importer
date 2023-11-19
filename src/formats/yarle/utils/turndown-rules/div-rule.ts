@@ -20,8 +20,6 @@ const getTaskGroupId = (node: any) => {
 export const divRule = {
 	filter: filterByNodeName('DIV'),
 	replacement: (content: string, node: any) => {
-		const nodeProxy = getAttributeProxy(node);
-
 		return (isTaskBlock(node))
 			? `<YARLE-EN-V10-TASK>${getTaskGroupId(node)}</YARLE-EN-V10-TASK>`
 			: (yarleOptions.monospaceIsCodeBlock)

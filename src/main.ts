@@ -1,10 +1,13 @@
-import { App, Modal, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
+import { AppleNotesImporter } from './formats/apple-notes';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { OneNoteImporter } from './formats/onenote';
+import { RoamJSONImporter } from './formats/roam-json';
 import { truncateText } from './util';
 
 declare global {
@@ -21,6 +24,18 @@ interface ImporterDefinition {
 	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
+
+
+/**
+ * URI to use as the callback for OAuth applications.
+ */
+export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
+
+/**
+ * AuthCallback is a function which will be called when the importer-auth
+ * protocal is opened by an OAuth callback.
+ */
+export type AuthCallback = (data: any) => void;
 
 // Temporary compatibility for in progress PRs
 export type ProgressReporter = ImportContext;
@@ -175,6 +190,11 @@ export class ImportContext {
 		this.statusEl.hide();
 	}
 
+	hideStatus() {
+		this.progressBarEl.hide();
+		this.statusEl.hide();
+	}
+
 	/**
 	 * Check if the user has cancelled this run.
 	 */
@@ -186,8 +206,16 @@ export class ImportContext {
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
+	authCallback: AuthCallback | undefined;
+
 	async onload() {
 		this.importers = {
+			'apple-notes': {
+				name: 'Apple Notes',
+				optionText: 'Apple Notes',
+				importer: AppleNotesImporter,
+				helpPermalink: 'import/apple-notes'
+			},
 			'bear': {
 				name: 'Bear',
 				optionText: 'Bear (.bear2bk)',
@@ -212,12 +240,25 @@ export default class ImporterPlugin extends Plugin {
 				importer: HtmlImporter,
 				helpPermalink: 'import/html',
 			},
+			'onenote': {
+				name: 'Microsoft OneNote',
+				optionText: 'Microsoft OneNote',
+				importer: OneNoteImporter,
+				helpPermalink: 'import/onenote',
+			},
 			'notion': {
 				name: 'Notion',
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
+			},
+			'roam-json': {
+				name: 'Roam Research',
+				optionText: 'Roam Research (.json)',
+				importer: RoamJSONImporter,
+				helpPermalink: 'import/roam',
+				formatDescription: 'Export your Roam Research workspace to JSON format.',
 			},
 		};
 
@@ -232,6 +273,17 @@ export default class ImporterPlugin extends Plugin {
 				new ImporterModal(this.app, this).open();
 			},
 		});
+
+		this.registerObsidianProtocolHandler('importer-auth',
+			(data) => {
+				if (this.authCallback) {
+					this.authCallback(data);
+					this.authCallback = undefined;
+					return;
+				}
+
+				new Notice('Unexpected auth event. Please restart the auth process.');
+			});
 
 		// For development, un-comment this and tweak it to your importer:
 
@@ -250,6 +302,17 @@ export default class ImporterPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	/**
+	 * Register a function to be called when the `obsidian://importer-auth/` open
+	 * event is received by Obsidian.
+	 *
+	 * Note: The callback will be cleared after being called. It must be
+	 * reregistered if a subsequent auth event is expected.
+	 */
+	public registerAuthCallback(callback: AuthCallback): void {
+		this.authCallback = callback;
 	}
 }
 
@@ -312,7 +375,11 @@ export class ImporterModal extends Modal {
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
 
-			contentEl.createDiv('modal-button-container u-center-text', el => {
+			//Hide the import buttons if it's not available.
+			//The actual message to display is handled by the importer, since it depends on what is being imported.
+			if (importer.notAvailable) return;
+
+			contentEl.createDiv('modal-button-container', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 					el.addEventListener('click', async () => {
 						if (this.current) {
@@ -323,7 +390,7 @@ export class ImporterModal extends Modal {
 
 						let ctx = this.current = new ImportContext(progressEl);
 
-						let buttonsEl = contentEl.createDiv('modal-button-container u-center-text');
+						let buttonsEl = contentEl.createDiv('modal-button-container');
 						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
 							el.addEventListener('click', () => {
 								ctx.cancel();
@@ -344,6 +411,7 @@ export class ImporterModal extends Modal {
 							buttonsEl.createEl('button', { text: 'Back' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
+							ctx.hideStatus();
 						}
 					});
 				});
@@ -359,4 +427,3 @@ export class ImporterModal extends Modal {
 		}
 	}
 }
-

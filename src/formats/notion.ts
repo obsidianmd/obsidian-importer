@@ -1,4 +1,4 @@
-import { normalizePath, Notice, Setting } from 'obsidian';
+import { normalizePath, Notice, Setting, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
@@ -10,7 +10,10 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
+	
+	
 	parentsInSubfolders: boolean;
+	singleLineBreaks: boolean;
 
 	init() {
 		this.parentsInSubfolders = true;
@@ -22,6 +25,15 @@ export class NotionImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
+
+		new Setting(this.modal.contentEl)
+			.setName('Single line breaks')
+			.setDesc('Separate Notion blocks with only one line break (default is 2).')
+			.addToggle((toggle) => toggle
+				.setValue(this.singleLineBreaks)
+				.onChange((value) => {
+					this.singleLineBreaks = value;
+				}));
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -42,7 +54,7 @@ export class NotionImporter extends FormatImporter {
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
 
-		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '');
+		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '', this.singleLineBreaks);
 
 		// loads in only path & title information to objects
 		ctx.status('Looking for files to import');
@@ -102,9 +114,19 @@ export class NotionImporter extends FormatImporter {
 					ctx.status(`Importing note ${fileInfo.title}`);
 
 					const markdownBody = await readToMarkdown(info, file);
+					let writeOptions: DataWriteOptions = {};
+
+					if (fileInfo.ctime) {
+						writeOptions.ctime = fileInfo.ctime.getTime();
+						writeOptions.mtime = fileInfo.ctime.getTime();
+					}
+
+					if (fileInfo.mtime) {
+						writeOptions.mtime = fileInfo.mtime.getTime();
+					}
 
 					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
-					await vault.create(path, markdownBody);
+					await vault.create(path, markdownBody, writeOptions);
 					ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
@@ -135,6 +157,13 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 
+					// throw an error for Notion Markdown exports
+					if (entry.extension === 'md' && getNotionId(entry.name)) {
+						new Notice('Notion Markdown export detected. Please export Notion data to HTML instead.');
+						ctx.cancel();
+						throw new Error('Notion importer uses only HTML exports. Please use the correct format.');
+					}
+
 					// Skip databses in CSV format
 					if (entry.extension === 'csv' && getNotionId(entry.name)) continue;
 
@@ -144,7 +173,7 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 					// Only recurse into zip files if they are at the root of the parent zip
 					// because users can attach zip files to Notion, and they should be considered
 					// attachment files.
-					if (entry.extension === 'zip' && entry.parent === '' && getNotionId(entry.name)) {
+					if (entry.extension === 'zip' && entry.parent === '') {
 						try {
 							await processZips(ctx, [entry], callback);
 						}

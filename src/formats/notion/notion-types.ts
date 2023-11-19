@@ -52,6 +52,8 @@ export interface NotionFileInfo {
 	parentIds: string[];
 	path: string;
 	fullLinkPathNeeded: boolean;
+	ctime: Date | null;
+	mtime: Date | null;
 }
 
 export interface NotionAttachmentInfo {
@@ -66,9 +68,11 @@ export class NotionResolverInfo {
 	idsToFileInfo: Record<string, NotionFileInfo> = {};
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 	attachmentPath: string;
+	singleLineBreaks: boolean;
 
-	constructor(attachmentPath: string) {
+	constructor(attachmentPath: string, singleLineBreaks: boolean) {
 		this.attachmentPath = attachmentPath;
+		this.singleLineBreaks = singleLineBreaks;
 	}
 
 	getPathForFile(fileInfo: NotionFileInfo | NotionAttachmentInfo) {

@@ -54,3 +54,11 @@ export function escapeHashtags(body: string) {
 	body = lines.join('\n');
 	return body;
 }
+
+/**
+ * Hoists all child nodes of this node to where this node used to be,
+ * removing this node altogether from the DOM.
+ */
+export function hoistChildren(el: ChildNode) {
+	el.replaceWith(...Array.from(el.childNodes));
+}

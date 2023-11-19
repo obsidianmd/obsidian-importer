@@ -2,21 +2,7 @@
 
 This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
-## Supported formats
-
-You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
-
-- [x] Evernote `.enex`
-- [x] HTML, folder of files
-- [x] Notion, `.zip` of HTML files
-- [x] Bear `.bear2bk`
-- [x] Google Keep
-- [ ] Apple Notes
-- [ ] Microsoft OneNote
-- [ ] Roam Research
-- [ ] Other Markdown flavors
-
-## Usage
+## Get started
 
 Install Importer in Obsidian → Community Plugins.
 
@@ -34,14 +20,19 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 ## Contributing
 
-This repo accepts contributions. Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). See [Contribution guidelines](/CONTRIBUTING.md) for more information.
+Is a format missing? You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
+
+Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty).
 
 ## Credits
 
 This plugin relies on important contributions:
 
-- [Yarle](https://github.com/akosbalasko/yarle) (MIT) by [@akosbalasko](https://github.com/akosbalasko) is used for Evernote import
-- @daledesilva for Google Keep import
-- @arthurtyukayev for Bear import
-- @joshuatazrein for Notion import
-- @polyipseity for HTML attachments import
+- [@akosbalasko](https://github.com/akosbalasko) for Evernote import via [Yarle](https://github.com/akosbalasko/yarle) (MIT)
+- [@daledesilva](https://github.com/daledesilva) for Google Keep import
+- [@arthurtyukayev](https://github.com/arthurtyukayev) for Bear import
+- [@joshuatazrein](https://github.com/joshuatazrein) for Notion import
+- [@polyipseity](https://github.com/polyipseity) for HTML attachments
+- [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
+- [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
+- [@mirnovov](https://github.com/mirnovov) for Apple Notes import
