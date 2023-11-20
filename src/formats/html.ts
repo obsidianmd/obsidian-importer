@@ -109,7 +109,7 @@ export class HtmlImporter extends FormatImporter {
 				try {
 					// Attempt to parse links using MetadataCache
 					let mdContent = await this.app.vault.cachedRead(tFile);
-					let cache;
+					let cache: CachedMetadata | null;
 					// @ts-ignore
 					if (metadataCache.computeMetadataAsync) {
 						// @ts-ignore
@@ -125,7 +125,7 @@ export class HtmlImporter extends FormatImporter {
 					if (cache.links) {
 						for (const { link, position, displayText } of cache.links) {
 							const { path, subpath } = parseLinktext(link);
-							let linkKey;
+							let linkKey: string;
 							if (nodeUrl) {
 								const url = new URL(encodeURI(path), fileKey);
 								url.hash = '';
@@ -135,8 +135,9 @@ export class HtmlImporter extends FormatImporter {
 							else {
 								linkKey = parseFilePath(path.replace(/#/gu, '%23')).name;
 							}
-							if (fileLookup.has(linkKey)) {
-								const newLink = this.app.fileManager.generateMarkdownLink(fileLookup.get(linkKey)!.tFile, tFile.path, subpath, displayText);
+							const linkFile = fileLookup.get(linkKey);
+							if (linkFile) {
+								const newLink = this.app.fileManager.generateMarkdownLink(linkFile.tFile, tFile.path, subpath, displayText);
 								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
 							}
 						}
