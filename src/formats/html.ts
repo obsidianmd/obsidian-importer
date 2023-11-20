@@ -89,8 +89,10 @@ export class HtmlImporter extends FormatImporter {
 
 		if (fileLookup.size > 0) {
 			const { metadataCache } = this.app;
+
 			// @ts-ignore
 			if (!metadataCache.computeMetadataAsync) {
+				// Ensures the cache is not outdated
 				const aFile = fileLookup.values().next().value;
 				const resolved = new Promise<void>(resolve => {
 					const ref = this.app.metadataCache.on('resolved', () => {
@@ -99,7 +101,7 @@ export class HtmlImporter extends FormatImporter {
 					});
 				});
 				const appended = '\n';
-				await this.app.vault.append(aFile, appended); // ensure the `resolved` callback is triggered and `await resolved` will not never resolve
+				await this.app.vault.append(aFile, appended); // Ensures the `resolved` callback is triggered and `await resolved` will not never resolve
 				await resolved;
 				await this.app.vault.process(aFile, data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 			}
