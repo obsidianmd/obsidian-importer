@@ -99,7 +99,7 @@ export class HtmlImporter extends FormatImporter {
 					});
 				});
 				const appended = '\n';
-				await this.app.vault.append(aFile, appended);
+				await this.app.vault.append(aFile, appended); // ensure the `resolved` callback is triggered and `await resolved` will not never resolve
 				await resolved;
 				await this.app.vault.process(aFile, data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 			}
