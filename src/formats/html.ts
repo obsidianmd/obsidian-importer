@@ -76,14 +76,25 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
+		let resolved: Promise<void> | undefined;
+
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			if (ctx.isCancelled()) return;
 			ctx.reportProgress(i, files.length);
+			const prevResolved = resolved;
+			resolved = new Promise<void>(resolve => {
+				const ref = this.app.metadataCache.on('resolved', () => {
+					this.app.metadataCache.offref(ref);
+					resolve();
+				});
+			})
 			const file = files[i];
 			const tFile = await this.processFile(ctx, folder, file);
 			if (tFile) {
 				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, { file, tFile });
+			} else {
+				resolved = prevResolved;
 			}
 		}
 
@@ -93,17 +104,7 @@ export class HtmlImporter extends FormatImporter {
 			// @ts-ignore
 			if (!metadataCache.computeMetadataAsync) {
 				// Ensures the cache is not outdated
-				const aFile = fileLookup.values().next().value;
-				const resolved = new Promise<void>(resolve => {
-					const ref = this.app.metadataCache.on('resolved', () => {
-						this.app.metadataCache.offref(ref);
-						resolve();
-					});
-				});
-				const appended = '\n';
-				await this.app.vault.append(aFile, appended); // Ensures the `resolved` callback is triggered and `await resolved` will not never resolve
 				await resolved;
-				await this.app.vault.process(aFile, data => data.endsWith(appended) ? data.slice(0, -appended.length) : data);
 			}
 
 			for (const [fileKey, { file, tFile }] of fileLookup) {
