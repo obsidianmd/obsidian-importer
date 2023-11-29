@@ -339,6 +339,8 @@ export class NoteConverter extends ANConverter {
 				return await converter.format();
 
 			case ANAttachment.ModifiedScan:
+			case ANAttachment.DrawingLegacy:
+			case ANAttachment.DrawingLegacy2:
 			case ANAttachment.Drawing:
 				row = await this.importer.database.get`
 					SELECT z_pk, zhandwritingsummary 
