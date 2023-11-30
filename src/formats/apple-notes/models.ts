@@ -160,6 +160,8 @@ export interface ANAttachmentInfo extends Message {
 
 export enum ANAttachment {
 	Drawing = 'com.apple.paper',
+	DrawingLegacy = 'com.apple.drawing',
+	DrawingLegacy2 = 'com.apple.drawing.2',
 	Hashtag = 'com.apple.notes.inlinetextattachment.hashtag',
 	Mention = 'com.apple.notes.inlinetextattachment.mention',
 	InternalLink = 'com.apple.notes.inlinetextattachment.link',
