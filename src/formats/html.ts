@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import {
 	fsPromises,
 	nodeBufferToArrayBuffer,
@@ -75,10 +75,89 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
+		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
+		let resolved: Promise<void> | undefined;
+
+		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			if (ctx.isCancelled()) return;
 			ctx.reportProgress(i, files.length);
-			await this.processFile(ctx, folder, files[i]);
+			const prevResolved = resolved;
+			resolved = new Promise<void>(resolve => {
+				const ref = this.app.metadataCache.on('resolved', () => {
+					this.app.metadataCache.offref(ref);
+					resolve();
+				});
+			})
+			const file = files[i];
+			const tFile = await this.processFile(ctx, folder, file);
+			if (tFile) {
+				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, { file, tFile });
+			} else {
+				resolved = prevResolved;
+			}
+		}
+
+		if (fileLookup.size > 0) {
+			const { metadataCache } = this.app;
+
+			// @ts-ignore
+			if (!metadataCache.computeMetadataAsync) {
+				// Ensures the cache is not outdated
+				await resolved;
+			}
+
+			for (const [fileKey, { file, tFile }] of fileLookup) {
+				if (ctx.isCancelled()) return;
+				try {
+					// Attempt to parse links using MetadataCache
+					let mdContent = await this.app.vault.cachedRead(tFile);
+					let cache: CachedMetadata | null;
+					// @ts-ignore
+					if (metadataCache.computeMetadataAsync) {
+						// @ts-ignore
+						cache = await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata;
+					}
+					else {
+						cache = metadataCache.getFileCache(tFile);
+						if (!cache) continue;
+					}
+
+					// Gather changes to make to the document
+					const changes = [];
+					if (cache.links) {
+						for (const { link, position, displayText } of cache.links) {
+							const { path, subpath } = parseLinktext(link);
+							let linkKey: string;
+							if (nodeUrl) {
+								const url = new URL(encodeURI(path), fileKey);
+								url.hash = '';
+								url.search = '';
+								linkKey = decodeURIComponent(url.href);
+							}
+							else {
+								linkKey = parseFilePath(path.replace(/#/gu, '%23')).name;
+							}
+							const linkFile = fileLookup.get(linkKey);
+							if (linkFile) {
+								const newLink = this.app.fileManager.generateMarkdownLink(linkFile.tFile, tFile.path, subpath, displayText);
+								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
+							}
+						}
+					}
+
+					// Apply changes from last to first
+					changes.sort((a, b) => b.from - a.from);
+					for (const change of changes) {
+						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
+					}
+
+					await this.vault.modify(tFile, mdContent);
+				}
+				catch (e) {
+					ctx.reportFailed(file.fullpath, e);
+				}
+			}
 		}
 	}
 
@@ -185,10 +264,12 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			ctx.reportNoteSuccess(file.fullpath);
+			return mdFile;
 		}
 		catch (e) {
 			ctx.reportFailed(file.fullpath, e);
 		}
+		return null;
 	}
 
 	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL) {
