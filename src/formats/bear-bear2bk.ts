@@ -55,7 +55,7 @@ export class Bear2bkImporter extends FormatImporter {
 							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
-								ctx.reportSkipped(fullpath);
+								ctx.reportSkipped(fullpath, 'asset with filename already exists');
 							}
 							else {
 								const assetData = await entry.read();
@@ -64,7 +64,7 @@ export class Bear2bkImporter extends FormatImporter {
 							}
 						}
 						else {
-							ctx.reportSkipped(fullpath);
+							ctx.reportSkipped(fullpath, 'unknown type of file');
 						}
 					}
 					catch (e) {
