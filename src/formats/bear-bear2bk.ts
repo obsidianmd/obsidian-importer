@@ -1,8 +1,13 @@
-import { normalizePath, Notice } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { readZip } from '../zip';
+import { readZip, ZipEntryFile } from '../zip';
+
+type Metadata = {
+	ctime: number,
+	mtime: number,
+}
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -32,6 +37,7 @@ export class Bear2bkImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
+				const metaData = await this.colllectMetadata(entries);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
@@ -50,7 +56,13 @@ export class Bear2bkImporter extends FormatImporter {
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
 							}
 							let filePath = normalizePath(mdFilename);
-							await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
+							const file = await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
+
+							const writeOptions: DataWriteOptions = {
+								ctime: metaData[parent].ctime,
+								mtime: metaData[parent].mtime,
+							};
+							await this.vault.append(file, '', writeOptions);
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
@@ -76,6 +88,22 @@ export class Bear2bkImporter extends FormatImporter {
 				}
 			});
 		}
+	}
+
+	private async colllectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata; }> {
+		let metaData: { [key: string]: Metadata; } = {};
+		const infoEntries = entries.filter((entry) => entry.name === 'info.json');
+		for (let entry of infoEntries) {
+			const infoJson = await entry.readText();
+			const info = JSON.parse(infoJson);
+
+			const bearMetadata = info['net.shinyfrog.bear'];
+			metaData[entry.parent] = {
+				ctime: Date.parse(bearMetadata.creationDate),
+				mtime: Date.parse(bearMetadata.modificationDate),
+			};
+		}
+		return metaData;
 	}
 
 	/** Removes an H1 that is the first line of the content iff it matches the filename or is empty. */
