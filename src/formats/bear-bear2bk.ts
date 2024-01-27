@@ -7,6 +7,8 @@ import { readZip, ZipEntryFile } from '../zip';
 type Metadata = {
 	ctime: number,
 	mtime: number,
+	archived: boolean,
+	trashed: boolean,
 }
 
 export class Bear2bkImporter extends FormatImporter {
@@ -30,8 +32,10 @@ export class Bear2bkImporter extends FormatImporter {
 
 		let outputFolder = folder;
 
-		const attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
+		const attachmentsFolder = await this.createFolders(`${folder.path}/assets`);
 		const assetMatcher = /!\[\]\(assets\//g;
+		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
+		const trashFolder = await this.createFolders(`${folder.path}/trash`);
 
 		for (let file of files) {
 			if (ctx.isCancelled()) return;
@@ -53,16 +57,17 @@ export class Bear2bkImporter extends FormatImporter {
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
-								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
+								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/`);
 							}
 							const filePath = normalizePath(mdFilename);
-							const file = await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
+							const targetFolder = metadata[parent].archived ? archiveFolder : metadata[parent].trashed ? trashFolder : outputFolder;
+							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
 							await this.modifFileTimestamps(metadata[parent], file);
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + name);
-							const assetFileVaultPath = `${attachmentsFolderPath.path}/${name}`;
+							const assetFileVaultPath = `${attachmentsFolder.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
 								ctx.reportSkipped(fullpath, 'asset with filename already exists');
@@ -104,6 +109,8 @@ export class Bear2bkImporter extends FormatImporter {
 			metaData[entry.parent] = {
 				ctime: Date.parse(bearMetadata.creationDate),
 				mtime: Date.parse(bearMetadata.modificationDate),
+				archived: bearMetadata.archived === 1,
+				trashed: bearMetadata.trashed === 1,
 			};
 		}
 		return metaData;
