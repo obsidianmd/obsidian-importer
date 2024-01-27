@@ -1,4 +1,4 @@
-import { DataWriteOptions, normalizePath, Notice } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
@@ -37,7 +37,7 @@ export class Bear2bkImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
-				const metaData = await this.colllectMetadata(entries);
+				const metadata = await this.colllectMetadata(entries);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
@@ -55,14 +55,9 @@ export class Bear2bkImporter extends FormatImporter {
 								// Replace asset paths with new asset folder path.
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolderPath.path}/`);
 							}
-							let filePath = normalizePath(mdFilename);
+							const filePath = normalizePath(mdFilename);
 							const file = await this.saveAsMarkdownFile(outputFolder, filePath, mdContent);
-
-							const writeOptions: DataWriteOptions = {
-								ctime: metaData[parent].ctime,
-								mtime: metaData[parent].mtime,
-							};
-							await this.vault.append(file, '', writeOptions);
+							await this.modifFileTimestamps(metadata[parent], file);
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
@@ -88,6 +83,14 @@ export class Bear2bkImporter extends FormatImporter {
 				}
 			});
 		}
+	}
+
+	private async modifFileTimestamps(metaData: Metadata, file: TFile) {
+		const writeOptions: DataWriteOptions = {
+			ctime: metaData.ctime,
+			mtime: metaData.mtime,
+		};
+		await this.vault.append(file, '', writeOptions);
 	}
 
 	private async colllectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata; }> {
