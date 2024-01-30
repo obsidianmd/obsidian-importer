@@ -1,6 +1,6 @@
 const frontmatterDelimiter = '---\n';
-const sourceBlock = '{source-url-block}\nsource: {source-url}\n\n{end-source-url-block}';
-const tagBlock = '{tags-array-block}\ntags: {tags-array}\n\n{end-tags-array-block}';
+const sourceBlock = '{source-url-block}source: {source-url}{end-source-url-block}\n';
+const tagBlock = '{tags-yaml-list-block}\ntags: {tags-yaml-list}\n\n{end-tags-yaml-list-block}';
 const titleBlock = '{title-block}# {title}\n\n{end-title-block}';
 const contentBlock = '{content-block}{content}{end-content-block}\n';
 

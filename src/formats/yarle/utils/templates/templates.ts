@@ -1,7 +1,7 @@
 import { NoteData } from '../../models/NoteData';
 
 import { YarleOptions } from '../../options';
-import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate, applyTagsArrayTemplate, applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate } from './apply-functions';
+import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate, applyTagsArrayTemplate,applyTagsYamlListTemplate,  applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate } from './apply-functions';
 
 import * as T from './placeholders/metadata-placeholders';
 import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
@@ -13,7 +13,7 @@ export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) =>
 	result = applyTitleTemplate(noteData, result, () => noteData.title);
 	result = applyTagsTemplate(noteData, result, () => !yarleOptions.skipTags);
 	result = applyTagsArrayTemplate(noteData, result, () => !yarleOptions.skipTags);
-
+	result = applyTagsYamlListTemplate(noteData, result, () => !yarleOptions.skipTags);
 	result = applyContentTemplate(noteData, result, () => noteData.content);
 
 	result = removeLinkToOriginalTemplate(result);
