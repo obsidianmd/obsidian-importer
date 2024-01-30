@@ -93,7 +93,10 @@ const processResource = (workDir: string, resource: any): any => {
 	fs.writeFileSync(absFilePath, buffer);
 
 	const atime = accessTime.valueOf() / 1000;
-	fs.utimesSync(absFilePath, atime, atime);
+	try{
+		fs.utimesSync(absFilePath, atime, atime);
+	}
+	catch(e){}
 
 	if (resource.recognition && fileName) {
 		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
