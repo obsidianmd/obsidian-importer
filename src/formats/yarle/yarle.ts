@@ -184,14 +184,21 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
 	const outputNotebookFolders = [];
-
+	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {
 		if (ctx.isCancelled()) return;
-		utils.setPaths(enex);
+		if (enex.basename.includes('@@@')) {
+			utils.handleNotebookstacks(enex, options);
+
+
+		}
+		utils.setPaths(enex, options);
+
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
 		runtimeProps.setCurrentNotebookName(enex.basename);
 		await parseStream(options, enex, ctx);
 		outputNotebookFolders.push(utils.getNotesPath());
+		options.outputDir = orginalOutputDir;
 	}
 
 	if (ctx.isCancelled()) return;

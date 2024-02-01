@@ -1,5 +1,6 @@
 import { fs, path, PickedFile } from '../../../filesystem';
 import { genUid } from '../../../util';
+import { YarleOptions } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { yarleOptions } from '../yarle';
 
@@ -119,7 +120,20 @@ export const clearResourceDir = (note: any): void => {
 	resourceDirClears.set(resPath, clears + 1);
 };
 
-export const setPaths = (enexSource: PickedFile): void => {
+export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): void => {
+	const notebookFolderNames = enex.basename.split('@@@');
+	let notebookName = notebookFolderNames.pop();
+	if (!notebookName){
+		notebookName = enex.basename;
+	}
+	fs.mkdirSync(path.join(options.outputDir, ...notebookFolderNames), { recursive: true });
+	enex.fullpath = enex.fullpath.replace(enex.basename, notebookName || enex.basename);
+	enex.name = enex.name.replace(enex.basename, notebookName || enex.basename);
+	options.outputDir = [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
+	enex.basename = notebookName;
+};
+
+export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions): void => {
 	const enexFile = enexSource.basename;
 
 	const outputDir = path.isAbsolute(yarleOptions.outputDir)
