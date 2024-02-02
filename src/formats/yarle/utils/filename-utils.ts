@@ -37,7 +37,10 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 
 	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
 		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, 50);
-		fileName = fileNamePrefix.includes('.') ? fileNamePrefix.split('.').slice(0, -1).join('.') : fileNamePrefix;
+		const lastIdx = fileNamePrefix.lastIndexOf('.');
+		fileName = lastIdx !== -1
+			? fileNamePrefix.slice(0, lastIdx)
+			: fileNamePrefix;
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>\[\]\+]/g, '-');
 
