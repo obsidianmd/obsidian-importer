@@ -1,9 +1,9 @@
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, parseHTML } from '../util';
+import { genUid, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
-import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
+import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment, PublicError } from '@microsoft/microsoft-graph-types';
 
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
@@ -213,10 +213,10 @@ export class OneNoteImporter extends FormatImporter {
 
 			let sectionFolder: TFolder;
 			if (section.parentSectionGroup) {
-				let sectionGroupFolder: TFolder = await this.createFolders(outputFolder.path + '/' + section.parentSectionGroup.displayName);
-				sectionFolder = await this.createFolders(sectionGroupFolder.path + '/' + section.displayName);
+				let sectionGroupFolder: TFolder = await this.createFolders(outputFolder.path + '/' + sanitizeFileName(section.parentSectionGroup.displayName!));
+				sectionFolder = await this.createFolders(sectionGroupFolder.path + '/' + sanitizeFileName(section.displayName!));
 			}
-			else sectionFolder = await this.createFolders(outputFolder.path + '/' + section.displayName);
+			else sectionFolder = await this.createFolders(outputFolder.path + '/' + sanitizeFileName(section.displayName!));
 
 			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?$select=id,title,createdDateTime,lastModifiedDateTime`;
 			let pages: OnenotePage[] = (await this.fetchResource(pagesUrl, 'json')).value;
@@ -265,7 +265,7 @@ export class OneNoteImporter extends FormatImporter {
 				parsedPage = this.convertDrawings(parsedPage);
 
 				let mdContent = htmlToMarkdown(parsedPage).trim();
-				const fileRef = await this.saveAsMarkdownFile(sectionFolder, page.title!, mdContent);
+				const fileRef = await this.saveAsMarkdownFile(sectionFolder, sanitizeFileName(page.title!), mdContent);
 
 				await this.fetchAttachmentQueue(progress, fileRef, outputFolder);
 
@@ -550,25 +550,43 @@ export class OneNoteImporter extends FormatImporter {
 			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
 			let responseBody;
 
-			switch (returnType) {
-				case 'text':
-					responseBody = await response.text();
-					break;
-				case 'file':
-					responseBody = await response.arrayBuffer();
-					break;
-				default:
-					responseBody = await response.json();
-					if ('@odata.nextLink' in responseBody) {
-						responseBody.value.push(...(await this.fetchResource(responseBody['@odata.nextLink'], 'json')).value);
-					}
-					break;
+			if (response.ok) {
+				switch (returnType) {
+					case 'text':
+						responseBody = await response.text();
+						break;
+					case 'file':
+						responseBody = await response.arrayBuffer();
+						break;
+					default:
+						responseBody = await response.json();
+						if ('@odata.nextLink' in responseBody) {
+							responseBody.value.push(...(await this.fetchResource(responseBody['@odata.nextLink'], 'json')).value);
+						}
+						break;
+				}
 			}
+			else {
+				const err: PublicError = await response.json();
+				
+				console.log(err);
+				// We're ratelimited - let's retry after the suggested amount of time
+				if (err.code === '20166') {
+					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 5000;
 
+					console.log('Status:' + response.status);
+
+					if (response.status === 429 || response.status === 504) {
+						setTimeout(() => {
+							responseBody = this.fetchResource(url, returnType as any);
+						}, retryTime);
+					}
+				}
+			}
 			return responseBody;
 		}
 		catch (e) {
-			console.error(`An error occurred while trying to fetch '${url}'. Error details: `, e);
+			console.error(`An unexpected error occurred while trying to fetch '${url}'. Error details: `, e);
 
 			throw e;
 		}
