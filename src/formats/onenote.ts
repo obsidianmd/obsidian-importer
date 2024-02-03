@@ -1,14 +1,12 @@
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
-import { AUTH_REDIRECT_URI, ImportContext } from '../main';
+import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { OnenotePage, OnenoteSection, Notebook, SectionGroup, User, FileAttachment } from '@microsoft/microsoft-graph-types';
 
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
-// TODO: This array is used by a few other importers, so it could get moved into format-importer.ts to prevent duplication
-const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
 export class OneNoteImporter extends FormatImporter {
 	useDefaultAttachmentFolder: boolean = true;

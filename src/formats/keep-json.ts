@@ -1,7 +1,7 @@
 import { FrontMatterCache, Notice, Setting, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ATTACHMENT_EXTS, ImportContext } from '../main';
 import { serializeFrontMatter } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
@@ -10,8 +10,6 @@ import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 
 const BUNDLE_EXTS = ['zip'];
 const NOTE_EXTS = ['json'];
-// Google Keep supports attachment formats that might change and exports in the original format uploaded, so limiting to binary formats Obsidian supports
-const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 // Ignore the following files:
 // - Html duplicates
 // - Another html summary
