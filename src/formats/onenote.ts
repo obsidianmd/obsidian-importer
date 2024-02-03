@@ -357,10 +357,11 @@ export class OneNoteImporter extends FormatImporter {
 
 	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file formats
 	getAllAttachments(pageHTML: string): HTMLElement {
-		// The OneNote API has a weird bug when you export with InkML - it doesn't close <object> tags properly,
-		// so we need to close them using regex
-		const regex = /<object([^>]*)\/>/g;
-		const pageElement = parseHTML(pageHTML.replace(regex, '<object$1></object>'));
+		/* The OneNote API has a weird bug when you export with InkML - it doesn't close self-closing tags
+		(like <object/> or <iframe/>) properly, so we need to fix them using Regex */
+		const objectRegex = /<object([^>]*)\/>/g;
+		const iframeRegex = /<iframe([^>]*)\/>/g;
+		const pageElement = parseHTML(pageHTML.replace(objectRegex, '<object$1></object>').replace(iframeRegex, '<iframe$1></iframe>'));
 
 		const objects: HTMLElement[] = pageElement.findAll('object');
 		const images: HTMLImageElement[] = pageElement.findAll('img') as HTMLImageElement[];
