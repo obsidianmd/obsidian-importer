@@ -32,7 +32,7 @@ interface ImporterDefinition {
 export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
 
 /**
- * List of attachment formats that are usable in Obsidian
+ * List of accepted attachment extensions
  */
 export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
 
