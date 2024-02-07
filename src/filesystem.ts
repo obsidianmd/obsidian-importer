@@ -10,15 +10,15 @@ import { configureWebWorker } from './z-worker-inline';
 configureWebWorker(configure);
 
 export interface PickedFile {
-	type: 'file';
+	readonly type: 'file';
 	/** Full path, including container zip names, for debugging/reporting purposes */
-	fullpath: string;
+	readonly fullpath: string;
 	/** File name, including extension */
-	name: string;
+	readonly name: string;
 	/** Base file name, without extension */
-	basename: string;
+	readonly basename: string;
 	/** Lowercase extension */
-	extension: string;
+	readonly extension: string;
 
 	/** Read the file as utf8 text */
 	readText(): Promise<string>;
@@ -31,9 +31,9 @@ export interface PickedFile {
 }
 
 export interface PickedFolder {
-	type: 'folder';
+	readonly type: 'folder';
 	/** Folder name */
-	name: string;
+	readonly name: string;
 	/** List files in this folder */
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 }
@@ -50,13 +50,13 @@ export function nodeBufferToArrayBuffer(buffer: Buffer, offset = 0, length = buf
 }
 
 export class NodePickedFile implements PickedFile {
-	type: 'file' = 'file';
-	filepath: string;
+	readonly type: 'file' = 'file';
+	readonly filepath: string;
 
-	fullpath: string;
-	name: string;
-	basename: string;
-	extension: string;
+	readonly fullpath: string;
+	readonly name: string;
+	readonly basename: string;
+	readonly extension: string;
 
 	constructor(filepath: string) {
 		this.filepath = filepath;
@@ -101,10 +101,10 @@ export class NodePickedFile implements PickedFile {
 }
 
 export class NodePickedFolder implements PickedFolder {
-	type: 'folder' = 'folder';
-	filepath: string;
+	readonly type: 'folder' = 'folder';
+	readonly filepath: string;
 
-	name: string;
+	readonly name: string;
 
 	constructor(filepath: string) {
 		this.filepath = filepath;
@@ -134,13 +134,13 @@ export class NodePickedFolder implements PickedFolder {
 }
 
 export class WebPickedFile implements PickedFile {
-	type: 'file' = 'file';
-	file: File;
+	readonly type: 'file' = 'file';
+	readonly file: File;
 
-	fullpath: string;
-	name: string;
-	basename: string;
-	extension: string;
+	readonly fullpath: string;
+	readonly name: string;
+	readonly basename: string;
+	readonly extension: string;
 
 	constructor(file: File) {
 		this.file = file;
