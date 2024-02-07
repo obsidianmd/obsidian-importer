@@ -151,7 +151,7 @@ export const getNotebookStackedProps = (baseEnex: PickedFile ): NotebookStackPro
 	
 };
 
-export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): string => {
+export const getNotebookStackOutputDir = (enex: PickedFile, options: YarleOptions): string => {
 
 	const { notebookFolderNames } =  getNotebookNameAndFolderNames(enex.basename);
 
@@ -159,8 +159,19 @@ export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): s
 	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
 };
 
-export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions, notebookStackProperties: NotebookStackProps | undefined): void => {
-	const enexFile = (notebookStackProperties || enexSource).basename;
+export const setSingleNotebookPaths = (enexSource:PickedFile, yarleOptions: YarleOptions): void => {
+	const enexFileBasename = enexSource.basename;
+	setPaths(enexFileBasename, yarleOptions);
+};
+
+export const setNotebookStackPaths = (notebookStackProperties: NotebookStackProps,  yarleOptions: YarleOptions): void => {
+	const enexFileBasename = notebookStackProperties.basename;
+	setPaths(enexFileBasename, yarleOptions);
+
+};
+
+export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): void => {
+	
 
 	const outputDir = path.isAbsolute(yarleOptions.outputDir)
 		? yarleOptions.outputDir
@@ -171,9 +182,9 @@ export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions, not
 
 	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
 	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
-		paths.mdPath = `${paths.mdPath}${enexFile}`;
+		paths.mdPath = `${paths.mdPath}${enexFileBasename}`;
 		// console.log(`mdPath: ${paths.mdPath}`);
-		paths.resourcePath = `${outputDir}${path.sep}${enexFile}${path.sep}${yarleOptions.resourcesDir}`;
+		paths.resourcePath = `${outputDir}${path.sep}${enexFileBasename}${path.sep}${yarleOptions.resourcesDir}`;
 	}
 
 	fs.mkdirSync(paths.mdPath, { recursive: true });
