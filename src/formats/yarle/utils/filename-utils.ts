@@ -1,5 +1,5 @@
 import { moment } from 'obsidian';
-import { fs, path } from '../../../filesystem';
+import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 
 import { yarleOptions } from '../yarle';
@@ -37,10 +37,8 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 
 	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
 		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, 50);
-		const lastIdx = fileNamePrefix.lastIndexOf('.');
-		fileName = lastIdx !== -1
-			? fileNamePrefix.slice(0, lastIdx)
-			: fileNamePrefix;
+		fileName = parseFilePath(fileNamePrefix).basename;
+
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>\[\]\+]/g, '-');
 
