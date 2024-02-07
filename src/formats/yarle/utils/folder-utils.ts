@@ -1,8 +1,9 @@
-import { fs, path, PickedFile } from '../../../filesystem';
+import { fs, NodePickedFile, path, PickedFile } from '../../../filesystem';
 import { genUid } from '../../../util';
 import { YarleOptions } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { yarleOptions } from '../yarle';
+import { replaceLastOccurrenceInString } from './string-utils';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
 
@@ -119,18 +120,39 @@ export const clearResourceDir = (note: any): void => {
 	clearDistDir(resPath);
 	resourceDirClears.set(resPath, clears + 1);
 };
+export const getNotebookNameAndFolderNames = (basename: string): {notebookName: string, notebookFolderNames: string[]} => {
+	const notebookFolderNames = basename.split('@@@');
 
-export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): void => {
-	const notebookFolderNames = enex.basename.split('@@@');
 	let notebookName = notebookFolderNames.pop();
 	if (!notebookName){
-		notebookName = enex.basename;
+		notebookName = basename;
 	}
+	return {
+		notebookName,
+		notebookFolderNames
+	}; 
+};
+
+
+export const getNotebookStackedEnex = (baseEnex: PickedFile ): NodePickedFile => {
+	if (!(baseEnex instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
+
+	const { notebookName } =  getNotebookNameAndFolderNames(baseEnex.basename);
+
+	const stackedPickedFile = new NodePickedFile((baseEnex as NodePickedFile).filepath);
+	stackedPickedFile.fullpath = replaceLastOccurrenceInString(baseEnex.fullpath, baseEnex.basename, notebookName || baseEnex.basename);
+	stackedPickedFile.name = replaceLastOccurrenceInString(baseEnex.name, baseEnex.basename, notebookName || baseEnex.basename);
+	stackedPickedFile.basename = notebookName;
+	return stackedPickedFile;
+	
+};
+
+export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): string => {
+
+	const { notebookFolderNames } =  getNotebookNameAndFolderNames(enex.basename);
+
 	fs.mkdirSync(path.join(options.outputDir, ...notebookFolderNames), { recursive: true });
-	enex.fullpath = enex.fullpath.replace(enex.basename, notebookName || enex.basename);
-	enex.name = enex.name.replace(enex.basename, notebookName || enex.basename);
-	options.outputDir = [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
-	enex.basename = notebookName;
+	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
 };
 
 export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions): void => {

@@ -187,16 +187,17 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {
 		if (ctx.isCancelled()) return;
+
+		let enex2Convert = enex;
 		if (enex.basename.includes('@@@')) {
-			utils.handleNotebookstacks(enex, options);
-
-
+			options.outputDir = utils.handleNotebookstacks(enex, options);
+			enex2Convert = utils.getNotebookStackedEnex(enex);
 		}
-		utils.setPaths(enex, options);
+		utils.setPaths(enex2Convert, options);
 
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
-		runtimeProps.setCurrentNotebookName(enex.basename);
-		await parseStream(options, enex, ctx);
+		runtimeProps.setCurrentNotebookName(enex2Convert.basename);
+		await parseStream(options, enex2Convert, ctx);
 		outputNotebookFolders.push(utils.getNotesPath());
 		options.outputDir = orginalOutputDir;
 	}
