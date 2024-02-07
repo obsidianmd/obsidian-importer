@@ -101,17 +101,17 @@ interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
+export const parseStream = async (options: YarleOptions, enexSource: PickedFile, notebookStackProperties: utils.NotebookStackProps | undefined, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	ctx.status('Processing ' + enexSource.name);
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
-	const notebookName = enexSource.basename;
+	const notebookName = (notebookStackProperties || enexSource).basename;
 
 	return new Promise((resolve, reject) => {
 		const logAndReject = (e: Error) => {
-			ctx.reportFailed(enexSource.fullpath, e);
+			ctx.reportFailed((notebookStackProperties || enexSource).fullpath, e);
 			return reject(e);
 		};
 
@@ -188,16 +188,17 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 	for (const enex of options.enexSources) {
 		if (ctx.isCancelled()) return;
 
-		let enex2Convert = enex;
+		
+		let notebookStackProperties;
 		if (enex.basename.includes('@@@')) {
 			options.outputDir = utils.handleNotebookstacks(enex, options);
-			enex2Convert = utils.getNotebookStackedEnex(enex);
+			notebookStackProperties = utils.getNotebookStackedProps(enex);
 		}
-		utils.setPaths(enex2Convert, options);
+		utils.setPaths(enex, options, notebookStackProperties);
 
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
-		runtimeProps.setCurrentNotebookName(enex2Convert.basename);
-		await parseStream(options, enex2Convert, ctx);
+		runtimeProps.setCurrentNotebookName(notebookStackProperties?.basename || enex.basename);
+		await parseStream(options, enex, notebookStackProperties, ctx);
 		outputNotebookFolders.push(utils.getNotesPath());
 		options.outputDir = orginalOutputDir;
 	}

@@ -16,6 +16,11 @@ export const paths: Path = {
 	mdPath: '',
 	resourcePath: '',
 };
+export interface NotebookStackProps {
+	fullpath: string;
+	basename: string;
+}
+
 const MAX_PATH = 249;
 
 export const getResourceDir = (dstPath: string, note: any): string => {
@@ -134,16 +139,15 @@ export const getNotebookNameAndFolderNames = (basename: string): {notebookName: 
 };
 
 
-export const getNotebookStackedEnex = (baseEnex: PickedFile ): NodePickedFile => {
+export const getNotebookStackedProps = (baseEnex: PickedFile ): NotebookStackProps => {
 	if (!(baseEnex instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 
 	const { notebookName } =  getNotebookNameAndFolderNames(baseEnex.basename);
 
-	const stackedPickedFile = new NodePickedFile((baseEnex as NodePickedFile).filepath);
-	stackedPickedFile.fullpath = replaceLastOccurrenceInString(baseEnex.fullpath, baseEnex.basename, notebookName || baseEnex.basename);
-	stackedPickedFile.name = replaceLastOccurrenceInString(baseEnex.name, baseEnex.basename, notebookName || baseEnex.basename);
-	stackedPickedFile.basename = notebookName;
-	return stackedPickedFile;
+	return {
+		fullpath: replaceLastOccurrenceInString(baseEnex.fullpath, baseEnex.basename, notebookName || baseEnex.basename),
+		basename: notebookName,
+	};
 	
 };
 
@@ -155,8 +159,8 @@ export const handleNotebookstacks = (enex: PickedFile, options: YarleOptions): s
 	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
 };
 
-export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions): void => {
-	const enexFile = enexSource.basename;
+export const setPaths = (enexSource: PickedFile, yarleOptions: YarleOptions, notebookStackProperties: NotebookStackProps | undefined): void => {
+	const enexFile = (notebookStackProperties || enexSource).basename;
 
 	const outputDir = path.isAbsolute(yarleOptions.outputDir)
 		? yarleOptions.outputDir
