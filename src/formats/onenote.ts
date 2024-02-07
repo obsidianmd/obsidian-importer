@@ -1,9 +1,9 @@
+import { OnenotePage, SectionGroup, User, FileAttachment, PublicError, OnenoteEntityHierarchyModel, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
-import { OnenotePage, SectionGroup, User, FileAttachment, PublicError, OnenoteEntityHierarchyModel, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
@@ -17,9 +17,10 @@ export class OneNoteImporter extends FormatImporter {
 	microsoftAccountSetting: Setting;
 	contentArea: HTMLDivElement;
 	// Internal
-	attachmentQueue: FileAttachment[] = [];
 	selectedIds: string[] = [];
 	notebooks: Notebook[] = [];
+	currentSection: string;
+	currentPages: OnenotePage[];
 	graphData = {
 		state: genUid(32),
 		accessToken: '',
@@ -146,7 +147,7 @@ export class OneNoteImporter extends FormatImporter {
 					.setCta()
 					.setButtonText('Select all')
 					.onClick(() => {
-						notebookDiv.querySelectorAll('input[type="checkbox"]').forEach((el: HTMLInputElement) => el.checked = true);
+						notebookDiv.querySelectorAll('input[type="checkbox"]').forEach((el: HTMLInputElement) => el.click());
 					}));
 			this.renderHierarchy(notebook, notebookDiv);
 		}
@@ -164,7 +165,7 @@ export class OneNoteImporter extends FormatImporter {
 
 		return parentGroup;
 	}
-
+	
 	// Renders a HTML list of all section groups and sections
 	renderHierarchy(entity: OnenoteEntityHierarchyModel, parentEl: HTMLElement) {
 		if ('sectionGroups' in entity) {
@@ -217,7 +218,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async import(progress: ImportContext): Promise<void> {
-		// Remove possible duplicates, eg. when the user selects "Select all" with existing selections
+		// Remove possible duplicate IDs, eg. when the user selects "Select all" with existing selections
 		this.selectedIds =  [...new Set(this.selectedIds)];
 		
 		let remainingSections = this.selectedIds.length;
@@ -231,35 +232,35 @@ export class OneNoteImporter extends FormatImporter {
 		progress.status('Starting OneNote import');
 
 		for (let sectionId of this.selectedIds) {
+			this.currentSection = sectionId;
 			progress.reportProgress(0, remainingSections);
 			remainingSections--;
-
 			let pageCount: number = 0;
 
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
-			  $select: 'id,title,createdDateTime,lastModifiedDateTime,level,order',
+			  $select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
 			  $orderby: 'order',
 			  pagelevel: 'true'
 			});
 
 			const pagesUrl = `${baseUrl}?${params.toString()}`;
 	
-			let pages: OnenotePage[] = ((await this.fetchResource(pagesUrl, 'json')).value).reverse();
+			let pages: OnenotePage[] = ((await this.fetchResource(pagesUrl, 'json')).value);
+			this.currentPages = pages;
 
 			progress.reportProgress(0, pages.length);
 
 			for (let i = 0; i < pages.length; i++) {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
-
 				try {
 					pageCount++;
 					progress.status(`Importing note ${page.title}`);
 
 					// Every 50 items, do a few second break to prevent rate limiting
 					if (i !== 0 && i % 50 === 0) {
-						await new Promise(resolve => setTimeout(resolve, 5000));
+						await new Promise(resolve => setTimeout(resolve, 7500));
 					}
 
 					this.processFile(progress,
@@ -277,23 +278,28 @@ export class OneNoteImporter extends FormatImporter {
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		try {
+			// Removes multiple paragraphs in a row to replace them with a basic <br>
+			const paragraphRegex: RegExp = /<\/p>\s*<p[^>]*>/g;
+			// htmlToMarkdown adds a triple line break in some places
+			const whitespaceRegex: RegExp = /\n  \n/g;
 			const splitContent = this.convertFormat(content);
 			const outputPath = this.getEntityPath(page.id!, this.outputFolder.name)!;
-
+			
 			let pageFolder: TFolder;
 			if (!await this.vault.adapter.exists(outputPath)) pageFolder = await this.vault.createFolder(outputPath);
 			else pageFolder = this.vault.getAbstractFileByPath(outputPath) as TFolder;
 
-			let parsedPage: HTMLElement = this.getAllAttachments(splitContent.html);
-			parsedPage = this.styledElementToHTML(parsedPage);
-			parsedPage = this.convertTags(parsedPage);
-			parsedPage = await this.convertInternalLinks(parsedPage, pageFolder.name);
+
+			let taggedPage = this.convertTags(parseHTML(splitContent.html));
+		 	let data = this.getAllAttachments(taggedPage.replace(paragraphRegex, '<br />'));
+			let parsedPage = this.styledElementToHTML(data.html);
+			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
 
-			let mdContent = htmlToMarkdown(parsedPage).trim();
+			let mdContent = htmlToMarkdown(parsedPage).trim().replace(whitespaceRegex, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
-			await this.fetchAttachmentQueue(progress, fileRef, this.outputFolder);
+			await this.fetchAttachmentQueue(progress, fileRef, this.outputFolder, data.queue);
 
 			// Add the last modified and creation time metadata
 			const writeOptions: DataWriteOptions = {
@@ -345,7 +351,7 @@ export class OneNoteImporter extends FormatImporter {
 		return output;
 	}
 
-	convertTags(pageElement: HTMLElement): HTMLElement {
+	convertTags(pageElement: HTMLElement): string {
 		const tagElements = Array.from(pageElement.querySelectorAll('[data-tag]'));
 
 		for (const element of tagElements) {
@@ -364,27 +370,16 @@ export class OneNoteImporter extends FormatImporter {
 				});
 			}
 		}
-		return pageElement;
+		return pageElement.outerHTML;
 	}
 
-	async convertInternalLinks(pageElement: HTMLElement, pageFolder: string): Promise<HTMLElement> {
+	convertInternalLinks(pageElement: HTMLElement): HTMLElement {
 		const links: HTMLAnchorElement[] = pageElement.findAll('a') as HTMLAnchorElement[];
 		for (const link of links) {
 			if (link.href.startsWith('onenote:')) {
-				// OneNote links don't contain a normal ID, instead, they use 'oneNoteClientUrl'
-				const linkId = link.href.split('page-id=')[1]?.split('}')[0];
-				//const linkTitle = link.href.slice((link.href.indexOf('#') + 1), link.href.indexOf('&', (link.href.indexOf('#') + 1)));
-
-				if (!await this.vault.adapter.exists(this.getEntityPath(linkId, this.outputFolder.name)!)) {
-					// If the page we're linking to doesn't exist *yet*, create an placeholder one
-					//this.vault.create(this.getEntityPath())
-				}
-
-				//const targetPagePath = this.vault.getAbstractFileByPath(this.outputFolder.name + '/' + '.md') as TFile;
-				
-				// Replace the link with a markdown link
-				link.href = '';
-				//link.textContent = this.app.fileManager.generateMarkdownLink(targetPagePath, pageFolder);
+				const startIdx = link.href.indexOf('#') + 1;
+				const endIdx = link.href.indexOf('&', startIdx);
+				link.href = link.href.slice(startIdx, endIdx);
 			}
 		}
 		return pageElement;
@@ -396,22 +391,29 @@ export class OneNoteImporter extends FormatImporter {
 	 * (Export folder)/Notebook/(possible section groups)/Section/(possible pages with a higher level) 
 	 */
 	getEntityPath(entityID: string, currentPath: string, parentEntity?: OnenoteEntityHierarchyModel | undefined): string | null {
-		if (!parentEntity || parentEntity === undefined) {
-			// TODO fix: the import process is broken because it only goes through the first notebook
+		let returnPath: string | null = null;
+		if (!parentEntity) {
 			for (const notebook of this.notebooks) {
-				const foundPath = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
-				if (foundPath !== null) return foundPath;
+				const path = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
+				if (path) {
+					returnPath = path;
+					break;
+				}
 			}
-			// If no path is found in any notebook, return null
-			return null;
 		}
 		else {
+			if (parentEntity.id === this.currentSection) {
+				const section = parentEntity as OnenoteSection;
+				section.pages = this.currentPages;
+			}
+
 			if ('pages' in parentEntity && parentEntity.pages) {
 				const section = parentEntity as OnenoteSection;
 				// Check if the target page is in the current entity's pages
 				for (let i = 0; i < section.pages!.length; i++) {
 					const page = section.pages![i];
 					const pageContentID = page.contentUrl!.split('page-id=')[1]?.split('}')[0];
+
 					if (page.id === entityID || pageContentID === entityID) {
 						if (page.level === 0) {
 							/* Checks if we have a page leveled below this one. 
@@ -420,13 +422,23 @@ export class OneNoteImporter extends FormatImporter {
 							 * with this line both files are in one neat directory:
 							 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 							 */
-							if (section.pages![i+1]?.level !== 0) return `${currentPath}/${page.title}`;
-							else return currentPath;
+							if (section.pages![i+1] && section.pages![i+1].level !== 0) {
+								returnPath = `${currentPath}/${page.title}`;
+							}
+							else returnPath = currentPath;							
 						}
 						else {
-							// If the page is not level 0, it means we need to try to find its parent
-							// TODO...
-						}	
+							returnPath = currentPath;
+
+							// Iterate backward to find the parent page
+							for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
+								if (section.pages![i].level === page.level! - 1) {
+									returnPath += '/' + section.pages![i].title;
+									break;
+								}
+							}
+						}
+						break;
 					}
 				}
 			}
@@ -435,8 +447,14 @@ export class OneNoteImporter extends FormatImporter {
 				// Recursively search in section groups
 				const sectionGroups: SectionGroup[] = parentEntity.sectionGroups as SectionGroup[];
 				for (const sectionGroup of sectionGroups) {
-					const foundPath = this.getEntityPath(entityID, `${currentPath}/${sectionGroup.displayName}`, sectionGroup);
-					if (foundPath) return foundPath;
+					if (sectionGroup.id === entityID) return `${currentPath}/${sectionGroup.displayName}`;
+					else {
+						const foundPath = this.getEntityPath(entityID, `${currentPath}/${sectionGroup.displayName}`, sectionGroup);
+						if (foundPath) { 
+							returnPath = foundPath;
+							break;
+						}
+					}
 				}
 			}
 		  
@@ -445,15 +463,18 @@ export class OneNoteImporter extends FormatImporter {
 				const sectionGroup = parentEntity as SectionGroup;
 				for (const section of sectionGroup.sections!) {
 					const foundPath = this.getEntityPath(entityID, `${currentPath}/${section.displayName}`, section);
-					if (foundPath) return foundPath;
+					if (foundPath) { 
+						returnPath = foundPath;
+						break;
+					}
 				}
-			}	
+			}
 		}
-		return currentPath;
+		return returnPath;
 	}
 
 	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file formats
-	getAllAttachments(pageHTML: string): HTMLElement {
+	getAllAttachments(pageHTML: string): { html: HTMLElement, queue: FileAttachment[] } {
 		/* The OneNote API has a weird bug when you export with InkML - it doesn't close self-closing tags
 		(like <object/> or <iframe/>) properly, so we need to fix them using Regex */
 		const objectRegex = /<object([^>]*)\/>/g;
@@ -464,6 +485,8 @@ export class OneNoteImporter extends FormatImporter {
 		const images: HTMLImageElement[] = pageElement.findAll('img') as HTMLImageElement[];
 		// Online videos are implemented as iframes, normal videos are just <object>s
 		const videos: HTMLIFrameElement[] = pageElement.findAll('iframe') as HTMLIFrameElement[];
+		
+		const attachmentQueue: FileAttachment[] = [];
 
 		for (const object of objects) {
 			let split: string[] = object.getAttribute('data-attachment')!.split('.');
@@ -474,7 +497,7 @@ export class OneNoteImporter extends FormatImporter {
 				continue;
 			}
 			else {
-				this.attachmentQueue.push({
+				attachmentQueue.push({
 					name: object.getAttribute('data-attachment')!,
 					contentLocation: object.getAttribute('data')!,
 				});
@@ -490,19 +513,19 @@ export class OneNoteImporter extends FormatImporter {
 
 		for (let i = 0; i < images.length; i++) {
 			const image = images[i];
-
 			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
 			const extension: string = split[1];
 			const currentDate = moment().format('YYYYMMDDHHmmss');
 			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
 
-			this.attachmentQueue.push({
+			attachmentQueue.push({
 				name: fileName,
 				contentLocation: image.getAttribute('data-fullres-src')!,
 			});
 
 			image.src = encodeURIComponent(fileName);
 			if (!image.alt) image.alt = 'Exported image';
+			else image.alt = image.alt.replace(/[\r\n]+/gm, '');
 		}
 
 		for (const video of videos) {
@@ -518,14 +541,14 @@ export class OneNoteImporter extends FormatImporter {
 				video.parentNode?.replaceChild(linkNode, video);
 			}
 		}
-		return pageElement;
+
+		return { html: pageElement, queue: attachmentQueue };
 	}
 
 	// Downloads attachments from the attachmentQueue once the file has been created.
-	async fetchAttachmentQueue(progress: ImportContext, currentFile: TFile, outputFolder: TFolder) {
-		if (this.attachmentQueue.length >= 1) {
+	async fetchAttachmentQueue(progress: ImportContext, currentFile: TFile, outputFolder: TFolder, attachmentQueue: FileAttachment[]) {
+		if (attachmentQueue.length >= 1) {
 			let attachmentPath: string = outputFolder.path + '/OneNote Attachments';
-
 			// @ts-ignore
 			// Bug: This function always returns the path + "Note name.md" rather than just the path for some reason
 			if (this.useDefaultAttachmentFolder) attachmentPath = await this.app.vault.getAvailablePathForAttachments(currentFile.basename, currentFile.extension, currentFile);
@@ -535,15 +558,18 @@ export class OneNoteImporter extends FormatImporter {
 				this.vault.createFolder(attachmentPath);
 			}
 			catch (e) { }
-			for (let i = 0; i < this.attachmentQueue.length; i++) {
-				const attachment = this.attachmentQueue[i];
+			for (let i = 0; i < attachmentQueue.length; i++) {
+				const attachment = attachmentQueue[i];
 				try {
 					// Every 7 attachments, do a few second break to prevent rate limiting
 					if (i !== 0 && i % 7 === 0) {
 						await new Promise(resolve => setTimeout(resolve, 7500));
 					}
-					const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
-					await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
+
+					if (!(await this.vault.adapter.exists(`${attachmentPath}/${attachment.name}`))) {
+						const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
+						await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);	
+					}
 
 					progress.reportAttachmentSuccess(attachment.name!);
 				}
@@ -551,11 +577,7 @@ export class OneNoteImporter extends FormatImporter {
 					progress.reportFailed(attachment.name!, e);
 				}
 			}
-
-			// Clear the attachment queue after every note
-			this.attachmentQueue = [];
 		}
-		else { }
 	}
 
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
@@ -571,7 +593,7 @@ export class OneNoteImporter extends FormatImporter {
 		// Cites/quotes are not converted into Markdown (possible htmlToMarkdown bug?), so we do it ourselves temporarily
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
-		
+
 		// Convert preformatted text into code blocks
 		let inCodeBlock: boolean = false;
 		let codeElement: HTMLElement = document.createElement('pre');
@@ -588,21 +610,14 @@ export class OneNoteImporter extends FormatImporter {
 					codeElement.innerHTML = '```\n' + element.innerHTML + '\n```';
 				}
 				else {
-					element.remove();
 					// Append the content and add fences in case there's no next element
 					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
 				}
 			}
 			else if (element.nodeName === 'BR' && inCodeBlock) {
 				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
-				element.remove();
 			}
 			else {
-				if (inCodeBlock) {
-					inCodeBlock = false; 
-					codeElement = document.createElement('pre');
-				}
-
 				if (matchingStyle) {
 					const newElementTag = styleMap[matchingStyle];
 					const newElement = document.createElement(newElementTag);
@@ -671,7 +686,7 @@ export class OneNoteImporter extends FormatImporter {
 				console.log('An error has occurred while fetching an resource:', err);
 				// We're ratelimited - let's retry after the suggested amount of time
 				if (err.code === '20166') {
-					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 5000;
+					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 15000;
 
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
 
