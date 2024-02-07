@@ -6,8 +6,7 @@ let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 let windowsTrailingRe = /[\. ]+$/;
 let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
-let squareBracketOpenRe = /\[/g; // Regular expression to match "["
-let squareBracketCloseRe = /\]/g; // Regular expression to match "]"
+let badLinkRe = /[\[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
 export function sanitizeFileName(name: string) {
 	return name
@@ -16,9 +15,8 @@ export function sanitizeFileName(name: string) {
 		.replace(reservedRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '')
-		.replace(squareBracketOpenRe, '')
-		.replace(squareBracketCloseRe, '')
-		.replace(startsWithDotRe, '');
+		.replace(startsWithDotRe, '')
+		.replace(badLinkRe, '');
 }
 
 export function genUid(length: number): string {
