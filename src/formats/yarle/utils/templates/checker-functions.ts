@@ -7,7 +7,6 @@ import * as REMINDERDONETIME from './placeholders/reminderdonetime-placeholders'
 import * as REMINDERORDER from './placeholders/reminderorder-placeholders';
 import * as REMINDERTIME from './placeholders/remindertime-placeholders';
 import * as SOURCEURL from './placeholders/sourceurl-placeholders';
-import * as YAMLARRAYTAGS from './placeholders/tags-array-placeholders';
 import * as YAMLLISTTAGS from './placeholders/tags-yaml-list-placeholders';
 import * as TAGS from './placeholders/tags-placeholders';
 import * as UPDATETIME from './placeholders/updatedat-placeholders';
@@ -41,7 +40,6 @@ export const hasSourceURLInTemplate = (templateContent: string): boolean => {
 };
 export const hasAnyTagsInTemplate = (templateContent: string): boolean => {
 	return (hasItemInTemplate(TAGS, templateContent)
-		|| hasItemInTemplate(YAMLARRAYTAGS, templateContent)
 		|| hasItemInTemplate(YAMLLISTTAGS, templateContent));
 };
 
