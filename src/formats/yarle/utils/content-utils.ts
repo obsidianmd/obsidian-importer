@@ -118,7 +118,10 @@ export const setFileDates = (path: string, note: any): void => {
 
 	const updated = moment(note.updated).valueOf();
 	const mtime = updated / 1000;
-	fs.utimesSync(path, mtime, mtime);
+	try{
+		fs.utimesSync(path, mtime, mtime);
+	}
+	catch (e) {}
 };
 
 export const getTimeStampMoment = (resource: any): any => {

@@ -77,9 +77,13 @@ const processResource = (workDir: string, resource: any): any => {
 	// Skip unknown type as we don't know how to handle
 	// Source: https://dev.evernote.com/doc/articles/data_structure.php
 	// "The default type "application/octet-stream" should be used if a more specific type is not known."
-	if (resource.mime === 'application/octet-stream') {
+	// Update: 
+	// In case of unknown files Evernote does the same base64 encoding and put its MD5 hash into the note as reference
+	// https://discussion.evernote.com/forums/topic/146906-how-does-evernote-map-the-image-resources-in-enex-file/?do=findComment&comment=692209
+	// so I comment out the following exlusion of octet-streams, to fix issue: https://github.com/obsidianmd/obsidian-importer/issues/201
+	/*if (resource.mime === 'application/octet-stream') {
 		return resourceHash;
-	}
+	}*/
 
 	const accessTime = utils.getTimeStampMoment(resource);
 	const resourceFileProps = utils.getResourceFileProperties(workDir, resource);
@@ -93,7 +97,10 @@ const processResource = (workDir: string, resource: any): any => {
 	fs.writeFileSync(absFilePath, buffer);
 
 	const atime = accessTime.valueOf() / 1000;
-	fs.utimesSync(absFilePath, atime, atime);
+	try{
+		fs.utimesSync(absFilePath, atime, atime);
+	}
+	catch(e){}
 
 	if (resource.recognition && fileName) {
 		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
