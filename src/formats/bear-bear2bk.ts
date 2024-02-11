@@ -5,8 +5,8 @@ import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
 
 type Metadata = {
-	ctime: number,
-	mtime: number,
+	ctime?: number,
+	mtime?: number,
 	archived: boolean,
 	trashed: boolean,
 }
@@ -41,7 +41,7 @@ export class Bear2bkImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
-				const metadata = await this.colllectMetadata(entries);
+				const metadataLookup = await this.collectMetadata(entries);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
@@ -60,9 +60,17 @@ export class Bear2bkImporter extends FormatImporter {
 								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/`);
 							}
 							const filePath = normalizePath(mdFilename);
-							const targetFolder = metadata[parent].archived ? archiveFolder : metadata[parent].trashed ? trashFolder : outputFolder;
+							const metadata = metadataLookup[parent];
+							let targetFolder = outputFolder;
+							if (metadata?.archived) {
+								targetFolder = archiveFolder;
+							} else if (metadata?.trashed) {
+								targetFolder = trashFolder;
+							}
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
-							await this.modifFileTimestamps(metadata[parent], file);
+							if (metadata?.ctime && metadata?.mtime) {
+								await this.modifFileTimestamps(metadata, file);
+							}
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
@@ -98,17 +106,21 @@ export class Bear2bkImporter extends FormatImporter {
 		await this.vault.append(file, '', writeOptions);
 	}
 
-	private async colllectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata; }> {
+	private async collectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata; }> {
 		let metaData: { [key: string]: Metadata; } = {};
-		const infoEntries = entries.filter((entry) => entry.name === 'info.json');
-		for (let entry of infoEntries) {
+		for (let entry of entries) {
+			if (entry.name !== 'info.json') {
+				continue;
+			}
 			const infoJson = await entry.readText();
 			const info = JSON.parse(infoJson);
 
 			const bearMetadata = info['net.shinyfrog.bear'];
+			const creationDate = Date.parse(bearMetadata.creationDate);
+			const modificationDate = Date.parse(bearMetadata.modificationDate);
 			metaData[entry.parent] = {
-				ctime: Date.parse(bearMetadata.creationDate),
-				mtime: Date.parse(bearMetadata.modificationDate),
+				ctime: isNaN(creationDate) ? undefined : creationDate,
+				mtime: isNaN(modificationDate) ? undefined : modificationDate,
 				archived: bearMetadata.archived === 1,
 				trashed: bearMetadata.trashed === 1,
 			};
