@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
 import {
 	fsPromises,
 	nodeBufferToArrayBuffer,
@@ -75,11 +75,88 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
+		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
+
+		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			if (ctx.isCancelled()) return;
 			ctx.reportProgress(i, files.length);
-			await this.processFile(ctx, folder, files[i]);
+
+			const file = files[i];
+			const tFile = await this.processFile(ctx, folder, file);
+			if (tFile) {
+				fileLookup.set(
+					file instanceof NodePickedFile
+						? nodeUrl.pathToFileURL(file.filepath).href
+						: file.name,
+					{ file, tFile });
+			}
 		}
+
+		const { metadataCache } = this.app;
+
+		let resolveUpdatesCompletePromise: () => void;
+		const updatesCompletePromise = new Promise<void>((resolve) => {
+			resolveUpdatesCompletePromise = resolve;
+		});
+
+		// @ts-ignore
+		metadataCache.onCleanCache(async () => {
+			// This function must call resolveUpdatesCompletePromise() before returning.
+			for (const [fileKey, { file, tFile }] of fileLookup) {
+				if (ctx.isCancelled()) break;
+
+				try {
+					// Attempt to parse links using MetadataCache
+					let mdContent = await this.app.vault.cachedRead(tFile);
+
+					// @ts-ignore
+					const cache = metadataCache.computeMetadataAsync
+						// @ts-ignore
+						? await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata
+						: metadataCache.getFileCache(tFile);
+					if (!cache) continue;
+
+					// Gather changes to make to the document
+					const changes = [];
+					if (cache.links) {
+						for (const { link, position, displayText } of cache.links) {
+							const { path, subpath } = parseLinktext(link);
+							let linkKey: string;
+							if (nodeUrl) {
+								const url = new URL(encodeURI(path), fileKey);
+								url.hash = '';
+								url.search = '';
+								linkKey = decodeURIComponent(url.href);
+							}
+							else {
+								linkKey = parseFilePath(path.replace(/#/gu, '%23')).name;
+							}
+							const linkFile = fileLookup.get(linkKey);
+							if (linkFile) {
+								const newLink = this.app.fileManager.generateMarkdownLink(linkFile.tFile, tFile.path, subpath, displayText);
+								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
+							}
+						}
+					}
+
+					// Apply changes from last to first
+					changes.sort((a, b) => b.from - a.from);
+					for (const change of changes) {
+						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
+					}
+
+					await this.vault.modify(tFile, mdContent);
+				}
+				catch (e) {
+					ctx.reportFailed(file.fullpath, e);
+				}
+			}
+
+			resolveUpdatesCompletePromise();
+		});
+
+		await updatesCompletePromise;
 	}
 
 	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
@@ -185,10 +262,12 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			ctx.reportNoteSuccess(file.fullpath);
+			return mdFile;
 		}
 		catch (e) {
 			ctx.reportFailed(file.fullpath, e);
 		}
+		return null;
 	}
 
 	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL) {
