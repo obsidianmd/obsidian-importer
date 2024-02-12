@@ -76,52 +76,46 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
-		let resolved: Promise<void> | undefined;
 
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			if (ctx.isCancelled()) return;
 			ctx.reportProgress(i, files.length);
-			const prevResolved = resolved;
-			resolved = new Promise<void>(resolve => {
-				const ref = this.app.metadataCache.on('resolved', () => {
-					this.app.metadataCache.offref(ref);
-					resolve();
-				});
-			})
+
 			const file = files[i];
 			const tFile = await this.processFile(ctx, folder, file);
 			if (tFile) {
-				fileLookup.set(file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath).href : file.name, { file, tFile });
-			} else {
-				resolved = prevResolved;
+				fileLookup.set(
+					file instanceof NodePickedFile
+						? nodeUrl.pathToFileURL(file.filepath).href
+						: file.name,
+					{ file, tFile });
 			}
 		}
 
-		if (fileLookup.size > 0) {
-			const { metadataCache } = this.app;
+		const { metadataCache } = this.app;
 
-			// @ts-ignore
-			if (!metadataCache.computeMetadataAsync) {
-				// Ensures the cache is not outdated
-				await resolved;
-			}
+		let resolveUpdatesCompletePromise: () => void;
+		const updatesCompletePromise = new Promise<void>((resolve) => {
+			resolveUpdatesCompletePromise = resolve;
+		});
 
+		// @ts-ignore
+		metadataCache.onCleanCache(async () => {
+			// This function must call resolveUpdatesCompletePromise() before returning.
 			for (const [fileKey, { file, tFile }] of fileLookup) {
-				if (ctx.isCancelled()) return;
+				if (ctx.isCancelled()) break;
+
 				try {
 					// Attempt to parse links using MetadataCache
 					let mdContent = await this.app.vault.cachedRead(tFile);
-					let cache: CachedMetadata | null;
+
 					// @ts-ignore
-					if (metadataCache.computeMetadataAsync) {
+					const cache = metadataCache.computeMetadataAsync
 						// @ts-ignore
-						cache = await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata;
-					}
-					else {
-						cache = metadataCache.getFileCache(tFile);
-						if (!cache) continue;
-					}
+						? await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata
+						: metadataCache.getFileCache(tFile);
+					if (!cache) continue;
 
 					// Gather changes to make to the document
 					const changes = [];
@@ -158,7 +152,11 @@ export class HtmlImporter extends FormatImporter {
 					ctx.reportFailed(file.fullpath, e);
 				}
 			}
-		}
+
+			resolveUpdatesCompletePromise();
+		});
+
+		await updatesCompletePromise;
 	}
 
 	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
