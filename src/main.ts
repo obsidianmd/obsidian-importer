@@ -8,8 +8,8 @@ import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
-import { truncateText } from './util';
 import { TextbundleImporter } from './formats/textbundle';
+import { truncateText } from './util';
 
 declare global {
 	interface Window {
@@ -263,7 +263,7 @@ export default class ImporterPlugin extends Plugin {
 			},
 			'textbundle': {
 				name: 'Textbundle files',
-				optionText: 'Textbundle (.textbundle)',
+				optionText: 'Textbundle (.textbundle, .textpack)',
 				importer: TextbundleImporter,
 				// Not yet created
 				// helpPermalink: 'import/textbundle',
