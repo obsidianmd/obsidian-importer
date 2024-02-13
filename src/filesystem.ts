@@ -191,13 +191,18 @@ export class WebPickedFile implements PickedFile {
 export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?: (file: PickedFile) => boolean): Promise<PickedFile[]> {
 	let results: PickedFile[] = [];
 	for (let file of files) {
-		if (file.type === 'folder') {
-			results.push(...await getAllFiles(await file.list(), filter));
-		}
-		else if (file.type === 'file') {
-			if (!filter || filter(file)) {
-				results.push(file);
+		try {
+			if (file.type === 'folder') {
+				results.push(...await getAllFiles(await file.list(), filter));
 			}
+			else if (file.type === 'file') {
+				if (!filter || filter(file)) {
+					results.push(file);
+				}
+			}
+		}
+		catch (e) {
+			console.log('Skipping path: ', file.name, e);
 		}
 	}
 	return results;
