@@ -1,5 +1,6 @@
-const tagBlock = '{tags-array-block}---\ntags: {tags-array}\n---\n{end-tags-array-block}';
-const titleBlock = '{title-block}# {title}\n\n{end-title-block}';
+const frontmatterDelimiter = '---\n';
+const sourceBlock = '{source-url-block}source: {source-url}{end-source-url-block}\n';
+const tagBlock = '{tags-yaml-list-block}\ntags: {tags-yaml-list}\n\n{end-tags-yaml-list-block}';
 const contentBlock = '{content-block}{content}{end-content-block}\n';
 
-export const defaultTemplate = tagBlock + titleBlock + contentBlock;
+export const defaultTemplate = frontmatterDelimiter + tagBlock + sourceBlock +frontmatterDelimiter + contentBlock;

@@ -49,6 +49,8 @@ export const defaultYarleOptions: YarleOptions = {
 	},
 };
 
+const NOTEBOOKSTACK_SEPARATOR = '@@@';
+
 export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
 
 function deepCopy(obj: any) {
@@ -103,15 +105,17 @@ interface TaskGroups {
 
 export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
+	const runtimeProps = RuntimePropertiesSingleton.getInstance();
+
 	ctx.status('Processing ' + enexSource.name);
 	console.log(`Getting stream from ${enexSource}`);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
-	const notebookName = enexSource.basename;
+	const notebookName = runtimeProps.getCurrentNotebookName();
 
 	return new Promise((resolve, reject) => {
 		const logAndReject = (e: Error) => {
-			ctx.reportFailed(enexSource.fullpath, e);
+			ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
 			return reject(e);
 		};
 
@@ -149,7 +153,6 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			}
 			noteAttributes = null;
 
-			const runtimeProps = RuntimePropertiesSingleton.getInstance();
 			const currentNotePath = runtimeProps.getCurrentNotePath();
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
@@ -184,14 +187,32 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
 	const outputNotebookFolders = [];
-
+	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {
 		if (ctx.isCancelled()) return;
-		utils.setPaths(enex);
+
+		
+		let notebookStackProperties;
 		const runtimeProps = RuntimePropertiesSingleton.getInstance();
-		runtimeProps.setCurrentNotebookName(enex.basename);
+
+		if (enex.basename.includes(NOTEBOOKSTACK_SEPARATOR)) {
+			options.outputDir = utils.getNotebookStackOutputDir(enex, options);
+			notebookStackProperties = utils.getNotebookStackedProps(enex);
+
+			utils.setNotebookStackPaths(notebookStackProperties, options);
+			runtimeProps.setCurrentNotebookName(notebookStackProperties.basename);
+			runtimeProps.setCurrentNotebookFullpath(notebookStackProperties.fullpath);
+		}	
+		else {
+			utils.setSingleNotebookPaths(enex, options);
+			runtimeProps.setCurrentNotebookName(enex.basename);
+			runtimeProps.setCurrentNotebookFullpath(enex.fullpath);
+		}
+
+		
 		await parseStream(options, enex, ctx);
 		outputNotebookFolders.push(utils.getNotesPath());
+		options.outputDir = orginalOutputDir;
 	}
 
 	if (ctx.isCancelled()) return;
