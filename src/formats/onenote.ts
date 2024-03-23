@@ -9,6 +9,8 @@ const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
+// Regex for fixing whitespace and paragraphs
+const PARAGRAPH_REGEX = /(<\/p>)\s*(<p[^>]*>)|\n  \n/g;
 // Maximum amount of request retries, before they're marked as failed
 const MAX_RETRY_ATTEMPTS = 5;
 
@@ -165,9 +167,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 	
 	// Renders a HTML list of all section groups and sections
-	renderHierarchy(entity: OnenoteEntityHierarchyModel, parentEl: HTMLElement) {
-		if ('sectionGroups' in entity) {
-			for (const sectionGroup of entity.sectionGroups as SectionGroup[]) {
+	renderHierarchy(entity: SectionGroup | Notebook, parentEl: HTMLElement) {
+		if (entity.sectionGroups) {
+			for (const sectionGroup of entity.sectionGroups) {
 				let sectionGroupDiv = parentEl.createDiv(
 					{
 						attr: {
@@ -183,7 +185,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 	  
-		if ('sections' in entity) {
+		if (entity.sections) {
 			const sectionList = parentEl.createEl('ul', {
 				attr: {
 					style: 'padding-inline-start: 1em;',
@@ -272,24 +274,24 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	insertPagesToSection(pages: OnenotePage[], sectionId: string, parentEntity?: OnenoteEntityHierarchyModel | undefined) {
+	insertPagesToSection(pages: OnenotePage[], sectionId: string, parentEntity?: Notebook | SectionGroup) {
 		if (!parentEntity) {
 			for (const notebook of this.notebooks) {
 				this.insertPagesToSection(pages, sectionId, notebook);
 			}
 		}
 		else {
-			if ('sectionGroups' in parentEntity && parentEntity.sectionGroups) {
+			if (parentEntity.sectionGroups) {
 				// Recursively search in section groups
-				const sectionGroups: SectionGroup[] = parentEntity.sectionGroups as SectionGroup[];
+				const sectionGroups: SectionGroup[] = parentEntity.sectionGroups;
 				for (const sectionGroup of sectionGroups) {
 					this.insertPagesToSection(pages, sectionId, sectionGroup);
 				}
 			}
 		  
-			if ('sections' in parentEntity && parentEntity.sections) {
+			if (parentEntity.sections) {
 				// Recursively search in sections
-				const sectionGroup = parentEntity as SectionGroup;
+				const sectionGroup = parentEntity;
 				for (const section of sectionGroup.sections!) {
 					if (section.id === sectionId) {
 						section.pages = pages;
@@ -301,10 +303,6 @@ export class OneNoteImporter extends FormatImporter {
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		try {
-			// Removes multiple paragraphs in a row to replace them with a basic <br>
-			const paragraphRegex: RegExp = /<\/p>\s*<p[^>]*>/g;
-			// htmlToMarkdown adds a triple line break in some places
-			const whitespaceRegex: RegExp = /\n  \n/g;
 			const splitContent = this.convertFormat(content);
 			const outputPath = this.getEntityPath(page.id!, this.outputFolder!.name)!;
 			
@@ -314,12 +312,12 @@ export class OneNoteImporter extends FormatImporter {
 
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
-		 	let data = this.getAllAttachments(taggedPage.replace(paragraphRegex, '<br />'));
+			let data = this.getAllAttachments(taggedPage.replace(PARAGRAPH_REGEX, '<br />'));
 			let parsedPage = this.styledElementToHTML(data.html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
 
-			let mdContent = htmlToMarkdown(parsedPage).trim().replace(whitespaceRegex, ' ');
+			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
 			await this.fetchAttachmentQueue(progress, fileRef, this.outputFolder!, data.queue);
@@ -432,7 +430,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			if ('sections' in parentEntity) {
-				const path = this.searchSections(entityID, currentPath, parentEntity as SectionGroup);
+				const path = this.searchSectionGroups(entityID, currentPath, parentEntity.sections as OnenoteSection[]);
 				if (path !== null) returnPath = path;
 			}
 
@@ -481,7 +479,7 @@ export class OneNoteImporter extends FormatImporter {
 		return returnPath;
 	}
 	
-	private searchSectionGroups(entityID: string, currentPath: string, sectionGroups: SectionGroup[]): string | null {
+	private searchSectionGroups(entityID: string, currentPath: string, sectionGroups: SectionGroup[] | OnenoteSection[]): string | null {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
 		for (const sectionGroup of sectionGroups) {
@@ -496,23 +494,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		return returnPath;
 	}
-	
-	private searchSections(entityID: string, currentPath: string, sectionGroup: SectionGroup): string | null {
-		// Recursively search in sections
-		let returnPath: string | null = null;
-		for (const section of sectionGroup.sections!) {
-			if (section.id === entityID) returnPath = `${currentPath}/${sectionGroup.displayName}`;
-			else {
-				const foundPath = this.getEntityPath(entityID, `${currentPath}/${section.displayName}`, section);
-				if (foundPath) { 
-					returnPath = foundPath;
-					break;
-				}
-			}
-		}
-		return returnPath;
-	}
-	
+		
 	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file formats
 	getAllAttachments(pageHTML: string): { html: HTMLElement, queue: FileAttachment[] } {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
