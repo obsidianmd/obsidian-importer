@@ -1,4 +1,4 @@
-import { OnenotePage, SectionGroup, User, FileAttachment, PublicError, OnenoteEntityHierarchyModel, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
+import { OnenotePage, SectionGroup, User, FileAttachment, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
@@ -119,9 +119,9 @@ export class OneNoteImporter extends FormatImporter {
 
 		// Fetch the sections & section groups directly under the notebook
 		const params = new URLSearchParams({
-		  $expand: 'sections($select=id,displayName),sectionGroups($expand=sections,sectionGroups)',
-		  $select: 'id,displayName',
-		  $orderby: 'createdDateTime'
+			$expand: 'sections($select=id,displayName),sectionGroups($expand=sections,sectionGroups)',
+			$select: 'id,displayName',
+			$orderby: 'createdDateTime'
 		});
 		const sectionsUrl = `${baseUrl}?${params.toString()}`;
 		this.notebooks = (await this.fetchResource(sectionsUrl, 'json')).value;
@@ -165,7 +165,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 	}
-	
+
 	// Renders a HTML list of all section groups and sections
 	renderHierarchy(entity: SectionGroup | Notebook, parentEl: HTMLElement) {
 		if (entity.sectionGroups) {
@@ -176,7 +176,7 @@ export class OneNoteImporter extends FormatImporter {
 							style: 'padding-inline-start: 1em; padding-top: 8px'
 						}
 					});
-				
+
 				sectionGroupDiv.createEl('strong', {
 					text: sectionGroup.displayName!,
 				});
@@ -184,14 +184,14 @@ export class OneNoteImporter extends FormatImporter {
 				this.renderHierarchy(sectionGroup, sectionGroupDiv);
 			}
 		}
-	  
+
 		if (entity.sections) {
 			const sectionList = parentEl.createEl('ul', {
 				attr: {
 					style: 'padding-inline-start: 1em;',
 				},
 			});
-			for (const section of entity.sections as OnenoteSection[]) {
+			for (const section of entity.sections) {
 				const listElement = sectionList.createEl('li', {
 					cls: 'task-list-item',
 				});
@@ -222,39 +222,38 @@ export class OneNoteImporter extends FormatImporter {
 			new Notice('Please select a location to export to.');
 			return;
 		}
-		
+
 		if (!this.graphData.accessToken) {
 			new Notice('Please sign in to your Microsoft Account.');
 			return;
 		}
 
 		progress.status('Starting OneNote import');
-		let remainingProgress = this.selectedIds.length;
+		let progressTotal = 0;
+		let progressCurrent = 0;
 
 		for (let sectionId of this.selectedIds) {
-			progress.reportProgress(0, remainingProgress);
-			remainingProgress--;
-			let pageCount: number = 0;
+			progress.reportProgress(progressCurrent, progressTotal);
 
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
-			  $select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
-			  $orderby: 'order',
-			  pagelevel: 'true'
+				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
+				$orderby: 'order',
+				pagelevel: 'true'
 			});
 
 			const pagesUrl = `${baseUrl}?${params.toString()}`;
-	
+
 			let pages: OnenotePage[] = ((await this.fetchResource(pagesUrl, 'json')).value);
+			progressTotal += pages.length;
 			this.insertPagesToSection(pages, sectionId);
-			
-			progress.reportProgress(0, pages.length);
+
+			progress.reportProgress(progressCurrent, progressTotal);
 
 			for (let i = 0; i < pages.length; i++) {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 				try {
-					pageCount++;
 					progress.status(`Importing note ${page.title}`);
 
 					// Every 50 items, do a few second break to prevent rate limiting
@@ -265,7 +264,9 @@ export class OneNoteImporter extends FormatImporter {
 					this.processFile(progress,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text'),
 						page);
-					progress.reportProgress(pageCount, pages.length);
+
+					progressCurrent++;
+					progress.reportProgress(progressCurrent, progressTotal);
 				}
 				catch (e) {
 					progress.reportFailed(page.title, e.toString());
@@ -279,23 +280,23 @@ export class OneNoteImporter extends FormatImporter {
 			for (const notebook of this.notebooks) {
 				this.insertPagesToSection(pages, sectionId, notebook);
 			}
+			return;
 		}
-		else {
-			if (parentEntity.sectionGroups) {
-				// Recursively search in section groups
-				const sectionGroups: SectionGroup[] = parentEntity.sectionGroups;
-				for (const sectionGroup of sectionGroups) {
-					this.insertPagesToSection(pages, sectionId, sectionGroup);
-				}
+
+		if (parentEntity.sectionGroups) {
+			// Recursively search in section groups
+			const sectionGroups: SectionGroup[] = parentEntity.sectionGroups;
+			for (const sectionGroup of sectionGroups) {
+				this.insertPagesToSection(pages, sectionId, sectionGroup);
 			}
-		  
-			if (parentEntity.sections) {
-				// Recursively search in sections
-				const sectionGroup = parentEntity;
-				for (const section of sectionGroup.sections!) {
-					if (section.id === sectionId) {
-						section.pages = pages;
-					}
+		}
+
+		if (parentEntity.sections) {
+			// Recursively search in sections
+			const sectionGroup = parentEntity;
+			for (const section of sectionGroup.sections!) {
+				if (section.id === sectionId) {
+					section.pages = pages;
 				}
 			}
 		}
@@ -304,8 +305,8 @@ export class OneNoteImporter extends FormatImporter {
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		try {
 			const splitContent = this.convertFormat(content);
-			const outputPath = this.getEntityPath(page.id!, this.outputFolder!.name)!;
-			
+			const outputPath = this.getEntityPathNoParent(page.id!, this.outputFolder!.name)!;
+
 			let pageFolder: TFolder;
 			if (!await this.vault.adapter.exists(outputPath)) pageFolder = await this.vault.createFolder(outputPath);
 			else pageFolder = this.vault.getAbstractFileByPath(outputPath) as TFolder;
@@ -406,41 +407,39 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 
+	getEntityPathNoParent(entityID: string, currentPath: string): string | null {
+		for (const notebook of this.notebooks) {
+			const path = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
+			if (path) return path;
+		}
+		return null;
+	}
+
 	/**
 	 * Returns a filesystem path for any OneNote entity (e.g. sections or notes)
 	 * Paths are returned in the following format:
 	 * (Export folder)/Notebook/(possible section groups)/Section/(possible pages with a higher level) 
 	 */
-	getEntityPath(entityID: string, currentPath: string, parentEntity?: OnenoteEntityHierarchyModel | undefined): string | null {
+	getEntityPath(entityID: string, currentPath: string, parentEntity: Notebook | SectionGroup | OnenoteSection): string | null {
 		let returnPath: string | null = null;
 
-		if (!parentEntity) {
-			for (const notebook of this.notebooks) {
-				const path = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
-				if (path) {
-					returnPath = path;
-					break;
-				}
-			}
+		if ('sectionGroups' in parentEntity && parentEntity.sectionGroups) {
+			const path = this.searchSectionGroups(entityID, currentPath, parentEntity.sectionGroups);
+			if (path !== null) returnPath = path;
 		}
-		else {
-			if ('sectionGroups' in parentEntity) {
-				const path = this.searchSectionGroups(entityID, currentPath, parentEntity.sectionGroups as SectionGroup[]);
-				if (path !== null) returnPath = path;
-			}
 
-			if ('sections' in parentEntity) {
-				const path = this.searchSectionGroups(entityID, currentPath, parentEntity.sections as OnenoteSection[]);
-				if (path !== null) returnPath = path;
-			}
-
-			if ('pages' in parentEntity && parentEntity.pages) {
-				const path = this.searchPages(entityID, currentPath, parentEntity as OnenoteSection);
-				if (path !== null) returnPath = path;
-			}
+		if ('sections' in parentEntity && parentEntity.sections) {
+			const path = this.searchSectionGroups(entityID, currentPath, parentEntity.sections);
+			if (path !== null) returnPath = path;
 		}
+
+		if ('pages' in parentEntity && parentEntity.pages) {
+			const path = this.searchPages(entityID, currentPath, parentEntity);
+			if (path !== null) returnPath = path;
+		}
+
 		return returnPath;
-	  }
+	}
 
 	private searchPages(entityID: string, currentPath: string, section: OnenoteSection): string | null {
 		let returnPath: string | null = null;
@@ -457,10 +456,10 @@ export class OneNoteImporter extends FormatImporter {
 					 * with this line both files are in one neat directory:
 					 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 					 */
-					if (section.pages![i+1] && section.pages![i+1].level !== 0) {
+					if (section.pages![i + 1] && section.pages![i + 1].level !== 0) {
 						returnPath = `${currentPath}/${page.title}`;
 					}
-					else returnPath = currentPath;							
+					else returnPath = currentPath;
 				}
 				else {
 					returnPath = currentPath;
@@ -478,7 +477,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		return returnPath;
 	}
-	
+
 	private searchSectionGroups(entityID: string, currentPath: string, sectionGroups: SectionGroup[] | OnenoteSection[]): string | null {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
@@ -486,7 +485,7 @@ export class OneNoteImporter extends FormatImporter {
 			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sectionGroup.displayName}`;
 			else {
 				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sectionGroup.displayName}`, sectionGroup);
-				if (foundPath) { 
+				if (foundPath) {
 					returnPath = foundPath;
 					break;
 				}
@@ -494,16 +493,16 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		return returnPath;
 	}
-		
+
 	// This function gets all attachments and adds them to the queue, as well as adds embedding syntax for supported file formats
 	getAllAttachments(pageHTML: string): { html: HTMLElement, queue: FileAttachment[] } {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
-		
+
 		const objects: HTMLElement[] = pageElement.findAll('object');
 		const images: HTMLImageElement[] = pageElement.findAll('img') as HTMLImageElement[];
 		// Online videos are implemented as iframes, normal videos are just <object>s
 		const videos: HTMLIFrameElement[] = pageElement.findAll('iframe') as HTMLIFrameElement[];
-		
+
 		const attachmentQueue: FileAttachment[] = [];
 
 		for (const object of objects) {
@@ -586,7 +585,7 @@ export class OneNoteImporter extends FormatImporter {
 
 					if (!(await this.vault.adapter.exists(`${attachmentPath}/${attachment.name}`))) {
 						const data = (await this.fetchResource(attachment.contentLocation!, 'file')) as ArrayBuffer;
-						await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);	
+						await this.app.vault.createBinary(attachmentPath + '/' + attachment.name, data);
 					}
 					else progress.reportSkipped(attachment.name!);
 				}
@@ -671,7 +670,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		return element;
 	}
-	
+
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
 	async fetchResource(url: string, returnType: 'text', retryCount?: number | undefined): Promise<string>;
 	async fetchResource(url: string, returnType: 'file', retryCount?: number | undefined): Promise<ArrayBuffer>;
@@ -702,11 +701,11 @@ export class OneNoteImporter extends FormatImporter {
 
 				console.log('An error has occurred while fetching an resource:', err);
 
-	            // We're rate-limited - let's retry after the suggested amount of time
+				// We're rate-limited - let's retry after the suggested amount of time
 				if (err.code === '20166') {
-					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 15000;	
+					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 15000;
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
-	
+
 					if (retryCount < MAX_RETRY_ATTEMPTS) {
 						await new Promise(resolve => setTimeout(resolve, retryTime));
 						return this.fetchResource(url, returnType as any, retryCount + 1);
