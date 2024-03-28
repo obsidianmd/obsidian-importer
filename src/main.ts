@@ -33,6 +33,11 @@ interface ImporterDefinition {
 export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
 
 /**
+ * List of accepted attachment extensions
+ */
+export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
+
+/**
  * AuthCallback is a function which will be called when the importer-auth
  * protocal is opened by an OAuth callback.
  */
