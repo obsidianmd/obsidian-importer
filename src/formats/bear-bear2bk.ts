@@ -40,13 +40,16 @@ export class Bear2bkImporter extends FormatImporter {
 		for (let file of files) {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
-			await readZip(file, async (zip, entries) => {
+			await readZip(file, async (_zip, entries) => {
 				const metadataLookup = await this.collectMetadata(entries);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
+					let matchTextBundleTitle = parent.match(/\.bear2bk\/(.*)\.textbundle/);
+					let textBundleTitle = matchTextBundleTitle !== null && matchTextBundleTitle.length > 0 ? matchTextBundleTitle[1] : 'Unknown Title';
+
 					if (name === 'info.json') {
-						continue
+						continue;
 					}
 					ctx.status('Processing ' + name);
 					try {
@@ -57,14 +60,15 @@ export class Bear2bkImporter extends FormatImporter {
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
-								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/`);
+								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/${encodeURI(textBundleTitle)}/`);
 							}
 							const filePath = normalizePath(mdFilename);
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
 								targetFolder = archiveFolder;
-							} else if (metadata?.trashed) {
+							}
+							else if (metadata?.trashed) {
 								targetFolder = trashFolder;
 							}
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
@@ -75,7 +79,8 @@ export class Bear2bkImporter extends FormatImporter {
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + name);
-							const assetFileVaultPath = `${attachmentsFolder.path}/${name}`;
+							const textBundleAssetsFolder = await this.createFolders(`${attachmentsFolder.path}/${textBundleTitle}`);
+							const assetFileVaultPath = `${textBundleAssetsFolder.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
 								ctx.reportSkipped(fullpath, 'asset with filename already exists');
