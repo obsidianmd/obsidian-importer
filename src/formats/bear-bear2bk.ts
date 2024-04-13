@@ -33,7 +33,7 @@ export class Bear2bkImporter extends FormatImporter {
 		let outputFolder = folder;
 
 		const attachmentsFolder = await this.createFolders(`${folder.path}/assets`);
-		const assetMatcher = /!\[\]\(assets\//g;
+		const assetMatcher = /(!)?\[([^\]]*)\]\(assets\/([^\)]*)\)(<!-- .* -->)?/g;
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
 
@@ -55,12 +55,18 @@ export class Bear2bkImporter extends FormatImporter {
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
+
+							function assetReplacer(_: any, hasExclamation?: string, linkText?: string, assetPath?: string, embedOptions?: string) {
+								const hasPreview = hasExclamation || embedOptions?.includes('"preview":"true"');
+								return `${hasPreview ? '!' : ''}[${linkText}](${attachmentsFolder.path}/${encodeURI(textBundleTitle)}/${assetPath})`;
+							}
+
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
-								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/${encodeURI(textBundleTitle)}/`);
+								mdContent = mdContent.replace(assetMatcher, assetReplacer);
 							}
 							const filePath = normalizePath(mdFilename);
 							const metadata = metadataLookup[parent];
