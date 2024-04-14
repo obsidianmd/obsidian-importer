@@ -5,6 +5,8 @@ import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
+import { moment } from 'obsidian';
+import { title } from 'process';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -19,6 +21,10 @@ export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
 	progress: ImportContext;
 	userDNPFormat: string;
+
+	// YAML options
+	titleYAML: boolean = false;
+	fileDateYAML: boolean = false;
 
 	init() {
 		this.addFileChooserSetting('Roam (.json)', ['json']);
@@ -36,6 +42,26 @@ export class RoamJSONImporter extends FormatImporter {
 				toggle.setValue(this.downloadAttachments);
 				toggle.onChange(async (value) => {
 					this.downloadAttachments = value;
+				});
+			});
+
+			new Setting(this.modal.contentEl)
+			.setName('Add YAML title')
+			.setDesc('If enabled, notes will have the full title added as a property (in case of illegal file name characters).')
+			.addToggle(toggle => {
+				toggle.setValue(this.titleYAML);
+				toggle.onChange(async (value) => {
+					this.titleYAML = value;
+				});
+			});
+
+			new Setting(this.modal.contentEl)
+			.setName('Add YAML created/update date')
+			.setDesc('If enabled, notes will have the create-time and edit-time from Roam added as properties.')
+			.addToggle(toggle => {
+				toggle.setValue(this.fileDateYAML);
+				toggle.onChange(async (value) => {
+					this.fileDateYAML = value;
 				});
 			});
 	}
@@ -255,8 +281,41 @@ export class RoamJSONImporter extends FormatImporter {
 		return blockText;
 	};
 
-	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false): Promise<string> {
+	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, skipFileDateYAML: boolean = false, checkYAMLoptions : boolean = false): Promise<string> {
 		let markdown: string[] = [];
+		let runYAMLoptions = true; // sets for first run
+
+		// check if any YAML options are set
+		switch(!checkYAMLoptions) {
+			case this.titleYAML:
+			case this.fileDateYAML:
+				checkYAMLoptions = true;
+		}
+
+		// add YAML frontmatter, if enabled
+		if (checkYAMLoptions && runYAMLoptions) {
+			markdown.push('---');
+			
+			if (this.titleYAML && 'string' in json && json.string) { // may need to be moved since this is only for pages
+				if (json.heading == 1) {
+					markdown.push('title: ' + json.string);
+				}
+			}
+
+			if (this.fileDateYAML) {
+				// use Roam's create-time and edit-time values to set timestamps, defaults to now
+				let TSFormat = "YYYY-MM-DD HH:mm:ss";
+			
+				let formatCreateDate = json['create-time'] ? moment(json['create-time']).format(TSFormat) : moment(new Date()).format(TSFormat);
+				let formatUpdateDate = json['edit-time'] ? moment(json['edit-time']).format(TSFormat) : moment(new Date()).format(TSFormat);
+
+				markdown.push('created: ' + formatCreateDate);
+				markdown.push('updated: ' + formatUpdateDate);
+			}
+
+			markdown.push('---');
+			runYAMLoptions = false;
+		}
 
 		if ('string' in json && json.string) {
 			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
@@ -266,7 +325,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, true, true));
 			}
 		}
 
