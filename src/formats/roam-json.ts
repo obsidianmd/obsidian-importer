@@ -45,15 +45,15 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-			new Setting(this.modal.contentEl)
-			.setName('Add YAML title')
-			.setDesc('If enabled, notes will have the full title added as a property (in case of illegal file name characters).')
-			.addToggle(toggle => {
-				toggle.setValue(this.titleYAML);
-				toggle.onChange(async (value) => {
-					this.titleYAML = value;
-				});
-			});
+			// new Setting(this.modal.contentEl)
+			// .setName('Add YAML title')
+			// .setDesc('If enabled, notes will have the full title added as a property (in case of illegal file name characters).')
+			// .addToggle(toggle => {
+			// 	toggle.setValue(this.titleYAML);
+			// 	toggle.onChange(async (value) => {
+			// 		this.titleYAML = value;
+			// 	});
+			// });
 
 			new Setting(this.modal.contentEl)
 			.setName('Add YAML created/update date')
@@ -69,6 +69,7 @@ export class RoamJSONImporter extends FormatImporter {
 	async import(progress: ImportContext) {
 		this.progress = progress;
 		let { files } = this;
+		let latestUpdateTS = 0; // TESTING FOR YAML SETUP
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
@@ -112,7 +113,7 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 				const filename = `${graphFolder}/${pageName}.md`;
 
-				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData);
+				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,false,true,0);
 				markdownPages.set(filename, markdownOutput);
 			}
 
@@ -281,40 +282,17 @@ export class RoamJSONImporter extends FormatImporter {
 		return blockText;
 	};
 
-	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, skipFileDateYAML: boolean = false, checkYAMLoptions : boolean = false): Promise<string> {
+	// setup to hold the most recent timestamp value from a given page
+	largestTS: number = 0
+
+	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, checkYAMLoptions : boolean = false, runYAMLoptions: boolean = true, updateTS: number): Promise<string> {
 		let markdown: string[] = [];
-		let runYAMLoptions = true; // sets for first run
+		let frontMatterYAML: string[] = [];
 
-		// check if any YAML options are set
-		switch(!checkYAMLoptions) {
-			case this.titleYAML:
-			case this.fileDateYAML:
-				checkYAMLoptions = true;
-		}
-
-		// add YAML frontmatter, if enabled
-		if (checkYAMLoptions && runYAMLoptions) {
-			markdown.push('---');
-			
-			if (this.titleYAML && 'string' in json && json.string) { // may need to be moved since this is only for pages
-				if (json.heading == 1) {
-					markdown.push('title: ' + json.string);
-				}
-			}
-
-			if (this.fileDateYAML) {
-				// use Roam's create-time and edit-time values to set timestamps, defaults to now
-				let TSFormat = "YYYY-MM-DD HH:mm:ss";
-			
-				let formatCreateDate = json['create-time'] ? moment(json['create-time']).format(TSFormat) : moment(new Date()).format(TSFormat);
-				let formatUpdateDate = json['edit-time'] ? moment(json['edit-time']).format(TSFormat) : moment(new Date()).format(TSFormat);
-
-				markdown.push('created: ' + formatCreateDate);
-				markdown.push('updated: ' + formatUpdateDate);
-			}
-
-			markdown.push('---');
-			runYAMLoptions = false;
+		// for YAML frontmatter
+		// check the edit-time of the block, compare to what was passed, use the most recent date
+		if (json['edit-time'] !== undefined) {
+			this.largestTS = updateTS > json['edit-time'] ? updateTS : json['edit-time'];
 		}
 
 		if ('string' in json && json.string) {
@@ -325,10 +303,49 @@ export class RoamJSONImporter extends FormatImporter {
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, true, true));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, this.largestTS));
 			}
 		}
 
+		// once processing children is completed, add the YAML to the top
+		// check if any YAML options are set
+		switch(!checkYAMLoptions) {
+			case this.fileDateYAML:
+			// add other options here
+				checkYAMLoptions = true;
+		}
+
+		// add YAML frontmatter, if enabled
+		if (checkYAMLoptions && runYAMLoptions) {
+
+			let timeCreated = json['create-time'];
+
+			frontMatterYAML.push('---');
+
+			if (this.fileDateYAML) {
+				// use Roam's create-time and edit-time values to set timestamps
+				// if create is missing, use updated
+				// if updated is missing, use current Date()
+				let TSFormat = "YYYY-MM-DD HH:mm:ss";
+			
+				let formatUpdateDate = this.largestTS ? moment(this.largestTS).format(TSFormat) : moment(new Date()).format(TSFormat);
+				let formatCreateDate = timeCreated ? moment(timeCreated).format(TSFormat) : formatUpdateDate;
+
+				frontMatterYAML.push('created: ' + formatCreateDate);
+				frontMatterYAML.push('updated: ' + formatUpdateDate);
+			}
+
+			frontMatterYAML.push('---');
+			runYAMLoptions = false;
+		}
+
+		// frontMatterYAML.join('\n');
+		// Add frontmatter YAML to the top of the markdown array
+		// reverse it before pushing
+		frontMatterYAML.reverse();
+		frontMatterYAML.forEach((item) => {
+			markdown.unshift(item);
+		});
 		return markdown.join('\n');
 	}
 
