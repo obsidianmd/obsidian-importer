@@ -6,7 +6,6 @@ import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
 import { moment } from 'obsidian';
-import { title } from 'process';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -23,7 +22,6 @@ export class RoamJSONImporter extends FormatImporter {
 	userDNPFormat: string;
 
 	// YAML options
-	titleYAML: boolean = false;
 	fileDateYAML: boolean = false;
 
 	init() {
@@ -45,16 +43,6 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-			// new Setting(this.modal.contentEl)
-			// .setName('Add YAML title')
-			// .setDesc('If enabled, notes will have the full title added as a property (in case of illegal file name characters).')
-			// .addToggle(toggle => {
-			// 	toggle.setValue(this.titleYAML);
-			// 	toggle.onChange(async (value) => {
-			// 		this.titleYAML = value;
-			// 	});
-			// });
-
 			new Setting(this.modal.contentEl)
 			.setName('Add YAML created/update date')
 			.setDesc('If enabled, notes will have the create-time and edit-time from Roam added as properties.')
@@ -69,7 +57,6 @@ export class RoamJSONImporter extends FormatImporter {
 	async import(progress: ImportContext) {
 		this.progress = progress;
 		let { files } = this;
-		let latestUpdateTS = 0; // TESTING FOR YAML SETUP
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
 			return;
@@ -339,7 +326,6 @@ export class RoamJSONImporter extends FormatImporter {
 			runYAMLoptions = false;
 		}
 
-		// frontMatterYAML.join('\n');
 		// Add frontmatter YAML to the top of the markdown array
 		// reverse it before pushing
 		frontMatterYAML.reverse();
