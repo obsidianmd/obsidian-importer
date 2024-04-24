@@ -23,6 +23,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 	// YAML options
 	fileDateYAML: boolean = false;
+	titleYAML: boolean = false;
 
 	init() {
 		this.addFileChooserSetting('Roam (.json)', ['json']);
@@ -50,6 +51,16 @@ export class RoamJSONImporter extends FormatImporter {
 				toggle.setValue(this.fileDateYAML);
 				toggle.onChange(async (value) => {
 					this.fileDateYAML = value;
+				});
+			});
+
+			new Setting(this.modal.contentEl)
+			.setName('Add YAML title')
+			.setDesc('If enabled, notes will have the full title added as a property (regardless of illegal file name characters).')
+			.addToggle(toggle => {
+				toggle.setValue(this.titleYAML);
+				toggle.onChange(async (value) => {
+					this.titleYAML = value;
 				});
 			});
 	}
@@ -100,7 +111,41 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 				const filename = `${graphFolder}/${pageName}.md`;
 
-				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,false,true,0);
+				// if title option is enabled
+				let YAMLtitle: string;
+				if (this.titleYAML === true) {
+					YAMLtitle = pageData.title;
+				} else {
+					YAMLtitle = '';
+				}
+				// if timestamp option is enabled
+				// set up numbers to pass
+				let pageCreateTimestamp: number;
+				let pageEditTimestamp: number;
+				if (this.fileDateYAML === true) {
+					// get page creation time and update time
+					let pageCreateTime = pageData['create-time'];
+					let pageEditTime = pageData['edit-time'];
+
+					// type check both for numbers, set to 0 if there's a type mismatch
+					if (typeof pageCreateTime === "number") {
+						pageCreateTimestamp = pageCreateTime;
+					} else {
+						pageCreateTimestamp = 0;
+					}
+
+					if (typeof pageEditTime === "number") {
+						pageEditTimestamp = pageEditTime;
+					} else {
+						pageEditTimestamp = 0;
+					}
+				} else {
+					// if the option isn't enabled, pass zeroes to the function
+					pageCreateTimestamp = 0;
+					pageEditTimestamp = 0;
+				}
+
+				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,false,true,YAMLtitle,pageCreateTimestamp,pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
 			}
 
@@ -273,31 +318,34 @@ export class RoamJSONImporter extends FormatImporter {
 	newestTimestamp: number = 0;
 	oldestTimestamp: number = 0;
 
-	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, checkYAMLoptions : boolean = false, runYAMLoptions: boolean = true, updateTS: number): Promise<string> {
+	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, checkYAMLoptions : boolean = false, runYAMLoptions: boolean = true, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
 		let markdown: string[] = [];
 		let frontMatterYAML: string[] = [];
 
 		// for YAML frontmatter
-		// check the edit-time of the block, compare to what was passed, use the most recent date
-		// if undefined, set newestTS to the value of updateTS
-		if (json['edit-time'] !== undefined) {
-			this.newestTimestamp = updateTS > json['edit-time'] ? updateTS : json['edit-time'];
-		} else {
-			this.newestTimestamp = updateTS;
+		// can't be edited before it was created, compare timestamps
+		if (this.newestTimestamp < this.oldestTimestamp) {
+			this.oldestTimestamp = this.newestTimestamp;
 		}
 
-		// if the create time is defined, see if it's a first run (set to 0)
-		// on first run, set oldestTS to the lower of the updateTS value or json['create-time']
-		// otherwise, keep the lower value as oldestTS
-		// else, set oldestTS to the value of updateTS
+		// check the edit-time of the block, compare to what was passed, use the most recent date
+		// if undefined, set newestTimestamp to the value of updatedTimestamp
+		if (json['edit-time'] !== undefined) {
+			this.newestTimestamp = updatedTimestamp > json['edit-time'] ? updatedTimestamp : json['edit-time'];
+		} else {
+			this.newestTimestamp = updatedTimestamp;
+		}
+
+		// if the create time is defined, set oldestTimestamp to the lower of the createdTimestamp value or json['create-time']
+		// else, set oldestTimestamp to the value of createdTimestamp
 		if (json['create-time'] !== undefined) {
-			if (this.oldestTimestamp < 10) { // just something to offset the 0 value, comparing unix timestamps
-				this.oldestTimestamp = updateTS > json['create-time'] ? updateTS : json['create-time'];
+			if (createdTimestamp > 10) { // if it's passed as a 0
+				this.oldestTimestamp = createdTimestamp < json['create-time'] ? createdTimestamp : json['create-time'];
 			} else {
-				this.oldestTimestamp = updateTS < json['create-time'] ? updateTS : json['create-time'];
+				this.oldestTimestamp = json['create-time'];
 			}
 		} else {
-			this.oldestTimestamp = updateTS;
+			this.oldestTimestamp = createdTimestamp;
 		}
 
 		if ('string' in json && json.string) {
@@ -308,15 +356,17 @@ export class RoamJSONImporter extends FormatImporter {
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, this.newestTimestamp));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, '', this.oldestTimestamp, this.newestTimestamp));
 			}
 		}
 
 		// once processing children is completed, add the YAML to the top
 		// check if any YAML options are set
-		switch(!checkYAMLoptions) {
+		switch (!checkYAMLoptions) {
 			case this.fileDateYAML:
+			case this.titleYAML:
 			// add other options here
+			// case this.{option-name}:
 				checkYAMLoptions = true;
 		}
 
@@ -327,6 +377,13 @@ export class RoamJSONImporter extends FormatImporter {
 
 			frontMatterYAML.push('---');
 
+			// if "add title" option enabled
+			if (this.titleYAML === true) {
+				frontMatterYAML.push('title: ' + setTitleProperty);
+			}
+
+			// if "timestamps" option enabled
+			// TODO: fix timestamps for timezone changes (currently in GMT)
 			if (this.fileDateYAML === true) {
 				// use Roam's create-time and edit-time values to set timestamps
 				// if create is missing, use updated
