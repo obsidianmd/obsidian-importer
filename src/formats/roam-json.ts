@@ -269,8 +269,9 @@ export class RoamJSONImporter extends FormatImporter {
 		return blockText;
 	};
 
-	// setup to hold the most recent timestamp value from a given page
-	largestTS: number = 0
+	// setup to hold the newest and oldest timestamp value from a given page
+	newestTimestamp: number = 0;
+	oldestTimestamp: number = 0;
 
 	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, checkYAMLoptions : boolean = false, runYAMLoptions: boolean = true, updateTS: number): Promise<string> {
 		let markdown: string[] = [];
@@ -278,8 +279,25 @@ export class RoamJSONImporter extends FormatImporter {
 
 		// for YAML frontmatter
 		// check the edit-time of the block, compare to what was passed, use the most recent date
+		// if undefined, set newestTS to the value of updateTS
 		if (json['edit-time'] !== undefined) {
-			this.largestTS = updateTS > json['edit-time'] ? updateTS : json['edit-time'];
+			this.newestTimestamp = updateTS > json['edit-time'] ? updateTS : json['edit-time'];
+		} else {
+			this.newestTimestamp = updateTS;
+		}
+
+		// if the create time is defined, see if it's a first run (set to 0)
+		// on first run, set oldestTS to the lower of the updateTS value or json['create-time']
+		// otherwise, keep the lower value as oldestTS
+		// else, set oldestTS to the value of updateTS
+		if (json['create-time'] !== undefined) {
+			if (this.oldestTimestamp < 10) { // just something to offset the 0 value, comparing unix timestamps
+				this.oldestTimestamp = updateTS > json['create-time'] ? updateTS : json['create-time'];
+			} else {
+				this.oldestTimestamp = updateTS < json['create-time'] ? updateTS : json['create-time'];
+			}
+		} else {
+			this.oldestTimestamp = updateTS;
 		}
 
 		if ('string' in json && json.string) {
@@ -290,7 +308,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, this.largestTS));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, this.newestTimestamp));
 			}
 		}
 
@@ -303,19 +321,19 @@ export class RoamJSONImporter extends FormatImporter {
 		}
 
 		// add YAML frontmatter, if enabled
-		if (checkYAMLoptions && runYAMLoptions) {
+		if (checkYAMLoptions === true && runYAMLoptions === true) {
 
-			let timeCreated = json['create-time'];
+			let timeCreated = this.oldestTimestamp;
 
 			frontMatterYAML.push('---');
 
-			if (this.fileDateYAML) {
+			if (this.fileDateYAML === true) {
 				// use Roam's create-time and edit-time values to set timestamps
 				// if create is missing, use updated
 				// if updated is missing, use current Date()
 				let TSFormat = "YYYY-MM-DD HH:mm:ss";
 			
-				let formatUpdateDate = this.largestTS ? moment(this.largestTS).format(TSFormat) : moment(new Date()).format(TSFormat);
+				let formatUpdateDate = this.newestTimestamp ? moment(this.newestTimestamp).format(TSFormat) : moment(new Date()).format(TSFormat);
 				let formatCreateDate = timeCreated ? moment(timeCreated).format(TSFormat) : formatUpdateDate;
 
 				frontMatterYAML.push('created: ' + formatCreateDate);
