@@ -5,7 +5,8 @@ import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
-import { moment } from 'obsidian';
+//import { moment } from 'obsidian';
+import moment from 'moment-timezone';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -377,13 +378,12 @@ export class RoamJSONImporter extends FormatImporter {
 
 			frontMatterYAML.push('---');
 
-			// if "add title" option enabled
+			// if "add title" option enabled, quotes added to prevent errors in frontmatter
 			if (this.titleYAML === true) {
-				frontMatterYAML.push('title: ' + setTitleProperty);
+				frontMatterYAML.push('title: "' + setTitleProperty +'"');
 			}
 
 			// if "timestamps" option enabled
-			// TODO: fix timestamps for timezone changes (currently in GMT)
 			if (this.fileDateYAML === true) {
 				// use Roam's create-time and edit-time values to set timestamps
 				// if create is missing, use updated
