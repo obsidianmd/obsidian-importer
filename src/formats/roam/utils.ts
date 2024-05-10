@@ -8,7 +8,6 @@ const windowsTrailingRe = /[\. ]+$/;
 const startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
 const squareBracketOpenRe = /\[/g; // Regular expression to match "["
 const squareBracketCloseRe = /\]/g; // Regular expression to match "]"
-const ReplaceNoDir = '_';
 
 export function sanitizeFileNameKeepPath(name: string) {
 	return name
