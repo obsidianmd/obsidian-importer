@@ -5,8 +5,7 @@ import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
-//import { moment } from 'obsidian';
-import moment from 'moment-timezone';
+import { moment } from 'obsidian';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
@@ -45,7 +44,7 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-			new Setting(this.modal.contentEl)
+		new Setting(this.modal.contentEl)
 			.setName('Add YAML created/update date')
 			.setDesc('If enabled, notes will have the create-time and edit-time from Roam added as properties.')
 			.addToggle(toggle => {
@@ -55,7 +54,7 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-			new Setting(this.modal.contentEl)
+		new Setting(this.modal.contentEl)
 			.setName('Add YAML title')
 			.setDesc('If enabled, notes will have the full title added as a property (regardless of illegal file name characters).')
 			.addToggle(toggle => {
@@ -113,40 +112,33 @@ export class RoamJSONImporter extends FormatImporter {
 				const filename = `${graphFolder}/${pageName}.md`;
 
 				// if title option is enabled
-				let YAMLtitle: string;
-				if (this.titleYAML === true) {
-					YAMLtitle = pageData.title;
-				} else {
-					YAMLtitle = '';
-				}
+				const YAMLtitle = this.titleYAML ? pageData.title : '';
+				
 				// if timestamp option is enabled
-				// set up numbers to pass
-				let pageCreateTimestamp: number;
-				let pageEditTimestamp: number;
-				if (this.fileDateYAML === true) {
+				// set up numbers to pass, default to 0
+				let pageCreateTimestamp: number = 0;
+				let pageEditTimestamp: number = 0;
+				if (this.fileDateYAML) {
 					// get page creation time and update time
 					let pageCreateTime = pageData['create-time'];
 					let pageEditTime = pageData['edit-time'];
 
 					// type check both for numbers, set to 0 if there's a type mismatch
-					if (typeof pageCreateTime === "number") {
+					if (typeof pageCreateTime === 'number') {
 						pageCreateTimestamp = pageCreateTime;
-					} else {
-						pageCreateTimestamp = 0;
 					}
 
-					if (typeof pageEditTime === "number") {
+					if (typeof pageEditTime === 'number') {
 						pageEditTimestamp = pageEditTime;
-					} else {
-						pageEditTimestamp = 0;
 					}
-				} else {
+				} 
+				else {
 					// if the option isn't enabled, pass zeroes to the function
 					pageCreateTimestamp = 0;
 					pageEditTimestamp = 0;
 				}
 
-				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,false,true,YAMLtitle,pageCreateTimestamp,pageEditTimestamp);
+				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,YAMLtitle,pageCreateTimestamp,pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
 			}
 
@@ -319,9 +311,13 @@ export class RoamJSONImporter extends FormatImporter {
 	newestTimestamp: number = 0;
 	oldestTimestamp: number = 0;
 
-	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, checkYAMLoptions : boolean = false, runYAMLoptions: boolean = true, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
+	private async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
 		let markdown: string[] = [];
 		let frontMatterYAML: string[] = [];
+		// use Roam's create-time and edit-time values to set timestamps
+		const jsonEditTime = json['edit-time'];
+		const jsonCreateTime = json['create-time'];
+		let checkYAMLoptions: boolean = false;
 
 		// for YAML frontmatter
 		// can't be edited before it was created, compare timestamps
@@ -331,21 +327,23 @@ export class RoamJSONImporter extends FormatImporter {
 
 		// check the edit-time of the block, compare to what was passed, use the most recent date
 		// if undefined, set newestTimestamp to the value of updatedTimestamp
-		if (json['edit-time'] !== undefined) {
-			this.newestTimestamp = updatedTimestamp > json['edit-time'] ? updatedTimestamp : json['edit-time'];
-		} else {
-			this.newestTimestamp = updatedTimestamp;
-		}
+		this.newestTimestamp = (!jsonEditTime || updatedTimestamp > jsonEditTime)
+    		? updatedTimestamp
+    		: jsonEditTime;
 
-		// if the create time is defined, set oldestTimestamp to the lower of the createdTimestamp value or json['create-time']
+		// if the create time is defined, set oldestTimestamp to the lower of the createdTimestamp value or jsonCreateTime
 		// else, set oldestTimestamp to the value of createdTimestamp
-		if (json['create-time'] !== undefined) {
-			if (createdTimestamp > 10) { // if it's passed as a 0
-				this.oldestTimestamp = createdTimestamp < json['create-time'] ? createdTimestamp : json['create-time'];
-			} else {
-				this.oldestTimestamp = json['create-time'];
+		if (jsonCreateTime !== undefined) {
+			if (createdTimestamp > 10) { // passed as a 0
+				this.oldestTimestamp = (createdTimestamp < jsonCreateTime) 
+					? createdTimestamp 
+					: jsonCreateTime;
+			} 
+			else {
+				this.oldestTimestamp = jsonCreateTime;
 			}
-		} else {
+		} 
+		else {
 			this.oldestTimestamp = createdTimestamp;
 		}
 
@@ -357,38 +355,34 @@ export class RoamJSONImporter extends FormatImporter {
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, checkYAMLoptions, false, '', this.oldestTimestamp, this.newestTimestamp));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
 			}
 		}
 
 		// once processing children is completed, add the YAML to the top
 		// check if any YAML options are set
-		switch (!checkYAMLoptions) {
-			case this.fileDateYAML:
-			case this.titleYAML:
-			// add other options here
-			// case this.{option-name}:
-				checkYAMLoptions = true;
+		if (this.fileDateYAML || this.titleYAML) {
+			checkYAMLoptions = true;
 		}
 
 		// add YAML frontmatter, if enabled
-		if (checkYAMLoptions === true && runYAMLoptions === true) {
+		// only run on the initial set, skip if child 
+		if (checkYAMLoptions && !isChild) {
 
 			let timeCreated = this.oldestTimestamp;
 
 			frontMatterYAML.push('---');
 
 			// if "add title" option enabled, quotes added to prevent errors in frontmatter
-			if (this.titleYAML === true) {
-				frontMatterYAML.push('title: "' + setTitleProperty +'"');
+			if (this.titleYAML) {
+				frontMatterYAML.push(`title: "${setTitleProperty}"`);
 			}
 
 			// if "timestamps" option enabled
-			if (this.fileDateYAML === true) {
-				// use Roam's create-time and edit-time values to set timestamps
+			if (this.fileDateYAML) {
 				// if create is missing, use updated
 				// if updated is missing, use current Date()
-				let TSFormat = "YYYY-MM-DD HH:mm:ss";
+				let TSFormat = 'YYYY-MM-DD HH:mm:ss';
 			
 				let formatUpdateDate = this.newestTimestamp ? moment(this.newestTimestamp).format(TSFormat) : moment(new Date()).format(TSFormat);
 				let formatCreateDate = timeCreated ? moment(timeCreated).format(TSFormat) : formatUpdateDate;
@@ -398,15 +392,11 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			frontMatterYAML.push('---');
-			runYAMLoptions = false;
 		}
 
 		// Add frontmatter YAML to the top of the markdown array
-		// reverse it before pushing
-		frontMatterYAML.reverse();
-		frontMatterYAML.forEach((item) => {
-			markdown.unshift(item);
-		});
+		markdown.unshift(frontMatterYAML.join('\n'));
+		
 		return markdown.join('\n');
 	}
 
