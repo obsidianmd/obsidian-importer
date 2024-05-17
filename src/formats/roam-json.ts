@@ -354,7 +354,7 @@ export class RoamJSONImporter extends FormatImporter {
 		// once processing children is completed, add the YAML to the top
 		// check if any YAML options are set, add YAML frontmatter if enabled
 		// only run on the initial set, skip if child 
-		if (this.fileDateYAML || this.titleYAML && !isChild) {
+		if ((this.fileDateYAML || this.titleYAML) && !isChild) {
 
 			let timeCreated = this.oldestTimestamp;
 
