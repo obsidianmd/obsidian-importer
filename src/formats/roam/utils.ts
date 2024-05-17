@@ -11,7 +11,7 @@ const squareBracketCloseRe = /\]/g; // Regular expression to match "]"
 
 export function sanitizeFileNameKeepPath(name: string) {
 	return name
-		.replace(illegalReNoDir, '_')
+		.replace(illegalReNoDir, '')
 		.replace(controlRe, '')
 		.replace(reservedRe, '')
 		.replace(windowsReservedRe, '')
