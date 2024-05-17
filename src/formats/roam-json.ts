@@ -131,11 +131,6 @@ export class RoamJSONImporter extends FormatImporter {
 					if (typeof pageEditTime === 'number') {
 						pageEditTimestamp = pageEditTime;
 					}
-				} 
-				else {
-					// if the option isn't enabled, pass zeroes to the function
-					pageCreateTimestamp = 0;
-					pageEditTimestamp = 0;
 				}
 
 				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,YAMLtitle,pageCreateTimestamp,pageEditTimestamp);
@@ -317,7 +312,6 @@ export class RoamJSONImporter extends FormatImporter {
 		// use Roam's create-time and edit-time values to set timestamps
 		const jsonEditTime = json['edit-time'];
 		const jsonCreateTime = json['create-time'];
-		let checkYAMLoptions: boolean = false;
 
 		// for YAML frontmatter
 		// can't be edited before it was created, compare timestamps
@@ -335,9 +329,7 @@ export class RoamJSONImporter extends FormatImporter {
 		// else, set oldestTimestamp to the value of createdTimestamp
 		if (jsonCreateTime !== undefined) {
 			if (createdTimestamp > 10) { // passed as a 0
-				this.oldestTimestamp = (createdTimestamp < jsonCreateTime) 
-					? createdTimestamp 
-					: jsonCreateTime;
+				this.oldestTimestamp = Math.min(createdTimestamp, jsonCreateTime);
 			} 
 			else {
 				this.oldestTimestamp = jsonCreateTime;
@@ -360,14 +352,9 @@ export class RoamJSONImporter extends FormatImporter {
 		}
 
 		// once processing children is completed, add the YAML to the top
-		// check if any YAML options are set
-		if (this.fileDateYAML || this.titleYAML) {
-			checkYAMLoptions = true;
-		}
-
-		// add YAML frontmatter, if enabled
+		// check if any YAML options are set, add YAML frontmatter if enabled
 		// only run on the initial set, skip if child 
-		if (checkYAMLoptions && !isChild) {
+		if (this.fileDateYAML || this.titleYAML && !isChild) {
 
 			let timeCreated = this.oldestTimestamp;
 
@@ -392,10 +379,10 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			frontMatterYAML.push('---');
-		}
 
-		// Add frontmatter YAML to the top of the markdown array
-		markdown.unshift(frontMatterYAML.join('\n'));
+			// Add frontmatter YAML to the top of the markdown array
+			markdown.unshift(frontMatterYAML.join('\n'));
+		}
 		
 		return markdown.join('\n');
 	}
