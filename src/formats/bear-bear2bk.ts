@@ -51,15 +51,17 @@ export class Bear2bkImporter extends FormatImporter {
 					ctx.status('Processing ' + name);
 					try {
 						if (extension === 'md' || extension === 'markdown') {
+							// The note folder is named like the note title, where as the markdown file is just `text.md`
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
+							const filePath = normalizePath(mdFilename);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
-								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/`);
+								const assetFolderEncoded = `${attachmentsFolder.path}/${encodeURIComponent(filePath)}`;
+								mdContent = mdContent.replace(assetMatcher, `![](${assetFolderEncoded}/`);
 							}
-							const filePath = normalizePath(mdFilename);
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
@@ -75,7 +77,9 @@ export class Bear2bkImporter extends FormatImporter {
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + name);
-							const assetFileVaultPath = `${attachmentsFolder.path}/${name}`;
+							const assetFolder = `${attachmentsFolder.path}/${parseFilePath(parseFilePath(parent).parent).basename}`;
+							await this.createFolders(assetFolder);
+							const assetFileVaultPath = `${assetFolder}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
 								ctx.reportSkipped(fullpath, 'asset with filename already exists');
