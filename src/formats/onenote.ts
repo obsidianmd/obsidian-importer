@@ -120,8 +120,8 @@ export class OneNoteImporter extends FormatImporter {
 		// Fetch the sections & section groups directly under the notebook
 		const params = new URLSearchParams({
 			$expand: 'sections($select=id,displayName),sectionGroups($expand=sections,sectionGroups)',
-			$select: 'id,displayName',
-			$orderby: 'createdDateTime'
+			$select: 'id,displayName,lastModifiedDateTime',
+			$orderby: 'lastModifiedDateTime DESC',
 		});
 		const sectionsUrl = `${baseUrl}?${params.toString()}`;
 		this.notebooks = (await this.fetchResource(sectionsUrl, 'json')).value;
@@ -144,7 +144,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			new Setting(notebookDiv)
 				.setName(notebook.displayName!)
-				.setDesc(`Last edited on: ${(moment.utc(notebook.createdDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
+				.setDesc(`Last edited on: ${(moment.utc(notebook.lastModifiedDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
 				.addButton((button) => button
 					.setCta()
 					.setButtonText('Select all')
