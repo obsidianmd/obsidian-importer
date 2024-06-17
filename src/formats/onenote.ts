@@ -347,7 +347,7 @@ export class OneNoteImporter extends FormatImporter {
 		// HTML and InkML files are split by a boundary, which is defined in the first line of the input
 		const boundary = input.split('\n', 1)[0];
 
-		input.slice(0, -2); // Remove the last 2 characters of the input (as they break the InkML boundary) 
+		input.slice(0, -2); // Remove the last 2 characters of the input (as they break the InkML boundary)
 		const parts: string[] = input.split(boundary); // Split the file into 2 parts
 		parts.shift(); // Remove the first array item as it's just an empty string
 
@@ -418,7 +418,7 @@ export class OneNoteImporter extends FormatImporter {
 	/**
 	 * Returns a filesystem path for any OneNote entity (e.g. sections or notes)
 	 * Paths are returned in the following format:
-	 * (Export folder)/Notebook/(possible section groups)/Section/(possible pages with a higher level) 
+	 * (Export folder)/Notebook/(possible section groups)/Section/(possible pages with a higher level)
 	 */
 	getEntityPath(entityID: string, currentPath: string, parentEntity: Notebook | SectionGroup | OnenoteSection): string | null {
 		let returnPath: string | null = null;
@@ -450,7 +450,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			if (page.id === entityID || pageContentID === entityID) {
 				if (page.level === 0) {
-					/* Checks if we have a page leveled below this one. 
+					/* Checks if we have a page leveled below this one.
 					 * without this line, leveled notes are more scattered:
 					 * ...Section/Example.md, *but* ...Section/Example/Lower level.md
 					 * with this line both files are in one neat directory:
