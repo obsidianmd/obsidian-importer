@@ -10,9 +10,16 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		const text = await file.readText();
 
 		const dom = parseHTML(text);
-
-		const id = getNotionId(dom.find('article')?.getAttr('id') ?? '');
-		if (!id) throw new Error('no id found for: ' + filepath);
+		const body = dom.find('body');
+		const children = body.children;
+		let id: string | undefined;
+		for (let i = 0; i < children.length; i++) {
+			id = getNotionId(children[i].getAttr('id') ?? '');
+			if (id) break;
+		}
+		if (!id) {
+			throw new Error('no id found for: ' + filepath);
+		}
 
 		const ctime = extractTimeFromDOMElement(dom, 'property-row-created_time');
 		const mtime = extractTimeFromDOMElement(dom, 'property-row-last_edited_time');
