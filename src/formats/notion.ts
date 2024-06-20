@@ -143,6 +143,11 @@ export class NotionImporter extends FormatImporter {
 				}
 			}
 			catch (e) {
+				if (e.message === 'page body was not found') {
+					ctx.reportSkipped(file.fullpath, 'page body was not found');
+					return;
+				}
+
 				ctx.reportFailed(file.fullpath, e);
 			}
 		});

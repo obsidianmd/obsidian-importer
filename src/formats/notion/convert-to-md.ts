@@ -19,6 +19,10 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	// read the files etc.
 	const body = dom.find('div[class=page-body]');
 
+	if (body === null) {
+		throw new Error('page body was not found');
+	}
+
 	const notionLinks = getNotionLinks(info, body);
 	convertLinksToObsidian(info, notionLinks, true);
 
