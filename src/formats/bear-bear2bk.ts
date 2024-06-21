@@ -33,38 +33,48 @@ export class Bear2bkImporter extends FormatImporter {
 		let outputFolder = folder;
 
 		const attachmentsFolder = await this.createFolders(`${folder.path}/assets`);
-		const assetMatcher = /!\[\]\(assets\//g;
+		const assetMatcher = /(!)?\[([^\]]*)\]\(assets\/([^\)]*)\)(<!-- .* -->)?/g;
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
 
 		for (let file of files) {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
-			await readZip(file, async (zip, entries) => {
+			await readZip(file, async (_zip, entries) => {
 				const metadataLookup = await this.collectMetadata(entries);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
+					let matchTextBundleTitle = parent.match(/\.bear2bk\/(.*)\.textbundle/);
+					let textBundleTitle = matchTextBundleTitle !== null && matchTextBundleTitle.length > 0 ? matchTextBundleTitle[1] : 'Unknown Title';
+
 					if (name === 'info.json') {
-						continue
+						continue;
 					}
 					ctx.status('Processing ' + name);
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
+
+							function assetReplacer(_: any, hasExclamation?: string, linkText?: string, assetPath?: string, embedOptions?: string) {
+								const hasPreview = hasExclamation || embedOptions?.includes('"preview":"true"');
+								return `${hasPreview ? '!' : ''}[${linkText}](${attachmentsFolder.path}/${encodeURI(textBundleTitle)}/${assetPath})`;
+							}
+
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
 							if (mdContent.match(assetMatcher)) {
 								// Replace asset paths with new asset folder path.
-								mdContent = mdContent.replace(assetMatcher, `![](${attachmentsFolder.path}/`);
+								mdContent = mdContent.replace(assetMatcher, assetReplacer);
 							}
 							const filePath = normalizePath(mdFilename);
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
 								targetFolder = archiveFolder;
-							} else if (metadata?.trashed) {
+							}
+							else if (metadata?.trashed) {
 								targetFolder = trashFolder;
 							}
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
@@ -75,7 +85,8 @@ export class Bear2bkImporter extends FormatImporter {
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + name);
-							const assetFileVaultPath = `${attachmentsFolder.path}/${name}`;
+							const textBundleAssetsFolder = await this.createFolders(`${attachmentsFolder.path}/${textBundleTitle}`);
+							const assetFileVaultPath = `${textBundleAssetsFolder.path}/${name}`;
 							const existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 							if (existingFile) {
 								ctx.reportSkipped(fullpath, 'asset with filename already exists');
