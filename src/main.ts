@@ -416,12 +416,12 @@ export class ImporterModal extends Modal {
 							if (this.current === ctx) {
 								this.current = null;
 							}
+							buttonsEl.createEl('button', { text: 'Upload more' }, el => {
+								el.addEventListener('click', () => this.updateContent());
+							});
 							cancelButtonEl.detach();
 							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 								el.addEventListener('click', () => this.close());
-							});
-							buttonsEl.createEl('button', { text: 'Back' }, el => {
-								el.addEventListener('click', () => this.updateContent());
 							});
 							ctx.hideStatus();
 						}
