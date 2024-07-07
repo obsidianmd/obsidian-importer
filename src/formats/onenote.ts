@@ -324,13 +324,11 @@ export class OneNoteImporter extends FormatImporter {
 			await this.fetchAttachmentQueue(progress, fileRef, this.outputFolder!, data.queue);
 
 			// Add the last modified and creation time metadata
+			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
+			const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
 			const writeOptions: DataWriteOptions = {
-				ctime: page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime.toString()) :
-					page?.createdDateTime ? Date.parse(page.createdDateTime.toString()) :
-						Date.now(),
-				mtime: page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime.toString()) :
-					page?.createdDateTime ? Date.parse(page.createdDateTime.toString()) :
-						Date.now(),
+				ctime: created ?? lastModified ?? Date.now(),
+				mtime: lastModified ?? created ?? Date.now(),
 			};
 			await this.vault.append(fileRef, '', writeOptions);
 			progress.reportNoteSuccess(page.title!);
