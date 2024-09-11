@@ -45,7 +45,7 @@ export class Bear2bkImporter extends FormatImporter {
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
-					if (name === 'info.json') {
+					if (name === 'info.json' || name === 'tags.json') {
 						continue;
 					}
 					ctx.status('Processing ' + name);
