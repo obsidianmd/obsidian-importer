@@ -5,11 +5,11 @@ import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
 
 type Metadata = {
-	ctime?: number,
-	mtime?: number,
-	archived: boolean,
-	trashed: boolean,
-}
+	ctime?: number;
+	mtime?: number;
+	archived: boolean;
+	trashed: boolean;
+};
 
 export class Bear2bkImporter extends FormatImporter {
 	init() {
@@ -46,7 +46,7 @@ export class Bear2bkImporter extends FormatImporter {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
 					if (name === 'info.json') {
-						continue
+						continue;
 					}
 					ctx.status('Processing ' + name);
 					try {
@@ -64,7 +64,8 @@ export class Bear2bkImporter extends FormatImporter {
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
 								targetFolder = archiveFolder;
-							} else if (metadata?.trashed) {
+							}
+							else if (metadata?.trashed) {
 								targetFolder = trashFolder;
 							}
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
@@ -106,8 +107,8 @@ export class Bear2bkImporter extends FormatImporter {
 		await this.vault.append(file, '', writeOptions);
 	}
 
-	private async collectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata; }> {
-		let metaData: { [key: string]: Metadata; } = {};
+	private async collectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
+		let metaData: { [key: string]: Metadata } = {};
 		for (let entry of entries) {
 			if (entry.name !== 'info.json') {
 				continue;
