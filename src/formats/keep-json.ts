@@ -6,6 +6,7 @@ import { serializeFrontMatter } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
+import { extractDateFromHtml } from './keep/html-parser';
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -23,6 +24,7 @@ export class KeepImporter extends FormatImporter {
 	importTrashedSetting: Setting;
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
+	private zipFile: PickedFile | null = null;
 
 	init() {
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
@@ -98,6 +100,7 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
+		this.zipFile = file;  // Store the ZIP file reference
 		await readZip(file, async (zip, entries) => {
 			for (let entry of entries) {
 				if (ctx.isCancelled()) return;
@@ -126,8 +129,61 @@ export class KeepImporter extends FormatImporter {
 			return;
 		}
 
+		// Look for corresponding HTML file
+		let htmlDate: Date | null = null;
+
+		if (this.zipFile) {
+			const htmlContent = await this.readFileFromZip(this.zipFile, basename);
+			if (htmlContent) {
+				htmlDate = extractDateFromHtml(htmlContent);
+				if (htmlDate) {
+					const htmlTimestamp = htmlDate.getTime() * 1000; // Convert to microseconds
+
+					// Update createdTimestampUsec if HTML date is earlier
+					if (htmlTimestamp < keepJson.createdTimestampUsec) {
+						keepJson.createdTimestampUsec = htmlTimestamp;
+					}
+
+					// Update userEditedTimestampUsec if HTML date is later
+					if (htmlTimestamp > keepJson.userEditedTimestampUsec) {
+						keepJson.userEditedTimestampUsec = htmlTimestamp;
+					}
+				} else {
+				}
+			} else {
+				//console.log('HTML file not found');
+			}
+		}
+
 		await this.convertKeepJson(keepJson, folder, basename);
 		ctx.reportNoteSuccess(fullpath);
+	}
+
+
+	private async readFileFromZip(zipFile: PickedFile, jsonBasename: string): Promise<string | null> {
+		return new Promise((resolve) => {
+			readZip(zipFile, async (zip, entries) => {
+				// Filenames in ZIP files may be encoded in non-UTF-8 charsets (e.g., EUC-KR, CP949)
+				// Use regex-based pattern matching instead of direct string comparison
+				// This approach is more robust across various character encodings
+				// We create a regex pattern from the JSON filename and use it to find the corresponding HTML file
+				const jsonPattern = jsonBasename.replace('.json', '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const htmlRegex = new RegExp(`${jsonPattern}\\.html$`);
+
+				const entry = entries.find(e => {
+					const parts = e.name.split('/');
+					const fileName = parts[parts.length - 1];
+					return htmlRegex.test(fileName);
+				});
+
+				if (entry) {
+					const content = await entry.readText();
+					resolve(content);
+				} else {
+					resolve(null);
+				}
+			});
+		});
 	}
 
 	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
@@ -212,3 +268,7 @@ export class KeepImporter extends FormatImporter {
 		});
 	}
 }
+
+
+
+
