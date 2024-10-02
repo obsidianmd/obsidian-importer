@@ -1,5 +1,5 @@
 import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
 
@@ -137,6 +137,49 @@ export abstract class FormatImporter {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Resolves a unique path for the attachment file being saved.
+	 * Ensures that the parent directory exists and dedupes the
+	 * filename if the destination filename already exists.
+	 *
+	 * NOTE: This is a duplicate of `fileManager.getAvaialbePathForAttachment`
+	 * which adds two key adjustments to aid Importer:
+	 *   - Use the provided `sourcePath` even if the file doesn't exist yet.
+	 *   - Avoid duplicating a list of provided filesnames that do not yet exist, but will in the future.
+	 *
+	 * @param filename Name of the attachment being saved
+	 * @param claimedPaths List of filepaths that may not exist yet but will in the future.
+	 * @returns Full path for where the attachment should be saved, according to the user's settings
+	 */
+	async getAvailablePathForAttachment(filename: string, claimedPaths: string[]): Promise<string> {
+		const outputFolder = await this.getOutputFolder();
+		// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks sourceFile.parent.
+		const sourceFile = !!outputFolder
+			? { parent: outputFolder } as TFile
+			: null;
+
+		const { basename, extension } = parseFilePath(filename);
+
+		// Use getAvailablePathForAttachments because it can give us the configured output path.
+		//@ts-ignore
+		const prelimOutPath = await this.vault.getAvailablePathForAttachments(basename, extension, sourceFile);
+		const parsedPrelimOutPath = parseFilePath(prelimOutPath);
+
+		const fullExt = parsedPrelimOutPath.extension ?
+			'.' + parsedPrelimOutPath.extension
+			: '.' + extension;
+
+		// Increase number until the path is unique.
+		let i = 1;
+		let outputPath = prelimOutPath;
+		while(claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
+			outputPath = `${parsedPrelimOutPath} ${i}${fullExt}`;
+			i++;
+		}
+
+		return outputPath;
 	}
 
 	abstract import(ctx: ImportContext): Promise<any>;
