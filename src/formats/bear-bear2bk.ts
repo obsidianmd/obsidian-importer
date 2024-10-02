@@ -52,7 +52,7 @@ export class Bear2bkImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
-				const metadataLookup = await this.collectMetadata(entries);
+				const metadataLookup = await this.collectMetadata(ctx, entries);
 				const assetMap = await this.storeAssets(ctx, entries, outputFolder.path);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
@@ -122,9 +122,11 @@ export class Bear2bkImporter extends FormatImporter {
 		await this.vault.append(file, '', writeOptions);
 	}
 
-	private async collectMetadata(entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
+	private async collectMetadata(ctx: ImportContext, entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
 		let metaData: { [key: string]: Metadata } = {};
 		for (let entry of entries) {
+			if (ctx.isCancelled()) return metaData;
+
 			if (entry.name !== 'info.json') {
 				continue;
 			}
@@ -148,6 +150,8 @@ export class Bear2bkImporter extends FormatImporter {
 	private async storeAssets(ctx: ImportContext, entries: ZipEntryFile[], notesOutputFolderPath: string): Promise<AssetMap> {
 		const assetsMap: AssetMap = {};
 		for (let entry of entries) {
+			if (ctx.isCancelled()) return assetsMap;
+
 			if (!entry.filepath.match(/\/assets\//g)) {
 				continue;
 			}
