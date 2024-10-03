@@ -1,5 +1,5 @@
 import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
-import { parseFilePath } from '../filesystem';
+import { path, parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
@@ -11,16 +11,9 @@ type Metadata = {
 	trashed: boolean;
 };
 
-interface AssetMap {
-	// Containing note path
-	[key: string]: {
-		// Asset path -> vault path
-		[key: string]: string;
-	};
-};
-
-
 export class Bear2bkImporter extends FormatImporter {
+	private attachmentMap: Record<string, string> = {};
+
 	init() {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
@@ -42,8 +35,7 @@ export class Bear2bkImporter extends FormatImporter {
 		let outputFolder = folder;
 
 		// match 1: assets/something.jpg
-		// match 2: something.jpg
-		const assetMatcher = new RegExp('\\[[^\\]]*\\]\\((assets/([^\\)]+))\\)', 'gm');
+		const assetMatcher = new RegExp('\\[[^\\]]*\\]\\((assets/[^\\)]+)\\)', 'gm');
 
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
@@ -53,7 +45,6 @@ export class Bear2bkImporter extends FormatImporter {
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
 				const metadataLookup = await this.collectMetadata(ctx, entries);
-				const assetMap = await this.storeAssets(ctx, entries, outputFolder.path);
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
@@ -70,16 +61,19 @@ export class Bear2bkImporter extends FormatImporter {
 
 							const assetMatches = [...mdContent.matchAll(assetMatcher)];
 							if (assetMatches.length > 0) {
-								const entryAssetMap = assetMap[parent];
-								if (entryAssetMap) {
-									for (const match of assetMatches) {
-										const [ fullMatch, linkPath, assetName ] = match;
-										const replacementPath = entryAssetMap[assetName];
-										if (replacementPath) {
-											const replacement = fullMatch.replace(linkPath, replacementPath);
-											mdContent = mdContent.replace(fullMatch, replacement);
-										}
-									}
+								for (const match of assetMatches) {
+									const [ fullMatch, linkPath ] = match;
+									const assetPath = path.join(parent, linkPath);
+									let replacementPath = await this.getAttachmentStoragePath(assetPath);
+
+									// Don't allow spaces in the file name.
+									replacementPath = encodeURI(replacementPath);
+
+									// NOTE: We can't use metadataCache.fileToLinktext to potentially shorten
+									// the path because the attachment might not yet exist, so we can't get a TFile.
+
+									const replacement = fullMatch.replace(linkPath, replacementPath);
+									mdContent = mdContent.replace(fullMatch, replacement);
 								}
 							}
 
@@ -99,8 +93,11 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
-							// Assets were already imported
-							continue;
+							ctx.status('Importing asset ' + entry.name);
+							const outputPath = await this.getAttachmentStoragePath(entry.filepath);
+							const assetData = await entry.read();
+							await this.vault.createBinary(outputPath, assetData);
+							ctx.reportAttachmentSuccess(entry.fullpath);
 						}
 						else {
 							ctx.reportSkipped(fullpath, 'unknown type of file');
@@ -146,34 +143,20 @@ export class Bear2bkImporter extends FormatImporter {
 		return metaData;
 	}
 
-	/** Iterate the files and store files in the assets directories, recording a mapping to where they end up in the vault. */
-	private async storeAssets(ctx: ImportContext, entries: ZipEntryFile[], notesOutputFolderPath: string): Promise<AssetMap> {
-		const assetsMap: AssetMap = {};
-		for (let entry of entries) {
-			if (ctx.isCancelled()) return assetsMap;
-
-			if (!entry.filepath.match(/\/assets\//g)) {
-				continue;
-			}
-
-			ctx.status('Importing asset ' + entry.name);
-			const outputPath = await this.app.fileManager.getAvailablePathForAttachment(entry.name, notesOutputFolderPath);
-			const assetData = await entry.read();
-			const assetFile = await this.vault.createBinary(outputPath, assetData);
-			ctx.reportAttachmentSuccess(entry.fullpath);
-
-			// Remove '/assets' to get the parent folder for the note this asset belongs to.
-			const parent = parseFilePath(entry.parent).parent;
-			let parentMap = assetsMap[parent];
-			if (!parentMap) {
-				assetsMap[parent] = parentMap = {};
-			}
-
-			// We can't have spaces in the asset path.
-			const mapPath = this.app.metadataCache.fileToLinktext(assetFile, notesOutputFolderPath, false);
-			parentMap[entry.name] = encodeURI(mapPath);
+	/**
+	 * Return a filepath for the provided asset. The filepath will not collide
+	 * with other assets existing in the vault or named using this function,
+	 * even if the file has not yet been created.
+	 */
+	private async getAttachmentStoragePath(attachmentPath: string): Promise<string> {
+		if (this.attachmentMap[attachmentPath]) {
+			return this.attachmentMap[attachmentPath];
 		}
-		return assetsMap;
+
+		const usedPaths = Object.values(this.attachmentMap);
+		const outputPath = await this.getAvailablePathForAttachment(attachmentPath, usedPaths);
+		this.attachmentMap[attachmentPath] = outputPath;
+		return outputPath;
 	}
 
 	/** Removes an H1 that is the first line of the content iff it matches the filename or is empty. */
