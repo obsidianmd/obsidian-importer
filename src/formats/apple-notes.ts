@@ -272,6 +272,8 @@ export class AppleNotesImporter extends FormatImporter {
 	}
 
 	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<TFile | null> {
+		if (id in this.resolvedFiles) return this.resolvedFiles[id];
+
 		let sourcePath, outName, outExt, row, file;
 
 		switch (uti) {
@@ -352,16 +354,15 @@ export class AppleNotesImporter extends FormatImporter {
 
 		try {
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
-			const attachmentFolder = await this.getAttachmentFolder(this.resolvedFiles[row.ZNOTE]);
-			//@ts-ignore
-			const outPath = this.app.vault.getAvailablePath(`${attachmentFolder}/${outName}`, outExt);
-			
+			const attachmentPath = await this.getAvailablePathForAttachment(`${outName}.${outExt}`, []);
+
 			file = await this.vault.createBinary(
-				outPath, binary,
+				attachmentPath, binary,
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
 		}
 		catch (e) {
+			this.ctx.reportFailed(sourcePath);
 			console.error(e);
 			return null;
 		}
@@ -389,23 +390,5 @@ export class AppleNotesImporter extends FormatImporter {
 		catch (e) {
 			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
 		}
-	}
-	
-	async getAttachmentFolder(note: TFile): Promise<string> {
-		if (this.cachedAttachmentPath) return this.cachedAttachmentPath;
-		
-		let attachmentSetting = this.app.vault.getConfig('attachmentFolderPath');
-		let attachmentPath = parseFilePath(
-			//@ts-ignore
-			await this.app.vault.getAvailablePathForAttachments(note.basename, note.extension, note)
-		).parent;
-		
-		if (!attachmentSetting.startsWith('./')) {
-			attachmentPath = path.join(attachmentSetting, `${this.outputLocation} Attachments`);
-			this.cachedAttachmentPath = attachmentPath;
-		}
-		
-		this.createFolders(attachmentPath);
-		return attachmentPath;
 	}
 }
