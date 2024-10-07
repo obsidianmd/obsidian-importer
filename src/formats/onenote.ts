@@ -16,7 +16,6 @@ const MAX_RETRY_ATTEMPTS = 5;
 
 export class OneNoteImporter extends FormatImporter {
 	// Settings
-	outputFolder: TFolder | null;
 	useDefaultAttachmentFolder: boolean = true;
 	importIncompatibleAttachments: boolean = false;
 	// UI
@@ -216,9 +215,8 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async import(progress: ImportContext): Promise<void> {
-		this.outputFolder = (await this.getOutputFolder());
-
-		if (!this.outputFolder) {
+		const outputFolder = await this.getOutputFolder();
+		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
@@ -305,7 +303,8 @@ export class OneNoteImporter extends FormatImporter {
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		try {
 			const splitContent = this.convertFormat(content);
-			const outputPath = this.getEntityPathNoParent(page.id!, this.outputFolder!.name)!;
+			const outputFolder = await this.getOutputFolder();
+			const outputPath = this.getEntityPathNoParent(page.id!, outputFolder!.name)!;
 
 			let pageFolder: TFolder;
 			if (!await this.vault.adapter.exists(outputPath)) pageFolder = await this.vault.createFolder(outputPath);
@@ -321,7 +320,7 @@ export class OneNoteImporter extends FormatImporter {
 			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
-			await this.fetchAttachmentQueue(progress, fileRef, this.outputFolder!, data.queue);
+			await this.fetchAttachmentQueue(progress, fileRef, outputFolder!, data.queue);
 
 			// Add the last modified and creation time metadata
 			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;

@@ -7,7 +7,6 @@ import { readZip, ZipEntryFile } from 'zip';
 const assetMatcher = /!\[\]\(assets\/([^)]*)\)/g;
 
 export class TextbundleImporter extends FormatImporter {
-	private outputFolder: TFolder;
 	private attachmentsFolderPath: TFolder;
 
 	init() {
@@ -40,7 +39,6 @@ export class TextbundleImporter extends FormatImporter {
 			return;
 		}
 
-		this.outputFolder = folder;
 		this.attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
 
 		for (let file of files) {
@@ -138,7 +136,9 @@ export class TextbundleImporter extends FormatImporter {
 						mdContent = mdContent.replace(assetMatcher, `![[${this.attachmentsFolderPath.path}/$1]]`);
 					}
 					let filePath = normalizePath(mdFilename);
-					await this.saveAsMarkdownFile(this.outputFolder, filePath, mdContent);
+					const outputFolder = await this.getOutputFolder();
+					// We already asserted previously that the result from getOutputFolder is not null.
+					await this.saveAsMarkdownFile(outputFolder!, filePath, mdContent);
 					progress.reportNoteSuccess(mdFilename);
 				}
 				else if (entry.type === 'file' && entry.fullpath.contains('assets/')) {
