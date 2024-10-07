@@ -14,6 +14,9 @@ export abstract class FormatImporter {
 	outputLocation: string = '';
 	notAvailable: boolean = false;
 
+	/** Cached value for getOutputFolder. Do not use directly. */
+	private outputFolder: TFolder | null = null;
+
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
 		this.vault = app.vault;
@@ -114,10 +117,17 @@ export abstract class FormatImporter {
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
 				.setValue(defaultExportFolderName)
-				.onChange(value => this.outputLocation = value));
+				.onChange(value => {
+					this.outputLocation = value;
+					this.outputFolder = null;
+				}));
 	}
 
 	async getOutputFolder(): Promise<TFolder | null> {
+		if (this.outputFolder) {
+			return this.outputFolder;
+		}
+
 		let { vault } = this.app;
 
 		let folderPath = this.outputLocation;
@@ -133,6 +143,7 @@ export abstract class FormatImporter {
 		}
 
 		if (folder instanceof TFolder) {
+			this.outputFolder = folder;
 			return folder;
 		}
 
