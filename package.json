@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-importer",
-	"version": "1.6.5",
+	"version": "1.6.6",
 	"description": "Import notes from other apps like Evernote.",
 	"main": "main.js",
 	"scripts": {
