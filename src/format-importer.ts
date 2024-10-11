@@ -1,5 +1,5 @@
 import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
 
@@ -155,7 +155,7 @@ export abstract class FormatImporter {
 	 * Ensures that the parent directory exists and dedupes the
 	 * filename if the destination filename already exists.
 	 *
-	 * NOTE: This is a duplicate of `fileManager.getAvaialbePathForAttachment`
+	 * NOTE: This is a duplicate of `fileManager.getAvailablePathForAttachment`
 	 * which adds two key adjustments to aid Importer:
 	 *   - Use the provided `sourcePath` even if the file doesn't exist yet.
 	 *   - Avoid duplicating a list of provided filesnames that do not yet exist, but will in the future.
@@ -186,7 +186,7 @@ export abstract class FormatImporter {
 		let i = 1;
 		let outputPath = prelimOutPath;
 		while(claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
-			outputPath = `${parsedPrelimOutPath} ${i}${fullExt}`;
+			outputPath = path.join(parsedPrelimOutPath.parent, `${parsedPrelimOutPath.name} ${i}${fullExt}`);
 			i++;
 		}
 
