@@ -149,13 +149,15 @@ export class Bear2bkImporter extends FormatImporter {
 	 * even if the file has not yet been created.
 	 */
 	private async getAttachmentStoragePath(attachmentPath: string): Promise<string> {
-		if (this.attachmentMap[attachmentPath]) {
-			return this.attachmentMap[attachmentPath];
+		const normalizedPath = normalizePath(attachmentPath);
+
+		if (this.attachmentMap[normalizedPath]) {
+			return this.attachmentMap[normalizedPath];
 		}
 
 		const usedPaths = Object.values(this.attachmentMap);
-		const outputPath = await this.getAvailablePathForAttachment(attachmentPath, usedPaths);
-		this.attachmentMap[attachmentPath] = outputPath;
+		const outputPath = await this.getAvailablePathForAttachment(normalizedPath, usedPaths);
+		this.attachmentMap[normalizedPath] = outputPath;
 		return outputPath;
 	}
 
