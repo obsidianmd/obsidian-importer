@@ -80,7 +80,6 @@ export class HtmlImporter extends FormatImporter {
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
 			if (ctx.isCancelled()) return;
-			ctx.reportProgress(i, files.length);
 
 			const file = files[i];
 			const tFile = await this.processFile(ctx, folder, file);
@@ -91,6 +90,8 @@ export class HtmlImporter extends FormatImporter {
 						: file.name,
 					{ file, tFile });
 			}
+
+			ctx.reportProgress(i+1, files.length);
 		}
 
 		const { metadataCache } = this.app;
