@@ -781,8 +781,11 @@ export class OneNoteImporter extends FormatImporter {
 
 				console.log('An error has occurred while fetching an resource:', err);
 
-				// TODO: Check if the error is that our access token has expired.
-				// Get a new one using the refresh token if so.
+				// If our access token has expired, then refresh it and we can try again.
+				if (err.code === '40001' && retryCount < MAX_RETRY_ATTEMPTS) {
+					await this.updateAccessToken();
+					return this.fetchResource(url, returnType as any, retryCount + 1);
+				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err.code === '20166') {
