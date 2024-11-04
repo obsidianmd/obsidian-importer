@@ -5,6 +5,7 @@ import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 
+const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -19,6 +20,7 @@ export class OneNoteImporter extends FormatImporter {
 	importIncompatibleAttachments: boolean = false;
 	// UI
 	microsoftAccountSetting: Setting;
+	switchUserSetting: Setting;
 	contentArea: HTMLDivElement;
 	// Internal
 	selectedIds: string[] = [];
@@ -28,8 +30,10 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentDownloadPauseCounter = 0;
+	rememberMe = false;
+	refreshToken?: string;
 
-	init() {
+	async init() {
 		this.addOutputLocationSetting('OneNote');
 
 		new Setting(this.modal.contentEl)
@@ -39,6 +43,18 @@ export class OneNoteImporter extends FormatImporter {
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
 			);
+
+		let authenticated = false;
+		if (this.retrieveRefreshToken()) {
+			try {
+				await this.updateAccessToken();
+				authenticated = true;
+			}
+			catch(e) {
+				// Failed to auth with refresh token. Proceed with normal sign in flow.
+			}
+		}
+
 		this.microsoftAccountSetting =
 			new Setting(this.modal.contentEl)
 				.setName('Sign in with your Microsoft account')
@@ -51,7 +67,7 @@ export class OneNoteImporter extends FormatImporter {
 
 						const requestBody = new URLSearchParams({
 							client_id: GRAPH_CLIENT_ID,
-							scope: GRAPH_SCOPES.join(' '),
+							scope: 'offline_access ' + GRAPH_SCOPES.join(' '),
 							response_type: 'code',
 							redirect_uri: AUTH_REDIRECT_URI,
 							response_mode: 'query',
@@ -60,7 +76,46 @@ export class OneNoteImporter extends FormatImporter {
 						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 					})
 				);
+		this.microsoftAccountSetting.settingEl.toggle(!authenticated);
+
+		const rememberMeSetting = new Setting(this.modal.contentEl)
+			.setName('Remember me')
+			.setDesc('If checked, you will be automatically logged in for subsequent imports.')
+			.addToggle((toggle) => {
+				toggle.onChange((value) => {
+					this.rememberMe = value;
+					if (value && this.refreshToken) {
+						this.storeRefreshToken(this.refreshToken);
+					}
+					else {
+						this.clearStoredRefreshToken();
+					}
+				});
+			});
+		rememberMeSetting.settingEl.toggle(!authenticated);
+
+		this.switchUserSetting = new Setting(this.modal.contentEl)
+			.addButton((button) =>  button
+				.setCta()
+				.setButtonText('Switch user')
+				.onClick(() => {
+					this.microsoftAccountSetting.settingEl.show();
+					rememberMeSetting.settingEl.show();
+					this.clearStoredRefreshToken();
+					this.switchUserSetting.settingEl.hide();
+					this.contentArea.empty();
+				})
+			);
+
 		this.contentArea = this.modal.contentEl.createEl('div');
+
+		if (authenticated) {
+			await this.setSwitchUser();
+			await this.showSectionPickerUI();
+		}
+		else {
+			this.switchUserSetting.settingEl.hide();
+		}
 	}
 
 	async authenticateUser(protocolData: ObsidianProtocolData) {
@@ -69,33 +124,8 @@ export class OneNoteImporter extends FormatImporter {
 				throw new Error(`An incorrect state was returned.\nExpected state: ${this.graphData.state}\nReturned state: ${protocolData['state']}`);
 			}
 
-			const requestBody = new URLSearchParams({
-				client_id: GRAPH_CLIENT_ID,
-				scope: GRAPH_SCOPES.join(' '),
-				code: protocolData['code'],
-				redirect_uri: AUTH_REDIRECT_URI,
-				grant_type: 'authorization_code',
-			});
-
-			const tokenResponse: AccessTokenResponse = await requestUrl({
-				method: 'POST',
-				url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-				contentType: 'application/x-www-form-urlencoded',
-				body: requestBody.toString(),
-			}).json;
-
-			if (!tokenResponse.access_token) {
-				throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
-			}
-
-			this.graphData.accessToken = tokenResponse.access_token;
-			// Emptying, as the user may have leftover selections from previous sign-in attempt
-			this.selectedIds = [];
-			const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
-			this.microsoftAccountSetting.setDesc(
-				`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-			);
-
+			await this.updateAccessToken(protocolData['code']);
+			await this.setSwitchUser();
 			await this.showSectionPickerUI();
 		}
 		catch (e) {
@@ -106,7 +136,81 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
+	async setSwitchUser() {
+		const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
+		this.switchUserSetting.setDesc(
+			`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
+		);
+
+		this.switchUserSetting.settingEl.show();
+		this.microsoftAccountSetting.settingEl.hide();
+	}
+
+	/**
+	 * Use the provided code if there is one to retrieve an access token. If
+	 * no code is provided, attempt to use a stored refresh token.
+	 */
+	async updateAccessToken(code?: string) {
+		// offline_access scope is requested so that we can retrieve refresh token, which can be
+		// used if this import takes a long time, or for future imports.
+		const requestBody = new URLSearchParams({
+			client_id: GRAPH_CLIENT_ID,
+			scope: 'offline_access ' + GRAPH_SCOPES.join(' '),
+			redirect_uri: AUTH_REDIRECT_URI,
+		});
+		if (code) {
+			requestBody.set('code', code);
+			requestBody.set('grant_type', 'authorization_code');
+		}
+		else {
+			const refreshToken = this.retrieveRefreshToken();
+			if (!refreshToken) {
+				throw new Error('Missing token required for authentication. Please try logging in again.');
+			}
+			requestBody.set('refresh_token', refreshToken);
+			requestBody.set('grant_type', 'refresh_token');
+		}
+
+		const tokenResponse: AccessTokenResponse = await requestUrl({
+			method: 'POST',
+			url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+			contentType: 'application/x-www-form-urlencoded',
+			body: requestBody.toString(),
+		}).json;
+
+		if (!tokenResponse.access_token) {
+			throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
+		}
+
+		if (tokenResponse.refresh_token) {
+			this.storeRefreshToken(tokenResponse.refresh_token);
+		}
+
+		this.graphData.accessToken = tokenResponse.access_token;
+	}
+
+	private storeRefreshToken(refreshToken: string) {
+		this.refreshToken = refreshToken;
+		if (this.rememberMe) {
+			localStorage.setItem(LOCAL_STORAGE_KEY, refreshToken);
+		}
+	}
+
+	private retrieveRefreshToken(): string | null {
+		if (this.refreshToken) {
+			return this.refreshToken;
+		}
+		return localStorage.getItem(LOCAL_STORAGE_KEY);
+	}
+
+	private clearStoredRefreshToken() {
+		localStorage.removeItem(LOCAL_STORAGE_KEY);
+	}
+
 	async showSectionPickerUI() {
+		// Emptying, as the user may have leftover selections from previous sign-in attempt
+		this.selectedIds = [];
+
 		const baseUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks';
 
 		// Fetch the sections & section groups directly under the notebook
@@ -676,6 +780,9 @@ export class OneNoteImporter extends FormatImporter {
 				const err: PublicError = await response.json();
 
 				console.log('An error has occurred while fetching an resource:', err);
+
+				// TODO: Check if the error is that our access token has expired.
+				// Get a new one using the refresh token if so.
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err.code === '20166') {
