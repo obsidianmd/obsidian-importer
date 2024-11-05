@@ -17,6 +17,7 @@ const MAX_RETRY_ATTEMPTS = 5;
 
 export class OneNoteImporter extends FormatImporter {
 	// Settings
+	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
 	// UI
 	microsoftAccountSetting: Setting;
@@ -43,6 +44,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Skip previously imported')
+			.setDesc('If enabled, notes imported previously by this plugin will be skipped.')
+			.addToggle((toggle) => toggle
+				.setValue(true)
+				.onChange((value) => (this.importPreviouslyImported = !value))
 			);
 
 		let authenticated = false;
@@ -323,6 +332,17 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async import(progress: ImportContext): Promise<void> {
+		const previouslyImported = new Set<string>();
+		const data = await this.modal.plugin.loadData();
+		if (!data.importers.onenote) {
+			data.importers.onenote = {
+				previouslyImportedIDs: [],
+			};
+		}
+		for (const id of data.importers.onenote.previouslyImportedIDs) {
+			previouslyImported.add(id);
+		}
+
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
@@ -359,6 +379,12 @@ export class OneNoteImporter extends FormatImporter {
 			for (let i = 0; i < pages.length; i++) {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
+
+				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
+					progress.reportSkipped(page.title, 'it was previously imported');
+					continue;
+				}
+
 				try {
 					progress.status(`Importing note ${page.title}`);
 
@@ -370,6 +396,12 @@ export class OneNoteImporter extends FormatImporter {
 					await this.processFile(progress,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text'),
 						page);
+
+					if (page.id) {
+						previouslyImported.add(page.id);
+						data.importers.onenote.previouslyImportedIDs = Array.from(previouslyImported);
+						await this.modal.plugin.saveData(data);
+					}
 
 					progressCurrent++;
 					progress.reportProgress(progressCurrent, progressTotal);

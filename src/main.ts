@@ -209,6 +209,22 @@ export class ImportContext {
 	}
 }
 
+export interface ImporterData {
+	importers: {
+		onenote?: {
+			previouslyImportedIDs: string[];
+		};
+	};
+}
+
+const DEFAULT_DATA: ImporterData = {
+	importers: {
+		onenote: {
+			previouslyImportedIDs: [],
+		},
+	},
+};
+
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
@@ -314,6 +330,14 @@ export default class ImporterPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	async loadData(): Promise<ImporterData> {
+	    return Object.assign({}, DEFAULT_DATA, await super.loadData());
+	}
+
+	async saveData(data: ImporterData): Promise<void> {
+	    await super.saveData(data);
 	}
 
 	/**
