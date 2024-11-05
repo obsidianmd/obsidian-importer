@@ -21,6 +21,7 @@ export class OneNoteImporter extends FormatImporter {
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
+	loadingArea: HTMLDivElement;
 	contentArea: HTMLDivElement;
 	// Internal
 	selectedIds: string[] = [];
@@ -107,7 +108,12 @@ export class OneNoteImporter extends FormatImporter {
 				})
 			);
 
-		this.contentArea = this.modal.contentEl.createEl('div');
+		this.loadingArea = this.modal.contentEl.createDiv({
+			text: 'Loading notebooks...',
+		});
+		this.loadingArea.hide();
+		this.contentArea = this.modal.contentEl.createDiv();
+		this.contentArea.hide();
 
 		if (authenticated) {
 			await this.setSwitchUser();
@@ -208,6 +214,8 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async showSectionPickerUI() {
+		this.loadingArea.show();
+
 		// Emptying, as the user may have leftover selections from previous sign-in attempt
 		this.selectedIds = [];
 
@@ -249,6 +257,9 @@ export class OneNoteImporter extends FormatImporter {
 					}));
 			this.renderHierarchy(notebook, notebookDiv);
 		}
+
+		this.loadingArea.hide();
+		this.contentArea.show();
 	}
 
 	// Gets the content of a nested section group
