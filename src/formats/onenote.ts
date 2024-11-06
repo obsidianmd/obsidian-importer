@@ -392,11 +392,6 @@ export class OneNoteImporter extends FormatImporter {
 				try {
 					progress.status(`Importing note ${page.title}`);
 
-					// Every 50 items, do a few second break to prevent rate limiting
-					if (i !== 0 && i % 50 === 0) {
-						await new Promise(resolve => setTimeout(resolve, 7500));
-					}
-
 					await this.processFile(progress,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text'),
 						page);
