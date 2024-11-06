@@ -372,6 +372,7 @@ export class OneNoteImporter extends FormatImporter {
 		progress.status('Starting OneNote import');
 		let progressTotal = 0;
 		let progressCurrent = 0;
+		let consecutiveFailureCount = 0;
 
 		for (let sectionId of this.selectedIds) {
 			progress.reportProgress(progressCurrent, progressTotal);
@@ -385,7 +386,17 @@ export class OneNoteImporter extends FormatImporter {
 
 			const pagesUrl = `${baseUrl}?${params.toString()}`;
 
-			let pages: OnenotePage[] = ((await this.fetchResource(pagesUrl, 'json')).value);
+			let pages: OnenotePage[] | null = null;
+			try {
+				pages = ((await this.fetchResource(pagesUrl, 'json')).value);
+			}
+			catch (e) {
+				progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
+				return;
+			}
+			if (!pages) {
+				continue;
+			}
 			progressTotal += pages.length;
 			this.insertPagesToSection(pages, sectionId);
 
@@ -418,11 +429,19 @@ export class OneNoteImporter extends FormatImporter {
 					}
 
 					progressCurrent++;
-					progress.reportProgress(progressCurrent, progressTotal);
+					consecutiveFailureCount = 0;
 				}
 				catch (e) {
+					consecutiveFailureCount++;
 					progress.reportFailed(page.title, e.toString());
+
+					if (consecutiveFailureCount > 5) {
+						// Likely being rate limited.
+						progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
+						return;
+					}
 				}
+				progress.reportProgress(progressCurrent, progressTotal);
 			}
 		}
 	}
