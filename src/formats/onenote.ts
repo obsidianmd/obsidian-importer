@@ -237,34 +237,39 @@ export class OneNoteImporter extends FormatImporter {
 			$orderby: 'lastModifiedDateTime DESC',
 		});
 		const sectionsUrl = `${baseUrl}?${params.toString()}`;
-		this.notebooks = (await this.fetchResource(sectionsUrl, 'json')).value;
+		try {
+			this.notebooks = (await this.fetchResource(sectionsUrl, 'json')).value;
 
-		// Make sure the element is empty, in case the user signs in twice
-		this.contentArea.empty();
-		this.contentArea.createEl('h4', {
-			text: 'Choose data to import',
-		});
+			// Make sure the element is empty, in case the user signs in twice
+			this.contentArea.empty();
+			this.contentArea.createEl('h4', {
+				text: 'Choose data to import',
+			});
 
-		for (const notebook of this.notebooks) {
+			for (const notebook of this.notebooks) {
 			// Check if there are any nested section groups, if so, fetch them
-			if (notebook.sectionGroups?.length !== 0) {
-				for (const sectionGroup of notebook.sectionGroups!) {
-					await this.fetchNestedSectionGroups(sectionGroup);
+				if (notebook.sectionGroups?.length !== 0) {
+					for (const sectionGroup of notebook.sectionGroups!) {
+						await this.fetchNestedSectionGroups(sectionGroup);
+					}
 				}
+
+				let notebookDiv = this.contentArea.createDiv();
+
+				new Setting(notebookDiv)
+					.setName(notebook.displayName!)
+					.setDesc(`Last edited on: ${(moment.utc(notebook.lastModifiedDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
+					.addButton((button) => button
+						.setCta()
+						.setButtonText('Select all')
+						.onClick(() => {
+							notebookDiv.querySelectorAll('input[type="checkbox"]:not(:checked)').forEach((el: HTMLInputElement) => el.click());
+						}));
+				this.renderHierarchy(notebook, notebookDiv);
 			}
-
-			let notebookDiv = this.contentArea.createDiv();
-
-			new Setting(notebookDiv)
-				.setName(notebook.displayName!)
-				.setDesc(`Last edited on: ${(moment.utc(notebook.lastModifiedDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
-				.addButton((button) => button
-					.setCta()
-					.setButtonText('Select all')
-					.onClick(() => {
-						notebookDiv.querySelectorAll('input[type="checkbox"]:not(:checked)').forEach((el: HTMLInputElement) => el.click());
-					}));
-			this.renderHierarchy(notebook, notebookDiv);
+		}
+		catch {
+			this.showContentAreaErrorMessage();
 		}
 
 		this.loadingArea.hide();
@@ -329,6 +334,16 @@ export class OneNoteImporter extends FormatImporter {
 				});
 			}
 		}
+	}
+
+	showContentAreaErrorMessage() {
+		this.contentArea.empty();
+		this.contentArea.createEl('p', {
+			text: 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.'
+		});
+
+		this.contentArea.show();
+		this.loadingArea.hide();
 	}
 
 	async import(progress: ImportContext): Promise<void> {
