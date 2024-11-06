@@ -377,6 +377,10 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportProgress(progressCurrent, progressTotal);
 
 			for (let i = 0; i < pages.length; i++) {
+				if (progress.isCancelled()) {
+					return;
+				}
+
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
