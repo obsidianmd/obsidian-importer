@@ -819,7 +819,21 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 			else {
-				const err: PublicError = await response.json();
+				let err: PublicError | null = null;
+				const respJson = await response.json();
+				if (respJson.hasOwnProperty('error')) {
+					err = respJson.error;
+				}
+				if (!err) {
+					console.log('An error has occurred while fetching an resource:', respJson);
+
+					if (retryCount < MAX_RETRY_ATTEMPTS) {
+						return this.fetchResource(url, returnType as any, retryCount + 1);
+					}
+					else {
+						throw new Error('Unexpected error retrieving resource');
+					}
+				}
 
 				console.log('An error has occurred while fetching an resource:', err);
 
