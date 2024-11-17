@@ -8,15 +8,31 @@ let windowsTrailingRe = /[\. ]+$/;
 let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
 let badLinkRe = /[\[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
+const asciiLookalikes: {[key:string]: string} = {
+	'/' : '╱',
+	'?':'❓',
+	'<':'＜',
+	'>':'＞',
+	'\\':'╱',
+	':':'꞉',
+	'*':'✱',
+	'|':'∣',
+	'"':'\'',
+	'[':'⟦',
+	']':'⟧',
+	'#':'＃',
+	'^':'⌃'
+};
+
 export function sanitizeFileName(name: string) {
 	return name
-		.replace(illegalRe, '')
+	    .replace(illegalRe, c => asciiLookalikes[c] ?? '')
 		.replace(controlRe, '')
 		.replace(reservedRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(startsWithDotRe, '')
-		.replace(badLinkRe, '');
+		.replace(badLinkRe, c => asciiLookalikes[c] ?? '');
 }
 
 export function genUid(length: number): string {
