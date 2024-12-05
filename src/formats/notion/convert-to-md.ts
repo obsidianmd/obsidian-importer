@@ -55,11 +55,12 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	replaceNestedTags(body, 'strong');
 	replaceNestedTags(body, 'em');
 	fixNotionEmbeds(body);
-	fixNotionCallouts(body);
+	// fixEquations must come before fixNotionCallouts
+	fixEquations(body);
 	stripLinkFormatting(body);
+	fixNotionCallouts(body);
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
-	fixEquations(body);
 
 	// Some annoying elements Notion throws in as wrappers, which mess up .md
 	replaceElementsWithChildren(body, 'div.indented');
@@ -73,18 +74,18 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	formatDatabases(body);
 
 	let htmlString = body.innerHTML;
-	
+
 	// Simpler to just use the HTML string for this replacement
 	splitBrsInFormatting(htmlString, 'strong');
 	splitBrsInFormatting(htmlString, 'em');
-	
+
 
 	let markdownBody = htmlToMarkdown(htmlString);
 	if (info.singleLineBreaks) {
 		// Making sure that any blockquote is preceded by an empty line (otherwise messes up formatting with consecutive blockquotes / callouts)
 		markdownBody = markdownBody.replace(/\n\n(?!>)/g, '\n');
 	}
-	
+
 	markdownBody = escapeHashtags(markdownBody);
 	markdownBody = fixDoubleBackslash(markdownBody);
 
@@ -169,7 +170,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 				if (!itemContent) continue;
 				childList.push(itemContent);
 			}
-			content = childList;			
+			content = childList;
 			if (content.length === 0) return;
 			break;
 		case 'text':
@@ -227,12 +228,21 @@ function fixDoubleBackslash(markdownBody: string) {
 }
 
 function fixEquations(body: HTMLElement) {
-	const katexEls = body.findAll('.katex');
-	for (const katex of katexEls) {
-		const annotation = katex.find('annotation');
+	// Style tags before equations mess up formatting
+	removeTags(body, 'style');
+	// Display Equations
+	const figEqnEls = body.findAll('figure.equation');
+	for (const figEqn of figEqnEls) {
+		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		annotation.setText(`$${annotation.textContent}$`);
-		katex.replaceWith(annotation);
+		figEqn.replaceWith(`$$${annotation.textContent}$$`);
+	}
+	// Inline Equations
+	const spanEqnEls = body.findAll('span.notion-text-equation-token');
+	for (const spanEqn of spanEqnEls) {
+		const annotation = spanEqn.find('annotation');
+		if (!annotation) continue;
+		spanEqn.replaceWith(`$${annotation.textContent}$`);
 	}
 }
 
@@ -247,7 +257,8 @@ function isCallout(element: Element) {
 
 function fixNotionCallouts(body: HTMLElement) {
 	for (let callout of body.findAll('figure.callout')) {
-		const description = callout.children[1].textContent;
+		// Can have 1–2 children; we always want .lastElementChild for callout content.
+		const description = callout.lastElementChild?.textContent;
 		let calloutBlock = `> [!important]\n> ${description}\n`;
 		if (callout.nextElementSibling && isCallout(callout.nextElementSibling)) {
 			calloutBlock += '\n';
@@ -296,6 +307,12 @@ function formatDatabases(body: HTMLElement) {
 			strippedURL.setText(a.textContent ?? '');
 			a.replaceWith(strippedURL);
 		}
+	}
+}
+
+function removeTags(body: HTMLElement, tag: string) {
+	for (let el of body.findAll(tag)) {
+		el.remove();
 	}
 }
 
@@ -384,7 +401,7 @@ function replaceElementsWithChildren(body: HTMLElement, selector: string) {
 }
 
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
-	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown. 
+	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown.
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
 	for (const htmlList of body.findAll(tagName)) {
 		const htmlLists: HTMLElement[] = [];
