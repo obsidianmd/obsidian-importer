@@ -235,15 +235,21 @@ function fixEquations(body: HTMLElement) {
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		figEqn.replaceWith(`$$${annotation.textContent}$$`);
+		figEqn.replaceWith(`$$${trimMath(annotation.textContent)}$$`);
 	}
 	// Inline Equations
 	const spanEqnEls = body.findAll('span.notion-text-equation-token');
 	for (const spanEqn of spanEqnEls) {
 		const annotation = spanEqn.find('annotation');
 		if (!annotation) continue;
-		spanEqn.replaceWith(`$${annotation.textContent}$`);
+		spanEqn.replaceWith(`$${trimMath(annotation.textContent)}$`);
 	}
+}
+
+function trimMath(math: string | null | undefined): string {
+	// Trim trailing spaces & newlines in LaTeX math experessions.
+	let regex = new RegExp(/^[\s\r\n\\]*(.*?)[\s\r\n\\]*$/, 's');
+	return math?.replace(regex, '$1') ?? '';
 }
 
 function stripToSentence(paragraph: string) {
