@@ -248,7 +248,7 @@ function fixEquations(body: HTMLElement) {
 
 function trimMath(math: string | null | undefined): string {
 	// Trim trailing spaces & newlines in LaTeX math experessions.
-	let regex = new RegExp(/^[\s\r\n\\]*(.*?)[\s\r\n\\]*$/, 's');
+	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
 	return math?.replace(regex, '$1') ?? '';
 }
 
