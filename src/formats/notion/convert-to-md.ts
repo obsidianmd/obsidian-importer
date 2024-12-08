@@ -235,15 +235,22 @@ function fixEquations(body: HTMLElement) {
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		figEqn.replaceWith(`$$${annotation.textContent}$$`);
+		figEqn.replaceWith(`$$${formatMath(annotation.textContent)}$$`);
 	}
 	// Inline Equations
 	const spanEqnEls = body.findAll('span.notion-text-equation-token');
 	for (const spanEqn of spanEqnEls) {
 		const annotation = spanEqn.find('annotation');
 		if (!annotation) continue;
-		spanEqn.replaceWith(`$${annotation.textContent}$`);
+		spanEqn.replaceWith(`$${formatMath(annotation.textContent, true)}$`);
 	}
+}
+
+function formatMath(math: string | null | undefined, inline: boolean=false): string {
+	// Trim lead/trailing space in LaTeX math experessions.
+	// Removes empty lines, which can cause equations to break.
+	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
+	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
 
 function stripToSentence(paragraph: string) {
