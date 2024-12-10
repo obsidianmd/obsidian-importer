@@ -246,9 +246,14 @@ function fixEquations(body: HTMLElement) {
 	}
 }
 
+/**
+ * 1. Trims lead/trailing whitespace in LaTeX math experessions.
+ * 2. Removes empty lines which can cause equations to break.
+ *
+ * NOTE: "\\" and "\ " are the escapes for line-breaks and white-space,
+ * matched by "\\\\" and "\s" in the regex.
+ */
 function formatMath(math: string | null | undefined, inline: boolean=false): string {
-	// Trim lead/trailing space in LaTeX math experessions.
-	// Removes empty lines, which can cause equations to break.
 	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
 	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
