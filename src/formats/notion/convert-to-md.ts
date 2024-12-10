@@ -235,15 +235,27 @@ function fixEquations(body: HTMLElement) {
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		figEqn.replaceWith(`$$${annotation.textContent}$$`);
+		figEqn.replaceWith(`$$${formatMath(annotation.textContent)}$$`);
 	}
 	// Inline Equations
 	const spanEqnEls = body.findAll('span.notion-text-equation-token');
 	for (const spanEqn of spanEqnEls) {
 		const annotation = spanEqn.find('annotation');
 		if (!annotation) continue;
-		spanEqn.replaceWith(`$${annotation.textContent}$`);
+		spanEqn.replaceWith(`$${formatMath(annotation.textContent, true)}$`);
 	}
+}
+
+/**
+ * 1. Trims lead/trailing whitespace in LaTeX math experessions.
+ * 2. Removes empty lines which can cause equations to break.
+ *
+ * NOTE: "\\" and "\ " are the escapes for line-breaks and white-space,
+ * matched by "\\\\" and "\s" in the regex.
+ */
+function formatMath(math: string | null | undefined, inline: boolean=false): string {
+	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
+	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
 
 function stripToSentence(paragraph: string) {
