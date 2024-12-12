@@ -54,6 +54,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 
 	replaceNestedTags(body, 'strong');
 	replaceNestedTags(body, 'em');
+	replaceNestedTags(body, 'mark');  // for highlights
 	stripLeadingBr(body, 'strong');
 	stripLeadingBr(body, 'em');
 	fixNotionBookmarks(body);
@@ -360,7 +361,7 @@ function removeTags(body: HTMLElement, tag: string) {
 	}
 }
 
-function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
+function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em' | 'mark') {
 	for (const el of body.findAll(tag)) {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			continue;
