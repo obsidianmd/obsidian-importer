@@ -32,17 +32,24 @@ export function stripParentDirectories(relativeURI: string) {
 }
 
 /**
- * Escapes Obsidian #tags, because Notion does not support them
+ * Replace all tag-like things #<word> in the document with \#<word>.
+ * Useful for programs (like Notion) that don't support #<word> tags.
  *
  * Obsidian #tag may contain
  * - Alphanumeric chars
  * - Any non-ASCI char (U0080 and greater)
  * - Forwardslahes, hyphens, underscores
+ *
  * Must contain at least one non-numeric char
  * Full #tag regex is:
- * / #\d*?(?:[-_/a-z]|[^\x00-\x7F])(?:[-/\w]|[^\x00-\x7F])* /gi
+ *
+ *     /#\d*?(?:[-_/a-z]|[^\x00-\x7F])(?:[-/\w]|[^\x00-\x7F])*()/gi
+ *
  * But only need up to first non-numeric char to match valid #tag:
- * / #\d*?(?:[-_/a-z]|[^\x00-\x7F]) /gi
+ *
+ *     /#\d*?(?:[-_/a-z]|[^\x00-\x7F])/gi
+ *
+ * @todo Currently cannot ignore #s in multine code/math blocks as this function parses one line at a time.
  */
 export function escapeHashtags(body: string) {
 	const tagExp = /#\d*?(?:[-_/a-z]|[^\x00-\x7F])/gi;
@@ -54,11 +61,11 @@ export function escapeHashtags(body: string) {
 		if (!hashtags) continue;
 		let newLine = lines[i];
 		for (let hashtag of hashtags) {
-			// skipping any internal links [[ # ]], URLS [ # ]() or []( # ), or already escaped hashtags \#, replace all tag-like things #<word> in the document with \#<word>. Useful for programs (like Notion) that don't support #<word> tags.
+			// skipping any internal links [[ # ]], URLS [ # ]() or []( # ),
+			// code ` # ` or already escaped hashtags \#
 			const hashtagInLink = new RegExp(
-				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}`
+				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}|\`[^\`]*${hashtag}[^\`]*\``
 			);
-
 			if (hashtagInLink.test(newLine)) continue;
 			newLine = newLine.replace(hashtag, '\\' + hashtag);
 		}
