@@ -263,7 +263,7 @@ function fixEquations(body: HTMLElement) {
  * matched by "\\\\" and "\s" in the regex.
  */
 function formatMath(math: string | null | undefined, inline: boolean=false): string {
-	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
+	let regex = new RegExp(/^(?:\s|\\\\|\\\s)*(.*?)[\s\\]*$/, 's');
 	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
 
