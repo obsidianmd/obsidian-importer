@@ -2,7 +2,14 @@ import { FrontMatterCache, htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip';
-import { NotionLink, NotionProperty, NotionPropertyType, NotionResolverInfo, YamlProperty } from './notion-types';
+import {
+	NotionLink,
+	NotionProperty,
+	NotionPropertyType,
+	NotionResolverInfo,
+	YamlProperty,
+	FormatTagName,
+} from './notion-types';
 import {
 	escapeHashtags,
 	getNotionId,
@@ -52,11 +59,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 		}
 	}
 
-	replaceNestedTags(body, 'strong');
-	replaceNestedTags(body, 'em');
-	replaceNestedTags(body, 'mark');  // for highlights
-	stripLeadingBr(body, 'strong');
-	stripLeadingBr(body, 'em');
+	fixFormatTags(body, ['strong', 'em', 'mark', 'del']);
 	fixNotionBookmarks(body);
 	// fixEquations must come before fixNotionCallouts
 	fixEquations(body);
@@ -76,14 +79,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	replaceTableOfContents(body);
 	formatDatabases(body);
 
-	let htmlString = body.innerHTML;
-
-	// Simpler to just use the HTML string for this replacement
-	splitBrsInFormatting(htmlString, 'strong');
-	splitBrsInFormatting(htmlString, 'em');
-
-
-	let markdownBody = htmlToMarkdown(htmlString);
+	let markdownBody = htmlToMarkdown(body.innerHTML);
 	if (info.singleLineBreaks) {
 		// Making sure that any blockquote is preceded by an empty line (otherwise messes up formatting with consecutive blockquotes / callouts)
 		markdownBody = markdownBody.replace(/\n\n(?!>)/g, '\n');
@@ -361,7 +357,24 @@ function removeTags(body: HTMLElement, tag: string) {
 	}
 }
 
-function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em' | 'mark') {
+/**
+ * Fixes issues with formatting tags in Notion HTML export
+ *
+ * This includes:
+ * - reducing nested tags
+ * - merging adjacent tags
+ * - stripping leading <br> artificats
+ * - splitting tags at nested <br> points
+ */
+function fixFormatTags(body: HTMLElement, tagNames: FormatTagName[]) {
+	// must occur in the order shown
+	for (const t of tagNames) replaceNestedTags(body, t);
+	for (const t of tagNames) mergeAdjacentTags(body, t);
+	for (const t of tagNames) stripLeadingBr(body, t);
+	for (const t of tagNames) splitBrsInFormatting(body, t);
+}
+
+function replaceNestedTags(body: HTMLElement, tag: FormatTagName) {
 	for (const el of body.findAll(tag)) {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			continue;
@@ -375,10 +388,25 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em' | 'mark') {
 }
 
 /**
- * Strips leading <br> artificats created by Notion
- * These often occur before strong | em tags
+ * Merges tags if identical tags are placed next to each other.
  */
-function stripLeadingBr(body: HTMLElement, tagName: 'strong' | 'em') {
+function mergeAdjacentTags(body: HTMLElement, tagName: FormatTagName) {
+	const tags = body.findAll(tagName);
+	if (!tags) return;
+	const regex = new RegExp(`</${tagName}>( *)<${tagName}>`, 'g');
+	for (const tag of tags) {
+		if (!tag || !tag.parentElement) continue;
+		const parent = tag.parentElement;
+		let parentHTML = parent?.innerHTML;
+		parent.innerHTML = parentHTML?.replace(regex, '$1');
+	}
+}
+
+/**
+ * Strips leading <br> artificats created by Notion
+ * These often occur before strong | em | mark | del tags
+ */
+function stripLeadingBr(body: HTMLElement, tagName: FormatTagName) {
 	const tags = body.findAll(tagName);
 	if (!tags) return;
 	for (const tag of tags) {
@@ -387,15 +415,18 @@ function stripLeadingBr(body: HTMLElement, tagName: 'strong' | 'em') {
 	}
 }
 
-function splitBrsInFormatting(htmlString: string, tag: 'strong' | 'em') {
-	const tags = htmlString.match(new RegExp(`<${tag}>(.|\n)*</${tag}>`));
+function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
+	// Simpler to just use the HTML string for this replacement
+	let htmlString = body.innerHTML;
+	const tags = htmlString.match(new RegExp(`<${tagName}>.*?</${tagName}>`, 'sg'));
 	if (!tags) return;
-	for (let tag of tags.filter((tag) => tag.contains('<br />'))) {
+	for (let tag of tags.filter((tag) => tag.includes('<br>'))) {
 		htmlString = htmlString.replace(
 			tag,
-			tag.split('<br />').join(`</${tag}><br /><${tag}>`)
+			tag.split('<br>').join(`</${tagName}><br><${tagName}>`)
 		);
 	}
+	body.innerHTML = htmlString;
 }
 
 function replaceTableOfContents(body: HTMLElement) {
@@ -408,8 +439,8 @@ function replaceTableOfContents(body: HTMLElement) {
 }
 
 function encodeNewlinesToBr(body: HTMLElement) {
-	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
-	// Since <br /> is ignored in codeblocks, we replace with newlines
+	body.innerHTML = body.innerHTML.replace(/(?:\n|<br ?\/>)/g, '<br>');
+	// Since <br> is ignored in codeblocks, we replace with newlines
 	for (const block of body.findAll('code')) {
 		for (const br of block.findAll('br')) {
 			br.replaceWith('\n');
