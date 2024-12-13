@@ -31,8 +31,21 @@ export function stripParentDirectories(relativeURI: string) {
 	return relativeURI.replace(/^(\.\.\/)+/, '');
 }
 
+/**
+ * Escapes Obsidian #tags, because Notion does not support them
+ *
+ * Obsidian #tag may contain
+ * - Alphanumeric chars
+ * - Any non-ASCI char (U0080 and greater)
+ * - Forwardslahes, hyphens, underscores
+ * Must contain at least one non-numeric char
+ * Full #tag regex is:
+ * / #\d*?(?:[-_/a-z]|[^\x00-\x7F])(?:[-/\w]|[^\x00-\x7F])* /gi
+ * But only need up to first non-numeric char to match valid #tag:
+ * / #\d*?(?:[-_/a-z]|[^\x00-\x7F]) /gi
+ */
 export function escapeHashtags(body: string) {
-	const tagExp = /#[a-z0-9\-]+/gi;
+	const tagExp = /#\d*?(?:[-_/a-z]|[^\x00-\x7F])/gi;
 
 	if (!tagExp.test(body)) return body;
 	const lines = body.split('\n');
