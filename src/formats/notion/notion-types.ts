@@ -33,7 +33,7 @@ export type YamlProperty = {
 	title: string;
 };
 
-export type FormatTagName = 'strong' | 'em' | 'mark' | 'del';
+export type FormatTagName = 'strong' | 'em' | 'mark' | 'del' | string;
 
 export type NotionLink =
 	{

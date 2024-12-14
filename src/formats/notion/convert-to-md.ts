@@ -229,6 +229,8 @@ function fixDoubleBackslash(markdownBody: string) {
 function fixEquations(body: HTMLElement) {
 	// Style tags before equations mess up formatting
 	removeTags(body, 'style');
+	// Notion adds an extra <br> if there is math just after a linebreak
+	stripLeadingBr(body, 'span.notion-text-equation-token');
 	const dom = body.ownerDocument;
 	// Display Equations
 	const figEqnEls = body.findAll('figure.equation');
