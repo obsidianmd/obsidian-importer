@@ -278,7 +278,8 @@ function fixNotionCallouts(body: HTMLElement) {
 	const dom = body.ownerDocument;
 	for (let callout of body.findAll('figure.callout')) {
 		// Can have 1–2 children; we always want .lastElementChild for callout content.
-		const content = callout.lastElementChild?.childNodes ?? new NodeList();
+		const content = callout.lastElementChild?.childNodes;
+		if (!content) continue;
 		// Reformat as blockquote; HTMLtoMarkdown will convert automatically
 		const calloutBlock = dom.createElement('blockquote');
 		calloutBlock.append(...Array.from(content));
@@ -294,20 +295,22 @@ function fixNotionCallouts(body: HTMLElement) {
  * Checks if calloutBlock.firstChild is a valid title
  * Forces title into <p>, to avoid #text node concatenating with other elements
  * Blockquote formatting enables htmlToMarkdown to deal with nesting
+ *
+ * If the callout is empty, an empty callout will still be created
 */
 function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
-	const node = <ChildNode>(quoteBlock.firstChild);
-	const titlePar = (<Document>node.ownerDocument).createElement('p');
+	const node: ChildNode | null = quoteBlock.firstChild;
+	const name = node?.nodeName ?? '';
+	const titlePar = quoteBlock.ownerDocument.createElement('p');
 	let titleTxt = '';
-	const name = node.nodeName;
-	if (name == '#text') titleTxt = <string>node.textContent;
+	if (name == '#text') titleTxt = node?.textContent ?? '';
 	else if (name == 'P') titleTxt = (<Element>node).innerHTML;
-	else if (name == 'EM' || name == 'STRONG') titleTxt = (<Element>node).outerHTML;
+	else if (['EM', 'STRONG', 'DEL', 'MARK'].includes(name)) titleTxt = (<Element>node).outerHTML;
 	else (quoteBlock.prepend(titlePar));
 	// callout title must fit on one line in the MD file
 	titleTxt = titleTxt.replace(/<br>/g, '&lt;br&gt;');
 	titlePar.innerHTML= `[!important] ${titleTxt}`;
-	(<ChildNode>quoteBlock.firstChild).replaceWith(titlePar);
+	quoteBlock.firstChild?.replaceWith(titlePar);
 }
 
 function fixNotionBookmarks(body: HTMLElement) {
