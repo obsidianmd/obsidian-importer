@@ -62,7 +62,7 @@ export class OneNoteImporter extends FormatImporter {
 				await this.updateAccessToken();
 				authenticated = true;
 			}
-			catch(e) {
+			catch (e) {
 				// Failed to auth with refresh token. Proceed with normal sign in flow.
 			}
 		}
@@ -107,7 +107,7 @@ export class OneNoteImporter extends FormatImporter {
 		rememberMeSetting.settingEl.toggle(!authenticated);
 
 		this.switchUserSetting = new Setting(this.modal.contentEl)
-			.addButton((button) =>  button
+			.addButton((button) => button
 				.setCta()
 				.setButtonText('Switch user')
 				.onClick(() => {
