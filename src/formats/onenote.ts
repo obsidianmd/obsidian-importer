@@ -15,6 +15,8 @@ const PARAGRAPH_REGEX = /(<\/p>)\s*(<p[^>]*>)|\n  \n/g;
 // Maximum amount of request retries, before they're marked as failed
 const MAX_RETRY_ATTEMPTS = 5;
 
+const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
+
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
@@ -703,7 +705,7 @@ export class OneNoteImporter extends FormatImporter {
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
-				if (!image.alt) image.alt = 'Exported image';
+				if (!image.alt || BASE64_REGEX.test(image.alt)) image.alt = 'Exported image';
 				else image.alt = image.alt.replace(/[\r\n]+/gm, '');
 			}
 		}
