@@ -237,7 +237,7 @@ function fixEquations(body: HTMLElement) {
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		// Turn into <p> for reliable Markdown conversion
+		// Turn into <div> for reliable Markdown conversion
 		const mathDiv = dom.createElement('div');
 		mathDiv.className = 'annotation';
 		// Put in <div> to aid stability of htmlToMarkdown conversion
