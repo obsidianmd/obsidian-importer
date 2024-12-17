@@ -2,7 +2,14 @@ import { FrontMatterCache, htmlToMarkdown, moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip';
-import { NotionLink, NotionProperty, NotionPropertyType, NotionResolverInfo, YamlProperty } from './notion-types';
+import {
+	NotionLink,
+	NotionProperty,
+	NotionPropertyType,
+	NotionResolverInfo,
+	YamlProperty,
+	FormatTagName,
+} from './notion-types';
 import {
 	escapeHashtags,
 	getNotionId,
@@ -52,9 +59,8 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 		}
 	}
 
-	replaceNestedTags(body, 'strong');
-	replaceNestedTags(body, 'em');
-	fixNotionEmbeds(body);
+	fixFormatTags(body, ['strong', 'em', 'mark', 'del']);
+	fixNotionBookmarks(body);
 	// fixEquations must come before fixNotionCallouts
 	fixEquations(body);
 	stripLinkFormatting(body);
@@ -73,14 +79,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	replaceTableOfContents(body);
 	formatDatabases(body);
 
-	let htmlString = body.innerHTML;
-
-	// Simpler to just use the HTML string for this replacement
-	splitBrsInFormatting(htmlString, 'strong');
-	splitBrsInFormatting(htmlString, 'em');
-
-
-	let markdownBody = htmlToMarkdown(htmlString);
+	let markdownBody = htmlToMarkdown(body.innerHTML);
 	if (info.singleLineBreaks) {
 		// Making sure that any blockquote is preceded by an empty line (otherwise messes up formatting with consecutive blockquotes / callouts)
 		markdownBody = markdownBody.replace(/\n\n(?!>)/g, '\n');
@@ -230,12 +229,20 @@ function fixDoubleBackslash(markdownBody: string) {
 function fixEquations(body: HTMLElement) {
 	// Style tags before equations mess up formatting
 	removeTags(body, 'style');
+	// Notion adds an extra <br> if there is math just after a linebreak
+	stripLeadingBr(body, 'span.notion-text-equation-token');
+	const dom = body.ownerDocument;
 	// Display Equations
 	const figEqnEls = body.findAll('figure.equation');
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
-		figEqn.replaceWith(`$$${formatMath(annotation.textContent)}$$`);
+		// Turn into <div> for reliable Markdown conversion
+		const mathDiv = dom.createElement('div');
+		mathDiv.className = 'annotation';
+		// Put in <div> to aid stability of htmlToMarkdown conversion
+		mathDiv.appendText(`$$${formatMath(annotation.textContent)}$$`);
+		figEqn.replaceWith(mathDiv);
 	}
 	// Inline Equations
 	const spanEqnEls = body.findAll('span.notion-text-equation-token');
@@ -254,7 +261,7 @@ function fixEquations(body: HTMLElement) {
  * matched by "\\\\" and "\s" in the regex.
  */
 function formatMath(math: string | null | undefined, inline: boolean=false): string {
-	let regex = new RegExp(/^(?:[\s\r\n]|\\\\|\\\s)*(.*?)[\s\r\n\\]*$/, 's');
+	let regex = new RegExp(/^(?:\s|\\\\|\\\s)*(.*?)[\s\\]*$/, 's');
 	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
 
@@ -268,29 +275,56 @@ function isCallout(element: Element) {
 }
 
 function fixNotionCallouts(body: HTMLElement) {
+	const dom = body.ownerDocument;
 	for (let callout of body.findAll('figure.callout')) {
 		// Can have 1–2 children; we always want .lastElementChild for callout content.
-		const description = callout.lastElementChild?.textContent;
-		let calloutBlock = `> [!important]\n> ${description}\n`;
-		if (callout.nextElementSibling && isCallout(callout.nextElementSibling)) {
-			calloutBlock += '\n';
-		}
+		const content = callout.lastElementChild?.childNodes;
+		if (!content) continue;
+		// Reformat as blockquote; HTMLtoMarkdown will convert automatically
+		const calloutBlock = dom.createElement('blockquote');
+		calloutBlock.append(...Array.from(content));
+		// Add & format callout title element
+		quoteToCallout(calloutBlock);
 		callout.replaceWith(calloutBlock);
 	}
 }
 
-function fixNotionEmbeds(body: HTMLElement) {
-	// Notion embeds are a box with images and description, we simplify for Obsidian.
-	for (let embed of body.findAll('a.bookmark.source')) {
-		const link = embed.getAttribute('href');
-		const title = embed.find('div.bookmark-title')?.textContent;
-		const description = stripToSentence(embed.find('div.bookmark-description')?.textContent ?? '');
+/**
+ * Converts a blockquote into an Obsidian-style callout
+ *
+ * Checks if calloutBlock.firstChild is a valid title
+ * Forces title into <p>, to avoid #text node concatenating with other elements
+ * Blockquote formatting enables htmlToMarkdown to deal with nesting
+ *
+ * If the callout is empty, an empty callout will still be created
+*/
+function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
+	const node: ChildNode | null = quoteBlock.firstChild;
+	const name = node?.nodeName ?? '';
+	const titlePar = quoteBlock.ownerDocument.createElement('p');
+	let titleTxt = '';
+	if (name == '#text') titleTxt = node?.textContent ?? '';
+	else if (name == 'P') titleTxt = (<Element>node).innerHTML;
+	else if (['EM', 'STRONG', 'DEL', 'MARK'].includes(name)) titleTxt = (<Element>node).outerHTML;
+	else (quoteBlock.prepend(titlePar));
+	// callout title must fit on one line in the MD file
+	titleTxt = titleTxt.replace(/<br>/g, '&lt;br&gt;');
+	titlePar.innerHTML= `[!important] ${titleTxt}`;
+	quoteBlock.firstChild?.replaceWith(titlePar);
+}
+
+function fixNotionBookmarks(body: HTMLElement) {
+	// Notion bookmarks are a box with images and description, we simplify for Obsidian.
+	for (let bookmark of body.findAll('a.bookmark.source')) {
+		const link = bookmark.getAttribute('href');
+		const title = bookmark.find('div.bookmark-title')?.textContent;
+		const description = stripToSentence(bookmark.find('div.bookmark-description')?.textContent ?? '');
 		let calloutBlock = `> [!info] ${title}\n` + `> ${description}\n` + `> [${link}](${link})\n`;
-		if (embed.nextElementSibling && isCallout(embed.nextElementSibling)) {
+		if (bookmark.nextElementSibling && isCallout(bookmark.nextElementSibling)) {
 			// separate callouts with spaces
 			calloutBlock += '\n';
 		}
-		embed.replaceWith(calloutBlock);
+		bookmark.replaceWith(calloutBlock);
 	}
 }
 
@@ -328,7 +362,24 @@ function removeTags(body: HTMLElement, tag: string) {
 	}
 }
 
-function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
+/**
+ * Fixes issues with formatting tags in Notion HTML export
+ *
+ * This includes:
+ * - reducing nested tags
+ * - merging adjacent tags
+ * - stripping leading <br> artificats
+ * - splitting tags at nested <br> points
+ */
+function fixFormatTags(body: HTMLElement, tagNames: FormatTagName[]) {
+	// must occur in the order shown
+	for (const t of tagNames) replaceNestedTags(body, t);
+	for (const t of tagNames) mergeAdjacentTags(body, t);
+	for (const t of tagNames) stripLeadingBr(body, t);
+	for (const t of tagNames) splitBrsInFormatting(body, t);
+}
+
+function replaceNestedTags(body: HTMLElement, tag: FormatTagName) {
 	for (const el of body.findAll(tag)) {
 		if (!el.parentElement || el.parentElement.tagName === tag.toUpperCase()) {
 			continue;
@@ -341,15 +392,46 @@ function replaceNestedTags(body: HTMLElement, tag: 'strong' | 'em') {
 	}
 }
 
-function splitBrsInFormatting(htmlString: string, tag: 'strong' | 'em') {
-	const tags = htmlString.match(new RegExp(`<${tag}>(.|\n)*</${tag}>`));
+/**
+ * Merges tags if identical tags are placed next to each other.
+ */
+function mergeAdjacentTags(body: HTMLElement, tagName: FormatTagName) {
+	const tags = body.findAll(tagName);
 	if (!tags) return;
-	for (let tag of tags.filter((tag) => tag.contains('<br />'))) {
+	const regex = new RegExp(`</${tagName}>( *)<${tagName}>`, 'g');
+	for (const tag of tags) {
+		if (!tag || !tag.parentElement) continue;
+		const parent = tag.parentElement;
+		let parentHTML = parent?.innerHTML;
+		parent.innerHTML = parentHTML?.replace(regex, '$1');
+	}
+}
+
+/**
+ * Strips leading <br> artificats created by Notion
+ * These often occur before strong | em | mark | del tags
+ */
+function stripLeadingBr(body: HTMLElement, tagName: FormatTagName) {
+	const tags = body.findAll(tagName);
+	if (!tags) return;
+	for (const tag of tags) {
+		const prevNode = tag.previousSibling;
+		prevNode?.nodeName == 'BR' && prevNode?.remove();
+	}
+}
+
+function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
+	// Simpler to just use the HTML string for this replacement
+	let htmlString = body.innerHTML;
+	const tags = htmlString.match(new RegExp(`<${tagName}>.*?</${tagName}>`, 'sg'));
+	if (!tags) return;
+	for (let tag of tags.filter((tag) => tag.includes('<br>'))) {
 		htmlString = htmlString.replace(
 			tag,
-			tag.split('<br />').join(`</${tag}><br /><${tag}>`)
+			tag.split('<br>').join(`</${tagName}><br><${tagName}>`)
 		);
 	}
+	body.innerHTML = htmlString;
 }
 
 function replaceTableOfContents(body: HTMLElement) {
@@ -362,8 +444,8 @@ function replaceTableOfContents(body: HTMLElement) {
 }
 
 function encodeNewlinesToBr(body: HTMLElement) {
-	body.innerHTML = body.innerHTML.replace(/\n/g, '<br />');
-	// Since <br /> is ignored in codeblocks, we replace with newlines
+	body.innerHTML = body.innerHTML.replace(/(?:\n|<br ?\/>)/g, '<br>');
+	// Since <br> is ignored in codeblocks, we replace with newlines
 	for (const block of body.findAll('code')) {
 		for (const br of block.findAll('br')) {
 			br.replaceWith('\n');
