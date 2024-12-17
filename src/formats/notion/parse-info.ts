@@ -48,9 +48,10 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		info.pathsToAttachmentInfo[filepath] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
-			// Notion url-encodes attachments on export — need to decode
-			// NOTE: for some unicode, nNotion destroys the filename completely
-			// this is a notion bug, not an importer bug
+			// Notion url-encodes attachments on export — need to decode.
+			// NOTE: for some unicode, Notion destroys the filename completely
+			// so it cannot be retrieved trivially.
+			// This is a Notion bug, not an Obsidian Importer bug.
 			nameWithExtension: sanitizeFileName(decodeURIComponent(file.name)),
 			targetParentFolder: '',
 			fullLinkPathNeeded: false,
