@@ -33,7 +33,7 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 				.replace(/[:\/]/g, '-')
 				.replace(/#/g, '')
 				.trim()
-		)); 
+		));
 
 		info.idsToFileInfo[id] = {
 			path: filepath,
@@ -48,7 +48,11 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		info.pathsToAttachmentInfo[filepath] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
-			nameWithExtension: sanitizeFileName(file.name),
+			// Notion url-encodes attachments on export — need to decode.
+			// NOTE: for some unicode, Notion destroys the filename completely
+			// so it cannot be retrieved trivially.
+			// This is a Notion bug, not an Obsidian Importer bug.
+			nameWithExtension: sanitizeFileName(decodeURIComponent(file.name)),
 			targetParentFolder: '',
 			fullLinkPathNeeded: false,
 		};
@@ -56,8 +60,8 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 }
 
 function stripTo200(title: string) {
-	if (title.length < 200) return title;	
-	
+	if (title.length < 200) return title;
+
 	// just in case title names are too long
 	const wordList = title.split(' ');
 	const titleList = [];
