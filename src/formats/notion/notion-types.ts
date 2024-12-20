@@ -46,6 +46,12 @@ export type NotionLink =
 		type: 'attachment';
 		path: string;
 		a: HTMLAnchorElement;
+	}
+	|
+	{
+		type: 'toc-item';
+		id: string;
+		a: HTMLAnchorElement;
 	};
 
 
