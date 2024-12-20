@@ -76,7 +76,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	fixNotionLists(body, 'ol');
 
 	addCheckboxes(body);
-	replaceTableOfContents(body);
+	formatTableOfContents(body);
 	formatDatabases(body);
 
 	let markdownBody = htmlToMarkdown(body.innerHTML);
@@ -199,11 +199,14 @@ function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 			links.push({ type: 'relation', a, id });
 		}
 		else if (attachmentPath) {
-			links.push({
-				type: 'attachment',
-				a,
-				path: attachmentPath,
-			});
+			links.push({ type: 'attachment', a, path: attachmentPath });
+		}
+		else if (
+			id &&
+			decodedURI.startsWith('#') &&
+			a.parentElement?.classList.contains('table_of_contents-item')
+		) {
+			links.push({ type: 'toc-item', a, id });
 		}
 	}
 
@@ -434,13 +437,62 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 	body.innerHTML = htmlString;
 }
 
-function replaceTableOfContents(body: HTMLElement) {
-	const tocLinks = body.findAll('a[href*=\\#]') as HTMLAnchorElement[];
-	for (const link of tocLinks) {
-		if (link.getAttribute('href')?.startsWith('#')) {
-			link.setAttribute('href', '#' + link.textContent);
-		}
+
+function getTOCIndent(tocItem: Element | null): Number {
+	return Number(tocItem?.classList[1].slice(-1) ?? -1);
+}
+
+function appendTOCItem(itemNew: Element, itemPre: Element | null | undefined) {
+	if (!itemPre) return;
+	const indentNew = getTOCIndent(itemNew);
+	let indentPre = getTOCIndent(itemPre);
+	// itemPre will contain minimum 1 <span> element
+	if (indentNew > indentPre && itemPre.childElementCount == 1) {
+		const listNew = createEl('ul');
+		listNew.append(itemNew);
+		itemPre.append(listNew);
 	}
+	else if (indentNew > indentPre && itemPre.childElementCount == 2) {
+		itemPre.lastElementChild?.append(itemNew);
+	}
+	else if (indentNew == indentPre) {
+		itemPre.parentElement?.append(itemNew);
+	}
+	else if (indentNew < indentPre) {
+		const listPre = itemPre.parentElement;
+		itemPre = listPre?.parentElement;
+		// recurse through parents until (indentNew < indentPre)
+		appendTOCItem(itemNew, itemPre);
+	}
+}
+
+function newTOCItem(item: Element) {
+	const itemNew = createEl('li');
+	itemNew.className = item.className;
+	itemNew.append(item.firstElementChild ?? '');
+	return itemNew;
+}
+
+/**
+ * Reformats ToC into a list.
+ *
+ */
+function formatTableOfContents(body: HTMLElement) {
+	const tocNavEl = body.find('.table_of_contents');
+	const toc = tocNavEl?.children;
+	if (!tocNavEl || toc.length == 0) return;
+	const tocNew = createEl('ul');
+	let itemNew = newTOCItem(toc[0]);
+	tocNew.append(itemNew);
+	let itemPre = itemNew;
+	for (let i = 1; i < toc.length; i++) {
+		// create list item <li>
+		itemNew = newTOCItem(toc[i]);
+		appendTOCItem(itemNew, itemPre);
+		// keep track of previous TOC item
+		itemPre = itemNew;
+	}
+	tocNavEl.replaceWith(tocNew);
 }
 
 function encodeNewlinesToBr(body: HTMLElement) {
@@ -545,7 +597,7 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLink[], embedAttachments: boolean) {
 	for (let link of notionLinks) {
 		let obsidianLink = createSpan();
-		let linkContent: string;
+		let linkContent: string = '';
 
 		switch (link.type) {
 			case 'relation':
@@ -580,6 +632,11 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 					: attachmentInfo.nameWithExtension
 				}]]`;
 				break;
+			case 'toc-item':
+				// trailing space required in case link ends with ']'
+				linkContent = link.a.textContent ?? '';
+				const endBracket = linkContent.endsWith(']') ?? false;
+				linkContent = `[[#${linkContent + (endBracket ? ' ' : '')}]]`;
 		}
 
 		obsidianLink.setText(linkContent);
