@@ -674,6 +674,12 @@ export class OneNoteImporter extends FormatImporter {
 		const videos: HTMLIFrameElement[] = pageElement.findAll('iframe') as HTMLIFrameElement[];
 
 		for (const object of objects) {
+			// Objects may contain child nodes which would be lost when the object is replaced by markdown.
+			// To preserve these, move any child items to be siblings of the object
+			while (object.firstChild) {
+				object.parentNode?.insertBefore(object.firstChild, object.nextSibling);
+			}
+
 			let split: string[] = object.getAttribute('data-attachment')!.split('.');
 			const extension: string = split[split.length - 1];
 
