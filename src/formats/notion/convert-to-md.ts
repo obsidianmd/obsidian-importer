@@ -442,33 +442,49 @@ function getTOCIndent(tocItem: Element | null): Number {
 	return Number(tocItem?.classList[1].slice(-1) ?? -1);
 }
 
-function appendTOCItem(itemNew: Element, itemPre: Element | null | undefined) {
-	if (!itemPre) return;
+/**
+ * Recursively append new ToC `<li>` element after previous, based on relative indentation levels.
+ *
+ * @param itemNew the new ToC `<li>` item
+ * @param itemPre previous ToC `<li>` item.  NOTE: `itemPre.children` is either: `[<span>]` or `[<span>, <ul>]`, where `<span>` is the item heading and `<ul>` contains nested ToC items.
+ */
+function appendTOCItem(itemNew: Element, itemPre: Element) {
 	const indentNew = getTOCIndent(itemNew);
-	let indentPre = getTOCIndent(itemPre);
-	// itemPre will contain minimum 1 <span> element
+	const indentPre = getTOCIndent(itemPre);
 	if (indentNew > indentPre && itemPre.childElementCount == 1) {
-		const listNew = createEl('ul');
-		listNew.append(itemNew);
-		itemPre.append(listNew);
+		const ulistNew = createEl('ul');
+		ulistNew.append(itemNew);
+		itemPre.append(ulistNew);
 	}
 	else if (indentNew > indentPre && itemPre.childElementCount == 2) {
-		itemPre.lastElementChild?.append(itemNew);
+		const ulistPre = itemPre.lastElementChild;
+		ulistPre?.append(itemNew);
 	}
 	else if (indentNew == indentPre) {
-		itemPre.parentElement?.append(itemNew);
+		const ulistPre = itemPre.parentElement;
+		ulistPre?.append(itemNew);
 	}
 	else if (indentNew < indentPre) {
-		const listPre = itemPre.parentElement;
-		itemPre = listPre?.parentElement;
-		// recurse through parents until (indentNew < indentPre)
+		// the parent ToC item is 2 parentElements away
+		const ulistPre = <HTMLElement>itemPre.parentElement;
+		itemPre = <HTMLElement>ulistPre.parentElement;
+		// recurse through parents until (indentNew == indentPre)
 		appendTOCItem(itemNew, itemPre);
 	}
 }
 
+/**
+ * Creates new ToC <li> item from Notion ToC <div> item.
+ *
+ * Retains `className` for ToC indentation reference.
+ *
+ * @param item the original ToC <div> item
+ * @returns the ToC <li> item
+ */
 function newTOCItem(item: Element) {
 	const itemNew = createEl('li');
 	itemNew.className = item.className;
+	// inserts the nested ToC <span> element
 	itemNew.append(item.firstElementChild ?? '');
 	return itemNew;
 }
@@ -478,12 +494,16 @@ function newTOCItem(item: Element) {
  *
  */
 function formatTableOfContents(body: HTMLElement) {
+	// het ToC <nav> element
 	const tocNavEl = body.find('.table_of_contents');
 	const toc = tocNavEl?.children;
 	if (!tocNavEl || toc.length == 0) return;
+
+	// create empty ToC list & append first item
 	const tocNew = createEl('ul');
 	let itemNew = newTOCItem(toc[0]);
 	tocNew.append(itemNew);
+
 	let itemPre = itemNew;
 	for (let i = 1; i < toc.length; i++) {
 		// create list item <li>
