@@ -156,7 +156,9 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 
 		const usedPaths = Object.values(this.attachmentMap);
-		const outputPath = await this.getAvailablePathForAttachment(normalizedPath, usedPaths);
+		let outputPath = await this.getAvailablePathForAttachment(normalizedPath, usedPaths);
+		// Colons are not allowed in Obsidian file paths.
+		outputPath = outputPath.replace(/:/g, '');
 		this.attachmentMap[normalizedPath] = outputPath;
 		return outputPath;
 	}
