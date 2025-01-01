@@ -63,7 +63,7 @@ export class Bear2bkImporter extends FormatImporter {
 							if (assetMatches.length > 0) {
 								for (const match of assetMatches) {
 									const [ fullMatch, linkPath ] = match;
-									const assetPath = path.join(parent, linkPath);
+									let assetPath = path.join(parent, decodeURI(linkPath));
 									let replacementPath = await this.getAttachmentStoragePath(assetPath);
 
 									// Don't allow spaces in the file name.
