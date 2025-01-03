@@ -64,7 +64,11 @@ export function escapeHashtags(body: string) {
 			// skipping any internal links [[ # ]], URLS [ # ]() or []( # ),
 			// code ` # ` or already escaped hashtags \#
 			const hashtagInLink = new RegExp(
-				`\\[\\[[^\\]]*${hashtag}[^\\]]*\\]\\]|\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|\\\\${hashtag}|\`[^\`]*${hashtag}[^\`]*\``
+				`\\[\\[[^\\]]*${hashtag}(?:.*[^\\]])?\\]\\]|` +
+				`\\[[^\\]]*${hashtag}[^\\]]*\\]\\([^\\)]*\\)` +
+				`|\\[[^\\]]*\\]\\([^\\)]*${hashtag}[^\\)]*\\)|` +
+				`\\\\${hashtag}|` +
+				`\`[^\`]*${hashtag}[^\`]*\``
 			);
 			if (hashtagInLink.test(newLine)) continue;
 			newLine = newLine.replace(hashtag, '\\' + hashtag);
