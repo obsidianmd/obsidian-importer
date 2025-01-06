@@ -10,7 +10,7 @@ Please refrain from using NodeJS or Electron imports. If you must use Node's `fs
 import type * as NodeModuleName from 'node:modulename';
 
 const modulename: typeof NodeModuleName = Platform.isDesktopApp ? window.require('node:modulename') : null;
-``` 
+```
 
 We're still experimenting with contributions, if you have any questions, please hop onto the [#importer thread under #plugin-dev channel](https://discord.com/channels/686053708261228577/1133074995271188520) on our Discord.
 
@@ -18,7 +18,7 @@ We're still experimenting with contributions, if you have any questions, please 
 
 - Follow our [Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
 - Your contribution must be implemented in TypeScript.
-- Keep it lightweight. The fewer the dependencies, the better. For example, if you import `lodash` and only use two functions don't it, re-consider.
+- Keep it lightweight. The fewer the dependencies, the better. For example, please do not import `lodash` to use two functions from it.
 - Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
 - Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
 - Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
