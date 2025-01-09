@@ -9,6 +9,7 @@ import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
+import { TanaJSONImporter } from './formats/tana-json';
 import { truncateText } from './util';
 
 declare global {
@@ -288,6 +289,12 @@ export default class ImporterPlugin extends Plugin {
 				importer: TextbundleImporter,
 				helpPermalink: 'import/textbundle',
 			},
+			'tana-json': {
+				name: 'Tana',
+				optionText: 'Tana (.json)',
+				importer: TanaJSONImporter,
+				helpPermalink: 'import/tana',
+			}
 		};
 
 		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
