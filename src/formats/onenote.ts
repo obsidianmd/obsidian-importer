@@ -21,6 +21,7 @@ export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
+	disableOCR: boolean = false;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -54,6 +55,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(true)
 				.onChange((value) => (this.importPreviouslyImported = !value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Disable OCR for images')
+			.setDesc('If enabled, OCR text from images will not be included in the markdown. This can help prevent markdown formatting issues.')
+			.addToggle((toggle) => toggle
+				.setValue(false)
+				.onChange((value) => (this.disableOCR = value))
 			);
 
 		let authenticated = false;
@@ -711,8 +720,11 @@ export class OneNoteImporter extends FormatImporter {
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
-				if (!image.alt || BASE64_REGEX.test(image.alt)) image.alt = 'Exported image';
-				else image.alt = image.alt.replace(/[\r\n]+/gm, '');
+				if (this.disableOCR || !image.alt || BASE64_REGEX.test(image.alt)) {
+					image.alt = 'Exported image';
+				} else {
+					image.alt = image.alt.replace(/[\r\n]+/gm, '');
+				}
 			}
 		}
 
