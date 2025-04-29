@@ -673,6 +673,27 @@ export class OneNoteImporter extends FormatImporter {
 		return returnPath;
 	}
 
+	// Helper function to sanitize OCR text for markdown
+	private sanitizeOCRText(text: string): string {
+		// Only keep alphabetic characters and spaces
+		text = text.replace(/[^a-zA-Z\s]/g, '');
+		
+		// Replace multiple spaces with single space
+		text = text.replace(/\s+/g, ' ');
+		
+		// Truncate to a reasonable length
+		if (text.length > 50) {
+			text = text.substring(0, 50) + '...';
+		}
+		
+		// If the text is empty after sanitization, use a default value
+		if (!text.trim()) {
+			return 'Exported image';
+		}
+		
+		return text.trim();
+	}
+
 	// Download all attachments and add embedding syntax for supported file formats.
 	async getAllAttachments(progress: ImportContext, pageHTML: string): Promise<HTMLElement> {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
@@ -723,7 +744,8 @@ export class OneNoteImporter extends FormatImporter {
 				if (this.disableOCR || !image.alt || BASE64_REGEX.test(image.alt)) {
 					image.alt = 'Exported image';
 				} else {
-					image.alt = image.alt.replace(/[\r\n]+/gm, '');
+					// Sanitize OCR text to ensure valid markdown
+					image.alt = this.sanitizeOCRText(image.alt);
 				}
 			}
 		}
