@@ -86,10 +86,15 @@ export class Bear2bkImporter extends FormatImporter {
 							else if (metadata?.trashed) {
 								targetFolder = trashFolder;
 							}
+
+							// Create the file first
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
-							if (metadata?.ctime && metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file);
+							
+							// Then add frontmatter and set timestamps
+							if (metadata?.ctime || metadata?.mtime) {
+								await this.modifFileTimestamps(metadata, file, mdContent);
 							}
+							
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
@@ -111,12 +116,33 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 	}
 
-	private async modifFileTimestamps(metaData: Metadata, file: TFile) {
+	private async modifFileTimestamps(metaData: Metadata, file: TFile, content: string): Promise<string> {
+		// Format dates in the specified format: YYYY-MM-DDThh:mm:ss
+		const frontmatter: Record<string, string> = {};
+		if (metaData.ctime) {
+			frontmatter['created'] = new Date(metaData.ctime).toISOString().slice(0, 19);
+		}
+		if (metaData.mtime) {
+			frontmatter['modified'] = new Date(metaData.mtime).toISOString().slice(0, 19);
+		}
+
+		// Add frontmatter to content
+		const frontmatterString = Object.entries(frontmatter)
+			.map(([key, value]) => `${key}: ${value}`)
+			.join('\n');
+		
+		const contentWithFrontmatter = `---\n${frontmatterString}\n---\n\n${content}`;
+
+		// Still set the file system timestamps
 		const writeOptions: DataWriteOptions = {
 			ctime: metaData.ctime,
 			mtime: metaData.mtime,
 		};
-		await this.vault.append(file, '', writeOptions);
+		
+		// Write the content with frontmatter
+		await this.vault.modify(file, contentWithFrontmatter, writeOptions);
+		
+		return contentWithFrontmatter;
 	}
 
 	private async collectMetadata(ctx: ImportContext, entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
