@@ -77,7 +77,8 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							const filePath = normalizePath(mdFilename);
+							// Use the folder name as the note name, but create it directly in the target folder
+							const filePath = normalizePath(mdFilename + '.md');
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
@@ -87,7 +88,7 @@ export class Bear2bkImporter extends FormatImporter {
 								targetFolder = trashFolder;
 							}
 
-							// Create the file first
+							// Create the file directly in the target folder
 							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
 							
 							// Then add frontmatter and set timestamps
