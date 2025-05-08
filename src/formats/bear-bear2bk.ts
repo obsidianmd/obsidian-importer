@@ -19,6 +19,43 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addOutputLocationSetting('Bear');
 	}
 
+	private extractTagsFromContent(content: string): string[] {
+		const tags = new Set<string>();
+		console.log("[Bear Importer Tag Debug] Original content for tag extraction:\n", content.substring(0, 300)); // Log start of content
+
+		// 1. Extract #enclosed/tags# (can contain spaces and slashes, but content should be single-line)
+		const enclosedTagRegex = /#([^\n#]+?)#/g; // Changed [^#] to [^\n#] to disallow newlines in tag content
+		let matchEnclosed;
+		console.log("[Bear Importer Tag Debug] Trying enclosedTagRegex");
+		while ((matchEnclosed = enclosedTagRegex.exec(content)) !== null) {
+			console.log("[Bear Importer Tag Debug] enclosedTagRegex match found: raw=", matchEnclosed[0], "group1=", matchEnclosed[1]);
+			const tag = matchEnclosed[1].trim();
+			if (tag) {
+				tags.add(tag);
+				console.log("[Bear Importer Tag Debug] Added enclosed tag:", tag);
+			}
+		}
+
+		// 2. Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
+		//    Ensures it's not part of a URL or an already processed enclosed tag.
+		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
+		const simpleTagRegex = /(?<!\S)#([a-zA-Z0-9_][a-zA-Z0-9_/\-]*[a-zA-Z0-9_]|[a-zA-Z0-9_]+)(?![#\w/])/g;
+		let matchSimple;
+		console.log("[Bear Importer Tag Debug] Trying simpleTagRegex");
+		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
+			console.log("[Bear Importer Tag Debug] simpleTagRegex match found: raw=", matchSimple[0], "group1=", matchSimple[1]);
+			const simpleTag = matchSimple[1].trim(); 
+			if (simpleTag) {
+				tags.add(simpleTag);
+				console.log("[Bear Importer Tag Debug] Added simple tag:", simpleTag);
+			}
+		}
+
+		const finalTags = Array.from(tags);
+		console.log("[Bear Importer Tag Debug] Final extracted tags:", finalTags);
+		return finalTags;
+	}
+
 	async import(ctx: ImportContext): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
@@ -77,8 +114,11 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Use the folder name as the note name, but create it directly in the target folder
-							const filePath = normalizePath(mdFilename + '.md');
+							// Extract tags from content
+							const tags = this.extractTagsFromContent(mdContent);
+
+							// Use just the filename without extension
+							const fileName = mdFilename;
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archived) {
@@ -88,12 +128,19 @@ export class Bear2bkImporter extends FormatImporter {
 								targetFolder = trashFolder;
 							}
 
+							// Log paths before creating the file
+							console.log(`[Bear Importer] Target Folder Path: ${targetFolder.path}`);
+							console.log(`[Bear Importer] File Name for saveAsMarkdownFile: ${fileName}`);
+
 							// Create the file directly in the target folder
-							const file = await this.saveAsMarkdownFile(targetFolder, filePath, mdContent);
+							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
 							
-							// Then add frontmatter and set timestamps
-							if (metadata?.ctime || metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file, mdContent);
+							// Log path after creating the file
+							console.log(`[Bear Importer] File created at: ${file.path}`);
+							
+							// Then add frontmatter (including tags) and set timestamps
+							if (metadata?.ctime || metadata?.mtime || tags.length > 0) {
+								await this.updateNoteFile(metadata, file, mdContent, tags);
 							}
 							
 							ctx.reportNoteSuccess(mdFilename);
@@ -117,27 +164,40 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 	}
 
-	private async modifFileTimestamps(metaData: Metadata, file: TFile, content: string): Promise<string> {
+	private async updateNoteFile(metaData: Metadata | undefined, file: TFile, content: string, tags: string[]): Promise<string> {
 		// Format dates in the specified format: YYYY-MM-DDThh:mm:ss
-		const frontmatter: Record<string, string> = {};
-		if (metaData.ctime) {
+		const frontmatter: Record<string, any> = {}; // Changed to Record<string, any> for tags array
+		if (metaData?.ctime) {
 			frontmatter['created'] = new Date(metaData.ctime).toISOString().slice(0, 19);
 		}
-		if (metaData.mtime) {
+		if (metaData?.mtime) {
 			frontmatter['modified'] = new Date(metaData.mtime).toISOString().slice(0, 19);
 		}
 
-		// Add frontmatter to content
-		const frontmatterString = Object.entries(frontmatter)
-			.map(([key, value]) => `${key}: ${value}`)
-			.join('\n');
-		
-		const contentWithFrontmatter = `---\n${frontmatterString}\n---\n\n${content}`;
+		if (tags.length > 0) {
+			frontmatter['tags'] = tags;
+		}
+
+		// Add frontmatter to content only if there's something to add
+		let contentWithFrontmatter = content;
+		if (Object.keys(frontmatter).length > 0) {
+			const frontmatterString = Object.entries(frontmatter)
+				.map(([key, value]) => {
+					if (Array.isArray(value)) { // Handle tags array
+						return `${key}:\n  - ${value.join('\n  - ')}`;
+					}
+					return `${key}: ${value}`;
+				})
+				.join('\n');
+			
+			contentWithFrontmatter = `---\n${frontmatterString}\n---\n\n${content}`;
+		}
+
 
 		// Still set the file system timestamps
 		const writeOptions: DataWriteOptions = {
-			ctime: metaData.ctime,
-			mtime: metaData.mtime,
+			ctime: metaData?.ctime,
+			mtime: metaData?.mtime,
 		};
 		
 		// Write the content with frontmatter
