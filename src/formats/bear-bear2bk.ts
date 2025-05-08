@@ -29,10 +29,16 @@ export class Bear2bkImporter extends FormatImporter {
 		console.log("[Bear Importer Tag Debug] Trying enclosedTagRegex");
 		while ((matchEnclosed = enclosedTagRegex.exec(content)) !== null) {
 			console.log("[Bear Importer Tag Debug] enclosedTagRegex match found: raw=", matchEnclosed[0], "group1=", matchEnclosed[1]);
-			const tag = matchEnclosed[1].trim();
-			if (tag) {
-				tags.add(tag);
-				console.log("[Bear Importer Tag Debug] Added enclosed tag:", tag);
+			const rawEnclosedTag = matchEnclosed[1].trim();
+			if (rawEnclosedTag) {
+				const parts = rawEnclosedTag.split('/');
+				for (const part of parts) {
+					const cleanPart = part.trim();
+					if (cleanPart) {
+						tags.add(cleanPart);
+						console.log("[Bear Importer Tag Debug] Added enclosed tag part:", cleanPart);
+					}
+				}
 			}
 		}
 
@@ -44,15 +50,21 @@ export class Bear2bkImporter extends FormatImporter {
 		console.log("[Bear Importer Tag Debug] Trying simpleTagRegex");
 		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
 			console.log("[Bear Importer Tag Debug] simpleTagRegex match found: raw=", matchSimple[0], "group1=", matchSimple[1]);
-			const simpleTag = matchSimple[1].trim(); 
-			if (simpleTag) {
-				tags.add(simpleTag);
-				console.log("[Bear Importer Tag Debug] Added simple tag:", simpleTag);
+			const rawSimpleTag = matchSimple[1].trim(); 
+			if (rawSimpleTag) {
+				const parts = rawSimpleTag.split('/');
+				for (const part of parts) {
+					const cleanPart = part.trim();
+					if (cleanPart) {
+						tags.add(cleanPart);
+						console.log("[Bear Importer Tag Debug] Added simple tag part:", cleanPart);
+					}
+				}
 			}
 		}
 
 		const finalTags = Array.from(tags);
-		console.log("[Bear Importer Tag Debug] Final extracted tags:", finalTags);
+		console.log("[Bear Importer Tag Debug] Final extracted tags (flattened):", finalTags);
 		return finalTags;
 	}
 
