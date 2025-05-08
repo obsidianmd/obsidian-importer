@@ -21,14 +21,11 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private extractTagsFromContent(content: string): string[] {
 		const tags = new Set<string>();
-		console.log("[Bear Importer Tag Debug] Original content for tag extraction:\n", content.substring(0, 300)); // Log start of content
 
 		// 1. Extract #enclosed/tags# (can contain spaces and slashes, but content should be single-line)
 		const enclosedTagRegex = /#([^\n#]+?)#/g; // Changed [^#] to [^\n#] to disallow newlines in tag content
 		let matchEnclosed;
-		console.log("[Bear Importer Tag Debug] Trying enclosedTagRegex");
 		while ((matchEnclosed = enclosedTagRegex.exec(content)) !== null) {
-			console.log("[Bear Importer Tag Debug] enclosedTagRegex match found: raw=", matchEnclosed[0], "group1=", matchEnclosed[1]);
 			const rawEnclosedTag = matchEnclosed[1].trim();
 			if (rawEnclosedTag) {
 				const parts = rawEnclosedTag.split('/');
@@ -36,7 +33,6 @@ export class Bear2bkImporter extends FormatImporter {
 					const cleanPart = part.trim();
 					if (cleanPart) {
 						tags.add(cleanPart);
-						console.log("[Bear Importer Tag Debug] Added enclosed tag part:", cleanPart);
 					}
 				}
 			}
@@ -47,9 +43,7 @@ export class Bear2bkImporter extends FormatImporter {
 		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
 		const simpleTagRegex = /(?<!\S)#([a-zA-Z0-9_][a-zA-Z0-9_/\-]*[a-zA-Z0-9_]|[a-zA-Z0-9_]+)(?![#\w/])/g;
 		let matchSimple;
-		console.log("[Bear Importer Tag Debug] Trying simpleTagRegex");
 		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
-			console.log("[Bear Importer Tag Debug] simpleTagRegex match found: raw=", matchSimple[0], "group1=", matchSimple[1]);
 			const rawSimpleTag = matchSimple[1].trim(); 
 			if (rawSimpleTag) {
 				const parts = rawSimpleTag.split('/');
@@ -57,14 +51,12 @@ export class Bear2bkImporter extends FormatImporter {
 					const cleanPart = part.trim();
 					if (cleanPart) {
 						tags.add(cleanPart);
-						console.log("[Bear Importer Tag Debug] Added simple tag part:", cleanPart);
 					}
 				}
 			}
 		}
 
 		const finalTags = Array.from(tags);
-		console.log("[Bear Importer Tag Debug] Final extracted tags (flattened):", finalTags);
 		return finalTags;
 	}
 
@@ -140,17 +132,8 @@ export class Bear2bkImporter extends FormatImporter {
 								targetFolder = trashFolder;
 							}
 
-							// Log paths before creating the file
-							console.log(`[Bear Importer] Target Folder Path: ${targetFolder.path}`);
-							console.log(`[Bear Importer] File Name for saveAsMarkdownFile: ${fileName}`);
-
-							// Create the file directly in the target folder
 							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
 							
-							// Log path after creating the file
-							console.log(`[Bear Importer] File created at: ${file.path}`);
-							
-							// Then add frontmatter (including tags) and set timestamps
 							if (metadata?.ctime || metadata?.mtime || tags.length > 0) {
 								await this.updateNoteFile(metadata, file, mdContent, tags);
 							}
@@ -161,7 +144,22 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.status('Importing asset ' + entry.name);
 							const outputPath = await this.getAttachmentStoragePath(entry.filepath);
 							const assetData = await entry.read();
-							await this.vault.createBinary(outputPath, assetData);
+
+							const writeOptions: DataWriteOptions = {};
+							if (entry.ctime) {
+								writeOptions.ctime = entry.ctime.getTime();
+							}
+							if (entry.mtime) {
+								writeOptions.mtime = entry.mtime.getTime();
+							}
+
+							if (Object.keys(writeOptions).length > 0) {
+								await this.vault.createBinary(outputPath, assetData, writeOptions);
+							}
+							else {
+								await this.vault.createBinary(outputPath, assetData);
+							}
+							
 							ctx.reportAttachmentSuccess(entry.fullpath);
 						}
 						else {
