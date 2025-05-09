@@ -249,7 +249,7 @@ export class OneNoteImporter extends FormatImporter {
 			});
 
 			for (const notebook of this.notebooks) {
-			// Check if there are any nested section groups, if so, fetch them
+				// Check if there are any nested section groups, if so, fetch them
 				if (notebook.sectionGroups?.length !== 0) {
 					for (const sectionGroup of notebook.sectionGroups!) {
 						await this.fetchNestedSectionGroups(sectionGroup);

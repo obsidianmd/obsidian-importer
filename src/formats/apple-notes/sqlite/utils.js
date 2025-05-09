@@ -22,34 +22,34 @@ export const asValue = value => {
 		case 'number':
 			if (!isFinite(value)) return;
 		case 'boolean':
-  			return +value;
+			return +value;
 		case 'object':
 		case 'undefined':
-  			switch (true) {
-    			case !value:
-      				return 'NULL';
-    			case value instanceof Date:
-      				return '\'' + value.toISOString() + '\'';
-    			case value instanceof Buffer:
-    			case value instanceof ArrayBuffer:
-      				value = new Uint8Array(value);
-    			case value instanceof Uint8Array:
-    			case value instanceof Uint8ClampedArray:
-  					return x(value);
-  			}
+			switch (true) {
+				case !value:
+					return 'NULL';
+				case value instanceof Date:
+					return '\'' + value.toISOString() + '\'';
+				case value instanceof Buffer:
+				case value instanceof ArrayBuffer:
+					value = new Uint8Array(value);
+				case value instanceof Uint8Array:
+				case value instanceof Uint8ClampedArray:
+					return x(value);
+			}
 	}
 };
 
 export const sql = (rej, _) => {
 	const [template, ...values] = asParams(..._);
 	const sql = [template[0]];
-	
+
 	for (let i = 0; i < values.length; i++) {
 		const value = asValue(values[i]);
 		if (value === void 0) return error(rej, 'incompatible ' + (typeof value) + 'value');
 		sql.push(value, template[i + 1]);
 	}
-	
+
 	const query = sql.join('').trim();
 	return query.length ? query : error(rej, 'empty query');
 };
@@ -59,12 +59,12 @@ export const sql2array = sql => {
 	const out = [];
 	let i = 0;
 	let match;
-	
+
 	while (match = re.exec(sql)) {
 		out.push(sql.slice(i, match.index), match[3] || match[5]);
 		i = match.index + match[0].length;
 	}
-	
+
 	out.push(sql.slice(i));
 	return out;
 };
@@ -77,9 +77,9 @@ export const array2sql = (chunks, data = null) => {
 	for (let i = 1; i < chunks.length; i += 2) {
 		const value = asValue(data[chunks[i]]);
 		if (value === void 0) return '';
-		
+
 		chunks[i] = value;
 	}
-	
+
 	return chunks.join('');
 };

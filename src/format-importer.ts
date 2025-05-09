@@ -185,7 +185,7 @@ export abstract class FormatImporter {
 		// Increase number until the path is unique.
 		let i = 1;
 		let outputPath = prelimOutPath;
-		while(claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
+		while (claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
 			outputPath = path.join(parsedPrelimOutPath.parent, `${parsedPrelimOutPath.name} ${i}${fullExt}`);
 			i++;
 		}

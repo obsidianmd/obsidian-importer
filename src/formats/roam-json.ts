@@ -113,7 +113,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 				// if title option is enabled
 				const YAMLtitle = this.titleYAML ? pageData.title : '';
-				
+
 				// if timestamp option is enabled
 				// set up numbers to pass, default to 0
 				let pageCreateTimestamp: number = 0;
@@ -133,7 +133,7 @@ export class RoamJSONImporter extends FormatImporter {
 					}
 				}
 
-				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData,'',false,YAMLtitle,pageCreateTimestamp,pageEditTimestamp);
+				const markdownOutput = await this.jsonToMarkdown(graphFolder, attachmentsFolder, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
 			}
 
@@ -322,19 +322,19 @@ export class RoamJSONImporter extends FormatImporter {
 		// check the edit-time of the block, compare to what was passed, use the most recent date
 		// if undefined, set newestTimestamp to the value of updatedTimestamp
 		this.newestTimestamp = (!jsonEditTime || updatedTimestamp > jsonEditTime)
-    		? updatedTimestamp
-    		: jsonEditTime;
+			? updatedTimestamp
+			: jsonEditTime;
 
 		// if the create time is defined, set oldestTimestamp to the lower of the createdTimestamp value or jsonCreateTime
 		// else, set oldestTimestamp to the value of createdTimestamp
 		if (jsonCreateTime !== undefined) {
 			if (createdTimestamp > 10) { // passed as a 0
 				this.oldestTimestamp = Math.min(createdTimestamp, jsonCreateTime);
-			} 
+			}
 			else {
 				this.oldestTimestamp = jsonCreateTime;
 			}
-		} 
+		}
 		else {
 			this.oldestTimestamp = createdTimestamp;
 		}
@@ -370,7 +370,7 @@ export class RoamJSONImporter extends FormatImporter {
 				// if create is missing, use updated
 				// if updated is missing, use current Date()
 				let TSFormat = 'YYYY-MM-DD HH:mm:ss';
-			
+
 				let formatUpdateDate = this.newestTimestamp ? moment(this.newestTimestamp).format(TSFormat) : moment(new Date()).format(TSFormat);
 				let formatCreateDate = timeCreated ? moment(timeCreated).format(TSFormat) : formatUpdateDate;
 
@@ -383,7 +383,7 @@ export class RoamJSONImporter extends FormatImporter {
 			// Add frontmatter YAML to the top of the markdown array
 			markdown.unshift(frontMatterYAML.join('\n'));
 		}
-		
+
 		return markdown.join('\n');
 	}
 
