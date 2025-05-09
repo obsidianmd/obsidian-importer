@@ -679,7 +679,7 @@ export class OneNoteImporter extends FormatImporter {
 		text = text.replace(/[^a-zA-Z\s]/g, '');
 		
 		// Replace multiple spaces with single space
-		text = text.replace(/\s+/g, ' ');
+		text = text.replace(/\s+/g, ' ').trim();
 		
 		// Truncate to a reasonable length
 		if (text.length > 50) {
