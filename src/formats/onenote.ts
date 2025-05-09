@@ -797,6 +797,11 @@ export class OneNoteImporter extends FormatImporter {
 			else if (element.nodeName === 'BR' && inCodeBlock) {
 				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
 			}
+			else if (element.nodeName === 'TD') {
+				// Do not replace table cells if they are styled.
+				element.removeAttribute('style');
+				return;
+			}
 			else {
 				if (matchingStyle) {
 					const newElementTag = styleMap[matchingStyle];
