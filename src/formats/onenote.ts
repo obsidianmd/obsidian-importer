@@ -745,7 +745,7 @@ export class OneNoteImporter extends FormatImporter {
 					image.alt = 'Exported image';
 				} else {
 					// Sanitize OCR text to ensure valid markdown
-					image.alt = this.sanitizeOCRText(image.alt);
+					image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
 				}
 			}
 		}
