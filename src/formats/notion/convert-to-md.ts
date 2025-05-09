@@ -74,6 +74,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	fixToggleHeadings(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
+	fixMermaidCodeblock(body);
 
 	addCheckboxes(body);
 	formatTableOfContents(body);
@@ -563,6 +564,13 @@ function replaceElementsWithChildren(body: HTMLElement, selector: string) {
 	let els = body.findAll(selector);
 	for (const el of els) {
 		hoistChildren(el);
+	}
+}
+
+function fixMermaidCodeblock(body: HTMLElement) {
+	for (const codeblock of body.findAll('.language-Mermaid')) {
+		codeblock.removeClass('language-Mermaid');
+		codeblock.addClass('language-mermaid');
 	}
 }
 
