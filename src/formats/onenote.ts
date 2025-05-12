@@ -608,6 +608,10 @@ export class OneNoteImporter extends FormatImporter {
 			if (path !== null) returnPath = path;
 		}
 
+		if (returnPath) {
+			returnPath = this.sanitizeFilePath(returnPath);
+		}
+
 		return returnPath;
 	}
 

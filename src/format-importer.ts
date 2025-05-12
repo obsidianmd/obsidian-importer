@@ -197,6 +197,11 @@ export abstract class FormatImporter {
 
 	// Utility functions for vault
 
+	/** Remove any characters that would be illegal on any platform. */
+	sanitizeFilePath(path: string): string {
+		return path.replace(/[:|?<>*\\]/g, '');
+	}
+
 	/**
 	 * Recursively create folders, if they don't exist.
 	 */
