@@ -491,6 +491,7 @@ export class OneNoteImporter extends FormatImporter {
 			let parsedPage = this.styledElementToHTML(html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
+			this.escapeTextNodes(parsedPage);
 
 			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
@@ -507,6 +508,19 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			progress.reportFailed(page.title!, e);
+		}
+	}
+
+	/** Escape characters which will cause problems after converting to markdown. */
+	escapeTextNodes(node: ChildNode) {
+		if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+			node.textContent = node.textContent
+				.replace(/([<>])/g, '\\$1');
+		}
+		else {
+			for (let i = 0; i < node.childNodes.length; i++) {
+				this.escapeTextNodes(node.childNodes[i]);
+			}
 		}
 	}
 
