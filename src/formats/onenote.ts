@@ -668,20 +668,15 @@ export class OneNoteImporter extends FormatImporter {
 	private sanitizeOCRText(text: string): string {
 		// Only keep word characters, digits, and spaces
 		text = text.replace(/[^\w\d\s]/g, '');
-		
+
 		// Replace multiple spaces with single space and trim
 		text = text.replace(/\s+/g, ' ').trim();
-		
-		// If the text is empty after sanitization, use a default value
-		if (!text) {
-			return 'Exported image';
-		}
-		
+
 		// Truncate to a reasonable length
 		if (text.length > 50) {
 			text = text.substring(0, 50) + '...';
 		}
-		
+
 		return text;
 	}
 
@@ -734,9 +729,10 @@ export class OneNoteImporter extends FormatImporter {
 				image.src = encodeURI(outputPath);
 				if (!image.alt || BASE64_REGEX.test(image.alt)) {
 					image.alt = 'Exported image';
-				} else {
+				}
+				else {
 					// Sanitize OCR text to ensure valid markdown
-					image.alt = this.sanitizeOCRText(image.alt);
+					image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
 				}
 			}
 		}
