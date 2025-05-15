@@ -1,4 +1,4 @@
-import { gfm } from 'joplin-turndown-plugin-gfm';
+import { gfm } from '@joplin/turndown-plugin-gfm';
 
 import { YarleOptions } from '../options';
 import { divRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';

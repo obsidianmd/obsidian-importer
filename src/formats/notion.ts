@@ -10,8 +10,8 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
-	
-	
+
+
 	parentsInSubfolders: boolean;
 	singleLineBreaks: boolean;
 

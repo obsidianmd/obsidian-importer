@@ -249,7 +249,7 @@ export class OneNoteImporter extends FormatImporter {
 			});
 
 			for (const notebook of this.notebooks) {
-			// Check if there are any nested section groups, if so, fetch them
+				// Check if there are any nested section groups, if so, fetch them
 				if (notebook.sectionGroups?.length !== 0) {
 					for (const sectionGroup of notebook.sectionGroups!) {
 						await this.fetchNestedSectionGroups(sectionGroup);
@@ -491,6 +491,7 @@ export class OneNoteImporter extends FormatImporter {
 			let parsedPage = this.styledElementToHTML(html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
+			this.escapeTextNodes(parsedPage);
 
 			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
@@ -507,6 +508,19 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			progress.reportFailed(page.title!, e);
+		}
+	}
+
+	/** Escape characters which will cause problems after converting to markdown. */
+	escapeTextNodes(node: ChildNode) {
+		if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+			node.textContent = node.textContent
+				.replace(/([<>])/g, '\\$1');
+		}
+		else {
+			for (let i = 0; i < node.childNodes.length; i++) {
+				this.escapeTextNodes(node.childNodes[i]);
+			}
 		}
 	}
 
@@ -608,6 +622,10 @@ export class OneNoteImporter extends FormatImporter {
 			if (path !== null) returnPath = path;
 		}
 
+		if (returnPath) {
+			returnPath = this.sanitizeFilePath(returnPath);
+		}
+
 		return returnPath;
 	}
 
@@ -664,6 +682,22 @@ export class OneNoteImporter extends FormatImporter {
 		return returnPath;
 	}
 
+	// Helper function to sanitize OCR text for markdown
+	private sanitizeOCRText(text: string): string {
+		// Only keep word characters, digits, and spaces
+		text = text.replace(/[^\w\d\s]/g, '');
+
+		// Replace multiple spaces with single space and trim
+		text = text.replace(/\s+/g, ' ').trim();
+
+		// Truncate to a reasonable length
+		if (text.length > 50) {
+			text = text.substring(0, 50) + '...';
+		}
+
+		return text;
+	}
+
 	// Download all attachments and add embedding syntax for supported file formats.
 	async getAllAttachments(progress: ImportContext, pageHTML: string): Promise<HTMLElement> {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
@@ -711,8 +745,13 @@ export class OneNoteImporter extends FormatImporter {
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
-				if (!image.alt || BASE64_REGEX.test(image.alt)) image.alt = 'Exported image';
-				else image.alt = image.alt.replace(/[\r\n]+/gm, '');
+				if (!image.alt || BASE64_REGEX.test(image.alt)) {
+					image.alt = 'Exported image';
+				}
+				else {
+					// Sanitize OCR text to ensure valid markdown
+					image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
+				}
 			}
 		}
 
@@ -796,6 +835,11 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			else if (element.nodeName === 'BR' && inCodeBlock) {
 				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
+			}
+			else if (element.nodeName === 'TD') {
+				// Do not replace table cells if they are styled.
+				element.removeAttribute('style');
+				return;
 			}
 			else {
 				if (matchingStyle) {

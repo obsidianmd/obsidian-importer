@@ -75,6 +75,7 @@ function stripTo200(title: string) {
 		}
 		titleList.push(wordList[i]);
 		length += wordList[i].length + 1;
+		i++;
 	}
 	let strippedTitle = titleList.join(' ');
 	if (!hasCompleteTitle) strippedTitle += '...';

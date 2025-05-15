@@ -74,6 +74,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	fixToggleHeadings(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
+	fixMermaidCodeblock(body);
 
 	addCheckboxes(body);
 	formatTableOfContents(body);
@@ -263,7 +264,7 @@ function fixEquations(body: HTMLElement) {
  * NOTE: "\\" and "\ " are the escapes for line-breaks and white-space,
  * matched by "\\\\" and "\s" in the regex.
  */
-function formatMath(math: string | null | undefined, inline: boolean=false): string {
+function formatMath(math: string | null | undefined, inline: boolean = false): string {
 	let regex = new RegExp(/^(?:\s|\\\\|\\\s)*(.*?)[\s\\]*$/, 's');
 	return math?.replace(regex, '$1').replace(/[\r\n]+/g, (inline ? ' ' : '\n')) ?? '';
 }
@@ -312,7 +313,7 @@ function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
 	else (quoteBlock.prepend(titlePar));
 	// callout title must fit on one line in the MD file
 	titleTxt = titleTxt.replace(/<br>/g, '&lt;br&gt;');
-	titlePar.innerHTML= `[!important] ${titleTxt}`;
+	titlePar.innerHTML = `[!important] ${titleTxt}`;
 	quoteBlock.firstChild?.replaceWith(titlePar);
 }
 
@@ -566,6 +567,13 @@ function replaceElementsWithChildren(body: HTMLElement, selector: string) {
 	}
 }
 
+function fixMermaidCodeblock(body: HTMLElement) {
+	for (const codeblock of body.findAll('.language-Mermaid')) {
+		codeblock.removeClass('language-Mermaid');
+		codeblock.addClass('language-mermaid');
+	}
+}
+
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown.
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
@@ -646,9 +654,9 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				}
 				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentInfo.fullLinkPathNeeded
 					? attachmentInfo.targetParentFolder +
-						attachmentInfo.nameWithExtension +
-						'|' +
-						attachmentInfo.nameWithExtension
+					attachmentInfo.nameWithExtension +
+					'|' +
+					attachmentInfo.nameWithExtension
 					: attachmentInfo.nameWithExtension
 				}]]`;
 				break;
