@@ -134,6 +134,7 @@ export abstract class FormatImporter {
 		if (folderPath === '') {
 			folderPath = '/';
 		}
+		folderPath = normalizePath(folderPath);
 
 		let folder = vault.getAbstractFileByPath(folderPath);
 
@@ -190,7 +191,8 @@ export abstract class FormatImporter {
 			i++;
 		}
 
-		return outputPath;
+		// Normalize the final outputPath before returning
+		return normalizePath(outputPath);
 	}
 
 	abstract import(ctx: ImportContext): Promise<any>;
