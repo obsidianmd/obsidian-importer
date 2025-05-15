@@ -175,6 +175,20 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private async updateNoteFile(metaData: Metadata | undefined, file: TFile, content: string, tags: string[]): Promise<string> {
+		// Check if the content already has frontmatter
+		if (content.startsWith('---\n')) {
+			// Content already has frontmatter, don't add new frontmatter
+			// Still set the file system timestamps
+			const writeOptions: DataWriteOptions = {
+				ctime: metaData?.ctime,
+				mtime: metaData?.mtime,
+			};
+			
+			// Just update the timestamps without modifying content
+			await this.vault.modify(file, content, writeOptions);
+			return content;
+		}
+		
 		// Format dates in the specified format: YYYY-MM-DDThh:mm:ss
 		const frontmatter: Record<string, any> = {}; // Changed to Record<string, any> for tags array
 		if (metaData?.ctime) {
@@ -202,7 +216,6 @@ export class Bear2bkImporter extends FormatImporter {
 			
 			contentWithFrontmatter = `---\n${frontmatterString}\n---\n\n${content}`;
 		}
-
 
 		// Still set the file system timestamps
 		const writeOptions: DataWriteOptions = {
