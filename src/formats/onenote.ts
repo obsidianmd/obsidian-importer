@@ -963,7 +963,8 @@ export class OneNoteImporter extends FormatImporter {
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
-				if (err?.code === '20166') {
+				let isRateLimited = response.status === 429 || (err?.code === '20166');
+				if (isRateLimited) {
 					const retryAfter = response.headers.get('Retry-After');
 					// If we're throttled, the soonest we'll be able to make the
 					// request again is the next minute, so wait either as long
