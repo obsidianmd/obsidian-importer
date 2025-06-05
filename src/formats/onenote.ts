@@ -928,7 +928,13 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		try {
-			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
+			let response = await fetch(
+				url, 
+				{
+					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+					signal: this.modal.abortController.signal,
+				}
+			);
 
 			if (response.ok) {
 				switch (returnType) {
@@ -950,6 +956,11 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 			else {
+				if (this.modal.abortController.signal.aborted) {
+					const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
+					throw new Error(`The import was aborted (${abortReason})`);
+				}
+
 				let err: PublicError | null = null;
 				const respJson = await response.json();
 				if (respJson.hasOwnProperty('error')) {
