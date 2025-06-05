@@ -938,6 +938,9 @@ export class OneNoteImporter extends FormatImporter {
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
 			throw new Error('Exceeded maximum retry attempts');
 		}
+		else if (retryCount > 0) {
+			console.log(`Retry attempt #${retryCount} for ${url}`);
+		}
 
 		if (this.modal.abortController.signal.aborted) {
 			const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
