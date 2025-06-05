@@ -959,7 +959,8 @@ export class OneNoteImporter extends FormatImporter {
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166') {
-					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 15000;
+					const retryAfter = response.headers.get('Retry-After');
+					let retryTime = retryAfter ? (+retryAfter * 1_000) : 15_000;
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
 
 					if (retryCount < MAX_RETRY_ATTEMPTS) {
