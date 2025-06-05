@@ -12,7 +12,7 @@ const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
 // Regex for fixing whitespace and paragraphs
 const PARAGRAPH_REGEX = /(<\/p>)\s*(<p[^>]*>)|\n  \n/g;
-// Maximum amount of request retries, before they're marked as failed
+// Maximum amount of request retries, before they're marked as failed. Does not include 429 backoff errors.
 const MAX_RETRY_ATTEMPTS = 5;
 
 const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
@@ -964,7 +964,14 @@ export class OneNoteImporter extends FormatImporter {
 
 					if (retryCount < MAX_RETRY_ATTEMPTS) {
 						await new Promise(resolve => setTimeout(resolve, retryTime));
-						return this.fetchResource(url, returnType as any, retryCount + 1);
+						return this.fetchResource(
+							url, 
+							returnType as any, 
+							// don't increment the retryCount because we were told
+							// to backoff, and we should infinitely retry on backoff
+							// errors.
+							retryCount
+						);
 					}
 					else throw new Error('Exceeded maximum retry attempts');
 				}
