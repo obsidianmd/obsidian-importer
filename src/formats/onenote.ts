@@ -473,7 +473,7 @@ export class OneNoteImporter extends FormatImporter {
 					consecutiveFailureCount++;
 					progress.reportFailed(page.title, e.toString());
 
-					if (consecutiveFailureCount > 5) {
+					if (consecutiveFailureCount > 5 || this.modal.abortController.signal.aborted) {
 						// Likely being rate limited.
 						progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
 						return;
@@ -927,9 +927,20 @@ export class OneNoteImporter extends FormatImporter {
 			throw new Error('Exceeded maximum retry attempts');
 		}
 
+		if (this.modal.abortController.signal.aborted) {
+			const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
+			throw new Error(`The import was aborted (${abortReason})`);
+		}
+
 		try {
 			// any errors that happen in the try block will be retried.
-			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
+ 			let response = await fetch(
+ 				url, 
+ 				{
+ 					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+ 					signal: this.modal.abortController.signal,
+ 				}
+ 			);
 
 			if (response.ok) {
 				switch (returnType) {
