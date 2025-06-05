@@ -942,6 +942,7 @@ export class OneNoteImporter extends FormatImporter {
 						responseBody = json;
 						break;
 				}
+				return responseBody;
 			}
 			else {
 				let err: PublicError | null = null;
@@ -949,27 +950,16 @@ export class OneNoteImporter extends FormatImporter {
 				if (respJson.hasOwnProperty('error')) {
 					err = respJson.error;
 				}
-				if (!err) {
-					console.log('An error has occurred while fetching an resource:', respJson);
-
-					if (retryCount < MAX_RETRY_ATTEMPTS) {
-						return this.fetchResource(url, returnType as any, retryCount + 1);
-					}
-					else {
-						throw new Error('Unexpected error retrieving resource');
-					}
-				}
-
-				console.log('An error has occurred while fetching an resource:', err);
+				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
 
 				// If our access token has expired, then refresh it and we can try again.
-				if (err.code === '40001' && retryCount < MAX_RETRY_ATTEMPTS) {
+				if (err?.code === '40001' && retryCount < MAX_RETRY_ATTEMPTS) {
 					await this.updateAccessToken();
 					return this.fetchResource(url, returnType as any, retryCount + 1);
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
-				if (err.code === '20166') {
+				if (err?.code === '20166') {
 					let retryTime = (+!response.headers.get('Retry-After') * 1000) || 15000;
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
 
@@ -979,11 +969,15 @@ export class OneNoteImporter extends FormatImporter {
 					}
 					else throw new Error('Exceeded maximum retry attempts');
 				}
+
+				// for all other errors, retry.
+				if (retryCount < MAX_RETRY_ATTEMPTS) {
+					return this.fetchResource(url, returnType as any, retryCount + 1);
+				}
+				else {
+					throw new Error('Unexpected error retrieving resource');
+				}
 			}
-			// @ts-expect-error this is now an error, and the error is correct:
-			// we're returning responseBody which might not have ever been
-			// defined. this will be fixed in the next commit.
-			return responseBody;
 		}
 		catch (e) {
 			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
