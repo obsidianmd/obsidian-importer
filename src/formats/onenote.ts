@@ -960,7 +960,14 @@ export class OneNoteImporter extends FormatImporter {
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166') {
 					const retryAfter = response.headers.get('Retry-After');
-					let retryTime = retryAfter ? (+retryAfter * 1_000) : 15_000;
+					// If we're rate-limited, the soonest we'll be able to make
+					// the request again is the next minute, so wait either as
+					// long as the API tells us to (with the Retry-After header)
+					// or wait 1 minute. Note: the OneNote API does not
+					// currently ever provide the Retry-After header. See
+					// https://learn.microsoft.com/en-us/graph/throttling-limits#onenote-service-limits
+					// for more info.
+					let retryTime = retryAfter ? (+retryAfter * 1_000) : 60_000;
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
 
 					if (retryCount < MAX_RETRY_ATTEMPTS) {
