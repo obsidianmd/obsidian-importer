@@ -969,8 +969,13 @@ export class OneNoteImporter extends FormatImporter {
 				}
 				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
 
-				// If our access token has expired, then refresh it and we can try again.
-				if (err?.code === '40001') {
+				// If our access token has expired, becomes invalid, or is
+				// otherwise no longer authorized, then refresh it and try
+				// again.
+				const isNotAuthorized = err?.code === '40001'
+					|| err?.code === 'InvalidAuthenticationToken'
+					|| response.status === 401;
+				if (isNotAuthorized) {
 					await this.updateAccessToken();
 					return this.fetchResource(url, returnType as any, retryCount + 1);
 				}
