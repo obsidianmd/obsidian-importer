@@ -17,6 +17,42 @@ const MAX_RETRY_ATTEMPTS = 5;
 
 const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
 
+type JSONWrappedResponse<T> = {
+	value: T[];
+} | {
+	'@odata.nextLink': string;
+	value: T[];
+};
+
+function assertUnreachable(x: never): never {
+	throw new Error(`Didn't expect to get here`);
+}
+
+function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedResponse<T> {
+	if (res == null) {
+		throw new Error(`response is nullish`);
+	}
+	if (typeof res !== 'object') {
+		throw new Error(`response is not an object type`);
+	}
+
+	if ('@odata.nextLink' in res) {
+		const link = (res as Record<string, unknown>)['@odata.nextLink']; // cast only required because TS version is old
+		if (typeof link !== 'string') {
+			throw new Error(`Link of unknown type: ${typeof link}`);
+		}
+	}
+
+	if (!('value' in res)) {
+		throw new Error(`Expected response to have a 'value' property`);
+	}
+
+	// cast only required because TS version is old
+	if (!Array.isArray((res as Record<string, unknown>).value)) {
+		throw new Error(`Expected response to have an error in 'value' property`);
+	}
+}
+
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
@@ -154,7 +190,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async setSwitchUser() {
-		const userData: User = await this.fetchResource('https://graph.microsoft.com/v1.0/me', 'json');
+		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
 		this.switchUserSetting.setDesc(
 			`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
 		);
@@ -240,7 +276,7 @@ export class OneNoteImporter extends FormatImporter {
 		});
 		const sectionsUrl = `${baseUrl}?${params.toString()}`;
 		try {
-			this.notebooks = (await this.fetchResource(sectionsUrl, 'json')).value;
+			this.notebooks = (await this.fetchResource<Notebook>(sectionsUrl, 'json-wrapped')).value;
 
 			// Make sure the element is empty, in case the user signs in twice
 			this.contentArea.empty();
@@ -280,7 +316,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	// Gets the content of a nested section group
 	async fetchNestedSectionGroups(parentGroup: SectionGroup) {
-		parentGroup.sectionGroups = (await this.fetchResource(parentGroup.sectionGroupsUrl + '?$expand=sectionGroups($expand=sections),sections', 'json')).value;
+		parentGroup.sectionGroups = (await this.fetchResource<SectionGroup>(parentGroup.sectionGroupsUrl + '?$expand=sectionGroups($expand=sections),sections', 'json-wrapped')).value;
 
 		if (parentGroup.sectionGroups) {
 			for (let i = 0; i < parentGroup.sectionGroups.length; i++) {
@@ -390,7 +426,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			let pages: OnenotePage[] | null = null;
 			try {
-				pages = ((await this.fetchResource(pagesUrl, 'json')).value);
+				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped')).value);
 			}
 			catch (e) {
 				progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
@@ -788,7 +824,7 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			// We don't need to remember claimedPaths because we're writing the attachments immediately.
 			const outputPath = await this.getAvailablePathForAttachment(filename, []);
-			const data = (await this.fetchResource(contentLocation, 'file')) as ArrayBuffer;
+			const data = (await this.fetchResource(contentLocation, 'file'));
 			await this.app.vault.createBinary(outputPath, data);
 			progress.reportAttachmentSuccess(filename);
 			return outputPath;
@@ -880,13 +916,14 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource(url: string, returnType: 'text', retryCount?: number | undefined): Promise<string>;
-	async fetchResource(url: string, returnType: 'file', retryCount?: number | undefined): Promise<ArrayBuffer>;
-	async fetchResource(url: string, returnType: 'json', retryCount?: number | undefined): Promise<any>;
-	async fetchResource(url: string, returnType: 'text' | 'file' | 'json' = 'json', retryCount: number = 0): Promise<string | ArrayBuffer | any> {
+	async fetchResource<T = string>(url: string, returnType: 'text', retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		try {
 			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
-			let responseBody;
+			let responseBody: string | ArrayBuffer | object;
 
 			if (response.ok) {
 				switch (returnType) {
@@ -896,12 +933,18 @@ export class OneNoteImporter extends FormatImporter {
 					case 'file':
 						responseBody = await response.arrayBuffer();
 						break;
-					default:
-						responseBody = await response.json();
-						if ('@odata.nextLink' in responseBody) {
-							responseBody.value.push(...(await this.fetchResource(responseBody['@odata.nextLink'], 'json')).value);
+					case 'json':
+						return await response.json();
+					case 'json-wrapped':
+						const json = await response.json();
+						assertJSONWrappedResponse<T>(json);
+						if ('@odata.nextLink' in json) {
+							json.value.push(...(await this.fetchResource<T>(json['@odata.nextLink'], 'json-wrapped')).value);
 						}
+						responseBody = json;
 						break;
+					default:
+						assertUnreachable(returnType);
 				}
 			}
 			else {
@@ -941,6 +984,9 @@ export class OneNoteImporter extends FormatImporter {
 					else throw new Error('Exceeded maximum retry attempts');
 				}
 			}
+			// @ts-expect-error this is now an error, and the error is correct:
+			// we're returning responseBody which might not have ever been
+			// defined. this will be fixed in the next commit.
 			return responseBody;
 		}
 		catch (e) {
