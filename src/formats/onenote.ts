@@ -921,6 +921,12 @@ export class OneNoteImporter extends FormatImporter {
 	async fetchResource<T>(url: string, returnType: 'json', retryCount?: number | undefined): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json-wrapped', retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
 	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+		// Check if we need to reject early WITHOUT retrying, outside the
+		// try/catch block
+		if (retryCount >= MAX_RETRY_ATTEMPTS) {
+			throw new Error('Exceeded maximum retry attempts');
+		}
+
 		try {
 			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
 
@@ -952,7 +958,7 @@ export class OneNoteImporter extends FormatImporter {
 				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
 
 				// If our access token has expired, then refresh it and we can try again.
-				if (err?.code === '40001' && retryCount < MAX_RETRY_ATTEMPTS) {
+				if (err?.code === '40001') {
 					await this.updateAccessToken();
 					return this.fetchResource(url, returnType as any, retryCount + 1);
 				}
@@ -970,27 +976,19 @@ export class OneNoteImporter extends FormatImporter {
 					let retryTime = retryAfter ? (+retryAfter * 1_000) : 60_000;
 					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
 
-					if (retryCount < MAX_RETRY_ATTEMPTS) {
-						await new Promise(resolve => setTimeout(resolve, retryTime));
-						return this.fetchResource(
-							url, 
-							returnType as any, 
-							// don't increment the retryCount because we were told
-							// to backoff, and we should infinitely retry on backoff
-							// errors.
-							retryCount
-						);
-					}
-					else throw new Error('Exceeded maximum retry attempts');
+					await new Promise(resolve => setTimeout(resolve, retryTime));
+					return this.fetchResource(
+						url, 
+						returnType as any, 
+						// don't increment the retryCount because we were told
+						// to backoff, and we should infinitely retry on backoff
+						// errors.
+						retryCount
+					);
 				}
 
 				// for all other errors, retry.
-				if (retryCount < MAX_RETRY_ATTEMPTS) {
-					return this.fetchResource(url, returnType as any, retryCount + 1);
-				}
-				else {
-					throw new Error('Unexpected error retrieving resource');
-				}
+				return this.fetchResource(url, returnType as any, retryCount + 1);
 			}
 		}
 		catch (e) {
