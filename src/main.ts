@@ -461,5 +461,9 @@ export class ImporterModal extends Modal {
 		if (current) {
 			current.cancel();
 		}
+
+		if (this.importer) {
+			this.importer.abort();
+		}
 	}
 }

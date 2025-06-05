@@ -68,6 +68,7 @@ export class OneNoteImporter extends FormatImporter {
 	attachmentDownloadPauseCounter = 0;
 	rememberMe = false;
 	refreshToken?: string;
+	abortController: AbortController = new AbortController();
 
 	async init() {
 		this.addOutputLocationSetting('OneNote');
@@ -165,6 +166,12 @@ export class OneNoteImporter extends FormatImporter {
 		else {
 			this.switchUserSetting.settingEl.hide();
 		}
+
+		this.abortController = new AbortController();
+	}
+
+	abort() {
+		this.abortController.abort();
 	}
 
 	async authenticateUser(protocolData: ObsidianProtocolData) {
@@ -918,7 +925,13 @@ export class OneNoteImporter extends FormatImporter {
 	async fetchResource<T>(url: string, returnType: 'json-wrapped', retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
 	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		try {
-			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
+			let response = await fetch(
+				url, 
+				{
+					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+					signal: this.abortController.signal,
+				}
+			);
 			let responseBody: string | ArrayBuffer | object;
 
 			if (response.ok) {
@@ -945,6 +958,11 @@ export class OneNoteImporter extends FormatImporter {
 				return responseBody;
 			}
 			else {
+				if (this.abortController.signal.aborted) {
+					// We're done, no error handling needed.
+					throw new Error(`The import was aborted`);
+				}
+
 				let err: PublicError | null = null;
 				const respJson = await response.json();
 				if (respJson.hasOwnProperty('error')) {
