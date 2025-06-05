@@ -953,6 +953,9 @@ export class OneNoteImporter extends FormatImporter {
 
 		try {
 			// any errors that happen in the try block will be retried.
+			if (retryCount > 0) {
+				console.log(`Retry attempt #${retryCount} for ${url}`);
+			}
  			let response = await fetch(
  				url, 
  				{
