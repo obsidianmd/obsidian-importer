@@ -27,6 +27,11 @@ export abstract class FormatImporter {
 	abstract init(): void;
 
 	/**
+	 * Abort any in-progress work, e.g. in-flight network requests.
+	 */
+	abort(): void {}
+
+	/**
 	 * Register a function to be called when the `obsidian://importer-auth/` open
 	 * event is received by Obsidian.
 	 *
