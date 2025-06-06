@@ -377,7 +377,7 @@ export class OneNoteImporter extends FormatImporter {
 	showContentAreaErrorMessage() {
 		this.contentArea.empty();
 		this.contentArea.createEl('p', {
-			text: 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.'
+			text: 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.'
 		});
 
 		this.contentArea.show();
@@ -413,8 +413,6 @@ export class OneNoteImporter extends FormatImporter {
 		let consecutiveFailureCount = 0;
 
 		for (let sectionId of this.selectedIds) {
-			progress.reportProgress(progressCurrent, progressTotal);
-
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
@@ -429,7 +427,8 @@ export class OneNoteImporter extends FormatImporter {
 				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped')).value);
 			}
 			catch (e) {
-				progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
+				console.error(`Failed to fetch pages for section ${sectionId}, skipping to next section.`, e);
+				progress.status('Failed to fetch pages for a section, skipping to next section.');
 				return;
 			}
 			if (!pages) {
@@ -466,7 +465,6 @@ export class OneNoteImporter extends FormatImporter {
 						await this.modal.plugin.saveData(data);
 					}
 
-					progressCurrent++;
 					consecutiveFailureCount = 0;
 				}
 				catch (e) {
@@ -474,12 +472,33 @@ export class OneNoteImporter extends FormatImporter {
 					progress.reportFailed(page.title, e.toString());
 
 					if (consecutiveFailureCount > 5 || this.modal.abortController.signal.aborted) {
-						// Likely being rate limited.
-						progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
+						const status = this.modal.abortController.signal.aborted 
+							// The import was aborted
+							? e.message
+							// Hit a string of consecutive failures, so something is
+							// wrong. This is NOT related to rate-limiting, as that
+							// is handled by the retry logic.
+							: 'Microsoft OneNote returned too many consecutive errors.';
+						progress.status(status);
+						
+						// Report remaining pages as skipped
+						for (let j = i + 1; j < pages.length; j++) {
+							const remainingPage = pages[j];
+							progress.reportSkipped(
+								remainingPage.title ?? '<unknown>',
+								'import was canceled (after too many pages failed to load)'
+							);
+						}
+
+						// Report progress as complete
+						progress.reportProgress(progressTotal, progressTotal);
+
 						return;
 					}
 				}
-				progress.reportProgress(progressCurrent, progressTotal);
+
+				// report progress even if page import fails or is skipped
+				progress.reportProgress(++progressCurrent, progressTotal);
 			}
 		}
 	}
