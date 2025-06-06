@@ -413,8 +413,6 @@ export class OneNoteImporter extends FormatImporter {
 		let consecutiveFailureCount = 0;
 
 		for (let sectionId of this.selectedIds) {
-			progress.reportProgress(progressCurrent, progressTotal);
-
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
@@ -466,7 +464,6 @@ export class OneNoteImporter extends FormatImporter {
 						await this.modal.plugin.saveData(data);
 					}
 
-					progressCurrent++;
 					consecutiveFailureCount = 0;
 				}
 				catch (e) {
@@ -476,10 +473,25 @@ export class OneNoteImporter extends FormatImporter {
 					if (consecutiveFailureCount > 5) {
 						// Likely being rate limited.
 						progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
+						
+						// Report remaining pages as skipped
+						for (let j = i + 1; j < pages.length; j++) {
+							const remainingPage = pages[j];
+							progress.reportSkipped(
+								remainingPage.title ?? '<unknown>',
+								'import was canceled (after too many pages failed to load)'
+							);
+						}
+
+						// Report progress as complete
+						progress.reportProgress(progressTotal, progressTotal);
+
 						return;
 					}
 				}
-				progress.reportProgress(progressCurrent, progressTotal);
+
+				// report progress even if page import fails or is skipped
+				progress.reportProgress(++progressCurrent, progressTotal);
 			}
 		}
 	}
