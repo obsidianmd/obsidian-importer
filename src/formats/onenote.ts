@@ -928,6 +928,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		try {
+			// any errors that happen in the try block will be retried.
 			let response = await fetch(url, { headers: { Authorization: `Bearer ${this.graphData.accessToken}` } });
 
 			if (response.ok) {
@@ -994,7 +995,14 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
 
-			throw e;
+			// Attachments sometimes just fail to download
+			// (`net::ERR_TIMED_OUT`) which will cause the `fetch` itself to
+			// reject. Normally you would want to hard-fail (rethrow) in those
+			// cases (e.g. the fetch itself must be bad in some way), but since
+			// I'm seeing such failures in normal imports where I'm not noticing
+			// any network instability on my end, let's retry those failures as
+			// well.
+			return this.fetchResource(url, returnType as any, retryCount + 1);
 		}
 	}
 }
