@@ -939,6 +939,11 @@ export class OneNoteImporter extends FormatImporter {
 			throw new Error('Exceeded maximum retry attempts');
 		}
 
+		if (this.modal.abortController.signal.aborted) {
+			const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
+			throw new Error(`The import was aborted (${abortReason})`);
+		}
+
 		try {
 			let response = await fetch(
 				url, 
@@ -968,11 +973,6 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 			else {
-				if (this.modal.abortController.signal.aborted) {
-					const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
-					throw new Error(`The import was aborted (${abortReason})`);
-				}
-
 				let err: PublicError | null = null;
 				const respJson = await response.json();
 				if (respJson.hasOwnProperty('error')) {
@@ -1022,7 +1022,14 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
 
-			throw e;
+			// Attachments sometimes just fail to download
+			// (`net::ERR_TIMED_OUT`) which will cause the `fetch` itself to
+			// reject. Normally you would want to hard-fail (rethrow) in those
+			// cases (e.g. the fetch itself must be bad in some way), but since
+			// I'm seeing such failures in normal imports where I'm not noticing
+			// any network instability on my end, let's retry those failures as
+			// well.
+			return this.fetchResource(url, returnType as any, retryCount + 1);
 		}
 	}
 }
