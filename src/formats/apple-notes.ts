@@ -433,4 +433,24 @@ export class AppleNotesImporter extends FormatImporter {
 			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
 		}
 	}
+
+	async getAvailablePathForAttachment(filename: string, existingPaths: string[]): Promise<string> {
+		if (this.skipDuplicates) {
+			// If skipDuplicates is true, just return the original path without numeric suffix
+			return `${this.rootFolder.path}/${filename}`;
+		}
+		// Otherwise use the default behavior from FormatImporter
+		return super.getAvailablePathForAttachment(filename, existingPaths);
+	}
+
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
+		if (this.skipDuplicates) {
+			// If skipDuplicates is true, create the file directly without numeric suffix
+			const sanitizedName = sanitizeFileName(title);
+			const fullPath = `${folder.path}/${sanitizedName}`;
+			return await this.vault.create(fullPath, content);
+		}
+		// Otherwise use the default behavior from FormatImporter
+		return super.saveAsMarkdownFile(folder, title, content);
+	}
 }
