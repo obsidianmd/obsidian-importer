@@ -35,6 +35,7 @@ export class AppleNotesImporter extends FormatImporter {
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
+	skipDuplicates = true;
 	trashFolders: number[] = [];
 
 	init(): void {
@@ -80,6 +81,16 @@ export class AppleNotesImporter extends FormatImporter {
 			.addToggle(t => t
 				.setValue(false)
 				.onChange(async v => this.includeHandwriting = v)
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Skip duplicate notes')
+			.setDesc(
+				'Skip importing notes that already exist in the vault.'
+			)
+			.addToggle(t => t
+				.setValue(true)
+				.onChange(async v => this.skipDuplicates = v)
 			);
 	}
 
@@ -253,6 +264,12 @@ export class AppleNotesImporter extends FormatImporter {
 
 		const title = `${row.ZTITLE1}.md`;
 		const file = await this.saveAsMarkdownFile(folder, title, '');
+
+		// Check for duplicate notes if the option is enabled
+		if (this.skipDuplicates && this.vault.getAbstractFileByPath(file.path)) {
+			this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
+			return null;
+		}
 
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file;
