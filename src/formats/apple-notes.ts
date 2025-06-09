@@ -37,6 +37,7 @@ export class AppleNotesImporter extends FormatImporter {
 	includeHandwriting = false;
 	skipDuplicates = true;
 	trashFolders: number[] = [];
+	filePrefixFormat = 'YYYY-MM-DD';
 
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -50,6 +51,18 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 
 		this.addOutputLocationSetting('Apple Notes');
+
+		new Setting(this.modal.contentEl)
+			.setName('File prefix format')
+			.setDesc(
+				'Format for the date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
+				' Leave blank for no prefix.'
+			)
+			.addText(t => t
+				.setValue('YYYY-MM-DD')
+				.setPlaceholder('YYYY-MM-DD')
+				.onChange(async v => this.filePrefixFormat = v)
+			);
 
 		new Setting(this.modal.contentEl)
 			.setName('Import recently deleted notes')
@@ -262,14 +275,26 @@ export class AppleNotesImporter extends FormatImporter {
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 
-		const title = `${row.ZTITLE1}.md`;
-		const file = await this.saveAsMarkdownFile(folder, title, '');
+		// Get creation date and format it according to user preference
+		let title = row.ZTITLE1;
+		if (this.filePrefixFormat) {
+			const creationDate = new Date(this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1));
+			const datePrefix = this.filePrefixFormat
+				.replace('YYYY', creationDate.getUTCFullYear().toString())
+				.replace('MM', (creationDate.getUTCMonth() + 1).toString().padStart(2, '0'))
+				.replace('DD', creationDate.getUTCDate().toString().padStart(2, '0'));
+			title = `${datePrefix} ${title}`;
+		}
+
+		const fullPath = `${folder.path}/${title}.md`;
 
 		// Check for duplicate notes if the option is enabled
-		if (this.skipDuplicates && this.vault.getAbstractFileByPath(file.path)) {
+		if (this.skipDuplicates && this.vault.getAbstractFileByPath(fullPath)) {
 			this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
 			return null;
 		}
+
+		const file = await this.saveAsMarkdownFile(folder, `${title}.md`, '');
 
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file;
