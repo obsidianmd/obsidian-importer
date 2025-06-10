@@ -15,6 +15,12 @@ const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
 
+enum DuplicateHandling {
+	Skip = 'skip',
+	ImportUpdated = 'import-updated',
+	CreateCopy = 'create-copy'
+}
+
 export class AppleNotesImporter extends FormatImporter {
 	ctx: ImportContext;
 	rootFolder: TFolder;
@@ -35,7 +41,7 @@ export class AppleNotesImporter extends FormatImporter {
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-	skipDuplicates = true;
+	duplicateHandling = DuplicateHandling.ImportUpdated;
 	trashFolders: number[] = [];
 	filePrefixFormat = 'YYYY-MM-DD';
 
@@ -97,13 +103,16 @@ export class AppleNotesImporter extends FormatImporter {
 			);
 
 		new Setting(this.modal.contentEl)
-			.setName('Skip duplicate notes')
+			.setName('Handle duplicate files')
 			.setDesc(
-				'Skip importing notes that already exist in the vault.'
+				'How to handle notes that already exist in the vault.'
 			)
-			.addToggle(t => t
-				.setValue(true)
-				.onChange(async v => this.skipDuplicates = v)
+			.addDropdown(d => d
+				.addOption(DuplicateHandling.Skip, 'Skip import')
+				.addOption(DuplicateHandling.ImportUpdated, 'Import only updated')
+				.addOption(DuplicateHandling.CreateCopy, 'Create a copy (legacy)')
+				.setValue(DuplicateHandling.ImportUpdated)
+				.onChange(async v => this.duplicateHandling = v as DuplicateHandling)
 			);
 	}
 
@@ -288,10 +297,26 @@ export class AppleNotesImporter extends FormatImporter {
 
 		const fullPath = `${folder.path}/${title}.md`;
 
-		// Check for duplicate notes if the option is enabled
-		if (this.skipDuplicates && this.vault.getAbstractFileByPath(fullPath)) {
-			this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
-			return null;
+		// Check for duplicate notes based on the selected handling option
+		const existingFile = this.vault.getAbstractFileByPath(fullPath) as TFile;
+		
+		if (existingFile) {
+			if (this.duplicateHandling === DuplicateHandling.Skip) {
+				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
+				return null;
+			} else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+				// Check modification times before skipping
+				const appleNoteModTime = this.decodeTime(row.ZMODIFICATIONDATE1);
+				const existingFileModTime = existingFile.stat.mtime;
+				
+				// Only skip if the Apple Note hasn't been modified since the existing file
+				if (appleNoteModTime <= existingFileModTime) {
+					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
+					return null;
+				}
+				// If Apple Note is newer, continue with import (will overwrite)
+			}
+			// For CreateCopy option, we continue without skipping (will create numbered copy)
 		}
 
 		const file = await this.saveAsMarkdownFile(folder, `${title}.md`, '');
@@ -310,6 +335,7 @@ export class AppleNotesImporter extends FormatImporter {
 
 		this.parsedNotes++;
 		this.ctx.reportProgress(this.parsedNotes, this.noteCount);
+		this.ctx.reportNoteSuccess(title);
 		return file;
 	}
 
@@ -394,9 +420,42 @@ export class AppleNotesImporter extends FormatImporter {
 				break;
 		}
 
+		// Apply date prefix to attachment name if configured
+		let finalAttachmentName = outName;
+		if (this.filePrefixFormat && row.ZCREATIONDATE) {
+			const creationDate = new Date(this.decodeTime(row.ZCREATIONDATE));
+			const datePrefix = this.filePrefixFormat
+				.replace('YYYY', creationDate.getUTCFullYear().toString())
+				.replace('MM', (creationDate.getUTCMonth() + 1).toString().padStart(2, '0'))
+				.replace('DD', creationDate.getUTCDate().toString().padStart(2, '0'));
+			finalAttachmentName = `${datePrefix} ${outName}`;
+		}
+
+		// Check for existing attachment based on the selected handling option
+		const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
+		const existingAttachment = this.vault.getAbstractFileByPath(attachmentPath) as TFile;
+		
+		if (existingAttachment) {
+			if (this.duplicateHandling === DuplicateHandling.Skip) {
+				this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
+				return existingAttachment;
+			} else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+				// Check modification times for attachments
+				const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
+				const existingAttachmentModTime = existingAttachment.stat.mtime;
+				
+				if (appleAttachmentModTime <= existingAttachmentModTime) {
+					this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
+					return existingAttachment;
+				}
+				// If Apple attachment is newer, continue with import (will overwrite)
+			}
+			// For CreateCopy option, we continue without skipping (will create numbered copy)
+		}
+
 		try {
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
-			const attachmentPath = await this.getAvailablePathForAttachment(`${outName}.${outExt}`, []);
+			const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
 
 			file = await this.vault.createBinary(
 				attachmentPath, binary,
@@ -410,7 +469,7 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 
 		this.resolvedFiles[id] = file;
-		this.ctx.reportAttachmentSuccess(this.resolvedFiles[id].path);
+		this.ctx.reportAttachmentSuccess(`${finalAttachmentName}.${outExt}`);
 		return file;
 	}
 
@@ -435,22 +494,28 @@ export class AppleNotesImporter extends FormatImporter {
 	}
 
 	async getAvailablePathForAttachment(filename: string, existingPaths: string[]): Promise<string> {
-		if (this.skipDuplicates) {
-			// If skipDuplicates is true, just return the original path without numeric suffix
-			return `${this.rootFolder.path}/${filename}`;
-		}
-		// Otherwise use the default behavior from FormatImporter
+		// Always use the default behavior from FormatImporter to respect Obsidian's attachment folder settings
+		// This ensures attachments go to the configured attachment folder (e.g., _files_) rather than the note folder
 		return super.getAvailablePathForAttachment(filename, existingPaths);
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
-		if (this.skipDuplicates) {
-			// If skipDuplicates is true, create the file directly without numeric suffix
+		if (this.duplicateHandling === DuplicateHandling.Skip || this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			// For Skip and ImportUpdated, create the file directly without numeric suffix
 			const sanitizedName = sanitizeFileName(title);
 			const fullPath = `${folder.path}/${sanitizedName}`;
-			return await this.vault.create(fullPath, content);
+			
+			// Check if file already exists and handle overwriting
+			const existingFile = this.vault.getAbstractFileByPath(fullPath) as TFile;
+			if (existingFile) {
+				// File exists, this means we're updating it (timestamp comparison passed)
+				return existingFile;
+			} else {
+				// Create new file
+				return await this.vault.create(fullPath, content);
+			}
 		}
-		// Otherwise use the default behavior from FormatImporter
+		// For CreateCopy option, use the default behavior from FormatImporter (creates numbered copies)
 		return super.saveAsMarkdownFile(folder, title, content);
 	}
 }
