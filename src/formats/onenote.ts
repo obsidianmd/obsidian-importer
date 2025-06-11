@@ -424,7 +424,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			let pages: OnenotePage[] | null = null;
 			try {
-				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped')).value);
+				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped', progress)).value);
 			}
 			catch (e) {
 				progress.status('Microsoft OneNote has limited how fast notes can be imported. Please try again in 30 minutes to continue importing.');
@@ -455,7 +455,7 @@ export class OneNoteImporter extends FormatImporter {
 					progress.status(`Importing note ${page.title}`);
 
 					await this.processFile(progress,
-						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text'),
+						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress),
 						page);
 
 					if (page.id) {
@@ -836,7 +836,7 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			// We don't need to remember claimedPaths because we're writing the attachments immediately.
 			const outputPath = await this.getAvailablePathForAttachment(filename, []);
-			const data = (await this.fetchResource(contentLocation, 'file'));
+			const data = (await this.fetchResource(contentLocation, 'file', progress));
 			await this.app.vault.createBinary(outputPath, data);
 			progress.reportAttachmentSuccess(filename);
 			return outputPath;
@@ -928,11 +928,11 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource<T = string>(url: string, returnType: 'text', retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext|undefined, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -968,7 +968,7 @@ export class OneNoteImporter extends FormatImporter {
 						const json = await response.json();
 						assertJSONWrappedResponse<T>(json);
 						if ('@odata.nextLink' in json) {
-							json.value.push(...(await this.fetchResource<T>(json['@odata.nextLink'], 'json-wrapped')).value);
+							json.value.push(...(await this.fetchResource<T>(json['@odata.nextLink'], 'json-wrapped', progress)).value);
 						}
 						return json;
 					default:
@@ -991,7 +991,7 @@ export class OneNoteImporter extends FormatImporter {
 					|| response.status === 401;
 				if (isUnauthorized) {
 					await this.updateAccessToken();
-					return this.fetchResource(url, returnType as any, retryCount + 1);
+					return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
@@ -1004,13 +1004,18 @@ export class OneNoteImporter extends FormatImporter {
 					// currently ever provide the Retry-After header. See
 					// https://learn.microsoft.com/en-us/graph/throttling-limits#onenote-service-limits
 					// for more info.
-					let retryTime = retryAfter ? (+retryAfter * 1_000) : 60_000;
-					console.log(`Rate limit exceeded, waiting for: ${retryTime} ms`);
-
-					await new Promise(resolve => setTimeout(resolve, retryTime));
+					let retryTimeSeconds = retryAfter ? (+retryAfter * 1) : 60;
+					console.log(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
+					await this.pause(
+						retryTimeSeconds,
+						`OneNote API is rate-limiting us`, 
+						progress,
+					);
+									
 					return this.fetchResource(
 						url, 
-						returnType as any, 
+						returnType as any,
+						progress,
 						// don't increment the retryCount because we were told
 						// to backoff, and we should infinitely retry on backoff
 						// errors.
@@ -1019,7 +1024,7 @@ export class OneNoteImporter extends FormatImporter {
 				}
 
 				// for all other errors, retry.
-				return this.fetchResource(url, returnType as any, retryCount + 1);
+				return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 			}
 		}
 		catch (e) {
@@ -1032,7 +1037,7 @@ export class OneNoteImporter extends FormatImporter {
 			// I'm seeing such failures in normal imports where I'm not noticing
 			// any network instability on my end, let's retry those failures as
 			// well.
-			return this.fetchResource(url, returnType as any, retryCount + 1);
+			return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 		}
 	}
 }
