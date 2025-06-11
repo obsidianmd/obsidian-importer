@@ -52,6 +52,7 @@ export class ImportContext {
 	skipped: string[] = [];
 	failed: string[] = [];
 	maxFileNameLength: number = 100;
+	statusMessage: string = '';
 
 	cancelled: boolean = false;
 
@@ -112,6 +113,7 @@ export class ImportContext {
 	 * @param message
 	 */
 	status(message: string) {
+		this.statusMessage = message;
 		this.statusEl.setText(message.trim() + '...');
 	}
 
