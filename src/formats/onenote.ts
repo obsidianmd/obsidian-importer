@@ -72,6 +72,7 @@ export class OneNoteImporter extends FormatImporter {
 	attachmentDownloadPauseCounter = 0;
 	rememberMe = false;
 	refreshToken?: string;
+	lastSuccessfulFetchTime: number = performance.now();
 
 	async init() {
 		this.addOutputLocationSetting('OneNote');
@@ -943,7 +944,15 @@ export class OneNoteImporter extends FormatImporter {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
+			// fail fetching this resource
 			throw new Error('Exceeded maximum retry attempts');
+		}
+
+		const timeSinceLastFetch = performance.now() - this.lastSuccessfulFetchTime;
+		const ninetyMinutesInMS = 1_000 * 60 * 90;
+		if (timeSinceLastFetch > ninetyMinutesInMS) {
+			// fail the entire import by aborting
+			this.modal.abortController.abort('stalled for >90 minutes');
 		}
 
 		if (this.modal.abortController.signal.aborted) {
@@ -965,23 +974,31 @@ export class OneNoteImporter extends FormatImporter {
  			);
 
 			if (response.ok) {
+				let result: string | ArrayBuffer | object | JSONWrappedResponse<T>;
+				
 				switch (returnType) {
 					case 'text':
-						return await response.text();
+						result = await response.text();
+						break;
 					case 'file':
-						return await response.arrayBuffer();
+						result = await response.arrayBuffer();
+						break;
 					case 'json':
- 						return await response.json();
+ 						result = await response.json();
+						break;
  					case 'json-wrapped':
-						const json = await response.json();
-						assertJSONWrappedResponse<T>(json);
-						if ('@odata.nextLink' in json) {
-							json.value.push(...(await this.fetchResource<T>(json['@odata.nextLink'], 'json-wrapped', progress)).value);
+						result = await response.json();
+						assertJSONWrappedResponse<T>(result);
+						if ('@odata.nextLink' in result) {
+							result.value.push(...(await this.fetchResource<T>(result['@odata.nextLink'], 'json-wrapped', progress)).value);
 						}
-						return json;
+						break;
 					default:
 						assertUnreachable(returnType);
 				}
+
+				this.lastSuccessfulFetchTime = performance.now();
+				return result;
 			}
 			else {
 				let err: PublicError | null = null;
