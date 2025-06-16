@@ -52,6 +52,7 @@ export class ImportContext {
 	skipped: string[] = [];
 	failed: string[] = [];
 	maxFileNameLength: number = 100;
+	statusMessage: string = '';
 
 	cancelled: boolean = false;
 
@@ -112,6 +113,7 @@ export class ImportContext {
 	 * @param message
 	 */
 	status(message: string) {
+		this.statusMessage = message;
 		this.statusEl.setText(message.trim() + '...');
 	}
 
@@ -356,6 +358,7 @@ export class ImporterModal extends Modal {
 	plugin: ImporterPlugin;
 	importer: FormatImporter;
 	selectedId: string;
+	abortController: AbortController;
 
 	current: ImportContext | null = null;
 
@@ -364,6 +367,7 @@ export class ImporterModal extends Modal {
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
 		this.modalEl.addClass('mod-importer');
+		this.abortController = new AbortController();
 
 		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
@@ -458,6 +462,8 @@ export class ImporterModal extends Modal {
 	onClose() {
 		const { contentEl, current } = this;
 		contentEl.empty();
+		this.abortController.abort('import was canceled by user');
+
 		if (current) {
 			current.cancel();
 		}
