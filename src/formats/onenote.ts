@@ -4,7 +4,7 @@ import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
-import { getSiblingsInSameCodeBlock, isBRElement, isCodeBlock } from './onenote/code';
+import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement } from './onenote/code';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -882,8 +882,14 @@ export class OneNoteImporter extends FormatImporter {
 				return;
 			}
 			
-			if (isCodeBlock(element)) {
-				// Convert preformatted text into code block
+			if (isInlineCodeSpan(element)) {
+				// Convert preformatted text into an inline code span
+				const codeElement = document.createElement('code');
+				codeElement.innerHTML = element.innerHTML;
+				element.replaceWith(codeElement);
+			}
+			else if (isFenceCodeBlock(element)) {
+				// Convert preformatted text into a code fence
 				const codeBlockItems: string[] = [element.innerHTML];
 				getSiblingsInSameCodeBlock(element).forEach(sibling => {
 					codeBlockItems.push(
