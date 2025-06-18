@@ -4,6 +4,7 @@ import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
+import { getSiblingsInSameCodeBlock, isBRElement, isCodeBlock } from './onenote/code';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -874,47 +875,42 @@ export class OneNoteImporter extends FormatImporter {
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
 
-		// Convert preformatted text into code blocks
-		let inCodeBlock: boolean = false;
-		let codeElement: HTMLElement = document.createElement('pre');
-
 		const elements = pageElement.querySelectorAll('*');
 		elements.forEach(element => {
-			const style = element.getAttribute('style') || '';
-			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
-
-			if (style?.contains('font-family:Consolas')) {
-				if (!inCodeBlock) {
-					inCodeBlock = true;
-					element.replaceWith(codeElement);
-					codeElement.innerHTML = '```\n' + element.innerHTML + '\n```';
-				}
-				else {
-					// Append the content and add fences in case there's no next element
-					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
-					// since we moved this element into the code block, we can remove it
-					element.remove();
-				}
+			if (!pageElement.contains(element)) {
+				// already processed and removed, can skip
+				return;
 			}
-			else if (element.nodeName === 'BR' && inCodeBlock) {
-				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
-				// since we converted this BR into a newline, we can remove it
-				element.remove();
+			
+			if (isCodeBlock(element)) {
+				// Convert preformatted text into code block
+				const codeBlockItems: string[] = [element.innerHTML];
+				getSiblingsInSameCodeBlock(element).forEach(sibling => {
+					codeBlockItems.push(
+						isBRElement(sibling) ? '\n' : sibling.innerHTML
+					);
+					sibling.remove();
+				});
+				
+				// wrap the code in a pre element
+				const codeElement = document.createElement('pre');
+				codeElement.innerHTML = 
+					'```\n' +
+					codeBlockItems.join('') +
+					'\n```';
+
+				// replace the original node with the pre element
+				element.replaceWith(codeElement);
 			}
 			else {
-				if (inCodeBlock) {
-					// we're no longer in the same code block, so start a new
-					// one for the next time we need it
-					inCodeBlock = false;
-					codeElement = document.createElement('pre');
-				}
-
 				if (element.nodeName === 'TD') {
 					// Do not replace table cells if they are styled.
 					element.removeAttribute('style');
 					return;
 				}
 				else {
+					const style = element.getAttribute('style') || '';
+					const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
 					if (matchingStyle) {
 						const newElementTag = styleMap[matchingStyle];
 						const newElement = document.createElement(newElementTag);
