@@ -4,6 +4,7 @@ import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
+import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement } from './onenote/code';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -869,40 +870,54 @@ export class OneNoteImporter extends FormatImporter {
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
 
-		// Convert preformatted text into code blocks
-		let inCodeBlock: boolean = false;
-		let codeElement: HTMLElement = document.createElement('pre');
-
 		const elements = pageElement.querySelectorAll('*');
 		elements.forEach(element => {
-			const style = element.getAttribute('style') || '';
-			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
-
-			if (style?.contains('font-family:Consolas')) {
-				if (!inCodeBlock) {
-					inCodeBlock = true;
-					element.replaceWith(codeElement);
-					codeElement.innerHTML = '```\n' + element.innerHTML + '\n```';
-				}
-				else {
-					// Append the content and add fences in case there's no next element
-					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
-				}
-			}
-			else if (element.nodeName === 'BR' && inCodeBlock) {
-				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
-			}
-			else if (element.nodeName === 'TD') {
-				// Do not replace table cells if they are styled.
-				element.removeAttribute('style');
+			if (!pageElement.contains(element)) {
+				// already processed and removed, can skip
 				return;
 			}
+			
+			if (isInlineCodeSpan(element)) {
+				// Convert preformatted text into an inline code span
+				const codeElement = document.createElement('code');
+				codeElement.innerHTML = element.innerHTML;
+				element.replaceWith(codeElement);
+			}
+			else if (isFenceCodeBlock(element)) {
+				// Convert preformatted text into a code fence
+				const codeBlockItems: string[] = [element.innerHTML];
+				getSiblingsInSameCodeBlock(element).forEach(sibling => {
+					codeBlockItems.push(
+						isBRElement(sibling) ? '\n' : sibling.innerHTML
+					);
+					sibling.remove();
+				});
+				
+				// wrap the code in a pre element
+				const codeElement = document.createElement('pre');
+				codeElement.innerHTML = 
+					'```\n' +
+					codeBlockItems.join('') +
+					'\n```';
+
+				// replace the original node with the pre element
+				element.replaceWith(codeElement);
+			}
 			else {
-				if (matchingStyle) {
-					const newElementTag = styleMap[matchingStyle];
-					const newElement = document.createElement(newElementTag);
-					newElement.innerHTML = element.innerHTML;
-					element.replaceWith(newElement);
+				if (element.nodeName === 'TD') {
+					// Do not replace table cells if they are styled.
+					element.removeAttribute('style');
+					return;
+				}
+				else {
+					const style = element.getAttribute('style') || '';
+					const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
+					if (matchingStyle) {
+						const newElementTag = styleMap[matchingStyle];
+						const newElement = document.createElement(newElementTag);
+						newElement.innerHTML = element.innerHTML;
+						element.replaceWith(newElement);
+					}
 				}
 			}
 		});
