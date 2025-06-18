@@ -892,22 +892,35 @@ export class OneNoteImporter extends FormatImporter {
 				else {
 					// Append the content and add fences in case there's no next element
 					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
+					// since we moved this element into the code block, we can remove it
+					element.remove();
 				}
 			}
 			else if (element.nodeName === 'BR' && inCodeBlock) {
 				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
-			}
-			else if (element.nodeName === 'TD') {
-				// Do not replace table cells if they are styled.
-				element.removeAttribute('style');
-				return;
+				// since we converted this BR into a newline, we can remove it
+				element.remove();
 			}
 			else {
-				if (matchingStyle) {
-					const newElementTag = styleMap[matchingStyle];
-					const newElement = document.createElement(newElementTag);
-					newElement.innerHTML = element.innerHTML;
-					element.replaceWith(newElement);
+				if (inCodeBlock) {
+					// we're no longer in the same code block, so start a new
+					// one for the next time we need it
+					inCodeBlock = false;
+					codeElement = document.createElement('pre');
+				}
+
+				if (element.nodeName === 'TD') {
+					// Do not replace table cells if they are styled.
+					element.removeAttribute('style');
+					return;
+				}
+				else {
+					if (matchingStyle) {
+						const newElementTag = styleMap[matchingStyle];
+						const newElement = document.createElement(newElementTag);
+						newElement.innerHTML = element.innerHTML;
+						element.replaceWith(newElement);
+					}
 				}
 			}
 		});
