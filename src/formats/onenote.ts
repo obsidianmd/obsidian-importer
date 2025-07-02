@@ -53,6 +53,10 @@ function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedR
 	}
 }
 
+function isHTMLElement(node: Node): node is HTMLElement {
+	return node instanceof HTMLElement;
+}
+
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
@@ -547,6 +551,7 @@ export class OneNoteImporter extends FormatImporter {
 			let parsedPage = this.styledElementToHTML(html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
+			parsedPage = this.removeExtraListItemParagraphs(parsedPage);
 			this.escapeTextNodes(parsedPage);
 
 			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
@@ -934,6 +939,48 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		return element;
 	}
+
+	// OneNote wraps list items in an extra, marginless paragraph. Remove these
+	// as they result in turndown adding extra newlines, which is particularly
+	// bad when dealing with nested bulletted lists.
+	// 
+	// BEFORE:
+	// 	<ul>
+	//		<li>
+	//			<p style="margin-top:0pt;margin-bottom:0pt">List Item 1</p>
+	//			<ul>
+	//				<li style="list-style-type:circle">List Item 1.a</li>
+	//			</ul>
+	//		</li>
+	//	</ul>
+	//
+	// AFTER:
+	// 	<ul>
+	//		<li>
+	//			List Item 1
+	//			<ul>
+	//				<li style="list-style-type:circle">List Item 1.a</li>
+	//			</ul>
+	//		</li>
+	//	</ul>
+	//
+	// https://github.com/obsidianmd/obsidian-importer/issues/363
+	removeExtraListItemParagraphs(element: HTMLElement): HTMLElement {
+		// if the first list item child is a paragraph
+		element.querySelectorAll('li > p:first-child').forEach((p) => {
+			if (
+				isHTMLElement(p)
+				// and it has 0 margin (this is really just to sanity check that this isn't meant to create newlines, visually)
+				&& p.style.marginBottom === '0pt' && p.style.marginTop === '0pt'
+			) {
+				// then unwrap the paragraph (move its children up to its parent, so there is no paragraph)
+				p.replaceWith(...Array.from(p.childNodes));
+			}
+		});
+
+		return element;
+	}
+	
 
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
 	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
