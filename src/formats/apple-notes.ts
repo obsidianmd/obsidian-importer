@@ -14,6 +14,7 @@ const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
+const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 
 enum DuplicateHandling {
 	Skip = 'skip',
@@ -58,6 +59,10 @@ export class AppleNotesImporter extends FormatImporter {
 
 		this.addOutputLocationSetting('Apple Notes');
 
+		// Retrieve stored file prefix format
+		const storedPrefix = localStorage.getItem(LOCAL_STORAGE_KEY) || '';
+		this.filePrefixFormat = storedPrefix;
+
 		new Setting(this.modal.contentEl)
 			.setName('File prefix format')
 			.setDesc(
@@ -65,9 +70,12 @@ export class AppleNotesImporter extends FormatImporter {
 				' Leave blank for no prefix.'
 			)
 			.addText(t => t
-				.setValue('')
+				.setValue(storedPrefix)
 				.setPlaceholder('YYYY-MM-DD')
-				.onChange(async v => this.filePrefixFormat = v)
+				.onChange(async v => {
+					this.filePrefixFormat = v;
+					localStorage.setItem(LOCAL_STORAGE_KEY, v);
+				})
 			);
 
 		new Setting(this.modal.contentEl)
@@ -110,7 +118,7 @@ export class AppleNotesImporter extends FormatImporter {
 			.addDropdown(d => d
 				.addOption(DuplicateHandling.Skip, 'Skip import')
 				.addOption(DuplicateHandling.ImportUpdated, 'Import only updated')
-				.addOption(DuplicateHandling.CreateCopy, 'Create a copy (legacy)')
+				.addOption(DuplicateHandling.CreateCopy, 'Create a copy')
 				.setValue(DuplicateHandling.ImportUpdated)
 				.onChange(async v => this.duplicateHandling = v as DuplicateHandling)
 			);
@@ -295,12 +303,12 @@ export class AppleNotesImporter extends FormatImporter {
 		const fullPath = path.join(folder.path, `${title}.md`);
 
 		// Check for duplicate notes based on the selected handling option
-		const existingFile = this.vault.getAbstractFileByPath(fullPath) as TFile;
+		const existingFile = this.vault.getAbstractFileByPath(fullPath);
 		
 		if (existingFile && existingFile instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
-				return null;
+				return existingFile;
 			} else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 				// Check modification times before skipping
 				const appleNoteModTime = this.decodeTime(row.ZMODIFICATIONDATE1);
@@ -309,7 +317,7 @@ export class AppleNotesImporter extends FormatImporter {
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
 					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
-					return null;
+					return existingFile;
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
 			}
@@ -427,9 +435,9 @@ export class AppleNotesImporter extends FormatImporter {
 
 		// Check for existing attachment based on the selected handling option
 		const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
-		const existingAttachment = this.vault.getAbstractFileByPath(attachmentPath) as TFile;
+		const existingAttachment = this.vault.getAbstractFileByPath(attachmentPath);
 		
-		if (existingAttachment) {
+		if (existingAttachment && existingAttachment instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
 				return existingAttachment;
@@ -440,7 +448,7 @@ export class AppleNotesImporter extends FormatImporter {
 				
 				if (appleAttachmentModTime <= existingAttachmentModTime) {
 					this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
-					return null;
+					return existingAttachment;
 				}
 				// If Apple attachment is newer, continue with import (will overwrite)
 			}
@@ -494,8 +502,8 @@ export class AppleNotesImporter extends FormatImporter {
 			const fullPath = path.join(folder.path, sanitizedName);
 			
 			// Check if file already exists and handle overwriting
-			const existingFile = this.vault.getAbstractFileByPath(fullPath) as TFile;
-			if (existingFile) {
+			const existingFile = this.vault.getAbstractFileByPath(fullPath);
+			if (existingFile && existingFile instanceof TFile) {
 				// File exists -- will be updated later in resolveNote
 				return existingFile;
 			}
