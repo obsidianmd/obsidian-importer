@@ -4,7 +4,7 @@ import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
-import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement } from './onenote/code';
+import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isCodeBlockWrappingParagraph } from './onenote/code';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -549,6 +549,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
 			let html = await this.getAllAttachments(progress, taggedPage.replace(PARAGRAPH_REGEX, '<br />'));
+			this.combineCodeBlocksAsNecessary(html);
 			let parsedPage = this.styledElementToHTML(html);
 			parsedPage = this.convertInternalLinks(parsedPage);
 			parsedPage = this.convertDrawings(parsedPage);
@@ -859,6 +860,35 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportFailed(filename);
 			console.error(e);
 		}
+	}
+
+	/**
+	 * Given code blocks in separate paragraphs that are only separated by a
+	 * single newline (br), combine them.
+	 */
+	combineCodeBlocksAsNecessary(pageElement: HTMLElement): void {
+		const paragraphs = pageElement.querySelectorAll('p:has(+ br + p)');
+		// querySelectorAll must return results in document order, so we should combine nodes in reverse order
+		Array.from(paragraphs).reverse().forEach((p) => {
+			const firstParagraph = p;
+			const lineBreak = p.nextElementSibling;
+			if (!isBRElement(lineBreak)) {
+				throw new Error(`Expected a <br> element after the paragraph, but found: ${lineBreak?.nodeName}`);
+			}
+			const secondParagraph = lineBreak.nextElementSibling;
+			if (isCodeBlockWrappingParagraph(firstParagraph)
+					&& isCodeBlockWrappingParagraph(secondParagraph)) {
+				// move the line break ...
+				firstParagraph.appendChild(lineBreak);
+				// .. and add another line break to capture the newline between
+				// the two paragraphs
+				firstParagraph.appendChild(lineBreak.cloneNode());
+				// ... and clone second paragraph's children into the first paragraph
+				firstParagraph.insertAdjacentHTML('beforeend', secondParagraph.innerHTML);
+				// clean-up the DOM (linebreak was moved, second paragraph wasn't)
+				secondParagraph.remove();
+			}
+		});
 	}
 
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion

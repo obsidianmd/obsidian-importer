@@ -6,6 +6,18 @@ function isCode(node: Node|null): node is HTMLElement {
 	return fontFamily.includes('Consolas');
 }
 
+/**
+ * Return true iff node is a paragraph containing only code/line breaks
+ */
+export function isCodeBlockWrappingParagraph(node: Node|null): node is HTMLParagraphElement {
+	return (
+		node != null
+		&& node instanceof HTMLParagraphElement
+		&& Array.from(node.childNodes)
+			.every(c => isCode(c) || isBRElement(c))
+	);
+}
+
 export function isInlineCodeSpan(node: Node): node is HTMLElement {
 	return (
 		// is a code block
