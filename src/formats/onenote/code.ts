@@ -9,7 +9,7 @@ function isCode(node: Node|null): node is HTMLElement {
 /**
  * Return true iff node is a paragraph containing only code/line breaks
  */
-export function isCodeBlockWrappingParagraph(node: Node|null): node is HTMLParagraphElement {
+export function isParagraphWrappingOnlyCode(node: Node|null): node is HTMLParagraphElement {
 	return (
 		node != null
 		&& node instanceof HTMLParagraphElement
