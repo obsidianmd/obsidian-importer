@@ -9,6 +9,7 @@ const ATTACHMENTS_FOLDERS = [
 	'files', 'photos', 'round_video_messages', 'stickers', 'video_files', 'voice_messages'
 ];
 const MESSAGES_FILENAME = 'messages.html';
+const NOT_GROUPED_NOTES_FOLDER = 'My Notes';
 
 export class TelegramImporter extends FormatImporter {
 	ctx: ImportContext;
@@ -60,7 +61,7 @@ export class TelegramImporter extends FormatImporter {
 	}
 
 	private async saveAttachment(entry: ZipEntryFile) {
-		const folderPath = normalizePath(`${this.outFolder.path}/${entry.parent}`);
+		const folderPath = normalizePath(`${this.outFolder.path}/_attachments/${entry.parent}`);
 		const folder = await this.createFolders(folderPath);
 
 		const filePath = `${folder.path}/${entry.name}`;
@@ -89,6 +90,8 @@ export class TelegramImporter extends FormatImporter {
 			if (this.ctx.isCancelled()) return;
 
 			const msg = msgs[i];
+			const from = msg.querySelector('.forwarded .from_name') ? 
+				msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() : null;
 			const time = msg.querySelector('.date')?.getAttribute('title') || 'Unknown time';
 			const html = msg.querySelector('.text')?.innerHTML || '';
 			let md = htmlToMarkdown(html);
@@ -99,7 +102,9 @@ export class TelegramImporter extends FormatImporter {
 			}
 
 			const title = sanitizeFileName(time);
-			const note = await this.saveAsMarkdownFile(this.outFolder, title, md);
+			const subdir = from || NOT_GROUPED_NOTES_FOLDER;
+			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${subdir}`));
+			const note = await this.saveAsMarkdownFile(noteFolder, title, md);
 
 			this.ctx.reportNoteSuccess(note.path);
 			count++;
