@@ -86,6 +86,8 @@ export class TelegramImporter extends FormatImporter {
 		this.ctx.reportProgress(0, total);
 
 		let count = 0;
+		let lastNote = null;
+		let lastNoteTime = null;
 		for (let i = 0; i < total; i++) {
 			if (this.ctx.isCancelled()) return;
 
@@ -101,14 +103,28 @@ export class TelegramImporter extends FormatImporter {
 				md = links + '\n' + md;
 			}
 
+			// If current message time == last note time, append to it
+			// Because Telegram treated messages with multiple attachments as separate messages
+			// It is trick to work around this
+			if (lastNote && lastNoteTime === time) {
+				await this.vault.process(lastNote, (data) => `${md}\n` + data);
+
+				this.ctx.reportNoteSuccess(lastNote.path);
+				this.ctx.reportProgress(++count, total);
+
+				continue;
+			}
+
 			const title = sanitizeFileName(time);
 			const subdir = from || NOT_GROUPED_NOTES_FOLDER;
 			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${subdir}`));
 			const note = await this.saveAsMarkdownFile(noteFolder, title, md);
 
+			lastNote = note;
+			lastNoteTime = time;
+
 			this.ctx.reportNoteSuccess(note.path);
-			count++;
-			this.ctx.reportProgress(count, total);
+			this.ctx.reportProgress(++count, total);
 		}
 	}
 
