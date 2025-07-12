@@ -20,6 +20,8 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 ## Contributing
 
+Importer is a community-led project. You can explore pull requests and see the credits below for reference. The Obsidian team is not actively working on adding new import capabilities, but we welcome pull requests for new formats and improvements.
+
 Is a format missing? You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
 
 Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty).
