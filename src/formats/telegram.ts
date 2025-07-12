@@ -1,4 +1,4 @@
-import { Notice, TFolder, TFile, htmlToMarkdown, normalizePath } from "obsidian";
+import { Notice, TFolder, TFile, htmlToMarkdown, normalizePath, Setting } from "obsidian";
 import { FormatImporter } from "../format-importer";
 import { ImportContext } from "../main";
 import { parseHTML, sanitizeFileName } from "../util";
@@ -115,7 +115,9 @@ export class TelegramImporter extends FormatImporter {
 				continue;
 			}
 
-			const title = sanitizeFileName(time);
+			const [day, month, year] = time.split(' ')[0].split('.');
+			const formattedDate = `${year}-${month}-${day}`;
+			const title = sanitizeFileName(formattedDate);
 			const subdir = from || NOT_GROUPED_NOTES_FOLDER;
 			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${subdir}`));
 			const note = await this.saveAsMarkdownFile(noteFolder, title, md);
@@ -132,6 +134,7 @@ export class TelegramImporter extends FormatImporter {
 		return Array.from(msg.querySelectorAll('a[href]'))
 			.map(a => a.getAttribute('href'))
 			.filter(href => href && !href.startsWith('#go_to_message'))
+			.filter(href => ATTACHMENTS_FOLDERS.some(folder => href?.startsWith(folder))) // filter not-attachments links
 			.map(href => `![[${href}]]`)
 			.join('\n');
 	}
