@@ -5,21 +5,43 @@ import { parseHTML, sanitizeFileName } from "../util";
 import { readZip, ZipEntryFile } from "../zip";
 import { PickedFile } from "filesystem";
 
+export enum MergeStrategy {
+    NoMerge = 'No Merge',
+    ByDate = 'By Date',
+    ByHour = 'By Hour',
+}
+
 const ATTACHMENTS_FOLDERS = [
 	'files', 'photos', 'round_video_messages', 'stickers', 'video_files', 'voice_messages'
 ];
 const MESSAGES_FILENAME = 'messages.html';
 const OUT_CHANNEL_NOTES_FOLDER = 'My Notes';
+const DEFAULT_MERGE_STRATEGY = MergeStrategy.NoMerge;
 
 export class TelegramImporter extends FormatImporter {
 	ctx: ImportContext;
 	outFolder: TFolder;
 	inputZip: PickedFile;
 	mainHtml: string;
+	strategy: MergeStrategy = DEFAULT_MERGE_STRATEGY;
 
 	init() {
 		this.addFileChooserSetting('Exported chat (zip)', ['zip'], false);
 		this.addOutputLocationSetting('Telegram import');
+		new Setting(this.modal.contentEl)
+			.setName('Merge strategy')
+			.setDesc('Allow to set up how to merge messages with same parameters.')
+			.addDropdown(dropdown => {
+				Object.values(MergeStrategy).forEach(strategy => {
+					dropdown.addOption(strategy, strategy);
+				});
+
+				dropdown.onChange((value) => {
+					this.strategy = value as MergeStrategy;
+				});
+
+				dropdown.setValue(DEFAULT_MERGE_STRATEGY);
+			});
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -94,6 +116,7 @@ export class TelegramImporter extends FormatImporter {
 				lastNote: TFile; 
 				lastNoteTimestamp: string; 
 				lastNoteDate: string; 
+				lastNoteHour: string;
 			} 
 		} = {};
 		let lastChannel = null;
@@ -103,6 +126,7 @@ export class TelegramImporter extends FormatImporter {
 			const channel = sanitizeFileName(msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() || OUT_CHANNEL_NOTES_FOLDER);
 			const timestamp = msg.querySelector('.date')?.getAttribute('title') || 'Unknown time';
 			const date = (([d, m, y]) => `${y}-${m}-${d}`)(timestamp.split(' ')[0].split('.'));
+			const hour = (([h]) => `${h}-00`)(timestamp.split(' ')[1].split(':'));
 			const html = msg.querySelector('.text')?.innerHTML || '';
 			const links = this.extractLinks(msg);
 			let md = htmlToMarkdown(html);
@@ -114,7 +138,7 @@ export class TelegramImporter extends FormatImporter {
 
 			const lastChannelLastNoteInfo = lastChannel ? lastNoteInfoByChannels[lastChannel] : null;
 			if (lastChannelLastNoteInfo) {
-				const { lastNote, lastNoteTimestamp, lastNoteDate } = lastChannelLastNoteInfo;
+				const { lastNote, lastNoteTimestamp } = lastChannelLastNoteInfo;
 
 				// If current message time == last note time, append to it
 				// Because Telegram treated messages with multiple attachments as separate messages
@@ -129,30 +153,55 @@ export class TelegramImporter extends FormatImporter {
 				}
 			}
 
+            switch (this.strategy) {
+				case MergeStrategy.ByDate:
+					const lastNoteInfo1 = lastNoteInfoByChannels[channel];
+					if (lastNoteInfo1) {
+						const { lastNote, lastNoteDate } = lastNoteInfo1;
 
-			const lastNoteInfo = lastNoteInfoByChannels[channel];
-			if (lastNoteInfo) {
-				const { lastNote, lastNoteTimestamp, lastNoteDate } = lastNoteInfo;
+						// Group messages with the same date into one note
+						if (lastNote && lastNoteDate === date) {
+							await this.vault.append(lastNote, `\n\n${md}`);
 
-				// Group messages with the same date into one note
-				if (lastNote && lastNoteDate === date) {
-					await this.vault.append(lastNote, `\n\n${md}`);
+							this.ctx.reportNoteSuccess(lastNote.path);
+							this.ctx.reportProgress(++count, total);
 
-					this.ctx.reportNoteSuccess(lastNote.path);
-					this.ctx.reportProgress(++count, total);
+							continue;
+						}
+					}
 
-					continue;
-				}
+					break;
+				case MergeStrategy.ByHour:
+					const lastNoteInfo2 = lastNoteInfoByChannels[channel];
+					if (lastNoteInfo2) {
+						const { lastNote, lastNoteDate, lastNoteHour } = lastNoteInfo2;
+
+						// Group messages with the same date into one note
+						if (lastNote && lastNoteDate === date && lastNoteHour === hour) {
+							await this.vault.append(lastNote, `\n\n${md}`);
+
+							this.ctx.reportNoteSuccess(lastNote.path);
+							this.ctx.reportProgress(++count, total);
+
+							continue;
+						}
+					}
+
+					break;
+				case MergeStrategy.NoMerge:
+					break;
 			}
 
-			const title = sanitizeFileName(date);
+
+			const title = this.strategy === MergeStrategy.ByHour ? sanitizeFileName(`${date} ${hour}`) : sanitizeFileName(date);
 			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${channel}`));
 			const note = await this.saveAsMarkdownFile(noteFolder, title, md);
 
 			lastNoteInfoByChannels[channel] = {
 				lastNote: note,
 				lastNoteTimestamp: timestamp,
-				lastNoteDate: date
+				lastNoteDate: date,
+				lastNoteHour: hour,
 			};
 			lastChannel = channel;
 
