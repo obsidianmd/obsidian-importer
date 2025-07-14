@@ -9,7 +9,7 @@ const ATTACHMENTS_FOLDERS = [
 	'files', 'photos', 'round_video_messages', 'stickers', 'video_files', 'voice_messages'
 ];
 const MESSAGES_FILENAME = 'messages.html';
-const NOT_GROUPED_NOTES_FOLDER = 'My Notes';
+const OUT_CHANNEL_NOTES_FOLDER = 'My Notes';
 
 export class TelegramImporter extends FormatImporter {
 	ctx: ImportContext;
@@ -39,8 +39,12 @@ export class TelegramImporter extends FormatImporter {
 		this.outFolder = outFolder;
 		this.inputZip = this.files[0];
 
-		await this.extractZip();
-		this.parseAndSaveMessages();
+		try {
+			await this.extractZip();
+			this.parseAndSaveMessages();
+		} catch (error) {
+			this.ctx.reportFailed('Error has happened', `Information: ${error}`);
+		}
 	}
 
 	private async extractZip() {
@@ -86,44 +90,72 @@ export class TelegramImporter extends FormatImporter {
 		this.ctx.reportProgress(0, total);
 
 		let count = 0;
-		let lastNote = null;
-		let lastNoteTime = null;
-		for (let i = 0; i < total; i++) {
+		const lastNoteInfoByChannels: { 
+			[channel: string]: { 
+				lastNote: TFile; 
+				lastNoteTimestamp: string; 
+				lastNoteDate: string; 
+			} 
+		} = {};
+		let lastChannel = null;
+		for (const msg of msgs) {
 			if (this.ctx.isCancelled()) return;
 
-			const msg = msgs[i];
-			const from = msg.querySelector('.forwarded .from_name') ? 
-				msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() : null;
-			const time = msg.querySelector('.date')?.getAttribute('title') || 'Unknown time';
+			const channel = msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() || OUT_CHANNEL_NOTES_FOLDER;
+			const timestamp = msg.querySelector('.date')?.getAttribute('title') || 'Unknown time';
+			const date = (([d, m, y]) => `${y}-${m}-${d}`)(timestamp.split(' ')[0].split('.'));
 			const html = msg.querySelector('.text')?.innerHTML || '';
+			const links = this.extractLinks(msg);
 			let md = htmlToMarkdown(html);
 
-			const links = this.extractLinks(msg);
 			if (links) {
 				md = links + '\n' + md;
 			}
 
-			// If current message time == last note time, append to it
-			// Because Telegram treated messages with multiple attachments as separate messages
-			// It is trick to work around this
-			if (lastNote && lastNoteTime === time) {
-				await this.vault.process(lastNote, (data) => `${md}\n` + data);
 
-				this.ctx.reportNoteSuccess(lastNote.path);
-				this.ctx.reportProgress(++count, total);
+			const lastChannelLastNoteInfo = lastChannel ? lastNoteInfoByChannels[lastChannel] : null;
+			if (lastChannelLastNoteInfo) {
+				const { lastNote, lastNoteTimestamp, lastNoteDate } = lastChannelLastNoteInfo;
 
-				continue;
+				// If current message time == last note time, append to it
+				// Because Telegram treated messages with multiple attachments as separate messages
+				// It is trick to work around this
+				if (lastNote && lastNoteTimestamp === timestamp) {
+					await this.vault.process(lastNote, (data) => `${md}\n` + data);
+
+					this.ctx.reportNoteSuccess(lastNote.path);
+					this.ctx.reportProgress(++count, total);
+
+					continue;
+				}
 			}
 
-			const [day, month, year] = time.split(' ')[0].split('.');
-			const formattedDate = `${year}-${month}-${day}`;
-			const title = sanitizeFileName(formattedDate);
-			const subdir = from || NOT_GROUPED_NOTES_FOLDER;
-			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${subdir}`));
+
+			const lastNoteInfo = lastNoteInfoByChannels[channel];
+			if (lastNoteInfo) {
+				const { lastNote, lastNoteTimestamp, lastNoteDate } = lastNoteInfo;
+
+				// Group messages with the same date into one note
+				if (lastNote && lastNoteDate === date) {
+					await this.vault.append(lastNote, `\n\n${md}`);
+
+					this.ctx.reportNoteSuccess(lastNote.path);
+					this.ctx.reportProgress(++count, total);
+
+					continue;
+				}
+			}
+
+			const title = sanitizeFileName(date);
+			const noteFolder = await this.createFolders(normalizePath(`${this.outFolder.path}/${channel}`));
 			const note = await this.saveAsMarkdownFile(noteFolder, title, md);
 
-			lastNote = note;
-			lastNoteTime = time;
+			lastNoteInfoByChannels[channel] = {
+				lastNote: note,
+				lastNoteTimestamp: timestamp,
+				lastNoteDate: date
+			};
+			lastChannel = channel;
 
 			this.ctx.reportNoteSuccess(note.path);
 			this.ctx.reportProgress(++count, total);
