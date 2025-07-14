@@ -41,7 +41,7 @@ export class TelegramImporter extends FormatImporter {
 
 		try {
 			await this.extractZip();
-			this.parseAndSaveMessages();
+			await this.parseAndSaveMessages();
 		} catch (error) {
 			this.ctx.reportFailed('Error has happened', `Information: ${error}`);
 		}
@@ -51,8 +51,7 @@ export class TelegramImporter extends FormatImporter {
 		await readZip(this.inputZip, async (_zip, entries) => {
 			this.mainHtml = (await entries.find(e => e.name === MESSAGES_FILENAME)?.readText()) || '';
 			if (!this.mainHtml) {
-				this.ctx.reportFailed(`${MESSAGES_FILENAME} file not found in zip.`);
-				return;
+				throw new Error(`${MESSAGES_FILENAME} file not found in zip.`);
 			}
 
 			for (const e of entries) {
@@ -101,7 +100,7 @@ export class TelegramImporter extends FormatImporter {
 		for (const msg of msgs) {
 			if (this.ctx.isCancelled()) return;
 
-			const channel = msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() || OUT_CHANNEL_NOTES_FOLDER;
+			const channel = sanitizeFileName(msg.querySelector('.forwarded .from_name')?.childNodes[0]?.textContent?.trim() || OUT_CHANNEL_NOTES_FOLDER);
 			const timestamp = msg.querySelector('.date')?.getAttribute('title') || 'Unknown time';
 			const date = (([d, m, y]) => `${y}-${m}-${d}`)(timestamp.split(' ')[0].split('.'));
 			const html = msg.querySelector('.text')?.innerHTML || '';
