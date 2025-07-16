@@ -89,7 +89,7 @@ export class TelegramImporter extends FormatImporter {
 		const folderPath = normalizePath(`${this.outFolder.path}/_attachments/${entry.parent}`);
 		const folder = await this.createFolders(folderPath);
 
-		const fileName = this.sanitizeAttachmentName(entry.name);
+		const fileName = this.sanitizeAttachmentNameOrPath(entry.name);
 		const filePath = `${folder.path}/${fileName}`;
 		const fileExists = this.vault.getAbstractFileByPath(filePath);
 		if (fileExists) {
@@ -217,12 +217,14 @@ export class TelegramImporter extends FormatImporter {
 			.map(a => a.getAttribute('href'))
 			.filter(href => href && !href.startsWith('#go_to_message'))
 			.filter(href => ATTACHMENTS_FOLDERS.some(folder => href?.startsWith(folder))) // filter not-attachments links
-			.map(href => href ? this.sanitizeAttachmentName(href) : '')
+			.map(href => href ? this.sanitizeAttachmentNameOrPath(href) : '')
 			.map(href => `![[${href}]]`)
 			.join('\n');
 	}
 
-	private sanitizeAttachmentName(initialName: string): string {
-		return initialName.replace(/[#!\[\]\|\^]/g, '');
+	// https://forum.obsidian.md/t/allowing-special-characters-in-note-name-breaks-link-functionality/13301
+	// According this issue, if file contains one of these special characters, then obsidian attachments will not appear
+	private sanitizeAttachmentNameOrPath(nameOrPath: string): string {
+		return nameOrPath.replace(/[#!\[\]\|\^]/g, '');
 	}
 }
