@@ -89,7 +89,8 @@ export class TelegramImporter extends FormatImporter {
 		const folderPath = normalizePath(`${this.outFolder.path}/_attachments/${entry.parent}`);
 		const folder = await this.createFolders(folderPath);
 
-		const filePath = `${folder.path}/${entry.name}`;
+		const fileName = this.sanitizeAttachmentName(entry.name);
+		const filePath = `${folder.path}/${fileName}`;
 		const fileExists = this.vault.getAbstractFileByPath(filePath);
 		if (fileExists) {
 			this.ctx.reportSkipped(filePath, 'the file already exists.');
@@ -215,7 +216,12 @@ export class TelegramImporter extends FormatImporter {
 			.map(a => a.getAttribute('href'))
 			.filter(href => href && !href.startsWith('#go_to_message'))
 			.filter(href => ATTACHMENTS_FOLDERS.some(folder => href?.startsWith(folder))) // filter not-attachments links
+			.map(href => href ? this.sanitizeAttachmentName(href) : '')
 			.map(href => `![[${href}]]`)
 			.join('\n');
+	}
+
+	private sanitizeAttachmentName(initialName: string): string {
+		return initialName.replace(/[#!\[\]\|\^]/g, '');
 	}
 }
