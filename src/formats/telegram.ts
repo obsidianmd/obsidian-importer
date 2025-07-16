@@ -99,6 +99,7 @@ export class TelegramImporter extends FormatImporter {
 
 		const data = await entry.read();
 		await this.vault.createBinary(filePath, data);
+		this.ctx.reportAttachmentSuccess(fileName);
 	}
 
 	private async parseAndSaveMessages() {
