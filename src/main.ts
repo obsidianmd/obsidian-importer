@@ -10,6 +10,7 @@ import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { truncateText } from './util';
+import { TelegramImporter } from 'formats/telegram';
 
 declare global {
 	interface Window {
@@ -289,6 +290,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Textbundle (.textbundle, .textpack)',
 				importer: TextbundleImporter,
 				helpPermalink: 'import/textbundle',
+			},
+			'telegram': {
+				name: 'Telegram files',
+				optionText: 'Telegram (.zip)',
+				importer: TelegramImporter,
+				helpPermalink: 'import/telegram',
 			},
 		};
 
