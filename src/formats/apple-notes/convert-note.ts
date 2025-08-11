@@ -76,7 +76,7 @@ export class NoteConverter extends ANConverter {
 		return tokens;
 	}
 
-	async format(table = false): Promise<string> {
+	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
 		let firstLineSkip = !table && this.importer.omitFirstLine && this.note.noteText.contains('\n');
 		let converted = '';
@@ -102,7 +102,7 @@ export class NoteConverter extends ANConverter {
 				converted += attr.fragment;
 			}
 			else if (attr.attachmentInfo) {
-				converted += await this.formatAttachment(attr);
+				converted += await this.formatAttachment(attr, parentNotePath);
 			}
 			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
 				converted += await this.formatHtmlAttr(attr);
@@ -296,7 +296,7 @@ export class NoteConverter extends ANConverter {
 		return `${prelude}${attr.fragment}`;
 	}
 
-	async formatAttachment(attr: ANAttributeRun): Promise<string> {
+	async formatAttachment(attr: ANAttributeRun, parentNotePath: string): Promise<string> {
 		let row, id, converter;
 
 		switch (attr.attachmentInfo?.typeUti) {
@@ -313,7 +313,7 @@ export class NoteConverter extends ANConverter {
 					SELECT ztokencontentidentifier FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
-				return await this.getInternalLink(row.ZTOKENCONTENTIDENTIFIER);
+				return await this.getInternalLink(row.ZTOKENCONTENTIDENTIFIER, undefined, parentNotePath);
 
 			case ANAttachment.Table:
 				row = await this.importer.database.get`
@@ -336,7 +336,7 @@ export class NoteConverter extends ANConverter {
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				converter = this.importer.decodeData(row.zhexdata, ScanConverter);
-				return await converter.format();
+				return await converter.format(false, parentNotePath);
 
 			case ANAttachment.ModifiedScan:
 			case ANAttachment.DrawingLegacy:
@@ -368,7 +368,7 @@ export class NoteConverter extends ANConverter {
 
 		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
 		let link = attachment
-			? `\n${this.app.fileManager.generateMarkdownLink(attachment, '/')}\n` 
+			? `\n${this.app.fileManager.generateMarkdownLink(attachment, parentNotePath)}\n` 
 			: ` **(error reading attachment)**`;
 		
 		if (this.importer.includeHandwriting && row.ZHANDWRITINGSUMMARY) {
@@ -378,7 +378,7 @@ export class NoteConverter extends ANConverter {
 		return link;
 	}
 
-	async getInternalLink(uri: string, name: string | undefined = undefined): Promise<string> {
+	async getInternalLink(uri: string, name: string | undefined = undefined, parentNotePath = ''): Promise<string> {
 		const identifier = uri.match(NOTE_URI)![1];
 
 		const row = await this.importer.database.get`
@@ -389,7 +389,7 @@ export class NoteConverter extends ANConverter {
 		if (!file) return '(unknown file link)';
 
 		return this.app.fileManager.generateMarkdownLink(
-			file, this.importer.rootFolder.path, undefined, name
+			file, parentNotePath, undefined, name
 		);
 	}
 

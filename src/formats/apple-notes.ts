@@ -261,7 +261,7 @@ export class AppleNotesImporter extends FormatImporter {
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
-		this.vault.modify(file, await converter.format(), {
+		this.vault.modify(file, await converter.format(false, file.path), {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
