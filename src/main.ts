@@ -444,7 +444,7 @@ export class ImporterModal extends Modal {
 							if (this.current === ctx) {
 								this.current = null;
 							}
-							buttonsEl.createEl('button', { text: 'Upload more' }, el => {
+							buttonsEl.createEl('button', { text: 'Import more' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
 							cancelButtonEl.detach();
