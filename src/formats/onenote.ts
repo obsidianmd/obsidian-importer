@@ -4,6 +4,7 @@ import { genUid, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
+import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -548,13 +549,14 @@ export class OneNoteImporter extends FormatImporter {
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
 			let html = await this.getAllAttachments(progress, taggedPage.replace(PARAGRAPH_REGEX, '<br />'));
-			let parsedPage = this.styledElementToHTML(html);
-			parsedPage = this.convertInternalLinks(parsedPage);
-			parsedPage = this.convertDrawings(parsedPage);
-			parsedPage = this.removeExtraListItemParagraphs(parsedPage);
-			this.escapeTextNodes(parsedPage);
+			this.combineCodeBlocksAsNecessary(html);
+			this.styledElementToHTML(html);
+			this.convertInternalLinks(html);
+			this.convertDrawings(html);
+			this.removeExtraListItemParagraphs(html);
+			this.escapeTextNodes(html);
 
-			let mdContent = htmlToMarkdown(parsedPage).trim().replace(PARAGRAPH_REGEX, ' ');
+			let mdContent = htmlToMarkdown(html).trim().replace(PARAGRAPH_REGEX, ' ');
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
 			// Add the last modified and creation time metadata
@@ -573,7 +575,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	/** Escape characters which will cause problems after converting to markdown. */
-	escapeTextNodes(node: ChildNode) {
+	escapeTextNodes(node: ChildNode): void {
 		if (node.nodeType === Node.TEXT_NODE && node.textContent) {
 			node.textContent = node.textContent
 				.replace(/([<>])/g, '\\$1');
@@ -640,7 +642,7 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement.outerHTML;
 	}
 
-	convertInternalLinks(pageElement: HTMLElement): HTMLElement {
+	convertInternalLinks(pageElement: HTMLElement): void {
 		const links: HTMLAnchorElement[] = pageElement.findAll('a') as HTMLAnchorElement[];
 		for (const link of links) {
 			if (link.href.startsWith('onenote:')) {
@@ -649,7 +651,6 @@ export class OneNoteImporter extends FormatImporter {
 				link.href = link.href.slice(startIdx, endIdx);
 			}
 		}
-		return pageElement;
 	}
 
 	getEntityPathNoParent(entityID: string, currentPath: string): string | null {
@@ -860,8 +861,37 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
+	/**
+	 * Given code blocks in separate paragraphs that are only separated by a
+	 * single newline (br), combine them.
+	 */
+	combineCodeBlocksAsNecessary(pageElement: HTMLElement): void {
+		const paragraphs = pageElement.querySelectorAll('p:has(+ br + p)');
+		// querySelectorAll must return results in document order, so we should combine nodes in reverse order
+		Array.from(paragraphs).reverse().forEach((p) => {
+			const firstParagraph = p;
+			const lineBreak = p.nextElementSibling;
+			if (!isBRElement(lineBreak)) {
+				throw new Error(`Expected a <br> element after the paragraph, but found: ${lineBreak?.nodeName}`);
+			}
+			const secondParagraph = lineBreak.nextElementSibling;
+			if (isParagraphWrappingOnlyCode(firstParagraph)
+					&& isParagraphWrappingOnlyCode(secondParagraph)) {
+				// move the line break ...
+				firstParagraph.appendChild(lineBreak);
+				// .. and add another line break to capture the newline between
+				// the two paragraphs
+				firstParagraph.appendChild(lineBreak.cloneNode());
+				// ... and clone second paragraph's children into the first paragraph
+				firstParagraph.insertAdjacentHTML('beforeend', secondParagraph.innerHTML);
+				// clean-up the DOM (linebreak was moved, second paragraph wasn't)
+				secondParagraph.remove();
+			}
+		});
+	}
+
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
-	styledElementToHTML(pageElement: HTMLElement): HTMLElement {
+	styledElementToHTML(pageElement: HTMLElement): void {
 		// Map styles to their elements
 		const styleMap: { [key: string]: string } = {
 			'font-weight:bold': 'b',
@@ -874,47 +904,60 @@ export class OneNoteImporter extends FormatImporter {
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
 
-		// Convert preformatted text into code blocks
-		let inCodeBlock: boolean = false;
-		let codeElement: HTMLElement = document.createElement('pre');
-
 		const elements = pageElement.querySelectorAll('*');
 		elements.forEach(element => {
-			const style = element.getAttribute('style') || '';
-			const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
-
-			if (style?.contains('font-family:Consolas')) {
-				if (!inCodeBlock) {
-					inCodeBlock = true;
-					element.replaceWith(codeElement);
-					codeElement.innerHTML = '```\n' + element.innerHTML + '\n```';
-				}
-				else {
-					// Append the content and add fences in case there's no next element
-					codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + element.innerHTML + '\n```';
-				}
-			}
-			else if (element.nodeName === 'BR' && inCodeBlock) {
-				codeElement.innerHTML = codeElement.innerHTML.slice(0, -3) + '\n```';
-			}
-			else if (element.nodeName === 'TD') {
-				// Do not replace table cells if they are styled.
-				element.removeAttribute('style');
+			if (!pageElement.contains(element)) {
+				// already processed and removed, can skip
 				return;
 			}
+			
+			if (isInlineCodeSpan(element)) {
+				// Convert preformatted text into an inline code span
+				const codeElement = document.createElement('code');
+				codeElement.innerHTML = element.innerHTML;
+				element.replaceWith(codeElement);
+			}
+			else if (isFenceCodeBlock(element)) {
+				// Convert preformatted text into a code fence
+				const codeBlockItems: string[] = [element.innerHTML];
+				getSiblingsInSameCodeBlock(element).forEach(sibling => {
+					codeBlockItems.push(
+						isBRElement(sibling) ? '\n' : sibling.innerHTML
+					);
+					sibling.remove();
+				});
+				
+				// wrap the code in a pre element
+				const codeElement = document.createElement('pre');
+				codeElement.innerHTML = 
+					'```\n' +
+					codeBlockItems.join('') +
+					'\n```';
+
+				// replace the original node with the pre element
+				element.replaceWith(codeElement);
+			}
 			else {
-				if (matchingStyle) {
-					const newElementTag = styleMap[matchingStyle];
-					const newElement = document.createElement(newElementTag);
-					newElement.innerHTML = element.innerHTML;
-					element.replaceWith(newElement);
+				if (element.nodeName === 'TD') {
+					// Do not replace table cells if they are styled.
+					element.removeAttribute('style');
+					return;
+				}
+				else {
+					const style = element.getAttribute('style') || '';
+					const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
+					if (matchingStyle) {
+						const newElementTag = styleMap[matchingStyle];
+						const newElement = document.createElement(newElementTag);
+						newElement.innerHTML = element.innerHTML;
+						element.replaceWith(newElement);
+					}
 				}
 			}
 		});
-		return pageElement;
 	}
 
-	convertDrawings(element: HTMLElement): HTMLElement {
+	convertDrawings(element: HTMLElement): void {
 		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT);
 		let hasDrawings: boolean = false;
@@ -937,7 +980,6 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 		}
-		return element;
 	}
 
 	// OneNote wraps list items in an extra, marginless paragraph. Remove these
@@ -965,7 +1007,7 @@ export class OneNoteImporter extends FormatImporter {
 	//	</ul>
 	//
 	// https://github.com/obsidianmd/obsidian-importer/issues/363
-	removeExtraListItemParagraphs(element: HTMLElement): HTMLElement {
+	removeExtraListItemParagraphs(element: HTMLElement): void {
 		// if the first list item child is a paragraph
 		element.querySelectorAll('li > p:first-child').forEach((p) => {
 			if (
@@ -977,8 +1019,6 @@ export class OneNoteImporter extends FormatImporter {
 				p.replaceWith(...Array.from(p.childNodes));
 			}
 		});
-
-		return element;
 	}
 	
 
