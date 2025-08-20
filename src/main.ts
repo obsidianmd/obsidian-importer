@@ -335,11 +335,11 @@ export default class ImporterPlugin extends Plugin {
 	}
 
 	async loadData(): Promise<ImporterData> {
-	    return Object.assign({}, DEFAULT_DATA, await super.loadData());
+		return Object.assign({}, DEFAULT_DATA, await super.loadData());
 	}
 
 	async saveData(data: ImporterData): Promise<void> {
-	    await super.saveData(data);
+		await super.saveData(data);
 	}
 
 	/**
