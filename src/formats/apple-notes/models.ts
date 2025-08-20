@@ -13,7 +13,7 @@ export abstract class ANConverter {
 		this.app = importer.app;
 	}
 
-	abstract format(): Promise<string>;
+	abstract format(table?: boolean, parentNotePath?: string): Promise<string>;
 }
 
 export type ANConverterType<T extends ANConverter> = {

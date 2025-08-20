@@ -16,7 +16,7 @@ export class ScanConverter extends ANConverter {
 		this.objects = this.scan.mergeableDataObjectData.mergeableDataObjectEntry;
 	}
 
-	async format(): Promise<string> {
+	async format(_table: boolean, parentNotePath: string): Promise<string> {
 		const links = [];
 
 		for (const object of this.objects) {
@@ -32,7 +32,7 @@ export class ScanConverter extends ANConverter {
 			if (!file) file = await this.importer.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 
 			if (file) {
-				links.push(this.importer.app.fileManager.generateMarkdownLink(file!, '/'));
+				links.push(this.importer.app.fileManager.generateMarkdownLink(file!, parentNotePath));
 			}
 			else {
 				return '**Cannot decode scan**';
