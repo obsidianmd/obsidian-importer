@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Formatierter Text</title>
+  <text xml:space="preserve"><note-content version="0.1">Formatierter Text
+
+Text kann auch manchmal <bold>fett sein, ohne eine Überschrift </bold>zu sein. Außerdem gibt es <italic>kursiven </italic>Text. Und solcher mit <monospace>festerBreite</monospace>.
+
+<list><list-item dir="ltr">Das <bold>ganze <italic>kann </italic></bold><strikethrough>natürlich</strikethrough> auch <monospace>in einer </monospace><link:internal>Aufzählung</link:internal> <highlight>vorkommen</highlight>!!!
+</list-item><list-item dir="ltr">Und in <bold><italic><strikethrough><highlight><monospace>Kombinationen</monospace></highlight></strikethrough></italic></bold>
+</list-item><list-item dir="ltr"> Und dann auf einmal wieder:</list-item></list>
+
+<size:large><link:internal>Überschriften</link:internal></size:large><size:large>...
+
+</size:large>Wer hätte das gedacht?</note-content></text>
+  <last-change-date>2025-09-04T22:55:24.8522660+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:55:24.8522660+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:50:30.5378330+02:00</create-date>
+  <cursor-position>284</cursor-position>
+  <selection-bound-position>284</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

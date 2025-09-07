@@ -9,6 +9,7 @@ import { NotionImporter } from './formats/notion';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
+import { TomboyImporter } from './formats/tomboy';
 import { truncateText } from './util';
 
 declare global {
@@ -289,6 +290,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Textbundle (.textbundle, .textpack)',
 				importer: TextbundleImporter,
 				helpPermalink: 'import/textbundle',
+			},
+			'tomboy': {
+				name: 'Tomboy',
+				optionText: 'Tomboy (.note)',
+				importer: TomboyImporter,
+				helpPermalink: 'import/tomboy',
 			},
 		};
 

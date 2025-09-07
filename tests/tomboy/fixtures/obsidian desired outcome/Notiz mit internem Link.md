@@ -1,0 +1,1 @@
+Diese Notiz verlinkt die [[Einfache Beispielnotiz]]. Und enthält ansonsten nur Text.
