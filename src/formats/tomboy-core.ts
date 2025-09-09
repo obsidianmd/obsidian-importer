@@ -189,6 +189,18 @@ export class TomboyCoreConverter {
 		let result = '';
 
 		contentLines.forEach((line, lineIndex) => {
+			let lineText = '';
+
+			// Check if the first section of this line is a list item
+			const firstSection = line.contentSections[0];
+			let listPrefix = '';
+			if (firstSection && firstSection.xmlPath.includes('list-item')) {
+				// Calculate nesting depth from xmlPath (e.g., "list/list-item" = depth 1)
+				const depth = (firstSection.xmlPath.match(/\/list\//g) || []).length;
+				const indent = '    '.repeat(depth);
+				listPrefix = indent + '- ';
+			}
+
 			line.contentSections.forEach(section => {
 				let text = section.text;
 
@@ -208,8 +220,11 @@ export class TomboyCoreConverter {
 				}
 				// Note: Size tags (headings) will be handled separately after basic functionality works
 
-				result += text;
+				lineText += text;
 			});
+
+			// Add list prefix to the line if it's a list item
+			result += listPrefix + lineText;
 
 			// Add newline after each line (except potentially the last one)
 			if (lineIndex < contentLines.length - 1) {
