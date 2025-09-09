@@ -15,7 +15,21 @@ export interface TomboyNote {
 	tags: string[];
 }
 
+/**
+ * Tracks formatting spans for proper tag ordering
+ */
+interface FormatSpan {
+	format: string;
+	openTag: string;
+	closeTag: string;
+}
+
 export class TomboyCoreConverter {
+	/**
+	 * Stack to track active formatting spans for proper tag ordering
+	 */
+	private activeFormatStack: FormatSpan[] = [];
+
 	/**
 	 * Parse Tomboy XML content into structured format
 	 */
@@ -185,6 +199,155 @@ export class TomboyCoreConverter {
 	}
 
 	/**
+	 * Stream-based formatting analysis for a line of content sections
+	 */
+	private formatLineStream(sections: Array<ContentSection>, isBoldIgnored: boolean): string {
+		let result = '';
+		let activeFormats: Set<string> = new Set();
+		let trailingWhitespacePrevious = '';
+
+		sections.forEach((section, sectionIndex) => {
+			let sectionText = section.text;
+
+			// Extract and preserve whitespace that should stay outside formatting
+			const { coreText, leadingWhitespace, trailingWhitespace } = this.extractWhitespaceFromText(sectionText);
+
+			// Determine formatting changes for this section's core content
+			const formats: { [key: string]: boolean } = {
+				strikethrough: section.xmlPath.includes('strikethrough'),
+				highlight: section.xmlPath.includes('highlight'),
+				bold: !isBoldIgnored && section.xmlPath.includes('bold'),
+				italic: section.xmlPath.includes('italic'),
+				monospace: section.xmlPath.includes('monospace'),
+			};
+
+			const isLink = section.xmlPath.includes('link:internal');
+
+			// Handle formatting transitions for core content
+			const formatChanges = this.calculateFormattingChanges(activeFormats, formats);
+
+			// Apply closing formats before trailing whitespace
+			result += formatChanges.closeTags;
+
+			// Add whitespace (always outside formatting)
+			result += trailingWhitespacePrevious + leadingWhitespace;
+
+			// Apply opening formats before core text
+			result += formatChanges.openTags;
+
+			// Push new spans to stack (after opening tags are applied)
+			if (formatChanges.openingSpans) {
+				formatChanges.openingSpans.forEach(span => this.activeFormatStack.push(span));
+			}
+
+			// Internal links are always assumed to span just 1 section
+			if (isLink) {
+				result += `[[`;
+			}
+
+			// Add the core section text
+			result += coreText;
+
+			if (isLink) {
+				result += `]]`;
+			}
+
+			// Update active formats
+			activeFormats = new Set(Object.keys(formats).filter(key => formats[key]));
+
+			trailingWhitespacePrevious = trailingWhitespace;
+		});
+
+		// Close any remaining formats from stack (preserves proper ordering)
+		while (this.activeFormatStack.length > 0) {
+			result += this.activeFormatStack.pop()!.closeTag;
+		}
+
+		return result;
+	}
+
+	/**
+	 * Calculate formatting changes between current and new format states using stack-based ordering
+	 */
+	private calculateFormattingChanges(currentFormats: Set<string>, newFormats: { [key: string]: boolean }) {
+		const closeTags: string[] = [];
+
+		// Handle closing tags first - must be in reverse order of nesting
+		while (this.activeFormatStack.length > 0) {
+			const lastSpan = this.activeFormatStack[this.activeFormatStack.length - 1];
+			const format = lastSpan.format;
+
+			if (!newFormats[format]) {
+				// This format ends - close it and remove from stack
+				closeTags.push(lastSpan.closeTag);
+				this.activeFormatStack.pop();
+			} else {
+				// This format continues - stop checking (maintains proper nesting order)
+				break;
+			}
+		}
+
+		// Handle opening tags - push to stack in opening order
+		const openingFormats: FormatSpan[] = [];
+		Object.keys(newFormats).forEach(format => {
+			if (newFormats[format] && !currentFormats.has(format)) {
+				const tag = this.getMarkdownTag(format);
+				const span: FormatSpan = {
+					format: format,
+					openTag: tag.open,
+					closeTag: tag.close
+				};
+				openingFormats.push(span);
+				// Don't push to stack yet - only push after we've finalized all changes
+			}
+		});
+
+		return {
+			closeTags: closeTags.join(''),
+			openTags: openingFormats.map(span => span.openTag).join(''),
+			openingSpans: openingFormats
+		};
+	}
+
+	/**
+	 * Get markdown tag pair for a formatting type
+	 */
+	private getMarkdownTag(format: string): { open: string, close: string } {
+		switch (format) {
+			case 'bold':
+				return { open: '**', close: '**' };
+			case 'italic':
+				return { open: '*', close: '*' };
+			case 'strikethrough':
+				return { open: '~~', close: '~~' };
+			case 'monospace':
+				return { open: '`', close: '`' };
+			case 'highlight':
+				return { open: '==', close: '==' };
+			default:
+				return { open: '', close: '' };
+		}
+	}
+
+	/**
+	 * Extract whitespace from text and return core content separately
+	 */
+	private extractWhitespaceFromText(text: string): { coreText: string, leadingWhitespace: string, trailingWhitespace: string } {
+		const leadingMatch = text.match(/^\s*/);
+		const trailingMatch = text.match(/\s*$/);
+
+		const leadingWhitespace = leadingMatch ? leadingMatch[0] : '';
+		const trailingWhitespace = trailingMatch ? trailingMatch[0] : '';
+		const coreText = text.substring(leadingWhitespace.length, text.length - trailingWhitespace.length);
+
+		return {
+			coreText,
+			leadingWhitespace,
+			trailingWhitespace
+		};
+	}
+
+	/**
 	 * Convert structured content lines to Markdown
 	 */
 	private convertStructuredContent(contentLines: Array<ContentLine>): string {
@@ -205,6 +368,7 @@ export class TomboyCoreConverter {
 
 			// Check for headings and lists (entire line analysis)
 			let headingPrefix = '';
+			let isBoldConsumedInHeading = false;
 			if (line.contentSections.length > 0) {
 				const paths = line.contentSections.map(section => section.xmlPath);
 				const allBold = paths.every(path => path.includes('bold'));
@@ -229,6 +393,7 @@ export class TomboyCoreConverter {
 					}
 					if(allBold) {
 						headingLevel -= 1;
+						isBoldConsumedInHeading = true;
 					}
 
 					const hashes = '#'.repeat(headingLevel);
@@ -236,27 +401,8 @@ export class TomboyCoreConverter {
 				}
 			}
 
-			line.contentSections.forEach(section => {
-				let text = section.text;
-
-				// Apply formatting based on xmlPath
-				if (section.xmlPath.includes('link:internal')) {
-					text = `[[${text}]]`;
-				} else if (section.xmlPath.includes('bold')) {
-					text = `**${text}**`;
-				} else if (section.xmlPath.includes('italic')) {
-					text = `*${text}*`;
-				} else if (section.xmlPath.includes('strikethrough')) {
-					text = `~~${text}~~`;
-				} else if (section.xmlPath.includes('monospace')) {
-					text = `\`${text}\``;
-				} else if (section.xmlPath.includes('highlight')) {
-					text = `==${text}==`;
-				}
-				// Note: Size tags (headings) will be handled separately after basic functionality works
-
-				lineText += text;
-			});
+			// Stream-based formatting: analyze entire line for proper tag placement
+			lineText = this.formatLineStream(line.contentSections, isBoldConsumedInHeading);
 
 			// Apply heading or list prefix to the line
 			if (headingPrefix) {
