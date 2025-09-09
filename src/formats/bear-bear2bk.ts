@@ -72,6 +72,10 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
+
+		// Keep track of Bear IDs to new Obsidian file names to update links based on the identifier
+		let idMapping: Record<string, Record<string, any>> = {};
+
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -158,9 +162,16 @@ export class Bear2bkImporter extends FormatImporter {
 							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
 
 							if (this.storeId || metadata?.ctime || metadata?.mtime || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
-								await this.updateNoteFile(metadata, file, mdContent, tags);
+								mdContent = await this.updateNoteFrontMatter(metadata, file, mdContent, tags);
 							}
 							
+							idMapping[metadata?.id] = {
+								filename: fileName,
+								metadata: metadata,
+								file: file,
+								mdContent: mdContent,
+							};
+
 							ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
@@ -195,9 +206,15 @@ export class Bear2bkImporter extends FormatImporter {
 				}
 			});
 		}
+
+		ctx.status('Updating internal links…');
+
+		// Second pass to update links based on note IDs
+		this.updateNotesLinks(idMapping);
+
 	}
 
-	private async updateNoteFile(metaData: Metadata | undefined, file: TFile, content: string, tags: string[]): Promise<string> {
+	private async updateNoteFrontMatter(metaData: Metadata | undefined, file: TFile, content: string, tags: string[]): Promise<string> {
 		// Check if the content already has frontmatter
 		if (content.startsWith('---\n')) {
 			// Content already has frontmatter, don't add new frontmatter
@@ -259,6 +276,33 @@ export class Bear2bkImporter extends FormatImporter {
 		await this.vault.modify(file, contentWithFrontmatter, writeOptions);
 		
 		return contentWithFrontmatter;
+	}
+
+	private updateNotesLinks(idMapping: Record<string, Record<string, any>>): Promise<void> {
+		const updatePromises = Object.values(idMapping).map(async (note) => {
+			const { metadata, file, mdContent } = note;
+			const updatedContent = this.updateNoteLinks(idMapping, mdContent);
+			if (updatedContent !== mdContent) {
+				// Update the file only if content changed
+				// Still set the file system timestamps
+				const writeOptions: DataWriteOptions = {
+					ctime: metadata?.ctime,
+					mtime: metadata?.mtime,
+				};
+				await this.vault.modify(file, updatedContent, writeOptions);
+			}
+		});
+		return Promise.all(updatePromises).then(() => {});
+	}
+
+	private updateNoteLinks(idMapping: Record<string, Record<string, any>>, content: string): string {
+		return content.replace(/bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g, (match, noteId) => {
+			const noteTitle = idMapping[noteId]?.filename;
+			if (noteTitle) {
+				return encodeURI(noteTitle);
+			}
+			return match; // No change if ID not found
+		});
 	}
 
 	private async collectMetadata(ctx: ImportContext, entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
