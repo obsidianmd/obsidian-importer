@@ -1,3 +1,5 @@
+import path from "path";
+
 export interface ContentSection {
 	text: string;
 	xmlPath: string;
@@ -201,6 +203,39 @@ export class TomboyCoreConverter {
 				listPrefix = indent + '- ';
 			}
 
+			// Check for headings and lists (entire line analysis)
+			let headingPrefix = '';
+			if (line.contentSections.length > 0) {
+				const paths = line.contentSections.map(section => section.xmlPath);
+				const allBold = paths.every(path => path.includes('bold'));
+				const allHuge = paths.every(path => path.includes('size:huge'));
+				const allLarge = paths.every(path => path.includes('size:large'));
+
+				// Check if the first section of this line is a list item
+				const firstSection = line.contentSections[0];
+				const isList = firstSection.xmlPath.includes('list-item');
+				if (isList) {
+					// Calculate nesting depth from xmlPath (e.g., "list/list-item" = depth 1)
+					const depth = (firstSection.xmlPath.match(/\/list\//g) || []).length;
+					const indent = '    '.repeat(depth);
+					listPrefix = indent + '- ';
+				} else if (allBold || allHuge || allLarge) {
+					// Calculate heading level based on formatting
+					let headingLevel = 6;
+					if(allHuge) {
+						headingLevel -= 4;
+					} else if(allLarge) {
+						headingLevel -= 2;
+					}
+					if(allBold) {
+						headingLevel -= 1;
+					}
+
+					const hashes = '#'.repeat(headingLevel);
+					headingPrefix = hashes + ' ';
+				}
+			}
+
 			line.contentSections.forEach(section => {
 				let text = section.text;
 
@@ -223,8 +258,12 @@ export class TomboyCoreConverter {
 				lineText += text;
 			});
 
-			// Add list prefix to the line if it's a list item
-			result += listPrefix + lineText;
+			// Apply heading or list prefix to the line
+			if (headingPrefix) {
+				result += headingPrefix + lineText.trim();
+			} else {
+				result += listPrefix + lineText;
+			}
 
 			// Add newline after each line (except potentially the last one)
 			if (lineIndex < contentLines.length - 1) {
