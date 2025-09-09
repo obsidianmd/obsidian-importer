@@ -1,57 +1,68 @@
-import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice, TFile, Setting } from 'obsidian';
 import { path, parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
 
 type Metadata = {
+	id: string;
 	ctime?: number;
 	mtime?: number;
-	archived: boolean;
-	trashed: boolean;
+	archivedtime?: number;
+	trashedtime?: number;
 };
 
 export class Bear2bkImporter extends FormatImporter {
 	private attachmentMap: Record<string, string> = {};
+	private flattenTags: boolean = false;
+	private storeId: boolean = false;
 
 	init() {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
+
+		new Setting(this.modal.contentEl)
+			.setName('Flatten nested tags')
+			.setDesc(
+				'When enabled, tags will be split on slashes (/) during import.'
+			)
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => this.flattenTags = v)
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Store note identifiers in front matter')
+			.setDesc(
+				'This can be useful if you refered to those identifiers elsewhere than in Bear itself.'
+			)
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => this.storeId = v)
+			);
+
 	}
 
 	private extractTagsFromContent(content: string): string[] {
 		const tags = new Set<string>();
 
-		// 1. Extract #enclosed/tags# (can contain spaces and slashes, but content should be single-line)
-		const enclosedTagRegex = /#([^\n#]+?)#/g; // Changed [^#] to [^\n#] to disallow newlines in tag content
-		let matchEnclosed;
-		while ((matchEnclosed = enclosedTagRegex.exec(content)) !== null) {
-			const rawEnclosedTag = matchEnclosed[1].trim();
-			if (rawEnclosedTag) {
-				const parts = rawEnclosedTag.split('/');
-				for (const part of parts) {
-					const cleanPart = part.trim();
-					if (cleanPart) {
-						tags.add(cleanPart);
-					}
-				}
-			}
-		}
-
-		// 2. Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
+		// Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
 		//    Ensures it's not part of a URL or an already processed enclosed tag.
 		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
-		const simpleTagRegex = /(?<!\S)#([a-zA-Z0-9_][a-zA-Z0-9_/\-]*[a-zA-Z0-9_]|[a-zA-Z0-9_]+)(?![#\w/])/g;
+		//    Diacritics regex range from https://stackoverflow.com/questions/30225552/regex-for-diacritics
+		const simpleTagRegex = /(?<!\S)#([A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_][A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]*[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]|[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]+)(?![#\w/])/g;
 		let matchSimple;
 		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
 			const rawSimpleTag = matchSimple[1].trim(); 
-			if (rawSimpleTag) {
-				const parts = rawSimpleTag.split('/');
-				for (const part of parts) {
-					const cleanPart = part.trim();
-					if (cleanPart) {
-						tags.add(cleanPart);
+			if (rawSimpleTag !== '') {
+				if (this.flattenTags && rawSimpleTag.includes('/')) {
+					const parts = rawSimpleTag.split('/');
+					for (const part of parts) {
+						tags.add(part);
 					}
+				}
+				else {
+					tags.add(rawSimpleTag);
 				}
 			}
 		}
@@ -89,7 +100,7 @@ export class Bear2bkImporter extends FormatImporter {
 				for (let entry of entries) {
 					if (ctx.isCancelled()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
-					if (name === 'info.json' || name === 'tags.json') {
+					if (name === 'info.json' || name === 'tags.json' || name === 'backup.json') {
 						continue;
 					}
 					ctx.status('Processing ' + name);
@@ -118,6 +129,18 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
+							// Replace spaces in enclosed tags with underscores and make them classic tags
+							mdContent = mdContent.replace(/#([^\n#]+?[^\s])#/g, (_match, tag) => { // require non-space before closing to avoid using next tag's opening #
+								return '#' + tag.replace(/\s+/g, '_');
+							});
+
+							// Remove special characters in simple tags
+							mdContent = mdContent.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
+								let cleanTag = tag.replace(/[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]/g, '_');
+								cleanTag = cleanTag.replace(/_+/g, '_'); // collapse multiple underscores
+								return '#' + cleanTag;
+							});
+							
 							// Extract tags from content
 							const tags = this.extractTagsFromContent(mdContent);
 
@@ -125,16 +148,16 @@ export class Bear2bkImporter extends FormatImporter {
 							const fileName = mdFilename;
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
-							if (metadata?.archived) {
+							if (metadata?.archivedtime !== undefined) {
 								targetFolder = archiveFolder;
 							}
-							else if (metadata?.trashed) {
+							else if (metadata?.trashedtime !== undefined) {
 								targetFolder = trashFolder;
 							}
 
 							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
-							
-							if (metadata?.ctime || metadata?.mtime || tags.length > 0) {
+
+							if (this.storeId || metadata?.ctime || metadata?.mtime || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
 								await this.updateNoteFile(metadata, file, mdContent, tags);
 							}
 							
@@ -191,11 +214,20 @@ export class Bear2bkImporter extends FormatImporter {
 		
 		// Format dates in the specified format: YYYY-MM-DDThh:mm:ss
 		const frontmatter: Record<string, any> = {}; // Changed to Record<string, any> for tags array
+		if (this.storeId && metaData?.id) {
+			frontmatter['id'] = metaData.id;
+		}
 		if (metaData?.ctime) {
 			frontmatter['created'] = new Date(metaData.ctime).toISOString().slice(0, 19);
 		}
 		if (metaData?.mtime) {
 			frontmatter['modified'] = new Date(metaData.mtime).toISOString().slice(0, 19);
+		}
+		if (metaData?.archivedtime) {
+			frontmatter['archived'] = new Date(metaData.archivedtime).toISOString().slice(0, 19);
+		}
+		if (metaData?.trashedtime) {
+			frontmatter['trashed'] = new Date(metaData.trashedtime).toISOString().slice(0, 19);
 		}
 
 		if (tags.length > 0) {
@@ -241,13 +273,17 @@ export class Bear2bkImporter extends FormatImporter {
 			const info = JSON.parse(infoJson);
 
 			const bearMetadata = info['net.shinyfrog.bear'];
+			const id = bearMetadata.uniqueIdentifier;
 			const creationDate = Date.parse(bearMetadata.creationDate);
 			const modificationDate = Date.parse(bearMetadata.modificationDate);
+			const archivedDate = Date.parse(bearMetadata.archivedDate);
+			const trashedDate = Date.parse(bearMetadata.trashedDate);
 			metaData[entry.parent] = {
+				id: id,
 				ctime: isNaN(creationDate) ? undefined : creationDate,
 				mtime: isNaN(modificationDate) ? undefined : modificationDate,
-				archived: bearMetadata.archived === 1,
-				trashed: bearMetadata.trashed === 1,
+				archivedtime: isNaN(archivedDate) || bearMetadata.archived !== 1 ? undefined : archivedDate,
+				trashedtime: isNaN(trashedDate) || bearMetadata.trashed !== 1 ? undefined : trashedDate,
 			};
 		}
 		return metaData;
