@@ -31,6 +31,33 @@ export class TomboyCoreConverter {
 	private activeFormatStack: FormatSpan[] = [];
 
 	/**
+	 * Flag to enable TODO list functionality
+	 */
+	private todoEnabled: boolean = false;
+
+	/**
+	 * Enable or disable TODO list processing
+	 */
+	setTodoEnabled(enabled: boolean): void {
+		this.todoEnabled = enabled;
+	}
+
+	/**
+	 * Check if all sections of a list item have strikethrough formatting (simplified requirement)
+	 */
+	private isFullyStrikethrough(sections: Array<ContentSection>): boolean {
+		return sections.every(section => section.xmlPath.includes('strikethrough'));
+	}
+
+	/**
+	 * Check if a note title contains TODO keywords
+	 */
+	private isTodoTitle(title: string): boolean {
+		const todoKeywords = ['TODO', 'Todo', 'To Do', 'todo', 'to do'];
+		return todoKeywords.some(keyword => title.includes(keyword));
+	}
+
+	/**
 	 * Parse Tomboy XML content into structured format
 	 */
 	parseTomboyXML(xmlContent: string): TomboyNote {
@@ -175,7 +202,7 @@ export class TomboyCoreConverter {
 	 */
 	convertToMarkdown(note: TomboyNote): string {
 		// Convert structured content to markdown
-		let markdownContent = this.convertStructuredContent(note.content);
+		let markdownContent = this.convertStructuredContent(note.content, note.title);
 
 		// Remove the title from the beginning of content (Tomboy duplicates it)
 		// The title appears as the first line in the content, so we need to remove it
@@ -201,7 +228,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Stream-based formatting analysis for a line of content sections
 	 */
-	private formatLineStream(sections: Array<ContentSection>, isBoldIgnored: boolean): string {
+	private formatLineStream(sections: Array<ContentSection>, isBoldIgnored: boolean, removeStrikethrough: boolean = false): string {
 		let result = '';
 		let activeFormats: Set<string> = new Set();
 		let trailingWhitespacePrevious = '';
@@ -214,7 +241,7 @@ export class TomboyCoreConverter {
 
 			// Determine formatting changes for this section's core content
 			const formats: { [key: string]: boolean } = {
-				strikethrough: section.xmlPath.includes('strikethrough'),
+				strikethrough: !removeStrikethrough && section.xmlPath.includes('strikethrough'),
 				highlight: section.xmlPath.includes('highlight'),
 				bold: !isBoldIgnored && section.xmlPath.includes('bold'),
 				italic: section.xmlPath.includes('italic'),
@@ -350,7 +377,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Convert structured content lines to Markdown
 	 */
-	private convertStructuredContent(contentLines: Array<ContentLine>): string {
+	private convertStructuredContent(contentLines: Array<ContentLine>, noteTitle: string): string {
 		let result = '';
 
 		contentLines.forEach((line, lineIndex) => {
@@ -359,31 +386,37 @@ export class TomboyCoreConverter {
 			// Check if the first section of this line is a list item
 			const firstSection = line.contentSections[0];
 			let listPrefix = '';
+			let isInTodoMode = false; // Declare outside if block
+
 			if (firstSection && firstSection.xmlPath.includes('list-item')) {
 				// Calculate nesting depth from xmlPath (e.g., "list/list-item" = depth 1)
 				const depth = (firstSection.xmlPath.match(/\/list\//g) || []).length;
 				const indent = '    '.repeat(depth);
-				listPrefix = indent + '- ';
+
+				// Check if this is a TODO list (title contains TODO keywords AND feature is enabled)
+				isInTodoMode = this.todoEnabled && this.isTodoTitle(noteTitle);
+
+				if (isInTodoMode) {
+					// Use simplified strikethrough detection: all sections must be strikethrough
+					const isCompleted = this.isFullyStrikethrough(line.contentSections);
+					const checkboxState = isCompleted ? '[x]' : '[ ]';
+					listPrefix = indent + '- ' + checkboxState + ' ';
+				} else {
+					// Regular list item
+					listPrefix = indent + '- ';
+				}
 			}
 
-			// Check for headings and lists (entire line analysis)
+			// Check for headings (entire line analysis) - lists already handled above
 			let headingPrefix = '';
 			let isBoldConsumedInHeading = false;
-			if (line.contentSections.length > 0) {
+			if (line.contentSections.length > 0 && listPrefix === '') {
 				const paths = line.contentSections.map(section => section.xmlPath);
 				const allBold = paths.every(path => path.includes('bold'));
 				const allHuge = paths.every(path => path.includes('size:huge'));
 				const allLarge = paths.every(path => path.includes('size:large'));
 
-				// Check if the first section of this line is a list item
-				const firstSection = line.contentSections[0];
-				const isList = firstSection.xmlPath.includes('list-item');
-				if (isList) {
-					// Calculate nesting depth from xmlPath (e.g., "list/list-item" = depth 1)
-					const depth = (firstSection.xmlPath.match(/\/list\//g) || []).length;
-					const indent = '    '.repeat(depth);
-					listPrefix = indent + '- ';
-				} else if (allBold || allHuge || allLarge) {
+				if (allBold || allHuge || allLarge) {
 					// Calculate heading level based on formatting
 					let headingLevel = 6;
 					if(allHuge) {
@@ -401,8 +434,11 @@ export class TomboyCoreConverter {
 				}
 			}
 
+			// Determine if we need to remove strikethrough for completed TODO items
+			const isCompletedTodoItem = isInTodoMode && this.isFullyStrikethrough(line.contentSections);
+
 			// Stream-based formatting: analyze entire line for proper tag placement
-			lineText = this.formatLineStream(line.contentSections, isBoldConsumedInHeading);
+			lineText = this.formatLineStream(line.contentSections, isBoldConsumedInHeading, isCompletedTodoItem);
 
 			// Apply heading or list prefix to the line
 			if (headingPrefix) {
