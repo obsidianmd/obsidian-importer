@@ -36,6 +36,11 @@ export class TomboyCoreConverter {
 	private todoEnabled: boolean = false;
 
 	/**
+	 * Track the most recent TODO heading for context-aware TODO mode
+	 */
+	private currentTodoHeading: { level: number } | null = null;
+
+	/**
 	 * Enable or disable TODO list processing
 	 */
 	setTodoEnabled(enabled: boolean): void {
@@ -53,8 +58,25 @@ export class TomboyCoreConverter {
 	 * Check if a note title contains TODO keywords
 	 */
 	private isTodoTitle(title: string): boolean {
-		const todoKeywords = ['TODO', 'Todo', 'To Do', 'todo', 'to do'];
+		const todoKeywords = ['TODO', 'Todo', 'To Do', 'todo', 'to do', 'ToDo'];
 		return todoKeywords.some(keyword => title.includes(keyword));
+	}
+
+	/**
+	 * Update TODO context based on heading level and text
+	 */
+	private updateTodoContext(headingLevel: number, headingText: string): void {
+		// Only update if this heading is at same level or higher than current TODO heading
+		if (!this.currentTodoHeading || headingLevel <= this.currentTodoHeading.level) {
+			const isTodo = this.isTodoTitle(headingText);
+			this.currentTodoHeading = isTodo 
+					? { level: headingLevel }
+					: null;
+		}
+	}
+
+	private isTodoMode() : boolean {
+		return this.todoEnabled && this.currentTodoHeading !== null;
 	}
 
 	/**
@@ -201,6 +223,9 @@ export class TomboyCoreConverter {
 	 * Convert structured Tomboy note to Markdown
 	 */
 	convertToMarkdown(note: TomboyNote): string {
+		// Initialize TODO context based on title, treat like H1 heading
+		this.updateTodoContext(1, note.title);
+
 		// Convert structured content to markdown
 		let markdownContent = this.convertStructuredContent(note.content, note.title);
 
@@ -386,20 +411,18 @@ export class TomboyCoreConverter {
 			// Check if the first section of this line is a list item
 			const firstSection = line.contentSections[0];
 			let listPrefix = '';
-			let isInTodoMode = false; // Declare outside if block
+			const isInTodoMode = this.isTodoMode(); // Declare outside if block
+			let isCompletedTodoItem = false;
 
 			if (firstSection && firstSection.xmlPath.includes('list-item')) {
 				// Calculate nesting depth from xmlPath (e.g., "list/list-item" = depth 1)
 				const depth = (firstSection.xmlPath.match(/\/list\//g) || []).length;
 				const indent = '    '.repeat(depth);
 
-				// Check if this is a TODO list (title contains TODO keywords AND feature is enabled)
-				isInTodoMode = this.todoEnabled && this.isTodoTitle(noteTitle);
-
 				if (isInTodoMode) {
 					// Use simplified strikethrough detection: all sections must be strikethrough
-					const isCompleted = this.isFullyStrikethrough(line.contentSections);
-					const checkboxState = isCompleted ? '[x]' : '[ ]';
+					isCompletedTodoItem = this.isFullyStrikethrough(line.contentSections);
+					const checkboxState = isCompletedTodoItem ? '[x]' : '[ ]';
 					listPrefix = indent + '- ' + checkboxState + ' ';
 				} else {
 					// Regular list item
@@ -431,11 +454,12 @@ export class TomboyCoreConverter {
 
 					const hashes = '#'.repeat(headingLevel);
 					headingPrefix = hashes + ' ';
+
+					// Update TODO context based on heading text
+					const headingText = line.contentSections.map(section => section.text).join('').trim();
+					this.updateTodoContext(headingLevel, headingText);
 				}
 			}
-
-			// Determine if we need to remove strikethrough for completed TODO items
-			const isCompletedTodoItem = isInTodoMode && this.isFullyStrikethrough(line.contentSections);
 
 			// Stream-based formatting: analyze entire line for proper tag placement
 			lineText = this.formatLineStream(line.contentSections, isBoldConsumedInHeading, isCompletedTodoItem);

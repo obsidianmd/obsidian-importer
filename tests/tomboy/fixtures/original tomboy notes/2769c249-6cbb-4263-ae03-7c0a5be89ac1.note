@@ -13,9 +13,9 @@
 
 Hier hört die Liste auf.
 
-<size:huge>Anmerkungen
+<size:huge><bold>Anmerkungen</bold>
 
-</size:huge><list><list-item dir="ltr">Das hier sollte dann vermutlich ikeine TODO-Liste mehr sein</list-item></list></note-content></text>
+</size:huge><list><list-item dir="ltr">Das hier sollte dann vermutlich keine TODO-Liste mehr sein</list-item></list></note-content></text>
   <last-change-date>2025-09-04T22:56:53.9751960+02:00</last-change-date>
   <last-metadata-change-date>2025-09-04T22:56:53.9785670+02:00</last-metadata-change-date>
   <create-date>2025-09-04T22:54:02.5630180+02:00</create-date>
