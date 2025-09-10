@@ -251,6 +251,14 @@ export class TomboyCoreConverter {
 	}
 
 	/**
+	 * Escape markdown special characters in text
+	 */
+	private escapeMarkdownSpecialChars(text: string): string {
+		// Escape markdown special characters that could interfere with formatting
+		return text.replace(/([\\`*_\[\]#])/g, '\\$1');
+	}
+
+	/**
 	 * Stream-based formatting analysis for a line of content sections
 	 */
 	private formatLineStream(sections: Array<ContentSection>, isBoldIgnored: boolean, removeStrikethrough: boolean = false): string {
@@ -263,6 +271,9 @@ export class TomboyCoreConverter {
 
 			// Extract and preserve whitespace that should stay outside formatting
 			const { coreText, leadingWhitespace, trailingWhitespace } = this.extractWhitespaceFromText(sectionText);
+
+			// Escape markdown special characters in core text to prevent interference
+			const escapedCoreText = this.escapeMarkdownSpecialChars(coreText);
 
 			// Determine formatting changes for this section's core content
 			const formats: { [key: string]: boolean } = {
@@ -297,8 +308,8 @@ export class TomboyCoreConverter {
 				result += `[[`;
 			}
 
-			// Add the core section text
-			result += coreText;
+			// Add the escaped core section text
+			result += escapedCoreText;
 
 			if (isLink) {
 				result += `]]`;
