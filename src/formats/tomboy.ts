@@ -1,4 +1,4 @@
-import { Notice, Setting, ToggleComponent } from 'obsidian';
+import { Notice, Setting, ToggleComponent, DropdownComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { TomboyCoreConverter } from './tomboy-core';
@@ -6,10 +6,12 @@ import { TomboyCoreConverter } from './tomboy-core';
 export class TomboyImporter extends FormatImporter {
 	private coreConverter: TomboyCoreConverter;
 	private todoEnabled: boolean;
+	private keepTitleMode: 'yes' | 'no' | 'automatic';
 
 	init() {
 		this.todoEnabled = true;
 		this.coreConverter = new TomboyCoreConverter();
+		this.keepTitleMode = 'automatic';
 
 		this.addFileChooserSetting('Tomboy', ['note'], true);
 		this.addOutputLocationSetting('Tomboy import');
@@ -20,6 +22,17 @@ export class TomboyImporter extends FormatImporter {
 			.addToggle((toggle: ToggleComponent) => {
 				toggle.setValue(this.todoEnabled)
 					  .onChange((value: boolean) => this.todoEnabled = value);
+			});
+
+		new Setting(this.modal.contentEl)
+			.setName('Keep title in markdown')
+			.setDesc('Choose whether to keep the note title in the markdown content. "Automatic" keeps titles only when special characters are lost in filename conversion.')
+			.addDropdown((dropdown: DropdownComponent) => {
+				dropdown.addOption('automatic', 'Automatic')
+					.addOption('yes', 'Yes')
+					.addOption('no', 'No')
+					.setValue(this.keepTitleMode)
+					.onChange((value: string) => this.keepTitleMode = value as 'yes' | 'no' | 'automatic');
 			});
 	}
 
@@ -56,6 +69,7 @@ export class TomboyImporter extends FormatImporter {
 	private async processFile(ctx: ImportContext, folder: any, file: any): Promise<void> {
 		const xmlContent = await file.readText();
 		this.coreConverter.setTodoEnabled(this.todoEnabled);
+		this.coreConverter.setKeepTitleMode(this.keepTitleMode);
 
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);

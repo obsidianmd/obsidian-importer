@@ -1,4 +1,5 @@
 import path from "path";
+import { sanitizeFileName } from '../util';
 
 export interface ContentSection {
 	text: string;
@@ -41,10 +42,22 @@ export class TomboyCoreConverter {
 	private currentTodoHeading: { level: number } | null = null;
 
 	/**
+	 * Mode for keeping titles in markdown
+	 */
+	private keepTitleMode: 'yes' | 'no' | 'automatic' = 'automatic';
+
+	/**
 	 * Enable or disable TODO list processing
 	 */
 	setTodoEnabled(enabled: boolean): void {
 		this.todoEnabled = enabled;
+	}
+
+	/**
+	 * Set the mode for keeping titles in markdown
+	 */
+	setKeepTitleMode(mode: 'yes' | 'no' | 'automatic'): void {
+		this.keepTitleMode = mode;
 	}
 
 	/**
@@ -175,7 +188,6 @@ export class TomboyCoreConverter {
 
 		// Convert NodeList to Array for iteration
 		Array.from(element.childNodes).forEach(child => {
-			console.log("XX" + child.nodeType + "----" + child.textContent + "---" + (child as Element).tagName);
 			if (child.nodeType === Node.TEXT_NODE) {
 				// Plain text node
 				const text = child.textContent || '';
@@ -227,16 +239,48 @@ export class TomboyCoreConverter {
 		// Convert structured content to markdown
 		let markdownContent = this.convertStructuredContent(note.content, note.title);
 
-		// Remove the title from the beginning of content (Tomboy duplicates it)
-		// The title appears as the first line in the content, so we need to remove it
-		const lines = markdownContent.split('\n');
-		if (lines.length > 0 && lines[0].trim() === note.title.trim()) {
-			// Remove the title line and any empty lines that follow it
-			let startIndex = 1;
-			while (startIndex < lines.length && lines[startIndex].trim() === '') {
-				startIndex++;
+		// Determine whether to keep the title based on user preference
+		const sanitizedTitle = sanitizeFileName(note.title);
+		const informationLost = note.title !== sanitizedTitle;
+
+		let shouldKeepTitle = false;
+
+		switch (this.keepTitleMode) {
+			case 'yes':
+				shouldKeepTitle = true;
+				break;
+			case 'no':
+				shouldKeepTitle = false;
+				break;
+			case 'automatic':
+			default:
+				shouldKeepTitle = informationLost;
+				break;
+		}
+
+		if (shouldKeepTitle) {
+			// Keep the title - format it as H1 if it's the first line
+			const lines = markdownContent.split('\n');
+			if (lines.length > 0) {
+				const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
+				if (lines[0].trim() === escapedTitle.trim()) {
+					// Replace the first line with H1 formatted title
+					lines[0] = `# ${note.title}`;
+					markdownContent = lines.join('\n');
+				}
 			}
-			markdownContent = lines.slice(startIndex).join('\n');
+		} else {
+			// Remove the title - same logic as before, but with proper escaping comparison
+			const lines = markdownContent.split('\n');
+			const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
+			if (lines.length > 0 && lines[0].trim() === escapedTitle.trim()) {
+				// Remove the title line and any empty lines that follow it
+				let startIndex = 1;
+				while (startIndex < lines.length && lines[startIndex].trim() === '') {
+					startIndex++;
+				}
+				markdownContent = lines.slice(startIndex).join('\n');
+			}
 		}
 
 		// Add tags as YAML frontmatter if present
