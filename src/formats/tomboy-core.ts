@@ -124,7 +124,7 @@ export class TomboyCoreConverter {
 		sections.forEach(section => {
 			const lines = section.text.split('\n');
 			lines.forEach((line, index) => {
-				if (line.trim()) { // Only add non-empty lines
+				if (line) {
 					expandedSections.push({
 						text: line,
 						xmlPath: section.xmlPath
@@ -175,6 +175,7 @@ export class TomboyCoreConverter {
 
 		// Convert NodeList to Array for iteration
 		Array.from(element.childNodes).forEach(child => {
+			console.log("XX" + child.nodeType + "----" + child.textContent + "---" + (child as Element).tagName);
 			if (child.nodeType === Node.TEXT_NODE) {
 				// Plain text node
 				const text = child.textContent || '';
@@ -192,12 +193,9 @@ export class TomboyCoreConverter {
 				// For elements with text content, check if they have direct text children
 				if (el.textContent) {
 					// Check if the element has text children (other than element children)
-					let hasTextChildren = false;
-					Array.from(el.childNodes).forEach(child => {
-						if (child.nodeType === Node.TEXT_NODE && child.textContent && child.textContent.length > 0) {
-							hasTextChildren = true;
-						}
-					});
+					const hasTextChildren = Array.from(el.childNodes).some(child =>
+						child.nodeType === Node.TEXT_NODE && child.textContent && child.textContent.length > 0
+					);
 
 					// If it's a leaf element (no significant text children to process), use textContent
 					if (!hasTextChildren && el.children.length === 0) {
@@ -396,18 +394,16 @@ export class TomboyCoreConverter {
 	 * Extract whitespace from text and return core content separately
 	 */
 	private extractWhitespaceFromText(text: string): { coreText: string, leadingWhitespace: string, trailingWhitespace: string } {
-		const leadingMatch = text.match(/^\s*/);
-		const trailingMatch = text.match(/\s*$/);
+		const leadingWhitespace = text.match(/^\s*/)![0];
+		const trailingWhitespace = text.match(/\s*$/)![0];
 
-		const leadingWhitespace = leadingMatch ? leadingMatch[0] : '';
-		const trailingWhitespace = trailingMatch ? trailingMatch[0] : '';
+		// If text is only whitespace, count it as leading whitespace only
+		if (leadingWhitespace.length === text.length) {
+			return { coreText: '', leadingWhitespace: text, trailingWhitespace: '' };
+		}
+
 		const coreText = text.substring(leadingWhitespace.length, text.length - trailingWhitespace.length);
-
-		return {
-			coreText,
-			leadingWhitespace,
-			trailingWhitespace
-		};
+		return { coreText, leadingWhitespace, trailingWhitespace };
 	}
 
 	/**
