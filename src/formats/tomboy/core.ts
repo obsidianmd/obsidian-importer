@@ -1,5 +1,4 @@
-import path from "path";
-import { sanitizeFileName } from '../util';
+import { sanitizeFileName } from '../../util';
 
 export interface ContentSection {
 	text: string;

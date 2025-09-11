@@ -1,7 +1,7 @@
 import { Notice, Setting, ToggleComponent, DropdownComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { TomboyCoreConverter } from './tomboy-core';
+import { TomboyCoreConverter } from './tomboy/core';
 
 export class TomboyImporter extends FormatImporter {
 	private coreConverter: TomboyCoreConverter;
