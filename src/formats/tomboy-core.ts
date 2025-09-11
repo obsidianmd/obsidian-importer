@@ -284,9 +284,15 @@ export class TomboyCoreConverter {
 		}
 
 		// Add tags as YAML frontmatter if present
+		// Only keep tags that are prefixed with 'system:notebook:' and remove the prefix
 		let frontmatter = '';
-		if (note.tags.length > 0) {
-			frontmatter = `---\ntags: [${note.tags.map(tag => `"${tag}"`).join(', ')}]\n---\n\n`;
+		const folderPrefix = 'system:notebook:';
+		const filteredTags = note.tags
+			.filter(tag => tag.startsWith(folderPrefix))
+			.map(tag => tag.substring(folderPrefix.length));
+		
+		if (filteredTags.length > 0) {
+			frontmatter = `---\ntags: [${filteredTags.map(tag => `"${tag}"`).join(', ')}]\n---\n\n`;
 		}
 
 		return frontmatter + markdownContent;
