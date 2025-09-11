@@ -329,14 +329,19 @@ export class TomboyCoreConverter {
 		// Add tags if present
 		// Only keep tags that are prefixed with 'system:notebook:' and remove the prefix
 		const folderPrefix = 'system:notebook:';
-		const filteredTags = note.tags
+		let processedTags = note.tags
 			.filter(tag => tag.startsWith(folderPrefix))
 			.map(tag => tag.substring(folderPrefix.length));
-		
-		if (filteredTags.length > 0) {
-			frontmatterLines.push(`tags: [${filteredTags.map(tag => `"${tag}"`).join(', ')}]`);
+
+		const templateTag = 'system:template';
+		if(note.tags.contains(templateTag)) {
+			processedTags.push('template');
 		}
-		
+
+		if (processedTags.length > 0) {
+			frontmatterLines.push(`tags: [${processedTags.map(tag => `"${tag}"`).join(', ')}]`);
+		}
+
 		// Close frontmatter if we have any content
 		let frontmatter = '';
 		if (frontmatterLines.length > 1) {
