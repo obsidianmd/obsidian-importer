@@ -292,8 +292,8 @@ export default class ImporterPlugin extends Plugin {
 				helpPermalink: 'import/textbundle',
 			},
 			'tomboy': {
-				name: 'Tomboy',
-				optionText: 'Tomboy (.note)',
+				name: 'Tomboy/Gnote',
+				optionText: 'Tomboy/Gnote (.note)',
 				importer: TomboyImporter,
 				helpPermalink: 'import/tomboy',
 			},

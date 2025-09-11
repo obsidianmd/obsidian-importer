@@ -1,19 +1,19 @@
 import { Notice, Setting, ToggleComponent, DropdownComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { TomboyCoreConverter } from './tomboy/core';
+import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 
 export class TomboyImporter extends FormatImporter {
 	private coreConverter: TomboyCoreConverter;
 	private todoEnabled: boolean;
-	private keepTitleMode: 'yes' | 'no' | 'automatic';
+	private keepTitleMode: KeepTitleMode;
 
 	init() {
 		this.todoEnabled = true;
 		this.coreConverter = new TomboyCoreConverter();
 		this.keepTitleMode = 'automatic';
 
-		this.addFileChooserSetting('Tomboy', ['note'], true);
+		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true);
 		this.addOutputLocationSetting('Tomboy import');
 
 		new Setting(this.modal.contentEl)
@@ -32,7 +32,7 @@ export class TomboyImporter extends FormatImporter {
 					.addOption('yes', 'Yes')
 					.addOption('no', 'No')
 					.setValue(this.keepTitleMode)
-					.onChange((value: string) => this.keepTitleMode = value as 'yes' | 'no' | 'automatic');
+					.onChange((value: string) => this.keepTitleMode = value as KeepTitleMode);
 			});
 	}
 

@@ -1,5 +1,13 @@
 import { sanitizeFileName } from '../../util';
 
+/**
+ * Type for controlling whether to keep titles in markdown content
+ * 'yes' - Always keep titles
+ * 'no' - Never keep titles  
+ * 'automatic' - Keep titles only when special characters are lost in filename conversion
+ */
+export type KeepTitleMode = 'yes' | 'no' | 'automatic';
+
 export interface ContentSection {
 	text: string;
 	xmlPath: string;
@@ -45,7 +53,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Mode for keeping titles in markdown
 	 */
-	private keepTitleMode: 'yes' | 'no' | 'automatic' = 'automatic';
+	private keepTitleMode: KeepTitleMode = 'automatic';
 
 	/**
 	 * Enable or disable TODO list processing
@@ -57,7 +65,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Set the mode for keeping titles in markdown
 	 */
-	setKeepTitleMode(mode: 'yes' | 'no' | 'automatic'): void {
+	setKeepTitleMode(mode: KeepTitleMode): void {
 		this.keepTitleMode = mode;
 	}
 
