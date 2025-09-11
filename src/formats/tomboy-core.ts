@@ -14,6 +14,8 @@ export interface TomboyNote {
 	title: string;
 	content: Array<ContentLine>;
 	tags: string[];
+	createDate?: Date;
+	lastChangeDate?: Date;
 }
 
 /**
@@ -93,6 +95,17 @@ export class TomboyCoreConverter {
 	}
 
 	/**
+	 * Parse a Tomboy date string into a Date object
+	 * Tomboy format: 2025-09-10T21:11:41,964692Z
+	 * Converts comma to period for standard parsing
+	 */
+	private parseTomboyDate(dateStr: string): Date {
+		// Convert Tomboy date format (2025-09-10T21:11:41,964692Z) to standard format
+		const standardDateStr = dateStr.replace(',', '.');
+		return new Date(standardDateStr);
+	}
+
+	/**
 	 * Parse Tomboy XML content into structured format
 	 */
 	parseTomboyXML(xmlContent: string): TomboyNote {
@@ -110,7 +123,22 @@ export class TomboyCoreConverter {
 		const tagsElement = doc.querySelector('tags');
 		const tags = tagsElement?.textContent ? tagsElement.textContent.split(',').map(tag => tag.trim()) : [];
 
-		return { title, content, tags };
+		// Parse date elements
+		const createDateElement = doc.querySelector('create-date');
+		const lastChangeDateElement = doc.querySelector('last-change-date');
+		
+		let createDate: Date | undefined;
+		let lastChangeDate: Date | undefined;
+
+		if (createDateElement?.textContent) {
+			createDate = this.parseTomboyDate(createDateElement.textContent);
+		}
+
+		if (lastChangeDateElement?.textContent) {
+			lastChangeDate = this.parseTomboyDate(lastChangeDateElement.textContent);
+		}
+
+		return { title, content, tags, createDate, lastChangeDate };
 	}
 
 	/**
@@ -283,16 +311,38 @@ export class TomboyCoreConverter {
 			}
 		}
 
-		// Add tags as YAML frontmatter if present
+		// Build YAML frontmatter with dates and tags
+		const frontmatterLines = ['---'];
+		
+		// Add date information if present
+		if (note.createDate) {
+			// Format as YYYY-MM-DDTHH:MM:SS (second precision, no 'Z')
+			const createDateStr = note.createDate.toISOString().split('.')[0];
+			frontmatterLines.push(`created: ${createDateStr}`);
+		}
+		
+		if (note.lastChangeDate) {
+			// Format as YYYY-MM-DDTHH:MM:SS (second precision, no 'Z')
+			const lastChangeDateStr = note.lastChangeDate.toISOString().split('.')[0];
+			frontmatterLines.push(`changed: ${lastChangeDateStr}`);
+		}
+		
+		// Add tags if present
 		// Only keep tags that are prefixed with 'system:notebook:' and remove the prefix
-		let frontmatter = '';
 		const folderPrefix = 'system:notebook:';
 		const filteredTags = note.tags
 			.filter(tag => tag.startsWith(folderPrefix))
 			.map(tag => tag.substring(folderPrefix.length));
 		
 		if (filteredTags.length > 0) {
-			frontmatter = `---\ntags: [${filteredTags.map(tag => `"${tag}"`).join(', ')}]\n---\n\n`;
+			frontmatterLines.push(`tags: [${filteredTags.map(tag => `"${tag}"`).join(', ')}]`);
+		}
+		
+		// Close frontmatter if we have any content
+		let frontmatter = '';
+		if (frontmatterLines.length > 1) {
+			frontmatterLines.push('---');
+			frontmatter = frontmatterLines.join('\n') + '\n\n';
 		}
 
 		return frontmatter + markdownContent;
