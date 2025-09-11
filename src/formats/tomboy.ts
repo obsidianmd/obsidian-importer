@@ -1,19 +1,74 @@
-import { Notice, Setting, ToggleComponent, DropdownComponent } from 'obsidian';
+import { Notice, Setting, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
+import { os, path, fsPromises } from '../filesystem';
 
 export class TomboyImporter extends FormatImporter {
 	private coreConverter: TomboyCoreConverter;
 	private todoEnabled: boolean;
 	private keepTitleMode: KeepTitleMode;
 
+	/**
+	 * Get the default Tomboy/Gnote directory path based on the current OS
+	 */
+	private getDefaultTomboyPath(): string {
+		if (!Platform.isDesktopApp || !os || !path) {
+			return '';
+		}
+
+		try {
+			if (Platform.isMacOS) {
+				const macPath = path.join(os.homedir(), 'Library', 'Application Support', 'Tomboy');
+				return macPath;
+			} else if (Platform.isWin) {
+				const windowsPath = path.join(process.env.APPDATA || '', 'Roaming', 'Tomboy');
+				return windowsPath;
+			} else if (Platform.isLinux) {
+				// Check for both Tomboy and Gnote on Linux
+				const homeDir = os.homedir();
+				const tomboyPath = path.join(homeDir, '.local', 'share', 'tomboy');
+				const gnotePath = path.join(homeDir, '.local', 'share', 'gnote');
+				
+				// Return whichever exists, preferring Gnote since it is the newer SW
+				try {
+					if (fsPromises && fsPromises.access) {
+						// Check if gnote directory exists
+						fsPromises.access(gnotePath).then(() => {}).catch(() => {});
+						return gnotePath;
+					}
+				} catch (e) {
+					// If we can't check, default to tomboy path
+				}
+				return tomboyPath;
+			}
+		} catch (e) {
+			console.warn('Error detecting default Tomboy path:', e);
+		}
+		
+		return '';
+	}
+
+	/**
+	 * Get descriptive text for OS-specific Tomboy/Gnote locations
+	 */
+	private getOSSpecificDescription(): string {
+		if (Platform.isMacOS) {
+			return 'Tomboy notes are typically found in: ~/Library/Application Support/Tomboy';
+		} else if (Platform.isWin) {
+			return 'Tomboy notes are typically found in: %APPDATA%\\Tomboy';
+		} else if (Platform.isLinux) {
+			return 'Tomboy notes are typically found in: ~/.local/share/tomboy or ~/.local/share/gnote';
+		}
+		return 'Pick the files that you want to import.';
+	}
+
 	init() {
 		this.todoEnabled = true;
 		this.coreConverter = new TomboyCoreConverter();
 		this.keepTitleMode = 'automatic';
 
-		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true);
+		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
 		this.addOutputLocationSetting('Tomboy import');
 
 		new Setting(this.modal.contentEl)
