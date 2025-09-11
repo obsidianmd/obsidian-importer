@@ -1,23 +1,25 @@
-import { Notice, Setting } from 'obsidian';
+import { Notice, Setting, ToggleComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { TomboyCoreConverter, TomboyNote } from './tomboy-core';
+import { TomboyCoreConverter } from './tomboy-core';
 
 export class TomboyImporter extends FormatImporter {
-	private coreConverter = new TomboyCoreConverter();
-	private todoEnabled: boolean = true; // Enable by default for testing
+	private coreConverter: TomboyCoreConverter;
+	private todoEnabled: boolean;
 
 	init() {
+		this.todoEnabled = true;
+		this.coreConverter = new TomboyCoreConverter();
+
 		this.addFileChooserSetting('Tomboy', ['note'], true);
 		this.addOutputLocationSetting('Tomboy import');
 
-		// Add TODO checkbox setting following CONTRIBUTING.md guidance
 		new Setting(this.modal.contentEl)
 			.setName('Convert TODO lists to checkboxes')
 			.setDesc('When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.')
-			.addToggle((toggle: any) => {
+			.addToggle((toggle: ToggleComponent) => {
 				toggle.setValue(this.todoEnabled)
-					.onChange((value: boolean) => this.todoEnabled = value);
+					  .onChange((value: boolean) => this.todoEnabled = value);
 			});
 	}
 
@@ -53,14 +55,11 @@ export class TomboyImporter extends FormatImporter {
 
 	private async processFile(ctx: ImportContext, folder: any, file: any): Promise<void> {
 		const xmlContent = await file.readText();
+		this.coreConverter.setTodoEnabled(this.todoEnabled);
+
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
-
-		// Pass TODO setting to core converter
-		(this.coreConverter as any).setTodoEnabled?.(this.todoEnabled);
-
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
+
 		await this.saveAsMarkdownFile(folder, tomboyNote.title, markdownContent);
 	}
-
-
 }

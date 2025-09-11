@@ -33,7 +33,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Flag to enable TODO list functionality
 	 */
-	private todoEnabled: boolean = false;
+	private todoEnabled: boolean = true;
 
 	/**
 	 * Track the most recent TODO heading for context-aware TODO mode
@@ -69,7 +69,7 @@ export class TomboyCoreConverter {
 		// Only update if this heading is at same level or higher than current TODO heading
 		if (!this.currentTodoHeading || headingLevel <= this.currentTodoHeading.level) {
 			const isTodo = this.isTodoTitle(headingText);
-			this.currentTodoHeading = isTodo 
+			this.currentTodoHeading = isTodo
 					? { level: headingLevel }
 					: null;
 		}
