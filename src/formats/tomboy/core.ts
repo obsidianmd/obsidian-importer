@@ -379,11 +379,17 @@ export class TomboyCoreConverter {
 		sections.forEach((section, sectionIndex) => {
 			let sectionText = section.text;
 
+			// Check if this section is an internal link (needed early for text processing)
+			const isLink = section.xmlPath.includes('link:internal');
+
 			// Extract and preserve whitespace that should stay outside formatting
 			const { coreText, leadingWhitespace, trailingWhitespace } = this.extractWhitespaceFromText(sectionText);
 
-			// Escape markdown special characters in core text to prevent interference
-			const escapedCoreText = this.escapeMarkdownSpecialChars(coreText);
+			// Escape markdown special characters in core text to prevent interference,
+			// but for internal links, use sanitizeFileName to match note title transformations
+			const escapedCoreText = isLink
+				? sanitizeFileName(coreText)
+				: this.escapeMarkdownSpecialChars(coreText);
 
 			// Determine formatting changes for this section's core content
 			const formats: { [key: string]: boolean } = {
@@ -393,8 +399,6 @@ export class TomboyCoreConverter {
 				italic: section.xmlPath.includes('italic'),
 				monospace: section.xmlPath.includes('monospace'),
 			};
-
-			const isLink = section.xmlPath.includes('link:internal');
 
 			// Handle formatting transitions for core content
 			const formatChanges = this.calculateFormattingChanges(activeFormats, formats);
