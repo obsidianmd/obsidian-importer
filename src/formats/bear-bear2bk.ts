@@ -299,7 +299,7 @@ export class Bear2bkImporter extends FormatImporter {
 		return content.replace(/bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g, (match, noteId) => {
 			const noteTitle = idMapping[noteId]?.filename;
 			if (noteTitle) {
-				return encodeURI(noteTitle);
+				return encodeURI(noteTitle.normalize('NFC'));
 			}
 			return match; // No change if ID not found
 		});
