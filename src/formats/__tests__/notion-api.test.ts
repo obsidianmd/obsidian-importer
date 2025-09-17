@@ -19,6 +19,8 @@ describe('NotionApiImporter', () => {
 	let importer: NotionApiImporter;
 	let mockContext: ImportContext;
 	let mockVault: any;
+	let mockApp: any;
+	let mockModal: any;
 
 	beforeEach(() => {
 		// Reset mocks
@@ -26,9 +28,19 @@ describe('NotionApiImporter', () => {
 		
 		// Create mock vault
 		mockVault = {
-			create: jest.fn().mockResolvedValue(undefined),
-			createFolder: jest.fn().mockResolvedValue(undefined),
+			create: jest.fn(),
+			createFolder: jest.fn(),
 			getAbstractFileByPath: jest.fn(),
+		};
+
+		// Create mock app
+		mockApp = {
+			vault: mockVault,
+		};
+
+		// Create mock modal
+		mockModal = {
+			reportProgress: jest.fn(),
 		};
 
 		// Create mock context
@@ -41,8 +53,8 @@ describe('NotionApiImporter', () => {
 			isCancelled: jest.fn().mockReturnValue(false),
 		} as any;
 
-		// Create importer instance
-		importer = new NotionApiImporter();
+		// Create importer instance with required arguments
+		importer = new NotionApiImporter(mockApp, mockModal);
 		(importer as any).vault = mockVault;
 	});
 
@@ -345,7 +357,7 @@ describe('NotionApiImporter', () => {
 			});
 
 			const mockFolder = { path: '/test' };
-			(importer as any).getOutputFolder = jest.fn().mockResolvedValue(mockFolder);
+			(importer as any).getOutputFolder = jest.fn().mockReturnValue(Promise.resolve(mockFolder));
 
 			await importer.import(mockContext);
 			
