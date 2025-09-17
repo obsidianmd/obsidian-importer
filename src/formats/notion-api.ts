@@ -139,46 +139,39 @@ export class NotionApiImporter extends FormatImporter {
 			// Check API version and capabilities
 			await this.detectApiCapabilities();
             
-			// Search for all pages and databases
-			const results = await this.searchNotionContent();
-            
-			if (results.length === 0) {
+			// Step 1: Search for databases first
+			const databases = await this.searchDatabases();
+			// Step 2: Import each database (queries its own pages)
+			let current = 0;
+			// We will compute total as databases + standalone pages (after we search pages)
+			for (const database of databases) {
+				if (ctx.isCancelled()) return;
+				ctx.status(`Importing database: ${this.getDatabaseTitle(database)}`);
+				await this.importDatabase(ctx, database, targetFolderPath);
+				current++;
+			}
+
+			// Step 3: Then search for standalone pages (filter out database pages)
+			const standalonePages = await this.searchStandalonePages();
+
+			const total = databases.length + standalonePages.length;
+			if (total === 0) {
 				new Notice('No content found in Notion workspace. Make sure your integration has access to the pages.');
 				return;
 			}
+			ctx.status(`Found ${databases.length} databases and ${standalonePages.length} standalone pages`);
+			ctx.reportProgress(Math.min(current, total), total);
 
-			ctx.status(`Found ${results.length} items to import`);
-
-			// Separate databases and pages
-			const databases = results.filter(item => item.object === 'database');
-			const pages = results.filter(item => item.object === 'page');
-
-			let current = 0;
-			const total = results.length;
-
-			// Process databases first (for Bases conversion)
-			for (const database of databases) {
+			// Step 4: Import only true standalone pages to the root folder
+			for (const page of standalonePages) {
 				if (ctx.isCancelled()) return;
-				current++;
-				ctx.reportProgress(current, total);
-				ctx.status(`Importing database: ${this.getDatabaseTitle(database)}`);
-				await this.importDatabase(ctx, database, targetFolderPath);
-			}
-
-			// Process standalone pages
-			for (const page of pages) {
-				if (ctx.isCancelled()) return;
-                
-				// Skip if page belongs to a database (already processed)
-				if (page.parent?.type === 'database_id') continue;
-                
-				current++;
-				ctx.reportProgress(current, total);
+				ctx.reportProgress(++current, total);
 				ctx.status(`Importing page: ${this.getPageTitle(page)}`);
+				console.log(`Importing standalone page: ${this.getPageTitle(page)}`);
 				await this.importPage(ctx, page, targetFolderPath);
 			}
 
-			new Notice(`Successfully imported ${results.length} items from Notion`);
+			new Notice(`Successfully imported ${databases.length} databases and ${standalonePages.length} standalone pages from Notion`);
 		}
 		catch (error: any) {
 			console.error('Notion API import error:', error);
@@ -289,6 +282,62 @@ export class NotionApiImporter extends FormatImporter {
 		return results;
 	}
 
+	/**
+	 * Search only for databases in the workspace
+	 */
+	private async searchDatabases(): Promise<any[]> {
+		const databases: any[] = [];
+		let hasMore = true;
+		let cursor: string | undefined;
+
+		while (hasMore) {
+			const response = await this.notionRequest('search', 'POST', {
+				start_cursor: cursor,
+				page_size: 100,
+				filter: {
+					property: 'object',
+					value: 'database'
+				}
+			});
+
+			if (response.results) databases.push(...response.results);
+			hasMore = response.has_more;
+			cursor = response.next_cursor;
+		}
+
+		console.log(`Search: found ${databases.length} databases`);
+		return databases;
+	}
+
+	/**
+	 * Search only for pages and filter out database-backed pages immediately
+	 */
+	private async searchStandalonePages(): Promise<any[]> {
+		const pages: any[] = [];
+		let hasMore = true;
+		let cursor: string | undefined;
+
+		while (hasMore) {
+			const response = await this.notionRequest('search', 'POST', {
+				start_cursor: cursor,
+				page_size: 100,
+				filter: {
+					property: 'object',
+					value: 'page'
+				}
+			});
+
+			if (response.results) pages.push(...response.results);
+			hasMore = response.has_more;
+			cursor = response.next_cursor;
+		}
+
+		const standalone = pages.filter((p: any) => p?.parent?.type !== 'database_id');
+		const filteredOut = pages.length - standalone.length;
+		console.log(`Search: found ${pages.length} pages, filtered out ${filteredOut} database pages, ${standalone.length} standalone remain`);
+		return standalone;
+	}
+
 	private async importPage(ctx: ImportContext, page: NotionPage, targetFolder: string): Promise<void> {
 		const vault = this.vault;
         
@@ -334,31 +383,55 @@ export class NotionApiImporter extends FormatImporter {
 		try {
 			// Get database title
 			const title = this.getDatabaseTitle(database);
+			console.log(`Database title: "${title}"`);
 			const dbFolderName = this.sanitizeFileName(title);
-			const dbFolderPath = normalizePath(targetFolder + dbFolderName + '/');
+			console.log(`Database folder name: "${dbFolderName}"`);
+			// Normalize folder path without trailing slash because normalizePath strips it
+			const dbFolderPath = normalizePath(targetFolder + dbFolderName);
+			console.log(`Target folder: "${targetFolder}"`);
+			console.log(`Database folder path: "${dbFolderPath}"`);
             
 			// Create folder for database
-			await this.createFolders(dbFolderPath);
+			await this.createFolders(dbFolderPath + '/');
+			console.log(`Created database folder: ${dbFolderPath}`);
             
-			// Create the .base file for Obsidian Database
+			// Create the .base file for Obsidian Database inside the database folder
 			const baseFileName = `${dbFolderName}.base`;
-			const baseFilePath = normalizePath(targetFolder + baseFileName);
-			const baseContent = this.createBaseFile(database);
+			const baseFilePath = normalizePath(`${dbFolderPath}/${baseFileName}`);
+			// Pass the folder path relative to vault root for the filter
+			const relativeFolderPath = dbFolderPath.endsWith('/') ? dbFolderPath.slice(0, -1) : dbFolderPath;
+			const baseContent = this.createBaseFile(database, relativeFolderPath);
 			await vault.create(baseFilePath, baseContent);
 			ctx.reportNoteSuccess(baseFilePath);
 			
 			// Handle data sources if present (Sept 2025 API)
 			let pages: any[] = [];
+			console.log(`Querying database ${database.id}, has data_source: ${!!database.data_source}`);
 			if (this.supportsDataSources && database.data_source) {
+				console.log(`Using data source query for database ${database.id}`);
 				pages = await this.queryDatabaseWithDataSource(database);
 			} else {
 				// Standard database query
+				console.log(`Using standard query for database ${database.id}`);
 				pages = await this.queryDatabase(database.id);
+			}
+			
+			console.log(`Found ${pages.length} pages in database ${title}`);
+			
+			if (pages.length === 0) {
+				console.warn(`No pages found in database ${title}. The database might be empty or there might be a permissions issue.`);
+				new Notice(`Database "${title}" appears to be empty or inaccessible. Created folder structure only.`);
+			} else {
+				console.log(`Processing ${pages.length} pages from database ${title}`);
+				// Log first page for debugging
+				if (pages[0]) {
+					console.log(`First page in database:`, pages[0]);
+				}
 			}
             
 			// Create database overview/index file
 			const overviewContent = this.createDatabaseOverview(database, pages);
-			const overviewPath = normalizePath(dbFolderPath + '_index.md');
+			const overviewPath = normalizePath(`${dbFolderPath}/_index.md`);
 			await vault.create(overviewPath, overviewContent);
 			ctx.reportNoteSuccess(overviewPath);
             
@@ -375,7 +448,8 @@ export class NotionApiImporter extends FormatImporter {
 				const content = frontmatter + markdown;
                 
 				const fileName = this.sanitizeFileName(pageTitle) + '.md';
-				const filePath = normalizePath(dbFolderPath + fileName);
+				const filePath = normalizePath(`${dbFolderPath}/${fileName}`);
+				console.log(`Creating database page: ${pageTitle} at ${filePath}`);
                 
 				await vault.create(filePath, content, {
 					ctime: new Date(page.created_time).getTime(),
@@ -481,17 +555,30 @@ export class NotionApiImporter extends FormatImporter {
 		let hasMore = true;
 		let cursor: string | undefined;
 
-		while (hasMore) {
-			const response = await this.notionRequest(`databases/${databaseId}/query`, 'POST', {
-				start_cursor: cursor,
-				page_size: 100
-			});
-
-			pages.push(...response.results);
-			hasMore = response.has_more;
-			cursor = response.next_cursor;
+		try {
+			while (hasMore) {
+				console.log(`Querying database ${databaseId}, cursor: ${cursor || 'initial'}`);
+				const response = await this.notionRequest(`databases/${databaseId}/query`, 'POST', {
+					start_cursor: cursor,
+					page_size: 100
+				});
+				
+				console.log(`Database query response: ${response.results?.length || 0} results, has_more: ${response.has_more}`);
+				
+				if (response.results) {
+					pages.push(...response.results);
+				}
+				
+				hasMore = response.has_more || false;
+				cursor = response.next_cursor;
+			}
+		} catch (error) {
+			console.error(`Error querying database ${databaseId}:`, error);
+			// Return empty array on error instead of throwing
+			return [];
 		}
 
+		console.log(`Total pages found in database ${databaseId}: ${pages.length}`);
 		return pages;
 	}
 
@@ -727,7 +814,11 @@ export class NotionApiImporter extends FormatImporter {
 	}
 
 	private createDatabasePageFrontmatter(page: NotionPage, database: NotionDatabase): string {
+		// Extract the page title first
+		const pageTitle = this.getPageTitle(page);
+		
 		const frontmatter: Record<string, any> = {
+			title: pageTitle,  // Add the page title as the title property
 			database: this.getDatabaseTitle(database),
 			created: page.created_time,
 			updated: page.last_edited_time,
@@ -740,7 +831,11 @@ export class NotionApiImporter extends FormatImporter {
 			for (const [key, value] of Object.entries(page.properties)) {
 				const propertyValue = this.extractPropertyValue(value);
 				if (propertyValue !== null && propertyValue !== undefined) {
-					frontmatter[this.sanitizePropertyName(key)] = propertyValue;
+					// Don't duplicate the title property
+					const propName = this.sanitizePropertyName(key);
+					if (propName !== 'title') {
+						frontmatter[propName] = propertyValue;
+					}
 				}
 			}
 		}
@@ -748,45 +843,38 @@ export class NotionApiImporter extends FormatImporter {
 		return '---\n' + this.objectToYaml(frontmatter) + '---\n\n';
 	}
 
-	private createBaseFile(database: NotionDatabase): string {
-		// Create the Base file configuration for Obsidian Database plugin
+	private createBaseFile(database: NotionDatabase, folderPath: string): string {
+		// Build Base YAML with global filters, properties, and a default table view
 		const title = this.getDatabaseTitle(database);
-		const folderName = this.sanitizeFileName(title);
-		
-		// Build the YAML configuration for the Base file
-		let baseConfig = 'views:\n';
-		baseConfig += '  - type: table\n';
-		baseConfig += `    name: ${title}\n`;
-		baseConfig += '    filters:\n';
-		baseConfig += '      and:\n';
-		baseConfig += `        - file.folder("Notion API Import/${folderName}/")\n`;
-		
-		// Add column definitions based on Notion properties
-		baseConfig += '    columns:\n';
-		baseConfig += '      - key: file.name\n';
-		baseConfig += '        label: Name\n';
-		baseConfig += '        width: 200\n';
-		
-		// Map Notion properties to Obsidian columns
-		for (const [key, prop] of Object.entries(database.properties)) {
-			const propName = this.sanitizePropertyName(prop.name);
-			baseConfig += `      - key: ${propName}\n`;
-			baseConfig += `        label: ${prop.name}\n`;
-			baseConfig += '        width: 150\n';
-			
-			// Add type-specific configurations
-			if (prop.type === 'checkbox') {
-				baseConfig += '        type: boolean\n';
-			} else if (prop.type === 'number') {
-				baseConfig += '        type: number\n';
-			} else if (prop.type === 'date') {
-				baseConfig += '        type: date\n';
-			} else if (prop.type === 'select' || prop.type === 'multi_select') {
-				baseConfig += '        type: tag\n';
+
+		let yaml = '';
+		yaml += 'filters:\n';
+		yaml += '  and:\n';
+		yaml += `    - file.inFolder("${folderPath}")\n`;
+		yaml += `    - file.ext == "md"\n`;
+		yaml += `    - 'file.name != "_index"'\n`;
+
+		yaml += 'properties:\n';
+		yaml += '  title:\n';
+		yaml += '    displayName: "Title"\n';
+		yaml += '  database:\n';
+		yaml += '    displayName: "Database"\n';
+		if (database.properties) {
+			for (const [key] of Object.entries(database.properties)) {
+				const sanitized = this.sanitizePropertyName(key);
+				if (sanitized === 'title') continue;
+				yaml += `  ${sanitized}:\n`;
+				yaml += `    displayName: "${key}"\n`;
 			}
 		}
-		
-		return baseConfig;
+
+		yaml += 'views:\n';
+		yaml += '  - type: table\n';
+		yaml += `    name: "${title}"\n`;
+		yaml += '    order:\n';
+		yaml += '      - file.name\n';
+
+		return yaml;
 	}
 
 	private createDatabaseOverview(database: NotionDatabase, pages: any[]): string {
@@ -921,16 +1009,30 @@ export class NotionApiImporter extends FormatImporter {
 	}
 
 	private getPageTitle(page: any): string {
+		// First check for properties with title type
 		if (page.properties) {
 			// Try to find any title-type property
-			for (const [, value] of Object.entries(page.properties)) {
+			for (const [propName, value] of Object.entries(page.properties)) {
 				if ((value as any).type === 'title' && (value as any).title) {
 					const title = this.richTextToMarkdown((value as any).title);
-					if (title) return title;
+					if (title && title.trim()) {
+						console.log(`Found title for page ${page.id}: ${title}`);
+						return title.trim();
+					}
+				}
+			}
+			
+			// If no title property found, try Name property (common in databases)
+			if (page.properties.Name) {
+				const nameValue = this.extractPropertyValue(page.properties.Name);
+				if (nameValue && typeof nameValue === 'string' && nameValue.trim()) {
+					console.log(`Using Name property for page ${page.id}: ${nameValue}`);
+					return nameValue.trim();
 				}
 			}
 		}
-        
+		
+		console.warn(`No title found for page ${page.id}, using Untitled`);
 		return 'Untitled';
 	}
 
@@ -947,8 +1049,8 @@ export class NotionApiImporter extends FormatImporter {
 			.replace(/[\\/:*?"<>|]/g, '-')
 			.replace(/\s+/g, ' ')
 			.replace(/^\.+/, '') // Remove leading dots
-			.trim()
-			.substring(0, 255); // Limit length
+			.trim();
+			// Removed the 255 character limit to prevent truncation
 	}
 
 	private sanitizePropertyName(name: string): string {
