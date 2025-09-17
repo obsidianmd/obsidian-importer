@@ -8,7 +8,7 @@ The Notion API importer allows users to import content directly from Notion usin
 
 ## Key Features
 
-### ✅ Implemented Features
+### Implemented Features
 
 1. **Notion API Integration (2025-09-03)**
    - Full support for the latest Notion API version
@@ -185,16 +185,16 @@ The implementation uses minimal dependencies:
 
 This implementation meets all requirements from GitHub issue #421:
 
-- ✅ Uses Notion API with integration token
-- ✅ Supports API version 2025-09-03 with data source objects
-- ✅ Converts to Obsidian-flavored Markdown
-- ✅ Handles images and attachments with proper embedding
-- ✅ Supports Database to Base conversion
-- ✅ Implements progressive downloading
-- ✅ Includes comprehensive test cases
-- ✅ Follows Obsidian plugin guidelines
-- ✅ Maintains performance standards
-- ✅ Provides proper error handling
+- Uses Notion API with integration token
+- Supports API version 2025-09-03 with data source objects
+- Converts to Obsidian-flavored Markdown
+- Handles images and attachments with proper embedding
+- Supports Database to Base conversion
+- Implements progressive downloading
+- Includes test documentation
+- Follows Obsidian plugin guidelines
+- Maintains performance standards
+- Provides proper error handling
 
 ## Installation and Usage
 
