@@ -6,6 +6,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
@@ -276,6 +277,13 @@ export default class ImporterPlugin extends Plugin {
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
+			},
+			'notion-api': {
+				name: 'Notion (API)',
+				optionText: 'Notion (Integration Token)',
+				importer: NotionAPIImporter,
+				helpPermalink: 'import/notion',
+				formatDescription: 'Import directly from Notion using the API.',
 			},
 			'roam-json': {
 				name: 'Roam Research',
