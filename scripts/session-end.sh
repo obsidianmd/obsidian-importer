@@ -106,16 +106,16 @@ PR_BODY
 
 # Create PR using gh (pre-filled body modeled after template)
 # If PR already exists, this will error; ignore with || true then print status
-if ! gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$tmpfile"; then
+if ! gh pr create --repo ava-sig/obsidian-importer --base main --head "$BRANCH" --title "$TITLE" --body-file "$tmpfile"; then
   echo "PR may already exist. Showing status:" >&2
-  gh pr status || true
+  gh pr status --repo ava-sig/obsidian-importer || true
 fi
 
 rm -f "$tmpfile"
 
 # Show created PR URL
-if gh pr view --json url >/dev/null 2>&1; then
-  gh pr view --json url -q .url
+if gh pr view --repo ava-sig/obsidian-importer --json url >/dev/null 2>&1; then
+  gh pr view --repo ava-sig/obsidian-importer --json url -q .url
 fi
 
 echo "End-of-session ritual complete. Review PR checks in GitHub."
