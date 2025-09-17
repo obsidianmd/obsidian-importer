@@ -66,8 +66,13 @@ fi
 
 # Optional: also ensure remote branch is gone (in case auto-delete is disabled)
 if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-  echo "Remote still has branch '$BRANCH'. Deleting at origin..."
-  git push origin --delete "$BRANCH" || true
+  echo "Remote still has branch '$BRANCH'. Deleting via GitHub API..."
+  REPO="${GH_REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo '')}"
+  if [ -n "$REPO" ]; then
+    gh api "repos/${REPO}/git/refs/heads/${BRANCH}" -X DELETE || true
+  else
+    echo "Could not determine repo to delete remote branch. Set GH_REPO (e.g., ava-sig/obsidian-importer)." >&2
+  fi
 fi
 
 # Report status
