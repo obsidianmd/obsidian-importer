@@ -73,15 +73,15 @@ The Notion API importer allows users to import content directly from Notion usin
 - **Lists**: Bulleted, Numbered, To-do (checkboxes)
 - **Rich Content**: Quote, Code, Equation, Callout
 - **Media**: Image, File, Video, Audio
-- **Interactive**: Toggle, Bookmark, Embed
-- **Structure**: Table, Divider, Column layouts
-- **Advanced**: Synced blocks, Table of contents
+- **Interactive**: Toggle, Bookmark, Embed, Link preview
+- **Structure**: Table, Table row, Divider, Column layouts
+- **Advanced**: Synced blocks, Table of contents, Breadcrumb
 
 ### Supported Property Types
 
 - **Basic**: Title, Rich text, Number
 - **Selection**: Select, Multi-select
-- **Data**: Date, Checkbox, URL, Email, Phone
+- **Data**: Date, Checkbox, URL, Email, Phone number
 - **Media**: Files & attachments
 - **Relations**: People, Relation, Rollup
 - **Computed**: Formula, Created/Modified time and user
@@ -138,9 +138,9 @@ The implementation includes comprehensive error handling:
 
 ### Test Structure
 
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: Full workflow testing with real Notion workspaces
-- **Test Data**: Comprehensive test content covering all block and property types
+- **Test Documentation**: Comprehensive testing guide and setup instructions
+- **Integration Testing**: Full workflow testing with real Notion workspaces
+- **Test Content Guidelines**: Requirements for test content covering all block and property types
 
 ### Test Requirements
 
@@ -206,4 +206,4 @@ This implementation meets all requirements from GitHub issue #421:
 6. Configure import settings
 7. Run import process
 
-The implementation is ready for production use and meets all bounty requirements.
+The implementation is ready for testing and meets all bounty requirements.
