@@ -104,18 +104,42 @@ If using a legacy or less-preferred path (e.g., Notion legacy DB API instead of 
   - `npm run fixtures:redact`
 PR_BODY
 
+# --- PR creation (robust) ---
+REPO="${GH_REPO:-ava-sig/obsidian-importer}"
+BASE_BRANCH="$(git remote show origin | sed -n 's/  HEAD branch: //p')"
+if [ -z "$BASE_BRANCH" ]; then BASE_BRANCH="main"; fi
+
+# Ensure we have the latest refs
+git fetch origin
+
+# Ensure upstream is set and push latest commits
+if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  git push
+else
+  git push -u origin "$BRANCH"
+fi
+
+# Ensure there is at least one commit ahead of base
+AHEAD_COUNT="$(git rev-list --count "origin/${BASE_BRANCH}..HEAD" 2>/dev/null || echo 0)"
+if [ "$AHEAD_COUNT" -eq 0 ]; then
+  echo "❌ No commits between origin/${BASE_BRANCH} and ${BRANCH}. Aborting PR creation." >&2
+  echo "Tip: make sure you committed changes and pushed this branch." >&2
+  rm -f "$tmpfile"
+  exit 1
+fi
+
 # Create PR using gh (pre-filled body modeled after template)
 # If PR already exists, this will error; ignore with || true then print status
-if ! gh pr create --repo ava-sig/obsidian-importer --base main --head "$BRANCH" --title "$TITLE" --body-file "$tmpfile"; then
-  echo "PR may already exist. Showing status:" >&2
-  gh pr status --repo ava-sig/obsidian-importer || true
+if ! gh pr create --repo "$REPO" --base "$BASE_BRANCH" --head "$BRANCH" --title "$TITLE" --body-file "$tmpfile"; then
+  echo "PR may already exist or repo not set. Status:" >&2
+  gh pr status --repo "$REPO" || true
 fi
 
 rm -f "$tmpfile"
 
 # Show created PR URL
-if gh pr view --repo ava-sig/obsidian-importer --json url >/dev/null 2>&1; then
-  gh pr view --repo ava-sig/obsidian-importer --json url -q .url
+if gh pr view --repo "$REPO" --json url >/dev/null 2>&1; then
+  gh pr view --repo "$REPO" --json url -q .url
 fi
 
 echo "End-of-session ritual complete. Review PR checks in GitHub."
