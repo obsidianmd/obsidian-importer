@@ -231,19 +231,26 @@ export class NotionApiImporter extends FormatImporter {
 			const dbFolderName = this.sanitizeFileName(title);
 			const dbFolderPath = normalizePath(targetFolder + dbFolderName + '/');
             
-			// Create folder for database (Bases conversion)
+			// Create folder for database
 			await this.createFolders(dbFolderPath);
+            
+			// Create the .base file for Obsidian Database
+			const baseFileName = `${dbFolderName}.base`;
+			const baseFilePath = normalizePath(targetFolder + baseFileName);
+			const baseContent = this.createBaseFile(database);
+			await vault.create(baseFilePath, baseContent);
+			ctx.reportNoteSuccess(baseFilePath);
             
 			// Query database for all pages
 			const pages = await this.queryDatabase(database.id);
             
-			// Create database overview/index file (for Bases)
+			// Create database overview/index file
 			const overviewContent = this.createDatabaseOverview(database, pages);
 			const overviewPath = normalizePath(dbFolderPath + '_index.md');
 			await vault.create(overviewPath, overviewContent);
 			ctx.reportNoteSuccess(overviewPath);
             
-			// Import each page in the database
+			// Import each page in the database as markdown files with properties
 			for (const page of pages) {
 				if (ctx.isCancelled()) return;
                 
@@ -541,6 +548,47 @@ export class NotionApiImporter extends FormatImporter {
 		}
 
 		return '---\n' + this.objectToYaml(frontmatter) + '---\n\n';
+	}
+
+	private createBaseFile(database: NotionDatabase): string {
+		// Create the Base file configuration for Obsidian Database plugin
+		const title = this.getDatabaseTitle(database);
+		const folderName = this.sanitizeFileName(title);
+		
+		// Build the YAML configuration for the Base file
+		let baseConfig = 'views:\n';
+		baseConfig += '  - type: table\n';
+		baseConfig += `    name: ${title}\n`;
+		baseConfig += '    filters:\n';
+		baseConfig += '      and:\n';
+		baseConfig += `        - file.folder("Notion API Import/${folderName}/")\n`;
+		
+		// Add column definitions based on Notion properties
+		baseConfig += '    columns:\n';
+		baseConfig += '      - key: file.name\n';
+		baseConfig += '        label: Name\n';
+		baseConfig += '        width: 200\n';
+		
+		// Map Notion properties to Obsidian columns
+		for (const [key, prop] of Object.entries(database.properties)) {
+			const propName = this.sanitizePropertyName(prop.name);
+			baseConfig += `      - key: ${propName}\n`;
+			baseConfig += `        label: ${prop.name}\n`;
+			baseConfig += '        width: 150\n';
+			
+			// Add type-specific configurations
+			if (prop.type === 'checkbox') {
+				baseConfig += '        type: boolean\n';
+			} else if (prop.type === 'number') {
+				baseConfig += '        type: number\n';
+			} else if (prop.type === 'date') {
+				baseConfig += '        type: date\n';
+			} else if (prop.type === 'select' || prop.type === 'multi_select') {
+				baseConfig += '        type: tag\n';
+			}
+		}
+		
+		return baseConfig;
 	}
 
 	private createDatabaseOverview(database: NotionDatabase, pages: any[]): string {
