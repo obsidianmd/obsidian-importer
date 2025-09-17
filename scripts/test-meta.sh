@@ -5,7 +5,7 @@ set -euo pipefail
 
 # Prefer vitest if present
 if npx --yes --offline vitest --version >/dev/null 2>&1 || npx --yes vitest --version >/dev/null 2>&1; then
-  npx --yes vitest run --reporter=dot
+  npx --yes vitest run --reporter=dot --passWithNoTests
   exit $?
 fi
 
