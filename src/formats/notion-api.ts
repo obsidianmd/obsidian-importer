@@ -70,7 +70,7 @@ export class NotionApiImporter extends FormatImporter {
     }
 
     async import(ctx: ImportContext): Promise<void> {
-        const { vault } = ctx;
+        const vault = this.vault;
         
         if (!this.config.apiKey) {
             new Notice('Please enter your Notion Integration Token');
@@ -190,7 +190,7 @@ export class NotionApiImporter extends FormatImporter {
     }
 
     private async importPage(ctx: ImportContext, page: NotionPage, targetFolder: string): Promise<void> {
-        const { vault } = ctx;
+        const vault = this.vault;
         
         try {
             // Get page content blocks
@@ -221,7 +221,7 @@ export class NotionApiImporter extends FormatImporter {
     }
 
     private async importDatabase(ctx: ImportContext, database: NotionDatabase, targetFolder: string): Promise<void> {
-        const { vault } = ctx;
+        const vault = this.vault;
         
         try {
             // Get database title
@@ -440,7 +440,7 @@ export class NotionApiImporter extends FormatImporter {
     }
 
     private async handleImage(ctx: ImportContext, image: any): Promise<string> {
-        const { vault } = ctx;
+        const vault = this.vault;
         const url = image.type === 'external' ? image.external.url : image.file?.url;
         
         if (!url) return '';
@@ -469,7 +469,7 @@ export class NotionApiImporter extends FormatImporter {
     }
 
     private async handleFile(ctx: ImportContext, file: any, type: string): Promise<string> {
-        const { vault } = ctx;
+        const vault = this.vault;
         const url = file.type === 'external' ? file.external.url : file.file?.url;
         const name = file.name || `${type}_${Date.now()}`;
         
