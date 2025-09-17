@@ -1,0 +1,62 @@
+name: Governance CI
+
+on:
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env: {}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (allow new dev deps)
+        run: npm install
+
+      - name: Checkout governance (ava-sig/governance)
+        if: secrets.GOV_REPO_PAT != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ava-sig/governance
+          path: gorvernance/obsidian-importer
+          token: ${{ secrets.GOV_REPO_PAT }}
+
+      - name: Glyph header check
+        run: npm run -s check:glyph-header
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+
+      - name: PR body governance check
+        run: npm run -s ci:pr
+        env:
+          GOV_PATH: gorvernance/obsidian-importer
+          REQUIRE_GOV: ${{ secrets.GOV_REPO_PAT != '' && '1' || '0' }}
+
+      - name: Validate link graph
+        run: npm run -s validate:links
+        env:
+          GOV_PATH: gorvernance/obsidian-importer
+          REQUIRE_GOV: ${{ secrets.GOV_REPO_PAT != '' && '1' || '0' }}
+
+      - name: Enforce perf budgets
+        run: npm run -s perf:budgets
+        env:
+          GOV_PATH: gorvernance/obsidian-importer
+          REQUIRE_GOV: ${{ secrets.GOV_REPO_PAT != '' && '1' || '0' }}
+
+      - name: Redact fixtures
+        run: npm run -s fixtures:redact
+        env:
+          GOV_PATH: gorvernance/obsidian-importer
+          REQUIRE_GOV: ${{ secrets.GOV_REPO_PAT != '' && '1' || '0' }}

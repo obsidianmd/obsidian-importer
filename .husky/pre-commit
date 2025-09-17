@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Block commits on main/master; require topic branch
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  echo "Committing directly to $BRANCH is blocked. Start a session with: npm run session:start" >&2
+  exit 1
+fi
+
+# Quick checks before commit
+npm run -s check:glyph-header || exit 1
+npm run -s test || exit 1

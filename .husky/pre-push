@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  echo "Pushing directly to $BRANCH is blocked. Use topic branches and open a PR (npm run session:end)." >&2
+  exit 1
+fi
+
+# Minimal checks before push
+npm run -s check:glyph-header || exit 1
+npm run -s verify || exit 1
