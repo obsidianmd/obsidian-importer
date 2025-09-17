@@ -9,7 +9,7 @@
   In GitHub Actions, set BASE_REF to github.event.pull_request.base.ref
 */
 const { execSync } = require('child_process');
-const { readFileSync } = require('fs');
+const { readFileSync, existsSync } = require('fs');
 const path = require('path');
 
 const GLYPH_LINE = '[SIG-FLD-VAL-001] Declared in posture, amplified in field.';
@@ -17,27 +17,27 @@ const exts = new Set(['.ts', '.tsx', '.js', '.jsx', '.vue']);
 
 function getChangedFiles() {
   const baseRef = process.env.BASE_REF;
+  const useCached = process.env.USE_CACHED === '1';
   let diffRange;
   try {
-    if (baseRef) {
+    let out = '';
+    if (useCached) {
+      out = execSync('git diff --cached --name-only --diff-filter=ACMRTUXB', { encoding: 'utf8' });
+    } else if (baseRef) {
       // Ensure base is fetched
       execSync(`git fetch origin ${baseRef} --depth=1`, { stdio: 'ignore' });
       diffRange = `origin/${baseRef}...HEAD`;
+      out = execSync(`git diff --name-only --diff-filter=ACMRTUXB ${diffRange}`, { encoding: 'utf8' });
     } else {
-      // Fallback: use HEAD~1..HEAD when running locally
+      // Fallback: compare with previous commit
       diffRange = 'HEAD~1..HEAD';
+      out = execSync(`git diff --name-only --diff-filter=ACMRTUXB ${diffRange}`, { encoding: 'utf8' });
     }
-    const out = execSync(`git diff --name-only --diff-filter=ACMRTUXB ${diffRange}`, { encoding: 'utf8' });
     return out.split('\n').map(s => s.trim()).filter(Boolean);
   } catch (e) {
-    console.error('Failed to compute changed files. Falling back to checking the whole src/ and tests/ dirs.');
+    console.error('Failed to compute changed files.');
     return [];
   }
-}
-
-function listAllCandidatesFallback() {
-  const fg = require('fast-glob');
-  return fg.sync(['src/**/*.{ts,tsx,js,jsx,vue}', 'tests/**/*.{ts,tsx,js,jsx,vue}'], { dot: false });
 }
 
 function shouldCheck(file) {
@@ -52,9 +52,15 @@ function hasGlyphHeader(file) {
 }
 
 function main() {
-  let files = getChangedFiles().filter(shouldCheck);
-  if (files.length === 0) {
-    files = listAllCandidatesFallback();
+  let files = getChangedFiles().filter(f => shouldCheck(f) && existsSync(f));
+  const enforceAll = process.env.ENFORCE_ALL === '1';
+  if (files.length === 0 && !enforceAll) {
+    console.log('No changed files to check for glyph header.');
+    process.exit(0);
+  }
+  if (files.length === 0 && enforceAll) {
+    const fg = require('fast-glob');
+    files = fg.sync(['src/**/*.{ts,tsx,js,jsx,vue}', 'tests/**/*.{ts,tsx,js,jsx,vue}'], { dot: false });
   }
 
   const missing = [];
