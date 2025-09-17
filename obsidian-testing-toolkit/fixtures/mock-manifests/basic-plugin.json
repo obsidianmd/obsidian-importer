@@ -1,0 +1,11 @@
+{
+  "id": "basic-test-plugin",
+  "name": "Basic Test Plugin",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "A basic plugin for testing purposes",
+  "author": "Test Suite",
+  "authorUrl": "https://github.com/test-suite",
+  "fundingUrl": "https://github.com/sponsors/test-suite",
+  "isDesktopOnly": false
+}

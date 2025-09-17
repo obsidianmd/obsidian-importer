@@ -1,0 +1,108 @@
+{
+  "name": "research-vault",
+  "description": "Academic research vault with papers, notes, and citations",
+  "folders": [
+    "Papers",
+    "Literature Notes",
+    "Permanent Notes",
+    "Projects",
+    "References",
+    "Concepts",
+    "Authors",
+    "Journals"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "content": "# Research Vault\n\nThis vault is organized for academic research using the Zettelkasten method.\n\n## System Overview\n\n### Note Types\n- **Literature Notes**: Summaries and quotes from sources\n- **Permanent Notes**: Processed insights and connections\n- **Concept Notes**: Definitions and explanations\n- **Project Notes**: Research project management\n\n### Workflow\n1. Import papers to [[Papers]] folder\n2. Create literature notes in [[Literature Notes]]\n3. Develop permanent notes in [[Permanent Notes]]\n4. Link concepts and build knowledge graph\n\n## Quick Links\n- [[Projects/MOC]] - Master project index\n- [[Concepts/MOC]] - Concept map\n- [[Authors/MOC]] - Author index\n\n#research #zettelkasten #moc",
+      "frontmatter": {
+        "title": "Research Vault",
+        "type": "index",
+        "created": "2023-01-01T00:00:00Z"
+      }
+    },
+    {
+      "path": "Projects/MOC.md",
+      "content": "# Projects - Map of Content\n\n## Active Projects\n- [[Machine Learning Research]] - Deep learning applications\n- [[Knowledge Management Study]] - Personal knowledge systems\n\n## Completed Projects\n- [[Natural Language Processing]] - Completed 2022\n\n## Future Projects\n- [[Cognitive Science Research]] - Planned for 2024\n\n## Project Templates\n- [[Templates/Research Project Template]]\n\n#moc #projects",
+      "frontmatter": {
+        "title": "Projects MOC",
+        "type": "moc"
+      }
+    },
+    {
+      "path": "Projects/Machine Learning Research.md",
+      "content": "# Machine Learning Research Project\n\n## Research Question\nHow can transformer architectures be optimized for limited computational resources?\n\n## Hypothesis\nModel compression techniques can maintain performance while reducing computational requirements by 60%.\n\n## Literature Review\n- [[Literature Notes/Attention Is All You Need]]\n- [[Literature Notes/DistilBERT]]\n- [[Literature Notes/Model Compression Survey]]\n\n## Methodology\n1. **Baseline Establishment**: Implement standard transformer\n2. **Compression Techniques**: Apply pruning, quantization, distillation\n3. **Evaluation**: Compare performance metrics\n4. **Analysis**: Statistical significance testing\n\n## Progress\n- [x] Literature review complete\n- [x] Baseline model implemented\n- [ ] Compression techniques applied\n- [ ] Results analysis\n- [ ] Paper writing\n\n## Key Insights\n- [[Permanent Notes/Attention Mechanisms]] - Core concept\n- [[Permanent Notes/Model Compression Trade-offs]] - Important findings\n\n## Timeline\n- **Q1 2023**: Literature review and baseline\n- **Q2 2023**: Experimentation\n- **Q3 2023**: Analysis and writing\n- **Q4 2023**: Submission\n\n#project #machine-learning #transformers #active",
+      "frontmatter": {
+        "title": "Machine Learning Research",
+        "status": "active",
+        "start_date": "2023-01-01",
+        "deadline": "2023-12-31",
+        "keywords": ["machine learning", "transformers", "compression"]
+      }
+    },
+    {
+      "path": "Literature Notes/Attention Is All You Need.md",
+      "content": "# Attention Is All You Need\n\n**Source**: Vaswani, A., et al. (2017). Attention is all you need. NIPS.\n**Type**: Literature Note\n**Status**: Complete\n\n## Summary\nIntroduces the Transformer architecture, dispensing with recurrence and convolutions entirely and relying only on attention mechanisms.\n\n## Key Points\n\n### Architecture\n- **Encoder-Decoder Structure**: 6 layers each\n- **Multi-Head Attention**: Parallel attention mechanisms\n- **Position Encoding**: Sinusoidal functions for sequence order\n- **Feed-Forward Networks**: Point-wise fully connected layers\n\n### Attention Mechanism\n> \"Attention function can be described as mapping a query and a set of key-value pairs to an output\"\n\n**Formula**: $\\text{Attention}(Q,K,V) = \\text{softmax}(\\frac{QK^T}{\\sqrt{d_k}})V$\n\n### Results\n- **Translation**: State-of-the-art on WMT 2014 En-De and En-Fr\n- **Training Time**: Significantly faster than RNNs\n- **Parallelization**: Better GPU utilization\n\n## Personal Notes\nThis paper revolutionized NLP by showing attention alone is sufficient. The architecture's parallelizability makes it ideal for modern hardware.\n\n## Connections\n- [[Concepts/Attention Mechanisms]] - Core concept\n- [[Permanent Notes/Transformer Impact]] - Broader implications\n- [[Literature Notes/BERT]] - Follows this architecture\n- [[Authors/Ashish Vaswani]] - Lead author\n\n## Citation\n```bibtex\n@inproceedings{vaswani2017attention,\n  title={Attention is all you need},\n  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, Łukasz and Polosukhin, Illia},\n  booktitle={Advances in neural information processing systems},\n  pages={5998--6008},\n  year={2017}\n}\n```\n\n#literature-note #transformers #attention #seminal-paper",
+      "frontmatter": {
+        "title": "Attention Is All You Need",
+        "authors": ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"],
+        "year": 2017,
+        "venue": "NIPS",
+        "type": "literature-note",
+        "keywords": ["transformers", "attention", "neural networks"],
+        "rating": 5,
+        "read_date": "2023-01-15"
+      }
+    },
+    {
+      "path": "Permanent Notes/Attention Mechanisms.md",
+      "content": "# Attention Mechanisms\n\n**ID**: 20230115001\n**Type**: Permanent Note\n\n## Core Concept\nAttention mechanisms allow models to focus on relevant parts of input sequences, addressing the bottleneck of fixed-size representations in sequence-to-sequence models.\n\n## Historical Development\n1. **2014**: [[Literature Notes/Neural Machine Translation by Jointly Learning to Align and Translate]] - First attention\n2. **2017**: [[Literature Notes/Attention Is All You Need]] - Self-attention and Transformers\n3. **2018+**: BERT, GPT, and the Transformer revolution\n\n## Types of Attention\n\n### Additive Attention (Bahdanau)\n- Uses feedforward network to compute alignment scores\n- More computationally expensive but flexible\n\n### Multiplicative Attention (Luong)\n- Dot product or scaled dot product\n- More efficient, forms basis of modern transformers\n\n### Self-Attention\n- Query, key, and value all come from same sequence\n- Enables parallel processing and long-range dependencies\n\n## Mathematical Foundation\nGeneral attention function:\n$$\\text{Attention}(Q, K, V) = \\text{softmax}(f(Q, K))V$$\n\nWhere:\n- $Q$ = Queries\n- $K$ = Keys  \n- $V$ = Values\n- $f(Q, K)$ = Compatibility function\n\n## Key Insights\n\n### Why Attention Works\n1. **Selective Focus**: Highlights relevant information\n2. **Differentiable**: End-to-end trainable\n3. **Flexible**: Works across different modalities\n4. **Interpretable**: Attention weights show model focus\n\n### Computational Benefits\n- **Parallelization**: No sequential dependencies\n- **Long Dependencies**: Direct connections between distant elements\n- **Memory Efficiency**: No need to compress entire sequence\n\n## Applications Beyond NLP\n- **Computer Vision**: Visual attention, image captioning\n- **Speech**: Attention in speech recognition\n- **Multimodal**: Cross-modal attention\n\n## Limitations\n- **Quadratic Complexity**: $O(n^2)$ in sequence length\n- **Memory Requirements**: Large attention matrices\n- **Inductive Bias**: Less built-in structure than CNNs/RNNs\n\n## Related Concepts\n- [[Permanent Notes/Transformer Architecture]] - Primary application\n- [[Concepts/Neural Networks]] - Broader context\n- [[Permanent Notes/Sequence Models]] - Historical development\n\n## Future Directions\n- **Efficient Attention**: Linear attention, sparse patterns\n- **Structured Attention**: Incorporating prior knowledge\n- **Cross-modal**: Unified attention across modalities\n\n#permanent-note #attention #deep-learning #core-concept",
+      "frontmatter": {
+        "id": "20230115001",
+        "title": "Attention Mechanisms",
+        "type": "permanent-note",
+        "created": "2023-01-15T10:00:00Z",
+        "keywords": ["attention", "deep learning", "transformers"],
+        "connections": 15
+      }
+    },
+    {
+      "path": "Concepts/MOC.md",
+      "content": "# Concepts - Map of Content\n\n## Core AI/ML Concepts\n- [[Attention Mechanisms]] - Focus and selection\n- [[Neural Networks]] - Foundation\n- [[Transformers]] - Modern architecture\n- [[Deep Learning]] - Learning representations\n\n## Research Methods\n- [[Experimental Design]] - Planning studies\n- [[Statistical Analysis]] - Data interpretation\n- [[Literature Review]] - Survey methods\n\n## Knowledge Management\n- [[Zettelkasten Method]] - Note-taking system\n- [[Concept Mapping]] - Knowledge visualization\n- [[Information Architecture]] - Organization principles\n\n## Academic Writing\n- [[Citation Management]] - Reference tracking\n- [[Paper Structure]] - Organization\n- [[Peer Review]] - Evaluation process\n\n#moc #concepts",
+      "frontmatter": {
+        "title": "Concepts MOC",
+        "type": "moc"
+      }
+    },
+    {
+      "path": "Authors/Ashish Vaswani.md",
+      "content": "# Ashish Vaswani\n\n**Affiliation**: Google Research (formerly)\n**Research Areas**: Natural Language Processing, Machine Learning, Attention Mechanisms\n\n## Notable Contributions\n- **Transformer Architecture**: Lead author on \"Attention Is All You Need\"\n- **Self-Attention**: Key innovations in attention mechanisms\n- **Large-Scale Training**: Techniques for training large models\n\n## Key Papers\n- [[Literature Notes/Attention Is All You Need]] (2017) - Transformers\n- \"Tensor2Tensor for Neural Machine Translation\" (2018)\n- \"The Evolved Transformer\" (2019)\n\n## Impact\n- **Citations**: 50,000+ for transformer paper\n- **Industry Influence**: Architecture adopted by major tech companies\n- **Research Direction**: Shaped modern NLP research\n\n## Current Work\n- Co-founder of Adept AI Labs\n- Focus on AI agents and human-computer interaction\n\n## Quotes\n> \"The future of AI lies in building systems that can understand and interact with the world in more human-like ways.\"\n\n## Related\n- [[Authors/Illia Polosukhin]] - Co-author\n- [[Authors/Noam Shazeer]] - Collaborator\n- [[Concepts/Transformers]] - Primary contribution\n\n#author #transformer #google-research",
+      "frontmatter": {
+        "name": "Ashish Vaswani",
+        "type": "author",
+        "affiliation": "Adept AI Labs",
+        "h_index": 25,
+        "notable_papers": 3
+      }
+    },
+    {
+      "path": "References/Reading List.md",
+      "content": "# Reading List\n\n## Priority Queue\n\n### High Priority\n- [ ] \"BERT: Pre-training of Deep Bidirectional Transformers\" (Devlin et al., 2018)\n- [ ] \"GPT-3: Language Models are Few-Shot Learners\" (Brown et al., 2020)\n- [ ] \"An Image is Worth 16x16 Words\" (Dosovitskiy et al., 2020)\n\n### Medium Priority\n- [ ] \"The Lottery Ticket Hypothesis\" (Frankle & Carbin, 2018)\n- [ ] \"What Does BERT Look At?\" (Clark et al., 2019)\n- [ ] \"Scaling Laws for Neural Language Models\" (Kaplan et al., 2020)\n\n### Research Areas\n\n#### Model Compression\n- [ ] \"DistilBERT: A Distilled Version of BERT\" (Sanh et al., 2019)\n- [ ] \"TinyBERT: Distilling BERT for Natural Language Understanding\" (Jiao et al., 2019)\n- [ ] \"The Lottery Ticket Hypothesis for Pre-trained BERT Networks\" (Chen et al., 2020)\n\n#### Attention Analysis\n- [ ] \"A Multiscale Visualization of Attention in the Transformer Model\" (Vig, 2019)\n- [ ] \"What Does BERT Look At? An Analysis of BERT's Attention\" (Clark et al., 2019)\n- [ ] \"Are Sixteen Heads Really Better than One?\" (Michel et al., 2019)\n\n## Recently Read\n- [x] [[Literature Notes/Attention Is All You Need]] - Completed 2023-01-15\n- [x] \"Neural Machine Translation by Jointly Learning to Align and Translate\" - Completed 2023-01-10\n\n## Reading Notes Template\nFor each paper, create:\n1. Literature note with summary\n2. Link to permanent notes for concepts\n3. Update author pages\n4. Add to relevant project notes\n\n#reading-list #todo #research",
+      "frontmatter": {
+        "title": "Reading List",
+        "type": "reference",
+        "updated": "2023-01-15"
+      }
+    }
+  ],
+  "settings": {
+    "theme": "obsidian",
+    "baseFontSize": 14,
+    "showLineNumber": true,
+    "foldHeading": true,
+    "foldIndent": true,
+    "showFrontmatter": true,
+    "useMarkdownLinks": false,
+    "newLinkFormat": "shortest"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "extends": [
+    "../../../.eslintrc.js",
+    "plugin:jest/recommended",
+    "plugin:jest/style"
+  ],
+  "plugins": [
+    "jest"
+  ],
+  "env": {
+    "jest": true,
+    "jest/globals": true,
+    "node": true,
+    "browser": true,
+    "es2020": true
+  },
+  "globals": {
+    "app": "readonly",
+    "testHelpers": "readonly",
+    "cleanupTest": "readonly"
+  },
+  "rules": {
+    // Jest-specific rules
+    "jest/consistent-test-it": ["error", { "fn": "it" }],
+    "jest/expect-expect": "error",
+    "jest/no-disabled-tests": "warn",
+    "jest/no-focused-tests": "error",
+    "jest/no-identical-title": "error",
+    "jest/prefer-to-have-length": "warn",
+    "jest/valid-expect": "error",
+    "jest/no-deprecated-functions": "error",
+    "jest/prefer-strict-equal": "warn",
+    "jest/prefer-to-be": "warn",
+    "jest/prefer-to-contain": "warn",
+    "jest/no-test-return-statement": "error",
+
+    // Allow console in tests
+    "no-console": "off",
+
+    // Allow any type in tests for mocking
+    "@typescript-eslint/no-explicit-any": "off",
+
+    // Allow non-null assertions in tests
+    "@typescript-eslint/no-non-null-assertion": "off",
+
+    // Allow empty functions in mocks
+    "@typescript-eslint/no-empty-function": "off",
+
+    // Allow unused variables in test setups
+    "@typescript-eslint/no-unused-vars": ["warn", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_"
+    }],
+
+    // Allow require in tests for dynamic imports
+    "@typescript-eslint/no-var-requires": "off",
+
+    // Allow magic numbers in tests
+    "@typescript-eslint/no-magic-numbers": "off",
+
+    // Allow any for mock objects
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+
+    // Allow floating promises in tests (for fire-and-forget operations)
+    "@typescript-eslint/no-floating-promises": "off",
+
+    // More lenient object literal rules for test data
+    "@typescript-eslint/object-literal-sort-keys": "off",
+
+    // Allow prefer const for test variables that might be reassigned
+    "prefer-const": "warn",
+
+    // Allow any complexity in test files
+    "complexity": "off",
+    "max-lines": "off",
+    "max-lines-per-function": "off",
+
+    // Allow long lines for test descriptions
+    "max-len": ["warn", {
+      "code": 120,
+      "ignoreComments": true,
+      "ignoreStrings": true,
+      "ignoreTemplateLiterals": true,
+      "ignoreRegExpLiterals": true
+    }],
+
+    // Testing-specific import rules
+    "import/no-extraneous-dependencies": ["error", {
+      "devDependencies": true,
+      "peerDependencies": true
+    }]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/__tests__/**/*",
+        "**/*.test.*",
+        "**/*.spec.*"
+      ],
+      "rules": {
+        // Even more lenient rules for test files
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        "max-nested-callbacks": "off"
+      }
+    },
+    {
+      "files": [
+        "**/fixtures/**/*",
+        "**/mocks/**/*"
+      ],
+      "rules": {
+        // Very lenient rules for test fixtures and mocks
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        "@typescript-eslint/no-empty-interface": "off",
+        "@typescript-eslint/no-namespace": "off"
+      }
+    }
+  ],
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "project": "./obsidian-testing-toolkit/config/tsconfig.test.json"
+      }
+    }
+  },
+  "parserOptions": {
+    "project": "./obsidian-testing-toolkit/config/tsconfig.test.json",
+    "sourceType": "module",
+    "ecmaVersion": 2020
+  }
+}

@@ -25,3 +25,217 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
+
+# ───────────────────────────────────────────────────────────
+# -0. — .GITIGNORE UNIVERSAL-REPO-TEMPLATE
+# ───────────────────────────────────────────────────────────
+
+
+# ───────────────────────────────────────────────────────────
+# 0. — IGNORE “ignore” FILES/FOLDERS—but re-include standard dot-ignore files
+# ───────────────────────────────────────────────────────────
+*ignore*
+*_.ignore*
+!/.gitignore
+!/.vercelignore
+!/.dockerignore
+!/.npmignore
+!/.prettierignore
+!/.eslintignore
+
+# ───────────────────────────────────────────────────────────
+# 0.5 — IGNORE “dev” FILES/FOLDERS by default
+# ───────────────────────────────────────────────────────────
+*dev*
+# (e.g. dev-docs/, development.tmp, foo-dev.log, .env.dev)
+# To keep any specific “dev” folder/file, add “!path/to/that” below
+
+# ───────────────────────────────────────────────────────────
+# 1. — DEPENDENCIES
+# ───────────────────────────────────────────────────────────
+/node_modules/
+/.pnp/
+/.pnp.js
+/.yarn/install-state.gz
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ───────────────────────────────────────────────────────────
+# 2. — BUILD OUTPUTS & RUNTIME ARTIFACTS
+# ───────────────────────────────────────────────────────────
+/dist/
+/build/
+/out/
+/.next/
+/.nuxt/
+/storybook-static/
+/coverage/
+/.nyc_output/
+/.rpt2_cache/
+/rts2_cache_*
+/.cache/
+
+# ───────────────────────────────────────────────────────────
+# 3. — ENVIRONMENT FILES
+# ignore .env, .env.local, .env.dev, .env.staging, .env.sample, etc.
+# but keep your base template
+# and any environment-specific example files (.env.staging.example, .env.dev.example…)
+# ───────────────────────────────────────────────────────────
+.env*
+!.env.example
+!.env.*.example
+
+# ───────────────────────────────────────────────────────────
+# 4. — LOGS & REPORTS
+# ───────────────────────────────────────────────────────────
+logs/
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+junit.xml
+
+# ───────────────────────────────────────────────────────────
+# 5. — OS-SPECIFIC FILES
+# ───────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+# Linux
+*~
+
+# ───────────────────────────────────────────────────────────
+# 6. — EDITORS & IDEs
+# ───────────────────────────────────────────────────────────
+# VS Code
+/.vscode/
+/.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.code-workspace
+CLAUDE.md
+CLAUDE.local.md
+.history/*
+.cursor/*
+.windsurf/*
+.trae/*
+.qoder/*
+/_dev*
+# JetBrains
+/.idea/
+/*.iml
+.dev-res_bin/*
+# Others
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ───────────────────────────────────────────────────────────
+# 7. — TEMP, BACKUPS & SWAP
+# ───────────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*~ 
+*.swp
+*.swo
+auto-save-list
+.tramp
+
+# ───────────────────────────────────────────────────────────
+# 8. — DOCKER & CONTAINERS
+# ───────────────────────────────────────────────────────────
+/docker-compose*.y?ml
+**/postgres_data/
+/**/mysql_data/
+/**/redis_data/
+/.env*.local
+
+# ───────────────────────────────────────────────────────────
+# 9. — CI/CD & PLATFORM
+# ───────────────────────────────────────────────────────────
+.vercel/
+vercel-*.json
+!.vercel.json
+.netlify/
+.gcpignore
+
+# ───────────────────────────────────────────────────────────
+# 10. — MISCELLANEOUS
+# ───────────────────────────────────────────────────────────
+*.tgz
+*.seed
+*.pid
+*.pid.lock
+
+# ───────────────────────────────────────────────────────────
+# 11. — PUBLIC DOCUMENTATION (KEEP IN REPO)
+# ───────────────────────────────────────────────────────────
+!/README.md
+!/LICENSE
+!/CHANGELOG.md
+!/docs/
+!/docs/**
+/_dev-docs/*
+/_archive/*
+
+# ───────────────────────────────────────────────────────────
+# 11.5 — DEVELOPMENT DOCUMENTATION (EXCLUDE FROM PUBLIC REPO)
+# ───────────────────────────────────────────────────────────
+CLAUDE.md
+PRD.md
+PROJECT-PLAN*.md
+REQUIREMENTS-of-SOLUTION.md
+RESEARCH_HISTORY*.md
+FORENSIC_AUDIT*.md
+FINAL_VALIDATION*.md
+*development*
+*obsidian-plugin-testing*
+**.ignore_DEV-RES_BIN
+
+# ───────────────────────────────────────────────────────────
+# 12. — .ÆGENT PROTECTED WORKSPACE (NEVER COMMIT)
+# ───────────────────────────────────────────────────────────
+# The .ÆGENT directory contains all active states, private research,
+# and sensitive operational data. It must NEVER be committed to git.
+.ÆGENT/
+.ægent/
+.agent/
+
+# Large Data Files
+*.db
+*.sqlite
+*.pkl
+*.npy
+*.h5
+*.parquet
+*.feather
+
+# SWARMS, HIVES, & OTHERS
+.swarm/
+.hive-mind/
+.hive*
+
+# Archive Folders (unless specifically sharing)
+.archive/
+*ARCHIVED_*
+*DEPRECATED_*
+!.archive/README.md
+
+# Configuration Examples (templates only)
+!*.example
+!*.template
+
+# ───────────────────────────────────────────────────────────
+# EOF
+# ───────────────────────────────────────────────────────────

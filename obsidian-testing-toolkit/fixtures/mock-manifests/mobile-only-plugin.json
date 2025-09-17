@@ -1,0 +1,11 @@
+{
+  "id": "mobile-test-plugin",
+  "name": "Mobile Test Plugin",
+  "version": "1.2.3",
+  "minAppVersion": "1.0.0",
+  "description": "A plugin specifically designed for mobile testing scenarios",
+  "author": "Mobile Test Team",
+  "authorUrl": "https://github.com/mobile-test-team",
+  "isDesktopOnly": true,
+  "mobileOnly": true
+}

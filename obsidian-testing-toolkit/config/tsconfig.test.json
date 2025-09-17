@@ -1,0 +1,57 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": true,
+    "outDir": "../../../dist/test",
+    "rootDir": "../../../",
+    "baseUrl": "../../../",
+    "paths": {
+      "@obsidian-testing-toolkit/*": ["obsidian-testing-toolkit/*"],
+      "@/*": ["src/*"],
+      "obsidian": ["obsidian-testing-toolkit/mocks/obsidian"],
+      "electron": ["obsidian-testing-toolkit/mocks/electron"]
+    },
+    "types": [
+      "node",
+      "jest",
+      "@types/jest"
+    ],
+    "typeRoots": [
+      "../../../node_modules/@types",
+      "../../../types"
+    ]
+  },
+  "include": [
+    "../../../src/**/*",
+    "../**/*",
+    "../../../tests/**/*",
+    "../../../__tests__/**/*",
+    "../../../**/*.test.ts",
+    "../../../**/*.test.tsx",
+    "../../../**/*.spec.ts",
+    "../../../**/*.spec.tsx"
+  ],
+  "exclude": [
+    "../../../node_modules",
+    "../../../dist",
+    "../../../coverage",
+    "../../../.obsidian"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}

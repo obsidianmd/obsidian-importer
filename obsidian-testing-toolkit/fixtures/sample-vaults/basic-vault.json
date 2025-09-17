@@ -1,0 +1,106 @@
+{
+  "name": "basic-vault",
+  "description": "A basic vault structure for simple testing scenarios",
+  "folders": [
+    "Daily Notes",
+    "Projects",
+    "Templates",
+    "Archive"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "content": "# Test Vault\n\nThis is a basic test vault for Obsidian plugin testing.\n\n## Structure\n\n- [[Daily Notes]] - Daily note taking\n- [[Projects]] - Project management\n- [[Templates]] - Note templates\n- [[Archive]] - Archived content\n\n#test-vault #readme",
+      "frontmatter": {
+        "title": "Test Vault README",
+        "created": "2023-01-01T00:00:00Z",
+        "tags": ["test-vault", "readme"],
+        "type": "documentation"
+      }
+    },
+    {
+      "path": "Daily Notes/2023-01-01.md",
+      "content": "# January 1, 2023\n\n## Today's Focus\n- Start new testing framework\n- Review project goals\n\n## Notes\nBeginning work on a comprehensive testing toolkit for Obsidian plugins.\n\n## Tasks\n- [x] Set up basic vault structure\n- [ ] Create sample content\n- [ ] Test framework initialization\n\n## Reflections\nGood start to the new year with focused development work.\n\n#daily-note #2023/01/01",
+      "frontmatter": {
+        "date": "2023-01-01",
+        "tags": ["daily-note"],
+        "mood": "productive"
+      }
+    },
+    {
+      "path": "Daily Notes/2023-01-02.md",
+      "content": "# January 2, 2023\n\n## Today's Focus\n- Continue framework development\n- Write documentation\n\n## Notes\nMaking good progress on the mock implementations.\n\n## Tasks\n- [x] Complete MockVault implementation\n- [x] Add MockWorkspace functionality\n- [ ] Create test utilities\n\n## Links\n- [[2023-01-01]] - Previous day\n- [[Projects/Testing Framework]] - Related project\n\n#daily-note #2023/01/02",
+      "frontmatter": {
+        "date": "2023-01-02",
+        "tags": ["daily-note"],
+        "mood": "focused"
+      }
+    },
+    {
+      "path": "Projects/Testing Framework.md",
+      "content": "# Testing Framework Project\n\n## Overview\nDeveloping a comprehensive testing toolkit for Obsidian plugins.\n\n## Goals\n- ✅ Create mock implementations of Obsidian APIs\n- ✅ Build test runners for different test types\n- 🔄 Develop utilities for common testing scenarios\n- ⏳ Write comprehensive documentation\n- ⏳ Create example usage patterns\n\n## Architecture\n```\ntesting-toolkit/\n├── core/           # Core mock implementations\n├── utils/          # Testing utilities\n├── runners/        # Test execution runners\n├── fixtures/       # Sample data and fixtures\n└── docs/           # Documentation\n```\n\n## Timeline\n- **Week 1**: Core implementations\n- **Week 2**: Test runners and utilities\n- **Week 3**: Documentation and examples\n- **Week 4**: Testing and refinement\n\n## Related\n- [[Daily Notes/2023-01-01]] - Project kickoff\n- [[Templates/Project Template]] - Template used\n\n#project #testing #obsidian #active",
+      "frontmatter": {
+        "title": "Testing Framework Project",
+        "status": "active",
+        "priority": "high",
+        "start_date": "2023-01-01",
+        "tags": ["project", "testing", "obsidian"]
+      }
+    },
+    {
+      "path": "Projects/Plugin Documentation.md",
+      "content": "# Plugin Documentation Project\n\n## Overview\nComprehensive documentation for Obsidian plugin development.\n\n## Goals\n- 📝 Document all major APIs\n- 🧪 Create testing examples\n- 📖 Write best practices guide\n- 🔗 Link to official documentation\n\n## Status\n**Current Phase**: Research and Planning\n\n## Next Steps\n1. Review existing documentation\n2. Identify gaps and opportunities\n3. Create documentation outline\n4. Begin writing\n\n## Resources\n- [Obsidian Plugin Developer Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)\n- [Community Examples](https://github.com/obsidianmd/obsidian-sample-plugin)\n\n#project #documentation #planning",
+      "frontmatter": {
+        "title": "Plugin Documentation Project",
+        "status": "planning",
+        "priority": "medium",
+        "tags": ["project", "documentation"]
+      }
+    },
+    {
+      "path": "Templates/Daily Note Template.md",
+      "content": "# {{date:YYYY-MM-DD}}\n\n## Today's Focus\n- \n\n## Notes\n\n\n## Tasks\n- [ ] \n\n## Reflections\n\n\n#daily-note #{{date:YYYY/MM/DD}}",
+      "frontmatter": {
+        "title": "Daily Note Template",
+        "type": "template",
+        "usage": "Create new daily notes with consistent structure"
+      }
+    },
+    {
+      "path": "Templates/Project Template.md",
+      "content": "# {{title}}\n\n## Overview\n{{description}}\n\n## Goals\n- \n\n## Timeline\n- **Phase 1**: \n- **Phase 2**: \n- **Phase 3**: \n\n## Resources\n- \n\n## Status\n**Current Phase**: {{status}}\n\n## Next Steps\n1. \n2. \n3. \n\n#project #{{status}}",
+      "frontmatter": {
+        "title": "Project Template",
+        "type": "template",
+        "usage": "Create new project notes with standard structure"
+      }
+    },
+    {
+      "path": "Templates/Meeting Notes Template.md",
+      "content": "# {{title}} - {{date}}\n\n**Date**: {{date}}\n**Attendees**: \n**Duration**: \n\n## Agenda\n1. \n2. \n3. \n\n## Discussion\n\n### Topic 1\n\n\n### Topic 2\n\n\n## Action Items\n- [ ] \n- [ ] \n\n## Next Meeting\n**Date**: \n**Topics**: \n\n#meeting #{{date:YYYY/MM/DD}}",
+      "frontmatter": {
+        "title": "Meeting Notes Template",
+        "type": "template",
+        "usage": "Structure for meeting notes and action items"
+      }
+    },
+    {
+      "path": "Archive/Old Project.md",
+      "content": "# Old Project\n\n## Overview\nThis was a previous project that has been completed and archived.\n\n## Results\n- ✅ All goals achieved\n- ✅ Documentation completed\n- ✅ Code shipped to production\n\n## Lessons Learned\n- Early testing saves time later\n- Documentation is crucial for maintenance\n- Regular check-ins improve team coordination\n\n## Final Notes\nProject successfully completed on schedule and within budget.\n\n#project #completed #archived",
+      "frontmatter": {
+        "title": "Old Project",
+        "status": "completed",
+        "completion_date": "2022-12-31",
+        "tags": ["project", "completed", "archived"]
+      }
+    }
+  ],
+  "settings": {
+    "theme": "obsidian",
+    "baseFontSize": 16,
+    "showLineNumber": true,
+    "foldHeading": true,
+    "foldIndent": true,
+    "showFrontmatter": true
+  }
+}

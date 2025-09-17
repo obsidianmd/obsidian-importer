@@ -1,0 +1,17 @@
+{
+  "id": "advanced-test-plugin",
+  "name": "Advanced Test Plugin",
+  "version": "2.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "An advanced plugin for comprehensive testing with multiple features",
+  "author": "Test Development Team",
+  "authorUrl": "https://github.com/test-team",
+  "fundingUrl": {
+    "Buy Me a Coffee": "https://buymeacoffee.com/testteam",
+    "GitHub Sponsor": "https://github.com/sponsors/test-team",
+    "PayPal": "https://paypal.me/testteam"
+  },
+  "isDesktopOnly": false,
+  "dir": "plugins/advanced-test-plugin/",
+  "branch": "main"
+}
