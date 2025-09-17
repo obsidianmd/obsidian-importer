@@ -28,7 +28,7 @@ jobs:
         run: npm install
 
       - name: Checkout governance (ava-sig/governance)
-        if: secrets.GOV_REPO_PAT != ''
+        if: ${{ secrets.GOV_REPO_PAT != '' }}
         uses: actions/checkout@v4
         with:
           repository: ava-sig/governance
