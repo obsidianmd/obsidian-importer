@@ -1,0 +1,98 @@
+{
+  "id": "sample-database-id",
+  "title": [
+    {
+      "type": "text",
+      "text": {
+        "content": "Sample Database",
+        "link": null
+      },
+      "annotations": {
+        "bold": false,
+        "italic": false,
+        "strikethrough": false,
+        "underline": false,
+        "code": false,
+        "color": "default"
+      },
+      "plain_text": "Sample Database",
+      "href": null
+    }
+  ],
+  "properties": {
+    "Name": {
+      "id": "title",
+      "name": "Name",
+      "type": "title",
+      "title": {}
+    },
+    "Status": {
+      "id": "status",
+      "name": "Status",
+      "type": "select",
+      "select": {
+        "options": [
+          {
+            "id": "option-1",
+            "name": "Not Started",
+            "color": "red"
+          },
+          {
+            "id": "option-2",
+            "name": "In Progress",
+            "color": "yellow"
+          },
+          {
+            "id": "option-3",
+            "name": "Completed",
+            "color": "green"
+          }
+        ]
+      }
+    },
+    "Priority": {
+      "id": "priority",
+      "name": "Priority",
+      "type": "multi_select",
+      "multi_select": {
+        "options": [
+          {
+            "id": "high",
+            "name": "High",
+            "color": "red"
+          },
+          {
+            "id": "medium",
+            "name": "Medium",
+            "color": "yellow"
+          },
+          {
+            "id": "low",
+            "name": "Low",
+            "color": "green"
+          }
+        ]
+      }
+    },
+    "Due Date": {
+      "id": "due-date",
+      "name": "Due Date",
+      "type": "date",
+      "date": {}
+    },
+    "Completed": {
+      "id": "completed",
+      "name": "Completed",
+      "type": "checkbox",
+      "checkbox": {}
+    }
+  },
+  "created_time": "2025-01-01T00:00:00.000Z",
+  "last_edited_time": "2025-01-01T00:00:00.000Z",
+  "data_sources": [
+    {
+      "id": "data-source-1",
+      "name": "Main Data Source"
+    }
+  ]
+}

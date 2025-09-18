@@ -1,0 +1,64 @@
+{
+  "id": "sample-page-id",
+  "properties": {
+    "Name": {
+      "id": "title",
+      "type": "title",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "Sample Task",
+            "link": null
+          },
+          "annotations": {
+            "bold": false,
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+            "code": false,
+            "color": "default"
+          },
+          "plain_text": "Sample Task",
+          "href": null
+        }
+      ]
+    },
+    "Status": {
+      "id": "status",
+      "type": "select",
+      "select": {
+        "id": "option-2",
+        "name": "In Progress",
+        "color": "yellow"
+      }
+    },
+    "Priority": {
+      "id": "priority",
+      "type": "multi_select",
+      "multi_select": [
+        {
+          "id": "high",
+          "name": "High",
+          "color": "red"
+        }
+      ]
+    },
+    "Due Date": {
+      "id": "due-date",
+      "type": "date",
+      "date": {
+        "start": "2025-01-15",
+        "end": null,
+        "time_zone": null
+      }
+    },
+    "Completed": {
+      "id": "completed",
+      "type": "checkbox",
+      "checkbox": false
+    }
+  },
+  "created_time": "2025-01-01T00:00:00.000Z",
+  "last_edited_time": "2025-01-01T00:00:00.000Z"
+}
