@@ -1,14 +1,15 @@
-import { NotionDatabase, NotionDataSource } from './notion-client';
+import { WorkspaceDatabase, WorkspaceDataSource } from './workspace-client';
 
-export class BaseGenerator {
-	generateBase(database: NotionDatabase, dataSources: NotionDataSource[]): string {
-		const properties = this.convertProperties(database.properties);
-		const views = this.generateViews(database, dataSources);
+// Builds Obsidian Base files from Notion database structures
+export class ObsidianBaseBuilder {
+	buildBaseFile(database: WorkspaceDatabase, dataSources: WorkspaceDataSource[]): string {
+		const properties = this.mapNotionProperties(database.properties);
+		const views = this.createBaseViews(database, dataSources);
 
 		return `---
 type: base
 name: ${database.title}
-description: Imported from Notion database
+description: Imported from Notion workspace
 properties:
 ${properties}
 views:
@@ -16,7 +17,7 @@ ${views}
 ---`;
 	}
 
-	private convertProperties(notionProperties: Record<string, any>): string {
+	private mapNotionProperties(notionProperties: Record<string, any>): string {
 		const properties: string[] = [];
 
 		for (const [key, value] of Object.entries(notionProperties)) {
@@ -101,7 +102,7 @@ ${views}
 		return typeMap[notionType] || null;
 	}
 
-	private generateViews(database: NotionDatabase, dataSources: NotionDataSource[]): string {
+	private createBaseViews(database: WorkspaceDatabase, dataSources: WorkspaceDataSource[]): string {
 		const views: string[] = [];
 
 		// Generate a default table view
@@ -115,7 +116,7 @@ ${views}
 		return views.join('\n');
 	}
 
-	private generateTableView(database: NotionDatabase): string {
+	private generateTableView(database: WorkspaceDatabase): string {
 		const properties = Object.keys(database.properties);
 		const visibleProperties = properties.slice(0, 5); // Show first 5 properties
 
@@ -125,7 +126,7 @@ ${views}
 ${visibleProperties.map(prop => `      - ${this.sanitizePropertyName(prop)}`).join('\n')}`;
 	}
 
-	private generateDataSourceView(dataSource: NotionDataSource): string {
+	private generateDataSourceView(dataSource: WorkspaceDataSource): string {
 		return `  - name: ${dataSource.name} View
     type: table
     properties:

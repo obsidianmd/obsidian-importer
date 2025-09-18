@@ -1,28 +1,29 @@
-import { NotionApiClient } from './notion-client';
+import { NotionWorkspace, WorkspacePage } from './workspace-client';
 
-export class NotionToMarkdownConverter {
-	private client: NotionApiClient;
-	private attachmentFolder: string;
+// Handles conversion of Notion content to Obsidian markdown
+export class NotionMarkdownRenderer {
+	private workspace: NotionWorkspace;
+	private mediaPath: string;
 
-	constructor(client: NotionApiClient, attachmentFolder: string = 'attachments') {
-		this.client = client;
-		this.attachmentFolder = attachmentFolder;
+	constructor(workspace: NotionWorkspace, mediaPath: string = 'media') {
+		this.workspace = workspace;
+		this.mediaPath = mediaPath;
 	}
 
-	async convertPage(pageId: string): Promise<string> {
-		const blocks = await this.client.getPageBlocks(pageId);
-		const markdown = await this.convertBlocks(blocks);
+	async renderPage(page: WorkspacePage): Promise<string> {
+		const blocks = await this.workspace.fetchPageContent(page.id);
+		const markdown = await this.renderBlocks(blocks);
 		
-		// Add frontmatter
-		const frontmatter = this.generateFrontmatter(pageId);
+		// Add frontmatter with page metadata
+		const frontmatter = this.createFrontmatter(page);
 		return `${frontmatter}\n\n${markdown}`;
 	}
 
-	private async convertBlocks(blocks: any[]): Promise<string> {
+	private async renderBlocks(blocks: any[]): Promise<string> {
 		let markdown = '';
 
 		for (const block of blocks) {
-			const blockMarkdown = await this.convertBlock(block);
+			const blockMarkdown = await this.renderBlock(block);
 			if (blockMarkdown) {
 				markdown += blockMarkdown + '\n\n';
 			}
@@ -31,7 +32,7 @@ export class NotionToMarkdownConverter {
 		return markdown.trim();
 	}
 
-	private async convertBlock(block: any): Promise<string> {
+	private async renderBlock(block: any): Promise<string> {
 		const type = block.type;
 
 		switch (type) {
@@ -187,7 +188,7 @@ export class NotionToMarkdownConverter {
 		try {
 			// Download the image
 			const fileName = await this.downloadAttachment(image.url, 'image');
-			return `![](${this.attachmentFolder}/${fileName})`;
+			return `![](${this.mediaPath}/${fileName})`;
 		} catch (error) {
 			console.warn('Failed to download image:', error);
 			return `![Image](${image.url})`;
@@ -201,7 +202,7 @@ export class NotionToMarkdownConverter {
 		try {
 			// Download the file
 			const fileName = await this.downloadAttachment(file.url, 'file');
-			return `[${file.name || 'File'}](${this.attachmentFolder}/${fileName})`;
+			return `[${file.name || 'File'}](${this.mediaPath}/${fileName})`;
 		} catch (error) {
 			console.warn('Failed to download file:', error);
 			return `[${file.name || 'File'}](${file.url})`;
@@ -215,7 +216,7 @@ export class NotionToMarkdownConverter {
 		try {
 			// Download the video
 			const fileName = await this.downloadAttachment(video.url, 'video');
-			return `[Video](${this.attachmentFolder}/${fileName})`;
+			return `[Video](${this.mediaPath}/${fileName})`;
 		} catch (error) {
 			console.warn('Failed to download video:', error);
 			return `[Video](${video.url})`;
@@ -229,7 +230,7 @@ export class NotionToMarkdownConverter {
 		try {
 			// Download the audio
 			const fileName = await this.downloadAttachment(audio.url, 'audio');
-			return `[Audio](${this.attachmentFolder}/${fileName})`;
+			return `[Audio](${this.mediaPath}/${fileName})`;
 		} catch (error) {
 			console.warn('Failed to download audio:', error);
 			return `[Audio](${audio.url})`;
@@ -243,7 +244,7 @@ export class NotionToMarkdownConverter {
 		try {
 			// Download the PDF
 			const fileName = await this.downloadAttachment(pdf.url, 'pdf');
-			return `[PDF](${this.attachmentFolder}/${fileName})`;
+			return `[PDF](${this.mediaPath}/${fileName})`;
 		} catch (error) {
 			console.warn('Failed to download PDF:', error);
 			return `[PDF](${pdf.url})`;
@@ -296,11 +297,13 @@ export class NotionToMarkdownConverter {
 		}
 	}
 
-	private generateFrontmatter(pageId: string): string {
+	private createFrontmatter(page: WorkspacePage): string {
 		return `---
-notion_id: ${pageId}
+notion_id: ${page.id}
+title: ${page.title}
 imported_from: notion
-created: ${new Date().toISOString()}
+created: ${page.created_time}
+modified: ${page.last_edited_time}
 ---`;
 	}
 }

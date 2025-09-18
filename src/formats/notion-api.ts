@@ -1,163 +1,161 @@
 import { normalizePath, Notice, Setting, DataWriteOptions, TFile } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { NotionApiClient } from './notion-api/notion-client';
-import { NotionToMarkdownConverter } from './notion-api/notion-to-md';
-import { BaseGenerator } from './notion-api/base-generator';
+import { NotionWorkspace } from './notion-api/workspace-client';
+import { NotionMarkdownRenderer } from './notion-api/markdown-renderer';
+import { ObsidianBaseBuilder } from './notion-api/base-builder';
 
 export class NotionApiImporter extends FormatImporter {
-	notionToken: string = '';
-	selectedDatabases: string[] = [];
-	attachmentFolder: string = '';
+	private apiKey: string = '';
+	private selectedWorkspaces: string[] = [];
+	private mediaPath: string = '';
 
 	init() {
-		this.addOutputLocationSetting('Notion API');
+		this.addOutputLocationSetting('Notion Workspace');
 		
-		// Notion Integration Token setting
+		// API key input - users need to create an integration first
 		new Setting(this.modal.contentEl)
-			.setName('Notion Integration Token')
-			.setDesc('Your Notion integration token. Create one at https://www.notion.so/my-integrations')
+			.setName('Notion API Key')
+			.setDesc('Get your API key from https://www.notion.so/my-integrations (create an integration first)')
 			.addText((text) => text
 				.setPlaceholder('secret_...')
-				.setValue(this.notionToken)
-				.onChange((value) => this.notionToken = value));
+				.setValue(this.apiKey)
+				.onChange((value) => this.apiKey = value));
 
-		// Database selection (will be populated after token is entered)
-		const databaseSetting = new Setting(this.modal.contentEl)
-			.setName('Select Databases')
-			.setDesc('Choose which databases to import')
+		// Workspace discovery - this will populate after API key is entered
+		const workspaceSetting = new Setting(this.modal.contentEl)
+			.setName('Available Workspaces')
+			.setDesc('Select which workspaces to import from')
 			.addButton((button) => button
-				.setButtonText('Load Databases')
+				.setButtonText('Discover Workspaces')
 				.setCta()
 				.onClick(async () => {
-					if (!this.notionToken) {
-						new Notice('Please enter your Notion integration token first');
+					if (!this.apiKey.trim()) {
+						new Notice('Please enter your Notion API key first');
 						return;
 					}
-					await this.loadDatabases();
+					await this.discoverWorkspaces();
 				}));
 
-		// Attachment folder setting
+		// Media handling - where to store downloaded files
 		new Setting(this.modal.contentEl)
-			.setName('Attachment folder')
-			.setDesc('Folder to save downloaded attachments')
+			.setName('Media Storage Path')
+			.setDesc('Where to store downloaded images, videos, and files')
 			.addText((text) => text
-				.setPlaceholder('attachments')
-				.setValue(this.attachmentFolder || 'attachments')
-				.onChange((value) => this.attachmentFolder = value));
+				.setPlaceholder('media')
+				.setValue(this.mediaPath || 'media')
+				.onChange((value) => this.mediaPath = value));
 	}
 
-	async loadDatabases() {
+	private async discoverWorkspaces() {
 		try {
-			const client = new NotionApiClient(this.notionToken);
-			const databases = await client.getDatabases();
+			const workspace = new NotionWorkspace(this.apiKey);
+			const availableWorkspaces = await workspace.fetchAvailableWorkspaces();
 			
-			// Clear existing database settings
-			const existingSettings = this.modal.contentEl.querySelectorAll('.notion-database-setting');
-			existingSettings.forEach(el => el.remove());
+			// Clean up any existing workspace toggles
+			const existingToggles = this.modal.contentEl.querySelectorAll('.workspace-toggle');
+			existingToggles.forEach(el => el.remove());
 
-		// Add database selection checkboxes
-		databases.forEach(db => {
-			const setting = new Setting(this.modal.contentEl);
-			setting.setName(db.title);
-			setting.setDesc(`Database ID: ${db.id}`);
-			setting.addToggle((toggle: any) => toggle
-				.setValue(this.selectedDatabases.includes(db.id))
-				.onChange((value: any) => {
-					if (value) {
-						this.selectedDatabases.push(db.id);
-					} else {
-						this.selectedDatabases = this.selectedDatabases.filter(id => id !== db.id);
-					}
-				}));
-		});
+			// Create toggles for each discovered workspace
+			availableWorkspaces.forEach(ws => {
+				const setting = new Setting(this.modal.contentEl);
+				setting.setName(ws.title);
+				setting.setDesc(`Workspace ID: ${ws.id} • ${ws.pageCount} pages`);
+				setting.addToggle((toggle: any) => toggle
+					.setValue(this.selectedWorkspaces.includes(ws.id))
+					.onChange((value: any) => {
+						if (value) {
+							this.selectedWorkspaces.push(ws.id);
+						} else {
+							this.selectedWorkspaces = this.selectedWorkspaces.filter(id => id !== ws.id);
+						}
+					}));
+			});
 
-			new Notice(`Found ${databases.length} databases`);
+			new Notice(`Discovered ${availableWorkspaces.length} workspaces`);
 		} catch (error) {
-			new Notice(`Failed to load databases: ${error.message}`);
+			new Notice(`Failed to discover workspaces: ${error.message}`);
 		}
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
-		if (!this.notionToken) {
-			new Notice('Please enter your Notion integration token');
+		if (!this.apiKey.trim()) {
+			new Notice('Please enter your Notion API key');
 			return;
 		}
 
-		if (this.selectedDatabases.length === 0) {
-			new Notice('Please select at least one database to import');
+		if (this.selectedWorkspaces.length === 0) {
+			new Notice('Please select at least one workspace to import');
 			return;
 		}
 
-		const folder = await this.getOutputFolder();
-		if (!folder) {
+		const outputFolder = await this.getOutputFolder();
+		if (!outputFolder) {
 			new Notice('Please select a location to export to');
 			return;
 		}
 
-		const client = new NotionApiClient(this.notionToken);
-		const converter = new NotionToMarkdownConverter(client, this.attachmentFolder);
-		const baseGenerator = new BaseGenerator();
+		const workspace = new NotionWorkspace(this.apiKey);
+		const markdownRenderer = new NotionMarkdownRenderer(workspace, this.mediaPath);
+		const baseBuilder = new ObsidianBaseBuilder();
 
-		ctx.status('Starting import from Notion API');
+		ctx.status('Starting Notion workspace import...');
 
-		for (const databaseId of this.selectedDatabases) {
+		for (const workspaceId of this.selectedWorkspaces) {
 			if (ctx.isCancelled()) return;
 
 			try {
-				ctx.status(`Importing database ${databaseId}`);
+				ctx.status(`Processing workspace ${workspaceId}`);
 				
-				// Get database info and data sources
-				const database = await client.getDatabase(databaseId);
-				const dataSources = await client.getDataSources(databaseId);
+				// Fetch workspace structure and databases
+				const workspaceData = await workspace.fetchWorkspaceStructure(workspaceId);
+				const databases = workspaceData.databases;
 				
-				// Generate .base file
-				const baseContent = await baseGenerator.generateBase(database, dataSources);
-				const basePath = `${folder.path}/${database.title || 'Database'}.base`;
-				await this.app.vault.create(basePath, baseContent);
+				// Create .base files for each database
+				for (const db of databases) {
+					const baseContent = baseBuilder.buildBaseFile(db, workspaceData.dataSources);
+					const basePath = `${outputFolder.path}/${this.sanitizeFilename(db.title)}.base`;
+					await this.app.vault.create(basePath, baseContent);
+				}
 
-				// Import pages from each data source
-				for (const dataSource of dataSources) {
+				// Import all pages from this workspace
+				const allPages = await workspace.fetchAllPages(workspaceId);
+				
+				for (const page of allPages) {
 					if (ctx.isCancelled()) return;
 
-					ctx.status(`Importing pages from data source ${dataSource.name}`);
-					
-					const pages = await client.getPagesFromDataSource(dataSource.id);
-					
-					for (const page of pages) {
-						if (ctx.isCancelled()) return;
-
-						try {
-							ctx.status(`Converting page: ${page.title || 'Untitled'}`);
-							
-							// Convert page to markdown
-							const markdown = await converter.convertPage(page.id);
-							
-							// Create the markdown file
-							const fileName = this.sanitizeFileName(page.title || 'Untitled');
-							const filePath = `${folder.path}/${fileName}.md`;
-							
-							await this.app.vault.create(filePath, markdown);
-							ctx.reportNoteSuccess(filePath);
-							
-						} catch (error) {
-							ctx.reportFailed(`Page ${page.id}`, error);
-						}
+					try {
+						ctx.status(`Converting: ${page.title || 'Untitled Page'}`);
+						
+						// Render page content to markdown
+						const markdownContent = await markdownRenderer.renderPage(page);
+						
+						// Save the markdown file
+						const filename = this.sanitizeFilename(page.title || 'Untitled Page');
+						const filePath = `${outputFolder.path}/${filename}.md`;
+						
+						await this.app.vault.create(filePath, markdownContent);
+						ctx.reportNoteSuccess(filePath);
+						
+					} catch (error) {
+						ctx.reportFailed(`Page ${page.id}`, error);
 					}
 				}
 
 			} catch (error) {
-				ctx.reportFailed(`Database ${databaseId}`, error);
+				ctx.reportFailed(`Workspace ${workspaceId}`, error);
 			}
 		}
 
-		ctx.status('Import completed');
+		ctx.status('Import completed successfully!');
 	}
 
-	private sanitizeFileName(name: string): string {
+	private sanitizeFilename(name: string): string {
+		// Clean up filename for filesystem compatibility
 		return name
 			.replace(/[<>:"/\\|?*]/g, '_')
 			.replace(/\s+/g, '_')
+			.replace(/_{2,}/g, '_') // collapse multiple underscores
 			.substring(0, 100);
 	}
 }
