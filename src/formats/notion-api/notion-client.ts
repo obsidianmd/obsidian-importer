@@ -1,4 +1,5 @@
 import { Client } from '@notionhq/client';
+import { Platform } from 'obsidian';
 
 export interface NotionDatabase {
 	id: string;
@@ -25,10 +26,15 @@ export class NotionApiClient {
 	private client: Client;
 
 	constructor(token: string) {
-		this.client = new Client({ 
-			auth: token,
-			notionVersion: '2025-09-03'
-		});
+		// Mobile compatibility: Only initialize on desktop
+		if (Platform.isDesktopApp) {
+			this.client = new Client({ 
+				auth: token,
+				notionVersion: '2025-09-03'
+			});
+		} else {
+			throw new Error('Notion API importer requires desktop Obsidian');
+		}
 	}
 
 	async getDatabases(): Promise<NotionDatabase[]> {

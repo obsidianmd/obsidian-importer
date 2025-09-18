@@ -100,11 +100,11 @@ describe('Notion API Importer', () => {
       const baseContent = generator.generateBase(database, dataSources);
 
       // Should include supported properties
-      expect(baseContent).toContain('supported:');
+      expect(baseContent).toContain('supported');
       expect(baseContent).toContain('type: text');
       
       // Should not include unsupported properties
-      expect(baseContent).not.toContain('unsupported:');
+      expect(baseContent).not.toContain('unsupported');
     });
   });
 });

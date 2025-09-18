@@ -35,6 +35,7 @@ export class NotionToMarkdownConverter {
 		const type = block.type;
 
 		switch (type) {
+			// Text blocks
 			case 'paragraph':
 				return this.convertRichText(block.paragraph.rich_text);
 			
@@ -47,6 +48,7 @@ export class NotionToMarkdownConverter {
 			case 'heading_3':
 				return `### ${this.convertRichText(block.heading_3.rich_text)}`;
 			
+			// List blocks
 			case 'bulleted_list_item':
 				return `- ${this.convertRichText(block.bulleted_list_item.rich_text)}`;
 			
@@ -60,11 +62,13 @@ export class NotionToMarkdownConverter {
 			case 'toggle':
 				return `- ${this.convertRichText(block.toggle.rich_text)}`;
 			
+			// Code blocks
 			case 'code':
 				const language = block.code.language || '';
 				const code = this.convertRichText(block.code.rich_text);
 				return `\`\`\`${language}\n${code}\n\`\`\``;
 			
+			// Quote and callout blocks
 			case 'quote':
 				return `> ${this.convertRichText(block.quote.rich_text)}`;
 			
@@ -73,9 +77,11 @@ export class NotionToMarkdownConverter {
 				const calloutText = this.convertRichText(block.callout.rich_text);
 				return `> [!${icon}] ${calloutText}`;
 			
+			// Divider
 			case 'divider':
 				return '---';
 			
+			// Media blocks
 			case 'image':
 				return await this.convertImage(block.image);
 			
@@ -85,11 +91,62 @@ export class NotionToMarkdownConverter {
 			case 'video':
 				return await this.convertVideo(block.video);
 			
+			case 'audio':
+				return await this.convertAudio(block.audio);
+			
+			case 'pdf':
+				return await this.convertPdf(block.pdf);
+			
+			// Table blocks
 			case 'table':
 				return this.convertTable(block.table);
 			
 			case 'table_row':
 				return this.convertTableRow(block.table_row);
+			
+			// Equation blocks
+			case 'equation':
+				return `$$\n${block.equation.expression}\n$$`;
+			
+			// Embed blocks
+			case 'embed':
+				return `[Embed: ${block.embed.url}](${block.embed.url})`;
+			
+			case 'bookmark':
+				return `[Bookmark: ${block.bookmark.url}](${block.bookmark.url})`;
+			
+			case 'link_preview':
+				return `[Link Preview: ${block.link_preview.url}](${block.link_preview.url})`;
+			
+			// Database blocks
+			case 'child_database':
+				return `[[Database: ${block.child_database.title}]]`;
+			
+			case 'child_page':
+				return `[[Page: ${block.child_page.title}]]`;
+			
+			// Synced blocks
+			case 'synced_block':
+				return `<!-- Synced Block: ${block.synced_block.synced_from?.block_id || 'local'} -->`;
+			
+			// Column blocks
+			case 'column_list':
+				return '<!-- Column List -->';
+			
+			case 'column':
+				return '<!-- Column -->';
+			
+			// Breadcrumb
+			case 'breadcrumb':
+				return '<!-- Breadcrumb -->';
+			
+			// Template
+			case 'template':
+				return `<!-- Template: ${this.convertRichText(block.template.rich_text)} -->`;
+			
+			// Link to page
+			case 'link_to_page':
+				return `[[${block.link_to_page.page_id}]]`;
 			
 			default:
 				// Handle unknown block types
@@ -162,6 +219,34 @@ export class NotionToMarkdownConverter {
 		} catch (error) {
 			console.warn('Failed to download video:', error);
 			return `[Video](${video.url})`;
+		}
+	}
+
+	private async convertAudio(audioBlock: any): Promise<string> {
+		const audio = audioBlock;
+		if (!audio.url) return '';
+
+		try {
+			// Download the audio
+			const fileName = await this.downloadAttachment(audio.url, 'audio');
+			return `[Audio](${this.attachmentFolder}/${fileName})`;
+		} catch (error) {
+			console.warn('Failed to download audio:', error);
+			return `[Audio](${audio.url})`;
+		}
+	}
+
+	private async convertPdf(pdfBlock: any): Promise<string> {
+		const pdf = pdfBlock;
+		if (!pdf.url) return '';
+
+		try {
+			// Download the PDF
+			const fileName = await this.downloadAttachment(pdf.url, 'pdf');
+			return `[PDF](${this.attachmentFolder}/${fileName})`;
+		} catch (error) {
+			console.warn('Failed to download PDF:', error);
+			return `[PDF](${pdf.url})`;
 		}
 	}
 
