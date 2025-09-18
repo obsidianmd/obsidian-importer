@@ -21,7 +21,6 @@
  */
 
 import { Platform, requestUrl, Notice, TFile, App, Setting } from 'obsidian';
-import { Client } from '@notionhq/client';
 
 // Import FormatImporter from the obsidian-importer
 import { FormatImporter } from '../format-importer';

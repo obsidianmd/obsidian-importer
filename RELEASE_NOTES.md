@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 1.7.0 - Notion API Integration (November 2024)
+## Version 1.7.0 - Notion API Integration (November 2025)
 
 ### 🚀 Major New Features
 
