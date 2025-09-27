@@ -1,5 +1,7 @@
 {
 	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": "src",
 		"baseUrl": "src",
 		"inlineSourceMap": true,
 		"inlineSources": true,
@@ -7,12 +9,14 @@
 		"target": "ES6",
 		"allowJs": true,
 		"noImplicitAny": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"importHelpers": true,
 		"isolatedModules": true,
 		"allowSyntheticDefaultImports": true,
 		"strictNullChecks": true,
 		"strictBindCallApply": true,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
 		"lib": [
 			"DOM",
 			"ES5",

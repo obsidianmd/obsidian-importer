@@ -12,7 +12,7 @@ export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
 };
 
-export const getFileIndex = (dstPath: string, fileNamePrefix: string): number | string => {
+export const getFileIndex = (dstPath: string, fileNamePrefix: string): number => {
 	const index = fs
 		.readdirSync(dstPath)
 		.filter(file => {
@@ -63,7 +63,7 @@ export const getFilePrefix = (note: any): string => {
 export const getNoteFileName = (dstPath: string, note: any, extension: string = 'md'): string => {
 	return `${getNoteName(dstPath, note)}.${extension}`;
 };
-export const getExtensionFromResourceFileName = (resource: any): string => {
+export const getExtensionFromResourceFileName = (resource: any): string | undefined => {
 	if (!(resource['resource-attributes'] &&
 		resource['resource-attributes']['file-name'])) {
 		return '';
