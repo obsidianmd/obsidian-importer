@@ -45,7 +45,7 @@ export const path: typeof NodePath = Platform.isDesktopApp ? window.require('nod
 export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
 export const zlib: typeof NodeZlib = Platform.isDesktopApp ? window.require('node:zlib') : null;
 
-export function nodeBufferToArrayBuffer(buffer: Buffer, offset = 0, length = buffer.byteLength): ArrayBuffer {
+export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
 }
 
