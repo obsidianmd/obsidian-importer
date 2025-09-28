@@ -7,14 +7,15 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
-		"lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts --fix"
+		"lint": "eslint src --fix"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
+		"@eslint/js": "9.36.0",
 		"@microsoft/microsoft-graph-types": "2.38.0",
-		"@stylistic/eslint-plugin": "^3.1.0",
+		"@stylistic/eslint-plugin": "5.4.0",
 		"@types/node": "20.19.17",
 		"@types/turndown": "^5.0.5",
 		"@types/xml-flow": "1.0.1",
