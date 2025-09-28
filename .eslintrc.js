@@ -1,7 +1,7 @@
 module.exports = {
 	root: true,
 	parser: '@typescript-eslint/parser',
-	plugins: ['@typescript-eslint'],
+	plugins: ['@typescript-eslint', '@stylistic'],
 	extends: ['plugin:@typescript-eslint/recommended'],
 	parserOptions: {
 		ecmaVersion: 2018,
@@ -9,37 +9,35 @@ module.exports = {
 	},
 	rules: {
 		'@typescript-eslint/interface-name-prefix': 'off',
-		'@typescript-eslint/no-unused-vars': ['error', { 'vars': 'all', 'args': 'none' }],
+		'@typescript-eslint/no-unused-vars': ['error', { 'vars': 'all', 'args': 'none', 'caughtErrors': 'none' }],
 		'@typescript-eslint/no-explicit-any': 'off',
 		'@typescript-eslint/ban-ts-comment': 'off',
 		// '@typescript-eslint/no-use-before-define': ['error', { 'functions': false, 'classes': false }],
 		'@typescript-eslint/no-empty-function': 'off',
-		'@typescript-eslint/ban-types': 'off',
 		'@typescript-eslint/no-this-alias': 'off',
 		'prefer-rest-params': 'off',
 		'prefer-const': 'off',
 		'@typescript-eslint/prefer-as-const': 'off',
+		'@typescript-eslint/no-unused-expressions': ['error', { 'allowShortCircuit': true, 'allowTernary': true }],
+		'@typescript-eslint/no-require-imports': ['error', { 'allow': ['^xml-flow$']}],
 
 		// Syntax
-		'comma-dangle': ['error', 'only-multiline'],
-		'@typescript-eslint/quotes': ['error', 'single', { 'allowTemplateLiterals': true }],
-		'@typescript-eslint/semi': ['error'],
-		'@typescript-eslint/member-delimiter-style': ['error', { 'singleline': { 'delimiter': 'comma' } }],
-		'dot-location': ['error', 'property'],
+		'@stylistic/comma-dangle': ['error', 'only-multiline'],
+		'@stylistic/quotes': ['error', 'single', { 'allowTemplateLiterals': true }],
+		'@stylistic/semi': ['error'],
+		'@stylistic/member-delimiter-style': ['error', { 'singleline': { 'delimiter': 'comma' } }],
+		'@stylistic/dot-location': ['error', 'property'],
 
 		// Braces
 		'curly': ['error', 'multi-line'],
-		'object-curly-spacing': ['error', 'always'],
-		'brace-style': ['error', 'stroustrup'],
+		'@stylistic/object-curly-spacing': ['error', 'always'],
+		'@stylistic/brace-style': ['error', 'stroustrup'],
 
 		// Indentation
-		// NOTE: The typescript indent rule is broken and we may need to disable
-		// it and switch to a different formatter.
-		// https://github.com/typescript-eslint/typescript-eslint/issues/1824
-		'indent': ['error', 'tab', {
+		'@stylistic/indent': ['error', 'tab', {
 			'SwitchCase': 1,
 		}],
-		'no-tabs': 'off',
-		'@typescript-eslint/indent': ['error', 'tab'],
+		'@stylistic/no-tabs': 'off',
+		'@stylistic/indent': ['error', 'tab'],
 	},
 };

@@ -126,7 +126,7 @@ export const clearResourceDir = (note: Note): void => {
 	clearDistDir(resPath);
 	resourceDirClears.set(resPath, clears + 1);
 };
-export const getNotebookNameAndFolderNames = (basename: string): {notebookName: string, notebookFolderNames: string[]} => {
+export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
 	const notebookFolderNames = basename.split('@@@');
 
 	let notebookName = notebookFolderNames.pop();
