@@ -70,7 +70,7 @@ export class RuntimePropertiesSingleton {
 		};
 	}
 
-	getNoteIdNameMapByNoteTitle(noteTitle: string): any {
+	getNoteIdNameMapByNoteTitle(noteTitle: string): NoteIdNameEntry[] {
 		return Object.values(this.getAllNoteIdNameMap()).filter(noteIdName => noteIdName.title === noteTitle);
 	}
 

@@ -1,26 +1,30 @@
 import { checkboxDone, checkboxTodo } from '../../constants';
 
 import { getAttributeProxy } from './get-attribute-proxy';
+import { isElement } from './dom-utils';
+import { defineRule } from './define-rule';
 
 const indentCharacter = '	';
-export const taskListRule = {
+export const taskListRule = defineRule({
 	filter: 'li',
-	replacement: (content: any, node: any, options: any) => {
+	replacement: (content, node, options) => {
 
-		const isTodoDoneBlock = (node: any) => {
+		const isTodoDoneBlock = (node: HTMLElement) => {
 			const nodeProxy = getAttributeProxy(node);
 			const taskFlag = '--en-checked:true;';
 
-			return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
+			const style = nodeProxy.getNamedItem('style');
+			return style?.value.includes(taskFlag);
 		};
-		const isTodoBlock = (node: any) => {
+		const isTodoBlock = (node: HTMLElement) => {
 			const nodeProxy = getAttributeProxy(node);
 			const taskFlag = '--en-checked:false;';
 
-			return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
+			const style = nodeProxy.getNamedItem('style');
+			return style?.value.includes(taskFlag);
 		};
 
-		const indentCount = content.match(/^\n*/)[0].length || 0;
+		const indentCount = content.match(/^\n*/)![0].length;
 		const indentChars = indentCharacter.repeat(indentCount);
 
 		const singleLineContent = content
@@ -37,10 +41,10 @@ export const taskListRule = {
 					: '* '))
 		;
 		const parent = node.parentNode;
-		if (parent.nodeName === 'OL') {
-			const start = parent.getAttribute('start');
+		if (parent && isElement(parent) && parent.nodeName === 'OL') {
+			const start = parent.getAttribute('start') || '1';
 			const index = Array.prototype.indexOf.call(parent.children, node);
-			prefix = `${(start ? Number(start) + index : index + 1)}. `;
+			prefix = `${Number.parseInt(start, 10) + index}. `;
 		}
 
 		let ret;
@@ -49,4 +53,4 @@ export const taskListRule = {
 
 		return ret;
 	},
-};
+});

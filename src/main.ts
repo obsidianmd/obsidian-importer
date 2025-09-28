@@ -14,7 +14,17 @@ import { truncateText } from './util';
 declare global {
 	interface Window {
 		electron: any;
-		require: NodeRequire;
+		require: NodeJS.Require;
+		TurndownService: typeof import('turndown');
+	}
+	interface Node {
+		// turndown's monkey patched Node interface
+		// @see https://github.com/mixmark-io/turndown/blob/0df0c0506233e0459ba21974f30b9ad3f1feb20f/src/node.js#L4
+		isBlock: boolean;
+	}
+	interface HTMLElementTagNameMap {
+		/** An obsolete tag for strikethrough text. Used in strikethroughRule */
+		'strike': HTMLElement;
 	}
 }
 

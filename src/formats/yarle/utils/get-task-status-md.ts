@@ -1,7 +1,7 @@
 import { checkboxDone, checkboxTodo } from '../constants';
-import { EvernoteTaskStatus } from '../models/EvernoteTask';
+import { EvernoteTask, EvernoteTaskStatus } from '../models/EvernoteTask';
 
-export const getTaskStatusMd = (task: any): string => {
+export const getTaskStatusMd = (task: EvernoteTask): string => {
 	return (task.taskstatus === EvernoteTaskStatus.Open)
 		? checkboxTodo
 		: checkboxDone;

@@ -1,3 +1,4 @@
+import TurndownService from 'turndown';
 import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 
@@ -38,7 +39,7 @@ export interface YarleOptions {
 	addExtensionToInternalLinks?: boolean;
 	pathSeparator?: string;
 	resourcesDir: string;
-	turndownOptions?: Record<string, any>;
+	turndownOptions?: Omit<TurndownService.Options, 'blankReplacement' | 'keepReplacement' | 'defaultReplacement'>;
 	obsidianTaskTag?: string;
 	useUniqueUnknownFileNames?: boolean;
 }

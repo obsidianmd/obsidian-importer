@@ -10,6 +10,7 @@ import * as SOURCEURL from './placeholders/sourceurl-placeholders';
 import * as YAMLLISTTAGS from './placeholders/tags-yaml-list-placeholders';
 import * as TAGS from './placeholders/tags-placeholders';
 import * as UPDATETIME from './placeholders/updatedat-placeholders';
+import type { PlaceholderItem } from './types';
 
 export const hasCreationTimeInTemplate = (templateContent: string): boolean => {
 	return hasItemInTemplate(CREATIONTIME, templateContent);
@@ -50,7 +51,7 @@ export const hasMetadataInTemplate = (templateContent: string): boolean => {
 export const hasUpdateTimeInTemplate = (templateContent: string): boolean => {
 	return hasItemInTemplate(UPDATETIME, templateContent);
 };
-const hasItemInTemplate = (item: any, templateContent: string): boolean => {
+const hasItemInTemplate = (item: PlaceholderItem, templateContent: string): boolean => {
 	return templateContent.includes(item.START_BLOCK) &&
 		templateContent.includes(item.CONTENT_PLACEHOLDER) &&
 		templateContent.includes(item.END_BLOCK);

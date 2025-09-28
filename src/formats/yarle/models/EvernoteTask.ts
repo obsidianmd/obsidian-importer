@@ -1,4 +1,5 @@
 import { moment } from 'obsidian';
+import { Task } from '../schemas/task';
 
 export enum EvernoteTaskStatus {
 	Open = 'open',
@@ -6,38 +7,49 @@ export enum EvernoteTaskStatus {
 }
 
 export interface EvernoteTask {
-	$name: string;
 	created: Date;
-	creator: string;
-	lasteditor: string;
+	creator: string | undefined;
+	lasteditor: string | undefined;
 	notelevelid: string;
 	sortweight: string;
-	statusupdated: Date;
+	statusupdated: Date | undefined;
 	taskflag: boolean;
 	taskgroupnotelevelid: string;
 	taskstatus: EvernoteTaskStatus;
 	title: string;
-	duedate: Date;
-	duedateoption: string;
-	reminderdate: Date;
-	reminderdateoption: string;
+	duedate: Date | undefined;
+	reminderdate: Date[];
 	updated: Date;
 }
 
-export const mapEvernoteTask = (pureTask: any): EvernoteTask => {
+export const mapEvernoteTask = (pureTask: Task): EvernoteTask => {
+	const reminders = [pureTask.reminder ?? []].flat();
 	return {
-		...pureTask,
 		created: getDateFromProperty(pureTask.created),
-		statusupdated: getDateFromProperty(pureTask.statusupdated),
-		updated: getDateFromProperty(pureTask.updated),
-		duedate: getDateFromProperty(pureTask.duedate),
-		taskflag: pureTask.taskflag === 'true',
-		reminderdate: pureTask.reminder ? getDateFromProperty(pureTask.reminder.reminderdate) : undefined,
+		creator: pureTask.creator,
+		lasteditor: pureTask.lasteditor,
+		notelevelid: pureTask.notelevelid,
 		sortweight: pureTask.sortweight,
+		statusupdated: getDateFromPropertyOptional(pureTask.statusupdated),
+		taskflag: pureTask.taskflag === 'true',
+		taskgroupnotelevelid: pureTask.taskgroupnotelevelid,
+		taskstatus: {
+			open: EvernoteTaskStatus.Open,
+			closed: EvernoteTaskStatus.Closed,
+		}[pureTask.taskstatus],
+		title: pureTask.title,
+		duedate: getDateFromPropertyOptional(pureTask.duedate),
+		reminderdate: reminders
+			.map(reminder => getDateFromPropertyOptional(reminder.reminderdate))
+			.filter((d) => d !== undefined),
+		updated: getDateFromProperty(pureTask.updated),
 	};
 };
 
 const getDateFromProperty = (property: string) => {
+	return moment(property, 'YYYYMMDDThhmmssZ').toDate();
+};
+const getDateFromPropertyOptional = (property: string | undefined) => {
 	return property
 		? moment(property, 'YYYYMMDDThhmmssZ').toDate()
 		: undefined;

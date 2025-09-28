@@ -16,7 +16,7 @@ export const convertTasktoMd = (task: EvernoteTask, notebookName: string): strin
 	const duedate = task.duedate && !isNaN(task.duedate.getTime())
 		? ` ${DUE_DATE_ICON} ${convertDateFormat(task.duedate)}`
 		: '';
-	const reminder = task.reminderdate ? ` ${SCHEDULE_DATE_ICON} ${convertDateFormat(task.reminderdate)}` : '';
+	const reminder = task.reminderdate.length > 0 ? ` ${SCHEDULE_DATE_ICON} ${task.reminderdate.map(d => convertDateFormat(d)).join(', ')}` : '';
 
 	const priority = task.taskflag ? ` ${MEDIUM_PRIORITY_ICON}` : ` ${LOW_PRIORITY_ICON}`;
 

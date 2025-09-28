@@ -4,8 +4,10 @@ import { fs, path } from '../../filesystem';
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';
 import { yarleOptions } from './yarle';
+import { Note } from './schemas/note';
+import { Resource } from './schemas/resource';
 
-const getResourceWorkDirs = (note: any) => {
+const getResourceWorkDirs = (note: Note) => {
 	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
 	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, yarleOptions.pathSeparator || '/');
 	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,yarleOptions.pathSeparator)
@@ -13,8 +15,11 @@ const getResourceWorkDirs = (note: any) => {
 	return { absoluteResourceWorkDir, relativeResourceWorkDir };
 };
 
-export const processResources = (note: any): string => {
-	let resourceHashes: any = {};
+export const processResources = (note: Note): string => {
+	if (!note.resource) {
+		throw new Error('No resources in note');
+	}
+	let resourceHashes: Record<string, ResourceHashItem> = {};
 	let updatedContent = note.content;
 	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
 
@@ -45,15 +50,15 @@ export const processResources = (note: any): string => {
 	return updatedContent;
 };
 
-const addMediaReference = (content: string, resourceHashes: any, hash: any, workDir: string): string => {
+const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string, workDir: string): string => {
 	const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, '\ ')}`;
 	console.log(`mediaReference src ${src} added`);
-	let updatedContent: any;
+	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
 	const matchedElements = content.match(re);
 
-	const mediaType = matchedElements && matchedElements.length > 0 && matchedElements[0].split('type=');
+	const mediaType = matchedElements && matchedElements[0].split('type=');
 	if (mediaType && mediaType.length > 1 && mediaType[1].startsWith('"image')) {
 		const width = matchedElements[0].match(/width="(\w+)"/);
 		const widthParam = width ? ` width="${width[1]}"` : '';
@@ -70,9 +75,9 @@ const addMediaReference = (content: string, resourceHashes: any, hash: any, work
 	return updatedContent;
 };
 
-const processResource = (workDir: string, resource: any): any => {
-	const resourceHash: any = {};
-	const data = resource.data.$text;
+const processResource = (workDir: string, resource: Resource): Record<string, ResourceHashItem> => {
+	const resourceHash: Record<string, ResourceHashItem> = {};
+	const data = typeof resource.data === 'string' ? resource.data : resource.data.$text;
 
 	// Skip unknown type as we don't know how to handle
 	// Source: https://dev.evernote.com/doc/articles/data_structure.php
@@ -87,7 +92,7 @@ const processResource = (workDir: string, resource: any): any => {
 
 	const accessTime = utils.getTimeStampMoment(resource);
 	const resourceFileProps = utils.getResourceFileProperties(workDir, resource);
-	let fileName = resourceFileProps.fileName;
+	const fileName = resourceFileProps.fileName;
 
 	const absFilePath = `${workDir}${path.sep}${fileName}`;
 
@@ -103,25 +108,26 @@ const processResource = (workDir: string, resource: any): any => {
 	catch(e){}
 
 	if (resource.recognition && fileName) {
-		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
+		// matches objID
+		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/)![0];
 		console.log(`resource ${fileName} added with hash ${hashIndex}`);
-		resourceHash[hashIndex as any] = { fileName, alreadyUsed: false } as ResourceHashItem;
+		resourceHash[hashIndex] = { fileName, alreadyUsed: false };
 	}
 	else {
 		let hash = crypto.createHash('md5');
 		hash.update(buffer);
 		const md5Hash = hash.digest('hex');
-		resourceHash[md5Hash] = { fileName, alreadyUsed: false } as ResourceHashItem;
+		resourceHash[md5Hash] = { fileName, alreadyUsed: false };
 	}
 
 	return resourceHash;
 };
 
 export const extractDataUrlResources = (
-	note: any,
+	note: Note,
 	content: string,
 ): string => {
-	if (content.indexOf('src="data:') < 0) {
+	if (!content.includes('src="data:')) {
 		return content; // no data urls
 	}
 
@@ -143,7 +149,7 @@ const createResourceFromData = (
 	base64: boolean,
 	data: string,
 	absoluteResourceWorkDir: string,
-	note: any,
+	note: Note,
 ): string => {
 	const baseName = 'embedded'; // data doesn't seem to include useful base filename
 	const extension = extensionForMimeType(mediatype) || '.dat';

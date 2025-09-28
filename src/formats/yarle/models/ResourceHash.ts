@@ -1,4 +1,4 @@
 export interface ResourceHashItem {
-	fileName?: string;
+	fileName: string;
 	alreadyUsed?: boolean;
 }

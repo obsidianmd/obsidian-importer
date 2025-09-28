@@ -1,18 +1,20 @@
 import { languageItems } from '../../outputLanguages';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
+import { defineRule } from './define-rule';
 
 const EVERNOTE_HIGHLIGHT = '-evernote-highlight:true;';
 const EVERNOTE_COLORHIGHLIGHT = '--en-highlight';
 const BOLD = 'bold';
 const ITALIC = 'italic';
 
-export const spanRule = {
+export const spanRule = defineRule({
 	filter: filterByNodeName('SPAN'),
-	replacement: (content: any, node: any) => {
+	replacement: (content, node) => {
 		const nodeProxy = getAttributeProxy(node);
-		if (nodeProxy.style && content.trim() !== '') {
-			const nodeValue: string = nodeProxy.style.value;
+		const style = nodeProxy.getNamedItem('style');
+		if (style && content.trim() !== '') {
+			const nodeValue: string = style.value;
 
 			// this aims to care for bold text generated as <span style="font-weight: bold;">Bold</span>
 			if (content !== '<YARLE_NEWLINE_PLACEHOLDER>') {
@@ -36,4 +38,4 @@ export const spanRule = {
 
 		return content;
 	},
-};
+});

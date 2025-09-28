@@ -6,6 +6,7 @@ import { yarleOptions } from '../yarle';
 import { replaceLastOccurrenceInString } from './string-utils';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
+import { Note } from '../schemas/note';
 
 export interface Path {
 	mdPath: string;
@@ -23,7 +24,7 @@ export interface NotebookStackProps {
 
 const MAX_PATH = 249;
 
-export const getResourceDir = (dstPath: string, note: any): string => {
+export const getResourceDir = (dstPath: string, note: Note): string => {
 	return getNoteName(dstPath, note).replace(/\s/g, '_');
 };
 
@@ -38,7 +39,7 @@ export const truncatFileName = (fileName: string, uniqueId: string): string => {
 	return fullPath.length < MAX_PATH ? fileName : `${fileName.slice(0, MAX_PATH - 11)}_${uniqueId}.md`;
 };
 
-const truncateFilePath = (note: any, fileName: string, fullFilePath: string): string => {
+const truncateFilePath = (note: Note, fileName: string, fullFilePath: string): string => {
 	const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
 
 	const noteIdMap = noteIdNameMap.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title))[0] || { uniqueEnd: genUid(6) };
@@ -52,25 +53,25 @@ const truncateFilePath = (note: any, fileName: string, fullFilePath: string): st
 	// -11 is the nanoid 5 char +_+ the max possible extension of the note (.md vs .html)
 };
 
-const getFilePath = (dstPath: string, note: any, extension: string): string => {
+const getFilePath = (dstPath: string, note: Note, extension: string): string => {
 	const fileName = getNoteFileName(dstPath, note, extension);
 	const fullFilePath = `${dstPath}${path.sep}${normalizeTitle(fileName)}`;
 
 	return fullFilePath.length < MAX_PATH ? fullFilePath : truncateFilePath(note, fileName, fullFilePath);
 };
 
-export const getMdFilePath = (note: any): string => {
+export const getMdFilePath = (note: Note): string => {
 	return getFilePath(paths.mdPath, note, 'md');
 };
 
-export const getJsonFilePath = (note: any): string => {
+export const getJsonFilePath = (note: Note): string => {
 	return getFilePath(paths.mdPath, note, 'json');
 };
-export const getHtmlFilePath = (note: any): string => {
+export const getHtmlFilePath = (note: Note): string => {
 	return getFilePath(paths.resourcePath, note, 'html');
 };
 
-export const getHtmlFileLink = (note: any): string => {
+export const getHtmlFileLink = (note: Note): string => {
 	const filePath = getHtmlFilePath(note);
 
 	return `.${filePath.slice(paths.resourcePath.lastIndexOf(path.sep))}`;
@@ -88,7 +89,7 @@ const clearDistDir = (dstPath: string): void => {
 	fs.mkdirSync(dstPath);
 };
 
-export const getRelativeResourceDir = (note: any): string => {
+export const getRelativeResourceDir = (note: Note): string => {
 	const enexFolder = `${path.sep}${yarleOptions.resourcesDir}`;
 	if (yarleOptions.haveGlobalResources) {
 		return `..${enexFolder}`;
@@ -99,7 +100,7 @@ export const getRelativeResourceDir = (note: any): string => {
 		: `.${enexFolder}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
-export const getAbsoluteResourceDir = (note: any): string => {
+export const getAbsoluteResourceDir = (note: Note): string => {
 	if (yarleOptions.haveGlobalResources) {
 		return path.resolve(paths.resourcePath, '..', '..', yarleOptions.resourcesDir);
 	}
@@ -110,7 +111,7 @@ export const getAbsoluteResourceDir = (note: any): string => {
 };
 
 const resourceDirClears = new Map<string, number>();
-export const clearResourceDir = (note: any): void => {
+export const clearResourceDir = (note: Note): void => {
 	const resPath = getAbsoluteResourceDir(note);
 	if (!resourceDirClears.has(resPath)) {
 		resourceDirClears.set(resPath, 0);

@@ -72,7 +72,7 @@ const fixSublists = (node: HTMLElement) => {
 	const liElements: Array<HTMLElement> = Array.from(node.getElementsByTagName('li'));
 	for (const liNode of liElements) {
 		const listNodeDiv = liNode.firstElementChild;
-		if (listNodeDiv && listNodeDiv.tagName === 'DIV') {
+		if (listNodeDiv?.tagName === 'DIV') {
 			const childElementsArr = Array.from(listNodeDiv.childNodes);
 			listNodeDiv.replaceWith(...childElementsArr);
 		}
@@ -86,7 +86,7 @@ export const convertHtml2Md = (yarleOptions: YarleOptions, { htmlContent }: Note
 		.replace(/(<a [^>]*)\/>/, '$1></a>').replace(/<div[^\/\<]*\/>/g, '');
 
 	const contentNode = new DOMParser().parseFromString(fixSublistsInContent(content), 'text/html')
-		.getElementsByTagName('en-note').item(0) as any as HTMLElement;
+		.getElementsByTagName('en-note').item(0) as HTMLElement;
 
 	let contentInMd = getTurndownService(yarleOptions)
 		.turndown(fixTasks(fixSublists(contentNode)));

@@ -7,6 +7,8 @@ import { yarleOptions } from '../yarle';
 import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { extensionForMime } from '../../../mime';
+import { Resource } from '../schemas/resource';
+import { Note } from '../schemas/note';
 
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
@@ -29,14 +31,14 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number =>
 	return index;
 
 };
-export const getResourceFileProperties = (workDir: string, resource: any): ResourceFileProperties => {
+export const getResourceFileProperties = (workDir: string, resource: Resource): ResourceFileProperties => {
 	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
 
-	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
-		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, 50);
+	if (resource['resource-attributes']?.['file-name']) {
+		const fileNamePrefix = resource['resource-attributes']['file-name'].slice(0, 50);
 		fileName = parseFilePath(fileNamePrefix).basename;
 
 	}
@@ -56,16 +58,15 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 	};
 };
 
-export const getFilePrefix = (note: any): string => {
-	return normalizeTitle(note['title'] ? `${note['title'].toString()}` : 'Untitled');
+export const getFilePrefix = (note: Note): string => {
+	return normalizeTitle(note['title'] || 'Untitled');
 };
 
-export const getNoteFileName = (dstPath: string, note: any, extension: string = 'md'): string => {
+export const getNoteFileName = (dstPath: string, note: Note, extension: string = 'md'): string => {
 	return `${getNoteName(dstPath, note)}.${extension}`;
 };
-export const getExtensionFromResourceFileName = (resource: any): string | undefined => {
-	if (!(resource['resource-attributes'] &&
-		resource['resource-attributes']['file-name'])) {
+export const getExtensionFromResourceFileName = (resource: Resource): string | undefined => {
+	if (!resource['resource-attributes']?.['file-name']) {
 		return '';
 	}
 	const splitFileName = resource['resource-attributes']['file-name'].split('.');
@@ -74,7 +75,7 @@ export const getExtensionFromResourceFileName = (resource: any): string | undefi
 
 };
 
-export const getExtensionFromMime = (resource: any): string => {
+export const getExtensionFromMime = (resource: Resource): string => {
 	const mimeType = resource.mime;
 	if (!mimeType) {
 		return '';
@@ -83,17 +84,17 @@ export const getExtensionFromMime = (resource: any): string => {
 	return extensionForMime(mimeType) || '';
 };
 
-export const getExtension = (resource: any): string => {
+export const getExtension = (resource: Resource): string => {
 	const UNKNOWNEXTENSION = 'dat';
 
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
 
-export const getZettelKastelId = (note: any, dstPath: string): string => {
+export const getZettelKastelId = (note: Note, dstPath: string): string => {
 	return moment(note['created']).format('YYYYMMDDHHmm');
 };
 
-export const getNoteName = (dstPath: string, note: any): string => {
+export const getNoteName = (dstPath: string, note: Note): string => {
 	let noteName;
 
 	if (yarleOptions.isZettelkastenNeeded || yarleOptions.useZettelIdAsFilename) {

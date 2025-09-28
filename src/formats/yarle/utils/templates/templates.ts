@@ -6,7 +6,7 @@ import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, ap
 import * as T from './placeholders/metadata-placeholders';
 import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
 
-export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) => {
+export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions): string => {
 
 	let result = yarleOptions.currentTemplate;
 
