@@ -17,7 +17,7 @@
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.4.0",
 		"@types/node": "20.19.17",
-		"@types/turndown": "^5.0.5",
+		"@types/turndown": "5.0.5",
 		"@types/xml-flow": "1.0.1",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.25.4",
