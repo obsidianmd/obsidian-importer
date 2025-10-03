@@ -1,0 +1,69 @@
+[language-server.tailwindcss]
+command = "tailwindcss-language-server"
+config = { }
+args = ["--stdio"]
+timeout = 3
+
+[language-server.typescript-language-server]
+command = "typescript-language-server"
+args = ["--stdio"]
+timeout = 3
+config = { format = { "semicolons" = "insert", "convertTabsToSpaces" = false } }
+
+[language-server.json] 
+command = "vscode-json-language-server" 
+args = ["--stdio"]
+timeout = 3
+config = { format = { "convertTabsToSpaces" = false } }
+
+[[language]]
+name = "html"
+indent = { tab-width = 4, unit = "\t" }
+
+[[language]]
+name = "tsx"
+scope = "source.tsx"
+injection-regex = "(tsx)" 
+file-types = ["tsx"]
+indent = { tab-width = 4, unit = "\t" }
+auto-format = true
+roots = ["tailwind.config.js","tailwind.config.cjs", "tsconfig.json"]
+language-servers = ["typescript-language-server", "eslint", "tailwindcss"]
+
+[[language]]
+name = "typescript"
+scope = "source.ts"
+injection-regex = "(ts)" 
+file-types = ["ts"]
+indent = { tab-width = 4, unit = "\t" }
+auto-format = true
+roots = ["tailwind.config.js","tailwind.config.cjs", "tsconfig.json"]
+language-servers = ["typescript-language-server", "eslint", "tailwindcss"]
+
+[[language]]
+name = "javascript"
+scope = "source.js"
+injection-regex = "(js)" 
+file-types = ["js", "cjs", "mjs"]
+indent = { tab-width = 4, unit = "\t" }
+auto-format = true
+roots = ["tailwind.config.js","tailwind.config.cjs", "jsconfig.json"]
+language-servers = ["typescript-language-server", "eslint", "tailwindcss"]
+
+[[language]]
+name = "css"
+scope = "scope.css"
+injection-regex = "(css)"
+file-types = ["css"]
+indent = { tab-width = 4, unit = "\t" }
+auto-format = true
+language-servers = ["vscode-css-language-server", "tailwindcss"]
+
+[[language]]
+name = "json"
+scope = "source.json"
+injection-regex = "json"
+file-types = ["json"]
+indent = { tab-width = 4, unit = "\t" }
+auto-format = true
+language-servers = ["json"]
