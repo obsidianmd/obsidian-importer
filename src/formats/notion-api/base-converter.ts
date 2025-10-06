@@ -8,6 +8,7 @@ import type {
 	BaseFormula,
 	BaseSchema,
 	BasePropertyType,
+	BaseView,
 } from './notion-types';
 import {
 	isSelectProperty,
@@ -114,6 +115,69 @@ function extractDatabaseTitle(database: NotionDatabaseWithProperties): string {
 	return 'Untitled Database';
 }
 
+function generateViews(
+	notionProperties: Record<string, NotionDatabasePropertyType>,
+	baseProperties: Record<string, BaseProperty>
+): BaseView[] {
+	const views: BaseView[] = [];
+
+	const statusProperty = Object.entries(notionProperties).find(
+		([, prop]) => isStatusProperty(prop) || (isSelectProperty(prop) && prop.name.toLowerCase().includes('status'))
+	);
+
+	const dateProperty = Object.entries(notionProperties).find(
+		([, prop]) => prop.type === 'date' && !prop.type.includes('created') && !prop.type.includes('edited')
+	);
+
+	const createdTimeProperty = Object.entries(notionProperties).find(
+		([, prop]) => prop.type === 'created_time'
+	);
+
+	views.push({
+		name: 'Table',
+		type: 'table',
+		sorts: createdTimeProperty ? [{ property: createdTimeProperty[0], direction: 'descending' }] : undefined,
+	});
+
+	views.push({
+		name: 'List',
+		type: 'list',
+		sorts: createdTimeProperty ? [{ property: createdTimeProperty[0], direction: 'descending' }] : undefined,
+	});
+
+	if (statusProperty) {
+		views.push({
+			name: 'Board',
+			type: 'board',
+			groups: [{ property: statusProperty[0], direction: 'ascending' }],
+			sorts: createdTimeProperty ? [{ property: createdTimeProperty[0], direction: 'descending' }] : undefined,
+		});
+	}
+
+	if (dateProperty) {
+		views.push({
+			name: 'Calendar',
+			type: 'calendar',
+			properties: {
+				dateProperty: dateProperty[0],
+			},
+		});
+
+		views.push({
+			name: 'Timeline',
+			type: 'table',
+			sorts: [{ property: dateProperty[0], direction: 'ascending' }],
+		});
+	}
+
+	views.push({
+		name: 'Gallery',
+		type: 'gallery',
+	});
+
+	return views;
+}
+
 export function convertDatabaseToBase(database: NotionDatabaseWithProperties): BaseConversionResult {
 	const columnMapping = mapDatabaseColumns(database);
 	const databaseId = database.id;
@@ -136,10 +200,7 @@ export function convertDatabaseToBase(database: NotionDatabaseWithProperties): B
 		schema.formulas = columnMapping.formulas;
 	}
 
-	schema.views = [{
-		name: 'Table',
-		type: 'table',
-	}];
+	schema.views = generateViews(database.properties, columnMapping.properties);
 
 	return {
 		schema,

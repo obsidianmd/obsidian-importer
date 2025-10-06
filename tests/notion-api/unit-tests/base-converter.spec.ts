@@ -315,6 +315,125 @@ describe('Base Converter', () => {
 		});
 	});
 
+	describe('view generation', () => {
+		it('should generate multiple views for database with status property', () => {
+			const database: NotionDatabaseWithProperties = {
+				object: 'database',
+				id: 'status-db',
+				created_time: '2024-01-01T00:00:00.000Z',
+				last_edited_time: '2024-01-01T00:00:00.000Z',
+				title: [{ type: 'text', text: { content: 'Tasks' }, plain_text: 'Tasks', annotations: {} as any }],
+				properties: {
+					'Name': {
+						id: 'title',
+						name: 'Name',
+						type: 'title',
+						title: {}
+					},
+					'Status': {
+						id: 'status',
+						name: 'Status',
+						type: 'status',
+						status: {
+							options: [
+								{ name: 'To Do', color: 'red' },
+								{ name: 'In Progress', color: 'yellow' },
+								{ name: 'Done', color: 'green' }
+							]
+						}
+					},
+					'Created': {
+						id: 'created',
+						name: 'Created',
+						type: 'created_time',
+						created_time: {}
+					}
+				}
+			} as any;
+
+			const result = convertDatabaseToBase(database);
+
+			expect(result.schema.views).toBeDefined();
+			expect(result.schema.views!.length).toBeGreaterThanOrEqual(3);
+
+			const tableView = result.schema.views!.find(v => v.type === 'table');
+			const listView = result.schema.views!.find(v => v.type === 'list');
+			const boardView = result.schema.views!.find(v => v.type === 'board');
+
+			expect(tableView).toBeDefined();
+			expect(listView).toBeDefined();
+			expect(boardView).toBeDefined();
+			expect(boardView!.groups).toBeDefined();
+			expect(boardView!.groups![0].property).toBe('Status');
+		});
+
+		it('should generate calendar and timeline views for database with date property', () => {
+			const database: NotionDatabaseWithProperties = {
+				object: 'database',
+				id: 'date-db',
+				created_time: '2024-01-01T00:00:00.000Z',
+				last_edited_time: '2024-01-01T00:00:00.000Z',
+				title: [{ type: 'text', text: { content: 'Events' }, plain_text: 'Events', annotations: {} as any }],
+				properties: {
+					'Name': {
+						id: 'title',
+						name: 'Name',
+						type: 'title',
+						title: {}
+					},
+					'Date': {
+						id: 'date',
+						name: 'Date',
+						type: 'date',
+						date: {}
+					}
+				}
+			} as any;
+
+			const result = convertDatabaseToBase(database);
+
+			const calendarView = result.schema.views!.find(v => v.type === 'calendar');
+			const timelineView = result.schema.views!.find(v => v.name === 'Timeline');
+
+			expect(calendarView).toBeDefined();
+			expect(calendarView!.properties).toBeDefined();
+			expect(calendarView!.properties!.dateProperty).toBe('Date');
+			expect(timelineView).toBeDefined();
+			expect(timelineView!.sorts![0].property).toBe('Date');
+		});
+
+		it('should add sorts to views when created_time property exists', () => {
+			const database: NotionDatabaseWithProperties = {
+				object: 'database',
+				id: 'sorted-db',
+				created_time: '2024-01-01T00:00:00.000Z',
+				last_edited_time: '2024-01-01T00:00:00.000Z',
+				title: [{ type: 'text', text: { content: 'Test' }, plain_text: 'Test', annotations: {} as any }],
+				properties: {
+					'Name': {
+						id: 'title',
+						name: 'Name',
+						type: 'title',
+						title: {}
+					},
+					'Created': {
+						id: 'created',
+						name: 'Created',
+						type: 'created_time',
+						created_time: {}
+					}
+				}
+			} as any;
+
+			const result = convertDatabaseToBase(database);
+
+			const tableView = result.schema.views!.find(v => v.type === 'table');
+			expect(tableView!.sorts).toBeDefined();
+			expect(tableView!.sorts![0].property).toBe('Created');
+			expect(tableView!.sorts![0].direction).toBe('descending');
+		});
+	});
+
 	describe('edge cases', () => {
 		it('should handle database with no properties', () => {
 			const database: NotionDatabaseWithProperties = {
@@ -330,7 +449,7 @@ describe('Base Converter', () => {
 
 			expect(result.schema.properties).toBeUndefined();
 			expect(result.schema.formulas).toBeUndefined();
-			expect(result.schema.views).toHaveLength(1);
+			expect(result.schema.views!.length).toBeGreaterThanOrEqual(3);
 		});
 
 		it('should handle complex multi-word database title', () => {
