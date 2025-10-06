@@ -49,6 +49,7 @@ export interface FormulaConversionResult {
 }
 
 const FUNCTION_MAPPINGS: Record<string, { obsidianName: string; requiresTransformation: boolean }> = {
+	prop: { obsidianName: 'PROPERTY_REF', requiresTransformation: true },
 	length: { obsidianName: 'length', requiresTransformation: false },
 	substring: { obsidianName: 'substring', requiresTransformation: false },
 	contains: { obsidianName: 'contains', requiresTransformation: false },
@@ -462,7 +463,7 @@ function translateLiteral(node: LiteralNode): string {
 }
 
 function translateProperty(node: PropertyRefNode): string {
-	return `prop("${node.name}")`;
+	return node.name;
 }
 
 function translateFunction(node: FunctionCallNode, warnings: string[]): string {
@@ -484,6 +485,11 @@ function translateFunction(node: FunctionCallNode, warnings: string[]): string {
 
 function transformFunction(notionName: string, obsidianName: string, args: string[]): string {
 	switch (notionName) {
+		case 'prop':
+			if (args.length === 0) {
+				return 'MISSING_PROPERTY_NAME';
+			}
+			return args[0].replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
 		case 'add':
 			return args.length === 2 ? `(${args[0]} + ${args[1]})` : `sum(${args.join(', ')})`;
 		case 'subtract':

@@ -4,6 +4,7 @@ import { ImportContext } from '../main';
 import { NotionApiClient } from './notion-api/api-client';
 import { isDatabaseObject, type NotionDatabaseWithProperties } from './notion-api/notion-types';
 import { convertDatabaseToBase, writeBaseFile, createDatabaseTag } from './notion-api/base-converter';
+import { BlockConverter } from './notion-api/block-converter';
 import type { PageObjectResponse, RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
 
 export class NotionApiImporter extends FormatImporter {
@@ -128,6 +129,10 @@ export class NotionApiImporter extends FormatImporter {
 		databaseId: string,
 		outputPath: string
 	): Promise<void> {
+		if (!this.client) {
+			throw new Error('Client not initialized');
+		}
+
 		const pageTitle = this.extractPageTitle(page);
 		const sanitizedTitle = this.sanitizeFilePath(pageTitle || 'Untitled');
 
@@ -137,7 +142,15 @@ export class NotionApiImporter extends FormatImporter {
 			.map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
 			.join('\n');
 
-		const content = `---\n${frontmatterLines}\n---\n\n# ${pageTitle}\n`;
+		const attachmentFolder = `${outputPath}/${sanitizedTitle}-attachments`;
+		await this.createFolders(attachmentFolder);
+
+		const blockConverter = new BlockConverter(this.client, this.vault, attachmentFolder);
+
+		ctx.status(`Converting page: ${pageTitle}`);
+		const pageContent = await blockConverter.convertBlocksToMarkdown(page.id);
+
+		const content = `---\n${frontmatterLines}\n---\n\n# ${pageTitle}\n\n${pageContent}`;
 
 		const filePath = `${outputPath}/${sanitizedTitle}.md`;
 

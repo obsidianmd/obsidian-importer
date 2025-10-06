@@ -1,0 +1,42 @@
+# Product Inventory
+
+```base
+version: "1.0"
+filters:
+  property: "notion-database"
+  operator: "="
+  value: "formula-test-123"
+properties:
+  title:
+    type: "text"
+    name: "title"
+    displayName: "Product Name"
+  price_id:
+    type: "number"
+    name: "price_id"
+    displayName: "Price"
+  qty_id:
+    type: "number"
+    name: "qty_id"
+    displayName: "Quantity"
+formulas:
+  total_id:
+    name: "total_id"
+    displayName: "Total Value"
+    expression: "(Price * Quantity)"
+  label_id:
+    name: "label_id"
+    displayName: "Status Label"
+    expression: "if((Price > 100), \"Expensive\", \"Affordable\")"
+  display_id:
+    name: "display_id"
+    displayName: "Display Name"
+    expression: "concat(Product Name, \" ($\", Price, \")\")"
+  category_id:
+    name: "category_id"
+    displayName: "Price Category"
+    expression: "if((Price >= 100), \"Premium\", if((Price >= 50), \"Standard\", \"Budget\"))"
+views:
+  - name: "Table"
+    type: "table"
+```

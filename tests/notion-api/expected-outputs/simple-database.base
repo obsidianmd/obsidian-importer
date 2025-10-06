@@ -1,0 +1,41 @@
+# Project Tasks
+
+```base
+version: "1.0"
+filters:
+  property: "notion-database"
+  operator: "="
+  value: "abc123-456def-789ghi"
+properties:
+  title:
+    type: "text"
+    name: "title"
+    displayName: "Name"
+  status_id:
+    type: "select"
+    name: "status_id"
+    displayName: "Status"
+    options:
+      - "To Do"
+      - "In Progress"
+      - "Done"
+  priority_id:
+    type: "select"
+    name: "priority_id"
+    displayName: "Priority"
+    options:
+      - "Low"
+      - "Medium"
+      - "High"
+  date_id:
+    type: "date"
+    name: "date_id"
+    displayName: "Due Date"
+  checkbox_id:
+    type: "checkbox"
+    name: "checkbox_id"
+    displayName: "Completed"
+views:
+  - name: "Table"
+    type: "table"
+```

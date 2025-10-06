@@ -1,0 +1,48 @@
+{
+  "object": "page",
+  "id": "page-123-abc",
+  "created_time": "2024-01-01T00:00:00.000Z",
+  "last_edited_time": "2024-01-01T00:00:00.000Z",
+  "properties": {
+    "Name": {
+      "id": "title",
+      "type": "title",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "Sample Task"
+          }
+        }
+      ]
+    },
+    "Status": {
+      "id": "status_id",
+      "type": "select",
+      "select": {
+        "name": "In Progress",
+        "color": "yellow"
+      }
+    },
+    "Priority": {
+      "id": "priority_id",
+      "type": "select",
+      "select": {
+        "name": "High",
+        "color": "orange"
+      }
+    },
+    "Due Date": {
+      "id": "date_id",
+      "type": "date",
+      "date": {
+        "start": "2024-12-31"
+      }
+    },
+    "Completed": {
+      "id": "checkbox_id",
+      "type": "checkbox",
+      "checkbox": false
+    }
+  }
+}

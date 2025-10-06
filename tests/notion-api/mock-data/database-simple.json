@@ -1,0 +1,82 @@
+{
+  "object": "database",
+  "id": "abc123-456def-789ghi",
+  "created_time": "2024-01-01T00:00:00.000Z",
+  "last_edited_time": "2024-01-01T00:00:00.000Z",
+  "title": [
+    {
+      "type": "text",
+      "text": {
+        "content": "Project Tasks"
+      }
+    }
+  ],
+  "properties": {
+    "Name": {
+      "id": "title",
+      "name": "Name",
+      "type": "title",
+      "title": {}
+    },
+    "Status": {
+      "id": "status_id",
+      "name": "Status",
+      "type": "select",
+      "select": {
+        "options": [
+          {
+            "id": "opt1",
+            "name": "To Do",
+            "color": "red"
+          },
+          {
+            "id": "opt2",
+            "name": "In Progress",
+            "color": "yellow"
+          },
+          {
+            "id": "opt3",
+            "name": "Done",
+            "color": "green"
+          }
+        ]
+      }
+    },
+    "Priority": {
+      "id": "priority_id",
+      "name": "Priority",
+      "type": "select",
+      "select": {
+        "options": [
+          {
+            "id": "pri1",
+            "name": "Low",
+            "color": "gray"
+          },
+          {
+            "id": "pri2",
+            "name": "Medium",
+            "color": "blue"
+          },
+          {
+            "id": "pri3",
+            "name": "High",
+            "color": "orange"
+          }
+        ]
+      }
+    },
+    "Due Date": {
+      "id": "date_id",
+      "name": "Due Date",
+      "type": "date",
+      "date": {}
+    },
+    "Completed": {
+      "id": "checkbox_id",
+      "name": "Completed",
+      "type": "checkbox",
+      "checkbox": {}
+    }
+  }
+}

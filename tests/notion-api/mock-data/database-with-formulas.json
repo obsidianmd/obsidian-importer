@@ -1,0 +1,68 @@
+{
+  "object": "database",
+  "id": "formula-test-123",
+  "created_time": "2024-01-01T00:00:00.000Z",
+  "last_edited_time": "2024-01-01T00:00:00.000Z",
+  "title": [
+    {
+      "type": "text",
+      "text": {
+        "content": "Product Inventory"
+      }
+    }
+  ],
+  "properties": {
+    "Product Name": {
+      "id": "title",
+      "name": "Product Name",
+      "type": "title",
+      "title": {}
+    },
+    "Price": {
+      "id": "price_id",
+      "name": "Price",
+      "type": "number",
+      "number": {
+        "format": "dollar"
+      }
+    },
+    "Quantity": {
+      "id": "qty_id",
+      "name": "Quantity",
+      "type": "number",
+      "number": {}
+    },
+    "Total Value": {
+      "id": "total_id",
+      "name": "Total Value",
+      "type": "formula",
+      "formula": {
+        "expression": "prop(\"Price\") * prop(\"Quantity\")"
+      }
+    },
+    "Status Label": {
+      "id": "label_id",
+      "name": "Status Label",
+      "type": "formula",
+      "formula": {
+        "expression": "if(prop(\"Price\") > 100, \"Expensive\", \"Affordable\")"
+      }
+    },
+    "Display Name": {
+      "id": "display_id",
+      "name": "Display Name",
+      "type": "formula",
+      "formula": {
+        "expression": "concat(prop(\"Product Name\"), \" ($\", prop(\"Price\"), \")\")"
+      }
+    },
+    "Price Category": {
+      "id": "category_id",
+      "name": "Price Category",
+      "type": "formula",
+      "formula": {
+        "expression": "if(prop(\"Price\") >= 100, \"Premium\", if(prop(\"Price\") >= 50, \"Standard\", \"Budget\"))"
+      }
+    }
+  }
+}
