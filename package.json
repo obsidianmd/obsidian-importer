@@ -6,6 +6,9 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"test": "vitest",
+		"test:ui": "vitest --ui",
+		"test:coverage": "vitest --coverage",
 		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
 		"lint": "eslint src --ext .ts --fix"
 	},
@@ -23,7 +26,8 @@
 		"eslint": "8.46.0",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
-		"typescript": "4.7.4"
+		"typescript": "4.7.4",
+		"vitest": "^3.2.4"
 	},
 	"dependencies": {
 		"@joplin/turndown-plugin-gfm": "1.0.62",

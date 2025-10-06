@@ -9,6 +9,7 @@ import type { PageObjectResponse, RichTextItemResponse } from '@notionhq/client/
 
 export class NotionApiImporter extends FormatImporter {
 	integrationToken: string = '';
+	databaseId: string = '';
 	client: NotionApiClient | null = null;
 
 	init() {
@@ -25,6 +26,16 @@ export class NotionApiImporter extends FormatImporter {
 					if (value) {
 						this.client = new NotionApiClient({ auth: value });
 					}
+				}));
+
+		new Setting(this.modal.contentEl)
+			.setName('Database ID (Optional)')
+			.setDesc('Enter a specific database ID to import only that database. Leave empty to import all accessible databases.')
+			.addText(text => text
+				.setPlaceholder('a1b2c3d4e5f6...')
+				.setValue(this.databaseId)
+				.onChange(value => {
+					this.databaseId = value.trim();
 				}));
 	}
 
@@ -45,23 +56,37 @@ export class NotionApiImporter extends FormatImporter {
 		}
 
 		try {
-			ctx.status('Searching for databases in workspace...');
+			let databases: NotionDatabaseWithProperties[] = [];
 
-			const searchResults = await this.client.searchAll();
-			const databases: NotionDatabaseWithProperties[] = [];
+			if (this.databaseId) {
+				ctx.status(`Retrieving database ${this.databaseId}...`);
 
-			for (const result of searchResults) {
-				if (isDatabaseObject(result)) {
-					databases.push(result);
+				const database = await this.client.getDatabase(this.databaseId);
+
+				if (!isDatabaseObject(database)) {
+					new Notice('The provided ID does not correspond to a database.');
+					return;
+				}
+
+				databases.push(database);
+			} else {
+				ctx.status('Searching for databases in workspace...');
+
+				const searchResults = await this.client.searchAll();
+
+				for (const result of searchResults) {
+					if (isDatabaseObject(result)) {
+						databases.push(result);
+					}
+				}
+
+				if (databases.length === 0) {
+					new Notice('No databases found in workspace. Make sure your integration has access to the databases.');
+					return;
 				}
 			}
 
-			if (databases.length === 0) {
-				new Notice('No databases found in workspace. Make sure your integration has access to the databases.');
-				return;
-			}
-
-			ctx.status(`Found ${databases.length} databases. Starting conversion...`);
+			ctx.status(`Found ${databases.length} database${databases.length === 1 ? '' : 's'}. Starting conversion...`);
 
 			for (let i = 0; i < databases.length; i++) {
 				if (ctx.isCancelled()) return;
@@ -78,7 +103,7 @@ export class NotionApiImporter extends FormatImporter {
 			}
 
 			ctx.status('Import complete!');
-			new Notice(`Successfully imported ${databases.length} databases.`);
+			new Notice(`Successfully imported ${databases.length} database${databases.length === 1 ? '' : 's'}.`);
 
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
