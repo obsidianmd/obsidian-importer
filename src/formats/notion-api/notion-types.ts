@@ -119,9 +119,9 @@ export interface FilterCondition {
 }
 
 export interface FilterGroup {
-	and?: (FilterCondition | FilterGroup)[];
-	or?: (FilterCondition | FilterGroup)[];
-	not?: FilterCondition | FilterGroup;
+	and?: (string | FilterCondition | FilterGroup)[];
+	or?: (string | FilterCondition | FilterGroup)[];
+	not?: string | FilterCondition | FilterGroup;
 }
 
 export type BaseFilter = string | FilterCondition | FilterGroup;

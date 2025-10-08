@@ -1,4 +1,5 @@
 import { Client } from '@notionhq/client';
+import { requestUrl } from 'obsidian';
 import type {
 	GetPageResponse,
 	GetDatabaseResponse,
@@ -28,11 +29,7 @@ interface QueryDatabaseResult {
 	next_cursor: string | null;
 }
 
-type ExtendedClient = Client & {
-	databases: Client['databases'] & {
-		query: (params: QueryDatabaseParameters) => Promise<QueryDatabaseResult>;
-	};
-}
+type ExtendedClient = Client;
 
 class RateLimiter {
 	private queue: Array<() => void> = [];
@@ -89,6 +86,36 @@ class RateLimiter {
 	}
 }
 
+function createFetchAdapter(): typeof fetch {
+	return async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+		const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+		
+		try {
+			const response = await requestUrl({
+				url: urlString,
+				method: init?.method || 'GET',
+				headers: init?.headers as Record<string, string>,
+				body: init?.body as string | ArrayBuffer,
+				throw: false,
+			});
+
+			// Create a proper Response object with the body
+			const responseInit: ResponseInit = {
+				status: response.status,
+				statusText: `${response.status}`,
+				headers: new Headers(response.headers),
+			};
+
+			// Convert arrayBuffer to JSON string if needed, then back to arrayBuffer for Response
+			// This ensures the Response body can be properly consumed
+			return new Response(response.arrayBuffer, responseInit);
+		} catch (error) {
+			console.error('Fetch error:', error);
+			throw error;
+		}
+	};
+}
+
 async function collectAll<T>(
 	fetchPage: (cursor?: string) => Promise<{ results: T[]; hasMore: boolean; nextCursor?: string }>
 ): Promise<T[]> {
@@ -109,24 +136,33 @@ async function collectAll<T>(
 export class NotionApiClient {
 	private client: ExtendedClient;
 	private rateLimiter: RateLimiter;
+	private auth: string;
+	private notionVersion: string;
 
 	constructor(config: NotionApiConfig) {
+		this.auth = config.auth;
+		this.notionVersion = config.notionVersion || '2022-06-28';
+		
 		this.client = new Client({
-			auth: config.auth,
-			notionVersion: config.notionVersion || '2022-06-28',
+			auth: this.auth,
+			notionVersion: this.notionVersion,
+			fetch: createFetchAdapter() as any,
 		}) as ExtendedClient;
+		
 		this.rateLimiter = new RateLimiter(3);
 	}
 
 	async getPage(pageId: string): Promise<GetPageResponse> {
-		return this.rateLimiter.throttle(() =>
-			this.client.pages.retrieve({ page_id: pageId })
+		const client = this.client;
+		return this.rateLimiter.throttle(async () =>
+			await client.pages.retrieve({ page_id: pageId })
 		);
 	}
 
 	async getDatabase(databaseId: string): Promise<GetDatabaseResponse> {
-		return this.rateLimiter.throttle(() =>
-			this.client.databases.retrieve({ database_id: databaseId })
+		const client = this.client;
+		return this.rateLimiter.throttle(async () =>
+			await client.databases.retrieve({ database_id: databaseId })
 		);
 	}
 
@@ -136,15 +172,23 @@ export class NotionApiClient {
 		let hasMore = true;
 
 		while (hasMore) {
-			const response = await this.rateLimiter.throttle(() =>
-				this.client.databases.query({
-					database_id: databaseId,
-					start_cursor: cursor,
-					page_size: 100,
-				})
-			);
+			const response = await this.rateLimiter.throttle(async () => {
+				return await requestUrl({
+					url: `https://api.notion.com/v1/databases/${databaseId}/query`,
+					method: 'POST',
+					headers: {
+						'Authorization': `Bearer ${this.auth}`,
+						'Notion-Version': this.notionVersion,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						start_cursor: cursor,
+						page_size: 100,
+					}),
+				}).json;
+			});
 
-			results.push(...response.results);
+			results.push(...(response.results as PageObjectResponse[]));
 			hasMore = response.has_more;
 			cursor = response.next_cursor || undefined;
 		}
@@ -153,8 +197,9 @@ export class NotionApiClient {
 	}
 
 	async getBlockChildren(blockId: string, startCursor?: string): Promise<ListBlockChildrenResponse> {
-		return this.rateLimiter.throttle(() =>
-			this.client.blocks.children.list({
+		const client = this.client;
+		return this.rateLimiter.throttle(async () =>
+			await client.blocks.children.list({
 				block_id: blockId,
 				start_cursor: startCursor,
 				page_size: 100,
@@ -177,8 +222,9 @@ export class NotionApiClient {
 		startCursor?: string;
 		pageSize?: number;
 	}): Promise<SearchResponse> {
-		return this.rateLimiter.throttle(() =>
-			this.client.search({
+		const client = this.client;
+		return this.rateLimiter.throttle(async () =>
+			await client.search({
 				query,
 				start_cursor: options?.startCursor,
 				page_size: options?.pageSize || 100,

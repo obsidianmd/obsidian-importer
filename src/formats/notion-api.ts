@@ -3,7 +3,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { NotionApiClient } from './notion-api/api-client';
 import { isDatabaseObject, type NotionDatabaseWithProperties } from './notion-api/notion-types';
-import { convertDatabaseToBase, writeBaseFile, createDatabaseTag } from './notion-api/base-converter';
+import { convertDatabaseToBase, writeBaseFile } from './notion-api/base-converter';
 import { BlockConverter } from './notion-api/block-converter';
 import type { PageObjectResponse, RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
 
@@ -161,11 +161,8 @@ export class NotionApiImporter extends FormatImporter {
 		const pageTitle = this.extractPageTitle(page);
 		const sanitizedTitle = this.sanitizeFilePath(pageTitle || 'Untitled');
 
-		const frontmatter = createDatabaseTag(databaseId);
-
-		const frontmatterLines = Object.entries(frontmatter)
-			.map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-			.join('\n');
+		// Create frontmatter property that matches the base filter
+		const frontmatterLines = `notion-database: "${databaseId}"`;
 
 		const attachmentFolder = `${outputPath}/${sanitizedTitle}-attachments`;
 		await this.createFolders(attachmentFolder);

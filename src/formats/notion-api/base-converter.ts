@@ -184,11 +184,10 @@ export function convertDatabaseToBase(database: NotionDatabaseWithProperties): B
 	const databaseTitle = extractDatabaseTitle(database);
 
 	const schema: BaseSchema = {
-		version: '1.0',
 		filters: {
-			property: 'notion-database',
-			operator: '=',
-			value: databaseId,
+			and: [
+				`note["notion-database"].contains("${databaseId}")`,
+			],
 		},
 	};
 
@@ -220,13 +219,7 @@ export function serializeBaseSchema(schema: BaseSchema): string {
 
 export function createBaseFileContent(schema: BaseSchema, title?: string): string {
 	const yaml = serializeBaseSchema(schema);
-	const codeBlock = '```base\n' + yaml + '```';
-
-	if (title) {
-		return `# ${title}\n\n${codeBlock}\n`;
-	}
-
-	return `${codeBlock}\n`;
+	return yaml;
 }
 
 export async function writeBaseFile(
@@ -242,10 +235,4 @@ export async function writeBaseFile(
 	await vault.create(fullPath, content);
 
 	return fullPath;
-}
-
-export function createDatabaseTag(databaseId: string): Record<string, string> {
-	return {
-		'notion-database': databaseId,
-	};
 }
