@@ -8,6 +8,7 @@ interface CSVRow {
 
 interface CSVConfig {
 	enabledColumns: Set<string>;
+	propertyNames: Map<string, string>; // Maps original column name to custom property name
 	titleTemplate: string;
 	bodyTemplate: string;
 	locationTemplate: string;
@@ -18,6 +19,7 @@ export class CSVImporter extends FormatImporter {
 	private csvRows: CSVRow[] = [];
 	private config: CSVConfig = {
 		enabledColumns: new Set(),
+		propertyNames: new Map(),
 		titleTemplate: '',
 		bodyTemplate: '',
 		locationTemplate: '',
@@ -49,8 +51,11 @@ export class CSVImporter extends FormatImporter {
 				this.csvHeaders = parsedData.headers;
 				this.csvRows = parsedData.rows;
 
-				// Enable all columns by default
-				this.csvHeaders.forEach(header => this.config.enabledColumns.add(header));
+				// Enable all columns by default and set default property names
+				this.csvHeaders.forEach(header => {
+					this.config.enabledColumns.add(header);
+					this.config.propertyNames.set(header, this.sanitizeYAMLKey(header));
+				});
 
 				// Show configuration UI and wait for user to configure
 				await this.showConfigurationUI(ctx);
@@ -201,23 +206,12 @@ export class CSVImporter extends FormatImporter {
 			const modalContent = this.modal.contentEl;
 			modalContent.empty();
 
-			const configContainer = modalContent.createDiv('csv-config-container');
-
-			configContainer.createEl('p', {
+			modalContent.createEl('p', {
 				text: 'Configure how your CSV data should be imported. Use {{column_name}} syntax to reference column values.',
 			});
 
-			// Preview section placeholder (we'll fill it later)
-			let previewEl: HTMLElement;
-
-			const updatePreview = () => {
-				if (previewEl) {
-					this.updatePreview(previewEl);
-				}
-			};
-
 			// Note title template
-			new Setting(configContainer)
+			new Setting(modalContent)
 				.setName('Note title')
 				.setDesc('Template for the note title. Use {{column_name}} to insert values.')
 				.addText(text => text
@@ -225,11 +219,10 @@ export class CSVImporter extends FormatImporter {
 					.setValue(this.config.titleTemplate)
 					.onChange(value => {
 						this.config.titleTemplate = value;
-						updatePreview();
 					}));
 
 			// Note location template
-			new Setting(configContainer)
+			new Setting(modalContent)
 				.setName('Note location')
 				.setDesc('Template for note location/path. Use {{column_name}} to organize notes.')
 				.addText(text => text
@@ -237,11 +230,10 @@ export class CSVImporter extends FormatImporter {
 					.setValue(this.config.locationTemplate)
 					.onChange(value => {
 						this.config.locationTemplate = value;
-						updatePreview();
 					}));
 
 			// Note body template
-			new Setting(configContainer)
+			new Setting(modalContent)
 				.setName('Note body')
 				.setDesc('Template for the note content. Use {{column_name}} to insert values.')
 				.addTextArea(text => {
@@ -250,19 +242,18 @@ export class CSVImporter extends FormatImporter {
 						.setValue(this.config.bodyTemplate)
 						.onChange(value => {
 							this.config.bodyTemplate = value;
-							updatePreview();
 						});
 					text.inputEl.rows = 6;
 				});
 
 			// Column selection for frontmatter
-			const headerContainer = configContainer.createDiv({ cls: 'csv-frontmatter-header' });
+			const headerContainer = modalContent.createDiv({ cls: 'csv-frontmatter-header' });
 			headerContainer.createEl('h4', { text: 'Properties' });
 			
 			// Add Select/Deselect All button
 			new Setting(headerContainer)
 				.setClass('csv-select-all-setting')
-				.setDesc('Select which columns to include as properties for each file:')
+				.setDesc('Select the columns to include as properties for each file.')
 				.addButton(button => {
 					const allSelected = this.csvHeaders.every(h => this.config.enabledColumns.has(h));
 					button
@@ -279,43 +270,77 @@ export class CSVImporter extends FormatImporter {
 								this.csvHeaders.forEach(h => this.config.enabledColumns.add(h));
 								button.setButtonText('Deselect all');
 							}
-							// Update all toggles
-							columnToggles.forEach((toggle, header) => {
-								toggle.setValue(this.config.enabledColumns.has(header));
+							// Update all checkboxes
+							columnToggles.forEach((checkbox, header) => {
+								checkbox.checked = this.config.enabledColumns.has(header);
 							});
-							updatePreview();
 						});
 				});
 
-			const columnContainer = configContainer.createDiv('csv-column-list');
+			const columnContainer = modalContent.createDiv('csv-column-list');
 			const columnToggles = new Map();
 
+			// Get first row for example values
+			const firstRow = this.csvRows.length > 0 ? this.csvRows[0] : {};
+
 			for (const header of this.csvHeaders) {
-				new Setting(columnContainer)
-					.setName(header)
-					.addToggle(toggle => {
-						toggle
-							.setValue(this.config.enabledColumns.has(header))
-							.onChange(value => {
-								if (value) {
-									this.config.enabledColumns.add(header);
-								}
-								else {
-									this.config.enabledColumns.delete(header);
-								}
-								updatePreview();
-							});
-						columnToggles.set(header, toggle);
-					});
+				const rowEl = columnContainer.createDiv('csv-column-row');
+				
+				// Checkbox
+				const checkbox = rowEl.createEl('input', {
+					type: 'checkbox',
+					cls: 'csv-column-checkbox'
+				});
+				checkbox.checked = this.config.enabledColumns.has(header);
+				
+				const updateColumn = () => {
+					if (checkbox.checked) {
+						this.config.enabledColumns.add(header);
+					}
+					else {
+						this.config.enabledColumns.delete(header);
+					}
+				};
+				
+				checkbox.addEventListener('change', updateColumn);
+				columnToggles.set(header, checkbox);
+				
+				// Property name column
+				const nameCol = rowEl.createDiv('csv-column-name-col');
+				const nameInput = nameCol.createEl('input', {
+					type: 'text',
+					cls: 'csv-column-name',
+					value: this.config.propertyNames.get(header) || ''
+				});
+				nameInput.addEventListener('input', () => {
+					this.config.propertyNames.set(header, nameInput.value);
+				});
+				// Prevent clicking input from toggling checkbox
+				nameInput.addEventListener('click', (e) => {
+					e.stopPropagation();
+				});
+				
+				// Example value column
+				const exampleCol = rowEl.createDiv('csv-column-example-col');
+				const exampleValue = firstRow[header] || '';
+				const truncated = exampleValue.length > 50 
+					? exampleValue.substring(0, 50) + '...' 
+					: exampleValue;
+				exampleCol.setText(truncated || '—');
+				
+				// Make columns clickable to toggle checkbox (but not when clicking input)
+				const toggleCheckbox = (e: MouseEvent) => {
+					if (e.target !== nameInput) {
+						checkbox.checked = !checkbox.checked;
+						updateColumn();
+					}
+				};
+				nameCol.addEventListener('click', toggleCheckbox);
+				exampleCol.addEventListener('click', toggleCheckbox);
 			}
 
-			// Preview section
-			configContainer.createEl('h4', { text: 'Preview' });
-			previewEl = configContainer.createDiv('csv-preview');
-			this.updatePreview(previewEl);
-
 			// Buttons
-			const buttonContainer = configContainer.createDiv('modal-button-container');
+			const buttonContainer = modalContent.createDiv('modal-button-container');
 			buttonContainer.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
 				el.addEventListener('click', () => {
 					// Validate configuration
@@ -371,54 +396,6 @@ export class CSVImporter extends FormatImporter {
 		});
 	}
 
-	private updatePreview(previewEl: HTMLElement) {
-		previewEl.empty();
-
-		if (this.csvRows.length === 0) {
-			previewEl.createEl('p', { text: 'No data to preview.' });
-			return;
-		}
-
-		const sampleRow = this.csvRows[0];
-
-		previewEl.createEl('p', { text: 'Preview of first note:', cls: 'setting-item-description' });
-
-		const previewContent = previewEl.createDiv('csv-preview-content');
-
-		// Preview title
-		const title = this.applyTemplate(this.config.titleTemplate, sampleRow);
-		previewContent.createEl('div', { cls: 'csv-preview-title' }, el => {
-			el.createEl('strong', { text: 'Title: ' });
-			el.createSpan({ text: title || '(empty)' });
-		});
-
-		// Preview location
-		const location = this.applyTemplate(this.config.locationTemplate, sampleRow);
-		previewContent.createEl('div', { cls: 'csv-preview-location' }, el => {
-			el.createEl('strong', { text: 'Location: ' });
-			el.createSpan({ text: location || '(root)' });
-		});
-
-		// Preview frontmatter
-		if (this.config.enabledColumns.size > 0) {
-			previewContent.createEl('div', { cls: 'csv-preview-frontmatter' }, el => {
-				el.createEl('strong', { text: 'Frontmatter:' });
-				const fmCode = el.createEl('pre');
-				fmCode.createEl('code', { text: this.generateFrontmatter(sampleRow) });
-			});
-		}
-
-		// Preview body
-		const body = this.applyTemplate(this.config.bodyTemplate, sampleRow);
-		if (body) {
-			previewContent.createEl('div', { cls: 'csv-preview-body' }, el => {
-				el.createEl('strong', { text: 'Body preview:' });
-				const bodyCode = el.createEl('pre');
-				bodyCode.createEl('code', { text: body.substring(0, 200) + (body.length > 200 ? '...' : '') });
-			});
-		}
-	}
-
 	private applyTemplate(template: string, row: CSVRow): string {
 		if (!template) return '';
 
@@ -437,7 +414,8 @@ export class CSVImporter extends FormatImporter {
 			if (row[column] !== undefined) {
 				const value = row[column];
 				const yamlValue = this.convertToYAML(value);
-				lines.push(`${this.sanitizeYAMLKey(column)}: ${yamlValue}`);
+				const propertyName = this.config.propertyNames.get(column) || this.sanitizeYAMLKey(column);
+				lines.push(`${propertyName}: ${yamlValue}`);
 			}
 		}
 
