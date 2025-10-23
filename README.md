@@ -14,6 +14,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)
 - [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)
 - [Import from Notion](https://help.obsidian.md/import/notion)
+- [Import from Notion API(WIP)](https://help.obsidian.md/import/notion-api)
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
