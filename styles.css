@@ -134,8 +134,12 @@
 	font-size: var(--font-ui-small);
 }
 
-input.csv-column-checkbox {
+.csv-column-checkbox {
+	width: var(--checkbox-size);
 	flex-shrink: 0;
+}
+
+input.csv-column-checkbox {
 	margin: 0;
 }
 
@@ -143,11 +147,9 @@ input.csv-column-checkbox {
 	flex: 0 0 130px;
 	min-width: 0;
 	padding: var(--size-2-1) var(--size-4-1);
-	cursor: pointer;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	
 }
 
 .csv-column-property-col {
@@ -157,17 +159,6 @@ input.csv-column-checkbox {
 
 .csv-column-property {
 	width: 100%;
-}
-
-.csv-column-property:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--background-modifier-border);
-}
-
-.csv-column-property:focus {
-	background-color: var(--background-primary);
-	border-color: var(--background-modifier-border-focus);
-	outline: none;
 }
 
 .csv-column-example-col {

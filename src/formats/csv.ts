@@ -284,7 +284,7 @@ export class CSVImporter extends FormatImporter {
 			const headerRow = columnContainer.createDiv('csv-column-header-row');
 			headerRow.createDiv('csv-column-checkbox'); // Empty space for checkbox
 			headerRow.createDiv('csv-column-name-col').setText('Column name');
-			headerRow.createDiv('csv-column-property-col').setText('Property');
+			headerRow.createDiv('csv-column-property-col').setText('Property name');
 			headerRow.createDiv('csv-column-example-col').setText('Example');
 
 			// Get first row for example values
