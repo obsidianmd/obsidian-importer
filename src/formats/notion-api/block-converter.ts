@@ -92,8 +92,15 @@ export async function convertBlockToMarkdown(
 			markdown = convertQuote(block);
 			break;
 		
+		case 'child_database':
+			// Database blocks are handled separately in the main importer
+			// Return a placeholder that will be replaced
+			markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+			break;
+		
 		default:
 			// Unsupported block type - skip for now
+			console.log(`Unsupported block type: ${type}`);
 			markdown = '';
 	}
 	

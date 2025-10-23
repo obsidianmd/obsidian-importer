@@ -14,6 +14,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
+import { processDatabasePlaceholders } from './notion-api/database-helpers';
 
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
@@ -21,6 +22,9 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
+    // save output root path for database handling
+    //  we will flatten all database in this folder later
+	private outputRootPath: string = '';
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -174,6 +178,9 @@ export class NotionAPIImporter extends FormatImporter {
 			// Reset processed pages tracker
 			this.processedPages.clear();
 			
+			// Save output root path for database handling
+			this.outputRootPath = folder.path;
+			
 			// Start importing from the root page
 			await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
 			
@@ -226,9 +233,25 @@ export class NotionAPIImporter extends FormatImporter {
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			
 			// Convert blocks to markdown with nested children support
-			const markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
+			let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
 			
-			// Prepare YAML frontmatter (WIP: Not implemented yet)
+			// Process database placeholders
+			markdownContent = await processDatabasePlaceholders(
+				markdownContent,
+				blocks,
+				ctx,
+				pageFolderPath,
+				this.notionClient!,
+				this.vault,
+				this.app,
+				this.outputRootPath,
+				// Callback to import database pages
+				async (pageId: string, parentPath: string) => {
+					await this.fetchAndImportPage(ctx, pageId, parentPath);
+				}
+			);
+			
+			// Prepare YAML frontmatter
 			const frontMatter = extractFrontMatter(page);
 			
 			// Create the markdown file
