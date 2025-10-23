@@ -190,7 +190,6 @@ export class CSVImporter extends FormatImporter {
 
 			const configContainer = modalContent.createDiv('csv-config-container');
 
-			configContainer.createEl('h3', { text: 'Configure CSV Import' });
 			configContainer.createEl('p', {
 				text: 'Configure how your CSV data should be imported. Use {{column_name}} syntax to reference column values.',
 			});
@@ -245,27 +244,27 @@ export class CSVImporter extends FormatImporter {
 
 			// Column selection for frontmatter
 			const headerContainer = configContainer.createDiv({ cls: 'csv-frontmatter-header' });
-			headerContainer.createEl('h4', { text: 'Frontmatter Properties' });
+			headerContainer.createEl('h4', { text: 'Properties' });
 			
 			// Add Select/Deselect All button
 			new Setting(headerContainer)
 				.setClass('csv-select-all-setting')
-				.setDesc('Select which columns to include as frontmatter properties:')
+				.setDesc('Select which columns to include as properties for each file:')
 				.addButton(button => {
 					const allSelected = this.csvHeaders.every(h => this.config.enabledColumns.has(h));
 					button
-						.setButtonText(allSelected ? 'Deselect All' : 'Select All')
+						.setButtonText(allSelected ? 'Deselect all' : 'Select all')
 						.onClick(() => {
 							const allSelected = this.csvHeaders.every(h => this.config.enabledColumns.has(h));
 							if (allSelected) {
 								// Deselect all
 								this.config.enabledColumns.clear();
-								button.setButtonText('Select All');
+								button.setButtonText('Select all');
 							}
 							else {
 								// Select all
 								this.csvHeaders.forEach(h => this.config.enabledColumns.add(h));
-								button.setButtonText('Deselect All');
+								button.setButtonText('Deselect all');
 							}
 							// Update all toggles
 							columnToggles.forEach((toggle, header) => {
