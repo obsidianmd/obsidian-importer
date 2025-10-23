@@ -1,10 +1,26 @@
-import { Notice, Setting } from 'obsidian';
+import { Notice, Setting, normalizePath, requestUrl } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
+import { Client, PageObjectResponse } from '@notionhq/client';
+import { sanitizeFileName, serializeFrontMatter } from '../util';
+
+// Import helper modules
+import { extractPageId } from './notion-api/utils';
+import { 
+	makeNotionRequest, 
+	fetchAllBlocks, 
+	extractPageTitle, 
+	extractFrontMatter 
+} from './notion-api/api-helpers';
+import { convertBlocksToMarkdown } from './notion-api/block-converter';
+import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
 
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
 	pageId: string = '';
+	private notionClient: Client | null = null;
+	private processedPages: Set<string> = new Set();
+	private requestCount: number = 0;
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -112,7 +128,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		// Extract Page ID (if user pasted full URL)
-		const extractedPageId = this.extractPageId(this.pageId);
+		const extractedPageId = extractPageId(this.pageId);
 		if (!extractedPageId) {
 			new Notice('Invalid page ID or URL format.');
 			return;
@@ -121,23 +137,45 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx.status('Connecting to Notion API...');
 
 		try {
-			// TODO: Implement Notion API call logic
-			// This is placeholder code, actual implementation needs:
-			// 1. Call Notion API to get page content
-			// 2. Recursively get child pages
-			// 3. Download attachments
-			// 4. Convert to Markdown
-			// 5. Save to vault
+			// Initialize Notion client with latest API version
+			// Using 2025-09-03 for better database/data source support
+			// Use Obsidian's requestUrl instead of fetch to avoid context issues in some environments
+			this.notionClient = new Client({ 
+				auth: this.notionToken,
+				notionVersion: '2025-09-03',
+				fetch: async (url: RequestInfo | URL, init?: RequestInit) => { // we need custom fetch to avoid context issues in some environments
+					const urlString = url.toString();
+					
+					try {
+						const response = await requestUrl({
+							url: urlString,
+							method: (init?.method as any) || 'GET',
+							headers: init?.headers as Record<string, string>,
+							body: init?.body as string | ArrayBuffer,
+							throw: false,
+						});
+						
+						// Convert Obsidian response to fetch Response format
+						return new Response(response.arrayBuffer, {
+							status: response.status,
+							statusText: response.status.toString(),
+							headers: new Headers(response.headers),
+						});
+					}
+					catch (error) {
+						console.error('Request failed:', error);
+						throw error;
+					}
+				},
+			});
 
 			ctx.status('Fetching page content from Notion...');
 			
-			// Example progress reporting
-			ctx.reportProgress(0, 1);
+			// Reset processed pages tracker
+			this.processedPages.clear();
 			
-			// Add actual API call code here
+			// Start importing from the root page
 			await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
-			
-			ctx.reportProgress(1, 1);
 			
 		}
 		catch (error) {
@@ -148,74 +186,63 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Extract Page ID from URL or direct ID input
-	 * Supported formats:
-	 * - https://www.notion.so/Page-Title-abc123def456
-	 * - https://www.notion.so/workspace/Page-Title-abc123def456?v=xxx
-	 * - abc123def456
-	 * - abc123def456789012345678901234567890
+	 * Fetch and import a Notion page recursively
 	 */
-	private extractPageId(input: string): string | null {
-		// Remove whitespace
-		input = input.trim();
-
-		// If it's a URL, extract ID
-		if (input.startsWith('http')) {
-			// Remove query parameters
-			const urlWithoutQuery = input.split('?')[0];
+	private async fetchAndImportPage(ctx: ImportContext, pageId: string, parentPath: string): Promise<void> {
+		if (ctx.isCancelled()) return;
+		
+		// Check if already processed
+		if (this.processedPages.has(pageId)) {
+			ctx.reportSkipped(pageId, 'already processed');
+			return;
+		}
+		
+		this.processedPages.add(pageId);
+		
+		try {
+			ctx.status(`Fetching page ${pageId}...`);
 			
-			// Find the last dash
-			const lastDashIndex = urlWithoutQuery.lastIndexOf('-');
+			// Fetch page metadata with rate limit handling
+			const page = await makeNotionRequest(
+				() => this.notionClient!.pages.retrieve({ page_id: pageId }) as Promise<PageObjectResponse>,
+				ctx
+			);
 			
-			if (lastDashIndex !== -1) {
-				// Extract 32 characters after the dash
-				const pageId = urlWithoutQuery.substring(lastDashIndex + 1);
-				
-				// Validate it's 32 hex characters
-				if (pageId.length === 32 && /^[a-f0-9]{32}$/i.test(pageId)) {
-					return this.formatPageId(pageId);
-				}
+			// Extract page title
+			const pageTitle = extractPageTitle(page);
+			const sanitizedTitle = sanitizeFileName(pageTitle || 'Untitled');
+			
+			// Check if page already exists in vault (by notion-id)
+			if (await pageExistsInVault(this.app, this.vault, pageId)) {
+				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
+				return;
 			}
 			
-			return null;
+			// Create page folder with unique name
+			const pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
+			await this.createFolders(pageFolderPath);
+			
+			// Fetch page blocks (content) with rate limit handling
+			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
+			
+			// Convert blocks to markdown
+			const markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath);
+			
+			// Prepare YAML frontmatter (WIP: Not implemented yet)
+			const frontMatter = extractFrontMatter(page);
+			
+			// Create the markdown file
+			const mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;
+			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
+			
+			await this.vault.create(normalizePath(mdFilePath), fullContent);
+			ctx.reportNoteSuccess(sanitizedTitle);
+			
 		}
-		else {
-			// Direct ID input
-			return this.formatPageId(input);
+		catch (error) {
+			console.error(`Failed to import page ${pageId}:`, error);
+			ctx.reportFailed(pageId, error.message);
 		}
 	}
-
-	/**
-	 * Format Page ID to standard UUID format (with dashes)
-	 */
-	private formatPageId(id: string): string {
-		// Remove all dashes
-		id = id.replace(/-/g, '');
-
-		// If length is not 32, return original (possibly invalid)
-		if (id.length !== 32) {
-			return id;
-		}
-
-		// Format as UUID: 8-4-4-4-12
-		return `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}`;
-	}
-
-	/**
-	 * Fetch and import page (placeholder method)
-	 */
-	private async fetchAndImportPage(ctx: ImportContext, pageId: string, outputPath: string): Promise<void> {
-		// TODO: Implement actual Notion API calls
-		// This needs:
-		// 1. Use @notionhq/client or direct fetch to call Notion API, handle pagination and rate limiting like 429 error.
-		// 2. Get page content and child pages
-		// 3. Convert to Markdown
-		// 4. Save files
-
-		ctx.status(`Fetching page ${pageId}...`);
-		
-		// Placeholder implementation
-		throw new Error('Notion API integration is not yet implemented. This is a placeholder for future development.');
-	}
+	
 }
-
