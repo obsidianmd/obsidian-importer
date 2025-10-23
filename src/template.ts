@@ -1,5 +1,4 @@
 import { Notice, Setting, setIcon } from 'obsidian';
-import { ImportContext } from './main';
 
 /**
  * Represents a field that can be used in templates.
@@ -106,17 +105,21 @@ export class TemplateConfigurator {
 		};
 	}
 
-	async show(modalContent: HTMLElement, ctx: ImportContext): Promise<TemplateConfig | null> {
+	/**
+	 * Shows the template configuration UI and returns the user's configuration.
+	 * @param container The container element to display the configuration UI in
+	 * @returns The template configuration if user clicked Continue, null if cancelled
+	 */
+	async show(container: HTMLElement): Promise<TemplateConfig | null> {
 		return new Promise((resolve) => {
-			// Clear modal content and show configuration
-			modalContent.empty();
+			container.empty();
 
-			modalContent.createEl('p', {
+			container.createEl('p', {
 				text: `Configure how your data should be imported. Use ${this.placeholderSyntax} syntax to reference field values.`,
 			});
 
 			// Note title template
-			new Setting(modalContent)
+			new Setting(container)
 				.setName('Note title')
 				.setDesc('Template for the note title. Use {{field_name}} to insert values.')
 				.addText(text => text
@@ -127,7 +130,7 @@ export class TemplateConfigurator {
 					}));
 
 			// Note location template
-			new Setting(modalContent)
+			new Setting(container)
 				.setName('Note location')
 				.setDesc('Template for note location/path. Use {{field_name}} to organize notes.')
 				.addText(text => text
@@ -138,10 +141,10 @@ export class TemplateConfigurator {
 					}));
 
 			// Column selection for frontmatter
-			const headerContainer = modalContent.createDiv({ cls: 'importer-frontmatter-header' });
+			const headerContainer = container.createDiv({ cls: 'importer-frontmatter-header' });
 			headerContainer.createEl('h4', { text: 'Properties' });
 
-			const columnContainer = modalContent.createDiv('importer-column-list');
+			const columnContainer = container.createDiv('importer-column-list');
 
 			// Add header row
 			const headerRow = columnContainer.createDiv('importer-column-header-row');
@@ -200,7 +203,7 @@ export class TemplateConfigurator {
 			}
 
 			// Note content template
-			new Setting(modalContent)
+			new Setting(container)
 				.setName('Note content')
 				.setDesc('Template for the note content. Use {{field_name}} to insert values.')
 				.addTextArea(text => {
@@ -214,7 +217,7 @@ export class TemplateConfigurator {
 				});
 
 			// Buttons
-			const buttonContainer = modalContent.createDiv('modal-button-container');
+			const buttonContainer = container.createDiv('modal-button-container');
 			buttonContainer.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
 				el.addEventListener('click', () => {
 					// Validate configuration
@@ -222,13 +225,6 @@ export class TemplateConfigurator {
 						new Notice('Please provide a note title template.');
 						return;
 					}
-
-					// Clear the configuration UI and restore the progress UI
-					modalContent.empty();
-					const progressEl = modalContent.createDiv();
-					
-					// Recreate the ImportContext UI in the new container
-					ctx.createProgressUI(progressEl);
 
 					resolve(this.config);
 				});

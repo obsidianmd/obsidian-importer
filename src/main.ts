@@ -440,10 +440,26 @@ export class ImporterModal extends Modal {
 						if (this.current) {
 							this.current.cancel();
 						}
+						
+						// Clear content
+						contentEl.empty();
+						let configEl = contentEl.createDiv();
+						let ctx = this.current = new ImportContext(configEl);
+						
+						// Check if importer needs template configuration
+						const templateResult = await importer.prepareTemplateConfig(ctx, configEl);
+						
+						if (templateResult === false) {
+							// User cancelled or preparation failed
+							this.current = null;
+							this.updateContent();
+							return;
+						}
+						
+						// Show progress UI
 						contentEl.empty();
 						let progressEl = contentEl.createDiv();
-
-						let ctx = this.current = new ImportContext(progressEl);
+						ctx.createProgressUI(progressEl);
 
 						let buttonsEl = contentEl.createDiv('modal-button-container');
 						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
@@ -459,10 +475,10 @@ export class ImporterModal extends Modal {
 							if (this.current === ctx) {
 								this.current = null;
 							}
+							buttonsEl.empty();
 							buttonsEl.createEl('button', { text: 'Import more' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
-							cancelButtonEl.detach();
 							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 								el.addEventListener('click', () => this.close());
 							});

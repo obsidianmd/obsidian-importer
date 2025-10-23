@@ -24,71 +24,77 @@ export class CSVImporter extends FormatImporter {
 		this.addOutputLocationSetting('CSV import');
 	}
 
-	async import(ctx: ImportContext): Promise<void> {
+	async prepareTemplateConfig(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one CSV file to import.');
-			return;
+			return false;
 		}
 
-		// Parse CSV files
+		// Parse CSV files to extract headers
 		for (const file of files) {
-			if (ctx.isCancelled()) return;
+			if (ctx.isCancelled()) return false;
 
 			ctx.status('Parsing ' + file.name);
 			const csvContent = await file.readText();
 			const parsedData = this.parseCSV(csvContent);
 
-			// If this is the first file, extract headers and show configuration UI
+			// Store all rows for later processing
 			if (this.csvHeaders.length === 0 && parsedData.rows.length > 0) {
 				this.csvHeaders = parsedData.headers;
-				this.csvRows = parsedData.rows;
-
-				// Prepare template fields
-				const fields: TemplateField[] = this.csvHeaders.map(header => ({
-					id: header,
-					label: header,
-					exampleValue: this.csvRows[0]?.[header] || '',
-				}));
-
-				// Set up defaults
-				const propertyNames = new Map<string, string>();
-				const propertyValues = new Map<string, string>();
-				this.csvHeaders.forEach(header => {
-					propertyNames.set(header, this.sanitizeYAMLKey(header));
-					propertyValues.set(header, `{{${header}}}`);
-				});
-
-				const titleTemplate = this.csvHeaders.length > 0 ? `{{${this.csvHeaders[0]}}}` : '';
-
-				// Show configuration UI and wait for user to configure
-				const configurator = new TemplateConfigurator({
-					fields,
-					defaults: {
-						titleTemplate,
-						locationTemplate: '',
-						bodyTemplate: '',
-						propertyNames,
-						propertyValues,
-					},
-					placeholderSyntax: '{{column_name}}',
-				});
-
-				this.config = await configurator.show(this.modal.contentEl, ctx);
-				
-				// Check if user cancelled
-				if (!this.config) {
-					ctx.cancel();
-					return;
-				}
 			}
-			else {
-				// Additional files use the same configuration
-				this.csvRows.push(...parsedData.rows);
-			}
+			this.csvRows.push(...parsedData.rows);
 		}
 
-		// Now process all rows
+		if (this.csvHeaders.length === 0 || this.csvRows.length === 0) {
+			new Notice('No data found in CSV file(s).');
+			return false;
+		}
+
+		// Prepare template fields
+		const fields: TemplateField[] = this.csvHeaders.map(header => ({
+			id: header,
+			label: header,
+			exampleValue: this.csvRows[0]?.[header] || '',
+		}));
+
+		// Set up defaults
+		const propertyNames = new Map<string, string>();
+		const propertyValues = new Map<string, string>();
+		this.csvHeaders.forEach(header => {
+			propertyNames.set(header, this.sanitizeYAMLKey(header));
+			propertyValues.set(header, `{{${header}}}`);
+		});
+
+		const titleTemplate = this.csvHeaders.length > 0 ? `{{${this.csvHeaders[0]}}}` : '';
+
+		// Create and show configurator
+		const configurator = new TemplateConfigurator({
+			fields,
+			defaults: {
+				titleTemplate,
+				locationTemplate: '',
+				bodyTemplate: '',
+				propertyNames,
+				propertyValues,
+			},
+			placeholderSyntax: '{{column_name}}',
+		});
+
+		this.config = await configurator.show(container);
+		
+		// Return false if user cancelled
+		return this.config !== null;
+	}
+
+	async import(ctx: ImportContext): Promise<void> {
+		// Config was already set by prepareTemplateConfig
+		if (!this.config) {
+			new Notice('Configuration is missing.');
+			return;
+		}
+		
+		// Process all rows
 		await this.processRows(ctx);
 	}
 

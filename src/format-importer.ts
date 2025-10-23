@@ -27,6 +27,17 @@ export abstract class FormatImporter {
 	abstract init(): void;
 
 	/**
+	 * Optional: Show template configuration UI and prepare data for import.
+	 * This will be called as a configuration step before the import progress.
+	 * @param ctx The import context
+	 * @param container The container element to show the configuration UI in
+	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
+	 */
+	async prepareTemplateConfig(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
+		return null;
+	}
+
+	/**
 	 * Register a function to be called when the `obsidian://importer-auth/` open
 	 * event is received by Obsidian.
 	 *
