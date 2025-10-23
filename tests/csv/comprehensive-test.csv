@@ -1,0 +1,24 @@
+Title,Category,Subcategory,Author,Date,Priority,Completed,Rating,Tags,Content,Notes
+Meeting Notes,Work,Meetings,John Doe,2024-01-15,High,true,8.5,meeting planning,"Discussed Q1 goals and objectives. Key points:
+- Revenue targets
+- Team expansion
+- New product launch",Follow up next week
+Project Plan,Work,Projects,Jane Smith,2024-01-16,High,false,9,planning strategy,"# Project Overview
+
+This is a detailed project plan with markdown content.
+
+## Goals
+1. Complete phase 1
+2. Start phase 2",Budget approved
+"Note with ""quotes""",Personal,Misc,Test User,2024-01-17,Low,true,7.5,test special,"Content with ""escaped quotes"" inside.",Watch for edge cases
+Simple Note,Personal,Ideas,Bob Wilson,2024-01-18,Medium,false,6,ideas,Just a simple note without complications.,
+Unicode Test,Work,Testing,Test User,2024-01-19,Low,true,8,test unicode,Content with unicode: 你好世界 🌟 café,
+Empty Fields Test,,,,,,,,,Some content here but many empty fields,
+Numbers Test,Data,Analysis,,2024-01-21,High,true,10,numbers data,Testing numeric values and dates.,Score is 10
+Boolean Test,Settings,Config,,2024-01-22,Medium,false,5,config settings,Testing boolean values in various columns.,
+Multi-line Content,Work,Documentation,Writer,2024-01-23,High,true,9,docs,"This is a multi-line
+content field that spans
+multiple lines to test
+proper CSV parsing.",Important
+Special Chars,Tech,Testing,,2024-01-24,Low,false,7,test special,"Content with special characters: !@#$%^&*()_+-=[]{}|;:',.<>?",Need validation
+

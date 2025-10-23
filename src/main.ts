@@ -2,6 +2,7 @@ import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
+import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
@@ -245,6 +246,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
 				helpPermalink: 'import/bear',
+			},
+			'csv': {
+				name: 'CSV',
+				optionText: 'CSV (.csv)',
+				importer: CSVImporter,
+				helpPermalink: 'import/csv',
 			},
 			'evernote': {
 				name: 'Evernote',
