@@ -9,6 +9,7 @@ import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
+import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 
 /**
  * Obsidian property types that are supported
@@ -214,9 +215,35 @@ function generateBaseFileContent(
 	// Map Notion properties to Obsidian properties
 	const propertyMappings = mapDatabaseProperties(properties);
 	
-	if (Object.keys(propertyMappings).length > 0) {
+	// Separate formulas from regular properties
+	const formulas: Record<string, any> = {};
+	const regularProperties: Record<string, any> = {};
+	
+	for (const [propKey, propConfig] of Object.entries(propertyMappings)) {
+		if (propConfig.formula) {
+			// This is a formula property
+			formulas[propKey] = propConfig;
+		} else {
+			// This is a regular property
+			regularProperties[propKey] = propConfig;
+		}
+	}
+	
+	// Add formulas section if there are any
+	if (Object.keys(formulas).length > 0) {
+		content += `formulas:\n`;
+		for (const [propKey, propConfig] of Object.entries(formulas)) {
+			// Extract the formula name (remove "formula." prefix)
+			const formulaName = propKey.replace(/^formula\./, '');
+			content += `  ${formulaName}: ${propConfig.formula}\n`;
+		}
+		content += `\n`;
+	}
+	
+	// Add properties section
+	if (Object.keys(regularProperties).length > 0) {
 		content += `properties:\n`;
-		for (const [propKey, propConfig] of Object.entries(propertyMappings)) {
+		for (const [propKey, propConfig] of Object.entries(regularProperties)) {
 			content += `  ${propKey}:\n`;
 			content += `    displayName: "${propConfig.displayName}"\n`;
 			if (propConfig.type) {
@@ -233,8 +260,18 @@ function generateBaseFileContent(
 	content += `    order:\n`;
 	content += `      - file.name\n`;
 	
-	// Add all mapped properties to the view
-	for (const propKey of Object.keys(propertyMappings)) {
+	// Add all regular properties to the view (except formula text properties)
+	for (const propKey of Object.keys(regularProperties)) {
+		// Skip formula text properties (they end with " (Formula)")
+		// These are available for filtering but not shown in view by default
+		if (propKey.endsWith(' (Formula)')) {
+			continue;
+		}
+		content += `      - ${propKey}\n`;
+	}
+	
+	// Add all formula properties to the view (with formula. prefix)
+	for (const propKey of Object.keys(formulas)) {
 		content += `      - ${propKey}\n`;
 	}
 	
@@ -304,13 +341,34 @@ function mapDatabaseProperties(notionProperties: any): Record<string, any> {
 				};
 				break;
 			
-			case 'formula':
-				// Formula needs special handling - will be converted to computed property
-				mappings[`formula.${sanitizePropertyKey(key)}`] = {
-					displayName: propName,
-					// Don't specify type for formula, let Obsidian handle it
+		case 'formula':
+			// Try to convert Notion formula to Obsidian formula
+			const formulaExpression = getNotionFormulaExpression(prop.formula);
+			
+			if (formulaExpression && canConvertFormula(formulaExpression)) {
+				// Formula can be converted - add both formula and text property
+				const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
+				if (obsidianFormula) {
+					// Add the formula (will be shown in view)
+					mappings[`formula.${sanitizePropertyKey(key)}`] = {
+						displayName: propName,
+						formula: obsidianFormula,
+					};
+					// Also add text property for manual filtering (won't be shown in view by default)
+					mappings[`${sanitizePropertyKey(key)} (Formula)`] = {
+						displayName: `${propName} (Formula)`,
+						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+					};
+				}
+			} else {
+				// Formula cannot be converted - add as text property in base file
+				// This allows users to see the value without manually adding the property
+				mappings[`${sanitizePropertyKey(key)} (Formula)`] = {
+					displayName: `${propName} (Formula)`,
+					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
-				break;
+			}
+			break;
 			
 			case 'relation':
 			case 'rollup':

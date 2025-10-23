@@ -106,6 +106,7 @@ export function extractPageTitle(page: PageObjectResponse): string {
 
 /**
  * Extract frontmatter from Notion page
+ * This includes the notion-id, timestamps, and all page properties
  */
 export function extractFrontMatter(page: PageObjectResponse): Record<string, any> {
 	const frontMatter: Record<string, any> = {
@@ -120,6 +121,166 @@ export function extractFrontMatter(page: PageObjectResponse): Record<string, any
 		frontMatter.updated = page.last_edited_time;
 	}
 	
+	// Extract all page properties
+	const properties = page.properties;
+	for (const key in properties) {
+		const prop = properties[key];
+		
+		// Skip title property (already used as filename)
+		if (prop.type === 'title') {
+			continue;
+		}
+		
+		// Map property to frontmatter value
+		const value = mapNotionPropertyToFrontmatter(prop);
+		if (value !== null && value !== undefined) {
+			// For formula properties, always add with (Formula) suffix
+			// This preserves the calculated value from Notion
+			const propertyKey = prop.type === 'formula' ? `${key} (Formula)` : key;
+			frontMatter[propertyKey] = value;
+		}
+	}
+	
 	return frontMatter;
+}
+
+/**
+ * Map a Notion property to a frontmatter value
+ * Handles all Notion property types and converts them to Obsidian-compatible values
+ */
+function mapNotionPropertyToFrontmatter(prop: any): any {
+	switch (prop.type) {
+		case 'number':
+			return prop.number;
+		
+		case 'checkbox':
+			return prop.checkbox;
+		
+		case 'select':
+			return prop.select?.name || null;
+		
+		case 'multi_select':
+			return prop.multi_select?.map((s: any) => s.name) || [];
+		
+		case 'status':
+			return prop.status?.name || null;
+		
+		case 'date':
+			if (!prop.date) return null;
+			// If has time component, use datetime format
+			if (prop.date.start && prop.date.start.length > 10) {
+				return prop.date.end 
+					? `${prop.date.start} to ${prop.date.end}`
+					: prop.date.start;
+			}
+			// Otherwise use date format
+			return prop.date.end 
+				? `${prop.date.start} to ${prop.date.end}`
+				: prop.date.start;
+		
+		case 'email':
+			return prop.email;
+		
+		case 'url':
+			return prop.url;
+		
+		case 'phone_number':
+			return prop.phone_number;
+		
+		case 'rich_text':
+			// Convert rich text to plain text
+			return prop.rich_text?.map((t: any) => t.plain_text).join('') || '';
+		
+		case 'people':
+			// Convert people to names or emails
+			return prop.people?.map((p: any) => {
+				if (p.type === 'person' && p.person?.email) {
+					return p.person.email;
+				}
+				return p.name || p.id;
+			}) || [];
+		
+		case 'files':
+			// Convert files to URLs
+			return prop.files?.map((f: any) => {
+				if (f.type === 'file') {
+					return f.file?.url || '';
+				} else if (f.type === 'external') {
+					return f.external?.url || '';
+				}
+				return '';
+			}).filter((url: string) => url) || [];
+		
+		case 'formula':
+			// Extract formula result value
+			if (!prop.formula) return null;
+			const formulaResult = prop.formula;
+			switch (formulaResult.type) {
+				case 'string':
+					return formulaResult.string;
+				case 'number':
+					return formulaResult.number;
+				case 'boolean':
+					return formulaResult.boolean;
+				case 'date':
+					return formulaResult.date?.start || null;
+				default:
+					return null;
+			}
+		
+		case 'relation':
+			// Relation properties contain page IDs, convert to text for now
+			return prop.relation?.map((r: any) => r.id) || [];
+		
+		case 'rollup':
+			// Rollup properties aggregate values, extract the result
+			if (!prop.rollup) return null;
+			const rollupResult = prop.rollup;
+			switch (rollupResult.type) {
+				case 'number':
+					return rollupResult.number;
+				case 'date':
+					return rollupResult.date?.start || null;
+				case 'array':
+					return rollupResult.array?.length || 0;
+				default:
+					return null;
+			}
+		
+		case 'created_time':
+			return prop.created_time;
+		
+		case 'created_by':
+			// Extract user info
+			if (prop.created_by?.type === 'person' && prop.created_by.person?.email) {
+				return prop.created_by.person.email;
+			}
+			return prop.created_by?.name || prop.created_by?.id || null;
+		
+		case 'last_edited_time':
+			return prop.last_edited_time;
+		
+		case 'last_edited_by':
+			// Extract user info
+			if (prop.last_edited_by?.type === 'person' && prop.last_edited_by.person?.email) {
+				return prop.last_edited_by.person.email;
+			}
+			return prop.last_edited_by?.name || prop.last_edited_by?.id || null;
+		
+		case 'unique_id':
+			// Unique ID property
+			if (prop.unique_id?.prefix) {
+				return `${prop.unique_id.prefix}-${prop.unique_id.number}`;
+			}
+			return prop.unique_id?.number || null;
+		
+		case 'verification':
+			// Verification property
+			return prop.verification?.state || null;
+		
+		default:
+			// For unknown types, try to convert to string
+			return String(prop[prop.type] || '');
+	}
 }
 
