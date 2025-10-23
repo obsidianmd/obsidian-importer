@@ -280,6 +280,13 @@ export class CSVImporter extends FormatImporter {
 			const columnContainer = modalContent.createDiv('csv-column-list');
 			const columnToggles = new Map();
 
+			// Add header row
+			const headerRow = columnContainer.createDiv('csv-column-header-row');
+			headerRow.createDiv('csv-column-checkbox'); // Empty space for checkbox
+			headerRow.createDiv('csv-column-name-col').setText('Column name');
+			headerRow.createDiv('csv-column-property-col').setText('Property');
+			headerRow.createDiv('csv-column-example-col').setText('Example');
+
 			// Get first row for example values
 			const firstRow = this.csvRows.length > 0 ? this.csvRows[0] : {};
 
@@ -305,18 +312,26 @@ export class CSVImporter extends FormatImporter {
 				checkbox.addEventListener('change', updateColumn);
 				columnToggles.set(header, checkbox);
 				
-				// Property name column
+				// Column name (display only)
 				const nameCol = rowEl.createDiv('csv-column-name-col');
-				const nameInput = nameCol.createEl('input', {
+				nameCol.setText(header);
+				nameCol.addEventListener('click', () => {
+					checkbox.checked = !checkbox.checked;
+					updateColumn();
+				});
+				
+				// Property input column
+				const propertyCol = rowEl.createDiv('csv-column-property-col');
+				const propertyInput = propertyCol.createEl('input', {
 					type: 'text',
-					cls: 'csv-column-name',
+					cls: 'csv-column-property',
 					value: this.config.propertyNames.get(header) || ''
 				});
-				nameInput.addEventListener('input', () => {
-					this.config.propertyNames.set(header, nameInput.value);
+				propertyInput.addEventListener('input', () => {
+					this.config.propertyNames.set(header, propertyInput.value);
 				});
 				// Prevent clicking input from toggling checkbox
-				nameInput.addEventListener('click', (e) => {
+				propertyInput.addEventListener('click', (e) => {
 					e.stopPropagation();
 				});
 				
@@ -327,16 +342,10 @@ export class CSVImporter extends FormatImporter {
 					? exampleValue.substring(0, 50) + '...' 
 					: exampleValue;
 				exampleCol.setText(truncated || '—');
-				
-				// Make columns clickable to toggle checkbox (but not when clicking input)
-				const toggleCheckbox = (e: MouseEvent) => {
-					if (e.target !== nameInput) {
-						checkbox.checked = !checkbox.checked;
-						updateColumn();
-					}
-				};
-				nameCol.addEventListener('click', toggleCheckbox);
-				exampleCol.addEventListener('click', toggleCheckbox);
+				exampleCol.addEventListener('click', () => {
+					checkbox.checked = !checkbox.checked;
+					updateColumn();
+				});
 			}
 
 			// Buttons
@@ -424,8 +433,8 @@ export class CSVImporter extends FormatImporter {
 	}
 
 	private sanitizeYAMLKey(key: string): string {
-		// Replace spaces and special characters with valid YAML key format
-		return key.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').toLowerCase();
+		// Remove special characters that aren't valid in YAML keys
+		return key.replace(/[^\w\s-]/g, '');
 	}
 
 	private convertToYAML(value: string): string {

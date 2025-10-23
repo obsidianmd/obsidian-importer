@@ -103,14 +103,23 @@
 }
 
 .csv-select-all-setting .setting-item-info {
-	padding-right: var(--size-4-2);
+	padding-inline-end: var(--size-4-2);
 }
 
 .csv-column-list {
 	display: flex;	
 	flex-direction: column;
 	gap: var(--size-4-1);
-	padding: var(--size-4-2) 0;
+	padding: var(--size-4-3) 0;
+}
+
+.csv-column-header-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	padding: var(--size-2-1) 0;
 }
 
 .csv-column-row {
@@ -121,35 +130,41 @@
 	border-radius: var(--radius-s);
 }
 
-.csv-column-checkbox {
-	margin-top: 2px;
+.csv-column-row .csv-column-name-col {
+	font-size: var(--font-ui-small);
+}
+
+input.csv-column-checkbox {
 	flex-shrink: 0;
+	margin: 0;
 }
 
 .csv-column-name-col {
-	flex: 0 0 200px;
+	flex: 0 0 130px;
 	min-width: 0;
-	cursor: pointer;
-}
-
-.csv-column-name {
-	font-weight: var(--font-semibold);
-	color: var(--text-normal);
-	background: transparent;
-	border: 1px solid transparent;
-	border-radius: var(--radius-s);
 	padding: var(--size-2-1) var(--size-4-1);
-	width: 100%;
-	font-size: var(--font-ui-medium);
-	cursor: text;
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	
 }
 
-.csv-column-name:hover {
+.csv-column-property-col {
+	flex: 0 0 150px;
+	min-width: 0;
+}
+
+.csv-column-property {
+	width: 100%;
+}
+
+.csv-column-property:hover {
 	background-color: var(--background-modifier-hover);
 	border-color: var(--background-modifier-border);
 }
 
-.csv-column-name:focus {
+.csv-column-property:focus {
 	background-color: var(--background-primary);
 	border-color: var(--background-modifier-border-focus);
 	outline: none;
@@ -163,7 +178,5 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	cursor: pointer;
 	padding: var(--size-2-1) var(--size-4-1);
 }
-
