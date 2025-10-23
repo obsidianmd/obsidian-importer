@@ -225,8 +225,8 @@ export class NotionAPIImporter extends FormatImporter {
 			// Fetch page blocks (content) with rate limit handling
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			
-			// Convert blocks to markdown
-			const markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath);
+			// Convert blocks to markdown with nested children support
+			const markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
 			
 			// Prepare YAML frontmatter (WIP: Not implemented yet)
 			const frontMatter = extractFrontMatter(page);
