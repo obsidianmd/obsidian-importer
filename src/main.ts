@@ -70,22 +70,30 @@ export class ImportContext {
 
 	constructor(el: HTMLElement) {
 		this.el = el;
+		this.createProgressUI(el);
+	}
 
-		el.empty();
+	/**
+	 * Creates the import progress UI.
+	 * @param container The container element to create the UI in
+	 */
+	createProgressUI(container: HTMLElement) {
+		container.empty();
 
-		this.statusEl = el.createDiv('importer-status');
+		this.el = container;
+		this.statusEl = container.createDiv('importer-status');
 
-		this.progressBarEl = el.createDiv('importer-progress-bar', el => {
+		this.progressBarEl = container.createDiv('importer-progress-bar', el => {
 			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
 		});
 
-		el.createDiv('importer-stats-container', el => {
+		container.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
-				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
 			});
 			el.createDiv('importer-stat mod-attachments', el => {
-				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.attachments.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'attachments' });
 			});
 			el.createDiv('importer-stat mod-remaining', el => {
@@ -93,16 +101,16 @@ export class ImportContext {
 				el.createDiv({ cls: 'importer-stat-name', text: 'remaining' });
 			});
 			el.createDiv('importer-stat mod-skipped', el => {
-				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.skipped.length.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'skipped' });
 			});
 			el.createDiv('importer-stat mod-failed', el => {
-				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.failed.length.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'failed' });
 			});
 		});
 
-		this.importLogEl = el.createDiv('importer-log');
+		this.importLogEl = container.createDiv('importer-log');
 		this.importLogEl.hide();
 	}
 

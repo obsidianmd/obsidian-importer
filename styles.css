@@ -86,34 +86,34 @@
 	color: var(--text-error);
 }
 
-/* CSV styles */
-.csv-frontmatter-header {
+/* Template configuration styles */
+.importer-frontmatter-header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-2);
 }
 
-.csv-frontmatter-header h4 {
+.importer-frontmatter-header h4 {
 	margin: 0;
 }
 
-.csv-select-all-setting {
+.importer-select-all-setting {
 	padding: 0;
 	border: none;
 }
 
-.csv-select-all-setting .setting-item-info {
+.importer-select-all-setting .setting-item-info {
 	padding-inline-end: var(--size-4-2);
 }
 
-.csv-column-list {
+.importer-column-list {
 	display: flex;	
 	flex-direction: column;
 	gap: var(--size-4-1);
 	padding: var(--size-4-3) 0;
 }
 
-.csv-column-header-row {
+.importer-column-header-row {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
@@ -122,7 +122,7 @@
 	padding: var(--size-2-1) 0;
 }
 
-.csv-column-row {
+.importer-column-row {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
@@ -130,21 +130,21 @@
 	border-radius: var(--radius-s);
 }
 
-.csv-column-name-col {
+.importer-column-name-col {
 	flex: 0 0 150px;
 	min-width: 0;
 }
 
-.csv-column-value-col {
+.importer-column-value-col {
 	flex: 0 0 200px;
 	min-width: 0;
 }
 
-.csv-column-property {
+.importer-column-property {
 	width: 100%;
 }
 
-.csv-column-example-col {
+.importer-column-example-col {
 	flex: 1;
 	min-width: 0;
 	font-size: var(--font-ui-smaller);
@@ -155,7 +155,7 @@
 	padding: var(--size-2-1) var(--size-4-1);
 }
 
-.csv-column-delete-col {
+.importer-column-delete-col {
 	flex-shrink: 0;
 	width: 32px;
 	display: flex;

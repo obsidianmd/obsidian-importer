@@ -1,30 +1,22 @@
-import { Notice, Setting, TFolder, setIcon } from 'obsidian';
+import { Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
+import { 
+	TemplateConfigurator, 
+	TemplateConfig, 
+	TemplateField, 
+	applyTemplate, 
+	generateFrontmatter 
+} from '../template';
 
 interface CSVRow {
 	[key: string]: string;
 }
 
-interface CSVConfig {
-	propertyNames: Map<string, string>; // Maps original column name to custom property name
-	propertyValues: Map<string, string>; // Maps original column name to property value template
-	titleTemplate: string;
-	bodyTemplate: string;
-	locationTemplate: string;
-}
-
 export class CSVImporter extends FormatImporter {
 	private csvHeaders: string[] = [];
 	private csvRows: CSVRow[] = [];
-	private config: CSVConfig = {
-		propertyNames: new Map(),
-		propertyValues: new Map(),
-		titleTemplate: '',
-		bodyTemplate: '',
-		locationTemplate: '',
-	};
-	private configUI: HTMLElement | null = null;
+	private config: TemplateConfig | null = null;
 
 	init() {
 		this.addFileChooserSetting('CSV', ['csv']);
@@ -51,22 +43,43 @@ export class CSVImporter extends FormatImporter {
 				this.csvHeaders = parsedData.headers;
 				this.csvRows = parsedData.rows;
 
-				// Set default property names and values
+				// Prepare template fields
+				const fields: TemplateField[] = this.csvHeaders.map(header => ({
+					id: header,
+					label: header,
+					exampleValue: this.csvRows[0]?.[header] || '',
+				}));
+
+				// Set up defaults
+				const propertyNames = new Map<string, string>();
+				const propertyValues = new Map<string, string>();
 				this.csvHeaders.forEach(header => {
-					this.config.propertyNames.set(header, this.sanitizeYAMLKey(header));
-					this.config.propertyValues.set(header, `{{${header}}}`);
+					propertyNames.set(header, this.sanitizeYAMLKey(header));
+					propertyValues.set(header, `{{${header}}}`);
 				});
 
-				// Pre-fill title template with first column if empty
-				if (!this.config.titleTemplate && this.csvHeaders.length > 0) {
-					this.config.titleTemplate = `{{${this.csvHeaders[0]}}}`;
-				}
+				const titleTemplate = this.csvHeaders.length > 0 ? `{{${this.csvHeaders[0]}}}` : '';
 
 				// Show configuration UI and wait for user to configure
-				await this.showConfigurationUI(ctx);
+				const configurator = new TemplateConfigurator({
+					fields,
+					defaults: {
+						titleTemplate,
+						locationTemplate: '',
+						bodyTemplate: '',
+						propertyNames,
+						propertyValues,
+					},
+					placeholderSyntax: '{{column_name}}',
+				});
+
+				this.config = await configurator.show(this.modal.contentEl, ctx);
 				
 				// Check if user cancelled
-				if (ctx.isCancelled()) return;
+				if (!this.config) {
+					ctx.cancel();
+					return;
+				}
 			}
 			else {
 				// Additional files use the same configuration
@@ -205,203 +218,6 @@ export class CSVImporter extends FormatImporter {
 		return values.map(v => v.trim());
 	}
 
-	private async showConfigurationUI(ctx: ImportContext): Promise<void> {
-		return new Promise((resolve) => {
-			// Clear modal content and show configuration
-			const modalContent = this.modal.contentEl;
-			modalContent.empty();
-
-			modalContent.createEl('p', {
-				text: 'Configure how your CSV data should be imported. Use {{column_name}} syntax to reference column values.',
-			});
-
-			// Note title template
-			new Setting(modalContent)
-				.setName('Note title')
-				.setDesc('Template for the note title. Use {{column_name}} to insert values.')
-				.addText(text => text
-					.setPlaceholder('{{Title}}')
-					.setValue(this.config.titleTemplate)
-					.onChange(value => {
-						this.config.titleTemplate = value;
-					}));
-
-			// Note location template
-			new Setting(modalContent)
-				.setName('Note location')
-				.setDesc('Template for note location/path. Use {{column_name}} to organize notes.')
-				.addText(text => text
-					.setPlaceholder('{{Category}}/{{Subcategory}}')
-					.setValue(this.config.locationTemplate)
-					.onChange(value => {
-						this.config.locationTemplate = value;
-					}));
-
-			// Column selection for frontmatter
-			const headerContainer = modalContent.createDiv({ cls: 'csv-frontmatter-header' });
-			headerContainer.createEl('h4', { text: 'Properties' });
-
-			const columnContainer = modalContent.createDiv('csv-column-list');
-
-			// Add header row
-			const headerRow = columnContainer.createDiv('csv-column-header-row');
-			headerRow.createDiv('csv-column-name-col').setText('Property name');
-			headerRow.createDiv('csv-column-value-col').setText('Property value');
-			headerRow.createDiv('csv-column-example-col').setText('Example');
-			headerRow.createDiv('csv-column-delete-col'); // Empty space for delete button
-
-			// Get first row for example values
-			const firstRow = this.csvRows.length > 0 ? this.csvRows[0] : {};
-
-			for (const header of this.csvHeaders) {
-				const rowEl = columnContainer.createDiv('csv-column-row');
-				
-				// Property name input column
-				const nameCol = rowEl.createDiv('csv-column-name-col');
-				const nameInput = nameCol.createEl('input', {
-					type: 'text',
-					cls: 'csv-column-property',
-					value: this.config.propertyNames.get(header) || ''
-				});
-				nameInput.addEventListener('input', () => {
-					this.config.propertyNames.set(header, nameInput.value);
-				});
-				
-				// Property value input column
-				const valueCol = rowEl.createDiv('csv-column-value-col');
-				const valueInput = valueCol.createEl('input', {
-					type: 'text',
-					cls: 'csv-column-property',
-					value: this.config.propertyValues.get(header) || ''
-				});
-				valueInput.addEventListener('input', () => {
-					this.config.propertyValues.set(header, valueInput.value);
-				});
-				
-				// Example value column
-				const exampleCol = rowEl.createDiv('csv-column-example-col');
-				const exampleValue = firstRow[header] || '';
-				const truncated = exampleValue.length > 50 
-					? exampleValue.substring(0, 50) + '...' 
-					: exampleValue;
-				exampleCol.setText(truncated || '—');
-				
-				// Delete button column
-				const deleteCol = rowEl.createDiv('csv-column-delete-col');
-				const deleteButton = deleteCol.createEl('button', {
-					cls: 'clickable-icon',
-					attr: { 'aria-label': 'Delete property' }
-				});
-				setIcon(deleteButton, 'trash-2');
-				deleteButton.addEventListener('click', () => {
-					// Remove from configuration
-					this.config.propertyNames.delete(header);
-					this.config.propertyValues.delete(header);
-					// Remove from UI
-					rowEl.remove();
-				});
-			}
-
-			// Note content template
-			new Setting(modalContent)
-				.setName('Note content')
-				.setDesc('Template for the note content. Use {{column_name}} to insert values.')
-				.addTextArea(text => {
-					text
-						.setPlaceholder('{{Content}}')
-						.setValue(this.config.bodyTemplate)
-						.onChange(value => {
-							this.config.bodyTemplate = value;
-						});
-					text.inputEl.rows = 6;
-				});
-
-			// Buttons
-			const buttonContainer = modalContent.createDiv('modal-button-container');
-			buttonContainer.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
-				el.addEventListener('click', () => {
-					// Validate configuration
-					if (!this.config.titleTemplate.trim()) {
-						new Notice('Please provide a note title template.');
-						return;
-					}
-
-					// Clear the configuration UI and restore the progress UI
-					modalContent.empty();
-					const progressEl = modalContent.createDiv();
-					
-					// Recreate the ImportContext UI in the new container
-					ctx.el = progressEl;
-					ctx.statusEl = progressEl.createDiv('importer-status');
-					ctx.progressBarEl = progressEl.createDiv('importer-progress-bar', el => {
-						ctx.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
-					});
-					progressEl.createDiv('importer-stats-container', el => {
-						el.createDiv('importer-stat mod-imported', el => {
-							ctx.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: ctx.notes.toString() });
-							el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
-						});
-						el.createDiv('importer-stat mod-attachments', el => {
-							ctx.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: ctx.attachments.toString() });
-							el.createDiv({ cls: 'importer-stat-name', text: 'attachments' });
-						});
-						el.createDiv('importer-stat mod-remaining', el => {
-							ctx.remainingCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
-							el.createDiv({ cls: 'importer-stat-name', text: 'remaining' });
-						});
-						el.createDiv('importer-stat mod-skipped', el => {
-							ctx.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: ctx.skipped.length.toString() });
-							el.createDiv({ cls: 'importer-stat-name', text: 'skipped' });
-						});
-						el.createDiv('importer-stat mod-failed', el => {
-							ctx.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: ctx.failed.length.toString() });
-							el.createDiv({ cls: 'importer-stat-name', text: 'failed' });
-						});
-					});
-					ctx.importLogEl = progressEl.createDiv('importer-log');
-					ctx.importLogEl.hide();
-
-					resolve();
-				});
-			});
-
-			buttonContainer.createEl('button', { text: 'Cancel' }, el => {
-				el.addEventListener('click', () => {
-					this.modal.close();
-				});
-			});
-		});
-	}
-
-	private applyTemplate(template: string, row: CSVRow): string {
-		if (!template) return '';
-
-		return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, columnName) => {
-			const trimmedName = columnName.trim();
-			return row[trimmedName] !== undefined ? row[trimmedName] : match;
-		});
-	}
-
-	private generateFrontmatter(row: CSVRow): string {
-		if (this.config.propertyNames.size === 0) return '';
-
-		const lines = ['---'];
-
-		for (const [column, propertyName] of this.config.propertyNames) {
-			if (!propertyName) continue; // Skip if property name is empty
-
-			const valueTemplate = this.config.propertyValues.get(column) || '';
-			if (!valueTemplate) continue; // Skip if property value is empty
-			
-			// Apply the template to get the actual value
-			const value = this.applyTemplate(valueTemplate, row);
-			const yamlValue = this.convertToYAML(value);
-			lines.push(`${propertyName}: ${yamlValue}`);
-		}
-
-		lines.push('---');
-		return lines.join('\n');
-	}
 
 	private sanitizeYAMLKey(key: string): string {
 		// Remove special characters that aren't valid in YAML keys
@@ -444,6 +260,11 @@ export class CSVImporter extends FormatImporter {
 	}
 
 	private async processRows(ctx: ImportContext): Promise<void> {
+		if (!this.config) {
+			new Notice('Configuration is missing.');
+			return;
+		}
+
 		const folder = await this.getOutputFolder();
 		if (!folder) {
 			new Notice('Please select a location to export to.');
@@ -459,7 +280,7 @@ export class CSVImporter extends FormatImporter {
 
 			try {
 				// Generate title
-				const title = this.applyTemplate(this.config.titleTemplate, row);
+				const title = applyTemplate(this.config.titleTemplate, row);
 				if (!title.trim()) {
 					ctx.reportSkipped(`Row ${i + 1}`, 'Empty title');
 					continue;
@@ -468,20 +289,25 @@ export class CSVImporter extends FormatImporter {
 				ctx.status(`Creating note: ${title}`);
 
 				// Generate location
-				const locationPath = this.applyTemplate(this.config.locationTemplate, row);
+				const locationPath = applyTemplate(this.config.locationTemplate, row);
 				const targetFolder = await this.getTargetFolder(folder, locationPath);
 
 				// Generate content
 				let content = '';
 
 				// Add frontmatter
-				const frontmatter = this.generateFrontmatter(row);
+				const frontmatter = generateFrontmatter(
+					row,
+					this.config.propertyNames,
+					this.config.propertyValues,
+					this.convertToYAML.bind(this)
+				);
 				if (frontmatter) {
 					content += frontmatter + '\n\n';
 				}
 
 				// Add body
-				const body = this.applyTemplate(this.config.bodyTemplate, row);
+				const body = applyTemplate(this.config.bodyTemplate, row);
 				if (body) {
 					content += body;
 				}
