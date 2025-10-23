@@ -101,8 +101,9 @@ export class CSVImporter extends FormatImporter {
 			const nextChar = content[i + 1];
 
 			if (char === '"') {
+				currentLine += char; // Always add the quote to the line
 				if (inQuotes && nextChar === '"') {
-					// Escaped quote
+					// Escaped quote - add the second quote too
 					currentLine += '"';
 					i++; // Skip next quote
 				}
@@ -150,36 +151,48 @@ export class CSVImporter extends FormatImporter {
 		const values: string[] = [];
 		let currentValue = '';
 		let inQuotes = false;
+		let startOfField = true;
 
 		for (let i = 0; i < line.length; i++) {
 			const char = line[i];
 			const nextChar = line[i + 1];
 
-			if (char === '"') {
-				if (inQuotes && nextChar === '"') {
-					// Escaped quote
+			if (char === '"' && startOfField) {
+				// Starting a quoted field
+				inQuotes = true;
+				startOfField = false;
+			}
+			else if (char === '"' && inQuotes) {
+				if (nextChar === '"') {
+					// Escaped quote - add one quote to the value
 					currentValue += '"';
-					i++; // Skip next quote
+					i++; // Skip the next quote
 				}
 				else {
-					// Toggle quote state
-					inQuotes = !inQuotes;
+					// End of quoted field
+					inQuotes = false;
 				}
 			}
 			else if (char === ',' && !inQuotes) {
-				// End of value
-				values.push(currentValue.trim());
+				// End of field
+				values.push(currentValue);
 				currentValue = '';
+				startOfField = true;
 			}
 			else {
-				currentValue += char;
+				// Regular character or comma inside quotes
+				if (char !== ' ' || !startOfField || currentValue.length > 0) {
+					currentValue += char;
+					startOfField = false;
+				}
 			}
 		}
 
 		// Add last value
-		values.push(currentValue.trim());
+		values.push(currentValue);
 
-		return values;
+		// Trim all values
+		return values.map(v => v.trim());
 	}
 
 	private async showConfigurationUI(ctx: ImportContext): Promise<void> {
