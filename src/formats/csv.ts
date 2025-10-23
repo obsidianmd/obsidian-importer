@@ -8,6 +8,7 @@ import {
 	applyTemplate, 
 	generateFrontmatter 
 } from '../template';
+import { createBaseFile } from '../base';
 
 interface CSVRow {
 	[key: string]: string;
@@ -321,6 +322,46 @@ export class CSVImporter extends FormatImporter {
 			}
 
 			ctx.reportProgress(i + 1, this.csvRows.length);
+		}
+
+		// Create Base file after all rows are processed (only if importing to a subfolder)
+		if (!ctx.isCancelled() && folder.path !== '') {
+			await this.createBase(folder);
+		}
+	}
+
+	private async createBase(folder: TFolder): Promise<void> {
+		try {
+			// Collect property names that are defined
+			const propertyNames: string[] = Array.from(this.config!.propertyNames.values())
+				.filter(name => name && name.trim());
+
+			// Add file.name as the first column
+			const orderedColumns = ['file.name', ...propertyNames];
+
+			// Use the folder name for the base file name
+			const folderName = folder.name;
+
+			// Create the base file in the parent folder
+			const parentFolder = folder.parent || folder;
+
+			await createBaseFile(
+				parentFolder,
+				folderName,
+				{
+					filters: [`file.folder == "${folder.path}"`],
+					views: [{
+						type: 'table',
+						name: 'Table',
+						order: orderedColumns,
+					}],
+				},
+				this.app.vault
+			);
+		}
+		catch (e) {
+			console.error('Failed to create Base file:', e);
+			// Don't fail the entire import if base file creation fails
 		}
 	}
 
