@@ -53,12 +53,28 @@ export async function convertChildDatabase(
 		
 		ctx.status(`Processing database: ${sanitizedTitle}...`);
 		
+		// In Notion API v2025-09-03, databases have data_sources array
+		// Get the first data source to retrieve properties
+        // It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
+        // FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
+		let dataSourceProperties: Record<string, any> = {};
+		if ((database as any).data_sources && (database as any).data_sources.length > 0) {
+			const dataSourceId = (database as any).data_sources[0].id;
+			const dataSource = await makeNotionRequest(
+				() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
+				ctx
+			);
+			dataSourceProperties = (dataSource as any).properties || {};
+		}
+		
 		// Create database folder under current page folder
 		const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
 		await vault.createFolder(normalizePath(databaseFolderPath));
 		
 		// Query database to get all pages (with pagination)
-		const databasePages = await queryAllDatabasePages(client, databaseId, ctx);
+		// Use the data source ID for querying
+		const dataSourceId = (database as any).data_sources?.[0]?.id || databaseId;
+		const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 		
 		ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
 		
@@ -76,9 +92,7 @@ export async function convertChildDatabase(
 			sanitizedTitle,
 			databaseFolderPath,
 			outputRootPath,
-			// Type assertion needed: @notionhq/client types don't include properties field
-			// but it exists in the runtime response
-			(database as any).properties || {},
+			dataSourceProperties,
 			databasePages
 		);
 		
@@ -94,6 +108,7 @@ export async function convertChildDatabase(
 
 /**
  * Query all pages from a database with pagination support
+ * Note: In Notion API v2025-09-03, databases are now called "data sources"
  */
 async function queryAllDatabasePages(
 	client: Client,
@@ -104,11 +119,10 @@ async function queryAllDatabasePages(
 	let cursor: string | undefined = undefined;
 	
 	do {
-		// Type assertion needed: @notionhq/client types don't include databases.query method
-		// but it exists in the runtime API
+		// In Notion API v2025-09-03, use dataSources.query instead of databases.query
 		const response: any = await makeNotionRequest(
-			() => (client as any).databases.query({
-				database_id: databaseId,
+			() => client.dataSources.query({
+				data_source_id: databaseId,
 				start_cursor: cursor,
 				page_size: 100,
 			}),
