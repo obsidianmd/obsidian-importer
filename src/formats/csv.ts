@@ -1,4 +1,4 @@
-import { Notice, Setting, TFolder } from 'obsidian';
+import { Notice, Setting, TFolder, setIcon } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 
@@ -7,8 +7,8 @@ interface CSVRow {
 }
 
 interface CSVConfig {
-	enabledColumns: Set<string>;
 	propertyNames: Map<string, string>; // Maps original column name to custom property name
+	propertyValues: Map<string, string>; // Maps original column name to property value template
 	titleTemplate: string;
 	bodyTemplate: string;
 	locationTemplate: string;
@@ -18,8 +18,8 @@ export class CSVImporter extends FormatImporter {
 	private csvHeaders: string[] = [];
 	private csvRows: CSVRow[] = [];
 	private config: CSVConfig = {
-		enabledColumns: new Set(),
 		propertyNames: new Map(),
+		propertyValues: new Map(),
 		titleTemplate: '',
 		bodyTemplate: '',
 		locationTemplate: '',
@@ -51,11 +51,16 @@ export class CSVImporter extends FormatImporter {
 				this.csvHeaders = parsedData.headers;
 				this.csvRows = parsedData.rows;
 
-				// Enable all columns by default and set default property names
+				// Set default property names and values
 				this.csvHeaders.forEach(header => {
-					this.config.enabledColumns.add(header);
 					this.config.propertyNames.set(header, this.sanitizeYAMLKey(header));
+					this.config.propertyValues.set(header, `{{${header}}}`);
 				});
+
+				// Pre-fill title template with first column if empty
+				if (!this.config.titleTemplate && this.csvHeaders.length > 0) {
+					this.config.titleTemplate = `{{${this.csvHeaders[0]}}}`;
+				}
 
 				// Show configuration UI and wait for user to configure
 				await this.showConfigurationUI(ctx);
@@ -232,9 +237,74 @@ export class CSVImporter extends FormatImporter {
 						this.config.locationTemplate = value;
 					}));
 
-			// Note body template
+			// Column selection for frontmatter
+			const headerContainer = modalContent.createDiv({ cls: 'csv-frontmatter-header' });
+			headerContainer.createEl('h4', { text: 'Properties' });
+
+			const columnContainer = modalContent.createDiv('csv-column-list');
+
+			// Add header row
+			const headerRow = columnContainer.createDiv('csv-column-header-row');
+			headerRow.createDiv('csv-column-name-col').setText('Property name');
+			headerRow.createDiv('csv-column-value-col').setText('Property value');
+			headerRow.createDiv('csv-column-example-col').setText('Example');
+			headerRow.createDiv('csv-column-delete-col'); // Empty space for delete button
+
+			// Get first row for example values
+			const firstRow = this.csvRows.length > 0 ? this.csvRows[0] : {};
+
+			for (const header of this.csvHeaders) {
+				const rowEl = columnContainer.createDiv('csv-column-row');
+				
+				// Property name input column
+				const nameCol = rowEl.createDiv('csv-column-name-col');
+				const nameInput = nameCol.createEl('input', {
+					type: 'text',
+					cls: 'csv-column-property',
+					value: this.config.propertyNames.get(header) || ''
+				});
+				nameInput.addEventListener('input', () => {
+					this.config.propertyNames.set(header, nameInput.value);
+				});
+				
+				// Property value input column
+				const valueCol = rowEl.createDiv('csv-column-value-col');
+				const valueInput = valueCol.createEl('input', {
+					type: 'text',
+					cls: 'csv-column-property',
+					value: this.config.propertyValues.get(header) || ''
+				});
+				valueInput.addEventListener('input', () => {
+					this.config.propertyValues.set(header, valueInput.value);
+				});
+				
+				// Example value column
+				const exampleCol = rowEl.createDiv('csv-column-example-col');
+				const exampleValue = firstRow[header] || '';
+				const truncated = exampleValue.length > 50 
+					? exampleValue.substring(0, 50) + '...' 
+					: exampleValue;
+				exampleCol.setText(truncated || '—');
+				
+				// Delete button column
+				const deleteCol = rowEl.createDiv('csv-column-delete-col');
+				const deleteButton = deleteCol.createEl('button', {
+					cls: 'clickable-icon',
+					attr: { 'aria-label': 'Delete property' }
+				});
+				setIcon(deleteButton, 'trash-2');
+				deleteButton.addEventListener('click', () => {
+					// Remove from configuration
+					this.config.propertyNames.delete(header);
+					this.config.propertyValues.delete(header);
+					// Remove from UI
+					rowEl.remove();
+				});
+			}
+
+			// Note content template
 			new Setting(modalContent)
-				.setName('Note body')
+				.setName('Note content')
 				.setDesc('Template for the note content. Use {{column_name}} to insert values.')
 				.addTextArea(text => {
 					text
@@ -245,108 +315,6 @@ export class CSVImporter extends FormatImporter {
 						});
 					text.inputEl.rows = 6;
 				});
-
-			// Column selection for frontmatter
-			const headerContainer = modalContent.createDiv({ cls: 'csv-frontmatter-header' });
-			headerContainer.createEl('h4', { text: 'Properties' });
-			
-			// Add Select/Deselect All button
-			new Setting(headerContainer)
-				.setClass('csv-select-all-setting')
-				.setDesc('Select the columns to include as properties for each file.')
-				.addButton(button => {
-					const allSelected = this.csvHeaders.every(h => this.config.enabledColumns.has(h));
-					button
-						.setButtonText(allSelected ? 'Deselect all' : 'Select all')
-						.onClick(() => {
-							const allSelected = this.csvHeaders.every(h => this.config.enabledColumns.has(h));
-							if (allSelected) {
-								// Deselect all
-								this.config.enabledColumns.clear();
-								button.setButtonText('Select all');
-							}
-							else {
-								// Select all
-								this.csvHeaders.forEach(h => this.config.enabledColumns.add(h));
-								button.setButtonText('Deselect all');
-							}
-							// Update all checkboxes
-							columnToggles.forEach((checkbox, header) => {
-								checkbox.checked = this.config.enabledColumns.has(header);
-							});
-						});
-				});
-
-			const columnContainer = modalContent.createDiv('csv-column-list');
-			const columnToggles = new Map();
-
-			// Add header row
-			const headerRow = columnContainer.createDiv('csv-column-header-row');
-			headerRow.createDiv('csv-column-checkbox'); // Empty space for checkbox
-			headerRow.createDiv('csv-column-name-col').setText('Column name');
-			headerRow.createDiv('csv-column-property-col').setText('Property name');
-			headerRow.createDiv('csv-column-example-col').setText('Example');
-
-			// Get first row for example values
-			const firstRow = this.csvRows.length > 0 ? this.csvRows[0] : {};
-
-			for (const header of this.csvHeaders) {
-				const rowEl = columnContainer.createDiv('csv-column-row');
-				
-				// Checkbox
-				const checkbox = rowEl.createEl('input', {
-					type: 'checkbox',
-					cls: 'csv-column-checkbox'
-				});
-				checkbox.checked = this.config.enabledColumns.has(header);
-				
-				const updateColumn = () => {
-					if (checkbox.checked) {
-						this.config.enabledColumns.add(header);
-					}
-					else {
-						this.config.enabledColumns.delete(header);
-					}
-				};
-				
-				checkbox.addEventListener('change', updateColumn);
-				columnToggles.set(header, checkbox);
-				
-				// Column name (display only)
-				const nameCol = rowEl.createDiv('csv-column-name-col');
-				nameCol.setText(header);
-				nameCol.addEventListener('click', () => {
-					checkbox.checked = !checkbox.checked;
-					updateColumn();
-				});
-				
-				// Property input column
-				const propertyCol = rowEl.createDiv('csv-column-property-col');
-				const propertyInput = propertyCol.createEl('input', {
-					type: 'text',
-					cls: 'csv-column-property',
-					value: this.config.propertyNames.get(header) || ''
-				});
-				propertyInput.addEventListener('input', () => {
-					this.config.propertyNames.set(header, propertyInput.value);
-				});
-				// Prevent clicking input from toggling checkbox
-				propertyInput.addEventListener('click', (e) => {
-					e.stopPropagation();
-				});
-				
-				// Example value column
-				const exampleCol = rowEl.createDiv('csv-column-example-col');
-				const exampleValue = firstRow[header] || '';
-				const truncated = exampleValue.length > 50 
-					? exampleValue.substring(0, 50) + '...' 
-					: exampleValue;
-				exampleCol.setText(truncated || '—');
-				exampleCol.addEventListener('click', () => {
-					checkbox.checked = !checkbox.checked;
-					updateColumn();
-				});
-			}
 
 			// Buttons
 			const buttonContainer = modalContent.createDiv('modal-button-container');
@@ -415,17 +383,20 @@ export class CSVImporter extends FormatImporter {
 	}
 
 	private generateFrontmatter(row: CSVRow): string {
-		if (this.config.enabledColumns.size === 0) return '';
+		if (this.config.propertyNames.size === 0) return '';
 
 		const lines = ['---'];
 
-		for (const column of this.config.enabledColumns) {
-			if (row[column] !== undefined) {
-				const value = row[column];
-				const yamlValue = this.convertToYAML(value);
-				const propertyName = this.config.propertyNames.get(column) || this.sanitizeYAMLKey(column);
-				lines.push(`${propertyName}: ${yamlValue}`);
-			}
+		for (const [column, propertyName] of this.config.propertyNames) {
+			if (!propertyName) continue; // Skip if property name is empty
+
+			const valueTemplate = this.config.propertyValues.get(column) || '';
+			if (!valueTemplate) continue; // Skip if property value is empty
+			
+			// Apply the template to get the actual value
+			const value = this.applyTemplate(valueTemplate, row);
+			const yamlValue = this.convertToYAML(value);
+			lines.push(`${propertyName}: ${yamlValue}`);
 		}
 
 		lines.push('---');

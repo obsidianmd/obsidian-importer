@@ -130,30 +130,13 @@
 	border-radius: var(--radius-s);
 }
 
-.csv-column-row .csv-column-name-col {
-	font-size: var(--font-ui-small);
-}
-
-.csv-column-checkbox {
-	width: var(--checkbox-size);
-	flex-shrink: 0;
-}
-
-input.csv-column-checkbox {
-	margin: 0;
-}
-
 .csv-column-name-col {
-	flex: 0 0 130px;
+	flex: 0 0 150px;
 	min-width: 0;
-	padding: var(--size-2-1) var(--size-4-1);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
-.csv-column-property-col {
-	flex: 0 0 150px;
+.csv-column-value-col {
+	flex: 0 0 200px;
 	min-width: 0;
 }
 
@@ -170,4 +153,12 @@ input.csv-column-checkbox {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	padding: var(--size-2-1) var(--size-4-1);
+}
+
+.csv-column-delete-col {
+	flex-shrink: 0;
+	width: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
