@@ -16,9 +16,12 @@ import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders } from './notion-api/database-helpers';
 
+export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
+
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
 	pageId: string = '';
+	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -56,6 +59,19 @@ export class NotionAPIImporter extends FormatImporter {
 					this.pageId = value.trim();
 				}));
 
+		// Formula import strategy
+		new Setting(this.modal.contentEl)
+			.setName('Formula import strategy')
+			.setDesc(this.createFormulaStrategyDescription())
+			.addDropdown(dropdown => dropdown
+				.addOption('static', 'Static values (YAML only)')
+				.addOption('function', 'Base functions (default)')
+				.addOption('hybrid', 'Hybrid (functions + fallback to static)')
+				.setValue(this.formulaStrategy)
+				.onChange(value => {
+					this.formulaStrategy = value as FormulaImportStrategy;
+				}));
+
 		// Description text
 		new Setting(this.modal.contentEl)
 			.setName('Import notes')
@@ -71,6 +87,18 @@ export class NotionAPIImporter extends FormatImporter {
 			href: 'https://developers.notion.com/docs/create-a-notion-integration',
 		});
 		frag.appendText('.');
+		return frag;
+	}
+
+	private createFormulaStrategyDescription(): DocumentFragment {
+		const frag = document.createDocumentFragment();
+		frag.appendText('Choose how to import Notion formulas: ');
+		frag.createEl('br');
+		frag.appendText('• Static: Formula results as text in page YAML');
+		frag.createEl('br');
+		frag.appendText('• Function: Convert to Base functions (may fail for complex formulas)');
+		frag.createEl('br');
+		frag.appendText('• Hybrid: Try functions, fallback to static for complex formulas');
 		return frag;
 	}
 

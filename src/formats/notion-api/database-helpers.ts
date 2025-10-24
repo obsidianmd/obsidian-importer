@@ -202,7 +202,8 @@ function generateBaseFileContent(
 	databaseName: string,
 	databaseFolderPath: string,
 	properties: any,
-	databasePages: PageObjectResponse[]
+	databasePages: PageObjectResponse[],
+	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function'
 ): string {
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
@@ -213,7 +214,7 @@ function generateBaseFileContent(
 	content += `    - file.inFolder("${databaseFolderPath}")\n\n`;
 	
 	// Map Notion properties to Obsidian properties
-	const propertyMappings = mapDatabaseProperties(properties);
+	const propertyMappings = mapDatabaseProperties(properties, formulaStrategy);
 	
 	// Separate formulas from regular properties
 	const formulas: Record<string, any> = {};
@@ -260,13 +261,8 @@ function generateBaseFileContent(
 	content += `    order:\n`;
 	content += `      - file.name\n`;
 	
-	// Add all regular properties to the view (except formula text properties)
+	// Add all regular properties to the view
 	for (const propKey of Object.keys(regularProperties)) {
-		// Skip formula text properties (they end with " (Formula)")
-		// These are available for filtering but not shown in view by default
-		if (propKey.endsWith(' (Formula)')) {
-			continue;
-		}
 		content += `      - ${propKey}\n`;
 	}
 	
@@ -280,8 +276,13 @@ function generateBaseFileContent(
 
 /**
  * Map Notion database properties to Obsidian base properties
+ * @param notionProperties - Notion database property schema
+ * @param formulaStrategy - How to handle formula properties
  */
-function mapDatabaseProperties(notionProperties: any): Record<string, any> {
+function mapDatabaseProperties(
+	notionProperties: any,
+	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function'
+): Record<string, any> {
 	const mappings: Record<string, any> = {};
 	
 	for (const [key, prop] of Object.entries(notionProperties as Record<string, any>)) {
@@ -342,31 +343,53 @@ function mapDatabaseProperties(notionProperties: any): Record<string, any> {
 				break;
 			
 		case 'formula':
-			// Try to convert Notion formula to Obsidian formula
+			// Handle formula based on import strategy
 			const formulaExpression = getNotionFormulaExpression(prop.formula);
 			
-			if (formulaExpression && canConvertFormula(formulaExpression)) {
-				// Formula can be converted - add both formula and text property
-				const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
-				if (obsidianFormula) {
-					// Add the formula (will be shown in view)
-					mappings[`formula.${sanitizePropertyKey(key)}`] = {
+			if (formulaStrategy === 'static') {
+				// Strategy 1: Static values only - add as text property
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+				};
+			}
+			else if (formulaStrategy === 'function') {
+				// Strategy 2: Function only - try to convert, keep original syntax if fails
+				if (formulaExpression) {
+					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
+					if (obsidianFormula && canConvertFormula(formulaExpression)) {
+						// Conversion successful - add as formula
+						mappings[`formula.${sanitizePropertyKey(key)}`] = {
+							displayName: propName,
+							formula: obsidianFormula,
+						};
+					} else {
+						// Conversion failed - keep original Notion syntax (will show empty values)
+						mappings[`formula.${sanitizePropertyKey(key)}`] = {
+							displayName: propName,
+							formula: formulaExpression, // Keep original Notion syntax
+						};
+					}
+				}
+			}
+			else if (formulaStrategy === 'hybrid') {
+				// Strategy 3: Hybrid - convert if possible, fallback to text
+				if (formulaExpression && canConvertFormula(formulaExpression)) {
+					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
+					if (obsidianFormula) {
+						// Conversion successful - add as formula
+						mappings[`formula.${sanitizePropertyKey(key)}`] = {
+							displayName: propName,
+							formula: obsidianFormula,
+						};
+					}
+				} else {
+					// Cannot convert - add as text property
+					mappings[sanitizePropertyKey(key)] = {
 						displayName: propName,
-						formula: obsidianFormula,
-					};
-					// Also add text property for manual filtering (won't be shown in view by default)
-					mappings[`${sanitizePropertyKey(key)} (Formula)`] = {
-						displayName: `${propName} (Formula)`,
 						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 					};
 				}
-			} else {
-				// Formula cannot be converted - add as text property in base file
-				// This allows users to see the value without manually adding the property
-				mappings[`${sanitizePropertyKey(key)} (Formula)`] = {
-					displayName: `${propName} (Formula)`,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
 			}
 			break;
 			

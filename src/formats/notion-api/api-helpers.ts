@@ -107,8 +107,15 @@ export function extractPageTitle(page: PageObjectResponse): string {
 /**
  * Extract frontmatter from Notion page
  * This includes the notion-id, timestamps, and all page properties
+ * @param page - The Notion page object
+ * @param formulaStrategy - How to handle formula properties ('static', 'function', 'hybrid')
+ * @param databaseProperties - Database property schema (for checking if formulas can be converted)
  */
-export function extractFrontMatter(page: PageObjectResponse): Record<string, any> {
+export function extractFrontMatter(
+	page: PageObjectResponse, 
+	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function',
+	databaseProperties?: any
+): Record<string, any> {
 	const frontMatter: Record<string, any> = {
 		'notion-id': page.id,
 	};
@@ -131,17 +138,66 @@ export function extractFrontMatter(page: PageObjectResponse): Record<string, any
 			continue;
 		}
 		
+		// Handle formula properties based on strategy
+		if (prop.type === 'formula') {
+			const shouldAddToYAML = shouldAddFormulaToYAML(
+				key,
+				databaseProperties,
+				formulaStrategy
+			);
+			
+			if (shouldAddToYAML) {
+				const value = mapNotionPropertyToFrontmatter(prop);
+				if (value !== null && value !== undefined) {
+					frontMatter[key] = value;
+				}
+			}
+			continue;
+		}
+		
 		// Map property to frontmatter value
 		const value = mapNotionPropertyToFrontmatter(prop);
 		if (value !== null && value !== undefined) {
-			// For formula properties, always add with (Formula) suffix
-			// This preserves the calculated value from Notion
-			const propertyKey = prop.type === 'formula' ? `${key} (Formula)` : key;
-			frontMatter[propertyKey] = value;
+			frontMatter[key] = value;
 		}
 	}
 	
 	return frontMatter;
+}
+
+/**
+ * Determine if a formula property should be added to page YAML
+ * Based on the import strategy and whether the formula can be converted
+ */
+function shouldAddFormulaToYAML(
+	propertyKey: string,
+	databaseProperties: any,
+	strategy: 'static' | 'function' | 'hybrid'
+): boolean {
+	// Import formula-converter functions
+	const { canConvertFormula, getNotionFormulaExpression } = require('./formula-converter');
+	
+	if (strategy === 'static') {
+		// Always add to YAML for static strategy
+		return true;
+	}
+	
+	if (strategy === 'function') {
+		// Never add to YAML for function strategy (will be in base formulas)
+		return false;
+	}
+	
+	// Hybrid strategy: add to YAML only if cannot be converted
+	if (databaseProperties && databaseProperties[propertyKey]) {
+		const formulaExpression = getNotionFormulaExpression(databaseProperties[propertyKey].formula);
+		if (formulaExpression && canConvertFormula(formulaExpression)) {
+			// Can be converted, don't add to YAML
+			return false;
+		}
+	}
+	
+	// Cannot be converted or no database properties, add to YAML
+	return true;
 }
 
 /**
