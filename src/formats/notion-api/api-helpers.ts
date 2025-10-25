@@ -284,9 +284,13 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 					return null;
 			}
 		
-		case 'relation':
-			// Relation properties contain page IDs, convert to text for now
-			return prop.relation?.map((r: any) => r.id) || [];
+	case 'relation':
+		// Relation properties contain page IDs
+		// We'll store the IDs temporarily and replace them with links later
+		if (prop.relation && prop.relation.length > 0) {
+			return prop.relation.map((r: any) => r.id);
+		}
+		return [];
 		
 		case 'rollup':
 			// Rollup properties aggregate values, extract the result

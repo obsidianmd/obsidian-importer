@@ -10,6 +10,8 @@ import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
+import { DatabaseInfo, RelationPlaceholder } from './types';
+import type { FormulaImportStrategy } from '../notion-api';
 
 /**
  * Obsidian property types that are supported
@@ -36,6 +38,9 @@ export async function convertChildDatabase(
 	vault: Vault,
 	app: App,
 	outputRootPath: string,
+	formulaStrategy: FormulaImportStrategy,
+	processedDatabases: Map<string, DatabaseInfo>,
+	relationPlaceholders: RelationPlaceholder[],
 	importPageCallback: (pageId: string, parentPath: string) => Promise<void>
 ): Promise<string> {
 	if (block.type !== 'child_database') return '';
@@ -79,26 +84,47 @@ export async function convertChildDatabase(
 		
 		ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
 		
-		// Import each database page recursively
-		for (const page of databasePages) {
-			if (ctx.isCancelled()) break;
-			
-			// Import the page using the callback (which handles the full page import logic)
-			await importPageCallback(page.id, databaseFolderPath);
-		}
+	// Import each database page recursively
+	for (const page of databasePages) {
+		if (ctx.isCancelled()) break;
 		
-		// Create .base file in "Notion Databases" folder
-		await createBaseFile(
-			vault,
-			sanitizedTitle,
-			databaseFolderPath,
-			outputRootPath,
-			dataSourceProperties,
-			databasePages
-		);
-		
-		// Return a reference to the .base file
-		return `[[${sanitizedTitle}.base]]`;
+		// Import the page using the callback (which handles the full page import logic)
+		await importPageCallback(page.id, databaseFolderPath);
+	}
+	
+	// Create .base file in "Notion Databases" folder
+	const baseFilePath = await createBaseFile(
+		vault,
+		sanitizedTitle,
+		databaseFolderPath,
+		outputRootPath,
+		dataSourceProperties,
+		databasePages,
+		formulaStrategy
+	);
+	
+	// Record database information for relation resolution
+	const databaseInfo: DatabaseInfo = {
+		id: databaseId,
+		title: sanitizedTitle,
+		folderPath: databaseFolderPath,
+		baseFilePath: baseFilePath,
+		properties: dataSourceProperties,
+		dataSourceId: dataSourceId,
+	};
+	processedDatabases.set(databaseId, databaseInfo);
+	
+	// Process relation properties in database pages
+	// This will add placeholders to relationPlaceholders array
+	await processRelationProperties(
+		databasePages,
+		dataSourceProperties,
+		databaseId,
+		relationPlaceholders
+	);
+	
+	// Return a reference to the .base file
+	return `[[${sanitizedTitle}.base]]`;
 	}
 	catch (error) {
 		console.error(`Failed to convert database ${block.id}:`, error);
@@ -162,8 +188,9 @@ export async function createBaseFile(
 	databaseFolderPath: string,
 	outputRootPath: string,
 	properties: any,
-	databasePages: PageObjectResponse[]
-): Promise<void> {
+	databasePages: PageObjectResponse[],
+	formulaStrategy: FormulaImportStrategy = 'function'
+): Promise<string> {
 	// Create "Notion Databases" folder at the same level as output root
 	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
 	const databasesFolder = parentPath === '/' ? '/Notion Databases' : parentPath + '/Notion Databases';
@@ -179,7 +206,7 @@ export async function createBaseFile(
 	}
 	
 	// Generate .base file content
-	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, properties, databasePages);
+	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, properties, databasePages, formulaStrategy);
 	
 	// Create .base file
 	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
@@ -193,6 +220,8 @@ export async function createBaseFile(
 	}
 	
 	await vault.create(finalPath, baseContent);
+	
+	return finalPath;
 }
 
 /**
@@ -203,7 +232,7 @@ function generateBaseFileContent(
 	databaseFolderPath: string,
 	properties: any,
 	databasePages: PageObjectResponse[],
-	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function'
+	formulaStrategy: FormulaImportStrategy = 'function'
 ): string {
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
@@ -281,7 +310,7 @@ function generateBaseFileContent(
  */
 function mapDatabaseProperties(
 	notionProperties: any,
-	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function'
+	formulaStrategy: FormulaImportStrategy = 'function'
 ): Record<string, any> {
 	const mappings: Record<string, any> = {};
 	
@@ -393,20 +422,47 @@ function mapDatabaseProperties(
 			}
 			break;
 			
-			case 'relation':
-			case 'rollup':
-			case 'people':
-			case 'files':
-			case 'created_time':
-			case 'created_by':
-			case 'last_edited_time':
-			case 'last_edited_by':
-				// These will be converted to text representation
+		case 'relation':
+			// Relation properties will be stored as list of links in page YAML
+			// Skip adding to .base file properties (will be handled in page frontmatter)
+			// But we still need to record it for reference
+			mappings[sanitizePropertyKey(key)] = {
+				displayName: propName,
+				type: OBSIDIAN_PROPERTY_TYPES.LIST,
+				isRelation: true,
+				relationConfig: prop.relation,
+			};
+			break;
+		
+		case 'rollup':
+			// Rollup properties should be converted to formulas in .base file
+			const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
+			if (rollupFormula) {
+				mappings[`formula.${sanitizePropertyKey(key)}`] = {
+					displayName: propName,
+					formula: rollupFormula,
+				};
+			} else {
+				// Fallback to text if conversion fails
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
-				break;
+			}
+			break;
+		
+		case 'people':
+		case 'files':
+		case 'created_time':
+		case 'created_by':
+		case 'last_edited_time':
+		case 'last_edited_by':
+			// These will be converted to text representation
+			mappings[sanitizePropertyKey(key)] = {
+				displayName: propName,
+				type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+			};
+			break;
 			
 			default:
 				// Unsupported types -> text
@@ -430,6 +486,166 @@ function sanitizePropertyKey(key: string): string {
 }
 
 /**
+ * Convert a Notion rollup property to an Obsidian formula
+ * Rollup aggregates values from related pages
+ */
+function convertRollupToFormula(
+	rollupKey: string,
+	rollupConfig: any,
+	allProperties: any
+): string | null {
+	if (!rollupConfig) return null;
+	
+	// Get the relation property that this rollup is based on
+	const relationPropertyKey = rollupConfig.relation_property_key;
+	const rollupPropertyKey = rollupConfig.rollup_property_key;
+	const rollupFunction = rollupConfig.function;
+	
+	if (!relationPropertyKey || !rollupFunction) {
+		return null;
+	}
+	
+	// Sanitize the relation property key
+	const sanitizedRelationKey = sanitizePropertyKey(relationPropertyKey);
+	
+	// Map Notion rollup functions to Obsidian formulas
+	// Note: Obsidian doesn't have direct rollup support, so we approximate
+	switch (rollupFunction) {
+		case 'count':
+		case 'count_values':
+			// Count the number of related pages
+			return `length(${sanitizedRelationKey})`;
+		
+		case 'count_unique_values':
+			// Count unique values (approximate)
+			return `length(unique(${sanitizedRelationKey}))`;
+		
+		case 'count_empty':
+			// Count empty values
+			return `if(length(${sanitizedRelationKey}) == 0, 1, 0)`;
+		
+		case 'count_not_empty':
+			// Count non-empty values
+			return `if(length(${sanitizedRelationKey}) > 0, 1, 0)`;
+		
+		case 'percent_empty':
+			// Percentage of empty values
+			return `if(length(${sanitizedRelationKey}) == 0, 100, 0)`;
+		
+		case 'percent_not_empty':
+			// Percentage of non-empty values
+			return `if(length(${sanitizedRelationKey}) > 0, 100, 0)`;
+		
+		case 'sum':
+			// Sum of values from related pages
+			// This requires accessing the property from related pages
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `sum(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'average':
+			// Average of values from related pages
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `average(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'median':
+			// Median of values
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `median(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'min':
+			// Minimum value
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `min(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'max':
+			// Maximum value
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `max(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'range':
+			// Range (max - min)
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				return `max(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey})) - min(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+			}
+			return null;
+		
+		case 'show_original':
+			// Show original values (just reference the relation)
+			return sanitizedRelationKey;
+		
+		default:
+			console.log(`Unsupported rollup function: ${rollupFunction}`);
+			return null;
+	}
+}
+
+/**
+ * Process relation properties in database pages
+ * Add placeholders to the relationPlaceholders array
+ */
+async function processRelationProperties(
+	databasePages: PageObjectResponse[],
+	properties: any,
+	databaseId: string,
+	relationPlaceholders: RelationPlaceholder[]
+): Promise<void> {
+	// Find all relation properties
+	const relationProperties: Record<string, any> = {};
+	for (const [key, prop] of Object.entries(properties as Record<string, any>)) {
+		if (prop.type === 'relation') {
+			relationProperties[key] = prop;
+		}
+	}
+	
+	if (Object.keys(relationProperties).length === 0) {
+		return;
+	}
+	
+	// Process each page
+	for (const page of databasePages) {
+		const pageProperties = page.properties;
+		
+		// Check each relation property
+		for (const [propKey, propConfig] of Object.entries(relationProperties)) {
+			const pageProp = pageProperties[propKey];
+			
+			if (pageProp && pageProp.type === 'relation' && pageProp.relation) {
+				const relatedPageIds = pageProp.relation.map((r: any) => r.id);
+				
+				if (relatedPageIds.length > 0) {
+					// Get the target database ID from the relation config
+					const targetDatabaseId = (propConfig as any).relation?.database_id || '';
+					
+					// Add placeholder
+					relationPlaceholders.push({
+						pageId: page.id,
+						propertyKey: propKey,
+						relatedPageIds: relatedPageIds,
+						targetDatabaseId: targetDatabaseId,
+					});
+				}
+			}
+		}
+	}
+}
+
+/**
  * Process database placeholders in markdown content
  * Replace <!-- DATABASE_PLACEHOLDER:id --> with actual database references
  */
@@ -442,6 +658,9 @@ export async function processDatabasePlaceholders(
 	vault: Vault,
 	app: App,
 	outputRootPath: string,
+	formulaStrategy: FormulaImportStrategy,
+	processedDatabases: Map<string, DatabaseInfo>,
+	relationPlaceholders: RelationPlaceholder[],
 	importPageCallback: (pageId: string, parentPath: string) => Promise<void>
 ): Promise<string> {
 	// Find all database placeholders
@@ -473,6 +692,9 @@ export async function processDatabasePlaceholders(
 					vault,
 					app,
 					outputRootPath,
+					formulaStrategy,
+					processedDatabases,
+					relationPlaceholders,
 					importPageCallback
 				);
 				
