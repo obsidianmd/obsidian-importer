@@ -33,6 +33,9 @@ export class NotionAPIImporter extends FormatImporter {
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
+	// Track discovered pages for dynamic progress updates
+	private totalPagesDiscovered: number = 0;
+	private pagesCompleted: number = 0;
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -68,14 +71,16 @@ export class NotionAPIImporter extends FormatImporter {
 		new Setting(this.modal.contentEl)
 			.setName('Formula import strategy')
 			.setDesc(this.createFormulaStrategyDescription())
-			.addDropdown(dropdown => dropdown
-				.addOption('static', 'Static values (YAML only)')
-				.addOption('function', 'Base functions (default)')
-				.addOption('hybrid', 'Hybrid (functions + fallback to static)')
-				.setValue(this.formulaStrategy)
-				.onChange(value => {
-					this.formulaStrategy = value as FormulaImportStrategy;
-				}));
+			.addDropdown(dropdown => {
+				dropdown
+					.addOption('static', 'Static values (YAML only)')
+					.addOption('function', 'Base functions (default)')
+					.addOption('hybrid', 'Hybrid (functions + fallback to static)')
+					.setValue('function') // Explicitly set default to 'function'
+					.onChange(value => {
+						this.formulaStrategy = value as FormulaImportStrategy;
+					});
+			});
 
 		// Description text
 		new Setting(this.modal.contentEl)
@@ -212,6 +217,11 @@ export class NotionAPIImporter extends FormatImporter {
 		this.processedPages.clear();
 		this.processedDatabases.clear();
 		this.relationPlaceholders = [];
+		this.totalPagesDiscovered = 1; // Start with the root page
+		this.pagesCompleted = 0;
+		
+		// Initialize progress display
+		ctx.reportProgress(0, 1);
 		
 		// Save output root path for database handling
 		this.outputRootPath = folder.path;
@@ -241,15 +251,12 @@ export class NotionAPIImporter extends FormatImporter {
 		
 		// Check if already processed
 		if (this.processedPages.has(pageId)) {
-			ctx.reportSkipped(pageId, 'already processed');
 			return;
 		}
 		
 		this.processedPages.add(pageId);
 		
 		try {
-			ctx.status(`Fetching page ${pageId}...`);
-			
 			// Fetch page metadata with rate limit handling
 			const page = await makeNotionRequest(
 				() => this.notionClient!.pages.retrieve({ page_id: pageId }) as Promise<PageObjectResponse>,
@@ -260,9 +267,14 @@ export class NotionAPIImporter extends FormatImporter {
 			const pageTitle = extractPageTitle(page);
 			const sanitizedTitle = sanitizeFileName(pageTitle || 'Untitled');
 			
+			// Update status with page title instead of ID
+			ctx.status(`Importing: ${pageTitle || 'Untitled'}...`);
+			
 			// Check if page already exists in vault (by notion-id)
 			if (await pageExistsInVault(this.app, this.vault, pageId)) {
 				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
+				this.pagesCompleted++;
+				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 				return;
 			}
 			
@@ -292,6 +304,11 @@ export class NotionAPIImporter extends FormatImporter {
 			// Callback to import database pages
 			async (pageId: string, parentPath: string) => {
 				await this.fetchAndImportPage(ctx, pageId, parentPath);
+			},
+			// Callback to update discovered pages count
+			(newPagesCount: number) => {
+				this.totalPagesDiscovered += newPagesCount;
+				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 			}
 		);
 		
@@ -305,10 +322,17 @@ export class NotionAPIImporter extends FormatImporter {
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
 			ctx.reportNoteSuccess(sanitizedTitle);
 			
+			// Update progress
+			this.pagesCompleted++;
+			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+			
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
-			ctx.reportFailed(pageId, error.message);
+			const pageTitle = 'Unknown page';
+			ctx.reportFailed(pageTitle, error.message);
+			this.pagesCompleted++;
+			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 		}
 	}
 	
@@ -398,9 +422,12 @@ export class NotionAPIImporter extends FormatImporter {
 				for (const relatedPageId of placeholder.relatedPageIds) {
 					const relatedPageFile = await this.findPageFileByNotionId(relatedPageId);
 					if (relatedPageFile) {
-						// Get the file path without extension for wiki link
-						const linkPath = relatedPageFile.path.replace(/\.md$/, '');
-						const wikiLink = `"[[${linkPath}]]"`;
+						// Use Obsidian wiki link with display text: [[path/to/file|display name]]
+						// This ensures precise linking (no ambiguity with duplicate names)
+						// while displaying only the clean file name
+						const fullPath = relatedPageFile.path.replace(/\.md$/, ''); // Full path without .md
+						const displayName = relatedPageFile.basename; // Just the file name for display
+						const wikiLink = `"[[${fullPath}|${displayName}]]"`;
 						
 						// Replace the page ID with the wiki link in the YAML
 						// The page IDs are stored as array items in YAML

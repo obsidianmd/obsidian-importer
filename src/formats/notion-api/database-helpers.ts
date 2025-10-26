@@ -41,7 +41,8 @@ export async function convertChildDatabase(
 	formulaStrategy: FormulaImportStrategy,
 	processedDatabases: Map<string, DatabaseInfo>,
 	relationPlaceholders: RelationPlaceholder[],
-	importPageCallback: (pageId: string, parentPath: string) => Promise<void>
+	importPageCallback: (pageId: string, parentPath: string) => Promise<void>,
+	onPagesDiscovered?: (count: number) => void
 ): Promise<string> {
 	if (block.type !== 'child_database') return '';
 	
@@ -86,6 +87,11 @@ export async function convertChildDatabase(
 		const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 		
 		ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
+		
+		// Notify about discovered pages
+		if (onPagesDiscovered) {
+			onPagesDiscovered(databasePages.length);
+		}
 		
 	// Import each database page recursively
 	for (const page of databasePages) {
@@ -743,7 +749,8 @@ export async function processDatabasePlaceholders(
 	formulaStrategy: FormulaImportStrategy,
 	processedDatabases: Map<string, DatabaseInfo>,
 	relationPlaceholders: RelationPlaceholder[],
-	importPageCallback: (pageId: string, parentPath: string) => Promise<void>
+	importPageCallback: (pageId: string, parentPath: string) => Promise<void>,
+	onPagesDiscovered?: (count: number) => void
 ): Promise<string> {
 	// Find all database placeholders
 	const placeholderRegex = /<!-- DATABASE_PLACEHOLDER:([a-f0-9-]+) -->/g;
@@ -777,7 +784,8 @@ export async function processDatabasePlaceholders(
 					formulaStrategy,
 					processedDatabases,
 					relationPlaceholders,
-					importPageCallback
+					importPageCallback,
+					onPagesDiscovered
 				);
 				
 				// Replace placeholder with actual reference
