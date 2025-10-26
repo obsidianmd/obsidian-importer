@@ -64,6 +64,7 @@ export async function convertChildDatabase(
         // It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
         // FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
 		let dataSourceProperties: Record<string, any> = {};
+		let propertyIds: string[] = [];
 		if ((database as any).data_sources && (database as any).data_sources.length > 0) {
 			const dataSourceId = (database as any).data_sources[0].id;
 			const dataSource = await makeNotionRequest(
@@ -71,6 +72,8 @@ export async function convertChildDatabase(
 				ctx
 			);
 			dataSourceProperties = (dataSource as any).properties || {};
+			// Get property order from property_ids array if available
+			propertyIds = (dataSource as any).property_ids || [];
 		}
 		
 		// Create database folder under current page folder
@@ -100,7 +103,8 @@ export async function convertChildDatabase(
 		outputRootPath,
 		dataSourceProperties,
 		databasePages,
-		formulaStrategy
+		formulaStrategy,
+		propertyIds
 	);
 	
 	// Record database information for relation resolution
@@ -189,7 +193,8 @@ export async function createBaseFile(
 	outputRootPath: string,
 	properties: any,
 	databasePages: PageObjectResponse[],
-	formulaStrategy: FormulaImportStrategy = 'function'
+	formulaStrategy: FormulaImportStrategy = 'function',
+	propertyIds: string[] = []
 ): Promise<string> {
 	// Create "Notion Databases" folder at the same level as output root
 	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
@@ -206,7 +211,7 @@ export async function createBaseFile(
 	}
 	
 	// Generate .base file content
-	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, properties, databasePages, formulaStrategy);
+	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, properties, databasePages, formulaStrategy, propertyIds);
 	
 	// Create .base file
 	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
@@ -232,7 +237,8 @@ function generateBaseFileContent(
 	databaseFolderPath: string,
 	properties: any,
 	databasePages: PageObjectResponse[],
-	formulaStrategy: FormulaImportStrategy = 'function'
+	formulaStrategy: FormulaImportStrategy = 'function',
+	propertyIds: string[] = []
 ): string {
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
@@ -250,41 +256,41 @@ function generateBaseFileContent(
 	content += `    - file.folder.split("/").length == ${databaseDepth + 1}\n\n`;
 	
 	// Map Notion properties to Obsidian properties
-	const propertyMappings = mapDatabaseProperties(properties, formulaStrategy);
+	const propertyMappings = mapDatabaseProperties(properties, formulaStrategy, propertyIds);
 	
-	// Separate formulas from regular properties
-	const formulas: Record<string, any> = {};
-	const regularProperties: Record<string, any> = {};
+	// Separate formulas from regular properties (maintaining order)
+	const formulas: Array<{key: string, config: any}> = [];
+	const regularProperties: Array<{key: string, config: any}> = [];
 	
-	for (const [propKey, propConfig] of Object.entries(propertyMappings)) {
-		if (propConfig.formula) {
+	for (const item of propertyMappings) {
+		if (item.config.formula) {
 			// This is a formula property
-			formulas[propKey] = propConfig;
+			formulas.push(item);
 		} else {
 			// This is a regular property
-			regularProperties[propKey] = propConfig;
+			regularProperties.push(item);
 		}
 	}
 	
 	// Add formulas section if there are any
-	if (Object.keys(formulas).length > 0) {
+	if (formulas.length > 0) {
 		content += `formulas:\n`;
-		for (const [propKey, propConfig] of Object.entries(formulas)) {
+		for (const item of formulas) {
 			// Extract the formula name (remove "formula." prefix)
-			const formulaName = propKey.replace(/^formula\./, '');
-			content += `  ${formulaName}: ${propConfig.formula}\n`;
+			const formulaName = item.key.replace(/^formula\./, '');
+			content += `  ${formulaName}: ${item.config.formula}\n`;
 		}
 		content += `\n`;
 	}
 	
 	// Add properties section
-	if (Object.keys(regularProperties).length > 0) {
+	if (regularProperties.length > 0) {
 		content += `properties:\n`;
-		for (const [propKey, propConfig] of Object.entries(regularProperties)) {
-			content += `  ${propKey}:\n`;
-			content += `    displayName: "${propConfig.displayName}"\n`;
-			if (propConfig.type) {
-				content += `    type: ${propConfig.type}\n`;
+		for (const item of regularProperties) {
+			content += `  ${item.key}:\n`;
+			content += `    displayName: "${item.config.displayName}"\n`;
+			if (item.config.type) {
+				content += `    type: ${item.config.type}\n`;
 			}
 		}
 		content += `\n`;
@@ -297,14 +303,14 @@ function generateBaseFileContent(
 	content += `    order:\n`;
 	content += `      - file.name\n`;
 	
-	// Add all regular properties to the view
-	for (const propKey of Object.keys(regularProperties)) {
-		content += `      - ${propKey}\n`;
+	// Add all regular properties to the view (in order)
+	for (const item of regularProperties) {
+		content += `      - ${item.key}\n`;
 	}
 	
-	// Add all formula properties to the view (with formula. prefix)
-	for (const propKey of Object.keys(formulas)) {
-		content += `      - ${propKey}\n`;
+	// Add all formula properties to the view (with formula. prefix, in order)
+	for (const item of formulas) {
+		content += `      - ${item.key}\n`;
 	}
 	
 	return content;
@@ -314,13 +320,17 @@ function generateBaseFileContent(
  * Map Notion database properties to Obsidian base properties
  * @param notionProperties - Notion database property schema
  * @param formulaStrategy - How to handle formula properties
+ * @param propertyIds - Array of property IDs in the order they should appear
+ * @returns Array of {key, config} objects in the correct order
  */
 function mapDatabaseProperties(
 	notionProperties: any,
-	formulaStrategy: FormulaImportStrategy = 'function'
-): Record<string, any> {
+	formulaStrategy: FormulaImportStrategy = 'function',
+	propertyIds: string[] = []
+): Array<{key: string, config: any}> {
 	const mappings: Record<string, any> = {};
 	
+	// First pass: create mappings for all properties
 	for (const [key, prop] of Object.entries(notionProperties as Record<string, any>)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
@@ -447,18 +457,18 @@ function mapDatabaseProperties(
 		
 		case 'rollup':
 			// Rollup properties should be converted to formulas in .base file
+			console.log(`[Rollup Debug] Processing rollup property: "${propName}" (key: "${key}")`);
 			const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
 			if (rollupFormula) {
+				console.log(`[Rollup Debug] Successfully converted "${propName}" to formula. Adding as "formula.${sanitizePropertyKey(key)}"`);
 				mappings[`formula.${sanitizePropertyKey(key)}`] = {
 					displayName: propName,
 					formula: rollupFormula,
 				};
 			} else {
-				// Fallback to text if conversion fails
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
+				// Fallback: if conversion fails, log warning and skip this property
+				// Don't add it as a regular property since it should be a formula
+				console.warn(`[Rollup Debug] Failed to convert rollup property "${propName}" to formula. Rollup config:`, prop.rollup);
 			}
 			break;
 		
@@ -485,7 +495,34 @@ function mapDatabaseProperties(
 		}
 	}
 	
-	return mappings;
+	// Second pass: convert to ordered array
+	// If propertyIds is provided, use that order; otherwise use the order from Object.entries
+	const orderedMappings: Array<{key: string, config: any}> = [];
+	
+	if (propertyIds.length > 0) {
+		// Use the order from propertyIds
+		for (const propId of propertyIds) {
+			if (mappings[propId]) {
+				orderedMappings.push({
+					key: propId,
+					config: mappings[propId]
+				});
+			}
+		}
+		// Add any properties that weren't in propertyIds (shouldn't happen, but just in case)
+		for (const [key, config] of Object.entries(mappings)) {
+			if (!propertyIds.includes(key)) {
+				orderedMappings.push({ key, config });
+			}
+		}
+	} else {
+		// No propertyIds provided, use the order from Object.entries
+		for (const [key, config] of Object.entries(mappings)) {
+			orderedMappings.push({ key, config });
+		}
+	}
+	
+	return orderedMappings;
 }
 
 /**
@@ -507,19 +544,34 @@ function convertRollupToFormula(
 	rollupConfig: any,
 	allProperties: any
 ): string | null {
-	if (!rollupConfig) return null;
+	console.log(`[Rollup Debug] Converting rollup property: "${rollupKey}"`);
+	console.log(`[Rollup Debug] Rollup config:`, JSON.stringify(rollupConfig, null, 2));
+	
+	if (!rollupConfig) {
+		console.warn(`[Rollup Debug] No rollup config for "${rollupKey}"`);
+		return null;
+	}
 	
 	// Get the relation property that this rollup is based on
-	const relationPropertyKey = rollupConfig.relation_property_key;
-	const rollupPropertyKey = rollupConfig.rollup_property_key;
+	// In Notion API 2025-09-03, the fields are named differently
+	const relationPropertyKey = rollupConfig.relation_property_name || rollupConfig.relation_property_key;
+	const rollupPropertyKey = rollupConfig.rollup_property_name || rollupConfig.rollup_property_key;
 	const rollupFunction = rollupConfig.function;
 	
+	console.log(`[Rollup Debug] Extracted values:`, {
+		relationPropertyKey,
+		rollupPropertyKey,
+		rollupFunction
+	});
+	
 	if (!relationPropertyKey || !rollupFunction) {
+		console.warn(`[Rollup Debug] Missing required fields for "${rollupKey}". relationPropertyKey: ${relationPropertyKey}, rollupFunction: ${rollupFunction}`);
 		return null;
 	}
 	
 	// Sanitize the relation property key
 	const sanitizedRelationKey = sanitizePropertyKey(relationPropertyKey);
+	console.log(`[Rollup Debug] Sanitized relation key: "${sanitizedRelationKey}"`);
 	
 	// Map Notion rollup functions to Obsidian formulas
 	// Note: Obsidian doesn't have direct rollup support, so we approximate
@@ -527,42 +579,49 @@ function convertRollupToFormula(
 		case 'count':
 		case 'count_values':
 			// Count the number of related pages
-			return `length(${sanitizedRelationKey})`;
+			const countFormula = `length(note["${sanitizedRelationKey}"])`;
+			console.log(`[Rollup Debug] Generated formula for count: ${countFormula}`);
+			return countFormula;
 		
 		case 'count_unique_values':
 			// Count unique values (approximate)
-			return `length(unique(${sanitizedRelationKey}))`;
+			return `length(unique(note["${sanitizedRelationKey}"]))`;
 		
 		case 'count_empty':
 			// Count empty values
-			return `if(length(${sanitizedRelationKey}) == 0, 1, 0)`;
+			return `if(length(note["${sanitizedRelationKey}"]) == 0, 1, 0)`;
 		
 		case 'count_not_empty':
 			// Count non-empty values
-			return `if(length(${sanitizedRelationKey}) > 0, 1, 0)`;
+			return `if(length(note["${sanitizedRelationKey}"]) > 0, 1, 0)`;
 		
 		case 'percent_empty':
 			// Percentage of empty values
-			return `if(length(${sanitizedRelationKey}) == 0, 100, 0)`;
+			return `if(length(note["${sanitizedRelationKey}"]) == 0, 100, 0)`;
 		
 		case 'percent_not_empty':
 			// Percentage of non-empty values
-			return `if(length(${sanitizedRelationKey}) > 0, 100, 0)`;
+			return `if(length(note["${sanitizedRelationKey}"]) > 0, 100, 0)`;
 		
 		case 'sum':
 			// Sum of values from related pages
 			// This requires accessing the property from related pages
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `sum(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
+				// Note: "value" is a literal keyword in Base, not a placeholder
+				const sumFormula = `sum(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
+				console.log(`[Rollup Debug] Generated formula for sum: ${sumFormula}`);
+				return sumFormula;
 			}
+			console.warn(`[Rollup Debug] Sum rollup missing rollup_property_key`);
 			return null;
 		
 		case 'average':
 			// Average of values from related pages
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `average(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				return `average(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
 			return null;
 		
@@ -570,7 +629,7 @@ function convertRollupToFormula(
 			// Median of values
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `median(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				return `median(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
 			return null;
 		
@@ -578,7 +637,7 @@ function convertRollupToFormula(
 			// Minimum value
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `min(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				return `min(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
 			return null;
 		
@@ -586,7 +645,7 @@ function convertRollupToFormula(
 			// Maximum value
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `max(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				return `max(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
 			return null;
 		
@@ -594,13 +653,23 @@ function convertRollupToFormula(
 			// Range (max - min)
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `max(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey})) - min(map(${sanitizedRelationKey}, page => page.${sanitizedRollupPropKey}))`;
+				return `max(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])) - min(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
 			return null;
 		
 		case 'show_original':
-			// Show original values (just reference the relation)
-			return sanitizedRelationKey;
+			// Show original values from the target property of related pages
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
+				// Note: "value" is a literal keyword in Base, not a placeholder
+				const showOriginalFormula = `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])`;
+				console.log(`[Rollup Debug] Generated formula for show_original: ${showOriginalFormula}`);
+				return showOriginalFormula;
+			}
+			// If no target property, just show the relation itself
+			console.warn(`[Rollup Debug] show_original rollup missing rollup_property_key, returning relation property`);
+			return `note["${sanitizedRelationKey}"]`;
 		
 		default:
 			console.log(`Unsupported rollup function: ${rollupFunction}`);

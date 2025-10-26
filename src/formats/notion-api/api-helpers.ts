@@ -293,19 +293,10 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		return [];
 		
 		case 'rollup':
-			// Rollup properties aggregate values, extract the result
-			if (!prop.rollup) return null;
-			const rollupResult = prop.rollup;
-			switch (rollupResult.type) {
-				case 'number':
-					return rollupResult.number;
-				case 'date':
-					return rollupResult.date?.start || null;
-				case 'array':
-					return rollupResult.array?.length || 0;
-				default:
-					return null;
-			}
+			// Rollup properties should NOT be included in page YAML
+			// They will be calculated dynamically in the .base file as formulas
+			// Skip adding rollup to frontmatter
+			return null;
 		
 		case 'created_time':
 			return prop.created_time;

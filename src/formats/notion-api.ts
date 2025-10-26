@@ -451,6 +451,7 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Get data source information
 			let dataSourceProperties: Record<string, any> = {};
+			let propertyIds: string[] = [];
 			let dataSourceId = databaseId;
 			
 			if (database.data_sources && database.data_sources.length > 0) {
@@ -460,6 +461,7 @@ export class NotionAPIImporter extends FormatImporter {
 					ctx
 				);
 				dataSourceProperties = (dataSource as any).properties || {};
+				propertyIds = (dataSource as any).property_ids || [];
 			}
 			
 			// Create database folder
@@ -488,7 +490,8 @@ export class NotionAPIImporter extends FormatImporter {
 				this.outputRootPath,
 				dataSourceProperties,
 				databasePages,
-				this.formulaStrategy
+				this.formulaStrategy,
+				propertyIds
 			);
 			
 			// Record database information
