@@ -4,7 +4,7 @@
  */
 
 import { Client, BlockObjectResponse, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { Vault, TFolder, normalizePath, App } from 'obsidian';
+import { Vault, normalizePath, App } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
@@ -237,10 +237,17 @@ function generateBaseFileContent(
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
 	
-	// Add filter to show only pages in this database folder
+	// Add filter to show files in first-level subfolders of the database folder
+	// Logic: file.folder should start with database path, but should only have one more level
+	// Example: if database is "Root/db-1", match "Root/db-1/page-1" but not "Root/db-1/page-1/db-2"
+	// This allows user-created files in the same structure to appear in the base
 	content += `filters:\n`;
 	content += `  and:\n`;
-	content += `    - file.inFolder("${databaseFolderPath}")\n\n`;
+	content += `    - file.folder.startsWith("${databaseFolderPath}/")\n`;
+	// Count the number of path separators to ensure it's only one level deep
+	// Split the database path to count its depth, then ensure file.folder has exactly one more level
+	const databaseDepth = databaseFolderPath.split('/').length;
+	content += `    - file.folder.split("/").length == ${databaseDepth + 1}\n\n`;
 	
 	// Map Notion properties to Obsidian properties
 	const propertyMappings = mapDatabaseProperties(properties, formulaStrategy);
@@ -357,19 +364,23 @@ function mapDatabaseProperties(
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
-				break;
-			
-			case 'title':
-			case 'rich_text':
-			case 'url':
-			case 'email':
-			case 'phone_number':
-				// Text-based properties
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
-				break;
+			break;
+		
+		case 'title':
+			// Skip title property - it corresponds to file.name in Obsidian
+			// Title is already used as the page filename
+			break;
+		
+		case 'rich_text':
+		case 'url':
+		case 'email':
+		case 'phone_number':
+			// Text-based properties
+			mappings[sanitizePropertyKey(key)] = {
+				displayName: propName,
+				type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+			};
+			break;
 			
 		case 'formula':
 			// Handle formula based on import strategy
@@ -479,10 +490,12 @@ function mapDatabaseProperties(
 
 /**
  * Sanitize property key for use in .base file
+ * Keep the original key as much as possible to match YAML frontmatter
  */
 function sanitizePropertyKey(key: string): string {
-	// Replace spaces and special characters with underscores
-	return key.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+	// Obsidian properties support most characters including spaces and hyphens
+	// Return the original key to ensure consistency with YAML frontmatter
+	return key;
 }
 
 /**
