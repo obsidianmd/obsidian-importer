@@ -64,14 +64,17 @@ export async function convertChildDatabase(
 		// Get the first data source to retrieve properties
         // It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
         // FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
+		
 		let dataSourceProperties: Record<string, any> = {};
 		let propertyIds: string[] = [];
+		
 		if ((database as any).data_sources && (database as any).data_sources.length > 0) {
 			const dataSourceId = (database as any).data_sources[0].id;
 			const dataSource = await makeNotionRequest(
 				() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
 				ctx
 			);
+			
 			dataSourceProperties = (dataSource as any).properties || {};
 			// Get property order from property_ids array if available
 			propertyIds = (dataSource as any).property_ids || [];
@@ -412,7 +415,7 @@ function mapDatabaseProperties(
 			else if (formulaStrategy === 'function') {
 				// Strategy 2: Function only - try to convert, keep original syntax if fails
 				if (formulaExpression) {
-					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
+					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
 					if (obsidianFormula && canConvertFormula(formulaExpression)) {
 						// Conversion successful - add as formula
 						mappings[`formula.${sanitizePropertyKey(key)}`] = {
@@ -421,6 +424,11 @@ function mapDatabaseProperties(
 						};
 					} else {
 						// Conversion failed - keep original Notion syntax (will show empty values)
+						console.warn(`⚠️ Formula "${propName}" cannot be fully converted to Obsidian syntax.`);
+						console.warn(`   Original: ${formulaExpression}`);
+						console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
+						console.warn(`   Result: Formula will be kept as-is but may not work correctly in Obsidian.`);
+						console.warn(`   Suggestion: Consider using "Static values" strategy for this database.`);
 						mappings[`formula.${sanitizePropertyKey(key)}`] = {
 							displayName: propName,
 							formula: formulaExpression, // Keep original Notion syntax
@@ -431,7 +439,7 @@ function mapDatabaseProperties(
 			else if (formulaStrategy === 'hybrid') {
 				// Strategy 3: Hybrid - convert if possible, fallback to text
 				if (formulaExpression && canConvertFormula(formulaExpression)) {
-					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression);
+					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
 					if (obsidianFormula) {
 						// Conversion successful - add as formula
 						mappings[`formula.${sanitizePropertyKey(key)}`] = {
@@ -441,6 +449,9 @@ function mapDatabaseProperties(
 					}
 				} else {
 					// Cannot convert - add as text property
+					console.warn(`⚠️ Formula "${propName}" cannot be converted to Obsidian syntax, falling back to text property.`);
+					console.warn(`   Original: ${formulaExpression}`);
+					console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
 					mappings[sanitizePropertyKey(key)] = {
 						displayName: propName,
 						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
@@ -463,10 +474,8 @@ function mapDatabaseProperties(
 		
 		case 'rollup':
 			// Rollup properties should be converted to formulas in .base file
-			console.log(`[Rollup Debug] Processing rollup property: "${propName}" (key: "${key}")`);
 			const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
 			if (rollupFormula) {
-				console.log(`[Rollup Debug] Successfully converted "${propName}" to formula. Adding as "formula.${sanitizePropertyKey(key)}"`);
 				mappings[`formula.${sanitizePropertyKey(key)}`] = {
 					displayName: propName,
 					formula: rollupFormula,
@@ -474,7 +483,7 @@ function mapDatabaseProperties(
 			} else {
 				// Fallback: if conversion fails, log warning and skip this property
 				// Don't add it as a regular property since it should be a formula
-				console.warn(`[Rollup Debug] Failed to convert rollup property "${propName}" to formula. Rollup config:`, prop.rollup);
+				console.warn(`Failed to convert rollup property "${propName}" to formula.`);
 			}
 			break;
 		
@@ -550,11 +559,7 @@ function convertRollupToFormula(
 	rollupConfig: any,
 	allProperties: any
 ): string | null {
-	console.log(`[Rollup Debug] Converting rollup property: "${rollupKey}"`);
-	console.log(`[Rollup Debug] Rollup config:`, JSON.stringify(rollupConfig, null, 2));
-	
 	if (!rollupConfig) {
-		console.warn(`[Rollup Debug] No rollup config for "${rollupKey}"`);
 		return null;
 	}
 	
@@ -564,20 +569,12 @@ function convertRollupToFormula(
 	const rollupPropertyKey = rollupConfig.rollup_property_name || rollupConfig.rollup_property_key;
 	const rollupFunction = rollupConfig.function;
 	
-	console.log(`[Rollup Debug] Extracted values:`, {
-		relationPropertyKey,
-		rollupPropertyKey,
-		rollupFunction
-	});
-	
 	if (!relationPropertyKey || !rollupFunction) {
-		console.warn(`[Rollup Debug] Missing required fields for "${rollupKey}". relationPropertyKey: ${relationPropertyKey}, rollupFunction: ${rollupFunction}`);
 		return null;
 	}
 	
 	// Sanitize the relation property key
 	const sanitizedRelationKey = sanitizePropertyKey(relationPropertyKey);
-	console.log(`[Rollup Debug] Sanitized relation key: "${sanitizedRelationKey}"`);
 	
 	// Map Notion rollup functions to Obsidian formulas
 	// Note: Obsidian doesn't have direct rollup support, so we approximate
@@ -585,9 +582,7 @@ function convertRollupToFormula(
 		case 'count':
 		case 'count_values':
 			// Count the number of related pages
-			const countFormula = `length(note["${sanitizedRelationKey}"])`;
-			console.log(`[Rollup Debug] Generated formula for count: ${countFormula}`);
-			return countFormula;
+			return `length(note["${sanitizedRelationKey}"])`;
 		
 		case 'count_unique_values':
 			// Count unique values (approximate)
@@ -616,11 +611,8 @@ function convertRollupToFormula(
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
 				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
 				// Note: "value" is a literal keyword in Base, not a placeholder
-				const sumFormula = `sum(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-				console.log(`[Rollup Debug] Generated formula for sum: ${sumFormula}`);
-				return sumFormula;
+				return `sum(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
 			}
-			console.warn(`[Rollup Debug] Sum rollup missing rollup_property_key`);
 			return null;
 		
 		case 'average':
@@ -669,12 +661,9 @@ function convertRollupToFormula(
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
 				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
 				// Note: "value" is a literal keyword in Base, not a placeholder
-				const showOriginalFormula = `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])`;
-				console.log(`[Rollup Debug] Generated formula for show_original: ${showOriginalFormula}`);
-				return showOriginalFormula;
+				return `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])`;
 			}
 			// If no target property, just show the relation itself
-			console.warn(`[Rollup Debug] show_original rollup missing rollup_property_key, returning relation property`);
 			return `note["${sanitizedRelationKey}"]`;
 		
 		default:

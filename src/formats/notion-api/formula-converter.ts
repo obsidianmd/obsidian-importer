@@ -1,185 +1,334 @@
 /**
- * Formula converter for Notion to Obsidian
- * Attempts to convert Notion formulas to Obsidian base formula syntax
- * Falls back to text representation if conversion is not possible
+ * Formula converter for Notion to Obsidian Base
+ * 
+ * This converter intelligently transforms Notion's function-based syntax
+ * to Obsidian's method-based syntax.
+ * 
+ * Key transformations:
+ * - prop("Name") -> note["Name"]
+ * - abs(x) -> (x).abs()
+ * - length(x) -> (x).length
+ * - contains(x, y) -> (x).contains(y)
+ * - reverse(x) -> (x).reverse()
+ * 
+ * Based on:
+ * - Notion: https://www.notion.com/help/formula-syntax
+ * - Obsidian: https://help.obsidian.md/bases/functions
  */
 
 /**
- * Notion functions that can be directly mapped to Obsidian
+ * Function mapping: Notion function name -> Obsidian conversion info
  */
-const DIRECT_MAPPING: Record<string, string> = {
-	// Math functions
-	'abs': 'abs',
-	'ceil': 'ceil',
-	'floor': 'floor',
-	'max': 'max',
-	'min': 'min',
-	'round': 'round',
-	'sqrt': 'sqrt',
+interface ConversionInfo {
+	type: 'method' | 'property' | 'global' | 'operator';
+	obsidianName?: string;
+	argCount?: number; // Expected number of arguments
+}
+
+const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
+	// Global functions (same in both)
+	'if': { type: 'global' },
+	'max': { type: 'global' },
+	'min': { type: 'global' },
+	'now': { type: 'global' },
 	
-	// String functions
-	'length': 'length',
-	'replace': 'replace',
-	'contains': 'contains',
-	'empty': 'length',  // empty(x) -> length(x) == 0
+	// Number methods
+	'abs': { type: 'method', obsidianName: 'abs', argCount: 1 },
+	'ceil': { type: 'method', obsidianName: 'ceil', argCount: 1 },
+	'floor': { type: 'method', obsidianName: 'floor', argCount: 1 },
+	'round': { type: 'method', obsidianName: 'round', argCount: 1 },
+	'toFixed': { type: 'method', obsidianName: 'toFixed', argCount: 2 },
 	
-	// Date functions
-	'now': 'now',
+	// String properties
+	'length': { type: 'property', obsidianName: 'length', argCount: 1 },
 	
-	// Logical functions
-	'if': 'if',
-	'and': 'and',
-	'or': 'or',
-	'not': 'not',
+	// String methods
+	'contains': { type: 'method', obsidianName: 'contains', argCount: 2 },
+	'slice': { type: 'method', obsidianName: 'slice', argCount: 3 }, // text, start, end (end optional)
+	'split': { type: 'method', obsidianName: 'split', argCount: 2 },
+	'replace': { type: 'method', obsidianName: 'replace', argCount: 3 },
+	'lower': { type: 'method', obsidianName: 'lower', argCount: 1 },
+	'upper': { type: 'method', obsidianName: 'upper', argCount: 1 },
+	'trim': { type: 'method', obsidianName: 'trim', argCount: 1 },
+	'startsWith': { type: 'method', obsidianName: 'startsWith', argCount: 2 },
+	'endsWith': { type: 'method', obsidianName: 'endsWith', argCount: 2 },
+	
+	// List methods
+	'reverse': { type: 'method', obsidianName: 'reverse', argCount: 1 },
+	'sort': { type: 'method', obsidianName: 'sort', argCount: 1 },
+	'unique': { type: 'method', obsidianName: 'unique', argCount: 1 },
+	'flat': { type: 'method', obsidianName: 'flat', argCount: 1 },
+	'flatten': { type: 'method', obsidianName: 'flat', argCount: 1 }, // Notion uses flatten, Obsidian uses flat
+	'join': { type: 'method', obsidianName: 'join', argCount: 2 },
+	'includes': { type: 'method', obsidianName: 'includes', argCount: 2 },
+	'containsAny': { type: 'method', obsidianName: 'containsAny', argCount: 2 },
+	'containsAll': { type: 'method', obsidianName: 'containsAll', argCount: 2 },
+	
+	// Special cases
+	'empty': { type: 'method', obsidianName: 'isEmpty', argCount: 1 },
+	'isEmpty': { type: 'method', obsidianName: 'isEmpty', argCount: 1 },
+	
+	// List accessors - convert to array notation
+	'at': { type: 'operator', argCount: 2 }, // at(list, index) -> list[index]
+	'first': { type: 'operator', argCount: 1 }, // first(list) -> list[0]
+	'last': { type: 'operator', argCount: 1 }, // last(list) -> list[-1]
+	
+	// Operators - convert to operator syntax
+	'add': { type: 'operator', argCount: 2 }, // add(a, b) -> a + b
+	'subtract': { type: 'operator', argCount: 2 }, // subtract(a, b) -> a - b
+	'multiply': { type: 'operator', argCount: 2 }, // multiply(a, b) -> a * b
+	'divide': { type: 'operator', argCount: 2 }, // divide(a, b) -> a / b
+	'pow': { type: 'operator', argCount: 2 }, // pow(a, b) -> a ^ b
+	'mod': { type: 'operator', argCount: 2 }, // mod(a, b) -> a % b
 };
 
 /**
- * Notion functions that are NOT supported in Obsidian
- */
-const UNSUPPORTED_FUNCTIONS = [
-	// Math
-	'cbrt', 'exp', 'ln', 'log10', 'log2', 'sign',
-	
-	// String
-	'concat', 'format', 'join', 'replaceAll', 'slice', 'split', 'test',
-	
-	// Date
-	'dateSubtract', 'dateBetween', 'formatDate', 'fromTimestamp', 'timestamp',
-	'minute', 'hour', 'day', 'date', 'month', 'year',
-	
-	// Logical/Comparison
-	'equal', 'unequal', 'larger', 'largerEq', 'smaller', 'smallerEq',
-	
-	// Other
-	'toNumber', 'id', 'style',
-];
-
-/**
- * Check if a Notion formula can be converted to Obsidian formula
- * Returns true if the formula only uses supported functions
+ * Check if a Notion formula can be converted to Obsidian
  */
 export function canConvertFormula(notionFormula: string): boolean {
 	if (!notionFormula || typeof notionFormula !== 'string') {
 		return false;
 	}
 	
-	// Extract function names from the formula
-	// Match pattern: functionName(
+	// List of functions we cannot convert
+	const unsupportedFunctions = [
+		// Math functions not in Obsidian
+		'sqrt', 'exp', 'ln', 'log10', 'log2', 'sign', 'cbrt',
+		
+		// String functions not in Obsidian
+		'substring', 'concat', 'format', 'replaceAll', 'test', 'match',
+		
+		// Date functions
+		'dateAdd', 'dateSubtract', 'dateBetween', 'formatDate',
+		'fromTimestamp', 'timestamp',
+		'minute', 'hour', 'day', 'date', 'month', 'year',
+		'time', 'relative', 'duration',
+		
+		// Advanced list functions with different syntax
+		'filter', 'map', 'find', 'some', 'every',
+		
+		// Other
+		'ifs', 'let', 'lets', 'toNumber', 'toString', 'id', 'style', 'link',
+	];
+	
+	// Extract function names
 	const functionPattern = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
 	const matches = notionFormula.matchAll(functionPattern);
 	
 	for (const match of matches) {
-		const funcName = match[1].toLowerCase();
+		const funcName = match[1];
 		
-		// Check if this function is unsupported
-		if (UNSUPPORTED_FUNCTIONS.includes(funcName)) {
+		// Skip prop() - we handle this
+		if (funcName === 'prop') {
+			continue;
+		}
+		
+		// Check if we can convert it
+		if (FUNCTION_MAPPING[funcName]) {
+			continue;
+		}
+		
+		// Check if it's unsupported
+		if (unsupportedFunctions.includes(funcName)) {
 			return false;
 		}
 		
-		// Check if this function is not in our direct mapping
-		// (might be a property reference, which is OK)
-		if (!DIRECT_MAPPING[funcName] && !isPropertyReference(funcName)) {
-			return false;
-		}
+		// Unknown function
+		return false;
 	}
 	
 	return true;
 }
 
 /**
- * Check if a name is likely a property reference rather than a function
- * Property references in Notion use the format: prop("Property Name")
+ * Convert a Notion formula to Obsidian Base formula syntax
+ * 
+ * @param notionFormula - The formula expression (may contain placeholders)
+ * @param properties - The database properties schema (to resolve property IDs to names)
  */
-function isPropertyReference(name: string): boolean {
-	return name === 'prop';
-}
-
-/**
- * Convert a Notion formula to Obsidian formula syntax
- * Returns null if conversion is not possible
- */
-export function convertNotionFormulaToObsidian(notionFormula: string): string | null {
-	if (!canConvertFormula(notionFormula)) {
+export function convertNotionFormulaToObsidian(
+	notionFormula: string,
+	properties?: Record<string, any>
+): string | null {
+	let result = notionFormula;
+	
+	// Step 0: Replace Notion API 2025-09-03 placeholders with prop() calls
+	// Format: {{notion:block_property:{property_id}:{data_source_id}:{some_id}}}
+	if (properties) {
+		result = result.replace(
+			/\{\{notion:block_property:([^:]+):[^}]+\}\}/g,
+			(match, propertyId) => {
+				// Find the property name by ID
+				for (const [key, prop] of Object.entries(properties)) {
+					if (prop.id === propertyId) {
+						return `prop("${prop.name}")`;
+					}
+				}
+				// If not found, keep the placeholder
+				return match;
+			}
+		);
+	}
+	
+	if (!canConvertFormula(result)) {
 		return null;
 	}
 	
-	let obsidianFormula = notionFormula;
-	
-	// Convert property references
-	// Notion: prop("Property Name")
-	// Obsidian: note["Property Name"] or just PropertyName if no spaces
-	obsidianFormula = obsidianFormula.replace(
+	// Step 1: Convert prop() to note[]
+	result = result.replace(
 		/prop\s*\(\s*"([^"]+)"\s*\)/g,
 		(match, propName) => {
-			// If property name has spaces or special chars, use bracket notation
-			if (/[\s\-\.]/.test(propName)) {
-				return `note["${propName}"]`;
-			}
-			return propName;
+			return `note["${propName}"]`;
 		}
 	);
 	
-	// Convert comparison operators
-	// Notion uses functions like equal(), larger(), etc.
-	// Obsidian uses operators like ==, >, etc.
-	obsidianFormula = convertComparisonOperators(obsidianFormula);
+	// Step 2: Convert functions to methods/properties/operators
+	// We need to be careful about nested function calls
+	// Process from innermost to outermost
+	let changed = true;
+	let maxIterations = 20; // Prevent infinite loops
+	let iterations = 0;
 	
-	// Convert empty() to length() == 0
-	obsidianFormula = obsidianFormula.replace(
-		/empty\s*\(([^)]+)\)/g,
-		'length($1) == 0'
-	);
+	while (changed && iterations < maxIterations) {
+		changed = false;
+		iterations++;
+		
+		// Match function calls with their arguments
+		// This regex matches: functionName(arg1, arg2, ...)
+		// We use a simple approach: match function calls without nested parentheses in args
+		const funcPattern = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
+		
+		result = result.replace(funcPattern, (match, funcName, argsStr) => {
+			const mapping = FUNCTION_MAPPING[funcName];
+			
+			if (!mapping) {
+				// Not a convertible function, keep as-is
+				return match;
+			}
+			
+			if (mapping.type === 'global') {
+				// Global functions stay as-is
+				return match;
+			}
+			
+			// Parse arguments
+			const args = parseArguments(argsStr);
+			
+			if (mapping.type === 'property') {
+				// Convert: length(x) -> (x).length
+				if (args.length === 1) {
+					changed = true;
+					return `(${args[0]}).${mapping.obsidianName}`;
+				}
+			}
+			
+			if (mapping.type === 'method') {
+				// Convert: abs(x) -> (x).abs()
+				// Convert: contains(x, y) -> (x).contains(y)
+				if (args.length >= 1) {
+					changed = true;
+					const obj = args[0];
+					const methodArgs = args.slice(1);
+					
+					if (methodArgs.length > 0) {
+						return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
+					} else {
+						return `(${obj}).${mapping.obsidianName}()`;
+					}
+				}
+			}
+			
+			if (mapping.type === 'operator') {
+				changed = true;
+				
+				// Special cases
+				if (funcName === 'at' && args.length === 2) {
+					// at(list, index) -> (list)[index]
+					return `(${args[0]})[${args[1]}]`;
+				}
+				if (funcName === 'first' && args.length === 1) {
+					// first(list) -> (list)[0]
+					return `(${args[0]})[0]`;
+				}
+				if (funcName === 'last' && args.length === 1) {
+					// last(list) -> (list)[-1]
+					return `(${args[0]})[-1]`;
+				}
+				
+				// Binary operators
+				if (args.length === 2) {
+					const operatorMap: Record<string, string> = {
+						'add': '+',
+						'subtract': '-',
+						'multiply': '*',
+						'divide': '/',
+						'pow': '^',
+						'mod': '%',
+					};
+					const op = operatorMap[funcName];
+					if (op) {
+						return `(${args[0]} ${op} ${args[1]})`;
+					}
+				}
+			}
+			
+			// Fallback: keep as-is
+			return match;
+		});
+	}
 	
-	// Convert dateAdd if present
-	// Notion: dateAdd(date, number, "unit")
-	// Obsidian: dateAdd(date, number, "unit") - same syntax!
-	
-	return obsidianFormula;
+	return result;
 }
 
 /**
- * Convert Notion comparison functions to Obsidian operators
+ * Parse comma-separated arguments
+ * This is a simple parser that doesn't handle nested parentheses well,
+ * but works for the common cases after we've processed inner functions
  */
-function convertComparisonOperators(formula: string): string {
-	let result = formula;
+function parseArguments(argsStr: string): string[] {
+	if (!argsStr.trim()) {
+		return [];
+	}
 	
-	// equal(a, b) -> a == b
-	result = result.replace(
-		/equal\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 == $2)'
-	);
+	const args: string[] = [];
+	let current = '';
+	let depth = 0;
+	let inString = false;
+	let stringChar = '';
 	
-	// unequal(a, b) -> a != b
-	result = result.replace(
-		/unequal\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 != $2)'
-	);
+	for (let i = 0; i < argsStr.length; i++) {
+		const char = argsStr[i];
+		
+		if (inString) {
+			current += char;
+			if (char === stringChar && argsStr[i - 1] !== '\\') {
+				inString = false;
+			}
+		} else {
+			if (char === '"' || char === "'") {
+				inString = true;
+				stringChar = char;
+				current += char;
+			} else if (char === '(' || char === '[') {
+				depth++;
+				current += char;
+			} else if (char === ')' || char === ']') {
+				depth--;
+				current += char;
+			} else if (char === ',' && depth === 0) {
+				args.push(current.trim());
+				current = '';
+			} else {
+				current += char;
+			}
+		}
+	}
 	
-	// larger(a, b) -> a > b
-	result = result.replace(
-		/larger\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 > $2)'
-	);
+	if (current.trim()) {
+		args.push(current.trim());
+	}
 	
-	// largerEq(a, b) -> a >= b
-	result = result.replace(
-		/largerEq\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 >= $2)'
-	);
-	
-	// smaller(a, b) -> a < b
-	result = result.replace(
-		/smaller\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 < $2)'
-	);
-	
-	// smallerEq(a, b) -> a <= b
-	result = result.replace(
-		/smallerEq\s*\(([^,]+),\s*([^)]+)\)/g,
-		'($1 <= $2)'
-	);
-	
-	return result;
+	return args;
 }
 
 /**
@@ -193,4 +342,3 @@ export function getNotionFormulaExpression(formulaConfig: any): string | null {
 	// In Notion API, formula config has an 'expression' field
 	return formulaConfig.expression || null;
 }
-
