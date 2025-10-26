@@ -14,7 +14,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
-import { processDatabasePlaceholders } from './notion-api/database-helpers';
+import { processDatabasePlaceholders, convertChildDatabase } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
@@ -226,8 +226,26 @@ export class NotionAPIImporter extends FormatImporter {
 		// Save output root path for database handling
 		this.outputRootPath = folder.path;
 		
-		// Start importing from the root page
-		await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
+		// Check if the input is a database or a page by retrieving block info
+		ctx.status('Checking block type...');
+		const block = await makeNotionRequest(
+			() => this.notionClient!.blocks.retrieve({ block_id: extractedPageId }) as Promise<any>,
+			ctx
+		);
+		
+		// Check block type and handle accordingly
+		if (block.type === 'child_database') {
+			// It's a database! Import it as a top-level database
+			ctx.status('Input is a database, importing as top-level database...');
+			await this.importTopLevelDatabase(ctx, extractedPageId, folder.path);
+		} else if (block.type === 'child_page') {
+			// It's a child page, import as page
+			ctx.status('Input is a page, importing...');
+			await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
+		} else {
+			// Other block types (paragraph, heading, etc.) are not supported as entry points
+			throw new Error(`Unsupported block type: ${block.type}. Please provide a page ID or database ID.`);
+		}
 		
 		// After all pages are imported, replace relation placeholders
 		ctx.status('Processing relation links...');
@@ -242,6 +260,58 @@ export class NotionAPIImporter extends FormatImporter {
 		new Notice(`Import failed: ${error.message}`);
 	}
 }
+
+	/**
+	 * Import a top-level database (when user provides a database ID directly)
+	 * 
+	 * Note: We create a fake block object because convertChildDatabase() expects a BlockObjectResponse.
+	 * This is a design limitation - convertChildDatabase() was originally designed to handle databases
+	 * that are children of pages (from the blocks array), but we're reusing it for top-level databases.
+	 * The fake block only needs the 'id' and 'type' fields, as the rest of the information is fetched
+	 * from the Notion API inside convertChildDatabase().
+	 */
+	private async importTopLevelDatabase(ctx: ImportContext, databaseId: string, parentPath: string): Promise<void> {
+		if (ctx.isCancelled()) return;
+		
+		try {
+			// Create a minimal block object that satisfies convertChildDatabase()'s requirements
+			// Only 'id' and 'type' are actually used by the function
+			const fakeBlock: any = {
+				id: databaseId,
+				type: 'child_database',
+				child_database: {
+					title: 'Database'  // Placeholder, will be replaced by actual title from API
+				}
+			};
+			
+			// Import the database using the existing logic
+			await convertChildDatabase(
+				fakeBlock,
+				ctx,
+				parentPath,
+				this.notionClient!,
+				this.vault,
+				this.app,
+				this.outputRootPath,
+				this.formulaStrategy,
+				this.processedDatabases,
+				this.relationPlaceholders,
+				async (pageId: string, parentPath: string) => {
+					await this.fetchAndImportPage(ctx, pageId, parentPath);
+				},
+				(count: number) => {
+					this.totalPagesDiscovered += count;
+				}
+			);
+			
+			// Update progress
+			this.pagesCompleted++;
+			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+		} catch (error) {
+			console.error(`Failed to import database ${databaseId}:`, error);
+			throw error;
+		}
+	}
 
 	/**
 	 * Fetch and import a Notion page recursively
