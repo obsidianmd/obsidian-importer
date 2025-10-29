@@ -103,6 +103,13 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	
 	// Notion's date() extracts day of month (1-31), Obsidian uses .day property
 	// This is handled specially in conversion logic to avoid conflict with date() global function
+	// Note: We need to distinguish between parseDate() (which becomes date()) and date() (which becomes .day)
+	// We mark date() as 'property' type so it's recognized as convertible
+	'date': { type: 'property', obsidianName: 'day', argCount: 1 },
+	'year': { type: 'property', obsidianName: 'year', argCount: 1 },
+	'month': { type: 'property', obsidianName: 'month', argCount: 1 },
+	'hour': { type: 'property', obsidianName: 'hour', argCount: 1 },
+	'minute': { type: 'property', obsidianName: 'minute', argCount: 1 },
 	
 	// List accessors - convert to array notation
 	'at': { type: 'operator', argCount: 2 }, // at(list, index) -> list[index]
@@ -249,6 +256,16 @@ export function convertNotionFormulaToObsidian(
 		}
 	);
 	
+	// Step 1.5: Replace parseDate(...) with placeholders that don't contain parentheses
+	// This allows outer date() functions to be matched and converted
+	// We store the arguments and replace them back at the end
+	const parseDatePlaceholders: string[] = [];
+	result = result.replace(/parseDate\s*\(([^()]*)\)/g, (match, args) => {
+		const index = parseDatePlaceholders.length;
+		parseDatePlaceholders.push(args);
+		return `__PARSEDATE_${index}__`;
+	});
+	
 	// Step 2: Convert functions to methods/properties/operators
 	// We need to be careful about nested function calls
 	// Process from innermost to outermost
@@ -266,27 +283,10 @@ export function convertNotionFormulaToObsidian(
 		const funcPattern = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
 		
 		result = result.replace(funcPattern, (match, funcName, argsStr) => {
-			// Special case: Notion's date/time extraction functions
-			// In Obsidian, these are properties on date objects
-			// We need to handle these before checking FUNCTION_MAPPING
-			const datePropertyMap: Record<string, string> = {
-				'date': 'day',      // date(x) -> (x).day
-				'year': 'year',     // year(x) -> (x).year
-				'month': 'month',   // month(x) -> (x).month
-				'hour': 'hour',     // hour(x) -> (x).hour
-				'minute': 'minute', // minute(x) -> (x).minute
-			};
-			
-		if (funcName in datePropertyMap) {
-			changed = true;
-			const args = parseArguments(argsStr);
-			if (args.length === 1) {
-				// Convert: funcName(x) -> (x).property
-				return `(${args[0]}).${datePropertyMap[funcName]}`;
+			// Skip parseDate placeholders - they will be converted back at the end
+			if (funcName.startsWith('__PARSEDATE_')) {
+				return match;
 			}
-			// Fallback: keep as-is
-			return match;
-		}
 		
 		// Special case: Notion's test() function -> Obsidian's /pattern/.matches(string)
 		// In Notion: test(string, pattern)
@@ -491,6 +491,16 @@ export function convertNotionFormulaToObsidian(
 			// Fallback: keep as-is
 			return match;
 		});
+	}
+	
+	// Step 3: Replace parseDate placeholders with date() calls
+	// This happens AFTER all date() functions have been converted to .day property
+	// So date(parseDate("2024-11-03")) becomes date(__PARSEDATE_0__) -> (__PARSEDATE_0__).day -> (date("2024-11-03")).day
+	for (let i = 0; i < parseDatePlaceholders.length; i++) {
+		result = result.replace(
+			new RegExp(`__PARSEDATE_${i}__`, 'g'),
+			`date(${parseDatePlaceholders[i]})`
+		);
 	}
 	
 	return result;
