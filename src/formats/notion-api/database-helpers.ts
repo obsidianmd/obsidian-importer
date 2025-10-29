@@ -516,17 +516,28 @@ function mapDatabaseProperties(
 	
 	if (propertyIds.length > 0) {
 		// Use the order from propertyIds
+		// Note: propertyIds contains the original Notion property IDs, so we need to sanitize them
 		for (const propId of propertyIds) {
-			if (mappings[propId]) {
+			const sanitizedKey = sanitizePropertyKey(propId);
+			if (mappings[sanitizedKey]) {
 				orderedMappings.push({
-					key: propId,
-					config: mappings[propId]
+					key: sanitizedKey,
+					config: mappings[sanitizedKey]
+				});
+			}
+			// Also check for formula properties (with "formula." prefix)
+			const formulaKey = `formula.${sanitizedKey}`;
+			if (mappings[formulaKey]) {
+				orderedMappings.push({
+					key: formulaKey,
+					config: mappings[formulaKey]
 				});
 			}
 		}
 		// Add any properties that weren't in propertyIds (shouldn't happen, but just in case)
 		for (const [key, config] of Object.entries(mappings)) {
-			if (!propertyIds.includes(key)) {
+			const baseKey = key.replace(/^formula\./, '');
+			if (!propertyIds.map(id => sanitizePropertyKey(id)).includes(baseKey)) {
 				orderedMappings.push({ key, config });
 			}
 		}
@@ -680,32 +691,48 @@ function convertRollupToFormula(
 		
 		case 'earliest_date':
 			// Finds the earliest date in time of a date property
-			// Note: Obsidian Base does not have built-in date comparison functions
-			// This rollup function cannot be accurately converted
-			console.warn(`⚠️ Rollup function "earliest_date" is not supported.`);
-			console.warn(`   Obsidian Base does not have date aggregation functions.`);
-			console.warn(`   Suggestion: Manually sort by date in your base view.`);
+			// Strategy: Get all dates, convert to date objects, sort by converting to numbers for comparison
+			// Note: We need to sort by timestamp but keep as date objects
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Get all date values from related pages, filter out nulls
+				// Convert to date objects, then sort (dates can be compared directly in Obsidian)
+				const datesArray = `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).filter(value != null).map(date(value)).sort()`;
+				return `${datesArray}[0]`;
+			}
+			console.warn(`⚠️ Rollup function "earliest_date" requires a target property.`);
 			return null;
 		
 		case 'latest_date':
 			// Finds the latest date in time of a date property
-			// Note: Obsidian Base does not have built-in date comparison functions
-			// This rollup function cannot be accurately converted
-			console.warn(`⚠️ Rollup function "latest_date" is not supported.`);
-			console.warn(`   Obsidian Base does not have date aggregation functions.`);
-			console.warn(`   Suggestion: Manually sort by date in your base view.`);
+			// Strategy: Get all dates, convert to date objects, sort by converting to numbers for comparison
+			// Note: We need to sort by timestamp but keep as date objects
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Get all date values from related pages, filter out nulls
+				// Convert to date objects, then sort (dates can be compared directly in Obsidian)
+				const datesArray = `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).filter(value != null).map(date(value)).sort()`;
+				return `${datesArray}[-1]`;
+			}
+			console.warn(`⚠️ Rollup function "latest_date" requires a target property.`);
 			return null;
 		
 		case 'date_range':
-			// Computes the date range (latest date - earliest date) of a date property
-			// Note: Obsidian Base does not have built-in date comparison functions
-			// This rollup function cannot be accurately converted
-			console.warn(`⚠️ Rollup function "date_range" is not supported.`);
-			console.warn(`   Obsidian Base does not have date aggregation functions.`);
-			console.warn(`   Suggestion: Use date arithmetic manually in your notes.`);
-			console.warn(`   Reference: https://help.obsidian.md/bases/syntax#Date+arithmetic`);
+			// Computes the date range (earliest date -> latest date) of a date property
+			// Strategy: Sort dates, take first and last elements, format as "earliest → latest"
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Get all date values from related pages, filter out nulls, convert to date objects, sort
+				const datesArray = `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).filter(value != null).map(date(value)).sort()`;
+				// Take first (earliest) and last (latest) elements and format
+				const earliestExpr = `${datesArray}[0]`;
+				const latestExpr = `${datesArray}[-1]`;
+				// Format as "YYYY-MM-DD → YYYY-MM-DD"
+				return `(${earliestExpr}).format("YYYY-MM-DD") + " → " + (${latestExpr}).format("YYYY-MM-DD")`;
+			}
+			console.warn(`⚠️ Rollup function "date_range" requires a target property.`);
 			return null;
-		
+			
 		default:
 			console.warn(`⚠️ Unsupported rollup function: "${rollupFunction}"`);
 			console.warn(`   This rollup property will be skipped.`);

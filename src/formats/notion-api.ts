@@ -217,11 +217,11 @@ export class NotionAPIImporter extends FormatImporter {
 		this.processedPages.clear();
 		this.processedDatabases.clear();
 		this.relationPlaceholders = [];
-		this.totalPagesDiscovered = 1; // Start with the root page
+		this.totalPagesDiscovered = 0; // Will be updated as we discover pages
 		this.pagesCompleted = 0;
 		
 		// Initialize progress display
-		ctx.reportProgress(0, 1);
+		ctx.reportProgress(0, 0);
 		
 		// Save output root path for database handling
 		this.outputRootPath = folder.path;
@@ -301,12 +301,13 @@ export class NotionAPIImporter extends FormatImporter {
 				},
 				(count: number) => {
 					this.totalPagesDiscovered += count;
+					// Update progress immediately when discovering pages to show correct total
+					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 				}
 			);
 			
-			// Update progress
-			this.pagesCompleted++;
-			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+			// Note: Don't increment pagesCompleted for the database itself, 
+			// only for the pages within it (which are counted in fetchAndImportPage)
 		} catch (error) {
 			console.error(`Failed to import database ${databaseId}:`, error);
 			throw error;
@@ -378,6 +379,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Callback to update discovered pages count
 			(newPagesCount: number) => {
 				this.totalPagesDiscovered += newPagesCount;
+				// Update progress immediately when discovering pages to show correct total
 				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 			}
 		);
@@ -569,6 +571,10 @@ export class NotionAPIImporter extends FormatImporter {
 			const databasePages = await this.queryDatabasePages(dataSourceId, ctx);
 			
 			ctx.status(`Found ${databasePages.length} pages in unimported database ${sanitizedTitle}`);
+			
+			// Update total pages discovered to include these new pages
+			this.totalPagesDiscovered += databasePages.length;
+			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 			
 			// Import each database page
 			for (const page of databasePages) {

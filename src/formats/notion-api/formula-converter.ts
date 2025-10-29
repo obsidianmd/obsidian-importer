@@ -155,9 +155,8 @@ export function canConvertFormula(notionFormula: string): boolean {
 		// Note: 'parseDate' is supported and mapped to 'date' global function
 		// Note: 'date', 'year', 'month', 'hour', 'minute' are handled specially and converted to properties
 		// Note: 'dateAdd' and 'dateSubtract' are supported and converted to date arithmetic
-		// Note: 'fromTimestamp' is supported and converted to date() function
 		'dateBetween', 'dateRange', 'dateStart', 'dateEnd',
-		'timestamp',
+		'timestamp', 'fromTimestamp', // fromTimestamp not supported - date() doesn't accept numbers
 		'day', 'week', // day = day of week (1-7), week = ISO week number - no Obsidian equivalent
 		
 		// Person functions
@@ -387,17 +386,12 @@ export function convertNotionFormulaToObsidian(
 			return match;
 		}
 		
-		// Special case: Notion's fromTimestamp() function -> Obsidian's date() function
-		// In Notion: fromTimestamp(milliseconds)
-		// In Obsidian: date(milliseconds) - Obsidian's date() can parse timestamps
+		// Special case: Notion's fromTimestamp() function
+		// Note: Obsidian's date() function does NOT accept numeric timestamps
+		// date() signature: date(input: string | date): date
+		// Therefore, fromTimestamp() cannot be converted
 		if (funcName === 'fromTimestamp') {
-			changed = true;
-			const args = parseArguments(argsStr);
-			if (args.length === 1) {
-				// Convert: fromTimestamp(ms) -> date(ms)
-				return `date(${args[0]})`;
-			}
-			// Fallback: keep as-is if wrong number of arguments
+			// Keep as unsupported - will be caught by canConvertFormula
 			return match;
 		}
 		
