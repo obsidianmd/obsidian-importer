@@ -578,96 +578,138 @@ function convertRollupToFormula(
 	
 	// Map Notion rollup functions to Obsidian formulas
 	// Note: Obsidian doesn't have direct rollup support, so we approximate
+	// Map Notion rollup function names to formulas
+	// Based on actual Notion API values (as of 2025-09-03)
 	switch (rollupFunction) {
-		case 'count':
-		case 'count_values':
-			// Count the number of related pages
-			return `length(note["${sanitizedRelationKey}"])`;
-		
-		case 'count_unique_values':
-			// Count unique values (approximate)
-			return `length(unique(note["${sanitizedRelationKey}"]))`;
-		
-		case 'count_empty':
-			// Count empty values
-			return `if(length(note["${sanitizedRelationKey}"]) == 0, 1, 0)`;
-		
-		case 'count_not_empty':
-			// Count non-empty values
-			return `if(length(note["${sanitizedRelationKey}"]) > 0, 1, 0)`;
-		
-		case 'percent_empty':
-			// Percentage of empty values
-			return `if(length(note["${sanitizedRelationKey}"]) == 0, 100, 0)`;
-		
-		case 'percent_not_empty':
-			// Percentage of non-empty values
-			return `if(length(note["${sanitizedRelationKey}"]) > 0, 100, 0)`;
-		
-		case 'sum':
-			// Sum of values from related pages
-			// This requires accessing the property from related pages
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
-				// Note: "value" is a literal keyword in Base, not a placeholder
-				return `sum(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
-		case 'average':
-			// Average of values from related pages
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `average(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
-		case 'median':
-			// Median of values
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `median(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
-		case 'min':
-			// Minimum value
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `min(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
-		case 'max':
-			// Maximum value
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `max(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
-		case 'range':
-			// Range (max - min)
-			if (rollupPropertyKey) {
-				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				return `max(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])) - min(note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]))`;
-			}
-			return null;
-		
 		case 'show_original':
 			// Show original values from the target property of related pages
+			// For types that can contain multiple values (multi-select, person), shows all values
 			if (rollupPropertyKey) {
 				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
-				// Obsidian Base syntax: note["RelationProperty"].map(value.asFile().properties["TargetProperty"])
-				// Note: "value" is a literal keyword in Base, not a placeholder
 				return `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"])`;
 			}
 			// If no target property, just show the relation itself
 			return `note["${sanitizedRelationKey}"]`;
 		
+		case 'show_unique':
+			// Shows the unique values for this property
+			// For types that can contain multiple values (multi-select, person), 
+			// counts the unique values across all pages
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// First map to get property values from all related pages, then get unique values
+				return `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).flat().unique()`;
+			}
+			// If no target property, get unique relation pages
+			return `note["${sanitizedRelationKey}"].unique()`;
+		
+		case 'count':
+			// Counts the total number of pages (including blank pages)
+			// Simply counts how many pages are in the relation
+			return `note["${sanitizedRelationKey}"].length`;
+		
+		case 'count_values':
+			// Counts the number of non-empty values for this property
+			// For types that can contain multiple values (multi-select, person),
+			// counts the number of selected values for each page (total count across all pages)
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Map to get all property values, flatten arrays (for multi-select), filter out empty, then count
+				return `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).flat().length`;
+			}
+			// If no target property, same as count
+			return `note["${sanitizedRelationKey}"].length`;
+		
+		case 'unique':
+			// Counts the number of unique values for this property
+			// For types that can contain multiple values (multi-select, person),
+			// counts the unique values across all pages
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Map to get property values, flatten, get unique, then count
+				return `note["${sanitizedRelationKey}"].map(value.asFile().properties["${sanitizedRollupPropKey}"]).flat().unique().length`;
+			}
+			// If no target property, count unique relation pages
+			return `note["${sanitizedRelationKey}"].unique().length`;
+		
+		case 'empty':
+			// Counts pages that have an empty value for this property
+			// Returns the count of pages with empty values
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Count pages where the property is empty/null/undefined
+				return `note["${sanitizedRelationKey}"].filter(value.asFile().properties["${sanitizedRollupPropKey}"] == null || value.asFile().properties["${sanitizedRollupPropKey}"] == "" || (typeof value.asFile().properties["${sanitizedRollupPropKey}"] == "object" && value.asFile().properties["${sanitizedRollupPropKey}"].length == 0)).length`;
+			}
+			// If no target property, check if relation itself is empty
+			return `if(note["${sanitizedRelationKey}"].length == 0, 1, 0)`;
+		
+		case 'not_empty':
+			// Counts pages that have a non-empty value for this property
+			// Returns the count of pages with non-empty values
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				// Count pages where the property is not empty
+				return `note["${sanitizedRelationKey}"].filter(value.asFile().properties["${sanitizedRollupPropKey}"] != null && value.asFile().properties["${sanitizedRollupPropKey}"] != "" && !(typeof value.asFile().properties["${sanitizedRollupPropKey}"] == "object" && value.asFile().properties["${sanitizedRollupPropKey}"].length == 0)).length`;
+			}
+			// If no target property, check if relation itself is not empty
+			return `if(note["${sanitizedRelationKey}"].length > 0, 1, 0)`;
+		
+		case 'percent_empty':
+			// Displays the percentage of pages that have an empty value for this property
+			// Calculates: (empty pages / total pages) * 100
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				const totalPages = `note["${sanitizedRelationKey}"].length`;
+				const emptyPages = `note["${sanitizedRelationKey}"].filter(value.asFile().properties["${sanitizedRollupPropKey}"] == null || value.asFile().properties["${sanitizedRollupPropKey}"] == "" || (typeof value.asFile().properties["${sanitizedRollupPropKey}"] == "object" && value.asFile().properties["${sanitizedRollupPropKey}"].length == 0)).length`;
+				return `if(${totalPages} == 0, 0, (${emptyPages} / ${totalPages}) * 100)`;
+			}
+			// If no target property, check relation itself
+			return `if(note["${sanitizedRelationKey}"].length == 0, 100, 0)`;
+		
+		case 'percent_not_empty':
+			// Displays the percentage of pages that have a non-empty value for this property
+			// Calculates: (non-empty pages / total pages) * 100
+			if (rollupPropertyKey) {
+				const sanitizedRollupPropKey = sanitizePropertyKey(rollupPropertyKey);
+				const totalPages = `note["${sanitizedRelationKey}"].length`;
+				const notEmptyPages = `note["${sanitizedRelationKey}"].filter(value.asFile().properties["${sanitizedRollupPropKey}"] != null && value.asFile().properties["${sanitizedRollupPropKey}"] != "" && !(typeof value.asFile().properties["${sanitizedRollupPropKey}"] == "object" && value.asFile().properties["${sanitizedRollupPropKey}"].length == 0)).length`;
+				return `if(${totalPages} == 0, 0, (${notEmptyPages} / ${totalPages}) * 100)`;
+			}
+			// If no target property, check relation itself
+			return `if(note["${sanitizedRelationKey}"].length > 0, 100, 0)`;
+		
+		case 'earliest_date':
+			// Finds the earliest date in time of a date property
+			// Note: Obsidian Base does not have built-in date comparison functions
+			// This rollup function cannot be accurately converted
+			console.warn(`⚠️ Rollup function "earliest_date" is not supported.`);
+			console.warn(`   Obsidian Base does not have date aggregation functions.`);
+			console.warn(`   Suggestion: Manually sort by date in your base view.`);
+			return null;
+		
+		case 'latest_date':
+			// Finds the latest date in time of a date property
+			// Note: Obsidian Base does not have built-in date comparison functions
+			// This rollup function cannot be accurately converted
+			console.warn(`⚠️ Rollup function "latest_date" is not supported.`);
+			console.warn(`   Obsidian Base does not have date aggregation functions.`);
+			console.warn(`   Suggestion: Manually sort by date in your base view.`);
+			return null;
+		
+		case 'date_range':
+			// Computes the date range (latest date - earliest date) of a date property
+			// Note: Obsidian Base does not have built-in date comparison functions
+			// This rollup function cannot be accurately converted
+			console.warn(`⚠️ Rollup function "date_range" is not supported.`);
+			console.warn(`   Obsidian Base does not have date aggregation functions.`);
+			console.warn(`   Suggestion: Use date arithmetic manually in your notes.`);
+			console.warn(`   Reference: https://help.obsidian.md/bases/syntax#Date+arithmetic`);
+			return null;
+		
 		default:
-			console.log(`Unsupported rollup function: ${rollupFunction}`);
+			console.warn(`⚠️ Unsupported rollup function: "${rollupFunction}"`);
+			console.warn(`   This rollup property will be skipped.`);
+			console.warn(`   Please report this to the plugin developer if this is a valid Notion rollup function.`);
 			return null;
 	}
 }

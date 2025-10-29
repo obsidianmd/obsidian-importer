@@ -2,14 +2,22 @@
  * Formula converter for Notion to Obsidian Base
  * 
  * This converter intelligently transforms Notion's function-based syntax
- * to Obsidian's method-based syntax.
+ * to Obsidian Base's syntax.
  * 
  * Key transformations:
  * - prop("Name") -> note["Name"]
- * - abs(x) -> (x).abs()
- * - length(x) -> (x).length
- * - contains(x, y) -> (x).contains(y)
- * - reverse(x) -> (x).reverse()
+ * - length(x) -> (x).length (property access)
+ * - abs(x) -> (x).abs() (method call)
+ * - contains(x, y) -> (x).contains(y) (method call)
+ * - unique(x) -> (x).unique() (method call)
+ * - Global functions stay as-is: max(), min(), if()
+ * 
+ * Important notes:
+ * - length is a PROPERTY (x.length), not a function
+ * - unique() is a METHOD (x.unique()), not a global function
+ * - sum() and average() are NOT supported in Obsidian Base
+ * - median() is NOT supported in Obsidian Base
+ * - Many date/time functions are not supported
  * 
  * Based on:
  * - Notion: https://www.notion.com/help/formula-syntax
@@ -26,47 +34,75 @@ interface ConversionInfo {
 }
 
 const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
-	// Global functions (same in both)
+	// Global functions (same in both Notion and Obsidian)
 	'if': { type: 'global' },
 	'max': { type: 'global' },
 	'min': { type: 'global' },
-	'now': { type: 'global' },
+	'now': { type: 'global' }, // Both have now()
+	'today': { type: 'global' }, // Both have today()
 	
-	// Number methods
+	// Function name mapping (different names, same functionality)
+	// Notion: toNumber(x), Obsidian: number(x)
+	'toNumber': { type: 'global', obsidianName: 'number' },
+	
+	// Notion global functions that need conversion to Obsidian methods/properties
+	// In Notion: length(x), In Obsidian: x.length
+	'length': { type: 'property', obsidianName: 'length', argCount: 1 },
+	
+	// In Notion: format(x), In Obsidian: x.toString()
+	'format': { type: 'method', obsidianName: 'toString', argCount: 1 },
+	
+	// In Notion: contains(x, y), In Obsidian: x.contains(y)
+	'contains': { type: 'method', obsidianName: 'contains', argCount: 2 },
+	
+	// In Notion: lower(x), In Obsidian: x.lower()
+	'lower': { type: 'method', obsidianName: 'lower', argCount: 1 },
+	'upper': { type: 'method', obsidianName: 'upper', argCount: 1 },
+	
+	// In Notion: replace(x, old, new), In Obsidian: x.replace(old, new)
+	'replace': { type: 'method', obsidianName: 'replace', argCount: 3 },
+	
+	// In Notion: substring(x, start, end?), In Obsidian: x.slice(start, end)
+	'substring': { type: 'method', obsidianName: 'slice', argCount: 3 }, // argCount 3 but end is optional
+	
+	// In Notion: reverse(x), In Obsidian: x.reverse()
+	'reverse': { type: 'method', obsidianName: 'reverse', argCount: 1 },
+	'sort': { type: 'method', obsidianName: 'sort', argCount: 1 },
+	'unique': { type: 'method', obsidianName: 'unique', argCount: 1 },
+	
+	// In Notion: flat(x), In Obsidian: x.flat()
+	'flat': { type: 'method', obsidianName: 'flat', argCount: 1 },
+	
+	// In Notion: join(x, sep), In Obsidian: x.join(sep)
+	'join': { type: 'method', obsidianName: 'join', argCount: 2 },
+	
+	// In Notion: includes(x, val), In Obsidian: x.contains(val)
+	'includes': { type: 'method', obsidianName: 'contains', argCount: 2 },
+	
+	// In Notion: slice(x, start, end), In Obsidian: x.slice(start, end)
+	'slice': { type: 'method', obsidianName: 'slice', argCount: 3 },
+	
+	// List iteration functions - need special handling for variable names
+	// In Notion: map(list, current + 1), In Obsidian: list.map(value + 1)
+	'map': { type: 'method', obsidianName: 'map', argCount: 2 },
+	// In Notion: filter(list, current > 1), In Obsidian: list.filter(value > 1)
+	'filter': { type: 'method', obsidianName: 'filter', argCount: 2 },
+	
+	// Number functions - In Notion: abs(x), In Obsidian: x.abs()
 	'abs': { type: 'method', obsidianName: 'abs', argCount: 1 },
 	'ceil': { type: 'method', obsidianName: 'ceil', argCount: 1 },
 	'floor': { type: 'method', obsidianName: 'floor', argCount: 1 },
 	'round': { type: 'method', obsidianName: 'round', argCount: 1 },
-	'toFixed': { type: 'method', obsidianName: 'toFixed', argCount: 2 },
 	
-	// String properties
-	'length': { type: 'property', obsidianName: 'length', argCount: 1 },
+	// Date functions - In Notion: formatDate(x, fmt), In Obsidian: x.format(fmt)
+	'formatDate': { type: 'method', obsidianName: 'format', argCount: 2 },
 	
-	// String methods
-	'contains': { type: 'method', obsidianName: 'contains', argCount: 2 },
-	'slice': { type: 'method', obsidianName: 'slice', argCount: 3 }, // text, start, end (end optional)
-	'split': { type: 'method', obsidianName: 'split', argCount: 2 },
-	'replace': { type: 'method', obsidianName: 'replace', argCount: 3 },
-	'lower': { type: 'method', obsidianName: 'lower', argCount: 1 },
-	'upper': { type: 'method', obsidianName: 'upper', argCount: 1 },
-	'trim': { type: 'method', obsidianName: 'trim', argCount: 1 },
-	'startsWith': { type: 'method', obsidianName: 'startsWith', argCount: 2 },
-	'endsWith': { type: 'method', obsidianName: 'endsWith', argCount: 2 },
+	// Date parsing and extraction
+	// parseDate is a special case that maps to Obsidian's date() global function
+	'parseDate': { type: 'global', obsidianName: 'date' },
 	
-	// List methods
-	'reverse': { type: 'method', obsidianName: 'reverse', argCount: 1 },
-	'sort': { type: 'method', obsidianName: 'sort', argCount: 1 },
-	'unique': { type: 'method', obsidianName: 'unique', argCount: 1 },
-	'flat': { type: 'method', obsidianName: 'flat', argCount: 1 },
-	'flatten': { type: 'method', obsidianName: 'flat', argCount: 1 }, // Notion uses flatten, Obsidian uses flat
-	'join': { type: 'method', obsidianName: 'join', argCount: 2 },
-	'includes': { type: 'method', obsidianName: 'includes', argCount: 2 },
-	'containsAny': { type: 'method', obsidianName: 'containsAny', argCount: 2 },
-	'containsAll': { type: 'method', obsidianName: 'containsAll', argCount: 2 },
-	
-	// Special cases
-	'empty': { type: 'method', obsidianName: 'isEmpty', argCount: 1 },
-	'isEmpty': { type: 'method', obsidianName: 'isEmpty', argCount: 1 },
+	// Notion's date() extracts day of month (1-31), Obsidian uses .day property
+	// This is handled specially in conversion logic to avoid conflict with date() global function
 	
 	// List accessors - convert to array notation
 	'at': { type: 'operator', argCount: 2 }, // at(list, index) -> list[index]
@@ -78,8 +114,10 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	'subtract': { type: 'operator', argCount: 2 }, // subtract(a, b) -> a - b
 	'multiply': { type: 'operator', argCount: 2 }, // multiply(a, b) -> a * b
 	'divide': { type: 'operator', argCount: 2 }, // divide(a, b) -> a / b
-	'pow': { type: 'operator', argCount: 2 }, // pow(a, b) -> a ^ b
 	'mod': { type: 'operator', argCount: 2 }, // mod(a, b) -> a % b
+	'equal': { type: 'operator', argCount: 2 }, // equal(a, b) -> a == b
+	'unequal': { type: 'operator', argCount: 2 }, // unequal(a, b) -> a != b
+	// Note: pow() is NOT supported - Obsidian has no exponentiation operator
 };
 
 /**
@@ -90,25 +128,55 @@ export function canConvertFormula(notionFormula: string): boolean {
 		return false;
 	}
 	
-	// List of functions we cannot convert
+	// List of Notion functions we cannot convert to Obsidian Base
 	const unsupportedFunctions = [
-		// Math functions not in Obsidian
-		'sqrt', 'exp', 'ln', 'log10', 'log2', 'sign', 'cbrt',
+		// Math functions not in Obsidian Base
+		'sqrt', 'exp', 'ln', 'log10', 'log2', 'sign', 'cbrt', 'pi', 'e', 'pow',
 		
-		// String functions not in Obsidian
-		'substring', 'concat', 'format', 'replaceAll', 'test', 'match',
+		// Statistical/aggregation functions not in Obsidian Base
+		'sum', 'mean', 'median', // Obsidian Base does not support these
 		
-		// Date functions
-		'dateAdd', 'dateSubtract', 'dateBetween', 'formatDate',
-		'fromTimestamp', 'timestamp',
-		'minute', 'hour', 'day', 'date', 'month', 'year',
-		'time', 'relative', 'duration',
+		// String functions not in Obsidian Base or with incompatible syntax
+		'replaceAll', 'match',
+		// Note: 'substring' is supported and converted to slice() method
+		// Note: 'concat' for lists is not supported in Obsidian (no list concatenation method)
+		'repeat', 'split', 'trim', // These exist in Obsidian but Notion uses global functions
+		'style', 'unstyle', // Notion-specific formatting
+		// Note: Notion doesn't have startsWith, endsWith, containsAny, containsAll, title, isEmpty as global functions
+		// Note: 'test' is supported and converted to /pattern/.matches(string)
 		
-		// Advanced list functions with different syntax
-		'filter', 'map', 'find', 'some', 'every',
+		// Boolean/conditional functions
+		'empty', 'ifs', // Not in Obsidian Base
+		// Note: 'equal' and 'unequal' are supported and converted to == and != operators
 		
-		// Other
-		'ifs', 'let', 'lets', 'toNumber', 'toString', 'id', 'style', 'link',
+		// Date/time functions (most are incompatible)
+		// Note: 'now' and 'today' are supported and mapped
+		// Note: 'formatDate' is supported and mapped to 'format' method
+		// Note: 'parseDate' is supported and mapped to 'date' global function
+		// Note: 'date', 'year', 'month', 'hour', 'minute' are handled specially and converted to properties
+		// Note: 'dateAdd' and 'dateSubtract' are supported and converted to date arithmetic
+		// Note: 'fromTimestamp' is supported and converted to date() function
+		'dateBetween', 'dateRange', 'dateStart', 'dateEnd',
+		'timestamp',
+		'day', 'week', // day = day of week (1-7), week = ISO week number - no Obsidian equivalent
+		
+		// Person functions
+		'name', 'email',
+		
+	// Advanced list functions
+	// Note: 'map' and 'filter' are supported but need variable name conversion (current -> value)
+	'find', 'findIndex', 'some', 'every',
+		
+		// Conversion functions
+		// Note: 'toNumber' is supported and mapped to 'number'
+		// Note: 'format' is supported and mapped to 'toString'
+		
+		// Variable binding
+		'let', 'lets',
+		
+		// Notion-specific functions
+		'id', // Notion page ID function
+		'link', // Notion link() has different parameters than Obsidian link()
 	];
 	
 	// Extract function names
@@ -199,7 +267,141 @@ export function convertNotionFormulaToObsidian(
 		const funcPattern = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
 		
 		result = result.replace(funcPattern, (match, funcName, argsStr) => {
-			const mapping = FUNCTION_MAPPING[funcName];
+			// Special case: Notion's date/time extraction functions
+			// In Obsidian, these are properties on date objects
+			// We need to handle these before checking FUNCTION_MAPPING
+			const datePropertyMap: Record<string, string> = {
+				'date': 'day',      // date(x) -> (x).day
+				'year': 'year',     // year(x) -> (x).year
+				'month': 'month',   // month(x) -> (x).month
+				'hour': 'hour',     // hour(x) -> (x).hour
+				'minute': 'minute', // minute(x) -> (x).minute
+			};
+			
+		if (funcName in datePropertyMap) {
+			changed = true;
+			const args = parseArguments(argsStr);
+			if (args.length === 1) {
+				// Convert: funcName(x) -> (x).property
+				return `(${args[0]}).${datePropertyMap[funcName]}`;
+			}
+			// Fallback: keep as-is
+			return match;
+		}
+		
+		// Special case: Notion's test() function -> Obsidian's /pattern/.matches(string)
+		// In Notion: test(string, pattern)
+		// In Obsidian: /pattern/.matches(string)
+		if (funcName === 'test') {
+			changed = true;
+			const args = parseArguments(argsStr);
+			if (args.length === 2) {
+				const stringArg = args[0];
+				const patternArg = args[1];
+				
+				// Remove quotes from pattern if it's a string literal
+				let pattern = patternArg.trim();
+				if ((pattern.startsWith('"') && pattern.endsWith('"')) || 
+				    (pattern.startsWith("'") && pattern.endsWith("'"))) {
+					pattern = pattern.slice(1, -1);
+				}
+				
+				// Convert: test(string, pattern) -> /pattern/.matches(string)
+				return `/${pattern}/.matches(${stringArg})`;
+			}
+			// Fallback: keep as-is if wrong number of arguments
+			return match;
+		}
+		
+		// Special case: Notion's dateAdd() function -> Obsidian date arithmetic
+		// In Notion: dateAdd(date, amount, unit)
+		// In Obsidian: date + 'amount+unit' (e.g., now() + '1d')
+		if (funcName === 'dateAdd') {
+			changed = true;
+			const args = parseArguments(argsStr);
+			if (args.length === 3) {
+				const dateArg = args[0];
+				const amountArg = args[1];
+				const unitArg = args[2];
+				
+				// Remove quotes from unit if it's a string literal
+				let unit = unitArg.trim();
+				if ((unit.startsWith('"') && unit.endsWith('"')) || 
+				    (unit.startsWith("'") && unit.endsWith("'"))) {
+					unit = unit.slice(1, -1);
+				}
+				
+				// Map Notion units to Obsidian units
+				const unitMap: Record<string, string> = {
+					'years': 'y',
+					'quarters': 'q',
+					'months': 'M',
+					'weeks': 'w',
+					'days': 'd',
+					'hours': 'h',
+					'minutes': 'm',
+				};
+				const obsidianUnit = unitMap[unit] || unit;
+				
+				// Convert: dateAdd(date, amount, unit) -> date + 'amount+unit'
+				return `(${dateArg}) + '${amountArg}${obsidianUnit}'`;
+			}
+			// Fallback: keep as-is if wrong number of arguments
+			return match;
+		}
+		
+		// Special case: Notion's dateSubtract() function -> Obsidian date arithmetic
+		// In Notion: dateSubtract(date, amount, unit)
+		// In Obsidian: date - 'amount+unit' (e.g., now() - '1d')
+		if (funcName === 'dateSubtract') {
+			changed = true;
+			const args = parseArguments(argsStr);
+			if (args.length === 3) {
+				const dateArg = args[0];
+				const amountArg = args[1];
+				const unitArg = args[2];
+				
+				// Remove quotes from unit if it's a string literal
+				let unit = unitArg.trim();
+				if ((unit.startsWith('"') && unit.endsWith('"')) || 
+				    (unit.startsWith("'") && unit.endsWith("'"))) {
+					unit = unit.slice(1, -1);
+				}
+				
+				// Map Notion units to Obsidian units
+				const unitMap: Record<string, string> = {
+					'years': 'y',
+					'quarters': 'q',
+					'months': 'M',
+					'weeks': 'w',
+					'days': 'd',
+					'hours': 'h',
+					'minutes': 'm',
+				};
+				const obsidianUnit = unitMap[unit] || unit;
+				
+				// Convert: dateSubtract(date, amount, unit) -> date - 'amount+unit'
+				return `(${dateArg}) - '${amountArg}${obsidianUnit}'`;
+			}
+			// Fallback: keep as-is if wrong number of arguments
+			return match;
+		}
+		
+		// Special case: Notion's fromTimestamp() function -> Obsidian's date() function
+		// In Notion: fromTimestamp(milliseconds)
+		// In Obsidian: date(milliseconds) - Obsidian's date() can parse timestamps
+		if (funcName === 'fromTimestamp') {
+			changed = true;
+			const args = parseArguments(argsStr);
+			if (args.length === 1) {
+				// Convert: fromTimestamp(ms) -> date(ms)
+				return `date(${args[0]})`;
+			}
+			// Fallback: keep as-is if wrong number of arguments
+			return match;
+		}
+		
+		const mapping = FUNCTION_MAPPING[funcName];
 			
 			if (!mapping) {
 				// Not a convertible function, keep as-is
@@ -207,7 +409,14 @@ export function convertNotionFormulaToObsidian(
 			}
 			
 			if (mapping.type === 'global') {
-				// Global functions stay as-is
+				// Global functions - may need renaming
+				if (mapping.obsidianName) {
+					// Function needs to be renamed (e.g., toNumber -> number, parseDate -> date)
+					changed = true;
+					const args = parseArguments(argsStr);
+					return `${mapping.obsidianName}(${args.join(', ')})`;
+				}
+				// Otherwise stay as-is (e.g., if(), max(), min(), now(), today())
 				return match;
 			}
 			
@@ -216,27 +425,38 @@ export function convertNotionFormulaToObsidian(
 			
 			if (mapping.type === 'property') {
 				// Convert: length(x) -> (x).length
+				// Properties are accessed without parentheses
 				if (args.length === 1) {
 					changed = true;
 					return `(${args[0]}).${mapping.obsidianName}`;
 				}
 			}
 			
-			if (mapping.type === 'method') {
-				// Convert: abs(x) -> (x).abs()
-				// Convert: contains(x, y) -> (x).contains(y)
-				if (args.length >= 1) {
-					changed = true;
-					const obj = args[0];
-					const methodArgs = args.slice(1);
-					
-					if (methodArgs.length > 0) {
-						return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
-					} else {
-						return `(${obj}).${mapping.obsidianName}()`;
-					}
+		if (mapping.type === 'method') {
+			// Convert: abs(x) -> (x).abs()
+			// Convert: contains(x, y) -> (x).contains(y)
+			// Convert: unique(x) -> (x).unique()
+			if (args.length >= 1) {
+				changed = true;
+				const obj = args[0];
+				let methodArgs = args.slice(1);
+				
+				// Special handling for map() and filter(): replace 'current' with 'value'
+				if (funcName === 'map' || funcName === 'filter') {
+					methodArgs = methodArgs.map(arg => {
+						// Replace 'current' with 'value' in the expression
+						// Use word boundaries to avoid replacing parts of other identifiers
+						return arg.replace(/\bcurrent\b/g, 'value');
+					});
+				}
+				
+				if (methodArgs.length > 0) {
+					return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
+				} else {
+					return `(${obj}).${mapping.obsidianName}()`;
 				}
 			}
+		}
 			
 			if (mapping.type === 'operator') {
 				changed = true;
@@ -262,8 +482,10 @@ export function convertNotionFormulaToObsidian(
 						'subtract': '-',
 						'multiply': '*',
 						'divide': '/',
-						'pow': '^',
 						'mod': '%',
+						'equal': '==',
+						'unequal': '!=',
+						// Note: 'pow' is NOT included - Obsidian has no exponentiation operator
 					};
 					const op = operatorMap[funcName];
 					if (op) {
