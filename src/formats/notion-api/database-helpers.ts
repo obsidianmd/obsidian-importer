@@ -261,22 +261,7 @@ function generateBaseFileContent(
 	content += `    - file.folder.split("/").length == ${databaseDepth + 1}\n\n`;
 	
 	// Map Notion properties to Obsidian properties
-	const propertyMappings = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
-	
-	// Separate formulas from regular properties (maintaining order)
-	const formulas: Array<{key: string, config: any}> = [];
-	const regularProperties: Array<{key: string, config: any}> = [];
-	
-	for (const item of propertyMappings) {
-		if (item.config.formula) {
-			// This is a formula property
-			formulas.push(item);
-		}
-		else {
-			// This is a regular property
-			regularProperties.push(item);
-		}
-	}
+	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
 	
 	// Add formulas section if there are any
 	if (formulas.length > 0) {
@@ -326,12 +311,15 @@ function generateBaseFileContent(
  * Map Notion database properties to Obsidian base properties
  * @param dataSourceProperties - Notion data source property schema
  * @param formulaStrategy - How to handle formula properties
- * @returns Array of {key, config} objects
+ * @returns Object with separate arrays for formulas and regular properties
  */
 function mapDatabaseProperties(
 	dataSourceProperties: any,
 	formulaStrategy: FormulaImportStrategy = 'function'
-): Array<{key: string, config: any}> {
+): {
+		formulas: Array<{key: string, config: any}>;
+		regularProperties: Array<{key: string, config: any}>;
+	} {
 	const mappings: Record<string, any> = {};
 	
 	// First pass: create mappings for all properties
@@ -508,16 +496,24 @@ function mapDatabaseProperties(
 		}
 	}
 	
-	// Convert mappings to ordered array
+	// Separate formulas from regular properties
 	// Note: Property order is based on Object.entries() iteration order
 	// which in modern JavaScript (ES2015+) preserves insertion order for string keys
-	const orderedMappings: Array<{key: string, config: any}> = [];
+	const formulas: Array<{key: string, config: any}> = [];
+	const regularProperties: Array<{key: string, config: any}> = [];
 	
 	for (const [key, config] of Object.entries(mappings)) {
-		orderedMappings.push({ key, config });
+		if (config.formula) {
+			// This is a formula property
+			formulas.push({ key, config });
+		}
+		else {
+			// This is a regular property
+			regularProperties.push({ key, config });
+		}
 	}
 	
-	return orderedMappings;
+	return { formulas, regularProperties };
 }
 
 /**
