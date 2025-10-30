@@ -26,8 +26,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
-    // save output root path for database handling
-    //  we will flatten all database in this folder later
+	// save output root path for database handling
+	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
 	// Track all processed databases for relation resolution
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
@@ -211,55 +211,57 @@ export class NotionAPIImporter extends FormatImporter {
 				},
 			});
 
-		ctx.status('Fetching page content from Notion...');
+			ctx.status('Fetching page content from Notion...');
 		
-		// Reset processed pages tracker
-		this.processedPages.clear();
-		this.processedDatabases.clear();
-		this.relationPlaceholders = [];
-		this.totalPagesDiscovered = 0; // Will be updated as we discover pages
-		this.pagesCompleted = 0;
+			// Reset processed pages tracker
+			this.processedPages.clear();
+			this.processedDatabases.clear();
+			this.relationPlaceholders = [];
+			this.totalPagesDiscovered = 0; // Will be updated as we discover pages
+			this.pagesCompleted = 0;
 		
-		// Initialize progress display
-		ctx.reportProgress(0, 0);
+			// Initialize progress display
+			ctx.reportProgress(0, 0);
 		
-		// Save output root path for database handling
-		this.outputRootPath = folder.path;
+			// Save output root path for database handling
+			this.outputRootPath = folder.path;
 		
-		// Check if the input is a database or a page by retrieving block info
-		ctx.status('Checking block type...');
-		const block = await makeNotionRequest(
-			() => this.notionClient!.blocks.retrieve({ block_id: extractedPageId }) as Promise<any>,
-			ctx
-		);
+			// Check if the input is a database or a page by retrieving block info
+			ctx.status('Checking block type...');
+			const block = await makeNotionRequest(
+				() => this.notionClient!.blocks.retrieve({ block_id: extractedPageId }) as Promise<any>,
+				ctx
+			);
 		
-		// Check block type and handle accordingly
-		if (block.type === 'child_database') {
+			// Check block type and handle accordingly
+			if (block.type === 'child_database') {
 			// It's a database! Import it as a top-level database
-			ctx.status('Input is a database, importing as top-level database...');
-			await this.importTopLevelDatabase(ctx, extractedPageId, folder.path);
-		} else if (block.type === 'child_page') {
+				ctx.status('Input is a database, importing as top-level database...');
+				await this.importTopLevelDatabase(ctx, extractedPageId, folder.path);
+			}
+			else if (block.type === 'child_page') {
 			// It's a child page, import as page
-			ctx.status('Input is a page, importing...');
-			await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
-		} else {
+				ctx.status('Input is a page, importing...');
+				await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
+			}
+			else {
 			// Other block types (paragraph, heading, etc.) are not supported as entry points
-			throw new Error(`Unsupported block type: ${block.type}. Please provide a page ID or database ID.`);
+				throw new Error(`Unsupported block type: ${block.type}. Please provide a page ID or database ID.`);
+			}
+		
+			// After all pages are imported, replace relation placeholders
+			ctx.status('Processing relation links...');
+			await this.replaceRelationPlaceholders(ctx);
+		
+			ctx.status('Import completed successfully!');
+		
 		}
-		
-		// After all pages are imported, replace relation placeholders
-		ctx.status('Processing relation links...');
-		await this.replaceRelationPlaceholders(ctx);
-		
-		ctx.status('Import completed successfully!');
-		
+		catch (error) {
+			console.error('Notion API import error:', error);
+			ctx.reportFailed('Notion API import', error);
+			new Notice(`Import failed: ${error.message}`);
+		}
 	}
-	catch (error) {
-		console.error('Notion API import error:', error);
-		ctx.reportFailed('Notion API import', error);
-		new Notice(`Import failed: ${error.message}`);
-	}
-}
 
 	/**
 	 * Import a top-level database (when user provides a database ID directly)
@@ -309,7 +311,8 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Note: Don't increment pagesCompleted for the database itself, 
 			// only for the pages within it (which are counted in fetchAndImportPage)
-		} catch (error) {
+		}
+		catch (error) {
 			console.error(`Failed to import database ${databaseId}:`, error);
 			throw error;
 		}
@@ -358,33 +361,33 @@ export class NotionAPIImporter extends FormatImporter {
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			
 			// Convert blocks to markdown with nested children support
-		let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
+			let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
 		
-		// Process database placeholders
-		markdownContent = await processDatabasePlaceholders(
-			markdownContent,
-			blocks,
-			{
-				ctx,
-				currentPageFolderPath: pageFolderPath,
-				client: this.notionClient!,
-				vault: this.vault,
-				outputRootPath: this.outputRootPath,
-				formulaStrategy: this.formulaStrategy,
-				processedDatabases: this.processedDatabases,
-				relationPlaceholders: this.relationPlaceholders,
-				// Callback to import database pages
-				importPageCallback: async (pageId: string, parentPath: string) => {
-					await this.fetchAndImportPage(ctx, pageId, parentPath);
-				},
-				// Callback to update discovered pages count
-				onPagesDiscovered: (newPagesCount: number) => {
-					this.totalPagesDiscovered += newPagesCount;
-					// Update progress immediately when discovering pages to show correct total
-					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+			// Process database placeholders
+			markdownContent = await processDatabasePlaceholders(
+				markdownContent,
+				blocks,
+				{
+					ctx,
+					currentPageFolderPath: pageFolderPath,
+					client: this.notionClient!,
+					vault: this.vault,
+					outputRootPath: this.outputRootPath,
+					formulaStrategy: this.formulaStrategy,
+					processedDatabases: this.processedDatabases,
+					relationPlaceholders: this.relationPlaceholders,
+					// Callback to import database pages
+					importPageCallback: async (pageId: string, parentPath: string) => {
+						await this.fetchAndImportPage(ctx, pageId, parentPath);
+					},
+					// Callback to update discovered pages count
+					onPagesDiscovered: (newPagesCount: number) => {
+						this.totalPagesDiscovered += newPagesCount;
+						// Update progress immediately when discovering pages to show correct total
+						ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+					}
 				}
-			}
-		);
+			);
 			
 			// Prepare YAML frontmatter
 			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
@@ -445,7 +448,8 @@ export class NotionAPIImporter extends FormatImporter {
 			const unimportedDbPath = `${this.outputRootPath}/Relation Unimported Databases`;
 			try {
 				await this.vault.createFolder(normalizePath(unimportedDbPath));
-			} catch (error) {
+			}
+			catch (error) {
 				// Folder might already exist, that's ok
 			}
 			
@@ -460,7 +464,8 @@ export class NotionAPIImporter extends FormatImporter {
 				
 				try {
 					await this.importUnimportedDatabase(ctx, databaseId, unimportedDbPath);
-				} catch (error) {
+				}
+				catch (error) {
 					console.error(`Failed to import unimported database ${databaseId}:`, error);
 				}
 			}
@@ -513,7 +518,8 @@ export class NotionAPIImporter extends FormatImporter {
 							new RegExp(`${relatedPageId}`, 'g'),
 							wikiLink
 						);
-					} else {
+					}
+					else {
 						// Page still not found after importing missing databases
 						console.warn(`Could not find related page: ${relatedPageId}`);
 					}

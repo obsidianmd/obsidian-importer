@@ -169,9 +169,9 @@ export function canConvertFormula(notionFormula: string): boolean {
 		// Person functions
 		'name', 'email',
 		
-	// Advanced list functions
-	// Note: 'map' and 'filter' are supported but need variable name conversion (current -> value)
-	'find', 'findIndex', 'some', 'every',
+		// Advanced list functions
+		// Note: 'map' and 'filter' are supported but need variable name conversion (current -> value)
+		'find', 'findIndex', 'some', 'every',
 		
 		// Conversion functions
 		// Note: 'toNumber' is supported and mapped to 'number'
@@ -288,114 +288,114 @@ export function convertNotionFormulaToObsidian(
 				return match;
 			}
 		
-		// Special case: Notion's test() function -> Obsidian's /pattern/.matches(string)
-		// In Notion: test(string, pattern)
-		// In Obsidian: /pattern/.matches(string)
-		if (funcName === 'test') {
-			changed = true;
-			const args = parseArguments(argsStr);
-			if (args.length === 2) {
-				const stringArg = args[0];
-				const patternArg = args[1];
+			// Special case: Notion's test() function -> Obsidian's /pattern/.matches(string)
+			// In Notion: test(string, pattern)
+			// In Obsidian: /pattern/.matches(string)
+			if (funcName === 'test') {
+				changed = true;
+				const args = parseArguments(argsStr);
+				if (args.length === 2) {
+					const stringArg = args[0];
+					const patternArg = args[1];
 				
-				// Remove quotes from pattern if it's a string literal
-				let pattern = patternArg.trim();
-				if ((pattern.startsWith('"') && pattern.endsWith('"')) || 
-				    (pattern.startsWith("'") && pattern.endsWith("'"))) {
-					pattern = pattern.slice(1, -1);
+					// Remove quotes from pattern if it's a string literal
+					let pattern = patternArg.trim();
+					if ((pattern.startsWith('"') && pattern.endsWith('"')) || 
+				    (pattern.startsWith('\'') && pattern.endsWith('\''))) {
+						pattern = pattern.slice(1, -1);
+					}
+				
+					// Convert: test(string, pattern) -> /pattern/.matches(string)
+					return `/${pattern}/.matches(${stringArg})`;
 				}
-				
-				// Convert: test(string, pattern) -> /pattern/.matches(string)
-				return `/${pattern}/.matches(${stringArg})`;
+				// Fallback: keep as-is if wrong number of arguments
+				return match;
 			}
-			// Fallback: keep as-is if wrong number of arguments
-			return match;
-		}
 		
-		// Special case: Notion's dateAdd() function -> Obsidian date arithmetic
-		// In Notion: dateAdd(date, amount, unit)
-		// In Obsidian: date + 'amount+unit' (e.g., now() + '1d')
-		if (funcName === 'dateAdd') {
-			changed = true;
-			const args = parseArguments(argsStr);
-			if (args.length === 3) {
-				const dateArg = args[0];
-				const amountArg = args[1];
-				const unitArg = args[2];
+			// Special case: Notion's dateAdd() function -> Obsidian date arithmetic
+			// In Notion: dateAdd(date, amount, unit)
+			// In Obsidian: date + 'amount+unit' (e.g., now() + '1d')
+			if (funcName === 'dateAdd') {
+				changed = true;
+				const args = parseArguments(argsStr);
+				if (args.length === 3) {
+					const dateArg = args[0];
+					const amountArg = args[1];
+					const unitArg = args[2];
 				
-				// Remove quotes from unit if it's a string literal
-				let unit = unitArg.trim();
-				if ((unit.startsWith('"') && unit.endsWith('"')) || 
-				    (unit.startsWith("'") && unit.endsWith("'"))) {
-					unit = unit.slice(1, -1);
+					// Remove quotes from unit if it's a string literal
+					let unit = unitArg.trim();
+					if ((unit.startsWith('"') && unit.endsWith('"')) || 
+				    (unit.startsWith('\'') && unit.endsWith('\''))) {
+						unit = unit.slice(1, -1);
+					}
+				
+					// Map Notion units to Obsidian units
+					const unitMap: Record<string, string> = {
+						'years': 'y',
+						'quarters': 'q',
+						'months': 'M',
+						'weeks': 'w',
+						'days': 'd',
+						'hours': 'h',
+						'minutes': 'm',
+					};
+					const obsidianUnit = unitMap[unit] || unit;
+				
+					// Convert: dateAdd(date, amount, unit) -> date + 'amount+unit'
+					return `(${dateArg}) + '${amountArg}${obsidianUnit}'`;
 				}
-				
-				// Map Notion units to Obsidian units
-				const unitMap: Record<string, string> = {
-					'years': 'y',
-					'quarters': 'q',
-					'months': 'M',
-					'weeks': 'w',
-					'days': 'd',
-					'hours': 'h',
-					'minutes': 'm',
-				};
-				const obsidianUnit = unitMap[unit] || unit;
-				
-				// Convert: dateAdd(date, amount, unit) -> date + 'amount+unit'
-				return `(${dateArg}) + '${amountArg}${obsidianUnit}'`;
+				// Fallback: keep as-is if wrong number of arguments
+				return match;
 			}
-			// Fallback: keep as-is if wrong number of arguments
-			return match;
-		}
 		
-		// Special case: Notion's dateSubtract() function -> Obsidian date arithmetic
-		// In Notion: dateSubtract(date, amount, unit)
-		// In Obsidian: date - 'amount+unit' (e.g., now() - '1d')
-		if (funcName === 'dateSubtract') {
-			changed = true;
-			const args = parseArguments(argsStr);
-			if (args.length === 3) {
-				const dateArg = args[0];
-				const amountArg = args[1];
-				const unitArg = args[2];
+			// Special case: Notion's dateSubtract() function -> Obsidian date arithmetic
+			// In Notion: dateSubtract(date, amount, unit)
+			// In Obsidian: date - 'amount+unit' (e.g., now() - '1d')
+			if (funcName === 'dateSubtract') {
+				changed = true;
+				const args = parseArguments(argsStr);
+				if (args.length === 3) {
+					const dateArg = args[0];
+					const amountArg = args[1];
+					const unitArg = args[2];
 				
-				// Remove quotes from unit if it's a string literal
-				let unit = unitArg.trim();
-				if ((unit.startsWith('"') && unit.endsWith('"')) || 
-				    (unit.startsWith("'") && unit.endsWith("'"))) {
-					unit = unit.slice(1, -1);
+					// Remove quotes from unit if it's a string literal
+					let unit = unitArg.trim();
+					if ((unit.startsWith('"') && unit.endsWith('"')) || 
+				    (unit.startsWith('\'') && unit.endsWith('\''))) {
+						unit = unit.slice(1, -1);
+					}
+				
+					// Map Notion units to Obsidian units
+					const unitMap: Record<string, string> = {
+						'years': 'y',
+						'quarters': 'q',
+						'months': 'M',
+						'weeks': 'w',
+						'days': 'd',
+						'hours': 'h',
+						'minutes': 'm',
+					};
+					const obsidianUnit = unitMap[unit] || unit;
+				
+					// Convert: dateSubtract(date, amount, unit) -> date - 'amount+unit'
+					return `(${dateArg}) - '${amountArg}${obsidianUnit}'`;
 				}
-				
-				// Map Notion units to Obsidian units
-				const unitMap: Record<string, string> = {
-					'years': 'y',
-					'quarters': 'q',
-					'months': 'M',
-					'weeks': 'w',
-					'days': 'd',
-					'hours': 'h',
-					'minutes': 'm',
-				};
-				const obsidianUnit = unitMap[unit] || unit;
-				
-				// Convert: dateSubtract(date, amount, unit) -> date - 'amount+unit'
-				return `(${dateArg}) - '${amountArg}${obsidianUnit}'`;
+				// Fallback: keep as-is if wrong number of arguments
+				return match;
 			}
-			// Fallback: keep as-is if wrong number of arguments
-			return match;
-		}
 		
-		// Special case: Notion's fromTimestamp() function
-		// Note: Obsidian's date() function does NOT accept numeric timestamps
-		// date() signature: date(input: string | date): date
-		// Therefore, fromTimestamp() cannot be converted
-		if (funcName === 'fromTimestamp') {
+			// Special case: Notion's fromTimestamp() function
+			// Note: Obsidian's date() function does NOT accept numeric timestamps
+			// date() signature: date(input: string | date): date
+			// Therefore, fromTimestamp() cannot be converted
+			if (funcName === 'fromTimestamp') {
 			// Keep as unsupported - will be caught by canConvertFormula
-			return match;
-		}
+				return match;
+			}
 		
-		const mapping = FUNCTION_MAPPING[funcName];
+			const mapping = FUNCTION_MAPPING[funcName];
 			
 			if (!mapping) {
 				// Not a convertible function, keep as-is
@@ -426,31 +426,32 @@ export function convertNotionFormulaToObsidian(
 				}
 			}
 			
-		if (mapping.type === 'method') {
+			if (mapping.type === 'method') {
 			// Convert: abs(x) -> (x).abs()
 			// Convert: contains(x, y) -> (x).contains(y)
 			// Convert: unique(x) -> (x).unique()
-			if (args.length >= 1) {
-				changed = true;
-				const obj = args[0];
-				let methodArgs = args.slice(1);
+				if (args.length >= 1) {
+					changed = true;
+					const obj = args[0];
+					let methodArgs = args.slice(1);
 				
-				// Special handling for map() and filter(): replace 'current' with 'value'
-				if (funcName === 'map' || funcName === 'filter') {
-					methodArgs = methodArgs.map(arg => {
+					// Special handling for map() and filter(): replace 'current' with 'value'
+					if (funcName === 'map' || funcName === 'filter') {
+						methodArgs = methodArgs.map(arg => {
 						// Replace 'current' with 'value' in the expression
 						// Use word boundaries to avoid replacing parts of other identifiers
-						return arg.replace(/\bcurrent\b/g, 'value');
-					});
-				}
+							return arg.replace(/\bcurrent\b/g, 'value');
+						});
+					}
 				
-				if (methodArgs.length > 0) {
-					return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
-				} else {
-					return `(${obj}).${mapping.obsidianName}()`;
+					if (methodArgs.length > 0) {
+						return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
+					}
+					else {
+						return `(${obj}).${mapping.obsidianName}()`;
+					}
 				}
 			}
-		}
 			
 			if (mapping.type === 'operator') {
 				changed = true;
@@ -530,21 +531,26 @@ function parseArguments(argsStr: string): string[] {
 			if (char === stringChar && argsStr[i - 1] !== '\\') {
 				inString = false;
 			}
-		} else {
-			if (char === '"' || char === "'") {
+		}
+		else {
+			if (char === '"' || char === '\'') {
 				inString = true;
 				stringChar = char;
 				current += char;
-			} else if (char === '(' || char === '[') {
+			}
+			else if (char === '(' || char === '[') {
 				depth++;
 				current += char;
-			} else if (char === ')' || char === ']') {
+			}
+			else if (char === ')' || char === ']') {
 				depth--;
 				current += char;
-			} else if (char === ',' && depth === 0) {
+			}
+			else if (char === ',' && depth === 0) {
 				args.push(current.trim());
 				current = '';
-			} else {
+			}
+			else {
 				current += char;
 			}
 		}

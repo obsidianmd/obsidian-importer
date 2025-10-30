@@ -259,7 +259,8 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return prop.files?.map((f: any) => {
 				if (f.type === 'file') {
 					return f.file?.url || '';
-				} else if (f.type === 'external') {
+				}
+				else if (f.type === 'external') {
 					return f.external?.url || '';
 				}
 				return '';
