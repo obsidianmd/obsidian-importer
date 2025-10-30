@@ -2,6 +2,11 @@
  * Type definitions for Notion API importer
  */
 
+import { Client } from '@notionhq/client';
+import { Vault } from 'obsidian';
+import { ImportContext } from '../../main';
+import type { FormulaImportStrategy } from '../notion-api';
+
 export interface ProcessedPage {
 	id: string;
 	title: string;
@@ -12,6 +17,23 @@ export interface ProcessedPage {
 export interface NotionImporterConfig {
 	maxRetries: number;
 	requestCount: number;
+}
+
+/**
+ * Configuration context for database processing operations
+ * Consolidates common parameters used across database conversion functions
+ */
+export interface DatabaseProcessingContext {
+	ctx: ImportContext;
+	currentPageFolderPath: string;
+	client: Client;
+	vault: Vault;
+	outputRootPath: string;
+	formulaStrategy: FormulaImportStrategy;
+	processedDatabases: Map<string, DatabaseInfo>;
+	relationPlaceholders: RelationPlaceholder[];
+	importPageCallback: (pageId: string, parentPath: string) => Promise<void>;
+	onPagesDiscovered?: (count: number) => void;
 }
 
 /**

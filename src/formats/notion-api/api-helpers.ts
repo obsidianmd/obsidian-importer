@@ -5,6 +5,7 @@
 
 import { Client, BlockObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { ImportContext } from '../../main';
+import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 
 const MAX_RETRIES = 3;
 
@@ -174,9 +175,6 @@ function shouldAddFormulaToYAML(
 	databaseProperties: any,
 	strategy: 'static' | 'function' | 'hybrid'
 ): boolean {
-	// Import formula-converter functions
-	const { canConvertFormula, getNotionFormulaExpression } = require('./formula-converter');
-	
 	if (strategy === 'static') {
 		// Always add to YAML for static strategy
 		return true;
@@ -284,13 +282,13 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 					return null;
 			}
 		
-	case 'relation':
-		// Relation properties contain page IDs
-		// We'll store the IDs temporarily and replace them with links later
-		if (prop.relation && prop.relation.length > 0) {
-			return prop.relation.map((r: any) => r.id);
-		}
-		return [];
+		case 'relation':
+			// Relation properties contain page IDs
+			// We'll store the IDs temporarily and replace them with links later
+			if (prop.relation && prop.relation.length > 0) {
+				return prop.relation.map((r: any) => r.id);
+			}
+			return [];
 		
 		case 'rollup':
 			// Rollup properties should NOT be included in page YAML

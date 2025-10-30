@@ -4,13 +4,13 @@
  */
 
 import { Client, BlockObjectResponse, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { Vault, normalizePath, App } from 'obsidian';
+import { Vault, normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
-import { DatabaseInfo, RelationPlaceholder } from './types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './types';
 import type { FormulaImportStrategy } from '../notion-api';
 
 /**
@@ -32,19 +32,22 @@ const OBSIDIAN_PROPERTY_TYPES = {
  */
 export async function convertChildDatabase(
 	block: BlockObjectResponse,
-	ctx: ImportContext,
-	currentPageFolderPath: string,
-	client: Client,
-	vault: Vault,
-	app: App,
-	outputRootPath: string,
-	formulaStrategy: FormulaImportStrategy,
-	processedDatabases: Map<string, DatabaseInfo>,
-	relationPlaceholders: RelationPlaceholder[],
-	importPageCallback: (pageId: string, parentPath: string) => Promise<void>,
-	onPagesDiscovered?: (count: number) => void
+	context: DatabaseProcessingContext
 ): Promise<string> {
 	if (block.type !== 'child_database') return '';
+	
+	const {
+		ctx,
+		currentPageFolderPath,
+		client,
+		vault,
+		outputRootPath,
+		formulaStrategy,
+		processedDatabases,
+		relationPlaceholders,
+		importPageCallback,
+		onPagesDiscovered
+	} = context;
 	
 	try {
 		// Get database details
@@ -62,8 +65,8 @@ export async function convertChildDatabase(
 		
 		// In Notion API v2025-09-03, databases have data_sources array
 		// Get the first data source to retrieve properties
-        // It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
-        // FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
+		// FIXME: It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
+		// FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
 		
 		let dataSourceProperties: Record<string, any> = {};
 		let propertyIds: string[] = [];
@@ -96,48 +99,48 @@ export async function convertChildDatabase(
 			onPagesDiscovered(databasePages.length);
 		}
 		
-	// Import each database page recursively
-	for (const page of databasePages) {
-		if (ctx.isCancelled()) break;
+		// Import each database page recursively
+		for (const page of databasePages) {
+			if (ctx.isCancelled()) break;
+			
+			// Import the page using the callback (which handles the full page import logic)
+			await importPageCallback(page.id, databaseFolderPath);
+		}
 		
-		// Import the page using the callback (which handles the full page import logic)
-		await importPageCallback(page.id, databaseFolderPath);
-	}
-	
-	// Create .base file in "Notion Databases" folder
-	const baseFilePath = await createBaseFile(
-		vault,
-		sanitizedTitle,
-		databaseFolderPath,
-		outputRootPath,
-		dataSourceProperties,
-		databasePages,
-		formulaStrategy,
-		propertyIds
-	);
-	
-	// Record database information for relation resolution
-	const databaseInfo: DatabaseInfo = {
-		id: databaseId,
-		title: sanitizedTitle,
-		folderPath: databaseFolderPath,
-		baseFilePath: baseFilePath,
-		properties: dataSourceProperties,
-		dataSourceId: dataSourceId,
-	};
-	processedDatabases.set(databaseId, databaseInfo);
-	
-	// Process relation properties in database pages
-	// This will add placeholders to relationPlaceholders array
-	await processRelationProperties(
-		databasePages,
-		dataSourceProperties,
-		databaseId,
-		relationPlaceholders
-	);
-	
-	// Return a reference to the .base file
-	return `[[${sanitizedTitle}.base]]`;
+		// Create .base file in "Notion Databases" folder
+		const baseFilePath = await createBaseFile(
+			vault,
+			sanitizedTitle,
+			databaseFolderPath,
+			outputRootPath,
+			dataSourceProperties,
+			databasePages,
+			formulaStrategy,
+			propertyIds
+		);
+		
+		// Record database information for relation resolution
+		const databaseInfo: DatabaseInfo = {
+			id: databaseId,
+			title: sanitizedTitle,
+			folderPath: databaseFolderPath,
+			baseFilePath: baseFilePath,
+			properties: dataSourceProperties,
+			dataSourceId: dataSourceId,
+		};
+		processedDatabases.set(databaseId, databaseInfo);
+		
+		// Process relation properties in database pages
+		// This will add placeholders to relationPlaceholders array
+		await processRelationProperties(
+			databasePages,
+			dataSourceProperties,
+			databaseId,
+			relationPlaceholders
+		);
+		
+		// Return a reference to the .base file
+		return `[[${sanitizedTitle}.base]]`;
 	}
 	catch (error) {
 		console.error(`Failed to convert database ${block.id}:`, error);
@@ -275,7 +278,8 @@ function generateBaseFileContent(
 		if (item.config.formula) {
 			// This is a formula property
 			formulas.push(item);
-		} else {
+		}
+		else {
 			// This is a regular property
 			regularProperties.push(item);
 		}
@@ -383,122 +387,125 @@ function mapDatabaseProperties(
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
-			break;
-		
-		case 'title':
-			// Skip title property - it corresponds to file.name in Obsidian
-			// Title is already used as the page filename
-			break;
-		
-		case 'rich_text':
-		case 'url':
-		case 'email':
-		case 'phone_number':
-			// Text-based properties
-			mappings[sanitizePropertyKey(key)] = {
-				displayName: propName,
-				type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-			};
-			break;
+				break;
 			
-		case 'formula':
-			// Handle formula based on import strategy
-			const formulaExpression = getNotionFormulaExpression(prop.formula);
+			case 'title':
+				// Skip title property - it corresponds to file.name in Obsidian
+				// Title is already used as the page filename
+				break;
 			
-			if (formulaStrategy === 'static') {
-				// Strategy 1: Static values only - add as text property
+			case 'rich_text':
+			case 'url':
+			case 'email':
+			case 'phone_number':
+				// Text-based properties
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
-			}
-			else if (formulaStrategy === 'function') {
-				// Strategy 2: Function only - try to convert, keep original syntax if fails
-				if (formulaExpression) {
-					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
-					if (obsidianFormula && canConvertFormula(formulaExpression)) {
-						// Conversion successful - add as formula
-						mappings[`formula.${sanitizePropertyKey(key)}`] = {
-							displayName: propName,
-							formula: obsidianFormula,
-						};
-					} else {
-						// Conversion failed - keep original Notion syntax (will show empty values)
-						console.warn(`⚠️ Formula "${propName}" cannot be fully converted to Obsidian syntax.`);
-						console.warn(`   Original: ${formulaExpression}`);
-						console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
-						console.warn(`   Result: Formula will be kept as-is but may not work correctly in Obsidian.`);
-						console.warn(`   Suggestion: Consider using "Static values" strategy for this database.`);
-						mappings[`formula.${sanitizePropertyKey(key)}`] = {
-							displayName: propName,
-							formula: formulaExpression, // Keep original Notion syntax
-						};
-					}
-				}
-			}
-			else if (formulaStrategy === 'hybrid') {
-				// Strategy 3: Hybrid - convert if possible, fallback to text
-				if (formulaExpression && canConvertFormula(formulaExpression)) {
-					const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
-					if (obsidianFormula) {
-						// Conversion successful - add as formula
-						mappings[`formula.${sanitizePropertyKey(key)}`] = {
-							displayName: propName,
-							formula: obsidianFormula,
-						};
-					}
-				} else {
-					// Cannot convert - add as text property
-					console.warn(`⚠️ Formula "${propName}" cannot be converted to Obsidian syntax, falling back to text property.`);
-					console.warn(`   Original: ${formulaExpression}`);
-					console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
+				break;
+				
+			case 'formula':
+				// Handle formula based on import strategy
+				const formulaExpression = getNotionFormulaExpression(prop.formula);
+				
+				if (formulaStrategy === 'static') {
+					// Strategy 1: Static values only - add as text property
 					mappings[sanitizePropertyKey(key)] = {
 						displayName: propName,
 						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 					};
 				}
-			}
-			break;
-			
-		case 'relation':
-			// Relation properties will be stored as list of links in page YAML
-			// Skip adding to .base file properties (will be handled in page frontmatter)
-			// But we still need to record it for reference
-			mappings[sanitizePropertyKey(key)] = {
-				displayName: propName,
-				type: OBSIDIAN_PROPERTY_TYPES.LIST,
-				isRelation: true,
-				relationConfig: prop.relation,
-			};
-			break;
-		
-		case 'rollup':
-			// Rollup properties should be converted to formulas in .base file
-			const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
-			if (rollupFormula) {
-				mappings[`formula.${sanitizePropertyKey(key)}`] = {
+				else if (formulaStrategy === 'function') {
+					// Strategy 2: Function only - try to convert, keep original syntax if fails
+					if (formulaExpression) {
+						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
+						if (obsidianFormula && canConvertFormula(formulaExpression)) {
+							// Conversion successful - add as formula
+							mappings[`formula.${sanitizePropertyKey(key)}`] = {
+								displayName: propName,
+								formula: obsidianFormula,
+							};
+						}
+						else {
+							// Conversion failed - keep original Notion syntax (will show empty values)
+							console.warn(`⚠️ Formula "${propName}" cannot be fully converted to Obsidian syntax.`);
+							console.warn(`   Original: ${formulaExpression}`);
+							console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
+							console.warn(`   Result: Formula will be kept as-is but may not work correctly in Obsidian.`);
+							console.warn(`   Suggestion: Consider using "Static values" strategy for this database.`);
+							mappings[`formula.${sanitizePropertyKey(key)}`] = {
+								displayName: propName,
+								formula: formulaExpression, // Keep original Notion syntax
+							};
+						}
+					}
+				}
+				else if (formulaStrategy === 'hybrid') {
+					// Strategy 3: Hybrid - convert if possible, fallback to text
+					if (formulaExpression && canConvertFormula(formulaExpression)) {
+						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
+						if (obsidianFormula) {
+							// Conversion successful - add as formula
+							mappings[`formula.${sanitizePropertyKey(key)}`] = {
+								displayName: propName,
+								formula: obsidianFormula,
+							};
+						}
+					}
+					else {
+						// Cannot convert - add as text property
+						console.warn(`⚠️ Formula "${propName}" cannot be converted to Obsidian syntax, falling back to text property.`);
+						console.warn(`   Original: ${formulaExpression}`);
+						console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
+						mappings[sanitizePropertyKey(key)] = {
+							displayName: propName,
+							type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+						};
+					}
+				}
+				break;
+				
+			case 'relation':
+				// Relation properties will be stored as list of links in page YAML
+				// Skip adding to .base file properties (will be handled in page frontmatter)
+				// But we still need to record it for reference
+				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
-					formula: rollupFormula,
+					type: OBSIDIAN_PROPERTY_TYPES.LIST,
+					isRelation: true,
+					relationConfig: prop.relation,
 				};
-			} else {
-				// Fallback: if conversion fails, log warning and skip this property
-				// Don't add it as a regular property since it should be a formula
-				console.warn(`Failed to convert rollup property "${propName}" to formula.`);
-			}
-			break;
-		
-		case 'people':
-		case 'files':
-		case 'created_time':
-		case 'created_by':
-		case 'last_edited_time':
-		case 'last_edited_by':
-			// These will be converted to text representation
-			mappings[sanitizePropertyKey(key)] = {
-				displayName: propName,
-				type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-			};
-			break;
+				break;
+			
+			case 'rollup':
+				// Rollup properties should be converted to formulas in .base file
+				const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
+				if (rollupFormula) {
+					mappings[`formula.${sanitizePropertyKey(key)}`] = {
+						displayName: propName,
+						formula: rollupFormula,
+					};
+				}
+				else {
+					// Fallback: if conversion fails, log warning and skip this property
+					// Don't add it as a regular property since it should be a formula
+					console.warn(`Failed to convert rollup property "${propName}" to formula.`);
+				}
+				break;
+			
+			case 'people':
+			case 'files':
+			case 'created_time':
+			case 'created_by':
+			case 'last_edited_time':
+			case 'last_edited_by':
+				// These will be converted to text representation
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
+				};
+				break;
 			
 			default:
 				// Unsupported types -> text
@@ -541,7 +548,8 @@ function mapDatabaseProperties(
 				orderedMappings.push({ key, config });
 			}
 		}
-	} else {
+	}
+	else {
 		// No propertyIds provided, use the order from Object.entries
 		for (const [key, config] of Object.entries(mappings)) {
 			orderedMappings.push({ key, config });
@@ -798,17 +806,7 @@ async function processRelationProperties(
 export async function processDatabasePlaceholders(
 	markdownContent: string,
 	blocks: any[],
-	ctx: ImportContext,
-	currentPageFolderPath: string,
-	client: Client,
-	vault: Vault,
-	app: App,
-	outputRootPath: string,
-	formulaStrategy: FormulaImportStrategy,
-	processedDatabases: Map<string, DatabaseInfo>,
-	relationPlaceholders: RelationPlaceholder[],
-	importPageCallback: (pageId: string, parentPath: string) => Promise<void>,
-	onPagesDiscovered?: (count: number) => void
+	context: DatabaseProcessingContext
 ): Promise<string> {
 	// Find all database placeholders
 	const placeholderRegex = /<!-- DATABASE_PLACEHOLDER:([a-f0-9-]+) -->/g;
@@ -833,17 +831,7 @@ export async function processDatabasePlaceholders(
 				// Convert the database and get the reference
 				const databaseReference = await convertChildDatabase(
 					databaseBlock,
-					ctx,
-					currentPageFolderPath,
-					client,
-					vault,
-					app,
-					outputRootPath,
-					formulaStrategy,
-					processedDatabases,
-					relationPlaceholders,
-					importPageCallback,
-					onPagesDiscovered
+					context
 				);
 				
 				// Replace placeholder with actual reference

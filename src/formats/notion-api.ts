@@ -287,22 +287,23 @@ export class NotionAPIImporter extends FormatImporter {
 			// Import the database using the existing logic
 			await convertChildDatabase(
 				fakeBlock,
-				ctx,
-				parentPath,
-				this.notionClient!,
-				this.vault,
-				this.app,
-				this.outputRootPath,
-				this.formulaStrategy,
-				this.processedDatabases,
-				this.relationPlaceholders,
-				async (pageId: string, parentPath: string) => {
-					await this.fetchAndImportPage(ctx, pageId, parentPath);
-				},
-				(count: number) => {
-					this.totalPagesDiscovered += count;
-					// Update progress immediately when discovering pages to show correct total
-					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+				{
+					ctx,
+					currentPageFolderPath: parentPath,
+					client: this.notionClient!,
+					vault: this.vault,
+					outputRootPath: this.outputRootPath,
+					formulaStrategy: this.formulaStrategy,
+					processedDatabases: this.processedDatabases,
+					relationPlaceholders: this.relationPlaceholders,
+					importPageCallback: async (pageId: string, parentPath: string) => {
+						await this.fetchAndImportPage(ctx, pageId, parentPath);
+					},
+					onPagesDiscovered: (count: number) => {
+						this.totalPagesDiscovered += count;
+						// Update progress immediately when discovering pages to show correct total
+						ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+					}
 				}
 			);
 			
@@ -357,35 +358,36 @@ export class NotionAPIImporter extends FormatImporter {
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			
 			// Convert blocks to markdown with nested children support
-			let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
-			
+		let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
+		
 		// Process database placeholders
 		markdownContent = await processDatabasePlaceholders(
 			markdownContent,
 			blocks,
-			ctx,
-			pageFolderPath,
-			this.notionClient!,
-			this.vault,
-			this.app,
-			this.outputRootPath,
-			this.formulaStrategy,
-			this.processedDatabases,
-			this.relationPlaceholders,
-			// Callback to import database pages
-			async (pageId: string, parentPath: string) => {
-				await this.fetchAndImportPage(ctx, pageId, parentPath);
-			},
-			// Callback to update discovered pages count
-			(newPagesCount: number) => {
-				this.totalPagesDiscovered += newPagesCount;
-				// Update progress immediately when discovering pages to show correct total
-				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+			{
+				ctx,
+				currentPageFolderPath: pageFolderPath,
+				client: this.notionClient!,
+				vault: this.vault,
+				outputRootPath: this.outputRootPath,
+				formulaStrategy: this.formulaStrategy,
+				processedDatabases: this.processedDatabases,
+				relationPlaceholders: this.relationPlaceholders,
+				// Callback to import database pages
+				importPageCallback: async (pageId: string, parentPath: string) => {
+					await this.fetchAndImportPage(ctx, pageId, parentPath);
+				},
+				// Callback to update discovered pages count
+				onPagesDiscovered: (newPagesCount: number) => {
+					this.totalPagesDiscovered += newPagesCount;
+					// Update progress immediately when discovering pages to show correct total
+					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+				}
 			}
 		);
-		
-		// Prepare YAML frontmatter
-		const frontMatter = extractFrontMatter(page, this.formulaStrategy);
+			
+			// Prepare YAML frontmatter
+			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
 			
 			// Create the markdown file
 			const mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;

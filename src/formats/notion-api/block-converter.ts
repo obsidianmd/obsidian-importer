@@ -26,33 +26,22 @@ export async function convertBlocksToMarkdown(
 		const markdown = await convertBlockToMarkdown(block, ctx, currentFolderPath, client, indentLevel);
 		if (markdown) {
 			lines.push(markdown);
-		}
-	}
-	
-	// Join blocks with appropriate spacing
-	// List items should be separated by single newline, other blocks by double newline
-	const result: string[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		result.push(lines[i]);
-		
-		if (i < lines.length - 1) {
-			const currentBlock = blocks[i];
-			const nextBlock = blocks[i + 1];
 			
-			// Check if both current and next are list items
-			const currentIsList = currentBlock.type === 'bulleted_list_item' || currentBlock.type === 'numbered_list_item';
-			const nextIsList = nextBlock.type === 'bulleted_list_item' || nextBlock.type === 'numbered_list_item';
-			
-			// Use single newline between list items, double newline otherwise
-			if (currentIsList && nextIsList) {
-				result.push('\n');
-			} else {
-				result.push('\n\n');
+			// Add empty string for extra spacing when transitioning between list and non-list blocks
+			if (i < blocks.length - 1) {
+				const currentIsList = block.type === 'bulleted_list_item' || block.type === 'numbered_list_item';
+				const nextBlock = blocks[i + 1];
+				const nextIsList = nextBlock.type === 'bulleted_list_item' || nextBlock.type === 'numbered_list_item';
+				
+				// Add empty string (extra newline) when not both list items
+				if (!currentIsList || !nextIsList) {
+					lines.push('');
+				}
 			}
 		}
 	}
 	
-	return result.join('');
+	return lines.join('\n');
 }
 
 /**
