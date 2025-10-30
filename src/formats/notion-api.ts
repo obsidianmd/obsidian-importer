@@ -14,7 +14,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
-import { processDatabasePlaceholders, convertChildDatabase } from './notion-api/database-helpers';
+import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
@@ -191,7 +191,7 @@ export class NotionAPIImporter extends FormatImporter {
 					try {
 						const response = await requestUrl({
 							url: urlString,
-							method: (init?.method as any) || 'GET',
+							method: init?.method || 'GET',
 							headers: init?.headers as Record<string, string>,
 							body: init?.body as string | ArrayBuffer,
 							throw: false,
@@ -415,6 +415,8 @@ export class NotionAPIImporter extends FormatImporter {
 	
 	/**
 	 * Replace all relation placeholders with actual links after all pages are imported
+	 * Supports multi-round processing: if importing unimported databases discovers new relations,
+	 * those databases will be imported in subsequent rounds until no new relations are found.
 	 */
 	private async replaceRelationPlaceholders(ctx: ImportContext): Promise<void> {
 		if (this.relationPlaceholders.length === 0) {
@@ -423,55 +425,94 @@ export class NotionAPIImporter extends FormatImporter {
 		
 		ctx.status(`Replacing ${this.relationPlaceholders.length} relation placeholders...`);
 		
-		// First pass: identify missing pages and their databases
-		const missingPageIds = new Set<string>();
-		const missingDatabaseIds = new Set<string>();
+		// Multi-round processing: keep importing databases until no new relations are discovered
+		let round = 1;
+		let previousPlaceholderCount = 0;
+		const maxRounds = 10; // Safety limit to prevent infinite loops
 		
-		for (const placeholder of this.relationPlaceholders) {
-			for (const relatedPageId of placeholder.relatedPageIds) {
-				const relatedPageFile = await this.findPageFileByNotionId(relatedPageId);
-				if (!relatedPageFile) {
-					missingPageIds.add(relatedPageId);
-					// If we have target database info, record it
-					if (placeholder.targetDatabaseId) {
-						missingDatabaseIds.add(placeholder.targetDatabaseId);
+		while (round <= maxRounds) {
+			const currentPlaceholderCount = this.relationPlaceholders.length;
+			
+			// If no new placeholders were added in the last round, we're done
+			if (round > 1 && currentPlaceholderCount === previousPlaceholderCount) {
+				ctx.status(`No new relations discovered. Relation processing complete.`);
+				break;
+			}
+			
+			ctx.status(`Round ${round}: Processing ${currentPlaceholderCount} relation placeholders...`);
+			previousPlaceholderCount = currentPlaceholderCount;
+			
+			// Identify missing pages and their databases
+			const missingPageIds = new Set<string>();
+			const missingDatabaseIds = new Set<string>();
+			
+			for (const placeholder of this.relationPlaceholders) {
+				for (const relatedPageId of placeholder.relatedPageIds) {
+					const relatedPageFile = await this.findPageFileByNotionId(relatedPageId);
+					if (!relatedPageFile) {
+						missingPageIds.add(relatedPageId);
+						// If we have target database info, record it
+						if (placeholder.targetDatabaseId) {
+							missingDatabaseIds.add(placeholder.targetDatabaseId);
+						}
 					}
 				}
 			}
-		}
-		
-		// Import missing databases if any
-		if (missingDatabaseIds.size > 0) {
-			ctx.status(`Found ${missingDatabaseIds.size} unimported databases with relations. Importing...`);
 			
-			// Create "Relation Unimported Databases" folder
-			const unimportedDbPath = `${this.outputRootPath}/Relation Unimported Databases`;
-			try {
-				await this.vault.createFolder(normalizePath(unimportedDbPath));
-			}
-			catch (error) {
-				// Folder might already exist, that's ok
-			}
-			
-			// Import each missing database
-			for (const databaseId of missingDatabaseIds) {
-				if (ctx.isCancelled()) break;
+			// Import missing databases if any
+			if (missingDatabaseIds.size > 0) {
+				ctx.status(`Round ${round}: Found ${missingDatabaseIds.size} unimported databases with relations. Importing...`);
 				
-				// Skip if already processed
-				if (this.processedDatabases.has(databaseId)) {
-					continue;
-				}
-				
+				// Create "Relation Unimported Databases" folder
+				const unimportedDbPath = `${this.outputRootPath}/Relation Unimported Databases`;
 				try {
-					await this.importUnimportedDatabase(ctx, databaseId, unimportedDbPath);
+					await this.vault.createFolder(normalizePath(unimportedDbPath));
 				}
 				catch (error) {
-					console.error(`Failed to import unimported database ${databaseId}:`, error);
+					// Folder might already exist, that's ok
+				}
+				
+				// Import each missing database
+				let importedCount = 0;
+				for (const databaseId of missingDatabaseIds) {
+					if (ctx.isCancelled()) break;
+					
+					// Skip if already processed
+					if (this.processedDatabases.has(databaseId)) {
+						continue;
+					}
+					
+					try {
+						await this.importUnimportedDatabase(ctx, databaseId, unimportedDbPath);
+						importedCount++;
+					}
+					catch (error) {
+						console.error(`Failed to import unimported database ${databaseId}:`, error);
+						// Continue with other databases even if one fails
+					}
+				}
+				
+				ctx.status(`Round ${round}: Imported ${importedCount} databases.`);
+				
+				// If we imported any databases, they might have added new relation placeholders
+				// Continue to next round to process them
+				if (importedCount > 0) {
+					round++;
+					continue;
 				}
 			}
+			
+			// If we reach here and no databases were imported, we're done
+			break;
 		}
 		
-		// Second pass: replace all placeholders with links
+		if (round > maxRounds) {
+			console.warn(`⚠️ Reached maximum rounds (${maxRounds}) for relation processing. Some relations may not be resolved.`);
+		}
+		
+		// Final pass: replace all placeholders with links
+		// This happens after all rounds of database imports are complete
+		ctx.status(`Replacing relation placeholders with wiki links...`);
 		for (const placeholder of this.relationPlaceholders) {
 			if (ctx.isCancelled()) break;
 			
@@ -558,7 +599,6 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Get data source information
 			let dataSourceProperties: Record<string, any> = {};
-			let propertyIds: string[] = [];
 			let dataSourceId = databaseId;
 			
 			if (database.data_sources && database.data_sources.length > 0) {
@@ -567,8 +607,8 @@ export class NotionAPIImporter extends FormatImporter {
 					() => this.notionClient!.dataSources.retrieve({ data_source_id: dataSourceId }),
 					ctx
 				);
-				dataSourceProperties = (dataSource as any).properties || {};
-				propertyIds = (dataSource as any).property_ids || [];
+				dataSourceProperties = dataSource.properties || {};
+				// Note: Notion API does not provide property order information
 			}
 			
 			// Create database folder
@@ -593,16 +633,13 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 			
 			// Create .base file
-			const { createBaseFile } = await import('./notion-api/database-helpers');
 			const baseFilePath = await createBaseFile(
 				this.vault,
 				sanitizedTitle,
 				databaseFolderPath,
 				this.outputRootPath,
 				dataSourceProperties,
-				databasePages,
-				this.formulaStrategy,
-				propertyIds
+				this.formulaStrategy
 			);
 			
 			// Record database information
@@ -615,7 +652,15 @@ export class NotionAPIImporter extends FormatImporter {
 				dataSourceId: dataSourceId,
 			};
 			this.processedDatabases.set(databaseId, databaseInfo);
-			
+		
+			// Process relation properties in database pages
+			// This will add placeholders to relationPlaceholders array for multi-round processing
+			await processRelationProperties(
+				databasePages,
+				dataSourceProperties,
+				this.relationPlaceholders
+			);
+		
 			ctx.reportNoteSuccess(`Database: ${sanitizedTitle}`);
 		}
 		catch (error) {

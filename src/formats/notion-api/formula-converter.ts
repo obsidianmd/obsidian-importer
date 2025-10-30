@@ -233,7 +233,7 @@ export function convertNotionFormulaToObsidian(
 			/\{\{notion:block_property:([^:]+):[^}]+\}\}/g,
 			(match, propertyId) => {
 				// Find the property name by ID
-				for (const [key, prop] of Object.entries(properties)) {
+				for (const [, prop] of Object.entries(properties)) {
 					if (prop.id === propertyId) {
 						return `prop("${prop.name}")`;
 					}

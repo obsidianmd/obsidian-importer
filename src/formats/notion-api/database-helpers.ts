@@ -28,7 +28,8 @@ const OBSIDIAN_PROPERTY_TYPES = {
 /**
  * Convert a child_database block to Markdown
  * This creates a reference to a .base file and sets up the database structure
- * In fact, Notion allows top-level databases, which will be addressed later.
+ * Note: This function also handles top-level databases by accepting a fake block object
+ * (see importTopLevelDatabase() in notion-api.ts)
  */
 export async function convertChildDatabase(
 	block: BlockObjectResponse,
@@ -69,18 +70,17 @@ export async function convertChildDatabase(
 		// FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
 		
 		let dataSourceProperties: Record<string, any> = {};
-		let propertyIds: string[] = [];
 		
-		if ((database as any).data_sources && (database as any).data_sources.length > 0) {
-			const dataSourceId = (database as any).data_sources[0].id;
+		if (database.data_sources && database.data_sources.length > 0) {
+			const dataSourceId = database.data_sources[0].id;
 			const dataSource = await makeNotionRequest(
 				() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
 				ctx
 			);
 			
-			dataSourceProperties = (dataSource as any).properties || {};
-			// Get property order from property_ids array if available
-			propertyIds = (dataSource as any).property_ids || [];
+			dataSourceProperties = dataSource.properties || {};
+			// Note: Notion API does not provide property order information
+			// Properties will be ordered based on Object.entries() iteration order
 		}
 		
 		// Create database folder under current page folder
@@ -89,7 +89,7 @@ export async function convertChildDatabase(
 		
 		// Query database to get all pages (with pagination)
 		// Use the data source ID for querying
-		const dataSourceId = (database as any).data_sources?.[0]?.id || databaseId;
+		const dataSourceId = database.data_sources?.[0]?.id || databaseId;
 		const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 		
 		ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
@@ -114,9 +114,7 @@ export async function convertChildDatabase(
 			databaseFolderPath,
 			outputRootPath,
 			dataSourceProperties,
-			databasePages,
-			formulaStrategy,
-			propertyIds
+			formulaStrategy
 		);
 		
 		// Record database information for relation resolution
@@ -135,7 +133,6 @@ export async function convertChildDatabase(
 		await processRelationProperties(
 			databasePages,
 			dataSourceProperties,
-			databaseId,
 			relationPlaceholders
 		);
 		
@@ -203,10 +200,8 @@ export async function createBaseFile(
 	databaseName: string,
 	databaseFolderPath: string,
 	outputRootPath: string,
-	properties: any,
-	databasePages: PageObjectResponse[],
-	formulaStrategy: FormulaImportStrategy = 'function',
-	propertyIds: string[] = []
+	dataSourceProperties: any,
+	formulaStrategy: FormulaImportStrategy = 'function'
 ): Promise<string> {
 	// Create "Notion Databases" folder at the same level as output root
 	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
@@ -223,7 +218,7 @@ export async function createBaseFile(
 	}
 	
 	// Generate .base file content
-	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, properties, databasePages, formulaStrategy, propertyIds);
+	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, dataSourceProperties, formulaStrategy);
 	
 	// Create .base file
 	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
@@ -247,10 +242,8 @@ export async function createBaseFile(
 function generateBaseFileContent(
 	databaseName: string,
 	databaseFolderPath: string,
-	properties: any,
-	databasePages: PageObjectResponse[],
-	formulaStrategy: FormulaImportStrategy = 'function',
-	propertyIds: string[] = []
+	dataSourceProperties: any,
+	formulaStrategy: FormulaImportStrategy = 'function'
 ): string {
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
@@ -268,7 +261,7 @@ function generateBaseFileContent(
 	content += `    - file.folder.split("/").length == ${databaseDepth + 1}\n\n`;
 	
 	// Map Notion properties to Obsidian properties
-	const propertyMappings = mapDatabaseProperties(properties, formulaStrategy, propertyIds);
+	const propertyMappings = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
 	
 	// Separate formulas from regular properties (maintaining order)
 	const formulas: Array<{key: string, config: any}> = [];
@@ -331,20 +324,18 @@ function generateBaseFileContent(
 
 /**
  * Map Notion database properties to Obsidian base properties
- * @param notionProperties - Notion database property schema
+ * @param dataSourceProperties - Notion data source property schema
  * @param formulaStrategy - How to handle formula properties
- * @param propertyIds - Array of property IDs in the order they should appear
- * @returns Array of {key, config} objects in the correct order
+ * @returns Array of {key, config} objects
  */
 function mapDatabaseProperties(
-	notionProperties: any,
-	formulaStrategy: FormulaImportStrategy = 'function',
-	propertyIds: string[] = []
+	dataSourceProperties: any,
+	formulaStrategy: FormulaImportStrategy = 'function'
 ): Array<{key: string, config: any}> {
 	const mappings: Record<string, any> = {};
 	
 	// First pass: create mappings for all properties
-	for (const [key, prop] of Object.entries(notionProperties as Record<string, any>)) {
+	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
 		
@@ -419,7 +410,7 @@ function mapDatabaseProperties(
 				else if (formulaStrategy === 'function') {
 					// Strategy 2: Function only - try to convert, keep original syntax if fails
 					if (formulaExpression) {
-						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
+						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, dataSourceProperties);
 						if (obsidianFormula && canConvertFormula(formulaExpression)) {
 							// Conversion successful - add as formula
 							mappings[`formula.${sanitizePropertyKey(key)}`] = {
@@ -444,7 +435,7 @@ function mapDatabaseProperties(
 				else if (formulaStrategy === 'hybrid') {
 					// Strategy 3: Hybrid - convert if possible, fallback to text
 					if (formulaExpression && canConvertFormula(formulaExpression)) {
-						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, notionProperties);
+						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, dataSourceProperties);
 						if (obsidianFormula) {
 							// Conversion successful - add as formula
 							mappings[`formula.${sanitizePropertyKey(key)}`] = {
@@ -480,7 +471,7 @@ function mapDatabaseProperties(
 			
 			case 'rollup':
 				// Rollup properties should be converted to formulas in .base file
-				const rollupFormula = convertRollupToFormula(key, prop.rollup, notionProperties);
+				const rollupFormula = convertRollupToFormula(key, prop.rollup, dataSourceProperties);
 				if (rollupFormula) {
 					mappings[`formula.${sanitizePropertyKey(key)}`] = {
 						displayName: propName,
@@ -517,43 +508,13 @@ function mapDatabaseProperties(
 		}
 	}
 	
-	// Second pass: convert to ordered array
-	// If propertyIds is provided, use that order; otherwise use the order from Object.entries
+	// Convert mappings to ordered array
+	// Note: Property order is based on Object.entries() iteration order
+	// which in modern JavaScript (ES2015+) preserves insertion order for string keys
 	const orderedMappings: Array<{key: string, config: any}> = [];
 	
-	if (propertyIds.length > 0) {
-		// Use the order from propertyIds
-		// Note: propertyIds contains the original Notion property IDs, so we need to sanitize them
-		for (const propId of propertyIds) {
-			const sanitizedKey = sanitizePropertyKey(propId);
-			if (mappings[sanitizedKey]) {
-				orderedMappings.push({
-					key: sanitizedKey,
-					config: mappings[sanitizedKey]
-				});
-			}
-			// Also check for formula properties (with "formula." prefix)
-			const formulaKey = `formula.${sanitizedKey}`;
-			if (mappings[formulaKey]) {
-				orderedMappings.push({
-					key: formulaKey,
-					config: mappings[formulaKey]
-				});
-			}
-		}
-		// Add any properties that weren't in propertyIds (shouldn't happen, but just in case)
-		for (const [key, config] of Object.entries(mappings)) {
-			const baseKey = key.replace(/^formula\./, '');
-			if (!propertyIds.map(id => sanitizePropertyKey(id)).includes(baseKey)) {
-				orderedMappings.push({ key, config });
-			}
-		}
-	}
-	else {
-		// No propertyIds provided, use the order from Object.entries
-		for (const [key, config] of Object.entries(mappings)) {
-			orderedMappings.push({ key, config });
-		}
+	for (const [key, config] of Object.entries(mappings)) {
+		orderedMappings.push({ key, config });
 	}
 	
 	return orderedMappings;
@@ -753,15 +714,14 @@ function convertRollupToFormula(
  * Process relation properties in database pages
  * Add placeholders to the relationPlaceholders array
  */
-async function processRelationProperties(
+export async function processRelationProperties(
 	databasePages: PageObjectResponse[],
-	properties: any,
-	databaseId: string,
+	dataSourceProperties: any,
 	relationPlaceholders: RelationPlaceholder[]
 ): Promise<void> {
 	// Find all relation properties
 	const relationProperties: Record<string, any> = {};
-	for (const [key, prop] of Object.entries(properties as Record<string, any>)) {
+	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
 		if (prop.type === 'relation') {
 			relationProperties[key] = prop;
 		}
