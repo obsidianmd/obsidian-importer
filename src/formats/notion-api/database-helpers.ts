@@ -10,7 +10,7 @@ import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, RollupConfig } from './types';
 import type { FormulaImportStrategy } from '../notion-api';
 
 /**
@@ -471,7 +471,7 @@ function mapDatabaseProperties(
 			
 			case 'rollup':
 				// Rollup properties should be converted to formulas in .base file
-				const rollupFormula = convertRollupToFormula(key, prop.rollup, dataSourceProperties);
+				const rollupFormula = convertRollupToFormula(prop.rollup);
 				if (rollupFormula) {
 					mappings[`formula.${sanitizePropertyKey(key)}`] = {
 						displayName: propName,
@@ -535,9 +535,7 @@ function sanitizePropertyKey(key: string): string {
  * Rollup aggregates values from related pages
  */
 function convertRollupToFormula(
-	rollupKey: string,
-	rollupConfig: any,
-	allProperties: any
+	rollupConfig: RollupConfig | null | undefined
 ): string | null {
 	if (!rollupConfig) {
 		return null;
