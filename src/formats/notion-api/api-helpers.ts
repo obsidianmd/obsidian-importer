@@ -221,13 +221,9 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		
 		case 'date':
 			if (!prop.date) return null;
-			// If has time component, use datetime format
-			if (prop.date.start && prop.date.start.length > 10) {
-				return prop.date.end 
-					? `${prop.date.start} to ${prop.date.end}`
-					: prop.date.start;
-			}
-			// Otherwise use date format
+			// Return date/datetime with optional end date (range)
+			// Note: Both date and datetime use the same format for now
+			// TODO: Consider using different Obsidian property types for date vs datetime
 			return prop.date.end 
 				? `${prop.date.start} to ${prop.date.end}`
 				: prop.date.start;
