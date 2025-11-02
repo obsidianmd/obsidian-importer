@@ -21,10 +21,12 @@ export class TomboyImporter extends FormatImporter {
 			if (Platform.isMacOS) {
 				const macPath = path.join(os.homedir(), 'Library', 'Application Support', 'Tomboy');
 				return macPath;
-			} else if (Platform.isWin) {
+			}
+			else if (Platform.isWin) {
 				const windowsPath = path.join(process.env.APPDATA || '', 'Roaming', 'Tomboy');
 				return windowsPath;
-			} else if (Platform.isLinux) {
+			}
+			else if (Platform.isLinux) {
 				// Check for both Tomboy and Gnote on Linux
 				const homeDir = os.homedir();
 				const tomboyPath = path.join(homeDir, '.local', 'share', 'tomboy');
@@ -37,12 +39,14 @@ export class TomboyImporter extends FormatImporter {
 						fsPromises.access(gnotePath).then(() => {}).catch(() => {});
 						return gnotePath;
 					}
-				} catch (e) {
+				}
+				catch (e) {
 					// If we can't check, default to tomboy path
 				}
 				return tomboyPath;
 			}
-		} catch (e) {
+		}
+		catch (e) {
 			console.warn('Error detecting default Tomboy path:', e);
 		}
 		
@@ -55,9 +59,11 @@ export class TomboyImporter extends FormatImporter {
 	private getOSSpecificDescription(): string {
 		if (Platform.isMacOS) {
 			return 'Tomboy notes are typically found in: ~/Library/Application Support/Tomboy';
-		} else if (Platform.isWin) {
+		}
+		else if (Platform.isWin) {
 			return 'Tomboy notes are typically found in: %APPDATA%\\Tomboy';
-		} else if (Platform.isLinux) {
+		}
+		else if (Platform.isLinux) {
 			return 'Tomboy notes are typically found in: ~/.local/share/tomboy or ~/.local/share/gnote';
 		}
 		return 'Pick the files that you want to import.';
@@ -113,7 +119,8 @@ export class TomboyImporter extends FormatImporter {
 			try {
 				await this.processFile(ctx, folder, file);
 				ctx.reportNoteSuccess(file.fullpath);
-			} catch (e) {
+			}
+			catch (e) {
 				ctx.reportFailed(file.fullpath, e);
 			}
 

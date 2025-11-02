@@ -92,8 +92,8 @@ export class TomboyCoreConverter {
 		if (!this.currentTodoHeading || headingLevel <= this.currentTodoHeading.level) {
 			const isTodo = this.isTodoTitle(headingText);
 			this.currentTodoHeading = isTodo
-					? { level: headingLevel }
-					: null;
+				? { level: headingLevel }
+				: null;
 		}
 	}
 
@@ -199,7 +199,8 @@ export class TomboyCoreConverter {
 					contentSections: currentLineSections
 				});
 				currentLineSections = [];
-			} else {
+			}
+			else {
 				// Add to current line
 				currentLineSections.push(section);
 			}
@@ -232,7 +233,8 @@ export class TomboyCoreConverter {
 						xmlPath: currentPath
 					});
 				}
-			} else if (child.nodeType === Node.ELEMENT_NODE) {
+			}
+			else if (child.nodeType === Node.ELEMENT_NODE) {
 				const el = child as Element;
 				const tagName = el.tagName;
 				const newPath = currentPath ? `${currentPath}/${tagName}` : tagName;
@@ -250,11 +252,13 @@ export class TomboyCoreConverter {
 							text: el.textContent,
 							xmlPath: newPath
 						});
-					} else {
+					}
+					else {
 						// Recursively process child elements and text nodes
 						sections.push(...this.extractContentSections(el, newPath));
 					}
-				} else {
+				}
+				else {
 					// No text content, still process child elements
 					sections.push(...this.extractContentSections(el, newPath));
 				}
@@ -304,7 +308,8 @@ export class TomboyCoreConverter {
 					markdownContent = lines.join('\n');
 				}
 			}
-		} else {
+		}
+		else {
 			// Remove the title - same logic as before, but with proper escaping comparison
 			const lines = markdownContent.split('\n');
 			const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
@@ -458,7 +463,8 @@ export class TomboyCoreConverter {
 				// This format ends - close it and remove from stack
 				closeTags.push(lastSpan.closeTag);
 				this.activeFormatStack.pop();
-			} else {
+			}
+			else {
 				// This format continues - stop checking (maintains proper nesting order)
 				break;
 			}
@@ -547,7 +553,8 @@ export class TomboyCoreConverter {
 					isCompletedTodoItem = this.isFullyStrikethrough(line.contentSections);
 					const checkboxState = isCompletedTodoItem ? '[x]' : '[ ]';
 					listPrefix = indent + '- ' + checkboxState + ' ';
-				} else {
+				}
+				else {
 					// Regular list item
 					listPrefix = indent + '- ';
 				}
@@ -567,7 +574,8 @@ export class TomboyCoreConverter {
 					let headingLevel = 6;
 					if(allHuge) {
 						headingLevel -= 4;
-					} else if(allLarge) {
+					}
+					else if(allLarge) {
 						headingLevel -= 2;
 					}
 					if(allBold) {
@@ -590,7 +598,8 @@ export class TomboyCoreConverter {
 			// Apply heading or list prefix to the line
 			if (headingPrefix) {
 				result += headingPrefix + lineText.trim();
-			} else {
+			}
+			else {
 				result += listPrefix + lineText;
 			}
 
