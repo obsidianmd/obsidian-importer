@@ -291,23 +291,15 @@ export class TomboyCoreConverter {
 				break;
 		}
 
-		if (shouldKeepTitle) {
-			// Keep the title - format it as H1 if it's the first line
-			const lines = markdownContent.split('\n');
-			if (lines.length > 0) {
-				const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
-				if (lines[0].trim() === escapedTitle.trim()) {
-					// Replace the first line with H1 formatted title
-					lines[0] = `# ${note.title}`;
-					markdownContent = lines.join('\n');
-				}
+		const lines = markdownContent.split('\n');
+		const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
+		if (lines.length > 0 && lines[0].trim() === escapedTitle.trim()) {
+			if (shouldKeepTitle) {
+				// Replace the first line with H1 formatted title
+				lines[0] = `# ${note.title}`;
+				markdownContent = lines.join('\n');
 			}
-		}
-		else {
-			// Remove the title - same logic as before, but with proper escaping comparison
-			const lines = markdownContent.split('\n');
-			const escapedTitle = this.escapeMarkdownSpecialChars(note.title);
-			if (lines.length > 0 && lines[0].trim() === escapedTitle.trim()) {
+			else {
 				// Remove the title line and any empty lines that follow it
 				let startIndex = 1;
 				while (startIndex < lines.length && lines[startIndex].trim() === '') {
