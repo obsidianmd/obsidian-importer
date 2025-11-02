@@ -80,8 +80,7 @@ export class TomboyCoreConverter {
 	 * Check if a note title contains TODO keywords
 	 */
 	private isTodoTitle(title: string): boolean {
-		const todoKeywords = ['TODO', 'Todo', 'To Do', 'todo', 'to do', 'ToDo'];
-		return todoKeywords.some(keyword => title.includes(keyword));
+		return /to ?do/i.test(title);
 	}
 
 	/**
@@ -222,8 +221,7 @@ export class TomboyCoreConverter {
 	private extractContentSections(element: Element, currentPath: string): Array<ContentSection> {
 		const sections: Array<ContentSection> = [];
 
-		// Convert NodeList to Array for iteration
-		Array.from(element.childNodes).forEach(child => {
+		element.childNodes.forEach(child => {
 			if (child.nodeType === Node.TEXT_NODE) {
 				// Plain text node
 				const text = child.textContent || '';

@@ -75,8 +75,8 @@ export class TomboyImporter extends FormatImporter {
 			.setDesc('Choose whether to keep the note title in the markdown content. "Automatic" keeps titles only when special characters are lost in filename conversion.')
 			.addDropdown((dropdown: DropdownComponent) => {
 				dropdown.addOption('automatic', 'Automatic')
-					.addOption('yes', 'Yes')
-					.addOption('no', 'No')
+					.addOption('yes', 'Keep titles')
+					.addOption('no', 'Filename only')
 					.setValue(this.keepTitleMode)
 					.onChange((value: string) => this.keepTitleMode = value as KeepTitleMode);
 			});
@@ -94,6 +94,9 @@ export class TomboyImporter extends FormatImporter {
 			new Notice('Please select a location to export to.');
 			return;
 		}
+
+		this.coreConverter.setTodoEnabled(this.todoEnabled);
+		this.coreConverter.setKeepTitleMode(this.keepTitleMode);
 
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
@@ -115,8 +118,6 @@ export class TomboyImporter extends FormatImporter {
 
 	private async processFile(ctx: ImportContext, folder: any, file: any): Promise<void> {
 		const xmlContent = await file.readText();
-		this.coreConverter.setTodoEnabled(this.todoEnabled);
-		this.coreConverter.setKeepTitleMode(this.keepTitleMode);
 
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
