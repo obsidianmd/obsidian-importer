@@ -270,7 +270,7 @@ export class TomboyCoreConverter {
 		this.updateTodoContext(1, note.title);
 
 		// Convert structured content to markdown
-		let markdownContent = this.convertStructuredContent(note.content, note.title);
+		let markdownContent = this.convertStructuredContent(note.content);
 
 		// Determine whether to keep the title based on user preference
 		const sanitizedTitle = sanitizeFileName(note.title);
@@ -525,7 +525,7 @@ export class TomboyCoreConverter {
 	/**
 	 * Convert structured content lines to Markdown
 	 */
-	private convertStructuredContent(contentLines: Array<ContentLine>, noteTitle: string): string {
+	private convertStructuredContent(contentLines: Array<ContentLine>): string {
 		let result = '';
 
 		contentLines.forEach((line, lineIndex) => {
