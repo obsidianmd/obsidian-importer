@@ -27,23 +27,8 @@ export class TomboyImporter extends FormatImporter {
 				return windowsPath;
 			}
 			else if (Platform.isLinux) {
-				// Check for both Tomboy and Gnote on Linux
 				const homeDir = os.homedir();
-				const tomboyPath = path.join(homeDir, '.local', 'share', 'tomboy');
-				const gnotePath = path.join(homeDir, '.local', 'share', 'gnote');
-				
-				// Return whichever exists, preferring Gnote since it is the newer SW
-				try {
-					if (fsPromises && fsPromises.access) {
-						// Check if gnote directory exists
-						fsPromises.access(gnotePath).then(() => {}).catch(() => {});
-						return gnotePath;
-					}
-				}
-				catch (e) {
-					// If we can't check, default to tomboy path
-				}
-				return tomboyPath;
+				return path.join(homeDir, '.local', 'share', 'tomboy');
 			}
 		}
 		catch (e) {
@@ -64,7 +49,7 @@ export class TomboyImporter extends FormatImporter {
 			return 'Tomboy notes are typically found in: %APPDATA%\\Tomboy';
 		}
 		else if (Platform.isLinux) {
-			return 'Tomboy notes are typically found in: ~/.local/share/tomboy or ~/.local/share/gnote';
+			return 'Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote';
 		}
 		return 'Pick the files that you want to import.';
 	}
