@@ -104,8 +104,12 @@ export class TomboyCoreConverter {
 	 * Parse a Tomboy date string into a Date object
 	 * Tomboy format: 2025-09-10T21:11:41,964692Z
 	 * Converts comma to period for standard parsing
+	 * Returns undefined if dateStr is undefined
 	 */
-	private parseTomboyDate(dateStr: string): Date {
+	private parseTomboyDate(dateStr: string | undefined): Date | undefined {
+		if (!dateStr) {
+			return undefined;
+		}
 		// Convert Tomboy date format (2025-09-10T21:11:41,964692Z) to standard format
 		const standardDateStr = dateStr.replace(',', '.');
 		return new Date(standardDateStr);
@@ -132,17 +136,9 @@ export class TomboyCoreConverter {
 		// Parse date elements
 		const createDateElement = doc.querySelector('create-date');
 		const lastChangeDateElement = doc.querySelector('last-change-date');
-		
-		let createDate: Date | undefined;
-		let lastChangeDate: Date | undefined;
 
-		if (createDateElement?.textContent) {
-			createDate = this.parseTomboyDate(createDateElement.textContent);
-		}
-
-		if (lastChangeDateElement?.textContent) {
-			lastChangeDate = this.parseTomboyDate(lastChangeDateElement.textContent);
-		}
+		const createDate = this.parseTomboyDate(createDateElement?.textContent);
+		const lastChangeDate = this.parseTomboyDate(lastChangeDateElement?.textContent);
 
 		return { title, content, tags, createDate, lastChangeDate };
 	}
