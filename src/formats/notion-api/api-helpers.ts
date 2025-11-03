@@ -91,11 +91,16 @@ export async function fetchAllBlocks(
 /**
  * Recursively check if a page has any child pages or databases
  * This includes checking nested blocks (e.g., pages inside toggles, lists, etc.)
+ * @param client - Notion client
+ * @param blocks - Blocks to check
+ * @param ctx - Import context
+ * @param blocksCache - Optional cache to store fetched blocks and avoid duplicate API calls
  */
 export async function hasChildPagesOrDatabases(
 	client: Client,
 	blocks: BlockObjectResponse[],
-	ctx: ImportContext
+	ctx: ImportContext,
+	blocksCache?: Map<string, BlockObjectResponse[]>
 ): Promise<boolean> {
 	for (const block of blocks) {
 		// Check if current block is a child_page or child_database
@@ -106,9 +111,21 @@ export async function hasChildPagesOrDatabases(
 		// Recursively check nested blocks if this block has children
 		if (block.has_children) {
 			try {
-				const children = await fetchAllBlocks(client, block.id, ctx);
+				// Try to get from cache first
+				let children = blocksCache?.get(block.id);
+				
+				if (!children) {
+					// Not in cache, fetch from API
+					children = await fetchAllBlocks(client, block.id, ctx);
+					
+					// Store in cache if cache is provided
+					if (blocksCache) {
+						blocksCache.set(block.id, children);
+					}
+				}
+				
 				if (children.length > 0) {
-					const hasChildrenInNested = await hasChildPagesOrDatabases(client, children, ctx);
+					const hasChildrenInNested = await hasChildPagesOrDatabases(client, children, ctx, blocksCache);
 					if (hasChildrenInNested) {
 						return true;
 					}

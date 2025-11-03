@@ -356,9 +356,14 @@ export class NotionAPIImporter extends FormatImporter {
 			// Fetch page blocks (content) with rate limit handling
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			
+			// Create a cache to store fetched blocks and avoid duplicate API calls
+			// This cache will be used both for checking if page has children and for converting blocks
+			const blocksCache = new Map<string, any[]>();
+			
 			// Check if page has child pages or child databases (recursively check nested blocks)
 			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
-			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx);
+			// The blocksCache will be populated during this check
+			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
 			
 			// Determine file structure based on whether page has children
 			let pageFolderPath: string;
@@ -379,10 +384,21 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 			
 			// Convert blocks to markdown with nested children support
-			let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
+			// Pass the blocksCache to reuse already fetched blocks
+			let markdownContent = await convertBlocksToMarkdown(blocks, {
+				ctx,
+				currentFolderPath: pageFolderPath,
+				client: this.notionClient!,
+				indentLevel: 0,
+				blocksCache, // reuse cached blocks
+				// Callback to import child pages
+				importPageCallback: async (childPageId: string, parentPath: string) => {
+					await this.fetchAndImportPage(ctx, childPageId, parentPath);
+				}
+			});
 		
 			// Process database placeholders
-			// Note: If hasChildPagesOrDatabases is false, there won't be any database placeholders to process
+			// Note: If hasChildren is false, there won't be any database placeholders to process
 			// But we still call this function to maintain consistency
 			markdownContent = await processDatabasePlaceholders(
 				markdownContent,
@@ -408,6 +424,9 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 				}
 			);
+			
+			// Clear the cache after processing this page to free memory
+			blocksCache.clear();
 			
 			// Prepare YAML frontmatter
 			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
