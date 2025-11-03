@@ -89,6 +89,42 @@ export async function fetchAllBlocks(
 }
 
 /**
+ * Recursively check if a page has any child pages or databases
+ * This includes checking nested blocks (e.g., pages inside toggles, lists, etc.)
+ */
+export async function hasChildPagesOrDatabases(
+	client: Client,
+	blocks: BlockObjectResponse[],
+	ctx: ImportContext
+): Promise<boolean> {
+	for (const block of blocks) {
+		// Check if current block is a child_page or child_database
+		if (block.type === 'child_page' || block.type === 'child_database') {
+			return true;
+		}
+		
+		// Recursively check nested blocks if this block has children
+		if (block.has_children) {
+			try {
+				const children = await fetchAllBlocks(client, block.id, ctx);
+				if (children.length > 0) {
+					const hasChildrenInNested = await hasChildPagesOrDatabases(client, children, ctx);
+					if (hasChildrenInNested) {
+						return true;
+					}
+				}
+			}
+			catch (error) {
+				console.error(`Failed to fetch children for block ${block.id}:`, error);
+				// Continue checking other blocks even if one fails
+			}
+		}
+	}
+	
+	return false;
+}
+
+/**
  * Extract page title from Notion page object
  */
 export function extractPageTitle(page: PageObjectResponse): string {

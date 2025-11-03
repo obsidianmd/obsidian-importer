@@ -10,10 +10,11 @@ import {
 	makeNotionRequest, 
 	fetchAllBlocks, 
 	extractPageTitle, 
-	extractFrontMatter 
+	extractFrontMatter,
+	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { pageExistsInVault, getUniqueFolderPath } from './notion-api/vault-helpers';
+import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
 
@@ -134,14 +135,13 @@ export class NotionAPIImporter extends FormatImporter {
 		
 		// File structure explanation
 		const structureLi = ul.createEl('li');
-		structureLi.appendText('Due to differences between Notion and Obsidian\'s file systems, Notion Pages and Databases will be represented as folders in Obsidian. ');
-		structureLi.appendText('Page content will be stored in a ');
-		structureLi.createEl('code', { text: 'Content.md' });
-		structureLi.appendText(' file within the folder. If a Page contains Databases, they will be rendered as links in ');
-		structureLi.createEl('code', { text: 'Content.md' });
-		structureLi.appendText(', pointing to ');
+		structureLi.appendText('Pages without child pages or databases will be imported as individual ');
+		structureLi.createEl('code', { text: '.md' });
+		structureLi.appendText(' files. Pages with children will be represented as folders containing a ');
+		structureLi.createEl('code', { text: '.md' });
+		structureLi.appendText(' file with the same name as the folder. Databases are always represented as folders with ');
 		structureLi.createEl('code', { text: '.base' });
-		structureLi.appendText(' files (Notion databases in Obsidian format with filter conditions) under the Page folder.');
+		structureLi.appendText(' files (Obsidian database format with filter conditions).');
 		
 		// API rate limit warning
 		ul.createEl('li', { 
@@ -353,17 +353,37 @@ export class NotionAPIImporter extends FormatImporter {
 				return;
 			}
 			
-			// Create page folder with unique name
-			const pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
-			await this.createFolders(pageFolderPath);
-			
 			// Fetch page blocks (content) with rate limit handling
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
+			
+			// Check if page has child pages or child databases (recursively check nested blocks)
+			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
+			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx);
+			
+			// Determine file structure based on whether page has children
+			let pageFolderPath: string;
+			let mdFilePath: string;
+			
+			if (hasChildren) {
+				// Create folder structure for pages with children
+				// The folder will contain the page content file and child pages/databases
+				pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
+				await this.createFolders(pageFolderPath);
+				mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;
+			}
+			else {
+				// Create file directly for pages without children
+				// No folder needed since there are no child pages or databases
+				pageFolderPath = parentPath;
+				mdFilePath = getUniqueFilePath(this.vault, parentPath, `${sanitizedTitle}.md`);
+			}
 			
 			// Convert blocks to markdown with nested children support
 			let markdownContent = await convertBlocksToMarkdown(blocks, ctx, pageFolderPath, this.notionClient!);
 		
 			// Process database placeholders
+			// Note: If hasChildPagesOrDatabases is false, there won't be any database placeholders to process
+			// But we still call this function to maintain consistency
 			markdownContent = await processDatabasePlaceholders(
 				markdownContent,
 				blocks,
@@ -393,7 +413,6 @@ export class NotionAPIImporter extends FormatImporter {
 			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
 			
 			// Create the markdown file
-			const mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 			
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
