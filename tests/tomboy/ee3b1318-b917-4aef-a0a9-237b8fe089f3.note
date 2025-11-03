@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Überschriften</title>
+  <text xml:space="preserve"><note-content version="0.1">Überschriften
+
+Diese Notiz wird mit verschiedenen Überschriften gegliedert, zum Beispiel:
+
+<size:huge>Thema von Teil 1</size:huge>
+
+Hier wird über den ersten Teil geredet.
+
+<size:huge>Thema von Teil 2
+
+</size:huge><bold><size:large>Unterthema 2.1</size:large></bold>
+
+<list><list-item dir="ltr">Dies ist ein Punkt
+</list-item><list-item dir="ltr">Und dies auch</list-item></list>
+
+<bold><size:large>Unterthema 2.2</size:large></bold>
+
+Ja hier wird noch weiter unterteilt:
+
+<bold>Unterthema 2.2.1</bold>
+
+Gäbe viel zu sagen aber keine Zeit
+
+<bold>Unterthema 2.2.2
+
+</bold>Lorem Ipsum dings...
+
+<bold>Unterthema 2.2.3
+
+</bold>Ja, ja, ja...
+
+<size:huge>Fazit</size:huge>
+
+Hier das Fazit: Viel weiß man nicht.
+</note-content></text>
+  <last-change-date>2025-09-04T22:49:54.0381300+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:49:54.0417480+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:46:12.1546650+02:00</create-date>
+  <cursor-position>410</cursor-position>
+  <selection-bound-position>410</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

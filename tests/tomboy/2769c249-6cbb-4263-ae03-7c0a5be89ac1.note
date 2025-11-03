@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>TODO Liste</title>
+  <text xml:space="preserve"><note-content version="0.1">TODO Liste
+
+<list><list-item dir="ltr"><strikethrough>Erst das erledigen</strikethrough>
+</list-item><list-item dir="ltr">dann das
+</list-item><list-item dir="ltr">und dann das</list-item></list>
+
+<bold>Später</bold>
+
+<list><list-item dir="ltr">Weiteres Vorgehen planen</list-item></list>
+
+Hier hört die Liste auf.
+
+<size:huge><bold>Anmerkungen</bold>
+
+</size:huge><list><list-item dir="ltr">Das hier sollte dann vermutlich keine TODO-Liste mehr sein</list-item></list></note-content></text>
+  <last-change-date>2025-09-04T22:56:53.9751960+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:56:53.9785670+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:54:02.5630180+02:00</create-date>
+  <cursor-position>134</cursor-position>
+  <selection-bound-position>134</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

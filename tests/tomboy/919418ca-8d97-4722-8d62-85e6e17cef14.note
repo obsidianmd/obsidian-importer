@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy"><title>Unerlaubte Zeichen</title><text xml:space="preserve"><note-content version="0.1" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size">Unerlaubte Zeichen
+
+Was passiert, wenn wir in der Notiz **schreiben** - das ` ist ja jetzt kein ` markdown hier!
+Auch _sollte_ so etwas nichts machen und muss im Markdown escaped werden.</note-content>
+</text><last-change-date>2025-09-10T21:12:47,257614Z</last-change-date><last-metadata-change-date>2025-09-10T21:12:47,258131Z</last-metadata-change-date><create-date>2025-09-10T21:11:41,964692Z</create-date><cursor-position>186</cursor-position><selection-bound-position>-1</selection-bound-position><width>960</width><height>1048</height></note>
+
