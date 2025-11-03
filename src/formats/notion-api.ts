@@ -17,6 +17,7 @@ import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
+import { downloadAttachment } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
 
@@ -24,6 +25,7 @@ export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
 	pageId: string = '';
 	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
+	downloadExternalAttachments: boolean = false; // Download external attachments
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -83,6 +85,18 @@ export class NotionAPIImporter extends FormatImporter {
 					});
 			});
 
+		// Download external attachments option
+		new Setting(this.modal.contentEl)
+			.setName('Download external attachments')
+			.setDesc(this.createAttachmentDescription())
+			.addToggle(toggle => {
+				toggle
+					.setValue(false)
+					.onChange(value => {
+						this.downloadExternalAttachments = value;
+					});
+			});
+
 		// Description text
 		new Setting(this.modal.contentEl)
 			.setName('Import notes')
@@ -110,6 +124,16 @@ export class NotionAPIImporter extends FormatImporter {
 		frag.appendText('• Function: Convert to Base functions (may fail for complex formulas)');
 		frag.createEl('br');
 		frag.appendText('• Hybrid: Try functions, fallback to static for complex formulas');
+		return frag;
+	}
+
+	private createAttachmentDescription(): DocumentFragment {
+		const frag = document.createDocumentFragment();
+		frag.appendText('Download external attachments (external URLs) to local files. ');
+		frag.createEl('br');
+		frag.appendText('Notion-hosted files are always downloaded. ');
+		frag.createEl('br');
+		frag.appendText('Attachments will be saved according to your vault\'s attachment folder settings.');
 		return frag;
 	}
 
@@ -389,6 +413,8 @@ export class NotionAPIImporter extends FormatImporter {
 				ctx,
 				currentFolderPath: pageFolderPath,
 				client: this.notionClient!,
+				vault: this.vault,
+				downloadExternalAttachments: this.downloadExternalAttachments,
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
 				// Callback to import child pages
@@ -430,6 +456,39 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Prepare YAML frontmatter
 			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
+			
+			// Process cover image if present
+			if (frontMatter.cover && typeof frontMatter.cover === 'string') {
+				try {
+					// Determine cover type based on URL
+					const coverUrl = frontMatter.cover;
+					const isExternal = !coverUrl.includes('secure.notion-static.com');
+					
+					const coverPath = await downloadAttachment(
+						{
+							type: isExternal ? 'external' : 'file',
+							url: coverUrl,
+							name: 'cover'
+						},
+						this.vault,
+						ctx,
+						this.downloadExternalAttachments
+					);
+					
+					// Update cover in frontmatter to use wiki link
+					if (!coverPath.startsWith('http://') && !coverPath.startsWith('https://')) {
+						frontMatter.cover = `"[[${coverPath}]]"`;
+					}
+					else {
+						// Keep as URL if not downloaded
+						frontMatter.cover = coverUrl;
+					}
+				}
+				catch (error) {
+					console.error(`Failed to download cover image:`, error);
+					// Keep original URL on error
+				}
+			}
 			
 			// Create the markdown file
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;

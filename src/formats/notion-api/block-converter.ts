@@ -4,8 +4,10 @@
  */
 
 import { BlockObjectResponse, Client } from '@notionhq/client';
+import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import { fetchAllBlocks } from './api-helpers';
+import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 
 /**
  * Callback type for importing child pages
@@ -19,6 +21,8 @@ export interface BlockConversionContext {
 	ctx: ImportContext;
 	currentFolderPath: string;
 	client: Client;
+	vault: Vault;
+	downloadExternalAttachments: boolean;
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	importPageCallback?: ImportPageCallback;
@@ -90,6 +94,22 @@ export async function convertBlockToMarkdown(
 		
 		case 'quote':
 			markdown = convertQuote(block);
+			break;
+		
+		case 'image':
+			markdown = await convertImage(block, context);
+			break;
+		
+		case 'video':
+			markdown = await convertVideo(block, context);
+			break;
+		
+		case 'file':
+			markdown = await convertFile(block, context);
+			break;
+		
+		case 'pdf':
+			markdown = await convertPdf(block, context);
 			break;
 		
 		case 'child_database':
@@ -263,6 +283,142 @@ export async function convertNumberedListItem(
 export function convertQuote(block: BlockObjectResponse): string {
 	if (block.type !== 'quote') return '';
 	return '> ' + convertRichText(block.quote.rich_text);
+}
+
+/**
+ * Convert image block to Markdown
+ */
+export async function convertImage(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'image') return '';
+	
+	const attachment = extractAttachmentFromBlock(block);
+	if (!attachment) return '';
+	
+	const caption = getCaptionFromBlock(block);
+	
+	try {
+		const pathOrUrl = await downloadAttachment(
+			attachment,
+			context.vault,
+			context.ctx,
+			context.downloadExternalAttachments
+		);
+		
+		// If it's a URL (not downloaded), use standard Markdown image syntax
+		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+			return `![${caption}](${pathOrUrl})`;
+		}
+		
+		// If it's a local file, use Obsidian embed syntax
+		const displayText = caption || '';
+		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+	}
+	catch (error) {
+		console.error(`Failed to convert image block:`, error);
+		return `<!-- Failed to import image: ${error.message} -->`;
+	}
+}
+
+/**
+ * Convert video block to Markdown
+ */
+export async function convertVideo(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'video') return '';
+	
+	const attachment = extractAttachmentFromBlock(block);
+	if (!attachment) return '';
+	
+	const caption = getCaptionFromBlock(block);
+	
+	try {
+		const pathOrUrl = await downloadAttachment(
+			attachment,
+			context.vault,
+			context.ctx,
+			context.downloadExternalAttachments
+		);
+		
+		// If it's a URL (not downloaded), use standard Markdown link
+		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+			return `[${caption || 'Video'}](${pathOrUrl})`;
+		}
+		
+		// If it's a local file, use Obsidian embed syntax
+		const displayText = caption || '';
+		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+	}
+	catch (error) {
+		console.error(`Failed to convert video block:`, error);
+		return `<!-- Failed to import video: ${error.message} -->`;
+	}
+}
+
+/**
+ * Convert file block to Markdown
+ */
+export async function convertFile(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'file') return '';
+	
+	const attachment = extractAttachmentFromBlock(block);
+	if (!attachment) return '';
+	
+	const caption = getCaptionFromBlock(block);
+	
+	try {
+		const pathOrUrl = await downloadAttachment(
+			attachment,
+			context.vault,
+			context.ctx,
+			context.downloadExternalAttachments
+		);
+		
+		// If it's a URL (not downloaded), use standard Markdown link
+		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+			return `[${caption || 'File'}](${pathOrUrl})`;
+		}
+		
+		// If it's a local file, use Obsidian wiki link
+		const displayText = caption || '';
+		return displayText ? `[[${pathOrUrl}|${displayText}]]` : `[[${pathOrUrl}]]`;
+	}
+	catch (error) {
+		console.error(`Failed to convert file block:`, error);
+		return `<!-- Failed to import file: ${error.message} -->`;
+	}
+}
+
+/**
+ * Convert PDF block to Markdown
+ */
+export async function convertPdf(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'pdf') return '';
+	
+	const attachment = extractAttachmentFromBlock(block);
+	if (!attachment) return '';
+	
+	const caption = getCaptionFromBlock(block);
+	
+	try {
+		const pathOrUrl = await downloadAttachment(
+			attachment,
+			context.vault,
+			context.ctx,
+			context.downloadExternalAttachments
+		);
+		
+		// If it's a URL (not downloaded), use standard Markdown link
+		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+			return `[${caption || 'PDF'}](${pathOrUrl})`;
+		}
+		
+		// If it's a local file, use Obsidian embed syntax for PDF
+		const displayText = caption || '';
+		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+	}
+	catch (error) {
+		console.error(`Failed to convert PDF block:`, error);
+		return `<!-- Failed to import PDF: ${error.message} -->`;
+	}
 }
 
 /**

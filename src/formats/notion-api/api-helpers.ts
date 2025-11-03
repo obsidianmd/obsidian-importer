@@ -182,6 +182,11 @@ export function extractFrontMatter(
 		frontMatter.updated = page.last_edited_time;
 	}
 	
+	// Add cover if present (will be processed as attachment later)
+	if (page.cover) {
+		frontMatter.cover = extractCoverUrl(page.cover);
+	}
+	
 	// Extract all page properties
 	const properties = page.properties;
 	for (const key in properties) {
@@ -217,6 +222,22 @@ export function extractFrontMatter(
 	}
 	
 	return frontMatter;
+}
+
+/**
+ * Extract cover URL from page cover object
+ */
+function extractCoverUrl(cover: any): string | null {
+	if (!cover) return null;
+	
+	if (cover.type === 'external' && cover.external?.url) {
+		return cover.external.url;
+	}
+	else if (cover.type === 'file' && cover.file?.url) {
+		return cover.file.url;
+	}
+	
+	return null;
 }
 
 /**
