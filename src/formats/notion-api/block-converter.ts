@@ -96,6 +96,18 @@ export async function convertBlockToMarkdown(
 			markdown = convertQuote(block);
 			break;
 		
+		case 'callout':
+			markdown = await convertCallout(block, context);
+			break;
+		
+		case 'divider':
+			markdown = convertDivider(block);
+			break;
+		
+		case 'equation':
+			markdown = convertEquation(block);
+			break;
+		
 		case 'image':
 			markdown = await convertImage(block, context);
 			break;
@@ -295,6 +307,88 @@ export async function convertNumberedListItem(
 export function convertQuote(block: BlockObjectResponse): string {
 	if (block.type !== 'quote') return '';
 	return '> ' + convertRichText(block.quote.rich_text);
+}
+
+/**
+ * Convert callout block to Markdown (Obsidian callout syntax)
+ */
+export async function convertCallout(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'callout') return '';
+	
+	const calloutData = (block as any).callout;
+	if (!calloutData) return '';
+	
+	// Get callout icon and text
+	const icon = calloutData.icon?.emoji || '📌';
+	const text = convertRichText(calloutData.rich_text);
+	
+	// Map Notion callout types to Obsidian callout types
+	// Notion doesn't have explicit callout types, so we use a default type
+	let calloutType = 'note';
+	
+	// Try to infer callout type from icon
+	if (icon === '💡' || icon === '⚡') calloutType = 'tip';
+	else if (icon === '⚠️' || icon === '❗') calloutType = 'warning';
+	else if (icon === '❌' || icon === '🚫') calloutType = 'danger';
+	else if (icon === '✅' || icon === '✔️') calloutType = 'success';
+	else if (icon === 'ℹ️' || icon === 'ℹ') calloutType = 'info';
+	else if (icon === '❓' || icon === '🤔') calloutType = 'question';
+	
+	// Create Obsidian callout
+	let markdown = `> [!${calloutType}] ${icon}\n`;
+	markdown += `> ${text}`;
+	
+	// Handle children if any
+	if (block.has_children) {
+		try {
+			let children = context.blocksCache?.get(block.id);
+			if (!children) {
+				children = await fetchAllBlocks(context.client, block.id, context.ctx);
+				if (context.blocksCache) {
+					context.blocksCache.set(block.id, children);
+				}
+			}
+			
+			if (children.length > 0) {
+				const childrenMarkdown = await convertBlocksToMarkdown(
+					children,
+					{ ...context, indentLevel: (context.indentLevel || 0) + 1 }
+				);
+				if (childrenMarkdown) {
+					// Indent children content with '> ' for callout
+					const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+					markdown += '\n' + indentedChildren;
+				}
+			}
+		}
+		catch (error) {
+			console.error(`Failed to fetch children for callout block ${block.id}:`, error);
+		}
+	}
+	
+	return markdown;
+}
+
+/**
+ * Convert divider block to Markdown
+ */
+export function convertDivider(block: BlockObjectResponse): string {
+	if (block.type !== 'divider') return '';
+	// Standard Markdown horizontal rule
+	return '---';
+}
+
+/**
+ * Convert equation block to Markdown (block-level math)
+ */
+export function convertEquation(block: BlockObjectResponse): string {
+	if (block.type !== 'equation') return '';
+	
+	const equationData = (block as any).equation;
+	if (!equationData || !equationData.expression) return '';
+	
+	// Obsidian uses $$ for block-level math
+	return `$$\n${equationData.expression}\n$$`;
 }
 
 /**
