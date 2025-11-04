@@ -17,7 +17,7 @@ import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
-import { downloadAttachment } from './notion-api/attachment-helpers';
+import { downloadAttachment, formatAttachmentLink } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
 
@@ -173,9 +173,16 @@ export class NotionAPIImporter extends FormatImporter {
 		const ul = frag.createEl('ul');
 		
 		// Attachment handling
-		ul.createEl('li', { 
-			text: 'Attachments, videos (non-YouTube), audio, images, and files from Notion will be placed according to your vault\'s attachment folder settings.' 
-		});
+		const attachmentLi = ul.createEl('li');
+		attachmentLi.appendText('Attachments, videos, images, and files from Notion will be placed according to your vault\'s ');
+		attachmentLi.createEl('strong', { text: 'attachment folder settings' });
+		attachmentLi.appendText('.');
+		
+		// Link format
+		const linkLi = ul.createEl('li');
+		linkLi.appendText('Links and embeds will use your vault\'s ');
+		linkLi.createEl('strong', { text: 'link format settings' });
+		linkLi.appendText(' (Wiki links or Markdown links). Check Settings → Files & Links.');
 		
 		// File structure explanation
 		const structureLi = ul.createEl('li');
@@ -484,7 +491,7 @@ export class NotionAPIImporter extends FormatImporter {
 					const coverUrl = frontMatter.cover;
 					const isExternal = !coverUrl.includes('secure.notion-static.com');
 					
-					const coverPath = await downloadAttachment(
+					const result = await downloadAttachment(
 						{
 							type: isExternal ? 'external' : 'file',
 							url: coverUrl,
@@ -495,26 +502,16 @@ export class NotionAPIImporter extends FormatImporter {
 						this.downloadExternalAttachments
 					);
 					
-					// Update cover in frontmatter to use wiki link
-					if (!coverPath.startsWith('http://') && !coverPath.startsWith('https://')) {
-						// Use custom property name if different from 'cover'
-						if (this.coverPropertyName !== 'cover') {
-							delete frontMatter.cover;
-							frontMatter[this.coverPropertyName] = `"[[${coverPath}]]"`;
-						}
-						else {
-							frontMatter.cover = `"[[${coverPath}]]"`;
-						}
+					// Format cover link according to user's vault settings
+					const coverLink = formatAttachmentLink(result, this.vault, '', false);
+					
+					// Update cover in frontmatter
+					if (this.coverPropertyName !== 'cover') {
+						delete frontMatter.cover;
+						frontMatter[this.coverPropertyName] = `"${coverLink}"`;
 					}
 					else {
-						// Keep as URL if not downloaded
-						if (this.coverPropertyName !== 'cover') {
-							delete frontMatter.cover;
-							frontMatter[this.coverPropertyName] = coverUrl;
-						}
-						else {
-							frontMatter.cover = coverUrl;
-						}
+						frontMatter.cover = `"${coverLink}"`;
 					}
 				}
 				catch (error) {

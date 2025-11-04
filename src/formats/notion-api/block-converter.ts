@@ -7,7 +7,7 @@ import { BlockObjectResponse, Client } from '@notionhq/client';
 import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import { fetchAllBlocks } from './api-helpers';
-import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
+import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
 
 /**
  * Callback type for importing child pages
@@ -297,21 +297,15 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const pathOrUrl = await downloadAttachment(
+		const result = await downloadAttachment(
 			attachment,
 			context.vault,
 			context.ctx,
 			context.downloadExternalAttachments
 		);
 		
-		// If it's a URL (not downloaded), use standard Markdown image syntax
-		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-			return `![${caption}](${pathOrUrl})`;
-		}
-		
-		// If it's a local file, use Obsidian embed syntax
-		const displayText = caption || '';
-		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+		// Format link according to user's vault settings
+		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
 		console.error(`Failed to convert image block:`, error);
@@ -331,21 +325,15 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const pathOrUrl = await downloadAttachment(
+		const result = await downloadAttachment(
 			attachment,
 			context.vault,
 			context.ctx,
 			context.downloadExternalAttachments
 		);
 		
-		// If it's a URL (not downloaded), use standard Markdown link
-		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-			return `[${caption || 'Video'}](${pathOrUrl})`;
-		}
-		
-		// If it's a local file, use Obsidian embed syntax
-		const displayText = caption || '';
-		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+		// Format link according to user's vault settings
+		return formatAttachmentLink(result, context.vault, caption || 'Video', true);
 	}
 	catch (error) {
 		console.error(`Failed to convert video block:`, error);
@@ -365,21 +353,15 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const pathOrUrl = await downloadAttachment(
+		const result = await downloadAttachment(
 			attachment,
 			context.vault,
 			context.ctx,
 			context.downloadExternalAttachments
 		);
 		
-		// If it's a URL (not downloaded), use standard Markdown link
-		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-			return `[${caption || 'File'}](${pathOrUrl})`;
-		}
-		
-		// If it's a local file, use Obsidian wiki link
-		const displayText = caption || '';
-		return displayText ? `[[${pathOrUrl}|${displayText}]]` : `[[${pathOrUrl}]]`;
+		// Format link according to user's vault settings (not embed for files)
+		return formatAttachmentLink(result, context.vault, caption || 'File', false);
 	}
 	catch (error) {
 		console.error(`Failed to convert file block:`, error);
@@ -399,21 +381,15 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const pathOrUrl = await downloadAttachment(
+		const result = await downloadAttachment(
 			attachment,
 			context.vault,
 			context.ctx,
 			context.downloadExternalAttachments
 		);
 		
-		// If it's a URL (not downloaded), use standard Markdown link
-		if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-			return `[${caption || 'PDF'}](${pathOrUrl})`;
-		}
-		
-		// If it's a local file, use Obsidian embed syntax for PDF
-		const displayText = caption || '';
-		return displayText ? `![[${pathOrUrl}|${displayText}]]` : `![[${pathOrUrl}]]`;
+		// Format link according to user's vault settings (embed for PDFs)
+		return formatAttachmentLink(result, context.vault, caption || 'PDF', true);
 	}
 	catch (error) {
 		console.error(`Failed to convert PDF block:`, error);

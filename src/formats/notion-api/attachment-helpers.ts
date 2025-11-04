@@ -3,7 +3,7 @@
  * Handles downloading and processing attachments (images, files, videos, PDFs)
  */
 
-import { Vault, normalizePath, requestUrl, TFile } from 'obsidian';
+import { Vault, normalizePath, requestUrl } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 
@@ -18,25 +18,40 @@ export interface NotionAttachment {
 }
 
 /**
+ * Result of attachment download
+ */
+export interface AttachmentResult {
+	/** Path to the file (without extension for wiki links) or URL */
+	path: string;
+	/** Whether the file was downloaded locally */
+	isLocal: boolean;
+	/** Original filename with extension */
+	filename?: string;
+}
+
+/**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
  * @param vault - Obsidian vault
  * @param ctx - Import context
  * @param downloadExternal - Whether to download external URLs
- * @returns Path to the saved file (for wiki link), or original URL if not downloaded
+ * @returns Attachment result with path and metadata
  */
 export async function downloadAttachment(
 	attachment: NotionAttachment,
 	vault: Vault,
 	ctx: ImportContext,
 	downloadExternal: boolean
-): Promise<string> {
+): Promise<AttachmentResult> {
 	// Determine if we should download this attachment
 	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternal);
 	
 	if (!shouldDownload) {
 		// Return original URL for external files when download is disabled
-		return attachment.url;
+		return {
+			path: attachment.url,
+			isLocal: false
+		};
 	}
 	
 	try {
@@ -60,7 +75,10 @@ export async function downloadAttachment(
 		
 		if (response.status !== 200) {
 			console.error(`Failed to download attachment ${attachment.url}: ${response.status}`);
-			return attachment.url; // Fallback to URL
+			return {
+				path: attachment.url,
+				isLocal: false
+			};
 		}
 		
 		// Create attachment folder if it doesn't exist
@@ -69,13 +87,20 @@ export async function downloadAttachment(
 		// Save the file
 		await vault.createBinary(normalizePath(filePath), response.arrayBuffer);
 		
-		// Return the file path without extension for wiki link
+		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const filePathWithoutExt = filePath.replace(/\.[^/.]+$/, '');
-		return filePathWithoutExt;
+		return {
+			path: filePathWithoutExt,
+			isLocal: true,
+			filename: filename
+		};
 	}
 	catch (error) {
 		console.error(`Failed to download attachment ${attachment.url}:`, error);
-		return attachment.url; // Fallback to URL
+		return {
+			path: attachment.url,
+			isLocal: false
+		};
 	}
 }
 
@@ -226,5 +251,67 @@ export function getCaptionFromBlock(block: any): string {
 	
 	// Convert rich text to plain text
 	return captionArray.map((t: any) => t.plain_text).join('') || '';
+}
+
+/**
+ * Format attachment link according to vault settings
+ * @param result - Attachment download result
+ * @param vault - Obsidian vault
+ * @param caption - Optional caption/alt text
+ * @param isEmbed - Whether to use embed syntax (!) for images/videos/pdfs
+ * @returns Formatted markdown link
+ */
+export function formatAttachmentLink(
+	result: AttachmentResult,
+	vault: Vault,
+	caption: string = '',
+	isEmbed: boolean = false
+): string {
+	// If not local (still a URL), use standard markdown syntax
+	if (!result.isLocal) {
+		if (isEmbed) {
+			return `![${caption}](${result.path})`;
+		}
+		else {
+			return `[${caption || 'Link'}](${result.path})`;
+		}
+	}
+	
+	// Get user's link format preference
+	const useWikiLinks = vault.getConfig('useWikiLinks') ?? true;
+	
+	if (useWikiLinks) {
+		// Use Obsidian wiki link format
+		const embedPrefix = isEmbed ? '!' : '';
+		if (caption) {
+			return `${embedPrefix}[[${result.path}|${caption}]]`;
+		}
+		else {
+			return `${embedPrefix}[[${result.path}]]`;
+		}
+	}
+	else {
+		// Use standard markdown format
+		// Need to add extension back for markdown links
+		const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
+		
+		if (isEmbed) {
+			return `![${caption}](${pathWithExt})`;
+		}
+		else {
+			return `[${caption || pathWithExt}](${pathWithExt})`;
+		}
+	}
+}
+
+/**
+ * Get file extension from filename
+ */
+function getFileExtension(filename: string): string {
+	const lastDotIndex = filename.lastIndexOf('.');
+	if (lastDotIndex > 0) {
+		return filename.substring(lastDotIndex + 1);
+	}
+	return '';
 }
 
