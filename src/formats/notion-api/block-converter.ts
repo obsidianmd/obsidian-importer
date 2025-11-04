@@ -112,6 +112,18 @@ export async function convertBlockToMarkdown(
 			markdown = await convertPdf(block, context);
 			break;
 		
+		case 'bookmark':
+			markdown = convertBookmark(block);
+			break;
+		
+		case 'embed':
+			markdown = convertEmbed(block);
+			break;
+		
+		case 'link_preview':
+			markdown = convertLinkPreview(block);
+			break;
+		
 		case 'child_database':
 			// Database blocks are handled separately in the main importer
 			// Return a placeholder that will be replaced
@@ -309,8 +321,16 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 	}
 	catch (error) {
 		console.error(`Failed to convert image block:`, error);
-		return `<!-- Failed to import image: ${error.message} -->`;
+		// If download failed, return a simple markdown image link with the original URL
+		return `![${caption || 'Image'}](${attachment.url})`;
 	}
+}
+
+/**
+ * Check if URL is a YouTube video
+ */
+function isYouTubeUrl(url: string): boolean {
+	return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
 /**
@@ -323,6 +343,12 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 	if (!attachment) return '';
 	
 	const caption = getCaptionFromBlock(block);
+	const url = attachment.url;
+	
+	// For external YouTube videos, use embed syntax directly without downloading
+	if (attachment.type === 'external' && isYouTubeUrl(url)) {
+		return `![${caption || ''}](${url})`;
+	}
 	
 	try {
 		const result = await downloadAttachment(
@@ -337,7 +363,8 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 	}
 	catch (error) {
 		console.error(`Failed to convert video block:`, error);
-		return `<!-- Failed to import video: ${error.message} -->`;
+		// If download failed, return a simple markdown link with the original URL
+		return `![${caption || 'Video'}](${url})`;
 	}
 }
 
@@ -365,7 +392,8 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 	}
 	catch (error) {
 		console.error(`Failed to convert file block:`, error);
-		return `<!-- Failed to import file: ${error.message} -->`;
+		// If download failed, return a simple markdown link with the original URL
+		return `[${caption || 'File'}](${attachment.url})`;
 	}
 }
 
@@ -393,8 +421,84 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 	}
 	catch (error) {
 		console.error(`Failed to convert PDF block:`, error);
-		return `<!-- Failed to import PDF: ${error.message} -->`;
+		// If download failed, return a simple markdown link with the original URL
+		return `[${caption || 'PDF'}](${attachment.url})`;
 	}
+}
+
+/**
+ * Check if URL is embeddable in Obsidian
+ * Obsidian supports embedding YouTube and Twitter/X content
+ * @see https://help.obsidian.md/embed-web-pages
+ */
+function isEmbeddableUrl(url: string): boolean {
+	return url.includes('youtube.com') || 
+	       url.includes('youtu.be') || 
+	       url.includes('twitter.com') || 
+	       url.includes('x.com');
+}
+
+/**
+ * Convert bookmark block to Markdown
+ * Bookmarks are always links in Notion (not embedded), so convert to simple markdown links
+ */
+export function convertBookmark(block: BlockObjectResponse): string {
+	if (block.type !== 'bookmark') return '';
+	
+	const bookmarkData = (block as any).bookmark;
+	if (!bookmarkData) return '';
+	
+	const url = bookmarkData.url || '';
+	const caption = getCaptionFromBlock(block);
+	
+	// Bookmarks are link cards in Notion, not embedded content
+	// So always return a simple markdown link, even for YouTube/Twitter
+	if (caption) {
+		return `[${caption}](${url})`;
+	}
+	return `[${url}](${url})`;
+}
+
+/**
+ * Convert embed block to Markdown
+ * Embeds use embed syntax for YouTube/Twitter, otherwise simple links
+ */
+export function convertEmbed(block: BlockObjectResponse): string {
+	if (block.type !== 'embed') return '';
+	
+	const embedData = (block as any).embed;
+	if (!embedData) return '';
+	
+	const url = embedData.url || '';
+	const caption = getCaptionFromBlock(block);
+	
+	// Use embed syntax for YouTube and Twitter/X
+	if (isEmbeddableUrl(url)) {
+		return `![${caption || ''}](${url})`;
+	}
+	
+	// Return a simple markdown link for other URLs
+	if (caption) {
+		return `[${caption}](${url})`;
+	}
+	return `[${url}](${url})`;
+}
+
+/**
+ * Convert link_preview block to Markdown
+ * Link previews are always links in Notion (not embedded), so convert to simple markdown links
+ */
+export function convertLinkPreview(block: BlockObjectResponse): string {
+	if (block.type !== 'link_preview') return '';
+	
+	const linkPreviewData = (block as any).link_preview;
+	if (!linkPreviewData) return '';
+	
+	const url = linkPreviewData.url || '';
+	
+	// Link previews are preview cards in Notion, not embedded content
+	// So always return a simple markdown link, even for YouTube/Twitter
+	return `[${url}](${url})`;
 }
 
 /**
