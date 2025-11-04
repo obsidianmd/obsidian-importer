@@ -26,6 +26,7 @@ export class NotionAPIImporter extends FormatImporter {
 	pageId: string = '';
 	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
+	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -97,6 +98,17 @@ export class NotionAPIImporter extends FormatImporter {
 					});
 			});
 
+		// Cover property name
+		new Setting(this.modal.contentEl)
+			.setName('Cover property name')
+			.setDesc(this.createCoverPropertyDescription())
+			.addText(text => text
+				.setPlaceholder('cover')
+				.setValue('cover')
+				.onChange(value => {
+					this.coverPropertyName = value.trim() || 'cover';
+				}));
+
 		// Description text
 		new Setting(this.modal.contentEl)
 			.setName('Import notes')
@@ -134,6 +146,14 @@ export class NotionAPIImporter extends FormatImporter {
 		frag.appendText('Notion-hosted files are always downloaded. ');
 		frag.createEl('br');
 		frag.appendText('Attachments will be saved according to your vault\'s attachment folder settings.');
+		return frag;
+	}
+
+	private createCoverPropertyDescription(): DocumentFragment {
+		const frag = document.createDocumentFragment();
+		frag.appendText('Property name for page cover image in YAML frontmatter. ');
+		frag.createEl('br');
+		frag.appendText('Leave as "cover" if you don\'t have conflicts with existing properties.');
 		return frag;
 	}
 
@@ -477,11 +497,24 @@ export class NotionAPIImporter extends FormatImporter {
 					
 					// Update cover in frontmatter to use wiki link
 					if (!coverPath.startsWith('http://') && !coverPath.startsWith('https://')) {
-						frontMatter.cover = `"[[${coverPath}]]"`;
+						// Use custom property name if different from 'cover'
+						if (this.coverPropertyName !== 'cover') {
+							delete frontMatter.cover;
+							frontMatter[this.coverPropertyName] = `"[[${coverPath}]]"`;
+						}
+						else {
+							frontMatter.cover = `"[[${coverPath}]]"`;
+						}
 					}
 					else {
 						// Keep as URL if not downloaded
-						frontMatter.cover = coverUrl;
+						if (this.coverPropertyName !== 'cover') {
+							delete frontMatter.cover;
+							frontMatter[this.coverPropertyName] = coverUrl;
+						}
+						else {
+							frontMatter.cover = coverUrl;
+						}
 					}
 				}
 				catch (error) {
