@@ -360,8 +360,8 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
-					importPageCallback: async (pageId: string, parentPath: string) => {
-						await this.fetchAndImportPage(ctx, pageId, parentPath);
+					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
+						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					onPagesDiscovered: (count: number) => {
 						this.totalPagesDiscovered += count;
@@ -382,8 +382,9 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/**
 	 * Fetch and import a Notion page recursively
+	 * @param databaseTag Optional database tag to add to page frontmatter (for database pages)
 	 */
-	private async fetchAndImportPage(ctx: ImportContext, pageId: string, parentPath: string): Promise<void> {
+	private async fetchAndImportPage(ctx: ImportContext, pageId: string, parentPath: string, databaseTag?: string): Promise<void> {
 		if (ctx.isCancelled()) return;
 		
 		// Check if already processed
@@ -481,8 +482,8 @@ export class NotionAPIImporter extends FormatImporter {
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
 					// Callback to import database pages
-					importPageCallback: async (pageId: string, parentPath: string) => {
-						await this.fetchAndImportPage(ctx, pageId, parentPath);
+					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
+						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					// Callback to update discovered pages count
 					onPagesDiscovered: (newPagesCount: number) => {
@@ -498,7 +499,12 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Prepare YAML frontmatter
 			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
-			
+		
+			// Add database tag if this page belongs to a database
+			if (databaseTag) {
+				frontMatter['notion-database'] = databaseTag;
+			}
+		
 			// Process cover image if present
 			if (frontMatter.cover && typeof frontMatter.cover === 'string') {
 				try {

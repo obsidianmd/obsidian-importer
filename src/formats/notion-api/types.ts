@@ -32,7 +32,7 @@ export interface DatabaseProcessingContext {
 	formulaStrategy: FormulaImportStrategy;
 	processedDatabases: Map<string, DatabaseInfo>;
 	relationPlaceholders: RelationPlaceholder[];
-	importPageCallback: (pageId: string, parentPath: string) => Promise<void>;
+	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string) => Promise<void>;
 	onPagesDiscovered?: (count: number) => void;
 }
 

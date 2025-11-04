@@ -99,12 +99,15 @@ export async function convertChildDatabase(
 			onPagesDiscovered(databasePages.length);
 		}
 		
+		// Generate database tag for this database
+		const databaseTag = `notion-database/${sanitizedTitle.toLowerCase().replace(/\s+/g, '-')}`;
+		
 		// Import each database page recursively
 		for (const page of databasePages) {
 			if (ctx.isCancelled()) break;
 			
 			// Import the page using the callback (which handles the full page import logic)
-			await importPageCallback(page.id, databaseFolderPath);
+			await importPageCallback(page.id, databaseFolderPath, databaseTag);
 		}
 		
 		// Create .base file in "Notion Databases" folder
@@ -248,17 +251,13 @@ function generateBaseFileContent(
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
 	
-	// Add filter to show files in first-level subfolders of the database folder
-	// Logic: file.folder should start with database path, but should only have one more level
-	// Example: if database is "Root/db-1", match "Root/db-1/page-1" but not "Root/db-1/page-1/db-2"
-	// This allows user-created files in the same structure to appear in the base
+	// Use tag-based filter to include all pages from this database
+	// This allows pages in nested folders (pages with children) to be included
+	// Tag format: notion-database/<sanitized-database-name>
+	const databaseTag = `notion-database/${databaseName.toLowerCase().replace(/\s+/g, '-')}`;
 	content += `filters:\n`;
 	content += `  and:\n`;
-	content += `    - file.folder.startsWith("${databaseFolderPath}/")\n`;
-	// Count the number of path separators to ensure it's only one level deep
-	// Split the database path to count its depth, then ensure file.folder has exactly one more level
-	const databaseDepth = databaseFolderPath.split('/').length;
-	content += `    - file.folder.split("/").length == ${databaseDepth + 1}\n\n`;
+	content += `    - note["notion-database"] == "${databaseTag}"\n\n`;
 	
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
