@@ -26,6 +26,7 @@ export interface BlockConversionContext {
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	importPageCallback?: ImportPageCallback;
+	mentionedIds?: Set<string>; // Collect mentioned page/database IDs during conversion
 }
 
 /**
@@ -75,13 +76,13 @@ export async function convertBlockToMarkdown(
 	
 	switch (type) {
 		case 'paragraph':
-			markdown = convertParagraph(block);
+			markdown = convertParagraph(block, context);
 			break;
 		
 		case 'heading_1':
 		case 'heading_2':
 		case 'heading_3':
-			markdown = convertHeading(block);
+			markdown = convertHeading(block, context);
 			break;
 		
 		case 'bulleted_list_item':
@@ -93,7 +94,7 @@ export async function convertBlockToMarkdown(
 			break;
 		
 		case 'quote':
-			markdown = convertQuote(block);
+			markdown = convertQuote(block, context);
 			break;
 		
 		case 'callout':
@@ -179,23 +180,23 @@ export async function convertBlockToMarkdown(
 /**
  * Convert paragraph block to Markdown
  */
-export function convertParagraph(block: BlockObjectResponse): string {
+export function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): string {
 	if (block.type !== 'paragraph') return '';
-	return convertRichText(block.paragraph.rich_text);
+	return convertRichText(block.paragraph.rich_text, context);
 }
 
 /**
  * Convert heading block to Markdown
  */
-export function convertHeading(block: BlockObjectResponse): string {
+export function convertHeading(block: BlockObjectResponse, context?: BlockConversionContext): string {
 	if (block.type === 'heading_1') {
-		return '# ' + convertRichText(block.heading_1.rich_text);
+		return '# ' + convertRichText(block.heading_1.rich_text, context);
 	}
 	else if (block.type === 'heading_2') {
-		return '## ' + convertRichText(block.heading_2.rich_text);
+		return '## ' + convertRichText(block.heading_2.rich_text, context);
 	}
 	else if (block.type === 'heading_3') {
-		return '### ' + convertRichText(block.heading_3.rich_text);
+		return '### ' + convertRichText(block.heading_3.rich_text, context);
 	}
 	return '';
 }
@@ -211,7 +212,7 @@ export async function convertBulletedListItem(
 	
 	const indentLevel = context.indentLevel || 0;
 	const indent = '  '.repeat(indentLevel); // 2 spaces per indent level
-	let markdown = indent + '- ' + convertRichText(block.bulleted_list_item.rich_text);
+	let markdown = indent + '- ' + convertRichText(block.bulleted_list_item.rich_text, context);
 	
 	// Check if this block has children
 	if (block.has_children) {
@@ -262,7 +263,7 @@ export async function convertNumberedListItem(
 	const indentLevel = context.indentLevel || 0;
 	// Use 2 spaces per indent level (standard Markdown)
 	const indent = '  '.repeat(indentLevel);
-	let markdown = indent + '1. ' + convertRichText(block.numbered_list_item.rich_text);
+	let markdown = indent + '1. ' + convertRichText(block.numbered_list_item.rich_text, context);
 	
 	// Check if this block has children
 	if (block.has_children) {
@@ -304,9 +305,9 @@ export async function convertNumberedListItem(
 /**
  * Convert quote block to Markdown
  */
-export function convertQuote(block: BlockObjectResponse): string {
+export function convertQuote(block: BlockObjectResponse, context?: BlockConversionContext): string {
 	if (block.type !== 'quote') return '';
-	return '> ' + convertRichText(block.quote.rich_text);
+	return '> ' + convertRichText(block.quote.rich_text, context);
 }
 
 /**
@@ -320,7 +321,7 @@ export async function convertCallout(block: BlockObjectResponse, context: BlockC
 	
 	// Get callout icon and text
 	const icon = calloutData.icon?.emoji || '📌';
-	const text = convertRichText(calloutData.rich_text);
+	const text = convertRichText(calloutData.rich_text, context);
 	
 	// Map Notion callout types to Obsidian callout types
 	// Notion doesn't have explicit callout types, so we use a default type
@@ -597,35 +598,126 @@ export function convertLinkPreview(block: BlockObjectResponse): string {
 
 /**
  * Convert Notion rich text to plain Markdown text with formatting
+ * Handles inline elements: text, mentions, equations, links, and annotations
  */
-export function convertRichText(richTextArray: any[]): string {
+export function convertRichText(richTextArray: any[], context?: BlockConversionContext): string {
 	if (!richTextArray || richTextArray.length === 0) return '';
 	
 	return richTextArray.map(rt => {
-		let text = rt.plain_text || '';
+		const type = rt.type;
+		let text = '';
 		
-		// Apply formatting
-		if (rt.annotations) {
+		// Handle different rich text types
+		switch (type) {
+			case 'text':
+				text = rt.plain_text || '';
+				break;
+			
+			case 'mention':
+				text = convertMention(rt, context);
+				break;
+			
+			case 'equation':
+				// Inline equation using single $
+				text = `$${rt.equation?.expression || ''}$`;
+				break;
+			
+			default:
+				text = rt.plain_text || '';
+		}
+		
+		// Apply annotations (inline styles)
+		if (rt.annotations && type !== 'equation') {
+			// Bold
 			if (rt.annotations.bold) {
 				text = `**${text}**`;
 			}
+			// Italic
 			if (rt.annotations.italic) {
 				text = `*${text}*`;
 			}
+			// Code
 			if (rt.annotations.code) {
 				text = `\`${text}\``;
 			}
+			// Strikethrough
 			if (rt.annotations.strikethrough) {
 				text = `~~${text}~~`;
 			}
+			// Underline - Obsidian doesn't support underline in standard markdown, use <u> tag
+			if (rt.annotations.underline) {
+				text = `<u>${text}</u>`;
+			}
+			// Highlight - use Obsidian highlight syntax
+			if (rt.annotations.color && rt.annotations.color.includes('background')) {
+				text = `==${text}==`;
+			}
 		}
 		
-		// Handle links
-		if (rt.href) {
+		// Handle links (external href)
+		if (rt.href && type !== 'mention') {
 			text = `[${text}](${rt.href})`;
 		}
 		
 		return text;
 	}).join('');
+}
+
+/**
+ * Convert Notion mention to Markdown
+ * Handles: database, page, date, link_mention, user, and other types
+ */
+function convertMention(richText: any, context?: BlockConversionContext): string {
+	const mention = richText.mention;
+	if (!mention) return richText.plain_text || '';
+	
+	const mentionType = mention.type;
+	
+	switch (mentionType) {
+		case 'database':
+			// Create placeholder for database mention
+			// Record this mention ID for later replacement
+			if (context?.mentionedIds) {
+				context.mentionedIds.add(mention.database.id);
+			}
+			return `[[NOTION_DB:${mention.database.id}]]`;
+		
+		case 'page':
+			// Create placeholder for page mention
+			// Record this mention ID for later replacement
+			if (context?.mentionedIds) {
+				context.mentionedIds.add(mention.page.id);
+			}
+			return `[[NOTION_PAGE:${mention.page.id}]]`;
+		
+		case 'date':
+			// Render date as plain text with spaces
+			const dateObj = mention.date;
+			let dateText = '';
+			if (dateObj.start) {
+				dateText = dateObj.start;
+				if (dateObj.end) {
+					dateText += ` → ${dateObj.end}`;
+				}
+			}
+			return ` ${dateText} `;
+		
+		case 'link_mention':
+			// Render as external link
+			const url = mention.link_mention?.href || '';
+			// Use plain_text as title if available, otherwise use URL
+			const title = richText.plain_text || url;
+			return `[${title}](${url})`;
+		
+		case 'user':
+			// Render user as plain text with spaces
+			const userName = richText.plain_text || '';
+			return ` ${userName} `;
+		
+		default:
+			// For any other mention types, render as plain text with spaces
+			const text = richText.plain_text || '';
+			return ` ${text} `;
+	}
 }
 

@@ -52,7 +52,7 @@ export interface DatabaseInfo {
  * Relation placeholder that needs to be replaced after all databases are processed
  */
 export interface RelationPlaceholder {
-	pageId: string;
+	pageId: string; // Used to lookup file path via notionIdToPath mapping
 	propertyKey: string;
 	relatedPageIds: string[];
 	targetDatabaseId: string;

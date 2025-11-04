@@ -1,4 +1,4 @@
-import { Notice, Setting, normalizePath, requestUrl } from 'obsidian';
+import { Notice, Setting, normalizePath, requestUrl, TFile } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -40,6 +40,14 @@ export class NotionAPIImporter extends FormatImporter {
 	// Track discovered pages for dynamic progress updates
 	private totalPagesDiscovered: number = 0;
 	private pagesCompleted: number = 0;
+	// Track Notion ID (page/database) to file path mapping for mention replacement
+	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
+	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
+	private notionIdToPath: Map<string, string> = new Map();
+	// Track mention placeholders for efficient replacement (similar to relationPlaceholders)
+	// Maps source file path to the set of mentioned page/database IDs
+	// Using file path as key allows O(1) file lookup instead of O(n) search
+	private mentionPlaceholders: Map<string, Set<string>> = new Map();
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -304,6 +312,9 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing relation links...');
 			await this.replaceRelationPlaceholders(ctx);
 		
+			ctx.status('Processing mention links...');
+			await this.replaceMentionPlaceholdersInAllFiles(ctx);
+	
 			ctx.status('Import completed successfully!');
 		
 		}
@@ -436,6 +447,9 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Convert blocks to markdown with nested children support
 			// Pass the blocksCache to reuse already fetched blocks
+			// Create a set to collect mentioned page/database IDs
+			const mentionedIds = new Set<string>();
+		
 			let markdownContent = await convertBlocksToMarkdown(blocks, {
 				ctx,
 				currentFolderPath: pageFolderPath,
@@ -444,6 +458,7 @@ export class NotionAPIImporter extends FormatImporter {
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
+				mentionedIds, // collect mentioned IDs
 				// Callback to import child pages
 				importPageCallback: async (childPageId: string, parentPath: string) => {
 					await this.fetchAndImportPage(ctx, childPageId, parentPath);
@@ -522,10 +537,21 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Create the markdown file
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
-			
+		
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
 			ctx.reportNoteSuccess(sanitizedTitle);
-			
+		
+			// Record page ID to path mapping for mention replacement
+			// Store path without extension for wiki link generation
+			const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
+			this.notionIdToPath.set(pageId, pathWithoutExt);
+		
+			// Record mention placeholders if any mentions were found
+			// Use file path as key for O(1) lookup during replacement
+			if (mentionedIds.size > 0) {
+				this.mentionPlaceholders.set(mdFilePath, mentionedIds);
+			}
+		
 			// Update progress
 			this.pagesCompleted++;
 			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
@@ -575,8 +601,9 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			for (const placeholder of this.relationPlaceholders) {
 				for (const relatedPageId of placeholder.relatedPageIds) {
-					const relatedPageFile = await this.findPageFileByNotionId(relatedPageId);
-					if (!relatedPageFile) {
+					// Check if we have the file path mapping for this page (O(1) lookup)
+					const relatedPagePath = this.notionIdToPath.get(relatedPageId);
+					if (!relatedPagePath) {
 						missingPageIds.add(relatedPageId);
 						// If we have target database info, record it
 						if (placeholder.targetDatabaseId) {
@@ -644,13 +671,20 @@ export class NotionAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) break;
 			
 			try {
-				// Find the page file by notion-id
-				const pageFile = await this.findPageFileByNotionId(placeholder.pageId);
-				if (!pageFile) {
-					console.warn(`Could not find page file for notion-id: ${placeholder.pageId}`);
+			// Get the page file path from mapping (O(1) lookup)
+				const pageFilePath = this.notionIdToPath.get(placeholder.pageId);
+				if (!pageFilePath) {
+					console.warn(`Could not find file path for page: ${placeholder.pageId}`);
 					continue;
 				}
-				
+			
+				// Get the file directly by path (O(1) lookup)
+				const pageFile = this.vault.getAbstractFileByPath(pageFilePath + '.md');
+				if (!pageFile || !(pageFile instanceof TFile)) {
+					console.warn(`Could not find page file: ${pageFilePath}`);
+					continue;
+				}
+			
 				// Read the file content
 				let content = await this.vault.read(pageFile);
 				
@@ -667,25 +701,32 @@ export class NotionAPIImporter extends FormatImporter {
 				
 				// Build the actual links
 				for (const relatedPageId of placeholder.relatedPageIds) {
-					const relatedPageFile = await this.findPageFileByNotionId(relatedPageId);
-					if (relatedPageFile) {
-						// Use Obsidian wiki link with display text: [[path/to/file|display name]]
-						// This ensures precise linking (no ambiguity with duplicate names)
-						// while displaying only the clean file name
-						const fullPath = relatedPageFile.path.replace(/\.md$/, ''); // Full path without .md
-						const displayName = relatedPageFile.basename; // Just the file name for display
-						const wikiLink = `"[[${fullPath}|${displayName}]]"`;
-						
-						// Replace the page ID with the wiki link in the YAML
-						// The page IDs are stored as array items in YAML
-						newContent = newContent.replace(
-							new RegExp(`"${relatedPageId}"`, 'g'),
-							wikiLink
-						);
-						newContent = newContent.replace(
-							new RegExp(`${relatedPageId}`, 'g'),
-							wikiLink
-						);
+					// Get the related page file path from mapping (O(1) lookup)
+					const relatedPagePath = this.notionIdToPath.get(relatedPageId);
+					if (relatedPagePath) {
+						const relatedPageFile = this.vault.getAbstractFileByPath(relatedPagePath + '.md');
+						if (relatedPageFile instanceof TFile) {
+							// Use Obsidian wiki link with display text: [[path/to/file|display name]]
+							// This ensures precise linking (no ambiguity with duplicate names)
+							// while displaying only the clean file name
+							const fullPath = relatedPageFile.path.replace(/\.md$/, ''); // Full path without .md
+							const displayName = relatedPageFile.basename; // Just the file name for display
+							const wikiLink = `"[[${fullPath}|${displayName}]]"`;
+							
+							// Replace the page ID with the wiki link in the YAML
+							// The page IDs are stored as array items in YAML
+							newContent = newContent.replace(
+								new RegExp(`"${relatedPageId}"`, 'g'),
+								wikiLink
+							);
+							newContent = newContent.replace(
+								new RegExp(`${relatedPageId}`, 'g'),
+								wikiLink
+							);
+						}
+						else {
+							console.warn(`Could not find related page file: ${relatedPagePath}`);
+						}
 					}
 					else {
 						// Page still not found after importing missing databases
@@ -825,34 +866,97 @@ export class NotionAPIImporter extends FormatImporter {
 		
 		return pages;
 	}
-	
+
 	/**
-	 * Find a page file by its notion-id in frontmatter
+	 * Replace mention placeholders ([[NOTION_PAGE:id]] and [[NOTION_DB:id]]) 
+	 * Only processes files that have mentions (efficient like relationPlaceholders)
+	 * Uses Obsidian's link generation to respect user's link format settings
 	 */
-	private async findPageFileByNotionId(notionId: string): Promise<any> {
-		const files = this.vault.getMarkdownFiles();
-		
-		for (const file of files) {
+	private async replaceMentionPlaceholdersInAllFiles(ctx: ImportContext): Promise<void> {
+		if (this.mentionPlaceholders.size === 0) {
+			return;
+		}
+
+		ctx.status(`Replacing mention placeholders...`);
+
+		let replacedCount = 0;
+		let filesModified = 0;
+
+		// Iterate through files that have mentions (using file path as key for O(1) lookup)
+		for (const [sourceFilePath, mentionedIds] of this.mentionPlaceholders) {
+			if (ctx.isCancelled()) break;
+
 			try {
-				const content = await this.vault.read(file);
-				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-				const match = content.match(frontmatterRegex);
-				
-				if (match) {
-					const frontmatter = match[1];
-					// Check if this file has the matching notion-id
-					if (frontmatter.includes(`notion-id: ${notionId}`)) {
-						return file;
+				// Get the source file directly by path (O(1) lookup)
+				const sourceFile = this.vault.getAbstractFileByPath(normalizePath(sourceFilePath));
+				if (!sourceFile || !(sourceFile instanceof TFile)) {
+					console.warn(`Could not find source file: ${sourceFilePath}`);
+					continue;
+				}
+
+				// Read the file content
+				let content = await this.vault.read(sourceFile);
+				const originalContent = content;
+
+				// Replace all mentioned page/database IDs in this file
+				for (const mentionedId of mentionedIds) {
+					let targetPath: string | undefined;
+					
+					// Try to find in pages first
+					targetPath = this.notionIdToPath.get(mentionedId);
+					
+					// If not found, try databases
+					if (!targetPath) {
+						const dbInfo = this.processedDatabases.get(mentionedId);
+						if (dbInfo) {
+							targetPath = dbInfo.baseFilePath.replace(/\.base$/, '');
+						}
 					}
+					
+					if (!targetPath) {
+						console.warn(`No mapping found for mention: ${mentionedId}`);
+						continue;
+					}
+
+					// Try to find the target file (could be .md or .base)
+					let targetFile = this.vault.getAbstractFileByPath(targetPath + '.md');
+					if (!targetFile) {
+						targetFile = this.vault.getAbstractFileByPath(targetPath + '.base');
+					}
+
+					if (targetFile instanceof TFile) {
+						// Use Obsidian's API to generate link according to user's settings
+						const link = this.app.fileManager.generateMarkdownLink(
+							targetFile,
+							sourceFile.path
+						);
+						
+						// Replace all occurrences of this mention (global replace)
+						// A page might mention the same page/database multiple times
+						const regex = new RegExp(`\\[\\[NOTION_(PAGE|DB):${mentionedId}\\]\\]`, 'g');
+						const matches = content.match(regex);
+						if (matches) {
+							content = content.replace(regex, link);
+							replacedCount += matches.length;
+						}
+					}
+					else {
+						console.warn(`Target file not found: ${targetPath}`);
+					}
+				}
+
+				// Save the file if it was modified
+				if (content !== originalContent) {
+					await this.vault.modify(sourceFile, content);
+					filesModified++;
 				}
 			}
 			catch (error) {
-				// Skip files that can't be read
-				continue;
+				console.error(`Failed to process mentions in file ${sourceFilePath}:`, error);
 			}
 		}
-		
-		return null;
+
+		ctx.status(`Replaced ${replacedCount} mention links in ${filesModified} files.`);
 	}
 	
 }
