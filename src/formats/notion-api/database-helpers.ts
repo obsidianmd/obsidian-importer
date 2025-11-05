@@ -99,15 +99,13 @@ export async function convertChildDatabase(
 			onPagesDiscovered(databasePages.length);
 		}
 		
-		// Generate database tag for this database
-		const databaseTag = `notion-database/${sanitizedTitle.toLowerCase().replace(/\s+/g, '-')}`;
-		
 		// Import each database page recursively
 		for (const page of databasePages) {
 			if (ctx.isCancelled()) break;
 			
 			// Import the page using the callback (which handles the full page import logic)
-			await importPageCallback(page.id, databaseFolderPath, databaseTag);
+			// The databaseFolderPath is used both as parent path and as the database tag
+			await importPageCallback(page.id, databaseFolderPath, databaseFolderPath);
 		}
 		
 		// Create .base file in "Notion Databases" folder
@@ -253,11 +251,12 @@ function generateBaseFileContent(
 	
 	// Use tag-based filter to include all pages from this database
 	// This allows pages in nested folders (pages with children) to be included
-	// Tag format: notion-database/<sanitized-database-name>
-	const databaseTag = `notion-database/${databaseName.toLowerCase().replace(/\s+/g, '-')}`;
+	// We use the database folder path as the tag value because:
+	// 1. Database names can be duplicated, but folder paths are unique
+	// 2. It's more readable than using Notion IDs
 	content += `filters:\n`;
 	content += `  and:\n`;
-	content += `    - note["notion-database"] == "${databaseTag}"\n\n`;
+	content += `    - note["notion-database"] == "${databaseFolderPath}"\n\n`;
 	
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
