@@ -1,4 +1,4 @@
-import { Notice, TFolder } from 'obsidian';
+import { BasesConfigFile, Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import {
@@ -351,17 +351,19 @@ export class CSVImporter extends FormatImporter {
 			// Create the base file in the parent folder
 			const parentFolder = folder.parent || folder;
 
+			const baseContents: BasesConfigFile = {
+				filters: `file.folder == "${folder.path}"`,
+				views: [{
+					type: 'table',
+					name: 'Table',
+					order: orderedColumns,
+				}]
+			};
+
 			await createBaseFile(
 				parentFolder,
 				folderName,
-				{
-					filters: [`file.folder == "${folder.path}"`],
-					views: [{
-						type: 'table',
-						name: 'Table',
-						order: orderedColumns,
-					}],
-				},
+				baseContents,
 				this.app.vault
 			);
 		}
