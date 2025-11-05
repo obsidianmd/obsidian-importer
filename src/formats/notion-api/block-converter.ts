@@ -93,6 +93,10 @@ export async function convertBlockToMarkdown(
 			markdown = await convertToDo(block, context);
 			break;
 		
+		case 'column_list':
+			markdown = await convertColumnList(block, context);
+			break;
+		
 		case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
@@ -307,6 +311,110 @@ export async function convertToDo(
 	}
 	
 	return markdown;
+}
+
+/**
+ * Convert a Notion column_list block to Markdown
+ * Flattens columns from left to right, rendering content top to bottom
+ * Each column is marked with a comment for clarity
+ */
+export async function convertColumnList(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'column_list') return '';
+	
+	// Column list must have children (the columns)
+	if (!block.has_children) return '';
+	
+	try {
+		// Try to get from cache first
+		let columns = context.blocksCache?.get(block.id);
+		
+		if (!columns) {
+			// Not in cache, fetch from API
+			columns = await fetchAllBlocks(context.client, block.id, context.ctx);
+			
+			// Store in cache if cache is provided
+			if (context.blocksCache) {
+				context.blocksCache.set(block.id, columns);
+			}
+		}
+		
+		if (columns.length === 0) return '';
+		
+		let markdown = '';
+		
+		// Process each column from left to right
+		for (let i = 0; i < columns.length; i++) {
+			const column = columns[i];
+			
+			if (column.type !== 'column') {
+				console.warn(`Expected column block, got ${column.type}`);
+				continue;
+			}
+			
+			// Add column marker comment
+			markdown += `<!-- Column ${i + 1} -->\n`;
+			
+			// Convert the column's content
+			const columnMarkdown = await convertColumn(column, context);
+			if (columnMarkdown) {
+				markdown += columnMarkdown;
+			}
+			
+			// Add spacing between columns (but not after the last one)
+			if (i < columns.length - 1) {
+				markdown += '\n\n';
+			}
+		}
+		
+		return markdown;
+	}
+	catch (error) {
+		console.error(`Failed to convert column_list ${block.id}:`, error);
+		return '';
+	}
+}
+
+/**
+ * Convert a Notion column block to Markdown
+ * Renders the column's content from top to bottom
+ */
+export async function convertColumn(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'column') return '';
+	
+	// Column must have children (the content blocks)
+	if (!block.has_children) return '';
+	
+	try {
+		// Try to get from cache first
+		let children = context.blocksCache?.get(block.id);
+		
+		if (!children) {
+			// Not in cache, fetch from API
+			children = await fetchAllBlocks(context.client, block.id, context.ctx);
+			
+			// Store in cache if cache is provided
+			if (context.blocksCache) {
+				context.blocksCache.set(block.id, children);
+			}
+		}
+		
+		if (children.length === 0) return '';
+		
+		// Convert all blocks in this column
+		const markdown = await convertBlocksToMarkdown(children, context);
+		
+		return markdown;
+	}
+	catch (error) {
+		console.error(`Failed to convert column ${block.id}:`, error);
+		return '';
+	}
 }
 
 /**
