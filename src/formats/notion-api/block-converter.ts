@@ -33,6 +33,34 @@ export interface BlockConversionContext {
 }
 
 /**
+ * Determine if spacing (empty line) should be added between two blocks
+ * Based on STRICT Markdown syntax requirements ONLY
+ * 
+ * Philosophy: Render blocks as-is without adding extra spacing,
+ * EXCEPT where Markdown syntax absolutely requires it for correct rendering.
+ * 
+ * Rules:
+ * 1. List ↔ Non-list transition: MUST have spacing (Markdown requirement)
+ * 2. Everything else: NO spacing (render as-is)
+ */
+function shouldAddSpacingBetweenBlocks(currentType: string, nextType: string): boolean {
+	// Define list types (including to_do)
+	const listTypes = ['bulleted_list_item', 'numbered_list_item', 'to_do'];
+	
+	const currentIsList = listTypes.includes(currentType);
+	const nextIsList = listTypes.includes(nextType);
+	
+	// ONLY rule: List ↔ Non-list transition requires spacing
+	// This is a Markdown syntax requirement to properly separate lists from other content
+	if (currentIsList !== nextIsList) {
+		return true;
+	}
+	
+	// Default: NO spacing (render blocks directly one after another)
+	return false;
+}
+
+/**
  * Convert Notion blocks to Markdown
  */
 export async function convertBlocksToMarkdown(
@@ -49,14 +77,12 @@ export async function convertBlocksToMarkdown(
 		if (markdown) {
 			lines.push(markdown);
 			
-			// Add empty string for extra spacing when transitioning between list and non-list blocks
+			// Add spacing between blocks based on Markdown syntax requirements
+			// Only add empty lines where necessary for proper Markdown rendering
 			if (i < blocks.length - 1) {
-				const currentIsList = block.type === 'bulleted_list_item' || block.type === 'numbered_list_item';
 				const nextBlock = blocks[i + 1];
-				const nextIsList = nextBlock.type === 'bulleted_list_item' || nextBlock.type === 'numbered_list_item';
 				
-				// Add empty string (extra newline) when not both list items
-				if (!currentIsList || !nextIsList) {
+				if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type)) {
 					lines.push('');
 				}
 			}
