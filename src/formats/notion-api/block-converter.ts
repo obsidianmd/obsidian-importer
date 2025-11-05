@@ -97,6 +97,10 @@ export async function convertBlockToMarkdown(
 			markdown = await convertColumnList(block, context);
 			break;
 		
+		case 'toggle':
+			markdown = await convertToggle(block, context);
+			break;
+		
 		case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
@@ -415,6 +419,62 @@ export async function convertColumn(
 		console.error(`Failed to convert column ${block.id}:`, error);
 		return '';
 	}
+}
+
+/**
+ * Convert a Notion toggle block to Obsidian foldable callout
+ * Uses + for expanded state (foldable) and - for collapsed state (expandable)
+ */
+export async function convertToggle(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'toggle') return '';
+	
+	const toggleData = (block as any).toggle;
+	if (!toggleData) return '';
+	
+	// Get toggle text
+	const text = convertRichText(toggleData.rich_text, context);
+	
+	// In Notion API, we can't directly get the toggle state (expanded/collapsed)
+	// So we default to expanded (+) which is more user-friendly
+	// Users can manually change it to (-) if they want it collapsed by default
+	const foldState = '+'; // Default to expanded (foldable)
+	
+	// Create Obsidian foldable callout
+	// Using 'note' type as default for toggles
+	let markdown = `> [!note]${foldState} ${text}\n`;
+	
+	// Handle children if any
+	if (block.has_children) {
+		try {
+			let children = context.blocksCache?.get(block.id);
+			if (!children) {
+				children = await fetchAllBlocks(context.client, block.id, context.ctx);
+				if (context.blocksCache) {
+					context.blocksCache.set(block.id, children);
+				}
+			}
+			
+			if (children.length > 0) {
+				const childrenMarkdown = await convertBlocksToMarkdown(
+					children,
+					context
+				);
+				if (childrenMarkdown) {
+					// Indent children content with '> ' for callout
+					const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+					markdown += indentedChildren;
+				}
+			}
+		}
+		catch (error) {
+			console.error(`Failed to fetch children for toggle block ${block.id}:`, error);
+		}
+	}
+	
+	return markdown;
 }
 
 /**
