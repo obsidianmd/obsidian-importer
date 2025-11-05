@@ -30,6 +30,7 @@ export interface BlockConversionContext {
 	syncedBlocksMap?: Map<string, string>; // Map synced block ID to file path
 	outputRootPath?: string; // Root path for output (needed for synced blocks folder)
 	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
+	listCounters?: Map<number, number>; // Track list item numbers per indent level
 }
 
 /**
@@ -73,6 +74,21 @@ export async function convertBlocksToMarkdown(
 		if (context.ctx.isCancelled()) break;
 		
 		const block = blocks[i];
+		
+		// Reset list counters for deeper levels when we encounter a non-numbered-list block
+		// This ensures proper numbering when switching between list types or exiting nested lists
+		if (block.type !== 'numbered_list_item' && context.listCounters) {
+			const currentIndent = context.indentLevel || 0;
+			// Clear counters for all levels deeper than current
+			const keysToDelete: number[] = [];
+			context.listCounters.forEach((_, level) => {
+				if (level > currentIndent) {
+					keysToDelete.push(level);
+				}
+			});
+			keysToDelete.forEach(key => context.listCounters!.delete(key));
+		}
+		
 		const markdown = await convertBlockToMarkdown(block, context);
 		if (markdown) {
 			lines.push(markdown);
@@ -741,9 +757,19 @@ export async function convertNumberedListItem(
 	if (block.type !== 'numbered_list_item') return '';
 	
 	const indentLevel = context.indentLevel || 0;
+	
+	// Initialize listCounters if not present
+	if (!context.listCounters) {
+		context.listCounters = new Map<number, number>();
+	}
+	
+	// Get current counter for this indent level, or initialize to 1
+	const currentNumber = (context.listCounters.get(indentLevel) || 0) + 1;
+	context.listCounters.set(indentLevel, currentNumber);
+	
 	// Use 2 spaces per indent level (standard Markdown)
 	const indent = '  '.repeat(indentLevel);
-	let markdown = indent + '1. ' + convertRichText(block.numbered_list_item.rich_text, context);
+	let markdown = indent + `${currentNumber}. ` + convertRichText(block.numbered_list_item.rich_text, context);
 	
 	// Check if this block has children
 	if (block.has_children) {
