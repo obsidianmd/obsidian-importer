@@ -204,7 +204,7 @@ export abstract class FormatImporter {
 		return outputPath;
 	}
 
-	async pause(durationSeconds: number, reason: string, ctx: ImportContext|undefined): Promise<void> {
+	async pause(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => setTimeout(resolve, durationSeconds * 1_000));
 
 		if (ctx) {

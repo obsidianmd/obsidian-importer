@@ -440,22 +440,22 @@ export class ImporterModal extends Modal {
 						if (this.current) {
 							this.current.cancel();
 						}
-						
+
 						// Clear content
 						contentEl.empty();
 						let configEl = contentEl.createDiv();
 						let ctx = this.current = new ImportContext(configEl);
-						
+
 						// Check if importer needs template configuration
 						const templateResult = await importer.prepareTemplateConfig(ctx, configEl);
-						
+
 						if (templateResult === false) {
 							// User cancelled or preparation failed
 							this.current = null;
 							this.updateContent();
 							return;
 						}
-						
+
 						// Show progress UI
 						contentEl.empty();
 						let progressEl = contentEl.createDiv();

@@ -1,12 +1,12 @@
 import { Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { 
-	TemplateConfigurator, 
-	TemplateConfig, 
-	TemplateField, 
-	applyTemplate, 
-	generateFrontmatter 
+import {
+	TemplateConfigurator,
+	TemplateConfig,
+	TemplateField,
+	applyTemplate,
+	generateFrontmatter
 } from '../template';
 import { createBaseFile } from '../base';
 
@@ -82,7 +82,7 @@ export class CSVImporter extends FormatImporter {
 		});
 
 		this.config = await configurator.show(container);
-		
+
 		// Return false if user cancelled
 		return this.config !== null;
 	}
@@ -93,7 +93,7 @@ export class CSVImporter extends FormatImporter {
 			new Notice('Configuration is missing.');
 			return;
 		}
-		
+
 		// Process all rows
 		await this.processRows(ctx);
 	}
@@ -253,7 +253,7 @@ export class CSVImporter extends FormatImporter {
 		}
 
 		// Check if value needs quoting
-		const needsQuotes = /[:#\[\]{}|>*&!%@`"]/.test(trimmed) || 
+		const needsQuotes = /[:#\[\]{}|>*&!%@`"]/.test(trimmed) ||
 			trimmed !== trimmed.trim() ||
 			trimmed.startsWith('-') ||
 			trimmed.startsWith('?');

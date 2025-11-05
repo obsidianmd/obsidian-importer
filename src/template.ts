@@ -94,7 +94,7 @@ export class TemplateConfigurator {
 	constructor(options: TemplateOptions) {
 		this.fields = options.fields;
 		this.placeholderSyntax = options.placeholderSyntax || '{{field_name}}';
-		
+
 		// Initialize config with defaults
 		this.config = {
 			titleTemplate: options.defaults?.titleTemplate || '',
@@ -155,7 +155,7 @@ export class TemplateConfigurator {
 
 			for (const field of this.fields) {
 				const rowEl = columnContainer.createDiv('importer-column-row');
-				
+
 				// Property name input column
 				const nameCol = rowEl.createDiv('importer-column-name-col');
 				const nameInput = nameCol.createEl('input', {
@@ -166,7 +166,7 @@ export class TemplateConfigurator {
 				nameInput.addEventListener('input', () => {
 					this.config.propertyNames.set(field.id, nameInput.value);
 				});
-				
+
 				// Property value input column
 				const valueCol = rowEl.createDiv('importer-column-value-col');
 				const valueInput = valueCol.createEl('input', {
@@ -177,15 +177,15 @@ export class TemplateConfigurator {
 				valueInput.addEventListener('input', () => {
 					this.config.propertyValues.set(field.id, valueInput.value);
 				});
-				
+
 				// Example value column
 				const exampleCol = rowEl.createDiv('importer-column-example-col');
 				const exampleValue = field.exampleValue || '';
-				const truncated = exampleValue.length > 50 
-					? exampleValue.substring(0, 50) + '...' 
+				const truncated = exampleValue.length > 50
+					? exampleValue.substring(0, 50) + '...'
 					: exampleValue;
 				exampleCol.setText(truncated || '—');
-				
+
 				// Delete button column
 				const deleteCol = rowEl.createDiv('importer-column-delete-col');
 				const deleteButton = deleteCol.createEl('button', {
@@ -303,7 +303,7 @@ export function generateFrontmatter(
 
 		const valueTemplate = propertyValues.get(fieldId) || '';
 		if (!valueTemplate) continue; // Skip if property value is empty
-		
+
 		// Apply the template to get the actual value
 		const value = applyTemplate(valueTemplate, data);
 		const yamlValue = convertToYAML(value);
