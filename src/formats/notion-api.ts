@@ -48,6 +48,12 @@ export class NotionAPIImporter extends FormatImporter {
 	// Maps source file path to the set of mentioned page/database IDs
 	// Using file path as key allows O(1) file lookup instead of O(n) search
 	private mentionPlaceholders: Map<string, Set<string>> = new Map();
+	// Track synced blocks mapping (original block ID -> file path)
+	// Used to reference synced block content across the vault
+	private syncedBlocksMap: Map<string, string> = new Map();
+	// Track synced child placeholders (file path -> Set of child IDs)
+	// Used to efficiently replace synced child placeholders without scanning all files
+	private syncedChildPlaceholders: Map<string, Set<string>> = new Map();
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -312,10 +318,13 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing relation links...');
 			await this.replaceRelationPlaceholders(ctx);
 		
-			ctx.status('Processing mention links...');
-			await this.replaceMentionPlaceholdersInAllFiles(ctx);
-	
-			ctx.status('Import completed successfully!');
+		ctx.status('Processing mention links...');
+		await this.replaceMentionPlaceholdersInAllFiles(ctx);
+		
+		ctx.status('Processing synced block child references...');
+		await this.replaceSyncedChildPlaceholders(ctx);
+
+		ctx.status('Import completed successfully!');
 		
 		}
 		catch (error) {
@@ -451,20 +460,23 @@ export class NotionAPIImporter extends FormatImporter {
 			// Create a set to collect mentioned page/database IDs
 			const mentionedIds = new Set<string>();
 		
-			let markdownContent = await convertBlocksToMarkdown(blocks, {
-				ctx,
-				currentFolderPath: pageFolderPath,
-				client: this.notionClient!,
-				vault: this.vault,
-				downloadExternalAttachments: this.downloadExternalAttachments,
-				indentLevel: 0,
-				blocksCache, // reuse cached blocks
-				mentionedIds, // collect mentioned IDs
-				// Callback to import child pages
-				importPageCallback: async (childPageId: string, parentPath: string) => {
-					await this.fetchAndImportPage(ctx, childPageId, parentPath);
-				}
-			});
+		let markdownContent = await convertBlocksToMarkdown(blocks, {
+			ctx,
+			currentFolderPath: pageFolderPath,
+			client: this.notionClient!,
+			vault: this.vault,
+			downloadExternalAttachments: this.downloadExternalAttachments,
+			indentLevel: 0,
+			blocksCache, // reuse cached blocks
+			mentionedIds, // collect mentioned IDs
+			syncedBlocksMap: this.syncedBlocksMap, // for synced blocks
+			outputRootPath: this.outputRootPath, // for synced blocks folder
+			syncedChildPlaceholders: this.syncedChildPlaceholders, // for efficient synced child replacement
+			// Callback to import child pages
+			importPageCallback: async (childPageId: string, parentPath: string) => {
+				await this.fetchAndImportPage(ctx, childPageId, parentPath);
+			}
+		});
 		
 			// Process database placeholders
 			// Note: If hasChildren is false, there won't be any database placeholders to process
@@ -962,7 +974,145 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 
-		ctx.status(`Replaced ${replacedCount} mention links in ${filesModified} files.`);
+	ctx.status(`Replaced ${replacedCount} mention links in ${filesModified} files.`);
+}
+
+/**
+ * Replace synced child placeholders (pages/databases referenced in synced blocks)
+ * Strategy:
+ * 1. Check if already imported → use existing path
+ * 2. If not imported → try to import to Notion Synced Blocks folder
+ * 3. If import fails → show friendly message
+ * 
+ * Performance: Only processes files that contain synced child placeholders (O(n) where n = files with placeholders)
+ */
+private async replaceSyncedChildPlaceholders(ctx: ImportContext): Promise<void> {
+	if (this.syncedChildPlaceholders.size === 0) {
+		return;
 	}
+	
+	ctx.status('Replacing synced block child references...');
+	
+	let replacedCount = 0;
+	let filesModified = 0;
+	let importedCount = 0;
+	
+	// Iterate through files that have synced child placeholders (efficient O(1) lookup)
+	for (const [filePath, childIds] of this.syncedChildPlaceholders) {
+		if (ctx.isCancelled()) break;
+		
+		try {
+			// Get the file directly by path (O(1) lookup)
+			const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+			if (!file || !(file instanceof TFile)) {
+				console.warn(`Could not find synced block file: ${filePath}`);
+				continue;
+			}
+		
+			let content = await this.vault.read(file);
+			const originalContent = content;
+			
+			// Process each child ID that was recorded for this file
+			for (const childId of childIds) {
+				// Try as page first
+				const pageId = childId;
+				const pagePlaceholder = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+				
+			// Check if this is a page placeholder
+			if (content.includes(pagePlaceholder)) {
+				// Check if page is already imported
+				let pagePath = this.notionIdToPath.get(pageId);
+				
+				if (pagePath) {
+					// Already imported, use existing path
+					const targetFile = this.vault.getAbstractFileByPath(pagePath + '.md');
+					if (targetFile && targetFile instanceof TFile) {
+						const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
+						content = content.replace(pagePlaceholder, link);
+						replacedCount++;
+					}
+				} else {
+					// Not imported yet, try to import to Notion Synced Blocks folder
+					try {
+						const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
+						await this.fetchAndImportPage(ctx, pageId, syncedBlocksFolder);
+						importedCount++;
+						
+						// Now get the path
+						pagePath = this.notionIdToPath.get(pageId);
+						if (pagePath) {
+							const targetFile = this.vault.getAbstractFileByPath(pagePath + '.md');
+							if (targetFile && targetFile instanceof TFile) {
+								const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
+								content = content.replace(pagePlaceholder, link);
+								replacedCount++;
+							}
+						}
+					} catch (error) {
+						// Failed to import (no access or error)
+						console.warn(`Failed to import synced child page ${pageId}:`, error);
+						content = content.replace(pagePlaceholder, `**Page** _(no access)_`);
+					}
+				}
+			}
+			
+			// Check if this is a database placeholder
+			const databaseId = childId;
+			const dbPlaceholder = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+			
+			if (content.includes(dbPlaceholder)) {
+				// Check if database is already imported
+				const dbInfo = this.processedDatabases.get(databaseId);
+				
+				if (dbInfo) {
+					// Already imported, use existing .base file
+					const baseFilePath = dbInfo.baseFilePath.replace(/\.base$/, '');
+					const targetFile = this.vault.getAbstractFileByPath(baseFilePath + '.base');
+					if (targetFile && targetFile instanceof TFile) {
+						const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
+						content = content.replace(dbPlaceholder, link);
+						replacedCount++;
+					}
+				} else {
+					// Not imported yet, try to import
+					try {
+						const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
+						
+						// Import database using importTopLevelDatabase
+						await this.importTopLevelDatabase(ctx, databaseId, syncedBlocksFolder);
+						importedCount++;
+						
+						// Now get the database info
+						const newDbInfo = this.processedDatabases.get(databaseId);
+						if (newDbInfo) {
+							const baseFilePath = newDbInfo.baseFilePath.replace(/\.base$/, '');
+							const targetFile = this.vault.getAbstractFileByPath(baseFilePath + '.base');
+							if (targetFile && targetFile instanceof TFile) {
+								const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
+								content = content.replace(dbPlaceholder, link);
+								replacedCount++;
+							}
+						}
+					} catch (error) {
+						// Failed to import (no access or error)
+						console.warn(`Failed to import synced child database ${databaseId}:`, error);
+						content = content.replace(dbPlaceholder, `**Database** _(no access)_`);
+					}
+				}
+			}
+		}
+			
+	// Save the file if it was modified
+	if (content !== originalContent) {
+		await this.vault.modify(file, content);
+		filesModified++;
+	}
+		} catch (error) {
+			console.error(`Failed to process synced child placeholders in file ${filePath}:`, error);
+		}
+	}
+	
+	ctx.status(`Replaced ${replacedCount} synced child references in ${filesModified} files (imported ${importedCount} new items).`);
+}
 	
 }

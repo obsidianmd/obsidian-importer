@@ -27,6 +27,9 @@ export interface BlockConversionContext {
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	importPageCallback?: ImportPageCallback;
 	mentionedIds?: Set<string>; // Collect mentioned page/database IDs during conversion
+	syncedBlocksMap?: Map<string, string>; // Map synced block ID to file path
+	outputRootPath?: string; // Root path for output (needed for synced blocks folder)
+	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
 }
 
 /**
@@ -101,6 +104,10 @@ export async function convertBlockToMarkdown(
 			markdown = await convertToggle(block, context);
 			break;
 		
+		case 'synced_block':
+			markdown = await convertSyncedBlock(block, context);
+			break;
+		
 		case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
@@ -149,36 +156,65 @@ export async function convertBlockToMarkdown(
 			markdown = convertLinkPreview(block);
 			break;
 		
-		case 'child_database':
-			// Database blocks are handled separately in the main importer
-			// Return a placeholder that will be replaced
-			markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
-			break;
+	case 'child_database':
+		// Database blocks are handled separately in the main importer
+		// Special handling for databases inside synced blocks
+		const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
 		
-		case 'child_page':
-			// Child page blocks: import the page and return a link
-			if (context.importPageCallback) {
-				try {
-					// Import the child page under current folder
-					await context.importPageCallback(block.id, context.currentFolderPath);
-					
-					// Get page title from block
-					const pageTitle = (block as any).child_page?.title || 'Untitled';
-					
-					// Return a wiki link to the child page
-					markdown = `[[${pageTitle}]]`;
-				}
-				catch (error) {
-					console.error(`Failed to import child page ${block.id}:`, error);
-					markdown = `<!-- Failed to import child page: ${error.message} -->`;
-				}
+		if (isInSyncedBlockDb) {
+			// Inside synced block: use placeholder for later replacement
+			const databaseId = block.id;
+			
+			// Return placeholder that will be replaced later
+			// Format: [[SYNCED_CHILD_DATABASE:id]]
+			markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+		}
+		else {
+			// Normal page: return placeholder for database processing
+			markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+		}
+		break;
+		
+	case 'child_page':
+		// Child page blocks: import the page and return a link
+		// Special handling for pages inside synced blocks
+		const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
+		
+		if (isInSyncedBlock) {
+			// Inside synced block: check if already imported, otherwise use placeholder
+			const pageId = block.id;
+			
+			// Check if page is already imported (using notionIdToPath from context)
+			// Note: notionIdToPath is not in BlockConversionContext, we need to add it
+			// For now, always use placeholder and handle in replacement phase
+			
+			// Return placeholder that will be replaced later
+			// Format: [[SYNCED_CHILD_PAGE:id]]
+			markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+		}
+		else if (context.importPageCallback) {
+			// Normal page: import the child page
+			try {
+				// Import the child page under current folder
+				await context.importPageCallback(block.id, context.currentFolderPath);
+				
+				// Get page title from block
+				const pageTitle = (block as any).child_page?.title || 'Untitled';
+				
+				// Return a wiki link to the child page
+				markdown = `[[${pageTitle}]]`;
 			}
-			else {
-				// No callback provided, just skip
-				console.warn(`child_page block ${block.id} skipped: no import callback provided`);
-				markdown = '';
+			catch (error) {
+				console.error(`Failed to import child page ${block.id}:`, error);
+				markdown = `<!-- Failed to import child page: ${error.message} -->`;
 			}
-			break;
+		}
+		else {
+			// No callback provided, just skip
+			console.warn(`child_page block ${block.id} skipped: no import callback provided`);
+			markdown = '';
+		}
+		break;
 		
 		default:
 			// Unsupported block type - skip for now
@@ -419,6 +455,198 @@ export async function convertColumn(
 		console.error(`Failed to convert column ${block.id}:`, error);
 		return '';
 	}
+}
+
+/**
+ * Extract the first line of text from a block recursively
+ * Used for naming synced block files
+ */
+async function extractFirstLineText(
+	block: BlockObjectResponse,
+	client: Client,
+	ctx: ImportContext,
+	maxLength: number = 20
+): Promise<string> {
+	// Try to get text from the block itself
+	let text = '';
+	
+	// Extract text based on block type
+	if ('rich_text' in (block as any)[block.type]) {
+		const richText = (block as any)[block.type].rich_text;
+		if (richText && richText.length > 0) {
+			text = richText.map((rt: any) => rt.plain_text || '').join('');
+		}
+	}
+	
+	// If we found text, return it (truncated)
+	if (text.trim()) {
+		return text.trim().substring(0, maxLength);
+	}
+	
+	// If no text found and block has children, recursively check first child
+	if (block.has_children) {
+		try {
+			const children = await fetchAllBlocks(client, block.id, ctx);
+			if (children.length > 0) {
+				return await extractFirstLineText(children[0], client, ctx, maxLength);
+			}
+		}
+		catch (error) {
+			console.error(`Failed to fetch children for first line text extraction:`, error);
+		}
+	}
+	
+	// Fallback to block type
+	return `Synced Block`;
+}
+
+/**
+ * Create a synced block file and return the file path
+ * This is used for both original blocks and synced copies
+ */
+async function createSyncedBlockFile(
+	blockId: string,
+	context: BlockConversionContext
+): Promise<string> {
+	const { client, ctx, vault, outputRootPath } = context;
+	
+	if (!outputRootPath) {
+		throw new Error('outputRootPath is required for synced blocks');
+	}
+	
+	try {
+		// Fetch the block to get its content
+		const block = await client.blocks.retrieve({ block_id: blockId }) as BlockObjectResponse;
+		
+		// Get the block's children (the actual content)
+		let children: BlockObjectResponse[] = [];
+		if (block.has_children) {
+			children = await fetchAllBlocks(client, blockId, ctx);
+		}
+		
+		// Extract first line text for filename
+		let fileName = 'Synced Block';
+		if (children.length > 0) {
+			fileName = await extractFirstLineText(children[0], client, ctx, 20);
+		}
+		
+		// Sanitize filename
+		fileName = fileName.replace(/[\/\?<>\\:\*\|"]/g, '').trim() || 'Synced Block';
+		
+	// Create "Notion Synced Blocks" folder
+	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
+	const syncedBlocksFolder = parentPath === '/' ? '/Notion Synced Blocks' : parentPath + '/Notion Synced Blocks';
+	
+	// Check if folder exists before creating
+	const existingFolder = vault.getAbstractFileByPath(syncedBlocksFolder);
+	if (!existingFolder) {
+		try {
+			await vault.createFolder(syncedBlocksFolder);
+		}
+		catch (error) {
+			// Ignore error if folder was created by another concurrent operation
+			if (!error.message?.includes('already exists')) {
+				console.error('Failed to create Notion Synced Blocks folder:', error);
+			}
+		}
+	}
+		
+	// Generate unique file path
+	let filePath = `${syncedBlocksFolder}/${fileName}.md`;
+	let counter = 1;
+	while (vault.getAbstractFileByPath(filePath)) {
+		filePath = `${syncedBlocksFolder}/${fileName} (${counter}).md`;
+		counter++;
+	}
+	
+	// Create a new context for synced block content
+	// Set currentFolderPath to the synced blocks folder
+	const syncedBlockContext: BlockConversionContext = {
+		...context,
+		currentFolderPath: syncedBlocksFolder
+	};
+	
+	// Convert children to markdown
+	const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
+	
+	// Extract synced child IDs from the markdown content
+	// This allows us to efficiently replace placeholders later without scanning all files
+	const syncedChildIds = new Set<string>();
+	
+	// Find SYNCED_CHILD_PAGE placeholders
+	const pageMatches = markdown.matchAll(/\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g);
+	for (const match of pageMatches) {
+		syncedChildIds.add(match[1]);
+	}
+	
+	// Find SYNCED_CHILD_DATABASE placeholders
+	const dbMatches = markdown.matchAll(/\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g);
+	for (const match of dbMatches) {
+		syncedChildIds.add(match[1]);
+	}
+	
+	// Record synced child placeholders for this file
+	if (context.syncedChildPlaceholders && syncedChildIds.size > 0) {
+		context.syncedChildPlaceholders.set(filePath, syncedChildIds);
+	}
+	
+	// Create the file
+	await vault.create(filePath, markdown);
+		
+		console.log(`Created synced block file: ${filePath}`);
+		
+		return filePath;
+	}
+	catch (error) {
+		console.error(`Failed to create synced block file for ${blockId}:`, error);
+		throw error;
+	}
+}
+
+/**
+ * Convert a Notion synced_block to Obsidian wiki link
+ * Handles both original blocks and synced copies
+ */
+export async function convertSyncedBlock(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'synced_block') return '';
+	
+	const syncedBlockData = (block as any).synced_block;
+	if (!syncedBlockData) return '';
+	
+	const { syncedBlocksMap } = context;
+	if (!syncedBlocksMap) {
+		console.error('syncedBlocksMap is required for synced blocks');
+		return '';
+	}
+	
+	// Determine if this is an original block or a synced copy
+	const isOriginal = syncedBlockData.synced_from === null;
+	const originalBlockId = isOriginal ? block.id : syncedBlockData.synced_from.block_id;
+	
+	// Check if we already have a file for this synced block
+	let filePath = syncedBlocksMap.get(originalBlockId);
+	
+	if (!filePath) {
+		// File doesn't exist yet, create it
+		try {
+			filePath = await createSyncedBlockFile(originalBlockId, context);
+			// Record the mapping
+			syncedBlocksMap.set(originalBlockId, filePath);
+		}
+		catch (error) {
+			console.error(`Failed to process synced block ${originalBlockId}:`, error);
+			return `<!-- Failed to import synced block: ${error.message} -->`;
+		}
+	}
+	
+	// Extract filename without extension for wiki link
+	const fileName = filePath.split('/').pop()?.replace(/\.md$/, '') || 'Synced Block';
+	
+	// Return wiki link to the synced block file
+	return `![[${fileName}]]`;
 }
 
 /**
