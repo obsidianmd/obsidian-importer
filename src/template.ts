@@ -30,24 +30,13 @@ export interface TemplateConfig {
 }
 
 /**
- * Default values for template configuration.
- */
-export interface TemplateDefaults {
-	titleTemplate?: string;
-	locationTemplate?: string;
-	bodyTemplate?: string;
-	propertyNames?: Map<string, string>;
-	propertyValues?: Map<string, string>;
-}
-
-/**
  * Options for configuring the template UI.
  */
 export interface TemplateOptions {
 	/** Available fields that can be used in templates */
 	fields: TemplateField[];
 	/** Default values for template fields */
-	defaults?: TemplateDefaults;
+	defaults?: Partial<TemplateConfig>;
 	/** Description of placeholder syntax (e.g., "{{column_name}}") */
 	placeholderSyntax?: string;
 }
@@ -236,10 +225,6 @@ export class TemplateConfigurator {
 				});
 			});
 		});
-	}
-
-	getConfig(): TemplateConfig {
-		return this.config;
 	}
 }
 
