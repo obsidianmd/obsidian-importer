@@ -34,6 +34,16 @@ export interface BlockConversionContext {
 }
 
 /**
+ * Check if a block is an empty paragraph
+ */
+function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolean {
+	if (!block || block.type !== 'paragraph') {
+		return false;
+	}
+	return block.paragraph.rich_text.length === 0;
+}
+
+/**
  * Determine if spacing (empty line) should be added between two blocks
  * Based on STRICT Markdown syntax requirements ONLY
  * 
@@ -42,7 +52,8 @@ export interface BlockConversionContext {
  * 
  * Rules:
  * 1. List ↔ Non-list transition: MUST have spacing (Markdown requirement)
- * 2. Everything else: NO spacing (render as-is)
+ * 2. Callout/Toggle blocks: MUST have spacing (Obsidian requirement)
+ * 3. If Notion already has empty paragraph, don't add extra spacing
  */
 function shouldAddSpacingBetweenBlocks(currentType: string, nextType: string): boolean {
 	// Define list types (including to_do)
@@ -51,9 +62,16 @@ function shouldAddSpacingBetweenBlocks(currentType: string, nextType: string): b
 	const currentIsList = listTypes.includes(currentType);
 	const nextIsList = listTypes.includes(nextType);
 	
-	// ONLY rule: List ↔ Non-list transition requires spacing
+	// Rule 1: List ↔ Non-list transition requires spacing
 	// This is a Markdown syntax requirement to properly separate lists from other content
 	if (currentIsList !== nextIsList) {
+		return true;
+	}
+	
+	// Rule 2: Callout/Toggle blocks require spacing between them
+	// Obsidian callout syntax requires empty lines to separate consecutive callouts
+	const calloutTypes = ['callout', 'toggle'];
+	if (calloutTypes.includes(currentType) || calloutTypes.includes(nextType)) {
 		return true;
 	}
 	
@@ -89,20 +107,32 @@ export async function convertBlocksToMarkdown(
 			keysToDelete.forEach(key => context.listCounters!.delete(key));
 		}
 		
-		const markdown = await convertBlockToMarkdown(block, context);
-		if (markdown) {
-			lines.push(markdown);
+	const markdown = await convertBlockToMarkdown(block, context);
+	
+	// Special handling for empty paragraphs: preserve them as empty lines
+	// This respects Notion's explicit spacing intent
+	if (markdown === '' && block.type === 'paragraph') {
+		lines.push('');
+	}
+	else if (markdown) {
+		lines.push(markdown);
+		
+		// Smart spacing: Add empty lines only when necessary AND not already present
+		// Check if next block exists and if spacing is required
+		if (i < blocks.length - 1) {
+			const nextBlock = blocks[i + 1];
 			
-			// Add spacing between blocks based on Markdown syntax requirements
-			// Only add empty lines where necessary for proper Markdown rendering
-			if (i < blocks.length - 1) {
-				const nextBlock = blocks[i + 1];
-				
-				if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type)) {
-					lines.push('');
-				}
+			// Check if Notion already has an empty paragraph between blocks
+			const nextIsEmpty = isEmptyParagraph(nextBlock);
+			
+			// Only add spacing if:
+			// 1. Markdown syntax requires it (list transitions, callouts, etc.)
+			// 2. Notion doesn't already have an empty paragraph
+			if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type) && !nextIsEmpty) {
+				lines.push('');
 			}
 		}
+	}
 	}
 	
 	return lines.join('\n');
@@ -202,6 +232,7 @@ export async function convertBlockToMarkdown(
 		// Database blocks are handled separately in the main importer
 		// Special handling for databases inside synced blocks
 		const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
+		const dbIndentLevel = context.indentLevel || 0;
 		
 		if (isInSyncedBlockDb) {
 			// Inside synced block: use placeholder for later replacement
@@ -209,11 +240,27 @@ export async function convertBlockToMarkdown(
 			
 			// Return placeholder that will be replaced later
 			// Format: [[SYNCED_CHILD_DATABASE:id]]
-			markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+			if (dbIndentLevel > 0) {
+				// In a list: render with indentation only (no bullet)
+				const dbIndent = '    '.repeat(dbIndentLevel);
+				markdown = dbIndent + `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+			}
+			else {
+				// Top level: render directly
+				markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+			}
 		}
 		else {
 			// Normal page: return placeholder for database processing
-			markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+			if (dbIndentLevel > 0) {
+				// In a list: render with indentation only (no bullet)
+				const dbIndent = '    '.repeat(dbIndentLevel);
+				markdown = dbIndent + `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+			}
+			else {
+				// Top level: render directly
+				markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+			}
 		}
 		break;
 		
@@ -221,6 +268,7 @@ export async function convertBlockToMarkdown(
 		// Child page blocks: import the page and return a link
 		// Special handling for pages inside synced blocks
 		const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
+		const pageIndentLevel = context.indentLevel || 0;
 		
 		if (isInSyncedBlock) {
 			// Inside synced block: check if already imported, otherwise use placeholder
@@ -232,7 +280,15 @@ export async function convertBlockToMarkdown(
 			
 			// Return placeholder that will be replaced later
 			// Format: [[SYNCED_CHILD_PAGE:id]]
-			markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+			if (pageIndentLevel > 0) {
+				// In a list: render with indentation only (no bullet)
+				const pageIndent = '    '.repeat(pageIndentLevel);
+				markdown = pageIndent + `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+			}
+			else {
+				// Top level: render directly
+				markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+			}
 		}
 		else if (context.importPageCallback) {
 			// Normal page: import the child page
@@ -244,7 +300,15 @@ export async function convertBlockToMarkdown(
 				const pageTitle = (block as any).child_page?.title || 'Untitled';
 				
 				// Return a wiki link to the child page
-				markdown = `[[${pageTitle}]]`;
+				if (pageIndentLevel > 0) {
+					// In a list: render with indentation only (no bullet)
+					const pageIndent = '    '.repeat(pageIndentLevel);
+					markdown = pageIndent + `[[${pageTitle}]]`;
+				}
+				else {
+					// Top level: render directly
+					markdown = `[[${pageTitle}]]`;
+				}
 			}
 			catch (error) {
 				console.error(`Failed to import child page ${block.id}:`, error);
@@ -301,7 +365,7 @@ export async function convertBulletedListItem(
 	if (block.type !== 'bulleted_list_item') return '';
 	
 	const indentLevel = context.indentLevel || 0;
-	const indent = '  '.repeat(indentLevel); // 2 spaces per indent level
+	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
 	let markdown = indent + '- ' + convertRichText(block.bulleted_list_item.rich_text, context);
 	
 	// Check if this block has children
@@ -352,7 +416,7 @@ export async function convertToDo(
 	if (block.type !== 'to_do') return '';
 	
 	const indentLevel = context.indentLevel || 0;
-	const indent = '  '.repeat(indentLevel); // 2 spaces per indent level
+	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
 	
 	// Use [x] for checked items, [ ] for unchecked
 	const checkbox = block.to_do.checked ? '[x]' : '[ ]';
@@ -767,8 +831,8 @@ export async function convertNumberedListItem(
 	const currentNumber = (context.listCounters.get(indentLevel) || 0) + 1;
 	context.listCounters.set(indentLevel, currentNumber);
 	
-	// Use 2 spaces per indent level (standard Markdown)
-	const indent = '  '.repeat(indentLevel);
+	// Use 4 spaces per indent level
+	const indent = '    '.repeat(indentLevel);
 	let markdown = indent + `${currentNumber}. ` + convertRichText(block.numbered_list_item.rich_text, context);
 	
 	// Check if this block has children
