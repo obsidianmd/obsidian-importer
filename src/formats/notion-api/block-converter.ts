@@ -89,6 +89,10 @@ export async function convertBlockToMarkdown(
 			markdown = await convertBulletedListItem(block, context);
 			break;
 		
+		case 'to_do':
+			markdown = await convertToDo(block, context);
+			break;
+		
 		case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
@@ -213,6 +217,60 @@ export async function convertBulletedListItem(
 	const indentLevel = context.indentLevel || 0;
 	const indent = '  '.repeat(indentLevel); // 2 spaces per indent level
 	let markdown = indent + '- ' + convertRichText(block.bulleted_list_item.rich_text, context);
+	
+	// Check if this block has children
+	if (block.has_children) {
+		try {
+			// Try to get from cache first
+			let children = context.blocksCache?.get(block.id);
+			
+			if (!children) {
+				// Not in cache, fetch from API
+				children = await fetchAllBlocks(context.client, block.id, context.ctx);
+				
+				// Store in cache if cache is provided
+				if (context.blocksCache) {
+					context.blocksCache.set(block.id, children);
+				}
+			}
+			
+			if (children.length > 0) {
+				const childrenMarkdown = await convertBlocksToMarkdown(
+					children,
+					{
+						...context,
+						indentLevel: indentLevel + 1
+					}
+				);
+				if (childrenMarkdown) {
+					markdown += '\n' + childrenMarkdown;
+				}
+			}
+		}
+		catch (error) {
+			console.error(`Failed to fetch children for block ${block.id}:`, error);
+		}
+	}
+	
+	return markdown;
+}
+
+/**
+ * Convert a Notion to_do block to Markdown task list format
+ * Supports nested children including child pages
+ */
+export async function convertToDo(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'to_do') return '';
+	
+	const indentLevel = context.indentLevel || 0;
+	const indent = '  '.repeat(indentLevel); // 2 spaces per indent level
+	
+	// Use [x] for checked items, [ ] for unchecked
+	const checkbox = block.to_do.checked ? '[x]' : '[ ]';
+	let markdown = indent + '- ' + checkbox + ' ' + convertRichText(block.to_do.rich_text, context);
 	
 	// Check if this block has children
 	if (block.has_children) {
