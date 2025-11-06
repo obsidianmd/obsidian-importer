@@ -122,32 +122,32 @@ export async function convertBlocksToMarkdown(
 			keysToDelete.forEach(key => context.listCounters!.delete(key));
 		}
 		
-	const markdown = await convertBlockToMarkdown(block, context);
+		const markdown = await convertBlockToMarkdown(block, context);
 	
-	// Special handling for empty paragraphs: preserve them as empty lines
-	// This respects Notion's explicit spacing intent
-	if (markdown === '' && block.type === 'paragraph') {
-		lines.push('');
-	}
-	else if (markdown) {
-		lines.push(markdown);
-		
-		// Smart spacing: Add empty lines only when necessary AND not already present
-		// Check if next block exists and if spacing is required
-		if (i < blocks.length - 1) {
-			const nextBlock = blocks[i + 1];
-			
-			// Check if Notion already has an empty paragraph between blocks
-			const nextIsEmpty = isEmptyParagraph(nextBlock);
-			
-		// Only add spacing if:
-		// 1. Markdown syntax requires it (list transitions, callouts, etc.)
-		// 2. Notion doesn't already have an empty paragraph
-		if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type, context) && !nextIsEmpty) {
+		// Special handling for empty paragraphs: preserve them as empty lines
+		// This respects Notion's explicit spacing intent
+		if (markdown === '' && block.type === 'paragraph') {
 			lines.push('');
 		}
+		else if (markdown) {
+			lines.push(markdown);
+		
+			// Smart spacing: Add empty lines only when necessary AND not already present
+			// Check if next block exists and if spacing is required
+			if (i < blocks.length - 1) {
+				const nextBlock = blocks[i + 1];
+			
+				// Check if Notion already has an empty paragraph between blocks
+				const nextIsEmpty = isEmptyParagraph(nextBlock);
+			
+				// Only add spacing if:
+				// 1. Markdown syntax requires it (list transitions, callouts, etc.)
+				// 2. Notion doesn't already have an empty paragraph
+				if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type, context) && !nextIsEmpty) {
+					lines.push('');
+				}
+			}
 		}
-	}
 	}
 	
 	return lines.join('\n');
@@ -191,15 +191,15 @@ export async function convertBlockToMarkdown(
 			markdown = await convertToggle(block, context);
 			break;
 		
-	case 'synced_block':
-		markdown = await convertSyncedBlock(block, context);
-		break;
+		case 'synced_block':
+			markdown = await convertSyncedBlock(block, context);
+			break;
 	
-	case 'table':
-		markdown = await convertTable(block, context);
-		break;
+		case 'table':
+			markdown = await convertTable(block, context);
+			break;
 	
-	case 'numbered_list_item':
+		case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
 		
@@ -247,99 +247,99 @@ export async function convertBlockToMarkdown(
 			markdown = convertLinkPreview(block);
 			break;
 		
-	case 'child_database':
+		case 'child_database':
 		// Database blocks are handled separately in the main importer
 		// Special handling for databases inside synced blocks
-		const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
-		const dbIndentLevel = context.indentLevel || 0;
+			const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
+			const dbIndentLevel = context.indentLevel || 0;
 		
-		if (isInSyncedBlockDb) {
+			if (isInSyncedBlockDb) {
 			// Inside synced block: use placeholder for later replacement
-			const databaseId = block.id;
+				const databaseId = block.id;
 			
-			// Return placeholder that will be replaced later
-			// Format: [[SYNCED_CHILD_DATABASE:id]]
-			if (dbIndentLevel > 0) {
+				// Return placeholder that will be replaced later
+				// Format: [[SYNCED_CHILD_DATABASE:id]]
+				if (dbIndentLevel > 0) {
 				// In a list: render with indentation only (no bullet)
-				const dbIndent = '    '.repeat(dbIndentLevel);
-				markdown = dbIndent + `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
-			}
-			else {
-				// Top level: render directly
-				markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
-			}
-		}
-		else {
-			// Normal page: return placeholder for database processing
-			if (dbIndentLevel > 0) {
-				// In a list: render with indentation only (no bullet)
-				const dbIndent = '    '.repeat(dbIndentLevel);
-				markdown = dbIndent + `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
-			}
-			else {
-				// Top level: render directly
-				markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
-			}
-		}
-		break;
-		
-	case 'child_page':
-		// Child page blocks: import the page and return a link
-		// Special handling for pages inside synced blocks
-		const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
-		const pageIndentLevel = context.indentLevel || 0;
-		
-		if (isInSyncedBlock) {
-			// Inside synced block: check if already imported, otherwise use placeholder
-			const pageId = block.id;
-			
-			// Check if page is already imported (using notionIdToPath from context)
-			// Note: notionIdToPath is not in BlockConversionContext, we need to add it
-			// For now, always use placeholder and handle in replacement phase
-			
-			// Return placeholder that will be replaced later
-			// Format: [[SYNCED_CHILD_PAGE:id]]
-			if (pageIndentLevel > 0) {
-				// In a list: render with indentation only (no bullet)
-				const pageIndent = '    '.repeat(pageIndentLevel);
-				markdown = pageIndent + `[[SYNCED_CHILD_PAGE:${pageId}]]`;
-			}
-			else {
-				// Top level: render directly
-				markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
-			}
-		}
-		else if (context.importPageCallback) {
-			// Normal page: import the child page
-			try {
-				// Import the child page under current folder
-				await context.importPageCallback(block.id, context.currentFolderPath);
-				
-				// Get page title from block
-				const pageTitle = (block as any).child_page?.title || 'Untitled';
-				
-				// Return a wiki link to the child page
-				if (pageIndentLevel > 0) {
-					// In a list: render with indentation only (no bullet)
-					const pageIndent = '    '.repeat(pageIndentLevel);
-					markdown = pageIndent + `[[${pageTitle}]]`;
+					const dbIndent = '    '.repeat(dbIndentLevel);
+					markdown = dbIndent + `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
 				}
 				else {
-					// Top level: render directly
-					markdown = `[[${pageTitle}]]`;
+				// Top level: render directly
+					markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
 				}
 			}
-			catch (error) {
-				console.error(`Failed to import child page ${block.id}:`, error);
-				markdown = `<!-- Failed to import child page: ${error.message} -->`;
+			else {
+			// Normal page: return placeholder for database processing
+				if (dbIndentLevel > 0) {
+				// In a list: render with indentation only (no bullet)
+					const dbIndent = '    '.repeat(dbIndentLevel);
+					markdown = dbIndent + `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+				}
+				else {
+				// Top level: render directly
+					markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+				}
 			}
-		}
-		else {
+			break;
+		
+		case 'child_page':
+		// Child page blocks: import the page and return a link
+		// Special handling for pages inside synced blocks
+			const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
+			const pageIndentLevel = context.indentLevel || 0;
+		
+			if (isInSyncedBlock) {
+			// Inside synced block: check if already imported, otherwise use placeholder
+				const pageId = block.id;
+			
+				// Check if page is already imported (using notionIdToPath from context)
+				// Note: notionIdToPath is not in BlockConversionContext, we need to add it
+				// For now, always use placeholder and handle in replacement phase
+			
+				// Return placeholder that will be replaced later
+				// Format: [[SYNCED_CHILD_PAGE:id]]
+				if (pageIndentLevel > 0) {
+				// In a list: render with indentation only (no bullet)
+					const pageIndent = '    '.repeat(pageIndentLevel);
+					markdown = pageIndent + `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+				}
+				else {
+				// Top level: render directly
+					markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+				}
+			}
+			else if (context.importPageCallback) {
+			// Normal page: import the child page
+				try {
+				// Import the child page under current folder
+					await context.importPageCallback(block.id, context.currentFolderPath);
+				
+					// Get page title from block
+					const pageTitle = (block as any).child_page?.title || 'Untitled';
+				
+					// Return a wiki link to the child page
+					if (pageIndentLevel > 0) {
+					// In a list: render with indentation only (no bullet)
+						const pageIndent = '    '.repeat(pageIndentLevel);
+						markdown = pageIndent + `[[${pageTitle}]]`;
+					}
+					else {
+					// Top level: render directly
+						markdown = `[[${pageTitle}]]`;
+					}
+				}
+				catch (error) {
+					console.error(`Failed to import child page ${block.id}:`, error);
+					markdown = `<!-- Failed to import child page: ${error.message} -->`;
+				}
+			}
+			else {
 			// No callback provided, just skip
-			console.warn(`child_page block ${block.id} skipped: no import callback provided`);
-			markdown = '';
-		}
-		break;
+				console.warn(`child_page block ${block.id} skipped: no import callback provided`);
+				markdown = '';
+			}
+			break;
 		
 		default:
 			// Unsupported block type - skip for now
@@ -597,7 +597,8 @@ async function extractFirstLineText(
 	block: BlockObjectResponse,
 	client: Client,
 	ctx: ImportContext,
-	maxLength: number = 20
+	maxLength: number = 20,
+	blocksCache?: Map<string, BlockObjectResponse[]>
 ): Promise<string> {
 	// Try to get text from the block itself
 	let text = '';
@@ -618,9 +619,17 @@ async function extractFirstLineText(
 	// If no text found and block has children, recursively check first child
 	if (block.has_children) {
 		try {
-			const children = await fetchAllBlocks(client, block.id, ctx);
+			// Try to get from cache first
+			let children = blocksCache?.get(block.id);
+			if (!children) {
+				children = await fetchAllBlocks(client, block.id, ctx);
+				if (blocksCache) {
+					blocksCache.set(block.id, children);
+				}
+			}
+			
 			if (children.length > 0) {
-				return await extractFirstLineText(children[0], client, ctx, maxLength);
+				return await extractFirstLineText(children[0], client, ctx, maxLength, blocksCache);
 			}
 		}
 		catch (error) {
@@ -652,78 +661,84 @@ async function createSyncedBlockFile(
 		
 		// Get the block's children (the actual content)
 		let children: BlockObjectResponse[] = [];
+	
 		if (block.has_children) {
-			children = await fetchAllBlocks(client, blockId, ctx);
+		// Try to get from cache first
+			children = context.blocksCache?.get(blockId) || await fetchAllBlocks(client, blockId, ctx);
+			// Cache the children for potential reuse
+			if (context.blocksCache && !context.blocksCache.has(blockId)) {
+				context.blocksCache.set(blockId, children);
+			}
 		}
-		
+	
 		// Extract first line text for filename
 		let fileName = 'Synced Block';
 		if (children.length > 0) {
-			fileName = await extractFirstLineText(children[0], client, ctx, 20);
+			fileName = await extractFirstLineText(children[0], client, ctx, 20, context.blocksCache);
 		}
 		
 		// Sanitize filename
 		fileName = fileName.replace(/[\/\?<>\\:\*\|"]/g, '').trim() || 'Synced Block';
 		
-	// Create "Notion Synced Blocks" folder
-	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
-	const syncedBlocksFolder = parentPath === '/' ? '/Notion Synced Blocks' : parentPath + '/Notion Synced Blocks';
+		// Create "Notion Synced Blocks" folder
+		const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
+		const syncedBlocksFolder = parentPath === '/' ? '/Notion Synced Blocks' : parentPath + '/Notion Synced Blocks';
 	
-	// Check if folder exists before creating
-	const existingFolder = vault.getAbstractFileByPath(syncedBlocksFolder);
-	if (!existingFolder) {
-		try {
-			await vault.createFolder(syncedBlocksFolder);
-		}
-		catch (error) {
+		// Check if folder exists before creating
+		const existingFolder = vault.getAbstractFileByPath(syncedBlocksFolder);
+		if (!existingFolder) {
+			try {
+				await vault.createFolder(syncedBlocksFolder);
+			}
+			catch (error) {
 			// Ignore error if folder was created by another concurrent operation
-			if (!error.message?.includes('already exists')) {
-				console.error('Failed to create Notion Synced Blocks folder:', error);
+				if (!error.message?.includes('already exists')) {
+					console.error('Failed to create Notion Synced Blocks folder:', error);
+				}
 			}
 		}
-	}
 		
-	// Generate unique file path
-	let filePath = `${syncedBlocksFolder}/${fileName}.md`;
-	let counter = 1;
-	while (vault.getAbstractFileByPath(filePath)) {
-		filePath = `${syncedBlocksFolder}/${fileName} (${counter}).md`;
-		counter++;
-	}
+		// Generate unique file path
+		let filePath = `${syncedBlocksFolder}/${fileName}.md`;
+		let counter = 1;
+		while (vault.getAbstractFileByPath(filePath)) {
+			filePath = `${syncedBlocksFolder}/${fileName} (${counter}).md`;
+			counter++;
+		}
 	
-	// Create a new context for synced block content
-	// Set currentFolderPath to the synced blocks folder
-	const syncedBlockContext: BlockConversionContext = {
-		...context,
-		currentFolderPath: syncedBlocksFolder
-	};
+		// Create a new context for synced block content
+		// Set currentFolderPath to the synced blocks folder
+		const syncedBlockContext: BlockConversionContext = {
+			...context,
+			currentFolderPath: syncedBlocksFolder
+		};
 	
-	// Convert children to markdown
-	const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
+		// Convert children to markdown
+		const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
 	
-	// Extract synced child IDs from the markdown content
-	// This allows us to efficiently replace placeholders later without scanning all files
-	const syncedChildIds = new Set<string>();
+		// Extract synced child IDs from the markdown content
+		// This allows us to efficiently replace placeholders later without scanning all files
+		const syncedChildIds = new Set<string>();
 	
-	// Find SYNCED_CHILD_PAGE placeholders
-	const pageMatches = markdown.matchAll(/\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g);
-	for (const match of pageMatches) {
-		syncedChildIds.add(match[1]);
-	}
+		// Find SYNCED_CHILD_PAGE placeholders
+		const pageMatches = markdown.matchAll(/\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g);
+		for (const match of pageMatches) {
+			syncedChildIds.add(match[1]);
+		}
 	
-	// Find SYNCED_CHILD_DATABASE placeholders
-	const dbMatches = markdown.matchAll(/\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g);
-	for (const match of dbMatches) {
-		syncedChildIds.add(match[1]);
-	}
+		// Find SYNCED_CHILD_DATABASE placeholders
+		const dbMatches = markdown.matchAll(/\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g);
+		for (const match of dbMatches) {
+			syncedChildIds.add(match[1]);
+		}
 	
-	// Record synced child placeholders for this file
-	if (context.syncedChildPlaceholders && syncedChildIds.size > 0) {
-		context.syncedChildPlaceholders.set(filePath, syncedChildIds);
-	}
+		// Record synced child placeholders for this file
+		if (context.syncedChildPlaceholders && syncedChildIds.size > 0) {
+			context.syncedChildPlaceholders.set(filePath, syncedChildIds);
+		}
 	
-	// Create the file
-	await vault.create(filePath, markdown);
+		// Create the file
+		await vault.create(filePath, markdown);
 		
 		console.log(`Created synced block file: ${filePath}`);
 		
@@ -818,12 +833,14 @@ export async function convertToggle(
 			}
 			
 			if (children.length > 0) {
+			// Don't pass indentLevel to toggle children
+			// The '> ' prefix is sufficient for toggle/callout formatting
 				const childrenMarkdown = await convertBlocksToMarkdown(
 					children,
-					context
+					{ ...context, indentLevel: 0 }
 				);
 				if (childrenMarkdown) {
-					// Indent children content with '> ' for callout
+				// Indent children content with '> ' for callout
 					const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
 					markdown += indentedChildren;
 				}
@@ -852,8 +869,7 @@ export async function convertTable(
 	
 	// Table configuration
 	const tableWidth = tableData.table_width || 0;
-	const hasColumnHeader = tableData.has_column_header || false;
-	const hasRowHeader = tableData.has_row_header || false;
+	// ignore table's column header & row header
 	
 	// Column alignment (default: left-aligned, can be modified later)
 	const columnAlignment: ('left' | 'center' | 'right')[] = new Array(tableWidth).fill('left');
@@ -901,18 +917,6 @@ export async function convertTable(
 			// Handle hard line breaks (replace \n with <br>)
 			cellContent = cellContent.replace(/\n/g, '<br>');
 			
-			// Check if this cell should be a header (bold)
-			const isColumnHeader = hasColumnHeader && rowIndex === 0;
-			const isRowHeader = hasRowHeader && colIndex === 0;
-			
-			if (isColumnHeader || isRowHeader) {
-				// Make header cells bold
-				// Only wrap if not already empty
-				if (cellContent.trim()) {
-					cellContent = `**${cellContent}**`;
-				}
-			}
-			
 			// Handle empty cells
 			if (!cellContent.trim()) {
 				cellContent = ' '; // Keep at least one space for proper table rendering
@@ -924,8 +928,9 @@ export async function convertTable(
 		// Build row string
 		markdownRows.push('| ' + markdownCells.join(' | ') + ' |');
 		
-		// Add separator row after first row (if it's a column header)
-		if (rowIndex === 0 && hasColumnHeader) {
+		// Add separator row after first row
+		// Markdown tables require a separator row, which makes the first row a header
+		if (rowIndex === 0) {
 			const separators = columnAlignment.map(align => {
 				switch (align) {
 					case 'left':
@@ -940,13 +945,6 @@ export async function convertTable(
 			});
 			markdownRows.push('| ' + separators.join(' | ') + ' |');
 		}
-	}
-	
-	// If no column header, add separator after building all rows
-	if (!hasColumnHeader && markdownRows.length > 0) {
-		const separators = new Array(tableWidth).fill('---');
-		// Insert separator after first row
-		markdownRows.splice(1, 0, '| ' + separators.join(' | ') + ' |');
 	}
 	
 	return markdownRows.join('\n');
@@ -1062,9 +1060,11 @@ export async function convertCallout(block: BlockObjectResponse, context: BlockC
 			}
 			
 			if (children.length > 0) {
+				// Don't increase indentLevel for callout children
+				// The '> ' prefix is sufficient for callout formatting
 				const childrenMarkdown = await convertBlocksToMarkdown(
 					children,
-					{ ...context, indentLevel: (context.indentLevel || 0) + 1 }
+					{ ...context, indentLevel: 0 }
 				);
 				if (childrenMarkdown) {
 					// Indent children content with '> ' for callout
@@ -1334,11 +1334,11 @@ export function convertRichText(richTextArray: any[], context?: BlockConversionC
 				text = convertMention(rt, context);
 				break;
 			
-		case 'equation':
+			case 'equation':
 			// Inline equation using single $
 			// Trim whitespace to ensure proper rendering in Obsidian
-			text = `$${(rt.equation?.expression || '').trim()}$`;
-			break;
+				text = `$${(rt.equation?.expression || '').trim()}$`;
+				break;
 			
 			default:
 				text = rt.plain_text || '';
@@ -1421,10 +1421,10 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			return ` ${dateText} `;
 		
 		case 'link_mention':
-			// Render as external link
+		// Render as external link
 			const url = mention.link_mention?.href || '';
-			// Use plain_text as title if available, otherwise use URL
-			const title = richText.plain_text || url;
+			// Prioritize link_mention.title, fallback to plain_text, then URL
+			const title = mention.link_mention?.title || richText.plain_text || url;
 			return `[${title}](${url})`;
 		
 		case 'user':
