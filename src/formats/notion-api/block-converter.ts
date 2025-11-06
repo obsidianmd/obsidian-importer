@@ -51,11 +51,17 @@ function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolea
  * EXCEPT where Markdown syntax absolutely requires it for correct rendering.
  * 
  * Rules:
- * 1. List ↔ Non-list transition: MUST have spacing (Markdown requirement)
+ * 1. List ↔ Non-list transition: MUST have spacing at top level (Markdown requirement)
+ *    BUT NOT in nested contexts (indentLevel > 0) where indentation handles separation
  * 2. Callout/Toggle blocks: MUST have spacing (Obsidian requirement)
- * 3. If Notion already has empty paragraph, don't add extra spacing
+ * 3. Table blocks: MUST have spacing (Markdown requirement)
+ * 4. If Notion already has empty paragraph, don't add extra spacing
  */
-function shouldAddSpacingBetweenBlocks(currentType: string, nextType: string): boolean {
+function shouldAddSpacingBetweenBlocks(
+	currentType: string, 
+	nextType: string, 
+	context?: BlockConversionContext
+): boolean {
 	// Define list types (including to_do)
 	const listTypes = ['bulleted_list_item', 'numbered_list_item', 'to_do'];
 	
@@ -63,15 +69,24 @@ function shouldAddSpacingBetweenBlocks(currentType: string, nextType: string): b
 	const nextIsList = listTypes.includes(nextType);
 	
 	// Rule 1: List ↔ Non-list transition requires spacing
-	// This is a Markdown syntax requirement to properly separate lists from other content
+	// BUT ONLY at top level (indentLevel = 0)
+	// In nested contexts (indentLevel > 0), indentation handles the separation
 	if (currentIsList !== nextIsList) {
-		return true;
+		const indentLevel = context?.indentLevel || 0;
+		// Only add spacing if at top level (not nested)
+		return indentLevel === 0;
 	}
 	
 	// Rule 2: Callout/Toggle blocks require spacing between them
 	// Obsidian callout syntax requires empty lines to separate consecutive callouts
 	const calloutTypes = ['callout', 'toggle'];
 	if (calloutTypes.includes(currentType) || calloutTypes.includes(nextType)) {
+		return true;
+	}
+	
+	// Rule 3: Table blocks require spacing before and after
+	// Markdown table syntax requires empty lines to properly render
+	if (currentType === 'table' || nextType === 'table') {
 		return true;
 	}
 	
@@ -125,12 +140,12 @@ export async function convertBlocksToMarkdown(
 			// Check if Notion already has an empty paragraph between blocks
 			const nextIsEmpty = isEmptyParagraph(nextBlock);
 			
-			// Only add spacing if:
-			// 1. Markdown syntax requires it (list transitions, callouts, etc.)
-			// 2. Notion doesn't already have an empty paragraph
-			if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type) && !nextIsEmpty) {
-				lines.push('');
-			}
+		// Only add spacing if:
+		// 1. Markdown syntax requires it (list transitions, callouts, etc.)
+		// 2. Notion doesn't already have an empty paragraph
+		if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type, context) && !nextIsEmpty) {
+			lines.push('');
+		}
 		}
 	}
 	}
@@ -176,11 +191,15 @@ export async function convertBlockToMarkdown(
 			markdown = await convertToggle(block, context);
 			break;
 		
-		case 'synced_block':
-			markdown = await convertSyncedBlock(block, context);
-			break;
-		
-		case 'numbered_list_item':
+	case 'synced_block':
+		markdown = await convertSyncedBlock(block, context);
+		break;
+	
+	case 'table':
+		markdown = await convertTable(block, context);
+		break;
+	
+	case 'numbered_list_item':
 			markdown = await convertNumberedListItem(block, context);
 			break;
 		
@@ -343,16 +362,23 @@ export function convertParagraph(block: BlockObjectResponse, context?: BlockConv
  * Convert heading block to Markdown
  */
 export function convertHeading(block: BlockObjectResponse, context?: BlockConversionContext): string {
+	// Get indent level if heading is nested in a list
+	const indentLevel = context?.indentLevel || 0;
+	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
+	
+	let headingText = '';
 	if (block.type === 'heading_1') {
-		return '# ' + convertRichText(block.heading_1.rich_text, context);
+		headingText = '# ' + convertRichText(block.heading_1.rich_text, context);
 	}
 	else if (block.type === 'heading_2') {
-		return '## ' + convertRichText(block.heading_2.rich_text, context);
+		headingText = '## ' + convertRichText(block.heading_2.rich_text, context);
 	}
 	else if (block.type === 'heading_3') {
-		return '### ' + convertRichText(block.heading_3.rich_text, context);
+		headingText = '### ' + convertRichText(block.heading_3.rich_text, context);
 	}
-	return '';
+	
+	// Add indentation if nested
+	return indent + headingText;
 }
 
 /**
@@ -812,6 +838,121 @@ export async function convertToggle(
 }
 
 /**
+ * Convert Notion table to Markdown table
+ * Supports column headers, row headers, and inline elements (mention, link, math, etc.)
+ */
+export async function convertTable(
+	block: BlockObjectResponse,
+	context: BlockConversionContext
+): Promise<string> {
+	if (block.type !== 'table') return '';
+	
+	const tableData = (block as any).table;
+	if (!tableData) return '';
+	
+	// Table configuration
+	const tableWidth = tableData.table_width || 0;
+	const hasColumnHeader = tableData.has_column_header || false;
+	const hasRowHeader = tableData.has_row_header || false;
+	
+	// Column alignment (default: left-aligned, can be modified later)
+	const columnAlignment: ('left' | 'center' | 'right')[] = new Array(tableWidth).fill('left');
+	
+	// Fetch table rows (children of table block)
+	if (!block.has_children) {
+		return ''; // Empty table
+	}
+	
+	let rows: BlockObjectResponse[] = [];
+	try {
+		rows = context.blocksCache?.get(block.id) || await fetchAllBlocks(context.client, block.id, context.ctx);
+		if (context.blocksCache && !context.blocksCache.has(block.id)) {
+			context.blocksCache.set(block.id, rows);
+		}
+	}
+	catch (error) {
+		console.error(`Failed to fetch table rows for block ${block.id}:`, error);
+		return '';
+	}
+	
+	if (rows.length === 0) {
+		return ''; // Empty table
+	}
+	
+	// Convert each row
+	const markdownRows: string[] = [];
+	
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex];
+		if (row.type !== 'table_row') continue;
+		
+		const rowData = (row as any).table_row;
+		if (!rowData || !rowData.cells) continue;
+		
+		const cells: any[][] = rowData.cells; // Array of RichText arrays
+		const markdownCells: string[] = [];
+		
+		for (let colIndex = 0; colIndex < cells.length; colIndex++) {
+			const cellRichText = cells[colIndex];
+			
+			// Convert RichText to markdown
+			let cellContent = convertRichText(cellRichText, context);
+			
+			// Handle hard line breaks (replace \n with <br>)
+			cellContent = cellContent.replace(/\n/g, '<br>');
+			
+			// Check if this cell should be a header (bold)
+			const isColumnHeader = hasColumnHeader && rowIndex === 0;
+			const isRowHeader = hasRowHeader && colIndex === 0;
+			
+			if (isColumnHeader || isRowHeader) {
+				// Make header cells bold
+				// Only wrap if not already empty
+				if (cellContent.trim()) {
+					cellContent = `**${cellContent}**`;
+				}
+			}
+			
+			// Handle empty cells
+			if (!cellContent.trim()) {
+				cellContent = ' '; // Keep at least one space for proper table rendering
+			}
+			
+			markdownCells.push(cellContent);
+		}
+		
+		// Build row string
+		markdownRows.push('| ' + markdownCells.join(' | ') + ' |');
+		
+		// Add separator row after first row (if it's a column header)
+		if (rowIndex === 0 && hasColumnHeader) {
+			const separators = columnAlignment.map(align => {
+				switch (align) {
+					case 'left':
+						return '---';
+					case 'center':
+						return ':---:';
+					case 'right':
+						return '---:';
+					default:
+						return '---';
+				}
+			});
+			markdownRows.push('| ' + separators.join(' | ') + ' |');
+		}
+	}
+	
+	// If no column header, add separator after building all rows
+	if (!hasColumnHeader && markdownRows.length > 0) {
+		const separators = new Array(tableWidth).fill('---');
+		// Insert separator after first row
+		markdownRows.splice(1, 0, '| ' + separators.join(' | ') + ' |');
+	}
+	
+	return markdownRows.join('\n');
+}
+
+/**
  * Convert numbered list item to Markdown with nested children support
  */
 export async function convertNumberedListItem(
@@ -1024,12 +1165,14 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 		);
 		
 		// Format link according to user's vault settings
-		return formatAttachmentLink(result, context.vault, caption || 'Video', true);
+		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
+		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
 		console.error(`Failed to convert video block:`, error);
 		// If download failed, return a simple markdown link with the original URL
-		return `![${caption || 'Video'}](${url})`;
+		// Use caption if available, otherwise use filename from attachment
+		return `![${caption || attachment.name || 'Video'}](${url})`;
 	}
 }
 
@@ -1053,12 +1196,14 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 		);
 		
 		// Format link according to user's vault settings (not embed for files)
-		return formatAttachmentLink(result, context.vault, caption || 'File', false);
+		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
+		return formatAttachmentLink(result, context.vault, caption, false);
 	}
 	catch (error) {
 		console.error(`Failed to convert file block:`, error);
 		// If download failed, return a simple markdown link with the original URL
-		return `[${caption || 'File'}](${attachment.url})`;
+		// Use caption if available, otherwise use filename from attachment
+		return `[${caption || attachment.name || 'File'}](${attachment.url})`;
 	}
 }
 
@@ -1082,12 +1227,14 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 		);
 		
 		// Format link according to user's vault settings (embed for PDFs)
-		return formatAttachmentLink(result, context.vault, caption || 'PDF', true);
+		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
+		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
 		console.error(`Failed to convert PDF block:`, error);
 		// If download failed, return a simple markdown link with the original URL
-		return `[${caption || 'PDF'}](${attachment.url})`;
+		// Use caption if available, otherwise use filename from attachment
+		return `[${caption || attachment.name || 'PDF'}](${attachment.url})`;
 	}
 }
 
@@ -1187,10 +1334,11 @@ export function convertRichText(richTextArray: any[], context?: BlockConversionC
 				text = convertMention(rt, context);
 				break;
 			
-			case 'equation':
-				// Inline equation using single $
-				text = `$${rt.equation?.expression || ''}$`;
-				break;
+		case 'equation':
+			// Inline equation using single $
+			// Trim whitespace to ensure proper rendering in Obsidian
+			text = `$${(rt.equation?.expression || '').trim()}$`;
+			break;
 			
 			default:
 				text = rt.plain_text || '';

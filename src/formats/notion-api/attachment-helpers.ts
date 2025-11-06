@@ -248,6 +248,15 @@ export function getCaptionFromBlock(block: any): string {
 	else if (blockType === 'pdf' && block.pdf.caption) {
 		captionArray = block.pdf.caption;
 	}
+	else if (blockType === 'bookmark' && block.bookmark.caption) {
+		captionArray = block.bookmark.caption;
+	}
+	else if (blockType === 'link_preview' && block.link_preview.caption) {
+		captionArray = block.link_preview.caption;
+	}
+	else if (blockType === 'embed' && block.embed.caption) {
+		captionArray = block.embed.caption;
+	}
 	
 	// Convert rich text to plain text
 	return captionArray.map((t: any) => t.plain_text).join('') || '';
@@ -280,13 +289,18 @@ export function formatAttachmentLink(
 	// Get user's link format preference
 	const useWikiLinks = vault.getConfig('useWikiLinks') ?? true;
 	
+	// Determine display text: prioritize caption, fallback to filename
+	const displayText = caption || result.filename || result.path;
+	
 	if (useWikiLinks) {
 		// Use Obsidian wiki link format
 		const embedPrefix = isEmbed ? '!' : '';
 		if (caption) {
+			// If caption exists, use it as display text
 			return `${embedPrefix}[[${result.path}|${caption}]]`;
 		}
 		else {
+			// If no caption, just use the file path (Obsidian will show filename automatically)
 			return `${embedPrefix}[[${result.path}]]`;
 		}
 	}
@@ -296,10 +310,10 @@ export function formatAttachmentLink(
 		const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
 		
 		if (isEmbed) {
-			return `![${caption}](${pathWithExt})`;
+			return `![${displayText}](${pathWithExt})`;
 		}
 		else {
-			return `[${caption || pathWithExt}](${pathWithExt})`;
+			return `[${displayText}](${pathWithExt})`;
 		}
 	}
 }
