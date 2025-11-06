@@ -72,7 +72,7 @@ export class CSVImporter extends FormatImporter {
 		const fields: TemplateField[] = this.csvHeaders.map(header => ({
 			id: header,
 			label: header,
-			exampleValue: this.csvRows[0]?.[header] || '',
+			exampleValue: this.findExampleValue(header),
 		}));
 
 		// Set up defaults
@@ -113,6 +113,19 @@ export class CSVImporter extends FormatImporter {
 
 		// Process all rows
 		await this.processRows(ctx);
+	}
+
+	/**
+	 * Look for a non-empty example value for the given header.
+	 */
+	private findExampleValue(header: string): string {
+		for (const row of this.csvRows) {
+			const value = row[header];
+			if (value && value.trim().length > 0) {
+				return value;
+			}
+		}
+		return '';
 	}
 
 	private parseCSV(content: string): { headers: string[], rows: CSVRow[] } {
