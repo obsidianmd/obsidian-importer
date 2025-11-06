@@ -24,14 +24,7 @@
  * - Obsidian: https://help.obsidian.md/bases/functions
  */
 
-/**
- * Function mapping: Notion function name -> Obsidian conversion info
- */
-interface ConversionInfo {
-	type: 'method' | 'property' | 'global' | 'operator';
-	obsidianName?: string;
-	argCount?: number; // Expected number of arguments
-}
+import { ConversionInfo } from './types';
 
 const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// Global functions (same in both Notion and Obsidian)

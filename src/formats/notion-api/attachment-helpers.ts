@@ -6,28 +6,7 @@
 import { Vault, normalizePath, requestUrl } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
-
-/**
- * Attachment information from Notion
- */
-export interface NotionAttachment {
-	type: 'file' | 'external';
-	url: string;
-	name?: string;
-	caption?: string;
-}
-
-/**
- * Result of attachment download
- */
-export interface AttachmentResult {
-	/** Path to the file (without extension for wiki links) or URL */
-	path: string;
-	/** Whether the file was downloaded locally */
-	isLocal: boolean;
-	/** Original filename with extension */
-	filename?: string;
-}
+import { NotionAttachment, AttachmentResult } from './types';
 
 /**
  * Download an attachment and save it to the vault
@@ -59,13 +38,7 @@ export async function downloadAttachment(
 		let filename = attachment.name || extractFilenameFromUrl(attachment.url);
 		filename = sanitizeFileName(filename);
 		
-		// Get attachment folder path from vault settings
-		const attachmentFolderPath = getAttachmentFolderPath(vault);
-		
-		// Get unique file path to avoid conflicts
-		const filePath = getUniqueAttachmentPath(vault, attachmentFolderPath, filename);
-		
-		// Download the file
+		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
 		const response = await requestUrl({
 			url: attachment.url,
@@ -80,6 +53,23 @@ export async function downloadAttachment(
 				isLocal: false
 			};
 		}
+		
+		// Check if filename has an extension, if not, infer from Content-Type
+		if (!filename.includes('.') || filename.lastIndexOf('.') === 0) {
+			const contentType = response.headers['content-type'] || response.headers['Content-Type'];
+			if (contentType) {
+				const extension = getExtensionFromContentType(contentType);
+				if (extension) {
+					filename = `${filename}.${extension}`;
+				}
+			}
+		}
+		
+		// Get attachment folder path from vault settings
+		const attachmentFolderPath = getAttachmentFolderPath(vault);
+		
+		// Get unique file path to avoid conflicts
+		const filePath = getUniqueAttachmentPath(vault, attachmentFolderPath, filename);
 		
 		// Create attachment folder if it doesn't exist
 		await ensureAttachmentFolder(vault, attachmentFolderPath);
@@ -102,6 +92,71 @@ export async function downloadAttachment(
 			isLocal: false
 		};
 	}
+}
+
+/**
+ * Get file extension from Content-Type header
+ */
+function getExtensionFromContentType(contentType: string): string | null {
+	// Remove parameters like "; charset=utf-8"
+	const mimeType = contentType.split(';')[0].trim().toLowerCase();
+	
+	// Common MIME type to extension mappings
+	const mimeToExt: Record<string, string> = {
+		// Images
+		'image/jpeg': 'jpg',
+		'image/jpg': 'jpg',
+		'image/png': 'png',
+		'image/gif': 'gif',
+		'image/webp': 'webp',
+		'image/svg+xml': 'svg',
+		'image/bmp': 'bmp',
+		'image/tiff': 'tiff',
+		'image/x-icon': 'ico',
+		
+		// Videos
+		'video/mp4': 'mp4',
+		'video/mpeg': 'mpeg',
+		'video/quicktime': 'mov',
+		'video/x-msvideo': 'avi',
+		'video/webm': 'webm',
+		
+		// Documents
+		'application/pdf': 'pdf',
+		'application/msword': 'doc',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+		'application/vnd.ms-excel': 'xls',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+		'application/vnd.ms-powerpoint': 'ppt',
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+		
+		// Text
+		'text/plain': 'txt',
+		'text/html': 'html',
+		'text/css': 'css',
+		'text/javascript': 'js',
+		'text/csv': 'csv',
+		'text/markdown': 'md',
+		
+		// Archives
+		'application/zip': 'zip',
+		'application/x-rar-compressed': 'rar',
+		'application/x-7z-compressed': '7z',
+		'application/x-tar': 'tar',
+		'application/gzip': 'gz',
+		
+		// Audio
+		'audio/mpeg': 'mp3',
+		'audio/wav': 'wav',
+		'audio/ogg': 'ogg',
+		'audio/webm': 'weba',
+		
+		// Other
+		'application/json': 'json',
+		'application/xml': 'xml',
+	};
+	
+	return mimeToExt[mimeType] || null;
 }
 
 /**

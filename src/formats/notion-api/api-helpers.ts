@@ -174,13 +174,14 @@ export function extractFrontMatter(
 		'notion-id': page.id,
 	};
 	
-	// Add created and last edited time
-	if (page.created_time) {
-		frontMatter.created = page.created_time;
-	}
-	if (page.last_edited_time) {
-		frontMatter.updated = page.last_edited_time;
-	}
+	// Note: created_time and last_edited_time are not added to frontmatter
+	// Users can enable these if needed by uncommenting the code below
+	// if (page.created_time) {
+	// 	frontMatter.created = page.created_time;
+	// }
+	// if (page.last_edited_time) {
+	// 	frontMatter.updated = page.last_edited_time;
+	// }
 	
 	// Add cover if present (will be processed as attachment later)
 	if (page.cover) {

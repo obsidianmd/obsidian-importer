@@ -18,9 +18,11 @@ import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
-import { downloadAttachment, formatAttachmentLink } from './notion-api/attachment-helpers';
+import { downloadAttachment } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
+
+export type BaseViewType = 'table' | 'cards' | 'list';
 
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
@@ -28,6 +30,7 @@ export class NotionAPIImporter extends FormatImporter {
 	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
+	baseViewType: BaseViewType = 'table'; // Default view type for .base files
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -128,6 +131,19 @@ export class NotionAPIImporter extends FormatImporter {
 					this.coverPropertyName = value.trim() || 'cover';
 				}));
 
+		// Base view type setting
+		new Setting(this.modal.contentEl)
+			.setName('Database view type')
+			.setDesc(this.createBaseViewTypeDescription())
+			.addDropdown(dropdown => dropdown
+				.addOption('table', 'Table')
+				.addOption('cards', 'Cards')
+				.addOption('list', 'List')
+				.setValue('table')
+				.onChange(value => {
+					this.baseViewType = value as BaseViewType;
+				}));
+
 		// Description text
 		new Setting(this.modal.contentEl)
 			.setName('Import notes')
@@ -173,6 +189,19 @@ export class NotionAPIImporter extends FormatImporter {
 		frag.appendText('Property name for page cover image in YAML frontmatter. ');
 		frag.createEl('br');
 		frag.appendText('Leave as "cover" if you don\'t have conflicts with existing properties.');
+		return frag;
+	}
+
+	private createBaseViewTypeDescription(): DocumentFragment {
+		const frag = document.createDocumentFragment();
+		frag.appendText('Choose the default view type for database .base files:');
+		frag.createEl('br');
+		frag.createEl('br');
+		frag.appendText('• Table: Default table view, suitable for all database types');
+		frag.createEl('br');
+		frag.appendText('• Cards: Best for pages with cover images');
+		frag.createEl('br');
+		frag.appendText('• List: Display pages as an unordered list');
 		return frag;
 	}
 
@@ -379,16 +408,18 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
+					baseViewType: this.baseViewType,
+					coverPropertyName: this.coverPropertyName,
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
-					// For root database import, add page ID to tracking set
+						// For root database import, add page ID to tracking set
 						if (isRootImport) {
 							this.pageIdsToCount.add(pageId);
 						}
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					onPagesDiscovered: (count: number) => {
-					// For root database import, set initial total
-					// For nested/synced database import, don't count them
+						// For root database import, set initial total
+						// For nested/synced database import, don't count them
 						if (isRootImport) {
 							this.totalPagesDiscovered = count;
 							ctx.reportProgress(0, this.totalPagesDiscovered);
@@ -579,14 +610,16 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
+					baseViewType: this.baseViewType,
+					coverPropertyName: this.coverPropertyName,
 					// Callback to import database pages
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					// Callback to update discovered pages count
 					onPagesDiscovered: (newPagesCount: number) => {
-					// Don't update total dynamically to avoid confusing progress jumps
-					// Child pages will be counted as they are imported
+						// Don't update total dynamically to avoid confusing progress jumps
+						// Child pages will be counted as they are imported
 					}
 				}
 			);
@@ -595,20 +628,34 @@ export class NotionAPIImporter extends FormatImporter {
 			blocksCache.clear();
 			
 			// Prepare YAML frontmatter
-			const frontMatter = extractFrontMatter(page, this.formulaStrategy);
+			// Start with notion-id and notion-db at the top
+			const frontMatter: Record<string, any> = {
+				'notion-id': page.id,
+			};
 		
-			// Add database tag if this page belongs to a database
+			// Add database tag if this page belongs to a database (right after notion-id)
 			if (databaseTag) {
-				frontMatter['notion-database'] = databaseTag;
+				frontMatter['notion-db'] = databaseTag;
+			}
+		
+			// Extract all other properties from the page
+			const extractedProps = extractFrontMatter(page, this.formulaStrategy);
+			// Merge extracted properties (skip notion-id as we already added it)
+			for (const key in extractedProps) {
+				if (key !== 'notion-id') {
+					frontMatter[key] = extractedProps[key];
+				}
 			}
 		
 			// Process cover image if present
 			if (frontMatter.cover && typeof frontMatter.cover === 'string') {
 				try {
-					// Determine cover type based on URL
+				// Determine cover type based on URL
 					const coverUrl = frontMatter.cover;
 					const isExternal = !coverUrl.includes('secure.notion-static.com');
-					
+				
+					// Cover images are always downloaded, regardless of downloadExternalAttachments setting
+					// This is because Notion covers often use external URLs even for Notion-hosted images
 					const result = await downloadAttachment(
 						{
 							type: isExternal ? 'external' : 'file',
@@ -617,19 +664,28 @@ export class NotionAPIImporter extends FormatImporter {
 						},
 						this.vault,
 						ctx,
-						this.downloadExternalAttachments
+						true  // Always download cover images
 					);
-					
-					// Format cover link according to user's vault settings
-					const coverLink = formatAttachmentLink(result, this.vault, '', false);
-					
+		
+					// For frontmatter, use direct path or URL (not link syntax)
+					// If downloaded locally, add file extension back to the path
+					let coverValue: string;
+					if (result.isLocal && result.filename) {
+						// Extract extension from filename
+						const ext = result.filename.substring(result.filename.lastIndexOf('.'));
+						coverValue = result.path + ext;
+					}
+					else {
+						coverValue = result.path; // URL if not downloaded
+					}
+			
 					// Update cover in frontmatter
 					if (this.coverPropertyName !== 'cover') {
 						delete frontMatter.cover;
-						frontMatter[this.coverPropertyName] = `"${coverLink}"`;
+						frontMatter[this.coverPropertyName] = coverValue;
 					}
 					else {
-						frontMatter.cover = `"${coverLink}"`;
+						frontMatter.cover = coverValue;
 					}
 				}
 				catch (error) {
@@ -908,14 +964,16 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 			
 			// Create .base file
-			const baseFilePath = await createBaseFile(
-				this.vault,
-				sanitizedTitle,
+			const baseFilePath = await createBaseFile({
+				vault: this.vault,
+				databaseName: sanitizedTitle,
 				databaseFolderPath,
-				this.outputRootPath,
+				outputRootPath: this.outputRootPath,
 				dataSourceProperties,
-				this.formulaStrategy
-			);
+				formulaStrategy: this.formulaStrategy,
+				viewType: this.baseViewType,
+				coverPropertyName: this.coverPropertyName
+			});
 			
 			// Record database information
 			const databaseInfo: DatabaseInfo = {

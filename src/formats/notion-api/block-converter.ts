@@ -4,34 +4,10 @@
  */
 
 import { BlockObjectResponse, Client } from '@notionhq/client';
-import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import { fetchAllBlocks } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
-
-/**
- * Callback type for importing child pages
- */
-export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
-
-/**
- * Context for block conversion operations
- */
-export interface BlockConversionContext {
-	ctx: ImportContext;
-	currentFolderPath: string;
-	client: Client;
-	vault: Vault;
-	downloadExternalAttachments: boolean;
-	indentLevel?: number;
-	blocksCache?: Map<string, BlockObjectResponse[]>;
-	importPageCallback?: ImportPageCallback;
-	mentionedIds?: Set<string>; // Collect mentioned page/database IDs during conversion
-	syncedBlocksMap?: Map<string, string>; // Map synced block ID to file path
-	outputRootPath?: string; // Root path for output (needed for synced blocks folder)
-	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
-	listCounters?: Map<number, number>; // Track list item numbers per indent level
-}
+import { BlockConversionContext } from './types';
 
 /**
  * Check if a block is an empty paragraph

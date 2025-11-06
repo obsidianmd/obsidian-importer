@@ -2,7 +2,7 @@
  * Type definitions for Notion API importer
  */
 
-import { Client } from '@notionhq/client';
+import { Client, BlockObjectResponse } from '@notionhq/client';
 import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../notion-api';
@@ -34,6 +34,8 @@ export interface DatabaseProcessingContext {
 	relationPlaceholders: RelationPlaceholder[];
 	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string) => Promise<void>;
 	onPagesDiscovered?: (count: number) => void;
+	baseViewType?: 'table' | 'cards' | 'list';
+	coverPropertyName?: string;
 }
 
 /**
@@ -96,5 +98,86 @@ export interface RollupConfig {
 	// Note: Numeric aggregation functions (sum, average, median, min, max, range)
 	// are not yet implemented and will fall through to the default case
 	| string;              // Allow other values for forward compatibility
+}
+
+/**
+ * Parameters for creating a .base file
+ */
+export interface CreateBaseFileParams {
+	vault: Vault;
+	databaseName: string;
+	databaseFolderPath: string;
+	outputRootPath: string;
+	dataSourceProperties: any;
+	formulaStrategy?: FormulaImportStrategy;
+	viewType?: 'table' | 'cards' | 'list';
+	coverPropertyName?: string;
+}
+
+/**
+ * Parameters for generating .base file content
+ */
+export interface GenerateBaseFileContentParams {
+	databaseName: string;
+	databaseFolderPath: string;
+	dataSourceProperties: any;
+	formulaStrategy?: FormulaImportStrategy;
+	viewType?: 'table' | 'cards' | 'list';
+	coverPropertyName?: string;
+}
+
+/**
+ * Attachment information from Notion
+ */
+export interface NotionAttachment {
+	type: 'file' | 'external';
+	url: string;
+	name?: string;
+	caption?: string;
+}
+
+/**
+ * Result of attachment download
+ */
+export interface AttachmentResult {
+	/** Path to the file (without extension for wiki links) or URL */
+	path: string;
+	/** Whether the file was downloaded locally */
+	isLocal: boolean;
+	/** Original filename with extension */
+	filename?: string;
+}
+
+/**
+ * Callback type for importing child pages
+ */
+export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
+
+/**
+ * Context for block conversion operations
+ */
+export interface BlockConversionContext {
+	ctx: ImportContext;
+	currentFolderPath: string;
+	client: Client;
+	vault: Vault;
+	downloadExternalAttachments: boolean;
+	indentLevel?: number;
+	blocksCache?: Map<string, BlockObjectResponse[]>;
+	importPageCallback?: ImportPageCallback;
+	mentionedIds?: Set<string>; // Collect mentioned page/database IDs during conversion
+	syncedBlocksMap?: Map<string, string>; // Map synced block ID to file path
+	outputRootPath?: string; // Root path for output (needed for synced blocks folder)
+	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
+	listCounters?: Map<number, number>; // Track list item numbers per indent level
+}
+
+/**
+ * Function mapping information for Notion to Obsidian formula conversion
+ */
+export interface ConversionInfo {
+	type: 'method' | 'property' | 'global' | 'operator';
+	obsidianName?: string;
+	argCount?: number; // Expected number of arguments
 }
 

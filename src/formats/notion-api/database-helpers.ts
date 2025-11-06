@@ -4,13 +4,13 @@
  */
 
 import { Client, BlockObjectResponse, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { Vault, normalizePath } from 'obsidian';
+import { normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, RollupConfig } from './types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, RollupConfig, CreateBaseFileParams, GenerateBaseFileContentParams } from './types';
 import type { FormulaImportStrategy } from '../notion-api';
 
 /**
@@ -47,7 +47,9 @@ export async function convertChildDatabase(
 		processedDatabases,
 		relationPlaceholders,
 		importPageCallback,
-		onPagesDiscovered
+		onPagesDiscovered,
+		baseViewType = 'table',
+		coverPropertyName = 'cover'
 	} = context;
 	
 	try {
@@ -109,14 +111,16 @@ export async function convertChildDatabase(
 		}
 		
 		// Create .base file in "Notion Databases" folder
-		const baseFilePath = await createBaseFile(
+		const baseFilePath = await createBaseFile({
 			vault,
-			sanitizedTitle,
+			databaseName: sanitizedTitle,
 			databaseFolderPath,
 			outputRootPath,
 			dataSourceProperties,
-			formulaStrategy
-		);
+			formulaStrategy,
+			viewType: baseViewType,
+			coverPropertyName
+		});
 		
 		// Record database information for relation resolution
 		const databaseInfo: DatabaseInfo = {
@@ -196,14 +200,17 @@ function extractDatabaseTitle(database: DatabaseObjectResponse): string {
 /**
  * Create a .base file for the database
  */
-export async function createBaseFile(
-	vault: Vault,
-	databaseName: string,
-	databaseFolderPath: string,
-	outputRootPath: string,
-	dataSourceProperties: any,
-	formulaStrategy: FormulaImportStrategy = 'function'
-): Promise<string> {
+export async function createBaseFile(params: CreateBaseFileParams): Promise<string> {
+	const {
+		vault,
+		databaseName,
+		databaseFolderPath,
+		outputRootPath,
+		dataSourceProperties,
+		formulaStrategy = 'function',
+		viewType = 'table',
+		coverPropertyName = 'cover'
+	} = params;
 	// Create "Notion Databases" folder at the same level as output root
 	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
 	const databasesFolder = parentPath === '/' ? '/Notion Databases' : parentPath + '/Notion Databases';
@@ -219,7 +226,14 @@ export async function createBaseFile(
 	}
 	
 	// Generate .base file content
-	const baseContent = generateBaseFileContent(databaseName, databaseFolderPath, dataSourceProperties, formulaStrategy);
+	const baseContent = generateBaseFileContent({
+		databaseName,
+		databaseFolderPath,
+		dataSourceProperties,
+		formulaStrategy,
+		viewType,
+		coverPropertyName
+	});
 	
 	// Create .base file
 	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
@@ -240,12 +254,16 @@ export async function createBaseFile(
 /**
  * Generate content for .base file
  */
-function generateBaseFileContent(
-	databaseName: string,
-	databaseFolderPath: string,
-	dataSourceProperties: any,
-	formulaStrategy: FormulaImportStrategy = 'function'
-): string {
+function generateBaseFileContent(params: GenerateBaseFileContentParams): string {
+	const {
+		databaseName,
+		databaseFolderPath,
+		dataSourceProperties,
+		formulaStrategy = 'function',
+		viewType = 'table',
+		coverPropertyName = 'cover'
+	} = params;
+	
 	// Basic .base file structure
 	let content = `# ${databaseName}\n\n`;
 	
@@ -256,7 +274,7 @@ function generateBaseFileContent(
 	// 2. It's more readable than using Notion IDs
 	content += `filters:\n`;
 	content += `  and:\n`;
-	content += `    - note["notion-database"] == "${databaseFolderPath}"\n\n`;
+	content += `    - note["notion-db"] == "${databaseFolderPath}"\n\n`;
 	
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
@@ -285,21 +303,60 @@ function generateBaseFileContent(
 		content += `\n`;
 	}
 	
-	// Add a default table view
+	// Add view based on user selection
 	content += `views:\n`;
-	content += `  - type: table\n`;
-	content += `    name: "All Items"\n`;
-	content += `    order:\n`;
-	content += `      - file.name\n`;
 	
-	// Add all regular properties to the view (in order)
-	for (const item of regularProperties) {
-		content += `      - ${item.key}\n`;
+	if (viewType === 'table') {
+		// Table view
+		content += `  - type: table\n`;
+		content += `    name: "All Items"\n`;
+		content += `    order:\n`;
+		content += `      - file.name\n`;
+		
+		// Add all regular properties to the view (in order)
+		for (const item of regularProperties) {
+			content += `      - ${item.key}\n`;
+		}
+		
+		// Add all formula properties to the view (in order)
+		for (const item of formulas) {
+			content += `      - ${item.key}\n`;
+		}
 	}
-	
-	// Add all formula properties to the view (with formula. prefix, in order)
-	for (const item of formulas) {
-		content += `      - ${item.key}\n`;
+	else if (viewType === 'cards') {
+		// Cards view
+		content += `  - type: cards\n`;
+		content += `    name: "View"\n`;
+		content += `    image: note.${coverPropertyName}\n`;
+		content += `    order:\n`;
+		content += `      - file.name\n`;
+		
+		// Add all regular properties
+		for (const item of regularProperties) {
+			content += `      - ${item.key}\n`;
+		}
+		
+		// Add all formula properties
+		for (const item of formulas) {
+			content += `      - ${item.key}\n`;
+		}
+	}
+	else if (viewType === 'list') {
+		// List view
+		content += `  - type: list\n`;
+		content += `    name: "View"\n`;
+		content += `    order:\n`;
+		content += `      - file.name\n`;
+		
+		// Add all regular properties
+		for (const item of regularProperties) {
+			content += `      - ${item.key}\n`;
+		}
+		
+		// Add all formula properties
+		for (const item of formulas) {
+			content += `      - ${item.key}\n`;
+		}
 	}
 	
 	return content;
