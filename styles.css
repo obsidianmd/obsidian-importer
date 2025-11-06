@@ -85,3 +85,80 @@
 .importer-error {
 	color: var(--text-error);
 }
+
+/* Template configuration styles */
+.importer-frontmatter-header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.importer-frontmatter-header h4 {
+	margin: 0;
+}
+
+.importer-select-all-setting {
+	padding: 0;
+	border: none;
+}
+
+.importer-select-all-setting .setting-item-info {
+	padding-inline-end: var(--size-4-2);
+}
+
+.importer-column-list {
+	display: flex;	
+	flex-direction: column;
+	gap: var(--size-4-1);
+	padding: var(--size-4-3) 0;
+}
+
+.importer-column-header-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	padding: var(--size-2-1) 0;
+}
+
+.importer-column-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	background-color: var(--background-primary);
+	border-radius: var(--radius-s);
+}
+
+.importer-column-name-col {
+	flex: 0 0 150px;
+	min-width: 0;
+}
+
+.importer-column-value-col {
+	flex: 0 0 200px;
+	min-width: 0;
+}
+
+.importer-column-property {
+	width: 100%;
+}
+
+.importer-column-example-col {
+	flex: 1;
+	min-width: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding: var(--size-2-1) var(--size-4-1);
+}
+
+.importer-column-delete-col {
+	flex-shrink: 0;
+	width: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

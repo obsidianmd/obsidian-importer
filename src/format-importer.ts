@@ -27,6 +27,20 @@ export abstract class FormatImporter {
 	abstract init(): void;
 
 	/**
+	 * Optional: Show template configuration UI and prepare data for import.
+	 * This will be called as a configuration step before the import progress.
+	 *
+	 * Overriding functions are responsible for displaying errors before returning false.
+	 *
+	 * @param ctx The import context
+	 * @param container The container element to show the configuration UI in
+	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
+	 */
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
+		return null;
+	}
+
+	/**
 	 * Register a function to be called when the `obsidian://importer-auth/` open
 	 * event is received by Obsidian.
 	 *
@@ -195,7 +209,7 @@ export abstract class FormatImporter {
 		return outputPath;
 	}
 
-	async pause(durationSeconds: number, reason: string, ctx: ImportContext|undefined): Promise<void> {
+	async pause(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => setTimeout(resolve, durationSeconds * 1_000));
 
 		if (ctx) {

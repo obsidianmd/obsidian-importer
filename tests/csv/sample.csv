@@ -1,0 +1,9 @@
+Title,Category,Tags,Content,Date,Priority,Completed
+My First Note,Work,project planning,This is the content of my first note.,2024-01-15,,true
+Second Note,Personal,ideas thoughts,Another note with some content here.,2024-01-16,Medium,false
+"Note with, comma",Work,urgent,Content with special characters.,2024-01-17,Low,true
+Planning Document,Work,planning strategy,"Multi-line
+content goes
+here.",2024-01-18,High,false
+Simple Note,Personal,misc,Just a simple note.,2024-01-19,Medium,true
+
