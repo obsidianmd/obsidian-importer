@@ -1,4 +1,4 @@
-import { BasesConfigFile, Notice, TFolder } from 'obsidian';
+import { BasesConfigFile, Notice, Setting, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import {
@@ -18,10 +18,22 @@ export class CSVImporter extends FormatImporter {
 	private csvHeaders: string[] = [];
 	private csvRows: CSVRow[] = [];
 	private config: TemplateConfig | null = null;
+	private hasHeaderRow: boolean;
 
 	init() {
 		this.addFileChooserSetting('CSV', ['csv']);
 		this.addOutputLocationSetting('CSV import');
+
+		this.hasHeaderRow = true;
+		new Setting(this.modal.contentEl)
+			.setName('CSV has header row')
+			.setDesc('If enabled, the first row of the CSV file will be treated as column headers.')
+			.addToggle(toggle => {
+				toggle.setValue(this.hasHeaderRow);
+				toggle.onChange(async (value) => {
+					this.hasHeaderRow = value;
+				});
+			});
 	}
 
 	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
@@ -109,10 +121,24 @@ export class CSVImporter extends FormatImporter {
 			return { headers: [], rows: [] };
 		}
 
-		const headers = this.parseCSVLine(lines[0]);
+		let headers: string[];
+		let startIndex: number;
+
+		if (this.hasHeaderRow) {
+			// First row contains headers
+			headers = this.parseCSVLine(lines[0]);
+			startIndex = 1;
+		}
+		else {
+			// No header row - generate column names
+			const firstRowValues = this.parseCSVLine(lines[0]);
+			headers = firstRowValues.map((_, index) => `Column ${index + 1}`);
+			startIndex = 0;
+		}
+
 		const rows: CSVRow[] = [];
 
-		for (let i = 1; i < lines.length; i++) {
+		for (let i = startIndex; i < lines.length; i++) {
 			const values = this.parseCSVLine(lines[i]);
 			if (values.length === 0) continue; // Skip empty lines
 
