@@ -193,6 +193,22 @@ export class ImportContext {
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
+	/**
+	 * Report progress when total count is unknown (indeterminate progress).
+	 * Only shows imported count, hides remaining count.
+	 * @param current - Number of items imported so far
+	 */
+	reportProgressIndeterminate(current: number) {
+		console.log('Imported:', current);
+		// Update imported count
+		this.importedCountEl.setText(current.toString());
+		// Hide remaining count (show dash to indicate unknown)
+		this.remainingCountEl.setText('-');
+		// Show indeterminate progress bar (full width)
+		// Note: You can add CSS animation for pulsing effect if desired
+		this.progressBarInnerEl.style.width = '100%';
+	}
+
 	cancel() {
 		this.cancelled = true;
 		this.progressBarEl.hide();

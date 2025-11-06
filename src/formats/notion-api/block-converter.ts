@@ -1098,6 +1098,11 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 			context.downloadExternalAttachments
 		);
 		
+		// Report progress if attachment was downloaded
+		if (result.isLocal && context.onAttachmentDownloaded) {
+			context.onAttachmentDownloaded();
+		}
+		
 		// Format link according to user's vault settings
 		return formatAttachmentLink(result, context.vault, caption, true);
 	}
@@ -1140,6 +1145,11 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 			context.downloadExternalAttachments
 		);
 		
+		// Report progress if attachment was downloaded
+		if (result.isLocal && context.onAttachmentDownloaded) {
+			context.onAttachmentDownloaded();
+		}
+		
 		// Format link according to user's vault settings
 		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
 		return formatAttachmentLink(result, context.vault, caption, true);
@@ -1171,6 +1181,11 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 			context.downloadExternalAttachments
 		);
 		
+		// Report progress if attachment was downloaded
+		if (result.isLocal && context.onAttachmentDownloaded) {
+			context.onAttachmentDownloaded();
+		}
+		
 		// Format link according to user's vault settings (not embed for files)
 		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
 		return formatAttachmentLink(result, context.vault, caption, false);
@@ -1201,6 +1216,11 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 			context.ctx,
 			context.downloadExternalAttachments
 		);
+		
+		// Report progress if attachment was downloaded
+		if (result.isLocal && context.onAttachmentDownloaded) {
+			context.onAttachmentDownloaded();
+		}
 		
 		// Format link according to user's vault settings (embed for PDFs)
 		// Pass caption directly; formatAttachmentLink will use filename if caption is empty

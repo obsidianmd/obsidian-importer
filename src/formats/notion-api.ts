@@ -2,7 +2,6 @@ import { Notice, Setting, normalizePath, requestUrl, TFile } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
-import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { sanitizeFileName, serializeFrontMatter } from '../util';
 
 // Import helper modules
@@ -41,13 +40,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
-	// Track discovered pages for dynamic progress updates
-	private totalPagesDiscovered: number = 0;
-	private pagesCompleted: number = 0;
-	// Track page IDs that should be counted in progress
-	// For Page import: only the root page itself
-	// For Database import: all direct pages in the database
-	private pageIdsToCount: Set<string> = new Set();
+	// Simple progress counter: tracks total imported items (pages + attachments)
+	private itemsImported: number = 0;
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
@@ -316,12 +310,10 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
-			this.totalPagesDiscovered = 0;
-			this.pagesCompleted = 0;
-			this.pageIdsToCount.clear();
+			this.itemsImported = 0;
 		
-			// Initialize progress display
-			ctx.reportProgress(0, 0);
+			// Initialize progress display (indeterminate - we don't know total count)
+			ctx.reportProgressIndeterminate(0);
 		
 			// Save output root path for database handling
 			this.outputRootPath = folder.path;
@@ -342,10 +334,6 @@ export class NotionAPIImporter extends FormatImporter {
 			else if (block.type === 'child_page') {
 			// It's a child page, import as page
 				ctx.status('Input is a page, importing...');
-				// For page import: count root page + direct children
-				this.pageIdsToCount.add(extractedPageId);
-				this.totalPagesDiscovered = 1;
-				ctx.reportProgress(0, 1);
 				await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
 			}
 			else {
@@ -411,19 +399,10 @@ export class NotionAPIImporter extends FormatImporter {
 					baseViewType: this.baseViewType,
 					coverPropertyName: this.coverPropertyName,
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
-						// For root database import, add page ID to tracking set
-						if (isRootImport) {
-							this.pageIdsToCount.add(pageId);
-						}
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					onPagesDiscovered: (count: number) => {
-						// For root database import, set initial total
-						// For nested/synced database import, don't count them
-						if (isRootImport) {
-							this.totalPagesDiscovered = count;
-							ctx.reportProgress(0, this.totalPagesDiscovered);
-						}
+					// No longer need to track total count - using indeterminate progress
 					}
 				}
 			);
@@ -437,55 +416,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Collect all direct child page IDs in blocks (including nested in lists, callouts, etc.)
-	 * This is used to set initial progress total before importing
-	 * Only collects direct child pages of the root page, not their descendants
-	 */
-	private async collectChildPageIds(
-		client: Client,
-		blocks: BlockObjectResponse[],
-		ctx: ImportContext,
-		blocksCache?: Map<string, BlockObjectResponse[]>
-	): Promise<string[]> {
-		const pageIds: string[] = [];
-		
-		for (const block of blocks) {
-			if (ctx.isCancelled()) break;
-			
-			// Collect child_page IDs (direct children only, not their descendants)
-			if (block.type === 'child_page') {
-				pageIds.push(block.id);
-				// Don't recurse into child pages - we only want direct children
-				continue;
-			}
-			
-			// For non-page blocks that can contain child pages (lists, callouts, toggles, etc.)
-			// recursively search for child pages within them
-			if (block.has_children) {
-				try {
-					let children = blocksCache?.get(block.id);
-					if (!children) {
-						children = await fetchAllBlocks(client, block.id, ctx);
-						if (blocksCache) {
-							blocksCache.set(block.id, children);
-						}
-					}
-					
-					if (children.length > 0) {
-						// Recursively collect child pages from nested blocks
-						const nestedPageIds = await this.collectChildPageIds(client, children, ctx, blocksCache);
-						pageIds.push(...nestedPageIds);
-					}
-				}
-				catch (error) {
-					console.error(`Failed to collect children for block ${block.id}:`, error);
-				}
-			}
-		}
-		
-		return pageIds;
-	}
 
 	/**
 	 * Fetch and import a Notion page recursively
@@ -524,28 +454,12 @@ export class NotionAPIImporter extends FormatImporter {
 			// Cache the root page blocks immediately
 			blocksCache.set(pageId, blocks);
 		
-			// Collect child page IDs (only once, for the root page)
-			// This helps set a stable progress total instead of dynamically updating it
-			// Only collect if we have exactly 1 page (the root) and total is 1 (not started yet)
-			if (this.pageIdsToCount.size === 1 && this.totalPagesDiscovered === 1) {
-				const childPageIds = await this.collectChildPageIds(this.notionClient!, blocks, ctx, blocksCache);
-				// Add all child page IDs to the tracking set
-				childPageIds.forEach(id => {
-					this.pageIdsToCount.add(id);
-				});
-				// Update total count
-				this.totalPagesDiscovered = this.pageIdsToCount.size;
-				ctx.reportProgress(0, this.totalPagesDiscovered);
-			}
-		
 			// Check if page already exists in vault (by notion-id)
 			if (await pageExistsInVault(this.app, this.vault, pageId)) {
 				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
-				// Only update progress if this page should be counted
-				if (this.pageIdsToCount.has(pageId)) {
-					this.pagesCompleted++;
-					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
-				}
+				// Still count as imported (skipped items are also "processed")
+				this.itemsImported++;
+				ctx.reportProgressIndeterminate(this.itemsImported);
 				return;
 			}
 		
@@ -592,6 +506,11 @@ export class NotionAPIImporter extends FormatImporter {
 				// Callback to import child pages
 				importPageCallback: async (childPageId: string, parentPath: string) => {
 					await this.fetchAndImportPage(ctx, childPageId, parentPath);
+				},
+				// Callback when an attachment is downloaded
+				onAttachmentDownloaded: () => {
+					this.itemsImported++;
+					ctx.reportProgressIndeterminate(this.itemsImported);
 				}
 			});
 		
@@ -667,25 +586,42 @@ export class NotionAPIImporter extends FormatImporter {
 						true  // Always download cover images
 					);
 		
-					// For frontmatter, use direct path or URL (not link syntax)
-					// If downloaded locally, add file extension back to the path
-					let coverValue: string;
+					// For frontmatter, use wiki link syntax with double quotes for proper rendering
+					// Cover images should always be downloaded locally
 					if (result.isLocal && result.filename) {
+					// Report progress for cover image download
+						this.itemsImported++;
+						ctx.reportProgressIndeterminate(this.itemsImported);
+					
 						// Extract extension from filename
 						const ext = result.filename.substring(result.filename.lastIndexOf('.'));
-						coverValue = result.path + ext;
+						const fullPath = result.path + ext;
+						// Use wiki link syntax with double quotes: "[[path]]"
+						// The double quotes are necessary for YAML to render it as a link
+						const coverValue = `[[${fullPath}]]`;
+				
+						// Update cover in frontmatter
+						if (this.coverPropertyName !== 'cover') {
+							delete frontMatter.cover;
+							frontMatter[this.coverPropertyName] = coverValue;
+						}
+						else {
+							frontMatter.cover = coverValue;
+						}
 					}
 					else {
-						coverValue = result.path; // URL if not downloaded
-					}
-			
-					// Update cover in frontmatter
-					if (this.coverPropertyName !== 'cover') {
-						delete frontMatter.cover;
-						frontMatter[this.coverPropertyName] = coverValue;
-					}
-					else {
-						frontMatter.cover = coverValue;
+					// Download failed - log warning and keep original URL as fallback
+						console.warn(`Failed to download cover image, keeping original URL: ${result.path}`);
+						// Keep the original URL in frontmatter (without wiki link syntax)
+						// This allows Dataview Cards view to attempt loading the external image
+						// Note: This should rarely happen as we force download for covers
+						if (this.coverPropertyName !== 'cover') {
+						// If using custom property name, move the URL to the custom property
+							const originalUrl = frontMatter.cover;
+							delete frontMatter.cover;
+							frontMatter[this.coverPropertyName] = originalUrl;
+						}
+					// If using default 'cover' property, the original URL is already there, no change needed
 					}
 				}
 				catch (error) {
@@ -698,8 +634,11 @@ export class NotionAPIImporter extends FormatImporter {
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 	
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
-			// Note: Don't call reportNoteSuccess here, progress is managed by reportProgress
 		
+			// Update progress: page imported successfully
+			this.itemsImported++;
+			ctx.reportProgressIndeterminate(this.itemsImported);
+	
 			// Record page ID to path mapping for mention replacement
 			// Store path without extension for wiki link generation
 			const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
@@ -711,22 +650,16 @@ export class NotionAPIImporter extends FormatImporter {
 				this.mentionPlaceholders.set(mdFilePath, mentionedIds);
 			}
 	
-			// Update progress (only if this page should be counted)
-			if (this.pageIdsToCount.has(pageId)) {
-				this.pagesCompleted++;
-				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
-			}
+			// Progress already updated above after successful creation
 			
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
 			const pageTitle = 'Unknown page';
 			ctx.reportFailed(pageTitle, error.message);
-			// Only update progress if this page should be counted
-			if (this.pageIdsToCount.has(pageId)) {
-				this.pagesCompleted++;
-				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
-			}
+			// Count failed pages as processed
+			this.itemsImported++;
+			ctx.reportProgressIndeterminate(this.itemsImported);
 		}
 	}
 	
