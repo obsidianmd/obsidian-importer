@@ -1,4 +1,5 @@
-import { TFolder, TFile, BasesConfigFile, stringifyYaml } from 'obsidian';
+import { path } from './filesystem';
+import { TFolder, TFile, BasesConfigFile, stringifyYaml, normalizePath } from 'obsidian';
 
 /**
  * Creates a Base file in the specified folder.
@@ -28,7 +29,7 @@ export async function createBaseFile(
 	vault: any
 ): Promise<TFile> {
 	const yamlContent = stringifyYaml(contents);
-	const filePath = `${folder.path}/${fileName}.base`;
+	const filePath = normalizePath(path.join(folder.path, fileName + '.base'));
 
 	// Check if file already exists
 	const existingFile = vault.getAbstractFileByPath(filePath);
