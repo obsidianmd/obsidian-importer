@@ -4,26 +4,23 @@
  */
 
 import { Vault, normalizePath, requestUrl } from 'obsidian';
-import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
-import { NotionAttachment, AttachmentResult } from './types';
+import { NotionAttachment, AttachmentResult, BlockConversionContext } from './types';
 
 /**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
- * @param vault - Obsidian vault
- * @param ctx - Import context
- * @param downloadExternal - Whether to download external URLs
+ * @param context - Block conversion context containing vault, import context, and settings
  * @returns Attachment result with path and metadata
  */
 export async function downloadAttachment(
 	attachment: NotionAttachment,
-	vault: Vault,
-	ctx: ImportContext,
-	downloadExternal: boolean
+	context: BlockConversionContext
 ): Promise<AttachmentResult> {
+	const { vault, ctx, downloadExternalAttachments, currentPageTitle } = context;
+	
 	// Determine if we should download this attachment
-	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternal);
+	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments);
 	
 	if (!shouldDownload) {
 		// Return original URL for external files when download is disabled
@@ -34,8 +31,8 @@ export async function downloadAttachment(
 	}
 	
 	try {
-		// Extract filename from URL or use provided name
-		let filename = attachment.name || extractFilenameFromUrl(attachment.url);
+		// Extract filename with priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
+		let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
 		filename = sanitizeFileName(filename);
 		
 		// Download the file first to get Content-Type header

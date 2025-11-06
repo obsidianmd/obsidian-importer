@@ -171,6 +171,7 @@ export interface BlockConversionContext {
 	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
 	listCounters?: Map<number, number>; // Track list item numbers per indent level
 	onAttachmentDownloaded?: () => void; // Callback when an attachment is downloaded
+	currentPageTitle?: string; // Current page title for attachment naming fallback
 }
 
 /**

@@ -1091,12 +1091,7 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const result = await downloadAttachment(
-			attachment,
-			context.vault,
-			context.ctx,
-			context.downloadExternalAttachments
-		);
+		const result = await downloadAttachment(attachment, context);
 		
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {
@@ -1138,12 +1133,7 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 	}
 	
 	try {
-		const result = await downloadAttachment(
-			attachment,
-			context.vault,
-			context.ctx,
-			context.downloadExternalAttachments
-		);
+		const result = await downloadAttachment(attachment, context);
 		
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {
@@ -1174,12 +1164,7 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const result = await downloadAttachment(
-			attachment,
-			context.vault,
-			context.ctx,
-			context.downloadExternalAttachments
-		);
+		const result = await downloadAttachment(attachment, context);
 		
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {
@@ -1210,12 +1195,7 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 	const caption = getCaptionFromBlock(block);
 	
 	try {
-		const result = await downloadAttachment(
-			attachment,
-			context.vault,
-			context.ctx,
-			context.downloadExternalAttachments
-		);
+		const result = await downloadAttachment(attachment, context);
 		
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {

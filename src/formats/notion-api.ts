@@ -503,6 +503,7 @@ export class NotionAPIImporter extends FormatImporter {
 				syncedBlocksMap: this.syncedBlocksMap, // for synced blocks
 				outputRootPath: this.outputRootPath, // for synced blocks folder
 				syncedChildPlaceholders: this.syncedChildPlaceholders, // for efficient synced child replacement
+				currentPageTitle: sanitizedTitle, // for attachment naming fallback
 				// Callback to import child pages
 				importPageCallback: async (childPageId: string, parentPath: string) => {
 					await this.fetchAndImportPage(ctx, childPageId, parentPath);
@@ -575,15 +576,21 @@ export class NotionAPIImporter extends FormatImporter {
 				
 					// Cover images are always downloaded, regardless of downloadExternalAttachments setting
 					// This is because Notion covers often use external URLs even for Notion-hosted images
+					// Use the page title as the cover filename for better organization
 					const result = await downloadAttachment(
 						{
 							type: isExternal ? 'external' : 'file',
 							url: coverUrl,
-							name: 'cover'
+							name: sanitizedTitle // Use page title as cover filename
 						},
-						this.vault,
-						ctx,
-						true  // Always download cover images
+						{
+							ctx,
+							currentFolderPath: pageFolderPath,
+							client: this.notionClient!,
+							vault: this.vault,
+							downloadExternalAttachments: true, // Always download cover images
+							currentPageTitle: sanitizedTitle
+						}
 					);
 		
 					// For frontmatter, use wiki link syntax with double quotes for proper rendering
