@@ -29,6 +29,9 @@ export abstract class FormatImporter {
 	/**
 	 * Optional: Show template configuration UI and prepare data for import.
 	 * This will be called as a configuration step before the import progress.
+	 *
+	 * Overriding functions are responsible for displaying errors before returning false.
+	 *
 	 * @param ctx The import context
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
