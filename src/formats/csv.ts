@@ -31,20 +31,25 @@ export class CSVImporter extends FormatImporter {
 			return false;
 		}
 
-		// Parse CSV files to extract headers
-		for (const file of files) {
-			if (ctx.isCancelled()) return false;
-
-			ctx.status('Parsing ' + file.name);
-			const csvContent = await file.readText();
-			const parsedData = this.parseCSV(csvContent);
-
-			// Store all rows for later processing
-			if (this.csvHeaders.length === 0 && parsedData.rows.length > 0) {
-				this.csvHeaders = parsedData.headers;
-			}
-			this.csvRows.push(...parsedData.rows);
+		if (files.length > 1) {
+			// NOTE: This shouldn't be possible due to the file chooser settings.
+			new Notice('CSV files must be imported one at a time.');
+			return false;
 		}
+
+		// Parse CSV files to extract headers
+		const file = files[0];
+		if (ctx.isCancelled()) return false;
+
+		ctx.status('Parsing ' + file.name);
+		const csvContent = await file.readText();
+		const parsedData = this.parseCSV(csvContent);
+
+		// Store all rows for later processing
+		if (this.csvHeaders.length === 0 && parsedData.rows.length > 0) {
+			this.csvHeaders = parsedData.headers;
+		}
+		this.csvRows.push(...parsedData.rows);
 
 		if (this.csvHeaders.length === 0 || this.csvRows.length === 0) {
 			new Notice('No data found in CSV file(s).');
