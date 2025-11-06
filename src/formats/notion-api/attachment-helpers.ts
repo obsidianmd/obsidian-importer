@@ -295,13 +295,18 @@ export function formatAttachmentLink(
 	if (useWikiLinks) {
 		// Use Obsidian wiki link format
 		const embedPrefix = isEmbed ? '!' : '';
+		
+		// For wiki links, we need to include the file extension
+		// Obsidian requires the extension to properly link to non-markdown files
+		const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
+		
 		if (caption) {
 			// If caption exists, use it as display text
-			return `${embedPrefix}[[${result.path}|${caption}]]`;
+			return `${embedPrefix}[[${pathWithExt}|${caption}]]`;
 		}
 		else {
-			// If no caption, just use the file path (Obsidian will show filename automatically)
-			return `${embedPrefix}[[${result.path}]]`;
+			// If no caption, just use the file path with extension
+			return `${embedPrefix}[[${pathWithExt}]]`;
 		}
 	}
 	else {
