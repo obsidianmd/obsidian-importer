@@ -41,8 +41,9 @@ export class NotionAPIImporter extends FormatImporter {
 	// Track discovered pages for dynamic progress updates
 	private totalPagesDiscovered: number = 0;
 	private pagesCompleted: number = 0;
-	// Track page IDs that should be counted in progress (root page + direct children only)
-	// This prevents counting nested child pages multiple times
+	// Track page IDs that should be counted in progress
+	// For Page import: only the root page itself
+	// For Database import: all direct pages in the database
 	private pageIdsToCount: Set<string> = new Set();
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
@@ -286,9 +287,9 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
-			this.totalPagesDiscovered = 0; // Will be updated as we discover pages
+			this.totalPagesDiscovered = 0;
 			this.pagesCompleted = 0;
-			this.pageIdsToCount.clear(); // Clear tracked page IDs
+			this.pageIdsToCount.clear();
 		
 			// Initialize progress display
 			ctx.reportProgress(0, 0);
@@ -305,18 +306,17 @@ export class NotionAPIImporter extends FormatImporter {
 		
 			// Check block type and handle accordingly
 			if (block.type === 'child_database') {
-			// It's a database! Import it as a top-level database
+				// It's a database! Import it as a top-level database
 				ctx.status('Input is a database, importing as top-level database...');
-				await this.importTopLevelDatabase(ctx, extractedPageId, folder.path);
+				await this.importTopLevelDatabase(ctx, extractedPageId, folder.path, true); // isRootImport = true
 			}
 			else if (block.type === 'child_page') {
-				// It's a child page, import as page
+			// It's a child page, import as page
 				ctx.status('Input is a page, importing...');
-				// Add root page ID to tracking set
-				// Child pages will be collected and added in fetchAndImportPage
+				// For page import: count root page + direct children
 				this.pageIdsToCount.add(extractedPageId);
 				this.totalPagesDiscovered = 1;
-				ctx.reportProgress(0, this.totalPagesDiscovered);
+				ctx.reportProgress(0, 1);
 				await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
 			}
 			else {
@@ -353,7 +353,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * The fake block only needs the 'id' and 'type' fields, as the rest of the information is fetched
 	 * from the Notion API inside convertChildDatabase().
 	 */
-	private async importTopLevelDatabase(ctx: ImportContext, databaseId: string, parentPath: string): Promise<void> {
+	private async importTopLevelDatabase(ctx: ImportContext, databaseId: string, parentPath: string, isRootImport: boolean = false): Promise<void> {
 		if (ctx.isCancelled()) return;
 		
 		try {
@@ -380,14 +380,18 @@ export class NotionAPIImporter extends FormatImporter {
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
+					// For root database import, add page ID to tracking set
+						if (isRootImport) {
+							this.pageIdsToCount.add(pageId);
+						}
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					onPagesDiscovered: (count: number) => {
-					// Set initial total when first discovering pages
-					// Don't update dynamically to avoid confusing progress jumps
-						if (this.totalPagesDiscovered === 0) {
+					// For root database import, set initial total
+					// For nested/synced database import, don't count them
+						if (isRootImport) {
 							this.totalPagesDiscovered = count;
-							ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
+							ctx.reportProgress(0, this.totalPagesDiscovered);
 						}
 					}
 				}
@@ -403,9 +407,9 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Collect all child page IDs recursively in blocks (including nested in lists, callouts, etc.)
+	 * Collect all direct child page IDs in blocks (including nested in lists, callouts, etc.)
 	 * This is used to set initial progress total before importing
-	 * Only collects direct child pages of the root page, not nested descendants
+	 * Only collects direct child pages of the root page, not their descendants
 	 */
 	private async collectChildPageIds(
 		client: Client,
@@ -418,12 +422,15 @@ export class NotionAPIImporter extends FormatImporter {
 		for (const block of blocks) {
 			if (ctx.isCancelled()) break;
 			
-			// Collect child_page IDs
+			// Collect child_page IDs (direct children only, not their descendants)
 			if (block.type === 'child_page') {
 				pageIds.push(block.id);
+				// Don't recurse into child pages - we only want direct children
+				continue;
 			}
 			
-			// Recursively check nested blocks (lists, callouts, toggles, etc.)
+			// For non-page blocks that can contain child pages (lists, callouts, toggles, etc.)
+			// recursively search for child pages within them
 			if (block.has_children) {
 				try {
 					let children = blocksCache?.get(block.id);
@@ -435,6 +442,7 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 					
 					if (children.length > 0) {
+						// Recursively collect child pages from nested blocks
 						const nestedPageIds = await this.collectChildPageIds(client, children, ctx, blocksCache);
 						pageIds.push(...nestedPageIds);
 					}
@@ -472,10 +480,33 @@ export class NotionAPIImporter extends FormatImporter {
 			// Extract page title
 			const pageTitle = extractPageTitle(page);
 			const sanitizedTitle = sanitizeFileName(pageTitle || 'Untitled');
-			
+		
 			// Update status with page title instead of ID
 			ctx.status(`Importing: ${pageTitle || 'Untitled'}...`);
-			
+		
+			// Create a cache to store fetched blocks and avoid duplicate API calls
+			// This cache will be used both for checking if page has children and for converting blocks
+			const blocksCache = new Map<string, any[]>();
+		
+			// Fetch page blocks (content) with rate limit handling
+			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
+			// Cache the root page blocks immediately
+			blocksCache.set(pageId, blocks);
+		
+			// Collect child page IDs (only once, for the root page)
+			// This helps set a stable progress total instead of dynamically updating it
+			// Only collect if we have exactly 1 page (the root) and total is 1 (not started yet)
+			if (this.pageIdsToCount.size === 1 && this.totalPagesDiscovered === 1) {
+				const childPageIds = await this.collectChildPageIds(this.notionClient!, blocks, ctx, blocksCache);
+				// Add all child page IDs to the tracking set
+				childPageIds.forEach(id => {
+					this.pageIdsToCount.add(id);
+				});
+				// Update total count
+				this.totalPagesDiscovered = this.pageIdsToCount.size;
+				ctx.reportProgress(0, this.totalPagesDiscovered);
+			}
+		
 			// Check if page already exists in vault (by notion-id)
 			if (await pageExistsInVault(this.app, this.vault, pageId)) {
 				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
@@ -485,24 +516,6 @@ export class NotionAPIImporter extends FormatImporter {
 					ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 				}
 				return;
-			}
-			
-			// Fetch page blocks (content) with rate limit handling
-			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
-		
-			// Create a cache to store fetched blocks and avoid duplicate API calls
-			// This cache will be used both for checking if page has children and for converting blocks
-			const blocksCache = new Map<string, any[]>();
-		
-			// Collect child page IDs (only once, for the root page)
-			// This helps set a stable progress total instead of dynamically updating it
-			if (this.pageIdsToCount.size === 0 || (this.pageIdsToCount.size === 1 && this.pagesCompleted === 0)) {
-				const childPageIds = await this.collectChildPageIds(this.notionClient!, blocks, ctx, blocksCache);
-				// Add all child page IDs to the tracking set
-				childPageIds.forEach(id => this.pageIdsToCount.add(id));
-				// Update total count
-				this.totalPagesDiscovered = this.pageIdsToCount.size;
-				ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
 			}
 		
 			// Check if page has child pages or child databases (recursively check nested blocks)
@@ -627,9 +640,9 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Create the markdown file
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
-		
+	
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
-			ctx.reportNoteSuccess(sanitizedTitle);
+			// Note: Don't call reportNoteSuccess here, progress is managed by reportProgress
 		
 			// Record page ID to path mapping for mention replacement
 			// Store path without extension for wiki link generation
@@ -641,7 +654,7 @@ export class NotionAPIImporter extends FormatImporter {
 			if (mentionedIds.size > 0) {
 				this.mentionPlaceholders.set(mdFilePath, mentionedIds);
 			}
-		
+	
 			// Update progress (only if this page should be counted)
 			if (this.pageIdsToCount.has(pageId)) {
 				this.pagesCompleted++;
@@ -882,11 +895,10 @@ export class NotionAPIImporter extends FormatImporter {
 			const databasePages = await this.queryDatabasePages(dataSourceId, ctx);
 			
 			ctx.status(`Found ${databasePages.length} pages in unimported database ${sanitizedTitle}`);
-			
-			// Update total pages discovered to include these new pages
-			this.totalPagesDiscovered += databasePages.length;
-			ctx.reportProgress(this.pagesCompleted, this.totalPagesDiscovered);
-			
+		
+			// Note: Don't update progress for unimported database pages
+			// Only root page and its direct children are counted in progress
+		
 			// Import each database page
 			for (const page of databasePages) {
 				if (ctx.isCancelled()) break;
@@ -923,8 +935,8 @@ export class NotionAPIImporter extends FormatImporter {
 				dataSourceProperties,
 				this.relationPlaceholders
 			);
-		
-			ctx.reportNoteSuccess(`Database: ${sanitizedTitle}`);
+	
+		// Note: Don't call reportNoteSuccess here, progress is managed by reportProgress
 		}
 		catch (error) {
 			console.error(`Failed to import unimported database ${databaseId}:`, error);
