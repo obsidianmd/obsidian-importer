@@ -236,41 +236,6 @@ export class CSVImporter extends FormatImporter {
 		return key.replace(/[^\w\s-]/g, '');
 	}
 
-	private convertToYAML(value: string): string {
-		if (!value || value.trim() === '') {
-			return '""';
-		}
-
-		const trimmed = value.trim();
-
-		// Check for boolean
-		if (trimmed.toLowerCase() === 'true') return 'true';
-		if (trimmed.toLowerCase() === 'false') return 'false';
-
-		// Check for number
-		if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-			return trimmed;
-		}
-
-		// Check for date (basic ISO format)
-		if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?/.test(trimmed)) {
-			return trimmed;
-		}
-
-		// Check if value needs quoting
-		const needsQuotes = /[:#\[\]{}|>*&!%@`"]/.test(trimmed) ||
-			trimmed !== trimmed.trim() ||
-			trimmed.startsWith('-') ||
-			trimmed.startsWith('?');
-
-		if (needsQuotes || trimmed.includes('\n')) {
-			// Escape quotes and wrap in quotes
-			return '"' + trimmed.replace(/"/g, '\\"') + '"';
-		}
-
-		return trimmed;
-	}
-
 	private async processRows(ctx: ImportContext): Promise<void> {
 		if (!this.config) {
 			new Notice('Configuration is missing.');
@@ -312,7 +277,6 @@ export class CSVImporter extends FormatImporter {
 					row,
 					this.config.propertyNames,
 					this.config.propertyValues,
-					this.convertToYAML.bind(this)
 				);
 				if (frontmatter) {
 					content += frontmatter + '\n\n';

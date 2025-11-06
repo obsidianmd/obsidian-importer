@@ -251,12 +251,33 @@ export function applyTemplate(template: string, data: Record<string, string>): s
 }
 
 /**
+ * Converts a string value to an appropriate YAML representation.
+ * NOTE: Complex types like arrays and objects are not supported and are returned as strings.
+ */
+function convertToYAML(value: string): string {
+	const lowerCaseValue = value.trim().toLowerCase();
+
+	if (lowerCaseValue === 'null' || lowerCaseValue === 'undefined' || value === '') {
+		return '';
+	}
+
+	if (lowerCaseValue === 'true' || lowerCaseValue === 'false') {
+		return lowerCaseValue; // Boolean
+	}
+
+	if (!isNaN(Number(value))) {
+		return value; // Number
+	}
+
+	return JSON.stringify(value);
+}
+
+/**
  * Generates YAML frontmatter from data using property mappings.
  * 
  * @param data - Object containing field values
  * @param propertyNames - Maps field IDs to property names
  * @param propertyValues - Maps field IDs to property value templates
- * @param convertToYAML - Function to convert string values to proper YAML format
  * @returns YAML frontmatter string with --- delimiters, or empty string if no properties
  * 
  * @example
@@ -277,7 +298,6 @@ export function generateFrontmatter(
 	data: Record<string, string>,
 	propertyNames: Map<string, string>,
 	propertyValues: Map<string, string>,
-	convertToYAML: (value: string) => string
 ): string {
 	if (propertyNames.size === 0) return '';
 
@@ -292,6 +312,7 @@ export function generateFrontmatter(
 		// Apply the template to get the actual value
 		const value = applyTemplate(valueTemplate, data);
 		const yamlValue = convertToYAML(value);
+
 		lines.push(`${propertyName}: ${yamlValue}`);
 	}
 
