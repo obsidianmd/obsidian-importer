@@ -33,7 +33,7 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
-	async prepareTemplateConfig(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
 		return null;
 	}
 

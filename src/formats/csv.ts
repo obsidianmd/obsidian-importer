@@ -24,7 +24,7 @@ export class CSVImporter extends FormatImporter {
 		this.addOutputLocationSetting('CSV import');
 	}
 
-	async prepareTemplateConfig(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one CSV file to import.');
@@ -93,7 +93,7 @@ export class CSVImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
-		// Config was already set by prepareTemplateConfig
+		// Config was already set by showTemplateConfiguration.
 		if (!this.config) {
 			new Notice('Configuration is missing.');
 			return;

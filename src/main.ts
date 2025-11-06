@@ -447,7 +447,7 @@ export class ImporterModal extends Modal {
 						let ctx = this.current = new ImportContext(configEl);
 
 						// Check if importer needs template configuration
-						const templateResult = await importer.prepareTemplateConfig(ctx, configEl);
+						const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
 
 						if (templateResult === false) {
 							// User cancelled or preparation failed
