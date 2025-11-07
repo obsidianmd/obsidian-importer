@@ -174,7 +174,8 @@ export interface BlockConversionContext {
 	mentionedIds?: Set<string>; // Collect mentioned page/database IDs during conversion
 	syncedBlocksMap?: Map<string, string>; // Map synced block ID to file path
 	outputRootPath?: string; // Root path for output (needed for synced blocks folder)
-	syncedChildPlaceholders?: Map<string, Set<string>>; // Map file path to synced child IDs
+	syncedChildPagePlaceholders?: Map<string, Set<string>>; // Map file path to synced child page IDs
+	syncedChildDatabasePlaceholders?: Map<string, Set<string>>; // Map file path to synced child database IDs
 	listCounters?: Map<number, number>; // Track list item numbers per indent level
 	onAttachmentDownloaded?: () => void; // Callback when an attachment is downloaded
 	currentPageTitle?: string; // Current page title for attachment naming fallback

@@ -721,22 +721,25 @@ async function createSyncedBlockFile(
 	
 		// Convert children to markdown
 		const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
-	
+
 		// Extract synced child IDs from the markdown content
 		// This allows us to efficiently replace placeholders later without scanning all files
-		const syncedChildIds = new Set<string>();
+		// Separated by type to avoid unnecessary placeholder checks during replacement
 
 		// Find SYNCED_CHILD_PAGE placeholders
 		const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
-		pageIds.forEach(id => syncedChildIds.add(id));
+		if (context.syncedChildPagePlaceholders && pageIds.length > 0) {
+			const existingPageIds = context.syncedChildPagePlaceholders.get(filePath) || new Set<string>();
+			pageIds.forEach(id => existingPageIds.add(id));
+			context.syncedChildPagePlaceholders.set(filePath, existingPageIds);
+		}
 
 		// Find SYNCED_CHILD_DATABASE placeholders
 		const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
-		dbIds.forEach(id => syncedChildIds.add(id));
-	
-		// Record synced child placeholders for this file
-		if (context.syncedChildPlaceholders && syncedChildIds.size > 0) {
-			context.syncedChildPlaceholders.set(filePath, syncedChildIds);
+		if (context.syncedChildDatabasePlaceholders && dbIds.length > 0) {
+			const existingDbIds = context.syncedChildDatabasePlaceholders.get(filePath) || new Set<string>();
+			dbIds.forEach(id => existingDbIds.add(id));
+			context.syncedChildDatabasePlaceholders.set(filePath, existingDbIds);
 		}
 	
 		// Create the file
