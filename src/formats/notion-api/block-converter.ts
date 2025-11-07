@@ -654,7 +654,14 @@ async function createSyncedBlockFile(
 	
 	try {
 		// Fetch the block to get its content
-		const block = await client.blocks.retrieve({ block_id: blockId }) as BlockObjectResponse;
+		const retrievedBlock = await client.blocks.retrieve({ block_id: blockId });
+		
+		// Check if it's a full block (not partial)
+		if (!('type' in retrievedBlock)) {
+			throw new Error(`Retrieved block ${blockId} is partial, cannot process synced block`);
+		}
+		
+		const block = retrievedBlock as BlockObjectResponse;
 		
 		// Get the block's children (the actual content)
 		let children: BlockObjectResponse[] = [];
