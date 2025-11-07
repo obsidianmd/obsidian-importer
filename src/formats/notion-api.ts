@@ -15,7 +15,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
-import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties } from './notion-api/database-helpers';
+import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties, queryAllDatabasePages } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
@@ -888,7 +888,7 @@ export class NotionAPIImporter extends FormatImporter {
 			await this.vault.createFolder(normalizePath(databaseFolderPath));
 			
 			// Query database to get all pages
-			const databasePages = await this.queryDatabasePages(dataSourceId, ctx);
+			const databasePages = await queryAllDatabasePages(this.notionClient!, dataSourceId, ctx);
 			
 			ctx.status(`Found ${databasePages.length} pages in unimported database ${sanitizedTitle}`);
 		
@@ -942,36 +942,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 	
-	/**
-	 * Query all pages from a database with pagination
-	 */
-	private async queryDatabasePages(dataSourceId: string, ctx: ImportContext): Promise<any[]> {
-		const pages: any[] = [];
-		let cursor: string | undefined = undefined;
-		
-		do {
-			const response: any = await makeNotionRequest(
-				() => this.notionClient!.dataSources.query({
-					data_source_id: dataSourceId,
-					start_cursor: cursor,
-					page_size: 100,
-				}),
-				ctx
-			);
-			
-			// Filter to get full page objects
-			const fullPages = response.results.filter(
-				(page: any) => page.object === 'page'
-			);
-			
-			pages.push(...fullPages);
-			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-			
-		} while (cursor);
-		
-		return pages;
-	}
-
 	/**
 	 * Replace mention placeholders ([[NOTION_PAGE:id]] and [[NOTION_DB:id]]) 
 	 * Only processes files that have mentions (efficient like relationPlaceholders)

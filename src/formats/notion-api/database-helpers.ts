@@ -155,7 +155,7 @@ export async function convertChildDatabase(
  * Query all pages from a database with pagination support
  * Note: In Notion API v2025-09-03, databases are now called "data sources"
  */
-async function queryAllDatabasePages(
+export async function queryAllDatabasePages(
 	client: Client,
 	databaseId: string,
 	ctx: ImportContext
