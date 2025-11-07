@@ -1079,9 +1079,25 @@ export class NotionAPIImporter extends FormatImporter {
 					if (content.includes(pagePlaceholder)) {
 						// Check if page is already imported
 						let pagePath = this.notionIdToPath.get(pageId);
+
+						if (!pagePath) {
+							// Try to import the page
+							try {
+								const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
+								await this.fetchAndImportPage(ctx, pageId, syncedBlocksFolder);
+								importedCount++;
+							}
+							catch (error) {
+								// Failed to import (no access or error)
+								console.warn(`Failed to import synced child page ${pageId}:`, error);
+								content = content.replace(pagePlaceholder, `**Page** _(no access)_`);
+								continue; // Skip to next child ID
+							}
+						}
 				
+						// Now get the path (either already existed or just imported)
+						pagePath = this.notionIdToPath.get(pageId);
 						if (pagePath) {
-							// Already imported, use existing path
 							const targetFile = this.vault.getAbstractFileByPath(pagePath + '.md');
 							if (targetFile && targetFile instanceof TFile) {
 								const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
@@ -1089,75 +1105,40 @@ export class NotionAPIImporter extends FormatImporter {
 								replacedCount++;
 							}
 						}
-						else {
-							// Not imported yet, try to import to Notion Synced Blocks folder
-							try {
-								const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
-								await this.fetchAndImportPage(ctx, pageId, syncedBlocksFolder);
-								importedCount++;
-						
-								// Now get the path
-								pagePath = this.notionIdToPath.get(pageId);
-								if (pagePath) {
-									const targetFile = this.vault.getAbstractFileByPath(pagePath + '.md');
-									if (targetFile && targetFile instanceof TFile) {
-										const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
-										content = content.replace(pagePlaceholder, link);
-										replacedCount++;
-									}
-								}
-							}
-							catch (error) {
-								// Failed to import (no access or error)
-								console.warn(`Failed to import synced child page ${pageId}:`, error);
-								content = content.replace(pagePlaceholder, `**Page** _(no access)_`);
-							}
-						}
 					}
 			
 					// Check if this is a database placeholder
 					const databaseId = childId;
 					const dbPlaceholder = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
-			
+		
 					if (content.includes(dbPlaceholder)) {
-						// Check if database is already imported
-						const dbInfo = this.processedDatabases.get(databaseId);
-				
+					// Check if database is already imported
+						let dbInfo = this.processedDatabases.get(databaseId);
+			
+						if (!dbInfo) {
+						// Try to import the database
+							try {
+								const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
+								await this.importTopLevelDatabase(ctx, databaseId, syncedBlocksFolder);
+								importedCount++;
+							}
+							catch (error) {
+							// Failed to import (no access or error)
+								console.warn(`Failed to import synced child database ${databaseId}:`, error);
+								content = content.replace(dbPlaceholder, `**Database** _(no access)_`);
+								continue; // Skip to next child ID
+							}
+						}
+					
+						// Now get the database info (either already existed or just imported)
+						dbInfo = this.processedDatabases.get(databaseId);
 						if (dbInfo) {
-							// Already imported, use existing .base file
 							const baseFilePath = dbInfo.baseFilePath.replace(/\.base$/, '');
 							const targetFile = this.vault.getAbstractFileByPath(baseFilePath + '.base');
 							if (targetFile && targetFile instanceof TFile) {
 								const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
 								content = content.replace(dbPlaceholder, link);
 								replacedCount++;
-							}
-						}
-						else {
-							// Not imported yet, try to import
-							try {
-								const syncedBlocksFolder = this.outputRootPath.split('/').slice(0, -1).join('/') + '/Notion Synced Blocks';
-						
-								// Import database using importTopLevelDatabase
-								await this.importTopLevelDatabase(ctx, databaseId, syncedBlocksFolder);
-								importedCount++;
-						
-								// Now get the database info
-								const newDbInfo = this.processedDatabases.get(databaseId);
-								if (newDbInfo) {
-									const baseFilePath = newDbInfo.baseFilePath.replace(/\.base$/, '');
-									const targetFile = this.vault.getAbstractFileByPath(baseFilePath + '.base');
-									if (targetFile && targetFile instanceof TFile) {
-										const link = this.app.fileManager.generateMarkdownLink(targetFile, file.path);
-										content = content.replace(dbPlaceholder, link);
-										replacedCount++;
-									}
-								}
-							}
-							catch (error) {
-								// Failed to import (no access or error)
-								console.warn(`Failed to import synced child database ${databaseId}:`, error);
-								content = content.replace(dbPlaceholder, `**Database** _(no access)_`);
 							}
 						}
 					}
