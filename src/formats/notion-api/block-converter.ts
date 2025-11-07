@@ -16,7 +16,10 @@ import {
 	LinkPreviewBlockObjectResponse,
 	RichTextItemResponse
 } from '@notionhq/client';
+import { normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
+import { parseFilePath } from '../../filesystem';
+import { sanitizeFileName } from '../../util';
 import { fetchAllBlocks } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
 import { BlockConversionContext } from './types';
@@ -672,12 +675,14 @@ async function createSyncedBlockFile(
 		}
 		
 		// Sanitize filename
-		fileName = fileName.replace(/[\/\?<>\\:\*\|"]/g, '').trim() || 'Synced Block';
-		
-		// Create "Notion Synced Blocks" folder
-		const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
-		const syncedBlocksFolder = parentPath === '/' ? '/Notion Synced Blocks' : parentPath + '/Notion Synced Blocks';
+		fileName = sanitizeFileName(fileName.trim()) || 'Synced Block';
 	
+		// Create "Notion Synced Blocks" folder at the same level as output root
+		const { parent: parentPath } = parseFilePath(outputRootPath);
+		const syncedBlocksFolder = normalizePath(
+			parentPath ? `${parentPath}/Notion Synced Blocks` : 'Notion Synced Blocks'
+		);
+
 		// Check if folder exists before creating
 		const existingFolder = vault.getAbstractFileByPath(syncedBlocksFolder);
 		if (!existingFolder) {
@@ -693,10 +698,10 @@ async function createSyncedBlockFile(
 		}
 		
 		// Generate unique file path
-		let filePath = `${syncedBlocksFolder}/${fileName}.md`;
+		let filePath = normalizePath(`${syncedBlocksFolder}/${fileName}.md`);
 		let counter = 1;
 		while (vault.getAbstractFileByPath(filePath)) {
-			filePath = `${syncedBlocksFolder}/${fileName} (${counter}).md`;
+			filePath = normalizePath(`${syncedBlocksFolder}/${fileName} (${counter}).md`);
 			counter++;
 		}
 	
@@ -781,10 +786,10 @@ export async function convertSyncedBlock(
 	}
 	
 	// Extract filename without extension for wiki link
-	const fileName = filePath.split('/').pop()?.replace(/\.md$/, '') || 'Synced Block';
+	const { basename } = parseFilePath(filePath);
 	
 	// Return wiki link to the synced block file
-	return `![[${fileName}]]`;
+	return `![[${basename}]]`;
 }
 
 /**

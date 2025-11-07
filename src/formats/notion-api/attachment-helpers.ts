@@ -6,6 +6,7 @@
 import { Vault, normalizePath, requestUrl } from 'obsidian';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
+import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext } from './types';
 
@@ -54,12 +55,13 @@ export async function downloadAttachment(
 		}
 		
 		// Check if filename has an extension, if not, infer from Content-Type
-		if (!filename.includes('.') || filename.lastIndexOf('.') === 0) {
+		const [basename, ext] = splitext(filename);
+		if (!ext) {
 			const contentType = response.headers['content-type'] || response.headers['Content-Type'];
 			if (contentType) {
 				const extension = extensionForMime(contentType);
 				if (extension) {
-					filename = `${filename}.${extension}`;
+					filename = `${basename}.${extension}`;
 				}
 			}
 		}
@@ -77,7 +79,8 @@ export async function downloadAttachment(
 		await vault.createBinary(normalizePath(filePath), response.arrayBuffer);
 		
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
-		const filePathWithoutExt = filePath.replace(/\.[^/.]+$/, '');
+		const { parent, basename: fileBasename } = parseFilePath(filePath);
+		const filePathWithoutExt = normalizePath(parent ? `${parent}/${fileBasename}` : fileBasename);
 		return {
 			path: filePathWithoutExt,
 			isLocal: true,
@@ -142,9 +145,8 @@ function getUniqueAttachmentPath(vault: Vault, folderPath: string, filename: str
 	let counter = 1;
 	
 	// Extract name and extension
-	const lastDotIndex = filename.lastIndexOf('.');
-	const nameWithoutExt = lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
-	const ext = lastDotIndex > 0 ? filename.substring(lastDotIndex) : '';
+	const [nameWithoutExt, extension] = splitext(filename);
+	const ext = extension ? `.${extension}` : '';
 	
 	while (vault.getAbstractFileByPath(normalizePath(finalPath))) {
 		const newFilename = `${nameWithoutExt} (${counter})${ext}`;

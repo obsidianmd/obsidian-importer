@@ -12,6 +12,7 @@ import {
 } from '@notionhq/client';
 import { normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
+import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
@@ -224,13 +225,15 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		coverPropertyName = 'cover'
 	} = params;
 	// Create "Notion Databases" folder at the same level as output root
-	const parentPath = outputRootPath.split('/').slice(0, -1).join('/') || '/';
-	const databasesFolder = parentPath === '/' ? '/Notion Databases' : parentPath + '/Notion Databases';
+	const { parent: parentPath } = parseFilePath(outputRootPath);
+	const databasesFolder = normalizePath(
+		parentPath ? `${parentPath}/Notion Databases` : 'Notion Databases'
+	);
 	
 	try {
-		let folder = vault.getAbstractFileByPath(normalizePath(databasesFolder));
+		let folder = vault.getAbstractFileByPath(databasesFolder);
 		if (!folder) {
-			await vault.createFolder(normalizePath(databasesFolder));
+			await vault.createFolder(databasesFolder);
 		}
 	}
 	catch (error) {
