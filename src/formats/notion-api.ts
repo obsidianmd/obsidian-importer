@@ -844,7 +844,9 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 			catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to replace relation placeholder for page ${placeholder.pageId}:`, error);
+				ctx.reportFailed(`Relation page ${placeholder.pageId}`, errorMessage);
 			}
 		}
 	}
@@ -1027,7 +1029,9 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 			catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process mentions in file ${sourceFilePath}:`, error);
+				ctx.reportFailed(`Mention file ${sourceFilePath}`, errorMessage);
 			}
 		}
 
@@ -1151,7 +1155,9 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 			catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process synced child placeholders in file ${filePath}:`, error);
+				ctx.reportFailed(`Synced block file ${filePath}`, errorMessage);
 			}
 		}
 	
