@@ -17,6 +17,88 @@ import { canConvertFormula, getNotionFormulaExpression } from './formula-convert
 const MAX_RETRIES = 3;
 
 /**
+ * Get children blocks for a block, using cache if available
+ * This is a common pattern used throughout the codebase
+ * 
+ * @param blockId - The ID of the parent block
+ * @param client - Notion API client
+ * @param ctx - Import context for cancellation and error reporting
+ * @param blocksCache - Optional cache to store/retrieve children
+ * @returns Array of child blocks, or empty array if block has no children
+ */
+export async function getBlockChildren(
+	blockId: string,
+	client: Client,
+	ctx: ImportContext,
+	blocksCache?: Map<string, BlockObjectResponse[]>
+): Promise<BlockObjectResponse[]> {
+	// Try to get from cache first
+	let children = blocksCache?.get(blockId);
+	
+	if (!children) {
+		// Not in cache, fetch from API
+		children = await fetchAllBlocks(client, blockId, ctx);
+		
+		// Store in cache if cache is provided
+		if (blocksCache) {
+			blocksCache.set(blockId, children);
+		}
+	}
+	
+	return children;
+}
+
+/**
+ * Parameters for processBlockChildren function
+ */
+export interface ProcessBlockChildrenParams<T> {
+	block: BlockObjectResponse;
+	client: Client;
+	ctx: ImportContext;
+	blocksCache?: Map<string, BlockObjectResponse[]>;
+	processor: (children: BlockObjectResponse[]) => Promise<T> | T;
+	errorContext?: string;
+}
+
+/**
+ * Process children blocks if they exist, with automatic error handling
+ * This encapsulates the common pattern of checking has_children, fetching, and processing
+ * 
+ * @param params - Parameters object containing:
+ *   - block: The parent block to check for children
+ *   - client: Notion API client
+ *   - ctx: Import context for cancellation and error reporting
+ *   - blocksCache: Optional cache to store/retrieve children
+ *   - processor: Callback function to process the children blocks
+ *   - errorContext: Optional context string for error messages (e.g., "bulleted list item")
+ * @returns The result from the processor callback, or undefined if no children or error occurred
+ */
+export async function processBlockChildren<T>(
+	params: ProcessBlockChildrenParams<T>
+): Promise<T | undefined> {
+	const { block, client, ctx, blocksCache, processor, errorContext } = params;
+	
+	if (!block.has_children) {
+		return undefined;
+	}
+	
+	try {
+		const children = await getBlockChildren(block.id, client, ctx, blocksCache);
+		
+		if (children.length === 0) {
+			return undefined;
+		}
+		
+		return await processor(children);
+	}
+	catch (error) {
+		const context = errorContext || 'block';
+		console.error(`Failed to fetch children for ${context} ${block.id}:`, error);
+		return undefined;
+	}
+}
+
+/**
  * Wrapper for Notion API calls with rate limit handling
  * Automatically retries on 429 errors with exponential backoff
  */
@@ -122,19 +204,8 @@ export async function hasChildPagesOrDatabases(
 		// Recursively check nested blocks if this block has children
 		if (block.has_children) {
 			try {
-				// Try to get from cache first
-				let children = blocksCache?.get(block.id);
-				
-				if (!children) {
-					// Not in cache, fetch from API
-					children = await fetchAllBlocks(client, block.id, ctx);
-					
-					// Store in cache if cache is provided
-					if (blocksCache) {
-						blocksCache.set(block.id, children);
-					}
-				}
-				
+				const children = await getBlockChildren(block.id, client, ctx, blocksCache);
+			
 				if (children.length > 0) {
 					const hasChildrenInNested = await hasChildPagesOrDatabases(client, children, ctx, blocksCache);
 					if (hasChildrenInNested) {

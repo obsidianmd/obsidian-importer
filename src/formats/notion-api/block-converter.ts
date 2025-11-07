@@ -20,10 +20,41 @@ import { normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
-import { fetchAllBlocks } from './api-helpers';
+import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
 import { BlockConversionContext } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
+
+/**
+ * Helper function to process block children and convert them to markdown
+ * This is a common pattern used in list items, callouts, toggles, etc.
+ * 
+ * @param block - The parent block
+ * @param context - Block conversion context
+ * @param indentLevel - Optional indent level for nested children (undefined = use context's indentLevel)
+ * @param errorContext - Context string for error messages
+ * @returns Markdown string or undefined if no children
+ */
+async function processChildrenToMarkdown(
+	block: BlockObjectResponse,
+	context: BlockConversionContext,
+	indentLevel: number | undefined,
+	errorContext: string
+): Promise<string | undefined> {
+	return await processBlockChildren({
+		block,
+		client: context.client,
+		ctx: context.ctx,
+		blocksCache: context.blocksCache,
+		processor: async (children) => {
+			const childContext = indentLevel !== undefined 
+				? { ...context, indentLevel }
+				: context;
+			return await convertBlocksToMarkdown(children, childContext);
+		},
+		errorContext
+	});
+}
 
 /**
  * Check if a block is an empty paragraph
@@ -387,38 +418,16 @@ export async function convertBulletedListItem(
 	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
 	let markdown = indent + '- ' + convertRichText(block.bulleted_list_item.rich_text, context);
 	
-	// Check if this block has children
-	if (block.has_children) {
-		try {
-			// Try to get from cache first
-			let children = context.blocksCache?.get(block.id);
-			
-			if (!children) {
-				// Not in cache, fetch from API
-				children = await fetchAllBlocks(context.client, block.id, context.ctx);
-				
-				// Store in cache if cache is provided
-				if (context.blocksCache) {
-					context.blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-				const childrenMarkdown = await convertBlocksToMarkdown(
-					children,
-					{
-						...context,
-						indentLevel: indentLevel + 1
-					}
-				);
-				if (childrenMarkdown) {
-					markdown += '\n' + childrenMarkdown;
-				}
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for block ${block.id}:`, error);
-		}
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		indentLevel + 1,
+		'bulleted list item'
+	);
+	
+	if (childrenMarkdown) {
+		markdown += '\n' + childrenMarkdown;
 	}
 	
 	return markdown;
@@ -441,38 +450,16 @@ export async function convertToDo(
 	const checkbox = block.to_do.checked ? '[x]' : '[ ]';
 	let markdown = indent + '- ' + checkbox + ' ' + convertRichText(block.to_do.rich_text, context);
 	
-	// Check if this block has children
-	if (block.has_children) {
-		try {
-			// Try to get from cache first
-			let children = context.blocksCache?.get(block.id);
-			
-			if (!children) {
-				// Not in cache, fetch from API
-				children = await fetchAllBlocks(context.client, block.id, context.ctx);
-				
-				// Store in cache if cache is provided
-				if (context.blocksCache) {
-					context.blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-				const childrenMarkdown = await convertBlocksToMarkdown(
-					children,
-					{
-						...context,
-						indentLevel: indentLevel + 1
-					}
-				);
-				if (childrenMarkdown) {
-					markdown += '\n' + childrenMarkdown;
-				}
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for block ${block.id}:`, error);
-		}
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		indentLevel + 1,
+		'to-do item'
+	);
+	
+	if (childrenMarkdown) {
+		markdown += '\n' + childrenMarkdown;
 	}
 	
 	return markdown;
@@ -490,56 +477,44 @@ export async function convertColumnList(
 	if (block.type !== 'column_list') return '';
 	
 	// Column list must have children (the columns)
-	if (!block.has_children) return '';
+	const markdown = await processBlockChildren({
+		block,
+		client: context.client,
+		ctx: context.ctx,
+		blocksCache: context.blocksCache,
+		processor: async (columns) => {
+			let result = '';
+			
+			// Process each column from left to right
+			for (let i = 0; i < columns.length; i++) {
+				const column = columns[i];
+				
+				if (column.type !== 'column') {
+					console.warn(`Expected column block, got ${column.type}`);
+					continue;
+				}
+				
+				// Add column marker comment
+				result += `<!-- Column ${i + 1} -->\n`;
+				
+				// Convert the column's content
+				const columnMarkdown = await convertColumn(column, context);
+				if (columnMarkdown) {
+					result += columnMarkdown;
+				}
+				
+				// Add spacing between columns (but not after the last one)
+				if (i < columns.length - 1) {
+					result += '\n\n';
+				}
+			}
+			
+			return result;
+		},
+		errorContext: 'column_list'
+	});
 	
-	try {
-		// Try to get from cache first
-		let columns = context.blocksCache?.get(block.id);
-		
-		if (!columns) {
-			// Not in cache, fetch from API
-			columns = await fetchAllBlocks(context.client, block.id, context.ctx);
-			
-			// Store in cache if cache is provided
-			if (context.blocksCache) {
-				context.blocksCache.set(block.id, columns);
-			}
-		}
-		
-		if (columns.length === 0) return '';
-		
-		let markdown = '';
-		
-		// Process each column from left to right
-		for (let i = 0; i < columns.length; i++) {
-			const column = columns[i];
-			
-			if (column.type !== 'column') {
-				console.warn(`Expected column block, got ${column.type}`);
-				continue;
-			}
-			
-			// Add column marker comment
-			markdown += `<!-- Column ${i + 1} -->\n`;
-			
-			// Convert the column's content
-			const columnMarkdown = await convertColumn(column, context);
-			if (columnMarkdown) {
-				markdown += columnMarkdown;
-			}
-			
-			// Add spacing between columns (but not after the last one)
-			if (i < columns.length - 1) {
-				markdown += '\n\n';
-			}
-		}
-		
-		return markdown;
-	}
-	catch (error) {
-		console.error(`Failed to convert column_list ${block.id}:`, error);
-		return '';
-	}
+	return markdown || '';
 }
 
 /**
@@ -553,33 +528,14 @@ export async function convertColumn(
 	if (block.type !== 'column') return '';
 	
 	// Column must have children (the content blocks)
-	if (!block.has_children) return '';
+	const markdown = await processChildrenToMarkdown(
+		block,
+		context,
+		undefined, // Keep current indentLevel
+		'column'
+	);
 	
-	try {
-		// Try to get from cache first
-		let children = context.blocksCache?.get(block.id);
-		
-		if (!children) {
-			// Not in cache, fetch from API
-			children = await fetchAllBlocks(context.client, block.id, context.ctx);
-			
-			// Store in cache if cache is provided
-			if (context.blocksCache) {
-				context.blocksCache.set(block.id, children);
-			}
-		}
-		
-		if (children.length === 0) return '';
-		
-		// Convert all blocks in this column
-		const markdown = await convertBlocksToMarkdown(children, context);
-		
-		return markdown;
-	}
-	catch (error) {
-		console.error(`Failed to convert column ${block.id}:`, error);
-		return '';
-	}
+	return markdown || '';
 }
 
 /**
@@ -614,24 +570,19 @@ async function extractFirstLineText(
 	}
 	
 	// If no text found and block has children, recursively check first child
-	if (block.has_children) {
-		try {
-			// Try to get from cache first
-			let children = blocksCache?.get(block.id);
-			if (!children) {
-				children = await fetchAllBlocks(client, block.id, ctx);
-				if (blocksCache) {
-					blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-				return await extractFirstLineText(children[0], client, ctx, maxLength, blocksCache);
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for first line text extraction:`, error);
-		}
+	const firstChildText = await processBlockChildren({
+		block,
+		client,
+		ctx,
+		blocksCache,
+		processor: async (children) => {
+			return await extractFirstLineText(children[0], client, ctx, maxLength, blocksCache);
+		},
+		errorContext: 'first line text extraction'
+	});
+	
+	if (firstChildText) {
+		return firstChildText;
 	}
 	
 	// Fallback to block type
@@ -664,17 +615,10 @@ async function createSyncedBlockFile(
 		const block = retrievedBlock as BlockObjectResponse;
 		
 		// Get the block's children (the actual content)
-		let children: BlockObjectResponse[] = [];
-	
-		if (block.has_children) {
-		// Try to get from cache first
-			children = context.blocksCache?.get(blockId) || await fetchAllBlocks(client, blockId, ctx);
-			// Cache the children for potential reuse
-			if (context.blocksCache && !context.blocksCache.has(blockId)) {
-				context.blocksCache.set(blockId, children);
-			}
-		}
-	
+		const children: BlockObjectResponse[] = block.has_children 
+			? await getBlockChildren(blockId, client, ctx, context.blocksCache)
+			: [];
+
 		// Extract first line text for filename
 		let fileName = 'Synced Block';
 		if (children.length > 0) {
@@ -827,34 +771,18 @@ export async function convertToggle(
 	// Using 'note' type as default for toggles
 	let markdown = `> [!note]${foldState} ${text}\n`;
 	
-	// Handle children if any
-	if (block.has_children) {
-		try {
-			let children = context.blocksCache?.get(block.id);
-			if (!children) {
-				children = await fetchAllBlocks(context.client, block.id, context.ctx);
-				if (context.blocksCache) {
-					context.blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-			// Don't pass indentLevel to toggle children
-			// The '> ' prefix is sufficient for toggle/callout formatting
-				const childrenMarkdown = await convertBlocksToMarkdown(
-					children,
-					{ ...context, indentLevel: 0 }
-				);
-				if (childrenMarkdown) {
-				// Indent children content with '> ' for callout
-					const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
-					markdown += indentedChildren;
-				}
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for toggle block ${block.id}:`, error);
-		}
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		0, // Don't pass indentLevel to toggle children, '> ' prefix is sufficient
+		'toggle block'
+	);
+	
+	if (childrenMarkdown) {
+		// Indent children content with '> ' for callout
+		const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+		markdown += indentedChildren;
 	}
 	
 	return markdown;
@@ -881,77 +809,72 @@ export async function convertTable(
 	const columnAlignment: ('left' | 'center' | 'right')[] = new Array(tableWidth).fill('left');
 	
 	// Fetch table rows (children of table block)
-	if (!block.has_children) {
-		return ''; // Empty table
-	}
-	
-	let rows: BlockObjectResponse[] = [];
-	try {
-		rows = context.blocksCache?.get(block.id) || await fetchAllBlocks(context.client, block.id, context.ctx);
-		if (context.blocksCache && !context.blocksCache.has(block.id)) {
-			context.blocksCache.set(block.id, rows);
-		}
-	}
-	catch (error) {
-		console.error(`Failed to fetch table rows for block ${block.id}:`, error);
-		return '';
-	}
-	
-	if (rows.length === 0) {
-		return ''; // Empty table
-	}
-	
-	// Convert each row
-	const markdownRows: string[] = [];
-	
-	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-		const row = rows[rowIndex];
-		if (row.type !== 'table_row') continue;
-		
-		const rowBlock = row as TableRowBlockObjectResponse;
-		const rowData = rowBlock.table_row;
-		if (!rowData.cells) continue;
-		
-		const cells = rowData.cells; // Array of RichText arrays
-		const markdownCells: string[] = [];
-		
-		for (let colIndex = 0; colIndex < cells.length; colIndex++) {
-			const cellRichText = cells[colIndex];
+	const markdownRows = await processBlockChildren({
+		block,
+		client: context.client,
+		ctx: context.ctx,
+		blocksCache: context.blocksCache,
+		processor: async (rows) => {
+			const result: string[] = [];
 			
-			// Convert RichText to markdown
-			let cellContent = convertRichText(cellRichText, context);
-			
-			// Handle hard line breaks (replace \n with <br>)
-			cellContent = cellContent.replace(/\n/g, '<br>');
-			
-			// Handle empty cells
-			if (!cellContent.trim()) {
-				cellContent = ' '; // Keep at least one space for proper table rendering
+			// Convert each row
+			for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+				const row = rows[rowIndex];
+				if (row.type !== 'table_row') continue;
+				
+				const rowBlock = row as TableRowBlockObjectResponse;
+				const rowData = rowBlock.table_row;
+				if (!rowData.cells) continue;
+				
+				const cells = rowData.cells; // Array of RichText arrays
+				const markdownCells: string[] = [];
+				
+				for (let colIndex = 0; colIndex < cells.length; colIndex++) {
+					const cellRichText = cells[colIndex];
+					
+					// Convert RichText to markdown
+					let cellContent = convertRichText(cellRichText, context);
+					
+					// Handle hard line breaks (replace \n with <br>)
+					cellContent = cellContent.replace(/\n/g, '<br>');
+					
+					// Handle empty cells
+					if (!cellContent.trim()) {
+						cellContent = ' '; // Keep at least one space for proper table rendering
+					}
+					
+					markdownCells.push(cellContent);
+				}
+				
+				// Build row string
+				result.push('| ' + markdownCells.join(' | ') + ' |');
+				
+				// Add separator row after first row
+				// Markdown tables require a separator row, which makes the first row a header
+				if (rowIndex === 0) {
+					const separators = columnAlignment.map(align => {
+						switch (align) {
+							case 'left':
+								return '---';
+							case 'center':
+								return ':---:';
+							case 'right':
+								return '---:';
+							default:
+								return '---';
+						}
+					});
+					result.push('| ' + separators.join(' | ') + ' |');
+				}
 			}
 			
-			markdownCells.push(cellContent);
-		}
-		
-		// Build row string
-		markdownRows.push('| ' + markdownCells.join(' | ') + ' |');
-		
-		// Add separator row after first row
-		// Markdown tables require a separator row, which makes the first row a header
-		if (rowIndex === 0) {
-			const separators = columnAlignment.map(align => {
-				switch (align) {
-					case 'left':
-						return '---';
-					case 'center':
-						return ':---:';
-					case 'right':
-						return '---:';
-					default:
-						return '---';
-				}
-			});
-			markdownRows.push('| ' + separators.join(' | ') + ' |');
-		}
+			return result;
+		},
+		errorContext: 'table'
+	});
+	
+	if (!markdownRows || markdownRows.length === 0) {
+		return ''; // Empty table
 	}
 	
 	return markdownRows.join('\n');
@@ -981,38 +904,16 @@ export async function convertNumberedListItem(
 	const indent = '    '.repeat(indentLevel);
 	let markdown = indent + `${currentNumber}. ` + convertRichText(block.numbered_list_item.rich_text, context);
 	
-	// Check if this block has children
-	if (block.has_children) {
-		try {
-			// Try to get from cache first
-			let children = context.blocksCache?.get(block.id);
-			
-			if (!children) {
-				// Not in cache, fetch from API
-				children = await fetchAllBlocks(context.client, block.id, context.ctx);
-				
-				// Store in cache if cache is provided
-				if (context.blocksCache) {
-					context.blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-				const childrenMarkdown = await convertBlocksToMarkdown(
-					children,
-					{
-						...context,
-						indentLevel: indentLevel + 1
-					}
-				);
-				if (childrenMarkdown) {
-					markdown += '\n' + childrenMarkdown;
-				}
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for block ${block.id}:`, error);
-		}
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		indentLevel + 1,
+		'numbered list item'
+	);
+	
+	if (childrenMarkdown) {
+		markdown += '\n' + childrenMarkdown;
 	}
 	
 	return markdown;
@@ -1055,34 +956,18 @@ export async function convertCallout(block: BlockObjectResponse, context: BlockC
 	let markdown = `> [!${calloutType}] ${icon}\n`;
 	markdown += `> ${text}`;
 	
-	// Handle children if any
-	if (block.has_children) {
-		try {
-			let children = context.blocksCache?.get(block.id);
-			if (!children) {
-				children = await fetchAllBlocks(context.client, block.id, context.ctx);
-				if (context.blocksCache) {
-					context.blocksCache.set(block.id, children);
-				}
-			}
-			
-			if (children.length > 0) {
-				// Don't increase indentLevel for callout children
-				// The '> ' prefix is sufficient for callout formatting
-				const childrenMarkdown = await convertBlocksToMarkdown(
-					children,
-					{ ...context, indentLevel: 0 }
-				);
-				if (childrenMarkdown) {
-					// Indent children content with '> ' for callout
-					const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
-					markdown += '\n' + indentedChildren;
-				}
-			}
-		}
-		catch (error) {
-			console.error(`Failed to fetch children for callout block ${block.id}:`, error);
-		}
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		0, // Don't increase indentLevel for callout children, '> ' prefix is sufficient
+		'callout block'
+	);
+	
+	if (childrenMarkdown) {
+		// Indent children content with '> ' for callout
+		const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+		markdown += '\n' + indentedChildren;
 	}
 	
 	return markdown;
