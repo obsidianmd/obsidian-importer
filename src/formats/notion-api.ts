@@ -5,7 +5,7 @@ import { Client, PageObjectResponse } from '@notionhq/client';
 import { sanitizeFileName, serializeFrontMatter } from '../util';
 
 // Import helper modules
-import { extractPageId } from './notion-api/utils';
+import { extractPageId, createPlaceholder, PlaceholderType } from './notion-api/utils';
 import { 
 	makeNotionRequest, 
 	fetchAllBlocks, 
@@ -1075,10 +1075,10 @@ export class NotionAPIImporter extends FormatImporter {
 			
 				// Process each child ID that was recorded for this file
 				for (const childId of childIds) {
-				// Try as page first
+					// Try as page first
 					const pageId = childId;
-					const pagePlaceholder = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
-				
+					const pagePlaceholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_PAGE, pageId);
+			
 					// Check if this is a page placeholder
 					if (content.includes(pagePlaceholder)) {
 						// Check if page is already imported
@@ -1113,8 +1113,8 @@ export class NotionAPIImporter extends FormatImporter {
 			
 					// Check if this is a database placeholder
 					const databaseId = childId;
-					const dbPlaceholder = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
-		
+					const dbPlaceholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_DATABASE, databaseId);
+	
 					if (content.includes(dbPlaceholder)) {
 					// Check if database is already imported
 						let dbInfo = this.processedDatabases.get(databaseId);

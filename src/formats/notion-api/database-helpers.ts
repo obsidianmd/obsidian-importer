@@ -11,6 +11,7 @@ import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, RollupConfig, CreateBaseFileParams, GenerateBaseFileContentParams } from './types';
+import { extractPlaceholderIds, createPlaceholder, PlaceholderType } from './utils';
 import type { FormulaImportStrategy } from '../notion-api';
 
 /**
@@ -810,7 +811,7 @@ export async function processRelationProperties(
 
 /**
  * Process database placeholders in markdown content
- * Replace <!-- DATABASE_PLACEHOLDER:id --> with actual database references
+ * Replace [[DATABASE_PLACEHOLDER:id]] with actual database references
  */
 export async function processDatabasePlaceholders(
 	markdownContent: string,
@@ -818,19 +819,17 @@ export async function processDatabasePlaceholders(
 	context: DatabaseProcessingContext
 ): Promise<string> {
 	// Find all database placeholders
-	const placeholderRegex = /<!-- DATABASE_PLACEHOLDER:([a-f0-9-]+) -->/g;
-	const matches = [...markdownContent.matchAll(placeholderRegex)];
+	const databaseIds = extractPlaceholderIds(markdownContent, PlaceholderType.DATABASE_PLACEHOLDER);
 	
-	if (matches.length === 0) {
+	if (databaseIds.length === 0) {
 		return markdownContent;
 	}
 	
 	let processedContent = markdownContent;
 	
 	// Process each database placeholder
-	for (const match of matches) {
-		const placeholder = match[0];
-		const databaseId = match[1];
+	for (const databaseId of databaseIds) {
+		const placeholder = createPlaceholder(PlaceholderType.DATABASE_PLACEHOLDER, databaseId);
 		
 		// Find the corresponding block
 		const databaseBlock = blocks.find(b => b.id === databaseId && b.type === 'child_database');

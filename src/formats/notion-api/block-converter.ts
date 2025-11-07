@@ -8,6 +8,7 @@ import { ImportContext } from '../../main';
 import { fetchAllBlocks } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
 import { BlockConversionContext } from './types';
+import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
 
 /**
  * Check if a block is an empty paragraph
@@ -232,29 +233,30 @@ export async function convertBlockToMarkdown(
 			if (isInSyncedBlockDb) {
 			// Inside synced block: use placeholder for later replacement
 				const databaseId = block.id;
-			
+		
 				// Return placeholder that will be replaced later
-				// Format: [[SYNCED_CHILD_DATABASE:id]]
+				const placeholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_DATABASE, databaseId);
 				if (dbIndentLevel > 0) {
-				// In a list: render with indentation only (no bullet)
+					// In a list: render with indentation only (no bullet)
 					const dbIndent = '    '.repeat(dbIndentLevel);
-					markdown = dbIndent + `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+					markdown = dbIndent + placeholder;
 				}
 				else {
-				// Top level: render directly
-					markdown = `[[SYNCED_CHILD_DATABASE:${databaseId}]]`;
+					// Top level: render directly
+					markdown = placeholder;
 				}
 			}
 			else {
-			// Normal page: return placeholder for database processing
+				// Normal page: return placeholder for database processing
+				const placeholder = createPlaceholder(PlaceholderType.DATABASE_PLACEHOLDER, block.id);
 				if (dbIndentLevel > 0) {
-				// In a list: render with indentation only (no bullet)
+					// In a list: render with indentation only (no bullet)
 					const dbIndent = '    '.repeat(dbIndentLevel);
-					markdown = dbIndent + `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+					markdown = dbIndent + placeholder;
 				}
 				else {
-				// Top level: render directly
-					markdown = `<!-- DATABASE_PLACEHOLDER:${block.id} -->`;
+					// Top level: render directly
+					markdown = placeholder;
 				}
 			}
 			break;
@@ -266,23 +268,23 @@ export async function convertBlockToMarkdown(
 			const pageIndentLevel = context.indentLevel || 0;
 		
 			if (isInSyncedBlock) {
-			// Inside synced block: check if already imported, otherwise use placeholder
+				// Inside synced block: check if already imported, otherwise use placeholder
 				const pageId = block.id;
-			
+		
 				// Check if page is already imported (using notionIdToPath from context)
 				// Note: notionIdToPath is not in BlockConversionContext, we need to add it
 				// For now, always use placeholder and handle in replacement phase
-			
+		
 				// Return placeholder that will be replaced later
-				// Format: [[SYNCED_CHILD_PAGE:id]]
+				const placeholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_PAGE, pageId);
 				if (pageIndentLevel > 0) {
-				// In a list: render with indentation only (no bullet)
+					// In a list: render with indentation only (no bullet)
 					const pageIndent = '    '.repeat(pageIndentLevel);
-					markdown = pageIndent + `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+					markdown = pageIndent + placeholder;
 				}
 				else {
-				// Top level: render directly
-					markdown = `[[SYNCED_CHILD_PAGE:${pageId}]]`;
+					// Top level: render directly
+					markdown = placeholder;
 				}
 			}
 			else if (context.importPageCallback) {
@@ -695,18 +697,14 @@ async function createSyncedBlockFile(
 		// Extract synced child IDs from the markdown content
 		// This allows us to efficiently replace placeholders later without scanning all files
 		const syncedChildIds = new Set<string>();
-	
+
 		// Find SYNCED_CHILD_PAGE placeholders
-		const pageMatches = markdown.matchAll(/\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g);
-		for (const match of pageMatches) {
-			syncedChildIds.add(match[1]);
-		}
-	
+		const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
+		pageIds.forEach(id => syncedChildIds.add(id));
+
 		// Find SYNCED_CHILD_DATABASE placeholders
-		const dbMatches = markdown.matchAll(/\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g);
-		for (const match of dbMatches) {
-			syncedChildIds.add(match[1]);
-		}
+		const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
+		dbIds.forEach(id => syncedChildIds.add(id));
 	
 		// Record synced child placeholders for this file
 		if (context.syncedChildPlaceholders && syncedChildIds.size > 0) {
@@ -1374,7 +1372,7 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			if (context?.mentionedIds) {
 				context.mentionedIds.add(mention.database.id);
 			}
-			return `[[NOTION_DB:${mention.database.id}]]`;
+			return createPlaceholder(PlaceholderType.NOTION_DB, mention.database.id);
 		
 		case 'page':
 			// Create placeholder for page mention
@@ -1382,7 +1380,7 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			if (context?.mentionedIds) {
 				context.mentionedIds.add(mention.page.id);
 			}
-			return `[[NOTION_PAGE:${mention.page.id}]]`;
+			return createPlaceholder(PlaceholderType.NOTION_PAGE, mention.page.id);
 		
 		case 'date':
 			// Render date as plain text with spaces
