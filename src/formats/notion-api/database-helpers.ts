@@ -3,7 +3,13 @@
  * Handles database conversion and .base file generation
  */
 
-import { Client, BlockObjectResponse, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
+import { 
+	Client, 
+	BlockObjectResponse, 
+	DatabaseObjectResponse, 
+	PageObjectResponse,
+	PartialPageObjectResponse
+} from '@notionhq/client';
 import { normalizePath } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
@@ -71,7 +77,10 @@ export async function convertChildDatabase(
 		// Get the first data source to retrieve properties
 		// FIXME: It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
 		// FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
-		
+	
+		// Using 'any' here because Notion's database property schema is extremely complex with many variants
+		// (text, number, select, multi_select, date, people, files, checkbox, url, email, phone_number, formula, relation, rollup, etc.)
+		// We handle each type dynamically at runtime rather than creating explicit types for all variants.
 		let dataSourceProperties: Record<string, any> = {};
 		
 		if (database.data_sources && database.data_sources.length > 0) {
@@ -166,6 +175,8 @@ export async function queryAllDatabasePages(
 	
 	do {
 		// In Notion API v2025-09-03, use dataSources.query instead of databases.query
+		// Using 'any' for response because the Notion API returns a paginated response with complex structure
+		// and we only need to access .results and .has_more properties which are consistent across versions.
 		const response: any = await makeNotionRequest(
 			() => client.dataSources.query({
 				data_source_id: databaseId,
@@ -177,7 +188,7 @@ export async function queryAllDatabasePages(
 		
 		// Filter to get full page objects
 		const fullPages = response.results.filter(
-			(page: any): page is PageObjectResponse => page.object === 'page'
+			(page: PageObjectResponse | PartialPageObjectResponse): page is PageObjectResponse => page.object === 'page'
 		);
 		
 		pages.push(...fullPages);
@@ -369,6 +380,13 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
  * @param formulaStrategy - How to handle formula properties
  * @returns Object with separate arrays for formulas and regular properties
  */
+/**
+ * Map database properties to Dataview format
+ * @param dataSourceProperties - Using 'any' because Notion's database property schema has many variants
+ * @param formulaStrategy - Strategy for handling formula properties
+ * @returns Object with formulas and regularProperties arrays, each using 'any' for config because
+ *          property configurations vary widely by type (text, number, select, formula, relation, etc.)
+ */
 function mapDatabaseProperties(
 	dataSourceProperties: any,
 	formulaStrategy: FormulaImportStrategy = 'function'
@@ -376,9 +394,12 @@ function mapDatabaseProperties(
 		formulas: Array<{key: string, config: any}>;
 		regularProperties: Array<{key: string, config: any}>;
 	} {
+	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
+	// which have different structures depending on the property type.
 	const mappings: Record<string, any> = {};
 	
 	// First pass: create mappings for all properties
+	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys and property types
 	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
@@ -555,6 +576,7 @@ function mapDatabaseProperties(
 	// Separate formulas from regular properties
 	// Note: Property order is based on Object.entries() iteration order
 	// which in modern JavaScript (ES2015+) preserves insertion order for string keys
+	// Using 'any' for config because property configurations have different structures by type
 	const formulas: Array<{key: string, config: any}> = [];
 	const regularProperties: Array<{key: string, config: any}> = [];
 	
@@ -764,13 +786,19 @@ function convertRollupToFormula(
  * Process relation properties in database pages
  * Add placeholders to the relationPlaceholders array
  */
+/**
+ * Process relation properties in database pages
+ * @param dataSourceProperties - Using 'any' because Notion's database property schema has many variants
+ */
 export async function processRelationProperties(
 	databasePages: PageObjectResponse[],
 	dataSourceProperties: any,
 	relationPlaceholders: RelationPlaceholder[]
 ): Promise<void> {
 	// Find all relation properties
+	// Using 'any' because relation property configurations have complex nested structures
 	const relationProperties: Record<string, any> = {};
+	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys
 	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
 		if (prop.type === 'relation') {
 			relationProperties[key] = prop;
@@ -790,12 +818,17 @@ export async function processRelationProperties(
 			const pageProp = pageProperties[propKey];
 			
 			if (pageProp && pageProp.type === 'relation' && pageProp.relation) {
-				const relatedPageIds = pageProp.relation.map((r: any) => r.id);
-				
+				const relatedPageIds = pageProp.relation.map(r => r.id);
+			
 				if (relatedPageIds.length > 0) {
-					// Get the target database ID from the relation config
-					const targetDatabaseId = (propConfig as any).relation?.database_id || '';
-					
+				// Get the target database ID from the relation config
+				// propConfig is from database schema, which has different structure than page properties
+				// Using 'as any' because the relation config structure is not fully typed in Notion's API,
+				// but we know it contains a database_id property for relation types.
+					const targetDatabaseId = propConfig.type === 'relation' && 'relation' in propConfig 
+						? (propConfig.relation as any)?.database_id || ''
+						: '';
+				
 					// Add placeholder
 					relationPlaceholders.push({
 						pageId: page.id,
@@ -812,6 +845,11 @@ export async function processRelationProperties(
 /**
  * Process database placeholders in markdown content
  * Replace [[DATABASE_PLACEHOLDER:id]] with actual database references
+ */
+/**
+ * Process database placeholders in markdown content
+ * @param blocks - Using 'any[]' because blocks can be of many different types (BlockObjectResponse variants)
+ *                 and we only need to check their 'type' property at runtime.
  */
 export async function processDatabasePlaceholders(
 	markdownContent: string,

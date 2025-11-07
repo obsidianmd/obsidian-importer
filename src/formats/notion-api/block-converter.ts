@@ -3,7 +3,19 @@
  * Converts Notion blocks to Markdown format
  */
 
-import { BlockObjectResponse, Client } from '@notionhq/client';
+import { 
+	BlockObjectResponse, 
+	Client,
+	ToggleBlockObjectResponse,
+	TableBlockObjectResponse,
+	TableRowBlockObjectResponse,
+	CalloutBlockObjectResponse,
+	EquationBlockObjectResponse,
+	BookmarkBlockObjectResponse,
+	EmbedBlockObjectResponse,
+	LinkPreviewBlockObjectResponse,
+	RichTextItemResponse
+} from '@notionhq/client';
 import { ImportContext } from '../../main';
 import { fetchAllBlocks } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
@@ -294,7 +306,7 @@ export async function convertBlockToMarkdown(
 					await context.importPageCallback(block.id, context.currentFolderPath);
 				
 					// Get page title from block
-					const pageTitle = (block as any).child_page?.title || 'Untitled';
+					const pageTitle = block.child_page?.title || 'Untitled';
 				
 					// Return a wiki link to the child page
 					if (pageIndentLevel > 0) {
@@ -582,10 +594,14 @@ async function extractFirstLineText(
 	let text = '';
 	
 	// Extract text based on block type
+	// Using 'as any' here because TypeScript cannot infer the correct type for dynamic property access
+	// on a union type (BlockObjectResponse). Each block type (paragraph, heading_1, etc.) has its own
+	// property with the same name, and we need to access it dynamically based on block.type.
+	// The alternative would be a verbose if-else chain for each block type, which is not maintainable.
 	if ('rich_text' in (block as any)[block.type]) {
 		const richText = (block as any)[block.type].rich_text;
 		if (richText && richText.length > 0) {
-			text = richText.map((rt: any) => rt.plain_text || '').join('');
+			text = richText.map((rt: RichTextItemResponse) => rt.plain_text || '').join('');
 		}
 	}
 	
@@ -734,7 +750,7 @@ export async function convertSyncedBlock(
 ): Promise<string> {
 	if (block.type !== 'synced_block') return '';
 	
-	const syncedBlockData = (block as any).synced_block;
+	const syncedBlockData = block.synced_block;
 	if (!syncedBlockData) return '';
 	
 	const { syncedBlocksMap } = context;
@@ -745,7 +761,8 @@ export async function convertSyncedBlock(
 	
 	// Determine if this is an original block or a synced copy
 	const isOriginal = syncedBlockData.synced_from === null;
-	const originalBlockId = isOriginal ? block.id : syncedBlockData.synced_from.block_id;
+	// If don't use the ! assertion, TypeScript will throw an error.
+	const originalBlockId = isOriginal ? block.id : syncedBlockData.synced_from!.block_id;
 	
 	// Check if we already have a file for this synced block
 	let filePath = syncedBlocksMap.get(originalBlockId);
@@ -780,8 +797,8 @@ export async function convertToggle(
 ): Promise<string> {
 	if (block.type !== 'toggle') return '';
 	
-	const toggleData = (block as any).toggle;
-	if (!toggleData) return '';
+	const toggleBlock = block as ToggleBlockObjectResponse;
+	const toggleData = toggleBlock.toggle;
 	
 	// Get toggle text
 	const text = convertRichText(toggleData.rich_text, context);
@@ -838,8 +855,8 @@ export async function convertTable(
 ): Promise<string> {
 	if (block.type !== 'table') return '';
 	
-	const tableData = (block as any).table;
-	if (!tableData) return '';
+	const tableBlock = block as TableBlockObjectResponse;
+	const tableData = tableBlock.table;
 	
 	// Table configuration
 	const tableWidth = tableData.table_width || 0;
@@ -876,10 +893,11 @@ export async function convertTable(
 		const row = rows[rowIndex];
 		if (row.type !== 'table_row') continue;
 		
-		const rowData = (row as any).table_row;
-		if (!rowData || !rowData.cells) continue;
+		const rowBlock = row as TableRowBlockObjectResponse;
+		const rowData = rowBlock.table_row;
+		if (!rowData.cells) continue;
 		
-		const cells: any[][] = rowData.cells; // Array of RichText arrays
+		const cells = rowData.cells; // Array of RichText arrays
 		const markdownCells: string[] = [];
 		
 		for (let colIndex = 0; colIndex < cells.length; colIndex++) {
@@ -999,11 +1017,11 @@ export function convertQuote(block: BlockObjectResponse, context?: BlockConversi
 export async function convertCallout(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'callout') return '';
 	
-	const calloutData = (block as any).callout;
-	if (!calloutData) return '';
+	const calloutBlock = block as CalloutBlockObjectResponse;
+	const calloutData = calloutBlock.callout;
 	
 	// Get callout icon and text
-	const icon = calloutData.icon?.emoji || '📌';
+	const icon = (calloutData.icon && 'emoji' in calloutData.icon) ? calloutData.icon.emoji : '📌';
 	const text = convertRichText(calloutData.rich_text, context);
 	
 	// Map Notion callout types to Obsidian callout types
@@ -1070,8 +1088,9 @@ export function convertDivider(block: BlockObjectResponse): string {
 export function convertEquation(block: BlockObjectResponse): string {
 	if (block.type !== 'equation') return '';
 	
-	const equationData = (block as any).equation;
-	if (!equationData || !equationData.expression) return '';
+	const equationBlock = block as EquationBlockObjectResponse;
+	const equationData = equationBlock.equation;
+	if (!equationData.expression) return '';
 	
 	// Obsidian uses $$ for block-level math
 	return `$$\n${equationData.expression}\n$$`;
@@ -1231,8 +1250,8 @@ function isEmbeddableUrl(url: string): boolean {
 export function convertBookmark(block: BlockObjectResponse): string {
 	if (block.type !== 'bookmark') return '';
 	
-	const bookmarkData = (block as any).bookmark;
-	if (!bookmarkData) return '';
+	const bookmarkBlock = block as BookmarkBlockObjectResponse;
+	const bookmarkData = bookmarkBlock.bookmark;
 	
 	const url = bookmarkData.url || '';
 	const caption = getCaptionFromBlock(block);
@@ -1252,8 +1271,8 @@ export function convertBookmark(block: BlockObjectResponse): string {
 export function convertEmbed(block: BlockObjectResponse): string {
 	if (block.type !== 'embed') return '';
 	
-	const embedData = (block as any).embed;
-	if (!embedData) return '';
+	const embedBlock = block as EmbedBlockObjectResponse;
+	const embedData = embedBlock.embed;
 	
 	const url = embedData.url || '';
 	const caption = getCaptionFromBlock(block);
@@ -1277,8 +1296,8 @@ export function convertEmbed(block: BlockObjectResponse): string {
 export function convertLinkPreview(block: BlockObjectResponse): string {
 	if (block.type !== 'link_preview') return '';
 	
-	const linkPreviewData = (block as any).link_preview;
-	if (!linkPreviewData) return '';
+	const linkPreviewBlock = block as LinkPreviewBlockObjectResponse;
+	const linkPreviewData = linkPreviewBlock.link_preview;
 	
 	const url = linkPreviewData.url || '';
 	
@@ -1291,7 +1310,7 @@ export function convertLinkPreview(block: BlockObjectResponse): string {
  * Convert Notion rich text to plain Markdown text with formatting
  * Handles inline elements: text, mentions, equations, links, and annotations
  */
-export function convertRichText(richTextArray: any[], context?: BlockConversionContext): string {
+export function convertRichText(richTextArray: RichTextItemResponse[], context?: BlockConversionContext): string {
 	if (!richTextArray || richTextArray.length === 0) return '';
 	
 	return richTextArray.map(rt => {
@@ -1299,23 +1318,17 @@ export function convertRichText(richTextArray: any[], context?: BlockConversionC
 		let text = '';
 		
 		// Handle different rich text types
-		switch (type) {
-			case 'text':
-				text = rt.plain_text || '';
-				break;
-			
-			case 'mention':
-				text = convertMention(rt, context);
-				break;
-			
-			case 'equation':
+		if (type === 'text') {
+			text = rt.plain_text || '';
+		}
+		else if (type === 'mention') {
+			// Using 'any' because convertMention expects the full rich text object with mention property
+			text = convertMention(rt as any, context);
+		}
+		else if (type === 'equation') {
 			// Inline equation using single $
 			// Trim whitespace to ensure proper rendering in Obsidian
-				text = `$${(rt.equation?.expression || '').trim()}$`;
-				break;
-			
-			default:
-				text = rt.plain_text || '';
+			text = `$${(rt.equation?.expression || '').trim()}$`;
 		}
 		
 		// Apply annotations (inline styles)
@@ -1358,6 +1371,9 @@ export function convertRichText(richTextArray: any[], context?: BlockConversionC
 /**
  * Convert Notion mention to Markdown
  * Handles: database, page, date, link_mention, user, and other types
+ * @param richText - Using 'any' because we need to access the 'mention' property which has different
+ *                   structures (DatabaseMention | PageMention | DateMention | LinkMention | UserMention)
+ *                   and we handle each type by checking mention.type at runtime.
  */
 function convertMention(richText: any, context?: BlockConversionContext): string {
 	const mention = richText.mention;

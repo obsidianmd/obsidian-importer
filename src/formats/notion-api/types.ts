@@ -11,6 +11,8 @@ export interface ProcessedPage {
 	id: string;
 	title: string;
 	folderPath: string;
+	// Using 'any' because Notion page properties have many different types (text, number, select, date, etc.)
+	// and we store them in a flexible format for YAML frontmatter conversion.
 	properties: Record<string, any>;
 }
 
@@ -46,6 +48,8 @@ export interface DatabaseInfo {
 	title: string;
 	folderPath: string;
 	baseFilePath: string;
+	// Using 'any' because database properties have many different types and configurations
+	// (text, number, select, formula, relation, rollup, etc.) with varying structures.
 	properties: Record<string, any>;
 	dataSourceId: string;
 }
@@ -108,6 +112,7 @@ export interface CreateBaseFileParams {
 	databaseName: string;
 	databaseFolderPath: string;
 	outputRootPath: string;
+	// Using 'any' because Notion database property schema has many variants with different structures
 	dataSourceProperties: any;
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';
@@ -120,6 +125,7 @@ export interface CreateBaseFileParams {
 export interface GenerateBaseFileContentParams {
 	databaseName: string;
 	databaseFolderPath: string;
+	// Using 'any' because Notion database property schema has many variants with different structures
 	dataSourceProperties: any;
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';

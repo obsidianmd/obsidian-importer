@@ -3,7 +3,14 @@
  * Handles API calls with rate limiting and error handling
  */
 
-import { Client, BlockObjectResponse, PageObjectResponse } from '@notionhq/client';
+import { 
+	Client, 
+	BlockObjectResponse, 
+	PageObjectResponse,
+	RichTextItemResponse,
+	UserObjectResponse,
+	PartialBlockObjectResponse
+} from '@notionhq/client';
 import { ImportContext } from '../../main';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 
@@ -21,6 +28,8 @@ export async function makeNotionRequest<T>(
 	try {
 		return await requestFn();
 	}
+	// Using 'any' for error because we need to access error.code and error.status properties
+	// which may or may not exist depending on the error type (Notion API error vs generic error).
 	catch (error: any) {
 		// Handle rate limiting (429 error)
 		if (error.code === 'rate_limited' || error.status === 429) {
@@ -66,6 +75,8 @@ export async function fetchAllBlocks(
 	let cursor: string | undefined = undefined;
 	
 	do {
+		// Using 'any' for response because Notion API returns a paginated response with complex structure
+		// and we only need to access .results, .has_more, and .next_cursor properties.
 		const response: any = await makeNotionRequest(
 			() => client.blocks.children.list({
 				block_id: blockId,
@@ -77,7 +88,7 @@ export async function fetchAllBlocks(
 		
 		// Filter out partial blocks
 		const fullBlocks = response.results.filter(
-			(block: any): block is BlockObjectResponse => 'type' in block
+			(block: BlockObjectResponse | PartialBlockObjectResponse): block is BlockObjectResponse => 'type' in block
 		);
 		
 		blocks.push(...fullBlocks);
@@ -165,11 +176,16 @@ export function extractPageTitle(page: PageObjectResponse): string {
  * @param formulaStrategy - How to handle formula properties ('static', 'function', 'hybrid')
  * @param databaseProperties - Database property schema (for checking if formulas can be converted)
  */
+/**
+ * @param databaseProperties - Using 'any' because database property schema has many variants
+ * @returns Using 'any' for values because page properties can be of many different types
+ */
 export function extractFrontMatter(
 	page: PageObjectResponse, 
 	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function',
 	databaseProperties?: any
 ): Record<string, any> {
+	// Using 'any' for frontMatter values because page properties have many different types
 	const frontMatter: Record<string, any> = {
 		'notion-id': page.id,
 	};
@@ -227,8 +243,9 @@ export function extractFrontMatter(
 
 /**
  * Extract cover URL from page cover object
+ * Extract the type from PageObjectResponse['cover'] since PageCoverResponse is not exported
  */
-function extractCoverUrl(cover: any): string | null {
+function extractCoverUrl(cover: PageObjectResponse['cover']): string | null {
 	if (!cover) return null;
 	
 	if (cover.type === 'external' && cover.external?.url) {
@@ -244,6 +261,10 @@ function extractCoverUrl(cover: any): string | null {
 /**
  * Determine if a formula property should be added to page YAML
  * Based on the import strategy and whether the formula can be converted
+ */
+/**
+ * Check if a formula property should be added to YAML frontmatter
+ * @param databaseProperties - Using 'any' because database property schema has many variants
  */
 function shouldAddFormulaToYAML(
 	propertyKey: string,
@@ -276,6 +297,9 @@ function shouldAddFormulaToYAML(
 /**
  * Map a Notion property to a frontmatter value
  * Handles all Notion property types and converts them to Obsidian-compatible values
+ * @param prop - Using 'any' because PageObjectResponse['properties'][string] is a large union type
+ *               and TypeScript cannot properly narrow types in the switch statement
+ * @returns Using 'any' because the return value type depends on the property type
  */
 function mapNotionPropertyToFrontmatter(prop: any): any {
 	switch (prop.type) {
@@ -289,7 +313,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return prop.select?.name || null;
 		
 		case 'multi_select':
-			return prop.multi_select?.map((s: any) => s.name) || [];
+			return prop.multi_select?.map((s: { name: string }) => s.name) || [];
 		
 		case 'status':
 			return prop.status?.name || null;
@@ -314,11 +338,11 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		
 		case 'rich_text':
 			// Convert rich text to plain text
-			return prop.rich_text?.map((t: any) => t.plain_text).join('') || '';
+			return prop.rich_text?.map((t: RichTextItemResponse) => t.plain_text).join('') || '';
 		
 		case 'people':
 			// Convert people to names or emails
-			return prop.people?.map((p: any) => {
+			return prop.people?.map((p: UserObjectResponse) => {
 				if (p.type === 'person' && p.person?.email) {
 					return p.person.email;
 				}
@@ -327,13 +351,10 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		
 		case 'files':
 			// Convert files to URLs
+			// Using 'any' because file items can be internal or external with different structures
 			return prop.files?.map((f: any) => {
-				if (f.type === 'file') {
-					return f.file?.url || '';
-				}
-				else if (f.type === 'external') {
-					return f.external?.url || '';
-				}
+				if (f.type === 'file') return f.file?.url || '';
+				if (f.type === 'external') return f.external?.url || '';
 				return '';
 			}).filter((url: string) => url) || [];
 		
@@ -357,10 +378,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		case 'relation':
 			// Relation properties contain page IDs
 			// We'll store the IDs temporarily and replace them with links later
-			if (prop.relation && prop.relation.length > 0) {
-				return prop.relation.map((r: any) => r.id);
-			}
-			return [];
+			return prop.relation?.map((r: { id: string }) => r.id) || [];
 		
 		case 'rollup':
 			// Rollup properties should NOT be included in page YAML

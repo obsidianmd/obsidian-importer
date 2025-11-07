@@ -4,6 +4,7 @@
  */
 
 import { Vault, normalizePath, requestUrl } from 'obsidian';
+import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext } from './types';
@@ -173,11 +174,14 @@ async function ensureAttachmentFolder(vault: Vault, folderPath: string): Promise
 
 /**
  * Extract attachment info from Notion block
+ * @param block - Using 'any' because we need to handle multiple block types (image, video, file, pdf)
+ *                dynamically based on block.type, and each has different property structures.
  */
 export function extractAttachmentFromBlock(block: any): NotionAttachment | null {
 	const blockType = block.type;
 	
 	// Handle different block types
+	// Using 'any' because attachment data structure varies by block type (image, video, file, pdf)
 	let attachmentData: any = null;
 	
 	if (blockType === 'image') {
@@ -219,10 +223,12 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 
 /**
  * Get caption from block
+ * @param block - Using 'any' because we need to handle multiple block types (image, video, file, pdf, bookmark, embed)
+ *                dynamically, and each has different caption property structures.
  */
 export function getCaptionFromBlock(block: any): string {
 	const blockType = block.type;
-	let captionArray: any[] = [];
+	let captionArray: RichTextItemResponse[] = [];
 	
 	if (blockType === 'image' && block.image.caption) {
 		captionArray = block.image.caption;
@@ -247,7 +253,7 @@ export function getCaptionFromBlock(block: any): string {
 	}
 	
 	// Convert rich text to plain text
-	return captionArray.map((t: any) => t.plain_text).join('') || '';
+	return captionArray.map(t => t.plain_text).join('') || '';
 }
 
 /**
