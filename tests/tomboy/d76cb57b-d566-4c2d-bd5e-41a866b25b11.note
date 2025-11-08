@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>ZugFerd / factur-x integration #4343</title>
+  <text xml:space="preserve"><note-content version="0.1">ZugFerd / factur-x integration #4343
+
+-&gt; odoo 13 migration siehe i4344-odoo13 in development Ordner
+
+
+<size:huge>Analyse</size:huge>
+
+<bold>Wie können factur-x Anhänge angesehen werden?</bold>
+
+<list><list-item dir="ltr">Über Firefox, links auf Büroklammer (Anhänge), factur-x.xml
+</list-item><list-item dir="ltr">Quba Viewer <link:url>https://quba-viewer.org/</link:url> </list-item></list>
+</note-content></text>
+  <last-change-date>2025-09-11T12:35:07.0512563+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-11T12:35:07.0572562+02:00</last-metadata-change-date>
+  <create-date>2024-06-05T18:32:55.3250495+02:00</create-date>
+  <cursor-position>260</cursor-position>
+  <selection-bound-position>297</selection-bound-position>
+  <width>450</width>
+  <height>569</height>
+  <x>946</x>
+  <y>30</y>
+  <tags>
+    <tag>system:notebook:odoo</tag>
+  </tags>
+  <open-on-startup>False</open-on-startup>
+</note>

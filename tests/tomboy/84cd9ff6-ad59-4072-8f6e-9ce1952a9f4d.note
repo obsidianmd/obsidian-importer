@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy"><title>Böse Zeichen im Titel #1</title><text xml:space="preserve"><note-content version="0.1" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size">Böse Zeichen im Titel #1
+
+<list><list-item dir="ltr">Was, wenn der Titel <link:internal>unerlaubte Zeichen</link:internal> enthält?
+</list-item><list-item dir="ltr">Obsidian will den Titel in den Filename verschieben, löscht aber die unerlaubten Zeichen.
+</list-item><list-item dir="ltr">Wir könnten dann darüber nachdenken, den Titel ausnahmsweise im Markdown stehen zu lassen, so dass keine Informationen verloren gehen.</list-item></list></note-content>
+</text><last-change-date>2025-09-10T21:15:20,616889Z</last-change-date><last-metadata-change-date>2025-09-10T21:15:20,617601Z</last-metadata-change-date><create-date>2025-09-10T21:13:14,934020Z</create-date><cursor-position>167</cursor-position><selection-bound-position>-1</selection-bound-position><width>960</width><height>1048</height></note>
+

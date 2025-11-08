@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Aufzählung</title>
+  <text xml:space="preserve"><note-content version="0.1">Aufzählung
+
+
+Hier folgt eine Aufzählung, die keine Todo-Liste ist:
+
+<list><list-item dir="ltr">Punkt 1
+</list-item><list-item dir="ltr">Punkt 2
+<list><list-item dir="ltr">Punkt 3
+</list-item><list-item dir="ltr">Punkt 4
+</list-item></list></list-item><list-item dir="ltr">Punkt 5
+<list><list-item dir="ltr">Unterpunkt dazu
+<list><list-item dir="ltr">Unter-unterpunkt</list-item></list></list-item></list></list-item></list>
+
+Dann wieder normaler Text, und ein Link zur <link:internal>Notiz mit internem Link</link:internal>.</note-content></text>
+  <last-change-date>2025-09-04T22:46:04.0658210+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:46:04.0699520+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:44:24.1881560+02:00</create-date>
+  <cursor-position>120</cursor-position>
+  <selection-bound-position>120</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

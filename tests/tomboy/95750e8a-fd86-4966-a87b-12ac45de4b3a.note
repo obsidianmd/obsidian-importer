@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Kleine Schrift</title>
+  <text xml:space="preserve"><note-content version="0.1">Kleine Schrift
+
+Wir fangen hier mit normaler Schrift an.
+
+<size:small>Und jetzt geht es extra-klein weiter. Das kann in Markdown so nicht ohne weiteres wiedergegeben werden und sollte einfach ignoriert werden.</size:small></note-content></text>
+  <last-change-date>2025-09-04T23:45:58.4643000+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T23:45:58.4643000+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T23:45:02.2475830+02:00</create-date>
+  <cursor-position>197</cursor-position>
+  <selection-bound-position>197</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

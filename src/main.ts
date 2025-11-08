@@ -2,6 +2,7 @@ import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
+import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
@@ -10,6 +11,7 @@ import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
+import { TomboyImporter } from './formats/tomboy';
 import { truncateText } from './util';
 
 declare global {
@@ -70,22 +72,30 @@ export class ImportContext {
 
 	constructor(el: HTMLElement) {
 		this.el = el;
+		this.createProgressUI(el);
+	}
 
-		el.empty();
+	/**
+	 * Creates the import progress UI.
+	 * @param container The container element to create the UI in
+	 */
+	createProgressUI(container: HTMLElement) {
+		container.empty();
 
-		this.statusEl = el.createDiv('importer-status');
+		this.el = container;
+		this.statusEl = container.createDiv('importer-status');
 
-		this.progressBarEl = el.createDiv('importer-progress-bar', el => {
+		this.progressBarEl = container.createDiv('importer-progress-bar', el => {
 			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
 		});
 
-		el.createDiv('importer-stats-container', el => {
+		container.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
-				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
 			});
 			el.createDiv('importer-stat mod-attachments', el => {
-				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.attachments.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'attachments' });
 			});
 			el.createDiv('importer-stat mod-remaining', el => {
@@ -93,16 +103,16 @@ export class ImportContext {
 				el.createDiv({ cls: 'importer-stat-name', text: 'remaining' });
 			});
 			el.createDiv('importer-stat mod-skipped', el => {
-				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.skipped.length.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'skipped' });
 			});
 			el.createDiv('importer-stat mod-failed', el => {
-				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.failed.length.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'failed' });
 			});
 		});
 
-		this.importLogEl = el.createDiv('importer-log');
+		this.importLogEl = container.createDiv('importer-log');
 		this.importLogEl.hide();
 	}
 
@@ -263,6 +273,12 @@ export default class ImporterPlugin extends Plugin {
 				importer: Bear2bkImporter,
 				helpPermalink: 'import/bear',
 			},
+			'csv': {
+				name: 'CSV',
+				optionText: 'CSV (.csv)',
+				importer: CSVImporter,
+				helpPermalink: 'import/csv',
+			},
 			'evernote': {
 				name: 'Evernote',
 				optionText: 'Evernote (.enex)',
@@ -313,6 +329,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Textbundle (.textbundle, .textpack)',
 				importer: TextbundleImporter,
 				helpPermalink: 'import/textbundle',
+			},
+			'tomboy': {
+				name: 'Tomboy/Gnote',
+				optionText: 'Tomboy/Gnote (.note)',
+				importer: TomboyImporter,
+				helpPermalink: 'import/tomboy',
 			},
 		};
 
@@ -449,10 +471,26 @@ export class ImporterModal extends Modal {
 						if (this.current) {
 							this.current.cancel();
 						}
+
+						// Clear content
+						contentEl.empty();
+						let configEl = contentEl.createDiv();
+						let ctx = this.current = new ImportContext(configEl);
+
+						// Check if importer needs template configuration
+						const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
+
+						if (templateResult === false) {
+							// User cancelled or preparation failed
+							this.current = null;
+							this.updateContent();
+							return;
+						}
+
+						// Show progress UI
 						contentEl.empty();
 						let progressEl = contentEl.createDiv();
-
-						let ctx = this.current = new ImportContext(progressEl);
+						ctx.createProgressUI(progressEl);
 
 						let buttonsEl = contentEl.createDiv('modal-button-container');
 						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
@@ -468,10 +506,10 @@ export class ImporterModal extends Modal {
 							if (this.current === ctx) {
 								this.current = null;
 							}
+							buttonsEl.empty();
 							buttonsEl.createEl('button', { text: 'Import more' }, el => {
 								el.addEventListener('click', () => this.updateContent());
 							});
-							cancelButtonEl.detach();
 							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 								el.addEventListener('click', () => this.close());
 							});
