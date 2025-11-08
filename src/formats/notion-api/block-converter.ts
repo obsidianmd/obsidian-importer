@@ -271,39 +271,25 @@ export async function convertBlockToMarkdown(
 			break;
 		
 		case 'child_database':
-		// Database blocks are handled separately in the main importer
-		// Special handling for databases inside synced blocks
+			// Database blocks are handled separately in the main importer
+			// Special handling for databases inside synced blocks
 			const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
 			const dbIndentLevel = context.indentLevel || 0;
+	
+			// Choose placeholder type based on context
+			const placeholderType = isInSyncedBlockDb 
+				? PlaceholderType.SYNCED_CHILD_DATABASE 
+				: PlaceholderType.DATABASE_PLACEHOLDER;
+			const placeholder = createPlaceholder(placeholderType, block.id);
 		
-			if (isInSyncedBlockDb) {
-			// Inside synced block: use placeholder for later replacement
-				const databaseId = block.id;
-		
-				// Return placeholder that will be replaced later
-				const placeholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_DATABASE, databaseId);
-				if (dbIndentLevel > 0) {
-					// In a list: render with indentation only (no bullet)
-					const dbIndent = '    '.repeat(dbIndentLevel);
-					markdown = dbIndent + placeholder;
-				}
-				else {
-					// Top level: render directly
-					markdown = placeholder;
-				}
+			if (dbIndentLevel > 0) {
+			// In a list: render with indentation only (no bullet)
+				const dbIndent = '    '.repeat(dbIndentLevel);
+				markdown = dbIndent + placeholder;
 			}
 			else {
-				// Normal page: return placeholder for database processing
-				const placeholder = createPlaceholder(PlaceholderType.DATABASE_PLACEHOLDER, block.id);
-				if (dbIndentLevel > 0) {
-					// In a list: render with indentation only (no bullet)
-					const dbIndent = '    '.repeat(dbIndentLevel);
-					markdown = dbIndent + placeholder;
-				}
-				else {
-					// Top level: render directly
-					markdown = placeholder;
-				}
+			// Top level: render directly
+				markdown = placeholder;
 			}
 			break;
 		
@@ -316,11 +302,7 @@ export async function convertBlockToMarkdown(
 			if (isInSyncedBlock) {
 				// Inside synced block: check if already imported, otherwise use placeholder
 				const pageId = block.id;
-		
-				// Check if page is already imported (using notionIdToPath from context)
-				// Note: notionIdToPath is not in BlockConversionContext, we need to add it
 				// For now, always use placeholder and handle in replacement phase
-		
 				// Return placeholder that will be replaced later
 				const placeholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_PAGE, pageId);
 				if (pageIndentLevel > 0) {
@@ -335,27 +317,29 @@ export async function convertBlockToMarkdown(
 			}
 			else if (context.importPageCallback) {
 			// Normal page: import the child page
+				// Get page title from block (extract before try-catch so we can use it in error reporting)
+				const pageTitle = block.child_page?.title || 'Untitled';
+				
 				try {
-				// Import the child page under current folder
+					// Import the child page under current folder
 					await context.importPageCallback(block.id, context.currentFolderPath);
-				
-					// Get page title from block
-					const pageTitle = block.child_page?.title || 'Untitled';
-				
+					
 					// Return a wiki link to the child page
 					if (pageIndentLevel > 0) {
-					// In a list: render with indentation only (no bullet)
+						// In a list: render with indentation only (no bullet)
 						const pageIndent = '    '.repeat(pageIndentLevel);
 						markdown = pageIndent + `[[${pageTitle}]]`;
 					}
 					else {
-					// Top level: render directly
+						// Top level: render directly
 						markdown = `[[${pageTitle}]]`;
 					}
 				}
 				catch (error) {
-					console.error(`Failed to import child page ${block.id}:`, error);
-					markdown = `<!-- Failed to import child page: ${error.message} -->`;
+					const errorMsg = error instanceof Error ? error.message : String(error);
+					console.error(`Failed to import child page "${pageTitle}":`, error);
+					context.ctx.reportFailed(`Child page: ${pageTitle}`, errorMsg);
+					markdown = `<!-- Failed to import child page: ${errorMsg} -->`;
 				}
 			}
 			else {
@@ -603,6 +587,9 @@ async function createSyncedBlockFile(
 		throw new Error('outputRootPath is required for synced blocks');
 	}
 	
+	// Default filename for error reporting
+	let fileName = 'Synced Block';
+	
 	try {
 		// Fetch the block to get its content
 		const retrievedBlock = await client.blocks.retrieve({ block_id: blockId });
@@ -620,7 +607,6 @@ async function createSyncedBlockFile(
 			: [];
 
 		// Extract first line text for filename
-		let fileName = 'Synced Block';
 		if (children.length > 0) {
 			fileName = await extractFirstLineText(children[0], client, ctx, 20, context.blocksCache);
 		}
@@ -643,7 +629,9 @@ async function createSyncedBlockFile(
 			catch (error) {
 			// Ignore error if folder was created by another concurrent operation
 				if (!error.message?.includes('already exists')) {
+					const errorMsg = error instanceof Error ? error.message : String(error);
 					console.error('Failed to create Notion Synced Blocks folder:', error);
+					context.ctx.reportFailed('Create Synced Blocks folder', errorMsg);
 				}
 			}
 		}
@@ -694,7 +682,9 @@ async function createSyncedBlockFile(
 		return filePath;
 	}
 	catch (error) {
-		console.error(`Failed to create synced block file for ${blockId}:`, error);
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		console.error(`Failed to create synced block file "${fileName}":`, error);
+		context.ctx.reportFailed(`Synced block: ${fileName}`, errorMsg);
 		throw error;
 	}
 }
@@ -734,8 +724,11 @@ export async function convertSyncedBlock(
 			syncedBlocksMap.set(originalBlockId, filePath);
 		}
 		catch (error) {
+			// Error is already reported inside createSyncedBlockFile with proper filename
+			// Just return error comment
+			const errorMsg = error instanceof Error ? error.message : String(error);
 			console.error(`Failed to process synced block ${originalBlockId}:`, error);
-			return `<!-- Failed to import synced block: ${error.message} -->`;
+			return `<!-- Failed to import synced block: ${errorMsg} -->`;
 		}
 	}
 	
@@ -1019,7 +1012,9 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert image block:`, error);
+		context.ctx.reportFailed(`Image attachment`, errorMsg);
 		// If download failed, return a simple markdown image link with the original URL
 		return `![${caption || 'Image'}](${attachment.url})`;
 	}
@@ -1062,7 +1057,9 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
 		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert video block:`, error);
+		context.ctx.reportFailed(`Video attachment`, errorMsg);
 		// If download failed, return a simple markdown link with the original URL
 		// Use caption if available, otherwise use filename from attachment
 		return `![${caption || attachment.name || 'Video'}](${url})`;
@@ -1093,7 +1090,9 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
 		return formatAttachmentLink(result, context.vault, caption, false);
 	}
 	catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert file block:`, error);
+		context.ctx.reportFailed(`File attachment`, errorMsg);
 		// If download failed, return a simple markdown link with the original URL
 		// Use caption if available, otherwise use filename from attachment
 		return `[${caption || attachment.name || 'File'}](${attachment.url})`;
@@ -1124,7 +1123,9 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 		return formatAttachmentLink(result, context.vault, caption, true);
 	}
 	catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert PDF block:`, error);
+		context.ctx.reportFailed(`PDF attachment`, errorMsg);
 		// If download failed, return a simple markdown link with the original URL
 		// Use caption if available, otherwise use filename from attachment
 		return `[${caption || attachment.name || 'PDF'}](${attachment.url})`;

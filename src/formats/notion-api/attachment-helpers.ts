@@ -33,11 +33,12 @@ export async function downloadAttachment(
 		};
 	}
 	
+	// Extract filename early for error reporting
+	// Priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
+	let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
+	filename = sanitizeFileName(filename);
+	
 	try {
-		// Extract filename with priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
-		let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
-		filename = sanitizeFileName(filename);
-		
 		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
 		const response = await requestUrl({
@@ -47,7 +48,8 @@ export async function downloadAttachment(
 		});
 		
 		if (response.status !== 200) {
-			console.error(`Failed to download attachment ${attachment.url}: ${response.status}`);
+			console.error(`Failed to download attachment "${filename}": ${response.status}`);
+			ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
 			return {
 				path: attachment.url,
 				isLocal: false
@@ -88,7 +90,9 @@ export async function downloadAttachment(
 		};
 	}
 	catch (error) {
-		console.error(`Failed to download attachment ${attachment.url}:`, error);
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		console.error(`Failed to download attachment "${filename}":`, error);
+		ctx.reportFailed(`Attachment: ${filename}`, errorMsg);
 		return {
 			path: attachment.url,
 			isLocal: false

@@ -93,7 +93,9 @@ export async function processBlockChildren<T>(
 	}
 	catch (error) {
 		const context = errorContext || 'block';
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to fetch children for ${context} ${block.id}:`, error);
+		ctx.reportFailed(`Fetch children for ${context} ${block.id}`, errorMsg);
 		return undefined;
 	}
 }
@@ -214,8 +216,10 @@ export async function hasChildPagesOrDatabases(
 				}
 			}
 			catch (error) {
+				const errorMsg = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to fetch children for block ${block.id}:`, error);
-				// Continue checking other blocks even if one fails
+				ctx.reportFailed(`Fetch children for block ${block.id}`, errorMsg);
+			// Continue checking other blocks even if one fails
 			}
 		}
 	}

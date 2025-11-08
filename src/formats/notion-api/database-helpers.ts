@@ -60,24 +60,26 @@ export async function convertChildDatabase(
 		coverPropertyName = 'cover'
 	} = context;
 	
+	// Get database ID early for error reporting
+	const databaseId = block.id;
+	let databaseTitle = 'Untitled Database'; // Default title for error reporting
+	
 	try {
 		// Get database details
-		const databaseId = block.id;
 		const database = await makeNotionRequest(
 			() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
 			ctx
 		);
 		
-		// Extract database title
-		const databaseTitle = extractDatabaseTitle(database);
+		// Extract database title (do this early so we can use it in error reporting)
+		databaseTitle = extractDatabaseTitle(database);
 		const sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
 		
 		ctx.status(`Processing database: ${sanitizedTitle}...`);
 		
 		// In Notion API v2025-09-03, databases have data_sources array
 		// Get the first data source to retrieve properties
-		// FIXME: It seems that the code I used in the Notion Flow plugin is not compatible with the new 2025-09-03 version of the API.
-		// FIXME: At the same time, I may need to inform the user in the "Import Notes" that the imported database only reads the first data source.
+
 	
 		// Using 'any' here because Notion's database property schema is extremely complex with many variants
 		// (text, number, select, multi_select, date, people, files, checkbox, url, email, phone_number, formula, relation, rollup, etc.)
@@ -130,7 +132,8 @@ export async function convertChildDatabase(
 			dataSourceProperties,
 			formulaStrategy,
 			viewType: baseViewType,
-			coverPropertyName
+			coverPropertyName,
+			ctx
 		});
 		
 		// Record database information for relation resolution
@@ -156,9 +159,10 @@ export async function convertChildDatabase(
 		return `[[${sanitizedTitle}.base]]`;
 	}
 	catch (error) {
-		console.error(`Failed to convert database ${block.id}:`, error);
-		ctx.reportFailed(`Database ${block.id}`, error.message);
-		return `<!-- Failed to import database: ${error.message} -->`;
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		console.error(`Failed to convert database "${databaseTitle}":`, error);
+		ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
+		return `<!-- Failed to import database: ${errorMsg} -->`;
 	}
 }
 
@@ -222,7 +226,8 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		dataSourceProperties,
 		formulaStrategy = 'function',
 		viewType = 'table',
-		coverPropertyName = 'cover'
+		coverPropertyName = 'cover',
+		ctx
 	} = params;
 	// Create "Notion Databases" folder at the same level as output root
 	const { parent: parentPath } = parseFilePath(outputRootPath);
@@ -237,7 +242,9 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		}
 	}
 	catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error('Failed to create Notion Databases folder:', error);
+		ctx.reportFailed('Create Notion Databases folder', errorMsg);
 	}
 	
 	// Generate .base file content
@@ -887,10 +894,13 @@ export async function processDatabasePlaceholders(
 				processedContent = processedContent.replace(placeholder, databaseReference);
 			}
 			catch (error) {
+				// Error is already reported inside convertChildDatabase with proper title
+				// Just replace the placeholder with error comment
+				const errorMsg = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process database ${databaseId}:`, error);
 				processedContent = processedContent.replace(
 					placeholder,
-					`<!-- Failed to import database: ${error.message} -->`
+					`<!-- Failed to import database: ${errorMsg} -->`
 				);
 			}
 		}

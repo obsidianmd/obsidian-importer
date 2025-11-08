@@ -117,6 +117,7 @@ export interface CreateBaseFileParams {
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
+	ctx: ImportContext;
 }
 
 /**
