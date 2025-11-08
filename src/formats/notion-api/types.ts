@@ -55,6 +55,17 @@ export interface DatabaseInfo {
 }
 
 /**
+ * Return type for importDatabaseCore function
+ */
+export interface DatabaseImportResult {
+	sanitizedTitle: string;
+	baseFilePath: string;
+	databasePages: PageObjectResponse[];
+	dataSourceId: string;
+	dataSourceProperties: Record<string, any>;
+}
+
+/**
  * Relation placeholder that needs to be replaced after all databases are processed
  */
 export interface RelationPlaceholder {

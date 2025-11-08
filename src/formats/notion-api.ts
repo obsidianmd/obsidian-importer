@@ -16,8 +16,8 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
-import { processDatabasePlaceholders, convertChildDatabase, createBaseFile, processRelationProperties, queryAllDatabasePages } from './notion-api/database-helpers';
-import { DatabaseInfo, RelationPlaceholder } from './notion-api/types';
+import { processDatabasePlaceholders, convertChildDatabase, importDatabaseCore } from './notion-api/database-helpers';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
@@ -377,8 +377,8 @@ export class NotionAPIImporter extends FormatImporter {
 		if (ctx.isCancelled()) return;
 		
 		try {
-			// Create a minimal block object that satisfies convertChildDatabase()'s requirements
-			// Only 'id' and 'type' are actually used by the function
+		// Create a minimal block object that satisfies convertChildDatabase()'s requirements
+		// Only 'id' and 'type' are actually used by the function
 			const fakeBlock: any = {
 				id: databaseId,
 				type: 'child_database',
@@ -386,7 +386,7 @@ export class NotionAPIImporter extends FormatImporter {
 					title: 'Database'  // Placeholder, will be replaced by actual title from API
 				}
 			};
-			
+		
 			// Import the database using the existing logic
 			await convertChildDatabase(
 				fakeBlock,
@@ -405,13 +405,10 @@ export class NotionAPIImporter extends FormatImporter {
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
 					onPagesDiscovered: (count: number) => {
-					// No longer need to track total count - using indeterminate progress
+						// Callback provided but not used - progress is reported per page/attachment
 					}
 				}
 			);
-			
-			// Note: Don't increment pagesCompleted for the database itself, 
-			// only for the pages within it (which are counted in fetchAndImportPage)
 		}
 		catch (error) {
 			console.error(`Failed to import database ${databaseId}:`, error);
@@ -540,10 +537,8 @@ export class NotionAPIImporter extends FormatImporter {
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
 						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
 					},
-					// Callback to update discovered pages count
 					onPagesDiscovered: (newPagesCount: number) => {
-						// Don't update total dynamically to avoid confusing progress jumps
-						// Child pages will be counted as they are imported
+						// Callback provided but not used - progress is reported per page/attachment
 					}
 				}
 			);
@@ -860,91 +855,37 @@ export class NotionAPIImporter extends FormatImporter {
 	 * but is needed for relation links
 	 */
 	private async importUnimportedDatabase(ctx: ImportContext, databaseId: string, parentPath: string): Promise<void> {
+		let databaseTitle = 'Untitled Database'; // Default title for error reporting
+		
 		try {
 			ctx.status(`Importing unimported database ${databaseId}...`);
 			
-			// Get database details
-			const database = await makeNotionRequest(
-				() => this.notionClient!.databases.retrieve({ database_id: databaseId }) as Promise<any>,
-				ctx
-			);
-			
-			// Extract database title
-			const databaseTitle = database.title && database.title.length > 0
-				? database.title.map((t: any) => t.plain_text).join('')
-				: 'Untitled Database';
-			const sanitizedTitle = sanitizeFileName(databaseTitle);
-			
-			// Get data source information
-			let dataSourceProperties: Record<string, any> = {};
-			let dataSourceId = databaseId;
-			
-			if (database.data_sources && database.data_sources.length > 0) {
-				dataSourceId = database.data_sources[0].id;
-				const dataSource = await makeNotionRequest(
-					() => this.notionClient!.dataSources.retrieve({ data_source_id: dataSourceId }),
-					ctx
-				);
-				dataSourceProperties = dataSource.properties || {};
-				// Note: Notion API does not provide property order information
-			}
-			
-			// Create database folder
-			const databaseFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
-			await this.vault.createFolder(normalizePath(databaseFolderPath));
-			
-			// Query database to get all pages
-			const databasePages = await queryAllDatabasePages(this.notionClient!, dataSourceId, ctx);
-			
-			ctx.status(`Found ${databasePages.length} pages in unimported database ${sanitizedTitle}`);
-		
-			// Note: Don't update progress for unimported database pages
-			// Only root page and its direct children are counted in progress
-		
-			// Import each database page
-			for (const page of databasePages) {
-				if (ctx.isCancelled()) break;
-				
-				// Import the page
-				await this.fetchAndImportPage(ctx, page.id, databaseFolderPath);
-			}
-			
-			// Create .base file
-			const baseFilePath = await createBaseFile({
+			// Build context for the core import logic
+			const context: DatabaseProcessingContext = {
+				ctx,
+				currentPageFolderPath: parentPath,
+				client: this.notionClient!,
 				vault: this.vault,
-				databaseName: sanitizedTitle,
-				databaseFolderPath,
 				outputRootPath: this.outputRootPath,
-				dataSourceProperties,
 				formulaStrategy: this.formulaStrategy,
-				viewType: this.baseViewType,
+				processedDatabases: this.processedDatabases,
+				relationPlaceholders: this.relationPlaceholders,
+				importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
+					await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
+				},
+				// onPagesDiscovered callback not provided - not needed for unimported databases
+				baseViewType: this.baseViewType,
 				coverPropertyName: this.coverPropertyName
-			});
-			
-			// Record database information
-			const databaseInfo: DatabaseInfo = {
-				id: databaseId,
-				title: sanitizedTitle,
-				folderPath: databaseFolderPath,
-				baseFilePath: baseFilePath,
-				properties: dataSourceProperties,
-				dataSourceId: dataSourceId,
 			};
-			this.processedDatabases.set(databaseId, databaseInfo);
-		
-			// Process relation properties in database pages
-			// This will add placeholders to relationPlaceholders array for multi-round processing
-			await processRelationProperties(
-				databasePages,
-				dataSourceProperties,
-				this.relationPlaceholders
-			);
-	
-		// Note: Don't call reportNoteSuccess here, progress is managed by reportProgress
+			
+			// Use the core import logic
+			const result = await importDatabaseCore(databaseId, context);
+			databaseTitle = result.sanitizedTitle;
 		}
 		catch (error) {
-			console.error(`Failed to import unimported database ${databaseId}:`, error);
-			ctx.reportFailed(`Database ${databaseId}`, error.message);
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			console.error(`Failed to import unimported database "${databaseTitle}":`, error);
+			ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
 		}
 	}
 	

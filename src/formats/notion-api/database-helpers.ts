@@ -17,7 +17,15 @@ import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, RollupConfig, CreateBaseFileParams, GenerateBaseFileContentParams } from './types';
+import {
+	DatabaseInfo,
+	RelationPlaceholder,
+	DatabaseProcessingContext,
+	RollupConfig,
+	CreateBaseFileParams,
+	GenerateBaseFileContentParams,
+	DatabaseImportResult
+} from './types';
 import { extractPlaceholderIds, createPlaceholder, PlaceholderType } from './utils';
 import type { FormulaImportStrategy } from '../notion-api';
 
@@ -45,123 +53,21 @@ export async function convertChildDatabase(
 ): Promise<string> {
 	if (block.type !== 'child_database') return '';
 	
-	const {
-		ctx,
-		currentPageFolderPath,
-		client,
-		vault,
-		outputRootPath,
-		formulaStrategy,
-		processedDatabases,
-		relationPlaceholders,
-		importPageCallback,
-		onPagesDiscovered,
-		baseViewType = 'table',
-		coverPropertyName = 'cover'
-	} = context;
-	
-	// Get database ID early for error reporting
 	const databaseId = block.id;
 	let databaseTitle = 'Untitled Database'; // Default title for error reporting
 	
 	try {
-		// Get database details
-		const database = await makeNotionRequest(
-			() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
-			ctx
-		);
+		// Use the core import logic
+		const result = await importDatabaseCore(databaseId, context);
+		databaseTitle = result.sanitizedTitle;
 		
-		// Extract database title (do this early so we can use it in error reporting)
-		databaseTitle = extractDatabaseTitle(database);
-		const sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
-		
-		ctx.status(`Processing database: ${sanitizedTitle}...`);
-		
-		// In Notion API v2025-09-03, databases have data_sources array
-		// Get the first data source to retrieve properties
-
-	
-		// Using 'any' here because Notion's database property schema is extremely complex with many variants
-		// (text, number, select, multi_select, date, people, files, checkbox, url, email, phone_number, formula, relation, rollup, etc.)
-		// We handle each type dynamically at runtime rather than creating explicit types for all variants.
-		let dataSourceProperties: Record<string, any> = {};
-		
-		if (database.data_sources && database.data_sources.length > 0) {
-			const dataSourceId = database.data_sources[0].id;
-			const dataSource = await makeNotionRequest(
-				() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
-				ctx
-			);
-			
-			dataSourceProperties = dataSource.properties || {};
-			// Note: Notion API does not provide property order information
-			// Properties will be ordered based on Object.entries() iteration order
-		}
-		
-		// Create database folder under current page folder
-		const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
-		await vault.createFolder(normalizePath(databaseFolderPath));
-		
-		// Query database to get all pages (with pagination)
-		// Use the data source ID for querying
-		const dataSourceId = database.data_sources?.[0]?.id || databaseId;
-		const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
-		
-		ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
-		
-		// Notify about discovered pages
-		if (onPagesDiscovered) {
-			onPagesDiscovered(databasePages.length);
-		}
-		
-		// Import each database page recursively
-		for (const page of databasePages) {
-			if (ctx.isCancelled()) break;
-			
-			// Import the page using the callback (which handles the full page import logic)
-			// The databaseFolderPath is used both as parent path and as the database tag
-			await importPageCallback(page.id, databaseFolderPath, databaseFolderPath);
-		}
-		
-		// Create .base file in "Notion Databases" folder
-		const baseFilePath = await createBaseFile({
-			vault,
-			databaseName: sanitizedTitle,
-			databaseFolderPath,
-			outputRootPath,
-			dataSourceProperties,
-			formulaStrategy,
-			viewType: baseViewType,
-			coverPropertyName,
-			ctx
-		});
-		
-		// Record database information for relation resolution
-		const databaseInfo: DatabaseInfo = {
-			id: databaseId,
-			title: sanitizedTitle,
-			folderPath: databaseFolderPath,
-			baseFilePath: baseFilePath,
-			properties: dataSourceProperties,
-			dataSourceId: dataSourceId,
-		};
-		processedDatabases.set(databaseId, databaseInfo);
-		
-		// Process relation properties in database pages
-		// This will add placeholders to relationPlaceholders array
-		await processRelationProperties(
-			databasePages,
-			dataSourceProperties,
-			relationPlaceholders
-		);
-		
-		// Return a reference to the .base file
-		return `[[${sanitizedTitle}.base]]`;
+		// Return an embedded reference to the .base file (using ![[]] to display inline like in Notion)
+		return `![[${result.sanitizedTitle}.base]]`;
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert database "${databaseTitle}":`, error);
-		ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
+		context.ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
 		return `<!-- Failed to import database: ${errorMsg} -->`;
 	}
 }
@@ -212,6 +118,108 @@ function extractDatabaseTitle(database: DatabaseObjectResponse): string {
 		return database.title.map(t => t.plain_text).join('');
 	}
 	return 'Untitled Database';
+}
+
+/**
+ * Core database import logic (shared between convertChildDatabase and importUnimportedDatabase)
+ * This function handles the actual database import process without the wrapper logic
+ */
+export async function importDatabaseCore(
+	databaseId: string,
+	context: DatabaseProcessingContext
+): Promise<DatabaseImportResult> {
+	const {
+		ctx,
+		currentPageFolderPath,
+		client,
+		vault,
+		outputRootPath,
+		formulaStrategy,
+		processedDatabases,
+		relationPlaceholders,
+		importPageCallback,
+		onPagesDiscovered,
+		baseViewType = 'table',
+		coverPropertyName = 'cover'
+	} = context;
+	
+	// Get database details
+	const database = await makeNotionRequest(
+		() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
+		ctx
+	);
+	
+	// Extract database title
+	const databaseTitle = extractDatabaseTitle(database);
+	const sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
+	
+	ctx.status(`Processing database: ${sanitizedTitle}...`);
+	
+	// Get data source properties
+	let dataSourceProperties: Record<string, any> = {};
+	let dataSourceId = databaseId;
+	
+	if (database.data_sources && database.data_sources.length > 0) {
+		dataSourceId = database.data_sources[0].id;
+		const dataSource = await makeNotionRequest(
+			() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
+			ctx
+		);
+		dataSourceProperties = dataSource.properties || {};
+	}
+	
+	// Create database folder
+	const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
+	await vault.createFolder(normalizePath(databaseFolderPath));
+	
+	// Query database to get all pages
+	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
+	
+	ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
+	
+	// Notify about discovered pages (if callback provided)
+	if (onPagesDiscovered) {
+		onPagesDiscovered(databasePages.length);
+	}
+	
+	// Import each database page
+	for (const page of databasePages) {
+		if (ctx.isCancelled()) break;
+		await importPageCallback(page.id, databaseFolderPath, databaseFolderPath);
+	}
+	
+	// Create .base file
+	const baseFilePath = await createBaseFile({
+		vault,
+		databaseName: sanitizedTitle,
+		databaseFolderPath,
+		outputRootPath,
+		dataSourceProperties,
+		formulaStrategy,
+		viewType: baseViewType,
+		coverPropertyName,
+		ctx
+	});
+	
+	// Record database information
+	const databaseInfo: DatabaseInfo = {
+		id: databaseId,
+		title: sanitizedTitle,
+		folderPath: databaseFolderPath,
+		baseFilePath: baseFilePath,
+		properties: dataSourceProperties,
+		dataSourceId: dataSourceId,
+	};
+	processedDatabases.set(databaseId, databaseInfo);
+	
+	// Process relation properties
+	await processRelationProperties(
+		databasePages,
+		dataSourceProperties,
+		relationPlaceholders
+	);
+	
+	return { sanitizedTitle, baseFilePath, databasePages, dataSourceId, dataSourceProperties };
 }
 
 /**
