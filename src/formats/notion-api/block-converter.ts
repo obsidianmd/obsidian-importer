@@ -22,8 +22,35 @@ import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
-import { BlockConversionContext } from './types';
+import { BlockConversionContext, AttachmentType, AttachmentBlockConfig } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
+
+
+/**
+ * Predefined configurations for each attachment type
+ */
+export const ATTACHMENT_CONFIGS: Record<AttachmentType, Omit<AttachmentBlockConfig, 'beforeDownload'>> = {
+	[AttachmentType.IMAGE]: {
+		type: AttachmentType.IMAGE,
+		isEmbed: true,
+		fallbackText: 'Image'
+	},
+	[AttachmentType.VIDEO]: {
+		type: AttachmentType.VIDEO,
+		isEmbed: true,
+		fallbackText: 'Video'
+	},
+	[AttachmentType.FILE]: {
+		type: AttachmentType.FILE,
+		isEmbed: false,
+		fallbackText: 'File'
+	},
+	[AttachmentType.PDF]: {
+		type: AttachmentType.PDF,
+		isEmbed: true,
+		fallbackText: 'PDF'
+	}
+};
 
 /**
  * Helper function to process block children and convert them to markdown
@@ -990,15 +1017,26 @@ export function convertEquation(block: BlockObjectResponse): string {
 }
 
 /**
- * Convert image block to Markdown
+ * Generic attachment converter
+ * Handles the common logic for image, video, file, and PDF blocks
  */
-export async function convertImage(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
-	if (block.type !== 'image') return '';
+async function convertAttachmentBlock(
+	block: BlockObjectResponse,
+	context: BlockConversionContext,
+	config: AttachmentBlockConfig
+): Promise<string> {
+	const { type, isEmbed, fallbackText, beforeDownload } = config;
 	
 	const attachment = extractAttachmentFromBlock(block);
 	if (!attachment) return '';
 	
 	const caption = getCaptionFromBlock(block);
+	
+	// Allow custom logic before download (e.g., YouTube check for videos)
+	if (beforeDownload) {
+		const earlyResult = beforeDownload(attachment, block);
+		if (earlyResult !== null) return earlyResult;
+	}
 	
 	try {
 		const result = await downloadAttachment(attachment, context);
@@ -1009,15 +1047,26 @@ export async function convertImage(block: BlockObjectResponse, context: BlockCon
 		}
 		
 		// Format link according to user's vault settings
-		return formatAttachmentLink(result, context.vault, caption, true);
+		return formatAttachmentLink(result, context.vault, caption, isEmbed);
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
-		console.error(`Failed to convert image block:`, error);
-		context.ctx.reportFailed(`Image attachment`, errorMsg);
-		// If download failed, return a simple markdown image link with the original URL
-		return `![${caption || 'Image'}](${attachment.url})`;
+		console.error(`Failed to convert ${type} block:`, error);
+		context.ctx.reportFailed(`${type.charAt(0).toUpperCase() + type.slice(1)} attachment`, errorMsg);
+		
+		// If download failed, return a fallback markdown link with the original URL
+		const linkText = caption || attachment.name || fallbackText;
+		const linkPrefix = isEmbed ? '!' : '';
+		return `${linkPrefix}[${linkText}](${attachment.url})`;
 	}
+}
+
+/**
+ * Convert image block to Markdown
+ */
+export async function convertImage(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
+	if (block.type !== 'image') return '';
+	return convertAttachmentBlock(block, context, ATTACHMENT_CONFIGS[AttachmentType.IMAGE]);
 }
 
 /**
@@ -1033,37 +1082,17 @@ function isYouTubeUrl(url: string): boolean {
 export async function convertVideo(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'video') return '';
 	
-	const attachment = extractAttachmentFromBlock(block);
-	if (!attachment) return '';
-	
-	const caption = getCaptionFromBlock(block);
-	const url = attachment.url;
-	
-	// For external YouTube videos, use embed syntax directly without downloading
-	if (attachment.type === 'external' && isYouTubeUrl(url)) {
-		return `![${caption || ''}](${url})`;
-	}
-	
-	try {
-		const result = await downloadAttachment(attachment, context);
-		
-		// Report progress if attachment was downloaded
-		if (result.isLocal && context.onAttachmentDownloaded) {
-			context.onAttachmentDownloaded();
+	return convertAttachmentBlock(block, context, {
+		...ATTACHMENT_CONFIGS[AttachmentType.VIDEO],
+		beforeDownload: (attachment, block) => {
+			// For external YouTube videos, use embed syntax directly without downloading
+			if (attachment.type === 'external' && isYouTubeUrl(attachment.url)) {
+				const caption = getCaptionFromBlock(block);
+				return `![${caption || ''}](${attachment.url})`;
+			}
+			return null; // Continue with normal download
 		}
-		
-		// Format link according to user's vault settings
-		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
-		return formatAttachmentLink(result, context.vault, caption, true);
-	}
-	catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		console.error(`Failed to convert video block:`, error);
-		context.ctx.reportFailed(`Video attachment`, errorMsg);
-		// If download failed, return a simple markdown link with the original URL
-		// Use caption if available, otherwise use filename from attachment
-		return `![${caption || attachment.name || 'Video'}](${url})`;
-	}
+	});
 }
 
 /**
@@ -1071,32 +1100,7 @@ export async function convertVideo(block: BlockObjectResponse, context: BlockCon
  */
 export async function convertFile(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'file') return '';
-	
-	const attachment = extractAttachmentFromBlock(block);
-	if (!attachment) return '';
-	
-	const caption = getCaptionFromBlock(block);
-	
-	try {
-		const result = await downloadAttachment(attachment, context);
-		
-		// Report progress if attachment was downloaded
-		if (result.isLocal && context.onAttachmentDownloaded) {
-			context.onAttachmentDownloaded();
-		}
-		
-		// Format link according to user's vault settings (not embed for files)
-		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
-		return formatAttachmentLink(result, context.vault, caption, false);
-	}
-	catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		console.error(`Failed to convert file block:`, error);
-		context.ctx.reportFailed(`File attachment`, errorMsg);
-		// If download failed, return a simple markdown link with the original URL
-		// Use caption if available, otherwise use filename from attachment
-		return `[${caption || attachment.name || 'File'}](${attachment.url})`;
-	}
+	return convertAttachmentBlock(block, context, ATTACHMENT_CONFIGS[AttachmentType.FILE]);
 }
 
 /**
@@ -1104,32 +1108,7 @@ export async function convertFile(block: BlockObjectResponse, context: BlockConv
  */
 export async function convertPdf(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'pdf') return '';
-	
-	const attachment = extractAttachmentFromBlock(block);
-	if (!attachment) return '';
-	
-	const caption = getCaptionFromBlock(block);
-	
-	try {
-		const result = await downloadAttachment(attachment, context);
-		
-		// Report progress if attachment was downloaded
-		if (result.isLocal && context.onAttachmentDownloaded) {
-			context.onAttachmentDownloaded();
-		}
-		
-		// Format link according to user's vault settings (embed for PDFs)
-		// Pass caption directly; formatAttachmentLink will use filename if caption is empty
-		return formatAttachmentLink(result, context.vault, caption, true);
-	}
-	catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		console.error(`Failed to convert PDF block:`, error);
-		context.ctx.reportFailed(`PDF attachment`, errorMsg);
-		// If download failed, return a simple markdown link with the original URL
-		// Use caption if available, otherwise use filename from attachment
-		return `[${caption || attachment.name || 'PDF'}](${attachment.url})`;
-	}
+	return convertAttachmentBlock(block, context, ATTACHMENT_CONFIGS[AttachmentType.PDF]);
 }
 
 /**

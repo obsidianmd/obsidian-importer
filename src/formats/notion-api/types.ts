@@ -191,3 +191,23 @@ export interface ConversionInfo {
 	argCount?: number; // Expected number of arguments
 }
 
+/**
+ * Attachment type enum for type safety and consistency
+ */
+export enum AttachmentType {
+	IMAGE = 'image',
+	VIDEO = 'video',
+	FILE = 'file',
+	PDF = 'pdf'
+}
+
+/**
+ * Configuration for attachment block conversion
+ */
+export interface AttachmentBlockConfig {
+	type: AttachmentType;
+	isEmbed: boolean;
+	fallbackText: string;
+	beforeDownload?: (attachment: NotionAttachment, block: any) => string | null;
+}
+
