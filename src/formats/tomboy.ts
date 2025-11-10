@@ -2,7 +2,7 @@ import { Notice, Setting, ToggleComponent, DropdownComponent, Platform } from 'o
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
-import { os, path, fsPromises } from '../filesystem';
+import { os, path } from '../filesystem';
 
 export class TomboyImporter extends FormatImporter {
 	private coreConverter: TomboyCoreConverter;
