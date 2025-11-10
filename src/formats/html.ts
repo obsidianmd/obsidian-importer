@@ -279,7 +279,7 @@ export class HtmlImporter extends FormatImporter {
 			case 'file:':
 				let filepath = nodeUrl.fileURLToPath(url.href);
 				({ basename, extension } = parseFilePath(filepath));
-				data = nodeBufferToArrayBuffer(await fsPromises.readFile(filepath));
+				data = nodeBufferToArrayBuffer(await fsPromises.readFile(filepath) as Buffer<ArrayBuffer>);
 				break;
 			case 'https:':
 			case 'http:':

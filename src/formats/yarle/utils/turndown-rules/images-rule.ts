@@ -2,16 +2,22 @@ import { yarleOptions } from '../../yarle';
 
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
+import { isImgElement } from './dom-utils';
+import { defineRule } from './define-rule';
 
-export const imagesRule = {
+export const imagesRule = defineRule({
 	filter: filterByNodeName('IMG'),
-	replacement: (content: any, node: any) => {
+	replacement: (content, node) => {
+		if (!isImgElement(node)) {
+			throw new Error('Node is not an image element');
+		}
 		const nodeProxy = getAttributeProxy(node);
 
-		if (!nodeProxy.src) {
+		const src = nodeProxy.getNamedItem('src');
+		if (!src) {
 			return '';
 		}
-		const value = nodeProxy.src.value;
+		const value = src.value;
 		const widthParam = node.width || '';
 		const heightParam = node.height || '';
 		let realValue = value;
@@ -38,8 +44,8 @@ export const imagesRule = {
 			return `![[${realValue}]]`;
 		}
 
-		const srcSpl = nodeProxy.src.value.split('/');
+		const srcSpl = value.split('/');
 
 		return `![${srcSpl[srcSpl.length - 1]}](${realValue})`;
 	},
-};
+});

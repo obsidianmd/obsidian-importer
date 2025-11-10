@@ -19,10 +19,14 @@ import {
 	hasUpdateTimeInTemplate,
 } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
+import { Note, NoteAttributes, NoteAttributesSchema, NoteSchema } from './schemas/note';
+import { TaskSchema } from './schemas/task';
+import { BaseIssue, BaseSchema, safeParse, summarize as summarizeIssues } from 'valibot';
+import { Resource, ResourceAttributes, ResourceAttributesSchema, ResourceSchema } from './schemas/resource';
 
 const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
 
-export const defaultYarleOptions: YarleOptions = {
+export const defaultYarleOptions = {
 	enexSources: [],
 	currentTemplate: '',
 	outputDir: './mdNotes',
@@ -47,38 +51,19 @@ export const defaultYarleOptions: YarleOptions = {
 	turndownOptions: {
 		headingStyle: 'atx',
 	},
-};
+} satisfies YarleOptions;
 
 const NOTEBOOKSTACK_SEPARATOR = '@@@';
 
 export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
 
-function deepCopy(obj: any) {
-	if (obj === undefined || obj === null) return obj;
-	return JSON.parse(JSON.stringify(obj));
-}
-
-function merge(original: any, ...objects: any[]) {
-	for (let object of objects) {
-		for (let key of Object.keys(object)) {
-			let value = object[key];
-			let originalValue = original[key];
-
-			if (!Array.isArray(value) && typeof value === 'object' &&
-				!Array.isArray(originalValue) && typeof originalValue === 'object') {
-				original[key] = merge({}, originalValue, value);
-			}
-			else {
-				original[key] = deepCopy(value);
-			}
-		}
-	}
-
-	return original;
-}
-
 const setOptions = (options: YarleOptions): void => {
-	yarleOptions = merge({}, defaultYarleOptions, options);
+	yarleOptions = {
+		...defaultYarleOptions,
+		...options,
+		nestedTags: { ...defaultYarleOptions.nestedTags, ...options.nestedTags },
+		turndownOptions: { ...defaultYarleOptions.turndownOptions, ...options.turndownOptions },
+	};
 
 	let template = (yarleOptions.templateFile) ? fs.readFileSync(yarleOptions.templateFile, 'utf-8') : defaultTemplate;
 	template = yarleOptions.currentTemplate ? yarleOptions.currentTemplate : template;
@@ -118,40 +103,72 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
 			return reject(e);
 		};
+		const tryParse = <T>(schema: BaseSchema<T, T, BaseIssue<unknown>>, data: Record<string, unknown>, failMessage: string): T | null => {
+			const result = safeParse(schema, data);
+			if (!result.success) {
+				console.error(`${failMessage}: ${summarizeIssues(result.issues)}`, data);
+				return null;
+			}
+			return result.output;
+		};
 
 		const xml = flow(stream);
 
-		let noteAttributes: any = null;
-		xml.on('tag:note-attributes', (na: any) => {
-			noteAttributes = na;
+		let noteAttributes: NoteAttributes | null = null;
+		xml.on('tag:note-attributes', (na: Record<string, unknown>) => {
+			noteAttributes = tryParse(NoteAttributesSchema, na, 'Failed to parse note-attributes');
 		});
 
-		xml.on('tag:note', (note: any) => {
+		let resourceAttributes: ResourceAttributes | null = null;
+		xml.on('tag:resource-attributes', (ra: Record<string, unknown>) => {
+			resourceAttributes = tryParse(ResourceAttributesSchema, ra, 'Failed to parse resource-attributes');
+		});
+
+		let resources: Resource[] = [];
+		xml.on('tag:resource', (pureResource: Record<string, unknown>) => {
+			if (resourceAttributes) {
+				pureResource['resource-attributes'] = resourceAttributes;
+			}
+			resourceAttributes = null;
+
+			const resource = tryParse(ResourceSchema, pureResource, 'Failed to parse resource');
+			if (resource !== null) {
+				resources.push(resource);
+			}
+		});
+
+		xml.on('tag:note', (pureNote: Record<string, unknown>) => {
 			if (ctx.isCancelled()) {
 				stream.close();
 				return;
 			}
 
+			if (noteAttributes) {
+				// make sure single attributes are not collapsed
+				pureNote['note-attributes'] = noteAttributes;
+			}
+			noteAttributes = null;
+			pureNote['resource'] = resources;
+			resources = [];
+			const note: Note | null = tryParse(NoteSchema, pureNote, 'Failed to parse note');
+			if (note === null) {
+				return;
+			}
 			if (options.skipWebClips && isWebClip(note)) {
 				ctx.reportSkipped(note.title);
 			}
 			else {
 				ctx.status('Importing note ' + note.title);
-				if (noteAttributes) {
-					// make sure single attributes are not collapsed
-					note['note-attributes'] = noteAttributes;
-				}
 
 				try {
 					processNode(note, notebookName);
 					ctx.reportNoteSuccess(notebookName + '/' + note.title);
 				}
 				catch (e) {
-					ctx.reportFailed(note.title || enexSource, e);
+					ctx.reportFailed(note.title || enexSource.fullpath, e);
 					return resolve();
 				}
 			}
-			noteAttributes = null;
 
 			const currentNotePath = runtimeProps.getCurrentNotePath();
 			if (currentNotePath) {
@@ -168,13 +185,17 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			}
 		});
 
-		xml.on('tag:task', (pureTask: any) => {
-			const task = mapEvernoteTask(pureTask);
-			if (!tasks[task.taskgroupnotelevelid]) {
-				tasks[task.taskgroupnotelevelid] = new Map();
+		xml.on('tag:task', (pureTask: Record<string, unknown>) => {
+			const task = tryParse(TaskSchema, pureTask, 'Failed to parse task');
+			if (task === null) {
+				return;
+			}
+			const evernoteTask = mapEvernoteTask(task);
+			if (!tasks[evernoteTask.taskgroupnotelevelid]) {
+				tasks[evernoteTask.taskgroupnotelevelid] = new Map();
 			}
 
-			tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(task, notebookName));
+			tasks[evernoteTask.taskgroupnotelevelid].set(evernoteTask.sortweight, convertTasktoMd(evernoteTask, notebookName));
 
 		});
 

@@ -2,19 +2,22 @@ import { getAttributeProxy } from './get-attribute-proxy';
 
 const markdownBlock = '\n```\n';
 
-const isCodeBlock = (node: any) => {
+const isCodeBlock = (node: HTMLElement) => {
 	const nodeProxy = getAttributeProxy(node);
 	const codeBlockFlag = '-en-codeblock:true';
 
-	return nodeProxy.style && nodeProxy.style.value.indexOf(codeBlockFlag) >= 0;
+	const style = nodeProxy.getNamedItem('style');
+	return style?.value.includes(codeBlockFlag);
 };
 
-const getIntendNumber = (node: any): number => {
+const getIntendNumber = (node: HTMLElement): number => {
 	const nodeProxy = getAttributeProxy(node);
 	const paddingAttr = 'padding-left:';
 	let intendNumber = 0;
-	if (nodeProxy.style && nodeProxy.style.value.indexOf(paddingAttr) >= 0) {
-		intendNumber = Math.floor(nodeProxy.style.value.split(paddingAttr)[1].split('px')[0] / 20);
+	const style = nodeProxy.getNamedItem('style');
+	if (style?.value.includes(paddingAttr)) {
+		const px = Number.parseInt(style.value.split(paddingAttr)[1].split('px')[0], 10);
+		intendNumber = Math.floor(px / 20);
 	}
 
 	return intendNumber;
@@ -22,7 +25,7 @@ const getIntendNumber = (node: any): number => {
 
 export const unescapeMarkdown = (s: string): string => s.replace(/\\(.)/g, '$1');
 
-export const replaceCodeBlock = (content: string, node: any): any => {
+export const replaceCodeBlock = (content: string, node: HTMLElement): string => {
 	const intend = getIntendNumber(node);
 	content = `${'\t'.repeat(intend)}${content}`;
 	if (isCodeBlock(node)) {

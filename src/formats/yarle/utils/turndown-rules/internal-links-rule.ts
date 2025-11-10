@@ -8,6 +8,7 @@ import { isTOC } from '../is-toc';
 
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
+import { defineRule } from './define-rule';
 
 export const removeBrackets = (str: string): string => {
 	return str.replace(/\[|\]/g, '');
@@ -15,12 +16,13 @@ export const removeBrackets = (str: string): string => {
 export const removeDoubleBackSlashes = (str: string): string => {
 	return str.replace(/\\/g, '');
 };
-export const wikiStyleLinksRule = {
+export const wikiStyleLinksRule = defineRule({
 	filter: filterByNodeName('A'),
-	replacement: (content: any, node: any) => {
+	replacement: (content, node) => {
 		const nodeProxy = getAttributeProxy(node);
 
-		if (!nodeProxy.href) {
+		const href = nodeProxy.getNamedItem('href');
+		if (!href) {
 			return '';
 		}
 		let text = getTurndownService(yarleOptions).turndown(removeBrackets(node.innerHTML));
@@ -32,8 +34,8 @@ export const wikiStyleLinksRule = {
 			text = match[2];
 		}
 
-		const value = nodeProxy.href.value;
-		const type = nodeProxy.type ? nodeProxy.type.value : undefined;
+		const value = href.value;
+		const type = nodeProxy.getNamedItem('type')?.value;
 		const realValue = yarleOptions.urlEncodeFileNamesAndLinks ? encodeURI(value) : value;
 
 		if (type === 'file') {
@@ -59,10 +61,10 @@ export const wikiStyleLinksRule = {
 
 		return prefix + `[[${realValue}${text === realValue ? '' : `|${text}`}]]`;
 	},
-};
+});
 
 
-let htmlUnescapes: any = {
+const htmlUnescapes: Record<string, string> = {
 	'&amp;': '&',
 	'&lt;': '<',
 	'&gt;': '>',
@@ -70,8 +72,8 @@ let htmlUnescapes: any = {
 	'&#39;': '\'',
 };
 
-let reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g;
-let reHasEscapedHtml = RegExp(reEscapedHtml.source);
+const reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g;
+const reHasEscapedHtml = RegExp(reEscapedHtml.source);
 
 function unescape(text: string) {
 	return (text && reHasEscapedHtml.test(text))
@@ -79,6 +81,9 @@ function unescape(text: string) {
 		: text;
 }
 
-export const getShortLinkIfPossible = (text: string, value: string): string => {
-	return (!text || unescape(text) === unescape(value)) ? yarleOptions.generateNakedUrls ? value : `<${value}>` : `[${text}](${value})`;
-};
+export const getShortLinkIfPossible = (text: string, value: string): string =>
+	text && unescape(text) !== unescape(value)
+		? `[${text}](${value})`
+		: yarleOptions.generateNakedUrls
+			? value
+			: `<${value}>`;

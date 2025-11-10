@@ -3,27 +3,29 @@ import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 import { replaceCodeBlock } from './replace-code-block';
 import { replaceMonospaceCodeBlock } from './replace-monospace-code-block';
+import { defineRule } from './define-rule';
 
-const isTaskBlock = (node: any) => {
+const getTaskGroupId = (node: HTMLElement): string | null => {
 	const nodeProxy = getAttributeProxy(node);
 	const taskFlag = '--en-task-group:true';
-
-	return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
-};
-const getTaskGroupId = (node: any) => {
-	const nodeProxy = getAttributeProxy(node);
 	const idAttr = '--en-id:';
 
-	return nodeProxy.style.value.split(idAttr)[1].split(';')[0];
+	const style = nodeProxy.getNamedItem('style');
+	if (style?.value.includes(taskFlag)) {
+		return style.value.split(idAttr)[1].split(';')[0];
+	}
+	return null;
 };
 
-export const divRule = {
+export const divRule = defineRule({
 	filter: filterByNodeName('DIV'),
-	replacement: (content: string, node: any) => {
-		return (isTaskBlock(node))
-			? `<YARLE-EN-V10-TASK>${getTaskGroupId(node)}</YARLE-EN-V10-TASK>`
-			: (yarleOptions.monospaceIsCodeBlock)
-				? replaceMonospaceCodeBlock(content, node)
-				: replaceCodeBlock(content, node);
+	replacement: (content: string, node: HTMLElement) => {
+		const taskGroupId = getTaskGroupId(node);
+		if (taskGroupId) {
+			return `<YARLE-EN-V10-TASK>${taskGroupId}</YARLE-EN-V10-TASK>`;
+		}
+		return (yarleOptions.monospaceIsCodeBlock)
+			? replaceMonospaceCodeBlock(content, node)
+			: replaceCodeBlock(content, node);
 	},
-};
+});

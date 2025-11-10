@@ -2,12 +2,13 @@ import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { RuntimePropertiesSingleton } from './runtime-properties';
+import { Note } from './schemas/note';
 import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
 import { applyTemplate } from './utils/templates/templates';
 import { yarleOptions } from './yarle';
 
-export const processNode = (note: any, notebookName: string): void => {
+export const processNode = (note: Note, notebookName: string): void => {
 
 	const dateStarted: Date = new Date();
 

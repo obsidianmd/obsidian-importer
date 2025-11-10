@@ -1052,13 +1052,13 @@ export class OneNoteImporter extends FormatImporter {
 			if (retryCount > 0) {
 				console.log(`Retry attempt #${retryCount} for ${url}`);
 			}
- 			let response = await fetch(
- 				url, 
- 				{
- 					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
- 					signal: this.modal.abortController.signal,
- 				}
- 			);
+			let response = await fetch(
+				url, 
+				{
+					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+					signal: this.modal.abortController.signal,
+				}
+			);
 
 			if (response.ok) {
 				let result: string | ArrayBuffer | object | JSONWrappedResponse<T>;
@@ -1071,9 +1071,9 @@ export class OneNoteImporter extends FormatImporter {
 						result = await response.arrayBuffer();
 						break;
 					case 'json':
- 						result = await response.json();
+						result = await response.json();
 						break;
- 					case 'json-wrapped':
+					case 'json-wrapped':
 						result = await response.json();
 						assertJSONWrappedResponse<T>(result);
 						if ('@odata.nextLink' in result) {

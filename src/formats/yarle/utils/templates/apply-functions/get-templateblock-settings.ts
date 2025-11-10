@@ -1,6 +1,7 @@
-import { TemplateBlockSettings } from '../template-settings';
+import { CheckFunction, TemplateBlockSettings } from '../template-settings';
+import { PlaceholderItem } from '../types';
 
-export const getTemplateBlockSettings = (text: string, check: Function, T: any, value?: string): TemplateBlockSettings => {
+export const getTemplateBlockSettings = (text: string, check: CheckFunction, T: PlaceholderItem, value?: string): TemplateBlockSettings => {
 	return {
 		template: text,
 		check,

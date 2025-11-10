@@ -439,7 +439,7 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 }
 
 
-function getTOCIndent(tocItem: Element | null): Number {
+function getTOCIndent(tocItem: Element | null): number {
 	return Number(tocItem?.classList[1].slice(-1) ?? -1);
 }
 

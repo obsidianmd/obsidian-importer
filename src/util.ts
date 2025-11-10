@@ -31,7 +31,7 @@ export function parseHTML(html: string): HTMLElement {
 	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
-export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
+export function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
 }
 

@@ -3,7 +3,7 @@ import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
-import { fsPromises, os, path, splitext, zlib } from '../filesystem';
+import { fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
@@ -357,7 +357,7 @@ export class AppleNotesImporter extends FormatImporter {
 			const attachmentPath = await this.getAvailablePathForAttachment(`${outName}.${outExt}`, []);
 
 			file = await this.vault.createBinary(
-				attachmentPath, binary,
+				attachmentPath, nodeBufferToArrayBuffer(binary),
 				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
 			);
 		}
@@ -383,12 +383,12 @@ export class AppleNotesImporter extends FormatImporter {
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 
-	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer> {
+	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
 		try {
-			return await fsPromises.readFile(path.join(account.path, sourcePath));
+			return await fsPromises.readFile(path.join(account.path, sourcePath)) as Buffer<ArrayBuffer>;
 		}
 		catch (e) {
-			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
+			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath)) as Buffer<ArrayBuffer>;
 		}
 	}
 }
