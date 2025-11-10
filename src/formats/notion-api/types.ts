@@ -2,7 +2,7 @@
  * Type definitions for Notion API importer
  */
 
-import { Client, BlockObjectResponse } from '@notionhq/client';
+import { Client, BlockObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../notion-api';
