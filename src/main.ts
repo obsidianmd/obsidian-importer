@@ -23,7 +23,7 @@ declare global {
 interface ImporterDefinition {
 	name: string;
 	optionText: string;
-	helpPermalink: string;
+	helpPermalink?: string;
 	formatDescription?: string;
 	importer: new (app: App, modal: Modal) => FormatImporter;
 }
@@ -310,7 +310,6 @@ export default class ImporterPlugin extends Plugin {
 				name: 'Tomboy/Gnote',
 				optionText: 'Tomboy/Gnote (.note)',
 				importer: TomboyImporter,
-				helpPermalink: 'import/tomboy',
 			},
 		};
 
@@ -410,11 +409,13 @@ export class ImporterModal extends Modal {
 			descriptionFragment.createEl('br');
 			descriptionFragment.createSpan({ text: selectedImporter.formatDescription });
 		}
-		descriptionFragment.createEl('br');
-		descriptionFragment.createEl('a', {
-			text: `Learn more about importing from ${selectedImporter.name}.`,
-			href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
-		});
+		if (selectedImporter.helpPermalink) {
+			descriptionFragment.createEl('br');
+			descriptionFragment.createEl('a', {
+				text: `Learn more about importing from ${selectedImporter.name}.`,
+				href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
+			});
+		}
 
 		new Setting(contentEl)
 			.setName('File format')
