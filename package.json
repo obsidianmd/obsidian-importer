@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-importer",
-	"version": "1.6.23",
-	"description": "Import notes from other apps like Evernote.",
+	"version": "1.7.0",
+	"description": "Import data from Notion, Evernote, Apple Notes, Microsoft OneNote, Google Keep, Bear, Roam, Textbundle, CSV, and HTML files.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
