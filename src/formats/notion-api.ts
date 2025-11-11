@@ -41,8 +41,9 @@ export class NotionAPIImporter extends FormatImporter {
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
-	// Simple progress counter: tracks total imported items (pages + attachments)
-	private itemsImported: number = 0;
+	// Progress counters: separate tracking for pages and attachments
+	private pagesImported: number = 0;
+	private attachmentsDownloaded: number = 0;
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
@@ -313,8 +314,9 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
-			this.itemsImported = 0;
-		
+			this.pagesImported = 0;
+			this.attachmentsDownloaded = 0;
+	
 			// Initialize progress display (indeterminate - we don't know total count)
 			ctx.reportProgressIndeterminate(0);
 		
@@ -457,9 +459,8 @@ export class NotionAPIImporter extends FormatImporter {
 			// Check if page already exists in vault (by notion-id)
 			if (await pageExistsInVault(this.app, this.vault, pageId)) {
 				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
-				// Still count as imported (skipped items are also "processed")
-				this.itemsImported++;
-				ctx.reportProgressIndeterminate(this.itemsImported);
+				// Skipped pages are counted separately in ctx.skipped array
+				// They are NOT counted in pagesImported/notes
 				return;
 			}
 		
@@ -511,8 +512,9 @@ export class NotionAPIImporter extends FormatImporter {
 				},
 				// Callback when an attachment is downloaded
 				onAttachmentDownloaded: () => {
-					this.itemsImported++;
-					ctx.reportProgressIndeterminate(this.itemsImported);
+					this.attachmentsDownloaded++;
+					ctx.attachments = this.attachmentsDownloaded;
+					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
 				}
 			});
 		
@@ -595,9 +597,10 @@ export class NotionAPIImporter extends FormatImporter {
 					// For frontmatter, use wiki link syntax with double quotes for proper rendering
 					// Cover images should always be downloaded locally
 					if (result.isLocal && result.filename) {
-					// Report progress for cover image download
-						this.itemsImported++;
-						ctx.reportProgressIndeterminate(this.itemsImported);
+						// Report progress for cover image download
+						this.attachmentsDownloaded++;
+						ctx.attachments = this.attachmentsDownloaded;
+						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
 					
 						// Extract extension from filename
 						const ext = result.filename.substring(result.filename.lastIndexOf('.'));
@@ -640,10 +643,11 @@ export class NotionAPIImporter extends FormatImporter {
 			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 	
 			await this.vault.create(normalizePath(mdFilePath), fullContent);
-		
+	
 			// Update progress: page imported successfully
-			this.itemsImported++;
-			ctx.reportProgressIndeterminate(this.itemsImported);
+			this.pagesImported++;
+			ctx.notes = this.pagesImported;
+			ctx.reportProgressIndeterminate(this.pagesImported);
 	
 			// Record page ID to path mapping for mention replacement
 			// Store path without extension for wiki link generation
@@ -662,10 +666,8 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
 			const pageTitle = 'Unknown page';
-			ctx.reportFailed(pageTitle, error.message);
-			// Count failed pages as processed
-			this.itemsImported++;
-			ctx.reportProgressIndeterminate(this.itemsImported);
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			ctx.reportFailed(pageTitle, errorMsg);
 		}
 	}
 	
