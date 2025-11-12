@@ -72,6 +72,13 @@ const addMediaReference = (content: string, resourceHashes: any, hash: any, work
 
 const processResource = (workDir: string, resource: any): any => {
 	const resourceHash: any = {};
+	
+	// Check if resource data exists
+	if (!resource.data || !resource.data.$text) {
+		console.warn('Resource data is missing or empty, skipping resource:', resource);
+		return resourceHash;
+	}
+	
 	const data = resource.data.$text;
 
 	// Skip unknown type as we don't know how to handle

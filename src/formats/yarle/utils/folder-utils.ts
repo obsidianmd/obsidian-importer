@@ -21,10 +21,41 @@ export interface NotebookStackProps {
 	basename: string;
 }
 
-const MAX_PATH = 249;
+// Path length constants
+const MAX_PATH = 249; // Maximum path length for compatibility
+const MAX_ENEX_DIR_LENGTH = 100; // Conservative limit for enex directory name
+
+/**
+ * Check if a path exists and add (1), (2), etc. suffix if needed to avoid conflicts
+ * @param basePath - The directory path where the item will be created
+ * @param name - The desired name (without path)
+ * @param suffix - Optional suffix to append (e.g., '.resources')
+ * @returns A unique name that doesn't conflict with existing items
+ */
+const getUniqueNameForPath = (basePath: string, name: string, suffix: string = ''): string => {
+	const baseName = name;
+	let uniqueName = name;
+	let counter = 1;
+	let fullPath = `${basePath}${path.sep}${uniqueName}${suffix}`;
+	
+	while (fs.existsSync(fullPath)) {
+		uniqueName = `${baseName} (${counter})`;
+		fullPath = `${basePath}${path.sep}${uniqueName}${suffix}`;
+		counter++;
+		
+		// Safety check to prevent infinite loop
+		if (counter > 9999) {
+			throw new Error(`Too many duplicate items with name: ${name}`);
+		}
+	}
+	
+	return uniqueName;
+};
 
 export const getResourceDir = (dstPath: string, note: any): string => {
-	return getNoteName(dstPath, note).replace(/\s/g, '_');
+	// Note name is already limited by MAX_NOTE_NAME_LENGTH in getNoteName()
+	const dirName = getNoteName(dstPath, note).replace(/\s/g, '_');
+	return getUniqueNameForPath(paths.resourcePath, dirName, '.resources');
 };
 
 export const truncatFileName = (fileName: string, uniqueId: string): string => {
@@ -182,9 +213,20 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 
 	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
 	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
-		paths.mdPath = `${paths.mdPath}${enexFileBasename}`;
+		// Truncate enex filename if it's too long to prevent path issues
+		let truncatedBasename = enexFileBasename;
+		
+		if (enexFileBasename.length > MAX_ENEX_DIR_LENGTH) {
+			truncatedBasename = enexFileBasename.substring(0, MAX_ENEX_DIR_LENGTH);
+			console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
+		}
+		
+		// Check for duplicate directory names and add (1), (2), etc. if needed
+		truncatedBasename = getUniqueNameForPath(outputDir, truncatedBasename);
+		
+		paths.mdPath = `${paths.mdPath}${truncatedBasename}`;
 		// console.log(`mdPath: ${paths.mdPath}`);
-		paths.resourcePath = `${outputDir}${path.sep}${enexFileBasename}${path.sep}${yarleOptions.resourcesDir}`;
+		paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${yarleOptions.resourcesDir}`;
 	}
 
 	fs.mkdirSync(paths.mdPath, { recursive: true });
