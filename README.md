@@ -10,6 +10,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 - [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
 - [Import from Bear](https://help.obsidian.md/import/bear)
+- [Import from CSV files](https://help.obsidian.md/import/csv)
 - [Import from Evernote](https://help.obsidian.md/import/evernote)
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)
 - [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)

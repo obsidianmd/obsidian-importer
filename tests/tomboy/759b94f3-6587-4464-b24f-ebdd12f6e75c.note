@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Spätere Checkpunkte</title>
+  <text xml:space="preserve"><note-content version="0.1">Spätere Checkpunkte
+
+Hier steht erst eine Analyse und dann:
+
+<size:huge>TODO
+
+</size:huge><list><list-item dir="ltr">Zugfahrt buchen
+</list-item><list-item dir="ltr">Zelt kaufen
+</list-item><list-item dir="ltr">Campingplatz buchen</list-item></list></note-content></text>
+  <last-change-date>2025-09-04T22:58:42.5813030+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:58:42.5823380+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:57:15.7913670+02:00</create-date>
+  <cursor-position>120</cursor-position>
+  <selection-bound-position>120</selection-bound-position>
+  <width>450</width>
+  <height>360</height>
+  <x>0</x>
+  <y>0</y>
+  <open-on-startup>False</open-on-startup>
+</note>

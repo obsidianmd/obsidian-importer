@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy">
+  <title>Neue Notizbuchvorlage</title>
+  <text xml:space="preserve"><note-content version="0.1">Neue Notizbuchvorlage
+
+Beschreiben Sie Ihre neue Notiz hier.</note-content></text>
+  <last-change-date>2025-09-04T22:42:23.9388930+02:00</last-change-date>
+  <last-metadata-change-date>2025-09-04T22:42:23.9388930+02:00</last-metadata-change-date>
+  <create-date>2025-09-04T22:42:23.9328730+02:00</create-date>
+  <cursor-position>60</cursor-position>
+  <selection-bound-position>23</selection-bound-position>
+  <width>0</width>
+  <height>0</height>
+  <x>-1</x>
+  <y>-1</y>
+  <tags>
+    <tag>system:template</tag>
+  </tags>
+  <open-on-startup>False</open-on-startup>
+</note>
