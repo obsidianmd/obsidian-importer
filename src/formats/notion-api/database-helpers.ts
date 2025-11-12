@@ -10,7 +10,7 @@ import {
 	PageObjectResponse,
 	PartialPageObjectResponse
 } from '@notionhq/client';
-import { normalizePath } from 'obsidian';
+import { normalizePath, stringifyYaml, BasesConfigFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
@@ -282,7 +282,7 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 }
 
 /**
- * Generate content for .base file
+ * Generate content for .base file using BasesConfigFile structure
  */
 function generateBaseFileContent(params: GenerateBaseFileContentParams): string {
 	const {
@@ -294,102 +294,88 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		coverPropertyName = 'cover'
 	} = params;
 	
-	// Basic .base file structure
-	let content = `# ${databaseName}\n\n`;
-	
-	// Use tag-based filter to include all pages from this database
-	// This allows pages in nested folders (pages with children) to be included
-	// We use the database folder path as the tag value because:
-	// 1. Database names can be duplicated, but folder paths are unique
-	// 2. It's more readable than using Notion IDs
-	content += `filters:\n`;
-	content += `  and:\n`;
-	content += `    - note["notion-db"] == "${databaseFolderPath}"\n\n`;
-	
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
 	
-	// Add formulas section if there are any
+	// Build the order array for views
+	const orderColumns = ['file.name'];
+	for (const item of regularProperties) {
+		orderColumns.push(item.key);
+	}
+	for (const item of formulas) {
+		orderColumns.push(item.key);
+	}
+	
+	// Build BasesConfigFile object
+	const baseConfig: BasesConfigFile = {
+		// Use tag-based filter to include all pages from this database
+		// This allows pages in nested folders (pages with children) to be included
+		// We use the database folder path as the tag value because:
+		// 1. Database names can be duplicated, but folder paths are unique
+		// 2. It's more readable than using Notion IDs
+		filters: {
+			and: [
+				`note["notion-db"] == "${databaseFolderPath}"`
+			]
+		} as any
+	};
+	
+	// Add formulas if there are any
 	if (formulas.length > 0) {
-		content += `formulas:\n`;
+		baseConfig.formulas = {};
 		for (const item of formulas) {
 			// Extract the formula name (remove "formula." prefix)
 			const formulaName = item.key.replace(/^formula\./, '');
-			content += `  ${formulaName}: ${item.config.formula}\n`;
+			baseConfig.formulas[formulaName] = item.config.formula;
 		}
-		content += `\n`;
 	}
 	
-	// Add properties section
+	// Add properties if there are any
 	if (regularProperties.length > 0) {
-		content += `properties:\n`;
+		baseConfig.properties = {};
 		for (const item of regularProperties) {
-			content += `  ${item.key}:\n`;
-			content += `    displayName: "${item.config.displayName}"\n`;
+			baseConfig.properties[item.key] = {
+				displayName: item.config.displayName
+			};
 			if (item.config.type) {
-				content += `    type: ${item.config.type}\n`;
+				baseConfig.properties[item.key].type = item.config.type;
 			}
 		}
-		content += `\n`;
 	}
 	
 	// Add view based on user selection
-	content += `views:\n`;
+	// Note: views is optional in BasesConfigFile, so we need to initialize it
+	if (!baseConfig.views) {
+		baseConfig.views = [];
+	}
 	
 	if (viewType === 'table') {
-		// Table view
-		content += `  - type: table\n`;
-		content += `    name: "All Items"\n`;
-		content += `    order:\n`;
-		content += `      - file.name\n`;
-		
-		// Add all regular properties to the view (in order)
-		for (const item of regularProperties) {
-			content += `      - ${item.key}\n`;
-		}
-		
-		// Add all formula properties to the view (in order)
-		for (const item of formulas) {
-			content += `      - ${item.key}\n`;
-		}
+		baseConfig.views.push({
+			type: 'table',
+			name: 'Table View',
+			order: orderColumns
+		});
 	}
 	else if (viewType === 'cards') {
-		// Cards view
-		content += `  - type: cards\n`;
-		content += `    name: "View"\n`;
-		content += `    image: note.${coverPropertyName}\n`;
-		content += `    order:\n`;
-		content += `      - file.name\n`;
-		
-		// Add all regular properties
-		for (const item of regularProperties) {
-			content += `      - ${item.key}\n`;
-		}
-		
-		// Add all formula properties
-		for (const item of formulas) {
-			content += `      - ${item.key}\n`;
-		}
+		// Note: 'image' property is not in the official BasesConfigFileView type,
+		// but it's supported by the Base plugin for cards view
+		baseConfig.views.push({
+			type: 'cards',
+			name: 'Cards View',
+			image: `note.${coverPropertyName}`,
+			order: orderColumns
+		} as any);
 	}
 	else if (viewType === 'list') {
-		// List view
-		content += `  - type: list\n`;
-		content += `    name: "View"\n`;
-		content += `    order:\n`;
-		content += `      - file.name\n`;
-		
-		// Add all regular properties
-		for (const item of regularProperties) {
-			content += `      - ${item.key}\n`;
-		}
-		
-		// Add all formula properties
-		for (const item of formulas) {
-			content += `      - ${item.key}\n`;
-		}
+		baseConfig.views.push({
+			type: 'list',
+			name: 'List View',
+			order: orderColumns
+		});
 	}
 	
-	return content;
+	// Convert to YAML with title comment
+	return `# ${databaseName}\n\n${stringifyYaml(baseConfig)}`;
 }
 
 /**
