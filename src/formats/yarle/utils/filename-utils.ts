@@ -8,6 +8,10 @@ import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { extensionForMime } from '../../../mime';
 
+// Filename length constants
+const MAX_NOTE_NAME_LENGTH = 100; // Limit note name length to prevent path issues
+const MAX_RESOURCE_FILENAME_PREFIX_LENGTH = 50; // Maximum length for resource filename prefix
+
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
 };
@@ -36,7 +40,7 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 	let fileName = UNKNOWNFILENAME;
 
 	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
-		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, 50);
+		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, MAX_RESOURCE_FILENAME_PREFIX_LENGTH);
 		fileName = parseFilePath(fileNamePrefix).basename;
 
 	}
@@ -96,6 +100,7 @@ export const getZettelKastelId = (note: any, dstPath: string): string => {
 export const getNoteName = (dstPath: string, note: any): string => {
 	let noteName;
 
+	let filePrefix = getFilePrefix(note);
 	if (yarleOptions.isZettelkastenNeeded || yarleOptions.useZettelIdAsFilename) {
 		const zettelPrefix = getZettelKastelId(note, dstPath);
 		const nextIndex = getFileIndex(dstPath, zettelPrefix);
@@ -105,14 +110,23 @@ export const getNoteName = (dstPath: string, note: any): string => {
 			zettelPrefix;
 
 		if (!yarleOptions.useZettelIdAsFilename) {
-			noteName += getFilePrefix(note) !== 'Untitled' ? `${separator}${getFilePrefix(note)}` : '';
+			if (filePrefix !== 'Untitled') {
+				const availableSpace = MAX_NOTE_NAME_LENGTH - noteName.length - separator.length;
+				const filePrefixPart = filePrefix.substring(0, Math.max(0, availableSpace));
+				noteName = `${noteName}${separator}${filePrefixPart}`;
+			}
 		}
 	}
 	else {
-		const fileNamePrefix = getFilePrefix(note);
-		const nextIndex = getFileIndex(dstPath, fileNamePrefix);
+		// Truncate file name prefix if it's too long
+		if (filePrefix.length > MAX_NOTE_NAME_LENGTH) {
+			filePrefix = filePrefix.substring(0, MAX_NOTE_NAME_LENGTH);
+			console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
+		}
 
-		noteName = (nextIndex === 0) ? fileNamePrefix : `${fileNamePrefix}.${nextIndex}`;
+		const nextIndex = getFileIndex(dstPath, filePrefix);
+
+		noteName = (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 	}
 
 	return noteName;
