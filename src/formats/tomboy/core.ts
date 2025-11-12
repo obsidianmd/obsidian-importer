@@ -137,8 +137,8 @@ export class TomboyCoreConverter {
 		const createDateElement = doc.querySelector('create-date');
 		const lastChangeDateElement = doc.querySelector('last-change-date');
 
-		const createDate = this.parseTomboyDate(createDateElement?.textContent);
-		const lastChangeDate = this.parseTomboyDate(lastChangeDateElement?.textContent);
+		const createDate = this.parseTomboyDate(createDateElement?.textContent ?? undefined);
+		const lastChangeDate = this.parseTomboyDate(lastChangeDateElement?.textContent ?? undefined);
 
 		return { title, content, tags, createDate, lastChangeDate };
 	}
