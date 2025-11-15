@@ -66,6 +66,32 @@ export async function convertChildDatabase(
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
+		
+		// Check if this is a linked database error
+		// According to Notion's official documentation, linked databases are not supported by the API
+		// They will have empty data_sources array and should be skipped
+		// Note: Linked databases always have "Untitled" as their title
+		// See: https://developers.notion.com/docs/working-with-databases#linked-databases
+		if (errorMsg.includes('Linked database') || 
+		    errorMsg.includes('not supported by Notion API')) {
+			console.log(`Skipping linked database (block ID: ${databaseId})`);
+			return `<!-- Linked database (not supported by Notion API) -->`;
+		}
+		
+		// Check for other permission/access errors that might indicate a linked view
+		const isLinkedViewError = (
+			(errorMsg.includes('Could not find database with ID') || 
+			 errorMsg.includes('APIResponseError')) &&
+			block.child_database?.title === 'Untitled' && 
+			!block.has_children
+		);
+		
+		if (isLinkedViewError) {
+			console.log(`Skipping linked database view (block ID: ${databaseId}) - this is a reference to an existing database`);
+			return `<!-- Linked database view (skipped - references an existing database) -->`;
+		}
+		
+		// This is a real error, not a linked database
 		console.error(`Failed to convert database "${databaseTitle}":`, error);
 		context.ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
 		return `<!-- Failed to import database: ${errorMsg} -->`;
@@ -155,24 +181,28 @@ export async function importDatabaseCore(
 	
 	ctx.status(`Processing database: ${sanitizedTitle}...`);
 	
-	// Get data source properties
-	let dataSourceProperties: Record<string, any> = {};
-	let dataSourceId = databaseId;
-	
-	if (database.data_sources && database.data_sources.length > 0) {
-		dataSourceId = database.data_sources[0].id;
-		const dataSource = await makeNotionRequest(
-			() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
-			ctx
-		);
-		dataSourceProperties = dataSource.properties || {};
+	// Check if this is a linked database (no data sources)
+	// According to Notion's official documentation, linked databases are not supported by the API
+	// and will have an empty data_sources array
+	// Note: Linked databases always have "Untitled" as their title
+	if (!database.data_sources || database.data_sources.length === 0) {
+		const errorMsg = 'Linked database (not supported by Notion API)';
+		console.warn(`Skipping linked database (ID: ${databaseId}): ${errorMsg}`);
+		throw new Error(errorMsg);
 	}
 	
-	// Create database folder
-	const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
-	await vault.createFolder(normalizePath(databaseFolderPath));
+	// Get data source properties
+	let dataSourceProperties: Record<string, any> = {};
+	let dataSourceId = database.data_sources[0].id;
 	
-	// Query database to get all pages
+	// Try to retrieve data source - if this fails, don't create folder
+	const dataSource = await makeNotionRequest(
+		() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
+		ctx
+	);
+	dataSourceProperties = dataSource.properties || {};
+	
+	// Query database to get all pages - if this fails, don't create folder
 	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 	
 	ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
@@ -181,6 +211,11 @@ export async function importDatabaseCore(
 	if (onPagesDiscovered) {
 		onPagesDiscovered(databasePages.length);
 	}
+	
+	// Only create database folder after successfully validating data source and querying pages
+	// This prevents creating empty folders for linked databases or databases with permission errors
+	const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
+	await vault.createFolder(normalizePath(databaseFolderPath));
 	
 	// Import each database page
 	for (const page of databasePages) {
