@@ -591,6 +591,30 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 			return;
 		}
+		
+		// Add select all / deselect all buttons
+		const buttonContainer = this.pageTreeContainer.createDiv('notion-tree-buttons');
+		buttonContainer.style.marginBottom = '10px';
+		buttonContainer.style.display = 'flex';
+		buttonContainer.style.gap = '8px';
+		
+		const selectAllButton = buttonContainer.createEl('button', {
+			text: 'Select all',
+			cls: 'mod-cta'
+		});
+		selectAllButton.addEventListener('click', () => {
+			this.selectAllNodes(true);
+			this.renderPageTree();
+		});
+		
+		const deselectAllButton = buttonContainer.createEl('button', {
+			text: 'Deselect all'
+		});
+		deselectAllButton.addEventListener('click', () => {
+			this.selectAllNodes(false);
+			this.renderPageTree();
+		});
+		
 		const treeEl = this.pageTreeContainer.createDiv('notion-tree');
 		for (const node of this.pageTree) {
 			this.renderTreeNode(treeEl, node, 0);
@@ -703,17 +727,41 @@ export class NotionAPIImporter extends FormatImporter {
 	private toggleNodeSelection(node: NotionTreeNode, selected: boolean): void {
 		node.selected = selected;
 
-		// If selected, disable and select all children
+		// If selected, disable and select all children (but don't expand)
 		if (selected) {
-			// Expand the node to show children
-			if (node.children.length > 0) {
-				node.collapsed = false;
-			}
 			this.selectAllChildren(node, true);
 		}
 		// If deselected, enable all children (but keep them deselected)
 		else {
 			this.enableAllChildren(node);
+		}
+	}
+
+	/**
+	 * Select or deselect all nodes in the tree
+	 */
+	private selectAllNodes(selected: boolean): void {
+		const processNode = (node: NotionTreeNode) => {
+			// Only modify nodes that are not disabled
+			if (!node.disabled) {
+				node.selected = selected;
+				// If selecting, select children (but don't expand)
+				if (selected) {
+					this.selectAllChildren(node, true);
+				}
+				// If deselecting, enable all children
+				else {
+					this.enableAllChildren(node);
+				}
+			}
+			// Process children even if parent is disabled
+			for (const child of node.children) {
+				processNode(child);
+			}
+		};
+		
+		for (const node of this.pageTree) {
+			processNode(node);
 		}
 	}
 
