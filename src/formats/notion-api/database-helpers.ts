@@ -152,7 +152,8 @@ function extractDatabaseTitle(database: DatabaseObjectResponse): string {
  */
 export async function importDatabaseCore(
 	databaseId: string,
-	context: DatabaseProcessingContext
+	context: DatabaseProcessingContext,
+	isDataSourceId: boolean = false // If true, databaseId is actually a data_source_id
 ): Promise<DatabaseImportResult> {
 	const {
 		ctx,
@@ -169,31 +170,45 @@ export async function importDatabaseCore(
 		coverPropertyName = 'cover'
 	} = context;
 	
-	// Get database details
-	const database = await makeNotionRequest(
-		() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
-		ctx
-	);
+	let dataSourceId: string;
+	let sanitizedTitle: string = 'Untitled Database'; // Default value
 	
-	// Extract database title
-	const databaseTitle = extractDatabaseTitle(database);
-	const sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
-	
-	ctx.status(`Processing database: ${sanitizedTitle}...`);
-	
-	// Check if this is a linked database (no data sources)
-	// According to Notion's official documentation, linked databases are not supported by the API
-	// and will have an empty data_sources array
-	// Note: Linked databases always have "Untitled" as their title
-	if (!database.data_sources || database.data_sources.length === 0) {
-		const errorMsg = 'Linked database (not supported by Notion API)';
-		console.warn(`Skipping linked database (ID: ${databaseId}): ${errorMsg}`);
-		throw new Error(errorMsg);
+	if (isDataSourceId) {
+		// The ID is already a data_source_id (from Search API)
+		// No need to call databases.retrieve()
+		dataSourceId = databaseId;
+		
+		// We'll get the title from dataSources.retrieve() below
+		ctx.status(`Processing database from data source: ${dataSourceId}...`);
+	}
+	else {
+		// Traditional flow: get database first, then extract data_source_id
+		const database = await makeNotionRequest(
+			() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
+			ctx
+		);
+		
+		// Extract database title
+		const databaseTitle = extractDatabaseTitle(database);
+		sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
+		
+		ctx.status(`Processing database: ${sanitizedTitle}...`);
+		
+		// Check if this is a linked database (no data sources)
+		// According to Notion's official documentation, linked databases are not supported by the API
+		// and will have an empty data_sources array
+		// Note: Linked databases always have "Untitled" as their title
+		if (!database.data_sources || database.data_sources.length === 0) {
+			const errorMsg = 'Linked database (not supported by Notion API)';
+			console.warn(`Skipping linked database (ID: ${databaseId}): ${errorMsg}`);
+			throw new Error(errorMsg);
+		}
+		
+		dataSourceId = database.data_sources[0].id;
 	}
 	
 	// Get data source properties
 	let dataSourceProperties: Record<string, any> = {};
-	let dataSourceId = database.data_sources[0].id;
 	
 	// Try to retrieve data source - if this fails, don't create folder
 	const dataSource = await makeNotionRequest(
@@ -201,6 +216,21 @@ export async function importDatabaseCore(
 		ctx
 	);
 	dataSourceProperties = dataSource.properties || {};
+	
+	// If we're using data_source_id directly, extract title from dataSource
+	if (isDataSourceId) {
+		// Extract title from data source
+		// The dataSource object is typed as GetDataSourceResponse which may not have name/title
+		// We need to access it as any to get the actual data
+		const dsAny = dataSource as any;
+		const dataSourceTitle = dsAny.name || 
+			(dsAny.title && Array.isArray(dsAny.title) 
+				? dsAny.title.map((t: any) => t.text?.content || t.plain_text || '').join('').trim()
+				: null) ||
+			'Untitled Database';
+		sanitizedTitle = sanitizeFileName(dataSourceTitle);
+		ctx.status(`Processing database: ${sanitizedTitle}...`);
+	}
 	
 	// Query database to get all pages - if this fails, don't create folder
 	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);

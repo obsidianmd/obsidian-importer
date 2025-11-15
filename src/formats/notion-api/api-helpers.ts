@@ -7,6 +7,7 @@ import {
 	Client, 
 	BlockObjectResponse, 
 	PageObjectResponse,
+	DatabaseObjectResponse,
 	RichTextItemResponse,
 	UserObjectResponse,
 	PartialBlockObjectResponse
@@ -198,9 +199,35 @@ export async function hasChildPagesOrDatabases(
 	blocksCache?: Map<string, BlockObjectResponse[]>
 ): Promise<boolean> {
 	for (const block of blocks) {
-		// Check if current block is a child_page or child_database
-		if (block.type === 'child_page' || block.type === 'child_database') {
+		// Check if current block is a child_page
+		if (block.type === 'child_page') {
 			return true;
+		}
+		
+		// Check if current block is a child_database
+		// But we need to verify it's not a linked database (which we skip)
+		if (block.type === 'child_database') {
+			try {
+				// Try to retrieve the database to check if it's a linked database
+				const database = await makeNotionRequest(
+					() => client.databases.retrieve({ database_id: block.id }) as Promise<DatabaseObjectResponse>,
+					ctx
+				);
+				
+				// Check if this is a linked database (no data sources)
+				// Linked databases are not supported and will be skipped during import
+				if (database.data_sources && database.data_sources.length > 0) {
+					// This is a real database, not a linked one
+					return true;
+				}
+				// Otherwise, it's a linked database - continue checking other blocks
+			}
+			catch (error) {
+				// If we can't retrieve the database, assume it's inaccessible and skip it
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				console.warn(`[hasChildPagesOrDatabases] Failed to check database ${block.id}, skipping:`, errorMsg);
+				// Continue checking other blocks
+			}
 		}
 		
 		// Recursively check nested blocks if this block has children

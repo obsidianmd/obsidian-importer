@@ -6,7 +6,7 @@ import { sanitizeFileName, serializeFrontMatter } from '../util';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
-import { extractPageId, createPlaceholder, PlaceholderType } from './notion-api/utils';
+import { createPlaceholder, PlaceholderType } from './notion-api/utils';
 import { 
 	makeNotionRequest, 
 	fetchAllBlocks, 
@@ -16,7 +16,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
-import { processDatabasePlaceholders, convertChildDatabase, importDatabaseCore } from './notion-api/database-helpers';
+import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
@@ -24,9 +24,28 @@ export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
 
 export type BaseViewType = 'table' | 'cards' | 'list';
 
+// Notion API parent types (based on @notionhq/client internal types)
+type NotionParent = 
+	| { type: 'page_id', page_id: string }
+	| { type: 'data_source_id', data_source_id: string, database_id: string }
+	| { type: 'database_id', database_id: string }
+	| { type: 'workspace', workspace: true }
+	| { type: 'block_id', block_id: string };
+
+// Tree node for page/database selection
+interface NotionTreeNode {
+	id: string; // For pages: page ID; For databases: data_source ID
+	title: string;
+	type: 'page' | 'database';
+	parentId: string | null;
+	children: NotionTreeNode[];
+	selected: boolean;
+	disabled: boolean; // Disabled when parent is selected
+	collapsed: boolean; // Whether the node's children are collapsed
+}
+
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
-	pageId: string = '';
 	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
@@ -34,6 +53,10 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
+	// Page/database tree for selection
+	private pageTree: NotionTreeNode[] = [];
+	private pageTreeContainer: HTMLElement | null = null;
+	private listPagesButton: HTMLButtonElement | null = null;
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -67,7 +90,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Notion API Token input
 		new Setting(this.modal.contentEl)
-			.setName('Notion API Token')
+			.setName('Notion API token')
 			.setDesc(this.createTokenDescription())
 			.addText(text => text
 				.setPlaceholder('secret_...')
@@ -80,16 +103,48 @@ export class NotionAPIImporter extends FormatImporter {
 					textComponent.inputEl.type = 'password';
 				}));
 
-		// Page ID input
-		new Setting(this.modal.contentEl)
-			.setName('Page ID')
-			.setDesc(this.createPageIdDescription())
-			.addText(text => text
-				.setPlaceholder('Enter Notion page ID Or Page URL')
-				.setValue(this.pageId)
-				.onChange(value => {
-					this.pageId = value.trim();
-				}));
+		// List pages button
+		const listPagesSetting = new Setting(this.modal.contentEl)
+			.setName('Select pages to import')
+			.setDesc('Click the button below to list all pages and databases you can import.');
+		
+		listPagesSetting.addButton(button => {
+			button
+				.setButtonText('List importable pages')
+				.onClick(async () => {
+					try {
+						// Get button reference at click time
+						this.listPagesButton = button.buttonEl;
+						await this.loadPageTree();
+					}
+					catch (error) {
+						console.error('[Notion Importer] Error in loadPageTree:', error);
+						new Notice(`Failed to load pages: ${error.message}`);
+					}
+				});
+			// Also save initial reference
+			this.listPagesButton = button.buttonEl;
+		});
+
+		// Page tree container (initially visible with placeholder)
+		this.pageTreeContainer = this.modal.contentEl.createDiv();
+		this.pageTreeContainer.addClass('notion-page-tree-container');
+		this.pageTreeContainer.style.maxHeight = '260px';
+		this.pageTreeContainer.style.minHeight = '100px';
+		this.pageTreeContainer.style.overflowY = 'auto';
+		this.pageTreeContainer.style.border = '1px solid var(--background-modifier-border)';
+		this.pageTreeContainer.style.borderRadius = '4px';
+		this.pageTreeContainer.style.padding = '10px';
+		this.pageTreeContainer.style.marginTop = '10px';
+		this.pageTreeContainer.style.marginBottom = '10px';
+		
+		// Add placeholder text
+		const placeholder = this.pageTreeContainer.createDiv();
+		placeholder.addClass('notion-tree-placeholder');
+		placeholder.style.color = 'var(--text-muted)';
+		placeholder.style.textAlign = 'center';
+		placeholder.style.padding = '30px 10px';
+		placeholder.setText('Click "List importable pages" to load your Notion pages and databases.');
 
 		// Formula import strategy
 		new Setting(this.modal.contentEl)
@@ -131,8 +186,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Base view type setting
 		new Setting(this.modal.contentEl)
-			.setName('Database view type')
-			.setDesc(this.createBaseViewTypeDescription())
+			.setName('Default view type')
 			.addDropdown(dropdown => dropdown
 				.addOption('table', 'Table')
 				.addOption('cards', 'Cards')
@@ -154,7 +208,7 @@ export class NotionAPIImporter extends FormatImporter {
 		frag.appendText('Enter your Notion integration token. ');
 		frag.createEl('a', {
 			text: 'Learn how to get your token',
-			href: 'https://developers.notion.com/docs/create-a-notion-integration',
+			href: 'https://www.notion.so/profile/integrations',
 		});
 		frag.appendText('.');
 		return frag;
@@ -190,29 +244,6 @@ export class NotionAPIImporter extends FormatImporter {
 		return frag;
 	}
 
-	private createBaseViewTypeDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
-		frag.appendText('Choose the default view type for database .base files:');
-		frag.createEl('br');
-		frag.createEl('br');
-		frag.appendText('• Table: Default table view, suitable for all database types');
-		frag.createEl('br');
-		frag.appendText('• Cards: Best for pages with cover images');
-		frag.createEl('br');
-		frag.appendText('• List: Display pages as an unordered list');
-		return frag;
-	}
-
-	private createPageIdDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
-		frag.appendText('Enter the ID of the page you want to import. You can paste the full URL or just the ID. ');
-		frag.createEl('a', {
-			text: 'Learn how to find your page ID',
-			href: 'https://developers.notion.com/docs/working-with-page-content#creating-a-page-with-content',
-		});
-		frag.appendText('.');
-		return frag;
-	}
 
 	private createImportDescription(): DocumentFragment {
 		const frag = document.createDocumentFragment();
@@ -248,6 +279,477 @@ export class NotionAPIImporter extends FormatImporter {
 		return frag;
 	}
 
+	/**
+	 * Initialize Notion client if not already initialized
+	 */
+	private initializeNotionClient(): void {
+		if (this.notionClient) return;
+
+		this.notionClient = new Client({
+			auth: this.notionToken,
+			notionVersion: '2025-09-03',
+			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
+				const urlString = url.toString();
+				
+				try {
+					const response = await requestUrl({
+						url: urlString,
+						method: init?.method || 'GET',
+						headers: init?.headers as Record<string, string>,
+						body: init?.body as string | ArrayBuffer,
+						throw: false,
+					});
+					
+					// Convert Obsidian response to fetch Response format
+					return new Response(response.arrayBuffer, {
+						status: response.status,
+						statusText: response.status.toString(),
+						headers: new Headers(response.headers),
+					});
+				}
+				catch (error) {
+					console.error('Request failed:', error);
+					throw error;
+				}
+			},
+		});
+	}
+
+	/**
+	 * Load page tree from Notion API using search
+	 */
+	private async loadPageTree(): Promise<void> {
+		if (!this.notionToken) {
+			new Notice('Please enter your Notion API token first.');
+			return;
+		}
+
+		if (!this.listPagesButton) {
+			return;
+		}
+
+		// Disable button and show loading state
+		this.listPagesButton.disabled = true;
+		this.listPagesButton.setText('Loading...');
+
+		try {
+			this.initializeNotionClient();
+
+			// Create a minimal context for makeNotionRequest
+			const tempCtx = {
+				status: (msg: string) => {
+					// Update button text with status
+					if (this.listPagesButton) {
+						this.listPagesButton.setText(msg);
+					}
+				},
+				isCancelled: () => false,
+				reportFailed: (name: string, error: any) => {
+					console.error(`Failed: ${name}`, error);
+				},
+				statusMessage: '',
+			} as unknown as ImportContext;
+
+			// Search for all pages and databases with pagination
+			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
+			let cursor: string | undefined = undefined;
+			let pageCount = 0;
+
+			do {
+				pageCount++;
+				
+				// Update button text with progress
+				tempCtx.status(`Loading... (${allItems.length} items, page ${pageCount})`);
+
+				// Use makeNotionRequest for rate limiting and error handling
+				// Note: Not using filter to get both pages and databases
+				const response: any = await makeNotionRequest(
+					() => this.notionClient!.search({
+						start_cursor: cursor,
+						page_size: 100,
+					}),
+					tempCtx
+				);
+
+				// Process results immediately
+				for (const item of response.results) {
+					// Skip items with block_id parent - these are child pages/databases within blocks
+					// They will be imported automatically when their parent page is imported
+					if (item.parent && item.parent.type === 'block_id') {
+						continue;
+					}
+					
+					// Process page or data_source (database)
+					if (item.object === 'page' || item.object === 'data_source') {
+						const isDatabase = item.object === 'data_source';
+						const title = this.extractItemTitle(item, isDatabase ? 'Untitled Database' : 'Untitled');
+						const parentObj = isDatabase ? item.database_parent : item.parent;
+						const parentId = this.extractParentId(parentObj, isDatabase ? 'database' : 'page');
+						
+						allItems.push({
+							id: item.id,
+							title,
+							type: isDatabase ? 'database' : 'page',
+							parentId
+						});
+					}
+				}
+
+				cursor = response.has_more ? response.next_cursor : undefined;
+			} while (cursor);
+
+			// Build tree structure
+			this.pageTree = this.buildTree(allItems);
+
+			// Render tree
+			this.renderPageTree();
+
+			new Notice(`Found ${allItems.length} pages and databases.`);
+		}
+		catch (error) {
+			console.error('[Notion Importer] Failed to load pages:', error);
+			new Notice(`Failed to load pages: ${error.message || 'Unknown error'}`);
+		}
+		finally {
+			// Re-enable button
+			if (this.listPagesButton) {
+				this.listPagesButton.disabled = false;
+				this.listPagesButton.setText('Refresh list');
+			}
+		}
+	}
+
+	/**
+	 * Extract title from a Notion item (page or data_source)
+	 * Both use the same title array structure with rich text
+	 */
+	private extractItemTitle(item: any, defaultTitle: string = 'Untitled'): string {
+		let titleArray: any[] | undefined;
+		
+		// data_source has title directly
+		if (item.title) {
+			titleArray = item.title;
+		}
+		// page has title in properties object
+		// properties is an object where one of the keys has type: 'title'
+		else if (item.properties) {
+			// Find the property with type 'title'
+			for (const key in item.properties) {
+				const prop = item.properties[key];
+				if (prop.type === 'title' && prop.title) {
+					titleArray = prop.title;
+					break;
+				}
+			}
+		}
+		
+		if (!titleArray || !Array.isArray(titleArray)) {
+			return defaultTitle;
+		}
+		
+		const title = titleArray
+			.map((t: any) => t.text?.content || t.plain_text || '')
+			.join('')
+			.trim();
+		
+		return title || defaultTitle;
+	}
+
+	/**
+	 * Extract parent ID from a parent object (used for both page.parent and data_source.database_parent)
+	 * Note: Items with block_id parent should be filtered out before calling this
+	 */
+	private extractParentId(
+		parentObj: NotionParent | null | undefined,
+		context: 'page' | 'database'
+	): string | null {
+		if (!parentObj) {
+			return null;
+		}
+		
+		switch (parentObj.type) {
+			case 'page_id':
+				return parentObj.page_id;
+			
+			case 'data_source_id':
+				// Pages in a database have data_source_id as parent
+				return parentObj.data_source_id;
+			
+			case 'database_id':
+				// Databases can have database_id as parent (nested databases)
+				return parentObj.database_id;
+			
+			case 'workspace':
+				// Top-level item
+				return null;
+			
+			case 'block_id':
+				// This should have been filtered out before calling this function
+				console.warn(`[Notion Importer] block_id parent should be filtered before calling extractParentId`);
+				return null;
+			
+			default:
+				// TypeScript exhaustiveness check
+				const _exhaustive: never = parentObj;
+				console.warn(`[Notion Importer] Unexpected parent type for ${context}:`, _exhaustive);
+				return null;
+		}
+	}
+
+	/**
+	 * Find a node by ID in the tree (recursive search)
+	 */
+	private findNodeById(nodes: NotionTreeNode[], id: string): NotionTreeNode | null {
+		for (const node of nodes) {
+			if (node.id === id) {
+				return node;
+			}
+			if (node.children.length > 0) {
+				const found = this.findNodeById(node.children, id);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Build tree structure from flat list
+	 */
+	private buildTree(items: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }>): NotionTreeNode[] {
+		const nodeMap = new Map<string, NotionTreeNode>();
+		const roots: NotionTreeNode[] = [];
+
+		// Create all nodes
+		for (const item of items) {
+			nodeMap.set(item.id, {
+				id: item.id,
+				title: item.title,
+				type: item.type,
+				parentId: item.parentId,
+				children: [],
+				selected: false,
+				disabled: false,
+				collapsed: true, // Default to collapsed
+			});
+		}
+
+		// Build tree relationships
+		for (const node of nodeMap.values()) {
+			if (node.parentId && nodeMap.has(node.parentId)) {
+				const parent = nodeMap.get(node.parentId)!;
+				parent.children.push(node);
+			}
+			else {
+				// No parent or parent not in list -> root node
+				roots.push(node);
+			}
+		}
+
+		// Sort children by title
+		const sortNodes = (nodes: NotionTreeNode[]) => {
+			nodes.sort((a, b) => a.title.localeCompare(b.title));
+			for (const node of nodes) {
+				sortNodes(node.children);
+			}
+		};
+		sortNodes(roots);
+
+		return roots;
+	}
+
+	/**
+	 * Render page tree UI
+	 */
+	private renderPageTree(): void {
+		// Try to get container reference if lost
+		if (!this.pageTreeContainer) {
+			this.pageTreeContainer = this.modal.contentEl.querySelector('.notion-page-tree-container') as HTMLElement;
+		}
+		
+		if (!this.pageTreeContainer) {
+			console.error('[Notion Importer] Container not found!');
+			return;
+		}
+
+		this.pageTreeContainer.empty();
+
+		if (this.pageTree.length === 0) {
+			this.pageTreeContainer.createEl('div', {
+				text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
+				cls: 'notion-tree-empty'
+			});
+			return;
+		}
+		const treeEl = this.pageTreeContainer.createDiv('notion-tree');
+		for (const node of this.pageTree) {
+			this.renderTreeNode(treeEl, node, 0);
+		}
+	}
+
+	/**
+	 * Render a single tree node
+	 */
+	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
+		
+		const nodeEl = container.createDiv('notion-tree-node');
+		nodeEl.style.display = 'flex';
+		nodeEl.style.alignItems = 'center';
+		nodeEl.style.paddingTop = '4px';
+		nodeEl.style.paddingBottom = '4px';
+		nodeEl.style.paddingLeft = `${8 + level * 20}px`; // 8px base + 20px per level
+		nodeEl.style.paddingRight = '8px';
+		nodeEl.style.cursor = node.disabled ? 'not-allowed' : 'pointer';
+		
+		// Apply disabled styling
+		if (node.disabled) {
+			nodeEl.style.opacity = '0.5';
+			nodeEl.style.pointerEvents = 'none'; // Prevent clicking on the entire row
+		}
+
+		// Collapse/Expand arrow (only if has children)
+		if (node.children.length > 0) {
+			const arrow = nodeEl.createSpan();
+			arrow.setText(node.collapsed ? '▶' : '▼');
+			arrow.style.marginRight = '4px';
+			arrow.style.cursor = 'pointer';
+			arrow.style.userSelect = 'none';
+			arrow.style.fontSize = '10px';
+			arrow.style.width = '20px'; // Increased from 12px
+			arrow.style.height = '20px';
+			arrow.style.display = 'inline-flex';
+			arrow.style.alignItems = 'center';
+			arrow.style.justifyContent = 'center';
+			arrow.style.padding = '2px';
+			arrow.style.borderRadius = '3px';
+			
+			// Hover effect
+			arrow.addEventListener('mouseenter', () => {
+				arrow.style.backgroundColor = 'var(--background-modifier-hover)';
+			});
+			arrow.addEventListener('mouseleave', () => {
+				arrow.style.backgroundColor = 'transparent';
+			});
+			
+			// Allow arrow click even when disabled (to expand/collapse)
+			// But need to override the pointerEvents: none from parent
+			if (node.disabled) {
+				arrow.style.pointerEvents = 'auto';
+			}
+			
+			arrow.addEventListener('click', (e) => {
+				e.stopPropagation(); // Prevent triggering row click
+				node.collapsed = !node.collapsed;
+				this.renderPageTree(); // Re-render to show/hide children
+			});
+		}
+		else {
+			// Add spacing for nodes without children to align with those that have arrows
+			const spacer = nodeEl.createSpan();
+			spacer.style.width = '24px'; // Match arrow width (20px) + marginRight (4px)
+			spacer.style.display = 'inline-block';
+		}
+
+		// Checkbox
+		const checkbox = nodeEl.createEl('input', { type: 'checkbox' });
+		checkbox.checked = node.selected;
+		checkbox.disabled = node.disabled;
+		checkbox.style.marginRight = '8px';
+		checkbox.style.cursor = node.disabled ? 'not-allowed' : 'pointer';
+		
+		if (!node.disabled) {
+			checkbox.addEventListener('change', () => {
+				this.toggleNodeSelection(node, checkbox.checked);
+				this.renderPageTree(); // Re-render to update disabled states
+			});
+		}
+
+		// Icon
+		const icon = nodeEl.createSpan();
+		icon.style.marginRight = '6px';
+		if (node.type === 'database') {
+			icon.setText('🗄️');
+		}
+		else {
+			icon.setText(node.children.length > 0 ? '📁' : '📄');
+		}
+
+		// Title
+		const title = nodeEl.createSpan();
+		title.setText(node.title);
+		title.style.flex = '1';
+
+		// Render children (only if not collapsed)
+		if (node.children.length > 0 && !node.collapsed) {
+			for (const child of node.children) {
+				this.renderTreeNode(container, child, level + 1);
+			}
+		}
+	}
+
+	/**
+	 * Toggle node selection and update children/parent states
+	 */
+	private toggleNodeSelection(node: NotionTreeNode, selected: boolean): void {
+		node.selected = selected;
+
+		// If selected, disable and select all children
+		if (selected) {
+			// Expand the node to show children
+			if (node.children.length > 0) {
+				node.collapsed = false;
+			}
+			this.selectAllChildren(node, true);
+		}
+		// If deselected, enable all children (but keep them deselected)
+		else {
+			this.enableAllChildren(node);
+		}
+	}
+
+	/**
+	 * Select/deselect all children recursively
+	 */
+	private selectAllChildren(node: NotionTreeNode, selected: boolean): void {
+		for (const child of node.children) {
+			child.selected = selected;
+			child.disabled = selected;
+			this.selectAllChildren(child, selected);
+		}
+	}
+
+	/**
+	 * Enable all children recursively (remove disabled state)
+	 */
+	private enableAllChildren(node: NotionTreeNode): void {
+		for (const child of node.children) {
+			child.disabled = false;
+			child.selected = false;
+			this.enableAllChildren(child);
+		}
+	}
+
+	/**
+	 * Get all selected node IDs (flattened)
+	 */
+	private getSelectedNodeIds(): string[] {
+		const selected: string[] = [];
+		
+		const collectSelected = (nodes: NotionTreeNode[]) => {
+			for (const node of nodes) {
+				// Only collect nodes that are directly selected by user (not disabled)
+				// Disabled nodes are auto-selected because their parent is selected
+				// and will be imported recursively with their parent
+				if (node.selected && !node.disabled) {
+					selected.push(node.id);
+				}
+				collectSelected(node.children);
+			}
+		};
+		
+		collectSelected(this.pageTree);
+		return selected;
+	}
+
 	async import(ctx: ImportContext): Promise<void> {
 		// Validate inputs
 		if (!this.notionToken) {
@@ -255,8 +757,10 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		if (!this.pageId) {
-			new Notice('Please enter a Notion page ID.');
+		// Get selected pages/databases
+		const selectedIds = this.getSelectedNodeIds();
+		if (selectedIds.length === 0) {
+			new Notice('Please select at least one page or database to import.');
 			return;
 		}
 
@@ -266,47 +770,11 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		// Extract Page ID (if user pasted full URL)
-		const extractedPageId = extractPageId(this.pageId);
-		if (!extractedPageId) {
-			new Notice('Invalid page ID or URL format.');
-			return;
-		}
-
 		ctx.status('Connecting to Notion API...');
 
 		try {
-			// Initialize Notion client with latest API version
-			// Using 2025-09-03 for better database/data source support
-			// Use Obsidian's requestUrl instead of fetch to avoid context issues in some environments
-			this.notionClient = new Client({ 
-				auth: this.notionToken,
-				notionVersion: '2025-09-03',
-				fetch: async (url: RequestInfo | URL, init?: RequestInit) => { // we need custom fetch to avoid context issues in some environments
-					const urlString = url.toString();
-					
-					try {
-						const response = await requestUrl({
-							url: urlString,
-							method: init?.method || 'GET',
-							headers: init?.headers as Record<string, string>,
-							body: init?.body as string | ArrayBuffer,
-							throw: false,
-						});
-						
-						// Convert Obsidian response to fetch Response format
-						return new Response(response.arrayBuffer, {
-							status: response.status,
-							statusText: response.status.toString(),
-							headers: new Headers(response.headers),
-						});
-					}
-					catch (error) {
-						console.error('Request failed:', error);
-						throw error;
-					}
-				},
-			});
+			// Initialize Notion client
+			this.initializeNotionClient();
 
 			ctx.status('Fetching page content from Notion...');
 		
@@ -323,27 +791,47 @@ export class NotionAPIImporter extends FormatImporter {
 			// Save output root path for database handling
 			this.outputRootPath = folder.path;
 		
-			// Check if the input is a database or a page by retrieving block info
-			ctx.status('Checking block type...');
-			const block = await makeNotionRequest(
-				() => this.notionClient!.blocks.retrieve({ block_id: extractedPageId }) as Promise<any>,
-				ctx
-			);
-		
-			// Check block type and handle accordingly
-			if (block.type === 'child_database') {
-				// It's a database! Import it as a top-level database
-				ctx.status('Input is a database, importing as top-level database...');
-				await this.importTopLevelDatabase(ctx, extractedPageId, folder.path, true); // isRootImport = true
-			}
-			else if (block.type === 'child_page') {
-			// It's a child page, import as page
-				ctx.status('Input is a page, importing...');
-				await this.fetchAndImportPage(ctx, extractedPageId, folder.path);
-			}
-			else {
-			// Other block types (paragraph, heading, etc.) are not supported as entry points
-				throw new Error(`Unsupported block type: ${block.type}. Please provide a page ID or database ID.`);
+			// Import all selected pages/databases
+			ctx.status(`Importing ${selectedIds.length} item(s)...`);
+			
+			for (let i = 0; i < selectedIds.length; i++) {
+				if (ctx.isCancelled()) break;
+				
+				const itemId = selectedIds[i];
+				ctx.status(`Importing item ${i + 1}/${selectedIds.length}...`);
+				
+				try {
+					// Find the node in the tree to determine its type
+					const node = this.findNodeById(this.pageTree, itemId);
+					
+					if (!node) {
+						console.warn(`Could not find node with ID: ${itemId}`);
+						ctx.reportFailed(`Import item ${itemId}`, 'Item not found in tree');
+						continue;
+					}
+					
+					if (node.type === 'database') {
+					// It's a database (data_source)!
+					// Use the data_source ID directly - no need to call databases.retrieve()
+					// The importDatabaseCore will use this as data_source_id
+						await this.importTopLevelDatabase(ctx, itemId, folder.path, {
+							isDataSourceId: true
+						});
+					}
+					else if (node.type === 'page') {
+						// It's a page, import as page
+						await this.fetchAndImportPage(ctx, itemId, folder.path);
+					}
+					else {
+						console.warn(`Unknown node type: ${node.type} (ID: ${itemId})`);
+						ctx.reportFailed(`Import item ${itemId}`, `Unknown type: ${node.type}`);
+					}
+				}
+				catch (error) {
+					console.error(`Failed to import item ${itemId}:`, error);
+					ctx.reportFailed(`Import item ${itemId}`, error);
+					// Continue with next item
+				}
 			}
 		
 			// After all pages are imported, replace relation placeholders
@@ -375,23 +863,22 @@ export class NotionAPIImporter extends FormatImporter {
 	 * The fake block only needs the 'id' and 'type' fields, as the rest of the information is fetched
 	 * from the Notion API inside convertChildDatabase().
 	 */
-	private async importTopLevelDatabase(ctx: ImportContext, databaseId: string, parentPath: string, isRootImport: boolean = false): Promise<void> {
+	private async importTopLevelDatabase(
+		ctx: ImportContext,
+		databaseId: string,
+		parentPath: string,
+		options: {
+			isDataSourceId?: boolean;
+		} = {}
+	): Promise<void> {
 		if (ctx.isCancelled()) return;
 		
-		try {
-		// Create a minimal block object that satisfies convertChildDatabase()'s requirements
-		// Only 'id' and 'type' are actually used by the function
-			const fakeBlock: any = {
-				id: databaseId,
-				type: 'child_database',
-				child_database: {
-					title: 'Database'  // Placeholder, will be replaced by actual title from API
-				}
-			};
+		const { isDataSourceId = false } = options;
 		
-			// Import the database using the existing logic
-			await convertChildDatabase(
-				fakeBlock,
+		try {
+			// Import the database directly using importDatabaseCore
+			await importDatabaseCore(
+				databaseId,
 				{
 					ctx,
 					currentPageFolderPath: parentPath,
@@ -409,7 +896,8 @@ export class NotionAPIImporter extends FormatImporter {
 					onPagesDiscovered: (count: number) => {
 						// Callback provided but not used - progress is reported per page/attachment
 					}
-				}
+				},
+				isDataSourceId // Pass the flag to indicate if this is a data_source_id
 			);
 		}
 		catch (error) {
