@@ -1089,7 +1089,12 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		
 			// Extract all other properties from the page
-			const extractedProps = extractFrontMatter(page, this.formulaStrategy);
+			const extractedProps = await extractFrontMatter({
+				page,
+				formulaStrategy: this.formulaStrategy,
+				client: this.notionClient!,
+				ctx
+			});
 			// Merge extracted properties (skip notion-id as we already added it)
 			for (const key in extractedProps) {
 				if (key !== 'notion-id') {

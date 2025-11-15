@@ -1298,7 +1298,17 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			return `[${title}](${url})`;
 		
 		case 'user':
-			// Render user as plain text with spaces
+		// Render user as markdown link with email if available
+			const user = mention.user;
+			if (user) {
+				const userName = user.name || richText.plain_text || '';
+				// Check if user has email
+				if (user.type === 'person' && user.person?.email) {
+					return ` [${userName}](mailto:${user.person.email}) `;
+				}
+				return ` ${userName} `;
+			}
+			// Fallback to plain text
 			const userName = richText.plain_text || '';
 			return ` ${userName} `;
 		

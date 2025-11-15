@@ -279,14 +279,31 @@ export function extractPageTitle(page: PageObjectResponse): string {
  * @param databaseProperties - Database property schema (for checking if formulas can be converted)
  */
 /**
- * @param databaseProperties - Using 'any' because database property schema has many variants
+ * Parameters for extractFrontMatter function
+ */
+export interface ExtractFrontMatterParams {
+	page: PageObjectResponse;
+	formulaStrategy?: 'static' | 'function' | 'hybrid';
+	databaseProperties?: any;
+	client?: Client;
+	ctx?: ImportContext;
+}
+
+/**
+ * Extract frontmatter from a Notion page
+ * @param params - Parameters object
  * @returns Using 'any' for values because page properties can be of many different types
  */
-export function extractFrontMatter(
-	page: PageObjectResponse, 
-	formulaStrategy: 'static' | 'function' | 'hybrid' = 'function',
-	databaseProperties?: any
-): Record<string, any> {
+export async function extractFrontMatter(
+	params: ExtractFrontMatterParams
+): Promise<Record<string, any>> {
+	const { 
+		page, 
+		formulaStrategy = 'function', 
+		databaseProperties, 
+		client, 
+		ctx 
+	} = params;
 	// Using 'any' for frontMatter values because page properties have many different types
 	const frontMatter: Record<string, any> = {
 		'notion-id': page.id,
@@ -329,6 +346,15 @@ export function extractFrontMatter(
 				if (value !== null && value !== undefined) {
 					frontMatter[key] = value;
 				}
+			}
+			continue;
+		}
+		
+		// Handle people properties with user lookup
+		if (prop.type === 'people' && client && ctx) {
+			const value = await mapPeoplePropertyToFrontmatter(prop, client, ctx);
+			if (value !== null && value !== undefined) {
+				frontMatter[key] = value;
 			}
 			continue;
 		}
@@ -394,6 +420,64 @@ function shouldAddFormulaToYAML(
 	
 	// Cannot be converted or no database properties, add to YAML
 	return true;
+}
+
+/**
+ * Map a people property to frontmatter value with user lookup
+ * Fetches full user information and returns only names
+ * Note: YAML frontmatter doesn't support markdown syntax, so we only store the name
+ * Email links are preserved in content mentions (user @mentions in text)
+ * @param prop - People property from Notion page
+ * @param client - Notion client for API calls
+ * @param ctx - Import context for status updates
+ * @returns Array of user names
+ */
+async function mapPeoplePropertyToFrontmatter(
+	prop: any,
+	client: Client,
+	ctx: ImportContext
+): Promise<string[]> {
+	if (!prop.people || !Array.isArray(prop.people)) {
+		return [];
+	}
+	
+	const results: string[] = [];
+	
+	for (const person of prop.people) {
+		// If person has full info (name), use it directly
+		if (person.name) {
+			results.push(person.name);
+		}
+		// If only has ID, fetch full user info
+		else if (person.object === 'user' && person.id) {
+			try {
+				const user = await makeNotionRequest(
+					() => client.users.retrieve({ user_id: person.id }),
+					ctx
+				);
+				
+				if (user && 'name' in user) {
+					const userName = user.name || user.id;
+					results.push(userName);
+				}
+				else {
+					// Fallback to ID
+					results.push(person.id);
+				}
+			}
+			catch (error) {
+				console.warn(`Failed to fetch user ${person.id}:`, error);
+				// Fallback to ID
+				results.push(person.id);
+			}
+		}
+		else {
+			// Fallback to ID
+			results.push(person.id);
+		}
+	}
+	
+	return results;
 }
 
 /**
