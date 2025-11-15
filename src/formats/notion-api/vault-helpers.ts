@@ -26,12 +26,12 @@ export async function pageExistsInVault(app: App, vault: Vault, notionId: string
  * Get a unique folder path by appending (1), (2), etc. if needed
  */
 export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName: string): string {
-	let basePath = `${parentPath}/${folderName}`;
+	let basePath = normalizePath(`${parentPath}/${folderName}`);
 	let finalPath = basePath;
 	let counter = 1;
 	
-	while (vault.getAbstractFileByPath(normalizePath(finalPath))) {
-		finalPath = `${basePath} (${counter})`;
+	while (vault.getAbstractFileByPath(finalPath)) {
+		finalPath = normalizePath(`${parentPath}/${folderName} (${counter})`);
 		counter++;
 	}
 	
@@ -42,20 +42,20 @@ export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName
  * Get a unique file path by appending (1), (2), etc. if needed
  */
 export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
-	let basePath = `${parentPath}/${fileName}`;
+	let basePath = normalizePath(`${parentPath}/${fileName}`);
 	let finalPath = basePath;
 	let counter = 1;
 	
-	while (vault.getAbstractFileByPath(normalizePath(finalPath))) {
+	while (vault.getAbstractFileByPath(finalPath)) {
 		// Insert counter before file extension
 		const lastDotIndex = fileName.lastIndexOf('.');
 		if (lastDotIndex > 0) {
 			const nameWithoutExt = fileName.substring(0, lastDotIndex);
 			const ext = fileName.substring(lastDotIndex);
-			finalPath = `${parentPath}/${nameWithoutExt} (${counter})${ext}`;
+			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} (${counter})${ext}`);
 		}
 		else {
-			finalPath = `${parentPath}/${fileName} (${counter})`;
+			finalPath = normalizePath(`${parentPath}/${fileName} (${counter})`);
 		}
 		counter++;
 	}

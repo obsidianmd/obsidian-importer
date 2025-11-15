@@ -1,4 +1,4 @@
-import { Notice, Setting, normalizePath, requestUrl, TFile } from 'obsidian';
+import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -15,7 +15,7 @@ import {
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { pageExistsInVault, getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
+import { getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
@@ -50,6 +50,7 @@ export class NotionAPIImporter extends FormatImporter {
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	baseViewType: BaseViewType = 'table'; // Default view type for .base files
+	incrementalImport: boolean = true; // Incremental import: skip files with same notion-id
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -101,6 +102,16 @@ export class NotionAPIImporter extends FormatImporter {
 				.then(textComponent => {
 					// Set as password input
 					textComponent.inputEl.type = 'password';
+				}));
+
+		// Incremental import setting
+		new Setting(this.modal.contentEl)
+			.setName('Incremental import')
+			.setDesc('Skip files that already exist with the same notion-id. Disable to always import (will rename duplicates).')
+			.addToggle(toggle => toggle
+				.setValue(true) // Default to enabled
+				.onChange(value => {
+					this.incrementalImport = value;
 				}));
 
 		// List pages button
@@ -944,13 +955,10 @@ export class NotionAPIImporter extends FormatImporter {
 			// Cache the root page blocks immediately
 			blocksCache.set(pageId, blocks);
 		
-			// Check if page already exists in vault (by notion-id)
-			if (await pageExistsInVault(this.app, this.vault, pageId)) {
-				ctx.reportSkipped(sanitizedTitle, 'already exists in vault (notion-id match)');
-				// Skipped pages are counted separately in ctx.skipped array
-				// They are NOT counted in pagesImported/notes
-				return;
-			}
+			// Note: We no longer check pageExistsInVault here because:
+			// 1. For incremental import, we need to check the specific file path (not global vault search)
+			// 2. This allows re-importing deleted files while skipping existing ones at the correct location
+			// The incremental import check happens later when determining the file path
 		
 			// Check if page has child pages or child databases (recursively check nested blocks)
 			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
@@ -960,19 +968,48 @@ export class NotionAPIImporter extends FormatImporter {
 			// Determine file structure based on whether page has children
 			let pageFolderPath: string; // Folder for child pages/databases
 			let mdFilePath: string;
+			let shouldSkipParentFile = false; // Flag to track if parent file should be skipped
 		
 			if (hasChildren) {
 			// Create folder structure for pages with children
 			// The folder will contain the page content file and child pages/databases
-				pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
-				await this.createFolders(pageFolderPath);
-				mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;
+			// For incremental import: reuse existing folder if it exists, otherwise create a unique one
+				const baseFolderPath = normalizePath(parentPath ? `${parentPath}/${sanitizedTitle}` : sanitizedTitle);
+				const existingFolder = this.vault.getAbstractFileByPath(baseFolderPath);
+			
+				if (existingFolder instanceof TFolder) {
+				// Reuse existing folder for incremental import
+					pageFolderPath = baseFolderPath;
+				}
+				else {
+				// Create new folder with unique name if needed
+					pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
+					await this.createFolders(pageFolderPath);
+				}
+			
+				// Check for incremental import
+				const fileName = `${sanitizedTitle}.md`;
+				const potentialFilePath = normalizePath(`${pageFolderPath}/${fileName}`);
+				shouldSkipParentFile = await this.shouldSkipFileForIncrementalImport(potentialFilePath, pageId, ctx);
+			
+				mdFilePath = potentialFilePath;
 			}
 			else {
 			// Create file directly for pages without children
 			// No folder needed since there are no child pages or databases
 				pageFolderPath = parentPath;
-				mdFilePath = getUniqueFilePath(this.vault, parentPath, `${sanitizedTitle}.md`);
+				// Check for incremental import before creating file
+				const filePathOrNull = await this.getUniqueFilePathWithIncrementalCheck(
+					parentPath,
+					`${sanitizedTitle}.md`,
+					pageId,
+					ctx
+				);
+				if (!filePathOrNull) {
+				// File skipped due to incremental import (no children, so nothing else to do)
+					return;
+				}
+				mdFilePath = filePathOrNull;
 			}
 		
 			// Extract the folder path from the markdown file path for attachments
@@ -1131,28 +1168,30 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 			
-			// Create the markdown file
-			const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
-	
-			await this.vault.create(normalizePath(mdFilePath), fullContent);
-	
-			// Update progress: page imported successfully
-			this.pagesImported++;
-			ctx.notes = this.pagesImported;
-			ctx.reportProgressIndeterminate(this.pagesImported);
-	
-			// Record page ID to path mapping for mention replacement
-			// Store path without extension for wiki link generation
-			const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
-			this.notionIdToPath.set(pageId, pathWithoutExt);
-		
-			// Record mention placeholders if any mentions were found
-			// Use file path as key for O(1) lookup during replacement
-			if (mentionedIds.size > 0) {
-				this.mentionPlaceholders.set(mdFilePath, mentionedIds);
+			// Create the markdown file (only if not skipped)
+			if (!shouldSkipParentFile) {
+				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
+
+				await this.vault.create(normalizePath(mdFilePath), fullContent);
+
+				// Update progress: page imported successfully
+				this.pagesImported++;
+				ctx.notes = this.pagesImported;
+				ctx.reportProgressIndeterminate(this.pagesImported);
+
+				// Record page ID to path mapping for mention replacement
+				// Store path without extension for wiki link generation
+				const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
+				this.notionIdToPath.set(pageId, pathWithoutExt);
+			
+				// Record mention placeholders if any mentions were found
+				// Use file path as key for O(1) lookup during replacement
+				if (mentionedIds.size > 0) {
+					this.mentionPlaceholders.set(mdFilePath, mentionedIds);
+				}
 			}
-	
-			// Progress already updated above after successful creation
+			// Note: Even if parent file is skipped, child pages have already been processed
+			// by the importPageCallback in convertBlocksToMarkdown
 			
 		}
 		catch (error) {
@@ -1634,6 +1673,85 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	
 		ctx.status(`Replaced ${replacedCount} synced child references in ${filesModified} files (imported ${importedCount} new items).`);
+	}
+
+	/**
+	 * Check if a file should be skipped for incremental import
+	 * @param filePath - Path to the file to check
+	 * @param notionId - Notion ID of the page being imported
+	 * @param ctx - Import context for reporting
+	 * @returns true if file should be skipped, false otherwise
+	 */
+	private async shouldSkipFileForIncrementalImport(
+		filePath: string,
+		notionId: string,
+		ctx: ImportContext
+	): Promise<boolean> {
+		// If not incremental import, never skip
+		if (!this.incrementalImport) {
+			return false;
+		}
+
+		// Check if file exists
+		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+		if (!file || !(file instanceof TFile)) {
+			return false; // File doesn't exist, don't skip
+		}
+
+		// Read file and extract notion-id from frontmatter
+		try {
+			const content = await this.vault.read(file);
+			const notionIdMatch = content.match(/^notion-id:\s*(.+)$/m);
+			
+			if (notionIdMatch) {
+				const existingNotionId = notionIdMatch[1].trim();
+				if (existingNotionId === notionId) {
+					// Same notion-id, skip this file
+					const { basename } = parseFilePath(filePath);
+					ctx.reportSkipped(basename, 'already exists with same notion-id (incremental import)');
+					return true;
+				}
+			}
+			// Different notion-id or no notion-id, don't skip (will rename)
+			return false;
+		}
+		catch (error) {
+			console.error(`Failed to read file ${filePath} for incremental check:`, error);
+			return false; // On error, don't skip
+		}
+	}
+
+	/**
+	 * Get unique file path with incremental import check
+	 * @param parentPath - Parent folder path
+	 * @param fileName - File name
+	 * @param notionId - Notion ID of the page being imported
+	 * @param ctx - Import context for reporting
+	 * @returns File path or null if should be skipped
+	 */
+	private async getUniqueFilePathWithIncrementalCheck(
+		parentPath: string,
+		fileName: string,
+		notionId: string,
+		ctx: ImportContext
+	): Promise<string | null> {
+		const basePath = parentPath ? `${parentPath}/${fileName}` : fileName;
+		
+		// Check if base path should be skipped
+		const shouldSkip = await this.shouldSkipFileForIncrementalImport(basePath, notionId, ctx);
+		if (shouldSkip) {
+			return null;
+		}
+
+		// If file doesn't exist, return base path
+		const file = this.vault.getAbstractFileByPath(normalizePath(basePath));
+		if (!file) {
+			return basePath;
+		}
+
+		// File exists but has different notion-id (or no notion-id)
+		// Use standard unique path logic
+		return getUniqueFilePath(this.vault, parentPath, fileName);
 	}
 	
 }

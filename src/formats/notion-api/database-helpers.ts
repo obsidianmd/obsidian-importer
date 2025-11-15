@@ -10,7 +10,7 @@ import {
 	PageObjectResponse,
 	PartialPageObjectResponse
 } from '@notionhq/client';
-import { normalizePath, stringifyYaml, BasesConfigFile } from 'obsidian';
+import { normalizePath, stringifyYaml, BasesConfigFile, TFolder, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
@@ -244,8 +244,20 @@ export async function importDatabaseCore(
 	
 	// Only create database folder after successfully validating data source and querying pages
 	// This prevents creating empty folders for linked databases or databases with permission errors
-	const databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
-	await vault.createFolder(normalizePath(databaseFolderPath));
+	// For incremental import: reuse existing folder if it exists, otherwise create a unique one
+	const baseFolderPath = normalizePath(currentPageFolderPath ? `${currentPageFolderPath}/${sanitizedTitle}` : sanitizedTitle);
+	const existingFolder = vault.getAbstractFileByPath(baseFolderPath);
+	
+	let databaseFolderPath: string;
+	if (existingFolder instanceof TFolder) {
+		// Reuse existing folder for incremental import
+		databaseFolderPath = baseFolderPath;
+	}
+	else {
+		// Create new folder with unique name if needed
+		databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
+		await vault.createFolder(normalizePath(databaseFolderPath));
+	}
 	
 	// Import each database page
 	for (const page of databasePages) {
@@ -330,10 +342,18 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		coverPropertyName
 	});
 	
-	// Create .base file
+	// Create or update .base file
 	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
 	
-	// Check if file already exists, if so, add number suffix
+	// For incremental import: update existing .base file if it exists
+	const existingFile = vault.getAbstractFileByPath(baseFilePath);
+	if (existingFile instanceof TFile) {
+		// Update existing .base file with latest database properties
+		await vault.modify(existingFile, baseContent);
+		return baseFilePath;
+	}
+	
+	// File doesn't exist, create new one with unique name if needed
 	let finalPath = baseFilePath;
 	let counter = 1;
 	while (vault.getAbstractFileByPath(finalPath)) {

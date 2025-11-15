@@ -143,7 +143,7 @@ function getAttachmentFolderPath(vault: Vault, currentFolderPath: string): strin
 		const subfolderName = attachmentFolderPath.substring(2);
 		if (subfolderName) {
 			// Case 4: In subfolder under current folder (e.g., "./aaa")
-			return currentFolderPath ? `${currentFolderPath}/${subfolderName}` : subfolderName;
+			return normalizePath(currentFolderPath ? `${currentFolderPath}/${subfolderName}` : subfolderName);
 		}
 		else {
 			// Case 3: Same folder as current file (just "./")
