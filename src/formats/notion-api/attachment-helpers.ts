@@ -69,7 +69,7 @@ export async function downloadAttachment(
 		}
 		
 		// Get attachment folder path from vault settings
-		const attachmentFolderPath = getAttachmentFolderPath(vault);
+		const attachmentFolderPath = getAttachmentFolderPath(vault, context.currentFolderPath);
 		
 		// Get unique file path to avoid conflicts
 		const filePath = getUniqueAttachmentPath(vault, attachmentFolderPath, filename);
@@ -120,22 +120,44 @@ function extractFilenameFromUrl(url: string): string {
 
 /**
  * Get attachment folder path from vault settings
+ * @param vault - Obsidian vault
+ * @param currentFolderPath - Current file's folder path
+ * @returns Attachment folder path
+ * 
+ * Obsidian attachment settings (4 options):
+ * 1. Vault folder: attachmentFolderPath = '/' or ''
+ * 2. In the folder specified below: attachmentFolderPath = user specified path (e.g., 'assets')
+ *    - Does NOT start with './'
+ * 3. Same folder as current file: attachmentFolderPath = './'
+ * 4. In subfolder under current folder: attachmentFolderPath = './subfoldername' (e.g., './aaa')
+ *    - Starts with './' followed by the subfolder name
  */
-function getAttachmentFolderPath(vault: Vault): string {
+function getAttachmentFolderPath(vault: Vault, currentFolderPath: string): string {
 	// Get attachment folder setting from vault config
 	// @ts-ignore - accessing internal API
-	const config = vault.getConfig('attachmentFolderPath');
+	const attachmentFolderPath = vault.getConfig('attachmentFolderPath');
 	
-	if (config === './') {
-		// Same folder as current file - we'll use root for now
-		return '';
+	// Case 3 & 4: Paths starting with "./" (relative to current file)
+	if (attachmentFolderPath && attachmentFolderPath.startsWith('./')) {
+		// Extract subfolder name from path like "./aaa" -> "aaa"
+		const subfolderName = attachmentFolderPath.substring(2);
+		if (subfolderName) {
+			// Case 4: In subfolder under current folder (e.g., "./aaa")
+			return currentFolderPath ? `${currentFolderPath}/${subfolderName}` : subfolderName;
+		}
+		else {
+			// Case 3: Same folder as current file (just "./")
+			return currentFolderPath || '';
+		}
 	}
-	else if (config && config !== '/') {
-		// Specific folder
-		return config;
+	// Case 2: In the folder specified below (custom absolute/relative path)
+	// User can specify any path like 'assets', 'files/attachments', etc.
+	// This does NOT start with "./"
+	else if (attachmentFolderPath && attachmentFolderPath !== '/' && attachmentFolderPath !== '') {
+		return attachmentFolderPath;
 	}
+	// Case 1: Vault folder (root)
 	else {
-		// Root folder
 		return '';
 	}
 }

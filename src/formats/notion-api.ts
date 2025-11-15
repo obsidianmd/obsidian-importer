@@ -958,22 +958,26 @@ export class NotionAPIImporter extends FormatImporter {
 			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
 			
 			// Determine file structure based on whether page has children
-			let pageFolderPath: string;
+			let pageFolderPath: string; // Folder for child pages/databases
 			let mdFilePath: string;
-			
+		
 			if (hasChildren) {
-				// Create folder structure for pages with children
-				// The folder will contain the page content file and child pages/databases
+			// Create folder structure for pages with children
+			// The folder will contain the page content file and child pages/databases
 				pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
 				await this.createFolders(pageFolderPath);
 				mdFilePath = `${pageFolderPath}/${sanitizedTitle}.md`;
 			}
 			else {
-				// Create file directly for pages without children
-				// No folder needed since there are no child pages or databases
+			// Create file directly for pages without children
+			// No folder needed since there are no child pages or databases
 				pageFolderPath = parentPath;
 				mdFilePath = getUniqueFilePath(this.vault, parentPath, `${sanitizedTitle}.md`);
 			}
+		
+			// Extract the folder path from the markdown file path for attachments
+			// This ensures attachments are placed relative to where the file actually is
+			const { parent: currentFileFolderPath } = parseFilePath(mdFilePath);
 			
 			// Convert blocks to markdown with nested children support
 			// Pass the blocksCache to reuse already fetched blocks
@@ -982,7 +986,7 @@ export class NotionAPIImporter extends FormatImporter {
 		
 			let markdownContent = await convertBlocksToMarkdown(blocks, {
 				ctx,
-				currentFolderPath: pageFolderPath,
+				currentFolderPath: currentFileFolderPath,
 				client: this.notionClient!,
 				vault: this.vault,
 				downloadExternalAttachments: this.downloadExternalAttachments,
@@ -1074,7 +1078,7 @@ export class NotionAPIImporter extends FormatImporter {
 						},
 						{
 							ctx,
-							currentFolderPath: pageFolderPath,
+							currentFolderPath: currentFileFolderPath,
 							client: this.notionClient!,
 							vault: this.vault,
 							downloadExternalAttachments: true, // Always download cover images
