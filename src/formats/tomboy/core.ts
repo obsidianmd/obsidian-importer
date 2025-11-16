@@ -133,12 +133,12 @@ export class TomboyCoreConverter {
 		const tagsElement = doc.querySelector('tags');
 		const tags = tagsElement?.textContent ? tagsElement.textContent.split(',').map(tag => tag.trim()) : [];
 
-	// Parse date elements
-	const createDateElement = doc.querySelector('create-date');
-	const lastChangeDateElement = doc.querySelector('last-change-date');
+		// Parse date elements
+		const createDateElement = doc.querySelector('create-date');
+		const lastChangeDateElement = doc.querySelector('last-change-date');
 
-	const createDate = this.parseTomboyDate(createDateElement?.textContent ?? undefined);
-	const lastChangeDate = this.parseTomboyDate(lastChangeDateElement?.textContent ?? undefined);
+		const createDate = this.parseTomboyDate(createDateElement?.textContent ?? undefined);
+		const lastChangeDate = this.parseTomboyDate(lastChangeDateElement?.textContent ?? undefined);
 
 		return { title, content, tags, createDate, lastChangeDate };
 	}

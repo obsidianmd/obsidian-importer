@@ -7,6 +7,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
@@ -202,6 +203,22 @@ export class ImportContext {
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
+	/**
+	 * Report progress when total count is unknown (indeterminate progress).
+	 * Only shows imported count, hides remaining count.
+	 * @param current - Number of items imported so far
+	 */
+	reportProgressIndeterminate(current: number) {
+		console.log('Imported:', current);
+		// Update imported count
+		this.importedCountEl.setText(current.toString());
+		// Hide remaining count (show dash to indicate unknown)
+		this.remainingCountEl.setText('-');
+		// Show indeterminate progress bar (full width)
+		// Note: You can add CSS animation for pulsing effect if desired
+		this.progressBarInnerEl.style.width = '100%';
+	}
+
 	cancel() {
 		this.cancelled = true;
 		this.progressBarEl.hide();
@@ -292,6 +309,13 @@ export default class ImporterPlugin extends Plugin {
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
+			},
+			'notion-api': {
+				name: 'Notion (via API)',
+				optionText: 'Notion (via API)',
+				importer: NotionAPIImporter,
+				helpPermalink: 'import/notion',
+				formatDescription: 'Import your Notion pages/databases from API.',
 			},
 			'roam-json': {
 				name: 'Roam Research',
