@@ -5,6 +5,7 @@ import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
+import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -553,6 +554,7 @@ export class OneNoteImporter extends FormatImporter {
 			this.styledElementToHTML(html);
 			this.convertInternalLinks(html);
 			this.convertDrawings(html);
+			this.convertMathML(html); // Convert MathML to LaTeX before text escaping
 			this.removeExtraListItemParagraphs(html);
 			this.escapeTextNodes(html);
 
@@ -574,9 +576,52 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
+	/** Convert MathML elements to LaTeX format for Obsidian */
+	convertMathML(pageElement: HTMLElement): void {
+		const mathElements = Array.from(pageElement.querySelectorAll('math'));
+
+		for (const mathElement of mathElements) {
+			try {
+				// Get the MathML as a string
+				const mathMLString = mathElement.outerHTML;
+
+				// Convert MathML to LaTeX using mathml2latex
+				const latexString = MathMLToLaTeX.convert(mathMLString);
+
+				// Create the appropriate LaTeX syntax for Obsidian.
+				//
+				// MathML exported from OneNote all include the attribute display="block",
+				// but we can safely convert them to inline form, as the block form would
+				// be wrapped in <br /> line breaks.
+				let obsidianMath = `$${latexString}$`;
+
+				// Create a text node with the LaTeX
+				const textNode = document.createTextNode(obsidianMath);
+
+				// Replace the MathML element with the LaTeX text node
+				mathElement.parentNode?.replaceChild(textNode, mathElement);
+			} catch (error) {
+				console.warn('Failed to convert MathML to LaTeX:', error);
+				// If conversion fails, keep the original MathML or replace with a placeholder
+				const fallbackText = document.createTextNode('[Math equation - conversion failed]');
+				mathElement.parentNode?.replaceChild(fallbackText, mathElement);
+			}
+		}
+	}
+
+	isLatexMath(text: string): boolean {
+		const trimmed = text.trim();
+		return (trimmed.startsWith('$') && trimmed.endsWith('$')) || (trimmed.startsWith('$$') && trimmed.endsWith('$$'));
+	}
+
 	/** Escape characters which will cause problems after converting to markdown. */
 	escapeTextNodes(node: ChildNode): void {
 		if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+			// Don't escape text that contains LaTeX math expressions
+			if (this.isLatexMath(node.textContent)) {
+				return;
+			}
+
 			node.textContent = node.textContent
 				.replace(/([<>])/g, '\\$1');
 		}

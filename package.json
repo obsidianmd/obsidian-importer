@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@joplin/turndown-plugin-gfm": "1.0.62",
 		"@zip.js/zip.js": "2.7.60",
+		"mathml-to-latex": "^1.5.0",
 		"plain-tag": "0.1.3",
 		"protobufjs": "7.2.5",
 		"static-params": "0.4.0",
