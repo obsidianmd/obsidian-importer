@@ -54,6 +54,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
+	private totalNodesToImport: number = 0; // Total number of nodes selected for import
+	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
 	// Page/database tree for selection
 	private pageTree: NotionTreeNode[] = [];
 	private pageTreeContainer: HTMLElement | null = null;
@@ -788,25 +790,39 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Get all selected node IDs (flattened)
+	 * Get all selected node IDs and populate selectedNodeIds for progress tracking
+	 * Returns only top-level selected nodes (not disabled children) for import loop
+	 * Side effect: Populates this.selectedNodeIds with ALL selected PAGE nodes (excluding databases)
+	 * and sets this.totalNodesToImport
+	 * Note: Databases are not counted because they are containers, not pages to import
 	 */
 	private getSelectedNodeIds(): string[] {
-		const selected: string[] = [];
+		const topLevelSelected: string[] = [];
+		let totalPageCount = 0;
+		this.selectedNodeIds.clear(); // Reset the set
 		
-		const collectSelected = (nodes: NotionTreeNode[]) => {
+		const collectNodes = (nodes: NotionTreeNode[]) => {
 			for (const node of nodes) {
-				// Only collect nodes that are directly selected by user (not disabled)
-				// Disabled nodes are auto-selected because their parent is selected
-				// and will be imported recursively with their parent
-				if (node.selected && !node.disabled) {
-					selected.push(node.id);
+				if (node.selected) {
+					// Only count pages for progress tracking (databases are just containers)
+					if (node.type === 'page') {
+						totalPageCount++;
+						this.selectedNodeIds.add(node.id);
+					}
+					
+					// Add to return array if it's a top-level selection (not disabled)
+					// This includes both pages and databases for the import loop
+					if (!node.disabled) {
+						topLevelSelected.push(node.id);
+					}
 				}
-				collectSelected(node.children);
+				collectNodes(node.children);
 			}
 		};
 		
-		collectSelected(this.pageTree);
-		return selected;
+		collectNodes(this.pageTree);
+		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)
+		return topLevelSelected;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -844,9 +860,12 @@ export class NotionAPIImporter extends FormatImporter {
 			this.pagesImported = 0;
 			this.attachmentsDownloaded = 0;
 	
-			// Initialize progress display (indeterminate - we don't know total count)
-			ctx.reportProgressIndeterminate(0);
+			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
+			ctx.status(`Preparing to import ${this.totalNodesToImport} item(s)...`);
 		
+			// Initialize progress display with known total count
+			ctx.reportProgress(0, this.totalNodesToImport);
+	
 			// Save output root path for database handling
 			this.outputRootPath = folder.path;
 		
@@ -878,7 +897,7 @@ export class NotionAPIImporter extends FormatImporter {
 						});
 					}
 					else if (node.type === 'page') {
-						// It's a page, import as page
+					// It's a page, import as page
 						await this.fetchAndImportPage(ctx, itemId, folder.path);
 					}
 					else {
@@ -970,7 +989,12 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Fetch and import a Notion page recursively
 	 * @param databaseTag Optional database tag to add to page frontmatter (for database pages)
 	 */
-	private async fetchAndImportPage(ctx: ImportContext, pageId: string, parentPath: string, databaseTag?: string): Promise<void> {
+	private async fetchAndImportPage(
+		ctx: ImportContext, 
+		pageId: string, 
+		parentPath: string, 
+		databaseTag?: string
+	): Promise<void> {
 		if (ctx.isCancelled()) return;
 		
 		// Check if already processed
@@ -1228,9 +1252,12 @@ export class NotionAPIImporter extends FormatImporter {
 				await this.vault.create(normalizePath(mdFilePath), fullContent);
 
 				// Update progress: page imported successfully
-				this.pagesImported++;
-				ctx.notes = this.pagesImported;
-				ctx.reportProgressIndeterminate(this.pagesImported);
+				// Only count nodes that were selected in the tree (not recursively discovered pages)
+				if (this.selectedNodeIds.has(pageId)) {
+					this.pagesImported++;
+					ctx.notes = this.pagesImported;
+					ctx.reportProgress(this.pagesImported, this.totalNodesToImport);
+				}
 
 				// Record page ID to path mapping for mention replacement
 				// Store path without extension for wiki link generation
