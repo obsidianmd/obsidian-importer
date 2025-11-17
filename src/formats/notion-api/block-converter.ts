@@ -14,6 +14,7 @@ import {
 	BookmarkBlockObjectResponse,
 	EmbedBlockObjectResponse,
 	LinkPreviewBlockObjectResponse,
+	CodeBlockObjectResponse,
 	RichTextItemResponse
 } from '@notionhq/client';
 import { normalizePath } from 'obsidian';
@@ -267,6 +268,10 @@ export async function convertBlockToMarkdown(
 		
 		case 'equation':
 			markdown = convertEquation(block);
+			break;
+		
+		case 'code':
+			markdown = convertCode(block, context);
 			break;
 		
 		case 'image':
@@ -1014,6 +1019,28 @@ export function convertEquation(block: BlockObjectResponse): string {
 	
 	// Obsidian uses $$ for block-level math
 	return `$$\n${equationData.expression}\n$$`;
+}
+
+/**
+ * Convert code block to Markdown
+ */
+export function convertCode(block: BlockObjectResponse, context?: BlockConversionContext): string {
+	if (block.type !== 'code') return '';
+	
+	const codeBlock = block as CodeBlockObjectResponse;
+	const codeData = codeBlock.code;
+	if (!codeData) return '';
+	
+	// Get code content from rich_text - use plain_text to avoid formatting in code blocks
+	const codeContent = codeData.rich_text
+		.map(rt => rt.plain_text || '')
+		.join('');
+	
+	// Get language (if specified)
+	const language = codeData.language || '';
+	
+	// Markdown code block format: ```language\ncode\n```
+	return `\`\`\`${language}\n${codeContent}\n\`\`\``;
 }
 
 /**
