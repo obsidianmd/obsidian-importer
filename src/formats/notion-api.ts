@@ -17,7 +17,7 @@ import {
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext } from './notion-api/types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
@@ -955,8 +955,8 @@ export class NotionAPIImporter extends FormatImporter {
 						});
 					}
 					else if (node.type === 'page') {
-					// It's a page, import as page
-						await this.fetchAndImportPage(ctx, itemId, folder.path);
+						// It's a page, import as page
+						await this.fetchAndImportPage({ ctx, pageId: itemId, parentPath: folder.path });
 					}
 					else {
 						console.warn(`Unknown node type: ${node.type} (ID: ${itemId})`);
@@ -1026,8 +1026,8 @@ export class NotionAPIImporter extends FormatImporter {
 					relationPlaceholders: this.relationPlaceholders,
 					baseViewType: this.baseViewType,
 					coverPropertyName: this.coverPropertyName,
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
-						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
+					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 					},
 					onPagesDiscovered: (count: number) => {
 						// Callback provided but not used - progress is reported per page/attachment
@@ -1045,14 +1045,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/**
 	 * Fetch and import a Notion page recursively
-	 * @param databaseTag Optional database tag to add to page frontmatter (for database pages)
 	 */
-	private async fetchAndImportPage(
-		ctx: ImportContext, 
-		pageId: string, 
-		parentPath: string, 
-		databaseTag?: string
-	): Promise<void> {
+	private async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
+		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
+		
 		if (ctx.isCancelled()) return;
 		
 		// Check if already processed
@@ -1071,10 +1067,11 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Extract page title
 			const pageTitle = extractPageTitle(page);
-			const sanitizedTitle = sanitizeFileName(pageTitle || 'Untitled');
-		
+			// Use custom file name if provided, otherwise use page title
+			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle || 'Untitled');
+	
 			// Update status with page title instead of ID
-			ctx.status(`Importing: ${pageTitle || 'Untitled'}...`);
+			ctx.status(`Importing: ${sanitizedTitle}...`);
 		
 			// Create a cache to store fetched blocks and avoid duplicate API calls
 			// This cache will be used both for checking if page has children and for converting blocks
@@ -1167,7 +1164,7 @@ export class NotionAPIImporter extends FormatImporter {
 				currentPageTitle: sanitizedTitle, // for attachment naming fallback
 				// Callback to import child pages
 				importPageCallback: async (childPageId: string, parentPath: string) => {
-					await this.fetchAndImportPage(ctx, childPageId, parentPath);
+					await this.fetchAndImportPage({ ctx, pageId: childPageId, parentPath });
 				},
 				// Callback when an attachment is downloaded
 				onAttachmentDownloaded: () => {
@@ -1195,8 +1192,8 @@ export class NotionAPIImporter extends FormatImporter {
 					baseViewType: this.baseViewType,
 					coverPropertyName: this.coverPropertyName,
 					// Callback to import database pages
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
-						await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
+					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 					},
 					onPagesDiscovered: (newPagesCount: number) => {
 						// Callback provided but not used - progress is reported per page/attachment
@@ -1541,8 +1538,8 @@ export class NotionAPIImporter extends FormatImporter {
 				formulaStrategy: this.formulaStrategy,
 				processedDatabases: this.processedDatabases,
 				relationPlaceholders: this.relationPlaceholders,
-				importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string) => {
-					await this.fetchAndImportPage(ctx, pageId, parentPath, databaseTag);
+				importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
+					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 				},
 				// onPagesDiscovered callback not provided - not needed for unimported databases
 				baseViewType: this.baseViewType,
@@ -1705,7 +1702,7 @@ export class NotionAPIImporter extends FormatImporter {
 								const syncedBlocksFolder = normalizePath(
 									parentPath ? `${parentPath}/Notion Synced Blocks` : 'Notion Synced Blocks'
 								);
-								await this.fetchAndImportPage(ctx, pageId, syncedBlocksFolder);
+								await this.fetchAndImportPage({ ctx, pageId, parentPath: syncedBlocksFolder });
 								importedCount++;
 							}
 							catch (error) {

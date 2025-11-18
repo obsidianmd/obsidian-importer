@@ -34,7 +34,7 @@ export interface DatabaseProcessingContext {
 	formulaStrategy: FormulaImportStrategy;
 	processedDatabases: Map<string, DatabaseInfo>;
 	relationPlaceholders: RelationPlaceholder[];
-	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string) => Promise<void>;
+	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => Promise<void>;
 	onPagesDiscovered?: (count: number) => void;
 	baseViewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
@@ -118,17 +118,26 @@ export interface RollupConfig {
 /**
  * Parameters for creating a .base file
  */
+/**
+ * Parameters for fetching and importing a Notion page
+ */
+export interface FetchAndImportPageParams {
+	ctx: ImportContext;
+	pageId: string;
+	parentPath: string;
+	databaseTag?: string;
+	customFileName?: string; // Custom file name (without .md extension) to override the page title
+}
+
 export interface CreateBaseFileParams {
 	vault: Vault;
 	databaseName: string;
 	databaseFolderPath: string;
-	outputRootPath: string;
 	// Using 'any' because Notion database property schema has many variants with different structures
 	dataSourceProperties: any;
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
-	ctx: ImportContext;
 }
 
 /**

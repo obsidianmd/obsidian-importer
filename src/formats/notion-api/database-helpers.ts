@@ -12,7 +12,6 @@ import {
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFolder, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
-import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getUniqueFolderPath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
@@ -160,7 +159,6 @@ export async function importDatabaseCore(
 		currentPageFolderPath,
 		client,
 		vault,
-		outputRootPath,
 		formulaStrategy,
 		processedDatabases,
 		relationPlaceholders,
@@ -237,6 +235,23 @@ export async function importDatabaseCore(
 	
 	ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
 	
+	// Query database templates (these appear in search but not in database pages)
+	let templatePages: Array<{ id: string, name: string }> = [];
+	try {
+		const templatesResponse = await makeNotionRequest(
+			() => client.dataSources.listTemplates({ data_source_id: dataSourceId }),
+			ctx
+		);
+		templatePages = templatesResponse.templates || [];
+		if (templatePages.length > 0) {
+			ctx.status(`Found ${templatePages.length} template(s) in database ${sanitizedTitle}`);
+		}
+	}
+	catch (error) {
+		console.warn(`Failed to fetch templates for database ${sanitizedTitle}:`, error);
+		// Continue even if template fetching fails
+	}
+	
 	// Notify about discovered pages (if callback provided)
 	if (onPagesDiscovered) {
 		onPagesDiscovered(databasePages.length);
@@ -265,17 +280,29 @@ export async function importDatabaseCore(
 		await importPageCallback(page.id, databaseFolderPath, databaseFolderPath);
 	}
 	
+	// Import database template pages (if any)
+	// Templates are stored in the same folder as database pages
+	if (templatePages.length > 0) {
+		// Import each template page to the database folder
+		for (const template of templatePages) {
+			if (ctx.isCancelled()) break;
+			ctx.status(`Importing template: ${template.name}...`);
+			// Template pages should not have database tag (they are templates, not database entries)
+			// Use custom file name format: {Database name} {Template name}
+			const templateFileName = `${sanitizedTitle} ${template.name}`;
+			await importPageCallback(template.id, databaseFolderPath, undefined, templateFileName);
+		}
+	}
+	
 	// Create .base file
 	const baseFilePath = await createBaseFile({
 		vault,
 		databaseName: sanitizedTitle,
 		databaseFolderPath,
-		outputRootPath,
 		dataSourceProperties,
 		formulaStrategy,
 		viewType: baseViewType,
-		coverPropertyName,
-		ctx
+		coverPropertyName
 	});
 	
 	// Record database information
@@ -307,30 +334,11 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		vault,
 		databaseName,
 		databaseFolderPath,
-		outputRootPath,
 		dataSourceProperties,
 		formulaStrategy = 'function',
 		viewType = 'table',
-		coverPropertyName = 'cover',
-		ctx
+		coverPropertyName = 'cover'
 	} = params;
-	// Create "Notion Databases" folder at the same level as output root
-	const { parent: parentPath } = parseFilePath(outputRootPath);
-	const databasesFolder = normalizePath(
-		parentPath ? `${parentPath}/Notion Databases` : 'Notion Databases'
-	);
-	
-	try {
-		let folder = vault.getAbstractFileByPath(databasesFolder);
-		if (!folder) {
-			await vault.createFolder(databasesFolder);
-		}
-	}
-	catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		console.error('Failed to create Notion Databases folder:', error);
-		ctx.reportFailed('Create Notion Databases folder', errorMsg);
-	}
 	
 	// Generate .base file content
 	const baseContent = generateBaseFileContent({
@@ -342,8 +350,8 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		coverPropertyName
 	});
 	
-	// Create or update .base file
-	const baseFilePath = normalizePath(`${databasesFolder}/${databaseName}.base`);
+	// Create or update .base file in the database folder (same level as database pages)
+	const baseFilePath = normalizePath(`${databaseFolderPath}/${databaseName}.base`);
 	
 	// For incremental import: update existing .base file if it exists
 	const existingFile = vault.getAbstractFileByPath(baseFilePath);
@@ -357,7 +365,7 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 	let finalPath = baseFilePath;
 	let counter = 1;
 	while (vault.getAbstractFileByPath(finalPath)) {
-		finalPath = normalizePath(`${databasesFolder}/${databaseName} (${counter}).base`);
+		finalPath = normalizePath(`${databaseFolderPath}/${databaseName} (${counter}).base`);
 		counter++;
 	}
 	
