@@ -388,9 +388,10 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	} = params;
 	
 	// Map Notion properties to Obsidian properties
-	const { formulas, regularProperties } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
+	const { formulas, regularProperties, titlePropertyName } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
 	
 	// Build the order array for views
+	// Always use 'file.name' as the first column (it will display with custom displayName if set)
 	const orderColumns = ['file.name'];
 	for (const item of regularProperties) {
 		orderColumns.push(item.key);
@@ -424,8 +425,16 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	}
 	
 	// Add properties if there are any
-	if (regularProperties.length > 0) {
+	if (regularProperties.length > 0 || titlePropertyName) {
 		baseConfig.properties = {};
+		
+		// Add title property mapping: use file.name as key, set displayName to Notion's title column name
+		if (titlePropertyName) {
+			baseConfig.properties['file.name'] = {
+				displayName: titlePropertyName
+			};
+		}
+		
 		for (const item of regularProperties) {
 			baseConfig.properties[item.key] = {
 				displayName: item.config.displayName
@@ -490,10 +499,12 @@ function mapDatabaseProperties(
 ): {
 		formulas: Array<{key: string, config: any}>;
 		regularProperties: Array<{key: string, config: any}>;
+		titlePropertyName: string | null;
 	} {
 	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
 	// which have different structures depending on the property type.
 	const mappings: Record<string, any> = {};
+	let titlePropertyName: string | null = null;
 	
 	// First pass: create mappings for all properties
 	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys and property types
@@ -543,8 +554,9 @@ function mapDatabaseProperties(
 				break;
 			
 			case 'title':
-				// Skip title property - it corresponds to file.name in Obsidian
-				// Title is already used as the page filename
+			// Save the title property name to use in column order
+			// The title property corresponds to file.name in Obsidian, but we want to preserve the custom column name
+				titlePropertyName = propName;
 				break;
 			
 			case 'rich_text':
@@ -688,7 +700,7 @@ function mapDatabaseProperties(
 		}
 	}
 	
-	return { formulas, regularProperties };
+	return { formulas, regularProperties, titlePropertyName };
 }
 
 /**
