@@ -1,5 +1,5 @@
 /**
- * Formula converter for Notion to Obsidian Base
+ * Formula converter for Notion to Obsidian Bases
  * 
  * This converter intelligently transforms Notion's function-based syntax
  * to Obsidian Base's syntax.
@@ -15,8 +15,8 @@
  * Important notes:
  * - length is a PROPERTY (x.length), not a function
  * - unique() is a METHOD (x.unique()), not a global function
- * - sum() and average() are NOT supported in Obsidian Base
- * - median() is NOT supported in Obsidian Base
+ * - sum() and average() are NOT supported in Obsidian Bases
+ * - median() is NOT supported in Obsidian Bases
  * - Many date/time functions are not supported
  * 
  * Based on:
@@ -128,15 +128,15 @@ export function canConvertFormula(notionFormula: string): boolean {
 		return false;
 	}
 	
-	// List of Notion functions we cannot convert to Obsidian Base
+	// List of Notion functions we cannot convert to Obsidian Bases
 	const unsupportedFunctions = [
-		// Math functions not in Obsidian Base
+		// Math functions not in Obsidian Bases
 		'sqrt', 'exp', 'ln', 'log10', 'log2', 'sign', 'cbrt', 'pi', 'e', 'pow',
 		
-		// Statistical/aggregation functions not in Obsidian Base
-		'sum', 'mean', 'median', // Obsidian Base does not support these
+		// Statistical/aggregation functions not in Obsidian Bases
+		'sum', 'mean', 'median', // Obsidian Bases does not support these
 		
-		// String functions not in Obsidian Base or with incompatible syntax
+		// String functions not in Obsidian Bases or with incompatible syntax
 		'replaceAll', 'match',
 		// Note: 'substring' is supported and converted to slice() method
 		// Note: 'concat' for lists is not supported in Obsidian (no list concatenation method)
@@ -146,7 +146,7 @@ export function canConvertFormula(notionFormula: string): boolean {
 		// Note: 'test' is supported and converted to /pattern/.matches(string)
 		
 		// Boolean/conditional functions
-		'empty', 'ifs', // Not in Obsidian Base
+		'empty', 'ifs', // Not in Obsidian Bases
 		// Note: 'equal' and 'unequal' are supported and converted to == and != operators
 		
 		// Date/time functions (most are incompatible)
@@ -208,7 +208,7 @@ export function canConvertFormula(notionFormula: string): boolean {
 }
 
 /**
- * Convert a Notion formula to Obsidian Base formula syntax
+ * Convert a Notion formula to Obsidian Bases formula syntax
  * 
  * @param notionFormula - The formula expression (may contain placeholders)
  * @param properties - The database properties schema (to resolve property IDs to names)
@@ -276,8 +276,9 @@ export function convertNotionFormulaToObsidian(
 		
 		// Match function calls with their arguments
 		// This regex matches: functionName(arg1, arg2, ...)
-		// We use a simple approach: match function calls without nested parentheses in args
-		const funcPattern = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
+		// Use negative lookbehind to avoid matching method calls like .contains()
+		// We only want to match standalone function calls, not methods
+		const funcPattern = /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
 		
 		result = result.replace(funcPattern, (match, funcName, argsStr) => {
 			// Skip parseDate placeholders - they will be converted back at the end
@@ -424,23 +425,23 @@ export function convertNotionFormulaToObsidian(
 			}
 			
 			if (mapping.type === 'method') {
-			// Convert: abs(x) -> (x).abs()
-			// Convert: contains(x, y) -> (x).contains(y)
-			// Convert: unique(x) -> (x).unique()
+				// Convert: abs(x) -> (x).abs()
+				// Convert: contains(x, y) -> (x).contains(y)
+				// Convert: unique(x) -> (x).unique()
 				if (args.length >= 1) {
 					changed = true;
 					const obj = args[0];
 					let methodArgs = args.slice(1);
-				
+			
 					// Special handling for map() and filter(): replace 'current' with 'value'
 					if (funcName === 'map' || funcName === 'filter') {
 						methodArgs = methodArgs.map(arg => {
-						// Replace 'current' with 'value' in the expression
-						// Use word boundaries to avoid replacing parts of other identifiers
+							// Replace 'current' with 'value' in the expression
+							// Use word boundaries to avoid replacing parts of other identifiers
 							return arg.replace(/\bcurrent\b/g, 'value');
 						});
 					}
-				
+			
 					if (methodArgs.length > 0) {
 						return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
 					}
