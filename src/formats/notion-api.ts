@@ -1,4 +1,4 @@
-import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder } from 'obsidian';
+import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -59,7 +59,8 @@ export class NotionAPIImporter extends FormatImporter {
 	// Page/database tree for selection
 	private pageTree: NotionTreeNode[] = [];
 	private pageTreeContainer: HTMLElement | null = null;
-	private listPagesButton: HTMLButtonElement | null = null;
+	private listPagesButton: any = null;  // ButtonComponent from obsidian
+	private toggleSelectButton: any = null;  // ButtonComponent from obsidian
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -116,18 +117,35 @@ export class NotionAPIImporter extends FormatImporter {
 					this.incrementalImport = value;
 				}));
 
-		// List pages button
+		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
 			.setDesc('Click the button below to list all pages and databases you can import.');
-		
+			
+		// Store button references in closure to avoid constructor timing issues
+		let toggleButtonRef: any = null;
+		let listButtonRef: any = null;
+
+		// Toggle select all/none button
 		listPagesSetting.addButton(button => {
-			button
+			toggleButtonRef = button;
+			return button
+				.setButtonText('Select all')
+				.onClick(() => {
+					this.toggleSelectButton = toggleButtonRef;
+					this.handleToggleSelectClick();
+				});
+		});
+
+		// List pages button
+		listPagesSetting.addButton(button => {
+			listButtonRef = button;
+			return button
 				.setButtonText('List importable pages')
 				.onClick(async () => {
 					try {
-						// Get button reference at click time
-						this.listPagesButton = button.buttonEl;
+						this.listPagesButton = listButtonRef;
+						this.toggleSelectButton = toggleButtonRef;
 						await this.loadPageTree();
 					}
 					catch (error) {
@@ -135,9 +153,8 @@ export class NotionAPIImporter extends FormatImporter {
 						new Notice(`Failed to load pages: ${error.message}`);
 					}
 				});
-			// Also save initial reference
-			this.listPagesButton = button.buttonEl;
 		});
+
 
 		// Page tree container (initially visible with placeholder)
 		this.pageTreeContainer = this.modal.contentEl.createDiv();
@@ -342,8 +359,8 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		// Disable button and show loading state
-		this.listPagesButton.disabled = true;
-		this.listPagesButton.setText('Loading...');
+		this.listPagesButton.setDisabled(true);
+		this.listPagesButton.setButtonText('Loading...');
 
 		try {
 			this.initializeNotionClient();
@@ -353,7 +370,7 @@ export class NotionAPIImporter extends FormatImporter {
 				status: (msg: string) => {
 					// Update button text with status
 					if (this.listPagesButton) {
-						this.listPagesButton.setText(msg);
+						this.listPagesButton.setButtonText(msg);
 					}
 				},
 				isCancelled: () => false,
@@ -410,11 +427,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 				cursor = response.has_more ? response.next_cursor : undefined;
 			} while (cursor);
-
 			// Build tree structure
 			this.pageTree = this.buildTree(allItems);
 
-			// Render tree
+			// Render tree (this will also update button text)
 			this.renderPageTree();
 
 			new Notice(`Found ${allItems.length} pages and databases.`);
@@ -424,10 +440,10 @@ export class NotionAPIImporter extends FormatImporter {
 			new Notice(`Failed to load pages: ${error.message || 'Unknown error'}`);
 		}
 		finally {
-			// Re-enable button
+		// Re-enable button
 			if (this.listPagesButton) {
-				this.listPagesButton.disabled = false;
-				this.listPagesButton.setText('Refresh list');
+				this.listPagesButton.setDisabled(false);
+				this.listPagesButton.setButtonText('Refresh list');
 			}
 		}
 	}
@@ -593,33 +609,15 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 			return;
 		}
-		
-		// Add select all / deselect all buttons
-		const buttonContainer = this.pageTreeContainer.createDiv('notion-tree-buttons');
-		buttonContainer.style.marginBottom = '10px';
-		buttonContainer.style.display = 'flex';
-		buttonContainer.style.gap = '8px';
-		
-		const selectAllButton = buttonContainer.createEl('button', {
-			text: 'Select all',
-			cls: 'mod-cta'
-		});
-		selectAllButton.addEventListener('click', () => {
-			this.selectAllNodes(true);
-			this.renderPageTree();
-		});
-		
-		const deselectAllButton = buttonContainer.createEl('button', {
-			text: 'Deselect all'
-		});
-		deselectAllButton.addEventListener('click', () => {
-			this.selectAllNodes(false);
-			this.renderPageTree();
-		});
-		
-		const treeEl = this.pageTreeContainer.createDiv('notion-tree');
+	
+		// Render tree (buttons are now outside the scrollable container)
 		for (const node of this.pageTree) {
-			this.renderTreeNode(treeEl, node, 0);
+			this.renderTreeNode(this.pageTreeContainer, node, 0);
+		}
+	
+		// Update toggle button text based on current selection state
+		if (this.toggleSelectButton) {
+			this.updateToggleButtonText();
 		}
 	}
 
@@ -627,7 +625,6 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Render a single tree node
 	 */
 	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
-		
 		const nodeEl = container.createDiv('notion-tree-node');
 		nodeEl.style.display = 'flex';
 		nodeEl.style.alignItems = 'center';
@@ -635,8 +632,7 @@ export class NotionAPIImporter extends FormatImporter {
 		nodeEl.style.paddingBottom = '4px';
 		nodeEl.style.paddingLeft = `${8 + level * 20}px`; // 8px base + 20px per level
 		nodeEl.style.paddingRight = '8px';
-		nodeEl.style.cursor = node.disabled ? 'not-allowed' : 'pointer';
-		
+	
 		// Apply disabled styling
 		if (node.disabled) {
 			nodeEl.style.opacity = '0.5';
@@ -646,19 +642,19 @@ export class NotionAPIImporter extends FormatImporter {
 		// Collapse/Expand arrow (only if has children)
 		if (node.children.length > 0) {
 			const arrow = nodeEl.createSpan();
-			arrow.setText(node.collapsed ? '▶' : '▼');
 			arrow.style.marginRight = '4px';
-			arrow.style.cursor = 'pointer';
 			arrow.style.userSelect = 'none';
-			arrow.style.fontSize = '10px';
-			arrow.style.width = '20px'; // Increased from 12px
+			arrow.style.width = '20px';
 			arrow.style.height = '20px';
 			arrow.style.display = 'inline-flex';
 			arrow.style.alignItems = 'center';
 			arrow.style.justifyContent = 'center';
 			arrow.style.padding = '2px';
 			arrow.style.borderRadius = '3px';
-			
+		
+			// Use Lucide chevron icons
+			setIcon(arrow, node.collapsed ? 'chevron-right' : 'chevron-down');
+		
 			// Hover effect
 			arrow.addEventListener('mouseenter', () => {
 				arrow.style.backgroundColor = 'var(--background-modifier-hover)';
@@ -666,13 +662,13 @@ export class NotionAPIImporter extends FormatImporter {
 			arrow.addEventListener('mouseleave', () => {
 				arrow.style.backgroundColor = 'transparent';
 			});
-			
+		
 			// Allow arrow click even when disabled (to expand/collapse)
 			// But need to override the pointerEvents: none from parent
 			if (node.disabled) {
 				arrow.style.pointerEvents = 'auto';
 			}
-			
+		
 			arrow.addEventListener('click', (e) => {
 				e.stopPropagation(); // Prevent triggering row click
 				node.collapsed = !node.collapsed;
@@ -691,8 +687,7 @@ export class NotionAPIImporter extends FormatImporter {
 		checkbox.checked = node.selected;
 		checkbox.disabled = node.disabled;
 		checkbox.style.marginRight = '8px';
-		checkbox.style.cursor = node.disabled ? 'not-allowed' : 'pointer';
-		
+	
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
 				this.toggleNodeSelection(node, checkbox.checked);
@@ -700,14 +695,17 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 		}
 
-		// Icon
+		// Icon (using setIcon for consistency)
 		const icon = nodeEl.createSpan();
 		icon.style.marginRight = '6px';
+		icon.style.display = 'inline-flex';
+		icon.style.alignItems = 'center';
 		if (node.type === 'database') {
-			icon.setText('🗄️');
+			setIcon(icon, 'database');
 		}
 		else {
-			icon.setText(node.children.length > 0 ? '📁' : '📄');
+		// Use file icon for pages
+			setIcon(icon, node.children.length > 0 ? 'folder' : 'file-text');
 		}
 
 		// Title
@@ -787,6 +785,66 @@ export class NotionAPIImporter extends FormatImporter {
 			child.selected = false;
 			this.enableAllChildren(child);
 		}
+	}
+
+	/**
+	 * Check if all nodes in the tree are selected
+	 * Used to determine button text and behavior (Select all vs Deselect all)
+	 * Returns true if ALL nodes (including disabled children) are selected
+	 */
+	private areAllNodesSelected(): boolean {
+		const checkNode = (nodes: NotionTreeNode[]): boolean => {
+			for (const node of nodes) {
+				// If any node is not selected, return false
+				if (!node.selected) {
+					return false;
+				}
+				// Recursively check children
+				if (!checkNode(node.children)) {
+					return false;
+				}
+			}
+			return true;
+		};
+		
+		return checkNode(this.pageTree);
+	}
+
+	/**
+	 * Handle toggle select button click
+	 * Selects all nodes if not all selected, deselects all if all selected
+	 */
+	private handleToggleSelectClick(): void {
+		// Check if page tree is loaded
+		if (this.pageTree.length === 0) {
+			new Notice('Please list importable pages first.');
+			return;
+		}
+		
+		// Check current state - if all nodes are selected, deselect all; otherwise select all
+		const allSelected = this.areAllNodesSelected();
+		
+		if (allSelected) {
+			// All selected, deselect all
+			this.selectAllNodes(false);
+		}
+		else {
+			// Not all selected (some or none), select all
+			this.selectAllNodes(true);
+		}
+		
+		this.renderPageTree(); // This will call updateToggleButtonText()
+	}
+
+	/**
+	 * Update toggle select button text based on current selection state
+	 */
+	private updateToggleButtonText(): void {
+		if (!this.toggleSelectButton) {
+			return;
+		}
+		const allSelected = this.areAllNodesSelected();
+		this.toggleSelectButton.setButtonText(allSelected ? 'Deselect all' : 'Select all');
 	}
 
 	/**
