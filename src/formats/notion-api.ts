@@ -69,7 +69,7 @@ export class NotionAPIImporter extends FormatImporter {
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
 	// Progress counters: separate tracking for pages and attachments
-	private pagesImported: number = 0;
+	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
 	private attachmentsDownloaded: number = 0;
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
@@ -879,7 +879,7 @@ export class NotionAPIImporter extends FormatImporter {
 		};
 		
 		collectNodes(this.pageTree);
-		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)
+		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)	
 		return topLevelSelected;
 	}
 
@@ -915,7 +915,7 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
-			this.pagesImported = 0;
+			this.processedPagesCount = 0;
 			this.attachmentsDownloaded = 0;
 	
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
@@ -1306,24 +1306,25 @@ export class NotionAPIImporter extends FormatImporter {
 
 				await this.vault.create(normalizePath(mdFilePath), fullContent);
 
-				// Update progress: page imported successfully
-				// Only count nodes that were selected in the tree (not recursively discovered pages)
-				if (this.selectedNodeIds.has(pageId)) {
-					this.pagesImported++;
-					ctx.notes = this.pagesImported;
-					ctx.reportProgress(this.pagesImported, this.totalNodesToImport);
-				}
-
 				// Record page ID to path mapping for mention replacement
 				// Store path without extension for wiki link generation
 				const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
 				this.notionIdToPath.set(pageId, pathWithoutExt);
-			
+		
 				// Record mention placeholders if any mentions were found
 				// Use file path as key for O(1) lookup during replacement
 				if (mentionedIds.size > 0) {
 					this.mentionPlaceholders.set(mdFilePath, mentionedIds);
 				}
+			}
+		
+			// Update progress: count all processed pages (imported + skipped)
+			// Only count nodes that were selected in the tree (not recursively discovered pages)
+			if (this.selectedNodeIds.has(pageId)) {
+				this.processedPagesCount++;
+				// reportProgress updates the UI: "imported" label shows processedPagesCount (all processed pages)
+				// This ensures remaining = total - processed = 0 when all pages are done
+				ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
 			}
 			// Note: Even if parent file is skipped, child pages have already been processed
 			// by the importPageCallback in convertBlocksToMarkdown

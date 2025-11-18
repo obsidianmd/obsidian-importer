@@ -7,20 +7,6 @@ import { Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../notion-api';
 
-export interface ProcessedPage {
-	id: string;
-	title: string;
-	folderPath: string;
-	// Using 'any' because Notion page properties have many different types (text, number, select, date, etc.)
-	// and we store them in a flexible format for YAML frontmatter conversion.
-	properties: Record<string, any>;
-}
-
-export interface NotionImporterConfig {
-	maxRetries: number;
-	requestCount: number;
-}
-
 /**
  * Configuration context for database processing operations
  * Consolidates common parameters used across database conversion functions
@@ -115,9 +101,6 @@ export interface RollupConfig {
 	| string;              // Allow other values for forward compatibility
 }
 
-/**
- * Parameters for creating a .base file
- */
 /**
  * Parameters for fetching and importing a Notion page
  */
