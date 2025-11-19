@@ -96,53 +96,53 @@ function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolea
 
 /**
  * Determine if spacing (empty line) should be added between two blocks
- * Based on STRICT Markdown syntax requirements ONLY
  * 
- * Philosophy: Render blocks as-is without adding extra spacing,
- * EXCEPT where Markdown syntax absolutely requires it for correct rendering.
+ * Philosophy: Add spacing at top level for readability, but keep lists compact.
  * 
  * Rules:
- * 1. List ↔ Non-list transition: MUST have spacing at top level (Markdown requirement)
- *    BUT NOT in nested contexts (indentLevel > 0) where indentation handles separation
- * 2. Callout/Toggle blocks: MUST have spacing (Obsidian requirement)
- * 3. Table blocks: MUST have spacing (Markdown requirement)
- * 4. If Notion already has empty paragraph, don't add extra spacing
+ * 1. Within lists (indentLevel > 0): No spacing to keep list items compact
+ *    Exception: Callout/Toggle/Table blocks always need spacing (syntax requirement)
+ * 2. At top level (indentLevel = 0): Add spacing between blocks for readability
+ *    Exception: Consecutive list items remain compact (no spacing between them)
+ * 3. Empty paragraph detection: Don't add extra spacing if Notion already has an empty paragraph
  */
 function shouldAddSpacingBetweenBlocks(
 	currentType: string, 
 	nextType: string, 
 	context?: BlockConversionContext
 ): boolean {
+	const indentLevel = context?.indentLevel || 0;
+	
 	// Define list types (including to_do)
 	const listTypes = ['bulleted_list_item', 'numbered_list_item', 'to_do'];
 	
 	const currentIsList = listTypes.includes(currentType);
 	const nextIsList = listTypes.includes(nextType);
 	
-	// Rule 1: List ↔ Non-list transition requires spacing
-	// BUT ONLY at top level (indentLevel = 0)
-	// In nested contexts (indentLevel > 0), indentation handles the separation
-	if (currentIsList !== nextIsList) {
-		const indentLevel = context?.indentLevel || 0;
-		// Only add spacing if at top level (not nested)
-		return indentLevel === 0;
+	// Rule 1: No spacing within lists (when nested, indentLevel > 0)
+	// List items within the same list should be compact
+	if (indentLevel > 0) {
+		// Special case: nested callouts/toggles/tables still need spacing even within lists
+		const calloutTypes = ['callout', 'toggle'];
+		if (calloutTypes.includes(currentType) || calloutTypes.includes(nextType)) {
+			return true;
+		}
+		if (currentType === 'table' || nextType === 'table') {
+			return true;
+		}
+		return false;
 	}
 	
-	// Rule 2: Callout/Toggle blocks require spacing between them
-	// Obsidian callout syntax requires empty lines to separate consecutive callouts
-	const calloutTypes = ['callout', 'toggle'];
-	if (calloutTypes.includes(currentType) || calloutTypes.includes(nextType)) {
-		return true;
+	// Rule 2: At top level (indentLevel = 0), add spacing between consecutive list items of the same type
+	// This creates visual separation between list groups
+	if (currentIsList && nextIsList) {
+		// Consecutive list items should be compact (no extra spacing)
+		return false;
 	}
 	
-	// Rule 3: Table blocks require spacing before and after
-	// Markdown table syntax requires empty lines to properly render
-	if (currentType === 'table' || nextType === 'table') {
-		return true;
-	}
-	
-	// Default: NO spacing (render blocks directly one after another)
-	return false;
+	// Rule 3: Default at top level - add spacing between blocks
+	// This creates a clean, readable layout with visual separation
+	return true;
 }
 
 /**
