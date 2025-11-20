@@ -60,8 +60,20 @@ export async function convertChildDatabase(
 		const result = await importDatabaseCore(databaseId, context);
 		databaseTitle = result.sanitizedTitle;
 		
-		// Return an embedded reference to the .base file (using ![[]] to display inline like in Notion)
-		return `![[${result.sanitizedTitle}.base]]`;
+		// Get the .base file from vault using the baseFilePath from result
+		const baseFile = context.vault.getAbstractFileByPath(normalizePath(result.baseFilePath));
+		
+		if (baseFile && baseFile instanceof TFile) {
+			// Use generateMarkdownLink to respect user's link format settings
+			const sourceFilePath = context.currentFilePath || context.currentPageFolderPath;
+			const link = context.app.fileManager.generateMarkdownLink(baseFile, sourceFilePath);
+			// Add embed prefix
+			return `!${link}`;
+		}
+		else {
+			// Fallback to wiki link if file not found
+			return `![[${result.sanitizedTitle}.base]]`;
+		}
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
@@ -549,8 +561,8 @@ function mapDatabaseProperties(
 				break;
 			
 			case 'title':
-			// Save the title property name to use in column order
-			// The title property corresponds to file.name in Obsidian, but we want to preserve the custom column name
+				// Save the title property name to use in column order
+				// The title property corresponds to file.name in Obsidian, but we want to preserve the custom column name
 				titlePropertyName = propName;
 				break;
 			
@@ -900,10 +912,10 @@ export async function processRelationProperties(
 				const relatedPageIds = pageProp.relation.map(r => r.id);
 			
 				if (relatedPageIds.length > 0) {
-				// Get the target database ID from the relation config
-				// propConfig is from database schema, which has different structure than page properties
-				// Using 'as any' because the relation config structure is not fully typed in Notion's API,
-				// but we know it contains a database_id property for relation types.
+					// Get the target database ID from the relation config
+					// propConfig is from database schema, which has different structure than page properties
+					// Using 'as any' because the relation config structure is not fully typed in Notion's API,
+					// but we know it contains a database_id property for relation types.
 					const targetDatabaseId = propConfig.type === 'relation' && 'relation' in propConfig 
 						? (propConfig.relation as any)?.database_id || ''
 						: '';

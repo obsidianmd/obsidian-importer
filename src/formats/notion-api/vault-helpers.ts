@@ -6,7 +6,8 @@
 import { Vault, normalizePath } from 'obsidian';
 
 /**
- * Get a unique folder path by appending (1), (2), etc. if needed
+ * Get a unique folder path by appending 1, 2, etc. if needed
+ * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
  */
 export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName: string): string {
 	let basePath = normalizePath(`${parentPath}/${folderName}`);
@@ -14,7 +15,7 @@ export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName
 	let counter = 1;
 	
 	while (vault.getAbstractFileByPath(finalPath)) {
-		finalPath = normalizePath(`${parentPath}/${folderName} (${counter})`);
+		finalPath = normalizePath(`${parentPath}/${folderName} ${counter}`);
 		counter++;
 	}
 	
@@ -22,7 +23,8 @@ export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName
 }
 
 /**
- * Get a unique file path by appending (1), (2), etc. if needed
+ * Get a unique file path by appending 1, 2, etc. if needed
+ * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
  */
 export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
 	let basePath = normalizePath(`${parentPath}/${fileName}`);
@@ -35,10 +37,10 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 		if (lastDotIndex > 0) {
 			const nameWithoutExt = fileName.substring(0, lastDotIndex);
 			const ext = fileName.substring(lastDotIndex);
-			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} (${counter})${ext}`);
+			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} ${counter}${ext}`);
 		}
 		else {
-			finalPath = normalizePath(`${parentPath}/${fileName} (${counter})`);
+			finalPath = normalizePath(`${parentPath}/${fileName} ${counter}`);
 		}
 		counter++;
 	}

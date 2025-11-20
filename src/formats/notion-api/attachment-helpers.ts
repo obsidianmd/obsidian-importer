@@ -3,13 +3,12 @@
  * Handles downloading and processing attachments (images, files, videos, PDFs)
  */
 
-import { Vault, normalizePath, requestUrl } from 'obsidian';
+import { normalizePath, requestUrl, TFile } from 'obsidian';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
-import { NotionAttachment, AttachmentResult, BlockConversionContext } from './types';
-import { getUniqueFilePath } from './vault-helpers';
+import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
 /**
  * Download an attachment and save it to the vault
@@ -69,17 +68,13 @@ export async function downloadAttachment(
 			}
 		}
 		
-		// Get attachment folder path from vault settings
-		const attachmentFolderPath = getAttachmentFolderPath(vault, context.currentFolderPath);
+		// Use Obsidian's built-in method to get the correct attachment path
+		// This respects user's attachment folder settings automatically
+		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+		const filePath = await context.app.fileManager.getAvailablePathForAttachment(filename, sourceFilePath);
 	
-		// Get unique file path to avoid conflicts
-		const filePath = getUniqueFilePath(vault, attachmentFolderPath, filename);
-		
-		// Create attachment folder if it doesn't exist
-		await ensureAttachmentFolder(vault, attachmentFolderPath);
-		
 		// Save the file
-		await vault.createBinary(normalizePath(filePath), response.arrayBuffer);
+		await vault.createBinary(filePath, response.arrayBuffer);
 		
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(filePath);
@@ -119,66 +114,6 @@ function extractFilenameFromUrl(url: string): string {
 	}
 }
 
-/**
- * Get attachment folder path from vault settings
- * @param vault - Obsidian vault
- * @param currentFolderPath - Current file's folder path
- * @returns Attachment folder path
- * 
- * Obsidian attachment settings (4 options):
- * 1. Vault folder: attachmentFolderPath = '/' or ''
- * 2. In the folder specified below: attachmentFolderPath = user specified path (e.g., 'assets')
- *    - Does NOT start with './'
- * 3. Same folder as current file: attachmentFolderPath = './'
- * 4. In subfolder under current folder: attachmentFolderPath = './subfoldername' (e.g., './aaa')
- *    - Starts with './' followed by the subfolder name
- */
-function getAttachmentFolderPath(vault: Vault, currentFolderPath: string): string {
-	// Get attachment folder setting from vault config
-	// @ts-ignore - accessing internal API
-	const attachmentFolderPath = vault.getConfig('attachmentFolderPath');
-	
-	// Case 3 & 4: Paths starting with "./" (relative to current file)
-	if (attachmentFolderPath && attachmentFolderPath.startsWith('./')) {
-		// Extract subfolder name from path like "./aaa" -> "aaa"
-		const subfolderName = attachmentFolderPath.substring(2);
-		if (subfolderName) {
-			// Case 4: In subfolder under current folder (e.g., "./aaa")
-			return normalizePath(currentFolderPath ? `${currentFolderPath}/${subfolderName}` : subfolderName);
-		}
-		else {
-			// Case 3: Same folder as current file (just "./")
-			return currentFolderPath || '';
-		}
-	}
-	// Case 2: In the folder specified below (custom absolute/relative path)
-	// User can specify any path like 'assets', 'files/attachments', etc.
-	// This does NOT start with "./"
-	else if (attachmentFolderPath && attachmentFolderPath !== '/' && attachmentFolderPath !== '') {
-		return attachmentFolderPath;
-	}
-	// Case 1: Vault folder (root)
-	else {
-		return '';
-	}
-}
-
-/**
- * Ensure attachment folder exists
- */
-async function ensureAttachmentFolder(vault: Vault, folderPath: string): Promise<void> {
-	if (!folderPath) return; // Root folder always exists
-	
-	try {
-		const folder = vault.getAbstractFileByPath(normalizePath(folderPath));
-		if (!folder) {
-			await vault.createFolder(normalizePath(folderPath));
-		}
-	}
-	catch (error) {
-		// Folder might already exist, ignore error
-	}
-}
 
 /**
  * Extract attachment info from Notion block
@@ -266,18 +201,12 @@ export function getCaptionFromBlock(block: any): string {
 
 /**
  * Format attachment link according to vault settings
- * @param result - Attachment download result
- * @param vault - Obsidian vault
- * @param caption - Optional caption/alt text
- * @param isEmbed - Whether to use embed syntax (!) for images/videos/pdfs
+ * @param params - Parameters for formatting the link
  * @returns Formatted markdown link
  */
-export function formatAttachmentLink(
-	result: AttachmentResult,
-	vault: Vault,
-	caption: string = '',
-	isEmbed: boolean = false
-): string {
+export function formatAttachmentLink(params: FormatAttachmentLinkParams): string {
+	const { result, vault, app, sourceFilePath, caption = '', isEmbed = false } = params;
+	
 	// If not local (still a URL), use standard markdown syntax
 	if (!result.isLocal) {
 		if (isEmbed) {
@@ -288,41 +217,57 @@ export function formatAttachmentLink(
 		}
 	}
 	
-	// Get user's link format preference
-	const useWikiLinks = vault.getConfig('useWikiLinks') ?? true;
+	// For wiki links, we need to include the file extension
+	// Obsidian requires the extension to properly link to non-markdown files
+	const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
 	
-	// Determine display text: prioritize caption, fallback to filename
-	const displayText = caption || result.filename || result.path;
-	
-	if (useWikiLinks) {
-		// Use Obsidian wiki link format
+	// Get the target file from vault
+	const targetFile = vault.getAbstractFileByPath(normalizePath(pathWithExt));
+	if (!targetFile || !(targetFile instanceof TFile)) {
+		// Fallback if file not found (shouldn't happen for local files)
+		// Respect user's link format setting even in fallback
+		const useWikiLinks = vault.getConfig('useWikiLinks') ?? true;
 		const embedPrefix = isEmbed ? '!' : '';
 		
-		// For wiki links, we need to include the file extension
-		// Obsidian requires the extension to properly link to non-markdown files
-		const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
-		
-		if (caption) {
-			// If caption exists, use it as display text
-			return `${embedPrefix}[[${pathWithExt}|${caption}]]`;
-		}
-		else {
-			// If no caption, just use the file path with extension
+		if (useWikiLinks) {
+			// Wiki link format
+			if (caption) {
+				return `${embedPrefix}[[${pathWithExt}|${caption}]]`;
+			}
 			return `${embedPrefix}[[${pathWithExt}]]`;
 		}
-	}
-	else {
-		// Use standard markdown format
-		// Need to add extension back for markdown links
-		const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
-		
-		if (isEmbed) {
-			return `![${displayText}](${pathWithExt})`;
-		}
 		else {
+			// Markdown link format
+			const displayText = caption || pathWithExt;
+			if (isEmbed) {
+				return `![${displayText}](${pathWithExt})`;
+			}
 			return `[${displayText}](${pathWithExt})`;
 		}
 	}
+	
+	// Use generateMarkdownLink to respect user's link format settings
+	const link = app.fileManager.generateMarkdownLink(targetFile, sourceFilePath);
+	
+	// Add embed prefix if needed
+	const embedPrefix = isEmbed ? '!' : '';
+	
+	// Add caption/display text if provided
+	if (caption) {
+		// For wiki links: [[path|caption]], for markdown links: [caption](path)
+		if (link.startsWith('[[')) {
+			// Wiki link: replace the closing ]] with |caption]]
+			return `${embedPrefix}${link.slice(0, -2)}|${caption}]]`;
+		}
+		else {
+			// Markdown link: replace the display text
+			// Extract only the (path) part, not ](path)
+			const pathPart = link.slice(link.indexOf('](') + 1); // Skip the ]
+			return `${embedPrefix}[${caption}]${pathPart}`;
+		}
+	}
+	
+	return `${embedPrefix}${link}`;
 }
 
 /**

@@ -17,7 +17,7 @@ import {
 	CodeBlockObjectResponse,
 	RichTextItemResponse
 } from '@notionhq/client';
-import { normalizePath } from 'obsidian';
+import { normalizePath, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
@@ -316,19 +316,19 @@ export async function convertBlockToMarkdown(
 			const placeholder = createPlaceholder(placeholderType, block.id);
 		
 			if (dbIndentLevel > 0) {
-			// In a list: render with indentation only (no bullet)
+				// In a list: render with indentation only (no bullet)
 				const dbIndent = '    '.repeat(dbIndentLevel);
 				markdown = dbIndent + placeholder;
 			}
 			else {
-			// Top level: render directly
+				// Top level: render directly
 				markdown = placeholder;
 			}
 			break;
 		
 		case 'child_page':
-		// Child page blocks: import the page and return a link
-		// Special handling for pages inside synced blocks
+			// Child page blocks: import the page and return a link
+			// Special handling for pages inside synced blocks
 			const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
 			const pageIndentLevel = context.indentLevel || 0;
 		
@@ -349,23 +349,39 @@ export async function convertBlockToMarkdown(
 				}
 			}
 			else if (context.importPageCallback) {
-			// Normal page: import the child page
+				// Normal page: import the child page
 				// Get page title from block (extract before try-catch so we can use it in error reporting)
 				const pageTitle = block.child_page?.title || 'Untitled';
 				
 				try {
 					// Import the child page under current folder
 					await context.importPageCallback(block.id, context.currentFolderPath);
-					
-					// Return a wiki link to the child page
+				
+					// Generate link to the child page using vault's link format settings
+					// The child page file should now exist in the vault
+					const childPagePath = normalizePath(`${context.currentFolderPath}/${sanitizeFileName(pageTitle)}.md`);
+					const childPageFile = context.vault.getAbstractFileByPath(childPagePath);
+				
+					let link: string;
+					if (childPageFile && childPageFile instanceof TFile) {
+						// Use generateMarkdownLink to respect user's link format settings
+						const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+						link = context.app.fileManager.generateMarkdownLink(childPageFile, sourceFilePath);
+					}
+					else {
+						// Fallback to wiki link if file not found (shouldn't happen)
+						link = `[[${pageTitle}]]`;
+					}
+				
+					// Return the link with proper indentation
 					if (pageIndentLevel > 0) {
 						// In a list: render with indentation only (no bullet)
 						const pageIndent = '    '.repeat(pageIndentLevel);
-						markdown = pageIndent + `[[${pageTitle}]]`;
+						markdown = pageIndent + link;
 					}
 					else {
 						// Top level: render directly
-						markdown = `[[${pageTitle}]]`;
+						markdown = link;
 					}
 				}
 				catch (error) {
@@ -376,7 +392,7 @@ export async function convertBlockToMarkdown(
 				}
 			}
 			else {
-			// No callback provided, just skip
+				// No callback provided, just skip
 				console.warn(`child_page block ${block.id} skipped: no import callback provided`);
 				markdown = '';
 			}
@@ -660,7 +676,7 @@ async function createSyncedBlockFile(
 				await vault.createFolder(syncedBlocksFolder);
 			}
 			catch (error) {
-			// Ignore error if folder was created by another concurrent operation
+				// Ignore error if folder was created by another concurrent operation
 				if (!error.message?.includes('already exists')) {
 					const errorMsg = error instanceof Error ? error.message : String(error);
 					console.error('Failed to create Notion Synced Blocks folder:', error);
@@ -760,11 +776,21 @@ export async function convertSyncedBlock(
 		}
 	}
 	
-	// Extract filename without extension for wiki link
-	const { basename } = parseFilePath(filePath);
+	// Get the synced block file from vault
+	const syncedBlockFile = context.vault.getAbstractFileByPath(normalizePath(filePath));
 	
-	// Return wiki link to the synced block file
-	return `![[${basename}]]`;
+	if (syncedBlockFile && syncedBlockFile instanceof TFile) {
+		// Use generateMarkdownLink to respect user's link format settings
+		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+		const link = context.app.fileManager.generateMarkdownLink(syncedBlockFile, sourceFilePath);
+		// Add embed prefix
+		return `!${link}`;
+	}
+	else {
+		// Fallback to wiki link if file not found
+		const { basename } = parseFilePath(filePath);
+		return `![[${basename}]]`;
+	}
 }
 
 /**
@@ -1070,7 +1096,15 @@ async function convertAttachmentBlock(
 		}
 		
 		// Format link according to user's vault settings
-		return formatAttachmentLink(result, context.vault, caption, isEmbed);
+		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+		return formatAttachmentLink({
+			result,
+			vault: context.vault,
+			app: context.app,
+			sourceFilePath,
+			caption,
+			isEmbed
+		});
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1314,14 +1348,14 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			return ` ${dateText} `;
 		
 		case 'link_mention':
-		// Render as external link
+			// Render as external link
 			const url = mention.link_mention?.href || '';
 			// Prioritize link_mention.title, fallback to plain_text, then URL
 			const title = mention.link_mention?.title || richText.plain_text || url;
 			return `[${title}](${url})`;
 		
 		case 'user':
-		// Render user as markdown link with email if available
+			// Render user as markdown link with email if available
 			const user = mention.user;
 			if (user) {
 				const userName = user.name || richText.plain_text || '';

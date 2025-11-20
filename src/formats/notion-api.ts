@@ -392,7 +392,7 @@ export class NotionAPIImporter extends FormatImporter {
 			new Notice(`Failed to load pages: ${error.message || 'Unknown error'}`);
 		}
 		finally {
-		// Re-enable button
+			// Re-enable button
 			if (this.listPagesButton) {
 				this.listPagesButton.setDisabled(false);
 				this.listPagesButton.setButtonText('Refresh list');
@@ -656,7 +656,7 @@ export class NotionAPIImporter extends FormatImporter {
 			setIcon(icon, 'database');
 		}
 		else {
-		// Use file icon for pages
+			// Use file icon for pages
 			setIcon(icon, node.children.length > 0 ? 'folder' : 'file-text');
 		}
 
@@ -899,9 +899,9 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 					
 					if (node.type === 'database') {
-					// It's a database (data_source)!
-					// Use the data_source ID directly - no need to call databases.retrieve()
-					// The importDatabaseCore will use this as data_source_id
+						// It's a database (data_source)!
+						// Use the data_source ID directly - no need to call databases.retrieve()
+						// The importDatabaseCore will use this as data_source_id
 						await this.importTopLevelDatabase(ctx, itemId, folder.path, {
 							isDataSourceId: true
 						});
@@ -970,8 +970,10 @@ export class NotionAPIImporter extends FormatImporter {
 				{
 					ctx,
 					currentPageFolderPath: parentPath,
+					currentFilePath: undefined, // Top-level database, no parent file
 					client: this.notionClient!,
 					vault: this.vault,
+					app: this.app,
 					outputRootPath: this.outputRootPath,
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
@@ -1050,18 +1052,18 @@ export class NotionAPIImporter extends FormatImporter {
 			let shouldSkipParentFile = false; // Flag to track if parent file should be skipped
 		
 			if (hasChildren) {
-			// Create folder structure for pages with children
-			// The folder will contain the page content file and child pages/databases
-			// For incremental import: reuse existing folder if it exists, otherwise create a unique one
+				// Create folder structure for pages with children
+				// The folder will contain the page content file and child pages/databases
+				// For incremental import: reuse existing folder if it exists, otherwise create a unique one
 				const baseFolderPath = normalizePath(parentPath ? `${parentPath}/${sanitizedTitle}` : sanitizedTitle);
 				const existingFolder = this.vault.getAbstractFileByPath(baseFolderPath);
 			
 				if (existingFolder instanceof TFolder) {
-				// Reuse existing folder for incremental import
+					// Reuse existing folder for incremental import
 					pageFolderPath = baseFolderPath;
 				}
 				else {
-				// Create new folder with unique name if needed
+					// Create new folder with unique name if needed
 					pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
 					await this.createFolders(pageFolderPath);
 				}
@@ -1074,8 +1076,8 @@ export class NotionAPIImporter extends FormatImporter {
 				mdFilePath = potentialFilePath;
 			}
 			else {
-			// Create file directly for pages without children
-			// No folder needed since there are no child pages or databases
+				// Create file directly for pages without children
+				// No folder needed since there are no child pages or databases
 				pageFolderPath = parentPath;
 				// Check for incremental import before creating file
 				const filePathOrNull = await this.getUniqueFilePathWithIncrementalCheck(
@@ -1085,7 +1087,7 @@ export class NotionAPIImporter extends FormatImporter {
 					ctx
 				);
 				if (!filePathOrNull) {
-				// File skipped due to incremental import (no children, so nothing else to do)
+					// File skipped due to incremental import (no children, so nothing else to do)
 					return;
 				}
 				mdFilePath = filePathOrNull;
@@ -1103,8 +1105,10 @@ export class NotionAPIImporter extends FormatImporter {
 			let markdownContent = await convertBlocksToMarkdown(blocks, {
 				ctx,
 				currentFolderPath: currentFileFolderPath,
+				currentFilePath: mdFilePath, // for link generation
 				client: this.notionClient!,
 				vault: this.vault,
+				app: this.app,
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
@@ -1135,8 +1139,10 @@ export class NotionAPIImporter extends FormatImporter {
 				{
 					ctx,
 					currentPageFolderPath: pageFolderPath,
+					currentFilePath: mdFilePath, // For link generation
 					client: this.notionClient!,
 					vault: this.vault,
+					app: this.app,
 					outputRootPath: this.outputRootPath,
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
@@ -1200,8 +1206,10 @@ export class NotionAPIImporter extends FormatImporter {
 						{
 							ctx,
 							currentFolderPath: currentFileFolderPath,
+							currentFilePath: mdFilePath,
 							client: this.notionClient!,
 							vault: this.vault,
+							app: this.app,
 							downloadExternalAttachments: true, // Always download cover images
 							currentPageTitle: sanitizedTitle
 						}
@@ -1232,7 +1240,7 @@ export class NotionAPIImporter extends FormatImporter {
 						}
 					}
 					else {
-					// Download failed - log warning and keep original URL as fallback
+						// Download failed - log warning and keep original URL as fallback
 						console.warn(`Failed to download cover image, keeping original URL: ${result.path}`);
 						// Keep the original URL in frontmatter (without wiki link syntax)
 						// This allows Dataview Cards view to attempt loading the external image
@@ -1243,7 +1251,7 @@ export class NotionAPIImporter extends FormatImporter {
 							delete frontMatter.cover;
 							frontMatter[this.coverPropertyName] = originalUrl;
 						}
-					// If using default 'cover' property, the original URL is already there, no change needed
+						// If using default 'cover' property, the original URL is already there, no change needed
 					}
 				}
 				catch (error) {
@@ -1395,7 +1403,7 @@ export class NotionAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) break;
 			
 			try {
-			// Get the page file path from mapping (O(1) lookup)
+				// Get the page file path from mapping (O(1) lookup)
 				const pageFilePath = this.notionIdToPath.get(placeholder.pageId);
 				if (!pageFilePath) {
 					console.warn(`Could not find file path for page: ${placeholder.pageId}`);
@@ -1430,17 +1438,19 @@ export class NotionAPIImporter extends FormatImporter {
 					if (relatedPagePath) {
 						const relatedPageFile = this.vault.getAbstractFileByPath(relatedPagePath + '.md');
 						if (relatedPageFile instanceof TFile) {
+							// YAML frontmatter doesn't support Markdown syntax, so always use Wiki links
+							// regardless of user's global link format setting
 							// Use Obsidian wiki link with display text: [[path/to/file|display name]]
 							// This ensures precise linking (no ambiguity with duplicate names)
 							// while displaying only the clean file name
-							const fullPath = relatedPageFile.path.replace(/\.md$/, ''); // Full path without .md
 							const displayName = relatedPageFile.basename; // Just the file name for display
-							const wikiLink = `"[[${fullPath}|${displayName}]]"`;
-							
-							// Replace the page ID with the wiki link in the YAML
-							// The page IDs are stored as array items in YAML
+							const wikiLink = `"[[${relatedPagePath}|${displayName}]]"`;
+			
+							// Replace the page ID with the link in the YAML
+							// Note: stringifyYaml does NOT add quotes to UUID strings, so we search for unquoted IDs
+							// and replace them with quoted links
 							newContent = newContent.replace(
-								new RegExp(`"${relatedPageId}"`, 'g'),
+								new RegExp(`${relatedPageId}`, 'g'),
 								wikiLink
 							);
 						}
@@ -1481,8 +1491,10 @@ export class NotionAPIImporter extends FormatImporter {
 			const context: DatabaseProcessingContext = {
 				ctx,
 				currentPageFolderPath: parentPath,
+				currentFilePath: undefined, // Unimported database, no parent file
 				client: this.notionClient!,
 				vault: this.vault,
+				app: this.app,
 				outputRootPath: this.outputRootPath,
 				formulaStrategy: this.formulaStrategy,
 				processedDatabases: this.processedDatabases,
@@ -1625,7 +1637,7 @@ export class NotionAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) break;
 	
 			try {
-			// Get the file directly by path (O(1) lookup)
+				// Get the file directly by path (O(1) lookup)
 				const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
 				if (!file || !(file instanceof TFile)) {
 					console.warn(`Could not find synced block file: ${filePath}`);
@@ -1641,11 +1653,11 @@ export class NotionAPIImporter extends FormatImporter {
 		
 					// Check if this page placeholder exists
 					if (content.includes(pagePlaceholder)) {
-					// Check if page is already imported
+						// Check if page is already imported
 						let pagePath = this.notionIdToPath.get(pageId);
 
 						if (!pagePath) {
-						// Try to import the page
+							// Try to import the page
 							try {
 								const { parent: parentPath } = parseFilePath(this.outputRootPath);
 								const syncedBlocksFolder = normalizePath(
@@ -1655,7 +1667,7 @@ export class NotionAPIImporter extends FormatImporter {
 								importedCount++;
 							}
 							catch (error) {
-							// Failed to import (no access or error)
+								// Failed to import (no access or error)
 								console.warn(`Failed to import synced child page ${pageId}:`, error);
 								content = content.replace(pagePlaceholder, `**Page** _(no access)_`);
 								continue; // Skip to next page ID
@@ -1693,7 +1705,7 @@ export class NotionAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) break;
 	
 			try {
-			// Get the file directly by path (O(1) lookup)
+				// Get the file directly by path (O(1) lookup)
 				const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
 				if (!file || !(file instanceof TFile)) {
 					console.warn(`Could not find synced block file: ${filePath}`);
@@ -1708,11 +1720,11 @@ export class NotionAPIImporter extends FormatImporter {
 					const dbPlaceholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_DATABASE, databaseId);
 
 					if (content.includes(dbPlaceholder)) {
-					// Check if database is already imported
+						// Check if database is already imported
 						let dbInfo = this.processedDatabases.get(databaseId);
 		
 						if (!dbInfo) {
-						// Try to import the database
+							// Try to import the database
 							try {
 								const { parent: parentPath } = parseFilePath(this.outputRootPath);
 								const syncedBlocksFolder = normalizePath(
@@ -1722,7 +1734,7 @@ export class NotionAPIImporter extends FormatImporter {
 								importedCount++;
 							}
 							catch (error) {
-							// Failed to import (no access or error)
+								// Failed to import (no access or error)
 								console.warn(`Failed to import synced child database ${databaseId}:`, error);
 								content = content.replace(dbPlaceholder, `**Database** _(no access)_`);
 								continue; // Skip to next database ID

@@ -341,7 +341,7 @@ export function convertNotionFormulaToObsidian(
 			// date() signature: date(input: string | date): date
 			// Therefore, fromTimestamp() cannot be converted
 			if (funcName === 'fromTimestamp') {
-			// Keep as unsupported - will be caught by canConvertFormula
+				// Keep as unsupported - will be caught by canConvertFormula
 				return match;
 			}
 		

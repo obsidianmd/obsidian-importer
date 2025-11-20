@@ -3,7 +3,7 @@
  */
 
 import { Client, BlockObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { Vault } from 'obsidian';
+import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../notion-api';
 
@@ -14,8 +14,10 @@ import type { FormulaImportStrategy } from '../notion-api';
 export interface DatabaseProcessingContext {
 	ctx: ImportContext;
 	currentPageFolderPath: string;
+	currentFilePath?: string; // Current file path for link generation
 	client: Client;
 	vault: Vault;
+	app: App;
 	outputRootPath: string;
 	formulaStrategy: FormulaImportStrategy;
 	processedDatabases: Map<string, DatabaseInfo>;
@@ -159,6 +161,24 @@ export interface AttachmentResult {
 }
 
 /**
+ * Parameters for formatting attachment links
+ */
+export interface FormatAttachmentLinkParams {
+	/** Attachment download result */
+	result: AttachmentResult;
+	/** Obsidian vault */
+	vault: Vault;
+	/** Obsidian app (for generateMarkdownLink) */
+	app: App;
+	/** Source file path (for relative link generation) */
+	sourceFilePath: string;
+	/** Optional caption/alt text */
+	caption?: string;
+	/** Whether to use embed syntax (!) for images/videos/pdfs */
+	isEmbed?: boolean;
+}
+
+/**
  * Callback type for importing child pages
  */
 export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
@@ -169,8 +189,10 @@ export type ImportPageCallback = (pageId: string, parentPath: string) => Promise
 export interface BlockConversionContext {
 	ctx: ImportContext;
 	currentFolderPath: string;
+	currentFilePath?: string; // Current file path for link generation
 	client: Client;
 	vault: Vault;
+	app: App;
 	downloadExternalAttachments: boolean;
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
