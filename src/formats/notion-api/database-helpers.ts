@@ -335,7 +335,7 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		databaseName,
 		databaseFolderPath,
 		dataSourceProperties,
-		formulaStrategy = 'function',
+		formulaStrategy = 'hybrid',
 		viewType = 'table',
 		coverPropertyName = 'cover'
 	} = params;
@@ -382,7 +382,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		databaseName,
 		databaseFolderPath,
 		dataSourceProperties,
-		formulaStrategy = 'function',
+		formulaStrategy = 'hybrid',
 		viewType = 'table',
 		coverPropertyName = 'cover'
 	} = params;
@@ -495,7 +495,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
  */
 function mapDatabaseProperties(
 	dataSourceProperties: any,
-	formulaStrategy: FormulaImportStrategy = 'function'
+	formulaStrategy: FormulaImportStrategy = 'hybrid'
 ): {
 		formulas: Array<{key: string, config: any}>;
 		regularProperties: Array<{key: string, config: any}>;
@@ -581,33 +581,8 @@ function mapDatabaseProperties(
 						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 					};
 				}
-				else if (formulaStrategy === 'function') {
-					// Strategy 2: Function only - try to convert, keep original syntax if fails
-					if (formulaExpression) {
-						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, dataSourceProperties);
-						if (obsidianFormula && canConvertFormula(formulaExpression)) {
-							// Conversion successful - add as formula
-							mappings[`formula.${sanitizePropertyKey(key)}`] = {
-								displayName: propName,
-								formula: obsidianFormula,
-							};
-						}
-						else {
-							// Conversion failed - keep original Notion syntax (will show empty values)
-							console.warn(`⚠️ Formula "${propName}" cannot be fully converted to Obsidian syntax.`);
-							console.warn(`   Original: ${formulaExpression}`);
-							console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
-							console.warn(`   Result: Formula will be kept as-is but may not work correctly in Obsidian.`);
-							console.warn(`   Suggestion: Consider using "Static values" strategy for this database.`);
-							mappings[`formula.${sanitizePropertyKey(key)}`] = {
-								displayName: propName,
-								formula: formulaExpression, // Keep original Notion syntax
-							};
-						}
-					}
-				}
 				else if (formulaStrategy === 'hybrid') {
-					// Strategy 3: Hybrid - convert if possible, fallback to text
+					// Strategy 2: Hybrid - convert if possible, fallback to text
 					if (formulaExpression && canConvertFormula(formulaExpression)) {
 						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, dataSourceProperties);
 						if (obsidianFormula) {

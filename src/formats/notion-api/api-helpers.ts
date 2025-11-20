@@ -275,7 +275,7 @@ export function extractPageTitle(page: PageObjectResponse): string {
  * Extract frontmatter from Notion page
  * This includes the notion-id, timestamps, and all page properties
  * @param page - The Notion page object
- * @param formulaStrategy - How to handle formula properties ('static', 'function', 'hybrid')
+ * @param formulaStrategy - How to handle formula properties ('static', 'hybrid')
  * @param databaseProperties - Database property schema (for checking if formulas can be converted)
  */
 /**
@@ -283,7 +283,7 @@ export function extractPageTitle(page: PageObjectResponse): string {
  */
 export interface ExtractFrontMatterParams {
 	page: PageObjectResponse;
-	formulaStrategy?: 'static' | 'function' | 'hybrid';
+	formulaStrategy?: 'static' | 'hybrid';
 	databaseProperties?: any;
 	client?: Client;
 	ctx?: ImportContext;
@@ -299,7 +299,7 @@ export async function extractFrontMatter(
 ): Promise<Record<string, any>> {
 	const { 
 		page, 
-		formulaStrategy = 'function', 
+		formulaStrategy = 'hybrid', 
 		databaseProperties, 
 		client, 
 		ctx 

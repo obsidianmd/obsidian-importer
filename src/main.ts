@@ -287,19 +287,19 @@ export default class ImporterPlugin extends Plugin {
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
 			},
+			'notion-api': {
+				name: 'Notion (API)',
+				optionText: 'Notion (API)',
+				importer: NotionAPIImporter,
+				helpPermalink: 'import/notion',
+				formatDescription: 'Import your Notion pages/databases from API.',
+			},
 			'notion': {
 				name: 'Notion',
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 				formatDescription: 'Export your Notion workspace to HTML format.',
-			},
-			'notion-api': {
-				name: 'Notion (via API)',
-				optionText: 'Notion (via API)',
-				importer: NotionAPIImporter,
-				helpPermalink: 'import/notion',
-				formatDescription: 'Import your Notion pages/databases from API.',
 			},
 			'roam-json': {
 				name: 'Roam Research',

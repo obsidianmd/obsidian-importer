@@ -102,21 +102,3 @@ export function extractPlaceholderIds(content: string, type: PlaceholderType): s
 	return ids;
 }
 
-/**
- * Replace a placeholder with actual content
- * @param content - Markdown content containing placeholders
- * @param type - Type of placeholder to replace
- * @param id - Notion ID to match
- * @param replacement - Replacement string
- * @returns Updated content
- */
-export function replacePlaceholder(
-	content: string,
-	type: PlaceholderType,
-	id: string,
-	replacement: string
-): string {
-	const placeholder = createPlaceholder(type, id);
-	return content.replace(placeholder, replacement);
-}
-

@@ -20,7 +20,7 @@ import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/da
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
-export type FormulaImportStrategy = 'static' | 'function' | 'hybrid';
+export type FormulaImportStrategy = 'static' | 'hybrid';
 
 export type BaseViewType = 'table' | 'cards' | 'list';
 
@@ -46,7 +46,7 @@ interface NotionTreeNode {
 
 export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
-	formulaStrategy: FormulaImportStrategy = 'function'; // Default strategy
+	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	baseViewType: BaseViewType = 'table'; // Default view type for .base files
@@ -90,7 +90,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	init() {
 		// No file chooser needed since we're importing via API
-		this.addOutputLocationSetting('Notion API Import');
+		this.addOutputLocationSetting('Notion');
 
 		// Notion API Token input
 		new Setting(this.modal.contentEl)
@@ -120,7 +120,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
-			.setDesc('Click the button below to list all pages and databases you can import.');
+			.setDesc('Click "List importable pages" to see all of the importable pages and databases. If a page or database is missing, verify the Notion integration has access to it.');
 			
 		// Store button references in closure to avoid constructor timing issues
 		let toggleButtonRef: any = null;
@@ -178,14 +178,13 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Formula import strategy
 		new Setting(this.modal.contentEl)
-			.setName('Formula import strategy')
+			.setName('Convert formulas')
 			.setDesc(this.createFormulaStrategyDescription())
 			.addDropdown(dropdown => {
 				dropdown
-					.addOption('static', 'Static values (YAML only)')
-					.addOption('function', 'Base functions (default)')
-					.addOption('hybrid', 'Hybrid (functions + fallback to static)')
-					.setValue('function') // Explicitly set default to 'function'
+					.addOption('static', 'To static values')
+					.addOption('hybrid', 'To Obsidian syntax')
+					.setValue('hybrid') // Set default to 'hybrid'
 					.onChange(value => {
 						this.formulaStrategy = value as FormulaImportStrategy;
 					});
@@ -225,19 +224,13 @@ export class NotionAPIImporter extends FormatImporter {
 				.onChange(value => {
 					this.baseViewType = value as BaseViewType;
 				}));
-
-		// Description text
-		new Setting(this.modal.contentEl)
-			.setName('Import notes')
-			.setDesc(this.createImportDescription())
-			.setHeading();
 	}
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = document.createDocumentFragment();
-		frag.appendText('Enter your Notion integration token. ');
+		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace.');
 		frag.createEl('a', {
-			text: 'Learn how to get your token',
+			text: 'Get API token',
 			href: 'https://www.notion.so/profile/integrations',
 		});
 		frag.appendText('.');
@@ -246,13 +239,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = document.createDocumentFragment();
-		frag.appendText('Choose how to import Notion formulas: ');
-		frag.createEl('br');
-		frag.appendText('• Static: Formula results as text in page YAML');
-		frag.createEl('br');
-		frag.appendText('• Function: Convert to Base functions (may fail for complex formulas)');
-		frag.createEl('br');
-		frag.appendText('• Hybrid: Try functions, fallback to static for complex formulas');
+		frag.appendText('By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.');
 		return frag;
 	}
 
@@ -271,41 +258,6 @@ export class NotionAPIImporter extends FormatImporter {
 		frag.appendText('Property name for page cover image in YAML frontmatter. ');
 		frag.createEl('br');
 		frag.appendText('Leave as "cover" if you don\'t have conflicts with existing properties.');
-		return frag;
-	}
-
-
-	private createImportDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
-		const ul = frag.createEl('ul');
-		
-		// Attachment handling
-		const attachmentLi = ul.createEl('li');
-		attachmentLi.appendText('Attachments, videos, images, and files from Notion will be placed according to your vault\'s ');
-		attachmentLi.createEl('strong', { text: 'attachment folder settings' });
-		attachmentLi.appendText('.');
-		
-		// Link format
-		const linkLi = ul.createEl('li');
-		linkLi.appendText('Links and embeds will use your vault\'s ');
-		linkLi.createEl('strong', { text: 'link format settings' });
-		linkLi.appendText(' (Wiki links or Markdown links). Check Settings → Files & Links.');
-		
-		// File structure explanation
-		const structureLi = ul.createEl('li');
-		structureLi.appendText('Pages without child pages or databases will be imported as individual ');
-		structureLi.createEl('code', { text: '.md' });
-		structureLi.appendText(' files. Pages with children will be represented as folders containing a ');
-		structureLi.createEl('code', { text: '.md' });
-		structureLi.appendText(' file with the same name as the folder. Databases are always represented as folders with ');
-		structureLi.createEl('code', { text: '.base' });
-		structureLi.appendText(' files (Obsidian database format with filter conditions).');
-		
-		// API rate limit warning
-		ul.createEl('li', { 
-			text: 'Due to Notion API rate limits, importing large workspaces may take considerable time. Please be patient.' 
-		});
-		
 		return frag;
 	}
 
@@ -1071,7 +1023,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle || 'Untitled');
 	
 			// Update status with page title instead of ID
-			ctx.status(`Importing: ${sanitizedTitle}...`);
+			ctx.status(`Importing: ${sanitizedTitle}`);
 		
 			// Create a cache to store fetched blocks and avoid duplicate API calls
 			// This cache will be used both for checking if page has children and for converting blocks
@@ -1489,10 +1441,6 @@ export class NotionAPIImporter extends FormatImporter {
 							// The page IDs are stored as array items in YAML
 							newContent = newContent.replace(
 								new RegExp(`"${relatedPageId}"`, 'g'),
-								wikiLink
-							);
-							newContent = newContent.replace(
-								new RegExp(`${relatedPageId}`, 'g'),
 								wikiLink
 							);
 						}
