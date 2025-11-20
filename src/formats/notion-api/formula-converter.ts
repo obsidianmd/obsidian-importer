@@ -315,33 +315,9 @@ export function convertNotionFormulaToObsidian(
 			// In Obsidian: date + 'amount+unit' (e.g., now() + '1d')
 			if (funcName === 'dateAdd') {
 				changed = true;
-				const args = parseArguments(argsStr);
-				if (args.length === 3) {
-					const dateArg = args[0];
-					const amountArg = args[1];
-					const unitArg = args[2];
-				
-					// Remove quotes from unit if it's a string literal
-					let unit = unitArg.trim();
-					if ((unit.startsWith('"') && unit.endsWith('"')) || 
-				    (unit.startsWith('\'') && unit.endsWith('\''))) {
-						unit = unit.slice(1, -1);
-					}
-				
-					// Map Notion units to Obsidian units
-					const unitMap: Record<string, string> = {
-						'years': 'y',
-						'quarters': 'q',
-						'months': 'M',
-						'weeks': 'w',
-						'days': 'd',
-						'hours': 'h',
-						'minutes': 'm',
-					};
-					const obsidianUnit = unitMap[unit] || unit;
-				
-					// Convert: dateAdd(date, amount, unit) -> date + 'amount+unit'
-					return `(${dateArg}) + '${amountArg}${obsidianUnit}'`;
+				const result = convertDateArithmetic(argsStr, '+');
+				if (result) {
+					return result;
 				}
 				// Fallback: keep as-is if wrong number of arguments
 				return match;
@@ -352,33 +328,9 @@ export function convertNotionFormulaToObsidian(
 			// In Obsidian: date - 'amount+unit' (e.g., now() - '1d')
 			if (funcName === 'dateSubtract') {
 				changed = true;
-				const args = parseArguments(argsStr);
-				if (args.length === 3) {
-					const dateArg = args[0];
-					const amountArg = args[1];
-					const unitArg = args[2];
-				
-					// Remove quotes from unit if it's a string literal
-					let unit = unitArg.trim();
-					if ((unit.startsWith('"') && unit.endsWith('"')) || 
-				    (unit.startsWith('\'') && unit.endsWith('\''))) {
-						unit = unit.slice(1, -1);
-					}
-				
-					// Map Notion units to Obsidian units
-					const unitMap: Record<string, string> = {
-						'years': 'y',
-						'quarters': 'q',
-						'months': 'M',
-						'weeks': 'w',
-						'days': 'd',
-						'hours': 'h',
-						'minutes': 'm',
-					};
-					const obsidianUnit = unitMap[unit] || unit;
-				
-					// Convert: dateSubtract(date, amount, unit) -> date - 'amount+unit'
-					return `(${dateArg}) - '${amountArg}${obsidianUnit}'`;
+				const result = convertDateArithmetic(argsStr, '-');
+				if (result) {
+					return result;
 				}
 				// Fallback: keep as-is if wrong number of arguments
 				return match;
@@ -559,6 +511,45 @@ function parseArguments(argsStr: string): string[] {
 	}
 	
 	return args;
+}
+
+/**
+ * Convert Notion date arithmetic functions to Obsidian syntax
+ * @param argsStr - Arguments string from the function call
+ * @param operator - The arithmetic operator ('+' for dateAdd, '-' for dateSubtract)
+ * @returns Converted Obsidian date arithmetic expression, or null if invalid
+ */
+function convertDateArithmetic(argsStr: string, operator: '+' | '-'): string | null {
+	const args = parseArguments(argsStr);
+	if (args.length !== 3) {
+		return null;
+	}
+	
+	const dateArg = args[0];
+	const amountArg = args[1];
+	const unitArg = args[2];
+	
+	// Remove quotes from unit if it's a string literal
+	let unit = unitArg.trim();
+	if ((unit.startsWith('"') && unit.endsWith('"')) || 
+	    (unit.startsWith('\'') && unit.endsWith('\''))) {
+		unit = unit.slice(1, -1);
+	}
+	
+	// Map Notion units to Obsidian units
+	const unitMap: Record<string, string> = {
+		'years': 'y',
+		'quarters': 'q',
+		'months': 'M',
+		'weeks': 'w',
+		'days': 'd',
+		'hours': 'h',
+		'minutes': 'm',
+	};
+	const obsidianUnit = unitMap[unit] || unit;
+	
+	// Convert: date ± 'amount+unit'
+	return `(${dateArg}) ${operator} '${amountArg}${obsidianUnit}'`;
 }
 
 /**
