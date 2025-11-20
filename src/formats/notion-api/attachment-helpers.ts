@@ -219,7 +219,8 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 	
 	// For wiki links, we need to include the file extension
 	// Obsidian requires the extension to properly link to non-markdown files
-	const pathWithExt = result.filename ? `${result.path}.${getFileExtension(result.filename)}` : result.path;
+	const [, ext] = splitext(result.filename || '');
+	const pathWithExt = ext ? `${result.path}.${ext}` : result.path;
 	
 	// Get the target file from vault
 	const targetFile = vault.getAbstractFileByPath(normalizePath(pathWithExt));
@@ -270,14 +271,4 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 	return `${embedPrefix}${link}`;
 }
 
-/**
- * Get file extension from filename
- */
-function getFileExtension(filename: string): string {
-	const lastDotIndex = filename.lastIndexOf('.');
-	if (lastDotIndex > 0) {
-		return filename.substring(lastDotIndex + 1);
-	}
-	return '';
-}
 
