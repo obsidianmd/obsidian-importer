@@ -13,7 +13,7 @@ import {
 import { normalizePath, stringifyYaml, BasesConfigFile, TFolder, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
-import { getUniqueFolderPath } from './vault-helpers';
+import { getUniqueFolderPath, getUniqueFilePath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
@@ -362,12 +362,7 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 	}
 	
 	// File doesn't exist, create new one with unique name if needed
-	let finalPath = baseFilePath;
-	let counter = 1;
-	while (vault.getAbstractFileByPath(finalPath)) {
-		finalPath = normalizePath(`${databaseFolderPath}/${databaseName} (${counter}).base`);
-		counter++;
-	}
+	const finalPath = getUniqueFilePath(vault, databaseFolderPath, `${databaseName}.base`);
 	
 	await vault.create(finalPath, baseContent);
 	

@@ -9,6 +9,7 @@ import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext } from './types';
+import { getUniqueFilePath } from './vault-helpers';
 
 /**
  * Download an attachment and save it to the vault
@@ -70,9 +71,9 @@ export async function downloadAttachment(
 		
 		// Get attachment folder path from vault settings
 		const attachmentFolderPath = getAttachmentFolderPath(vault, context.currentFolderPath);
-		
+	
 		// Get unique file path to avoid conflicts
-		const filePath = getUniqueAttachmentPath(vault, attachmentFolderPath, filename);
+		const filePath = getUniqueFilePath(vault, attachmentFolderPath, filename);
 		
 		// Create attachment folder if it doesn't exist
 		await ensureAttachmentFolder(vault, attachmentFolderPath);
@@ -160,27 +161,6 @@ function getAttachmentFolderPath(vault: Vault, currentFolderPath: string): strin
 	else {
 		return '';
 	}
-}
-
-/**
- * Get unique attachment path to avoid conflicts
- */
-function getUniqueAttachmentPath(vault: Vault, folderPath: string, filename: string): string {
-	const basePath = folderPath ? `${folderPath}/${filename}` : filename;
-	let finalPath = basePath;
-	let counter = 1;
-	
-	// Extract name and extension
-	const [nameWithoutExt, extension] = splitext(filename);
-	const ext = extension ? `.${extension}` : '';
-	
-	while (vault.getAbstractFileByPath(normalizePath(finalPath))) {
-		const newFilename = `${nameWithoutExt} (${counter})${ext}`;
-		finalPath = folderPath ? `${folderPath}/${newFilename}` : newFilename;
-		counter++;
-	}
-	
-	return finalPath;
 }
 
 /**

@@ -25,6 +25,7 @@ import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
+import { getUniqueFilePath } from './vault-helpers';
 
 
 /**
@@ -669,12 +670,7 @@ async function createSyncedBlockFile(
 		}
 		
 		// Generate unique file path
-		let filePath = normalizePath(`${syncedBlocksFolder}/${fileName}.md`);
-		let counter = 1;
-		while (vault.getAbstractFileByPath(filePath)) {
-			filePath = normalizePath(`${syncedBlocksFolder}/${fileName} (${counter}).md`);
-			counter++;
-		}
+		const filePath = getUniqueFilePath(vault, syncedBlocksFolder, `${fileName}.md`);
 	
 		// Create a new context for synced block content
 		// Set currentFolderPath to the synced blocks folder
