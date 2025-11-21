@@ -120,7 +120,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
-			.setDesc('Click "List importable pages" to see all of the importable pages and databases. If a page or database is missing, verify the Notion integration has access to it.');
+			.setDesc('Click "Load" to see all of the importable pages and databases. If a page or database is missing, verify the Notion integration has access to it.');
 			
 		// Store button references in closure to avoid constructor timing issues
 		let toggleButtonRef: any = null;
@@ -129,19 +129,27 @@ export class NotionAPIImporter extends FormatImporter {
 		// Toggle select all/none button
 		listPagesSetting.addButton(button => {
 			toggleButtonRef = button;
-			return button
+			button
 				.setButtonText('Select all')
 				.onClick(() => {
 					this.toggleSelectButton = toggleButtonRef;
 					this.handleToggleSelectClick();
 				});
+	
+			// Add custom class for fixed width and initially hide
+			if (button.buttonEl) {
+				button.buttonEl.addClass('notion-toggle-button');
+				button.buttonEl.style.display = 'none'; // Hide until tree is loaded
+			}
+	
+			return button;
 		});
 
 		// List pages button
 		listPagesSetting.addButton(button => {
 			listButtonRef = button;
-			return button
-				.setButtonText('List importable pages')
+			button
+				.setButtonText('Load')
 				.onClick(async () => {
 					try {
 						this.listPagesButton = listButtonRef;
@@ -153,28 +161,33 @@ export class NotionAPIImporter extends FormatImporter {
 						new Notice(`Failed to load pages: ${error.message}`);
 					}
 				});
+		
+			// Add custom class for fixed width
+			if (button.buttonEl) {
+				button.buttonEl.addClass('notion-load-button');
+				button.buttonEl.addClass('mod-cta');
+			}
+		
+			return button;
 		});
 
 
-		// Page tree container (initially visible with placeholder)
-		this.pageTreeContainer = this.modal.contentEl.createDiv();
-		this.pageTreeContainer.addClass('notion-page-tree-container');
-		this.pageTreeContainer.style.maxHeight = '260px';
-		this.pageTreeContainer.style.minHeight = '100px';
+		// Page tree container (using Publish plugin's style with proper hierarchy)
+		// Create the section wrapper
+		const publishSection = this.modal.contentEl.createDiv();
+		publishSection.addClass('file-tree', 'publish-section');
+	
+		// Create the change list container
+		this.pageTreeContainer = publishSection.createDiv('publish-change-list');
+		this.pageTreeContainer.style.maxHeight = '400px';
 		this.pageTreeContainer.style.overflowY = 'auto';
-		this.pageTreeContainer.style.border = '1px solid var(--background-modifier-border)';
-		this.pageTreeContainer.style.borderRadius = '4px';
-		this.pageTreeContainer.style.padding = '10px';
-		this.pageTreeContainer.style.marginTop = '10px';
-		this.pageTreeContainer.style.marginBottom = '10px';
 		
 		// Add placeholder text
 		const placeholder = this.pageTreeContainer.createDiv();
-		placeholder.addClass('notion-tree-placeholder');
 		placeholder.style.color = 'var(--text-muted)';
 		placeholder.style.textAlign = 'center';
 		placeholder.style.padding = '30px 10px';
-		placeholder.setText('Click "List importable pages" to load your Notion pages and databases.');
+		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Formula import strategy
 		new Setting(this.modal.contentEl)
@@ -384,6 +397,11 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Render tree (this will also update button text)
 			this.renderPageTree();
+		
+			// Show the Select all button now that we have content
+			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
+				this.toggleSelectButton.buttonEl.style.display = '';
+			}
 
 			new Notice(`Found ${allItems.length} pages and databases.`);
 		}
@@ -395,7 +413,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Re-enable button
 			if (this.listPagesButton) {
 				this.listPagesButton.setDisabled(false);
-				this.listPagesButton.setButtonText('Refresh list');
+				this.listPagesButton.setButtonText('Refresh');
 			}
 		}
 	}
@@ -544,7 +562,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderPageTree(): void {
 		// Try to get container reference if lost
 		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.modal.contentEl.querySelector('.notion-page-tree-container') as HTMLElement;
+			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list') as HTMLElement;
 		}
 		
 		if (!this.pageTreeContainer) {
@@ -574,101 +592,139 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Render a single tree node
+	 * Render a single tree node using Obsidian's standard tree structure
 	 */
 	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
-		const nodeEl = container.createDiv('notion-tree-node');
-		nodeEl.style.display = 'flex';
-		nodeEl.style.alignItems = 'center';
-		nodeEl.style.paddingTop = '4px';
-		nodeEl.style.paddingBottom = '4px';
-		nodeEl.style.paddingLeft = `${8 + level * 20}px`; // 8px base + 20px per level
-		nodeEl.style.paddingRight = '8px';
-	
-		// Apply disabled styling
-		if (node.disabled) {
-			nodeEl.style.opacity = '0.5';
-			nodeEl.style.pointerEvents = 'none'; // Prevent clicking on the entire row
-		}
-
-		// Collapse/Expand arrow (only if has children)
+		// Main tree item container
+		const treeItem = container.createDiv('tree-item');
+		
+		// Tree item self (contains the node itself)
+		const treeItemSelf = treeItem.createDiv('tree-item-self');
+		treeItemSelf.addClass('is-clickable');
+		
+		// Add appropriate modifiers
 		if (node.children.length > 0) {
-			const arrow = nodeEl.createSpan();
-			arrow.style.marginRight = '4px';
-			arrow.style.userSelect = 'none';
-			arrow.style.width = '20px';
-			arrow.style.height = '20px';
-			arrow.style.display = 'inline-flex';
-			arrow.style.alignItems = 'center';
-			arrow.style.justifyContent = 'center';
-			arrow.style.padding = '2px';
-			arrow.style.borderRadius = '3px';
-		
-			// Use Lucide chevron icons
-			setIcon(arrow, node.collapsed ? 'chevron-right' : 'chevron-down');
-		
-			// Hover effect
-			arrow.addEventListener('mouseenter', () => {
-				arrow.style.backgroundColor = 'var(--background-modifier-hover)';
-			});
-			arrow.addEventListener('mouseleave', () => {
-				arrow.style.backgroundColor = 'transparent';
-			});
-		
-			// Allow arrow click even when disabled (to expand/collapse)
-			// But need to override the pointerEvents: none from parent
-			if (node.disabled) {
-				arrow.style.pointerEvents = 'auto';
-			}
-		
-			arrow.addEventListener('click', (e) => {
-				e.stopPropagation(); // Prevent triggering row click
-				node.collapsed = !node.collapsed;
-				this.renderPageTree(); // Re-render to show/hide children
-			});
+			treeItemSelf.addClass('mod-collapsible');
+			treeItemSelf.addClass('mod-folder');
 		}
 		else {
-			// Add spacing for nodes without children to align with those that have arrows
-			const spacer = nodeEl.createSpan();
-			spacer.style.width = '24px'; // Match arrow width (20px) + marginRight (4px)
-			spacer.style.display = 'inline-block';
+			treeItemSelf.addClass('mod-file');
 		}
-
+		
+		// Apply disabled styling
+		if (node.disabled) {
+			treeItemSelf.addClass('is-disabled');
+			treeItemSelf.style.opacity = '0.5';
+			treeItemSelf.style.pointerEvents = 'none';
+		}
+	
+		// Collapse/Expand arrow (only if has children)
+		if (node.children.length > 0) {
+			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
+		
+			// Use right-triangle icon (Obsidian's standard)
+			setIcon(collapseIcon, 'right-triangle');
+		
+			// Add is-collapsed class for CSS control
+			if (node.collapsed) {
+				collapseIcon.addClass('is-collapsed');
+				treeItem.addClass('is-collapsed');
+			}
+		
+			// Allow arrow click even when disabled
+			if (node.disabled) {
+				collapseIcon.style.pointerEvents = 'auto';
+			}
+		
+			// Store references for event handler
+			const treeItemRef = treeItem;
+			let childrenContainer: HTMLElement;
+			let iconContainer: HTMLElement;
+		
+			// Toggle collapse state with pure DOM manipulation (no re-render)
+			collapseIcon.addEventListener('click', (e) => {
+				e.stopPropagation();
+				node.collapsed = !node.collapsed;
+			
+				// Get references if not set yet
+				if (!childrenContainer) {
+					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
+				}
+				if (!iconContainer) {
+					iconContainer = treeItemRef.querySelector('.file-tree-item-icon') as HTMLElement;
+				}
+			
+				// Toggle CSS classes and visibility
+				if (node.collapsed) {
+					collapseIcon.addClass('is-collapsed');
+					treeItemRef.addClass('is-collapsed');
+					if (childrenContainer) childrenContainer.style.display = 'none';
+					// Update folder icon
+					if (node.type !== 'database' && iconContainer) {
+						iconContainer.empty();
+						setIcon(iconContainer, 'folder');
+					}
+				}
+				else {
+					collapseIcon.removeClass('is-collapsed');
+					treeItemRef.removeClass('is-collapsed');
+					if (childrenContainer) childrenContainer.style.display = '';
+					// Update folder icon
+					if (node.type !== 'database' && iconContainer) {
+						iconContainer.empty();
+						setIcon(iconContainer, 'folder-open');
+					}
+				}
+			});
+		}
+	
+		// Inner content (checkbox, icon, title)
+		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
+	
 		// Checkbox
-		const checkbox = nodeEl.createEl('input', { type: 'checkbox' });
+		const checkbox = treeItemInner.createEl('input', { 
+			type: 'checkbox',
+			cls: 'file-tree-item-checkbox'
+		});
 		checkbox.checked = node.selected;
 		checkbox.disabled = node.disabled;
-		checkbox.style.marginRight = '8px';
 	
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
 				this.toggleNodeSelection(node, checkbox.checked);
-				this.renderPageTree(); // Re-render to update disabled states
+				this.renderPageTree();
 			});
 		}
-
-		// Icon (using setIcon for consistency)
-		const icon = nodeEl.createSpan();
-		icon.style.marginRight = '6px';
-		icon.style.display = 'inline-flex';
-		icon.style.alignItems = 'center';
+	
+		// Icon
+		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
 		if (node.type === 'database') {
-			setIcon(icon, 'database');
+			setIcon(iconContainer, 'database');
+		}
+		else if (node.children.length > 0) {
+		// Use folder-open for pages with children
+			setIcon(iconContainer, !node.collapsed ? 'folder-open' : 'folder');
 		}
 		else {
-			// Use file icon for pages
-			setIcon(icon, node.children.length > 0 ? 'folder' : 'file-text');
+			setIcon(iconContainer, 'file');
 		}
-
+	
 		// Title
-		const title = nodeEl.createSpan();
-		title.setText(node.title);
-		title.style.flex = '1';
-
-		// Render children (only if not collapsed)
-		if (node.children.length > 0 && !node.collapsed) {
+		const titleEl = treeItemInner.createDiv('file-tree-item-title');
+		titleEl.setText(node.title);
+	
+		// Children container
+		const childrenContainer = treeItem.createDiv('tree-item-children');
+	
+		// Hide children container if collapsed
+		if (node.collapsed) {
+			childrenContainer.style.display = 'none';
+		}
+	
+		// Render children (always render, but hide if collapsed)
+		if (node.children.length > 0) {
 			for (const child of node.children) {
-				this.renderTreeNode(container, child, level + 1);
+				this.renderTreeNode(childrenContainer, child, level + 1);
 			}
 		}
 	}

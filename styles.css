@@ -162,3 +162,12 @@
 	align-items: center;
 	justify-content: center;
 }
+
+/* Fixed width buttons to prevent resizing during loading */
+.notion-load-button {
+	max-width: 70px;
+}
+
+.notion-toggle-button {
+	width: 95px;
+}
