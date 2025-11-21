@@ -1690,7 +1690,7 @@ export class NotionAPIImporter extends FormatImporter {
  * Replace synced child placeholders (pages/databases referenced in synced blocks)
  * Strategy:
  * 1. Check if already imported → use existing path
- * 2. If not imported → try to import to Notion Synced Blocks folder
+ * 2. If not imported → try to import to output root folder
  * 3. If import fails → show friendly message
  * 
  * Performance: Only processes files that contain synced child placeholders (O(n) where n = files with placeholders)
@@ -1731,13 +1731,9 @@ export class NotionAPIImporter extends FormatImporter {
 						let pagePath = this.notionIdToPath.get(pageId);
 
 						if (!pagePath) {
-							// Try to import the page
+							// Try to import the page to the output root folder
 							try {
-								const { parent: parentPath } = parseFilePath(this.outputRootPath);
-								const syncedBlocksFolder = normalizePath(
-									parentPath ? `${parentPath}/Notion Synced Blocks` : 'Notion Synced Blocks'
-								);
-								await this.fetchAndImportPage({ ctx, pageId, parentPath: syncedBlocksFolder });
+								await this.fetchAndImportPage({ ctx, pageId, parentPath: this.outputRootPath });
 								importedCount++;
 							}
 							catch (error) {
@@ -1747,7 +1743,7 @@ export class NotionAPIImporter extends FormatImporter {
 								continue; // Skip to next page ID
 							}
 						}
-			
+		
 						// Now get the path (either already existed or just imported)
 						pagePath = this.notionIdToPath.get(pageId);
 						if (pagePath) {
@@ -1798,13 +1794,9 @@ export class NotionAPIImporter extends FormatImporter {
 						let dbInfo = this.processedDatabases.get(databaseId);
 		
 						if (!dbInfo) {
-							// Try to import the database
+							// Try to import the database to the output root folder
 							try {
-								const { parent: parentPath } = parseFilePath(this.outputRootPath);
-								const syncedBlocksFolder = normalizePath(
-									parentPath ? `${parentPath}/Notion Synced Blocks` : 'Notion Synced Blocks'
-								);
-								await this.importTopLevelDatabase(ctx, databaseId, syncedBlocksFolder);
+								await this.importTopLevelDatabase(ctx, databaseId, this.outputRootPath);
 								importedCount++;
 							}
 							catch (error) {
@@ -1814,7 +1806,7 @@ export class NotionAPIImporter extends FormatImporter {
 								continue; // Skip to next database ID
 							}
 						}
-				
+			
 						// Now get the database info (either already existed or just imported)
 						dbInfo = this.processedDatabases.get(databaseId);
 						if (dbInfo) {

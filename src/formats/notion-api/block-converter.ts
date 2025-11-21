@@ -5,7 +5,6 @@
 
 import { 
 	BlockObjectResponse, 
-	Client,
 	ToggleBlockObjectResponse,
 	TableBlockObjectResponse,
 	TableRowBlockObjectResponse,
@@ -18,7 +17,6 @@ import {
 	RichTextItemResponse
 } from '@notionhq/client';
 import { normalizePath, TFile } from 'obsidian';
-import { ImportContext } from '../../main';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getBlockChildren, processBlockChildren } from './api-helpers';
@@ -306,7 +304,7 @@ export async function convertBlockToMarkdown(
 		case 'child_database':
 			// Database blocks are handled separately in the main importer
 			// Special handling for databases inside synced blocks
-			const isInSyncedBlockDb = context.currentFolderPath?.includes('Notion Synced Blocks');
+			const isInSyncedBlockDb = context.isProcessingSyncedBlock || false;
 			const dbIndentLevel = context.indentLevel || 0;
 	
 			// Choose placeholder type based on context
@@ -329,7 +327,7 @@ export async function convertBlockToMarkdown(
 		case 'child_page':
 			// Child page blocks: import the page and return a link
 			// Special handling for pages inside synced blocks
-			const isInSyncedBlock = context.currentFolderPath?.includes('Notion Synced Blocks');
+			const isInSyncedBlock = context.isProcessingSyncedBlock || false;
 			const pageIndentLevel = context.indentLevel || 0;
 		
 			if (isInSyncedBlock) {
@@ -572,72 +570,27 @@ export async function convertColumn(
 }
 
 /**
- * Extract the first line of text from a block recursively
- * Used for naming synced block files
- */
-async function extractFirstLineText(
-	block: BlockObjectResponse,
-	client: Client,
-	ctx: ImportContext,
-	maxLength: number = 20,
-	blocksCache?: Map<string, BlockObjectResponse[]>
-): Promise<string> {
-	// Try to get text from the block itself
-	let text = '';
-	
-	// Extract text based on block type
-	// Using 'as any' here because TypeScript cannot infer the correct type for dynamic property access
-	// on a union type (BlockObjectResponse). Each block type (paragraph, heading_1, etc.) has its own
-	// property with the same name, and we need to access it dynamically based on block.type.
-	// The alternative would be a verbose if-else chain for each block type, which is not maintainable.
-	if ('rich_text' in (block as any)[block.type]) {
-		const richText = (block as any)[block.type].rich_text;
-		if (richText && richText.length > 0) {
-			text = richText.map((rt: RichTextItemResponse) => rt.plain_text || '').join('');
-		}
-	}
-	
-	// If we found text, return it (truncated)
-	if (text.trim()) {
-		return text.trim().substring(0, maxLength);
-	}
-	
-	// If no text found and block has children, recursively check first child
-	const firstChildText = await processBlockChildren({
-		block,
-		client,
-		ctx,
-		blocksCache,
-		processor: async (children) => {
-			return await extractFirstLineText(children[0], client, ctx, maxLength, blocksCache);
-		},
-		errorContext: 'first line text extraction'
-	});
-	
-	if (firstChildText) {
-		return firstChildText;
-	}
-	
-	// Fallback to block type
-	return `Synced Block`;
-}
-
-/**
  * Create a synced block file and return the file path
  * This is used for both original blocks and synced copies
+ * 
+ * Synced blocks are placed in the same folder as the page that contains them:
+ * - If page has children (folder structure): Page/{Page Name} synced block.md
+ * - If page has no children (file): {Page Name} synced block.md (in same folder as page)
  */
 async function createSyncedBlockFile(
 	blockId: string,
 	context: BlockConversionContext
 ): Promise<string> {
-	const { client, ctx, vault, outputRootPath } = context;
+	const { client, ctx, vault, currentFolderPath, currentPageTitle } = context;
 	
-	if (!outputRootPath) {
-		throw new Error('outputRootPath is required for synced blocks');
+	if (!currentFolderPath) {
+		throw new Error('currentFolderPath is required for synced blocks');
 	}
 	
-	// Default filename for error reporting
-	let fileName = 'Synced Block';
+	// Use page title for synced block filename
+	// Format: "{Page Name} synced block.md"
+	const pageTitle = currentPageTitle || 'Page';
+	const fileName = `${pageTitle} synced block`;
 	
 	try {
 		// Fetch the block to get its content
@@ -654,45 +607,18 @@ async function createSyncedBlockFile(
 		const children: BlockObjectResponse[] = block.has_children 
 			? await getBlockChildren(blockId, client, ctx, context.blocksCache)
 			: [];
-
-		// Extract first line text for filename
-		if (children.length > 0) {
-			fileName = await extractFirstLineText(children[0], client, ctx, 20, context.blocksCache);
-		}
 		
-		// Sanitize filename
-		fileName = sanitizeFileName(fileName.trim()) || 'Synced Block';
-	
-		// Create "Notion Synced Blocks" folder at the same level as output root
-		const { parent: parentPath } = parseFilePath(outputRootPath);
-		const syncedBlocksFolder = normalizePath(
-			parentPath ? `${parentPath}/Notion Synced Blocks` : 'Notion Synced Blocks'
-		);
-
-		// Check if folder exists before creating
-		const existingFolder = vault.getAbstractFileByPath(syncedBlocksFolder);
-		if (!existingFolder) {
-			try {
-				await vault.createFolder(syncedBlocksFolder);
-			}
-			catch (error) {
-				// Ignore error if folder was created by another concurrent operation
-				if (!error.message?.includes('already exists')) {
-					const errorMsg = error instanceof Error ? error.message : String(error);
-					console.error('Failed to create Notion Synced Blocks folder:', error);
-					context.ctx.reportFailed('Create Synced Blocks folder', errorMsg);
-				}
-			}
-		}
-		
-		// Generate unique file path
-		const filePath = getUniqueFilePath(vault, syncedBlocksFolder, `${fileName}.md`);
+		// Generate unique file path in the same folder as the page
+		// If multiple synced blocks exist, they will be named: "Page synced block.md", "Page synced block 1.md", etc.
+		const filePath = getUniqueFilePath(vault, currentFolderPath, `${fileName}.md`);
 	
 		// Create a new context for synced block content
-		// Set currentFolderPath to the synced blocks folder
+		// Keep currentFolderPath the same so nested synced blocks are also placed correctly
+		// Set isProcessingSyncedBlock flag to indicate we're inside a synced block
 		const syncedBlockContext: BlockConversionContext = {
 			...context,
-			currentFolderPath: syncedBlocksFolder
+			currentFilePath: filePath, // Update current file path for link generation
+			isProcessingSyncedBlock: true // Mark that we're processing synced block content
 		};
 	
 		// Convert children to markdown
