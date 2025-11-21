@@ -1144,6 +1144,11 @@ export class NotionAPIImporter extends FormatImporter {
 				);
 				if (!filePathOrNull) {
 					// File skipped due to incremental import (no children, so nothing else to do)
+					// Update progress for skipped page
+					if (this.selectedNodeIds.has(pageId)) {
+						this.processedPagesCount++;
+						ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
+					}
 					return;
 				}
 				mdFilePath = filePathOrNull;
@@ -1166,6 +1171,7 @@ export class NotionAPIImporter extends FormatImporter {
 				vault: this.vault,
 				app: this.app,
 				downloadExternalAttachments: this.downloadExternalAttachments,
+				incrementalImport: this.incrementalImport, // Skip attachments with same path and size
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
 				mentionedIds, // collect mentioned IDs
@@ -1267,6 +1273,7 @@ export class NotionAPIImporter extends FormatImporter {
 							vault: this.vault,
 							app: this.app,
 							downloadExternalAttachments: true, // Always download cover images
+							incrementalImport: this.incrementalImport,
 							currentPageTitle: sanitizedTitle
 						}
 					);
@@ -1369,6 +1376,11 @@ export class NotionAPIImporter extends FormatImporter {
 				console.error('Stack trace:', error.stack);
 			}
 			ctx.reportFailed(pageTitle, errorMsg);
+			if (this.selectedNodeIds.has(pageId)) {
+				// Update progress for failed page to ensure remaining reaches 0
+				this.processedPagesCount++;
+				ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
+			}
 		}
 	}
 	

@@ -194,6 +194,7 @@ export interface BlockConversionContext {
 	vault: Vault;
 	app: App;
 	downloadExternalAttachments: boolean;
+	incrementalImport?: boolean; // Skip downloading attachments if same path and size
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	importPageCallback?: ImportPageCallback;

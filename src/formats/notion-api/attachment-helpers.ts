@@ -20,7 +20,7 @@ export async function downloadAttachment(
 	attachment: NotionAttachment,
 	context: BlockConversionContext
 ): Promise<AttachmentResult> {
-	const { vault, ctx, downloadExternalAttachments, currentPageTitle } = context;
+	const { vault, ctx, downloadExternalAttachments, currentPageTitle, incrementalImport } = context;
 	
 	// Determine if we should download this attachment
 	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments);
@@ -67,17 +67,70 @@ export async function downloadAttachment(
 				}
 			}
 		}
-		
+	
+		// Get the source file path for attachment folder resolution
+		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+
 		// Use Obsidian's built-in method to get the correct attachment path
 		// This respects user's attachment folder settings automatically
-		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
-		const filePath = await context.app.fileManager.getAvailablePathForAttachment(filename, sourceFilePath);
+		// If file exists, this will add " 1", " 2" suffix
+		const targetFilePath = await context.app.fileManager.getAvailablePathForAttachment(filename, sourceFilePath);
 	
-		// Save the file
-		await vault.createBinary(filePath, response.arrayBuffer);
+		console.log(`[ATTACHMENT] Incremental import enabled: ${incrementalImport}, Original filename: ${filename}`);
+		console.log(`[ATTACHMENT] Available target path: ${targetFilePath}`);
+
+		// Check for incremental import: skip if file exists with same size
+		if (incrementalImport) {
+		// Extract the basename from the target path to see if filename was changed
+			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
+			// Reconstruct the full filename with extension
+			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
+		
+			console.log(`[ATTACHMENT] Target full filename: ${targetFullName}`);
+		
+			// If filename changed (e.g., "file.jpg" → "file 1.jpg"), it means the original file exists
+			if (targetFullName !== filename) {
+				console.log(`[ATTACHMENT] Filename changed (${filename} → ${targetFullName}), original file exists`);
+			
+				// Construct the original file path by replacing the changed filename with the original
+				const originalFilePath = normalizePath(`${targetParent}/${filename}`);
+			
+				console.log(`[ATTACHMENT] Checking original file: ${originalFilePath}`);
+				const existingFile = vault.getAbstractFileByPath(originalFilePath);
+			
+				if (existingFile && existingFile instanceof TFile) {
+					const downloadedSize = response.arrayBuffer.byteLength;
+					console.log(`[ATTACHMENT] Downloaded size: ${downloadedSize} bytes, Existing size: ${existingFile.stat.size} bytes`);
+				
+					// Compare file sizes
+					if (existingFile.stat.size === downloadedSize) {
+						console.log(`[ATTACHMENT] Skipping attachment (same size): ${filename}`);
+						ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
+					
+						// Return existing file path (don't save to disk)
+						const { parent: existingParent, basename: existingBasename } = parseFilePath(originalFilePath);
+						const filePathWithoutExt = normalizePath(existingParent ? `${existingParent}/${existingBasename}` : existingBasename);
+						return {
+							path: filePathWithoutExt,
+							isLocal: true,
+							filename: filename
+						};
+					}
+					else {
+						console.log(`[ATTACHMENT] Sizes don't match, will save as new file: ${targetFullName}`);
+					}
+				}
+			}
+			else {
+				console.log(`[ATTACHMENT] Filename unchanged, original file doesn't exist`);
+			}
+		}
+
+		// Save the file to disk
+		await vault.createBinary(targetFilePath, response.arrayBuffer);
 		
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
-		const { parent, basename: fileBasename } = parseFilePath(filePath);
+		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
 		const filePathWithoutExt = normalizePath(parent ? `${parent}/${fileBasename}` : fileBasename);
 		return {
 			path: filePathWithoutExt,
@@ -270,5 +323,6 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 	
 	return `${embedPrefix}${link}`;
 }
+
 
 
