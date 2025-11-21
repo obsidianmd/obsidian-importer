@@ -177,8 +177,6 @@ export async function importDatabaseCore(
 		relationPlaceholders,
 		importPageCallback,
 		onPagesDiscovered,
-		baseViewType = 'table',
-		coverPropertyName = 'cover',
 		databasePropertyName = 'base'
 	} = context;
 	
@@ -296,8 +294,6 @@ export async function importDatabaseCore(
 		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy,
-		viewType: baseViewType,
-		coverPropertyName,
 		databasePropertyName
 	});
 	
@@ -356,8 +352,6 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
-		viewType = 'table',
-		coverPropertyName = 'cover',
 		databasePropertyName = 'base'
 	} = params;
 	
@@ -366,8 +360,6 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		databaseName,
 		dataSourceProperties,
 		formulaStrategy,
-		viewType,
-		coverPropertyName,
 		databasePropertyName
 	});
 	
@@ -398,8 +390,6 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		databaseName,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
-		viewType = 'table',
-		coverPropertyName = 'cover',
 		databasePropertyName = 'base'
 	} = params;
 	
@@ -458,36 +448,12 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		}
 	}
 	
-	// Add view based on user selection
-	// Note: views is optional in BasesConfigFile, so we need to initialize it
-	if (!baseConfig.views) {
-		baseConfig.views = [];
-	}
-	
-	if (viewType === 'table') {
-		baseConfig.views.push({
-			type: 'table',
-			name: 'Table View',
-			order: orderColumns
-		});
-	}
-	else if (viewType === 'cards') {
-		// Note: 'image' property is not in the official BasesConfigFileView type,
-		// but it's supported by the Base plugin for cards view
-		baseConfig.views.push({
-			type: 'cards',
-			name: 'Cards View',
-			image: `note.${coverPropertyName}`,
-			order: orderColumns
-		} as any);
-	}
-	else if (viewType === 'list') {
-		baseConfig.views.push({
-			type: 'list',
-			name: 'List View',
-			order: orderColumns
-		});
-	}
+	// Add default table view
+	baseConfig.views = [{
+		type: 'table',
+		name: 'Table View',
+		order: orderColumns
+	}];
 	
 	// Convert to YAML with title comment
 	return `# ${databaseName}\n\n${stringifyYaml(baseConfig)}`;

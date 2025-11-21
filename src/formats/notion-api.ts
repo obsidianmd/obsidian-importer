@@ -22,8 +22,6 @@ import { downloadAttachment } from './notion-api/attachment-helpers';
 
 export type FormulaImportStrategy = 'static' | 'hybrid';
 
-export type BaseViewType = 'table' | 'cards' | 'list';
-
 // Notion API parent types (based on @notionhq/client internal types)
 type NotionParent = 
 	| { type: 'page_id', page_id: string }
@@ -49,7 +47,6 @@ export class NotionAPIImporter extends FormatImporter {
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
-	baseViewType: BaseViewType = 'table'; // Default view type for .base files
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	incrementalImport: boolean = true; // Incremental import: skip files with same notion-id
 	private notionClient: Client | null = null;
@@ -225,18 +222,6 @@ export class NotionAPIImporter extends FormatImporter {
 				.setValue('cover')
 				.onChange(value => {
 					this.coverPropertyName = value.trim() || 'cover';
-				}));
-
-		// Base view type setting
-		new Setting(this.modal.contentEl)
-			.setName('Default view type')
-			.addDropdown(dropdown => dropdown
-				.addOption('table', 'Table')
-				.addOption('cards', 'Cards')
-				.addOption('list', 'List')
-				.setValue('table')
-				.onChange(value => {
-					this.baseViewType = value as BaseViewType;
 				}));
 
 		// Database property name
@@ -1046,8 +1031,6 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
-					baseViewType: this.baseViewType,
-					coverPropertyName: this.coverPropertyName,
 					databasePropertyName: this.databasePropertyName,
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
@@ -1222,8 +1205,6 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
-					baseViewType: this.baseViewType,
-					coverPropertyName: this.coverPropertyName,
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
 					// Callback to import database pages
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
@@ -1323,7 +1304,7 @@ export class NotionAPIImporter extends FormatImporter {
 						// This allows Dataview Cards view to attempt loading the external image
 						// Note: This should rarely happen as we force download for covers
 						if (this.coverPropertyName !== 'cover') {
-						// If using custom property name, move the URL to the custom property
+							// If using custom property name, move the URL to the custom property
 							const originalUrl = frontMatter.cover;
 							delete frontMatter.cover;
 							frontMatter[this.coverPropertyName] = originalUrl;
@@ -1603,8 +1584,6 @@ export class NotionAPIImporter extends FormatImporter {
 					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 				},
 				// onPagesDiscovered callback not provided - not needed for unimported databases
-				baseViewType: this.baseViewType,
-				coverPropertyName: this.coverPropertyName,
 				databasePropertyName: this.databasePropertyName
 			};
 			
