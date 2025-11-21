@@ -243,7 +243,6 @@ export class NotionAPIImporter extends FormatImporter {
 			text: 'Get API token',
 			href: 'https://www.notion.so/profile/integrations',
 		});
-		frag.appendText('.');
 		return frag;
 	}
 
