@@ -1879,6 +1879,18 @@ export class NotionAPIImporter extends FormatImporter {
 					// Same notion-id, skip this file
 					const { basename } = parseFilePath(filePath);
 					ctx.reportSkipped(basename, 'already exists with same notion-id (incremental import)');
+					
+					// IMPORTANT: Register this skipped file in notionIdToPath mapping
+					// This ensures that relation/mention links can find this page even though it wasn't imported in this session
+					// Without this, incremental imports would fail to resolve relations to previously imported pages
+					const filePathWithoutExtension = filePath.replace(/\.md$/, '');
+					this.notionIdToPath.set(notionId, filePathWithoutExtension);
+					
+					// IMPORTANT: Scan for unresolved placeholders from previous imports
+					// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
+					// we need to re-collect them so they can be resolved in this import session
+					await this.collectUnresolvedPlaceholders(content, notionId, filePath);
+					
 					return true;
 				}
 			}
@@ -1888,6 +1900,121 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to read file ${filePath} for incremental check:`, error);
 			return false; // On error, don't skip
+		}
+	}
+
+	/**
+	 * Scan file content for unresolved placeholders and add them to respective tracking structures
+	 * This handles the case where a previous import left unresolved placeholders
+	 * @param content - File content to scan
+	 * @param pageId - Notion page ID of the file
+	 * @param filePath - File path for tracking mention/synced placeholders
+	 */
+	private async collectUnresolvedPlaceholders(content: string, pageId: string, filePath: string): Promise<void> {
+		// 1. Collect unresolved relation placeholders (in frontmatter, as UUIDs)
+		const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+		const frontmatterMatch = content.match(frontmatterRegex);
+		
+		if (frontmatterMatch) {
+			const frontmatter = frontmatterMatch[1];
+			
+			// Look for relation properties that still contain page IDs (UUIDs)
+			// UUID format: 8-4-4-4-12 hexadecimal characters with hyphens
+			const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+			const uuidMatches = frontmatter.match(uuidRegex);
+			
+			if (uuidMatches && uuidMatches.length > 0) {
+				// Parse frontmatter to find which properties contain these UUIDs
+				const lines = frontmatter.split('\n');
+				let currentPropertyKey: string | null = null;
+				const unresolvedRelations: Map<string, string[]> = new Map();
+				
+				for (const line of lines) {
+					// Check if this line defines a property (e.g., "Related Pages:")
+					const propertyMatch = line.match(/^([a-zA-Z0-9_-]+):\s*$/);
+					if (propertyMatch) {
+						currentPropertyKey = propertyMatch[1];
+						continue;
+					}
+					
+					// Check if this line contains a UUID (list item or inline value)
+					if (currentPropertyKey) {
+						const lineUuids = line.match(uuidRegex);
+						if (lineUuids) {
+							for (const uuid of lineUuids) {
+								// Check if this UUID is NOT already a wiki link (i.e., it's an unresolved placeholder)
+								if (!line.includes(`[[${uuid}`)) {
+									if (!unresolvedRelations.has(currentPropertyKey)) {
+										unresolvedRelations.set(currentPropertyKey, []);
+									}
+									unresolvedRelations.get(currentPropertyKey)!.push(uuid);
+								}
+							}
+						}
+					}
+				}
+				
+				// Add unresolved relations to relationPlaceholders
+				for (const [propertyKey, relatedPageIds] of unresolvedRelations.entries()) {
+					if (relatedPageIds.length > 0) {
+						this.relationPlaceholders.push({
+							pageId: pageId,
+							propertyKey: propertyKey,
+							relatedPageIds: relatedPageIds,
+							targetDatabaseId: '', // Unknown, but not needed for replacement
+						});
+					}
+				}
+				
+				if (unresolvedRelations.size > 0) {
+					console.log(`[Incremental Import] Collected ${unresolvedRelations.size} unresolved relation(s) from skipped file: ${pageId}`);
+				}
+			}
+		}
+		
+		// 2. Collect unresolved mention placeholders (in content, as [[NOTION_PAGE:id]] or [[NOTION_DB:id]])
+		const mentionPageRegex = /\[\[NOTION_PAGE:([a-f0-9-]+)\]\]/g;
+		const mentionDbRegex = /\[\[NOTION_DB:([a-f0-9-]+)\]\]/g;
+		
+		const mentionedIds = new Set<string>();
+		let match;
+		
+		while ((match = mentionPageRegex.exec(content)) !== null) {
+			mentionedIds.add(match[1]);
+		}
+		
+		while ((match = mentionDbRegex.exec(content)) !== null) {
+			mentionedIds.add(match[1]);
+		}
+		
+		if (mentionedIds.size > 0) {
+			this.mentionPlaceholders.set(filePath, mentionedIds);
+			console.log(`[Incremental Import] Collected ${mentionedIds.size} unresolved mention(s) from skipped file: ${filePath}`);
+		}
+		
+		// 3. Collect unresolved synced child placeholders (in content, as [[SYNCED_CHILD_PAGE:id]] or [[SYNCED_CHILD_DATABASE:id]])
+		const syncedPageRegex = /\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g;
+		const syncedDbRegex = /\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g;
+		
+		const syncedPageIds = new Set<string>();
+		const syncedDbIds = new Set<string>();
+		
+		while ((match = syncedPageRegex.exec(content)) !== null) {
+			syncedPageIds.add(match[1]);
+		}
+		
+		while ((match = syncedDbRegex.exec(content)) !== null) {
+			syncedDbIds.add(match[1]);
+		}
+		
+		if (syncedPageIds.size > 0) {
+			this.syncedChildPagePlaceholders.set(filePath, syncedPageIds);
+			console.log(`[Incremental Import] Collected ${syncedPageIds.size} unresolved synced child page(s) from skipped file: ${filePath}`);
+		}
+		
+		if (syncedDbIds.size > 0) {
+			this.syncedChildDatabasePlaceholders.set(filePath, syncedDbIds);
+			console.log(`[Incremental Import] Collected ${syncedDbIds.size} unresolved synced child database(s) from skipped file: ${filePath}`);
 		}
 	}
 
