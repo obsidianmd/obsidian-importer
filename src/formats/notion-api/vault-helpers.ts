@@ -31,6 +31,7 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 	let finalPath = basePath;
 	let counter = 1;
 	
+	console.log(`[GET UNIQUE FILE] Checking: ${basePath}`);
 	while (vault.getAbstractFileByPath(finalPath)) {
 		// Insert counter before file extension
 		const lastDotIndex = fileName.lastIndexOf('.');
@@ -42,9 +43,11 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 		else {
 			finalPath = normalizePath(`${parentPath}/${fileName} ${counter}`);
 		}
+		console.log(`[GET UNIQUE FILE] Path exists, trying: ${finalPath}`);
 		counter++;
 	}
 	
+	console.log(`[GET UNIQUE FILE] Final path: ${finalPath}`);
 	return finalPath;
 }
 

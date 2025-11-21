@@ -1264,7 +1264,19 @@ export class NotionAPIImporter extends FormatImporter {
 			if (!shouldSkipParentFile) {
 				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 
-				await this.vault.create(normalizePath(mdFilePath), fullContent);
+				console.log(`[CREATE FILE] About to create file: ${mdFilePath}, Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
+				console.log(`[CREATE FILE] File exists check: ${this.vault.getAbstractFileByPath(normalizePath(mdFilePath)) ? 'YES' : 'NO'}`);
+			
+				try {
+					await this.vault.create(normalizePath(mdFilePath), fullContent);
+					console.log(`[CREATE FILE] Successfully created: ${mdFilePath}`);
+				}
+				catch (error) {
+					console.error(`[CREATE FILE] Failed to create file: ${mdFilePath}`);
+					console.error(`[CREATE FILE] Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
+					console.error(`[CREATE FILE] Error:`, error);
+					throw error;
+				}
 
 				// Record page ID to path mapping for mention replacement
 				// Store path without extension for wiki link generation
@@ -1292,8 +1304,14 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
-			const pageTitle = 'Unknown page';
+			// Try to get page title from the error context or use page ID
+			const pageTitle = `Page ${pageId.substring(0, 8)}...`;
 			const errorMsg = error instanceof Error ? error.message : String(error);
+			// Log more details for debugging
+			console.error(`Error details - Page ID: ${pageId}, Error: ${errorMsg}`);
+			if (error instanceof Error && error.stack) {
+				console.error('Stack trace:', error.stack);
+			}
 			ctx.reportFailed(pageTitle, errorMsg);
 		}
 	}
