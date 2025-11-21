@@ -95,7 +95,7 @@ export class NotionAPIImporter extends FormatImporter {
 			.setName('Notion API token')
 			.setDesc(this.createTokenDescription())
 			.addText(text => text
-				.setPlaceholder('secret_...')
+				.setPlaceholder('ntn_...')
 				.setValue(this.notionToken)
 				.onChange(value => {
 					this.notionToken = value.trim();
@@ -238,7 +238,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = document.createDocumentFragment();
-		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace.');
+		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace. ');
 		frag.createEl('a', {
 			text: 'Get API token',
 			href: 'https://www.notion.so/profile/integrations',
@@ -1430,14 +1430,9 @@ export class NotionAPIImporter extends FormatImporter {
 			if (missingDatabaseIds.size > 0) {
 				ctx.status(`Round ${round}: Found ${missingDatabaseIds.size} unimported databases with relations. Importing...`);
 				
-				// Create "Relation Unimported Databases" folder
-				const unimportedDbPath = `${this.outputRootPath}/Relation Unimported Databases`;
-				try {
-					await this.vault.createFolder(normalizePath(unimportedDbPath));
-				}
-				catch (error) {
-					// Folder might already exist, that's ok
-				}
+				// Import to the user-selected output root folder (e.g., "Notion")
+				// No need to create a separate "Relation Unimported Databases" subfolder
+				const unimportedDbPath = this.outputRootPath;
 				
 				// Import each missing database
 				let importedCount = 0;
