@@ -26,6 +26,7 @@ export interface DatabaseProcessingContext {
 	onPagesDiscovered?: (count: number) => void;
 	baseViewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
+	databasePropertyName?: string; // Property name for linking pages to their database .base file
 }
 
 /**
@@ -123,6 +124,7 @@ export interface CreateBaseFileParams {
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
+	databasePropertyName?: string; // Property name for linking pages to database
 }
 
 /**
@@ -130,12 +132,12 @@ export interface CreateBaseFileParams {
  */
 export interface GenerateBaseFileContentParams {
 	databaseName: string;
-	databaseFolderPath: string;
 	// Using 'any' because Notion database property schema has many variants with different structures
 	dataSourceProperties: any;
 	formulaStrategy?: FormulaImportStrategy;
 	viewType?: 'table' | 'cards' | 'list';
 	coverPropertyName?: string;
+	databasePropertyName?: string; // Property name for linking pages to database
 }
 
 /**

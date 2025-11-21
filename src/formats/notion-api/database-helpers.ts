@@ -13,6 +13,7 @@ import {
 import { normalizePath, stringifyYaml, BasesConfigFile, TFolder, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
+import { parseFilePath } from '../../filesystem';
 import { getUniqueFolderPath, getUniqueFilePath } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
@@ -177,7 +178,8 @@ export async function importDatabaseCore(
 		importPageCallback,
 		onPagesDiscovered,
 		baseViewType = 'table',
-		coverPropertyName = 'cover'
+		coverPropertyName = 'cover',
+		databasePropertyName = 'base'
 	} = context;
 	
 	let dataSourceId: string;
@@ -286,10 +288,27 @@ export async function importDatabaseCore(
 		await vault.createFolder(normalizePath(databaseFolderPath));
 	}
 	
-	// Import each database page
+	// Create .base file before importing pages
+	// This allows pages to reference the .base file in their frontmatter
+	const baseFilePath = await createBaseFile({
+		vault,
+		databaseName: sanitizedTitle,
+		databaseFolderPath,
+		dataSourceProperties,
+		formulaStrategy,
+		viewType: baseViewType,
+		coverPropertyName,
+		databasePropertyName
+	});
+	
+	// Extract .base file name for database tag (e.g., "Database name.base")
+	const { basename: baseFileName } = parseFilePath(baseFilePath);
+	const baseFileTag = `${baseFileName}.base`;
+	
+	// Import each database page with .base file tag
 	for (const page of databasePages) {
 		if (ctx.isCancelled()) break;
-		await importPageCallback(page.id, databaseFolderPath, databaseFolderPath);
+		await importPageCallback(page.id, databaseFolderPath, baseFileTag);
 	}
 	
 	// Import database template pages (if any)
@@ -305,17 +324,6 @@ export async function importDatabaseCore(
 			await importPageCallback(template.id, databaseFolderPath, undefined, templateFileName);
 		}
 	}
-	
-	// Create .base file
-	const baseFilePath = await createBaseFile({
-		vault,
-		databaseName: sanitizedTitle,
-		databaseFolderPath,
-		dataSourceProperties,
-		formulaStrategy,
-		viewType: baseViewType,
-		coverPropertyName
-	});
 	
 	// Record database information
 	const databaseInfo: DatabaseInfo = {
@@ -349,17 +357,18 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
 		viewType = 'table',
-		coverPropertyName = 'cover'
+		coverPropertyName = 'cover',
+		databasePropertyName = 'base'
 	} = params;
 	
 	// Generate .base file content
 	const baseContent = generateBaseFileContent({
 		databaseName,
-		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy,
 		viewType,
-		coverPropertyName
+		coverPropertyName,
+		databasePropertyName
 	});
 	
 	// Create or update .base file in the database folder (same level as database pages)
@@ -387,11 +396,11 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 function generateBaseFileContent(params: GenerateBaseFileContentParams): string {
 	const {
 		databaseName,
-		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
 		viewType = 'table',
-		coverPropertyName = 'cover'
+		coverPropertyName = 'cover',
+		databasePropertyName = 'base'
 	} = params;
 	
 	// Map Notion properties to Obsidian properties
@@ -409,14 +418,11 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	
 	// Build BasesConfigFile object
 	const baseConfig: BasesConfigFile = {
-		// Use tag-based filter to include all pages from this database
-		// This allows pages in nested folders (pages with children) to be included
-		// We use the database folder path as the tag value because:
-		// 1. Database names can be duplicated, but folder paths are unique
-		// 2. It's more readable than using Notion IDs
+		// Filter to include only pages that link to this .base file
+		// Pages have a frontmatter property (e.g., "base") that contains [[database name.base]]
 		filters: {
 			and: [
-				`note["notion-db"] == "${databaseFolderPath}"`
+				`note["${databasePropertyName}"] == link("${databaseName}.base")`
 			]
 		} as any
 	};

@@ -50,6 +50,7 @@ export class NotionAPIImporter extends FormatImporter {
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	baseViewType: BaseViewType = 'table'; // Default view type for .base files
+	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	incrementalImport: boolean = true; // Incremental import: skip files with same notion-id
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
@@ -236,6 +237,17 @@ export class NotionAPIImporter extends FormatImporter {
 				.setValue('table')
 				.onChange(value => {
 					this.baseViewType = value as BaseViewType;
+				}));
+
+		// Database property name
+		new Setting(this.modal.contentEl)
+			.setName('Database property name')
+			.setDesc('Property name in page frontmatter to link pages to their database .base file (default: "base")')
+			.addText(text => text
+				.setPlaceholder('base')
+				.setValue('base')
+				.onChange(value => {
+					this.databasePropertyName = value.trim() || 'base';
 				}));
 	}
 
@@ -1036,6 +1048,7 @@ export class NotionAPIImporter extends FormatImporter {
 					relationPlaceholders: this.relationPlaceholders,
 					baseViewType: this.baseViewType,
 					coverPropertyName: this.coverPropertyName,
+					databasePropertyName: this.databasePropertyName,
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 					},
@@ -1211,6 +1224,7 @@ export class NotionAPIImporter extends FormatImporter {
 					relationPlaceholders: this.relationPlaceholders,
 					baseViewType: this.baseViewType,
 					coverPropertyName: this.coverPropertyName,
+					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
 					// Callback to import database pages
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
@@ -1223,16 +1237,16 @@ export class NotionAPIImporter extends FormatImporter {
 			
 			// Clear the cache after processing this page to free memory
 			blocksCache.clear();
-			
+ 			
 			// Prepare YAML frontmatter
-			// Start with notion-id and notion-db at the top
+			// Start with notion-id and database link at the top
 			const frontMatter: Record<string, any> = {
 				'notion-id': page.id,
 			};
-		
-			// Add database tag if this page belongs to a database (right after notion-id)
+	
+			// Add database .base file link if this page belongs to a database (right after notion-id)
 			if (databaseTag) {
-				frontMatter['notion-db'] = databaseTag;
+				frontMatter[this.databasePropertyName] = `[[${databaseTag}]]`;
 			}
 		
 			// Extract all other properties from the page
@@ -1590,7 +1604,8 @@ export class NotionAPIImporter extends FormatImporter {
 				},
 				// onPagesDiscovered callback not provided - not needed for unimported databases
 				baseViewType: this.baseViewType,
-				coverPropertyName: this.coverPropertyName
+				coverPropertyName: this.coverPropertyName,
+				databasePropertyName: this.databasePropertyName
 			};
 			
 			// Use the core import logic
