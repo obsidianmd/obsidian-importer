@@ -105,16 +105,6 @@ export class NotionAPIImporter extends FormatImporter {
 					textComponent.inputEl.type = 'password';
 				}));
 
-		// Incremental import setting
-		new Setting(this.modal.contentEl)
-			.setName('Incremental import')
-			.setDesc('Skip files that already exist with the same notion-id. Disable to always import (will rename duplicates).')
-			.addToggle(toggle => toggle
-				.setValue(true) // Default to enabled
-				.onChange(value => {
-					this.incrementalImport = value;
-				}));
-
 		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
@@ -186,6 +176,16 @@ export class NotionAPIImporter extends FormatImporter {
 		placeholder.style.textAlign = 'center';
 		placeholder.style.padding = '30px 10px';
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
+
+		// Incremental import setting
+		new Setting(this.modal.contentEl)
+			.setName('Incremental import')
+			.setDesc('Skip files that already exist with the same notion-id. Disable to always import (will rename duplicates).')
+			.addToggle(toggle => toggle
+				.setValue(true) // Default to enabled
+				.onChange(value => {
+					this.incrementalImport = value;
+				}));
 
 		// Formula import strategy
 		new Setting(this.modal.contentEl)
