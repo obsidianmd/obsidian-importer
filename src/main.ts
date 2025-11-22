@@ -7,6 +7,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
+import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
@@ -285,6 +286,13 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Microsoft OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
+			},
+			'notion-api': {
+				name: 'Notion (API)',
+				optionText: 'Notion (API)',
+				importer: NotionAPIImporter,
+				helpPermalink: 'import/notion',
+				formatDescription: 'Import your Notion pages/databases from API.',
 			},
 			'notion': {
 				name: 'Notion',
