@@ -48,7 +48,7 @@ export class NotionAPIImporter extends FormatImporter {
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
-	incrementalImport: boolean = true; // Incremental import: skip files with same notion-id
+	incrementalImport: boolean = false; // Incremental import: skip files with same notion-id (default: disabled)
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
