@@ -451,7 +451,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	// Add default table view
 	baseConfig.views = [{
 		type: 'table',
-		name: 'Table View',
+		name: 'Table',
 		order: orderColumns
 	}];
 	

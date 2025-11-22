@@ -165,7 +165,7 @@
 
 /* Fixed width buttons to prevent resizing during loading */
 .notion-load-button {
-	max-width: 70px;
+	width: 70px;
 }
 
 .notion-toggle-button {

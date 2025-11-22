@@ -108,7 +108,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
-			.setDesc('Click "Load" to see all of the importable pages and databases. If a page or database is missing, verify the Notion integration has access to it.');
+			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
 			
 		// Store button references in closure to avoid constructor timing issues
 		let toggleButtonRef: any = null;
@@ -167,12 +167,17 @@ export class NotionAPIImporter extends FormatImporter {
 	
 		// Create the change list container
 		this.pageTreeContainer = publishSection.createDiv('publish-change-list');
-		this.pageTreeContainer.style.maxHeight = '400px';
+		this.pageTreeContainer.style.maxHeight = '200px';
 		this.pageTreeContainer.style.overflowY = 'auto';
+		this.pageTreeContainer.style.border = '1px solid var(--background-modifier-border)';
+		this.pageTreeContainer.style.borderRadius = 'var(--radius-s)';
+		this.pageTreeContainer.style.backgroundColor = 'var(--background-primary-alt)';
+		this.pageTreeContainer.style.padding = 'var(--size-4-2)';
 		
 		// Add placeholder text
 		const placeholder = this.pageTreeContainer.createDiv();
 		placeholder.style.color = 'var(--text-muted)';
+		placeholder.style.fontSize = 'var(--font-ui-small)';
 		placeholder.style.textAlign = 'center';
 		placeholder.style.padding = '30px 10px';
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
@@ -180,7 +185,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Incremental import setting
 		new Setting(this.modal.contentEl)
 			.setName('Incremental import')
-			.setDesc('Incremental imports will add an extra notion-id attribute to pages, ensuring that future imports can skip pages that have already been imported.')
+			.setDesc('Adds a notion-id property to pages so that future imports can skip pages that have already been imported.')
 			.addToggle(toggle => toggle
 				.setValue(false) // Default to disabled
 				.onChange(value => {
@@ -193,8 +198,8 @@ export class NotionAPIImporter extends FormatImporter {
 			.setDesc(this.createFormulaStrategyDescription())
 			.addDropdown(dropdown => {
 				dropdown
-					.addOption('static', 'To static values')
-					.addOption('hybrid', 'To Obsidian syntax')
+					.addOption('hybrid', 'Obsidian syntax')
+					.addOption('static', 'Static values')
 					.setValue('hybrid') // Set default to 'hybrid'
 					.onChange(value => {
 						this.formulaStrategy = value as FormulaImportStrategy;
@@ -240,7 +245,7 @@ export class NotionAPIImporter extends FormatImporter {
 		const frag = document.createDocumentFragment();
 		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace. ');
 		frag.createEl('a', {
-			text: 'Get API token',
+			text: 'Get API token.',
 			href: 'https://www.notion.so/profile/integrations',
 		});
 		return frag;
@@ -254,9 +259,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createAttachmentDescription(): DocumentFragment {
 		const frag = document.createDocumentFragment();
-		frag.appendText('Download external attachments (external URLs) to local files. ');
-		frag.createEl('br');
-		frag.appendText('Notion-hosted files are always downloaded. ');
+		frag.appendText('Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. ');
 		frag.createEl('br');
 		frag.appendText('Attachments will be saved according to your vault\'s attachment folder settings.');
 		return frag;

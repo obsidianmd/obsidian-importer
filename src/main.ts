@@ -292,7 +292,6 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Notion (API)',
 				importer: NotionAPIImporter,
 				helpPermalink: 'import/notion',
-				formatDescription: 'Import your Notion pages/databases from API.',
 			},
 			'notion': {
 				name: 'Notion',
