@@ -180,9 +180,9 @@ export class NotionAPIImporter extends FormatImporter {
 		// Incremental import setting
 		new Setting(this.modal.contentEl)
 			.setName('Incremental import')
-			.setDesc('Skip files that already exist with the same notion-id. Disable to always import (will rename duplicates).')
+			.setDesc('Incremental imports will add an extra notion-id attribute to pages, ensuring that future imports can skip pages that have already been imported.')
 			.addToggle(toggle => toggle
-				.setValue(true) // Default to enabled
+				.setValue(false) // Default to disabled
 				.onChange(value => {
 					this.incrementalImport = value;
 				}));
@@ -984,6 +984,15 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing synced block child references...');
 			await this.replaceSyncedChildPlaceholders(ctx);
 
+			// Clean up notion-id only for full import (not incremental)
+			// Strategy: We always write notion-id during import (for both modes) to handle interruptions gracefully.
+			// - Incremental import: Keep notion-id for future imports to skip duplicates
+			// - Full import: Remove notion-id to avoid cluttering user's frontmatter (one-time import)
+			if (!this.incrementalImport) {
+				ctx.status('Cleaning up notion-id attributes...');
+				await this.cleanupNotionIds(ctx);
+			}
+
 			ctx.status('Import completed successfully!');
 		
 		}
@@ -1119,10 +1128,10 @@ export class NotionAPIImporter extends FormatImporter {
 					await this.createFolders(pageFolderPath);
 				}
 			
-				// Check for incremental import
+				// Check if file already exists with same notion-id
 				const fileName = `${sanitizedTitle}.md`;
 				const potentialFilePath = normalizePath(`${pageFolderPath}/${fileName}`);
-				shouldSkipParentFile = await this.shouldSkipFileForIncrementalImport(potentialFilePath, pageId, ctx);
+				shouldSkipParentFile = await this.shouldSkipExistingFile(potentialFilePath, pageId, ctx);
 			
 				mdFilePath = potentialFilePath;
 			}
@@ -1838,22 +1847,19 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Check if a file should be skipped for incremental import
+	 * Check if a file should be skipped during import
+	 * This applies to BOTH incremental and full import modes
+	 * 
 	 * @param filePath - Path to the file to check
 	 * @param notionId - Notion ID of the page being imported
 	 * @param ctx - Import context for reporting
 	 * @returns true if file should be skipped, false otherwise
 	 */
-	private async shouldSkipFileForIncrementalImport(
+	private async shouldSkipExistingFile(
 		filePath: string,
 		notionId: string,
 		ctx: ImportContext
 	): Promise<boolean> {
-		// If not incremental import, never skip
-		if (!this.incrementalImport) {
-			return false;
-		}
-
 		// Check if file exists
 		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
 		if (!file || !(file instanceof TFile)) {
@@ -1864,33 +1870,33 @@ export class NotionAPIImporter extends FormatImporter {
 		try {
 			const content = await this.vault.read(file);
 			const notionIdMatch = content.match(/^notion-id:\s*(.+)$/m);
-			
+		
 			if (notionIdMatch) {
 				const existingNotionId = notionIdMatch[1].trim();
 				if (existingNotionId === notionId) {
 					// Same notion-id, skip this file
 					const { basename } = parseFilePath(filePath);
-					ctx.reportSkipped(basename, 'already exists with same notion-id (incremental import)');
-					
+					ctx.reportSkipped(basename, 'already exists with same notion-id');
+				
 					// IMPORTANT: Register this skipped file in notionIdToPath mapping
 					// This ensures that relation/mention links can find this page even though it wasn't imported in this session
-					// Without this, incremental imports would fail to resolve relations to previously imported pages
+					// Without this, we would fail to resolve relations to previously imported pages
 					const filePathWithoutExtension = filePath.replace(/\.md$/, '');
 					this.notionIdToPath.set(notionId, filePathWithoutExtension);
-					
+				
 					// IMPORTANT: Scan for unresolved placeholders from previous imports
 					// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
 					// we need to re-collect them so they can be resolved in this import session
 					await this.collectUnresolvedPlaceholders(content, notionId, filePath);
-					
+				
 					return true;
 				}
 			}
-			// Different notion-id or no notion-id, don't skip (will rename)
+			// Different notion-id or no notion-id, don't skip (will rename with unique path)
 			return false;
 		}
 		catch (error) {
-			console.error(`Failed to read file ${filePath} for incremental check:`, error);
+			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
 			return false; // On error, don't skip
 		}
 	}
@@ -2025,9 +2031,9 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx: ImportContext
 	): Promise<string | null> {
 		const basePath = parentPath ? `${parentPath}/${fileName}` : fileName;
-		
-		// Check if base path should be skipped
-		const shouldSkip = await this.shouldSkipFileForIncrementalImport(basePath, notionId, ctx);
+	
+		// Check if file already exists with same notion-id
+		const shouldSkip = await this.shouldSkipExistingFile(basePath, notionId, ctx);
 		if (shouldSkip) {
 			return null;
 		}
@@ -2041,6 +2047,84 @@ export class NotionAPIImporter extends FormatImporter {
 		// File exists but has different notion-id (or no notion-id)
 		// Use standard unique path logic
 		return getUniqueFilePath(this.vault, parentPath, fileName);
+	}
+
+	/**
+	 * Clean up notion-id from all imported files' frontmatter
+	 * This is called ONLY at the end of FULL import (not incremental import)
+	 * 
+	 * Strategy: We always write notion-id during import (for both modes)
+	 * to handle interruptions gracefully. If interrupted, next import can read
+	 * notion-id to correctly skip duplicates or resume.
+	 * - Incremental import: Keep notion-id for future imports to skip duplicates
+	 * - Full import: Remove notion-id after completion to avoid cluttering frontmatter
+	 * 
+	 * @param ctx - Import context for status updates
+	 */
+	private async cleanupNotionIds(ctx: ImportContext): Promise<void> {
+		if (this.notionIdToPath.size === 0) {
+			return;
+		}
+
+		let cleanedCount = 0;
+		let failedCount = 0;
+
+		// Iterate through all pages we've tracked (including skipped ones)
+		for (const filePath of this.notionIdToPath.values()) {
+			if (ctx.isCancelled()) break;
+
+			try {
+				const file = this.vault.getAbstractFileByPath(filePath + '.md');
+				if (!file || !(file instanceof TFile)) {
+					continue;
+				}
+
+				// Read file content
+				const content = await this.vault.read(file);
+
+				// Check if file has frontmatter with notion-id
+				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+				const match = content.match(frontmatterRegex);
+
+				if (!match) {
+					continue; // No frontmatter, skip
+				}
+
+				const frontmatter = match[1];
+				const notionIdRegex = /^notion-id:\s*.+$/m;
+
+				if (!notionIdRegex.test(frontmatter)) {
+					continue; // No notion-id in frontmatter, skip
+				}
+
+				// Remove the notion-id line from frontmatter
+				const newFrontmatter = frontmatter
+					.split('\n')
+					.filter(line => !line.match(/^notion-id:\s*.+$/))
+					.join('\n');
+
+				// Reconstruct the content
+				const newContent = content.replace(
+					frontmatterRegex,
+					`---\n${newFrontmatter}\n---`
+				);
+
+				// Write back to file
+				await this.vault.modify(file, newContent);
+				cleanedCount++;
+			}
+			catch (error) {
+				console.error(`Failed to clean notion-id from file: ${filePath}`, error);
+				failedCount++;
+			}
+		}
+
+		if (cleanedCount > 0) {
+			console.log(`✓ Cleaned notion-id from ${cleanedCount} file(s)`);
+		}
+		if (failedCount > 0) {
+			console.warn(`⚠️ Failed to clean notion-id from ${failedCount} file(s)`);
+		}
 	}
 	
 }
