@@ -195,6 +195,13 @@ export function canConvertFormula(notionFormula: string): boolean {
 			continue;
 		}
 		
+		// Skip functions that are handled specially in conversion logic
+		// These are converted to list methods with flat()
+		if (funcName === 'sum' || funcName === 'mean' || funcName === 'median' || 
+		    funcName === 'max' || funcName === 'min') {
+			continue;
+		}
+		
 		// Check if we can convert it
 		if (FUNCTION_MAPPING[funcName]) {
 			continue;
@@ -285,22 +292,41 @@ export function convertNotionFormulaToObsidian(
 		iterations++;
 		
 		// Match function calls with their arguments
-		// This regex matches: functionName(arg1, arg2, ...)
-		// Use negative lookbehind to avoid matching method calls like .contains()
-		// We only want to match standalone function calls, not methods
-		const funcPattern = /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^()]*)\)/g;
+		// We need to manually match balanced parentheses since regex can't handle nested structures well
+		// Strategy: Find function names, then manually extract their arguments with balanced parentheses
+		// Important: Process ONE match per iteration to avoid index invalidation
 		
-		result = result.replace(funcPattern, (match, funcName, argsStr) => {
+		// Find all potential function calls (function name followed by opening parenthesis)
+		const funcNamePattern = /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
+		
+		let match;
+		let foundMatch = false;
+		
+		while ((match = funcNamePattern.exec(result)) !== null && !foundMatch) {
+			const funcName = match[1];
+			const start = match.index;
+			const openParenPos = match.index + match[0].length - 1; // Position of '('
+			
+			// Find the matching closing parenthesis
+			const closeParenPos = findMatchingParen(result, openParenPos);
+			if (closeParenPos === -1) {
+				continue; // Skip if no matching paren found
+			}
+			
+			const end = closeParenPos + 1;
+			const argsStr = result.substring(openParenPos + 1, closeParenPos);
+			
 			// Skip parseDate placeholders - they will be converted back at the end
 			if (funcName.startsWith('__PARSEDATE_')) {
-				return match;
+				continue;
 			}
+			
+			let replacement: string | null = null;
 		
 			// Special case: Notion's test() function -> Obsidian's /pattern/.matches(string)
 			// In Notion: test(string, pattern)
 			// In Obsidian: /pattern/.matches(string)
 			if (funcName === 'test') {
-				changed = true;
 				const args = parseArguments(argsStr);
 				if (args.length === 2) {
 					const stringArg = args[0];
@@ -314,10 +340,8 @@ export function convertNotionFormulaToObsidian(
 					}
 				
 					// Convert: test(string, pattern) -> /pattern/.matches(string)
-					return `/${pattern}/.matches(${stringArg})`;
+					replacement = `/${pattern}/.matches(${stringArg})`;
 				}
-				// Fallback: keep as-is if wrong number of arguments
-				return match;
 			}
 		
 			// Special case: Notion's sum/mean/median/max/min functions -> Obsidian list methods
@@ -325,148 +349,135 @@ export function convertNotionFormulaToObsidian(
 			// In Obsidian: [a, b, c].flat().sum() or [1, 2, 3].flat().max()
 			// The flat() handles both single values and lists, supporting both argument forms
 			if (funcName === 'sum' || funcName === 'mean' || funcName === 'median' || funcName === 'max' || funcName === 'min') {
-				changed = true;
 				const args = parseArguments(argsStr);
 				if (args.length > 0) {
-				// Wrap all arguments in array, flatten, then call the method
-					return `[${args.join(', ')}].flat().${funcName}()`;
+					// Wrap all arguments in array, flatten, then call the method
+					replacement = `[${args.join(', ')}].flat().${funcName}()`;
 				}
-				// Fallback: keep as-is if no arguments
-				return match;
 			}
 		
 			// Special case: Notion's dateAdd() function -> Obsidian date arithmetic
 			// In Notion: dateAdd(date, amount, unit)
 			// In Obsidian: date + 'amount+unit' (e.g., now() + '1d')
 			if (funcName === 'dateAdd') {
-				changed = true;
-				const result = convertDateArithmetic(argsStr, '+');
-				if (result) {
-					return result;
+				const dateResult = convertDateArithmetic(argsStr, '+');
+				if (dateResult) {
+					replacement = dateResult;
 				}
-				// Fallback: keep as-is if wrong number of arguments
-				return match;
 			}
 		
 			// Special case: Notion's dateSubtract() function -> Obsidian date arithmetic
 			// In Notion: dateSubtract(date, amount, unit)
 			// In Obsidian: date - 'amount+unit' (e.g., now() - '1d')
-			if (funcName === 'dateSubtract') {
-				changed = true;
-				const result = convertDateArithmetic(argsStr, '-');
-				if (result) {
-					return result;
+			else if (funcName === 'dateSubtract') {
+				const dateResult = convertDateArithmetic(argsStr, '-');
+				if (dateResult) {
+					replacement = dateResult;
 				}
-				// Fallback: keep as-is if wrong number of arguments
-				return match;
 			}
 		
 			// Special case: Notion's fromTimestamp() function
 			// Note: Obsidian's date() function does NOT accept numeric timestamps
 			// date() signature: date(input: string | date): date
 			// Therefore, fromTimestamp() cannot be converted
-			if (funcName === 'fromTimestamp') {
+			else if (funcName === 'fromTimestamp') {
 				// Keep as unsupported - will be caught by canConvertFormula
-				return match;
+				// No replacement
 			}
 		
-			const mapping = FUNCTION_MAPPING[funcName];
-			
-			if (!mapping) {
-				// Not a convertible function, keep as-is
-				return match;
-			}
-			
-			if (mapping.type === 'global') {
-				// Global functions - may need renaming
-				if (mapping.obsidianName) {
-					// Function needs to be renamed (e.g., toNumber -> number, parseDate -> date)
-					changed = true;
-					const args = parseArguments(argsStr);
-					return `${mapping.obsidianName}(${args.join(', ')})`;
-				}
-				// Otherwise stay as-is (e.g., if(), max(), min(), now(), today())
-				return match;
-			}
-			
-			// Parse arguments
-			const args = parseArguments(argsStr);
-			
-			if (mapping.type === 'property') {
-				// Convert: length(x) -> (x).length
-				// Properties are accessed without parentheses
-				if (args.length === 1) {
-					changed = true;
-					return `(${args[0]}).${mapping.obsidianName}`;
-				}
-			}
-			
-			if (mapping.type === 'method') {
-				// Convert: abs(x) -> (x).abs()
-				// Convert: contains(x, y) -> (x).contains(y)
-				// Convert: unique(x) -> (x).unique()
-				if (args.length >= 1) {
-					changed = true;
-					const obj = args[0];
-					let methodArgs = args.slice(1);
-			
-					// Special handling for map() and filter(): replace 'current' with 'value'
-					if (funcName === 'map' || funcName === 'filter') {
-						methodArgs = methodArgs.map(arg => {
-							// Replace 'current' with 'value' in the expression
-							// Use word boundaries to avoid replacing parts of other identifiers
-							return arg.replace(/\bcurrent\b/g, 'value');
-						});
-					}
-			
-					if (methodArgs.length > 0) {
-						return `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
+			else {
+				const mapping = FUNCTION_MAPPING[funcName];
+				
+				if (mapping) {
+					if (mapping.type === 'global') {
+						// Global functions - may need renaming
+						if (mapping.obsidianName) {
+							// Function needs to be renamed (e.g., toNumber -> number, parseDate -> date)
+							const args = parseArguments(argsStr);
+							replacement = `${mapping.obsidianName}(${args.join(', ')})`;
+						}
+						// Otherwise stay as-is (e.g., if(), now(), today())
 					}
 					else {
-						return `(${obj}).${mapping.obsidianName}()`;
+						// Parse arguments
+						const args = parseArguments(argsStr);
+						
+						if (mapping.type === 'property') {
+							// Convert: length(x) -> (x).length
+							// Properties are accessed without parentheses
+							if (args.length === 1) {
+								replacement = `(${args[0]}).${mapping.obsidianName}`;
+							}
+						}
+						else if (mapping.type === 'method') {
+							// Convert: abs(x) -> (x).abs()
+							// Convert: contains(x, y) -> (x).contains(y)
+							// Convert: unique(x) -> (x).unique()
+							if (args.length >= 1) {
+								const obj = args[0];
+								let methodArgs = args.slice(1);
+						
+								// Special handling for map() and filter(): replace 'current' with 'value'
+								if (funcName === 'map' || funcName === 'filter') {
+									methodArgs = methodArgs.map(arg => {
+										// Replace 'current' with 'value' in the expression
+										// Use word boundaries to avoid replacing parts of other identifiers
+										return arg.replace(/\bcurrent\b/g, 'value');
+									});
+								}
+						
+								if (methodArgs.length > 0) {
+									replacement = `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
+								}
+								else {
+									replacement = `(${obj}).${mapping.obsidianName}()`;
+								}
+							}
+						}
+						else if (mapping.type === 'operator') {
+							// Special cases
+							if (funcName === 'at' && args.length === 2) {
+								// at(list, index) -> (list)[index]
+								replacement = `(${args[0]})[${args[1]}]`;
+							}
+							else if (funcName === 'first' && args.length === 1) {
+								// first(list) -> (list)[0]
+								replacement = `(${args[0]})[0]`;
+							}
+							else if (funcName === 'last' && args.length === 1) {
+								// last(list) -> (list)[-1]
+								replacement = `(${args[0]})[-1]`;
+							}
+							else if (args.length === 2) {
+								// Binary operators
+								const operatorMap: Record<string, string> = {
+									'add': '+',
+									'subtract': '-',
+									'multiply': '*',
+									'divide': '/',
+									'mod': '%',
+									'equal': '==',
+									'unequal': '!=',
+									// Note: 'pow' is NOT included - Obsidian has no exponentiation operator
+								};
+								const op = operatorMap[funcName];
+								if (op) {
+									replacement = `(${args[0]} ${op} ${args[1]})`;
+								}
+							}
+						}
 					}
 				}
 			}
 			
-			if (mapping.type === 'operator') {
+			// Apply replacement if one was set
+			if (replacement !== null) {
 				changed = true;
-				
-				// Special cases
-				if (funcName === 'at' && args.length === 2) {
-					// at(list, index) -> (list)[index]
-					return `(${args[0]})[${args[1]}]`;
-				}
-				if (funcName === 'first' && args.length === 1) {
-					// first(list) -> (list)[0]
-					return `(${args[0]})[0]`;
-				}
-				if (funcName === 'last' && args.length === 1) {
-					// last(list) -> (list)[-1]
-					return `(${args[0]})[-1]`;
-				}
-				
-				// Binary operators
-				if (args.length === 2) {
-					const operatorMap: Record<string, string> = {
-						'add': '+',
-						'subtract': '-',
-						'multiply': '*',
-						'divide': '/',
-						'mod': '%',
-						'equal': '==',
-						'unequal': '!=',
-						// Note: 'pow' is NOT included - Obsidian has no exponentiation operator
-					};
-					const op = operatorMap[funcName];
-					if (op) {
-						return `(${args[0]} ${op} ${args[1]})`;
-					}
-				}
+				foundMatch = true;
+				result = result.substring(0, start) + replacement + result.substring(end);
+				break; // Process one match per iteration to avoid index invalidation
 			}
-			
-			// Fallback: keep as-is
-			return match;
-		});
+		}
 	}
 	
 	// Step 3: Replace parseDate placeholders with date() calls
@@ -575,6 +586,46 @@ function convertDateArithmetic(argsStr: string, operator: '+' | '-'): string | n
 	
 	// Convert: date ± 'amount+unit'
 	return `(${dateArg}) ${operator} '${amountArg}${obsidianUnit}'`;
+}
+
+/**
+ * Find the matching closing parenthesis for an opening parenthesis
+ * @param str - The string to search in
+ * @param openPos - The position of the opening parenthesis
+ * @returns The position of the matching closing parenthesis, or -1 if not found
+ */
+function findMatchingParen(str: string, openPos: number): number {
+	let depth = 1;
+	let inString = false;
+	let stringChar = '';
+	
+	for (let i = openPos + 1; i < str.length; i++) {
+		const char = str[i];
+		const prevChar = i > 0 ? str[i - 1] : '';
+		
+		if (inString) {
+			if (char === stringChar && prevChar !== '\\') {
+				inString = false;
+			}
+		}
+		else {
+			if (char === '"' || char === '\'') {
+				inString = true;
+				stringChar = char;
+			}
+			else if (char === '(') {
+				depth++;
+			}
+			else if (char === ')') {
+				depth--;
+				if (depth === 0) {
+					return i;
+				}
+			}
+		}
+	}
+	
+	return -1; // No matching parenthesis found
 }
 
 /**
