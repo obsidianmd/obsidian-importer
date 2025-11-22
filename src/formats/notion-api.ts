@@ -274,8 +274,6 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Initialize Notion client if not already initialized
 	 */
 	private initializeNotionClient(): void {
-		if (this.notionClient) return;
-
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: '2025-09-03',
@@ -324,6 +322,7 @@ export class NotionAPIImporter extends FormatImporter {
 		this.listPagesButton.setButtonText('Loading...');
 
 		try {
+			// Re-initialize client to ensure current token is used
 			this.initializeNotionClient();
 
 			// Create a minimal context for makeNotionRequest
@@ -910,7 +909,7 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx.status('Connecting to Notion API...');
 
 		try {
-			// Initialize Notion client
+			// Re-initialize client to ensure current token is used
 			this.initializeNotionClient();
 
 			ctx.status('Fetching page content from Notion...');
