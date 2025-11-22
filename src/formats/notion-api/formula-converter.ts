@@ -6,17 +6,23 @@
  * 
  * Key transformations:
  * - prop("Name") -> note["Name"]
- * - length(x) -> (x).length (property access)
+ * - length() has two forms in Notion:
+ *   1. Method: .length() (everywhere, including in map/filter)
+ *      Examples: prop("Title").length() -> note["Title"].length
+ *                current.length() -> value.length
+ *   2. Function: length(x) -> (x).length
  * - abs(x) -> (x).abs() (method call)
  * - contains(x, y) -> (x).contains(y) (method call)
  * - unique(x) -> (x).unique() (method call)
- * - Global functions stay as-is: max(), min(), if()
+ * - Global functions stay as-is: if()
  * 
  * Important notes:
- * - length is a PROPERTY (x.length), not a function
+ * - length in Obsidian is a PROPERTY, not a method or function
+ *   .length() method calls are converted to .length property access
+ *   length(x) function calls are converted to (x).length
  * - unique() is a METHOD (x.unique()), not a global function
- * - sum() and average() are NOT supported in Obsidian Bases
- * - median() is NOT supported in Obsidian Bases
+ * - sum(), mean(), median(), max(), min() are converted to list methods with flat()
+ *   to support both multi-arg and array forms (e.g., max(1,2,3) and max([1,2,3]))
  * - Many date/time functions are not supported
  * 
  * Based on:
@@ -29,10 +35,9 @@ import { ConversionInfo } from './types';
 const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// Global functions (same in both Notion and Obsidian)
 	'if': { type: 'global' },
-	'max': { type: 'global' },
-	'min': { type: 'global' },
 	'now': { type: 'global' }, // Both have now()
 	'today': { type: 'global' }, // Both have today()
+	// Note: max/min are handled specially to support both multi-arg and array forms
 	
 	// Function name mapping (different names, same functionality)
 	// Notion: toNumber(x), Obsidian: number(x)
@@ -134,7 +139,7 @@ export function canConvertFormula(notionFormula: string): boolean {
 		'sqrt', 'exp', 'ln', 'log10', 'log2', 'sign', 'cbrt', 'pi', 'e', 'pow',
 		
 		// Statistical/aggregation functions not in Obsidian Bases
-		'sum', 'mean', 'median', // Obsidian Bases does not support these
+		// Note: sum, mean, median are now supported via list methods
 		
 		// String functions not in Obsidian Bases or with incompatible syntax
 		'replaceAll', 'match',
@@ -253,6 +258,11 @@ export function convertNotionFormulaToObsidian(
 		}
 	);
 	
+	// Step 1.2: Convert Notion's .length() method to Obsidian's .length property
+	// In Notion: prop("Title").length() or someValue.length()
+	// In Obsidian: note["Title"].length or someValue.length
+	result = result.replace(/\.length\s*\(\s*\)/g, '.length');
+	
 	// Step 1.5: Replace parseDate(...) with placeholders that don't contain parentheses
 	// This allows outer date() functions to be matched and converted
 	// We store the arguments and replace them back at the end
@@ -307,6 +317,21 @@ export function convertNotionFormulaToObsidian(
 					return `/${pattern}/.matches(${stringArg})`;
 				}
 				// Fallback: keep as-is if wrong number of arguments
+				return match;
+			}
+		
+			// Special case: Notion's sum/mean/median/max/min functions -> Obsidian list methods
+			// In Notion: sum(a, b, c) or sum([1,2,3], 4, 5) or max(1,2,3) or max([1,2,3])
+			// In Obsidian: [a, b, c].flat().sum() or [1, 2, 3].flat().max()
+			// The flat() handles both single values and lists, supporting both argument forms
+			if (funcName === 'sum' || funcName === 'mean' || funcName === 'median' || funcName === 'max' || funcName === 'min') {
+				changed = true;
+				const args = parseArguments(argsStr);
+				if (args.length > 0) {
+				// Wrap all arguments in array, flatten, then call the method
+					return `[${args.join(', ')}].flat().${funcName}()`;
+				}
+				// Fallback: keep as-is if no arguments
 				return match;
 			}
 		
