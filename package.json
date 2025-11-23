@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-importer",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "Import data from Notion, Evernote, Apple Notes, Microsoft OneNote, Google Keep, Bear, Roam, Textbundle, CSV, and HTML files.",
 	"main": "main.js",
 	"scripts": {
