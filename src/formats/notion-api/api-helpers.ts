@@ -296,6 +296,7 @@ export interface ExtractFrontMatterParams {
 	downloadExternalAttachments?: boolean;
 	incrementalImport?: boolean;
 	onAttachmentDownloaded?: () => void;
+	getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 }
 
 /**
@@ -512,7 +513,7 @@ async function mapFilesPropertyToFrontmatter(
 		return null;
 	}
 	
-	const { vault, app, ctx, currentFilePath, currentFolderPath, incrementalImport, onAttachmentDownloaded } = params;
+	const { vault, app, ctx, currentFilePath, currentFolderPath, incrementalImport, onAttachmentDownloaded, getAvailableAttachmentPath } = params;
 	
 	if (!vault || !app || !ctx) {
 		// Fallback to URL if we don't have required parameters
@@ -560,7 +561,8 @@ async function mapFilesPropertyToFrontmatter(
 					currentFolderPath,
 					downloadExternalAttachments: true,  // Always download files property attachments
 					incrementalImport: incrementalImport || false,
-					onAttachmentDownloaded
+					onAttachmentDownloaded,
+					getAvailableAttachmentPath
 				},
 				{
 					isEmbed: false,

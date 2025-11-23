@@ -206,6 +206,7 @@ export interface BlockConversionContext {
 	onAttachmentDownloaded?: () => void; // Callback when an attachment is downloaded
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
+	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
 }
 
 /**

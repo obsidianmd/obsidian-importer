@@ -10,6 +10,7 @@ import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
+
 /**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
@@ -68,20 +69,26 @@ export async function downloadAttachment(
 			}
 		}
 	
-		// Get the source file path for attachment folder resolution
-		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+		// Get available path for attachment using the provided function or fallback
+		let targetFilePath: string;
+		if (context.getAvailableAttachmentPath) {
+			// Use the FormatImporter's method which respects Obsidian's settings
+			targetFilePath = await context.getAvailableAttachmentPath(filename);
+		}
+		else {
+			// Fallback: construct path manually (shouldn't happen in normal usage)
+			const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
+			targetFilePath = sourceFilePath 
+				? normalizePath(`${sourceFilePath}/${filename}`)
+				: filename;
+		}
 
-		// Use Obsidian's built-in method to get the correct attachment path
-		// This respects user's attachment folder settings automatically
-		// If file exists, this will add " 1", " 2" suffix
-		const targetFilePath = await context.app.fileManager.getAvailablePathForAttachment(filename, sourceFilePath);
-	
 		console.log(`[ATTACHMENT] Incremental import enabled: ${incrementalImport}, Original filename: ${filename}`);
 		console.log(`[ATTACHMENT] Available target path: ${targetFilePath}`);
 
 		// Check for incremental import: skip if file exists with same size
 		if (incrementalImport) {
-		// Extract the basename from the target path to see if filename was changed
+			// Extract the basename from the target path to see if filename was changed
 			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
 			// Reconstruct the full filename with extension
 			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
@@ -353,6 +360,7 @@ export async function downloadAndFormatAttachment(
 		downloadExternalAttachments?: boolean;
 		incrementalImport?: boolean;
 		onAttachmentDownloaded?: () => void;
+		getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 	},
 	options?: {
 		caption?: string;
