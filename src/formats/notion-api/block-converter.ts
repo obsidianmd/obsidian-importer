@@ -20,7 +20,7 @@ import { normalizePath, TFile } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getBlockChildren, processBlockChildren } from './api-helpers';
-import { downloadAttachment, extractAttachmentFromBlock, getCaptionFromBlock, formatAttachmentLink } from './attachment-helpers';
+import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
 import { getUniqueFilePath } from './vault-helpers';
@@ -1031,22 +1031,11 @@ async function convertAttachmentBlock(
 	}
 	
 	try {
-		const result = await downloadAttachment(attachment, context);
-		
-		// Report progress if attachment was downloaded
-		if (result.isLocal && context.onAttachmentDownloaded) {
-			context.onAttachmentDownloaded();
-		}
-		
-		// Format link according to user's vault settings
-		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
-		return formatAttachmentLink({
-			result,
-			vault: context.vault,
-			app: context.app,
-			sourceFilePath,
+		// Use the helper function to download and format
+		return await downloadAndFormatAttachment(attachment, context, {
 			caption,
-			isEmbed
+			isEmbed,
+			fallbackText
 		});
 	}
 	catch (error) {

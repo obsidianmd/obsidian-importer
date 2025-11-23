@@ -1275,7 +1275,18 @@ export class NotionAPIImporter extends FormatImporter {
 				page,
 				formulaStrategy: this.formulaStrategy,
 				client: this.notionClient!,
-				ctx
+				ctx,
+				// Parameters for downloading file property attachments
+				vault: this.vault,
+				app: this.app,
+				currentFilePath: mdFilePath,
+				currentFolderPath: pageFolderPath,
+				downloadExternalAttachments: this.downloadExternalAttachments,
+				incrementalImport: this.incrementalImport,
+				onAttachmentDownloaded: () => {
+					this.attachmentsDownloaded++;
+					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+				}
 			});
 			// Merge extracted properties (skip notion-id as we already added it)
 			for (const key in extractedProps) {

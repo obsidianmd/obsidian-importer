@@ -321,6 +321,16 @@ export async function importDatabaseCore(
 		}
 	}
 	
+	// After importing all pages, analyze actual date data and update .base file if needed
+	await updateBaseFileDateTypes({
+		vault,
+		baseFilePath,
+		databasePages,
+		dataSourceProperties,
+		formulaStrategy,
+		databasePropertyName
+	});
+	
 	// Record database information
 	const databaseInfo: DatabaseInfo = {
 		id: databaseId,
@@ -385,16 +395,33 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 /**
  * Generate content for .base file using BasesConfigFile structure
  */
-function generateBaseFileContent(params: GenerateBaseFileContentParams): string {
+function generateBaseFileContent(params: GenerateBaseFileContentParams & {
+	datePropertyTypes?: Record<string, { key: string, name: string, hasTime: boolean }>;
+}): string {
 	const {
 		databaseName,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
-		databasePropertyName = 'base'
+		databasePropertyName = 'base',
+		datePropertyTypes
 	} = params;
 	
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties, titlePropertyName } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
+	
+	// Update date property types based on actual data (if provided)
+	if (datePropertyTypes) {
+		for (const item of regularProperties) {
+			// Check if this is a date property that needs type adjustment
+			for (const [key, dateInfo] of Object.entries(datePropertyTypes)) {
+				if (sanitizePropertyKey(key) === item.key) {
+					// Update type based on whether it has time data
+					item.config.type = dateInfo.hasTime ? OBSIDIAN_PROPERTY_TYPES.DATETIME : OBSIDIAN_PROPERTY_TYPES.DATE;
+					break;
+				}
+			}
+		}
+	}
 	
 	// Build the order array for views
 	// Always use 'file.name' as the first column (it will display with custom displayName if set)
@@ -501,10 +528,13 @@ function mapDatabaseProperties(
 				break;
 			
 			case 'date':
-				// Check if it includes time
+				// Notion date properties can be date-only or datetime
+				// We set it as DATETIME by default since Obsidian handles both formats
+				// Pure dates (YYYY-MM-DD) work fine with datetime type
+				// Datetimes (YYYY-MM-DDTHH:mm:ss) require datetime type
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.DATE, // TODO: detect if datetime
+					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
 				};
 				break;
 			
@@ -614,18 +644,52 @@ function mapDatabaseProperties(
 				break;
 			
 			case 'people':
+				// People property - list of user names/emails
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.LIST,
+				};
+				break;
+		
 			case 'files':
+				// Files property - list of attachment links
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.LIST,
+				};
+				break;
+		
 			case 'created_time':
-			case 'created_by':
 			case 'last_edited_time':
+				// Timestamp properties - always include time
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
+				};
+				break;
+		
+			case 'created_by':
 			case 'last_edited_by':
-				// These will be converted to text representation
+				// User properties - single user name/email/id
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
 				break;
-			
+		
+			case 'button':
+				// Button properties are UI elements, not data - skip them
+				// Don't add to mappings
+				break;
+		
+			case 'place':
+				// Place property - Obsidian Maps format: list of strings [lat, lon]
+				mappings[sanitizePropertyKey(key)] = {
+					displayName: propName,
+					type: OBSIDIAN_PROPERTY_TYPES.LIST,
+				};
+				break;
+	
 			default:
 				// Unsupported types -> text
 				console.log(`Unsupported property type: ${propType}, treating as text`);
@@ -1003,5 +1067,92 @@ export async function processDatabasePlaceholders(
 	}
 	
 	return processedContent;
+}
+
+/**
+ * Update .base file date property types based on actual data
+ * Analyzes all pages to determine if date properties contain time information
+ */
+async function updateBaseFileDateTypes(params: {
+	vault: any;
+	baseFilePath: string;
+	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>;
+	dataSourceProperties: any;
+	formulaStrategy?: FormulaImportStrategy;
+	databasePropertyName?: string;
+}): Promise<void> {
+	const { vault, baseFilePath, databasePages, dataSourceProperties, formulaStrategy, databasePropertyName } = params;
+	
+	// Find all date properties in the schema
+	const dateProperties: Record<string, { key: string, name: string, hasTime: boolean }> = {};
+	
+	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
+		if (prop.type === 'date') {
+			dateProperties[key] = {
+				key,
+				name: prop.name || key,
+				hasTime: false // Default to false, will update if we find time data
+			};
+		}
+	}
+	
+	// If no date properties, nothing to do
+	if (Object.keys(dateProperties).length === 0) {
+		return;
+	}
+	
+	// Analyze actual data from all pages
+	for (const page of databasePages) {
+		// Skip partial pages without properties
+		if (!('properties' in page)) continue;
+		
+		const properties = page.properties;
+		
+		for (const [key, propInfo] of Object.entries(dateProperties)) {
+			// Skip if already determined to have time
+			if (propInfo.hasTime) continue;
+			
+			const prop = properties[key];
+			if (!prop || prop.type !== 'date' || !prop.date) continue;
+			
+			// Check if start date contains time (has 'T' in the string)
+			if (prop.date.start && prop.date.start.includes('T')) {
+				propInfo.hasTime = true;
+			}
+			
+			// Also check end date if present
+			if (prop.date.end && prop.date.end.includes('T')) {
+				propInfo.hasTime = true;
+			}
+		}
+	}
+	
+	// Check if any date property needs to be changed to 'date' type
+	// (by default they are all set to 'datetime', we only change to 'date' if NO time data found)
+	const needsUpdate = Object.values(dateProperties).some(prop => !prop.hasTime);
+	
+	if (!needsUpdate) {
+		// All date properties have time data, no need to update
+		return;
+	}
+	
+	// Read current .base file
+	const baseFile = vault.getAbstractFileByPath(baseFilePath);
+	if (!baseFile || !(baseFile instanceof TFile)) {
+		console.warn(`Base file not found: ${baseFilePath}`);
+		return;
+	}
+	
+	// Regenerate .base file content with correct date types
+	const baseContent = generateBaseFileContent({
+		databaseName: parseFilePath(baseFilePath).basename.replace(/\.base$/, ''),
+		dataSourceProperties,
+		formulaStrategy,
+		databasePropertyName,
+		datePropertyTypes: dateProperties
+	});
+	
+	// Update .base file
+	await vault.modify(baseFile, baseContent);
 }
 

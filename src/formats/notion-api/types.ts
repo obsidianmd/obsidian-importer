@@ -173,6 +173,8 @@ export interface FormatAttachmentLinkParams {
 	caption?: string;
 	/** Whether to use embed syntax (!) for images/videos/pdfs */
 	isEmbed?: boolean;
+	/** Force wiki link format (for YAML frontmatter compatibility) */
+	forceWikiLink?: boolean;
 }
 
 /**
