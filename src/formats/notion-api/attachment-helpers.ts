@@ -68,20 +68,26 @@ export async function downloadAttachment(
 			}
 		}
 	
-		// Get the source file path for attachment folder resolution
-		const sourceFilePath = context.currentFilePath || context.currentFolderPath;
+		// Get available path for attachment using the provided function or fallback
+		let targetFilePath: string;
+		if (context.getAvailableAttachmentPath) {
+			// Use the FormatImporter's method which respects Obsidian's settings
+			targetFilePath = await context.getAvailableAttachmentPath(filename);
+		}
+		else {
+			// Fallback: construct path manually (shouldn't happen in normal usage)
+			const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
+			targetFilePath = sourceFilePath 
+				? normalizePath(`${sourceFilePath}/${filename}`)
+				: filename;
+		}
 
-		// Use Obsidian's built-in method to get the correct attachment path
-		// This respects user's attachment folder settings automatically
-		// If file exists, this will add " 1", " 2" suffix
-		const targetFilePath = await context.app.fileManager.getAvailablePathForAttachment(filename, sourceFilePath);
-	
 		console.log(`[ATTACHMENT] Incremental import enabled: ${incrementalImport}, Original filename: ${filename}`);
 		console.log(`[ATTACHMENT] Available target path: ${targetFilePath}`);
 
 		// Check for incremental import: skip if file exists with same size
 		if (incrementalImport) {
-		// Extract the basename from the target path to see if filename was changed
+			// Extract the basename from the target path to see if filename was changed
 			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
 			// Reconstruct the full filename with extension
 			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
@@ -258,7 +264,7 @@ export function getCaptionFromBlock(block: any): string {
  * @returns Formatted markdown link
  */
 export function formatAttachmentLink(params: FormatAttachmentLinkParams): string {
-	const { result, vault, app, sourceFilePath, caption = '', isEmbed = false } = params;
+	const { result, vault, app, sourceFilePath, caption = '', isEmbed = false, forceWikiLink = false } = params;
 	
 	// If not local (still a URL), use standard markdown syntax
 	if (!result.isLocal) {
@@ -279,8 +285,8 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 	const targetFile = vault.getAbstractFileByPath(normalizePath(pathWithExt));
 	if (!targetFile || !(targetFile instanceof TFile)) {
 		// Fallback if file not found (shouldn't happen for local files)
-		// Respect user's link format setting even in fallback
-		const useWikiLinks = vault.getConfig('useWikiLinks') ?? true;
+		// Respect user's link format setting, unless forceWikiLink is true
+		const useWikiLinks = forceWikiLink || (vault.getConfig('useWikiLinks') ?? true);
 		const embedPrefix = isEmbed ? '!' : '';
 		
 		if (useWikiLinks) {
@@ -300,8 +306,16 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 		}
 	}
 	
-	// Use generateMarkdownLink to respect user's link format settings
-	const link = app.fileManager.generateMarkdownLink(targetFile, sourceFilePath);
+	// Use generateMarkdownLink to respect user's link format settings, unless forceWikiLink is true
+	let link: string;
+	if (forceWikiLink) {
+		// Force wiki link format for YAML compatibility
+		link = `[[${pathWithExt}]]`;
+	}
+	else {
+		// Use user's preference
+		link = app.fileManager.generateMarkdownLink(targetFile, sourceFilePath);
+	}
 	
 	// Add embed prefix if needed
 	const embedPrefix = isEmbed ? '!' : '';
@@ -324,5 +338,66 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 	return `${embedPrefix}${link}`;
 }
 
-
+/**
+ * Download an attachment and format it as an Obsidian link
+ * This is a helper function that combines downloadAttachment and formatAttachmentLink
+ * with progress tracking and error handling
+ * 
+ * @param attachment - Attachment information
+ * @param context - Block conversion context or similar context with vault, app, etc.
+ * @param options - Additional options for formatting
+ * @returns Formatted Obsidian link, or fallback markdown link on error
+ */
+export async function downloadAndFormatAttachment(
+	attachment: NotionAttachment,
+	context: {
+		vault: any;
+		app: any;
+		ctx: any;
+		currentFilePath?: string;
+		currentFolderPath?: string;
+		downloadExternalAttachments?: boolean;
+		incrementalImport?: boolean;
+		onAttachmentDownloaded?: () => void;
+		getAvailableAttachmentPath?: (filename: string) => Promise<string>;
+	},
+	options?: {
+		caption?: string;
+		isEmbed?: boolean;
+		fallbackText?: string;
+		forceWikiLink?: boolean;
+	}
+): Promise<string> {
+	const { caption = '', isEmbed = false, fallbackText = 'file', forceWikiLink = false } = options || {};
+	
+	try {
+		// Download the attachment
+		const result = await downloadAttachment(attachment, context as any);
+		
+		// Report progress if attachment was downloaded
+		if (result.isLocal && context.onAttachmentDownloaded) {
+			context.onAttachmentDownloaded();
+		}
+		
+		// Format link according to user's vault settings
+		const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
+		return formatAttachmentLink({
+			result,
+			vault: context.vault,
+			app: context.app,
+			sourceFilePath,
+			caption,
+			isEmbed,
+			forceWikiLink
+		});
+	}
+	catch (error) {
+		console.error('Failed to download and format attachment:', error);
+		
+		// If download failed, return a fallback markdown link with the original URL
+		const linkText = caption || attachment.name || fallbackText;
+		const linkPrefix = isEmbed ? '!' : '';
+		return `${linkPrefix}[${linkText}](${attachment.url})`;
+	}
+}
 

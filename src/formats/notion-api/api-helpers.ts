@@ -14,6 +14,7 @@ import {
 } from '@notionhq/client';
 import { ImportContext } from '../../main';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
+import { downloadAndFormatAttachment } from './attachment-helpers';
 
 const MAX_RETRIES = 3;
 
@@ -287,6 +288,15 @@ export interface ExtractFrontMatterParams {
 	databaseProperties?: any;
 	client?: Client;
 	ctx?: ImportContext;
+	// Parameters for downloading file attachments
+	vault?: any;
+	app?: any;
+	currentFilePath?: string;
+	currentFolderPath?: string;
+	downloadExternalAttachments?: boolean;
+	incrementalImport?: boolean;
+	onAttachmentDownloaded?: () => void;
+	getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 }
 
 /**
@@ -358,7 +368,16 @@ export async function extractFrontMatter(
 			}
 			continue;
 		}
-		
+	
+		// Handle files properties - download attachments
+		if (prop.type === 'files' && params.vault && params.app && ctx) {
+			const value = await mapFilesPropertyToFrontmatter(prop, params);
+			if (value !== null && value !== undefined) {
+				frontMatter[key] = value;
+			}
+			continue;
+		}
+	
 		// Map property to frontmatter value
 		const value = mapNotionPropertyToFrontmatter(prop);
 		if (value !== null && value !== undefined) {
@@ -481,6 +500,129 @@ async function mapPeoplePropertyToFrontmatter(
 }
 
 /**
+ * Map files property to frontmatter value by downloading attachments
+ * @param prop - Files property from Notion
+ * @param params - Extract frontmatter parameters containing vault, app, etc.
+ * @returns Array of Obsidian links to downloaded files, or null if no files
+ */
+async function mapFilesPropertyToFrontmatter(
+	prop: any,
+	params: ExtractFrontMatterParams
+): Promise<string[] | null> {
+	if (!prop.files || prop.files.length === 0) {
+		return null;
+	}
+	
+	const { vault, app, ctx, currentFilePath, currentFolderPath, incrementalImport, onAttachmentDownloaded, getAvailableAttachmentPath } = params;
+	
+	if (!vault || !app || !ctx) {
+		// Fallback to URL if we don't have required parameters
+		return prop.files.map((f: any) => {
+			if (f.type === 'file') return f.file?.url || '';
+			if (f.type === 'external') return f.external?.url || '';
+			return '';
+		}).filter((url: string) => url);
+	}
+	
+	const results: string[] = [];
+	
+	for (const file of prop.files) {
+		try {
+			// Extract attachment info
+			let attachment: { type: 'file' | 'external', url: string, name?: string } | null = null;
+			
+			if (file.type === 'file' && file.file?.url) {
+				attachment = {
+					type: 'file',
+					url: file.file.url,
+					name: file.name
+				};
+			}
+			else if (file.type === 'external' && file.external?.url) {
+				attachment = {
+					type: 'external',
+					url: file.external.url,
+					name: file.name
+				};
+			}
+			
+			if (!attachment) continue;
+	
+			// Download and format the attachment
+			// Files property attachments are always downloaded, regardless of downloadExternalAttachments setting
+			// This is consistent with how cover images are handled
+			const link = await downloadAndFormatAttachment(
+				attachment,
+				{
+					vault,
+					app,
+					ctx,
+					currentFilePath,
+					currentFolderPath,
+					downloadExternalAttachments: true,  // Always download files property attachments
+					incrementalImport: incrementalImport || false,
+					onAttachmentDownloaded,
+					getAvailableAttachmentPath
+				},
+				{
+					isEmbed: false,
+					fallbackText: attachment.name || 'file',
+					forceWikiLink: true  // Force wiki links for YAML compatibility
+				}
+			);
+			results.push(link);
+		}
+		catch (error) {
+			console.error('Failed to download file attachment:', error);
+			// Fallback to URL on error
+			if (file.type === 'file' && file.file?.url) {
+				results.push(file.file.url);
+			}
+			else if (file.type === 'external' && file.external?.url) {
+				results.push(file.external.url);
+			}
+		}
+	}
+	
+	return results.length > 0 ? results : null;
+}
+
+/**
+ * Convert Notion date string (ISO 8601) to Obsidian format
+ * - If date only (YYYY-MM-DD): keep as is
+ * - If datetime (ISO 8601 with time): convert to YYYY-MM-DDTHH:mm:ss
+ * @param dateString - Notion date string (e.g., "2025-11-23" or "2025-11-23T09:00:00.000+08:00")
+ * @returns Obsidian-compatible date/datetime string
+ */
+function convertNotionDateToObsidian(dateString: string): string {
+	// Check if it's a date-only format (YYYY-MM-DD)
+	if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+		return dateString;
+	}
+	
+	// It's a datetime, parse and convert to Obsidian format
+	// Notion uses ISO 8601: 2025-11-23T09:00:00.000+08:00
+	// Obsidian uses: 2025-11-23T09:00:00 (no milliseconds, no timezone)
+	try {
+		const date = new Date(dateString);
+		// Format as YYYY-MM-DDTHH:mm:ss
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		
+		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+	}
+	catch (error) {
+		// If parsing fails, return original string
+		console.warn(`Failed to parse date: ${dateString}`, error);
+		return dateString;
+	}
+}
+
+/**
  * Map a Notion property to a frontmatter value
  * Handles all Notion property types and converts them to Obsidian-compatible values
  * @param prop - Using 'any' because PageObjectResponse['properties'][string] is a large union type
@@ -506,12 +648,15 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		
 		case 'date':
 			if (!prop.date) return null;
-			// Return date/datetime with optional end date (range)
-			// Note: Both date and datetime use the same format for now
-			// TODO: Consider using different Obsidian property types for date vs datetime
-			return prop.date.end 
-				? `${prop.date.start} to ${prop.date.end}`
-				: prop.date.start;
+			// Convert Notion date format (ISO 8601) to Obsidian format
+			// Date only: YYYY-MM-DD (keep as is)
+			// Datetime: YYYY-MM-DDTHH:mm:ss (convert from ISO 8601)
+			const startDate = convertNotionDateToObsidian(prop.date.start);
+			if (prop.date.end) {
+				const endDate = convertNotionDateToObsidian(prop.date.end);
+				return `${startDate} to ${endDate}`;
+			}
+			return startDate;
 		
 		case 'email':
 			return prop.email;
@@ -527,12 +672,12 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return prop.rich_text?.map((t: RichTextItemResponse) => t.plain_text).join('') || '';
 		
 		case 'people':
-			// Convert people to names or emails
+			// Convert people to names, fallback to email, then id
+			// Priority: name > email > id
 			return prop.people?.map((p: UserObjectResponse) => {
-				if (p.type === 'person' && p.person?.email) {
-					return p.person.email;
-				}
-				return p.name || p.id;
+				if (p.name) return p.name;
+				if (p.type === 'person' && p.person?.email) return p.person.email;
+				return p.id;
 			}) || [];
 		
 		case 'files':
@@ -573,24 +718,28 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return null;
 		
 		case 'created_time':
-			return prop.created_time;
-		
+			// Convert Notion timestamp to Obsidian datetime format
+			return prop.created_time ? convertNotionDateToObsidian(prop.created_time) : null;
+	
 		case 'created_by':
-			// Extract user info
+			// Extract user info with priority: name > email > id
+			if (prop.created_by?.name) return prop.created_by.name;
 			if (prop.created_by?.type === 'person' && prop.created_by.person?.email) {
 				return prop.created_by.person.email;
 			}
-			return prop.created_by?.name || prop.created_by?.id || null;
-		
+			return prop.created_by?.id || null;
+
 		case 'last_edited_time':
-			return prop.last_edited_time;
-		
+			// Convert Notion timestamp to Obsidian datetime format
+			return prop.last_edited_time ? convertNotionDateToObsidian(prop.last_edited_time) : null;
+	
 		case 'last_edited_by':
-			// Extract user info
+			// Extract user info with priority: name > email > id
+			if (prop.last_edited_by?.name) return prop.last_edited_by.name;
 			if (prop.last_edited_by?.type === 'person' && prop.last_edited_by.person?.email) {
 				return prop.last_edited_by.person.email;
 			}
-			return prop.last_edited_by?.name || prop.last_edited_by?.id || null;
+			return prop.last_edited_by?.id || null;
 		
 		case 'unique_id':
 			// Unique ID property
@@ -602,7 +751,18 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		case 'verification':
 			// Verification property
 			return prop.verification?.state || null;
-		
+	
+		case 'button':
+			// Button properties are UI elements, not data - ignore them
+			return null;
+	
+		case 'place':
+			// Place property - convert to Obsidian Maps format: [lat, lon]
+			if (prop.place?.lat != null && prop.place?.lon != null) {
+				return [String(prop.place.lat), String(prop.place.lon)];
+			}
+			return null;
+
 		default:
 			// For unknown types, try to convert to string
 			return String(prop[prop.type] || '');

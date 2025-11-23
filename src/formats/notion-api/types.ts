@@ -25,6 +25,7 @@ export interface DatabaseProcessingContext {
 	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => Promise<void>;
 	onPagesDiscovered?: (count: number) => void;
 	databasePropertyName?: string; // Property name for linking pages to their database .base file
+	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search
 }
 
 /**
@@ -172,6 +173,8 @@ export interface FormatAttachmentLinkParams {
 	caption?: string;
 	/** Whether to use embed syntax (!) for images/videos/pdfs */
 	isEmbed?: boolean;
+	/** Force wiki link format (for YAML frontmatter compatibility) */
+	forceWikiLink?: boolean;
 }
 
 /**
@@ -203,6 +206,7 @@ export interface BlockConversionContext {
 	onAttachmentDownloaded?: () => void; // Callback when an attachment is downloaded
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
+	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
 }
 
 /**
