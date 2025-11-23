@@ -10,7 +10,6 @@ import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
-
 /**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
