@@ -1245,6 +1245,7 @@ export class NotionAPIImporter extends FormatImporter {
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
+					blocksCache, // Pass blocks cache for recursive block search
 					// Callback to import database pages
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });

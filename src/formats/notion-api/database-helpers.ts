@@ -906,17 +906,55 @@ export async function processRelationProperties(
 }
 
 /**
- * Process database placeholders in markdown content
- * Replace [[DATABASE_PLACEHOLDER:id]] with actual database references
+ * Recursively find a block by ID in a block tree
+ * @param blocks - Array of blocks to search
+ * @param blockId - ID of the block to find
+ * @param blocksCache - Optional cache of fetched blocks
+ * @returns The block if found, null otherwise
  */
+function findBlockById(
+	blocks: BlockObjectResponse[], 
+	blockId: string, 
+	blocksCache?: Map<string, BlockObjectResponse[]>
+): BlockObjectResponse | null {
+	for (const block of blocks) {
+		// Check if this is the block we're looking for
+		if (block.id === blockId) {
+			return block;
+		}
+		
+		// Recursively search in children if block has children
+		if (block.has_children) {
+			// Try to get children from cache first
+			let children: BlockObjectResponse[] = [];
+			if (blocksCache && blocksCache.has(block.id)) {
+				children = blocksCache.get(block.id)!;
+			}
+			
+			// Search in children
+			if (children.length > 0) {
+				const found = findBlockById(children, blockId, blocksCache);
+				if (found) {
+					return found;
+				}
+			}
+		}
+	}
+	
+	return null;
+}
+
 /**
  * Process database placeholders in markdown content
- * @param blocks - Using 'any[]' because blocks can be of many different types (BlockObjectResponse variants)
- *                 and we only need to check their 'type' property at runtime.
+ * Replace [[DATABASE_PLACEHOLDER:id]] with actual database references
+ * @param markdownContent - Markdown content containing database placeholders
+ * @param blocks - Array of blocks to search for database blocks (will search recursively)
+ * @param context - Database processing context
+ * @returns Processed markdown content with placeholders replaced
  */
 export async function processDatabasePlaceholders(
 	markdownContent: string,
-	blocks: any[],
+	blocks: BlockObjectResponse[],
 	context: DatabaseProcessingContext
 ): Promise<string> {
 	// Find all database placeholders
@@ -932,10 +970,11 @@ export async function processDatabasePlaceholders(
 	for (const databaseId of databaseIds) {
 		const placeholder = createPlaceholder(PlaceholderType.DATABASE_PLACEHOLDER, databaseId);
 		
-		// Find the corresponding block
-		const databaseBlock = blocks.find(b => b.id === databaseId && b.type === 'child_database');
+		// Find the corresponding block (recursively search in nested blocks)
+		// This handles databases inside callouts, blockquotes, toggles, etc.
+		const databaseBlock = findBlockById(blocks, databaseId, context.blocksCache);
 		
-		if (databaseBlock) {
+		if (databaseBlock && databaseBlock.type === 'child_database') {
 			try {
 				// Convert the database and get the reference
 				const databaseReference = await convertChildDatabase(
@@ -956,6 +995,10 @@ export async function processDatabasePlaceholders(
 					`<!-- Failed to import database: ${errorMsg} -->`
 				);
 			}
+		}
+		else {
+			// Database block not found - this shouldn't happen, but log it
+			console.warn(`Database block not found for placeholder: ${databaseId}`);
 		}
 	}
 	

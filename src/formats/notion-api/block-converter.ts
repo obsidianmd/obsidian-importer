@@ -254,7 +254,7 @@ export async function convertBlockToMarkdown(
 			break;
 		
 		case 'quote':
-			markdown = convertQuote(block, context);
+			markdown = await convertQuote(block, context);
 			break;
 		
 		case 'callout':
@@ -895,9 +895,26 @@ export async function convertNumberedListItem(
 /**
  * Convert quote block to Markdown
  */
-export function convertQuote(block: BlockObjectResponse, context?: BlockConversionContext): string {
+export async function convertQuote(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'quote') return '';
-	return '> ' + convertRichText(block.quote.rich_text, context);
+	
+	let markdown = '> ' + convertRichText(block.quote.rich_text, context);
+	
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		0, // Don't increase indentLevel for quote children, '> ' prefix is sufficient
+		'quote block'
+	);
+	
+	if (childrenMarkdown) {
+		// Indent children content with '> ' for blockquote
+		const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+		markdown += '\n' + indentedChildren;
+	}
+	
+	return markdown;
 }
 
 /**
