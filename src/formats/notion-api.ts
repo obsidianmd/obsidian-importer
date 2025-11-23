@@ -341,15 +341,18 @@ export class NotionAPIImporter extends FormatImporter {
 			} as unknown as ImportContext;
 
 			// Search for all pages and databases with pagination
-			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
+			// Two-phase filtering:
+			// Phase 1: Collect all items and identify databases that are inside blocks
+			// Phase 2: Filter out pages that belong to those databases
+			const allRawItems: any[] = [];
 			let cursor: string | undefined = undefined;
 			let pageCount = 0;
 
 			do {
 				pageCount++;
-				
+			
 				// Update button text with progress
-				tempCtx.status(`Loading... (${allItems.length} items, page ${pageCount})`);
+				tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
 
 				// Use makeNotionRequest for rate limiting and error handling
 				// Note: Not using filter to get both pages and databases
@@ -361,32 +364,61 @@ export class NotionAPIImporter extends FormatImporter {
 					tempCtx
 				);
 
-				// Process results immediately
-				for (const item of response.results) {
-					// Skip items with block_id parent - these are child pages/databases within blocks
-					// They will be imported automatically when their parent page is imported
-					if (item.parent && item.parent.type === 'block_id') {
-						continue;
-					}
-					
-					// Process page or data_source (database)
-					if (item.object === 'page' || item.object === 'data_source') {
-						const isDatabase = item.object === 'data_source';
-						const title = this.extractItemTitle(item, isDatabase ? 'Untitled Database' : 'Untitled');
-						const parentObj = isDatabase ? item.database_parent : item.parent;
-						const parentId = this.extractParentId(parentObj, isDatabase ? 'database' : 'page');
-						
-						allItems.push({
-							id: item.id,
-							title,
-							type: isDatabase ? 'database' : 'page',
-							parentId
-						});
-					}
-				}
+				// Collect all raw items first
+				allRawItems.push(...response.results);
 
 				cursor = response.has_more ? response.next_cursor : undefined;
 			} while (cursor);
+
+			// Phase 1: Identify databases that are inside blocks (should be filtered)
+			const blockDatabaseIds = new Set<string>();
+			for (const item of allRawItems) {
+				if (item.object === 'data_source') {
+					// Check if this database is inside a block
+					if (item.database_parent && item.database_parent.type === 'block_id') {
+						blockDatabaseIds.add(item.id);
+					}
+				}
+			}
+
+			// Phase 2: Process items and filter appropriately
+			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
+			for (const item of allRawItems) {
+				// Skip items with block_id parent - these are child pages/databases within blocks
+				// They will be imported automatically when their parent page is imported
+				if (item.parent && item.parent.type === 'block_id') {
+					continue;
+				}
+			
+				// Skip databases that are inside blocks
+				if (item.object === 'data_source' && item.database_parent && item.database_parent.type === 'block_id') {
+					continue;
+				}
+
+				// Skip pages that belong to databases inside blocks
+				if (item.object === 'page' && item.parent && item.parent.type === 'data_source_id') {
+					const dataSourceId = item.parent.data_source_id;
+					if (blockDatabaseIds.has(dataSourceId)) {
+						continue;
+					}
+				}
+			
+				// Process page or data_source (database)
+				if (item.object === 'page' || item.object === 'data_source') {
+					const isDatabase = item.object === 'data_source';
+					const title = this.extractItemTitle(item, isDatabase ? 'Untitled Database' : 'Untitled');
+					const parentObj = isDatabase ? item.database_parent : item.parent;
+					const parentId = this.extractParentId(parentObj, isDatabase ? 'database' : 'page');
+				
+					allItems.push({
+						id: item.id,
+						title,
+						type: isDatabase ? 'database' : 'page',
+						parentId
+					});
+				}
+			}
+
 			// Build tree structure
 			this.pageTree = this.buildTree(allItems);
 
