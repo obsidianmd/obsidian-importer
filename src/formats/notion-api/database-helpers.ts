@@ -3,10 +3,10 @@
  * Handles database conversion and .base file generation
  */
 
-import { 
-	Client, 
-	BlockObjectResponse, 
-	DatabaseObjectResponse, 
+import {
+	Client,
+	BlockObjectResponse,
+	DatabaseObjectResponse,
 	PageObjectResponse,
 	PartialPageObjectResponse
 } from '@notionhq/client';
@@ -52,18 +52,18 @@ export async function convertChildDatabase(
 	context: DatabaseProcessingContext
 ): Promise<string> {
 	if (block.type !== 'child_database') return '';
-	
+
 	const databaseId = block.id;
 	let databaseTitle = 'Untitled Database'; // Default title for error reporting
-	
+
 	try {
 		// Use the core import logic
 		const result = await importDatabaseCore(databaseId, context);
 		databaseTitle = result.sanitizedTitle;
-		
+
 		// Get the .base file from vault using the baseFilePath from result
 		const baseFile = context.vault.getAbstractFileByPath(normalizePath(result.baseFilePath));
-		
+
 		if (baseFile && baseFile instanceof TFile) {
 			// Use generateMarkdownLink to respect user's link format settings
 			const sourceFilePath = context.currentFilePath || context.currentPageFolderPath;
@@ -78,31 +78,31 @@ export async function convertChildDatabase(
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
-		
+
 		// Check if this is a linked database error
 		// According to Notion's official documentation, linked databases are not supported by the API
 		// They will have empty data_sources array and should be skipped
 		// Note: Linked databases always have "Untitled" as their title
 		// See: https://developers.notion.com/docs/working-with-databases#linked-databases
-		if (errorMsg.includes('Linked database') || 
-		    errorMsg.includes('not supported by Notion API')) {
+		if (errorMsg.includes('Linked database') ||
+			errorMsg.includes('not supported by Notion API')) {
 			console.log(`Skipping linked database (block ID: ${databaseId})`);
 			return `<!-- Linked database (not supported by Notion API) -->`;
 		}
-		
+
 		// Check for other permission/access errors that might indicate a linked view
 		const isLinkedViewError = (
-			(errorMsg.includes('Could not find database with ID') || 
-			 errorMsg.includes('APIResponseError')) &&
-			block.child_database?.title === 'Untitled' && 
+			(errorMsg.includes('Could not find database with ID') ||
+				errorMsg.includes('APIResponseError')) &&
+			block.child_database?.title === 'Untitled' &&
 			!block.has_children
 		);
-		
+
 		if (isLinkedViewError) {
 			console.log(`Skipping linked database view (block ID: ${databaseId}) - this is a reference to an existing database`);
 			return `<!-- Linked database view (skipped - references an existing database) -->`;
 		}
-		
+
 		// This is a real error, not a linked database
 		console.error(`Failed to convert database "${databaseTitle}":`, error);
 		context.ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
@@ -121,7 +121,7 @@ export async function queryAllDatabasePages(
 ): Promise<PageObjectResponse[]> {
 	const pages: PageObjectResponse[] = [];
 	let cursor: string | undefined = undefined;
-	
+
 	do {
 		// In Notion API v2025-09-03, use dataSources.query instead of databases.query
 		// Using 'any' for response because the Notion API returns a paginated response with complex structure
@@ -134,17 +134,17 @@ export async function queryAllDatabasePages(
 			}),
 			ctx
 		);
-		
+
 		// Filter to get full page objects
 		const fullPages = response.results.filter(
 			(page: PageObjectResponse | PartialPageObjectResponse): page is PageObjectResponse => page.object === 'page'
 		);
-		
+
 		pages.push(...fullPages);
 		cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-		
+
 	} while (cursor);
-	
+
 	return pages;
 }
 
@@ -179,15 +179,15 @@ export async function importDatabaseCore(
 		onPagesDiscovered,
 		databasePropertyName = 'base'
 	} = context;
-	
+
 	let dataSourceId: string;
 	let sanitizedTitle: string = 'Untitled Database'; // Default value
-	
+
 	if (isDataSourceId) {
 		// The ID is already a data_source_id (from Search API)
 		// No need to call databases.retrieve()
 		dataSourceId = databaseId;
-		
+
 		// We'll get the title from dataSources.retrieve() below
 		ctx.status(`Processing database from data source: ${dataSourceId}...`);
 	}
@@ -197,13 +197,13 @@ export async function importDatabaseCore(
 			() => client.databases.retrieve({ database_id: databaseId }) as Promise<DatabaseObjectResponse>,
 			ctx
 		);
-		
+
 		// Extract database title
 		const databaseTitle = extractDatabaseTitle(database);
 		sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
-		
+
 		ctx.status(`Processing database: ${sanitizedTitle}...`);
-		
+
 		// Check if this is a linked database (no data sources)
 		// According to Notion's official documentation, linked databases are not supported by the API
 		// and will have an empty data_sources array
@@ -213,7 +213,7 @@ export async function importDatabaseCore(
 			console.warn(`Skipping linked database (ID: ${databaseId}): ${errorMsg}`);
 			throw new Error(errorMsg);
 		}
-		
+
 		dataSourceId = database.data_sources[0].id;
 	}
 	
@@ -233,20 +233,20 @@ export async function importDatabaseCore(
 		// The dataSource object is typed as GetDataSourceResponse which may not have name/title
 		// We need to access it as any to get the actual data
 		const dsAny = dataSource as any;
-		const dataSourceTitle = dsAny.name || 
-			(dsAny.title && Array.isArray(dsAny.title) 
+		const dataSourceTitle = dsAny.name ||
+			(dsAny.title && Array.isArray(dsAny.title)
 				? dsAny.title.map((t: any) => t.text?.content || t.plain_text || '').join('').trim()
 				: null) ||
 			'Untitled Database';
 		sanitizedTitle = sanitizeFileName(dataSourceTitle);
 		ctx.status(`Processing database: ${sanitizedTitle}...`);
 	}
-	
+
 	// Query database to get all pages - if this fails, don't create folder
 	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
-	
+
 	ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
-	
+
 	// Query database templates (these appear in search but not in database pages)
 	let templatePages: Array<{ id: string, name: string }> = [];
 	try {
@@ -263,18 +263,18 @@ export async function importDatabaseCore(
 		console.warn(`Failed to fetch templates for database ${sanitizedTitle}:`, error);
 		// Continue even if template fetching fails
 	}
-	
+
 	// Notify about discovered pages (if callback provided)
 	if (onPagesDiscovered) {
 		onPagesDiscovered(databasePages.length);
 	}
-	
+
 	// Only create database folder after successfully validating data source and querying pages
 	// This prevents creating empty folders for linked databases or databases with permission errors
 	// For incremental import: reuse existing folder if it exists, otherwise create a unique one
 	const baseFolderPath = normalizePath(currentPageFolderPath ? `${currentPageFolderPath}/${sanitizedTitle}` : sanitizedTitle);
 	const existingFolder = vault.getAbstractFileByPath(baseFolderPath);
-	
+
 	let databaseFolderPath: string;
 	if (existingFolder instanceof TFolder) {
 		// Reuse existing folder for incremental import
@@ -285,7 +285,7 @@ export async function importDatabaseCore(
 		databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
 		await vault.createFolder(normalizePath(databaseFolderPath));
 	}
-	
+
 	// Create .base file before importing pages
 	// This allows pages to reference the .base file in their frontmatter
 	const baseFilePath = await createBaseFile({
@@ -296,17 +296,17 @@ export async function importDatabaseCore(
 		formulaStrategy,
 		databasePropertyName
 	});
-	
+
 	// Extract .base file name for database tag (e.g., "Database name.base")
 	const { basename: baseFileName } = parseFilePath(baseFilePath);
 	const baseFileTag = `${baseFileName}.base`;
-	
+
 	// Import each database page with .base file tag
 	for (const page of databasePages) {
 		if (ctx.isCancelled()) break;
 		await importPageCallback(page.id, databaseFolderPath, baseFileTag);
 	}
-	
+
 	// Import database template pages (if any)
 	// Templates are stored in the same folder as database pages
 	if (templatePages.length > 0) {
@@ -320,7 +320,7 @@ export async function importDatabaseCore(
 			await importPageCallback(template.id, databaseFolderPath, undefined, templateFileName);
 		}
 	}
-	
+
 	// After importing all pages, analyze actual date data and update .base file if needed
 	await updateBaseFileDateTypes({
 		vault,
@@ -330,7 +330,7 @@ export async function importDatabaseCore(
 		formulaStrategy,
 		databasePropertyName
 	});
-	
+
 	// Record database information
 	const databaseInfo: DatabaseInfo = {
 		id: databaseId,
@@ -341,14 +341,14 @@ export async function importDatabaseCore(
 		dataSourceId: dataSourceId,
 	};
 	processedDatabases.set(databaseId, databaseInfo);
-	
+
 	// Process relation properties
 	await processRelationProperties(
 		databasePages,
 		dataSourceProperties,
 		relationPlaceholders
 	);
-	
+
 	return { sanitizedTitle, baseFilePath, databasePages, dataSourceId, dataSourceProperties };
 }
 
@@ -364,7 +364,7 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		formulaStrategy = 'hybrid',
 		databasePropertyName = 'base'
 	} = params;
-	
+
 	// Generate .base file content
 	const baseContent = generateBaseFileContent({
 		databaseName,
@@ -372,10 +372,10 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		formulaStrategy,
 		databasePropertyName
 	});
-	
+
 	// Create or update .base file in the database folder (same level as database pages)
 	const baseFilePath = normalizePath(`${databaseFolderPath}/${databaseName}.base`);
-	
+
 	// For incremental import: update existing .base file if it exists
 	const existingFile = vault.getAbstractFileByPath(baseFilePath);
 	if (existingFile instanceof TFile) {
@@ -383,12 +383,12 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		await vault.modify(existingFile, baseContent);
 		return baseFilePath;
 	}
-	
+
 	// File doesn't exist, create new one with unique name if needed
 	const finalPath = getUniqueFilePath(vault, databaseFolderPath, `${databaseName}.base`);
-	
+
 	await vault.create(finalPath, baseContent);
-	
+
 	return finalPath;
 }
 
@@ -405,10 +405,10 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 		databasePropertyName = 'base',
 		datePropertyTypes
 	} = params;
-	
+
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties, titlePropertyName } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
-	
+
 	// Update date property types based on actual data (if provided)
 	if (datePropertyTypes) {
 		for (const item of regularProperties) {
@@ -422,7 +422,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 			}
 		}
 	}
-	
+
 	// Build the order array for views
 	// Always use 'file.name' as the first column (it will display with custom displayName if set)
 	const orderColumns = ['file.name'];
@@ -432,7 +432,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 	for (const item of formulas) {
 		orderColumns.push(item.key);
 	}
-	
+
 	// Build BasesConfigFile object
 	const baseConfig: BasesConfigFile = {
 		// Filter to include only pages that link to this .base file
@@ -443,7 +443,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 			]
 		} as any
 	};
-	
+
 	// Add formulas if there are any
 	if (formulas.length > 0) {
 		baseConfig.formulas = {};
@@ -453,18 +453,18 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 			baseConfig.formulas[formulaName] = item.config.formula;
 		}
 	}
-	
+
 	// Add properties if there are any
 	if (regularProperties.length > 0 || titlePropertyName) {
 		baseConfig.properties = {};
-		
+
 		// Add title property mapping: use file.name as key, set displayName to Notion's title column name
 		if (titlePropertyName) {
 			baseConfig.properties['file.name'] = {
 				displayName: titlePropertyName
 			};
 		}
-		
+
 		for (const item of regularProperties) {
 			baseConfig.properties[item.key] = {
 				displayName: item.config.displayName
@@ -474,14 +474,14 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 			}
 		}
 	}
-	
+
 	// Add default table view
 	baseConfig.views = [{
 		type: 'table',
 		name: 'Table View',
 		order: orderColumns
 	}];
-	
+
 	// Convert to YAML with title comment
 	return `# ${databaseName}\n\n${stringifyYaml(baseConfig)}`;
 }
@@ -503,21 +503,21 @@ function mapDatabaseProperties(
 	dataSourceProperties: any,
 	formulaStrategy: FormulaImportStrategy = 'hybrid'
 ): {
-		formulas: Array<{key: string, config: any}>;
-		regularProperties: Array<{key: string, config: any}>;
+		formulas: Array<{ key: string, config: any }>;
+		regularProperties: Array<{ key: string, config: any }>;
 		titlePropertyName: string | null;
 	} {
 	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
 	// which have different structures depending on the property type.
 	const mappings: Record<string, any> = {};
 	let titlePropertyName: string | null = null;
-	
+
 	// First pass: create mappings for all properties
 	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys and property types
 	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
-		
+
 		// Map Notion property types to Obsidian property types
 		switch (propType) {
 			case 'checkbox':
@@ -526,7 +526,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.CHECKBOX,
 				};
 				break;
-			
+
 			case 'date':
 				// Notion date properties can be date-only or datetime
 				// We set it as DATETIME by default since Obsidian handles both formats
@@ -537,14 +537,14 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
 				};
 				break;
-			
+
 			case 'number':
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
 					type: OBSIDIAN_PROPERTY_TYPES.NUMBER,
 				};
 				break;
-			
+
 			case 'select':
 			case 'status':
 				// Single select -> text in Obsidian
@@ -553,7 +553,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
 				break;
-			
+
 			case 'multi_select':
 				// Multi-select -> list in Obsidian
 				mappings[sanitizePropertyKey(key)] = {
@@ -561,13 +561,13 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
 				break;
-			
+
 			case 'title':
 				// Save the title property name to use in column order
 				// The title property corresponds to file.name in Obsidian, but we want to preserve the custom column name
 				titlePropertyName = propName;
 				break;
-			
+
 			case 'rich_text':
 			case 'url':
 			case 'email':
@@ -578,11 +578,11 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
 				break;
-				
+
 			case 'formula':
 				// Handle formula based on import strategy
 				const formulaExpression = getNotionFormulaExpression(prop.formula);
-				
+
 				if (formulaStrategy === 'static') {
 					// Strategy 1: Static values only - add as text property
 					mappings[sanitizePropertyKey(key)] = {
@@ -614,7 +614,7 @@ function mapDatabaseProperties(
 					}
 				}
 				break;
-				
+
 			case 'relation':
 				// Relation properties will be stored as list of links in page YAML
 				// Skip adding to .base file properties (will be handled in page frontmatter)
@@ -626,7 +626,7 @@ function mapDatabaseProperties(
 					relationConfig: prop.relation,
 				};
 				break;
-			
+
 			case 'rollup':
 				// Rollup properties should be converted to formulas in .base file
 				const rollupFormula = convertRollupToFormula(prop.rollup);
@@ -642,7 +642,7 @@ function mapDatabaseProperties(
 					console.warn(`Failed to convert rollup property "${propName}" to formula.`);
 				}
 				break;
-			
+
 			case 'people':
 				// People property - list of user names/emails
 				mappings[sanitizePropertyKey(key)] = {
@@ -650,7 +650,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
 				break;
-		
+
 			case 'files':
 				// Files property - list of attachment links
 				mappings[sanitizePropertyKey(key)] = {
@@ -658,7 +658,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
 				break;
-		
+
 			case 'created_time':
 			case 'last_edited_time':
 				// Timestamp properties - always include time
@@ -667,7 +667,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
 				};
 				break;
-		
+
 			case 'created_by':
 			case 'last_edited_by':
 				// User properties - single user name/email/id
@@ -676,12 +676,12 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
 				break;
-		
+
 			case 'button':
 				// Button properties are UI elements, not data - skip them
 				// Don't add to mappings
 				break;
-		
+
 			case 'place':
 				// Place property - Obsidian Maps format: list of strings [lat, lon]
 				mappings[sanitizePropertyKey(key)] = {
@@ -689,7 +689,7 @@ function mapDatabaseProperties(
 					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 				};
 				break;
-	
+
 			default:
 				// Unsupported types -> text
 				console.log(`Unsupported property type: ${propType}, treating as text`);
@@ -699,14 +699,14 @@ function mapDatabaseProperties(
 				};
 		}
 	}
-	
+
 	// Separate formulas from regular properties
 	// Note: Property order is based on Object.entries() iteration order
 	// which in modern JavaScript (ES2015+) preserves insertion order for string keys
 	// Using 'any' for config because property configurations have different structures by type
-	const formulas: Array<{key: string, config: any}> = [];
-	const regularProperties: Array<{key: string, config: any}> = [];
-	
+	const formulas: Array<{ key: string, config: any }> = [];
+	const regularProperties: Array<{ key: string, config: any }> = [];
+
 	for (const [key, config] of Object.entries(mappings)) {
 		if (config.formula) {
 			// This is a formula property
@@ -717,7 +717,7 @@ function mapDatabaseProperties(
 			regularProperties.push({ key, config });
 		}
 	}
-	
+
 	return { formulas, regularProperties, titlePropertyName };
 }
 
@@ -741,20 +741,20 @@ function convertRollupToFormula(
 	if (!rollupConfig) {
 		return null;
 	}
-	
+
 	// Get the relation property that this rollup is based on
 	// In Notion API 2025-09-03, the fields are named differently
 	const relationPropertyKey = rollupConfig.relation_property_name || rollupConfig.relation_property_key;
 	const rollupPropertyKey = rollupConfig.rollup_property_name || rollupConfig.rollup_property_key;
 	const rollupFunction = rollupConfig.function;
-	
+
 	if (!relationPropertyKey || !rollupFunction) {
 		return null;
 	}
-	
+
 	// Sanitize the relation property key
 	const sanitizedRelationKey = sanitizePropertyKey(relationPropertyKey);
-	
+
 	// Map Notion rollup functions to Obsidian formulas
 	// Note: Obsidian doesn't have direct rollup support, so we approximate
 	// Map Notion rollup function names to formulas
@@ -769,7 +769,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, just show the relation itself
 			return `note["${sanitizedRelationKey}"]`;
-		
+
 		case 'show_unique':
 			// Shows the unique values for this property
 			// For types that can contain multiple values (multi-select, person), 
@@ -781,12 +781,12 @@ function convertRollupToFormula(
 			}
 			// If no target property, get unique relation pages
 			return `note["${sanitizedRelationKey}"].unique()`;
-		
+
 		case 'count':
 			// Counts the total number of pages (including blank pages)
 			// Simply counts how many pages are in the relation
 			return `note["${sanitizedRelationKey}"].length`;
-		
+
 		case 'count_values':
 			// Counts the number of non-empty values for this property
 			// For types that can contain multiple values (multi-select, person),
@@ -798,7 +798,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, same as count
 			return `note["${sanitizedRelationKey}"].length`;
-		
+
 		case 'unique':
 			// Counts the number of unique values for this property
 			// For types that can contain multiple values (multi-select, person),
@@ -810,7 +810,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, count unique relation pages
 			return `note["${sanitizedRelationKey}"].unique().length`;
-		
+
 		case 'empty':
 			// Counts pages that have an empty value for this property
 			// Returns the count of pages with empty values
@@ -821,7 +821,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, check if relation itself is empty
 			return `if(note["${sanitizedRelationKey}"].length == 0, 1, 0)`;
-		
+
 		case 'not_empty':
 			// Counts pages that have a non-empty value for this property
 			// Returns the count of pages with non-empty values
@@ -832,7 +832,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, check if relation itself is not empty
 			return `if(note["${sanitizedRelationKey}"].length > 0, 1, 0)`;
-		
+
 		case 'percent_empty':
 			// Displays the percentage of pages that have an empty value for this property
 			// Calculates: (empty pages / total pages) * 100
@@ -844,7 +844,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, check relation itself
 			return `if(note["${sanitizedRelationKey}"].length == 0, 100, 0)`;
-		
+
 		case 'percent_not_empty':
 			// Displays the percentage of pages that have a non-empty value for this property
 			// Calculates: (non-empty pages / total pages) * 100
@@ -856,7 +856,7 @@ function convertRollupToFormula(
 			}
 			// If no target property, check relation itself
 			return `if(note["${sanitizedRelationKey}"].length > 0, 100, 0)`;
-		
+
 		case 'earliest_date':
 			// Finds the earliest date in time of a date property
 			// Strategy: Get all dates, convert to date objects, sort by converting to numbers for comparison
@@ -870,7 +870,7 @@ function convertRollupToFormula(
 			}
 			console.warn(`⚠️ Rollup function "earliest_date" requires a target property.`);
 			return null;
-		
+
 		case 'latest_date':
 			// Finds the latest date in time of a date property
 			// Strategy: Get all dates, convert to date objects, sort by converting to numbers for comparison
@@ -884,7 +884,7 @@ function convertRollupToFormula(
 			}
 			console.warn(`⚠️ Rollup function "latest_date" requires a target property.`);
 			return null;
-		
+
 		case 'date_range':
 			// Computes the date range (earliest date -> latest date) of a date property
 			// Strategy: Sort dates, take first and last elements, format as "earliest → latest"
@@ -900,7 +900,7 @@ function convertRollupToFormula(
 			}
 			console.warn(`⚠️ Rollup function "date_range" requires a target property.`);
 			return null;
-			
+
 		default:
 			console.warn(`⚠️ Unsupported rollup function: "${rollupFunction}"`);
 			console.warn(`   This rollup property will be skipped.`);
@@ -931,31 +931,31 @@ export async function processRelationProperties(
 			relationProperties[key] = prop;
 		}
 	}
-	
+
 	if (Object.keys(relationProperties).length === 0) {
 		return;
 	}
-	
+
 	// Process each page
 	for (const page of databasePages) {
 		const pageProperties = page.properties;
-		
+
 		// Check each relation property
 		for (const [propKey, propConfig] of Object.entries(relationProperties)) {
 			const pageProp = pageProperties[propKey];
-			
+
 			if (pageProp && pageProp.type === 'relation' && pageProp.relation) {
 				const relatedPageIds = pageProp.relation.map(r => r.id);
-			
+
 				if (relatedPageIds.length > 0) {
 					// Get the target database ID from the relation config
 					// propConfig is from database schema, which has different structure than page properties
 					// Using 'as any' because the relation config structure is not fully typed in Notion's API,
 					// but we know it contains a database_id property for relation types.
-					const targetDatabaseId = propConfig.type === 'relation' && 'relation' in propConfig 
+					const targetDatabaseId = propConfig.type === 'relation' && 'relation' in propConfig
 						? (propConfig.relation as any)?.database_id || ''
 						: '';
-				
+
 					// Add placeholder
 					relationPlaceholders.push({
 						pageId: page.id,
@@ -977,8 +977,8 @@ export async function processRelationProperties(
  * @returns The block if found, null otherwise
  */
 function findBlockById(
-	blocks: BlockObjectResponse[], 
-	blockId: string, 
+	blocks: BlockObjectResponse[],
+	blockId: string,
 	blocksCache?: Map<string, BlockObjectResponse[]>
 ): BlockObjectResponse | null {
 	for (const block of blocks) {
@@ -986,7 +986,7 @@ function findBlockById(
 		if (block.id === blockId) {
 			return block;
 		}
-		
+
 		// Recursively search in children if block has children
 		if (block.has_children) {
 			// Try to get children from cache first
@@ -994,7 +994,7 @@ function findBlockById(
 			if (blocksCache && blocksCache.has(block.id)) {
 				children = blocksCache.get(block.id)!;
 			}
-			
+
 			// Search in children
 			if (children.length > 0) {
 				const found = findBlockById(children, blockId, blocksCache);
@@ -1004,7 +1004,7 @@ function findBlockById(
 			}
 		}
 	}
-	
+
 	return null;
 }
 
@@ -1023,21 +1023,21 @@ export async function processDatabasePlaceholders(
 ): Promise<string> {
 	// Find all database placeholders
 	const databaseIds = extractPlaceholderIds(markdownContent, PlaceholderType.DATABASE_PLACEHOLDER);
-	
+
 	if (databaseIds.length === 0) {
 		return markdownContent;
 	}
-	
+
 	let processedContent = markdownContent;
-	
+
 	// Process each database placeholder
 	for (const databaseId of databaseIds) {
 		const placeholder = createPlaceholder(PlaceholderType.DATABASE_PLACEHOLDER, databaseId);
-		
+
 		// Find the corresponding block (recursively search in nested blocks)
 		// This handles databases inside callouts, blockquotes, toggles, etc.
 		const databaseBlock = findBlockById(blocks, databaseId, context.blocksCache);
-		
+
 		if (databaseBlock && databaseBlock.type === 'child_database') {
 			try {
 				// Convert the database and get the reference
@@ -1045,7 +1045,7 @@ export async function processDatabasePlaceholders(
 					databaseBlock,
 					context
 				);
-				
+
 				// Replace placeholder with actual reference
 				processedContent = processedContent.replace(placeholder, databaseReference);
 			}
@@ -1065,7 +1065,7 @@ export async function processDatabasePlaceholders(
 			console.warn(`Database block not found for placeholder: ${databaseId}`);
 		}
 	}
-	
+
 	return processedContent;
 }
 
@@ -1082,7 +1082,7 @@ async function updateBaseFileDateTypes(params: {
 	databasePropertyName?: string;
 }): Promise<void> {
 	const { vault, baseFilePath, databasePages, dataSourceProperties, formulaStrategy, databasePropertyName } = params;
-	
+
 	// Find all date properties in the schema
 	const dateProperties: Record<string, { key: string, name: string, hasTime: boolean }> = {};
 	
@@ -1095,54 +1095,54 @@ async function updateBaseFileDateTypes(params: {
 			};
 		}
 	}
-	
+
 	// If no date properties, nothing to do
 	if (Object.keys(dateProperties).length === 0) {
 		return;
 	}
-	
+
 	// Analyze actual data from all pages
 	for (const page of databasePages) {
 		// Skip partial pages without properties
 		if (!('properties' in page)) continue;
-		
+
 		const properties = page.properties;
-		
+
 		for (const [key, propInfo] of Object.entries(dateProperties)) {
 			// Skip if already determined to have time
 			if (propInfo.hasTime) continue;
-			
+
 			const prop = properties[key];
 			if (!prop || prop.type !== 'date' || !prop.date) continue;
-			
+
 			// Check if start date contains time (has 'T' in the string)
 			if (prop.date.start && prop.date.start.includes('T')) {
 				propInfo.hasTime = true;
 			}
-			
+
 			// Also check end date if present
 			if (prop.date.end && prop.date.end.includes('T')) {
 				propInfo.hasTime = true;
 			}
 		}
 	}
-	
+
 	// Check if any date property needs to be changed to 'date' type
 	// (by default they are all set to 'datetime', we only change to 'date' if NO time data found)
 	const needsUpdate = Object.values(dateProperties).some(prop => !prop.hasTime);
-	
+
 	if (!needsUpdate) {
 		// All date properties have time data, no need to update
 		return;
 	}
-	
+
 	// Read current .base file
 	const baseFile = vault.getAbstractFileByPath(baseFilePath);
 	if (!baseFile || !(baseFile instanceof TFile)) {
 		console.warn(`Base file not found: ${baseFilePath}`);
 		return;
 	}
-	
+
 	// Regenerate .base file content with correct date types
 	const baseContent = generateBaseFileContent({
 		databaseName: parseFilePath(baseFilePath).basename.replace(/\.base$/, ''),
@@ -1151,7 +1151,7 @@ async function updateBaseFileDateTypes(params: {
 		databasePropertyName,
 		datePropertyTypes: dateProperties
 	});
-	
+
 	// Update .base file
 	await vault.modify(baseFile, baseContent);
 }
