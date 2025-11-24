@@ -651,6 +651,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			// Convert Notion date format (ISO 8601) to Obsidian format
 			// Date only: YYYY-MM-DD (keep as is)
 			// Datetime: YYYY-MM-DDTHH:mm:ss (convert from ISO 8601)
+			// For date ranges, use "start to end" format as text
 			const startDate = convertNotionDateToObsidian(prop.date.start);
 			if (prop.date.end) {
 				const endDate = convertNotionDateToObsidian(prop.date.end);
