@@ -25,4 +25,3 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
-.cursor/
