@@ -119,7 +119,7 @@ export interface CreateBaseFileParams {
 	databaseName: string;
 	databaseFolderPath: string;
 	// Using 'any' because Notion database property schema has many variants with different structures
-	dataSourceProperties: any;
+	dataSourceProperties: Record<string, any>;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
 }
@@ -130,7 +130,7 @@ export interface CreateBaseFileParams {
 export interface GenerateBaseFileContentParams {
 	databaseName: string;
 	// Using 'any' because Notion database property schema has many variants with different structures
-	dataSourceProperties: any;
+	dataSourceProperties: Record<string, any>;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
 }

@@ -216,17 +216,16 @@ export async function importDatabaseCore(
 
 		dataSourceId = database.data_sources[0].id;
 	}
-	
-	// Get data source properties
-	let dataSourceProperties: Record<string, any> = {};
-	
+
 	// Try to retrieve data source - if this fails, don't create folder
 	const dataSource = await makeNotionRequest(
 		() => client.dataSources.retrieve({ data_source_id: dataSourceId }),
 		ctx
 	);
-	dataSourceProperties = dataSource.properties || {};
-	
+
+	// Get data source properties
+	let dataSourceProperties: Record<string, any> = dataSource.properties || {};
+
 	// If we're using data_source_id directly, extract title from dataSource
 	if (isDataSourceId) {
 		// Extract title from data source
@@ -500,7 +499,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
  *          property configurations vary widely by type (text, number, select, formula, relation, etc.)
  */
 function mapDatabaseProperties(
-	dataSourceProperties: any,
+	dataSourceProperties: Record<string, any>,
 	formulaStrategy: FormulaImportStrategy = 'hybrid'
 ): {
 		formulas: Array<{ key: string, config: any }>;
@@ -514,7 +513,7 @@ function mapDatabaseProperties(
 
 	// First pass: create mappings for all properties
 	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys and property types
-	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
 
@@ -919,14 +918,14 @@ function convertRollupToFormula(
  */
 export async function processRelationProperties(
 	databasePages: PageObjectResponse[],
-	dataSourceProperties: any,
+	dataSourceProperties: Record<string, any>,
 	relationPlaceholders: RelationPlaceholder[]
 ): Promise<void> {
 	// Find all relation properties
 	// Using 'any' because relation property configurations have complex nested structures
 	const relationProperties: Record<string, any> = {};
 	// Using 'any' in Object.entries cast because dataSourceProperties has dynamic keys
-	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
 		if (prop.type === 'relation') {
 			relationProperties[key] = prop;
 		}
@@ -1077,7 +1076,7 @@ async function updateBaseFileDateTypes(params: {
 	vault: any;
 	baseFilePath: string;
 	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>;
-	dataSourceProperties: any;
+	dataSourceProperties: Record<string, any>;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string;
 }): Promise<void> {
@@ -1085,8 +1084,8 @@ async function updateBaseFileDateTypes(params: {
 
 	// Find all date properties in the schema
 	const dateProperties: Record<string, { key: string, name: string, hasTime: boolean }> = {};
-	
-	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
+
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
 		if (prop.type === 'date') {
 			dateProperties[key] = {
 				key,
