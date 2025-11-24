@@ -46,6 +46,7 @@ export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
+	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	incrementalImport: boolean = false; // Incremental import: skip files with same notion-id (default: disabled)
@@ -215,6 +216,18 @@ export class NotionAPIImporter extends FormatImporter {
 					.setValue(false)
 					.onChange(value => {
 						this.downloadExternalAttachments = value;
+					});
+			});
+
+		// Single line breaks option
+		new Setting(this.modal.contentEl)
+			.setName('Single line breaks')
+			.setDesc('Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.')
+			.addToggle(toggle => {
+				toggle
+					.setValue(false)
+					.onChange(value => {
+						this.singleLineBreaks = value;
 					});
 			});
 
@@ -1209,6 +1222,7 @@ export class NotionAPIImporter extends FormatImporter {
 				vault: this.vault,
 				app: this.app,
 				downloadExternalAttachments: this.downloadExternalAttachments,
+				singleLineBreaks: this.singleLineBreaks, // Single line breaks mode
 				incrementalImport: this.incrementalImport, // Skip attachments with same path and size
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks

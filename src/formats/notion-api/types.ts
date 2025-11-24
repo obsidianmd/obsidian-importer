@@ -193,6 +193,7 @@ export interface BlockConversionContext {
 	vault: Vault;
 	app: App;
 	downloadExternalAttachments: boolean;
+	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
 	incrementalImport?: boolean; // Skip downloading attachments if same path and size
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
