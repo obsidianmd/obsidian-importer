@@ -10,11 +10,11 @@ import {
 	PageObjectResponse,
 	PartialPageObjectResponse
 } from '@notionhq/client';
-import { normalizePath, stringifyYaml, BasesConfigFile, TFolder, TFile } from 'obsidian';
+import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { parseFilePath } from '../../filesystem';
-import { getUniqueFolderPath, getUniqueFilePath } from './vault-helpers';
+import { getUniqueFolderPath, getUniqueFilePath, updatePropertyTypes } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
@@ -36,7 +36,7 @@ const OBSIDIAN_PROPERTY_TYPES = {
 	CHECKBOX: 'checkbox',
 	DATE: 'date',
 	DATETIME: 'datetime',
-	LIST: 'list',
+	MULTITEXT: 'multitext',
 	NUMBER: 'number',
 	TEXT: 'text',
 };
@@ -272,10 +272,10 @@ export async function importDatabaseCore(
 	// This prevents creating empty folders for linked databases or databases with permission errors
 	// For incremental import: reuse existing folder if it exists, otherwise create a unique one
 	const baseFolderPath = normalizePath(currentPageFolderPath ? `${currentPageFolderPath}/${sanitizedTitle}` : sanitizedTitle);
-	const existingFolder = vault.getAbstractFileByPath(baseFolderPath);
-
+	
 	let databaseFolderPath: string;
-	if (existingFolder instanceof TFolder) {
+	// Use adapter.exists for reliable check
+	if (await vault.adapter.exists(baseFolderPath)) {
 		// Reuse existing folder for incremental import
 		databaseFolderPath = baseFolderPath;
 	}
@@ -319,17 +319,13 @@ export async function importDatabaseCore(
 			await importPageCallback(template.id, databaseFolderPath, undefined, templateFileName);
 		}
 	}
-
-	// After importing all pages, analyze actual date data and update .base file if needed
-	await updateBaseFileDateTypes({
-		vault,
-		baseFilePath,
-		databasePages,
-		dataSourceProperties,
-		formulaStrategy,
-		databasePropertyName
-	});
-
+	
+	// Update property types using Obsidian's official API
+	// This ensures correct type inference for properties (especially text vs number & date vs datetime)
+	// Note: Only updates properties that don't already have a type (respects user's manual changes)
+	const propertyTypes = extractPropertyTypesForTypesJson(dataSourceProperties, databasePages);
+	updatePropertyTypes(context.app, propertyTypes);
+	
 	// Record database information
 	const databaseInfo: DatabaseInfo = {
 		id: databaseId,
@@ -376,10 +372,17 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 	const baseFilePath = normalizePath(`${databaseFolderPath}/${databaseName}.base`);
 
 	// For incremental import: update existing .base file if it exists
-	const existingFile = vault.getAbstractFileByPath(baseFilePath);
-	if (existingFile instanceof TFile) {
+	// Use adapter.exists for reliable check
+	if (await vault.adapter.exists(baseFilePath)) {
 		// Update existing .base file with latest database properties
-		await vault.modify(existingFile, baseContent);
+		const existingFile = vault.getAbstractFileByPath(baseFilePath);
+		if (existingFile instanceof TFile) {
+			await vault.modify(existingFile, baseContent);
+		}
+		else {
+			// File exists but not recognized as TFile, use adapter to write directly
+			await vault.adapter.write(baseFilePath, baseContent);
+		}
 		return baseFilePath;
 	}
 
@@ -394,34 +397,17 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 /**
  * Generate content for .base file using BasesConfigFile structure
  */
-function generateBaseFileContent(params: GenerateBaseFileContentParams & {
-	datePropertyTypes?: Record<string, { key: string, name: string, hasTime: boolean }>;
-}): string {
+function generateBaseFileContent(params: GenerateBaseFileContentParams): string {
 	const {
 		databaseName,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
 		databasePropertyName = 'base',
-		datePropertyTypes
 	} = params;
 
 	// Map Notion properties to Obsidian properties
 	const { formulas, regularProperties, titlePropertyName } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
-
-	// Update date property types based on actual data (if provided)
-	if (datePropertyTypes) {
-		for (const item of regularProperties) {
-			// Check if this is a date property that needs type adjustment
-			for (const [key, dateInfo] of Object.entries(datePropertyTypes)) {
-				if (sanitizePropertyKey(key) === item.key) {
-					// Update type based on whether it has time data
-					item.config.type = dateInfo.hasTime ? OBSIDIAN_PROPERTY_TYPES.DATETIME : OBSIDIAN_PROPERTY_TYPES.DATE;
-					break;
-				}
-			}
-		}
-	}
-
+	
 	// Build the order array for views
 	// Always use 'file.name' as the first column (it will display with custom displayName if set)
 	const orderColumns = ['file.name'];
@@ -468,9 +454,8 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams & {
 			baseConfig.properties[item.key] = {
 				displayName: item.config.displayName
 			};
-			if (item.config.type) {
-				baseConfig.properties[item.key].type = item.config.type;
-			}
+			// Note: We don't write 'type' to .base file as it's redundant.
+			// Property types are managed globally in .obsidian/types.json
 		}
 	}
 
@@ -518,79 +503,26 @@ function mapDatabaseProperties(
 		const propName = prop.name || key;
 
 		// Map Notion property types to Obsidian property types
+		// Only handle cases that require special processing
 		switch (propType) {
-			case 'checkbox':
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.CHECKBOX,
-				};
-				break;
-
-			case 'date':
-				// Notion date properties can be date-only or datetime
-				// We set it as DATETIME by default since Obsidian handles both formats
-				// Pure dates (YYYY-MM-DD) work fine with datetime type
-				// Datetimes (YYYY-MM-DDTHH:mm:ss) require datetime type
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
-				};
-				break;
-
-			case 'number':
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.NUMBER,
-				};
-				break;
-
-			case 'select':
-			case 'status':
-				// Single select -> text in Obsidian
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
-				break;
-
-			case 'multi_select':
-				// Multi-select -> list in Obsidian
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.LIST,
-				};
-				break;
-
 			case 'title':
 				// Save the title property name to use in column order
 				// The title property corresponds to file.name in Obsidian, but we want to preserve the custom column name
 				titlePropertyName = propName;
 				break;
-
-			case 'rich_text':
-			case 'url':
-			case 'email':
-			case 'phone_number':
-				// Text-based properties
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
-				break;
-
+				
 			case 'formula':
 				// Handle formula based on import strategy
 				const formulaExpression = getNotionFormulaExpression(prop.formula);
 
 				if (formulaStrategy === 'static') {
-					// Strategy 1: Static values only - add as text property
+					// Strategy 1: Static values only - add as regular property
 					mappings[sanitizePropertyKey(key)] = {
 						displayName: propName,
-						type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 					};
 				}
 				else if (formulaStrategy === 'hybrid') {
-					// Strategy 2: Hybrid - convert if possible, fallback to text
+					// Strategy 2: Hybrid - convert if possible, fallback to regular property
 					if (formulaExpression && canConvertFormula(formulaExpression)) {
 						const obsidianFormula = convertNotionFormulaToObsidian(formulaExpression, dataSourceProperties);
 						if (obsidianFormula) {
@@ -602,13 +534,12 @@ function mapDatabaseProperties(
 						}
 					}
 					else {
-						// Cannot convert - add as text property
+						// Cannot convert - add as regular property
 						console.warn(`⚠️ Formula "${propName}" cannot be converted to Obsidian syntax, falling back to text property.`);
 						console.warn(`   Original: ${formulaExpression}`);
 						console.warn(`   Reason: Contains unsupported functions (e.g., substring, slice, split, format, etc.)`);
 						mappings[sanitizePropertyKey(key)] = {
 							displayName: propName,
-							type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 						};
 					}
 				}
@@ -616,11 +547,9 @@ function mapDatabaseProperties(
 
 			case 'relation':
 				// Relation properties will be stored as list of links in page YAML
-				// Skip adding to .base file properties (will be handled in page frontmatter)
-				// But we still need to record it for reference
+				// Need to record special metadata for relation properties
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.LIST,
 					isRelation: true,
 					relationConfig: prop.relation,
 				};
@@ -641,60 +570,17 @@ function mapDatabaseProperties(
 					console.warn(`Failed to convert rollup property "${propName}" to formula.`);
 				}
 				break;
-
-			case 'people':
-				// People property - list of user names/emails
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.LIST,
-				};
-				break;
-
-			case 'files':
-				// Files property - list of attachment links
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.LIST,
-				};
-				break;
-
-			case 'created_time':
-			case 'last_edited_time':
-				// Timestamp properties - always include time
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.DATETIME,
-				};
-				break;
-
-			case 'created_by':
-			case 'last_edited_by':
-				// User properties - single user name/email/id
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
-				};
-				break;
-
+		
 			case 'button':
 				// Button properties are UI elements, not data - skip them
 				// Don't add to mappings
 				break;
-
-			case 'place':
-				// Place property - Obsidian Maps format: list of strings [lat, lon]
-				mappings[sanitizePropertyKey(key)] = {
-					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.LIST,
-				};
-				break;
-
+	
 			default:
-				// Unsupported types -> text
-				console.log(`Unsupported property type: ${propType}, treating as text`);
+				// All other property types: just set displayName
+				// Type information is managed in types.json, not in .base file
 				mappings[sanitizePropertyKey(key)] = {
 					displayName: propName,
-					type: OBSIDIAN_PROPERTY_TYPES.TEXT,
 				};
 		}
 	}
@@ -728,6 +614,146 @@ function sanitizePropertyKey(key: string): string {
 	// Obsidian properties support most characters including spaces and hyphens
 	// Return the original key to ensure consistency with YAML frontmatter
 	return key;
+}
+
+/**
+ * Extract property types that should be written to types.json
+ * Maps all Notion property types to Obsidian property types following the same logic as mapDatabaseProperties
+ * Returns a mapping of property name -> Obsidian type
+ */
+function extractPropertyTypesForTypesJson(
+	dataSourceProperties: Record<string, any>,
+	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>
+): Record<string, string> {
+	const propertyTypes: Record<string, string> = {};
+	
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
+		const propType = prop.type;
+		const propName = prop.name || key;
+		
+		// Map Notion property types to Obsidian property types
+		switch (propType) {
+			case 'checkbox':
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.CHECKBOX;
+				break;
+			
+			case 'date':
+				// Check if this date property is a range (has both start and end)
+				// If it's a range, treat as text (format: "start to end")
+				// If single date, determine date vs datetime based on time information
+				let hasRange = false;
+				let hasTime = false;
+				
+				for (const page of databasePages) {
+					const pageProps = (page as PageObjectResponse).properties;
+					if (pageProps && pageProps[key]) {
+						const dateProp = pageProps[key] as any;
+						if (dateProp.type === 'date' && dateProp.date) {
+							// Check if it's a range (has end date)
+							if (dateProp.date.end) {
+								hasRange = true;
+								break; // Early exit - ranges are always text
+							}
+							
+							// Check time information in start date
+							if (dateProp.date.start && dateProp.date.start.includes('T')) {
+								hasTime = true;
+							}
+						}
+					}
+				}
+				
+				if (hasRange) {
+					// Date range is stored as text (format: "2024-01-01 to 2024-01-10")
+					propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
+				}
+				else {
+					// Single date: use datetime if has time, otherwise use date
+					propertyTypes[propName] = hasTime ? OBSIDIAN_PROPERTY_TYPES.DATETIME : OBSIDIAN_PROPERTY_TYPES.DATE;
+				}
+				break;
+			
+			case 'number':
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.NUMBER;
+				break;
+			
+			case 'select':
+			case 'status':
+				// Single select -> text in Obsidian
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
+				break;
+			
+			case 'multi_select':
+				// Multi-select -> multitext in Obsidian
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.MULTITEXT;
+				break;
+			
+			case 'title':
+				// Title property is handled as file.name, skip
+				break;
+			
+			case 'rich_text':
+			case 'url':
+			case 'email':
+			case 'phone_number':
+				// Text-based properties
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
+				break;
+			
+			case 'formula':
+				// Skip formula properties:
+				// - If converted to Obsidian formula: stored in .base file formulas section, not in YAML
+				// - If fallback to static text: let Obsidian auto-infer the type
+				break;
+			
+			case 'relation':
+				// Relation properties -> multitext of links
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.MULTITEXT;
+				break;
+			
+			case 'rollup':
+				// Rollup properties are converted to formulas, skip them in types.json
+				break;
+			
+			case 'people':
+				// People property -> multitext of user names/emails
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.MULTITEXT;
+				break;
+			
+			case 'files':
+				// Files property -> multitext of attachment links
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.MULTITEXT;
+				break;
+			
+			case 'created_time':
+			case 'last_edited_time':
+				// Timestamp properties - always include time
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.DATETIME;
+				break;
+			
+			case 'created_by':
+			case 'last_edited_by':
+				// User properties -> single user name/email/id
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
+				break;
+			
+			case 'button':
+				// Button properties are UI elements, not data - skip them
+				break;
+			
+			case 'place':
+				// Place property -> multitext format
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.MULTITEXT;
+				break;
+			
+			default:
+				// Unsupported types -> text
+				console.log(`Unsupported property type: ${propType}, treating as text`);
+				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
+		}
+	}
+	
+	return propertyTypes;
 }
 
 /**
@@ -1066,92 +1092,5 @@ export async function processDatabasePlaceholders(
 	}
 
 	return processedContent;
-}
-
-/**
- * Update .base file date property types based on actual data
- * Analyzes all pages to determine if date properties contain time information
- */
-async function updateBaseFileDateTypes(params: {
-	vault: any;
-	baseFilePath: string;
-	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>;
-	dataSourceProperties: Record<string, any>;
-	formulaStrategy?: FormulaImportStrategy;
-	databasePropertyName?: string;
-}): Promise<void> {
-	const { vault, baseFilePath, databasePages, dataSourceProperties, formulaStrategy, databasePropertyName } = params;
-
-	// Find all date properties in the schema
-	const dateProperties: Record<string, { key: string, name: string, hasTime: boolean }> = {};
-
-	for (const [key, prop] of Object.entries(dataSourceProperties)) {
-		if (prop.type === 'date') {
-			dateProperties[key] = {
-				key,
-				name: prop.name || key,
-				hasTime: false // Default to false, will update if we find time data
-			};
-		}
-	}
-
-	// If no date properties, nothing to do
-	if (Object.keys(dateProperties).length === 0) {
-		return;
-	}
-
-	// Analyze actual data from all pages
-	for (const page of databasePages) {
-		// Skip partial pages without properties
-		if (!('properties' in page)) continue;
-
-		const properties = page.properties;
-
-		for (const [key, propInfo] of Object.entries(dateProperties)) {
-			// Skip if already determined to have time
-			if (propInfo.hasTime) continue;
-
-			const prop = properties[key];
-			if (!prop || prop.type !== 'date' || !prop.date) continue;
-
-			// Check if start date contains time (has 'T' in the string)
-			if (prop.date.start && prop.date.start.includes('T')) {
-				propInfo.hasTime = true;
-			}
-
-			// Also check end date if present
-			if (prop.date.end && prop.date.end.includes('T')) {
-				propInfo.hasTime = true;
-			}
-		}
-	}
-
-	// Check if any date property needs to be changed to 'date' type
-	// (by default they are all set to 'datetime', we only change to 'date' if NO time data found)
-	const needsUpdate = Object.values(dateProperties).some(prop => !prop.hasTime);
-
-	if (!needsUpdate) {
-		// All date properties have time data, no need to update
-		return;
-	}
-
-	// Read current .base file
-	const baseFile = vault.getAbstractFileByPath(baseFilePath);
-	if (!baseFile || !(baseFile instanceof TFile)) {
-		console.warn(`Base file not found: ${baseFilePath}`);
-		return;
-	}
-
-	// Regenerate .base file content with correct date types
-	const baseContent = generateBaseFileContent({
-		databaseName: parseFilePath(baseFilePath).basename.replace(/\.base$/, ''),
-		dataSourceProperties,
-		formulaStrategy,
-		databasePropertyName,
-		datePropertyTypes: dateProperties
-	});
-
-	// Update .base file
-	await vault.modify(baseFile, baseContent);
 }
 

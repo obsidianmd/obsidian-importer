@@ -96,14 +96,19 @@ function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolea
 /**
  * Determine if spacing (empty line) should be added between two blocks
  * 
- * Philosophy: Add spacing at top level for readability, but keep lists compact.
+ * Two modes:
+ * 1. Single line breaks mode (singleLineBreaks = true):
+ *    - Default: No spacing (1:1 rendering of Notion structure)
+ *    - Exception: Add spacing only when required for Markdown syntax
+ *      * blockquote/callout/toggle/quote: require spacing AFTER
+ *      * list: require spacing AFTER when transitioning to non-list
+ *      * table: require spacing BEFORE and AFTER
+ *      * divider: require spacing BEFORE to prevent Setext heading
  * 
- * Rules:
- * 1. Within lists (indentLevel > 0): No spacing to keep list items compact
- *    Exception: Callout/Toggle/Table blocks always need spacing (syntax requirement)
- * 2. At top level (indentLevel = 0): Add spacing between blocks for readability
- *    Exception: Consecutive list items remain compact (no spacing between them)
- * 3. Empty paragraph detection: Don't add extra spacing if Notion already has an empty paragraph
+ * 2. Default mode (singleLineBreaks = false):
+ *    - Default: Add spacing between blocks for readability
+ *    - Exception: No spacing within lists or between consecutive list items
+ *    - Empty paragraph detection: Don't add extra spacing if Notion already has an empty paragraph
  */
 function shouldAddSpacingBetweenBlocks(
 	currentType: string, 
@@ -111,37 +116,72 @@ function shouldAddSpacingBetweenBlocks(
 	context?: BlockConversionContext
 ): boolean {
 	const indentLevel = context?.indentLevel || 0;
+	const singleLineBreaks = context?.singleLineBreaks || false;
 	
 	// Define list types (including to_do)
 	const listTypes = ['bulleted_list_item', 'numbered_list_item', 'to_do'];
-	
 	const currentIsList = listTypes.includes(currentType);
 	const nextIsList = listTypes.includes(nextType);
 	
-	// Rule 1: No spacing within lists (when nested, indentLevel > 0)
-	// List items within the same list should be compact
+	// Within lists (indentLevel > 0): No spacing to keep list items compact
+	// Exception: Some block types need spacing even within lists (Markdown syntax requirement)
 	if (indentLevel > 0) {
-		// Special case: nested callouts/toggles/tables still need spacing even within lists
-		const calloutTypes = ['callout', 'toggle'];
-		if (calloutTypes.includes(currentType) || calloutTypes.includes(nextType)) {
+		// Block types that require spacing after them, even in lists
+		const requiresSpacingAfter = ['callout', 'toggle', 'quote', 'table'];
+		
+		if (requiresSpacingAfter.includes(currentType)) {
 			return true;
 		}
+		
+		// Table also requires spacing before
+		if (nextType === 'table') {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	// At top level (indentLevel = 0)
+	if (singleLineBreaks) {
+		// === Single Line Breaks Mode: Only add spacing when required ===
+		
+		// Block types that require spacing AFTER them
+		const requiresSpacingAfter = ['callout', 'toggle', 'quote'];
+		
+		// 1. blockquote/callout/toggle/quote: require spacing after
+		if (requiresSpacingAfter.includes(currentType)) {
+			return true;
+		}
+		
+		// 2. List: require spacing after when transitioning to non-list
+		if (currentIsList && !nextIsList) {
+			return true;
+		}
+		
+		// 3. Table: require spacing before and after
 		if (currentType === 'table' || nextType === 'table') {
 			return true;
 		}
+		
+		// 4. Divider: require spacing before (to prevent Setext heading)
+		if (nextType === 'divider') {
+			return true;
+		}
+		
+		// Otherwise, no spacing in single line breaks mode
 		return false;
 	}
-	
-	// Rule 2: At top level (indentLevel = 0), add spacing between consecutive list items of the same type
-	// This creates visual separation between list groups
-	if (currentIsList && nextIsList) {
-		// Consecutive list items should be compact (no extra spacing)
-		return false;
+	else {
+		// === Default Mode: Add spacing between blocks ===
+		
+		// Exception: Consecutive list items should be compact (no extra spacing)
+		if (currentIsList && nextIsList) {
+			return false;
+		}
+		
+		// Default: add spacing between blocks for readability
+		return true;
 	}
-	
-	// Rule 3: Default at top level - add spacing between blocks
-	// This creates a clean, readable layout with visual separation
-	return true;
 }
 
 /**
@@ -187,12 +227,15 @@ export async function convertBlocksToMarkdown(
 			if (i < blocks.length - 1) {
 				const nextBlock = blocks[i + 1];
 			
-				// Check if Notion already has an empty paragraph between blocks
-				const nextIsEmpty = isEmptyParagraph(nextBlock);
+				// In default mode (non-singleLineBreaks): Check if Notion already has an empty paragraph
+				// to avoid adding extra spacing around it
+				// In singleLineBreaks mode: Don't check for empty paragraphs (1:1 rendering)
+				const singleLineBreaks = context?.singleLineBreaks || false;
+				const nextIsEmpty = !singleLineBreaks && isEmptyParagraph(nextBlock);
 			
 				// Only add spacing if:
 				// 1. Markdown syntax requires it (list transitions, callouts, etc.)
-				// 2. Notion doesn't already have an empty paragraph
+				// 2. (Default mode only) Notion doesn't already have an empty paragraph
 				if (shouldAddSpacingBetweenBlocks(block.type, nextBlock.type, context) && !nextIsEmpty) {
 					lines.push('');
 				}

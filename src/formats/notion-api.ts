@@ -46,6 +46,7 @@ export class NotionAPIImporter extends FormatImporter {
 	notionToken: string = '';
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
+	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	incrementalImport: boolean = false; // Incremental import: skip files with same notion-id (default: disabled)
@@ -215,6 +216,18 @@ export class NotionAPIImporter extends FormatImporter {
 					.setValue(false)
 					.onChange(value => {
 						this.downloadExternalAttachments = value;
+					});
+			});
+
+		// Single line breaks option
+		new Setting(this.modal.contentEl)
+			.setName('Single line breaks')
+			.setDesc('Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.')
+			.addToggle(toggle => {
+				toggle
+					.setValue(false)
+					.onChange(value => {
+						this.singleLineBreaks = value;
 					});
 			});
 
@@ -1209,6 +1222,7 @@ export class NotionAPIImporter extends FormatImporter {
 				vault: this.vault,
 				app: this.app,
 				downloadExternalAttachments: this.downloadExternalAttachments,
+				singleLineBreaks: this.singleLineBreaks, // Single line breaks mode
 				incrementalImport: this.incrementalImport, // Skip attachments with same path and size
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
@@ -1381,20 +1395,25 @@ export class NotionAPIImporter extends FormatImporter {
 					// Keep original URL on error
 				}
 			}
-			
+		
 			// Create the markdown file (only if not skipped)
 			if (!shouldSkipParentFile) {
 				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 
 				console.log(`[CREATE FILE] About to create file: ${mdFilePath}, Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
-				console.log(`[CREATE FILE] File exists check: ${this.vault.getAbstractFileByPath(normalizePath(mdFilePath)) ? 'YES' : 'NO'}`);
+				
+				// Get unique file path (will append " 1", " 2", etc. if file exists)
+				const { parent: parentPath, name: fileName } = parseFilePath(mdFilePath);
+				const finalPath = getUniqueFilePath(this.vault, parentPath, fileName);
+				
+				console.log(`[CREATE FILE] Final path after uniqueness check: ${finalPath}`);
 			
 				try {
-					await this.vault.create(normalizePath(mdFilePath), fullContent);
-					console.log(`[CREATE FILE] Successfully created: ${mdFilePath}`);
+					await this.vault.create(normalizePath(finalPath), fullContent);
+					console.log(`[CREATE FILE] Successfully created: ${finalPath}`);
 				}
 				catch (error) {
-					console.error(`[CREATE FILE] Failed to create file: ${mdFilePath}`);
+					console.error(`[CREATE FILE] Failed to create file: ${finalPath}`);
 					console.error(`[CREATE FILE] Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
 					console.error(`[CREATE FILE] Error:`, error);
 					throw error;
@@ -1402,13 +1421,13 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Record page ID to path mapping for mention replacement
 				// Store path without extension for wiki link generation
-				const pathWithoutExt = mdFilePath.replace(/\.md$/, '');
+				const pathWithoutExt = finalPath.replace(/\.md$/, '');
 				this.notionIdToPath.set(pageId, pathWithoutExt);
 		
 				// Record mention placeholders if any mentions were found
 				// Use file path as key for O(1) lookup during replacement
 				if (mentionedIds.size > 0) {
-					this.mentionPlaceholders.set(mdFilePath, mentionedIds);
+					this.mentionPlaceholders.set(finalPath, mentionedIds);
 				}
 			}
 		
