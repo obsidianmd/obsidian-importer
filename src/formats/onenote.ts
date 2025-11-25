@@ -600,7 +600,8 @@ export class OneNoteImporter extends FormatImporter {
 
 				// Replace the MathML element with the LaTeX text node
 				mathElement.parentNode?.replaceChild(textNode, mathElement);
-			} catch (error) {
+			}
+			catch (error) {
 				console.warn('Failed to convert MathML to LaTeX:', error);
 				// If conversion fails, keep the original MathML or replace with a placeholder
 				const fallbackText = document.createTextNode('[Math equation - conversion failed]');

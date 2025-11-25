@@ -14,7 +14,7 @@ import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
 import { sanitizeFileName } from '../../util';
 import { parseFilePath } from '../../filesystem';
-import { getUniqueFolderPath, getUniqueFilePath, updateTypesJson } from './vault-helpers';
+import { getUniqueFolderPath, getUniqueFilePath, updatePropertyTypes } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
@@ -320,12 +320,11 @@ export async function importDatabaseCore(
 		}
 	}
 	
-	// Update types.json with property types from this database
+	// Update property types using Obsidian's official API
 	// This ensures correct type inference for properties (especially text vs number & date vs datetime)
-	// Note: Only updates properties that don't already exist in types.json
-	// (respects user's manual type changes)
+	// Note: Only updates properties that don't already have a type (respects user's manual changes)
 	const propertyTypes = extractPropertyTypesForTypesJson(dataSourceProperties, databasePages);
-	await updateTypesJson(vault, propertyTypes);
+	updatePropertyTypes(context.app, propertyTypes);
 	
 	// Record database information
 	const databaseInfo: DatabaseInfo = {
