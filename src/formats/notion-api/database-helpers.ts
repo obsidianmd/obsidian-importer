@@ -622,12 +622,12 @@ function sanitizePropertyKey(key: string): string {
  * Returns a mapping of property name -> Obsidian type
  */
 function extractPropertyTypesForTypesJson(
-	dataSourceProperties: any,
+	dataSourceProperties: Record<string, any>,
 	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>
 ): Record<string, string> {
 	const propertyTypes: Record<string, string> = {};
 	
-	for (const [key, prop] of Object.entries(dataSourceProperties as Record<string, any>)) {
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
 		const propType = prop.type;
 		const propName = prop.name || key;
 		
