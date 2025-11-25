@@ -1,3 +1,5 @@
+import { parseFilePath } from '../../filesystem';
+
 export type NotionPropertyType =
 	| 'text'
 	| 'number'
@@ -86,15 +88,45 @@ export class NotionResolverInfo {
 	getPathForFile(fileInfo: NotionFileInfo | NotionAttachmentInfo) {
 		let { idsToFileInfo } = this;
 		const pathNames = fileInfo.path.split('/');
-		return fileInfo.parentIds
-			.map((parentId) =>
-				idsToFileInfo[parentId]?.title ??
-				pathNames.find((pathSegment) => pathSegment.contains(parentId))?.replace(` ${parentId}`, '')
-			)
-			// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
-			.filter((parentId) => parentId)
+
+		// If we have parentIds, use them to build the path
+		if (fileInfo.parentIds.length > 0) {
+			const mappedPathParts = fileInfo.parentIds
+				.map(
+					(parentId) =>
+						idsToFileInfo[parentId]?.title ??
+						pathNames.find((pathSegment) => pathSegment.contains(parentId))?.replace(` ${parentId}`, '')
+				)
+				// Notion inline databases have no .html file and aren't a note, so we just filter them out of the folder structure.
+				.filter((parentId) => parentId)
+				// Folder names can't end in a dot or a space
+				.map((folder) => folder.replace(/[\. ]+$/, ''));
+
+			// In newer Notion exports, all files have one parent ID, but it does not
+			// map to anything in our idsToFileInfo.
+			if (mappedPathParts.length > 0) {
+				return mappedPathParts.join('/') + '/';
+			}
+		}
+
+		// If no parentIds, use the original folder structure from the file path
+		// Extract parent path and remove IDs from folder names
+		const { parent } = parseFilePath(fileInfo.path);
+		if (!parent) {
+			return '';
+		}
+
+		const pathSegments = parent.split('/').filter((seg) => seg.length > 0);
+		const folderPath = pathSegments
+			.map((segment) => {
+				// Remove ID from folder name if present (format: "FolderName <id>")
+				return segment.replace(/\s+[a-z0-9]{32}$/, '').trim();
+			})
+			.filter((seg) => seg.length > 0)
 			// Folder names can't end in a dot or a space
 			.map((folder) => folder.replace(/[\. ]+$/, ''))
-			.join('/') + '/';
+			.join('/');
+
+		return folderPath ? folderPath + '/' : '';
 	}
 }
