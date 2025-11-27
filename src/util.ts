@@ -8,15 +8,21 @@ let windowsTrailingRe = /[\. ]+$/;
 let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
 let badLinkRe = /[\[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
+// I think we should first remove illegal characters such as spaces and periods, and then check whether it is a Windows reserved word.
 export function sanitizeFileName(name: string) {
-	return name
+	const sanitized = name
 		.replace(illegalRe, '')
-		.replace(controlRe, '')
+		.replace(controlRe, '')  
 		.replace(reservedRe, '')
-		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '')
+		.replace(windowsReservedRe, '')
 		.replace(startsWithDotRe, '')
 		.replace(badLinkRe, '');
+	
+	// If the result is empty or only whitespace after sanitization, return a default name
+	// This prevents creating files like ".md" (no name) or folders with only spaces
+	const trimmed = sanitized.trim();
+	return trimmed || 'Untitled';
 }
 
 export function genUid(length: number): string {
