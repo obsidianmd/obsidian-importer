@@ -14,7 +14,10 @@ import {
 	EmbedBlockObjectResponse,
 	LinkPreviewBlockObjectResponse,
 	CodeBlockObjectResponse,
-	RichTextItemResponse
+	RichTextItemResponse,
+	Heading1BlockObjectResponse,
+	Heading2BlockObjectResponse,
+	Heading3BlockObjectResponse
 } from '@notionhq/client';
 import { normalizePath, TFile } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
@@ -91,6 +94,46 @@ function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolea
 		return false;
 	}
 	return block.paragraph.rich_text.length === 0;
+}
+
+/**
+ * Convert a block to Obsidian foldable callout
+ * Used for both toggle blocks and toggleable headings
+ * 
+ * @param title - The title text for the callout (can include heading markers like # ##)
+ * @param block - The parent block (must have children)
+ * @param context - Block conversion context
+ * @param errorContext - Context string for error messages
+ * @returns Markdown string in callout format
+ */
+async function convertToFoldableCallout(
+	title: string,
+	block: BlockObjectResponse,
+	context: BlockConversionContext,
+	errorContext: string
+): Promise<string> {
+	// Default to expanded (+) state
+	const foldState = '+';
+	
+	// Create Obsidian foldable callout
+	// Using 'note' type as default
+	let markdown = `> [!note]${foldState} ${title}\n`;
+	
+	// Process children if they exist
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		0, // Don't pass indentLevel to callout children, '> ' prefix is sufficient
+		errorContext
+	);
+	
+	if (childrenMarkdown) {
+		// Indent children content with '> ' for callout
+		const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
+		markdown += indentedChildren;
+	}
+	
+	return markdown;
 }
 
 /**
@@ -265,7 +308,7 @@ export async function convertBlockToMarkdown(
 		case 'heading_1':
 		case 'heading_2':
 		case 'heading_3':
-			markdown = convertHeading(block, context);
+			markdown = await convertHeading(block, context);
 			break;
 		
 		case 'bulleted_list_item':
@@ -458,25 +501,50 @@ export function convertParagraph(block: BlockObjectResponse, context?: BlockConv
 
 /**
  * Convert heading block to Markdown
+ * Special handling: If heading is toggleable (is_toggleable = true), convert to Obsidian callout
  */
-export function convertHeading(block: BlockObjectResponse, context?: BlockConversionContext): string {
+export async function convertHeading(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	// Get indent level if heading is nested in a list
 	const indentLevel = context?.indentLevel || 0;
 	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
 	
-	let headingText = '';
+	let headingPrefix = '';
+	let headingData: Heading1BlockObjectResponse['heading_1'] | Heading2BlockObjectResponse['heading_2'] | Heading3BlockObjectResponse['heading_3'];
+	let isToggleable = false;
+	
 	if (block.type === 'heading_1') {
-		headingText = '# ' + convertRichText(block.heading_1.rich_text, context);
+		headingPrefix = '# ';
+		headingData = (block as Heading1BlockObjectResponse).heading_1;
+		isToggleable = (block as Heading1BlockObjectResponse).heading_1.is_toggleable || false;
 	}
 	else if (block.type === 'heading_2') {
-		headingText = '## ' + convertRichText(block.heading_2.rich_text, context);
+		headingPrefix = '## ';
+		headingData = (block as Heading2BlockObjectResponse).heading_2;
+		isToggleable = (block as Heading2BlockObjectResponse).heading_2.is_toggleable || false;
 	}
 	else if (block.type === 'heading_3') {
-		headingText = '### ' + convertRichText(block.heading_3.rich_text, context);
+		headingPrefix = '### ';
+		headingData = (block as Heading3BlockObjectResponse).heading_3;
+		isToggleable = (block as Heading3BlockObjectResponse).heading_3.is_toggleable || false;
+	}
+	else {
+		return '';
 	}
 	
-	// Add indentation if nested
-	return indent + headingText;
+	const headingText = convertRichText(headingData.rich_text, context);
+	
+	// If heading is toggleable and has children, convert to callout format
+	if (isToggleable && block.has_children) {
+		return await convertToFoldableCallout(
+			headingPrefix + headingText,
+			block,
+			context,
+			'toggleable heading'
+		);
+	}
+	
+	// Regular heading (not toggleable or no children)
+	return indent + headingPrefix + headingText;
 }
 
 /**
@@ -778,30 +846,8 @@ export async function convertToggle(
 	// Get toggle text
 	const text = convertRichText(toggleData.rich_text, context);
 	
-	// In Notion API, we can't directly get the toggle state (expanded/collapsed)
-	// So we default to expanded (+) which is more user-friendly
-	// Users can manually change it to (-) if they want it collapsed by default
-	const foldState = '+'; // Default to expanded (foldable)
-	
-	// Create Obsidian foldable callout
-	// Using 'note' type as default for toggles
-	let markdown = `> [!note]${foldState} ${text}\n`;
-	
-	// Process children if they exist
-	const childrenMarkdown = await processChildrenToMarkdown(
-		block,
-		context,
-		0, // Don't pass indentLevel to toggle children, '> ' prefix is sufficient
-		'toggle block'
-	);
-	
-	if (childrenMarkdown) {
-		// Indent children content with '> ' for callout
-		const indentedChildren = childrenMarkdown.split('\n').map(line => `> ${line}`).join('\n');
-		markdown += indentedChildren;
-	}
-	
-	return markdown;
+	// Convert to foldable callout using shared helper
+	return await convertToFoldableCallout(text, block, context, 'toggle block');
 }
 
 /**
