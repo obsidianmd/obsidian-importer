@@ -13,9 +13,16 @@ import type { AirtableBaseInfo, AirtableTableInfo } from './types';
 const AIRTABLE_META_API_BASE = 'https://api.airtable.com/v0/meta';
 
 /**
- * Rate limit configuration (5 requests per second for Airtable)
+ * Rate limit configuration for Meta API requests
+ * 
+ * Airtable limits:
+ * - Data API: 5 requests/second per base (handled by SDK with built-in retry)
+ * - Meta API: Unknown exact limit, but less strict than Data API
+ * 
+ * We use a conservative 50ms delay for Meta API calls (bases/tables schema)
+ * to balance user experience with API limits. If 429 occurs, we'll wait 30s as required.
  */
-const RATE_LIMIT_DELAY = 200; // milliseconds between requests
+const RATE_LIMIT_DELAY = 50; // milliseconds between Meta API requests
 let lastRequestTime = 0;
 
 /**
@@ -58,9 +65,14 @@ export async function makeAirtableRequest<T>(
 		});
 		
 		if (response.status === 429) {
-			// Rate limited, wait and retry
-			ctx.status('Rate limited, waiting...');
-			await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+			// Rate limited - Airtable requires 30 second wait per official docs
+			// https://airtable.com/developers/web/api/rate-limits
+			const retryAfter = response.headers?.['retry-after'] 
+				? parseInt(response.headers['retry-after']) * 1000 
+				: 30000; // Default 30 seconds as per Airtable docs
+			
+			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s...`);
+			await new Promise(resolve => setTimeout(resolve, retryAfter));
 			return makeAirtableRequest(url, token, ctx, method, body);
 		}
 		
