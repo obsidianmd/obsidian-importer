@@ -7,11 +7,17 @@ import { Notice, Setting, normalizePath, TFile, setIcon } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { sanitizeFileName, serializeFrontMatter } from '../util';
+import {
+	TemplateConfigurator,
+	TemplateConfig,
+	TemplateField,
+	applyTemplate,
+} from '../template';
 
 // Import helper modules
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
 import { convertFieldValue, shouldFieldGoToBody } from './airtable-api/field-converter';
-import { processAttachments } from './airtable-api/attachment-helpers';
+import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
 import { createBaseFile } from './airtable-api/base-helpers';
 import type {
 	FormulaImportStrategy,
@@ -40,6 +46,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	private processedRecordsCount: number = 0;
 	private totalRecordsToImport: number = 0;
 	private attachmentsDownloaded: number = 0;
+	
+	// Template configuration
+	private templateConfig: TemplateConfig | null = null;
 
 	init() {
 		this.addOutputLocationSetting('Airtable');
@@ -574,6 +583,146 @@ export class AirtableAPIImporter extends FormatImporter {
 		return selected;
 	}
 
+	/**
+	 * Show template configuration UI before import (similar to CSV importer)
+	 */
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+		const selectedNodes = this.getSelectedNodes();
+		if (selectedNodes.length === 0) {
+			new Notice('Please select at least one table or view to import.');
+			return false;
+		}
+
+		// Collect all unique fields from selected tables/views
+		const allFieldsMap = new Map<string, any>();
+		const fieldExamples = new Map<string, string>();
+		
+		for (const node of selectedNodes) {
+			if (node.metadata?.fields) {
+				for (const field of node.metadata.fields) {
+					if (!allFieldsMap.has(field.name)) {
+						allFieldsMap.set(field.name, field);
+						
+						// Generate example value based on field type
+						fieldExamples.set(field.name, this.generateExampleValue(field));
+					}
+				}
+			}
+		}
+
+		if (allFieldsMap.size === 0) {
+			// No fields to configure, proceed with import
+			return true;
+		}
+
+		// Prepare template fields
+		const fields: TemplateField[] = Array.from(allFieldsMap.values()).map(field => ({
+			id: field.name,
+			label: field.name,
+			exampleValue: fieldExamples.get(field.name) || '',
+		}));
+
+		// Set up defaults - all fields go to properties by default
+		const propertyNames = new Map<string, string>();
+		const propertyValues = new Map<string, string>();
+		
+		for (const field of allFieldsMap.values()) {
+			const sanitizedName = this.sanitizePropertyName(field.name);
+			propertyNames.set(field.name, sanitizedName);
+			propertyValues.set(field.name, `{{${field.name}}}`);
+		}
+
+		// Note content is empty by default - let user decide what to put there
+		const bodyTemplate = '';
+
+		// Get primary field for title (usually the first field)
+		const firstField = Array.from(allFieldsMap.keys())[0] || 'Name';
+		const titleTemplate = `{{${firstField}}}`;
+
+		// Create and show configurator
+		const configurator = new TemplateConfigurator({
+			fields,
+			defaults: {
+				titleTemplate,
+				locationTemplate: '',
+				bodyTemplate,
+				propertyNames,
+				propertyValues,
+			},
+			placeholderSyntax: '{{field_name}}',
+		});
+
+		this.templateConfig = await configurator.show(container);
+
+		// Return false if user cancelled
+		return this.templateConfig !== null;
+	}
+
+	/**
+	 * Generate example value for a field based on its type
+	 */
+	private generateExampleValue(field: any): string {
+		switch (field.type) {
+			case 'singleLineText':
+				return 'Sample text';
+			case 'multilineText':
+			case 'richText':
+				return 'Long text content...';
+			case 'number':
+				return '123';
+			case 'currency':
+				return '$99.99';
+			case 'percent':
+				return '75%';
+			case 'singleSelect':
+				return field.options?.choices?.[0]?.name || 'Option 1';
+			case 'multipleSelects':
+				return field.options?.choices?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Option 1, Option 2';
+			case 'date':
+				return '2025-01-15';
+			case 'dateTime':
+				return '2025-01-15 14:30';
+			case 'checkbox':
+				return 'true';
+			case 'email':
+				return 'user@example.com';
+			case 'url':
+				return 'https://example.com';
+			case 'phoneNumber':
+				return '+1 555-0123';
+			case 'multipleRecordLinks':
+				return 'Related Record 1, Related Record 2';
+			case 'multipleAttachments':
+				return 'file1.pdf, image.png';
+			case 'singleCollaborator':
+			case 'createdBy':
+			case 'lastModifiedBy':
+				return 'John Doe';
+			case 'multipleCollaborators':
+				return 'John Doe, Jane Smith';
+			case 'formula':
+			case 'rollup':
+			case 'lookup':
+				return 'Computed value';
+			case 'count':
+				return '5';
+			case 'autoNumber':
+			case 'rating':
+				return '3';
+			case 'duration':
+				return '2:30:00';
+			case 'barcode':
+				return '1234567890';
+			default:
+				return 'Value';
+		}
+	}
+
+	private sanitizePropertyName(name: string): string {
+		// Remove special characters, keep alphanumeric, spaces, hyphens, underscores
+		return name.replace(/[^\w\s-]/g, '').trim();
+	}
+
 	async import(ctx: ImportContext): Promise<void> {
 		if (!this.airtableToken) {
 			new Notice('Please enter your Airtable Personal Access Token.');
@@ -762,15 +911,57 @@ export class AirtableAPIImporter extends FormatImporter {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
 
-		// Get primary field for title
-		const primaryField = fields[0];
-		const recordTitle = primaryField && recordFields[primaryField.name]
-			? String(recordFields[primaryField.name])
-			: `Record ${recordId.substring(0, 8)}`;
+		// Convert all fields to string values for template processing
+		const templateData: Record<string, string> = {};
+		
+		// First pass: convert field values for template use
+		for (const field of fields) {
+			const fieldValue = recordFields[field.name];
+			
+			if (fieldValue === null || fieldValue === undefined) {
+				templateData[field.name] = '';
+				continue;
+			}
+
+			// Convert to string for template
+			if (Array.isArray(fieldValue)) {
+				// For arrays, join with commas
+				templateData[field.name] = fieldValue.map(v => {
+					if (typeof v === 'object' && v.name) return v.name;
+					if (typeof v === 'object' && v.id) return v.id;
+					return String(v);
+				}).join(', ');
+			}
+			else if (typeof fieldValue === 'object') {
+				// For objects, try to get name or value
+				templateData[field.name] = fieldValue.name || fieldValue.value || String(fieldValue);
+			}
+			else {
+				templateData[field.name] = String(fieldValue);
+			}
+		}
+
+		// Apply title template
+		const recordTitle = this.templateConfig
+			? applyTemplate(this.templateConfig.titleTemplate, templateData)
+			: (templateData[fields[0]?.name] || `Record ${recordId.substring(0, 8)}`);
 
 		const sanitizedTitle = sanitizeFileName(recordTitle);
+		if (!sanitizedTitle.trim()) {
+			ctx.reportSkipped(`Record ${recordId.substring(0, 8)}`, 'Empty title');
+			return;
+		}
 
 		ctx.status(`Importing: ${sanitizedTitle}`);
+
+		// Apply location template
+		const locationPath = this.templateConfig
+			? applyTemplate(this.templateConfig.locationTemplate, templateData)
+			: '';
+		
+		const targetFolder = locationPath
+			? await this.getTargetFolder(parentPath, locationPath)
+			: parentPath;
 
 		// Build frontmatter
 		const frontMatter: Record<string, any> = {
@@ -778,69 +969,77 @@ export class AirtableAPIImporter extends FormatImporter {
 			'airtable-created': record.createdTime,
 		};
 
-		let bodyContent = '';
+		// Process fields for frontmatter using template config
+		if (this.templateConfig) {
+			for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
+				if (!propertyName || !propertyName.trim()) continue;
 
-		// Process each field
-		for (const field of fields) {
-			const fieldValue = recordFields[field.name];
+				const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
+				if (!valueTemplate) continue;
 
-			if (fieldValue === null || fieldValue === undefined) {
-				continue;
-			}
+				// Find the field schema
+				const field = fields.find(f => f.name === fieldId);
+				if (!field) continue;
 
-			// Convert field value
-			const converted = convertFieldValue(
-				fieldValue,
-				field,
-				recordId,
-				this.formulaStrategy,
-				this.linkedRecordPlaceholders,
-				ctx
-			);
+				const fieldValue = recordFields[field.name];
+				if (fieldValue === null || fieldValue === undefined) continue;
 
-			if (converted === null || converted === undefined) {
-				continue;
-			}
+				// Convert field value properly
+				const converted = convertFieldValue(
+					fieldValue,
+					field,
+					recordId,
+					this.formulaStrategy,
+					this.linkedRecordPlaceholders,
+					ctx
+				);
 
-			// Handle attachments separately
-			if (field.type === 'multipleAttachments' && Array.isArray(converted)) {
-				const attachments = converted as AirtableAttachment[];
-				const links = await processAttachments(attachments, {
-					ctx,
-					currentFolderPath: parentPath,
-					currentFilePath: `${parentPath}/${sanitizedTitle}.md`,
-					vault: this.vault,
-					app: this.app,
-					downloadAttachments: this.downloadAttachments,
-					currentRecordTitle: sanitizedTitle,
-					getAvailableAttachmentPath: async (filename: string) => {
-						return await this.getAvailablePathForAttachment(filename, []);
-					},
-					onAttachmentDownloaded: () => {
-						this.attachmentsDownloaded++;
-						ctx.attachments = this.attachmentsDownloaded;
-						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-					},
-				});
+				if (converted === null || converted === undefined) continue;
 
-				if (links.length > 0) {
-					frontMatter[field.name] = links;
+				// Handle attachments
+				if (field.type === 'multipleAttachments' && Array.isArray(converted)) {
+					const attachments = converted as AirtableAttachment[];
+					const links = await processAttachmentsForYAML(attachments, {
+						ctx,
+						currentFolderPath: targetFolder,
+						currentFilePath: `${targetFolder}/${sanitizedTitle}.md`,
+						vault: this.vault,
+						app: this.app,
+						downloadAttachments: this.downloadAttachments,
+						getAvailableAttachmentPath: async (filename: string) => {
+							return await this.getAvailablePathForAttachment(filename, []);
+						},
+						onAttachmentDownloaded: () => {
+							this.attachmentsDownloaded++;
+							ctx.attachments = this.attachmentsDownloaded;
+							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+						},
+					});
+
+					if (links.length > 0) {
+						frontMatter[propertyName] = links;
+					}
 				}
-				continue;
-			}
-
-			// Check if field should go to body
-			if (shouldFieldGoToBody(field)) {
-				bodyContent += `## ${field.name}\n\n${converted}\n\n`;
-			}
-			else {
-				frontMatter[field.name] = converted;
+				else {
+					// For URL fields in YAML, use plain URL
+					if (field.type === 'url' && typeof converted === 'string') {
+						frontMatter[propertyName] = converted;
+					}
+					else {
+						frontMatter[propertyName] = converted;
+					}
+				}
 			}
 		}
 
+		// Apply body template
+		const bodyContent = this.templateConfig
+			? applyTemplate(this.templateConfig.bodyTemplate, templateData)
+			: '';
+
 		// Create markdown file
 		const fullContent = serializeFrontMatter(frontMatter) + (bodyContent ? '\n\n' + bodyContent : '');
-		const filePath = normalizePath(`${parentPath}/${sanitizedTitle}.md`);
+		const filePath = normalizePath(`${targetFolder}/${sanitizedTitle}.md`);
 
 		await this.vault.create(filePath, fullContent);
 
@@ -851,6 +1050,21 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 		ctx.reportNoteSuccess(sanitizedTitle);
+	}
+
+	/**
+	 * Get target folder for a record based on location template
+	 */
+	private async getTargetFolder(baseFolder: string, locationPath: string): Promise<string> {
+		if (!locationPath || !locationPath.trim()) {
+			return baseFolder;
+		}
+
+		const sanitizedPath = this.sanitizeFilePath(locationPath);
+		const fullPath = normalizePath(`${baseFolder}/${sanitizedPath}`);
+
+		await this.createFolders(fullPath);
+		return fullPath;
 	}
 
 	/**
