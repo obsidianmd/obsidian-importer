@@ -881,11 +881,20 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 		this.totalRecordsToImport += allRecords.length;
 	
-		// Import all records without view information first
-		for (const record of allRecords) {
-			if (ctx.isCancelled()) break;
+	// Import all records without view information first
+	for (const record of allRecords) {
+		if (ctx.isCancelled()) break;
+		try {
 			await this.importRecord(ctx, record, baseId, tableName, tablePath, fields, []);
 		}
+		catch (error) {
+			// If record import fails, report it and continue with next record
+			const recordTitle = record.fields?.[fields[0]?.name] || `Record ${record.id.substring(0, 8)}`;
+			ctx.reportFailed(recordTitle, error);
+			this.processedRecordsCount++;
+			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+		}
+	}
 	
 		// Step 2: For each view, fetch records and update the base property
 		for (const view of supportedViews) {
@@ -1047,6 +1056,37 @@ export class AirtableAPIImporter extends FormatImporter {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
 
+		// Check if record is completely empty (no field values at all)
+		// Skip only if all fields are null/undefined/empty
+		const hasAnyValue = Object.keys(recordFields).some(fieldName => {
+			const value = recordFields[fieldName];
+			if (value === null || value === undefined) return false;
+			
+			// For objects (like aiText error states), check if they have actual data
+			if (typeof value === 'object') {
+				// Arrays: check if not empty
+				if (Array.isArray(value)) return value.length > 0;
+				// Objects with error state: consider empty
+				if (value.state === 'error' || value.state === 'empty') return false;
+				// Other objects: check if not empty
+				return Object.keys(value).length > 0;
+			}
+			
+			// For strings: check if not empty after trimming
+			if (typeof value === 'string') return value.trim().length > 0;
+			
+			// All other types: consider as having value
+			return true;
+		});
+
+		// Skip only if record has no field values at all
+		if (!hasAnyValue) {
+			ctx.reportSkipped(`Record ${recordId.substring(0, 8)}`, 'Empty record (no field values)');
+			this.processedRecordsCount++;
+			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+			return;
+		}
+
 		// Convert all fields to string values for template processing
 		const templateData: Record<string, string> = {};
 		
@@ -1082,11 +1122,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			? applyTemplate(this.templateConfig.titleTemplate, templateData)
 			: (templateData[fields[0]?.name] || `Record ${recordId.substring(0, 8)}`);
 
-		const sanitizedTitle = sanitizeFileName(recordTitle);
-		if (!sanitizedTitle.trim()) {
-			ctx.reportSkipped(`Record ${recordId.substring(0, 8)}`, 'Empty title');
-			return;
-		}
+		// Use fallback title if empty (don't skip, since record has some field values)
+		const sanitizedTitle = sanitizeFileName(recordTitle) || `Record ${recordId.substring(0, 8)}`;
 
 		ctx.status(`Importing: ${sanitizedTitle}`);
 
@@ -1215,9 +1252,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
 		this.recordIdToPath.set(recordId, pathWithoutExt);
 
+		ctx.reportNoteSuccess(sanitizedTitle);
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-		ctx.reportNoteSuccess(sanitizedTitle);
 	}
 
 	/**
