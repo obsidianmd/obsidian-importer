@@ -23,6 +23,20 @@ export function convertFieldValue(
 	const fieldType = fieldSchema.type;
 	
 	switch (fieldType) {
+		case 'aiText':
+			// AI-generated text field - has state object
+			// See: https://airtable.com/developers/web/api/field-model
+			if (typeof fieldValue === 'object' && fieldValue !== null) {
+				// Check state: "empty", "loading", "generated", "error"
+				if (fieldValue.state === 'generated' && fieldValue.value) {
+					return String(fieldValue.value);
+				}
+				// For other states (empty, loading, error), return null
+				return null;
+			}
+			// If it's already a string (shouldn't happen), return it
+			return fieldValue ? String(fieldValue) : null;
+		
 		case 'singleLineText':
 		case 'multilineText':
 		case 'richText':
