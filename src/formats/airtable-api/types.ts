@@ -68,6 +68,7 @@ export interface AirtableTreeNode {
 		tableName?: string;
 		viewId?: string;
 		fields?: AirtableFieldSchema[];
+		views?: AirtableViewInfo[];
 	};
 }
 
