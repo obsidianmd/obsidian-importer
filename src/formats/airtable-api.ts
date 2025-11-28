@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, Setting, normalizePath, TFile, setIcon } from 'obsidian';
+import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { sanitizeFileName, serializeFrontMatter } from '../util';
@@ -16,9 +16,8 @@ import {
 
 // Import helper modules
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
-import { convertFieldValue, shouldFieldGoToBody } from './airtable-api/field-converter';
+import { convertFieldValue } from './airtable-api/field-converter';
 import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { createBaseFile } from './airtable-api/base-helpers';
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
@@ -31,6 +30,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	airtableToken: string = '';
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
+	viewPropertyName: string = 'base'; // Property name to track which views a record belongs to
+	incrementalImport: boolean = false; // Incremental import: skip files with same airtable-id (default: disabled)
 	
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
@@ -49,6 +50,12 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 	// Template configuration
 	private templateConfig: TemplateConfig | null = null;
+	
+	// Track which views each record belongs to
+	private recordToViews: Map<string, Set<string>> = new Map(); // recordId -> Set of view names
+	
+	// Track all views for each table (for creating .base files)
+	private tableViews: Map<string, Array<{name: string, type: string, id: string}>> = new Map();
 
 	init() {
 		this.addOutputLocationSetting('Airtable');
@@ -162,6 +169,27 @@ export class AirtableAPIImporter extends FormatImporter {
 						this.downloadAttachments = value;
 					});
 			});
+
+		// View property name
+		new Setting(this.modal.contentEl)
+			.setName('View property name')
+			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in.')
+			.addText(text => text
+				.setPlaceholder('base')
+				.setValue('base')
+				.onChange(value => {
+					this.viewPropertyName = value.trim() || 'base';
+				}));
+
+		// Incremental import setting
+		new Setting(this.modal.contentEl)
+			.setName('Incremental import')
+			.setDesc('Adds an airtable-id property to records so that future imports can skip records that have already been imported.')
+			.addToggle(toggle => toggle
+				.setValue(false) // Default to disabled
+				.onChange(value => {
+					this.incrementalImport = value;
+				}));
 	}
 
 	private createTokenDescription(): DocumentFragment {
@@ -594,25 +622,34 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Collect all unique fields from selected tables/views
+		// Need to recursively collect fields from base -> tables -> views
 		const allFieldsMap = new Map<string, any>();
 		const fieldExamples = new Map<string, string>();
 		
-		for (const node of selectedNodes) {
-			if (node.metadata?.fields) {
-				for (const field of node.metadata.fields) {
-					if (!allFieldsMap.has(field.name)) {
-						allFieldsMap.set(field.name, field);
-						
-						// Generate example value based on field type
-						fieldExamples.set(field.name, this.generateExampleValue(field));
+		const collectFields = (nodes: AirtableTreeNode[]) => {
+			for (const node of nodes) {
+				// Collect fields from this node
+				if (node.metadata?.fields) {
+					for (const field of node.metadata.fields) {
+						if (!allFieldsMap.has(field.name)) {
+							allFieldsMap.set(field.name, field);
+							fieldExamples.set(field.name, this.generateExampleValue(field));
+						}
 					}
 				}
+				
+				// Recursively collect from children
+				if (node.children && node.children.length > 0) {
+					collectFields(node.children);
+				}
 			}
-		}
+		};
+		
+		collectFields(selectedNodes);
 
 		if (allFieldsMap.size === 0) {
-			// No fields to configure, proceed with import
-			return true;
+			new Notice('No fields found in selected tables/views. Please check your selection.');
+			return false;
 		}
 
 		// Prepare template fields
@@ -623,11 +660,19 @@ export class AirtableAPIImporter extends FormatImporter {
 		}));
 
 		// Set up defaults - all fields go to properties by default
+		// Exclude fields that have the same name as viewPropertyName to avoid conflicts
 		const propertyNames = new Map<string, string>();
 		const propertyValues = new Map<string, string>();
 		
 		for (const field of allFieldsMap.values()) {
 			const sanitizedName = this.sanitizePropertyName(field.name);
+			
+			// Skip if the sanitized name conflicts with viewPropertyName
+			// The viewPropertyName is managed automatically by the importer
+			if (sanitizedName.toLowerCase() === this.viewPropertyName.toLowerCase()) {
+				continue;
+			}
+			
 			propertyNames.set(field.name, sanitizedName);
 			propertyValues.set(field.name, `{{${field.name}}}`);
 		}
@@ -650,6 +695,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				propertyValues,
 			},
 			placeholderSyntax: '{{field_name}}',
+			showLocationTemplate: false, // Hide location template for Airtable (records go to table folders)
 		});
 
 		this.templateConfig = await configurator.show(container);
@@ -663,6 +709,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private generateExampleValue(field: any): string {
 		switch (field.type) {
+			case 'aiText':
+				return 'AI-generated summary...';
 			case 'singleLineText':
 				return 'Sample text';
 			case 'multilineText':
@@ -748,6 +796,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.processedTables.clear();
 			this.linkedRecordPlaceholders = [];
 			this.recordIdToPath.clear();
+			this.recordToViews.clear();
+			this.tableViews.clear();
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
 			this.attachmentsDownloaded = 0;
@@ -781,6 +831,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			ctx.status('Processing linked records...');
 			await this.replaceLinkedRecordPlaceholders(ctx);
 
+			// Clean up airtable-id only for full import (not incremental)
+			if (!this.incrementalImport) {
+				ctx.status('Cleaning up airtable-id attributes...');
+				await this.cleanupAirtableIds(ctx);
+			}
+
 			ctx.status('Import completed successfully!');
 		}
 		catch (error) {
@@ -807,7 +863,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Import a table
+	 * Import a table with all its views
 	 */
 	private async importTable(ctx: ImportContext, node: AirtableTreeNode, parentPath: string): Promise<void> {
 		const baseId = node.metadata?.baseId;
@@ -823,21 +879,51 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		await this.createFolders(tablePath);
 
-		// Fetch all records
-		ctx.status(`Fetching records from ${tableName}...`);
-		const records = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx);
+		// Get views from cached tree node (already loaded in loadTree)
+		// No need to re-fetch table schema
+		const supportedViews = node.children
+			.filter(child => child.type === 'view')
+			.filter(child => {
+				// Extract view type from title like "View Name (grid)"
+				const viewType = child.title.match(/\(([^)]+)\)$/)?.[1] || 'grid';
+				return ['grid', 'gallery', 'list'].includes(viewType.toLowerCase());
+			})
+			.map(child => {
+				const viewName = child.title.replace(/\s*\([^)]*\)$/, '').trim();
+				const viewType = child.title.match(/\(([^)]+)\)$/)?.[1] || 'grid';
+				return {
+					id: child.metadata?.viewId || '',
+					name: viewName,
+					type: viewType,
+				};
+			});
 
-		this.totalRecordsToImport += records.length;
-		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+		// Store views for this table
+		const tableKey = `${baseId}:${tableName}`;
+		this.tableViews.set(tableKey, supportedViews);
 
-		// Import each record
-		for (const record of records) {
+		// **IMPORTANT: Create .base file FIRST before importing records**
+		// This ensures the [[TableName.base#ViewName]] links in records are valid
+		await this.createViewBaseFiles(tablePath, tableName, supportedViews, fields);
+
+		// Import records from each view
+		for (const view of supportedViews) {
 			if (ctx.isCancelled()) break;
-			await this.importRecord(ctx, record, baseId, tableName, tablePath, fields);
+
+			ctx.status(`Fetching records from view "${view.name}"...`);
+			const records = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx, view.id);
+
+			this.totalRecordsToImport += records.length;
+
+			// Import/update each record
+			for (const record of records) {
+				if (ctx.isCancelled()) break;
+				await this.importOrUpdateRecord(ctx, record, baseId, tableName, tablePath, fields, view.name);
+			}
 		}
 
 		// Store table info
-		this.processedTables.set(`${baseId}:${tableName}`, {
+		this.processedTables.set(tableKey, {
 			id: tableName,
 			baseId,
 			name: tableName,
@@ -846,28 +932,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			fields,
 			primaryFieldId: fields[0]?.id || '',
 		});
-
-		// Create .base file
-		// Note: We'll get views from the table schema
-		const tableSchema = await fetchTableSchema(baseId, this.airtableToken, ctx);
-		const tableInfo = tableSchema.find(t => t.name === tableName);
-		if (tableInfo) {
-			await createBaseFile({
-				vault: this.vault,
-				tableName,
-				tableFolderPath: tablePath,
-				fields,
-				views: tableInfo.views,
-				formulaStrategy: this.formulaStrategy,
-			});
-		}
 	}
 
 	/**
-	 * Import a specific view
+	 * Import a specific view (when user selects only a view)
 	 */
 	private async importView(ctx: ImportContext, node: AirtableTreeNode, parentPath: string): Promise<void> {
-		// Views are essentially filtered tables, so we import records from the view
 		const baseId = node.metadata?.baseId;
 		const tableName = node.metadata?.tableName;
 		const viewId = node.metadata?.viewId;
@@ -877,23 +947,193 @@ export class AirtableAPIImporter extends FormatImporter {
 			throw new Error('Missing base ID, table name, or view ID');
 		}
 
-		const sanitizedTableName = sanitizeFileName(tableName);
-		const viewName = sanitizeFileName(node.title);
-		const viewPath = normalizePath(`${parentPath}/${sanitizedTableName} - ${viewName}`);
+		// Find view info from tree node
+		const viewName = node.title.replace(/\s*\([^)]*\)$/, '').trim(); // Remove type suffix like "(grid)"
+		const viewType = node.title.match(/\(([^)]+)\)$/)?.[1] || 'grid';
 
-		await this.createFolders(viewPath);
+		const sanitizedTableName = sanitizeFileName(tableName);
+		const tablePath = normalizePath(`${parentPath}/${sanitizedTableName}`);
+
+		await this.createFolders(tablePath);
+
+		// **IMPORTANT: Create .base file FIRST before importing records**
+		await this.createViewBaseFiles(tablePath, tableName, [{
+			name: viewName,
+			type: viewType,
+			id: viewId,
+		}], fields);
 
 		// Fetch records filtered by view
-		ctx.status(`Fetching records from view ${node.title}...`);
+		ctx.status(`Fetching records from view "${viewName}"...`);
 		const records = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx, viewId);
 
 		this.totalRecordsToImport += records.length;
-		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 
-		// Import each record
+		// Import/update each record
 		for (const record of records) {
 			if (ctx.isCancelled()) break;
-			await this.importRecord(ctx, record, baseId, tableName, viewPath, fields);
+			await this.importOrUpdateRecord(ctx, record, baseId, tableName, tablePath, fields, viewName);
+		}
+
+		// Store table info if not already stored
+		const tableKey = `${baseId}:${tableName}`;
+		if (!this.processedTables.has(tableKey)) {
+			this.processedTables.set(tableKey, {
+				id: tableName,
+				baseId,
+				name: tableName,
+				folderPath: tablePath,
+				baseFilePath: `${tablePath}.base`,
+				fields,
+				primaryFieldId: fields[0]?.id || '',
+			});
+		}
+	}
+
+	/**
+	 * Import or update a record (used when processing views)
+	 */
+	private async importOrUpdateRecord(
+		ctx: ImportContext,
+		record: any,
+		baseId: string,
+		tableName: string,
+		parentPath: string,
+		fields: any[],
+		viewName: string
+	): Promise<void> {
+		const recordId = record.id;
+
+		// Build view reference in wiki link format: [[TableName.base#ViewName]]
+		const sanitizedTableName = sanitizeFileName(tableName);
+		const viewReference = `[[${sanitizedTableName}.base#${viewName}]]`;
+
+		// Track that this record belongs to this view
+		if (!this.recordToViews.has(recordId)) {
+			this.recordToViews.set(recordId, new Set());
+		}
+		this.recordToViews.get(recordId)!.add(viewReference);
+
+		// Check if record already exists
+		const existingPath = this.recordIdToPath.get(recordId);
+		
+		if (existingPath) {
+			// Update existing file - add view reference to base property
+			await this.updateRecordViewProperty(existingPath, viewReference, ctx);
+		}
+		else {
+			// Create new record with initial view reference
+			await this.importRecord(ctx, record, baseId, tableName, parentPath, fields, [viewReference]);
+		}
+	}
+
+	/**
+	 * Update an existing record's view property
+	 * viewReference format: [[TableName.base#ViewName]]
+	 */
+	private async updateRecordViewProperty(filePath: string, viewReference: string, ctx: ImportContext): Promise<void> {
+		const fullPath = `${filePath}.md`;
+		const file = this.vault.getAbstractFileByPath(normalizePath(fullPath));
+		
+		if (!file || !(file instanceof TFile)) {
+			console.warn(`Could not find file to update: ${fullPath}`);
+			return;
+		}
+
+		try {
+			let content = await this.vault.read(file);
+			
+			// Parse frontmatter
+			const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+			const match = content.match(frontmatterRegex);
+			
+			if (!match) {
+				console.warn(`No frontmatter found in file: ${fullPath}`);
+				return;
+			}
+
+			// Check if view property exists (support both single-line and multi-line YAML formats)
+			// Single-line: base: ["value1", "value2"]
+			// Multi-line: base:\n  - "value1"\n  - "value2"
+			const singleLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*\\[([\\s\\S]*?)\\]`, 'm');
+			const multiLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*$\\n((?:^\\s+-\\s+[^\\n]+$\\n?)+)`, 'm');
+			
+			const singleLineMatch = content.match(singleLinePattern);
+			const multiLineMatch = content.match(multiLinePattern);
+			
+			if (singleLineMatch || multiLineMatch) {
+				// Property exists, extract existing references
+				let existingRefs: string[] = [];
+				
+				if (singleLineMatch) {
+					// Single-line format
+					existingRefs = singleLineMatch[1]
+						.split(',')
+						.map(v => v.trim().replace(/^["']|["']$/g, ''))
+						.filter(v => v.length > 0);
+				}
+				else if (multiLineMatch) {
+					// Multi-line format
+					existingRefs = multiLineMatch[1]
+						.split('\n')
+						.map(line => line.trim().replace(/^-\s+["']?|["']?$/g, ''))
+						.filter(v => v.length > 0);
+				}
+				
+				// Check if view reference already exists
+				if (!existingRefs.includes(viewReference)) {
+					// Add new view reference to the list
+					const updatedRefs = [...existingRefs, viewReference];
+					const newValue = `[${updatedRefs.map(v => `"${v}"`).join(', ')}]`;
+					
+					// Replace both single-line and multi-line formats with single-line format
+					if (singleLineMatch) {
+						content = content.replace(
+							singleLinePattern,
+							`${this.viewPropertyName}: ${newValue}`
+						);
+					}
+					else if (multiLineMatch) {
+						content = content.replace(
+							multiLinePattern,
+							`${this.viewPropertyName}: ${newValue}\n`
+						);
+					}
+					
+					await this.vault.modify(file, content);
+				}
+			}
+			else {
+				// Property doesn't exist, add it after airtable-id or airtable-created
+				const newProperty = `${this.viewPropertyName}: ["${viewReference}"]`;
+				
+				// Try to insert after airtable-id first
+				if (content.match(/^airtable-id:/m)) {
+					content = content.replace(
+						/^(airtable-id:.*\n)/m,
+						`$1${newProperty}\n`
+					);
+				}
+				// Otherwise try after airtable-created
+				else if (content.match(/^airtable-created:/m)) {
+					content = content.replace(
+						/^(airtable-created:.*\n)/m,
+						`$1${newProperty}\n`
+					);
+				}
+				// Otherwise add at the beginning of frontmatter
+				else {
+					content = content.replace(
+						frontmatterRegex,
+						`---\n${newProperty}\n${match[1]}\n---`
+					);
+				}
+				
+				await this.vault.modify(file, content);
+			}
+		}
+		catch (error) {
+			console.error(`Failed to update view property for ${fullPath}:`, error);
 		}
 	}
 
@@ -906,7 +1146,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		baseId: string,
 		tableName: string,
 		parentPath: string,
-		fields: any[]
+		fields: any[],
+		viewNames: string[] = []
 	): Promise<void> {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
@@ -969,10 +1210,21 @@ export class AirtableAPIImporter extends FormatImporter {
 			'airtable-created': record.createdTime,
 		};
 
+		// Add view property if views are specified
+		if (viewNames.length > 0) {
+			frontMatter[this.viewPropertyName] = viewNames;
+		}
+
 		// Process fields for frontmatter using template config
 		if (this.templateConfig) {
 			for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
 				if (!propertyName || !propertyName.trim()) continue;
+
+				// Skip the view property name to avoid duplicates
+				// The view property is managed separately by the importer
+				if (propertyName === this.viewPropertyName) {
+					continue;
+				}
 
 				const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
 				if (!valueTemplate) continue;
@@ -1037,19 +1289,163 @@ export class AirtableAPIImporter extends FormatImporter {
 			? applyTemplate(this.templateConfig.bodyTemplate, templateData)
 			: '';
 
+		// Check for incremental import before creating file
+		const filePathToCreate = normalizePath(`${targetFolder}/${sanitizedTitle}.md`);
+		const shouldSkip = await this.shouldSkipExistingFile(filePathToCreate, recordId, ctx);
+		
+		if (shouldSkip) {
+			// File already exists with same airtable-id, skip creation
+			// But still track the path for linked record resolution
+			const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
+			this.recordIdToPath.set(recordId, pathWithoutExt);
+			
+			this.processedRecordsCount++;
+			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+			return;
+		}
+
 		// Create markdown file
 		const fullContent = serializeFrontMatter(frontMatter) + (bodyContent ? '\n\n' + bodyContent : '');
-		const filePath = normalizePath(`${targetFolder}/${sanitizedTitle}.md`);
 
-		await this.vault.create(filePath, fullContent);
+		try {
+			await this.vault.create(filePathToCreate, fullContent);
+		}
+		catch (error) {
+			// File might already exist with different airtable-id, get unique path
+			const uniquePath = await this.getUniqueFilePath(targetFolder, `${sanitizedTitle}.md`);
+			await this.vault.create(uniquePath, fullContent);
+		}
 
 		// Track record path
-		const pathWithoutExt = filePath.replace(/\.md$/, '');
+		const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
 		this.recordIdToPath.set(recordId, pathWithoutExt);
 
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 		ctx.reportNoteSuccess(sanitizedTitle);
+	}
+
+	/**
+	 * Check if a file should be skipped during import (incremental import)
+	 */
+	private async shouldSkipExistingFile(
+		filePath: string,
+		airtableId: string,
+		ctx: ImportContext
+	): Promise<boolean> {
+		// Check if file exists
+		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+		if (!file || !(file instanceof TFile)) {
+			return false; // File doesn't exist, don't skip
+		}
+
+		// Read file and extract airtable-id from frontmatter
+		try {
+			const content = await this.vault.read(file);
+			const airtableIdMatch = content.match(/^airtable-id:\s*(.+)$/m);
+			
+			if (airtableIdMatch) {
+				const existingAirtableId = airtableIdMatch[1].trim();
+				if (existingAirtableId === airtableId) {
+					// Same airtable-id, skip this file
+					const fileName = file.basename;
+					ctx.reportSkipped(fileName, 'already exists with same airtable-id');
+					return true;
+				}
+			}
+			// Different airtable-id or no airtable-id, don't skip (will rename with unique path)
+			return false;
+		}
+		catch (error) {
+			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
+			return false; // On error, don't skip
+		}
+	}
+
+	/**
+	 * Get unique file path (append " 1", " 2", etc. if file exists)
+	 */
+	private async getUniqueFilePath(parentPath: string, fileName: string): Promise<string> {
+		let counter = 1;
+		let baseName = fileName.replace(/\.md$/, '');
+		let testPath = normalizePath(`${parentPath}/${fileName}`);
+		
+		while (this.vault.getAbstractFileByPath(testPath)) {
+			testPath = normalizePath(`${parentPath}/${baseName} ${counter}.md`);
+			counter++;
+		}
+		
+		return testPath;
+	}
+
+	/**
+	 * Clean up airtable-id from all imported files' frontmatter
+	 * This is called ONLY at the end of FULL import (not incremental import)
+	 */
+	private async cleanupAirtableIds(ctx: ImportContext): Promise<void> {
+		if (this.recordIdToPath.size === 0) {
+			return;
+		}
+
+		let cleanedCount = 0;
+		let failedCount = 0;
+
+		// Iterate through all records we've tracked
+		for (const filePath of this.recordIdToPath.values()) {
+			if (ctx.isCancelled()) break;
+
+			try {
+				const file = this.vault.getAbstractFileByPath(filePath + '.md');
+				if (!file || !(file instanceof TFile)) {
+					continue;
+				}
+
+				// Read file content
+				const content = await this.vault.read(file);
+
+				// Check if file has frontmatter with airtable-id
+				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+				const match = content.match(frontmatterRegex);
+
+				if (!match) {
+					continue; // No frontmatter, skip
+				}
+
+				const frontmatter = match[1];
+				const airtableIdRegex = /^airtable-id:\s*.+$/m;
+
+				if (!airtableIdRegex.test(frontmatter)) {
+					continue; // No airtable-id in frontmatter, skip
+				}
+
+				// Remove the airtable-id line from frontmatter
+				const newFrontmatter = frontmatter
+					.split('\n')
+					.filter(line => !line.match(/^airtable-id:\s*.+$/))
+					.join('\n');
+
+				// Reconstruct the content
+				const newContent = content.replace(
+					frontmatterRegex,
+					`---\n${newFrontmatter}\n---`
+				);
+
+				// Write back to file
+				await this.vault.modify(file, newContent);
+				cleanedCount++;
+			}
+			catch (error) {
+				console.error(`Failed to clean airtable-id from file: ${filePath}`, error);
+				failedCount++;
+			}
+		}
+
+		if (cleanedCount > 0) {
+			console.log(`✓ Cleaned airtable-id from ${cleanedCount} file(s)`);
+		}
+		if (failedCount > 0) {
+			console.warn(`⚠️ Failed to clean airtable-id from ${failedCount} file(s)`);
+		}
 	}
 
 	/**
@@ -1065,6 +1461,117 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		await this.createFolders(fullPath);
 		return fullPath;
+	}
+
+	/**
+	 * Create a single .base file for the table with multiple views
+	 */
+	private async createViewBaseFiles(
+		tableFolderPath: string,
+		tableName: string,
+		views: Array<{name: string, type: string, id: string}>,
+		fields: any[]
+	): Promise<void> {
+		// Get parent folder (where .base file will be created)
+		const parentPath = tableFolderPath.split('/').slice(0, -1).join('/');
+		
+		// Build property columns
+		const propertyColumns: string[] = ['file.name'];
+		for (const field of fields) {
+			const propertyName = this.sanitizePropertyName(field.name);
+			propertyColumns.push(propertyName);
+		}
+
+		// Create ONE .base file for the table with multiple views
+		const sanitizedTableName = sanitizeFileName(tableName);
+		const baseFileName = `${sanitizedTableName}.base`;
+		const baseFilePath = parentPath ? `${parentPath}/${baseFileName}` : baseFileName;
+
+		// Build views array
+		const obsidianViews: any[] = [];
+		
+		for (const view of views) {
+			// Map Airtable view type to Obsidian view type
+			let obsidianViewType = 'table';
+			switch (view.type.toLowerCase()) {
+				case 'grid':
+					obsidianViewType = 'table';
+					break;
+				case 'gallery':
+					obsidianViewType = 'cards';
+					break;
+				case 'list':
+					obsidianViewType = 'list';
+					break;
+			}
+
+			// Build view reference for filter: [[TableName.base#ViewName]]
+			const viewReference = `[[${sanitizedTableName}.base#${view.name}]]`;
+
+			// Add view with filter based on base property containing the view reference
+			// Correct Obsidian Bases filter syntax: note["propertyName"].contains("value")
+			obsidianViews.push({
+				type: obsidianViewType,
+				name: view.name,
+				filters: `note["${this.viewPropertyName}"].contains("${viewReference}")`,
+				order: propertyColumns,
+			});
+		}
+
+		// Build base config
+		const baseConfig: any = {
+			// Base filter: only files in this table's folder
+			filters: `file.folder == "${tableFolderPath}"`,
+			views: obsidianViews,
+		};
+
+		// Create or update the .base file
+		try {
+			const content = stringifyYaml(baseConfig);
+			const normalizedPath = normalizePath(baseFilePath);
+			
+			// Check if file already exists
+			const existingFile = this.vault.getAbstractFileByPath(normalizedPath);
+			
+			if (existingFile && existingFile instanceof TFile) {
+				// File exists - update it by merging views
+				const existingContent = await this.vault.read(existingFile);
+				
+				// Parse existing YAML to extract existing views
+				try {
+					const existingConfig = parseYaml(existingContent) as any;
+					const existingViews = existingConfig.views || [];
+					
+					// Merge new views with existing ones (avoid duplicates by view name)
+					const viewMap = new Map();
+					for (const view of existingViews) {
+						viewMap.set(view.name, view);
+					}
+					for (const view of obsidianViews) {
+						viewMap.set(view.name, view); // Override if exists
+					}
+					
+					// Update config with merged views
+					baseConfig.views = Array.from(viewMap.values());
+					
+					// Write updated content
+					const updatedContent = stringifyYaml(baseConfig);
+					await this.vault.modify(existingFile, updatedContent);
+				}
+				catch (parseError) {
+					// If parsing fails, just overwrite
+					await this.vault.modify(existingFile, content);
+				}
+			}
+			else {
+				// File doesn't exist - create it
+				await this.vault.create(normalizedPath, content);
+			}
+		}
+		catch (error) {
+			console.error(`Failed to create/update base file for table "${tableName}":`, error);
+			// Don't fail the entire import
+		}
 	}
 
 	/**
