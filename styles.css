@@ -171,3 +171,12 @@
 .notion-toggle-button {
 	width: 95px;
 }
+
+/* Airtable buttons */
+.airtable-load-button {
+	width: 70px;
+}
+
+.airtable-toggle-button {
+	width: 95px;
+}
