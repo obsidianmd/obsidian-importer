@@ -881,36 +881,39 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 		this.totalRecordsToImport += allRecords.length;
 	
-	// Import all records without view information first
-	for (const record of allRecords) {
-		if (ctx.isCancelled()) break;
-		try {
-			await this.importRecord(ctx, record, baseId, tableName, tablePath, fields, []);
-		}
-		catch (error) {
+		// Import all records without view information first
+		for (const record of allRecords) {
+			if (ctx.isCancelled()) break;
+			try {
+				await this.importRecord(ctx, record, baseId, tableName, tablePath, fields, []);
+			}
+			catch (error) {
 			// If record import fails, report it and continue with next record
-			const recordTitle = record.fields?.[fields[0]?.name] || `Record ${record.id.substring(0, 8)}`;
-			ctx.reportFailed(recordTitle, error);
-			this.processedRecordsCount++;
-			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+				const recordTitle = record.fields?.[fields[0]?.name] || `Record ${record.id.substring(0, 8)}`;
+				ctx.reportFailed(recordTitle, error);
+				this.processedRecordsCount++;
+				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+			}
 		}
-	}
 	
-		// Step 2: For each view, fetch records and update the base property
+		// Step 2: For each view, fetch record IDs and update the base property
+		// We only need IDs here, not full record data (already imported in step 1)
 		for (const view of supportedViews) {
 			if (ctx.isCancelled()) break;
 
 			ctx.status(`Processing view "${view.name}"...`);
-			const viewRecords = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx, view.id);
+		
+			// Fetch only record IDs from this view (not full record data)
+			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view.id, ctx);
 
 			// Update base property for records in this view
 			const sanitizedTableName = sanitizeFileName(tableName);
 			const viewReference = `[[${sanitizedTableName}.base#${view.name}]]`;
-		
-			for (const record of viewRecords) {
+	
+			for (const recordId of viewRecordIds) {
 				if (ctx.isCancelled()) break;
-			
-				const existingPath = this.recordIdToPath.get(record.id);
+		
+				const existingPath = this.recordIdToPath.get(recordId);
 				if (existingPath) {
 					await this.updateRecordViewProperty(existingPath, viewReference, ctx);
 				}
@@ -929,6 +932,41 @@ export class AirtableAPIImporter extends FormatImporter {
 		});
 	}
 
+
+	/**
+	 * Fetch only record IDs from a view (without full field data)
+	 * This is more efficient when we only need to know which records belong to a view
+	 */
+	private async fetchViewRecordIds(
+		baseId: string,
+		tableName: string,
+		viewId: string,
+		ctx: ImportContext
+	): Promise<string[]> {
+		const Airtable = (await import('airtable')).default;
+		const base = new Airtable({ apiKey: this.airtableToken }).base(baseId);
+		const recordIds: string[] = [];
+		
+		try {
+			// Only fetch the ID field (minimal data transfer)
+			await base(tableName)
+				.select({
+					view: viewId,
+					fields: [], // Request no fields, only IDs
+				})
+				.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
+					// Extract only the IDs
+					recordIds.push(...pageRecords.map(r => r.id));
+					fetchNextPage();
+				});
+		}
+		catch (error) {
+			console.error(`Failed to fetch view record IDs for view ${viewId}:`, error);
+			throw error;
+		}
+		
+		return recordIds;
+	}
 
 	/**
 	 * Update an existing record's view property
@@ -955,12 +993,12 @@ export class AirtableAPIImporter extends FormatImporter {
 				return;
 			}
 
-		// Check if view property exists (support both single-line and multi-line YAML formats)
-		// Single-line: base: ["value1", "value2"]
-		// Multi-line: base:\n  - "value1"\n  - "value2"
-		// Note: Use greedy match for array content to handle wiki links with ]]
-		const singleLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*\\[([\\s\\S]*)\\]`, 'm');
-		const multiLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*$\\n((?:^\\s+-\\s+[^\\n]+$\\n?)+)`, 'm');
+			// Check if view property exists (support both single-line and multi-line YAML formats)
+			// Single-line: base: ["value1", "value2"]
+			// Multi-line: base:\n  - "value1"\n  - "value2"
+			// Note: Use greedy match for array content to handle wiki links with ]]
+			const singleLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*\\[([\\s\\S]*)\\]`, 'm');
+			const multiLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*$\\n((?:^\\s+-\\s+[^\\n]+$\\n?)+)`, 'm');
 			
 			const singleLineMatch = content.match(singleLinePattern);
 			const multiLineMatch = content.match(multiLinePattern);
