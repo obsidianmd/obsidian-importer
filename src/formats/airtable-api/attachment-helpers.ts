@@ -84,7 +84,7 @@ export async function downloadAttachment(
 }
 
 /**
- * Format attachment as markdown link
+ * Format attachment as markdown link (for body content)
  */
 export function formatAttachmentLink(
 	result: AttachmentResult,
@@ -129,7 +129,33 @@ export function formatAttachmentLink(
 }
 
 /**
- * Process multiple attachments and return formatted markdown
+ * Format attachment for YAML frontmatter (no Markdown syntax)
+ */
+export function formatAttachmentForYAML(
+	result: AttachmentResult,
+	vault: Vault
+): string {
+	if (!result.isLocal) {
+		// External URL - return plain URL (no Markdown syntax in YAML)
+		return result.path;
+	}
+	
+	// Local file - use wiki link syntax (works in YAML)
+	const ext = result.filename ? result.filename.substring(result.filename.lastIndexOf('.')) : '';
+	const fullPath = result.path + ext;
+	const file = vault.getAbstractFileByPath(normalizePath(fullPath));
+	
+	if (file instanceof TFile) {
+		// Return wiki link without embed prefix (! is not needed in YAML)
+		return `[[${result.path}]]`;
+	}
+	
+	// Fallback
+	return `[[${result.path}]]`;
+}
+
+/**
+ * Process multiple attachments and return formatted markdown (for body content)
  */
 export async function processAttachments(
 	attachments: AirtableAttachment[],
@@ -140,7 +166,6 @@ export async function processAttachments(
 		vault: Vault;
 		app: App;
 		downloadAttachments: boolean;
-		currentRecordTitle: string;
 		getAvailableAttachmentPath: (filename: string) => Promise<string>;
 		onAttachmentDownloaded?: () => void;
 	}
@@ -155,7 +180,7 @@ export async function processAttachments(
 			onAttachmentDownloaded();
 		}
 		
-		// Format as link
+		// Format as link for body content
 		const link = formatAttachmentLink(
 			result,
 			app,
@@ -165,6 +190,40 @@ export async function processAttachments(
 		);
 		
 		results.push(link);
+	}
+	
+	return results;
+}
+
+/**
+ * Process multiple attachments for YAML frontmatter (no Markdown syntax)
+ */
+export async function processAttachmentsForYAML(
+	attachments: AirtableAttachment[],
+	context: {
+		ctx: ImportContext;
+		currentFolderPath: string;
+		currentFilePath: string;
+		vault: Vault;
+		app: App;
+		downloadAttachments: boolean;
+		getAvailableAttachmentPath: (filename: string) => Promise<string>;
+		onAttachmentDownloaded?: () => void;
+	}
+): Promise<string[]> {
+	const { vault, onAttachmentDownloaded } = context;
+	const results: string[] = [];
+	
+	for (const attachment of attachments) {
+		const result = await downloadAttachment(attachment, context);
+		
+		if (result.isLocal && onAttachmentDownloaded) {
+			onAttachmentDownloaded();
+		}
+		
+		// Format for YAML (no Markdown syntax)
+		const formatted = formatAttachmentForYAML(result, vault);
+		results.push(formatted);
 	}
 	
 	return results;
