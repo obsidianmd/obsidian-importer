@@ -179,3 +179,20 @@ export interface AirtableRecord {
 	createdTime: string;
 }
 
+/**
+ * Prepared table data for two-phase import
+ * Phase 1: Fetch all data and prepare in memory
+ * Phase 2: Write files locally
+ */
+export interface PreparedTableData {
+	baseId: string;
+	baseName: string;
+	tableName: string;
+	tablePath: string;
+	fields: AirtableFieldSchema[];
+	views: AirtableViewInfo[];
+	records: AirtableRecord[];
+	// Map: recordId -> array of view references like ["[[Table.base#View1]]", "[[Table.base#View2]]"]
+	recordViewMemberships: Map<string, string[]>;
+}
+
