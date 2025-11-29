@@ -24,6 +24,8 @@ import type {
 	TableInfo,
 	LinkedRecordPlaceholder,
 	AirtableAttachment,
+	PreparedTableData,
+	AirtableRecord,
 } from './airtable-api/types';
 
 export class AirtableAPIImporter extends FormatImporter {
@@ -59,6 +61,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 	// Store all fields for property type inference
 	private allFieldsForTypeInference: Map<string, any> = new Map();
+	
+	// Prepared data cache for two-phase import
+	private preparedData: Map<string, PreparedTableData> = new Map();
 
 	init() {
 		this.addOutputLocationSetting('Airtable');
@@ -780,34 +785,45 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.recordToViews.clear();
 			this.tableViews.clear();
 			this.allFieldsForTypeInference.clear();
+			this.preparedData.clear();
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
 			this.attachmentsDownloaded = 0;
 
-			ctx.status('Importing selected tables...');
-
-			for (const node of selectedNodes) {
-				if (ctx.isCancelled()) break;
-
-				try {
-					if (node.type === 'base') {
-						// Import entire base (all tables)
-						await this.importBase(ctx, node, folder.path);
-					}
-					else if (node.type === 'table') {
-						// Import table (all records + all views)
-						await this.importTable(ctx, node, folder.path);
-					}
-				}
-				catch (error) {
-					console.error(`Failed to import ${node.type} ${node.title}:`, error);
-					ctx.reportFailed(node.title, error);
-				}
+			// ============================================================
+			// PHASE 1: Fetch all data from Airtable (Network requests)
+			// ============================================================
+			ctx.status('Phase 1: Fetching data from Airtable...');
+		
+			try {
+				await this.fetchAllDataPhase(ctx, selectedNodes);
+			}
+			catch (error) {
+				console.error('Failed to fetch data from Airtable:', error);
+				ctx.reportFailed('Data fetching', error);
+				new Notice(`Failed to fetch data: ${error.message}`);
+				return;
+			}
+		
+			if (ctx.isCancelled()) {
+				ctx.status('Import cancelled.');
+				return;
 			}
 
-			// Replace linked record placeholders
-			ctx.status('Processing linked records...');
-			await this.replaceLinkedRecordPlaceholders(ctx);
+			// ============================================================
+			// PHASE 2: Create files locally (File system operations)
+			// ============================================================
+			ctx.status('Phase 2: Creating files...');
+		
+			try {
+				await this.createFilesPhase(ctx, folder.path);
+			}
+			catch (error) {
+				console.error('Failed to create files:', error);
+				ctx.reportFailed('File creation', error);
+				new Notice(`Failed to create files: ${error.message}`);
+				return;
+			}
 
 			// Update property types in Obsidian's types.json
 			ctx.status('Updating property types...');
@@ -829,113 +845,203 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Import an entire base
+	 * PHASE 1: Fetch all data from Airtable
+	 * Fetches all bases, tables, records, and view memberships
 	 */
-	private async importBase(ctx: ImportContext, node: AirtableTreeNode, parentPath: string): Promise<void> {
-		const baseName = sanitizeFileName(node.title);
-		const basePath = normalizePath(`${parentPath}/${baseName}`);
-
-		await this.createFolders(basePath);
-
-		// Import all child tables
-		for (const tableNode of node.children) {
-			if (ctx.isCancelled()) break;
-			await this.importTable(ctx, tableNode, basePath);
+	private async fetchAllDataPhase(ctx: ImportContext, selectedNodes: AirtableTreeNode[]): Promise<void> {
+		// Collect all tables to process
+		const tablesToProcess: Array<{
+			baseId: string;
+			baseName: string;
+			tableName: string;
+			fields: any[];
+			views: any[];
+		}> = [];
+		
+		// Flatten selected nodes to table level
+		for (const node of selectedNodes) {
+			if (ctx.isCancelled()) return;
+			
+			if (node.type === 'base') {
+				// Expand base to all its tables
+				for (const tableNode of node.children) {
+					tablesToProcess.push({
+						baseId: node.id,
+						baseName: node.title,
+						tableName: tableNode.metadata?.tableName || tableNode.title,
+						fields: tableNode.metadata?.fields || [],
+						views: tableNode.metadata?.views || [],
+					});
+				}
+			}
+			else if (node.type === 'table') {
+				// Single table
+				tablesToProcess.push({
+					baseId: node.metadata?.baseId || '',
+					baseName: '', // Will be filled from parent if needed
+					tableName: node.metadata?.tableName || node.title,
+					fields: node.metadata?.fields || [],
+					views: node.metadata?.views || [],
+				});
+			}
 		}
+		
+		// Reset total count
+		this.totalRecordsToImport = 0;
+		
+		// Fetch data for each table
+		for (const table of tablesToProcess) {
+			if (ctx.isCancelled()) return;
+			
+			await this.fetchTableData(ctx, table);
+		}
+		
+		// Report total
+		ctx.status(`Data fetching complete. Total records: ${this.totalRecordsToImport}`);
+		ctx.reportProgress(0, this.totalRecordsToImport);
 	}
-
-	/**
-	 * Import a table with all its views
-	 */
-	private async importTable(ctx: ImportContext, node: AirtableTreeNode, parentPath: string): Promise<void> {
-		const baseId = node.metadata?.baseId;
-		const tableName = node.metadata?.tableName;
-		const fields = node.metadata?.fields || [];
-		const views = node.metadata?.views || [];
-
-		if (!baseId || !tableName) {
-			throw new Error('Missing base ID or table name');
-		}
-
-		const sanitizedTableName = sanitizeFileName(tableName);
-		const tablePath = normalizePath(`${parentPath}/${sanitizedTableName}`);
-
-		await this.createFolders(tablePath);
-
-		// Get supported views from metadata (already loaded in loadTree)
-		// Filter to only grid, gallery, and list views
-		const supportedViews = views
-			.filter(view => ['grid', 'gallery', 'list'].includes(view.type.toLowerCase()))
-			.map(view => ({
-				id: view.id,
-				name: view.name,
-				type: view.type,
-			}));
-
-		// Store views for this table
-		const tableKey = `${baseId}:${tableName}`;
-		this.tableViews.set(tableKey, supportedViews);
 	
-		// Collect fields for property type inference
+	/**
+	 * Fetch all data for a single table (records + view memberships)
+	 */
+	private async fetchTableData(
+		ctx: ImportContext,
+		tableInfo: {
+			baseId: string;
+			baseName: string;
+			tableName: string;
+			fields: any[];
+			views: any[];
+		}
+	): Promise<void> {
+		const { baseId, baseName, tableName, fields, views } = tableInfo;
+		
+		if (ctx.isCancelled()) return;
+		
+		const tableKey = `${baseId}:${tableName}`;
+		
+		// Filter to supported views only
+		const supportedViews = views.filter(view => 
+			['grid', 'gallery', 'list'].includes(view.type.toLowerCase())
+		);
+		
+		// Collect fields for type inference
 		for (const field of fields) {
 			if (!this.allFieldsForTypeInference.has(field.name)) {
 				this.allFieldsForTypeInference.set(field.name, field);
 			}
 		}
-
-		// **IMPORTANT: Create .base file FIRST before importing records**
-		// This ensures the [[TableName.base#ViewName]] links in records are valid
-		await this.createViewBaseFiles(tablePath, tableName, supportedViews, fields);
-
-		// Strategy: Import ALL records from the table first, then update view memberships
-		// This ensures we don't miss records that might not be in any view
-	
-		// Step 1: Fetch and import ALL records from the table (no view filter)
-		ctx.status(`Fetching all records from table "${tableName}"...`);
+		
+		// Step 1: Fetch ALL records from the table
+		ctx.status(`Fetching ${baseName} > ${tableName}...`);
 		const allRecords = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx);
-	
+		
+		if (ctx.isCancelled()) return;
+		
+		// Step 2: Fetch view memberships for each record
+		const recordViewMemberships = new Map<string, string[]>();
+		const sanitizedTableName = sanitizeFileName(tableName);
+		
+		for (const view of supportedViews) {
+			if (ctx.isCancelled()) return;
+			
+			ctx.status(`Fetching ${baseName} > ${tableName} > ${view.name} (${recordViewMemberships.size} records tagged)...`);
+			
+			// Fetch only record IDs from this view
+			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view.id, ctx);
+			
+			// Build view reference
+			const viewReference = `[[${sanitizedTableName}.base#${view.name}]]`;
+			
+			// Tag these records with this view
+			for (const recordId of viewRecordIds) {
+				if (!recordViewMemberships.has(recordId)) {
+					recordViewMemberships.set(recordId, []);
+				}
+				recordViewMemberships.get(recordId)!.push(viewReference);
+			}
+		}
+		
+		// Store prepared data
+		this.preparedData.set(tableKey, {
+			baseId,
+			baseName,
+			tableName,
+			tablePath: '', // Will be set in phase 2
+			fields,
+			views: supportedViews,
+			records: allRecords,
+			recordViewMemberships,
+		});
+		
+		// Count total records to import
 		this.totalRecordsToImport += allRecords.length;
+	}
 	
-		// Import all records without view information first
-		for (const record of allRecords) {
-			if (ctx.isCancelled()) break;
+	/**
+	 * PHASE 2: Create files locally
+	 * Creates .base files and record files from prepared data
+	 */
+	private async createFilesPhase(ctx: ImportContext, rootPath: string): Promise<void> {
+		// Process each table's prepared data
+		for (const [, tableData] of this.preparedData.entries()) {
+			if (ctx.isCancelled()) return;
+			
+			await this.createFilesForTable(ctx, tableData, rootPath);
+		}
+	}
+	
+	/**
+	 * Create files for a single table
+	 */
+	private async createFilesForTable(
+		ctx: ImportContext,
+		tableData: PreparedTableData,
+		rootPath: string
+	): Promise<void> {
+		const { baseId, baseName, tableName, fields, views, records, recordViewMemberships } = tableData;
+		
+		// Build table path
+		const tablePath = baseName 
+			? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
+			: normalizePath(`${rootPath}/${sanitizeFileName(tableName)}`);
+		
+		await this.createFolders(tablePath);
+		
+		ctx.status(`Creating files for ${baseName ? baseName + ' > ' : ''}${tableName}...`);
+		
+		// Create .base file first
+		await this.createViewBaseFiles(tablePath, tableName, views, fields);
+		
+		if (ctx.isCancelled()) return;
+		
+		// Pre-process linked records: build record ID -> title mapping
+		const recordIdToTitle = new Map<string, string>();
+		for (const record of records) {
+			const recordFields = record.fields || {};
+			const primaryFieldValue = recordFields[fields[0]?.name];
+			const title = primaryFieldValue ? String(primaryFieldValue) : `Record ${record.id.substring(0, 8)}`;
+			recordIdToTitle.set(record.id, title);
+		}
+		
+		// Create files for all records
+		for (const record of records) {
+			if (ctx.isCancelled()) return;
+			
 			try {
-				await this.importRecord(ctx, record, baseId, tableName, tablePath, fields, []);
+				const viewReferences = recordViewMemberships.get(record.id) || [];
+				await this.createRecordFile(ctx, record, baseId, tableName, tablePath, fields, viewReferences, recordIdToTitle);
 			}
 			catch (error) {
-			// If record import fails, report it and continue with next record
 				const recordTitle = record.fields?.[fields[0]?.name] || `Record ${record.id.substring(0, 8)}`;
 				ctx.reportFailed(recordTitle, error);
 				this.processedRecordsCount++;
 				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			}
 		}
-	
-		// Step 2: For each view, fetch record IDs and update the base property
-		// We only need IDs here, not full record data (already imported in step 1)
-		for (const view of supportedViews) {
-			if (ctx.isCancelled()) break;
-
-			ctx.status(`Processing view "${view.name}"...`);
 		
-			// Fetch only record IDs from this view (not full record data)
-			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view.id, ctx);
-
-			// Update base property for records in this view
-			const sanitizedTableName = sanitizeFileName(tableName);
-			const viewReference = `[[${sanitizedTableName}.base#${view.name}]]`;
-	
-			for (const recordId of viewRecordIds) {
-				if (ctx.isCancelled()) break;
-		
-				const existingPath = this.recordIdToPath.get(recordId);
-				if (existingPath) {
-					await this.updateRecordViewProperty(existingPath, viewReference, ctx);
-				}
-			}
-		}
-
 		// Store table info
+		const tableKey = `${baseId}:${tableName}`;
 		this.processedTables.set(tableKey, {
 			id: tableName,
 			baseId,
@@ -946,7 +1052,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			primaryFieldId: fields[0]?.id || '',
 		});
 	}
-
 
 	/**
 	 * Fetch only record IDs from a view (without full field data)
@@ -1092,6 +1197,204 @@ export class AirtableAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to update view property for ${fullPath}:`, error);
 		}
+	}
+
+	/**
+	 * Create a file for a single record (Phase 2)
+	 * Resolves all linked records before writing
+	 */
+	private async createRecordFile(
+		ctx: ImportContext,
+		record: AirtableRecord,
+		baseId: string,
+		tableName: string,
+		tablePath: string,
+		fields: any[],
+		viewReferences: string[],
+		recordIdToTitle: Map<string, string>
+	): Promise<void> {
+		const recordId = record.id;
+		const recordFields = record.fields || {};
+		
+		// Skip completely empty records
+		const hasAnyValue = Object.values(recordFields).some(value => {
+			if (value === null || value === undefined) return false;
+			if (typeof value === 'string' && value.trim() === '') return false;
+			if (typeof value === 'object' && !Array.isArray(value)) {
+				// For aiText objects, check if they have valid state
+				if (value.state && value.state !== 'generated') return false;
+				if (value.state === 'generated' && !value.value) return false;
+			}
+			if (Array.isArray(value) && value.length === 0) return false;
+			return true;
+		});
+		
+		if (!hasAnyValue) {
+			ctx.reportSkipped(recordId, 'Empty record');
+			this.processedRecordsCount++;
+			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+			return;
+		}
+		
+		// Determine title
+		const primaryFieldName = fields[0]?.name;
+		const primaryFieldValue = recordFields[primaryFieldName];
+		let title = primaryFieldValue ? String(primaryFieldValue) : '';
+		
+		if (!title || title.trim() === '') {
+			title = `Record ${recordId.substring(0, 8)}`;
+		}
+		
+		const sanitizedTitle = sanitizeFileName(title);
+		const filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
+		
+		// Check for incremental import
+		if (this.incrementalImport) {
+			const existingFile = this.vault.getAbstractFileByPath(filePath);
+			if (existingFile instanceof TFile) {
+				const content = await this.vault.read(existingFile);
+				
+				// Extract airtable-id from frontmatter
+				const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+				if (frontmatterMatch) {
+					try {
+						const frontmatter = parseYaml(frontmatterMatch[1]);
+						const existingId = frontmatter?.['airtable-id'];
+						if (existingId === recordId) {
+							ctx.reportSkipped(sanitizedTitle, 'Already imported');
+							this.processedRecordsCount++;
+							ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+							return;
+						}
+					}
+					catch (e) {
+						// Failed to parse frontmatter, continue with import
+					}
+				}
+			}
+		}
+		
+		// Build template data for both frontmatter and body
+		const templateData: Record<string, string> = {};
+		
+		// First pass: convert field values for template use
+		for (const field of fields) {
+			const fieldValue = recordFields[field.name];
+			
+			if (fieldValue === null || fieldValue === undefined) {
+				templateData[field.name] = '';
+				continue;
+			}
+
+			// Convert to string for template
+			if (Array.isArray(fieldValue)) {
+				templateData[field.name] = fieldValue.map((item: any) => {
+					if (typeof item === 'object' && item.name) return item.name;
+					if (typeof item === 'string') return item;
+					return String(item);
+				}).join(', ');
+			}
+			else if (typeof fieldValue === 'object') {
+				// For objects, try to get name or value
+				templateData[field.name] = fieldValue.name || fieldValue.value || String(fieldValue);
+			}
+			else {
+				templateData[field.name] = String(fieldValue);
+			}
+		}
+
+		// Build frontmatter
+		const frontMatter: Record<string, any> = {
+			'airtable-id': recordId,
+			'airtable-created': record.createdTime,
+		};
+
+		// Add view property
+		if (viewReferences.length > 0) {
+			frontMatter[this.viewPropertyName] = viewReferences;
+		}
+
+		// Process fields for frontmatter using template config
+		if (this.templateConfig) {
+			for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
+				if (!propertyName || !propertyName.trim()) continue;
+
+				// Skip the view property name to avoid duplicates
+				if (propertyName === this.viewPropertyName) {
+					continue;
+				}
+
+				const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
+				if (!valueTemplate) continue;
+
+				// Find the field schema
+				const field = fields.find((f: any) => f.name === fieldId);
+				if (!field) continue;
+
+				const fieldValue = recordFields[field.name];
+
+				// Skip null/undefined
+				if (fieldValue === null || fieldValue === undefined) {
+					continue;
+				}
+
+				// Convert field value with direct linked record resolution
+				let convertedValue = convertFieldValue(
+					fieldValue,
+					field,
+					recordId,
+					this.formulaStrategy,
+					this.linkedRecordPlaceholders, // Not used in phase 2, but needed for signature
+					ctx
+				);
+
+				// Resolve linked records IMMEDIATELY from recordIdToTitle
+				if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
+					convertedValue = fieldValue.map((linkedRecordId: string) => {
+						const linkedTitle = recordIdToTitle.get(linkedRecordId);
+						if (linkedTitle) {
+							return `[[${sanitizeFileName(linkedTitle)}]]`;
+						}
+						return `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
+					});
+				}
+
+				// Convert property value according to type
+				let propertyValue: any = convertedValue;
+
+				// Handle attachments: process to ensure external links are plain URLs
+				if (field.type === 'multipleAttachments' && Array.isArray(convertedValue)) {
+					propertyValue = convertedValue; // Already handled by convertFieldValue
+				}
+
+				// Set property
+				frontMatter[propertyName] = propertyValue;
+			}
+		}
+
+		// Apply body template
+		const bodyContent = this.templateConfig
+			? applyTemplate(this.templateConfig.bodyTemplate, templateData)
+			: '';
+
+		// Generate file content
+		const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
+
+		// Write or update file
+		const existingFile = this.vault.getAbstractFileByPath(filePath);
+		if (existingFile instanceof TFile) {
+			await this.vault.modify(existingFile, fileContent);
+		}
+		else {
+			await this.vault.create(filePath, fileContent);
+		}
+		
+		// Track record path (without .md extension)
+		this.recordIdToPath.set(recordId, filePath.replace(/\.md$/, ''));
+		
+		ctx.reportNoteSuccess(sanitizedTitle);
+		this.processedRecordsCount++;
+		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 	}
 
 	/**
