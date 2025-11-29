@@ -56,6 +56,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 	// Track all views for each table (for creating .base files)
 	private tableViews: Map<string, Array<{name: string, type: string, id: string}>> = new Map();
+	
+	// Store all fields for property type inference
+	private allFieldsForTypeInference: Map<string, any> = new Map();
 
 	init() {
 		this.addOutputLocationSetting('Airtable');
@@ -776,6 +779,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.recordIdToPath.clear();
 			this.recordToViews.clear();
 			this.tableViews.clear();
+			this.allFieldsForTypeInference.clear();
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
 			this.attachmentsDownloaded = 0;
@@ -804,6 +808,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Replace linked record placeholders
 			ctx.status('Processing linked records...');
 			await this.replaceLinkedRecordPlaceholders(ctx);
+
+			// Update property types in Obsidian's types.json
+			ctx.status('Updating property types...');
+			this.updatePropertyTypes();
 
 			// Clean up airtable-id only for full import (not incremental)
 			if (!this.incrementalImport) {
@@ -867,6 +875,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Store views for this table
 		const tableKey = `${baseId}:${tableName}`;
 		this.tableViews.set(tableKey, supportedViews);
+	
+		// Collect fields for property type inference
+		for (const field of fields) {
+			if (!this.allFieldsForTypeInference.has(field.name)) {
+				this.allFieldsForTypeInference.set(field.name, field);
+			}
+		}
 
 		// **IMPORTANT: Create .base file FIRST before importing records**
 		// This ensures the [[TableName.base#ViewName]] links in records are valid
@@ -1541,6 +1556,107 @@ export class AirtableAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to create/update base file for table "${tableName}":`, error);
 			// Don't fail the entire import
+		}
+	}
+
+	/**
+	 * Update Obsidian property types based on Airtable field types
+	 * This writes to .obsidian/types.json using the metadataTypeManager API
+	 */
+	private updatePropertyTypes(): void {
+		if (!this.templateConfig || this.allFieldsForTypeInference.size === 0) {
+			return;
+		}
+
+		const propertyTypes: Record<string, string> = {};
+
+		// Map Airtable field types to Obsidian property types
+		for (const field of this.allFieldsForTypeInference.values()) {
+			// Get the property name used in template config
+			const propertyName = this.templateConfig.propertyNames.get(field.name);
+			if (!propertyName || propertyName === this.viewPropertyName) {
+				continue; // Skip if not in template or conflicts with view property
+			}
+
+			// Map Airtable field type to Obsidian property type
+			const obsidianType = this.mapAirtableTypeToObsidian(field.type);
+			if (obsidianType) {
+				propertyTypes[propertyName] = obsidianType;
+			}
+		}
+
+		// Update property types using Obsidian's API
+		for (const [propName, propType] of Object.entries(propertyTypes)) {
+			const existingType = this.app.metadataTypeManager.getAssignedWidget(propName);
+			
+			if (!existingType) {
+				// Property doesn't have a type yet, set it
+				this.app.metadataTypeManager.setType(propName, propType);
+				console.log(`[Airtable Property Types] Setting type for "${propName}": ${propType}`);
+			}
+			else {
+				// Property already has a type, respect it
+				console.log(`[Airtable Property Types] Skipping "${propName}" (already has type: ${existingType})`);
+			}
+		}
+	}
+
+	/**
+	 * Map Airtable field type to Obsidian property type
+	 */
+	private mapAirtableTypeToObsidian(airtableType: string): string | null {
+		switch (airtableType) {
+			case 'checkbox':
+				return 'checkbox';
+			
+			case 'date':
+				return 'date';
+			
+			case 'dateTime':
+				return 'datetime';
+			
+			case 'number':
+			case 'currency':
+			case 'percent':
+			case 'duration':
+			case 'rating':
+			case 'autoNumber':
+				return 'number';
+			
+			case 'singleSelect':
+			case 'singleLineText':
+			case 'multilineText':
+			case 'richText':
+			case 'email':
+			case 'url':
+			case 'phoneNumber':
+			case 'barcode':
+			case 'aiText':
+			case 'singleCollaborator':
+			case 'createdBy':
+			case 'lastModifiedBy':
+				return 'text';
+			
+			case 'multipleSelects':
+			case 'multipleCollaborators':
+			case 'multipleRecordLinks':
+			case 'multipleAttachments':
+				return 'multitext';
+			
+			case 'formula':
+			case 'rollup':
+			case 'lookup':
+			case 'count':
+				// These are computed properties, let Obsidian auto-infer type
+				return null;
+			
+			case 'createdTime':
+			case 'lastModifiedTime':
+				return 'datetime';
+			
+			default:
+				console.log(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
+				return 'text';
 		}
 	}
 
