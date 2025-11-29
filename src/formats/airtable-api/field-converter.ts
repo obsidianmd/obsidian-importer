@@ -4,6 +4,7 @@
 
 import type { AirtableFieldSchema, FormulaImportStrategy, LinkedRecordPlaceholder } from './types';
 import { ImportContext } from '../../main';
+import { convertAirtableFormulaToObsidian, canConvertFormula } from './formula-converter';
 
 /**
  * Convert Airtable field value to Obsidian property value
@@ -214,9 +215,32 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
  * Returns null if conversion is not possible
  */
 function convertFormulaToObsidian(value: any, fieldSchema: AirtableFieldSchema): string | null {
-	// This is a placeholder for future formula conversion
-	// For now, we'll just return null to fall back to static values
-	// TODO: Implement formula conversion similar to Notion API
+	// Get the formula expression from field schema options
+	const options = fieldSchema.options as any;
+	const formulaExpression = options?.formula;
+	
+	if (!formulaExpression || typeof formulaExpression !== 'string') {
+		// No formula expression available
+		return null;
+	}
+	
+	// Check if the formula can be converted
+	if (!canConvertFormula(formulaExpression)) {
+		return null;
+	}
+	
+	// Try to convert the formula
+	try {
+		const converted = convertAirtableFormulaToObsidian(formulaExpression);
+		if (converted) {
+			// Return as Obsidian formula (prefixed with =)
+			return `= ${converted}`;
+		}
+	}
+	catch (error) {
+		console.warn('Failed to convert Airtable formula:', error);
+	}
+	
 	return null;
 }
 
