@@ -232,9 +232,13 @@ export function canConvertFormula(airtableFormula: string): boolean {
 
 /**
  * Convert an Airtable formula to Obsidian Bases formula syntax
+ * @param airtableFormula - The Airtable formula expression
+ * @param fieldIdToNameMap - Map of field IDs to field names (for resolving field references)
+ * @param ctx - Import context
  */
 export function convertAirtableFormulaToObsidian(
 	airtableFormula: string,
+	fieldIdToNameMap?: Map<string, string>,
 	ctx?: ImportContext
 ): string | null {
 	let result = airtableFormula;
@@ -243,10 +247,13 @@ export function convertAirtableFormulaToObsidian(
 		return null;
 	}
 	
-	// Step 1: Convert field references {Field Name} -> note["Field Name"]
+	// Step 1: Convert field references {Field ID or Name} -> note["Field Name"]
+	// Airtable formulas use field IDs internally, but we need to convert to field names
 	result = result.replace(
 		/\{([^}]+)\}/g,
-		(match, fieldName) => {
+		(match, fieldIdOrName) => {
+			// Try to resolve field ID to field name
+			const fieldName = fieldIdToNameMap?.get(fieldIdOrName) || fieldIdOrName;
 			return `note["${fieldName}"]`;
 		}
 	);

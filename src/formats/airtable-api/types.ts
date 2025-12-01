@@ -168,6 +168,7 @@ export interface CreateBaseFileParams {
 	fields: AirtableFieldSchema[];
 	views: AirtableViewInfo[];
 	formulaStrategy?: FormulaImportStrategy;
+	titleTemplate?: string; // Template for file name (e.g., "{{Formula Reference}}")
 }
 
 /**
