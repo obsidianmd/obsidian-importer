@@ -7,6 +7,30 @@ import { ImportContext } from '../../main';
 import { convertAirtableFormulaToObsidian, canConvertFormula } from './formula-converter';
 
 /**
+ * Create a mapping from field IDs to field names
+ * 
+ * This is needed because Airtable uses field IDs internally in formulas (e.g., {fldXXX}),
+ * but the API returns record data with field names as keys.
+ * 
+ * Example:
+ * - Formula: "UPPER({fldji0lrlb52vV1ae})"
+ * - Record data: { "Example text": "hello" }
+ * - We need to map: fldji0lrlb52vV1ae → "Example text"
+ * 
+ * @param fields - Array of field schemas containing id and name
+ * @returns Map from field ID to field name
+ */
+export function createFieldIdToNameMap(fields: any[]): Map<string, string> {
+	const fieldIdToNameMap = new Map<string, string>();
+	for (const field of fields) {
+		if (field.id && field.name) {
+			fieldIdToNameMap.set(field.id, field.name);
+		}
+	}
+	return fieldIdToNameMap;
+}
+
+/**
  * Convert Airtable field value to Obsidian property value
  */
 export function convertFieldValue(
@@ -15,7 +39,8 @@ export function convertFieldValue(
 	recordId: string,
 	formulaStrategy: FormulaImportStrategy,
 	linkedRecordPlaceholders: LinkedRecordPlaceholder[],
-	ctx: ImportContext
+	ctx: ImportContext,
+	fieldIdToNameMap?: Map<string, string>
 ): any {
 	if (fieldValue === null || fieldValue === undefined) {
 		return null;
@@ -119,11 +144,15 @@ export function convertFieldValue(
 			}
 			else {
 				// Try to convert to Obsidian formula
-				const converted = convertFormulaToObsidian(fieldValue, fieldSchema);
+				const converted = convertFormulaToObsidian(fieldValue, fieldSchema, fieldIdToNameMap);
 				if (converted) {
-					return converted;
+					// Formula successfully converted - it will be defined in .base file
+					// Return null so it's not added to YAML frontmatter
+					console.log(`✓ Formula field "${fieldSchema.name}" converted, skipping YAML`);
+					return null;
 				}
-				// Fall back to static value
+				// Fall back to static value (formula couldn't be converted)
+				console.log(`✗ Formula field "${fieldSchema.name}" could not be converted, using static value`);
 				return convertFormulaResult(fieldValue, fieldSchema);
 			}
 		
@@ -214,27 +243,41 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
  * Convert Airtable formula to Obsidian formula (if possible)
  * Returns null if conversion is not possible
  */
-function convertFormulaToObsidian(value: any, fieldSchema: AirtableFieldSchema): string | null {
+function convertFormulaToObsidian(
+	value: any,
+	fieldSchema: AirtableFieldSchema,
+	fieldIdToNameMap?: Map<string, string>
+): string | null {
 	// Get the formula expression from field schema options
 	const options = fieldSchema.options as any;
 	const formulaExpression = options?.formula;
 	
+	console.log(`Converting formula for "${fieldSchema.name}":`, {
+		hasOptions: !!options,
+		formulaExpression,
+		hasFieldIdMap: !!fieldIdToNameMap,
+		fieldIdMapSize: fieldIdToNameMap?.size
+	});
+	
 	if (!formulaExpression || typeof formulaExpression !== 'string') {
 		// No formula expression available
+		console.log(`  → No formula expression found`);
 		return null;
 	}
 	
 	// Check if the formula can be converted
 	if (!canConvertFormula(formulaExpression)) {
+		console.log(`  → Formula cannot be converted (unsupported functions)`);
 		return null;
 	}
 	
 	// Try to convert the formula
 	try {
-		const converted = convertAirtableFormulaToObsidian(formulaExpression);
+		const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
 		if (converted) {
-			// Return as Obsidian formula (prefixed with =)
-			return `= ${converted}`;
+			// Formula successfully converted - return a marker (actual formula is in .base file)
+			console.log(`  → Converted to: ${converted}`);
+			return '__FORMULA_CONVERTED__'; // Marker to indicate formula was converted
 		}
 	}
 	catch (error) {

@@ -16,8 +16,9 @@ import {
 
 // Import helper modules
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
-import { convertFieldValue } from './airtable-api/field-converter';
+import { convertFieldValue, createFieldIdToNameMap } from './airtable-api/field-converter';
 import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
+import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
@@ -1216,6 +1217,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
 		
+		// Create field ID to name mapping for formula conversion
+		const fieldIdToNameMap = createFieldIdToNameMap(fields);
+		
 		// Skip completely empty records
 		const hasAnyValue = Object.values(recordFields).some(value => {
 			if (value === null || value === undefined) return false;
@@ -1236,10 +1240,23 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 		
-		// Determine title
-		const primaryFieldName = fields[0]?.name;
-		const primaryFieldValue = recordFields[primaryFieldName];
-		let title = primaryFieldValue ? String(primaryFieldValue) : '';
+		// Determine title using template configuration
+		let title = '';
+		
+		if (this.templateConfig && this.templateConfig.titleTemplate) {
+			// Use template to generate title
+			const templateData: Record<string, any> = {};
+			for (const field of fields) {
+				templateData[field.name] = recordFields[field.name];
+			}
+			title = applyTemplate(this.templateConfig.titleTemplate, templateData);
+		}
+		else {
+			// Fallback: use first field (primary field)
+			const primaryFieldName = fields[0]?.name;
+			const primaryFieldValue = recordFields[primaryFieldName];
+			title = primaryFieldValue ? String(primaryFieldValue) : '';
+		}
 		
 		if (!title || title.trim() === '') {
 			title = `Record ${recordId.substring(0, 8)}`;
@@ -1286,20 +1303,52 @@ export class AirtableAPIImporter extends FormatImporter {
 				continue;
 			}
 
+			// Convert field value properly (handles formulas, links, etc.)
+			let convertedValue = convertFieldValue(
+				fieldValue,
+				field,
+				recordId,
+				this.formulaStrategy,
+				this.linkedRecordPlaceholders,
+				ctx,
+				fieldIdToNameMap
+			);
+			
+			// If formula was converted (returns null), use the computed value for templates
+			if (convertedValue === null && field.type === 'formula') {
+				// For formulas that will be in .base file, use the static computed value in templates
+				const options = field.options as any;
+				const resultType = options?.result?.type;
+				if (resultType === 'singleLineText' || !resultType) {
+					convertedValue = fieldValue ? String(fieldValue) : '';
+				}
+				else {
+					convertedValue = fieldValue;
+				}
+			}
+			
+			// Resolve linked records for template data
+			if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
+				const links = fieldValue.map((linkedRecordId: string) => {
+					const linkedTitle = recordIdToTitle.get(linkedRecordId);
+					return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
+				});
+				templateData[field.name] = links.join(', ');
+				continue;
+			}
+
 			// Convert to string for template
-			if (Array.isArray(fieldValue)) {
-				templateData[field.name] = fieldValue.map((item: any) => {
-					if (typeof item === 'object' && item.name) return item.name;
+			if (convertedValue === null || convertedValue === undefined) {
+				templateData[field.name] = '';
+			}
+			else if (Array.isArray(convertedValue)) {
+				templateData[field.name] = convertedValue.map((item: any) => {
 					if (typeof item === 'string') return item;
 					return String(item);
 				}).join(', ');
 			}
-			else if (typeof fieldValue === 'object') {
-				// For objects, try to get name or value
-				templateData[field.name] = fieldValue.name || fieldValue.value || String(fieldValue);
-			}
 			else {
-				templateData[field.name] = String(fieldValue);
+				templateData[field.name] = String(convertedValue);
 			}
 		}
 
@@ -1345,8 +1394,14 @@ export class AirtableAPIImporter extends FormatImporter {
 					recordId,
 					this.formulaStrategy,
 					this.linkedRecordPlaceholders, // Not used in phase 2, but needed for signature
-					ctx
+					ctx,
+					fieldIdToNameMap
 				);
+
+				// Skip if convertedValue is null (e.g., formula was converted and will be in .base file)
+				if (convertedValue === null || convertedValue === undefined) {
+					continue;
+				}
 
 				// Resolve linked records IMMEDIATELY from recordIdToTitle
 				if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
@@ -1411,6 +1466,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<void> {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
+		
+		// Create field ID to name mapping for formula conversion
+		const fieldIdToNameMap = createFieldIdToNameMap(fields);
 
 		// Check if record is completely empty (no field values at all)
 		// Skip only if all fields are null/undefined/empty
@@ -1531,7 +1589,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					recordId,
 					this.formulaStrategy,
 					this.linkedRecordPlaceholders,
-					ctx
+					ctx,
+					fieldIdToNameMap
 				);
 
 				if (converted === null || converted === undefined) continue;
@@ -1763,11 +1822,69 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Get parent folder (where .base file will be created)
 		const parentPath = tableFolderPath.split('/').slice(0, -1).join('/');
 		
+		// Extract title field name from template (e.g., "{{Formula Reference}}" -> "Formula Reference")
+		let titleFieldName: string | null = null;
+		if (this.templateConfig && this.templateConfig.titleTemplate) {
+			const match = this.templateConfig.titleTemplate.match(/^\{\{(.+?)\}\}$/);
+			if (match) {
+				titleFieldName = match[1].trim();
+			}
+		}
+		
+		// Create field ID to name mapping for formula conversion
+		const fieldIdToNameMap = createFieldIdToNameMap(fields);
+		
+		// Separate formula fields from regular fields
+		const formulas: Array<{ name: string, obsidianFormula: string }> = [];
+		const regularFields: any[] = [];
+		
+		for (const field of fields) {
+			if (field.type === 'formula') {
+				const options = field.options as any;
+				const formulaExpression = options?.formula;
+				
+				// Try to convert formula (if strategy is not static)
+				if (this.formulaStrategy !== 'static' && formulaExpression) {
+					if (canConvertFormula(formulaExpression)) {
+						const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
+						if (converted) {
+							// Successfully converted - add to formulas
+							formulas.push({
+								name: field.name,
+								obsidianFormula: converted,
+							});
+							continue;
+						}
+					}
+				}
+				
+				// Cannot convert or static strategy - treat as regular field
+				regularFields.push(field);
+			}
+			else {
+				// Not a formula field
+				regularFields.push(field);
+			}
+		}
+		
 		// Build property columns
 		const propertyColumns: string[] = ['file.name'];
-		for (const field of fields) {
+		
+		// Add regular fields (excluding title field)
+		for (const field of regularFields) {
+			if (titleFieldName && field.name === titleFieldName) {
+				continue;
+			}
 			const propertyName = this.sanitizePropertyName(field.name);
 			propertyColumns.push(propertyName);
+		}
+		
+		// Add formula columns (excluding title field if it's a formula)
+		for (const formula of formulas) {
+			if (titleFieldName && formula.name === titleFieldName) {
+				continue;
+			}
+			propertyColumns.push(`formula.${this.sanitizePropertyName(formula.name)}`);
 		}
 
 		// Create ONE .base file for the table with multiple views
@@ -1810,8 +1927,51 @@ export class AirtableAPIImporter extends FormatImporter {
 		const baseConfig: any = {
 			// Base filter: only files in this table's folder
 			filters: `file.folder == "${tableFolderPath}"`,
-			views: obsidianViews,
 		};
+		
+		// Add formulas if there are any
+		if (formulas.length > 0) {
+			baseConfig.formulas = {};
+			for (const formula of formulas) {
+				const formulaName = this.sanitizePropertyName(formula.name);
+				baseConfig.formulas[formulaName] = formula.obsidianFormula;
+			}
+		}
+		
+		// Add properties section for display names
+		baseConfig.properties = {};
+		
+		// Set file.name display name if title field is specified
+		if (titleFieldName) {
+			baseConfig.properties['file.name'] = {
+				displayName: titleFieldName
+			};
+		}
+		
+		// Add regular field display names (excluding title field)
+		for (const field of regularFields) {
+			if (titleFieldName && field.name === titleFieldName) {
+				continue;
+			}
+			const propertyKey = this.sanitizePropertyName(field.name);
+			baseConfig.properties[propertyKey] = {
+				displayName: field.name
+			};
+		}
+		
+		// Add formula field display names (excluding title field)
+		for (const formula of formulas) {
+			if (titleFieldName && formula.name === titleFieldName) {
+				continue;
+			}
+			const propertyKey = `formula.${this.sanitizePropertyName(formula.name)}`;
+			baseConfig.properties[propertyKey] = {
+				displayName: formula.name
+			};
+		}
+		
+		// Add views
+		baseConfig.views = obsidianViews;
 
 		// Create or update the .base file
 		try {
