@@ -27,6 +27,8 @@
  * - ERROR() and BLANK() are converted to literal values:
  *   ERROR() -> "!ERROR" (string literal to indicate error)
  *   BLANK() -> "" (empty string)
+ * - String search functions FIND and SEARCH are NOT supported (no indexOf method)
+ * - SUBSTITUTE with 4 arguments (index parameter) is NOT supported, only 3-arg version works
  * 
  * Obsidian global functions (only 7):
  * - if(condition, trueValue, falseValue)
@@ -110,11 +112,11 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	'LEFT': { type: 'operator' }, // LEFT(str, n) -> str.slice(0, n)
 	'RIGHT': { type: 'operator' }, // RIGHT(str, n) -> str.slice(-n)
 	'MID': { type: 'operator' }, // MID(str, start, count) -> str.slice(start-1, start-1+count)
-	'FIND': { type: 'operator' }, // FIND(search, str, start?) -> str.indexOf(search) + 1
-	'SEARCH': { type: 'operator' }, // SEARCH(search, str, start?) -> case-insensitive indexOf
-	'SUBSTITUTE': { type: 'operator' }, // SUBSTITUTE(str, old, new, index?) -> str.replace
+	'FIND': { type: 'unsupported' }, // No indexOf() in Obsidian
+	'SEARCH': { type: 'unsupported' }, // No indexOf() in Obsidian
+	'SUBSTITUTE': { type: 'operator' }, // SUBSTITUTE(str, old, new, index?) -> str.replace(old, new) - index not supported
 	'REPLACE': { type: 'operator' }, // REPLACE(str, start, count, replacement)
-	'REPT': { type: 'unsupported' }, // Repeat string - no Obsidian equivalent
+	'REPT': { type: 'method', obsidianName: 'repeat', argCount: 2 }, // REPT(str, count) -> str.repeat(count)
 	'ENCODE_URL_COMPONENT': { type: 'unsupported' },
 	
 	// ============================================================
@@ -446,34 +448,16 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 			}
 			break;
 		
-		// FIND(search, str, start?) -> str.indexOf(search, start-1) + 1
-		// Returns 1-based position (Airtable convention), 0 if not found
-		case 'FIND':
-			if (args.length === 2) {
-				return `(${args[1]}).indexOf(${args[0]}) + 1`;
-			}
-			else if (args.length === 3) {
-				return `(${args[1]}).indexOf(${args[0]}, (${args[2]}) - 1) + 1`;
-			}
-			break;
-		
-		// SEARCH(search, str, start?) -> case-insensitive indexOf
-		case 'SEARCH':
-			if (args.length === 2) {
-				return `(${args[1]}).toLowerCase().indexOf((${args[0]}).toLowerCase()) + 1`;
-			}
-			else if (args.length === 3) {
-				return `(${args[1]}).toLowerCase().indexOf((${args[0]}).toLowerCase(), (${args[2]}) - 1) + 1`;
-			}
-			break;
+			// Note: FIND and SEARCH are not supported because Obsidian doesn't have indexOf()
 		
 		// SUBSTITUTE(str, old, new, index?) -> str.replace(old, new)
-		// Note: index parameter for nth occurrence is not supported in simple replace
+		// Note: index parameter (4th arg) for nth occurrence is not supported
 		case 'SUBSTITUTE':
-			if (args.length >= 3) {
-				// Simple replace (first occurrence or all if using replaceAll)
+			if (args.length === 3) {
+				// Simple replace (all occurrences with g flag)
 				return `(${args[0]}).replace(${args[1]}, ${args[2]})`;
 			}
+			// If 4 args (with index parameter), cannot convert - return null to use static value
 			break;
 		
 		// REPLACE(str, start, count, replacement) -> manual slicing and concatenation
