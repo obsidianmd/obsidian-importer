@@ -1834,9 +1834,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Create field ID to name mapping for formula conversion
 		const fieldIdToNameMap = createFieldIdToNameMap(fields);
 		
-		// Separate formula fields from regular fields
-		const formulas: Array<{ name: string, obsidianFormula: string }> = [];
-		const regularFields: any[] = [];
+		// Process fields in original order, tracking which are formulas
+		// This preserves Airtable's field order in the .base file
+		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
 		
 		for (const field of fields) {
 			if (field.type === 'formula') {
@@ -1848,43 +1848,34 @@ export class AirtableAPIImporter extends FormatImporter {
 					if (canConvertFormula(formulaExpression)) {
 						const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
 						if (converted) {
-							// Successfully converted - add to formulas
-							formulas.push({
-								name: field.name,
-								obsidianFormula: converted,
-							});
-							continue;
+							// Successfully converted - store for later
+							formulas.set(field.name, converted);
 						}
 					}
 				}
-				
-				// Cannot convert or static strategy - treat as regular field
-				regularFields.push(field);
-			}
-			else {
-				// Not a formula field
-				regularFields.push(field);
 			}
 		}
 		
-		// Build property columns
+		// Build property columns in original Airtable field order
+		// Start with file.name (representing the title field)
 		const propertyColumns: string[] = ['file.name'];
 		
-		// Add regular fields (excluding title field)
-		for (const field of regularFields) {
+		// Add fields in original order (excluding title field)
+		for (const field of fields) {
+			// Skip the title field (it's represented by file.name)
 			if (titleFieldName && field.name === titleFieldName) {
 				continue;
 			}
-			const propertyName = this.sanitizePropertyName(field.name);
-			propertyColumns.push(propertyName);
-		}
-		
-		// Add formula columns (excluding title field if it's a formula)
-		for (const formula of formulas) {
-			if (titleFieldName && formula.name === titleFieldName) {
-				continue;
+			
+			// Check if this field was converted to a formula
+			if (formulas.has(field.name)) {
+				// Add as formula column
+				propertyColumns.push(`formula.${this.sanitizePropertyName(field.name)}`);
 			}
-			propertyColumns.push(`formula.${this.sanitizePropertyName(formula.name)}`);
+			else {
+				// Add as regular property column
+				propertyColumns.push(this.sanitizePropertyName(field.name));
+			}
 		}
 
 		// Create ONE .base file for the table with multiple views
@@ -1930,15 +1921,15 @@ export class AirtableAPIImporter extends FormatImporter {
 		};
 		
 		// Add formulas if there are any
-		if (formulas.length > 0) {
+		if (formulas.size > 0) {
 			baseConfig.formulas = {};
-			for (const formula of formulas) {
-				const formulaName = this.sanitizePropertyName(formula.name);
-				baseConfig.formulas[formulaName] = formula.obsidianFormula;
+			for (const [fieldName, obsidianFormula] of formulas) {
+				const formulaName = this.sanitizePropertyName(fieldName);
+				baseConfig.formulas[formulaName] = obsidianFormula;
 			}
 		}
 		
-		// Add properties section for display names
+		// Add properties section for display names (in original field order)
 		baseConfig.properties = {};
 		
 		// Set file.name display name if title field is specified
@@ -1948,26 +1939,27 @@ export class AirtableAPIImporter extends FormatImporter {
 			};
 		}
 		
-		// Add regular field display names (excluding title field)
-		for (const field of regularFields) {
+		// Add field display names in original order (excluding title field)
+		for (const field of fields) {
 			if (titleFieldName && field.name === titleFieldName) {
 				continue;
 			}
-			const propertyKey = this.sanitizePropertyName(field.name);
-			baseConfig.properties[propertyKey] = {
-				displayName: field.name
-			};
-		}
-		
-		// Add formula field display names (excluding title field)
-		for (const formula of formulas) {
-			if (titleFieldName && formula.name === titleFieldName) {
-				continue;
+			
+			// Check if this field was converted to a formula
+			if (formulas.has(field.name)) {
+				// Add formula display name
+				const propertyKey = `formula.${this.sanitizePropertyName(field.name)}`;
+				baseConfig.properties[propertyKey] = {
+					displayName: field.name
+				};
 			}
-			const propertyKey = `formula.${this.sanitizePropertyName(formula.name)}`;
-			baseConfig.properties[propertyKey] = {
-				displayName: formula.name
-			};
+			else {
+				// Add regular field display name
+				const propertyKey = this.sanitizePropertyName(field.name);
+				baseConfig.properties[propertyKey] = {
+					displayName: field.name
+				};
+			}
 		}
 		
 		// Add views
