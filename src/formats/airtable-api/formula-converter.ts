@@ -8,7 +8,7 @@
  * - {Field Name} -> note["Field Name"]
  * - & (string concatenation) -> + operator
  * - = (equality) -> == operator (avoiding !=, >=, <=)
- * - AND(a, b) -> a && b, OR(a, b) -> a || b, NOT(a) -> !a
+ * - AND(a, b) -> (a).isTruthy() && (b).isTruthy(), OR(a, b) -> (a).isTruthy() || (b).isTruthy(), NOT(a) -> !(a).isTruthy()
  * - SUM(a, b, c) -> [a, b, c].flat().sum()
  * - COUNT(a, b, c) -> [a, b, c].flat().filter(value.isType("number")).length (only numbers)
  * - COUNTA(a, b, c) -> [a, b, c].flat().filter(!value.isEmpty()).length (non-empty)
@@ -74,9 +74,9 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// ============================================================
 	// Logical operators (convert to operators)
 	// ============================================================
-	'AND': { type: 'operator' }, // AND(a, b, ...) -> a && b && ...
-	'OR': { type: 'operator' }, // OR(a, b, ...) -> a || b || ...
-	'NOT': { type: 'operator' }, // NOT(a) -> !a
+	'AND': { type: 'operator' }, // AND(a, b, ...) -> (a).isTruthy() && (b).isTruthy() && ...
+	'OR': { type: 'operator' }, // OR(a, b, ...) -> (a).isTruthy() || (b).isTruthy() || ...
+	'NOT': { type: 'operator' }, // NOT(a) -> !(a).isTruthy()
 	
 	// ============================================================
 	// Number functions -> Methods
@@ -364,24 +364,29 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 	
 	switch (funcName) {
 		// Logical operators
-		// AND(a, b, c, ...) -> a && b && c && ...
+		// AND(a, b, c, ...) -> (a).isTruthy() && (b).isTruthy() && ...
+		// Use isTruthy() to handle nullValue correctly
 		case 'AND':
 			if (args.length > 0) {
-				return `(${args.join(' && ')})`;
+				const truthyArgs = args.map(arg => `(${arg}).isTruthy()`);
+				return `(${truthyArgs.join(' && ')})`;
 			}
 			break;
 		
-		// OR(a, b, c, ...) -> a || b || c || ...
+		// OR(a, b, c, ...) -> (a).isTruthy() || (b).isTruthy() || ...
+		// Use isTruthy() to handle nullValue correctly
 		case 'OR':
 			if (args.length > 0) {
-				return `(${args.join(' || ')})`;
+				const truthyArgs = args.map(arg => `(${arg}).isTruthy()`);
+				return `(${truthyArgs.join(' || ')})`;
 			}
 			break;
 		
-		// NOT(a) -> !a
+		// NOT(a) -> !(a).isTruthy()
+		// Use isTruthy() to handle nullValue correctly (nullValue.isTruthy() returns false)
 		case 'NOT':
 			if (args.length === 1) {
-				return `!(${args[0]})`;
+				return `!(${args[0]}).isTruthy()`;
 			}
 			break;
 		
