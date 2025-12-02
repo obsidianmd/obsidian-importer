@@ -386,13 +386,23 @@ export class NotionAPIImporter extends FormatImporter {
 				cursor = response.has_more ? response.next_cursor : undefined;
 			} while (cursor);
 
-			// Phase 1: Identify databases that are inside blocks (should be filtered)
-			const blockDatabaseIds = new Set<string>();
+			// Phase 1: Identify items that should be filtered
+			// Collect IDs of pages and databases that won't appear in tree:
+			// - Databases with database_parent.type === 'block_id'
+			// - Pages with parent.type === 'block_id'
+			const filteredIds = new Set<string>();
+		
 			for (const item of allRawItems) {
 				if (item.object === 'data_source') {
-					// Check if this database is inside a block
+					// Databases inside blocks
 					if (item.database_parent && item.database_parent.type === 'block_id') {
-						blockDatabaseIds.add(item.id);
+						filteredIds.add(item.id);
+					}
+				}
+				else if (item.object === 'page') {
+					// Pages with block_id parent
+					if (item.parent && item.parent.type === 'block_id') {
+						filteredIds.add(item.id);
 					}
 				}
 			}
@@ -400,21 +410,23 @@ export class NotionAPIImporter extends FormatImporter {
 			// Phase 2: Process items and filter appropriately
 			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
 			for (const item of allRawItems) {
-				// Skip items with block_id parent - these are child pages/databases within blocks
-				// They will be imported automatically when their parent page is imported
-				if (item.parent && item.parent.type === 'block_id') {
+				// Skip if this item itself is in the filtered list
+				if (filteredIds.has(item.id)) {
 					continue;
 				}
 			
-				// Skip databases that are inside blocks
-				if (item.object === 'data_source' && item.database_parent && item.database_parent.type === 'block_id') {
-					continue;
+				// Skip databases whose parent page is filtered
+				if (item.object === 'data_source' && item.database_parent && item.database_parent.type === 'page_id') {
+					const parentPageId = item.database_parent.page_id;
+					if (filteredIds.has(parentPageId)) {
+						continue;
+					}
 				}
 
-				// Skip pages that belong to databases inside blocks
+				// Skip pages that belong to filtered databases
 				if (item.object === 'page' && item.parent && item.parent.type === 'data_source_id') {
 					const dataSourceId = item.parent.data_source_id;
-					if (blockDatabaseIds.has(dataSourceId)) {
+					if (filteredIds.has(dataSourceId)) {
 						continue;
 					}
 				}

@@ -14,8 +14,8 @@ export function sanitizeFileNameKeepPath(name: string) {
 		.replace(illegalReNoDir, '')
 		.replace(controlRe, '')
 		.replace(reservedRe, '')
-		.replace(windowsReservedRe, '')
 		.replace(windowsTrailingRe, '')
+		.replace(windowsReservedRe, '')
 		.replace(squareBracketOpenRe, '')
 		.replace(squareBracketCloseRe, '')
 		.replace(startsWithDotRe, '');
