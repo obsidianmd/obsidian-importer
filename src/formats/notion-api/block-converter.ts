@@ -15,16 +15,13 @@ import {
 	LinkPreviewBlockObjectResponse,
 	CodeBlockObjectResponse,
 	RichTextItemResponse,
-	Heading1BlockObjectResponse,
-	Heading2BlockObjectResponse,
-	Heading3BlockObjectResponse
 } from '@notionhq/client';
 import { normalizePath, TFile } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
-import { BlockConversionContext, AttachmentType, AttachmentBlockConfig } from './types';
+import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, HeaderContentWithRichTextAndColorResponse } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
 import { getUniqueFilePath } from './vault-helpers';
 
@@ -509,27 +506,25 @@ export async function convertHeading(block: BlockObjectResponse, context: BlockC
 	const indent = '    '.repeat(indentLevel); // 4 spaces per indent level
 	
 	let headingPrefix = '';
-	let headingData: Heading1BlockObjectResponse['heading_1'] | Heading2BlockObjectResponse['heading_2'] | Heading3BlockObjectResponse['heading_3'];
-	let isToggleable = false;
+	let headingData: HeaderContentWithRichTextAndColorResponse;
 	
 	if (block.type === 'heading_1') {
 		headingPrefix = '# ';
-		headingData = (block as Heading1BlockObjectResponse).heading_1;
-		isToggleable = (block as Heading1BlockObjectResponse).heading_1.is_toggleable || false;
+		headingData = block.heading_1;
 	}
 	else if (block.type === 'heading_2') {
 		headingPrefix = '## ';
-		headingData = (block as Heading2BlockObjectResponse).heading_2;
-		isToggleable = (block as Heading2BlockObjectResponse).heading_2.is_toggleable || false;
+		headingData = block.heading_2;
 	}
 	else if (block.type === 'heading_3') {
 		headingPrefix = '### ';
-		headingData = (block as Heading3BlockObjectResponse).heading_3;
-		isToggleable = (block as Heading3BlockObjectResponse).heading_3.is_toggleable || false;
+		headingData = block.heading_3;
 	}
 	else {
 		return '';
 	}
+	
+	const isToggleable = headingData.is_toggleable || false;
 	
 	const headingText = convertRichText(headingData.rich_text, context);
 	

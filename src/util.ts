@@ -12,7 +12,7 @@ let badLinkRe = /[\[\]#|^]/g; // Regular expression to match characters that int
 export function sanitizeFileName(name: string) {
 	const sanitized = name
 		.replace(illegalRe, '')
-		.replace(controlRe, '')  
+		.replace(controlRe, '')
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')

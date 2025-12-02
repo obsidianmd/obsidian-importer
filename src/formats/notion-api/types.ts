@@ -2,7 +2,14 @@
  * Type definitions for Notion API importer
  */
 
-import { Client, BlockObjectResponse, PageObjectResponse } from '@notionhq/client';
+import { 
+	Client, 
+	BlockObjectResponse, 
+	PageObjectResponse,
+	Heading1BlockObjectResponse,
+	Heading2BlockObjectResponse,
+	Heading3BlockObjectResponse
+} from '@notionhq/client';
 import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../notion-api';
@@ -181,6 +188,14 @@ export interface FormatAttachmentLinkParams {
  * Callback type for importing child pages
  */
 export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
+
+/**
+ * Common type for heading content with rich text and color
+ */
+export type HeaderContentWithRichTextAndColorResponse = 
+	Heading1BlockObjectResponse['heading_1'] | 
+	Heading2BlockObjectResponse['heading_2'] | 
+	Heading3BlockObjectResponse['heading_3'];
 
 /**
  * Context for block conversion operations
