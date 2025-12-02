@@ -6,7 +6,7 @@
 import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { sanitizeFileName, serializeFrontMatter } from '../util';
+import { sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
@@ -1021,7 +1021,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		for (const record of records) {
 			const recordFields = record.fields || {};
 			const primaryFieldValue = recordFields[fields[0]?.name];
-			const title = primaryFieldValue ? String(primaryFieldValue) : `Record ${record.id.substring(0, 8)}`;
+			const title = primaryFieldValue ? String(primaryFieldValue) : 'Untitled Record';
 			recordIdToTitle.set(record.id, title);
 		}
 		
@@ -1034,7 +1034,20 @@ export class AirtableAPIImporter extends FormatImporter {
 				await this.createRecordFile(ctx, record, baseId, tableName, tablePath, fields, viewReferences, recordIdToTitle);
 			}
 			catch (error) {
-				const recordTitle = record.fields?.[fields[0]?.name] || `Record ${record.id.substring(0, 8)}`;
+				// Safely get record title for error reporting
+				let recordTitle = 'Untitled Record';
+				try {
+					const primaryFieldValue = record.fields?.[fields[0]?.name];
+					if (primaryFieldValue && typeof primaryFieldValue === 'string') {
+						recordTitle = primaryFieldValue;
+					}
+					else if (primaryFieldValue) {
+						recordTitle = String(primaryFieldValue);
+					}
+				}
+				catch (e) {
+					// If title extraction fails, use default
+				}
 				ctx.reportFailed(recordTitle, error);
 				this.processedRecordsCount++;
 				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
@@ -1234,7 +1247,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		});
 		
 		if (!hasAnyValue) {
-			ctx.reportSkipped(recordId, 'Empty record');
+			ctx.reportSkipped('Untitled Record', 'Empty record');
 			this.processedRecordsCount++;
 			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			return;
@@ -1259,37 +1272,25 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		
 		if (!title || title.trim() === '') {
-			title = `Record ${recordId.substring(0, 8)}`;
+			title = 'Untitled Record';
 		}
 		
-		const sanitizedTitle = sanitizeFileName(title);
-		const filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
+		let sanitizedTitle = sanitizeFileName(title);
 		
-		// Check for incremental import
-		if (this.incrementalImport) {
-			const existingFile = this.vault.getAbstractFileByPath(filePath);
-			if (existingFile instanceof TFile) {
-				const content = await this.vault.read(existingFile);
-				
-				// Extract airtable-id from frontmatter
-				const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-				if (frontmatterMatch) {
-					try {
-						const frontmatter = parseYaml(frontmatterMatch[1]);
-						const existingId = frontmatter?.['airtable-id'];
-						if (existingId === recordId) {
-							ctx.reportSkipped(sanitizedTitle, 'Already imported');
-							this.processedRecordsCount++;
-							ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-							return;
-						}
-					}
-					catch (e) {
-						// Failed to parse frontmatter, continue with import
-					}
-				}
-			}
+		// If sanitized title is empty (all characters were illegal), use default
+		if (!sanitizedTitle || sanitizedTitle.trim() === '') {
+			sanitizedTitle = 'Untitled Record';
 		}
+		
+		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
+		
+		// Check for incremental import - skip if same record already exists
+		const shouldSkip = await this.handleIncrementalImportCheck(filePath, recordId, async () => {
+			ctx.reportSkipped(sanitizedTitle, 'Already imported');
+			this.processedRecordsCount++;
+			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+		});
+		if (shouldSkip) return;
 		
 		// Build template data for both frontmatter and body
 		const templateData: Record<string, string> = {};
@@ -1435,14 +1436,18 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Generate file content
 		const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
 
-		// Write or update file
+		// Handle file name conflicts (different record with same name)
 		const existingFile = this.vault.getAbstractFileByPath(filePath);
 		if (existingFile instanceof TFile) {
-			await this.vault.modify(existingFile, fileContent);
+			// File exists with different record - find unique name
+			filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
+			// Update sanitizedTitle to match the new file name (without .md)
+			const fileNameWithExt = filePath.split('/').pop() || sanitizedTitle;
+			sanitizedTitle = fileNameWithExt.replace(/\.md$/, '');
 		}
-		else {
-			await this.vault.create(filePath, fileContent);
-		}
+		
+		// Create the file
+		await this.vault.create(filePath, fileContent);
 		
 		// Track record path (without .md extension)
 		this.recordIdToPath.set(recordId, filePath.replace(/\.md$/, ''));
@@ -1495,7 +1500,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Skip only if record has no field values at all
 		if (!hasAnyValue) {
-			ctx.reportSkipped(`Record ${recordId.substring(0, 8)}`, 'Empty record (no field values)');
+			ctx.reportSkipped('Untitled Record', 'Empty record (no field values)');
 			this.processedRecordsCount++;
 			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			return;
@@ -1534,10 +1539,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Apply title template
 		const recordTitle = this.templateConfig
 			? applyTemplate(this.templateConfig.titleTemplate, templateData)
-			: (templateData[fields[0]?.name] || `Record ${recordId.substring(0, 8)}`);
+			: (templateData[fields[0]?.name] || 'Untitled Record');
 
 		// Use fallback title if empty (don't skip, since record has some field values)
-		const sanitizedTitle = sanitizeFileName(recordTitle) || `Record ${recordId.substring(0, 8)}`;
+		const sanitizedTitle = sanitizeFileName(recordTitle) || 'Untitled Record';
 
 		ctx.status(`Importing: ${sanitizedTitle}`);
 
@@ -1638,18 +1643,16 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Check for incremental import before creating file
 		const filePathToCreate = normalizePath(`${targetFolder}/${sanitizedTitle}.md`);
-		const shouldSkip = await this.shouldSkipExistingFile(filePathToCreate, recordId, ctx);
-		
-		if (shouldSkip) {
+		const shouldSkip = await this.handleIncrementalImportCheck(filePathToCreate, recordId, async () => {
 			// File already exists with same airtable-id, skip creation
 			// But still track the path for linked record resolution
 			const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
 			this.recordIdToPath.set(recordId, pathWithoutExt);
-			
+			ctx.reportSkipped(sanitizedTitle, 'Already imported');
 			this.processedRecordsCount++;
 			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-			return;
-		}
+		});
+		if (shouldSkip) return;
 
 		// Create markdown file
 		const fullContent = serializeFrontMatter(frontMatter) + (bodyContent ? '\n\n' + bodyContent : '');
@@ -1673,40 +1676,47 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Check if a file should be skipped during import (incremental import)
+	 * Handle incremental import check for a record
+	 * If file exists with same airtable-id, executes the callback and returns true
+	 * Otherwise returns false to continue with normal import
+	 * 
+	 * @param filePath - Path to check
+	 * @param recordId - Airtable record ID to compare
+	 * @param onMatch - Callback to execute if IDs match (should handle reporting and return)
+	 * @returns true if record was handled (should skip further processing), false otherwise
 	 */
-	private async shouldSkipExistingFile(
+	private async handleIncrementalImportCheck(
 		filePath: string,
-		airtableId: string,
-		ctx: ImportContext
+		recordId: string,
+		onMatch: (file: TFile) => Promise<void>
 	): Promise<boolean> {
-		// Check if file exists
-		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
-		if (!file || !(file instanceof TFile)) {
-			return false; // File doesn't exist, don't skip
+		if (!this.incrementalImport) {
+			return false;
 		}
 
-		// Read file and extract airtable-id from frontmatter
+		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+		if (!file || !(file instanceof TFile)) {
+			return false;
+		}
+
 		try {
 			const content = await this.vault.read(file);
-			const airtableIdMatch = content.match(/^airtable-id:\s*(.+)$/m);
-			
-			if (airtableIdMatch) {
-				const existingAirtableId = airtableIdMatch[1].trim();
-				if (existingAirtableId === airtableId) {
-					// Same airtable-id, skip this file
-					const fileName = file.basename;
-					ctx.reportSkipped(fileName, 'already exists with same airtable-id');
+			const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+			if (frontmatterMatch) {
+				const frontmatter = parseYaml(frontmatterMatch[1]);
+				const existingId = frontmatter?.['airtable-id'];
+				if (existingId === recordId) {
+					// Same record - execute callback
+					await onMatch(file);
 					return true;
 				}
 			}
-			// Different airtable-id or no airtable-id, don't skip (will rename with unique path)
-			return false;
 		}
 		catch (error) {
-			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
-			return false; // On error, don't skip
+			// Failed to read/parse, continue with normal import
 		}
+
+		return false;
 	}
 
 	/**

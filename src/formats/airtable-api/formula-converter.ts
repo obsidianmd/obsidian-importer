@@ -7,6 +7,7 @@
  * Key transformations:
  * - {Field Name} -> note["Field Name"]
  * - & (string concatenation) -> + operator
+ * - = (equality) -> == operator (avoiding !=, >=, <=)
  * - AND(a, b) -> a && b, OR(a, b) -> a || b, NOT(a) -> !a
  * - SUM(a, b, c) -> [a, b, c].flat().sum()
  * - COUNT(a, b, c) -> [a, b, c].flat().filter(value.isType("number")).length (only numbers)
@@ -263,6 +264,10 @@ export function convertAirtableFormulaToObsidian(
 	// Step 2: Convert string concatenation operator & to +
 	// Need to be careful not to replace & inside strings
 	result = convertConcatenationOperator(result);
+	
+	// Step 2.5: Convert Airtable's = operator to == for equality comparison
+	// Need to be careful not to replace = inside strings or != operator
+	result = convertEqualityOperator(result);
 	
 	// Step 3: Convert TRUE() and FALSE() to lowercase
 	result = result.replace(/\bTRUE\s*\(\s*\)/gi, 'true');
@@ -581,6 +586,60 @@ function convertConcatenationOperator(formula: string): string {
 			else if (char === '&') {
 				// Replace & with +
 				result += '+';
+			}
+			else {
+				result += char;
+			}
+		}
+	}
+	
+	return result;
+}
+
+/**
+ * Convert Airtable's = operator to == for equality comparison
+ * Need to avoid replacing:
+ * - = inside strings
+ * - != (not equal)
+ * - >= (greater than or equal)
+ * - <= (less than or equal)
+ */
+function convertEqualityOperator(formula: string): string {
+	let result = '';
+	let inString = false;
+	let stringChar = '';
+	
+	for (let i = 0; i < formula.length; i++) {
+		const char = formula[i];
+		const prevChar = i > 0 ? formula[i - 1] : '';
+		const nextChar = i < formula.length - 1 ? formula[i + 1] : '';
+		
+		if (inString) {
+			result += char;
+			if (char === stringChar && prevChar !== '\\') {
+				inString = false;
+			}
+		}
+		else {
+			if (char === '"' || char === '\'') {
+				inString = true;
+				stringChar = char;
+				result += char;
+			}
+			else if (char === '=') {
+				// Check if it's part of !=, >=, <=, or already ==
+				if (prevChar === '!' || prevChar === '>' || prevChar === '<' || prevChar === '=') {
+					// Part of !=, >=, <=, or ==, keep as is
+					result += char;
+				}
+				else if (nextChar === '=') {
+					// Already ==, keep as is
+					result += char;
+				}
+				else {
+					// Single = for equality, convert to ==
+					result += '==';
+				}
 			}
 			else {
 				result += char;
