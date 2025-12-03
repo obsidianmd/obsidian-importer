@@ -178,11 +178,11 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	'MOD': { type: 'operator' }, // MOD(a, b) -> a % b
 	
 	// ============================================================
-	// Special Airtable functions (not convertible)
+	// Special Airtable functions
 	// ============================================================
-	'RECORD_ID': { type: 'unsupported' },
-	'CREATED_TIME': { type: 'unsupported' },
-	'LAST_MODIFIED_TIME': { type: 'unsupported' },
+	'RECORD_ID': { type: 'unsupported' }, // No equivalent in Obsidian
+	'CREATED_TIME': { type: 'special' }, // CREATED_TIME() -> file.ctime
+	'LAST_MODIFIED_TIME': { type: 'special' }, // LAST_MODIFIED_TIME() -> file.mtime, with args -> unsupported
 	
 	// ============================================================
 	// Type/value functions
@@ -414,6 +414,22 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 				return `(${args[0]}).format("YYYY-MM-DD")`;
 			}
 			break;
+		
+		// CREATED_TIME() -> file.ctime
+		case 'CREATED_TIME':
+			if (args.length === 0) {
+				return 'file.ctime';
+			}
+			break;
+		
+		// LAST_MODIFIED_TIME() -> file.mtime
+		// LAST_MODIFIED_TIME({field}) -> unsupported (can't track field-level modification time)
+		case 'LAST_MODIFIED_TIME':
+			if (args.length === 0) {
+				return 'file.mtime';
+			}
+			// With arguments (specific field modification time) - not supported
+			return `"!UNSUPPORTED:LAST_MODIFIED_TIME with field"`;
 		
 		// Aggregation functions
 		// SUM(a, b, c, ...) -> [a, b, c].flat().sum()
