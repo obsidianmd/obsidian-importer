@@ -55,7 +55,7 @@
 import type { ImportContext } from '../../main';
 
 interface ConversionInfo {
-	type: 'global' | 'method' | 'property' | 'operator' | 'unsupported';
+	type: 'global' | 'method' | 'property' | 'operator' | 'unsupported' | 'special';
 	obsidianName?: string;
 	argCount?: number;
 	note?: string;
@@ -82,11 +82,11 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// Number functions -> Methods
 	// ============================================================
 	'ABS': { type: 'method', obsidianName: 'abs', argCount: 1 },
-	'CEILING': { type: 'method', obsidianName: 'ceil', argCount: 1 },
-	'FLOOR': { type: 'method', obsidianName: 'floor', argCount: 1 },
+	'CEILING': { type: 'special' }, // CEILING(value) -> ceil, CEILING(value, significance) -> unsupported
+	'FLOOR': { type: 'special' }, // FLOOR(value) -> floor, FLOOR(value, significance) -> unsupported
 	'ROUND': { type: 'method', obsidianName: 'round', argCount: 2 }, // ROUND(value, precision)
-	'ROUNDUP': { type: 'method', obsidianName: 'ceil', argCount: 1 }, // Round up
-	'ROUNDDOWN': { type: 'method', obsidianName: 'floor', argCount: 1 }, // Round down
+	'ROUNDUP': { type: 'unsupported' }, // Obsidian ceil() doesn't support precision parameter
+	'ROUNDDOWN': { type: 'unsupported' }, // Obsidian floor() doesn't support precision parameter
 	'INT': { type: 'method', obsidianName: 'floor', argCount: 1 }, // INT = floor
 	'EVEN': { type: 'unsupported' }, // Return the nearest even number
 	'ODD': { type: 'unsupported' }, // Return the nearest odd number
@@ -389,6 +389,24 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 				return `!(${args[0]}).isTruthy()`;
 			}
 			break;
+		
+		// CEILING(value) -> value.ceil()
+		// CEILING(value, significance) -> unsupported (Obsidian ceil() doesn't support significance)
+		case 'CEILING':
+			if (args.length === 1) {
+				return `(${args[0]}).ceil()`;
+			}
+			// 2 arguments (with significance) - not supported
+			return `"!UNSUPPORTED:CEILING with significance"`;
+		
+		// FLOOR(value) -> value.floor()
+		// FLOOR(value, significance) -> unsupported (Obsidian floor() doesn't support significance)
+		case 'FLOOR':
+			if (args.length === 1) {
+				return `(${args[0]}).floor()`;
+			}
+			// 2 arguments (with significance) - not supported
+			return `"!UNSUPPORTED:FLOOR with significance"`;
 		
 		// Aggregation functions
 		// SUM(a, b, c, ...) -> [a, b, c].flat().sum()
