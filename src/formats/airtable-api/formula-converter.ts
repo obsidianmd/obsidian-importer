@@ -129,16 +129,16 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	'HOUR': { type: 'property', obsidianName: 'hour', argCount: 1 },
 	'MINUTE': { type: 'property', obsidianName: 'minute', argCount: 1 },
 	'SECOND': { type: 'property', obsidianName: 'second', argCount: 1 },
-	'WEEKDAY': { type: 'property', obsidianName: 'weekday', argCount: 1 }, // 0-6 (Sunday-Saturday)
+	'WEEKDAY': { type: 'unsupported' }, // Obsidian doesn't support weekday property
 	'WEEKNUM': { type: 'unsupported' }, // ISO week number
 	
 	// Date/Time formatting and manipulation
-	'DATETIME_FORMAT': { type: 'method', obsidianName: 'format', argCount: 2 }, // DATETIME_FORMAT(date, format)
-	'DATETIME_PARSE': { type: 'global', obsidianName: 'date' }, // DATETIME_PARSE(str) -> date(str)
+	'DATETIME_FORMAT': { type: 'method', obsidianName: 'format', argCount: 2 }, // DATETIME_FORMAT(date, format) -> date.format(format)
+	'DATETIME_PARSE': { type: 'unsupported' }, // Returns date type, format is fixed, locale not supported
 	'DATEADD': { type: 'operator' }, // DATEADD(date, amount, unit) -> date + 'amount+unit'
 	'DATETIME_DIFF': { type: 'unsupported' }, // Complex date diff
-	'DATESTR': { type: 'method', obsidianName: 'date', argCount: 1 }, // Format as date string
-	'TIMESTR': { type: 'method', obsidianName: 'time', argCount: 1 }, // Format as time string
+	'DATESTR': { type: 'special' }, // DATESTR(date) -> date.format("YYYY-MM-DD")
+	'TIMESTR': { type: 'method', obsidianName: 'time', argCount: 1 }, // TIMESTR(date) -> date.time()
 	
 	// Date comparison functions
 	'IS_BEFORE': { type: 'operator' }, // IS_BEFORE(date1, date2) -> date1 < date2
@@ -407,6 +407,13 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 			}
 			// 2 arguments (with significance) - not supported
 			return `"!UNSUPPORTED:FLOOR with significance"`;
+		
+		// DATESTR(date) -> date.format("YYYY-MM-DD")
+		case 'DATESTR':
+			if (args.length === 1) {
+				return `(${args[0]}).format("YYYY-MM-DD")`;
+			}
+			break;
 		
 		// Aggregation functions
 		// SUM(a, b, c, ...) -> [a, b, c].flat().sum()
