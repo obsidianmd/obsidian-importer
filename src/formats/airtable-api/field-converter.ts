@@ -157,18 +157,67 @@ export function convertFieldValue(
 			}
 		
 		case 'rollup':
-			// Rollup fields are computed, return the result
+			// Rollup fields - check if can be converted to formula
+			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
+				const options = fieldSchema.options as any;
+				const linkedFieldId = options?.recordLinkFieldId;
+				const rollupFieldId = options?.fieldIdInLinkedTable;
+				
+				if (linkedFieldId && rollupFieldId) {
+					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
+					const rollupFieldName = fieldIdToNameMap.get(rollupFieldId);
+					
+					if (linkedFieldName && rollupFieldName) {
+						// Can be converted to formula - return null to skip YAML
+						console.log(`✓ Rollup field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						return null;
+					}
+				}
+			}
+			// Fall back to static value
 			return convertFormulaResult(fieldValue, fieldSchema);
 		
 		case 'lookup':
-			// Lookup fields show values from linked records
+			// Lookup fields - check if can be converted to formula
+			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
+				const options = fieldSchema.options as any;
+				const linkedFieldId = options?.recordLinkFieldId;
+				const lookupFieldId = options?.fieldIdInLinkedTable;
+				
+				if (linkedFieldId && lookupFieldId) {
+					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
+					const lookupFieldName = fieldIdToNameMap.get(lookupFieldId);
+					
+					if (linkedFieldName && lookupFieldName) {
+						// Can be converted to formula - return null to skip YAML
+						console.log(`✓ Lookup field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						return null;
+					}
+				}
+			}
+			// Fall back to static value
 			if (Array.isArray(fieldValue)) {
 				return fieldValue;
 			}
 			return fieldValue;
 		
 		case 'count':
-			// Count of linked records
+			// Count fields - check if can be converted to formula
+			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
+				const options = fieldSchema.options as any;
+				const linkedFieldId = options?.recordLinkFieldId;
+				
+				if (linkedFieldId) {
+					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
+					
+					if (linkedFieldName) {
+						// Can be converted to formula - return null to skip YAML
+						console.log(`✓ Count field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						return null;
+					}
+				}
+			}
+			// Fall back to static value
 			return Number(fieldValue) || 0;
 		
 		case 'createdBy':
@@ -187,6 +236,31 @@ export function convertFieldValue(
 				return fieldValue.text || null;
 			}
 			return String(fieldValue);
+		
+		case 'multipleLookupValues':
+			// This is the result type for Lookup fields (similar to lookup but explicit type)
+			// It's handled the same as lookup - return the array of values
+			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
+				const options = fieldSchema.options as any;
+				const linkedFieldId = options?.recordLinkFieldId;
+				const lookupFieldId = options?.fieldIdInLinkedTable;
+				
+				if (linkedFieldId && lookupFieldId) {
+					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
+					const lookupFieldName = fieldIdToNameMap.get(lookupFieldId);
+					
+					if (linkedFieldName && lookupFieldName) {
+						// Can be converted to formula - return null to skip YAML
+						console.log(`✓ MultipleLookupValues field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						return null;
+					}
+				}
+			}
+			// Fall back to static value
+			if (Array.isArray(fieldValue)) {
+				return fieldValue;
+			}
+			return fieldValue;
 		
 		default:
 			// Unknown field type, return as-is
