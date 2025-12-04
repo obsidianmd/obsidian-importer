@@ -63,6 +63,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	// Store all fields for property type inference
 	private allFieldsForTypeInference: Map<string, any> = new Map();
 	
+	// Global field ID to name mapping (across all tables in the base)
+	// Needed for lookup/rollup fields that reference fields in linked tables
+	private globalFieldIdToNameMap: Map<string, string> = new Map();
+	
+	// Global record ID to title mapping (across all tables)
+	// Needed for resolving linked records that reference records in other tables
+	private globalRecordIdToTitle: Map<string, string> = new Map();
+	
 	// Prepared data cache for two-phase import
 	private preparedData: Map<string, PreparedTableData> = new Map();
 
@@ -786,6 +794,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.recordToViews.clear();
 			this.tableViews.clear();
 			this.allFieldsForTypeInference.clear();
+			this.globalFieldIdToNameMap.clear();
+			this.globalRecordIdToTitle.clear();
 			this.preparedData.clear();
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
@@ -926,10 +936,14 @@ export class AirtableAPIImporter extends FormatImporter {
 			['grid', 'gallery', 'list'].includes(view.type.toLowerCase())
 		);
 		
-		// Collect fields for type inference
+		// Collect fields for type inference and build global field ID to name mapping
 		for (const field of fields) {
 			if (!this.allFieldsForTypeInference.has(field.name)) {
 				this.allFieldsForTypeInference.set(field.name, field);
+			}
+			// Build global field ID to name mapping (for lookup/rollup fields)
+			if (field.id && field.name) {
+				this.globalFieldIdToNameMap.set(field.id, field.name);
 			}
 		}
 		
@@ -938,6 +952,15 @@ export class AirtableAPIImporter extends FormatImporter {
 		const allRecords = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx);
 		
 		if (ctx.isCancelled()) return;
+		
+		// Build global record ID to title mapping (for resolving linked records across tables)
+		const primaryFieldName = fields[0]?.name;
+		for (const record of allRecords) {
+			const recordFields = record.fields || {};
+			const primaryFieldValue = recordFields[primaryFieldName];
+			const title = primaryFieldValue ? String(primaryFieldValue) : 'Untitled Record';
+			this.globalRecordIdToTitle.set(record.id, title);
+		}
 		
 		// Step 2: Fetch view memberships for each record
 		const recordViewMemberships = new Map<string, string[]>();
@@ -1016,22 +1039,14 @@ export class AirtableAPIImporter extends FormatImporter {
 		
 		if (ctx.isCancelled()) return;
 		
-		// Pre-process linked records: build record ID -> title mapping
-		const recordIdToTitle = new Map<string, string>();
-		for (const record of records) {
-			const recordFields = record.fields || {};
-			const primaryFieldValue = recordFields[fields[0]?.name];
-			const title = primaryFieldValue ? String(primaryFieldValue) : 'Untitled Record';
-			recordIdToTitle.set(record.id, title);
-		}
-		
 		// Create files for all records
+		// Note: Using globalRecordIdToTitle for resolving linked records across tables
 		for (const record of records) {
 			if (ctx.isCancelled()) return;
 			
 			try {
 				const viewReferences = recordViewMemberships.get(record.id) || [];
-				await this.createRecordFile(ctx, record, baseId, tableName, tablePath, fields, viewReferences, recordIdToTitle);
+				await this.createRecordFile(ctx, record, baseId, tableName, tablePath, fields, viewReferences, this.globalRecordIdToTitle);
 			}
 			catch (error) {
 				// Safely get record title for error reporting
@@ -1305,6 +1320,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Convert field value properly (handles formulas, links, etc.)
+			// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
 			let convertedValue = convertFieldValue(
 				fieldValue,
 				field,
@@ -1312,7 +1328,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				this.formulaStrategy,
 				this.linkedRecordPlaceholders,
 				ctx,
-				fieldIdToNameMap
+				this.globalFieldIdToNameMap
 			);
 			
 			// If formula was converted (returns null), use the computed value for templates
@@ -1389,6 +1405,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 
 				// Convert field value with direct linked record resolution
+				// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
 				let convertedValue = convertFieldValue(
 					fieldValue,
 					field,
@@ -1396,7 +1413,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.formulaStrategy,
 					this.linkedRecordPlaceholders, // Not used in phase 2, but needed for signature
 					ctx,
-					fieldIdToNameMap
+					this.globalFieldIdToNameMap
 				);
 
 				// Skip if convertedValue is null (e.g., formula was converted and will be in .base file)
@@ -1418,9 +1435,25 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Convert property value according to type
 				let propertyValue: any = convertedValue;
 
-				// Handle attachments: process to ensure external links are plain URLs
+				// Handle attachments: download and convert to wiki links or URLs
 				if (field.type === 'multipleAttachments' && Array.isArray(convertedValue)) {
-					propertyValue = convertedValue; // Already handled by convertFieldValue
+					const attachments = convertedValue as AirtableAttachment[];
+					propertyValue = await processAttachmentsForYAML(attachments, {
+						ctx,
+						currentFolderPath: tablePath,
+						currentFilePath: filePath,
+						vault: this.vault,
+						app: this.app,
+						downloadAttachments: this.downloadAttachments,
+						getAvailableAttachmentPath: async (filename: string) => {
+							return await this.getAvailablePathForAttachment(filename, []);
+						},
+						onAttachmentDownloaded: () => {
+							this.attachmentsDownloaded++;
+							ctx.attachments = this.attachmentsDownloaded;
+							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+						},
+					});
 				}
 
 				// Set property
@@ -1588,6 +1621,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (fieldValue === null || fieldValue === undefined) continue;
 
 				// Convert field value properly
+				// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
 				const converted = convertFieldValue(
 					fieldValue,
 					field,
@@ -1595,7 +1629,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.formulaStrategy,
 					this.linkedRecordPlaceholders,
 					ctx,
-					fieldIdToNameMap
+					this.globalFieldIdToNameMap
 				);
 
 				if (converted === null || converted === undefined) continue;
@@ -1849,8 +1883,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
 		
 		for (const field of fields) {
+			const options = field.options as any;
+			
+			// Process formula fields
 			if (field.type === 'formula') {
-				const options = field.options as any;
 				const formulaExpression = options?.formula;
 				
 				// Try to convert formula (if strategy is not static)
@@ -1861,6 +1897,68 @@ export class AirtableAPIImporter extends FormatImporter {
 							// Successfully converted - store for later
 							formulas.set(field.name, converted);
 						}
+					}
+				}
+			}
+			// Process lookup fields: map linked records to get a specific field
+			// Note: 'multipleLookupValues' is the same as 'lookup' - it's the result type for lookup fields
+			else if ((field.type === 'lookup' || field.type === 'multipleLookupValues') && this.formulaStrategy !== 'static') {
+				const linkedFieldId = options?.recordLinkFieldId;
+				const lookupFieldId = options?.fieldIdInLinkedTable;
+				
+				if (linkedFieldId && lookupFieldId) {
+					// Use global field map to resolve field names (lookup may reference fields in other tables)
+					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
+					const lookupFieldName = this.globalFieldIdToNameMap.get(lookupFieldId);
+					
+					if (linkedFieldName && lookupFieldName) {
+						// Lookup: note["Linked Records"].map(value.asFile().properties["FieldName"])
+						// Use sanitized names to match YAML property names
+						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
+						const sanitizedLookupFieldName = this.sanitizePropertyName(lookupFieldName);
+						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedLookupFieldName}"])`;
+						formulas.set(field.name, obsidianFormula);
+					}
+				}
+			}
+			// Process rollup fields: map + aggregation
+			else if (field.type === 'rollup' && this.formulaStrategy !== 'static') {
+				const linkedFieldId = options?.recordLinkFieldId;
+				const rollupFieldId = options?.fieldIdInLinkedTable;
+				const rollupFormula = options?.formula;
+				
+				if (linkedFieldId && rollupFieldId) {
+					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
+					const rollupFieldName = this.globalFieldIdToNameMap.get(rollupFieldId);
+					
+					if (linkedFieldName && rollupFieldName) {
+						// Base expression: note["Linked Records"].map(value.asFile().properties["FieldName"])
+						// Use sanitized names to match YAML property names
+						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
+						const sanitizedRollupFieldName = this.sanitizePropertyName(rollupFieldName);
+						const mapExpression = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedRollupFieldName}"])`;
+						
+						// Convert rollup formula
+						const obsidianFormula = this.convertRollupFormula(rollupFormula, mapExpression, fieldIdToNameMap);
+						if (obsidianFormula) {
+							formulas.set(field.name, obsidianFormula);
+						}
+					}
+				}
+			}
+			// Process count fields: count of linked records
+			else if (field.type === 'count' && this.formulaStrategy !== 'static') {
+				const linkedFieldId = options?.recordLinkFieldId;
+				
+				if (linkedFieldId) {
+					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
+					
+					if (linkedFieldName) {
+						// Count: note["Linked Records"].length
+						// Use sanitized name to match YAML property name
+						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
+						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].length`;
+						formulas.set(field.name, obsidianFormula);
 					}
 				}
 			}
@@ -2181,6 +2279,88 @@ export class AirtableAPIImporter extends FormatImporter {
 				console.error(`Failed to replace placeholder for record ${placeholder.recordId}:`, error);
 			}
 		}
+	}
+
+	/**
+	 * Convert Airtable rollup formula to Obsidian formula
+	 * Replaces 'values' with the map expression
+	 */
+	private convertRollupFormula(
+		rollupFormula: string | undefined,
+		mapExpression: string,
+		fieldIdToNameMap: Map<string, string>
+	): string | null {
+		if (!rollupFormula) {
+			// No formula means just show original values
+			return mapExpression;
+		}
+		
+		// Common rollup aggregations
+		const formula = rollupFormula.trim().toUpperCase();
+		
+		// Simple aggregations that just wrap the map expression
+		if (formula === 'SUM(VALUES)') {
+			return `${mapExpression}.sum()`;
+		}
+		if (formula === 'AVERAGE(VALUES)' || formula === 'AVG(VALUES)') {
+			return `${mapExpression}.mean()`;
+		}
+		if (formula === 'MAX(VALUES)') {
+			return `max(${mapExpression})`;
+		}
+		if (formula === 'MIN(VALUES)') {
+			return `min(${mapExpression})`;
+		}
+		if (formula === 'COUNT(VALUES)') {
+			return `${mapExpression}.filter(value.isType("number")).length`;
+		}
+		if (formula === 'COUNTA(VALUES)') {
+			return `${mapExpression}.filter(!value.isEmpty()).length`;
+		}
+		if (formula === 'COUNTALL(VALUES)') {
+			return `${mapExpression}.length`;
+		}
+		if (formula === 'ARRAYJOIN(VALUES)') {
+			return `${mapExpression}.join(", ")`;
+		}
+		if (formula.startsWith('ARRAYJOIN(VALUES,')) {
+			// Extract separator
+			const match = formula.match(/ARRAYJOIN\(VALUES,\s*["'](.*)["']\)/i);
+			if (match) {
+				return `${mapExpression}.join("${match[1]}")`;
+			}
+			return `${mapExpression}.join(", ")`;
+		}
+		if (formula === 'ARRAYUNIQUE(VALUES)') {
+			return `${mapExpression}.unique()`;
+		}
+		if (formula === 'ARRAYCOMPACT(VALUES)') {
+			return `${mapExpression}.filter(!value.isEmpty())`;
+		}
+		if (formula === 'ARRAYFLATTEN(VALUES)') {
+			return `${mapExpression}.flat()`;
+		}
+		if (formula === 'AND(VALUES)') {
+			return `${mapExpression}.map(value.isTruthy()).every(value)`;
+		}
+		if (formula === 'OR(VALUES)') {
+			return `${mapExpression}.map(value.isTruthy()).some(value)`;
+		}
+		
+		// For more complex formulas, try to convert the whole expression
+		// Replace 'values' with the map expression
+		const convertedFormula = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
+		
+		// Try to convert the formula
+		if (canConvertFormula(convertedFormula)) {
+			const result = convertAirtableFormulaToObsidian(convertedFormula, fieldIdToNameMap);
+			if (result) {
+				return result;
+			}
+		}
+		
+		// Cannot convert
+		return null;
 	}
 }
 
