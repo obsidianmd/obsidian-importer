@@ -1245,9 +1245,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
 		
-		// Create field ID to name mapping for formula conversion
-		const fieldIdToNameMap = createFieldIdToNameMap(fields);
-		
 		// Skip completely empty records
 		const hasAnyValue = Object.values(recordFields).some(value => {
 			if (value === null || value === undefined) return false;
@@ -1504,9 +1501,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<void> {
 		const recordId = record.id;
 		const recordFields = record.fields || {};
-		
-		// Create field ID to name mapping for formula conversion
-		const fieldIdToNameMap = createFieldIdToNameMap(fields);
 
 		// Check if record is completely empty (no field values at all)
 		// Skip only if all fields are null/undefined/empty
