@@ -140,18 +140,12 @@ export function formatAttachmentForYAML(
 		return result.path;
 	}
 	
-	// Local file - use wiki link syntax (works in YAML)
+	// Local file - use wiki link syntax with full path including extension
 	const ext = result.filename ? result.filename.substring(result.filename.lastIndexOf('.')) : '';
 	const fullPath = result.path + ext;
-	const file = vault.getAbstractFileByPath(normalizePath(fullPath));
 	
-	if (file instanceof TFile) {
-		// Return wiki link without embed prefix (! is not needed in YAML)
-		return `[[${result.path}]]`;
-	}
-	
-	// Fallback
-	return `[[${result.path}]]`;
+	// Return wiki link with full path (including extension)
+	return `[[${fullPath}]]`;
 }
 
 /**
