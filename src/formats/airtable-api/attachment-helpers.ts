@@ -85,13 +85,14 @@ export async function downloadAttachment(
 
 /**
  * Format attachment as markdown link (for body content)
+ * Uses generateMarkdownLink to respect user's link format settings
+ * (wiki links vs markdown links, shortest/relative/absolute path)
  */
 export function formatAttachmentLink(
 	result: AttachmentResult,
 	app: App,
 	vault: Vault,
-	sourceFilePath: string,
-	useWikiLinks: boolean = true
+	sourceFilePath: string
 ): string {
 	if (!result.isLocal) {
 		// External URL - use markdown format
@@ -109,19 +110,15 @@ export function formatAttachmentLink(
 		const videoExts = ['mp4', 'webm', 'ogv', 'mov', 'mkv'];
 		const isEmbeddable = [...imageExts, ...videoExts].some(e => fullPath.endsWith('.' + e));
 		
-		if (useWikiLinks) {
-			// Use wiki link format
-			const prefix = isEmbeddable ? '!' : '';
-			return `${prefix}[[${result.path}]]`;
+		// Use generateMarkdownLink to respect user's link format settings
+		// This respects both "Use [[Wikilinks]]" and "New link format" settings
+		const link = app.fileManager.generateMarkdownLink(file, sourceFilePath);
+		
+		// Add embed prefix for images/videos if not already present
+		if (isEmbeddable && !link.startsWith('!')) {
+			return '!' + link;
 		}
-		else {
-			// Use markdown link format
-			const link = app.fileManager.generateMarkdownLink(file, sourceFilePath);
-			if (isEmbeddable && !link.startsWith('!')) {
-				return '!' + link;
-			}
-			return link;
-		}
+		return link;
 	}
 	
 	// Fallback
@@ -129,7 +126,9 @@ export function formatAttachmentLink(
 }
 
 /**
- * Format attachment for YAML frontmatter (no Markdown syntax)
+ * Format attachment for YAML frontmatter
+ * YAML properties can only use wiki link syntax [[path]], not markdown links
+ * Always uses wiki link format with full path including extension
  */
 export function formatAttachmentForYAML(
 	result: AttachmentResult,
@@ -140,16 +139,16 @@ export function formatAttachmentForYAML(
 		return result.path;
 	}
 	
-	// Local file - use wiki link syntax with full path including extension
+	// Local file - use wiki link with full path including extension
 	const ext = result.filename ? result.filename.substring(result.filename.lastIndexOf('.')) : '';
 	const fullPath = result.path + ext;
 	
-	// Return wiki link with full path (including extension)
 	return `[[${fullPath}]]`;
 }
 
 /**
  * Process multiple attachments and return formatted markdown (for body content)
+ * Uses generateMarkdownLink to respect user's link format settings
  */
 export async function processAttachments(
 	attachments: AirtableAttachment[],
@@ -174,13 +173,12 @@ export async function processAttachments(
 			onAttachmentDownloaded();
 		}
 		
-		// Format as link for body content
+		// Format as link for body content using user's link format settings
 		const link = formatAttachmentLink(
 			result,
 			app,
 			vault,
-			context.currentFilePath,
-			true // Use wiki links by default
+			context.currentFilePath
 		);
 		
 		results.push(link);
@@ -190,7 +188,8 @@ export async function processAttachments(
 }
 
 /**
- * Process multiple attachments for YAML frontmatter (no Markdown syntax)
+ * Process multiple attachments for YAML frontmatter
+ * Always uses wiki link format for YAML compatibility
  */
 export async function processAttachmentsForYAML(
 	attachments: AirtableAttachment[],
@@ -215,7 +214,7 @@ export async function processAttachmentsForYAML(
 			onAttachmentDownloaded();
 		}
 		
-		// Format for YAML (no Markdown syntax)
+		// Format for YAML (always wiki link)
 		const formatted = formatAttachmentForYAML(result, vault);
 		results.push(formatted);
 	}

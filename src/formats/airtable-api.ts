@@ -361,78 +361,77 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Render a single tree node
+	 * Render a single tree node using Obsidian's standard tree structure
+	 * Airtable has only two levels: Base (database icon) -> Table (file icon)
 	 */
 	private renderTreeNode(container: HTMLElement, node: AirtableTreeNode, level: number): void {
+		// Main tree item container
 		const treeItem = container.createDiv('tree-item');
+		
+		// Tree item self (contains the node itself)
 		const treeItemSelf = treeItem.createDiv('tree-item-self');
 		treeItemSelf.addClass('is-clickable');
-
+		
+		// Add appropriate modifiers
 		if (node.children.length > 0) {
 			treeItemSelf.addClass('mod-collapsible');
-			treeItemSelf.addClass('mod-folder');
 		}
-		else {
-			treeItemSelf.addClass('mod-file');
-		}
-
+		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
+		
+		// Apply disabled styling
 		if (node.disabled) {
 			treeItemSelf.addClass('is-disabled');
 			treeItemSelf.style.opacity = '0.5';
 			treeItemSelf.style.pointerEvents = 'none';
 		}
 
-		// Collapse/Expand arrow
+		// Collapse/Expand arrow (only for base nodes with children)
 		if (node.children.length > 0) {
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
+			
+			// Use right-triangle icon (Obsidian's standard)
 			setIcon(collapseIcon, 'right-triangle');
-
+			
+			// Add is-collapsed class for CSS control
 			if (node.collapsed) {
 				collapseIcon.addClass('is-collapsed');
 				treeItem.addClass('is-collapsed');
 			}
-
+			
+			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
 			}
 
+			// Store references for event handler
 			const treeItemRef = treeItem;
 			let childrenContainer: HTMLElement;
-			let iconContainer: HTMLElement;
 
+			// Toggle collapse state with pure DOM manipulation (no re-render)
 			collapseIcon.addEventListener('click', (e) => {
 				e.stopPropagation();
 				node.collapsed = !node.collapsed;
 
+				// Get reference if not set yet
 				if (!childrenContainer) {
 					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
 				}
-				if (!iconContainer) {
-					iconContainer = treeItemRef.querySelector('.file-tree-item-icon') as HTMLElement;
-				}
 
+				// Toggle CSS classes and visibility
 				if (node.collapsed) {
 					collapseIcon.addClass('is-collapsed');
 					treeItemRef.addClass('is-collapsed');
 					if (childrenContainer) childrenContainer.style.display = 'none';
-					if (iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder');
-					}
 				}
 				else {
 					collapseIcon.removeClass('is-collapsed');
 					treeItemRef.removeClass('is-collapsed');
 					if (childrenContainer) childrenContainer.style.display = '';
-					if (iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder-open');
-					}
 				}
 			});
 		}
 
-		// Inner content
+		// Inner content (checkbox, icon, title)
 		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
 
 		// Checkbox
@@ -450,14 +449,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 		}
 
-		// Icon
+		// Icon: Base uses database icon, Table uses file icon
 		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
-		if (node.type === 'base') {
-			setIcon(iconContainer, 'database');
-		}
-		else if (node.type === 'table') {
-			setIcon(iconContainer, 'folder');
-		}
+		setIcon(iconContainer, node.type === 'base' ? 'database' : 'file');
 
 		// Title
 		const titleEl = treeItemInner.createDiv('file-tree-item-title');
@@ -466,10 +460,12 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Children container
 		const childrenContainer = treeItem.createDiv('tree-item-children');
 
+		// Hide children container if collapsed
 		if (node.collapsed) {
 			childrenContainer.style.display = 'none';
 		}
 
+		// Render children (always render, but hide if collapsed)
 		if (node.children.length > 0) {
 			for (const child of node.children) {
 				this.renderTreeNode(childrenContainer, child, level + 1);
