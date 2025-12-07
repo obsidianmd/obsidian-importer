@@ -22,7 +22,6 @@ import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
-	TableInfo,
 	LinkedRecordPlaceholder,
 	AirtableAttachment,
 	PreparedTableData,
@@ -43,8 +42,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	private toggleSelectButton: any = null;
 	
 	// Tracking data
-	private outputRootPath: string = '';
-	private processedTables: Map<string, TableInfo> = new Map();
 	private linkedRecordPlaceholders: LinkedRecordPlaceholder[] = [];
 	private recordIdToPath: Map<string, string> = new Map(); // recordId -> file path
 	private processedRecordsCount: number = 0;
@@ -53,12 +50,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	
 	// Template configuration
 	private templateConfig: TemplateConfig | null = null;
-	
-	// Track which views each record belongs to
-	private recordToViews: Map<string, Set<string>> = new Map(); // recordId -> Set of view names
-	
-	// Track all views for each table (for creating .base files)
-	private tableViews: Map<string, Array<{name: string, type: string, id: string}>> = new Map();
 	
 	// Store all fields for property type inference
 	private allFieldsForTypeInference: Map<string, any> = new Map();
@@ -142,11 +133,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			return button;
 		});
 
-		// Tree container
-		const treeSection = this.modal.contentEl.createDiv();
-		treeSection.addClass('file-tree', 'airtable-section');
+		// Page tree container (using Publish plugin's style with proper hierarchy)
+		// Create the section wrapper
+		const publishSection = this.modal.contentEl.createDiv();
+		publishSection.addClass('file-tree', 'publish-section');
 
-		this.treeContainer = treeSection.createDiv('airtable-tree-list');
+		// Create the change list container
+		this.treeContainer = publishSection.createDiv('publish-change-list');
 		this.treeContainer.style.maxHeight = '200px';
 		this.treeContainer.style.overflowY = 'auto';
 		this.treeContainer.style.border = '1px solid var(--background-modifier-border)';
@@ -154,6 +147,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.treeContainer.style.backgroundColor = 'var(--background-primary-alt)';
 		this.treeContainer.style.padding = 'var(--size-4-2)';
 
+		// Add placeholder text
 		const placeholder = this.treeContainer.createDiv();
 		placeholder.style.color = 'var(--text-muted)';
 		placeholder.style.fontSize = 'var(--font-ui-small)';
@@ -333,7 +327,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private renderTree(): void {
 		if (!this.treeContainer) {
-			this.treeContainer = this.modal.contentEl.querySelector('.airtable-tree-list') as HTMLElement;
+			this.treeContainer = this.modal.contentEl.querySelector('.publish-change-list') as HTMLElement;
 		}
 
 		if (!this.treeContainer) {
@@ -783,12 +777,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		ctx.status('Connecting to Airtable API...');
 
 		try {
-			this.outputRootPath = folder.path;
-			this.processedTables.clear();
 			this.linkedRecordPlaceholders = [];
 			this.recordIdToPath.clear();
-			this.recordToViews.clear();
-			this.tableViews.clear();
 			this.allFieldsForTypeInference.clear();
 			this.globalFieldIdToNameMap.clear();
 			this.globalRecordIdToTitle.clear();
@@ -1065,17 +1055,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 		}
 		
-		// Store table info
-		const tableKey = `${baseId}:${tableName}`;
-		this.processedTables.set(tableKey, {
-			id: tableName,
-			baseId,
-			name: tableName,
-			folderPath: tablePath,
-			baseFilePath: `${tablePath}.base`,
-			fields,
-			primaryFieldId: fields[0]?.id || '',
-		});
 	}
 
 	/**
