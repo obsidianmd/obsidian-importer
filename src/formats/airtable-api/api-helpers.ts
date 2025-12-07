@@ -3,9 +3,9 @@
  */
 
 import { requestUrl } from 'obsidian';
-import { ImportContext } from '../../main';
 import Airtable from 'airtable';
-import type { AirtableBaseInfo, AirtableTableInfo } from './types';
+import { ImportContext } from '../../main';
+import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, FetchRecordsOptions } from './types';
 
 /**
  * Airtable Meta API base URL
@@ -43,13 +43,9 @@ async function waitForRateLimit(): Promise<void> {
 /**
  * Make a rate-limited request to Airtable API
  */
-export async function makeAirtableRequest<T>(
-	url: string,
-	token: string,
-	ctx: ImportContext,
-	method: 'GET' | 'POST' = 'GET',
-	body?: any
-): Promise<T> {
+export async function makeAirtableRequest<T>(options: AirtableRequestOptions): Promise<T> {
+	const { url, token, ctx, method = 'GET', body } = options;
+	
 	await waitForRateLimit();
 	
 	try {
@@ -73,7 +69,7 @@ export async function makeAirtableRequest<T>(
 			
 			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s...`);
 			await new Promise(resolve => setTimeout(resolve, retryAfter));
-			return makeAirtableRequest(url, token, ctx, method, body);
+			return makeAirtableRequest(options);
 		}
 		
 		if (response.status >= 400) {
@@ -98,11 +94,11 @@ export async function fetchBases(
 ): Promise<AirtableBaseInfo[]> {
 	ctx.status('Fetching bases...');
 	
-	const response = await makeAirtableRequest<{ bases: AirtableBaseInfo[] }>(
-		`${AIRTABLE_META_API_BASE}/bases`,
+	const response = await makeAirtableRequest<{ bases: AirtableBaseInfo[] }>({
+		url: `${AIRTABLE_META_API_BASE}/bases`,
 		token,
-		ctx
-	);
+		ctx,
+	});
 	
 	return response.bases || [];
 }
@@ -117,33 +113,29 @@ export async function fetchTableSchema(
 ): Promise<AirtableTableInfo[]> {
 	ctx.status(`Fetching tables for base ${baseId}...`);
 	
-	const response = await makeAirtableRequest<{ tables: AirtableTableInfo[] }>(
-		`${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`,
+	const response = await makeAirtableRequest<{ tables: AirtableTableInfo[] }>({
+		url: `${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`,
 		token,
-		ctx
-	);
+		ctx,
+	});
 	
 	return response.tables || [];
 }
 
 /**
  * Fetch records from a table with pagination
+ * Returns Airtable SDK record objects (not typed due to SDK complexity)
  */
-export async function fetchAllRecords(
-	baseId: string,
-	tableIdOrName: string,
-	token: string,
-	ctx: ImportContext,
-	viewId?: string
-): Promise<any[]> {
+export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any[]> {
+	const { baseId, tableIdOrName, token, ctx, viewId } = options;
 	const base = new Airtable({ apiKey: token }).base(baseId);
 	
+	// Airtable SDK record objects with methods like get(), _rawJson, etc.
 	const records: any[] = [];
 	
 	try {
-		const selectOptions: any = {
-			// pageSize: 100, // Max page size
-		};
+		// Airtable SDK select options
+		const selectOptions: any = {};
 		
 		if (viewId) {
 			selectOptions.view = viewId;
@@ -151,6 +143,7 @@ export async function fetchAllRecords(
 		
 		await base(tableIdOrName)
 			.select(selectOptions)
+			// Airtable SDK returns untyped record objects
 			.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
 				records.push(...pageRecords);
 				
@@ -167,27 +160,5 @@ export async function fetchAllRecords(
 	}
 	
 	return records;
-}
-
-/**
- * Fetch a single record by ID
- */
-export async function fetchRecord(
-	baseId: string,
-	tableIdOrName: string,
-	recordId: string,
-	token: string,
-	ctx: ImportContext
-): Promise<any> {
-	const base = new Airtable({ apiKey: token }).base(baseId);
-	
-	try {
-		const record = await base(tableIdOrName).find(recordId);
-		return record;
-	}
-	catch (error) {
-		console.error(`Failed to fetch record ${recordId}:`, error);
-		throw error;
-	}
 }
 

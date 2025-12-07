@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
+import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
@@ -18,17 +18,19 @@ import {
 // Import helper modules
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
-import { convertFieldValue, createFieldIdToNameMap } from './airtable-api/field-converter';
+import { convertFieldValue } from './airtable-api/field-converter';
 import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
 import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
 	AirtableViewInfo,
+	AirtableFieldSchema,
 	LinkedRecordPlaceholder,
 	AirtableAttachment,
 	PreparedTableData,
 	AirtableRecord,
+	RecordFileContext,
 } from './airtable-api/types';
 
 export class AirtableAPIImporter extends FormatImporter {
@@ -41,8 +43,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
 	private treeContainer: HTMLElement | null = null;
-	private loadButton: any = null;
-	private toggleSelectButton: any = null;
+	private loadButton: any = null;  // ButtonComponent from obsidian
+	private toggleSelectButton: any = null;  // ButtonComponent from obsidian
 	
 	// Tracking data
 	private linkedRecordPlaceholders: LinkedRecordPlaceholder[] = [];
@@ -55,7 +57,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	private templateConfig: TemplateConfig | null = null;
 	
 	// Store all fields for property type inference
-	private allFieldsForTypeInference: Map<string, any> = new Map();
+	private allFieldsForTypeInference: Map<string, AirtableFieldSchema> = new Map();
 	
 	// Global field ID to name mapping (across all tables in the base)
 	// Needed for lookup/rollup fields that reference fields in linked tables
@@ -90,8 +92,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			.setName('Select tables to import')
 			.setDesc('Click "Load" to browse your Airtable bases and tables.');
 
-		let toggleButtonRef: any = null;
-		let loadButtonRef: any = null;
+		let toggleButtonRef: any = null;  // ButtonComponent from obsidian
+		let loadButtonRef: any = null;  // ButtonComponent from obsidian
 
 		// Toggle select all/none button
 		loadSetting.addButton(button => {
@@ -587,7 +589,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Users can modify this in the template configuration UI.
 		// During actual import, if the template field doesn't exist in a table,
 		// the fallback logic in createRecordFile() will use that table's own primary field.
-		const allFieldsMap = new Map<string, any>();
+		const allFieldsMap = new Map<string, AirtableFieldSchema>();
 		const fieldExamples = new Map<string, string>();
 		let primaryFieldName: string | null = null;
 		
@@ -674,7 +676,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Generate example value for a field based on its type
 	 */
-	private generateExampleValue(field: any): string {
+	private generateExampleValue(field: AirtableFieldSchema): string {
 		switch (field.type) {
 			case 'aiText':
 				return 'AI-generated summary...';
@@ -692,7 +694,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			case 'singleSelect':
 				return field.options?.choices?.[0]?.name || 'Option 1';
 			case 'multipleSelects':
-				return field.options?.choices?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Option 1, Option 2';
+				return field.options?.choices?.slice(0, 2).map((c: { name: string }) => c.name).join(', ') || 'Option 1, Option 2';
 			case 'date':
 				return '2025-01-15';
 			case 'dateTime':
@@ -838,8 +840,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId: string;
 			baseName: string;
 			tableName: string;
-			fields: any[];
-			views: any[];
+			fields: AirtableFieldSchema[];
+			views: AirtableViewInfo[];
 		}> = [];
 		
 		// Flatten selected nodes to table level
@@ -894,8 +896,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId: string;
 			baseName: string;
 			tableName: string;
-			fields: any[];
-			views: any[];
+			fields: AirtableFieldSchema[];
+			views: AirtableViewInfo[];
 		}
 	): Promise<void> {
 		const { baseId, baseName, tableName, fields, views } = tableInfo;
@@ -922,7 +924,12 @@ export class AirtableAPIImporter extends FormatImporter {
 		
 		// Step 1: Fetch ALL records from the table
 		ctx.status(`Fetching ${baseName} > ${tableName}...`);
-		const allRecords = await fetchAllRecords(baseId, tableName, this.airtableToken, ctx);
+		const allRecords = await fetchAllRecords({
+			baseId,
+			tableIdOrName: tableName,
+			token: this.airtableToken,
+			ctx,
+		});
 		
 		if (ctx.isCancelled()) return;
 		
@@ -995,7 +1002,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		tableData: PreparedTableData,
 		rootPath: string
 	): Promise<void> {
-		const { baseId, baseName, tableName, fields, views, records, recordViewMemberships } = tableData;
+		const { baseName, tableName, fields, views, records, recordViewMemberships } = tableData;
 		
 		// Build table path
 		const tablePath = baseName 
@@ -1018,7 +1025,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			
 			try {
 				const viewReferences = recordViewMemberships.get(record.id) || [];
-				await this.createRecordFile(ctx, record, baseId, tableName, tablePath, fields, viewReferences, this.globalRecordIdToTitle);
+				await this.createRecordFile(ctx, record, {
+					tablePath,
+					fields,
+					viewReferences,
+					recordIdToTitle: this.globalRecordIdToTitle,
+				});
 			}
 			catch (error) {
 				// Safely get record title for error reporting
@@ -1063,6 +1075,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					view: view.id,
 					fields: [], // Request no fields, only IDs
 				})
+				// Airtable SDK returns untyped record objects
 				.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
 					// Extract only the IDs
 					recordIds.push(...pageRecords.map(r => r.id));
@@ -1083,13 +1096,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	private async createRecordFile(
 		ctx: ImportContext,
 		record: AirtableRecord,
-		baseId: string,
-		tableName: string,
-		tablePath: string,
-		fields: any[],
-		viewReferences: string[],
-		recordIdToTitle: Map<string, string>
+		fileContext: RecordFileContext
 	): Promise<void> {
+		const { tablePath, fields, viewReferences, recordIdToTitle } = fileContext;
 		const recordId = record.id;
 		const recordFields = record.fields || {};
 		
@@ -1118,7 +1127,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		
 		if (this.templateConfig && this.templateConfig.titleTemplate) {
 			// Use template to generate title
-			const templateData: Record<string, any> = {};
+			const templateData: Record<string, string> = {};
 			for (const field of fields) {
 				templateData[field.name] = recordFields[field.name];
 			}
@@ -1137,11 +1146,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		
 		let sanitizedTitle = sanitizeFileName(title);
-		
-		// If sanitized title is empty (all characters were illegal), use default
-		if (!sanitizedTitle || sanitizedTitle.trim() === '') {
-			sanitizedTitle = 'Untitled Record';
-		}
 		
 		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
 		
@@ -1167,27 +1171,19 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			// Convert field value properly (handles formulas, links, etc.)
 			// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
-			let convertedValue = convertFieldValue(
+			let convertedValue = convertFieldValue({
 				fieldValue,
-				field,
+				fieldSchema: field,
 				recordId,
-				this.formulaStrategy,
-				this.linkedRecordPlaceholders,
-				ctx,
-				this.globalFieldIdToNameMap
-			);
+				formulaStrategy: this.formulaStrategy,
+				linkedRecordPlaceholders: this.linkedRecordPlaceholders,
+				fieldIdToNameMap: this.globalFieldIdToNameMap,
+			});
 			
 			// If formula was converted (returns null), use the computed value for templates
+			// Formula fields won't be in YAML (they'll be in .base file), but templates may reference them
 			if (convertedValue === null && field.type === 'formula') {
-				// For formulas that will be in .base file, use the static computed value in templates
-				const options = field.options as any;
-				const resultType = options?.result?.type;
-				if (resultType === 'singleLineText' || !resultType) {
-					convertedValue = fieldValue ? String(fieldValue) : '';
-				}
-				else {
-					convertedValue = fieldValue;
-				}
+				convertedValue = fieldValue;
 			}
 			
 			// Resolve linked records for template data
@@ -1218,7 +1214,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Build frontmatter
 		const frontMatter: Record<string, any> = {
 			'airtable-id': recordId,
-			'airtable-created': record.createdTime,
 		};
 
 		// Add view property
@@ -1240,7 +1235,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (!valueTemplate) continue;
 
 				// Find the field schema
-				const field = fields.find((f: any) => f.name === fieldId);
+				const field = fields.find((f) => f.name === fieldId);
 				if (!field) continue;
 
 				const fieldValue = recordFields[field.name];
@@ -1252,15 +1247,14 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				// Convert field value with direct linked record resolution
 				// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
-				let convertedValue = convertFieldValue(
+				let convertedValue = convertFieldValue({
 					fieldValue,
-					field,
+					fieldSchema: field,
 					recordId,
-					this.formulaStrategy,
-					this.linkedRecordPlaceholders, // Not used in phase 2, but needed for signature
-					ctx,
-					this.globalFieldIdToNameMap
-				);
+					formulaStrategy: this.formulaStrategy,
+					linkedRecordPlaceholders: this.linkedRecordPlaceholders,
+					fieldIdToNameMap: this.globalFieldIdToNameMap,
+				});
 
 				// Skip if convertedValue is null (e.g., formula was converted and will be in .base file)
 				if (convertedValue === null || convertedValue === undefined) {
@@ -1279,7 +1273,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 
 				// Convert property value according to type
-				let propertyValue: any = convertedValue;
+				let propertyValue: string | string[] | null = convertedValue;
 
 				// Handle attachments: download and convert to wiki links or URLs
 				if (field.type === 'multipleAttachments' && Array.isArray(convertedValue)) {
@@ -1355,7 +1349,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return false;
 		}
 
-		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+		const file = this.vault.getAbstractFileByPath(filePath);
 		if (!file || !(file instanceof TFile)) {
 			return false;
 		}
@@ -1443,10 +1437,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		if (cleanedCount > 0) {
-			console.log(`✓ Cleaned airtable-id from ${cleanedCount} file(s)`);
+			console.log(`Cleaned airtable-id from ${cleanedCount} file(s)`);
 		}
 		if (failedCount > 0) {
-			console.warn(`⚠️ Failed to clean airtable-id from ${failedCount} file(s)`);
+			console.warn(`Failed to clean airtable-id from ${failedCount} file(s)`);
 		}
 	}
 
@@ -1456,8 +1450,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	private async createViewBaseFiles(
 		tableFolderPath: string,
 		tableName: string,
-		views: Array<{name: string, type: string, id: string}>,
-		fields: any[]
+		views: AirtableViewInfo[],
+		fields: AirtableFieldSchema[]
 	): Promise<void> {
 		// Get parent folder (where .base file will be created)
 		const { parent: parentPath } = parseFilePath(tableFolderPath);
@@ -1471,87 +1465,68 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 		}
 		
-		// Create field ID to name mapping for formula conversion
-		const fieldIdToNameMap = createFieldIdToNameMap(fields);
-		
 		// Process fields in original order, tracking which are formulas
 		// This preserves Airtable's field order in the .base file
 		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
 		
+		// Helper to resolve field name from ID
+		const resolveFieldName = (fieldId: string): string | undefined => {
+			return this.globalFieldIdToNameMap.get(fieldId);
+		};
+		
+		// Helper to build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
+		const buildMapExpression = (linkedFieldName: string, targetFieldName: string): string => {
+			const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
+			const sanitizedTarget = this.sanitizePropertyName(targetFieldName);
+			return `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
+		};
+		
 		for (const field of fields) {
-			const options = field.options as any;
+			// Skip formula conversion if strategy is static
+			if (this.formulaStrategy === 'static') {
+				continue;
+			}
+			
+			const options = field.options;
+			const linkedFieldId = options?.recordLinkFieldId;
+			const targetFieldId = options?.fieldIdInLinkedTable;
 			
 			// Process formula fields
 			if (field.type === 'formula') {
 				const formulaExpression = options?.formula;
-				
-				// Try to convert formula (if strategy is not static)
-				if (this.formulaStrategy !== 'static' && formulaExpression) {
-					if (canConvertFormula(formulaExpression)) {
-						const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
-						if (converted) {
-							// Successfully converted - store for later
-							formulas.set(field.name, converted);
-						}
+				if (formulaExpression && canConvertFormula(formulaExpression)) {
+					const converted = convertAirtableFormulaToObsidian(formulaExpression, this.globalFieldIdToNameMap);
+					if (converted) {
+						formulas.set(field.name, converted);
 					}
 				}
 			}
-			// Process lookup fields: map linked records to get a specific field
-			// Note: 'multipleLookupValues' is the same as 'lookup' - it's the result type for lookup fields
-			else if ((field.type === 'lookup' || field.type === 'multipleLookupValues') && this.formulaStrategy !== 'static') {
-				const linkedFieldId = options?.recordLinkFieldId;
-				const lookupFieldId = options?.fieldIdInLinkedTable;
+			// Process lookup/rollup/count fields (all use linked records)
+			else if (linkedFieldId) {
+				const linkedFieldName = resolveFieldName(linkedFieldId);
+				if (!linkedFieldName) continue;
 				
-				if (linkedFieldId && lookupFieldId) {
-					// Use global field map to resolve field names (lookup may reference fields in other tables)
-					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
-					const lookupFieldName = this.globalFieldIdToNameMap.get(lookupFieldId);
-					
-					if (linkedFieldName && lookupFieldName) {
-						// Lookup: note["Linked Records"].map(value.asFile().properties["FieldName"])
-						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
-						const sanitizedLookupFieldName = this.sanitizePropertyName(lookupFieldName);
-						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedLookupFieldName}"])`;
-						formulas.set(field.name, obsidianFormula);
-					}
+				if (field.type === 'count') {
+					// Count: note["Linked Records"].length
+					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
+					formulas.set(field.name, `note["${sanitizedLinked}"].length`);
 				}
-			}
-			// Process rollup fields: map + aggregation
-			else if (field.type === 'rollup' && this.formulaStrategy !== 'static') {
-				const linkedFieldId = options?.recordLinkFieldId;
-				const rollupFieldId = options?.fieldIdInLinkedTable;
-				const rollupFormula = options?.formula;
-				
-				if (linkedFieldId && rollupFieldId) {
-					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
-					const rollupFieldName = this.globalFieldIdToNameMap.get(rollupFieldId);
+				else if (targetFieldId) {
+					const targetFieldName = resolveFieldName(targetFieldId);
+					if (!targetFieldName) continue;
 					
-					if (linkedFieldName && rollupFieldName) {
-						// Base expression: note["Linked Records"].map(value.asFile().properties["FieldName"])
-						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
-						const sanitizedRollupFieldName = this.sanitizePropertyName(rollupFieldName);
-						const mapExpression = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedRollupFieldName}"])`;
-						
-						// Convert rollup formula
-						const obsidianFormula = this.convertRollupFormula(rollupFormula, mapExpression, fieldIdToNameMap);
+					const mapExpression = buildMapExpression(linkedFieldName, targetFieldName);
+					
+					if (field.type === 'multipleLookupValues') {
+						// Lookup: just the map expression
+						formulas.set(field.name, mapExpression);
+					}
+					else if (field.type === 'rollup') {
+						// Rollup: map expression + aggregation
+						const obsidianFormula = this.convertRollupFormula(options?.formula, mapExpression);
 						if (obsidianFormula) {
 							formulas.set(field.name, obsidianFormula);
 						}
-					}
-				}
-			}
-			// Process count fields: count of linked records
-			else if (field.type === 'count' && this.formulaStrategy !== 'static') {
-				const linkedFieldId = options?.recordLinkFieldId;
-				
-				if (linkedFieldId) {
-					const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId) || fieldIdToNameMap.get(linkedFieldId);
-					
-					if (linkedFieldName) {
-						// Count: note["Linked Records"].length
-						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
-						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].length`;
-						formulas.set(field.name, obsidianFormula);
 					}
 				}
 			}
@@ -1584,8 +1559,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		const baseFileName = `${sanitizedTableName}.base`;
 		const baseFilePath = parentPath ? `${parentPath}/${baseFileName}` : baseFileName;
 
-		// Build views array
-		const obsidianViews: any[] = [];
+		// Build views array for .base file
+		const obsidianViews: BasesConfigFileView[] = [];
 		
 		for (const view of views) {
 			// Map Airtable view type to Obsidian view type
@@ -1615,8 +1590,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 		}
 
-		// Build base config
-		const baseConfig: any = {
+		// Build base config using Obsidian's BasesConfigFile type
+		const baseConfig: BasesConfigFile = {
 			// Base filter: only files in this table's folder
 			filters: `file.folder == "${tableFolderPath}"`,
 		};
@@ -1678,7 +1653,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				// File exists - update it by merging views
 				const existingContent = await this.vault.read(existingFile);
 				
-				// Parse existing YAML to extract existing views
+				// Parse existing YAML to extract existing views (Obsidian Bases internal format)
 				try {
 					const existingConfig = parseYaml(existingContent) as any;
 					const existingViews = existingConfig.views || [];
@@ -1772,12 +1747,15 @@ export class AirtableAPIImporter extends FormatImporter {
 				return 'datetime';
 			
 			case 'number':
-			case 'currency':
 			case 'percent':
 			case 'duration':
-			case 'rating':
 			case 'autoNumber':
 				return 'number';
+			
+			case 'currency':
+			case 'rating':
+				// Special text: Currency and rating are formatted as strings (e.g., "$100.00", "⭐⭐⭐")
+				return 'text';
 			
 			case 'singleSelect':
 			case 'singleLineText':
@@ -1819,21 +1797,25 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Convert Airtable rollup formula to Obsidian formula
 	 * Replaces 'values' with the map expression
+	 * 
+	 * Strategy:
+	 * 1. First try to match simple aggregation patterns like SUM(VALUES), AVERAGE(VALUES), etc.
+	 * 2. If no match, replace 'values' with mapExpression and try general formula conversion
+	 * 3. If conversion fails, fall back to static values imported from Airtable
 	 */
 	private convertRollupFormula(
 		rollupFormula: string | undefined,
-		mapExpression: string,
-		fieldIdToNameMap: Map<string, string>
+		mapExpression: string
 	): string | null {
 		if (!rollupFormula) {
 			// No formula means just show original values
 			return mapExpression;
 		}
 		
-		// Common rollup aggregations
+		// Normalize formula for comparison
 		const formula = rollupFormula.trim().toUpperCase();
 		
-		// Simple aggregations that just wrap the map expression
+		// Step 1: Try to match simple aggregation patterns
 		if (formula === 'SUM(VALUES)') {
 			return `${mapExpression}.sum()`;
 		}
@@ -1859,7 +1841,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return `${mapExpression}.join(", ")`;
 		}
 		if (formula.startsWith('ARRAYJOIN(VALUES,')) {
-			// Extract separator
+			// Extract separator: ARRAYJOIN(VALUES, "separator")
 			const match = formula.match(/ARRAYJOIN\(VALUES,\s*["'](.*)["']\)/i);
 			if (match) {
 				return `${mapExpression}.join("${match[1]}")`;
@@ -1882,19 +1864,19 @@ export class AirtableAPIImporter extends FormatImporter {
 			return `${mapExpression}.map(value.isTruthy()).some(value)`;
 		}
 		
-		// For more complex formulas, try to convert the whole expression
-		// Replace 'values' with the map expression
-		const convertedFormula = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
+		// Step 2: Try general formula conversion
+		// Replace 'values' with the map expression and attempt conversion
+		const formulaWithMapExpr = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
 		
-		// Try to convert the formula
-		if (canConvertFormula(convertedFormula)) {
-			const result = convertAirtableFormulaToObsidian(convertedFormula, fieldIdToNameMap);
+		if (canConvertFormula(formulaWithMapExpr)) {
+			const result = convertAirtableFormulaToObsidian(formulaWithMapExpr, this.globalFieldIdToNameMap);
 			if (result) {
 				return result;
 			}
 		}
 		
-		// Cannot convert
+		// Step 3: Cannot convert - fall back to static value
+		console.log(`Rollup formula "${rollupFormula}" cannot be converted, using static value`);
 		return null;
 	}
 }

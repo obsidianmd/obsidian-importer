@@ -92,7 +92,8 @@ export function formatAttachmentLink(
 	result: AttachmentResult,
 	app: App,
 	vault: Vault,
-	sourceFilePath: string
+	sourceFilePath: string,
+	mimeType?: string
 ): string {
 	if (!result.isLocal) {
 		// External URL - use markdown format
@@ -105,10 +106,8 @@ export function formatAttachmentLink(
 	const file = vault.getAbstractFileByPath(normalizePath(fullPath));
 	
 	if (file instanceof TFile) {
-		// Determine if it's an image/video that should be embedded
-		const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'];
-		const videoExts = ['mp4', 'webm', 'ogv', 'mov', 'mkv'];
-		const isEmbeddable = [...imageExts, ...videoExts].some(e => fullPath.endsWith('.' + e));
+		// Determine if it's an image/video that should be embedded based on MIME type
+		const isEmbeddable = mimeType ? (mimeType.startsWith('image/') || mimeType.startsWith('video/')) : false;
 		
 		// Use generateMarkdownLink to respect user's link format settings
 		// This respects both "Use [[Wikilinks]]" and "New link format" settings
@@ -131,8 +130,7 @@ export function formatAttachmentLink(
  * Always uses wiki link format with full path including extension
  */
 export function formatAttachmentForYAML(
-	result: AttachmentResult,
-	vault: Vault
+	result: AttachmentResult
 ): string {
 	if (!result.isLocal) {
 		// External URL - return plain URL (no Markdown syntax in YAML)
@@ -174,11 +172,13 @@ export async function processAttachments(
 		}
 		
 		// Format as link for body content using user's link format settings
+		// Pass MIME type to determine if it should be embedded (images/videos)
 		const link = formatAttachmentLink(
 			result,
 			app,
 			vault,
-			context.currentFilePath
+			context.currentFilePath,
+			attachment.type
 		);
 		
 		results.push(link);
@@ -204,7 +204,7 @@ export async function processAttachmentsForYAML(
 		onAttachmentDownloaded?: () => void;
 	}
 ): Promise<string[]> {
-	const { vault, onAttachmentDownloaded } = context;
+	const { onAttachmentDownloaded } = context;
 	const results: string[] = [];
 	
 	for (const attachment of attachments) {
@@ -215,7 +215,7 @@ export async function processAttachmentsForYAML(
 		}
 		
 		// Format for YAML (always wiki link)
-		const formatted = formatAttachmentForYAML(result, vault);
+		const formatted = formatAttachmentForYAML(result);
 		results.push(formatted);
 	}
 	

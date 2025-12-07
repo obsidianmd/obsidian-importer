@@ -12,6 +12,42 @@ import { ImportContext } from '../../main';
 export type FormulaImportStrategy = 'static' | 'hybrid';
 
 /**
+ * Options for making Airtable API requests
+ */
+export interface AirtableRequestOptions {
+	url: string;
+	token: string;
+	ctx: ImportContext;
+	method?: 'GET' | 'POST';
+	// Request body varies by endpoint (JSON object)
+	body?: any;
+}
+
+/**
+ * Options for fetching records from Airtable
+ */
+export interface FetchRecordsOptions {
+	baseId: string;
+	tableIdOrName: string;
+	token: string;
+	ctx: ImportContext;
+	viewId?: string;
+}
+
+/**
+ * Options for converting field values
+ */
+export interface ConvertFieldOptions {
+	// Field value type varies (string, number, array, object, etc.)
+	fieldValue: any;
+	fieldSchema: AirtableFieldSchema;
+	recordId: string;
+	formulaStrategy: FormulaImportStrategy;
+	linkedRecordPlaceholders: LinkedRecordPlaceholder[];
+	fieldIdToNameMap?: Map<string, string>;
+}
+
+/**
  * Airtable Base information from meta API
  */
 export interface AirtableBaseInfo {
@@ -47,6 +83,8 @@ export interface AirtableFieldSchema {
 	id: string;
 	name: string;
 	type: string;
+	// Options structure varies by field type (formula, currency, rating, select, etc.)
+	// See: https://airtable.com/developers/web/api/field-model
 	options?: any;
 }
 
@@ -175,6 +213,7 @@ export interface CreateBaseFileParams {
  */
 export interface AirtableRecord {
 	id: string;
+	// Field values vary by type (string, number, array, object, etc.)
 	fields: Record<string, any>;
 	createdTime: string;
 }
@@ -193,5 +232,15 @@ export interface PreparedTableData {
 	records: AirtableRecord[];
 	// Map: recordId -> array of view references like ["[[Table.base#View1]]", "[[Table.base#View2]]"]
 	recordViewMemberships: Map<string, string[]>;
+}
+
+/**
+ * Context for creating a record file
+ */
+export interface RecordFileContext {
+	tablePath: string;
+	fields: AirtableFieldSchema[];
+	viewReferences: string[];
+	recordIdToTitle: Map<string, string>;
 }
 

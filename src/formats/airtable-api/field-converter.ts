@@ -2,46 +2,16 @@
  * Field converter for Airtable fields to Obsidian properties
  */
 
-import type { AirtableFieldSchema, FormulaImportStrategy, LinkedRecordPlaceholder } from './types';
-import { ImportContext } from '../../main';
+import type { AirtableFieldSchema, ConvertFieldOptions } from './types';
 import { convertAirtableFormulaToObsidian, canConvertFormula } from './formula-converter';
 
 /**
- * Create a mapping from field IDs to field names
- * 
- * This is needed because Airtable uses field IDs internally in formulas (e.g., {fldXXX}),
- * but the API returns record data with field names as keys.
- * 
- * Example:
- * - Formula: "UPPER({fldji0lrlb52vV1ae})"
- * - Record data: { "Example text": "hello" }
- * - We need to map: fldji0lrlb52vV1ae → "Example text"
- * 
- * @param fields - Array of field schemas containing id and name
- * @returns Map from field ID to field name
- */
-export function createFieldIdToNameMap(fields: any[]): Map<string, string> {
-	const fieldIdToNameMap = new Map<string, string>();
-	for (const field of fields) {
-		if (field.id && field.name) {
-			fieldIdToNameMap.set(field.id, field.name);
-		}
-	}
-	return fieldIdToNameMap;
-}
-
-/**
  * Convert Airtable field value to Obsidian property value
+ * @returns Converted value (string, number, boolean, array, or null)
  */
-export function convertFieldValue(
-	fieldValue: any,
-	fieldSchema: AirtableFieldSchema,
-	recordId: string,
-	formulaStrategy: FormulaImportStrategy,
-	linkedRecordPlaceholders: LinkedRecordPlaceholder[],
-	ctx: ImportContext,
-	fieldIdToNameMap?: Map<string, string>
-): any {
+export function convertFieldValue(options: ConvertFieldOptions): any {
+	const { fieldValue, fieldSchema, recordId, formulaStrategy, linkedRecordPlaceholders, fieldIdToNameMap } = options;
+	
 	if (fieldValue === null || fieldValue === undefined) {
 		return null;
 	}
@@ -72,12 +42,36 @@ export function convertFieldValue(
 			return String(fieldValue);
 		
 		case 'number':
-		case 'currency':
 		case 'percent':
 		case 'duration':
-		case 'rating':
 		case 'autoNumber':
 			return Number(fieldValue);
+		
+		case 'currency':
+			// Format currency with symbol prefix (e.g., "$100.00")
+			if (fieldValue === null || fieldValue === undefined) return null;
+			const currencyOptions = fieldSchema.options;
+			const symbol = currencyOptions?.symbol || '$';
+			const precision = currencyOptions?.precision ?? 2;
+			const numValue = Number(fieldValue);
+			return `${symbol}${numValue.toFixed(precision)}`;
+		
+		case 'rating':
+			// Convert rating to repeated icons (e.g., "⭐⭐⭐" for rating 3)
+			if (fieldValue === null || fieldValue === undefined) return null;
+			const ratingOptions = fieldSchema.options;
+			const icon = ratingOptions?.icon || 'star';
+			const ratingValue = Number(fieldValue) || 0;
+			// Map Airtable icon types to emoji/unicode
+			const iconMap: Record<string, string> = {
+				'star': '⭐',
+				'heart': '❤️',
+				'thumbsUp': '👍',
+				'flag': '🚩',
+				'dot': '●',
+			};
+			const iconChar = iconMap[icon] || '⭐';
+			return iconChar.repeat(ratingValue);
 		
 		case 'singleSelect':
 			return fieldValue ? String(fieldValue) : null;
@@ -144,22 +138,22 @@ export function convertFieldValue(
 			}
 			else {
 				// Try to convert to Obsidian formula
-				const converted = convertFormulaToObsidian(fieldValue, fieldSchema, fieldIdToNameMap);
+				const converted = convertFormulaToObsidian(fieldSchema, fieldIdToNameMap);
 				if (converted) {
 					// Formula successfully converted - it will be defined in .base file
 					// Return null so it's not added to YAML frontmatter
-					console.log(`✓ Formula field "${fieldSchema.name}" converted, skipping YAML`);
+					console.log(`Formula field "${fieldSchema.name}" converted, skipping YAML`);
 					return null;
 				}
 				// Fall back to static value (formula couldn't be converted)
-				console.log(`✗ Formula field "${fieldSchema.name}" could not be converted, using static value`);
+				console.log(`Formula field "${fieldSchema.name}" could not be converted, using static value`);
 				return convertFormulaResult(fieldValue, fieldSchema);
 			}
 		
 		case 'rollup':
 			// Rollup fields - check if can be converted to formula
 			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options as any;
+				const options = fieldSchema.options;
 				const linkedFieldId = options?.recordLinkFieldId;
 				const rollupFieldId = options?.fieldIdInLinkedTable;
 				
@@ -169,7 +163,7 @@ export function convertFieldValue(
 					
 					if (linkedFieldName && rollupFieldName) {
 						// Can be converted to formula - return null to skip YAML
-						console.log(`✓ Rollup field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						console.log(`Rollup field "${fieldSchema.name}" converted to formula, skipping YAML`);
 						return null;
 					}
 				}
@@ -177,34 +171,10 @@ export function convertFieldValue(
 			// Fall back to static value
 			return convertFormulaResult(fieldValue, fieldSchema);
 		
-		case 'lookup':
-			// Lookup fields - check if can be converted to formula
-			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options as any;
-				const linkedFieldId = options?.recordLinkFieldId;
-				const lookupFieldId = options?.fieldIdInLinkedTable;
-				
-				if (linkedFieldId && lookupFieldId) {
-					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
-					const lookupFieldName = fieldIdToNameMap.get(lookupFieldId);
-					
-					if (linkedFieldName && lookupFieldName) {
-						// Can be converted to formula - return null to skip YAML
-						console.log(`✓ Lookup field "${fieldSchema.name}" converted to formula, skipping YAML`);
-						return null;
-					}
-				}
-			}
-			// Fall back to static value
-			if (Array.isArray(fieldValue)) {
-				return fieldValue;
-			}
-			return fieldValue;
-		
 		case 'count':
 			// Count fields - check if can be converted to formula
 			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options as any;
+				const options = fieldSchema.options;
 				const linkedFieldId = options?.recordLinkFieldId;
 				
 				if (linkedFieldId) {
@@ -212,7 +182,7 @@ export function convertFieldValue(
 					
 					if (linkedFieldName) {
 						// Can be converted to formula - return null to skip YAML
-						console.log(`✓ Count field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						console.log(`Count field "${fieldSchema.name}" converted to formula, skipping YAML`);
 						return null;
 					}
 				}
@@ -238,10 +208,9 @@ export function convertFieldValue(
 			return String(fieldValue);
 		
 		case 'multipleLookupValues':
-			// This is the result type for Lookup fields (similar to lookup but explicit type)
-			// It's handled the same as lookup - return the array of values
+			// Lookup fields in Airtable API return type 'multipleLookupValues'
 			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options as any;
+				const options = fieldSchema.options;
 				const linkedFieldId = options?.recordLinkFieldId;
 				const lookupFieldId = options?.fieldIdInLinkedTable;
 				
@@ -251,7 +220,7 @@ export function convertFieldValue(
 					
 					if (linkedFieldName && lookupFieldName) {
 						// Can be converted to formula - return null to skip YAML
-						console.log(`✓ MultipleLookupValues field "${fieldSchema.name}" converted to formula, skipping YAML`);
+						console.log(`Lookup field "${fieldSchema.name}" converted to formula, skipping YAML`);
 						return null;
 					}
 				}
@@ -271,6 +240,8 @@ export function convertFieldValue(
 
 /**
  * Convert formula result value based on result type
+ * @param value - Formula result (type varies)
+ * @returns Converted value (string, number, boolean, array, or null)
  */
 function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any {
 	// Airtable formula can return different types
@@ -279,7 +250,7 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
 	}
 	
 	// Check if formula options specify the result type
-	const options = fieldSchema.options as any;
+	const options = fieldSchema.options;
 	if (options?.result) {
 		const resultType = options.result.type;
 		switch (resultType) {
@@ -300,14 +271,8 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
 		}
 	}
 	
-	// Auto-detect type
-	if (typeof value === 'number') {
-		return value;
-	}
-	if (typeof value === 'boolean') {
-		return value;
-	}
-	if (Array.isArray(value)) {
+	// Auto-detect type: return primitives and arrays as-is, otherwise convert to string
+	if (typeof value === 'number' || typeof value === 'boolean' || Array.isArray(value)) {
 		return value;
 	}
 	return String(value);
@@ -318,12 +283,11 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
  * Returns null if conversion is not possible
  */
 function convertFormulaToObsidian(
-	value: any,
 	fieldSchema: AirtableFieldSchema,
 	fieldIdToNameMap?: Map<string, string>
 ): string | null {
 	// Get the formula expression from field schema options
-	const options = fieldSchema.options as any;
+	const options = fieldSchema.options;
 	const formulaExpression = options?.formula;
 	
 	console.log(`Converting formula for "${fieldSchema.name}":`, {
@@ -335,13 +299,13 @@ function convertFormulaToObsidian(
 	
 	if (!formulaExpression || typeof formulaExpression !== 'string') {
 		// No formula expression available
-		console.log(`  → No formula expression found`);
+		console.log(`No formula expression found`);
 		return null;
 	}
 	
 	// Check if the formula can be converted
 	if (!canConvertFormula(formulaExpression)) {
-		console.log(`  → Formula cannot be converted (unsupported functions)`);
+		console.log(`Formula cannot be converted (unsupported functions)`);
 		return null;
 	}
 	
@@ -350,7 +314,7 @@ function convertFormulaToObsidian(
 		const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
 		if (converted) {
 			// Formula successfully converted - return a marker (actual formula is in .base file)
-			console.log(`  → Converted to: ${converted}`);
+			console.log(`Converted to: ${converted}`);
 			return '__FORMULA_CONVERTED__'; // Marker to indicate formula was converted
 		}
 	}
@@ -361,55 +325,4 @@ function convertFormulaToObsidian(
 	return null;
 }
 
-/**
- * Check if a field should be placed in body content instead of frontmatter
- * Typically long text fields should go in the body
- */
-export function shouldFieldGoToBody(fieldSchema: AirtableFieldSchema): boolean {
-	const longTextTypes = ['multilineText', 'richText'];
-	return longTextTypes.includes(fieldSchema.type);
-}
-
-/**
- * Get display name for a field value (for use in wiki links)
- */
-export function getFieldDisplayValue(value: any, fieldSchema: AirtableFieldSchema): string {
-	if (value === null || value === undefined) {
-		return '';
-	}
-	
-	switch (fieldSchema.type) {
-		case 'singleLineText':
-		case 'multilineText':
-		case 'email':
-		case 'url':
-		case 'phoneNumber':
-			return String(value);
-		
-		case 'number':
-		case 'currency':
-		case 'percent':
-		case 'duration':
-		case 'rating':
-		case 'autoNumber':
-			return String(value);
-		
-		case 'singleSelect':
-		case 'multipleSelects':
-			if (Array.isArray(value)) {
-				return value.join(', ');
-			}
-			return String(value);
-		
-		case 'date':
-		case 'dateTime':
-			return String(value);
-		
-		case 'checkbox':
-			return value ? '✓' : '';
-		
-		default:
-			return String(value);
-	}
-}
 
