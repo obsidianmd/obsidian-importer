@@ -6,6 +6,7 @@
 import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
+import { parseFilePath } from '../filesystem';
 import { sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
 import {
 	TemplateConfigurator,
@@ -15,6 +16,7 @@ import {
 } from '../template';
 
 // Import helper modules
+import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
 import { convertFieldValue, createFieldIdToNameMap } from './airtable-api/field-converter';
 import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
@@ -22,6 +24,7 @@ import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
+	AirtableViewInfo,
 	LinkedRecordPlaceholder,
 	AirtableAttachment,
 	PreparedTableData,
@@ -279,22 +282,16 @@ export class AirtableAPIImporter extends FormatImporter {
 						title: table.name,
 						type: 'table',
 						parentId: base.id,
-						children: [],  // No longer show views as children in tree
 						selected: false,
 						disabled: false,
-						collapsed: true,
 						metadata: {
 							baseId: base.id,
 							tableName: table.name,
 							fields: table.fields,
-							views: table.views,  // Store views in metadata for later use
+							views: table.views,
 						},
 					};
-
-					// Note: Views are not displayed in the tree anymore
-					// Instead, we store them in table metadata and process all views when importing a table
-
-					baseNode.children.push(tableNode);
+					baseNode.children!.push(tableNode);
 				}
 
 				treeNodes.push(baseNode);
@@ -307,7 +304,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				this.toggleSelectButton.buttonEl.style.display = '';
 			}
 
-			const tableCount = treeNodes.reduce((sum, base) => sum + base.children.length, 0);
+			const tableCount = treeNodes.reduce((sum, base) => sum + (base.children?.length || 0), 0);
 			new Notice(`Found ${bases.length} base(s) with ${tableCount} table(s).`);
 		}
 		catch (error) {
@@ -367,9 +364,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		treeItemSelf.addClass('is-clickable');
 		
 		// Add appropriate modifiers
-		if (node.children.length > 0) {
-			treeItemSelf.addClass('mod-collapsible');
-		}
+		const hasChildren = node.children && node.children.length > 0;
 		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
 		
 		// Apply disabled styling
@@ -380,7 +375,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Collapse/Expand arrow (only for base nodes with children)
-		if (node.children.length > 0) {
+		if (hasChildren) {
+			treeItemSelf.addClass('mod-collapsible');
+			
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
 			
 			// Use right-triangle icon (Obsidian's standard)
@@ -460,8 +457,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Render children (always render, but hide if collapsed)
-		if (node.children.length > 0) {
-			for (const child of node.children) {
+		if (hasChildren) {
+			for (const child of node.children!) {
 				this.renderTreeNode(childrenContainer, child, level + 1);
 			}
 		}
@@ -472,34 +469,20 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private toggleNodeSelection(node: AirtableTreeNode, selected: boolean): void {
 		node.selected = selected;
-
-		if (selected) {
-			this.selectAllChildren(node, true);
-		}
-		else {
-			this.enableAllChildren(node);
-		}
+		this.setChildrenSelection(node, selected);
 	}
 
 	/**
-	 * Select all children recursively
+	 * Set selection state for all children recursively
+	 * When selected=true: select and disable all children
+	 * When selected=false: deselect and enable all children
 	 */
-	private selectAllChildren(node: AirtableTreeNode, selected: boolean): void {
+	private setChildrenSelection(node: AirtableTreeNode, selected: boolean): void {
+		if (!node.children) return;
 		for (const child of node.children) {
 			child.selected = selected;
 			child.disabled = selected;
-			this.selectAllChildren(child, selected);
-		}
-	}
-
-	/**
-	 * Enable all children recursively
-	 */
-	private enableAllChildren(node: AirtableTreeNode): void {
-		for (const child of node.children) {
-			child.disabled = false;
-			child.selected = false;
-			this.enableAllChildren(child);
+			this.setChildrenSelection(child, selected);
 		}
 	}
 
@@ -512,7 +495,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (!node.selected) {
 					return false;
 				}
-				if (!checkNode(node.children)) {
+				if (!checkNode(node.children || [])) {
 					return false;
 				}
 			}
@@ -528,16 +511,12 @@ export class AirtableAPIImporter extends FormatImporter {
 	private selectAllNodes(selected: boolean): void {
 		const processNode = (node: AirtableTreeNode) => {
 			if (!node.disabled) {
-				node.selected = selected;
-				if (selected) {
-					this.selectAllChildren(node, true);
-				}
-				else {
-					this.enableAllChildren(node);
-				}
+				this.toggleNodeSelection(node, selected);
 			}
-			for (const child of node.children) {
-				processNode(child);
+			if (node.children) {
+				for (const child of node.children) {
+					processNode(child);
+				}
 			}
 		};
 
@@ -556,14 +535,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		const allSelected = this.areAllNodesSelected();
-
-		if (allSelected) {
-			this.selectAllNodes(false);
-		}
-		else {
-			this.selectAllNodes(true);
-		}
-
+		this.selectAllNodes(!allSelected);
 		this.renderTree();
 	}
 
@@ -589,7 +561,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (node.selected && !node.disabled) {
 					selected.push(node);
 				}
-				collectNodes(node.children);
+				if (node.children) {
+					collectNodes(node.children);
+				}
 			}
 		};
 
@@ -600,20 +574,25 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
-	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement): Promise<boolean> {
 		const selectedNodes = this.getSelectedNodes();
 		if (selectedNodes.length === 0) {
 			new Notice('Please select at least one table to import.');
 			return false;
 		}
 
-		// Collect all unique fields from selected tables
+		// Collect all unique fields from selected tables (union of all fields across tables)
+		// Note: When multiple tables are selected, they may have different primary fields.
+		// We use the first table's primary field as the default title template suggestion.
+		// Users can modify this in the template configuration UI.
+		// During actual import, if the template field doesn't exist in a table,
+		// the fallback logic in createRecordFile() will use that table's own primary field.
 		const allFieldsMap = new Map<string, any>();
 		const fieldExamples = new Map<string, string>();
+		let primaryFieldName: string | null = null;
 		
 		const collectFields = (nodes: AirtableTreeNode[]) => {
 			for (const node of nodes) {
-				// Collect fields from this node
 				if (node.metadata?.fields) {
 					for (const field of node.metadata.fields) {
 						if (!allFieldsMap.has(field.name)) {
@@ -621,9 +600,13 @@ export class AirtableAPIImporter extends FormatImporter {
 							fieldExamples.set(field.name, this.generateExampleValue(field));
 						}
 					}
+					// Use the first field of the first table as the default title template
+					if (primaryFieldName === null && node.metadata.fields.length > 0) {
+						primaryFieldName = node.metadata.fields[0].name;
+					}
 				}
 				
-				// Recursively collect from children
+				// Recursively collect from children (for base nodes)
 				if (node.children && node.children.length > 0) {
 					collectFields(node.children);
 				}
@@ -665,9 +648,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Note content is empty by default - let user decide what to put there
 		const bodyTemplate = '';
 
-		// Get primary field for title (usually the first field)
-		const firstField = Array.from(allFieldsMap.keys())[0] || 'Name';
-		const titleTemplate = `{{${firstField}}}`;
+		// Use primary field (first field of first table) as default title template
+		const titleTemplate = `{{${primaryFieldName || 'Name'}}}`;
 
 		// Create and show configurator
 		const configurator = new TemplateConfigurator({
@@ -751,9 +733,14 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
+	/**
+	 * Sanitize property name for use in YAML frontmatter.
+	 * Obsidian properties support most characters including spaces and hyphens,
+	 * so we return the original name to ensure consistency.
+	 * This method is kept as a centralized place in case future sanitization is needed.
+	 */
 	private sanitizePropertyName(name: string): string {
-		// Remove special characters, keep alphanumeric, spaces, hyphens, underscores
-		return name.replace(/[^\w\s-]/g, '').trim();
+		return name;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -859,7 +846,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		for (const node of selectedNodes) {
 			if (ctx.isCancelled()) return;
 			
-			if (node.type === 'base') {
+			if (node.type === 'base' && node.children) {
 				// Expand base to all its tables
 				for (const tableNode of node.children) {
 					tablesToProcess.push({
@@ -958,7 +945,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			ctx.status(`Fetching ${baseName} > ${tableName} > ${view.name} (${recordViewMemberships.size} records tagged)...`);
 			
 			// Fetch only record IDs from this view
-			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view.id, ctx);
+			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
 			
 			// Build view reference
 			const viewReference = `[[${sanitizedTableName}.base#${view.name}]]`;
@@ -977,7 +964,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId,
 			baseName,
 			tableName,
-			tablePath: '', // Will be set in phase 2
 			fields,
 			views: supportedViews,
 			records: allRecords,
@@ -1064,10 +1050,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	private async fetchViewRecordIds(
 		baseId: string,
 		tableName: string,
-		viewId: string,
+		view: AirtableViewInfo,
 		ctx: ImportContext
 	): Promise<string[]> {
-		const Airtable = (await import('airtable')).default;
 		const base = new Airtable({ apiKey: this.airtableToken }).base(baseId);
 		const recordIds: string[] = [];
 		
@@ -1075,7 +1060,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Only fetch the ID field (minimal data transfer)
 			await base(tableName)
 				.select({
-					view: viewId,
+					view: view.id,
 					fields: [], // Request no fields, only IDs
 				})
 				.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
@@ -1085,122 +1070,10 @@ export class AirtableAPIImporter extends FormatImporter {
 				});
 		}
 		catch (error) {
-			console.error(`Failed to fetch view record IDs for view ${viewId}:`, error);
-			throw error;
+			ctx.reportFailed(`${tableName} > ${view.name}`, error);
 		}
 		
 		return recordIds;
-	}
-
-	/**
-	 * Update an existing record's view property
-	 * viewReference format: [[TableName.base#ViewName]]
-	 */
-	private async updateRecordViewProperty(filePath: string, viewReference: string, ctx: ImportContext): Promise<void> {
-		const fullPath = `${filePath}.md`;
-		const file = this.vault.getAbstractFileByPath(normalizePath(fullPath));
-		
-		if (!file || !(file instanceof TFile)) {
-			console.warn(`Could not find file to update: ${fullPath}`);
-			return;
-		}
-
-		try {
-			let content = await this.vault.read(file);
-			
-			// Parse frontmatter
-			const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-			const match = content.match(frontmatterRegex);
-			
-			if (!match) {
-				console.warn(`No frontmatter found in file: ${fullPath}`);
-				return;
-			}
-
-			// Check if view property exists (support both single-line and multi-line YAML formats)
-			// Single-line: base: ["value1", "value2"]
-			// Multi-line: base:\n  - "value1"\n  - "value2"
-			// Note: Use greedy match for array content to handle wiki links with ]]
-			const singleLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*\\[([\\s\\S]*)\\]`, 'm');
-			const multiLinePattern = new RegExp(`^${this.viewPropertyName}:\\s*$\\n((?:^\\s+-\\s+[^\\n]+$\\n?)+)`, 'm');
-			
-			const singleLineMatch = content.match(singleLinePattern);
-			const multiLineMatch = content.match(multiLinePattern);
-			
-			if (singleLineMatch || multiLineMatch) {
-				// Property exists, extract existing references
-				let existingRefs: string[] = [];
-				
-				if (singleLineMatch) {
-					// Single-line format
-					existingRefs = singleLineMatch[1]
-						.split(',')
-						.map(v => v.trim().replace(/^["']|["']$/g, ''))
-						.filter(v => v.length > 0);
-				}
-				else if (multiLineMatch) {
-					// Multi-line format
-					existingRefs = multiLineMatch[1]
-						.split('\n')
-						.map(line => line.trim().replace(/^-\s+["']?|["']?$/g, ''))
-						.filter(v => v.length > 0);
-				}
-				
-				// Check if view reference already exists
-				if (!existingRefs.includes(viewReference)) {
-					// Add new view reference to the list
-					const updatedRefs = [...existingRefs, viewReference];
-					const newValue = `[${updatedRefs.map(v => `"${v}"`).join(', ')}]`;
-					
-					// Replace both single-line and multi-line formats with single-line format
-					if (singleLineMatch) {
-						content = content.replace(
-							singleLinePattern,
-							`${this.viewPropertyName}: ${newValue}`
-						);
-					}
-					else if (multiLineMatch) {
-						content = content.replace(
-							multiLinePattern,
-							`${this.viewPropertyName}: ${newValue}\n`
-						);
-					}
-					
-					await this.vault.modify(file, content);
-				}
-			}
-			else {
-				// Property doesn't exist, add it after airtable-id or airtable-created
-				const newProperty = `${this.viewPropertyName}: ["${viewReference}"]`;
-				
-				// Try to insert after airtable-id first
-				if (content.match(/^airtable-id:/m)) {
-					content = content.replace(
-						/^(airtable-id:.*\n)/m,
-						`$1${newProperty}\n`
-					);
-				}
-				// Otherwise try after airtable-created
-				else if (content.match(/^airtable-created:/m)) {
-					content = content.replace(
-						/^(airtable-created:.*\n)/m,
-						`$1${newProperty}\n`
-					);
-				}
-				// Otherwise add at the beginning of frontmatter
-				else {
-					content = content.replace(
-						frontmatterRegex,
-						`---\n${newProperty}\n${match[1]}\n---`
-					);
-				}
-				
-				await this.vault.modify(file, content);
-			}
-		}
-		catch (error) {
-			console.error(`Failed to update view property for ${fullPath}:`, error);
-		}
 	}
 
 	/**
@@ -1255,6 +1128,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Fallback: use first field (primary field)
 			const primaryFieldName = fields[0]?.name;
 			const primaryFieldValue = recordFields[primaryFieldName];
+			// Sometimes the primary field is a Autonumber field, which is a number, not a string
 			title = primaryFieldValue ? String(primaryFieldValue) : '';
 		}
 		
@@ -1447,8 +1321,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			// File exists with different record - find unique name
 			filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
 			// Update sanitizedTitle to match the new file name (without .md)
-			const fileNameWithExt = filePath.split('/').pop() || sanitizedTitle;
-			sanitizedTitle = fileNameWithExt.replace(/\.md$/, '');
+			const { basename } = parseFilePath(filePath);
+			sanitizedTitle = basename;
 		}
 		
 		// Create the file
@@ -1457,222 +1331,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Track record path (without .md extension)
 		this.recordIdToPath.set(recordId, filePath.replace(/\.md$/, ''));
 		
-		ctx.reportNoteSuccess(sanitizedTitle);
-		this.processedRecordsCount++;
-		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-	}
-
-	/**
-	 * Import a single record as a note
-	 */
-	private async importRecord(
-		ctx: ImportContext,
-		record: any,
-		baseId: string,
-		tableName: string,
-		parentPath: string,
-		fields: any[],
-		viewNames: string[] = []
-	): Promise<void> {
-		const recordId = record.id;
-		const recordFields = record.fields || {};
-
-		// Check if record is completely empty (no field values at all)
-		// Skip only if all fields are null/undefined/empty
-		const hasAnyValue = Object.keys(recordFields).some(fieldName => {
-			const value = recordFields[fieldName];
-			if (value === null || value === undefined) return false;
-			
-			// For objects (like aiText error states), check if they have actual data
-			if (typeof value === 'object') {
-				// Arrays: check if not empty
-				if (Array.isArray(value)) return value.length > 0;
-				// Objects with error state: consider empty
-				if (value.state === 'error' || value.state === 'empty') return false;
-				// Other objects: check if not empty
-				return Object.keys(value).length > 0;
-			}
-			
-			// For strings: check if not empty after trimming
-			if (typeof value === 'string') return value.trim().length > 0;
-			
-			// All other types: consider as having value
-			return true;
-		});
-
-		// Skip only if record has no field values at all
-		if (!hasAnyValue) {
-			ctx.reportSkipped('Untitled Record', 'Empty record (no field values)');
-			this.processedRecordsCount++;
-			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-			return;
-		}
-
-		// Convert all fields to string values for template processing
-		const templateData: Record<string, string> = {};
-		
-		// First pass: convert field values for template use
-		for (const field of fields) {
-			const fieldValue = recordFields[field.name];
-			
-			if (fieldValue === null || fieldValue === undefined) {
-				templateData[field.name] = '';
-				continue;
-			}
-
-			// Convert to string for template
-			if (Array.isArray(fieldValue)) {
-				// For arrays, join with commas
-				templateData[field.name] = fieldValue.map(v => {
-					if (typeof v === 'object' && v.name) return v.name;
-					if (typeof v === 'object' && v.id) return v.id;
-					return String(v);
-				}).join(', ');
-			}
-			else if (typeof fieldValue === 'object') {
-				// For objects, try to get name or value
-				templateData[field.name] = fieldValue.name || fieldValue.value || String(fieldValue);
-			}
-			else {
-				templateData[field.name] = String(fieldValue);
-			}
-		}
-
-		// Apply title template
-		const recordTitle = this.templateConfig
-			? applyTemplate(this.templateConfig.titleTemplate, templateData)
-			: (templateData[fields[0]?.name] || 'Untitled Record');
-
-		// Use fallback title if empty (don't skip, since record has some field values)
-		const sanitizedTitle = sanitizeFileName(recordTitle) || 'Untitled Record';
-
-		ctx.status(`Importing: ${sanitizedTitle}`);
-
-		// Apply location template
-		const locationPath = this.templateConfig
-			? applyTemplate(this.templateConfig.locationTemplate, templateData)
-			: '';
-		
-		const targetFolder = locationPath
-			? await this.getTargetFolder(parentPath, locationPath)
-			: parentPath;
-
-		// Build frontmatter
-		const frontMatter: Record<string, any> = {
-			'airtable-id': recordId,
-			'airtable-created': record.createdTime,
-		};
-
-		// Add view property if views are specified
-		if (viewNames.length > 0) {
-			frontMatter[this.viewPropertyName] = viewNames;
-		}
-
-		// Process fields for frontmatter using template config
-		if (this.templateConfig) {
-			for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
-				if (!propertyName || !propertyName.trim()) continue;
-
-				// Skip the view property name to avoid duplicates
-				// The view property is managed separately by the importer
-				if (propertyName === this.viewPropertyName) {
-					continue;
-				}
-
-				const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
-				if (!valueTemplate) continue;
-
-				// Find the field schema
-				const field = fields.find(f => f.name === fieldId);
-				if (!field) continue;
-
-				const fieldValue = recordFields[field.name];
-				if (fieldValue === null || fieldValue === undefined) continue;
-
-				// Convert field value properly
-				// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
-				const converted = convertFieldValue(
-					fieldValue,
-					field,
-					recordId,
-					this.formulaStrategy,
-					this.linkedRecordPlaceholders,
-					ctx,
-					this.globalFieldIdToNameMap
-				);
-
-				if (converted === null || converted === undefined) continue;
-
-				// Handle attachments
-				if (field.type === 'multipleAttachments' && Array.isArray(converted)) {
-					const attachments = converted as AirtableAttachment[];
-					const links = await processAttachmentsForYAML(attachments, {
-						ctx,
-						currentFolderPath: targetFolder,
-						currentFilePath: `${targetFolder}/${sanitizedTitle}.md`,
-						vault: this.vault,
-						app: this.app,
-						downloadAttachments: this.downloadAttachments,
-						getAvailableAttachmentPath: async (filename: string) => {
-							return await this.getAvailablePathForAttachment(filename, []);
-						},
-						onAttachmentDownloaded: () => {
-							this.attachmentsDownloaded++;
-							ctx.attachments = this.attachmentsDownloaded;
-							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-						},
-					});
-
-					if (links.length > 0) {
-						frontMatter[propertyName] = links;
-					}
-				}
-				else {
-					// For URL fields in YAML, use plain URL
-					if (field.type === 'url' && typeof converted === 'string') {
-						frontMatter[propertyName] = converted;
-					}
-					else {
-						frontMatter[propertyName] = converted;
-					}
-				}
-			}
-		}
-
-		// Apply body template
-		const bodyContent = this.templateConfig
-			? applyTemplate(this.templateConfig.bodyTemplate, templateData)
-			: '';
-
-		// Check for incremental import before creating file
-		const filePathToCreate = normalizePath(`${targetFolder}/${sanitizedTitle}.md`);
-		const shouldSkip = await this.handleIncrementalImportCheck(filePathToCreate, recordId, async () => {
-			// File already exists with same airtable-id, skip creation
-			// But still track the path for linked record resolution
-			const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
-			this.recordIdToPath.set(recordId, pathWithoutExt);
-			ctx.reportSkipped(sanitizedTitle, 'Already imported');
-			this.processedRecordsCount++;
-			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-		});
-		if (shouldSkip) return;
-
-		// Create markdown file
-		const fullContent = serializeFrontMatter(frontMatter) + (bodyContent ? '\n\n' + bodyContent : '');
-
-		try {
-			await this.vault.create(filePathToCreate, fullContent);
-		}
-		catch (error) {
-			// File might already exist with different airtable-id, get unique path
-			const uniquePath = await this.getUniqueFilePath(targetFolder, `${sanitizedTitle}.md`);
-			await this.vault.create(uniquePath, fullContent);
-		}
-
-		// Track record path
-		const pathWithoutExt = filePathToCreate.replace(/\.md$/, '');
-		this.recordIdToPath.set(recordId, pathWithoutExt);
-
 		ctx.reportNoteSuccess(sanitizedTitle);
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
@@ -1720,22 +1378,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Get unique file path (append " 1", " 2", etc. if file exists)
-	 */
-	private async getUniqueFilePath(parentPath: string, fileName: string): Promise<string> {
-		let counter = 1;
-		let baseName = fileName.replace(/\.md$/, '');
-		let testPath = normalizePath(`${parentPath}/${fileName}`);
-		
-		while (this.vault.getAbstractFileByPath(testPath)) {
-			testPath = normalizePath(`${parentPath}/${baseName} ${counter}.md`);
-			counter++;
-		}
-		
-		return testPath;
 	}
 
 	/**
@@ -1809,21 +1451,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Get target folder for a record based on location template
-	 */
-	private async getTargetFolder(baseFolder: string, locationPath: string): Promise<string> {
-		if (!locationPath || !locationPath.trim()) {
-			return baseFolder;
-		}
-
-		const sanitizedPath = this.sanitizeFilePath(locationPath);
-		const fullPath = normalizePath(`${baseFolder}/${sanitizedPath}`);
-
-		await this.createFolders(fullPath);
-		return fullPath;
-	}
-
-	/**
 	 * Create a single .base file for the table with multiple views
 	 */
 	private async createViewBaseFiles(
@@ -1833,7 +1460,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		fields: any[]
 	): Promise<void> {
 		// Get parent folder (where .base file will be created)
-		const parentPath = tableFolderPath.split('/').slice(0, -1).join('/');
+		const { parent: parentPath } = parseFilePath(tableFolderPath);
 		
 		// Extract title field name from template (e.g., "{{Formula Reference}}" -> "Formula Reference")
 		let titleFieldName: string | null = null;
@@ -1882,7 +1509,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					
 					if (linkedFieldName && lookupFieldName) {
 						// Lookup: note["Linked Records"].map(value.asFile().properties["FieldName"])
-						// Use sanitized names to match YAML property names
 						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
 						const sanitizedLookupFieldName = this.sanitizePropertyName(lookupFieldName);
 						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedLookupFieldName}"])`;
@@ -1902,7 +1528,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					
 					if (linkedFieldName && rollupFieldName) {
 						// Base expression: note["Linked Records"].map(value.asFile().properties["FieldName"])
-						// Use sanitized names to match YAML property names
 						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
 						const sanitizedRollupFieldName = this.sanitizePropertyName(rollupFieldName);
 						const mapExpression = `note["${sanitizedLinkedFieldName}"].map(value.asFile().properties["${sanitizedRollupFieldName}"])`;
@@ -1924,7 +1549,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					
 					if (linkedFieldName) {
 						// Count: note["Linked Records"].length
-						// Use sanitized name to match YAML property name
 						const sanitizedLinkedFieldName = this.sanitizePropertyName(linkedFieldName);
 						const obsidianFormula = `note["${sanitizedLinkedFieldName}"].length`;
 						formulas.set(field.name, obsidianFormula);
@@ -2189,64 +1813,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			default:
 				console.log(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
 				return 'text';
-		}
-	}
-
-	/**
-	 * Replace linked record placeholders with wiki links
-	 */
-	private async replaceLinkedRecordPlaceholders(ctx: ImportContext): Promise<void> {
-		if (this.linkedRecordPlaceholders.length === 0) {
-			return;
-		}
-
-		ctx.status(`Replacing ${this.linkedRecordPlaceholders.length} linked record placeholders...`);
-
-		for (const placeholder of this.linkedRecordPlaceholders) {
-			if (ctx.isCancelled()) break;
-
-			try {
-				const recordPath = this.recordIdToPath.get(placeholder.recordId);
-				if (!recordPath) {
-					console.warn(`Could not find path for record: ${placeholder.recordId}`);
-					continue;
-				}
-
-				const file = this.vault.getAbstractFileByPath(recordPath + '.md');
-				if (!file || !(file instanceof TFile)) {
-					console.warn(`Could not find file: ${recordPath}`);
-					continue;
-				}
-
-				let content = await this.vault.read(file);
-				let modified = false;
-
-				// Replace each linked record ID with a wiki link
-				for (const linkedId of placeholder.linkedRecordIds) {
-					const linkedPath = this.recordIdToPath.get(linkedId);
-					if (linkedPath) {
-						const linkedFile = this.vault.getAbstractFileByPath(linkedPath + '.md');
-						if (linkedFile instanceof TFile) {
-							const displayName = linkedFile.basename;
-							const wikiLink = `"[[${linkedPath}|${displayName}]]"`;
-
-							// Replace the ID with the link
-							content = content.replace(
-								new RegExp(linkedId, 'g'),
-								wikiLink
-							);
-							modified = true;
-						}
-					}
-				}
-
-				if (modified) {
-					await this.vault.modify(file, content);
-				}
-			}
-			catch (error) {
-				console.error(`Failed to replace placeholder for record ${placeholder.recordId}:`, error);
-			}
 		}
 	}
 

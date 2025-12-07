@@ -56,17 +56,16 @@ export interface AirtableFieldSchema {
 export interface AirtableTreeNode {
 	id: string;
 	title: string;
-	type: 'base' | 'table' | 'view';
+	type: 'base' | 'table';
 	parentId: string | null;
-	children: AirtableTreeNode[];
+	children?: AirtableTreeNode[];
 	selected: boolean;
 	disabled: boolean;
-	collapsed: boolean;
-	// Additional metadata for processing
+	collapsed?: boolean;
+	// Additional metadata for table nodes
 	metadata?: {
 		baseId?: string;
 		tableName?: string;
-		viewId?: string;
 		fields?: AirtableFieldSchema[];
 		views?: AirtableViewInfo[];
 	};
@@ -189,7 +188,6 @@ export interface PreparedTableData {
 	baseId: string;
 	baseName: string;
 	tableName: string;
-	tablePath: string;
 	fields: AirtableFieldSchema[];
 	views: AirtableViewInfo[];
 	records: AirtableRecord[];
