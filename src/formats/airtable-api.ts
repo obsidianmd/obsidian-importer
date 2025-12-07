@@ -1256,8 +1256,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					fieldIdToNameMap: this.globalFieldIdToNameMap,
 				});
 
-				// Skip if convertedValue is null (e.g., formula was converted and will be in .base file)
-				if (convertedValue === null || convertedValue === undefined) {
+				// Skip if convertedValue is null/undefined/empty string (e.g., formula was converted and will be in .base file)
+				if (convertedValue === null || convertedValue === undefined || convertedValue === '') {
 					continue;
 				}
 
@@ -1273,7 +1273,8 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 
 				// Convert property value according to type
-				let propertyValue: string | string[] | null = convertedValue;
+				// Using 'any' because convertedValue can be string, number, boolean, array, etc.
+				let propertyValue: any = convertedValue;
 
 				// Handle attachments: download and convert to wiki links or URLs
 				if (field.type === 'multipleAttachments' && Array.isArray(convertedValue)) {
@@ -1296,8 +1297,15 @@ export class AirtableAPIImporter extends FormatImporter {
 					});
 				}
 
-				// Set property
-				frontMatter[propertyName] = propertyValue;
+				// Set property (skip null/undefined/empty values and non-serializable objects)
+				if (propertyValue !== null && propertyValue !== undefined && propertyValue !== '') {
+					// Ensure we're not setting complex objects that could cause YAML serialization issues
+					if (typeof propertyValue === 'object' && !Array.isArray(propertyValue)) {
+						console.warn(`[Airtable] Skipping complex object for property "${propertyName}"`);
+						continue;
+					}
+					frontMatter[propertyName] = propertyValue;
+				}
 			}
 		}
 
@@ -1354,21 +1362,14 @@ export class AirtableAPIImporter extends FormatImporter {
 			return false;
 		}
 
-		try {
-			const content = await this.vault.read(file);
-			const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-			if (frontmatterMatch) {
-				const frontmatter = parseYaml(frontmatterMatch[1]);
-				const existingId = frontmatter?.['airtable-id'];
-				if (existingId === recordId) {
-					// Same record - execute callback
-					await onMatch(file);
-					return true;
-				}
-			}
-		}
-		catch (error) {
-			// Failed to read/parse, continue with normal import
+		// Use metadataCache to safely read frontmatter (handles complex YAML content)
+		const cachedMetadata = this.app.metadataCache.getFileCache(file);
+		const existingId = cachedMetadata?.frontmatter?.['airtable-id'];
+		
+		if (existingId === recordId) {
+			// Same record - execute callback
+			await onMatch(file);
+			return true;
 		}
 
 		return false;
@@ -1399,32 +1400,30 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Read file content
 				const content = await this.vault.read(file);
 
-				// Check if file has frontmatter with airtable-id
-				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-				const match = content.match(frontmatterRegex);
-
-				if (!match) {
-					continue; // No frontmatter, skip
+				// Parse frontmatter using Obsidian's cache
+				const cachedMetadata = this.app.metadataCache.getFileCache(file);
+				if (!cachedMetadata?.frontmatter || !cachedMetadata.frontmatter['airtable-id']) {
+					continue; // No frontmatter or no airtable-id, skip
 				}
 
-				const frontmatter = match[1];
-				const airtableIdRegex = /^airtable-id:\s*.+$/m;
-
-				if (!airtableIdRegex.test(frontmatter)) {
-					continue; // No airtable-id in frontmatter, skip
+				// Get frontmatter position from cache
+				const frontmatterPos = cachedMetadata.frontmatterPosition;
+				if (!frontmatterPos) {
+					continue;
 				}
 
-				// Remove the airtable-id line from frontmatter
-				const newFrontmatter = frontmatter
-					.split('\n')
-					.filter(line => !line.match(/^airtable-id:\s*.+$/))
-					.join('\n');
+				// Remove airtable-id from frontmatter object
+				const newFrontmatter = { ...cachedMetadata.frontmatter };
+				delete newFrontmatter['airtable-id'];
+				delete newFrontmatter['position']; // Remove internal position property
 
-				// Reconstruct the content
-				const newContent = content.replace(
-					frontmatterRegex,
-					`---\n${newFrontmatter}\n---`
-				);
+				// Get body content (everything after frontmatter)
+				const lines = content.split('\n');
+				const bodyStartLine = frontmatterPos.end.line + 1;
+				const bodyContent = lines.slice(bodyStartLine).join('\n');
+
+				// Reconstruct file content
+				const newContent = serializeFrontMatter(newFrontmatter) + bodyContent;
 
 				// Write back to file
 				await this.vault.modify(file, newContent);
@@ -1780,6 +1779,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			case 'formula':
 			case 'rollup':
 			case 'lookup':
+			case 'multipleLookupValues':
 			case 'count':
 				// These are computed properties, let Obsidian auto-infer type
 				return null;
