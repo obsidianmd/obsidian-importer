@@ -31,6 +31,7 @@ import type {
 	PreparedTableData,
 	AirtableRecord,
 	RecordFileContext,
+	BaseFileContext,
 } from './airtable-api/types';
 
 export class AirtableAPIImporter extends FormatImporter {
@@ -341,6 +342,7 @@ export class AirtableAPIImporter extends FormatImporter {
 						metadata: {
 							baseId: base.id,
 							tableName: table.name,
+							primaryFieldId: table.primaryFieldId,
 							fields: table.fields,
 							views: table.views,
 						},
@@ -636,14 +638,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Collect all unique fields from selected tables (union of all fields across tables)
-		// Note: When multiple tables are selected, they may have different primary fields.
-		// We use the first table's primary field as the default title template suggestion.
-		// Users can modify this in the template configuration UI.
-		// During actual import, if the template field doesn't exist in a table,
-		// the fallback logic in createRecordFile() will use that table's own primary field.
+		// Collect all fields from selected tables for template configuration
 		const allFieldsMap = new Map<string, AirtableFieldSchema>();
 		const fieldExamples = new Map<string, string>();
-		let primaryFieldName: string | null = null;
 		
 		const collectFields = (nodes: AirtableTreeNode[]) => {
 			for (const node of nodes) {
@@ -653,10 +650,6 @@ export class AirtableAPIImporter extends FormatImporter {
 							allFieldsMap.set(field.name, field);
 							fieldExamples.set(field.name, this.generateExampleValue(field));
 						}
-					}
-					// Use the first field of the first table as the default title template
-					if (primaryFieldName === null && node.metadata.fields.length > 0) {
-						primaryFieldName = node.metadata.fields[0].name;
 					}
 				}
 				
@@ -702,21 +695,20 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Note content is empty by default - let user decide what to put there
 		const bodyTemplate = '';
 
-		// Use primary field (first field of first table) as default title template
-		const titleTemplate = `{{${primaryFieldName || 'Name'}}}`;
-
 		// Create and show configurator
+		// Note: Airtable uses each table's primary field as note title (no custom template)
 		const configurator = new TemplateConfigurator({
 			fields,
 			defaults: {
-				titleTemplate,
+				titleTemplate: '', // Not used - each table's primary field is used directly
 				locationTemplate: '',
 				bodyTemplate,
 				propertyNames,
 				propertyValues,
 			},
 			placeholderSyntax: '{{field_name}}',
-			showLocationTemplate: false, // Hide location template for Airtable (records go to table folders)
+			showTitleTemplate: false, // Airtable always uses primary field as note title
+			showLocationTemplate: false, // Records go to table folders automatically
 		});
 
 		this.templateConfig = await configurator.show(container);
@@ -740,7 +732,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			case 'number':
 				return '123';
 			case 'currency':
-				return '$99.99';
+				return '99.99';
 			case 'percent':
 				return '75%';
 			case 'singleSelect':
@@ -921,6 +913,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		baseName: string;
 		tables: Array<{
 			tableName: string;
+			primaryFieldId: string;
 			fields: AirtableFieldSchema[];
 			views: AirtableViewInfo[];
 		}>;
@@ -930,6 +923,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseName: string;
 			tables: Array<{
 				tableName: string;
+				primaryFieldId: string;
 				fields: AirtableFieldSchema[];
 				views: AirtableViewInfo[];
 			}>;
@@ -950,6 +944,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				for (const tableNode of node.children) {
 					group.tables.push({
 						tableName: tableNode.metadata?.tableName || tableNode.title,
+						primaryFieldId: tableNode.metadata?.primaryFieldId || '',
 						fields: tableNode.metadata?.fields || [],
 						views: tableNode.metadata?.views || [],
 					});
@@ -979,6 +974,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				const group = baseGroups.get(baseId)!;
 				group.tables.push({
 					tableName: node.metadata?.tableName || node.title,
+					primaryFieldId: node.metadata?.primaryFieldId || '',
 					fields: node.metadata?.fields || [],
 					views: node.metadata?.views || [],
 				});
@@ -1017,6 +1013,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseName: string;
 			tables: Array<{
 				tableName: string;
+				primaryFieldId: string;
 				fields: AirtableFieldSchema[];
 				views: AirtableViewInfo[];
 			}>;
@@ -1043,6 +1040,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				baseId,
 				baseName,
 				tableName: table.tableName,
+				primaryFieldId: table.primaryFieldId,
 				fields: table.fields,
 				views: table.views,
 			});
@@ -1084,11 +1082,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId: string;
 			baseName: string;
 			tableName: string;
+			primaryFieldId: string;
 			fields: AirtableFieldSchema[];
 			views: AirtableViewInfo[];
 		}
 	): Promise<void> {
-		const { baseId, baseName, tableName, fields, views } = tableInfo;
+		const { baseId, baseName, tableName, primaryFieldId, fields, views } = tableInfo;
 		
 		if (ctx.isCancelled()) return;
 		
@@ -1098,6 +1097,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		const supportedViews = views.filter(view => 
 			['grid', 'gallery', 'list'].includes(view.type.toLowerCase())
 		);
+		
+		// Find the primary field by ID (don't assume fields[0] is primary)
+		const primaryField = fields.find(f => f.id === primaryFieldId);
+		const primaryFieldName = primaryField?.name || fields[0]?.name;
 		
 		// Collect fields for type inference and build global field ID to name mapping
 		for (const field of fields) {
@@ -1131,7 +1134,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (ctx.isCancelled()) return;
 		
 		// Build global record ID to title mapping (for resolving linked records across tables)
-		const primaryFieldName = fields[0]?.name;
 		for (const record of allRecords) {
 			const recordFields = record.fields || {};
 			const primaryFieldValue = recordFields[primaryFieldName];
@@ -1179,6 +1181,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId,
 			baseName,
 			tableName,
+			primaryFieldId,
 			fields,
 			views: supportedViews,
 			records: allRecords,
@@ -1198,7 +1201,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		tableData: PreparedTableData,
 		rootPath: string
 	): Promise<void> {
-		const { baseId, baseName, tableName, fields, views, records, recordViewMemberships } = tableData;
+		const { baseId, baseName, tableName, primaryFieldId, fields, views, records, recordViewMemberships } = tableData;
+		
+		// Find primary field by ID (don't assume fields[0] is primary)
+		const primaryField = fields.find(f => f.id === primaryFieldId);
+		const primaryFieldName = primaryField?.name || fields[0]?.name;
 		
 		// Build table path
 		const tablePath = baseName 
@@ -1214,7 +1221,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
 		
 		// Create .base file first
-		await this.createViewBaseFiles(tablePath, tableName, views, fields);
+		await this.createViewBaseFiles({
+			tableFolderPath: tablePath,
+			tableName,
+			views,
+			fields,
+			primaryFieldId,
+		});
 		
 		if (ctx.isCancelled()) return;
 		
@@ -1231,6 +1244,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				await this.createRecordFile(ctx, record, {
 					baseId,
 					tablePath,
+					primaryFieldId,
 					fields,
 					viewReferences,
 					recordIdToTitle: this.globalRecordIdToTitle,
@@ -1240,7 +1254,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Safely get record title for error reporting
 				let recordTitle = 'Untitled Record';
 				try {
-					const primaryFieldValue = record.fields?.[fields[0]?.name];
+					const primaryFieldValue = record.fields?.[primaryFieldName];
 					if (primaryFieldValue && typeof primaryFieldValue === 'string') {
 						recordTitle = primaryFieldValue;
 					}
@@ -1307,9 +1321,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		record: AirtableRecord,
 		fileContext: RecordFileContext
 	): Promise<void> {
-		const { tablePath, fields, viewReferences, recordIdToTitle } = fileContext;
+		const { tablePath, primaryFieldId, fields, viewReferences, recordIdToTitle } = fileContext;
 		const recordId = record.id;
 		const recordFields = record.fields || {};
+		
+		// Find primary field by ID (don't assume fields[0] is primary)
+		const primaryField = fields.find(f => f.id === primaryFieldId);
+		const primaryFieldName = primaryField?.name || fields[0]?.name;
 		
 		// Skip completely empty records
 		const hasAnyValue = Object.values(recordFields).some(value => {
@@ -1334,21 +1352,28 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Determine title using template configuration
 		let title = '';
 		
-		if (this.templateConfig && this.templateConfig.titleTemplate) {
-			// Use template to generate title
-			const templateData: Record<string, string> = {};
-			for (const field of fields) {
-				templateData[field.name] = recordFields[field.name];
+		// Helper to extract string value from field (handles barcode, formula results, etc.)
+		const extractStringValue = (value: any): string => {
+			if (value === null || value === undefined) return '';
+			// Handle barcode: { text: "xxx", type: "code39" }
+			if (typeof value === 'object' && !Array.isArray(value) && value.text !== undefined) {
+				return String(value.text);
 			}
-			title = applyTemplate(this.templateConfig.titleTemplate, templateData);
-		}
-		else {
-			// Fallback: use first field (primary field)
-			const primaryFieldName = fields[0]?.name;
-			const primaryFieldValue = recordFields[primaryFieldName];
-			// Sometimes the primary field is a Autonumber field, which is a number, not a string
-			title = primaryFieldValue ? String(primaryFieldValue) : '';
-		}
+			// Handle arrays (some formula results)
+			if (Array.isArray(value)) {
+				return value.map(v => String(v)).join(', ');
+			}
+			// Handle other objects (shouldn't happen for primary fields, but just in case)
+			if (typeof value === 'object') {
+				return JSON.stringify(value);
+			}
+			return String(value);
+		};
+		
+		// Get primary field value (processed)
+		// Airtable always uses each table's primary field as note title
+		const primaryFieldValue = extractStringValue(recordFields[primaryFieldName]);
+		title = primaryFieldValue;
 		
 		if (!title || title.trim() === '') {
 			title = 'Untitled Record';
@@ -1657,23 +1682,15 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Create a single .base file for the table with multiple views
 	 */
-	private async createViewBaseFiles(
-		tableFolderPath: string,
-		tableName: string,
-		views: AirtableViewInfo[],
-		fields: AirtableFieldSchema[]
-	): Promise<void> {
+	private async createViewBaseFiles(ctx: BaseFileContext): Promise<void> {
+		const { tableFolderPath, tableName, views, fields, primaryFieldId } = ctx;
+		
 		// Get parent folder (where .base file will be created)
 		const { parent: parentPath } = parseFilePath(tableFolderPath);
 		
-		// Extract title field name from template (e.g., "{{Formula Reference}}" -> "Formula Reference")
-		let titleFieldName: string | null = null;
-		if (this.templateConfig && this.templateConfig.titleTemplate) {
-			const match = this.templateConfig.titleTemplate.match(/^\{\{(.+?)\}\}$/);
-			if (match) {
-				titleFieldName = match[1].trim();
-			}
-		}
+		// Find primary field - this is used as note title/filename, not as a formula column
+		const primaryField = fields.find(f => f.id === primaryFieldId);
+		const primaryFieldName = primaryField?.name || null;
 		
 		// Process fields in original order, tracking which are formulas
 		// This preserves Airtable's field order in the .base file
@@ -1692,6 +1709,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		};
 		
 		for (const field of fields) {
+			// Skip primary field - it's used as note title/filename, not as a formula column
+			if (field.id === primaryFieldId) {
+				continue;
+			}
+			
 			// Skip formula conversion if strategy is static
 			if (this.formulaStrategy === 'static') {
 				continue;
@@ -1743,13 +1765,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		
 		// Build property columns in original Airtable field order
-		// Start with file.name (representing the title field)
+		// Start with file.name (representing the primary/title field)
 		const propertyColumns: string[] = ['file.name'];
 		
-		// Add fields in original order (excluding title field)
+		// Add fields in original order (excluding primary field which is file.name)
 		for (const field of fields) {
-			// Skip the title field (it's represented by file.name)
-			if (titleFieldName && field.name === titleFieldName) {
+			// Skip the primary field (it's represented by file.name)
+			if (field.id === primaryFieldId) {
 				continue;
 			}
 			
@@ -1828,16 +1850,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Add properties section for display names (in original field order)
 		baseConfig.properties = {};
 		
-		// Set file.name display name if title field is specified
-		if (titleFieldName) {
+		// Set file.name display name to primary field name
+		if (primaryFieldName) {
 			baseConfig.properties['file.name'] = {
-				displayName: titleFieldName
+				displayName: primaryFieldName
 			};
 		}
 		
-		// Add field display names in original order (excluding title field)
+		// Add field display names in original order (excluding primary field)
 		for (const field of fields) {
-			if (titleFieldName && field.name === titleFieldName) {
+			if (field.id === primaryFieldId) {
 				continue;
 			}
 			
@@ -1973,8 +1995,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			
 			case 'currency':
 			case 'rating':
-				// Special text: Currency and rating are formatted as strings (e.g., "$100.00", "⭐⭐⭐")
-				return 'text';
+				return 'number';
 			
 			case 'singleSelect':
 			case 'singleLineText':
