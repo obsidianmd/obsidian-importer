@@ -32,6 +32,8 @@ export interface FetchRecordsOptions {
 	token: string;
 	ctx: ImportContext;
 	viewId?: string;
+	/** Callback called when records are fetched, receives the count of fetched records */
+	onProgress?: (fetchedCount: number) => void;
 }
 
 /**
@@ -238,6 +240,7 @@ export interface PreparedTableData {
  * Context for creating a record file
  */
 export interface RecordFileContext {
+	baseId: string;
 	tablePath: string;
 	fields: AirtableFieldSchema[];
 	viewReferences: string[];

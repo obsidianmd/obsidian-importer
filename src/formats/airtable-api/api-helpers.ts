@@ -127,7 +127,7 @@ export async function fetchTableSchema(
  * Returns Airtable SDK record objects (not typed due to SDK complexity)
  */
 export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any[]> {
-	const { baseId, tableIdOrName, token, ctx, viewId } = options;
+	const { baseId, tableIdOrName, token, viewId, onProgress } = options;
 	const base = new Airtable({ apiKey: token }).base(baseId);
 	
 	// Airtable SDK record objects with methods like get(), _rawJson, etc.
@@ -147,8 +147,10 @@ export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any
 			.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
 				records.push(...pageRecords);
 				
-				// Update progress
-				ctx.status(`Fetched ${records.length} records...`);
+				// Update progress via callback
+				if (onProgress) {
+					onProgress(records.length);
+				}
 				
 				// Fetch next page
 				fetchNextPage();
