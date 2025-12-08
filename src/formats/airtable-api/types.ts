@@ -106,6 +106,7 @@ export interface AirtableTreeNode {
 	metadata?: {
 		baseId?: string;
 		tableName?: string;
+		primaryFieldId?: string;
 		fields?: AirtableFieldSchema[];
 		views?: AirtableViewInfo[];
 	};
@@ -229,6 +230,7 @@ export interface PreparedTableData {
 	baseId: string;
 	baseName: string;
 	tableName: string;
+	primaryFieldId: string;
 	fields: AirtableFieldSchema[];
 	views: AirtableViewInfo[];
 	records: AirtableRecord[];
@@ -242,8 +244,20 @@ export interface PreparedTableData {
 export interface RecordFileContext {
 	baseId: string;
 	tablePath: string;
+	primaryFieldId: string;
 	fields: AirtableFieldSchema[];
 	viewReferences: string[];
 	recordIdToTitle: Map<string, string>;
+}
+
+/**
+ * Context for creating .base files
+ */
+export interface BaseFileContext {
+	tableFolderPath: string;
+	tableName: string;
+	views: AirtableViewInfo[];
+	fields: AirtableFieldSchema[];
+	primaryFieldId: string;
 }
 

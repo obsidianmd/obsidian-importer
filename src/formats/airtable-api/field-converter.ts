@@ -48,30 +48,10 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return Number(fieldValue);
 		
 		case 'currency':
-			// Format currency with symbol prefix (e.g., "$100.00")
-			if (fieldValue === null || fieldValue === undefined) return null;
-			const currencyOptions = fieldSchema.options;
-			const symbol = currencyOptions?.symbol || '$';
-			const precision = currencyOptions?.precision ?? 2;
-			const numValue = Number(fieldValue);
-			return `${symbol}${numValue.toFixed(precision)}`;
-		
 		case 'rating':
-			// Convert rating to repeated icons (e.g., "⭐⭐⭐" for rating 3)
+			// Treat as numbers
 			if (fieldValue === null || fieldValue === undefined) return null;
-			const ratingOptions = fieldSchema.options;
-			const icon = ratingOptions?.icon || 'star';
-			const ratingValue = Number(fieldValue) || 0;
-			// Map Airtable icon types to emoji/unicode
-			const iconMap: Record<string, string> = {
-				'star': '⭐',
-				'heart': '❤️',
-				'thumbsUp': '👍',
-				'flag': '🚩',
-				'dot': '●',
-			};
-			const iconChar = iconMap[icon] || '⭐';
-			return iconChar.repeat(ratingValue);
+			return Number(fieldValue);
 		
 		case 'singleSelect':
 			return fieldValue ? String(fieldValue) : null;
