@@ -19,7 +19,7 @@ import {
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
 import { convertFieldValue } from './airtable-api/field-converter';
-import { processAttachmentsForYAML } from './airtable-api/attachment-helpers';
+import { processAttachments, processAttachmentsForYAML } from './airtable-api/attachment-helpers';
 import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
 import type {
 	FormulaImportStrategy,
@@ -1427,6 +1427,30 @@ export class AirtableAPIImporter extends FormatImporter {
 					return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
 				});
 				templateData[field.name] = links.join(', ');
+				continue;
+			}
+			
+			// Process attachments for template data (body content)
+			if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
+				const attachments = fieldValue as AirtableAttachment[];
+				const processed = await processAttachments(attachments, {
+					ctx,
+					currentFolderPath: tablePath,
+					currentFilePath: filePath,
+					vault: this.vault,
+					app: this.app,
+					downloadAttachments: this.downloadAttachments,
+					getAvailableAttachmentPath: async (filename: string) => {
+						return await this.getAvailablePathForAttachment(filename, []);
+					},
+					onAttachmentDownloaded: () => {
+						this.attachmentsDownloaded++;
+						ctx.attachments = this.attachmentsDownloaded;
+						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+					},
+				});
+				// Join with newlines for body content (each attachment on its own line)
+				templateData[field.name] = processed.join('\n');
 				continue;
 			}
 
