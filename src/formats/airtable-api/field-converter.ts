@@ -10,7 +10,7 @@ import { convertAirtableFormulaToObsidian, canConvertFormula } from './formula-c
  * @returns Converted value (string, number, boolean, array, or null)
  */
 export function convertFieldValue(options: ConvertFieldOptions): any {
-	const { fieldValue, fieldSchema, recordId, formulaStrategy, linkedRecordPlaceholders, fieldIdToNameMap } = options;
+	const { fieldValue, fieldSchema, formulaStrategy, fieldIdToNameMap } = options;
 	
 	if (fieldValue === null || fieldValue === undefined) {
 		return null;
@@ -84,22 +84,11 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return Boolean(fieldValue);
 		
 		case 'multipleRecordLinks':
-			// Handle linked records with placeholders
+			// Return linked record IDs (will be resolved to titles in createRecordFile)
 			if (Array.isArray(fieldValue)) {
-				const linkedIds = fieldValue.map((link: any) => 
+				return fieldValue.map((link: any) => 
 					typeof link === 'string' ? link : link.id
 				);
-				
-				// Store placeholder for later resolution
-				linkedRecordPlaceholders.push({
-					recordId,
-					fieldName: fieldSchema.name,
-					linkedRecordIds: linkedIds,
-					linkedTableId: fieldSchema.options?.linkedTableId,
-				});
-				
-				// Return the IDs as placeholders
-				return linkedIds;
 			}
 			return null;
 		

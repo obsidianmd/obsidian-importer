@@ -26,7 +26,6 @@ import type {
 	AirtableTreeNode,
 	AirtableViewInfo,
 	AirtableFieldSchema,
-	LinkedRecordPlaceholder,
 	AirtableAttachment,
 	PreparedTableData,
 	AirtableRecord,
@@ -48,7 +47,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	private toggleSelectButton: any = null;  // ButtonComponent from obsidian
 	
 	// Tracking data
-	private linkedRecordPlaceholders: LinkedRecordPlaceholder[] = [];
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
 	private processedRecordsCount: number = 0;
 	private totalRecordsToImport: number = 0;
@@ -1000,7 +998,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private clearBaseData(): void {
 		// These are cleared per-base to free memory
-		this.linkedRecordPlaceholders = [];
 		this.globalFieldIdToNameMap.clear();
 		this.globalRecordIdToTitle.clear();
 		this.preparedData.clear();
@@ -1419,7 +1416,6 @@ export class AirtableAPIImporter extends FormatImporter {
 				fieldSchema: field,
 				recordId,
 				formulaStrategy: this.formulaStrategy,
-				linkedRecordPlaceholders: this.linkedRecordPlaceholders,
 				fieldIdToNameMap: this.globalFieldIdToNameMap,
 			});
 			
@@ -1519,7 +1515,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					fieldSchema: field,
 					recordId,
 					formulaStrategy: this.formulaStrategy,
-					linkedRecordPlaceholders: this.linkedRecordPlaceholders,
 					fieldIdToNameMap: this.globalFieldIdToNameMap,
 				});
 
