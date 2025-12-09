@@ -2,8 +2,6 @@
  * Type definitions for Airtable API importer
  */
 
-import Airtable from 'airtable';
-import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
 
 /**
@@ -45,7 +43,6 @@ export interface ConvertFieldOptions {
 	fieldSchema: AirtableFieldSchema;
 	recordId: string;
 	formulaStrategy: FormulaImportStrategy;
-	linkedRecordPlaceholders: LinkedRecordPlaceholder[];
 	fieldIdToNameMap?: Map<string, string>;
 }
 
@@ -113,67 +110,6 @@ export interface AirtableTreeNode {
 }
 
 /**
- * Context for processing Airtable records
- */
-export interface RecordProcessingContext {
-	ctx: ImportContext;
-	currentFolderPath: string;
-	client: typeof Airtable;
-	vault: Vault;
-	app: App;
-	outputRootPath: string;
-	formulaStrategy: FormulaImportStrategy;
-	downloadAttachments: boolean;
-	processedTables: Map<string, TableInfo>;
-	linkedRecordPlaceholders: LinkedRecordPlaceholder[];
-	importRecordCallback: (tableId: string, recordId: string, parentPath: string, customFileName?: string) => Promise<void>;
-}
-
-/**
- * Information about a processed table
- */
-export interface TableInfo {
-	id: string;
-	baseId: string;
-	name: string;
-	folderPath: string;
-	baseFilePath: string;
-	fields: AirtableFieldSchema[];
-	primaryFieldId: string;
-}
-
-/**
- * Linked Record placeholder for post-processing
- */
-export interface LinkedRecordPlaceholder {
-	recordId: string; // Source record ID
-	fieldName: string; // Field name in frontmatter
-	linkedRecordIds: string[]; // Linked record IDs
-	linkedTableId?: string; // Target table ID
-}
-
-/**
- * Lookup placeholder for post-processing
- */
-export interface LookupPlaceholder {
-	recordId: string;
-	fieldName: string;
-	linkedFieldName: string; // Field to lookup from linked records
-	lookupFieldName: string; // Field to display
-}
-
-/**
- * Rollup placeholder for post-processing
- */
-export interface RollupPlaceholder {
-	recordId: string;
-	fieldName: string;
-	linkedFieldName: string;
-	rollupFieldName: string;
-	aggregation: string; // count, sum, average, etc.
-}
-
-/**
  * Attachment information from Airtable
  */
 export interface AirtableAttachment {
@@ -196,19 +132,6 @@ export interface AttachmentResult {
 	path: string;
 	isLocal: boolean;
 	filename?: string;
-}
-
-/**
- * Parameters for creating .base file
- */
-export interface CreateBaseFileParams {
-	vault: Vault;
-	tableName: string;
-	tableFolderPath: string;
-	fields: AirtableFieldSchema[];
-	views: AirtableViewInfo[];
-	formulaStrategy?: FormulaImportStrategy;
-	titleTemplate?: string; // Template for file name (e.g., "{{Formula Reference}}")
 }
 
 /**
