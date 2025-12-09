@@ -1592,6 +1592,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Update sanitizedTitle to match the new file name (without .md)
 			const { basename } = parseFilePath(filePath);
 			sanitizedTitle = basename;
+			// Update globalRecordIdToTitle so other tables' links point to the correct file
+			recordIdToTitle.set(recordId, sanitizedTitle);
 		}
 		
 		// Create the file
