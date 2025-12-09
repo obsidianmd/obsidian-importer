@@ -783,10 +783,17 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Sanitize property name for use in YAML frontmatter.
 	 * Obsidian properties support most characters including spaces and hyphens,
 	 * so we return the original name to ensure consistency.
-	 * This method is kept as a centralized place in case future sanitization is needed.
 	 */
 	private sanitizePropertyName(name: string): string {
 		return name;
+	}
+	
+	/**
+	 * Sanitize view name for use in wiki links
+	 * Wiki links can't contain: [ ] # | ^
+	 */
+	private sanitizeViewName(name: string): string {
+		return name.replace(/[\[\]#|^]/g, '_');
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -1165,7 +1172,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			
 			// Build view reference with full path to avoid ambiguity
 			// e.g., [[BaseName/TableName.base#Grid view]]
-			const viewReference = `[[${baseFilePath}#${view.name}]]`;
+			// Sanitize view name for wiki link compatibility
+			const sanitizedViewName = this.sanitizeViewName(view.name);
+			const viewReference = `[[${baseFilePath}#${sanitizedViewName}]]`;
 			
 			// Tag these records with this view
 			for (const recordId of viewRecordIds) {
@@ -1844,13 +1853,15 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			// Build view reference with full path to match frontmatter values
 			// e.g., [[BaseName/TableName.base#Grid view]]
-			const viewReference = `[[${viewReferenceBasePath}#${view.name}]]`;
+			// Sanitize view name for wiki link compatibility
+			const sanitizedViewName = this.sanitizeViewName(view.name);
+			const viewReference = `[[${viewReferenceBasePath}#${sanitizedViewName}]]`;
 
 			// Add view with filter based on base property containing the view reference
 			// Correct Obsidian Bases filter syntax: note["propertyName"].contains("value")
 			obsidianViews.push({
 				type: obsidianViewType,
-				name: view.name,
+				name: sanitizedViewName, // Must match the name in wiki link reference
 				filters: `note["${this.viewPropertyName}"].contains("${viewReference}")`,
 				order: propertyColumns,
 			});
