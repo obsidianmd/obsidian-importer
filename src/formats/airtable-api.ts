@@ -1440,7 +1440,6 @@ export class AirtableAPIImporter extends FormatImporter {
 				const attachments = fieldValue as AirtableAttachment[];
 				const processed = await processAttachments(attachments, {
 					ctx,
-					currentFolderPath: tablePath,
 					currentFilePath: filePath,
 					vault: this.vault,
 					app: this.app,
@@ -1543,10 +1542,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					const attachments = convertedValue as AirtableAttachment[];
 					propertyValue = await processAttachmentsForYAML(attachments, {
 						ctx,
-						currentFolderPath: tablePath,
-						currentFilePath: filePath,
 						vault: this.vault,
-						app: this.app,
 						downloadAttachments: this.downloadAttachments,
 						getAvailableAttachmentPath: async (filename: string) => {
 							return await this.getAvailablePathForAttachment(filename, []);

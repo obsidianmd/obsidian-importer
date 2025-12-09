@@ -15,10 +15,7 @@ export async function downloadAttachment(
 	attachment: AirtableAttachment,
 	context: {
 		ctx: ImportContext;
-		currentFolderPath: string;
-		currentFilePath: string;
 		vault: Vault;
-		app: App;
 		downloadAttachments: boolean;
 		getAvailableAttachmentPath: (filename: string) => Promise<string>;
 	}
@@ -84,17 +81,24 @@ export async function downloadAttachment(
 }
 
 /**
+ * Context for formatting attachment links
+ */
+interface FormatAttachmentLinkContext {
+	result: AttachmentResult;
+	app: App;
+	vault: Vault;
+	sourceFilePath: string;
+	mimeType?: string;
+}
+
+/**
  * Format attachment as markdown link (for body content)
  * Uses generateMarkdownLink to respect user's link format settings
  * (wiki links vs markdown links, shortest/relative/absolute path)
  */
-export function formatAttachmentLink(
-	result: AttachmentResult,
-	app: App,
-	vault: Vault,
-	sourceFilePath: string,
-	mimeType?: string
-): string {
+export function formatAttachmentLink(ctx: FormatAttachmentLinkContext): string {
+	const { result, app, vault, sourceFilePath, mimeType } = ctx;
+	
 	if (!result.isLocal) {
 		// External URL - use markdown format
 		return `[${result.filename || 'Attachment'}](${result.path})`;
@@ -152,7 +156,6 @@ export async function processAttachments(
 	attachments: AirtableAttachment[],
 	context: {
 		ctx: ImportContext;
-		currentFolderPath: string;
 		currentFilePath: string;
 		vault: Vault;
 		app: App;
@@ -161,11 +164,16 @@ export async function processAttachments(
 		onAttachmentDownloaded?: () => void;
 	}
 ): Promise<string[]> {
-	const { app, vault, onAttachmentDownloaded } = context;
+	const { ctx, currentFilePath, app, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
 	const results: string[] = [];
 	
 	for (const attachment of attachments) {
-		const result = await downloadAttachment(attachment, context);
+		const result = await downloadAttachment(attachment, {
+			ctx,
+			vault,
+			downloadAttachments,
+			getAvailableAttachmentPath,
+		});
 		
 		if (result.isLocal && onAttachmentDownloaded) {
 			onAttachmentDownloaded();
@@ -173,13 +181,13 @@ export async function processAttachments(
 		
 		// Format as link for body content using user's link format settings
 		// Pass MIME type to determine if it should be embedded (images/videos)
-		const link = formatAttachmentLink(
+		const link = formatAttachmentLink({
 			result,
 			app,
 			vault,
-			context.currentFilePath,
-			attachment.type
-		);
+			sourceFilePath: currentFilePath,
+			mimeType: attachment.type,
+		});
 		
 		results.push(link);
 	}
@@ -195,20 +203,22 @@ export async function processAttachmentsForYAML(
 	attachments: AirtableAttachment[],
 	context: {
 		ctx: ImportContext;
-		currentFolderPath: string;
-		currentFilePath: string;
 		vault: Vault;
-		app: App;
 		downloadAttachments: boolean;
 		getAvailableAttachmentPath: (filename: string) => Promise<string>;
 		onAttachmentDownloaded?: () => void;
 	}
 ): Promise<string[]> {
-	const { onAttachmentDownloaded } = context;
+	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
 	const results: string[] = [];
 	
 	for (const attachment of attachments) {
-		const result = await downloadAttachment(attachment, context);
+		const result = await downloadAttachment(attachment, {
+			ctx,
+			vault,
+			downloadAttachments,
+			getAvailableAttachmentPath,
+		});
 		
 		if (result.isLocal && onAttachmentDownloaded) {
 			onAttachmentDownloaded();
