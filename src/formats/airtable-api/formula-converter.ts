@@ -53,6 +53,10 @@
  */
 
 
+// Regex patterns (compiled once, reuse with lastIndex reset)
+const FUNCTION_CALL_PATTERN = /([A-Z_][A-Z0-9_]*)\s*\(/gi;
+const FUNCTION_CALL_PATTERN_STRICT = /(?<![.\w])([A-Z_][A-Z0-9_]*)\s*\(/gi;
+
 interface ConversionInfo {
 	type: 'global' | 'method' | 'property' | 'operator' | 'unsupported' | 'special';
 	obsidianName?: string;
@@ -207,8 +211,7 @@ function canConvertFormula(airtableFormula: string): boolean {
 	}
 	
 	// Extract function names (case-insensitive)
-	const functionPattern = /([A-Z_][A-Z0-9_]*)\s*\(/gi;
-	const matches = airtableFormula.matchAll(functionPattern);
+	const matches = airtableFormula.matchAll(FUNCTION_CALL_PATTERN);
 	
 	for (const match of matches) {
 		const funcName = match[1].toUpperCase();
@@ -284,12 +287,12 @@ export function convertAirtableFormulaToObsidian(
 		iterations++;
 		
 		// Find function calls (case-insensitive)
-		const funcNamePattern = /(?<![.\w])([A-Z_][A-Z0-9_]*)\s*\(/gi;
+		FUNCTION_CALL_PATTERN_STRICT.lastIndex = 0;
 		
 		let match;
 		let foundMatch = false;
 		
-		while ((match = funcNamePattern.exec(result)) !== null && !foundMatch) {
+		while ((match = FUNCTION_CALL_PATTERN_STRICT.exec(result)) !== null && !foundMatch) {
 			const funcName = match[1].toUpperCase();
 			const start = match.index;
 			const openParenPos = match.index + match[0].length - 1;
