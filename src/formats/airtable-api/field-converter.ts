@@ -3,7 +3,7 @@
  */
 
 import type { AirtableFieldSchema, ConvertFieldOptions } from './types';
-import { convertAirtableFormulaToObsidian, canConvertFormula } from './formula-converter';
+import { convertAirtableFormulaToObsidian } from './formula-converter';
 
 /**
  * Convert Airtable field value to Obsidian property value
@@ -272,12 +272,6 @@ function convertFormulaToObsidian(
 		return null;
 	}
 	
-	// Check if the formula can be converted
-	if (!canConvertFormula(formulaExpression)) {
-		console.log(`Formula cannot be converted (unsupported functions)`);
-		return null;
-	}
-	
 	// Try to convert the formula
 	try {
 		const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
@@ -286,6 +280,7 @@ function convertFormulaToObsidian(
 			console.log(`Converted to: ${converted}`);
 			return '__FORMULA_CONVERTED__'; // Marker to indicate formula was converted
 		}
+		console.log(`Formula cannot be converted (unsupported functions)`);
 	}
 	catch (error) {
 		console.warn('Failed to convert Airtable formula:', error);

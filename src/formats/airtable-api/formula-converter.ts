@@ -201,7 +201,7 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 /**
  * Check if an Airtable formula can be converted to Obsidian
  */
-export function canConvertFormula(airtableFormula: string): boolean {
+function canConvertFormula(airtableFormula: string): boolean {
 	if (!airtableFormula || typeof airtableFormula !== 'string') {
 		return false;
 	}

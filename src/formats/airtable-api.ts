@@ -20,7 +20,7 @@ import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
 import { convertFieldValue } from './airtable-api/field-converter';
 import { processAttachments, processAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { canConvertFormula, convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
+import { convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
 import type {
 	FormulaImportStrategy,
 	AirtableTreeNode,
@@ -1624,11 +1624,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Process formula fields
 			if (field.type === 'formula') {
 				const formulaExpression = options?.formula;
-				if (formulaExpression && canConvertFormula(formulaExpression)) {
-					const converted = convertAirtableFormulaToObsidian(formulaExpression, this.globalFieldIdToNameMap);
-					if (converted) {
-						formulas.set(field.name, converted);
-					}
+				const converted = formulaExpression && convertAirtableFormulaToObsidian(formulaExpression, this.globalFieldIdToNameMap);
+				if (converted) {
+					formulas.set(field.name, converted);
 				}
 			}
 			// Process lookup/rollup/count fields (all use linked records)
@@ -1995,11 +1993,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Replace 'values' with the map expression and attempt conversion
 		const formulaWithMapExpr = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
 		
-		if (canConvertFormula(formulaWithMapExpr)) {
-			const result = convertAirtableFormulaToObsidian(formulaWithMapExpr, this.globalFieldIdToNameMap);
-			if (result) {
-				return result;
-			}
+		const result = convertAirtableFormulaToObsidian(formulaWithMapExpr, this.globalFieldIdToNameMap);
+		if (result) {
+			return result;
 		}
 		
 		// Step 3: Cannot convert - fall back to static value
