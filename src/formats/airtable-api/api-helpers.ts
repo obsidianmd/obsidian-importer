@@ -4,8 +4,7 @@
 
 import { requestUrl } from 'obsidian';
 import Airtable from 'airtable';
-import { ImportContext } from '../../main';
-import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, FetchRecordsOptions } from './types';
+import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, FetchRecordsOptions, StatusReporter } from './types';
 
 /**
  * Airtable Meta API base URL
@@ -90,7 +89,7 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions): P
  */
 export async function fetchBases(
 	token: string,
-	ctx: ImportContext
+	ctx: StatusReporter
 ): Promise<AirtableBaseInfo[]> {
 	ctx.status('Fetching bases...');
 	
@@ -109,7 +108,7 @@ export async function fetchBases(
 export async function fetchTableSchema(
 	baseId: string,
 	token: string,
-	ctx: ImportContext
+	ctx: StatusReporter
 ): Promise<AirtableTableInfo[]> {
 	ctx.status(`Fetching tables for base ${baseId}...`);
 	

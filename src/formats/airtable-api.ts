@@ -283,21 +283,17 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.loadButton.setButtonText('Loading...');
 
 		try {
-			const tempCtx = {
+			// Create a minimal status reporter for API calls during tree loading
+			const statusReporter = {
 				status: (msg: string) => {
 					if (this.loadButton) {
 						this.loadButton.setButtonText(msg);
 					}
 				},
-				isCancelled: () => false,
-				reportFailed: (name: string, error: any) => {
-					console.error(`Failed: ${name}`, error);
-				},
-				statusMessage: '',
-			} as unknown as ImportContext;
+			};
 
 			// Fetch all bases
-			const bases = await fetchBases(this.airtableToken, tempCtx);
+			const bases = await fetchBases(this.airtableToken, statusReporter);
 
 			if (bases.length === 0) {
 				new Notice('No bases found. Make sure your token has proper permissions.');
@@ -308,10 +304,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			const treeNodes: AirtableTreeNode[] = [];
 
 			for (const base of bases) {
-				tempCtx.status(`Loading tables for ${base.name}...`);
+				statusReporter.status(`Loading tables for ${base.name}...`);
 
 				// Fetch tables for this base
-				const tables = await fetchTableSchema(base.id, this.airtableToken, tempCtx);
+				const tables = await fetchTableSchema(base.id, this.airtableToken, statusReporter);
 
 				// Create base node
 				const baseNode: AirtableTreeNode = {
@@ -1110,7 +1106,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			baseId,
 			tableIdOrName: tableName,
 			token: this.airtableToken,
-			ctx,
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
 				this.statusContext.recordsProgress = `${fetched} records`;
