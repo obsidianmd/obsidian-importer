@@ -671,18 +671,14 @@ export class NotionAPIImporter extends FormatImporter {
 			setIcon(collapseIcon, 'right-triangle');
 		
 			// Add is-collapsed class for CSS control
-			if (node.collapsed) {
-				collapseIcon.addClass('is-collapsed');
-				treeItem.addClass('is-collapsed');
-			}
+			collapseIcon.toggleClass('is-collapsed', node.collapsed);
+			treeItem.toggleClass('is-collapsed', node.collapsed);
 		
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
 			}
 		
-			// Store references for event handler
-			const treeItemRef = treeItem;
 			let childrenContainer: HTMLElement;
 			let iconContainer: HTMLElement;
 		
@@ -693,32 +689,21 @@ export class NotionAPIImporter extends FormatImporter {
 			
 				// Get references if not set yet
 				if (!childrenContainer) {
-					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
+					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
 				}
 				if (!iconContainer) {
-					iconContainer = treeItemRef.querySelector('.file-tree-item-icon') as HTMLElement;
+					iconContainer = treeItem.querySelector('.file-tree-item-icon') as HTMLElement;
 				}
 			
 				// Toggle CSS classes and visibility
-				if (node.collapsed) {
-					collapseIcon.addClass('is-collapsed');
-					treeItemRef.addClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = 'none';
-					// Update folder icon
-					if (node.type !== 'database' && iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder');
-					}
-				}
-				else {
-					collapseIcon.removeClass('is-collapsed');
-					treeItemRef.removeClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = '';
-					// Update folder icon
-					if (node.type !== 'database' && iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder-open');
-					}
+				collapseIcon.toggleClass('is-collapsed', node.collapsed);
+				treeItem.toggleClass('is-collapsed', node.collapsed);
+				if (childrenContainer) childrenContainer.style.display = node.collapsed ? 'none' : '';
+				
+				// Update folder icon
+				if (node.type !== 'database' && iconContainer) {
+					iconContainer.empty();
+					setIcon(iconContainer, node.collapsed ? 'folder' : 'folder-open');
 				}
 			});
 		}
