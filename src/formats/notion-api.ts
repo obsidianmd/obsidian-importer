@@ -163,24 +163,14 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const publishSection = this.modal.contentEl.createDiv();
-		publishSection.addClass('file-tree', 'publish-section');
+		const importSection = this.modal.contentEl.createDiv();
+		importSection.addClass('import-section', 'file-tree', 'publish-section');
 	
 		// Create the change list container
-		this.pageTreeContainer = publishSection.createDiv('publish-change-list');
-		this.pageTreeContainer.style.maxHeight = '200px';
-		this.pageTreeContainer.style.overflowY = 'auto';
-		this.pageTreeContainer.style.border = '1px solid var(--background-modifier-border)';
-		this.pageTreeContainer.style.borderRadius = 'var(--radius-s)';
-		this.pageTreeContainer.style.backgroundColor = 'var(--background-primary-alt)';
-		this.pageTreeContainer.style.padding = 'var(--size-4-2)';
+		this.pageTreeContainer = importSection.createDiv('publish-change-list');
 		
 		// Add placeholder text
-		const placeholder = this.pageTreeContainer.createDiv();
-		placeholder.style.color = 'var(--text-muted)';
-		placeholder.style.fontSize = 'var(--font-ui-small)';
-		placeholder.style.textAlign = 'center';
-		placeholder.style.padding = '30px 10px';
+		const placeholder = this.pageTreeContainer.createDiv('publish-placeholder');
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Incremental import setting
