@@ -462,15 +462,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Inner content (checkbox, icon, title)
 		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
 
-		// Checkbox
+		// Checkbox (must set checked/disabled as DOM properties, not HTML attributes)
 		const checkbox = treeItemInner.createEl('input', {
 			type: 'checkbox',
 			cls: 'file-tree-item-checkbox',
-			attr: {
-				checked: node.selected,
-				disabled: node.disabled
-			}
 		});
+		checkbox.checked = node.selected;
+		checkbox.disabled = node.disabled;
 
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
