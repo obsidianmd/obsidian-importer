@@ -527,20 +527,16 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Check if all nodes are selected
 	 */
-	private areAllNodesSelected(): boolean {
-		const checkNode = (nodes: AirtableTreeNode[]): boolean => {
-			for (const node of nodes) {
-				if (!node.selected) {
-					return false;
-				}
-				if (!checkNode(node.children || [])) {
-					return false;
-				}
+	private areAllNodesSelected(nodes: AirtableTreeNode[] = this.tree): boolean {
+		for (const node of nodes) {
+			if (!node.selected) {
+				return false;
 			}
-			return true;
-		};
-
-		return checkNode(this.tree);
+			if (!this.areAllNodesSelected(node.children || [])) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -577,21 +573,16 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Get selected nodes for import
 	 */
-	private getSelectedNodes(): AirtableTreeNode[] {
+	private getSelectedNodes(nodes: AirtableTreeNode[] = this.tree): AirtableTreeNode[] {
 		const selected: AirtableTreeNode[] = [];
-
-		const collectNodes = (nodes: AirtableTreeNode[]) => {
-			for (const node of nodes) {
-				if (node.selected && !node.disabled) {
-					selected.push(node);
-				}
-				if (node.children) {
-					collectNodes(node.children);
-				}
+		for (const node of nodes) {
+			if (node.selected && !node.disabled) {
+				selected.push(node);
 			}
-		};
-
-		collectNodes(this.tree);
+			if (node.children) {
+				selected.push(...this.getSelectedNodes(node.children));
+			}
+		}
 		return selected;
 	}
 
