@@ -431,18 +431,14 @@ export class AirtableAPIImporter extends FormatImporter {
 			setIcon(collapseIcon, 'right-triangle');
 			
 			// Add is-collapsed class for CSS control
-			if (node.collapsed) {
-				collapseIcon.addClass('is-collapsed');
-				treeItem.addClass('is-collapsed');
-			}
+			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
+			treeItem.toggleClass('is-collapsed', !!node.collapsed);
 			
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
 			}
 
-			// Store references for event handler
-			const treeItemRef = treeItem;
 			let childrenContainer: HTMLElement;
 
 			// Toggle collapse state with pure DOM manipulation (no re-render)
@@ -452,20 +448,13 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				// Get reference if not set yet
 				if (!childrenContainer) {
-					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
+					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
 				}
 
 				// Toggle CSS classes and visibility
-				if (node.collapsed) {
-					collapseIcon.addClass('is-collapsed');
-					treeItemRef.addClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = 'none';
-				}
-				else {
-					collapseIcon.removeClass('is-collapsed');
-					treeItemRef.removeClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = '';
-				}
+				collapseIcon.toggleClass('is-collapsed', node.collapsed);
+				treeItem.toggleClass('is-collapsed', node.collapsed);
+				if (childrenContainer) childrenContainer.style.display = node.collapsed ? 'none' : '';
 			});
 		}
 
