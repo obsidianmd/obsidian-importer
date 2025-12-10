@@ -167,6 +167,20 @@ export interface PreparedTableData {
 }
 
 /**
+ * Grouped base info for import processing
+ */
+export interface BaseGroupInfo {
+	baseId: string;
+	baseName: string;
+	tables: Array<{
+		tableName: string;
+		primaryFieldId: string;
+		fields: AirtableFieldSchema[];
+		views: AirtableViewInfo[];
+	}>;
+}
+
+/**
  * Context for creating a record file
  */
 export interface RecordFileContext {
