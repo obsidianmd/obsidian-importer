@@ -128,7 +128,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Add custom class for fixed width and initially hide
 			if (button.buttonEl) {
 				button.buttonEl.addClass('notion-toggle-button');
-				button.buttonEl.style.display = 'none'; // Hide until tree is loaded
+				button.buttonEl.hide(); // Hide until tree is loaded
 			}
 	
 			return button;
@@ -445,7 +445,7 @@ export class NotionAPIImporter extends FormatImporter {
 		
 			// Show the Select all button now that we have content
 			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
-				this.toggleSelectButton.buttonEl.style.display = '';
+				this.toggleSelectButton.buttonEl.show();
 			}
 
 			new Notice(`Found ${allItems.length} pages and databases.`);
@@ -698,7 +698,7 @@ export class NotionAPIImporter extends FormatImporter {
 				// Toggle CSS classes and visibility
 				collapseIcon.toggleClass('is-collapsed', node.collapsed);
 				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.style.display = node.collapsed ? 'none' : '';
+				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
 				
 				// Update folder icon
 				if (node.type !== 'database' && iconContainer) {
@@ -748,7 +748,7 @@ export class NotionAPIImporter extends FormatImporter {
 	
 		// Hide children container if collapsed
 		if (node.collapsed) {
-			childrenContainer.style.display = 'none';
+			childrenContainer.hide();
 		}
 	
 		// Render children (always render, but hide if collapsed)

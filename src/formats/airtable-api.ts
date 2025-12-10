@@ -165,7 +165,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			if (button.buttonEl) {
 				button.buttonEl.addClass('airtable-toggle-button');
-				button.buttonEl.style.display = 'none';
+				button.buttonEl.hide();
 			}
 
 			return button;
@@ -348,7 +348,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.renderTree();
 
 			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
-				this.toggleSelectButton.buttonEl.style.display = '';
+				this.toggleSelectButton.buttonEl.show();
 			}
 
 			const tableCount = treeNodes.reduce((sum, base) => sum + (base.children?.length || 0), 0);
@@ -454,7 +454,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Toggle CSS classes and visibility
 				collapseIcon.toggleClass('is-collapsed', node.collapsed);
 				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.style.display = node.collapsed ? 'none' : '';
+				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
 			});
 		}
 
@@ -491,7 +491,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Hide children container if collapsed
 		if (node.collapsed) {
-			childrenContainer.style.display = 'none';
+			childrenContainer.hide();
 		}
 
 		// Render children (always render, but hide if collapsed)
