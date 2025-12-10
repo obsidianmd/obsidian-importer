@@ -2,7 +2,7 @@ import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon } f
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
-import { sanitizeFileName, serializeFrontMatter } from '../util';
+import { sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
@@ -15,7 +15,7 @@ import {
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
+import { getUniqueFolderPath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
