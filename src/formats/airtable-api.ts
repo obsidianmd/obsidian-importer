@@ -31,6 +31,7 @@ import type {
 	AirtableRecord,
 	RecordFileContext,
 	BaseFileContext,
+	BaseGroupInfo,
 } from './airtable-api/types';
 
 export class AirtableAPIImporter extends FormatImporter {
@@ -866,28 +867,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	/**
 	 * Group selected nodes by their base
-	 * Returns a Map where key is baseName and value contains baseId, baseName, and tables array
+	 * Returns a Map where key is baseId and value contains base info and tables array
 	 */
-	private groupSelectedNodesByBase(selectedNodes: AirtableTreeNode[]): Map<string, {
-		baseId: string;
-		baseName: string;
-		tables: Array<{
-			tableName: string;
-			primaryFieldId: string;
-			fields: AirtableFieldSchema[];
-			views: AirtableViewInfo[];
-		}>;
-	}> {
-		const baseGroups = new Map<string, {
-			baseId: string;
-			baseName: string;
-			tables: Array<{
-				tableName: string;
-				primaryFieldId: string;
-				fields: AirtableFieldSchema[];
-				views: AirtableViewInfo[];
-			}>;
-		}>();
+	private groupSelectedNodesByBase(selectedNodes: AirtableTreeNode[]): Map<string, BaseGroupInfo> {
+		const baseGroups = new Map<string, BaseGroupInfo>();
 
 		for (const node of selectedNodes) {
 			if (node.type === 'base' && node.children) {
@@ -914,16 +897,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Single table selected - find or create its base group
 				const baseId = node.metadata.baseId;
 				
-				// Find the base node to get the base name
-				let baseName = '';
-				for (const baseNode of this.tree) {
-					if (baseNode.id === baseId) {
-						baseName = baseNode.title;
-						break;
-					}
-				}
-				
 				if (!baseGroups.has(baseId)) {
+					// Find the base node to get the base name
+					const baseName = this.tree.find(baseNode => baseNode.id === baseId)?.title ?? '';
 					baseGroups.set(baseId, {
 						baseId,
 						baseName,
@@ -967,16 +943,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private async fetchBaseData(
 		ctx: ImportContext,
-		baseInfo: {
-			baseId: string;
-			baseName: string;
-			tables: Array<{
-				tableName: string;
-				primaryFieldId: string;
-				fields: AirtableFieldSchema[];
-				views: AirtableViewInfo[];
-			}>;
-		}
+		baseInfo: BaseGroupInfo
 	): Promise<void> {
 		const { baseId, baseName, tables } = baseInfo;
 		
@@ -1181,7 +1148,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
 		
 		// Create .base file first
-		await this.createViewBaseFiles({
+		await this.createBaseFile({
 			tableFolderPath: tablePath,
 			tableName,
 			views,
@@ -1309,9 +1276,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 		
-		// Determine title using template configuration
-		let title = '';
-		
 		// Helper to extract string value from field (handles barcode, formula results, etc.)
 		const extractStringValue = (value: any): string => {
 			if (value === null || value === undefined) return '';
@@ -1332,8 +1296,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		
 		// Get primary field value (processed)
 		// Airtable always uses each table's primary field as note title
-		const primaryFieldValue = extractStringValue(recordFields[primaryFieldName]);
-		title = primaryFieldValue;
+		let title = extractStringValue(recordFields[primaryFieldName]);
 		
 		if (!title || title.trim() === '') {
 			title = 'Untitled Record';
@@ -1344,159 +1307,41 @@ export class AirtableAPIImporter extends FormatImporter {
 		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
 		
 		// Check for incremental import - skip if same record already exists
-		const shouldSkip = await this.handleIncrementalImportCheck(filePath, recordId, async () => {
-			ctx.reportSkipped(sanitizedTitle, 'Already imported');
-			this.processedRecordsCount++;
-			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
-		});
-		if (shouldSkip) return;
+		const shouldSkip = this.shouldSkipExistingRecord(filePath, recordId);
+		if (!shouldSkip) {
+			// Build template data for both frontmatter and body
+			const templateData: Record<string, string> = {};
+			// Cache converted values to avoid calling convertFieldValue twice
+			const convertedCache = new Map<string, any>();
 		
-		// Build template data for both frontmatter and body
-		const templateData: Record<string, string> = {};
-		
-		// First pass: convert field values for template use
-		for (const field of fields) {
-			const fieldValue = recordFields[field.name];
-			
-			if (fieldValue === null || fieldValue === undefined) {
-				templateData[field.name] = '';
-				continue;
-			}
-
-			// Convert field value properly (handles formulas, links, etc.)
-			// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
-			let convertedValue = convertFieldValue({
-				fieldValue,
-				fieldSchema: field,
-				recordId,
-				formulaStrategy: this.formulaStrategy,
-				fieldIdToNameMap: this.globalFieldIdToNameMap,
-			});
-			
-			// If formula was converted (returns null), use the computed value for templates
-			// Formula fields won't be in YAML (they'll be in .base file), but templates may reference them
-			if (convertedValue === null && field.type === 'formula') {
-				convertedValue = fieldValue;
-			}
-			
-			// Resolve linked records for template data
-			if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-				const links = fieldValue.map((linkedRecordId: string) => {
-					const linkedTitle = recordIdToTitle.get(linkedRecordId);
-					return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
-				});
-				templateData[field.name] = links.join(', ');
-				continue;
-			}
-			
-			// Process attachments for template data (body content)
-			if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
-				const attachments = fieldValue as AirtableAttachment[];
-				const processed = await processAttachments(attachments, {
-					ctx,
-					currentFilePath: filePath,
-					vault: this.vault,
-					app: this.app,
-					downloadAttachments: this.downloadAttachments,
-					getAvailableAttachmentPath: async (filename: string) => {
-						return await this.getAvailablePathForAttachment(filename, []);
-					},
-					onAttachmentDownloaded: () => {
-						this.attachmentsDownloaded++;
-						ctx.attachments = this.attachmentsDownloaded;
-						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-					},
-				});
-				// Join with newlines for body content (each attachment on its own line)
-				templateData[field.name] = processed.join('\n');
-				continue;
-			}
-
-			// Convert to string for template
-			if (convertedValue === null || convertedValue === undefined) {
-				templateData[field.name] = '';
-			}
-			else if (Array.isArray(convertedValue)) {
-				templateData[field.name] = convertedValue.map((item: any) => {
-					if (typeof item === 'string') return item;
-					return String(item);
-				}).join(', ');
-			}
-			else {
-				templateData[field.name] = String(convertedValue);
-			}
-		}
-
-		// Build frontmatter
-		const frontMatter: Record<string, any> = {
-			'airtable-id': recordId,
-		};
-
-		// Add view property
-		if (viewReferences.length > 0) {
-			frontMatter[this.viewPropertyName] = viewReferences;
-		}
-
-		// Process fields for frontmatter using template config
-		if (this.templateConfig) {
-			for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
-				if (!propertyName || !propertyName.trim()) continue;
-
-				// Skip the view property name to avoid duplicates
-				if (propertyName === this.viewPropertyName) {
-					continue;
-				}
-
-				const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
-				if (!valueTemplate) continue;
-
-				// Find the field schema
-				const field = fields.find((f) => f.name === fieldId);
-				if (!field) continue;
-
+			// First pass: convert field values for template use
+			for (const field of fields) {
 				const fieldValue = recordFields[field.name];
-
-				// Skip null/undefined
+			
 				if (fieldValue === null || fieldValue === undefined) {
+					templateData[field.name] = '';
 					continue;
 				}
 
-				// Convert field value with direct linked record resolution
-				// Use globalFieldIdToNameMap for lookup/rollup fields that reference other tables
-				let convertedValue = convertFieldValue({
-					fieldValue,
-					fieldSchema: field,
-					recordId,
-					formulaStrategy: this.formulaStrategy,
-					fieldIdToNameMap: this.globalFieldIdToNameMap,
-				});
-
-				// Skip if convertedValue is null/undefined/empty string (e.g., formula was converted and will be in .base file)
-				if (convertedValue === null || convertedValue === undefined || convertedValue === '') {
-					continue;
-				}
-
-				// Resolve linked records IMMEDIATELY from recordIdToTitle
+				// Handle linked records - resolve to wiki links
 				if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-					convertedValue = fieldValue.map((linkedRecordId: string) => {
+					const links = fieldValue.map((linkedRecordId: string) => {
 						const linkedTitle = recordIdToTitle.get(linkedRecordId);
-						if (linkedTitle) {
-							return `[[${sanitizeFileName(linkedTitle)}]]`;
-						}
-						return `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
+						return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
 					});
+					convertedCache.set(field.name, links);
+					templateData[field.name] = links.join(', ');
+					continue;
 				}
-
-				// Convert property value according to type
-				// Using 'any' because convertedValue can be string, number, boolean, array, etc.
-				let propertyValue: any = convertedValue;
-
-				// Handle attachments: download and convert to wiki links or URLs
-				if (field.type === 'multipleAttachments' && Array.isArray(convertedValue)) {
-					const attachments = convertedValue as AirtableAttachment[];
-					propertyValue = await processAttachmentsForYAML(attachments, {
+			
+				// Handle attachments - download and convert to embeds
+				if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
+					const attachments = fieldValue as AirtableAttachment[];
+					const processed = await processAttachments(attachments, {
 						ctx,
+						currentFilePath: filePath,
 						vault: this.vault,
+						app: this.app,
 						downloadAttachments: this.downloadAttachments,
 						getAvailableAttachmentPath: async (filename: string) => {
 							return await this.getAvailablePathForAttachment(filename, []);
@@ -1507,47 +1352,137 @@ export class AirtableAPIImporter extends FormatImporter {
 							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
 						},
 					});
+					convertedCache.set(field.name, attachments);
+					templateData[field.name] = processed.join('\n');
+					continue;
 				}
 
-				// Set property (skip null/undefined/empty values and non-serializable objects)
-				if (propertyValue !== null && propertyValue !== undefined && propertyValue !== '') {
-					// Ensure we're not setting complex objects that could cause YAML serialization issues
-					if (typeof propertyValue === 'object' && !Array.isArray(propertyValue)) {
-						console.warn(`[Airtable] Skipping complex object for property "${propertyName}"`);
-						continue;
-					}
-					frontMatter[propertyName] = propertyValue;
+				// Convert other field types
+				let convertedValue = convertFieldValue({
+					fieldValue,
+					fieldSchema: field,
+					recordId,
+					formulaStrategy: this.formulaStrategy,
+					fieldIdToNameMap: this.globalFieldIdToNameMap,
+				});
+			
+				// If formula was converted (returns null), use the computed value for templates
+				if (convertedValue === null && field.type === 'formula') {
+					convertedValue = fieldValue;
+				}
+
+				// Cache converted value for frontmatter pass
+				convertedCache.set(field.name, convertedValue);
+
+				// Convert to string for template
+				if (convertedValue === null || convertedValue === undefined) {
+					templateData[field.name] = '';
+				}
+				else if (Array.isArray(convertedValue)) {
+					templateData[field.name] = convertedValue.map((item: any) => {
+						if (typeof item === 'string') return item;
+						return String(item);
+					}).join(', ');
+				}
+				else {
+					templateData[field.name] = String(convertedValue);
 				}
 			}
-		}
 
-		// Apply body template
-		const bodyContent = this.templateConfig
-			? applyTemplate(this.templateConfig.bodyTemplate, templateData)
-			: '';
+			// Build frontmatter
+			const frontMatter: Record<string, any> = {
+				'airtable-id': recordId,
+			};
 
-		// Generate file content
-		const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
+			// Add view property
+			if (viewReferences.length > 0) {
+				frontMatter[this.viewPropertyName] = viewReferences;
+			}
 
-		// Handle file name conflicts (different record with same name)
-		const existingFile = this.vault.getAbstractFileByPath(filePath);
-		if (existingFile instanceof TFile) {
+			// Process fields for frontmatter using template config
+			if (this.templateConfig) {
+				for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
+					if (!propertyName || !propertyName.trim()) continue;
+
+					// Skip the view property name to avoid duplicates
+					if (propertyName === this.viewPropertyName) {
+						continue;
+					}
+
+					const valueTemplate = this.templateConfig.propertyValues.get(fieldId) || '';
+					if (!valueTemplate) continue;
+
+					// Get cached converted value (already processed in first pass)
+					const convertedValue = convertedCache.get(fieldId);
+
+					// Skip if convertedValue is null/undefined/empty string
+					if (convertedValue === null || convertedValue === undefined || convertedValue === '') {
+						continue;
+					}
+
+					let propertyValue: any = convertedValue;
+
+					// Handle attachments: convert to wiki links for YAML
+					if (Array.isArray(convertedValue) && convertedValue.length > 0 && convertedValue[0]?.url) {
+						const attachments = convertedValue as AirtableAttachment[];
+						propertyValue = await processAttachmentsForYAML(attachments, {
+							ctx,
+							vault: this.vault,
+							downloadAttachments: this.downloadAttachments,
+							getAvailableAttachmentPath: async (filename: string) => {
+								return await this.getAvailablePathForAttachment(filename, []);
+							},
+							onAttachmentDownloaded: () => {
+								this.attachmentsDownloaded++;
+								ctx.attachments = this.attachmentsDownloaded;
+								ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+							},
+						});
+					}
+
+					// Set property (skip null/undefined/empty values and non-serializable objects)
+					if (propertyValue !== null && propertyValue !== undefined && propertyValue !== '') {
+						// Ensure we're not setting complex objects that could cause YAML serialization issues
+						if (typeof propertyValue === 'object' && !Array.isArray(propertyValue)) {
+							console.warn(`[Airtable] Skipping complex object for property "${propertyName}"`);
+							continue;
+						}
+						frontMatter[propertyName] = propertyValue;
+					}
+				}
+			}
+
+			// Apply body template
+			const bodyContent = this.templateConfig
+				? applyTemplate(this.templateConfig.bodyTemplate, templateData)
+				: '';
+
+			// Generate file content
+			const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
+
+			// Handle file name conflicts (different record with same name)
+			const existingFile = this.vault.getAbstractFileByPath(filePath);
+			if (existingFile instanceof TFile) {
 			// File exists with different record - find unique name
-			filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
-			// Update sanitizedTitle to match the new file name (without .md)
-			const { basename } = parseFilePath(filePath);
-			sanitizedTitle = basename;
-			// Update globalRecordIdToTitle so other tables' links point to the correct file
-			recordIdToTitle.set(recordId, sanitizedTitle);
+				filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
+				// Update sanitizedTitle to match the new file name (without .md)
+				const { basename } = parseFilePath(filePath);
+				sanitizedTitle = basename;
+				// Update globalRecordIdToTitle so other tables' links point to the correct file
+				recordIdToTitle.set(recordId, sanitizedTitle);
+			}
+		
+			// Create the file
+			await this.vault.create(filePath, fileContent);
+		
+			// Track file path for cleanup
+			// Use baseId:recordId as key to ensure uniqueness across bases (recordId is only unique within a base)
+			const uniqueKey = `${fileContext.baseId}:${recordId}`;
+			this.recordIdToPath.set(uniqueKey, filePath.replace(/\.md$/, ''));
 		}
-		
-		// Create the file
-		await this.vault.create(filePath, fileContent);
-		
-		// Track file path for cleanup
-		// Use baseId:recordId as key to ensure uniqueness across bases (recordId is only unique within a base)
-		const uniqueKey = `${fileContext.baseId}:${recordId}`;
-		this.recordIdToPath.set(uniqueKey, filePath.replace(/\.md$/, ''));
+		else {
+			ctx.reportSkipped(sanitizedTitle, 'Already imported');
+		}
 		
 		ctx.reportNoteSuccess(sanitizedTitle);
 		this.processedRecordsCount++;
@@ -1561,14 +1496,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * 
 	 * @param filePath - Path to check
 	 * @param recordId - Airtable record ID to compare
-	 * @param onMatch - Callback to execute if IDs match (should handle reporting and return)
-	 * @returns true if record was handled (should skip further processing), false otherwise
+	 * @returns true if same record already exists (should skip), false otherwise
 	 */
-	private async handleIncrementalImportCheck(
-		filePath: string,
-		recordId: string,
-		onMatch: (file: TFile) => Promise<void>
-	): Promise<boolean> {
+	private shouldSkipExistingRecord(filePath: string, recordId: string): boolean {
 		if (!this.incrementalImport) {
 			return false;
 		}
@@ -1582,13 +1512,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const cachedMetadata = this.app.metadataCache.getFileCache(file);
 		const existingId = cachedMetadata?.frontmatter?.['airtable-id'];
 		
-		if (existingId === recordId) {
-			// Same record - execute callback
-			await onMatch(file);
-			return true;
-		}
-
-		return false;
+		return existingId === recordId;
 	}
 
 	/**
@@ -1662,7 +1586,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Create a single .base file for the table with multiple views
 	 */
-	private async createViewBaseFiles(ctx: BaseFileContext): Promise<void> {
+	private async createBaseFile(ctx: BaseFileContext): Promise<void> {
 		const { tableFolderPath, tableName, views, fields, primaryFieldId } = ctx;
 		
 		// Get parent folder (where .base file will be created)
@@ -1676,17 +1600,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		// This preserves Airtable's field order in the .base file
 		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
 		
-		// Helper to resolve field name from ID
-		const resolveFieldName = (fieldId: string): string | undefined => {
-			return this.globalFieldIdToNameMap.get(fieldId);
-		};
-		
-		// Helper to build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
-		const buildMapExpression = (linkedFieldName: string, targetFieldName: string): string => {
-			const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
-			const sanitizedTarget = this.sanitizePropertyName(targetFieldName);
-			return `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
-		};
 		
 		for (const field of fields) {
 			// Skip primary field - it's used as note title/filename, not as a formula column
@@ -1715,7 +1628,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 			// Process lookup/rollup/count fields (all use linked records)
 			else if (linkedFieldId) {
-				const linkedFieldName = resolveFieldName(linkedFieldId);
+				const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId);
 				if (!linkedFieldName) continue;
 				
 				if (field.type === 'count') {
@@ -1724,10 +1637,13 @@ export class AirtableAPIImporter extends FormatImporter {
 					formulas.set(field.name, `note["${sanitizedLinked}"].length`);
 				}
 				else if (targetFieldId) {
-					const targetFieldName = resolveFieldName(targetFieldId);
+					const targetFieldName = this.globalFieldIdToNameMap.get(targetFieldId);
 					if (!targetFieldName) continue;
 					
-					const mapExpression = buildMapExpression(linkedFieldName, targetFieldName);
+					// Build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
+					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
+					const sanitizedTarget = this.sanitizePropertyName(targetFieldName);
+					const mapExpression = `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
 					
 					if (field.type === 'multipleLookupValues') {
 						// Lookup: just the map expression
@@ -1755,15 +1671,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				continue;
 			}
 			
-			// Check if this field was converted to a formula
-			if (formulas.has(field.name)) {
-				// Add as formula column
-				propertyColumns.push(`formula.${this.sanitizePropertyName(field.name)}`);
-			}
-			else {
-				// Add as regular property column
-				propertyColumns.push(this.sanitizePropertyName(field.name));
-			}
+			// Add as formula or regular property column
+			const sanitized = this.sanitizePropertyName(field.name);
+			propertyColumns.push(formulas.has(field.name) ? `formula.${sanitized}` : sanitized);
 		}
 
 		// Create ONE .base file for the table with multiple views
@@ -1845,21 +1755,10 @@ export class AirtableAPIImporter extends FormatImporter {
 				continue;
 			}
 			
-			// Check if this field was converted to a formula
-			if (formulas.has(field.name)) {
-				// Add formula display name
-				const propertyKey = `formula.${this.sanitizePropertyName(field.name)}`;
-				baseConfig.properties[propertyKey] = {
-					displayName: field.name
-				};
-			}
-			else {
-				// Add regular field display name
-				const propertyKey = this.sanitizePropertyName(field.name);
-				baseConfig.properties[propertyKey] = {
-					displayName: field.name
-				};
-			}
+			// Add display name for formula or regular property
+			const sanitized = this.sanitizePropertyName(field.name);
+			const propertyKey = formulas.has(field.name) ? `formula.${sanitized}` : sanitized;
+			baseConfig.properties[propertyKey] = { displayName: field.name };
 		}
 		
 		// Add views
