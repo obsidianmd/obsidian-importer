@@ -23,7 +23,7 @@ import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, HeaderContentWithRichTextAndColorResponse } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
-import { getUniqueFilePath } from './vault-helpers';
+import { getUniqueFilePath } from '../../util';
 
 
 /**
