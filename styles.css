@@ -180,3 +180,19 @@
 .airtable-toggle-button {
 	width: 95px;
 }
+
+.import-section .publish-change-list {
+	max-height: 200px;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-primary-alt);
+	padding: var(--size-4-2);
+}
+
+.import-section .publish-placeholder {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-align: center;
+	padding: 30px 10px;
+}

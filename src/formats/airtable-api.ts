@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView } from 'obsidian';
+import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView, ButtonComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
@@ -43,8 +43,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
 	private treeContainer: HTMLElement | null = null;
-	private loadButton: any = null;  // ButtonComponent from obsidian
-	private toggleSelectButton: any = null;  // ButtonComponent from obsidian
+	private loadButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
+	private toggleSelectButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
 	
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
@@ -143,8 +143,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			.setName('Select tables to import')
 			.setDesc('Click "Load" to browse your Airtable bases and tables.');
 
-		let toggleButtonRef: any = null;  // ButtonComponent from obsidian
-		let loadButtonRef: any = null;  // ButtonComponent from obsidian
+		let toggleButtonRef: ButtonComponent | null = null;  // ButtonComponent from obsidian
+		let loadButtonRef: ButtonComponent | null = null;  // ButtonComponent from obsidian
 
 		// Toggle select all/none button
 		loadSetting.addButton(button => {
@@ -153,7 +153,14 @@ export class AirtableAPIImporter extends FormatImporter {
 				.setButtonText('Select all')
 				.onClick(() => {
 					this.toggleSelectButton = toggleButtonRef;
-					this.handleToggleSelectClick();
+					if (this.tree.length === 0) {
+						new Notice('Please load bases first.');
+						return;
+					}
+			
+					const allSelected = this.areAllNodesSelected();
+					this.selectAllNodes(!allSelected);
+					this.renderTree();
 				});
 
 			if (button.buttonEl) {
@@ -191,24 +198,14 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const publishSection = this.modal.contentEl.createDiv();
-		publishSection.addClass('file-tree', 'publish-section');
+		const importSection = this.modal.contentEl.createDiv();
+		importSection.addClass('import-section', 'file-tree', 'publish-section');
 
 		// Create the change list container
-		this.treeContainer = publishSection.createDiv('publish-change-list');
-		this.treeContainer.style.maxHeight = '200px';
-		this.treeContainer.style.overflowY = 'auto';
-		this.treeContainer.style.border = '1px solid var(--background-modifier-border)';
-		this.treeContainer.style.borderRadius = 'var(--radius-s)';
-		this.treeContainer.style.backgroundColor = 'var(--background-primary-alt)';
-		this.treeContainer.style.padding = 'var(--size-4-2)';
+		this.treeContainer = importSection.createDiv('publish-change-list');
 
 		// Add placeholder text
-		const placeholder = this.treeContainer.createDiv();
-		placeholder.style.color = 'var(--text-muted)';
-		placeholder.style.fontSize = 'var(--font-ui-small)';
-		placeholder.style.textAlign = 'center';
-		placeholder.style.padding = '30px 10px';
+		const placeholder = this.treeContainer.createDiv('publish-placeholder');
 		placeholder.setText('Click "Load" to load your Airtable bases and tables.');
 
 		// Formula import strategy
@@ -577,20 +574,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		for (const node of this.tree) {
 			processNode(node);
 		}
-	}
-
-	/**
-	 * Handle toggle select button click
-	 */
-	private handleToggleSelectClick(): void {
-		if (this.tree.length === 0) {
-			new Notice('Please load bases first.');
-			return;
-		}
-
-		const allSelected = this.areAllNodesSelected();
-		this.selectAllNodes(!allSelected);
-		this.renderTree();
 	}
 
 	/**
