@@ -2,7 +2,13 @@
  * Type definitions for Airtable API importer
  */
 
-import { ImportContext } from '../../main';
+/**
+ * Minimal interface for status reporting
+ * Used by API helpers that only need to report status messages
+ */
+export interface StatusReporter {
+	status: (message: string) => void;
+}
 
 /**
  * Formula import strategy
@@ -15,7 +21,7 @@ export type FormulaImportStrategy = 'static' | 'hybrid';
 export interface AirtableRequestOptions {
 	url: string;
 	token: string;
-	ctx: ImportContext;
+	ctx: StatusReporter;
 	method?: 'GET' | 'POST';
 	// Request body varies by endpoint (JSON object)
 	body?: any;
@@ -28,7 +34,6 @@ export interface FetchRecordsOptions {
 	baseId: string;
 	tableIdOrName: string;
 	token: string;
-	ctx: ImportContext;
 	viewId?: string;
 	/** Callback called when records are fetched, receives the count of fetched records */
 	onProgress?: (fetchedCount: number) => void;
