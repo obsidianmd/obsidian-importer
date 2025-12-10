@@ -1309,17 +1309,18 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Check for incremental import - skip if same record already exists
 		const shouldSkip = this.shouldSkipExistingRecord(filePath, recordId);
 		if (!shouldSkip) {
-			// Build template data for both frontmatter and body
+			// Check if we need to build templateData (only needed for body template)
+			const hasBodyTemplate = this.templateConfig?.bodyTemplate?.trim();
 			const templateData: Record<string, string> = {};
-			// Cache converted values to avoid calling convertFieldValue twice
+			// Cache converted values for frontmatter
 			const convertedCache = new Map<string, any>();
 		
-			// First pass: convert field values for template use
+			// Convert field values
 			for (const field of fields) {
 				const fieldValue = recordFields[field.name];
 			
 				if (fieldValue === null || fieldValue === undefined) {
-					templateData[field.name] = '';
+					if (hasBodyTemplate) templateData[field.name] = '';
 					continue;
 				}
 
@@ -1330,30 +1331,32 @@ export class AirtableAPIImporter extends FormatImporter {
 						return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
 					});
 					convertedCache.set(field.name, links);
-					templateData[field.name] = links.join(', ');
+					if (hasBodyTemplate) templateData[field.name] = links.join(', ');
 					continue;
 				}
 			
 				// Handle attachments - download and convert to embeds
 				if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
 					const attachments = fieldValue as AirtableAttachment[];
-					const processed = await processAttachments(attachments, {
-						ctx,
-						currentFilePath: filePath,
-						vault: this.vault,
-						app: this.app,
-						downloadAttachments: this.downloadAttachments,
-						getAvailableAttachmentPath: async (filename: string) => {
-							return await this.getAvailablePathForAttachment(filename, []);
-						},
-						onAttachmentDownloaded: () => {
-							this.attachmentsDownloaded++;
-							ctx.attachments = this.attachmentsDownloaded;
-							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-						},
-					});
 					convertedCache.set(field.name, attachments);
-					templateData[field.name] = processed.join('\n');
+					if (hasBodyTemplate) {
+						const processed = await processAttachments(attachments, {
+							ctx,
+							currentFilePath: filePath,
+							vault: this.vault,
+							app: this.app,
+							downloadAttachments: this.downloadAttachments,
+							getAvailableAttachmentPath: async (filename: string) => {
+								return await this.getAvailablePathForAttachment(filename, []);
+							},
+							onAttachmentDownloaded: () => {
+								this.attachmentsDownloaded++;
+								ctx.attachments = this.attachmentsDownloaded;
+								ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+							},
+						});
+						templateData[field.name] = processed.join('\n');
+					}
 					continue;
 				}
 
@@ -1374,18 +1377,20 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Cache converted value for frontmatter pass
 				convertedCache.set(field.name, convertedValue);
 
-				// Convert to string for template
-				if (convertedValue === null || convertedValue === undefined) {
-					templateData[field.name] = '';
-				}
-				else if (Array.isArray(convertedValue)) {
-					templateData[field.name] = convertedValue.map((item: any) => {
-						if (typeof item === 'string') return item;
-						return String(item);
-					}).join(', ');
-				}
-				else {
-					templateData[field.name] = String(convertedValue);
+				// Convert to string for template (only if needed)
+				if (hasBodyTemplate) {
+					if (convertedValue === null || convertedValue === undefined) {
+						templateData[field.name] = '';
+					}
+					else if (Array.isArray(convertedValue)) {
+						templateData[field.name] = convertedValue.map((item: any) => {
+							if (typeof item === 'string') return item;
+							return String(item);
+						}).join(', ');
+					}
+					else {
+						templateData[field.name] = String(convertedValue);
+					}
 				}
 			}
 
@@ -1453,8 +1458,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Apply body template
-			const bodyContent = this.templateConfig
-				? applyTemplate(this.templateConfig.bodyTemplate, templateData)
+			const bodyContent = hasBodyTemplate
+				? applyTemplate(this.templateConfig!.bodyTemplate, templateData)
 				: '';
 
 			// Generate file content
