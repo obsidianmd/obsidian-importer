@@ -60,11 +60,8 @@ export async function downloadAttachment(
 		const normalizedPath = normalizePath(targetPath);
 		await vault.createBinary(normalizedPath, response.arrayBuffer);
 		
-		// Return path without extension for wiki links
-		const pathWithoutExt = targetPath.replace(/\.[^/.]+$/, '');
-		
 		return {
-			path: pathWithoutExt,
+			path: normalizedPath,
 			isLocal: true,
 			filename: sanitized,
 		};
@@ -105,9 +102,7 @@ export function formatAttachmentLink(ctx: FormatAttachmentLinkContext): string {
 	}
 	
 	// Local file - get the actual file
-	const ext = result.filename ? result.filename.substring(result.filename.lastIndexOf('.')) : '';
-	const fullPath = result.path + ext;
-	const file = vault.getAbstractFileByPath(normalizePath(fullPath));
+	const file = vault.getAbstractFileByPath(result.path);
 	
 	if (file instanceof TFile) {
 		// Determine if it's an image/video that should be embedded based on MIME type
@@ -141,11 +136,8 @@ export function formatAttachmentForYAML(
 		return result.path;
 	}
 	
-	// Local file - use wiki link with full path including extension
-	const ext = result.filename ? result.filename.substring(result.filename.lastIndexOf('.')) : '';
-	const fullPath = result.path + ext;
-	
-	return `[[${fullPath}]]`;
+	// Local file - use wiki link with full path
+	return `[[${result.path}]]`;
 }
 
 /**
