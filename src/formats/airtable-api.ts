@@ -473,7 +473,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
-				this.toggleNodeSelection(node, checkbox.checked);
+				this.setNodeSelection(node, checkbox.checked);
 				this.renderTree();
 			});
 		}
@@ -503,24 +503,18 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Toggle node selection
+	 * Set selection state for node and all children recursively
+	 * Children are also disabled when selected (to indicate inherited selection)
 	 */
-	private toggleNodeSelection(node: AirtableTreeNode, selected: boolean): void {
+	private setNodeSelection(node: AirtableTreeNode, selected: boolean, isRoot: boolean = true): void {
 		node.selected = selected;
-		this.setChildrenSelection(node, selected);
-	}
-
-	/**
-	 * Set selection state for all children recursively
-	 * When selected=true: select and disable all children
-	 * When selected=false: deselect and enable all children
-	 */
-	private setChildrenSelection(node: AirtableTreeNode, selected: boolean): void {
-		if (!node.children) return;
-		for (const child of node.children) {
-			child.selected = selected;
-			child.disabled = selected;
-			this.setChildrenSelection(child, selected);
+		if (!isRoot) {
+			node.disabled = selected;
+		}
+		if (node.children) {
+			for (const child of node.children) {
+				this.setNodeSelection(child, selected, false);
+			}
 		}
 	}
 
@@ -545,7 +539,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	private selectAllNodes(selected: boolean): void {
 		const processNode = (node: AirtableTreeNode) => {
 			if (!node.disabled) {
-				this.toggleNodeSelection(node, selected);
+				this.setNodeSelection(node, selected);
 			}
 			if (node.children) {
 				for (const child of node.children) {
