@@ -40,33 +40,33 @@ export class AirtableAPIImporter extends FormatImporter {
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'base'; // Property name to track which views a record belongs to
 	incrementalImport: boolean = false; // Incremental import: skip files with same airtable-id (default: disabled)
-	
+
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
 	private treeContainer: HTMLElement | null = null;
 	private loadButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
 	private toggleSelectButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
-	
+
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
 	private processedRecordsCount: number = 0;
 	private totalRecordsToImport: number = 0;
 	private attachmentsDownloaded: number = 0;
-	
+
 	// Template configuration
 	private templateConfig: TemplateConfig | null = null;
-	
+
 	// Store all fields for property type inference
 	private allFieldsForTypeInference: Map<string, AirtableFieldSchema> = new Map();
-	
+
 	// Global field ID to name mapping (across all tables in the base)
 	// Needed for lookup/rollup fields that reference fields in linked tables
 	private globalFieldIdToNameMap: Map<string, string> = new Map();
-	
+
 	// Global record ID to title mapping (across all tables)
 	// Needed for resolving linked records that reference records in other tables
 	private globalRecordIdToTitle: Map<string, string> = new Map();
-	
+
 	// Prepared data cache for two-phase import
 	private preparedData: Map<string, PreparedTableData> = new Map();
 
@@ -99,26 +99,26 @@ export class AirtableAPIImporter extends FormatImporter {
 	}): string {
 		const { totalBases, currentBaseIndex, baseName, tableName, viewName, recordsProgress } = this.statusContext;
 		const opts = options || {};
-		
+
 		// Format: Base 1/4 → BaseName → Status
 		let message = `Base ${currentBaseIndex}/${totalBases} → ${baseName} → ${status}`;
-		
+
 		if (opts.showTable && tableName) {
 			message += ` → ${tableName}`;
 		}
-		
+
 		if (opts.showView && viewName) {
 			message += ` → ${viewName}`;
 		}
-		
+
 		if (opts.showRecords && recordsProgress) {
 			message += ` (${recordsProgress})`;
 		}
-		
+
 		if (opts.customSuffix) {
 			message += ` ${opts.customSuffix}`;
 		}
-		
+
 		return message;
 	}
 
@@ -158,7 +158,7 @@ export class AirtableAPIImporter extends FormatImporter {
 						new Notice('Please load bases first.');
 						return;
 					}
-			
+
 					const allSelected = this.areAllNodesSelected();
 					this.selectAllNodes(!allSelected);
 					this.renderTree();
@@ -406,15 +406,15 @@ export class AirtableAPIImporter extends FormatImporter {
 	private renderTreeNode(container: HTMLElement, node: AirtableTreeNode, level: number): void {
 		// Main tree item container
 		const treeItem = container.createDiv('tree-item');
-		
+
 		// Tree item self (contains the node itself)
 		const treeItemSelf = treeItem.createDiv('tree-item-self');
 		treeItemSelf.addClass('is-clickable');
-		
+
 		// Add appropriate modifiers
 		const hasChildren = node.children && node.children.length > 0;
 		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
-		
+
 		// Apply disabled styling
 		if (node.disabled) {
 			treeItemSelf.addClass('is-disabled');
@@ -425,16 +425,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Collapse/Expand arrow (only for base nodes with children)
 		if (hasChildren) {
 			treeItemSelf.addClass('mod-collapsible');
-			
+
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-			
+
 			// Use right-triangle icon (Obsidian's standard)
 			setIcon(collapseIcon, 'right-triangle');
-			
+
 			// Add is-collapsed class for CSS control
 			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
 			treeItem.toggleClass('is-collapsed', !!node.collapsed);
-			
+
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
@@ -593,7 +593,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Collect all fields from selected tables for template configuration
 		const allFieldsMap = new Map<string, AirtableFieldSchema>();
 		const fieldExamples = new Map<string, string>();
-		
+
 		const collectFields = (nodes: AirtableTreeNode[]) => {
 			for (const node of nodes) {
 				if (node.metadata?.fields) {
@@ -604,14 +604,14 @@ export class AirtableAPIImporter extends FormatImporter {
 						}
 					}
 				}
-				
+
 				// Recursively collect from children (for base nodes)
 				if (node.children && node.children.length > 0) {
 					collectFields(node.children);
 				}
 			}
 		};
-		
+
 		collectFields(selectedNodes);
 
 		if (allFieldsMap.size === 0) {
@@ -630,16 +630,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Exclude fields that have the same name as viewPropertyName to avoid conflicts
 		const propertyNames = new Map<string, string>();
 		const propertyValues = new Map<string, string>();
-		
+
 		for (const field of allFieldsMap.values()) {
 			const sanitizedName = this.sanitizePropertyName(field.name);
-			
+
 			// Skip if the sanitized name conflicts with viewPropertyName
 			// The viewPropertyName is managed automatically by the importer
 			if (sanitizedName.toLowerCase() === this.viewPropertyName.toLowerCase()) {
 				continue;
 			}
-			
+
 			propertyNames.set(field.name, sanitizedName);
 			propertyValues.set(field.name, `{{${field.name}}}`);
 		}
@@ -739,7 +739,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	private sanitizePropertyName(name: string): string {
 		return name;
 	}
-	
+
 	/**
 	 * Sanitize view name for use in wiki links
 	 * Wiki links can't contain: [ ] # | ^
@@ -777,7 +777,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Group selected nodes by base
 			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
 			const totalBases = baseGroups.size;
-			
+
 			// Initialize status context
 			this.statusContext = {
 				totalBases,
@@ -787,7 +787,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				viewName: '',
 				recordsProgress: '',
 			};
-			
+
 			ctx.status(`Found ${totalBases} base(s) to import...`);
 
 			// Process each base sequentially to minimize memory usage
@@ -803,13 +803,13 @@ export class AirtableAPIImporter extends FormatImporter {
 				this.statusContext.tableName = '';
 				this.statusContext.viewName = '';
 				this.statusContext.recordsProgress = '';
-				
+
 				// Clear data from previous base to free memory
 				this.clearBaseData();
-				
+
 				// Reset progress bar to 0% for the new base
 				ctx.reportProgress(0, 1);
-				
+
 				ctx.status(this.buildStatusMessage('Fetching'));
 
 				// ============================================================
@@ -881,7 +881,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					});
 				}
 				const group = baseGroups.get(node.id)!;
-				
+
 				for (const tableNode of node.children) {
 					group.tables.push({
 						tableName: tableNode.metadata?.tableName || tableNode.title,
@@ -894,7 +894,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			else if (node.type === 'table' && node.metadata?.baseId) {
 				// Single table selected - find or create its base group
 				const baseId = node.metadata.baseId;
-				
+
 				if (!baseGroups.has(baseId)) {
 					// Find the base node to get the base name
 					const baseName = this.tree.find(baseNode => baseNode.id === baseId)?.title ?? '';
@@ -904,7 +904,7 @@ export class AirtableAPIImporter extends FormatImporter {
 						tables: [],
 					});
 				}
-				
+
 				const group = baseGroups.get(baseId)!;
 				group.tables.push({
 					tableName: node.metadata?.tableName || node.title,
@@ -930,7 +930,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.globalFieldIdToNameMap.clear();
 		this.globalRecordIdToTitle.clear();
 		this.preparedData.clear();
-		
+
 		// Reset per-base progress counters
 		this.processedRecordsCount = 0;
 		this.totalRecordsToImport = 0;
@@ -944,22 +944,22 @@ export class AirtableAPIImporter extends FormatImporter {
 		baseInfo: BaseGroupInfo
 	): Promise<void> {
 		const { baseId, baseName, tables } = baseInfo;
-		
+
 		// Reset counts for this base
 		this.totalRecordsToImport = 0;
 		this.processedRecordsCount = 0;
-		
+
 		// Fetch data for each table in this base
 		for (const table of tables) {
 			if (ctx.isCancelled()) return;
-			
+
 			// Update status context
 			this.statusContext.tableName = table.tableName;
 			this.statusContext.viewName = '';
 			this.statusContext.recordsProgress = '';
-			
+
 			ctx.status(this.buildStatusMessage('Fetching', { showTable: true }));
-			
+
 			await this.fetchTableData(ctx, {
 				baseId,
 				baseName,
@@ -969,7 +969,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				views: table.views,
 			});
 		}
-		
+
 		// Report progress after fetching all tables for this base
 		this.statusContext.tableName = '';
 		this.statusContext.recordsProgress = `${this.totalRecordsToImport} records`;
@@ -987,16 +987,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Process each table's prepared data
 		for (const [, tableData] of this.preparedData.entries()) {
 			if (ctx.isCancelled()) return;
-			
+
 			// Update status context
 			this.statusContext.tableName = tableData.tableName;
 			this.statusContext.viewName = '';
-			
+
 			await this.createFilesForTable(ctx, tableData, rootPath);
 		}
 	}
 
-	
+
 	/**
 	 * Fetch all data for a single table (records + view memberships)
 	 */
@@ -1012,20 +1012,20 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	): Promise<void> {
 		const { baseId, baseName, tableName, primaryFieldId, fields, views } = tableInfo;
-		
+
 		if (ctx.isCancelled()) return;
-		
+
 		const tableKey = `${baseId}:${tableName}`;
-		
+
 		// Filter to supported views only
-		const supportedViews = views.filter(view => 
+		const supportedViews = views.filter(view =>
 			['grid', 'gallery', 'list'].includes(view.type.toLowerCase())
 		);
-		
+
 		// Find the primary field by ID (don't assume fields[0] is primary)
 		const primaryField = fields.find(f => f.id === primaryFieldId);
 		const primaryFieldName = primaryField?.name || fields[0]?.name;
-		
+
 		// Collect fields for type inference and build global field ID to name mapping
 		for (const field of fields) {
 			if (!this.allFieldsForTypeInference.has(field.name)) {
@@ -1036,13 +1036,13 @@ export class AirtableAPIImporter extends FormatImporter {
 				this.globalFieldIdToNameMap.set(field.id, field.name);
 			}
 		}
-		
+
 		// Step 1: Fetch ALL records from the table
 		// Update status - fetching records
 		this.statusContext.viewName = '';
 		this.statusContext.recordsProgress = '';
 		ctx.status(this.buildStatusMessage('Fetching', { showTable: true }));
-		
+
 		const allRecords = await fetchAllRecords({
 			baseId,
 			tableIdOrName: tableName,
@@ -1053,9 +1053,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				ctx.status(this.buildStatusMessage('Fetching', { showTable: true, showRecords: true }));
 			},
 		});
-		
+
 		if (ctx.isCancelled()) return;
-		
+
 		// Build global record ID to title mapping (for resolving linked records across tables)
 		for (const record of allRecords) {
 			const recordFields = record.fields || {};
@@ -1063,35 +1063,35 @@ export class AirtableAPIImporter extends FormatImporter {
 			const title = primaryFieldValue ? String(primaryFieldValue) : 'Untitled Record';
 			this.globalRecordIdToTitle.set(record.id, title);
 		}
-		
+
 		// Step 2: Fetch view memberships for each record
 		const recordViewMemberships = new Map<string, string[]>();
 		const sanitizedTableName = sanitizeFileName(tableName);
 		const sanitizedBaseName = sanitizeFileName(baseName);
-		
+
 		// Build .base file path relative to output folder (e.g., "BaseName/TableName.base")
 		// This ensures unique identification when multiple bases have same table names
-		const baseFilePath = normalizePath(baseName 
+		const baseFilePath = normalizePath(baseName
 			? `${sanitizedBaseName}/${sanitizedTableName}.base`
 			: `${sanitizedTableName}.base`);
-		
+
 		for (const view of supportedViews) {
 			if (ctx.isCancelled()) return;
-			
+
 			// Update status - fetching view
 			this.statusContext.viewName = view.name;
 			this.statusContext.recordsProgress = '';
 			ctx.status(this.buildStatusMessage('Fetching', { showTable: true, showView: true }));
-			
+
 			// Fetch only record IDs from this view
 			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
-			
+
 			// Build view reference with full path to avoid ambiguity
 			// e.g., [[BaseName/TableName.base#Grid view]]
 			// Sanitize view name for wiki link compatibility
 			const sanitizedViewName = this.sanitizeViewName(view.name);
 			const viewReference = `[[${baseFilePath}#${sanitizedViewName}]]`;
-			
+
 			// Tag these records with this view
 			for (const recordId of viewRecordIds) {
 				if (!recordViewMemberships.has(recordId)) {
@@ -1100,7 +1100,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				recordViewMemberships.get(recordId)!.push(viewReference);
 			}
 		}
-		
+
 		// Store prepared data
 		this.preparedData.set(tableKey, {
 			baseId,
@@ -1112,12 +1112,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			records: allRecords,
 			recordViewMemberships,
 		});
-		
+
 		// Count total records to import
 		this.totalRecordsToImport += allRecords.length;
 	}
-	
-	
+
+
 	/**
 	 * Create files for a single table
 	 */
@@ -1127,24 +1127,24 @@ export class AirtableAPIImporter extends FormatImporter {
 		rootPath: string
 	): Promise<void> {
 		const { baseId, baseName, tableName, primaryFieldId, fields, views, records, recordViewMemberships } = tableData;
-		
+
 		// Find primary field by ID (don't assume fields[0] is primary)
 		const primaryField = fields.find(f => f.id === primaryFieldId);
 		const primaryFieldName = primaryField?.name || fields[0]?.name;
-		
+
 		// Build table path
-		const tablePath = baseName 
+		const tablePath = baseName
 			? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
 			: normalizePath(`${rootPath}/${sanitizeFileName(tableName)}`);
-		
+
 		await this.createFolders(tablePath);
-		
+
 		// Update status context for writing
 		this.statusContext.tableName = tableName;
 		this.statusContext.viewName = '';
 		this.statusContext.recordsProgress = `0/${records.length}`;
 		ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
-		
+
 		// Create .base file first
 		await this.createBaseFile({
 			tableFolderPath: tablePath,
@@ -1153,17 +1153,17 @@ export class AirtableAPIImporter extends FormatImporter {
 			fields,
 			primaryFieldId,
 		});
-		
+
 		if (ctx.isCancelled()) return;
-		
+
 		// Create files for all records
 		// Note: Using globalRecordIdToTitle for resolving linked records across tables
 		const totalRecordsInTable = records.length;
 		let processedInTable = 0;
-		
+
 		for (const record of records) {
 			if (ctx.isCancelled()) return;
-			
+
 			try {
 				const viewReferences = recordViewMemberships.get(record.id) || [];
 				await this.createRecordFile(ctx, record, {
@@ -1194,13 +1194,13 @@ export class AirtableAPIImporter extends FormatImporter {
 				this.processedRecordsCount++;
 				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			}
-			
+
 			// Update progress display
 			processedInTable++;
 			this.statusContext.recordsProgress = `${processedInTable}/${totalRecordsInTable}`;
 			ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
 		}
-		
+
 	}
 
 	/**
@@ -1215,7 +1215,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<string[]> {
 		const base = new Airtable({ apiKey: this.airtableToken }).base(baseId);
 		const recordIds: string[] = [];
-		
+
 		try {
 			// Only fetch the ID field (minimal data transfer)
 			await base(tableName)
@@ -1233,7 +1233,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		catch (error) {
 			ctx.reportFailed(`${tableName} > ${view.name}`, error);
 		}
-		
+
 		return recordIds;
 	}
 
@@ -1249,11 +1249,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		const { tablePath, primaryFieldId, fields, viewReferences, recordIdToTitle } = fileContext;
 		const recordId = record.id;
 		const recordFields = record.fields || {};
-		
+
 		// Find primary field by ID (don't assume fields[0] is primary)
 		const primaryField = fields.find(f => f.id === primaryFieldId);
 		const primaryFieldName = primaryField?.name || fields[0]?.name;
-		
+
 		// Skip completely empty records
 		const hasAnyValue = Object.values(recordFields).some(value => {
 			if (value === null || value === undefined) return false;
@@ -1266,14 +1266,14 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (Array.isArray(value) && value.length === 0) return false;
 			return true;
 		});
-		
+
 		if (!hasAnyValue) {
 			ctx.reportSkipped('Untitled Record', 'Empty record');
 			this.processedRecordsCount++;
 			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			return;
 		}
-		
+
 		// Helper to extract string value from field (handles barcode, formula results, etc.)
 		const extractStringValue = (value: any): string => {
 			if (value === null || value === undefined) return '';
@@ -1291,19 +1291,19 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 			return String(value);
 		};
-		
+
 		// Get primary field value (processed)
 		// Airtable always uses each table's primary field as note title
 		let title = extractStringValue(recordFields[primaryFieldName]);
-		
+
 		if (!title || title.trim() === '') {
 			title = 'Untitled Record';
 		}
-		
+
 		let sanitizedTitle = sanitizeFileName(title);
-		
+
 		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
-		
+
 		// Check for incremental import - skip if same record already exists
 		const shouldSkip = this.shouldSkipExistingRecord(filePath, recordId);
 		if (!shouldSkip) {
@@ -1312,11 +1312,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			const templateData: Record<string, string> = {};
 			// Cache converted values for frontmatter
 			const convertedCache = new Map<string, any>();
-		
+
 			// Convert field values
 			for (const field of fields) {
 				const fieldValue = recordFields[field.name];
-			
+
 				if (fieldValue === null || fieldValue === undefined) {
 					if (hasBodyTemplate) templateData[field.name] = '';
 					continue;
@@ -1332,7 +1332,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					if (hasBodyTemplate) templateData[field.name] = links.join(', ');
 					continue;
 				}
-			
+
 				// Handle attachments - download and convert to embeds
 				if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
 					const attachments = fieldValue as AirtableAttachment[];
@@ -1366,7 +1366,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					fieldIdToNameMap: this.globalFieldIdToNameMap,
 				});
-			
+
 				// If formula was converted (returns null), use the computed value for templates
 				if (convertedValue === null && field.type === 'formula') {
 					convertedValue = fieldValue;
@@ -1466,7 +1466,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Handle file name conflicts (different record with same name)
 			const existingFile = this.vault.getAbstractFileByPath(filePath);
 			if (existingFile instanceof TFile) {
-			// File exists with different record - find unique name
+				// File exists with different record - find unique name
 				filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
 				// Update sanitizedTitle to match the new file name (without .md)
 				const { basename } = parseFilePath(filePath);
@@ -1474,10 +1474,10 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Update globalRecordIdToTitle so other tables' links point to the correct file
 				recordIdToTitle.set(recordId, sanitizedTitle);
 			}
-		
+
 			// Create the file
 			await this.vault.create(filePath, fileContent);
-		
+
 			// Track file path for cleanup
 			// Use baseId:recordId as key to ensure uniqueness across bases (recordId is only unique within a base)
 			const uniqueKey = `${fileContext.baseId}:${recordId}`;
@@ -1486,7 +1486,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		else {
 			ctx.reportSkipped(sanitizedTitle, 'Already imported');
 		}
-		
+
 		ctx.reportNoteSuccess(sanitizedTitle);
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
@@ -1514,7 +1514,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Use metadataCache to safely read frontmatter (handles complex YAML content)
 		const cachedMetadata = this.app.metadataCache.getFileCache(file);
 		const existingId = cachedMetadata?.frontmatter?.['airtable-id'];
-		
+
 		return existingId === recordId;
 	}
 
@@ -1591,34 +1591,34 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private async createBaseFile(ctx: BaseFileContext): Promise<void> {
 		const { tableFolderPath, tableName, views, fields, primaryFieldId } = ctx;
-		
+
 		// Get parent folder (where .base file will be created)
 		const { parent: parentPath } = parseFilePath(tableFolderPath);
-		
+
 		// Find primary field - this is used as note title/filename, not as a formula column
 		const primaryField = fields.find(f => f.id === primaryFieldId);
 		const primaryFieldName = primaryField?.name || null;
-		
+
 		// Process fields in original order, tracking which are formulas
 		// This preserves Airtable's field order in the .base file
 		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
-		
-		
+
+
 		for (const field of fields) {
 			// Skip primary field - it's used as note title/filename, not as a formula column
 			if (field.id === primaryFieldId) {
 				continue;
 			}
-			
+
 			// Skip formula conversion if strategy is static
 			if (this.formulaStrategy === 'static') {
 				continue;
 			}
-			
+
 			const options = field.options;
 			const linkedFieldId = options?.recordLinkFieldId;
 			const targetFieldId = options?.fieldIdInLinkedTable;
-			
+
 			// Process formula fields
 			if (field.type === 'formula') {
 				const formulaExpression = options?.formula;
@@ -1631,7 +1631,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			else if (linkedFieldId) {
 				const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId);
 				if (!linkedFieldName) continue;
-				
+
 				if (field.type === 'count') {
 					// Count: note["Linked Records"].length
 					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
@@ -1640,12 +1640,12 @@ export class AirtableAPIImporter extends FormatImporter {
 				else if (targetFieldId) {
 					const targetFieldName = this.globalFieldIdToNameMap.get(targetFieldId);
 					if (!targetFieldName) continue;
-					
+
 					// Build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
 					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
 					const sanitizedTarget = this.sanitizePropertyName(targetFieldName);
 					const mapExpression = `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
-					
+
 					if (field.type === 'multipleLookupValues') {
 						// Lookup: just the map expression
 						formulas.set(field.name, mapExpression);
@@ -1660,18 +1660,18 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 			}
 		}
-		
+
 		// Build property columns in original Airtable field order
 		// Start with file.name (representing the primary/title field)
 		const propertyColumns: string[] = ['file.name'];
-		
+
 		// Add fields in original order (excluding primary field which is file.name)
 		for (const field of fields) {
 			// Skip the primary field (it's represented by file.name)
 			if (field.id === primaryFieldId) {
 				continue;
 			}
-			
+
 			// Add as formula or regular property column
 			const sanitized = this.sanitizePropertyName(field.name);
 			propertyColumns.push(formulas.has(field.name) ? `formula.${sanitized}` : sanitized);
@@ -1693,7 +1693,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Build views array for .base file
 		const obsidianViews: BasesConfigFileView[] = [];
-		
+
 		for (const view of views) {
 			// Map Airtable view type to Obsidian view type
 			let obsidianViewType = 'table';
@@ -1730,7 +1730,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Base filter: only files in this table's folder
 			filters: `file.folder == "${tableFolderPath}"`,
 		};
-		
+
 		// Add formulas if there are any
 		if (formulas.size > 0) {
 			baseConfig.formulas = {};
@@ -1739,48 +1739,48 @@ export class AirtableAPIImporter extends FormatImporter {
 				baseConfig.formulas[formulaName] = obsidianFormula;
 			}
 		}
-		
+
 		// Add properties section for display names (in original field order)
 		baseConfig.properties = {};
-		
+
 		// Set file.name display name to primary field name
 		if (primaryFieldName) {
 			baseConfig.properties['file.name'] = {
 				displayName: primaryFieldName
 			};
 		}
-		
+
 		// Add field display names in original order (excluding primary field)
 		for (const field of fields) {
 			if (field.id === primaryFieldId) {
 				continue;
 			}
-			
+
 			// Add display name for formula or regular property
 			const sanitized = this.sanitizePropertyName(field.name);
 			const propertyKey = formulas.has(field.name) ? `formula.${sanitized}` : sanitized;
 			baseConfig.properties[propertyKey] = { displayName: field.name };
 		}
-		
+
 		// Add views
 		baseConfig.views = obsidianViews;
 
 		// Create or update the .base file
 		try {
 			const content = stringifyYaml(baseConfig);
-			
+
 			// Check if file already exists
 			const existingFile = this.vault.getAbstractFileByPath(baseFilePath);
-			
+
 			if (existingFile && existingFile instanceof TFile) {
 				// File exists - update it by merging views
 				const existingContent = await this.vault.read(existingFile);
-				
+
 				// Parse existing YAML to extract existing views (Obsidian Bases internal format)
 				try {
 					const existingConfig = parseYaml(existingContent) as any;
 					const existingViews = existingConfig.views || [];
-					
+
 					// Merge new views with existing ones (avoid duplicates by view name)
 					const viewMap = new Map();
 					for (const view of existingViews) {
@@ -1789,10 +1789,10 @@ export class AirtableAPIImporter extends FormatImporter {
 					for (const view of obsidianViews) {
 						viewMap.set(view.name, view); // Override if exists
 					}
-					
+
 					// Update config with merged views
 					baseConfig.views = Array.from(viewMap.values());
-					
+
 					// Write updated content
 					const updatedContent = stringifyYaml(baseConfig);
 					await this.vault.modify(existingFile, updatedContent);
@@ -1842,7 +1842,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Update property types using Obsidian's API
 		for (const [propName, propType] of Object.entries(propertyTypes)) {
 			const existingType = this.app.metadataTypeManager.getAssignedWidget(propName);
-			
+
 			if (!existingType) {
 				// Property doesn't have a type yet, set it
 				this.app.metadataTypeManager.setType(propName, propType);
@@ -1862,23 +1862,23 @@ export class AirtableAPIImporter extends FormatImporter {
 		switch (airtableType) {
 			case 'checkbox':
 				return 'checkbox';
-			
+
 			case 'date':
 				return 'date';
-			
+
 			case 'dateTime':
 				return 'datetime';
-			
+
 			case 'number':
 			case 'percent':
 			case 'duration':
 			case 'autoNumber':
 				return 'number';
-			
+
 			case 'currency':
 			case 'rating':
 				return 'number';
-			
+
 			case 'singleSelect':
 			case 'singleLineText':
 			case 'multilineText':
@@ -1892,13 +1892,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			case 'createdBy':
 			case 'lastModifiedBy':
 				return 'text';
-			
+
 			case 'multipleSelects':
 			case 'multipleCollaborators':
 			case 'multipleRecordLinks':
 			case 'multipleAttachments':
 				return 'multitext';
-			
+
 			case 'formula':
 			case 'rollup':
 			case 'lookup':
@@ -1906,11 +1906,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			case 'count':
 				// These are computed properties, let Obsidian auto-infer type
 				return null;
-			
+
 			case 'createdTime':
 			case 'lastModifiedTime':
 				return 'datetime';
-			
+
 			default:
 				console.log(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
 				return 'text';
@@ -1934,10 +1934,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			// No formula means just show original values
 			return mapExpression;
 		}
-		
+
 		// Normalize formula for comparison
 		const formula = rollupFormula.trim().toUpperCase();
-		
+
 		// Step 1: Try to match simple aggregation patterns
 		if (formula === 'SUM(VALUES)') {
 			return `${mapExpression}.sum()`;
@@ -1986,16 +1986,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (formula === 'OR(VALUES)') {
 			return `${mapExpression}.map(value.isTruthy()).some(value)`;
 		}
-		
+
 		// Step 2: Try general formula conversion
 		// Replace 'values' with the map expression and attempt conversion
 		const formulaWithMapExpr = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
-		
+
 		const result = convertAirtableFormulaToObsidian(formulaWithMapExpr, this.globalFieldIdToNameMap);
 		if (result) {
 			return result;
 		}
-		
+
 		// Step 3: Cannot convert - fall back to static value
 		console.log(`Rollup formula "${rollupFormula}" cannot be converted, using static value`);
 		return null;
