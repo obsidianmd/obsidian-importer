@@ -144,16 +144,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			.setName('Select tables to import')
 			.setDesc('Click "Load" to browse your Airtable bases and tables.');
 
-		let toggleButtonRef: ButtonComponent | null = null;  // ButtonComponent from obsidian
-		let loadButtonRef: ButtonComponent | null = null;  // ButtonComponent from obsidian
-
 		// Toggle select all/none button
 		loadSetting.addButton(button => {
-			toggleButtonRef = button;
 			button
 				.setButtonText('Select all')
 				.onClick(() => {
-					this.toggleSelectButton = toggleButtonRef;
 					if (this.tree.length === 0) {
 						new Notice('Please load bases first.');
 						return;
@@ -163,6 +158,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.selectAllNodes(!allSelected);
 					this.renderTree();
 				});
+
+			this.toggleSelectButton = button;
 
 			if (button.buttonEl) {
 				button.buttonEl.addClass('airtable-toggle-button');
@@ -174,13 +171,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Load button
 		loadSetting.addButton(button => {
-			loadButtonRef = button;
 			button
 				.setButtonText('Load')
 				.onClick(async () => {
 					try {
-						this.loadButton = loadButtonRef;
-						this.toggleSelectButton = toggleButtonRef;
 						await this.loadTree();
 					}
 					catch (error) {
@@ -188,6 +182,8 @@ export class AirtableAPIImporter extends FormatImporter {
 						new Notice(`Failed to load bases: ${error.message}`);
 					}
 				});
+
+			this.loadButton = button;
 
 			if (button.buttonEl) {
 				button.buttonEl.addClass('airtable-load-button');
