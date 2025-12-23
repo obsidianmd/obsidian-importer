@@ -44,8 +44,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
 	private treeContainer: HTMLElement | null = null;
-	private loadButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
-	private toggleSelectButton: ButtonComponent | null = null;  // ButtonComponent from obsidian
+	private loadButton: ButtonComponent;
+	private toggleSelectButton: ButtonComponent;
 
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
@@ -272,10 +272,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		if (!this.loadButton) {
-			return;
-		}
-
 		this.loadButton.setDisabled(true);
 		this.loadButton.setButtonText('Loading...');
 
@@ -283,9 +279,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Create a minimal status reporter for API calls during tree loading
 			const statusReporter = {
 				status: (msg: string) => {
-					if (this.loadButton) {
-						this.loadButton.setButtonText(msg);
-					}
+					this.loadButton.setButtonText(msg);
 				},
 			};
 
@@ -356,10 +350,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			new Notice(`Failed to load bases: ${error.message || 'Unknown error'}`);
 		}
 		finally {
-			if (this.loadButton) {
-				this.loadButton.setDisabled(false);
-				this.loadButton.setButtonText('Refresh');
-			}
+			this.loadButton.setDisabled(false);
+			this.loadButton.setButtonText('Refresh');
 		}
 	}
 
