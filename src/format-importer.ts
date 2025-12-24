@@ -146,21 +146,41 @@ export abstract class FormatImporter {
 
 		let { vault } = this.app;
 
-		let folderPath = this.outputLocation;
+		let folderPath = this.outputLocation.trim();
 		if (folderPath === '') {
 			folderPath = '/';
 		}
 
-		let folder = vault.getAbstractFileByPath(folderPath);
+		const normalizedFolderPath = normalizePath(folderPath);
+		let folder = vault.getAbstractFileByPath(normalizedFolderPath) ?? vault.getAbstractFileByPathInsensitive(normalizedFolderPath);
 
 		if (folder === null || !(folder instanceof TFolder)) {
-			await vault.createFolder(folderPath);
-			folder = vault.getAbstractFileByPath(folderPath);
+			try {
+				await vault.createFolder(normalizedFolderPath);
+			}
+			catch (e) {
+				// On case-insensitive filesystems (e.g. Windows), `getAbstractFileByPath`
+				// may not find an existing folder if the casing doesn't match, and then
+				// `createFolder` throws because it already exists. Try again with an
+				// insensitive lookup before failing.
+				folder = vault.getAbstractFileByPathInsensitive(normalizedFolderPath);
+				if (folder instanceof TFolder) {
+					this.outputFolder = folder;
+					return folder;
+				}
+				throw e;
+			}
+
+			folder = vault.getAbstractFileByPath(normalizedFolderPath) ?? vault.getAbstractFileByPathInsensitive(normalizedFolderPath);
 		}
 
 		if (folder instanceof TFolder) {
 			this.outputFolder = folder;
 			return folder;
+		}
+
+		if (folder) {
+			throw new Error(`Output path "${normalizedFolderPath}" exists but is not a folder.`);
 		}
 
 		return null;
