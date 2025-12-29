@@ -188,7 +188,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Incremental import setting
 		new Setting(this.modal.contentEl)
 			.setName('Incremental import')
-			.setDesc('Adds a notion-id property to pages so that future imports can skip pages that have already been imported.')
+			.setDesc('Enables delta sync: tracks notion-id and timestamps in frontmatter to skip unchanged pages and update only pages modified in Notion since last import. Keeps your vault synchronized with Notion changes.')
 			.addToggle(toggle => toggle
 				.setValue(false) // Default to disabled
 				.onChange(value => {
