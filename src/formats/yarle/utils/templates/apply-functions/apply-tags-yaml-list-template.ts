@@ -9,7 +9,7 @@ export const applyTagsYamlListTemplate = (noteData: NoteData, inputText: string,
 	if (noteData.tags) {
 		tags = '\n'+noteData.tags.split(' ').map(tag => `  - ${tag.replace(/^#/, '')}`).join('\n');
 	}
-	const tagsTemplateSettings = getTemplateBlockSettings(inputText, check, P, tags);
+	const tagsTemplateSettings = getTemplateBlockSettings(inputText, check, P, tags, true);
 
 	return applyTemplateOnBlock(tagsTemplateSettings);
 };
