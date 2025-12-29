@@ -318,15 +318,14 @@ export async function extractFrontMatter(
 	const frontMatter: Record<string, any> = {
 		'notion-id': page.id,
 	};
-	
-	// Note: created_time and last_edited_time are not added to frontmatter
-	// Users can enable these if needed by uncommenting the code below
-	// if (page.created_time) {
-	// 	frontMatter.created = page.created_time;
-	// }
-	// if (page.last_edited_time) {
-	// 	frontMatter.updated = page.last_edited_time;
-	// }
+
+	// Always add timestamps for delta sync support
+	if (page.created_time) {
+		frontMatter['notion-created'] = page.created_time;
+	}
+	if (page.last_edited_time) {
+		frontMatter['notion-updated'] = page.last_edited_time;
+	}
 	
 	// Add cover if present (will be processed as attachment later)
 	if (page.cover) {
@@ -386,6 +385,29 @@ export async function extractFrontMatter(
 	}
 	
 	return frontMatter;
+}
+
+/**
+ * Extract notion timestamps from file frontmatter
+ * Used for delta sync to determine if file needs updating
+ * @param fileContent - The raw file content including frontmatter
+ * @returns Object with created and updated timestamps, or null if not found
+ */
+export function extractNotionTimestamps(fileContent: string): {
+	created?: string;
+	updated?: string;
+} | null {
+	const createdMatch = fileContent.match(/^notion-created:\s*(.+)$/m);
+	const updatedMatch = fileContent.match(/^notion-updated:\s*(.+)$/m);
+
+	if (!createdMatch || !updatedMatch) {
+		return null; // Old import without timestamps
+	}
+
+	return {
+		created: createdMatch[1].trim(),
+		updated: updatedMatch[1].trim()
+	};
 }
 
 /**

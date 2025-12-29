@@ -25,3 +25,7 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
+
+# Exclude Claude Code project instructions and artifacts
+CLAUDE.md
+.claude/
