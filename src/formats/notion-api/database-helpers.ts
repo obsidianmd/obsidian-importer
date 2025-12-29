@@ -12,9 +12,9 @@ import {
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
-import { sanitizeFileName } from '../../util';
+import { sanitizeFileName, getUniqueFilePath } from '../../util';
 import { parseFilePath } from '../../filesystem';
-import { getUniqueFolderPath, getUniqueFilePath, updatePropertyTypes } from './vault-helpers';
+import { getUniqueFolderPath, updatePropertyTypes } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
