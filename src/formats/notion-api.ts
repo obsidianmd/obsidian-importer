@@ -1443,6 +1443,7 @@ export class NotionAPIImporter extends FormatImporter {
 							await this.vault.modify(existingFile, fullContent);
 							console.log(`[UPDATE FILE] Successfully updated: ${finalPath}`);
 							this.pagesUpdatedCount++;
+							ctx.reportNoteUpdate(sanitizedTitle);
 						}
 						else {
 							throw new Error(`File not found or not a file: ${finalPath}`);
