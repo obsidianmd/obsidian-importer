@@ -479,7 +479,7 @@ export class OneNoteImporter extends FormatImporter {
 					progress.reportFailed(page.title, e.toString());
 
 					if (consecutiveFailureCount > 5 || this.modal.abortController.signal.aborted) {
-						const status = this.modal.abortController.signal.aborted 
+						const status = this.modal.abortController.signal.aborted
 							// The import was aborted
 							? e.message
 							// Hit a string of consecutive failures, so something is
@@ -487,7 +487,7 @@ export class OneNoteImporter extends FormatImporter {
 							// is handled by the retry logic.
 							: 'Microsoft OneNote returned too many consecutive errors.';
 						progress.status(status);
-						
+
 						// Report remaining pages as skipped
 						for (let j = i + 1; j < pages.length; j++) {
 							const remainingPage = pages[j];
@@ -922,7 +922,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			const secondParagraph = lineBreak.nextElementSibling;
 			if (isParagraphWrappingOnlyCode(firstParagraph)
-					&& isParagraphWrappingOnlyCode(secondParagraph)) {
+				&& isParagraphWrappingOnlyCode(secondParagraph)) {
 				// move the line break ...
 				firstParagraph.appendChild(lineBreak);
 				// .. and add another line break to capture the newline between
@@ -956,7 +956,7 @@ export class OneNoteImporter extends FormatImporter {
 				// already processed and removed, can skip
 				return;
 			}
-			
+
 			if (isInlineCodeSpan(element)) {
 				// Convert preformatted text into an inline code span
 				const codeElement = document.createElement('code');
@@ -972,10 +972,10 @@ export class OneNoteImporter extends FormatImporter {
 					);
 					sibling.remove();
 				});
-				
+
 				// wrap the code in a pre element
 				const codeElement = document.createElement('pre');
-				codeElement.innerHTML = 
+				codeElement.innerHTML =
 					'```\n' +
 					codeBlockItems.join('') +
 					'\n```';
@@ -1066,14 +1066,14 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		});
 	}
-	
+
 
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext|undefined, retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext|undefined, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext | undefined, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -1098,17 +1098,17 @@ export class OneNoteImporter extends FormatImporter {
 			if (retryCount > 0) {
 				console.log(`Retry attempt #${retryCount} for ${url}`);
 			}
- 			let response = await fetch(
- 				url, 
- 				{
- 					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
- 					signal: this.modal.abortController.signal,
- 				}
- 			);
+			let response = await fetch(
+				url,
+				{
+					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+					signal: this.modal.abortController.signal,
+				}
+			);
 
 			if (response.ok) {
 				let result: string | ArrayBuffer | object | JSONWrappedResponse<T>;
-				
+
 				switch (returnType) {
 					case 'text':
 						result = await response.text();
@@ -1117,9 +1117,9 @@ export class OneNoteImporter extends FormatImporter {
 						result = await response.arrayBuffer();
 						break;
 					case 'json':
- 						result = await response.json();
+						result = await response.json();
 						break;
- 					case 'json-wrapped':
+					case 'json-wrapped':
 						result = await response.json();
 						assertJSONWrappedResponse<T>(result);
 						if ('@odata.nextLink' in result) {
@@ -1166,12 +1166,12 @@ export class OneNoteImporter extends FormatImporter {
 					console.log(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
 					await this.pause(
 						retryTimeSeconds,
-						`OneNote API is rate-limiting us`, 
+						`OneNote API is rate-limiting us`,
 						progress,
 					);
-									
+
 					return this.fetchResource(
-						url, 
+						url,
 						returnType as any,
 						progress,
 						// don't increment the retryCount because we were told
