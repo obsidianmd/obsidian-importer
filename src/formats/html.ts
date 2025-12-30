@@ -181,6 +181,10 @@ export class HtmlImporter extends FormatImporter {
 				try {
 					const url = new URL(src.startsWith('//') ? `https:${src}` : src, baseUrl);
 
+					if (url.protocol === 'data:') {
+						continue;
+					}
+
 					let key = url.href;
 					let attachmentFile = attachments.get(key);
 					if (!attachments.has(key)) {
