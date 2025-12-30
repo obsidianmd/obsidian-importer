@@ -314,7 +314,8 @@ export class OneNoteImporter extends FormatImporter {
 				this.renderHierarchy(notebook, notebookDiv);
 			}
 		}
-		catch {
+		catch (e) {
+			console.error('An error occurred while fetching your OneNote data: ', e);
 			this.showContentAreaErrorMessage();
 		}
 
