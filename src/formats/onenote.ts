@@ -5,6 +5,7 @@ import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
+import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
@@ -547,18 +548,42 @@ export class OneNoteImporter extends FormatImporter {
 			if (!await this.vault.adapter.exists(outputPath)) pageFolder = await this.vault.createFolder(outputPath);
 			else pageFolder = this.vault.getAbstractFileByPath(outputPath) as TFolder;
 
+			// Process InkML content if present and convert to SVG
+			let inkEmbedMarkdown = '';
+			try {
+				const svgContent = inkmlToSvg(splitContent.inkml);
+				if (svgContent) {
+					// Save the SVG as an attachment
+					const svgFilename = `${page.title} - Ink.svg`;
+					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
+
+					// Create markdown embed for the SVG
+					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
+					progress.reportAttachmentSuccess(svgFilename);
+				}
+			}
+			catch (e) {
+				console.error('Failed to convert InkML to SVG in page:', page.title, e);
+			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
 			let html = await this.getAllAttachments(progress, taggedPage.replace(PARAGRAPH_REGEX, '<br />'));
 			this.combineCodeBlocksAsNecessary(html);
 			this.styledElementToHTML(html);
 			this.convertInternalLinks(html);
-			this.convertDrawings(html);
 			this.convertMathML(html); // Convert MathML to LaTeX before text escaping
 			this.removeExtraListItemParagraphs(html);
 			this.escapeTextNodes(html);
 
 			let mdContent = htmlToMarkdown(html).trim().replace(PARAGRAPH_REGEX, ' ');
+
+			// OneNote seems to always place the "InkNode is not supported" comments at the top of the note.
+			// Additionally, the InkML combines all ink content into one block, so the best we can do is append
+			// it to the end of the note.
+			if (inkEmbedMarkdown) {
+				mdContent += inkEmbedMarkdown;
+			}
+
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
 			// Add the last modified and creation time metadata
@@ -1001,31 +1026,6 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 		});
-	}
-
-	convertDrawings(element: HTMLElement): void {
-		// TODO: Convert using InkML, this is a temporary notice for users to know drawings were skipped
-		const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT);
-		let hasDrawings: boolean = false;
-
-		while (walker.nextNode()) {
-			const commentNode = walker.currentNode as Comment;
-			if (commentNode.nodeValue?.trim() === 'InkNode is not supported') hasDrawings = true;
-		}
-
-		if (hasDrawings) {
-			const textNode = document.createTextNode('> [!caution] This page contained a drawing which was not converted.');
-			// Insert the notice at the top of the page
-			element.insertBefore(textNode, element.firstChild);
-		}
-		else {
-			for (let i = 0; i < element.children.length; i++) {
-				const child = element.children[i];
-				if (child instanceof HTMLElement) {
-					this.convertDrawings(child);
-				}
-			}
-		}
 	}
 
 	// OneNote wraps list items in an extra, marginless paragraph. Remove these
