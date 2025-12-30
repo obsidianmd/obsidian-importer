@@ -817,8 +817,8 @@ export class OneNoteImporter extends FormatImporter {
 
 	// Helper function to sanitize OCR text for markdown
 	private sanitizeOCRText(text: string): string {
-		// Only keep word characters, digits, and spaces
-		text = text.replace(/[^\w\d\s]/g, '');
+		// Only keep word characters, digits, spaces, and basic punctuation.
+		text = text.replace(/[^\w\d\s.,!?]/g, '');
 
 		// Replace multiple spaces with single space and trim
 		text = text.replace(/\s+/g, ' ').trim();
