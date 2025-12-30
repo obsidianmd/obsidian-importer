@@ -170,6 +170,8 @@ export class HtmlImporter extends FormatImporter {
 
 			// Find all the attachments and download them
 			const baseUrl = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
+			// Get the directory URL for path traversal validation (URL resolves './' to parent directory)
+			const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
 			const attachments = new Map<string, TFile | null>;
 			const attachmentLookup = new Map<string, TFile>;
 			for (let el of dom.findAll('img, audio, video')) {
@@ -189,7 +191,7 @@ export class HtmlImporter extends FormatImporter {
 					let attachmentFile = attachments.get(key);
 					if (!attachments.has(key)) {
 						ctx.status('Downloading attachment for ' + file.name);
-						attachmentFile = await this.downloadAttachment(folder, el, url);
+						attachmentFile = await this.downloadAttachment(folder, el, url, allowedBaseDirUrl);
 						attachments.set(key, attachmentFile);
 						if (attachmentFile) {
 							attachmentLookup.set(attachmentFile.path, attachmentFile);
@@ -275,12 +277,17 @@ export class HtmlImporter extends FormatImporter {
 		return null;
 	}
 
-	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL) {
+	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL, allowedBaseDirUrl?: string) {
 		let basename = '';
 		let extension = '';
 		let data: ArrayBuffer;
 		switch (url.protocol) {
 			case 'file:':
+				// Validate the resolved URL is within the allowed base directory
+				// The URL constructor already normalizes paths (resolves .. sequences)
+				if (allowedBaseDirUrl && !url.href.startsWith(allowedBaseDirUrl)) {
+					throw new Error(`File path is outside the allowed directory`);
+				}
 				let filepath = nodeUrl.fileURLToPath(url.href);
 				({ basename, extension } = parseFilePath(filepath));
 				data = nodeBufferToArrayBuffer(await fsPromises.readFile(filepath));
