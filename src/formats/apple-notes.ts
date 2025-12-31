@@ -67,7 +67,7 @@ export class AppleNotesImporter extends FormatImporter {
 		new Setting(this.modal.contentEl)
 			.setName('File prefix format')
 			.setDesc(
-				'Format for the date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
+				'Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
 				' Leave blank for no prefix.'
 			)
 			.addText(t => t
