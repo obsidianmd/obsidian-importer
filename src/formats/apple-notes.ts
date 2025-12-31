@@ -3,7 +3,7 @@ import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
-import { fsPromises, os, path, splitext, zlib } from '../filesystem';
+import { fsPromises, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
@@ -436,8 +436,11 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 
 		// Check for existing attachment based on the selected handling option
-		const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
-		const existingAttachment = this.vault.getAbstractFileByPath(attachmentPath);
+		// Abuse getAvailablePathForAttachment to get the expected attachment path
+		const uniqueAttachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
+		const { parent } = parseFilePath(uniqueAttachmentPath);
+		const expectedAttachmentPath = path.join(parent, `${finalAttachmentName}.${outExt}`);
+		const existingAttachment = this.vault.getAbstractFileByPath(expectedAttachmentPath);
 
 		if (existingAttachment && existingAttachment instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
