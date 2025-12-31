@@ -1203,10 +1203,10 @@ export class NotionAPIImporter extends FormatImporter {
 				const fileName = `${sanitizedTitle}.md`;
 				const potentialFilePath = normalizePath(`${pageFolderPath}/${fileName}`);
 				const pageLastEdited = page.last_edited_time;
-				const fileDecision = await this.shouldSkipOrUpdateFile(potentialFilePath, pageId, pageLastEdited, ctx);
+				const fileAction = await this.shouldSkipOrUpdateFile(potentialFilePath, pageId, pageLastEdited, ctx);
 
-				shouldSkipParentFile = fileDecision.action === 'skip';
-				shouldUpdateFile = fileDecision.action === 'update';
+				shouldSkipParentFile = fileAction === 'skip';
+				shouldUpdateFile = fileAction === 'update';
 
 				mdFilePath = potentialFilePath;
 			}
@@ -1988,18 +1988,18 @@ export class NotionAPIImporter extends FormatImporter {
 	 * @param notionId - Notion ID of the page being imported
 	 * @param pageLastEdited - Last edited timestamp from Notion API
 	 * @param ctx - Import context for reporting
-	 * @returns Object indicating action: 'skip', 'update', or 'create'
+	 * @returns 'skip', 'update', or 'create'
 	 */
 	private async shouldSkipOrUpdateFile(
 		filePath: string,
 		notionId: string,
 		pageLastEdited: string,
 		ctx: ImportContext
-	): Promise<{ action: 'skip' | 'update' | 'create' }> {
+	): Promise<'skip' | 'update' | 'create'> {
 		// Check if file exists
 		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
 		if (!file || !(file instanceof TFile)) {
-			return { action: 'create' }; // File doesn't exist
+			return 'create'; // File doesn't exist
 		}
 
 		// Read file and extract notion-id from frontmatter
@@ -2008,52 +2008,38 @@ export class NotionAPIImporter extends FormatImporter {
 			const notionIdMatch = content.match(/^notion-id:\s*(.+)$/m);
 
 			if (!notionIdMatch) {
-				return { action: 'create' }; // Different file, will use unique path
+				return 'create'; // Different file, will use unique path
 			}
 
 			const existingNotionId = notionIdMatch[1].trim();
 			if (existingNotionId !== notionId) {
-				return { action: 'create' }; // Different notion-id, will rename
+				return 'create'; // Different notion-id, will rename
 			}
 
 			// Same notion-id found - check if update needed
 			const timestamps = extractNotionTimestamps(content);
 
-			if (!timestamps) {
-				// Old import without timestamps - skip but register for relations
+			// Combine skip conditions: no timestamps (legacy file) OR local is same/newer
+			if (!timestamps || pageLastEdited <= timestamps.updated!) {
 				const { basename } = parseFilePath(filePath);
-				ctx.reportSkipped(basename, 'already exists (no timestamp)');
+				const reason = !timestamps ? 'already exists (no timestamp)' : 'up to date';
+				ctx.reportSkipped(basename, reason);
 
 				const filePathWithoutExtension = filePath.replace(/\.md$/, '');
 				this.notionIdToPath.set(notionId, filePathWithoutExtension);
 				await this.collectUnresolvedPlaceholders(content, notionId, filePath);
 
-				return { action: 'skip' };
+				return 'skip';
 			}
 
-			// Compare timestamps (ISO 8601 strings are lexicographically comparable)
-			// timestamps.updated is guaranteed to exist here because we checked !timestamps above
-			if (pageLastEdited > timestamps.updated!) {
-				// Notion version is newer - need update
-				const { basename } = parseFilePath(filePath);
-				ctx.status(`Update needed: ${basename}`);
-				return { action: 'update' };
-			}
-			else {
-				// Local is same or newer - skip
-				const { basename } = parseFilePath(filePath);
-				ctx.reportSkipped(basename, 'up to date');
-
-				const filePathWithoutExtension = filePath.replace(/\.md$/, '');
-				this.notionIdToPath.set(notionId, filePathWithoutExtension);
-				await this.collectUnresolvedPlaceholders(content, notionId, filePath);
-
-				return { action: 'skip' };
-			}
+			// Notion version is newer - need update
+			const { basename } = parseFilePath(filePath);
+			ctx.status(`Update needed: ${basename}`);
+			return 'update';
 		}
 		catch (error) {
 			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
-			return { action: 'create' }; // On error, treat as new
+			return 'create'; // On error, treat as new
 		}
 	}
 
@@ -2191,13 +2177,13 @@ export class NotionAPIImporter extends FormatImporter {
 		const basePath = parentPath ? `${parentPath}/${fileName}` : fileName;
 
 		// Check if file should be skipped, updated, or created
-		const fileDecision = await this.shouldSkipOrUpdateFile(basePath, notionId, pageLastEdited, ctx);
+		const fileAction = await this.shouldSkipOrUpdateFile(basePath, notionId, pageLastEdited, ctx);
 
-		if (fileDecision.action === 'skip') {
+		if (fileAction === 'skip') {
 			return { path: null, shouldUpdate: false };
 		}
 
-		if (fileDecision.action === 'update') {
+		if (fileAction === 'update') {
 			return { path: basePath, shouldUpdate: true };
 		}
 
