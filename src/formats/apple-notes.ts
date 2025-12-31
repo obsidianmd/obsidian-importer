@@ -48,9 +48,10 @@ export class AppleNotesImporter extends FormatImporter {
 
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
-			this.modal.contentEl.createEl('p', { text:
-				'Due to platform limitations, Apple Notes cannot be exported from this device.' +
-				' Open your vault on a Mac to export from Apple Notes.'
+			this.modal.contentEl.createEl('p', {
+				text:
+					'Due to platform limitations, Apple Notes cannot be exported from this device.' +
+					' Open your vault on a Mac to export from Apple Notes.'
 			});
 
 			this.notAvailable = true;
@@ -304,16 +305,17 @@ export class AppleNotesImporter extends FormatImporter {
 
 		// Check for duplicate notes based on the selected handling option
 		const existingFile = this.vault.getAbstractFileByPath(fullPath);
-		
+
 		if (existingFile && existingFile instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
 				return existingFile;
-			} else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			}
+			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 				// Check modification times before skipping
 				const appleNoteModTime = this.decodeTime(row.ZMODIFICATIONDATE1);
 				const existingFileModTime = existingFile.stat.mtime;
-				
+
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
 					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
@@ -436,16 +438,17 @@ export class AppleNotesImporter extends FormatImporter {
 		// Check for existing attachment based on the selected handling option
 		const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
 		const existingAttachment = this.vault.getAbstractFileByPath(attachmentPath);
-		
+
 		if (existingAttachment && existingAttachment instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
 				return existingAttachment;
-			} else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			}
+			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 				// Check modification times for attachments
 				const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
 				const existingAttachmentModTime = existingAttachment.stat.mtime;
-				
+
 				if (appleAttachmentModTime <= existingAttachmentModTime) {
 					this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
 					return existingAttachment;
@@ -500,7 +503,7 @@ export class AppleNotesImporter extends FormatImporter {
 			// For Skip and ImportUpdated, create the file directly without numeric suffix
 			const sanitizedName = sanitizeFileName(title);
 			const fullPath = path.join(folder.path, sanitizedName);
-			
+
 			// Check if file already exists and handle overwriting
 			const existingFile = this.vault.getAbstractFileByPath(fullPath);
 			if (existingFile && existingFile instanceof TFile) {
