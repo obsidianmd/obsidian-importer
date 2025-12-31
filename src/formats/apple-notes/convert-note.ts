@@ -223,6 +223,9 @@ export class NoteConverter extends ANConverter {
 	}
 
 	async formatAttr(attr: ANAttributeRun): Promise<string> {
+		// Escape square brackets.
+		attr.fragment = attr.fragment.replace(/([\[\]])/g, '\\$1');
+
 		switch (attr.fontWeight) {
 			case ANFontWeight.Bold:
 				attr.fragment = `**${attr.fragment}**`;
