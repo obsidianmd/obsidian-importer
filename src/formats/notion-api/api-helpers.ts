@@ -319,12 +319,14 @@ export async function extractFrontMatter(
 		'notion-id': page.id,
 	};
 
-	// Always add timestamps for delta sync support
-	if (page.created_time) {
-		frontMatter['notion-created'] = page.created_time;
-	}
-	if (page.last_edited_time) {
-		frontMatter['notion-updated'] = page.last_edited_time;
+	// Add timestamps for delta sync support only when incremental import is enabled
+	if (params.incrementalImport) {
+		if (page.created_time) {
+			frontMatter['notion-created'] = page.created_time;
+		}
+		if (page.last_edited_time) {
+			frontMatter['notion-updated'] = page.last_edited_time;
+		}
 	}
 	
 	// Add cover if present (will be processed as attachment later)
