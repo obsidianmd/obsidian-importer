@@ -52,6 +52,7 @@ export type ProgressReporter = ImportContext;
 export class ImportContext {
 	notes = 0;
 	attachments = 0;
+	updated: string[] = [];
 	skipped: string[] = [];
 	failed: string[] = [];
 	maxFileNameLength: number = 100;
@@ -64,6 +65,7 @@ export class ImportContext {
 	progressBarInnerEl: HTMLElement;
 	importedCountEl: HTMLElement;
 	attachmentCountEl: HTMLElement;
+	updatedCountEl: HTMLElement;
 	remainingCountEl: HTMLElement;
 	skippedCountEl: HTMLElement;
 	failedCountEl: HTMLElement;
@@ -93,6 +95,10 @@ export class ImportContext {
 			el.createDiv('importer-stat mod-imported', el => {
 				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
+			});
+			el.createDiv('importer-stat mod-updated', el => {
+				this.updatedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.updated.length.toString() });
+				el.createDiv({ cls: 'importer-stat-name', text: 'updated' });
 			});
 			el.createDiv('importer-stat mod-attachments', el => {
 				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.attachments.toString() });
@@ -135,6 +141,15 @@ export class ImportContext {
 	reportNoteSuccess(name: string) {
 		this.notes++;
 		this.importedCountEl.setText(this.notes.toString());
+	}
+
+	/**
+	 * Report that a note has been successfully updated.
+	 * @param name
+	 */
+	reportNoteUpdate(name: string) {
+		this.updated.push(name);
+		this.updatedCountEl.setText(this.updated.length.toString());
 	}
 
 	/**
