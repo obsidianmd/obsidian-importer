@@ -44,7 +44,7 @@ export class AppleNotesImporter extends FormatImporter {
 	includeHandwriting = false;
 	duplicateHandling = DuplicateHandling.ImportUpdated;
 	trashFolders: number[] = [];
-	filePrefixFormat = '';
+	filePrefixFormat: string;
 
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
