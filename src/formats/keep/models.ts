@@ -19,8 +19,8 @@ export interface KeepLabel {
 }
 
 export interface KeepJson {
-	createdTimestampUsec: number;
-	userEditedTimestampUsec: number;
+	createdTimestampUsec?: number | string;
+	userEditedTimestampUsec?: number | string;
 	//
 	isArchived?: boolean;
 	isPinned?: boolean;
