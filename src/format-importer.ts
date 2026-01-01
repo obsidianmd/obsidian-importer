@@ -179,14 +179,32 @@ export abstract class FormatImporter {
 	 *
 	 * @param filename Name of the attachment being saved
 	 * @param claimedPaths List of filepaths that may not exist yet but will in the future.
+	 * @param sourcePath Optional path of the current file being imported (for "Same folder as current file" setting)
 	 * @returns Full path for where the attachment should be saved, according to the user's settings
 	 */
-	async getAvailablePathForAttachment(filename: string, claimedPaths: string[]): Promise<string> {
-		const outputFolder = await this.getOutputFolder();
-		// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks sourceFile.parent.
-		const sourceFile = !!outputFolder
-			? { parent: outputFolder } as TFile
-			: null;
+	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
+		let sourceFile: TFile | null = null;
+		
+		// If sourcePath is provided, use its parent folder for attachment placement
+		// This is important for respecting user's "Same folder as current file" setting
+		if (sourcePath) {
+			const { parent } = parseFilePath(sourcePath);
+			if (parent) {
+				const parentFolder = this.vault.getAbstractFileByPath(normalizePath(parent));
+				if (parentFolder instanceof TFolder) {
+					sourceFile = { parent: parentFolder } as TFile;
+				}
+			}
+		}
+		
+		// Fallback to outputFolder if sourcePath not provided or parent folder not found
+		if (!sourceFile) {
+			const outputFolder = await this.getOutputFolder();
+			// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks sourceFile.parent.
+			sourceFile = !!outputFolder
+				? { parent: outputFolder } as TFile
+				: null;
+		}
 
 		const { basename, extension } = parseFilePath(filename);
 
