@@ -95,25 +95,28 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	return serializeFrontMatter(frontMatter) + markdownBody;
 }
 
-const typesMap: Record<NotionProperty['type'], NotionPropertyType[]> = {
-	checkbox: ['checkbox'],
-	date: ['created_time', 'last_edited_time', 'date'],
-	list: ['file', 'multi_select', 'relation'],
-	number: ['number', 'auto_increment_id'],
-	text: [
-		'email',
-		'person',
-		'phone_number',
+const typesMap = new Map<NotionProperty['type'], NotionPropertyType[]>([
+	['checkbox', ['checkbox']],
+	['date', ['created_time', 'last_edited_time', 'date']],
+	['list', ['file', 'multi_select', 'relation']],
+	['number', ['number', 'auto_increment_id']],
+	[
 		'text',
-		'url',
-		'status',
-		'select',
-		'formula',
-		'rollup',
-		'last_edited_by',
-		'created_by',
+		[
+			'email',
+			'person',
+			'phone_number',
+			'text',
+			'url',
+			'status',
+			'select',
+			'formula',
+			'rollup',
+			'last_edited_by',
+			'created_by',
+		],
 	],
-};
+]);
 
 function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined {
 	const notionType = property.className.match(/property-row-(.*)/)?.[1] as NotionPropertyType;
@@ -125,9 +128,13 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 
 	const body = property.cells[1];
 
-	let type = Object.keys(typesMap).find((type: keyof typeof typesMap) =>
-		typesMap[type].includes(notionType)
-	) as NotionProperty['type'];
+	let type: NotionProperty['type'] | undefined;
+	for (const [key, notionTypes] of typesMap.entries()) {
+		if (notionTypes.includes(notionType)) {
+			type = key;
+			break;
+		}
+	}
 
 	if (!type) throw new Error('type not found for: ' + body);
 
