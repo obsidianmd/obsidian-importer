@@ -7,10 +7,10 @@ import { parseFilePath } from '../filesystem';
 
 // Import helper modules
 import { createPlaceholder, PlaceholderType } from './notion-api/utils';
-import { 
-	makeNotionRequest, 
-	fetchAllBlocks, 
-	extractPageTitle, 
+import {
+	makeNotionRequest,
+	fetchAllBlocks,
+	extractPageTitle,
 	extractFrontMatter,
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
@@ -23,7 +23,7 @@ import { downloadAttachment } from './notion-api/attachment-helpers';
 export type FormulaImportStrategy = 'static' | 'hybrid';
 
 // Notion API parent types (based on @notionhq/client internal types)
-type NotionParent = 
+type NotionParent =
 	| { type: 'page_id', page_id: string }
 	| { type: 'data_source_id', data_source_id: string, database_id: string }
 	| { type: 'database_id', database_id: string }
@@ -110,7 +110,7 @@ export class NotionAPIImporter extends FormatImporter {
 		const listPagesSetting = new Setting(this.modal.contentEl)
 			.setName('Select pages to import')
 			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
-			
+
 		// Store button references in closure to avoid constructor timing issues
 		let toggleButtonRef: any = null;
 		let listButtonRef: any = null;
@@ -124,13 +124,13 @@ export class NotionAPIImporter extends FormatImporter {
 					this.toggleSelectButton = toggleButtonRef;
 					this.handleToggleSelectClick();
 				});
-	
+
 			// Add custom class for fixed width and initially hide
 			if (button.buttonEl) {
 				button.buttonEl.addClass('notion-toggle-button');
 				button.buttonEl.style.display = 'none'; // Hide until tree is loaded
 			}
-	
+
 			return button;
 		});
 
@@ -150,13 +150,13 @@ export class NotionAPIImporter extends FormatImporter {
 						new Notice(`Failed to load pages: ${error.message}`);
 					}
 				});
-		
+
 			// Add custom class for fixed width
 			if (button.buttonEl) {
 				button.buttonEl.addClass('notion-load-button');
 				button.buttonEl.addClass('mod-cta');
 			}
-		
+
 			return button;
 		});
 
@@ -165,7 +165,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Create the section wrapper
 		const publishSection = this.modal.contentEl.createDiv();
 		publishSection.addClass('file-tree', 'publish-section');
-	
+
 		// Create the change list container
 		this.pageTreeContainer = publishSection.createDiv('publish-change-list');
 		this.pageTreeContainer.style.maxHeight = '200px';
@@ -174,7 +174,7 @@ export class NotionAPIImporter extends FormatImporter {
 		this.pageTreeContainer.style.borderRadius = 'var(--radius-s)';
 		this.pageTreeContainer.style.backgroundColor = 'var(--background-primary-alt)';
 		this.pageTreeContainer.style.padding = 'var(--size-4-2)';
-		
+
 		// Add placeholder text
 		const placeholder = this.pageTreeContainer.createDiv();
 		placeholder.style.color = 'var(--text-muted)';
@@ -295,7 +295,7 @@ export class NotionAPIImporter extends FormatImporter {
 			notionVersion: '2025-09-03',
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url.toString();
-				
+
 				try {
 					const response = await requestUrl({
 						url: urlString,
@@ -304,7 +304,7 @@ export class NotionAPIImporter extends FormatImporter {
 						body: init?.body as string | ArrayBuffer,
 						throw: false,
 					});
-					
+
 					// Convert Obsidian response to fetch Response format
 					return new Response(response.arrayBuffer, {
 						status: response.status,
@@ -366,7 +366,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			do {
 				pageCount++;
-			
+
 				// Update button text with progress
 				tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
 
@@ -391,7 +391,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// - Databases with database_parent.type === 'block_id'
 			// - Pages with parent.type === 'block_id'
 			const filteredIds = new Set<string>();
-		
+
 			for (const item of allRawItems) {
 				if (item.object === 'data_source') {
 					// Databases inside blocks
@@ -414,7 +414,7 @@ export class NotionAPIImporter extends FormatImporter {
 				if (filteredIds.has(item.id)) {
 					continue;
 				}
-			
+
 				// Skip databases whose parent page is filtered
 				if (item.object === 'data_source' && item.database_parent && item.database_parent.type === 'page_id') {
 					const parentPageId = item.database_parent.page_id;
@@ -430,14 +430,14 @@ export class NotionAPIImporter extends FormatImporter {
 						continue;
 					}
 				}
-			
+
 				// Process page or data_source (database)
 				if (item.object === 'page' || item.object === 'data_source') {
 					const isDatabase = item.object === 'data_source';
 					const title = this.extractItemTitle(item, isDatabase ? 'Untitled Database' : 'Untitled');
 					const parentObj = isDatabase ? item.database_parent : item.parent;
 					const parentId = this.extractParentId(parentObj, isDatabase ? 'database' : 'page');
-				
+
 					allItems.push({
 						id: item.id,
 						title,
@@ -452,7 +452,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Render tree (this will also update button text)
 			this.renderPageTree();
-		
+
 			// Show the Select all button now that we have content
 			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
 				this.toggleSelectButton.buttonEl.style.display = '';
@@ -479,7 +479,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 */
 	private extractItemTitle(item: any, defaultTitle: string = 'Untitled'): string {
 		let titleArray: any[] | undefined;
-		
+
 		// data_source has title directly
 		if (item.title) {
 			titleArray = item.title;
@@ -496,16 +496,16 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 		}
-		
+
 		if (!titleArray || !Array.isArray(titleArray)) {
 			return defaultTitle;
 		}
-		
+
 		const title = titleArray
 			.map((t: any) => t.text?.content || t.plain_text || '')
 			.join('')
 			.trim();
-		
+
 		return title || defaultTitle;
 	}
 
@@ -520,28 +520,28 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!parentObj) {
 			return null;
 		}
-		
+
 		switch (parentObj.type) {
 			case 'page_id':
 				return parentObj.page_id;
-			
+
 			case 'data_source_id':
 				// Pages in a database have data_source_id as parent
 				return parentObj.data_source_id;
-			
+
 			case 'database_id':
 				// Databases can have database_id as parent (nested databases)
 				return parentObj.database_id;
-			
+
 			case 'workspace':
 				// Top-level item
 				return null;
-			
+
 			case 'block_id':
 				// This should have been filtered out before calling this function
 				console.warn(`[Notion Importer] block_id parent should be filtered before calling extractParentId`);
 				return null;
-			
+
 			default:
 				// TypeScript exhaustiveness check
 				const _exhaustive: never = parentObj;
@@ -619,7 +619,7 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!this.pageTreeContainer) {
 			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list') as HTMLElement;
 		}
-		
+
 		if (!this.pageTreeContainer) {
 			console.error('[Notion Importer] Container not found!');
 			return;
@@ -634,12 +634,12 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 			return;
 		}
-	
+
 		// Render tree (buttons are now outside the scrollable container)
 		for (const node of this.pageTree) {
 			this.renderTreeNode(this.pageTreeContainer, node, 0);
 		}
-	
+
 		// Update toggle button text based on current selection state
 		if (this.toggleSelectButton) {
 			this.updateToggleButtonText();
@@ -652,11 +652,11 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
 		// Main tree item container
 		const treeItem = container.createDiv('tree-item');
-		
+
 		// Tree item self (contains the node itself)
 		const treeItemSelf = treeItem.createDiv('tree-item-self');
 		treeItemSelf.addClass('is-clickable');
-		
+
 		// Add appropriate modifiers
 		if (node.children.length > 0) {
 			treeItemSelf.addClass('mod-collapsible');
@@ -665,42 +665,42 @@ export class NotionAPIImporter extends FormatImporter {
 		else {
 			treeItemSelf.addClass('mod-file');
 		}
-		
+
 		// Apply disabled styling
 		if (node.disabled) {
 			treeItemSelf.addClass('is-disabled');
 			treeItemSelf.style.opacity = '0.5';
 			treeItemSelf.style.pointerEvents = 'none';
 		}
-	
+
 		// Collapse/Expand arrow (only if has children)
 		if (node.children.length > 0) {
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-		
+
 			// Use right-triangle icon (Obsidian's standard)
 			setIcon(collapseIcon, 'right-triangle');
-		
+
 			// Add is-collapsed class for CSS control
 			if (node.collapsed) {
 				collapseIcon.addClass('is-collapsed');
 				treeItem.addClass('is-collapsed');
 			}
-		
+
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
 			}
-		
+
 			// Store references for event handler
 			const treeItemRef = treeItem;
 			let childrenContainer: HTMLElement;
 			let iconContainer: HTMLElement;
-		
+
 			// Toggle collapse state with pure DOM manipulation (no re-render)
 			collapseIcon.addEventListener('click', (e) => {
 				e.stopPropagation();
 				node.collapsed = !node.collapsed;
-			
+
 				// Get references if not set yet
 				if (!childrenContainer) {
 					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
@@ -708,7 +708,7 @@ export class NotionAPIImporter extends FormatImporter {
 				if (!iconContainer) {
 					iconContainer = treeItemRef.querySelector('.file-tree-item-icon') as HTMLElement;
 				}
-			
+
 				// Toggle CSS classes and visibility
 				if (node.collapsed) {
 					collapseIcon.addClass('is-collapsed');
@@ -732,50 +732,50 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			});
 		}
-	
+
 		// Inner content (checkbox, icon, title)
 		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
-	
+
 		// Checkbox
-		const checkbox = treeItemInner.createEl('input', { 
+		const checkbox = treeItemInner.createEl('input', {
 			type: 'checkbox',
 			cls: 'file-tree-item-checkbox'
 		});
 		checkbox.checked = node.selected;
 		checkbox.disabled = node.disabled;
-	
+
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
 				this.toggleNodeSelection(node, checkbox.checked);
 				this.renderPageTree();
 			});
 		}
-	
+
 		// Icon
 		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
 		if (node.type === 'database') {
 			setIcon(iconContainer, 'database');
 		}
 		else if (node.children.length > 0) {
-		// Use folder-open for pages with children
+			// Use folder-open for pages with children
 			setIcon(iconContainer, !node.collapsed ? 'folder-open' : 'folder');
 		}
 		else {
 			setIcon(iconContainer, 'file');
 		}
-	
+
 		// Title
 		const titleEl = treeItemInner.createDiv('file-tree-item-title');
 		titleEl.setText(node.title);
-	
+
 		// Children container
 		const childrenContainer = treeItem.createDiv('tree-item-children');
-	
+
 		// Hide children container if collapsed
 		if (node.collapsed) {
 			childrenContainer.style.display = 'none';
 		}
-	
+
 		// Render children (always render, but hide if collapsed)
 		if (node.children.length > 0) {
 			for (const child of node.children) {
@@ -822,7 +822,7 @@ export class NotionAPIImporter extends FormatImporter {
 				processNode(child);
 			}
 		};
-		
+
 		for (const node of this.pageTree) {
 			processNode(node);
 		}
@@ -869,7 +869,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 			return true;
 		};
-		
+
 		return checkNode(this.pageTree);
 	}
 
@@ -883,10 +883,10 @@ export class NotionAPIImporter extends FormatImporter {
 			new Notice('Please list importable pages first.');
 			return;
 		}
-		
+
 		// Check current state - if all nodes are selected, deselect all; otherwise select all
 		const allSelected = this.areAllNodesSelected();
-		
+
 		if (allSelected) {
 			// All selected, deselect all
 			this.selectAllNodes(false);
@@ -895,7 +895,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Not all selected (some or none), select all
 			this.selectAllNodes(true);
 		}
-		
+
 		this.renderPageTree(); // This will call updateToggleButtonText()
 	}
 
@@ -921,7 +921,7 @@ export class NotionAPIImporter extends FormatImporter {
 		const topLevelSelected: string[] = [];
 		let totalPageCount = 0;
 		this.selectedNodeIds.clear(); // Reset the set
-		
+
 		const collectNodes = (nodes: NotionTreeNode[]) => {
 			for (const node of nodes) {
 				if (node.selected) {
@@ -930,7 +930,7 @@ export class NotionAPIImporter extends FormatImporter {
 						totalPageCount++;
 						this.selectedNodeIds.add(node.id);
 					}
-					
+
 					// Add to return array if it's a top-level selection (not disabled)
 					// This includes both pages and databases for the import loop
 					if (!node.disabled) {
@@ -940,7 +940,7 @@ export class NotionAPIImporter extends FormatImporter {
 				collectNodes(node.children);
 			}
 		};
-		
+
 		collectNodes(this.pageTree);
 		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)	
 		return topLevelSelected;
@@ -973,42 +973,42 @@ export class NotionAPIImporter extends FormatImporter {
 			this.initializeNotionClient();
 
 			ctx.status('Fetching page content from Notion...');
-		
+
 			// Reset processed pages tracker
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
 			this.processedPagesCount = 0;
 			this.attachmentsDownloaded = 0;
-	
+
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
 			ctx.status(`Preparing to import ${this.totalNodesToImport} item(s)...`);
-		
+
 			// Initialize progress display with known total count
 			ctx.reportProgress(0, this.totalNodesToImport);
-	
+
 			// Save output root path for database handling
 			this.outputRootPath = folder.path;
-		
+
 			// Import all selected pages/databases
 			ctx.status(`Importing ${selectedIds.length} item(s)...`);
-			
+
 			for (let i = 0; i < selectedIds.length; i++) {
 				if (ctx.isCancelled()) break;
-				
+
 				const itemId = selectedIds[i];
 				ctx.status(`Importing item ${i + 1}/${selectedIds.length}...`);
-				
+
 				try {
 					// Find the node in the tree to determine its type
 					const node = this.findNodeById(this.pageTree, itemId);
-					
+
 					if (!node) {
 						console.warn(`Could not find node with ID: ${itemId}`);
 						ctx.reportFailed(`Import item ${itemId}`, 'Item not found in tree');
 						continue;
 					}
-					
+
 					if (node.type === 'database') {
 						// It's a database (data_source)!
 						// Use the data_source ID directly - no need to call databases.retrieve()
@@ -1032,14 +1032,14 @@ export class NotionAPIImporter extends FormatImporter {
 					// Continue with next item
 				}
 			}
-		
+
 			// After all pages are imported, replace relation placeholders
 			ctx.status('Processing relation links...');
 			await this.replaceRelationPlaceholders(ctx);
-		
+
 			ctx.status('Processing mention links...');
 			await this.replaceMentionPlaceholdersInAllFiles(ctx);
-		
+
 			ctx.status('Processing synced block child references...');
 			await this.replaceSyncedChildPlaceholders(ctx);
 
@@ -1053,7 +1053,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 
 			ctx.status('Import completed successfully!');
-		
+
 		}
 		catch (error) {
 			console.error('Notion API import error:', error);
@@ -1080,9 +1080,9 @@ export class NotionAPIImporter extends FormatImporter {
 		} = {}
 	): Promise<void> {
 		if (ctx.isCancelled()) return;
-		
+
 		const { isDataSourceId = false } = options;
-		
+
 		try {
 			// Import the database directly using importDatabaseCore
 			await importDatabaseCore(
@@ -1121,62 +1121,62 @@ export class NotionAPIImporter extends FormatImporter {
 	 */
 	private async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
 		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
-		
+
 		if (ctx.isCancelled()) return;
-		
+
 		// Check if already processed
 		if (this.processedPages.has(pageId)) {
 			return;
 		}
-		
+
 		this.processedPages.add(pageId);
-		
+
 		try {
 			// Fetch page metadata with rate limit handling
 			const page = await makeNotionRequest(
 				() => this.notionClient!.pages.retrieve({ page_id: pageId }) as Promise<PageObjectResponse>,
 				ctx
 			);
-			
+
 			// Extract page title
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle || 'Untitled');
-	
+
 			// Update status with page title instead of ID
 			ctx.status(`Importing: ${sanitizedTitle}`);
-		
+
 			// Create a cache to store fetched blocks and avoid duplicate API calls
 			// This cache will be used both for checking if page has children and for converting blocks
 			const blocksCache = new Map<string, any[]>();
-		
+
 			// Fetch page blocks (content) with rate limit handling
 			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
 			// Cache the root page blocks immediately
 			blocksCache.set(pageId, blocks);
-		
+
 			// Note: We no longer check pageExistsInVault here because:
 			// 1. For incremental import, we need to check the specific file path (not global vault search)
 			// 2. This allows re-importing deleted files while skipping existing ones at the correct location
 			// The incremental import check happens later when determining the file path
-		
+
 			// Check if page has child pages or child databases (recursively check nested blocks)
 			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
 			// The blocksCache will be populated during this check
 			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
-			
+
 			// Determine file structure based on whether page has children
 			let pageFolderPath: string; // Folder for child pages/databases
 			let mdFilePath: string;
 			let shouldSkipParentFile = false; // Flag to track if parent file should be skipped
-		
+
 			if (hasChildren) {
 				// Create folder structure for pages with children
 				// The folder will contain the page content file and child pages/databases
 				// For incremental import: reuse existing folder if it exists, otherwise create a unique one
 				const baseFolderPath = normalizePath(parentPath ? `${parentPath}/${sanitizedTitle}` : sanitizedTitle);
 				const existingFolder = this.vault.getAbstractFileByPath(baseFolderPath);
-			
+
 				if (existingFolder instanceof TFolder) {
 					// Reuse existing folder for incremental import
 					pageFolderPath = baseFolderPath;
@@ -1186,12 +1186,12 @@ export class NotionAPIImporter extends FormatImporter {
 					pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
 					await this.createFolders(pageFolderPath);
 				}
-			
+
 				// Check if file already exists with same notion-id
 				const fileName = `${sanitizedTitle}.md`;
 				const potentialFilePath = normalizePath(`${pageFolderPath}/${fileName}`);
 				shouldSkipParentFile = await this.shouldSkipExistingFile(potentialFilePath, pageId, ctx);
-			
+
 				mdFilePath = potentialFilePath;
 			}
 			else {
@@ -1216,16 +1216,16 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 				mdFilePath = filePathOrNull;
 			}
-		
+
 			// Extract the folder path from the markdown file path for attachments
 			// This ensures attachments are placed relative to where the file actually is
 			const { parent: currentFileFolderPath } = parseFilePath(mdFilePath);
-			
+
 			// Convert blocks to markdown with nested children support
 			// Pass the blocksCache to reuse already fetched blocks
 			// Create a set to collect mentioned page/database IDs
 			const mentionedIds = new Set<string>();
-		
+
 			let markdownContent = await convertBlocksToMarkdown(blocks, {
 				ctx,
 				currentFolderPath: currentFileFolderPath,
@@ -1260,7 +1260,7 @@ export class NotionAPIImporter extends FormatImporter {
 					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
 				}
 			});
-		
+
 			// Process database placeholders
 			// Note: If hasChildren is false, there won't be any database placeholders to process
 			// But we still call this function to maintain consistency
@@ -1289,21 +1289,21 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 				}
 			);
-			
+
 			// Clear the cache after processing this page to free memory
 			blocksCache.clear();
- 			
+
 			// Prepare YAML frontmatter
 			// Start with notion-id and database link at the top
 			const frontMatter: Record<string, any> = {
 				'notion-id': page.id,
 			};
-	
+
 			// Add database .base file link if this page belongs to a database (right after notion-id)
 			if (databaseTag) {
 				frontMatter[this.databasePropertyName] = `[[${databaseTag}]]`;
 			}
-		
+
 			// Extract all other properties from the page
 			const extractedProps = await extractFrontMatter({
 				page,
@@ -1332,14 +1332,14 @@ export class NotionAPIImporter extends FormatImporter {
 					frontMatter[key] = extractedProps[key];
 				}
 			}
-		
+
 			// Process cover image if present
 			if (frontMatter.cover && typeof frontMatter.cover === 'string') {
 				try {
-				// Determine cover type based on URL
+					// Determine cover type based on URL
 					const coverUrl = frontMatter.cover;
 					const isExternal = !coverUrl.includes('secure.notion-static.com');
-				
+
 					// Cover images are always downloaded, regardless of downloadExternalAttachments setting
 					// This is because Notion covers often use external URLs even for Notion-hosted images
 					// Use the page title as the cover filename for better organization
@@ -1365,7 +1365,7 @@ export class NotionAPIImporter extends FormatImporter {
 							}
 						}
 					);
-		
+
 					// For frontmatter, use wiki link syntax with double quotes for proper rendering
 					// Cover images should always be downloaded locally
 					if (result.isLocal && result.filename) {
@@ -1373,14 +1373,14 @@ export class NotionAPIImporter extends FormatImporter {
 						this.attachmentsDownloaded++;
 						ctx.attachments = this.attachmentsDownloaded;
 						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-					
+
 						// Extract extension from filename
 						const ext = result.filename.substring(result.filename.lastIndexOf('.'));
 						const fullPath = result.path + ext;
 						// Use wiki link syntax with double quotes: "[[path]]"
 						// The double quotes are necessary for YAML to render it as a link
 						const coverValue = `[[${fullPath}]]`;
-				
+
 						// Update cover in frontmatter
 						if (this.coverPropertyName !== 'cover') {
 							delete frontMatter.cover;
@@ -1410,19 +1410,19 @@ export class NotionAPIImporter extends FormatImporter {
 					// Keep original URL on error
 				}
 			}
-		
+
 			// Create the markdown file (only if not skipped)
 			if (!shouldSkipParentFile) {
 				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 
 				console.log(`[CREATE FILE] About to create file: ${mdFilePath}, Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
-				
+
 				// Get unique file path (will append " 1", " 2", etc. if file exists)
 				const { parent: parentPath, name: fileName } = parseFilePath(mdFilePath);
 				const finalPath = getUniqueFilePath(this.vault, parentPath, fileName);
-				
+
 				console.log(`[CREATE FILE] Final path after uniqueness check: ${finalPath}`);
-			
+
 				try {
 					await this.vault.create(normalizePath(finalPath), fullContent);
 					console.log(`[CREATE FILE] Successfully created: ${finalPath}`);
@@ -1438,14 +1438,14 @@ export class NotionAPIImporter extends FormatImporter {
 				// Store path without extension for wiki link generation
 				const pathWithoutExt = finalPath.replace(/\.md$/, '');
 				this.notionIdToPath.set(pageId, pathWithoutExt);
-		
+
 				// Record mention placeholders if any mentions were found
 				// Use file path as key for O(1) lookup during replacement
 				if (mentionedIds.size > 0) {
 					this.mentionPlaceholders.set(finalPath, mentionedIds);
 				}
 			}
-		
+
 			// Update progress: count all processed pages (imported + skipped)
 			// Only count nodes that were selected in the tree (not recursively discovered pages)
 			if (this.selectedNodeIds.has(pageId)) {
@@ -1456,7 +1456,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 			// Note: Even if parent file is skipped, child pages have already been processed
 			// by the importPageCallback in convertBlocksToMarkdown
-			
+
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
@@ -1476,7 +1476,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 	}
-	
+
 	/**
 	 * Replace all relation placeholders with actual links after all pages are imported
 	 * Supports multi-round processing: if importing unimported databases discovers new relations,
@@ -1486,30 +1486,30 @@ export class NotionAPIImporter extends FormatImporter {
 		if (this.relationPlaceholders.length === 0) {
 			return;
 		}
-		
+
 		ctx.status(`Replacing ${this.relationPlaceholders.length} relation placeholders...`);
-		
+
 		// Multi-round processing: keep importing databases until no new relations are discovered
 		let round = 1;
 		let previousPlaceholderCount = 0;
 		const maxRounds = 10; // Safety limit to prevent infinite loops
-		
+
 		while (round <= maxRounds) {
 			const currentPlaceholderCount = this.relationPlaceholders.length;
-			
+
 			// If no new placeholders were added in the last round, we're done
 			if (round > 1 && currentPlaceholderCount === previousPlaceholderCount) {
 				ctx.status(`No new relations discovered. Relation processing complete.`);
 				break;
 			}
-			
+
 			ctx.status(`Round ${round}: Processing ${currentPlaceholderCount} relation placeholders...`);
 			previousPlaceholderCount = currentPlaceholderCount;
-			
+
 			// Identify missing pages and their databases
 			const missingPageIds = new Set<string>();
 			const missingDatabaseIds = new Set<string>();
-			
+
 			for (const placeholder of this.relationPlaceholders) {
 				for (const relatedPageId of placeholder.relatedPageIds) {
 					// Check if we have the file path mapping for this page (O(1) lookup)
@@ -1523,25 +1523,25 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 				}
 			}
-			
+
 			// Import missing databases if any
 			if (missingDatabaseIds.size > 0) {
 				ctx.status(`Round ${round}: Found ${missingDatabaseIds.size} unimported databases with relations. Importing...`);
-				
+
 				// Import to the user-selected output root folder (e.g., "Notion")
 				// No need to create a separate "Relation Unimported Databases" subfolder
 				const unimportedDbPath = this.outputRootPath;
-				
+
 				// Import each missing database
 				let importedCount = 0;
 				for (const databaseId of missingDatabaseIds) {
 					if (ctx.isCancelled()) break;
-					
+
 					// Skip if already processed
 					if (this.processedDatabases.has(databaseId)) {
 						continue;
 					}
-					
+
 					try {
 						await this.importUnimportedDatabase(ctx, databaseId, unimportedDbPath);
 						importedCount++;
@@ -1551,9 +1551,9 @@ export class NotionAPIImporter extends FormatImporter {
 						// Continue with other databases even if one fails
 					}
 				}
-				
+
 				ctx.status(`Round ${round}: Imported ${importedCount} databases.`);
-				
+
 				// If we imported any databases, they might have added new relation placeholders
 				// Continue to next round to process them
 				if (importedCount > 0) {
@@ -1561,21 +1561,21 @@ export class NotionAPIImporter extends FormatImporter {
 					continue;
 				}
 			}
-			
+
 			// If we reach here and no databases were imported, we're done
 			break;
 		}
-		
+
 		if (round > maxRounds) {
 			console.warn(`⚠️ Reached maximum rounds (${maxRounds}) for relation processing. Some relations may not be resolved.`);
 		}
-		
+
 		// Final pass: replace all placeholders with links
 		// This happens after all rounds of database imports are complete
 		ctx.status(`Replacing relation placeholders with wiki links...`);
 		for (const placeholder of this.relationPlaceholders) {
 			if (ctx.isCancelled()) break;
-			
+
 			try {
 				// Get the page file path from mapping (O(1) lookup)
 				const pageFilePath = this.notionIdToPath.get(placeholder.pageId);
@@ -1583,28 +1583,28 @@ export class NotionAPIImporter extends FormatImporter {
 					console.warn(`Could not find file path for page: ${placeholder.pageId}`);
 					continue;
 				}
-			
+
 				// Get the file directly by path (O(1) lookup)
 				const pageFile = this.vault.getAbstractFileByPath(pageFilePath + '.md');
 				if (!pageFile || !(pageFile instanceof TFile)) {
 					console.warn(`Could not find page file: ${pageFilePath}`);
 					continue;
 				}
-			
+
 				// Read the file content
 				let content = await this.vault.read(pageFile);
-				
+
 				// Parse frontmatter
 				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 				const match = content.match(frontmatterRegex);
-				
+
 				if (!match) {
 					console.warn(`No frontmatter found in file: ${pageFile.path}`);
 					continue;
 				}
-				
+
 				let newContent = content;
-				
+
 				// Build the actual links
 				for (const relatedPageId of placeholder.relatedPageIds) {
 					// Get the related page file path from mapping (O(1) lookup)
@@ -1619,7 +1619,7 @@ export class NotionAPIImporter extends FormatImporter {
 							// while displaying only the clean file name
 							const displayName = relatedPageFile.basename; // Just the file name for display
 							const wikiLink = `"[[${relatedPagePath}|${displayName}]]"`;
-			
+
 							// Replace the page ID with the link in the YAML
 							// Note: stringifyYaml does NOT add quotes to UUID strings, so we search for unquoted IDs
 							// and replace them with quoted links
@@ -1637,7 +1637,7 @@ export class NotionAPIImporter extends FormatImporter {
 						console.warn(`Could not find related page: ${relatedPageId}`);
 					}
 				}
-				
+
 				// Write back to file if content changed
 				if (newContent !== content) {
 					await this.vault.modify(pageFile, newContent);
@@ -1650,17 +1650,17 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 	}
-	
+
 	/**
 	 * Import a database that was not in the original import scope
 	 * but is needed for relation links
 	 */
 	private async importUnimportedDatabase(ctx: ImportContext, databaseId: string, parentPath: string): Promise<void> {
 		let databaseTitle = 'Untitled Database'; // Default title for error reporting
-		
+
 		try {
 			ctx.status(`Importing unimported database ${databaseId}...`);
-			
+
 			// Build context for the core import logic
 			const context: DatabaseProcessingContext = {
 				ctx,
@@ -1679,7 +1679,7 @@ export class NotionAPIImporter extends FormatImporter {
 				// onPagesDiscovered callback not provided - not needed for unimported databases
 				databasePropertyName: this.databasePropertyName
 			};
-			
+
 			// Use the core import logic
 			const result = await importDatabaseCore(databaseId, context);
 			databaseTitle = result.sanitizedTitle;
@@ -1690,7 +1690,7 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
 		}
 	}
-	
+
 	/**
 	 * Replace mention placeholders ([[NOTION_PAGE:id]] and [[NOTION_DB:id]]) 
 	 * Only processes files that have mentions (efficient like relationPlaceholders)
@@ -1725,10 +1725,10 @@ export class NotionAPIImporter extends FormatImporter {
 				// Replace all mentioned page/database IDs in this file
 				for (const mentionedId of mentionedIds) {
 					let targetPath: string | undefined;
-					
+
 					// Try to find in pages first
 					targetPath = this.notionIdToPath.get(mentionedId);
-					
+
 					// If not found, try databases
 					if (!targetPath) {
 						const dbInfo = this.processedDatabases.get(mentionedId);
@@ -1736,7 +1736,7 @@ export class NotionAPIImporter extends FormatImporter {
 							targetPath = dbInfo.baseFilePath.replace(/\.base$/, '');
 						}
 					}
-					
+
 					if (!targetPath) {
 						console.warn(`No mapping found for mention: ${mentionedId}`);
 						continue;
@@ -1754,7 +1754,7 @@ export class NotionAPIImporter extends FormatImporter {
 							targetFile,
 							sourceFile.path
 						);
-						
+
 						// Replace all occurrences of this mention (global replace)
 						// A page might mention the same page/database multiple times
 						const regex = new RegExp(`\\[\\[NOTION_(PAGE|DB):${mentionedId}\\]\\]`, 'g');
@@ -1798,17 +1798,17 @@ export class NotionAPIImporter extends FormatImporter {
 		if (this.syncedChildPagePlaceholders.size === 0 && this.syncedChildDatabasePlaceholders.size === 0) {
 			return;
 		}
-	
+
 		ctx.status('Replacing synced block child references...');
-	
+
 		let replacedCount = 0;
 		let filesModified = 0;
 		let importedCount = 0;
-	
+
 		// Process page placeholders
 		for (const [filePath, pageIds] of this.syncedChildPagePlaceholders) {
 			if (ctx.isCancelled()) break;
-	
+
 			try {
 				// Get the file directly by path (O(1) lookup)
 				const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
@@ -1816,14 +1816,14 @@ export class NotionAPIImporter extends FormatImporter {
 					console.warn(`Could not find synced block file: ${filePath}`);
 					continue;
 				}
-	
+
 				let content = await this.vault.read(file);
 				const originalContent = content;
-		
+
 				// Process each page ID that was recorded for this file
 				for (const pageId of pageIds) {
 					const pagePlaceholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_PAGE, pageId);
-		
+
 					// Check if this page placeholder exists
 					if (content.includes(pagePlaceholder)) {
 						// Check if page is already imported
@@ -1842,7 +1842,7 @@ export class NotionAPIImporter extends FormatImporter {
 								continue; // Skip to next page ID
 							}
 						}
-		
+
 						// Now get the path (either already existed or just imported)
 						pagePath = this.notionIdToPath.get(pageId);
 						if (pagePath) {
@@ -1855,7 +1855,7 @@ export class NotionAPIImporter extends FormatImporter {
 						}
 					}
 				}
-		
+
 				// Save the file if it was modified
 				if (content !== originalContent) {
 					await this.vault.modify(file, content);
@@ -1872,7 +1872,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Process database placeholders
 		for (const [filePath, databaseIds] of this.syncedChildDatabasePlaceholders) {
 			if (ctx.isCancelled()) break;
-	
+
 			try {
 				// Get the file directly by path (O(1) lookup)
 				const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
@@ -1880,10 +1880,10 @@ export class NotionAPIImporter extends FormatImporter {
 					console.warn(`Could not find synced block file: ${filePath}`);
 					continue;
 				}
-	
+
 				let content = await this.vault.read(file);
 				const originalContent = content;
-		
+
 				// Process each database ID that was recorded for this file
 				for (const databaseId of databaseIds) {
 					const dbPlaceholder = createPlaceholder(PlaceholderType.SYNCED_CHILD_DATABASE, databaseId);
@@ -1891,7 +1891,7 @@ export class NotionAPIImporter extends FormatImporter {
 					if (content.includes(dbPlaceholder)) {
 						// Check if database is already imported
 						let dbInfo = this.processedDatabases.get(databaseId);
-		
+
 						if (!dbInfo) {
 							// Try to import the database to the output root folder
 							try {
@@ -1905,7 +1905,7 @@ export class NotionAPIImporter extends FormatImporter {
 								continue; // Skip to next database ID
 							}
 						}
-			
+
 						// Now get the database info (either already existed or just imported)
 						dbInfo = this.processedDatabases.get(databaseId);
 						if (dbInfo) {
@@ -1919,7 +1919,7 @@ export class NotionAPIImporter extends FormatImporter {
 						}
 					}
 				}
-		
+
 				// Save the file if it was modified
 				if (content !== originalContent) {
 					await this.vault.modify(file, content);
@@ -1932,7 +1932,7 @@ export class NotionAPIImporter extends FormatImporter {
 				ctx.reportFailed(`Synced block file ${filePath}`, errorMessage);
 			}
 		}
-	
+
 		ctx.status(`Replaced ${replacedCount} synced child references in ${filesModified} files (imported ${importedCount} new items).`);
 	}
 
@@ -1960,25 +1960,25 @@ export class NotionAPIImporter extends FormatImporter {
 		try {
 			const content = await this.vault.read(file);
 			const notionIdMatch = content.match(/^notion-id:\s*(.+)$/m);
-		
+
 			if (notionIdMatch) {
 				const existingNotionId = notionIdMatch[1].trim();
 				if (existingNotionId === notionId) {
 					// Same notion-id, skip this file
 					const { basename } = parseFilePath(filePath);
 					ctx.reportSkipped(basename, 'already exists with same notion-id');
-				
+
 					// IMPORTANT: Register this skipped file in notionIdToPath mapping
 					// This ensures that relation/mention links can find this page even though it wasn't imported in this session
 					// Without this, we would fail to resolve relations to previously imported pages
 					const filePathWithoutExtension = filePath.replace(/\.md$/, '');
 					this.notionIdToPath.set(notionId, filePathWithoutExtension);
-				
+
 					// IMPORTANT: Scan for unresolved placeholders from previous imports
 					// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
 					// we need to re-collect them so they can be resolved in this import session
 					await this.collectUnresolvedPlaceholders(content, notionId, filePath);
-				
+
 					return true;
 				}
 			}
@@ -2002,21 +2002,21 @@ export class NotionAPIImporter extends FormatImporter {
 		// 1. Collect unresolved relation placeholders (in frontmatter, as UUIDs)
 		const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 		const frontmatterMatch = content.match(frontmatterRegex);
-		
+
 		if (frontmatterMatch) {
 			const frontmatter = frontmatterMatch[1];
-			
+
 			// Look for relation properties that still contain page IDs (UUIDs)
 			// UUID format: 8-4-4-4-12 hexadecimal characters with hyphens
 			const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 			const uuidMatches = frontmatter.match(uuidRegex);
-			
+
 			if (uuidMatches && uuidMatches.length > 0) {
 				// Parse frontmatter to find which properties contain these UUIDs
 				const lines = frontmatter.split('\n');
 				let currentPropertyKey: string | null = null;
 				const unresolvedRelations: Map<string, string[]> = new Map();
-				
+
 				for (const line of lines) {
 					// Check if this line defines a property (e.g., "Related Pages:")
 					const propertyMatch = line.match(/^([a-zA-Z0-9_-]+):\s*$/);
@@ -2024,7 +2024,7 @@ export class NotionAPIImporter extends FormatImporter {
 						currentPropertyKey = propertyMatch[1];
 						continue;
 					}
-					
+
 					// Check if this line contains a UUID (list item or inline value)
 					if (currentPropertyKey) {
 						const lineUuids = line.match(uuidRegex);
@@ -2041,7 +2041,7 @@ export class NotionAPIImporter extends FormatImporter {
 						}
 					}
 				}
-				
+
 				// Add unresolved relations to relationPlaceholders
 				for (const [propertyKey, relatedPageIds] of unresolvedRelations.entries()) {
 					if (relatedPageIds.length > 0) {
@@ -2053,53 +2053,53 @@ export class NotionAPIImporter extends FormatImporter {
 						});
 					}
 				}
-				
+
 				if (unresolvedRelations.size > 0) {
 					console.log(`[Incremental Import] Collected ${unresolvedRelations.size} unresolved relation(s) from skipped file: ${pageId}`);
 				}
 			}
 		}
-		
+
 		// 2. Collect unresolved mention placeholders (in content, as [[NOTION_PAGE:id]] or [[NOTION_DB:id]])
 		const mentionPageRegex = /\[\[NOTION_PAGE:([a-f0-9-]+)\]\]/g;
 		const mentionDbRegex = /\[\[NOTION_DB:([a-f0-9-]+)\]\]/g;
-		
+
 		const mentionedIds = new Set<string>();
 		let match;
-		
+
 		while ((match = mentionPageRegex.exec(content)) !== null) {
 			mentionedIds.add(match[1]);
 		}
-		
+
 		while ((match = mentionDbRegex.exec(content)) !== null) {
 			mentionedIds.add(match[1]);
 		}
-		
+
 		if (mentionedIds.size > 0) {
 			this.mentionPlaceholders.set(filePath, mentionedIds);
 			console.log(`[Incremental Import] Collected ${mentionedIds.size} unresolved mention(s) from skipped file: ${filePath}`);
 		}
-		
+
 		// 3. Collect unresolved synced child placeholders (in content, as [[SYNCED_CHILD_PAGE:id]] or [[SYNCED_CHILD_DATABASE:id]])
 		const syncedPageRegex = /\[\[SYNCED_CHILD_PAGE:([a-f0-9-]+)\]\]/g;
 		const syncedDbRegex = /\[\[SYNCED_CHILD_DATABASE:([a-f0-9-]+)\]\]/g;
-		
+
 		const syncedPageIds = new Set<string>();
 		const syncedDbIds = new Set<string>();
-		
+
 		while ((match = syncedPageRegex.exec(content)) !== null) {
 			syncedPageIds.add(match[1]);
 		}
-		
+
 		while ((match = syncedDbRegex.exec(content)) !== null) {
 			syncedDbIds.add(match[1]);
 		}
-		
+
 		if (syncedPageIds.size > 0) {
 			this.syncedChildPagePlaceholders.set(filePath, syncedPageIds);
 			console.log(`[Incremental Import] Collected ${syncedPageIds.size} unresolved synced child page(s) from skipped file: ${filePath}`);
 		}
-		
+
 		if (syncedDbIds.size > 0) {
 			this.syncedChildDatabasePlaceholders.set(filePath, syncedDbIds);
 			console.log(`[Incremental Import] Collected ${syncedDbIds.size} unresolved synced child database(s) from skipped file: ${filePath}`);
@@ -2121,7 +2121,7 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx: ImportContext
 	): Promise<string | null> {
 		const basePath = parentPath ? `${parentPath}/${fileName}` : fileName;
-	
+
 		// Check if file already exists with same notion-id
 		const shouldSkip = await this.shouldSkipExistingFile(basePath, notionId, ctx);
 		if (shouldSkip) {

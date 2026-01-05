@@ -21,10 +21,10 @@ export async function downloadAttachment(
 	context: BlockConversionContext
 ): Promise<AttachmentResult> {
 	const { vault, ctx, downloadExternalAttachments, currentPageTitle, incrementalImport } = context;
-	
+
 	// Determine if we should download this attachment
 	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments);
-	
+
 	if (!shouldDownload) {
 		// Return original URL for external files when download is disabled
 		return {
@@ -32,12 +32,12 @@ export async function downloadAttachment(
 			isLocal: false
 		};
 	}
-	
+
 	// Extract filename early for error reporting
 	// Priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
 	let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
 	filename = sanitizeFileName(filename);
-	
+
 	try {
 		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
@@ -46,7 +46,7 @@ export async function downloadAttachment(
 			method: 'GET',
 			throw: false,
 		});
-		
+
 		if (response.status !== 200) {
 			console.error(`Failed to download attachment "${filename}": ${response.status}`);
 			ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
@@ -55,7 +55,7 @@ export async function downloadAttachment(
 				isLocal: false
 			};
 		}
-		
+
 		// Check if filename has an extension, if not, infer from Content-Type
 		const [basename, ext] = splitext(filename);
 		if (!ext) {
@@ -67,7 +67,7 @@ export async function downloadAttachment(
 				}
 			}
 		}
-	
+
 		// Get available path for attachment using the provided function or fallback
 		let targetFilePath: string;
 		if (context.getAvailableAttachmentPath) {
@@ -77,7 +77,7 @@ export async function downloadAttachment(
 		else {
 			// Fallback: construct path manually (shouldn't happen in normal usage)
 			const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
-			targetFilePath = sourceFilePath 
+			targetFilePath = sourceFilePath
 				? normalizePath(`${sourceFilePath}/${filename}`)
 				: filename;
 		}
@@ -91,28 +91,28 @@ export async function downloadAttachment(
 			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
 			// Reconstruct the full filename with extension
 			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
-		
+
 			console.log(`[ATTACHMENT] Target full filename: ${targetFullName}`);
-		
+
 			// If filename changed (e.g., "file.jpg" → "file 1.jpg"), it means the original file exists
 			if (targetFullName !== filename) {
 				console.log(`[ATTACHMENT] Filename changed (${filename} → ${targetFullName}), original file exists`);
-			
+
 				// Construct the original file path by replacing the changed filename with the original
 				const originalFilePath = normalizePath(`${targetParent}/${filename}`);
-			
+
 				console.log(`[ATTACHMENT] Checking original file: ${originalFilePath}`);
 				const existingFile = vault.getAbstractFileByPath(originalFilePath);
-			
+
 				if (existingFile && existingFile instanceof TFile) {
 					const downloadedSize = response.arrayBuffer.byteLength;
 					console.log(`[ATTACHMENT] Downloaded size: ${downloadedSize} bytes, Existing size: ${existingFile.stat.size} bytes`);
-				
+
 					// Compare file sizes
 					if (existingFile.stat.size === downloadedSize) {
 						console.log(`[ATTACHMENT] Skipping attachment (same size): ${filename}`);
 						ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
-					
+
 						// Return existing file path (don't save to disk)
 						const { parent: existingParent, basename: existingBasename } = parseFilePath(originalFilePath);
 						const filePathWithoutExt = normalizePath(existingParent ? `${existingParent}/${existingBasename}` : existingBasename);
@@ -134,7 +134,7 @@ export async function downloadAttachment(
 
 		// Save the file to disk
 		await vault.createBinary(targetFilePath, response.arrayBuffer);
-		
+
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
 		const filePathWithoutExt = normalizePath(parent ? `${parent}/${fileBasename}` : fileBasename);
@@ -164,7 +164,7 @@ function extractFilenameFromUrl(url: string): string {
 		const pathname = urlObj.pathname;
 		const segments = pathname.split('/');
 		const filename = segments[segments.length - 1];
-		
+
 		// Decode URL encoding
 		return decodeURIComponent(filename) || 'attachment';
 	}
@@ -181,11 +181,11 @@ function extractFilenameFromUrl(url: string): string {
  */
 export function extractAttachmentFromBlock(block: any): NotionAttachment | null {
 	const blockType = block.type;
-	
+
 	// Handle different block types
 	// Using 'any' because attachment data structure varies by block type (image, video, file, pdf)
 	let attachmentData: any = null;
-	
+
 	if (blockType === 'image') {
 		attachmentData = block.image;
 	}
@@ -201,9 +201,9 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 	else {
 		return null;
 	}
-	
+
 	if (!attachmentData) return null;
-	
+
 	// Extract URL based on type
 	if (attachmentData.type === 'file' && attachmentData.file) {
 		return {
@@ -219,7 +219,7 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 			name: attachmentData.name,
 		};
 	}
-	
+
 	return null;
 }
 
@@ -231,7 +231,7 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 export function getCaptionFromBlock(block: any): string {
 	const blockType = block.type;
 	let captionArray: RichTextItemResponse[] = [];
-	
+
 	if (blockType === 'image' && block.image.caption) {
 		captionArray = block.image.caption;
 	}
@@ -253,7 +253,7 @@ export function getCaptionFromBlock(block: any): string {
 	else if (blockType === 'embed' && block.embed.caption) {
 		captionArray = block.embed.caption;
 	}
-	
+
 	// Convert rich text to plain text
 	return captionArray.map(t => t.plain_text).join('') || '';
 }
@@ -265,7 +265,7 @@ export function getCaptionFromBlock(block: any): string {
  */
 export function formatAttachmentLink(params: FormatAttachmentLinkParams): string {
 	const { result, vault, app, sourceFilePath, caption = '', isEmbed = false, forceWikiLink = false } = params;
-	
+
 	// If not local (still a URL), use standard markdown syntax
 	if (!result.isLocal) {
 		if (isEmbed) {
@@ -275,12 +275,12 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 			return `[${caption || 'Link'}](${result.path})`;
 		}
 	}
-	
+
 	// For wiki links, we need to include the file extension
 	// Obsidian requires the extension to properly link to non-markdown files
 	const [, ext] = splitext(result.filename || '');
 	const pathWithExt = ext ? `${result.path}.${ext}` : result.path;
-	
+
 	// Get the target file from vault
 	const targetFile = vault.getAbstractFileByPath(normalizePath(pathWithExt));
 	if (!targetFile || !(targetFile instanceof TFile)) {
@@ -288,7 +288,7 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 		// Respect user's link format setting, unless forceWikiLink is true
 		const useWikiLinks = forceWikiLink || (vault.getConfig('useWikiLinks') ?? true);
 		const embedPrefix = isEmbed ? '!' : '';
-		
+
 		if (useWikiLinks) {
 			// Wiki link format
 			if (caption) {
@@ -305,7 +305,7 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 			return `[${displayText}](${pathWithExt})`;
 		}
 	}
-	
+
 	// Use generateMarkdownLink to respect user's link format settings, unless forceWikiLink is true
 	let link: string;
 	if (forceWikiLink) {
@@ -316,10 +316,10 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 		// Use user's preference
 		link = app.fileManager.generateMarkdownLink(targetFile, sourceFilePath);
 	}
-	
+
 	// Add embed prefix if needed
 	const embedPrefix = isEmbed ? '!' : '';
-	
+
 	// Add caption/display text if provided
 	if (caption) {
 		// For wiki links: [[path|caption]], for markdown links: [caption](path)
@@ -334,7 +334,7 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 			return `${embedPrefix}[${caption}]${pathPart}`;
 		}
 	}
-	
+
 	return `${embedPrefix}${link}`;
 }
 
@@ -369,16 +369,16 @@ export async function downloadAndFormatAttachment(
 	}
 ): Promise<string> {
 	const { caption = '', isEmbed = false, fallbackText = 'file', forceWikiLink = false } = options || {};
-	
+
 	try {
 		// Download the attachment
 		const result = await downloadAttachment(attachment, context as any);
-		
+
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {
 			context.onAttachmentDownloaded();
 		}
-		
+
 		// Format link according to user's vault settings
 		const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
 		return formatAttachmentLink({
@@ -393,7 +393,7 @@ export async function downloadAndFormatAttachment(
 	}
 	catch (error) {
 		console.error('Failed to download and format attachment:', error);
-		
+
 		// If download failed, return a fallback markdown link with the original URL
 		const linkText = caption || attachment.name || fallbackText;
 		const linkPrefix = isEmbed ? '!' : '';

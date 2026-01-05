@@ -2,9 +2,9 @@
  * Type definitions for Notion API importer
  */
 
-import { 
-	Client, 
-	BlockObjectResponse, 
+import {
+	Client,
+	BlockObjectResponse,
 	PageObjectResponse,
 	Heading1BlockObjectResponse,
 	Heading2BlockObjectResponse,
@@ -192,9 +192,9 @@ export type ImportPageCallback = (pageId: string, parentPath: string) => Promise
 /**
  * Common type for heading content with rich text and color
  */
-export type HeaderContentWithRichTextAndColorResponse = 
-	Heading1BlockObjectResponse['heading_1'] | 
-	Heading2BlockObjectResponse['heading_2'] | 
+export type HeaderContentWithRichTextAndColorResponse =
+	Heading1BlockObjectResponse['heading_1'] |
+	Heading2BlockObjectResponse['heading_2'] |
 	Heading3BlockObjectResponse['heading_3'];
 
 /**

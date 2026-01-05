@@ -3,9 +3,9 @@
  * Handles API calls with rate limiting and error handling
  */
 
-import { 
-	Client, 
-	BlockObjectResponse, 
+import {
+	Client,
+	BlockObjectResponse,
 	PageObjectResponse,
 	DatabaseObjectResponse,
 	RichTextItemResponse,
@@ -36,17 +36,17 @@ export async function getBlockChildren(
 ): Promise<BlockObjectResponse[]> {
 	// Try to get from cache first
 	let children = blocksCache?.get(blockId);
-	
+
 	if (!children) {
 		// Not in cache, fetch from API
 		children = await fetchAllBlocks(client, blockId, ctx);
-		
+
 		// Store in cache if cache is provided
 		if (blocksCache) {
 			blocksCache.set(blockId, children);
 		}
 	}
-	
+
 	return children;
 }
 
@@ -79,18 +79,18 @@ export async function processBlockChildren<T>(
 	params: ProcessBlockChildrenParams<T>
 ): Promise<T | undefined> {
 	const { block, client, ctx, blocksCache, processor, errorContext } = params;
-	
+
 	if (!block.has_children) {
 		return undefined;
 	}
-	
+
 	try {
 		const children = await getBlockChildren(block.id, client, ctx, blocksCache);
-		
+
 		if (children.length === 0) {
 			return undefined;
 		}
-		
+
 		return await processor(children);
 	}
 	catch (error) {
@@ -122,7 +122,7 @@ export async function makeNotionRequest<T>(
 			if (retryCount >= MAX_RETRIES) {
 				throw new Error(`Rate limit exceeded after ${MAX_RETRIES} retries`);
 			}
-			
+
 			// Get retry delay from Retry-After header or use exponential backoff
 			let retryAfter = 1;
 			if (error.headers && error.headers['retry-after']) {
@@ -132,18 +132,18 @@ export async function makeNotionRequest<T>(
 				// Exponential backoff: 1s, 2s, 4s
 				retryAfter = Math.pow(2, retryCount);
 			}
-			
+
 			const previousStatus = ctx.statusMessage;
 			ctx.status(`Rate limited. Waiting ${retryAfter} seconds before retry (${retryCount + 1}/${MAX_RETRIES})...`);
-			
+
 			await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-			
+
 			ctx.status(previousStatus);
-			
+
 			// Retry the request
 			return makeNotionRequest(requestFn, ctx, retryCount + 1);
 		}
-		
+
 		// Re-throw other errors
 		throw error;
 	}
@@ -154,12 +154,12 @@ export async function makeNotionRequest<T>(
  */
 export async function fetchAllBlocks(
 	client: Client,
-	blockId: string, 
+	blockId: string,
 	ctx: ImportContext
 ): Promise<BlockObjectResponse[]> {
 	const blocks: BlockObjectResponse[] = [];
 	let cursor: string | undefined = undefined;
-	
+
 	do {
 		// Using 'any' for response because Notion API returns a paginated response with complex structure
 		// and we only need to access .results, .has_more, and .next_cursor properties.
@@ -171,17 +171,17 @@ export async function fetchAllBlocks(
 			}),
 			ctx
 		);
-		
+
 		// Filter out partial blocks
 		const fullBlocks = response.results.filter(
 			(block: BlockObjectResponse | PartialBlockObjectResponse): block is BlockObjectResponse => 'type' in block
 		);
-		
+
 		blocks.push(...fullBlocks);
 		cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-		
+
 	} while (cursor);
-	
+
 	return blocks;
 }
 
@@ -204,7 +204,7 @@ export async function hasChildPagesOrDatabases(
 		if (block.type === 'child_page') {
 			return true;
 		}
-		
+
 		// Check if current block is a child_database
 		// But we need to verify it's not a linked database (which we skip)
 		if (block.type === 'child_database') {
@@ -214,7 +214,7 @@ export async function hasChildPagesOrDatabases(
 					() => client.databases.retrieve({ database_id: block.id }) as Promise<DatabaseObjectResponse>,
 					ctx
 				);
-				
+
 				// Check if this is a linked database (no data sources)
 				// Linked databases are not supported and will be skipped during import
 				if (database.data_sources && database.data_sources.length > 0) {
@@ -230,12 +230,12 @@ export async function hasChildPagesOrDatabases(
 				// Continue checking other blocks
 			}
 		}
-		
+
 		// Recursively check nested blocks if this block has children
 		if (block.has_children) {
 			try {
 				const children = await getBlockChildren(block.id, client, ctx, blocksCache);
-			
+
 				if (children.length > 0) {
 					const hasChildrenInNested = await hasChildPagesOrDatabases(client, children, ctx, blocksCache);
 					if (hasChildrenInNested) {
@@ -247,11 +247,11 @@ export async function hasChildPagesOrDatabases(
 				const errorMsg = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to fetch children for block ${block.id}:`, error);
 				ctx.reportFailed(`Fetch children for block ${block.id}`, errorMsg);
-			// Continue checking other blocks even if one fails
+				// Continue checking other blocks even if one fails
 			}
 		}
 	}
-	
+
 	return false;
 }
 
@@ -260,7 +260,7 @@ export async function hasChildPagesOrDatabases(
  */
 export function extractPageTitle(page: PageObjectResponse): string {
 	const properties = page.properties;
-	
+
 	// Try to find title property
 	for (const key in properties) {
 		const prop = properties[key];
@@ -268,7 +268,7 @@ export function extractPageTitle(page: PageObjectResponse): string {
 			return prop.title.map(t => t.plain_text).join('');
 		}
 	}
-	
+
 	return 'Untitled';
 }
 
@@ -307,18 +307,18 @@ export interface ExtractFrontMatterParams {
 export async function extractFrontMatter(
 	params: ExtractFrontMatterParams
 ): Promise<Record<string, any>> {
-	const { 
-		page, 
-		formulaStrategy = 'hybrid', 
-		databaseProperties, 
-		client, 
-		ctx 
+	const {
+		page,
+		formulaStrategy = 'hybrid',
+		databaseProperties,
+		client,
+		ctx
 	} = params;
 	// Using 'any' for frontMatter values because page properties have many different types
 	const frontMatter: Record<string, any> = {
 		'notion-id': page.id,
 	};
-	
+
 	// Note: created_time and last_edited_time are not added to frontmatter
 	// Users can enable these if needed by uncommenting the code below
 	// if (page.created_time) {
@@ -327,22 +327,22 @@ export async function extractFrontMatter(
 	// if (page.last_edited_time) {
 	// 	frontMatter.updated = page.last_edited_time;
 	// }
-	
+
 	// Add cover if present (will be processed as attachment later)
 	if (page.cover) {
 		frontMatter.cover = extractCoverUrl(page.cover);
 	}
-	
+
 	// Extract all page properties
 	const properties = page.properties;
 	for (const key in properties) {
 		const prop = properties[key];
-		
+
 		// Skip title property (already used as filename)
 		if (prop.type === 'title') {
 			continue;
 		}
-		
+
 		// Handle formula properties based on strategy
 		if (prop.type === 'formula') {
 			const shouldAddToYAML = shouldAddFormulaToYAML(
@@ -350,7 +350,7 @@ export async function extractFrontMatter(
 				databaseProperties,
 				formulaStrategy
 			);
-			
+
 			if (shouldAddToYAML) {
 				const value = mapNotionPropertyToFrontmatter(prop);
 				if (value !== null && value !== undefined) {
@@ -359,7 +359,7 @@ export async function extractFrontMatter(
 			}
 			continue;
 		}
-		
+
 		// Handle people properties with user lookup
 		if (prop.type === 'people' && client && ctx) {
 			const value = await mapPeoplePropertyToFrontmatter(prop, client, ctx);
@@ -368,7 +368,7 @@ export async function extractFrontMatter(
 			}
 			continue;
 		}
-	
+
 		// Handle files properties - download attachments
 		if (prop.type === 'files' && params.vault && params.app && ctx) {
 			const value = await mapFilesPropertyToFrontmatter(prop, params);
@@ -377,14 +377,14 @@ export async function extractFrontMatter(
 			}
 			continue;
 		}
-	
+
 		// Map property to frontmatter value
 		const value = mapNotionPropertyToFrontmatter(prop);
 		if (value !== null && value !== undefined) {
 			frontMatter[key] = value;
 		}
 	}
-	
+
 	return frontMatter;
 }
 
@@ -394,14 +394,14 @@ export async function extractFrontMatter(
  */
 function extractCoverUrl(cover: PageObjectResponse['cover']): string | null {
 	if (!cover) return null;
-	
+
 	if (cover.type === 'external' && cover.external?.url) {
 		return cover.external.url;
 	}
 	else if (cover.type === 'file' && cover.file?.url) {
 		return cover.file.url;
 	}
-	
+
 	return null;
 }
 
@@ -422,12 +422,12 @@ function shouldAddFormulaToYAML(
 		// Always add to YAML for static strategy
 		return true;
 	}
-	
+
 	if (strategy === 'function') {
 		// Never add to YAML for function strategy (will be in base formulas)
 		return false;
 	}
-	
+
 	// Hybrid strategy: add to YAML only if cannot be converted
 	if (databaseProperties && databaseProperties[propertyKey]) {
 		const formulaExpression = getNotionFormulaExpression(databaseProperties[propertyKey].formula);
@@ -436,7 +436,7 @@ function shouldAddFormulaToYAML(
 			return false;
 		}
 	}
-	
+
 	// Cannot be converted or no database properties, add to YAML
 	return true;
 }
@@ -459,9 +459,9 @@ async function mapPeoplePropertyToFrontmatter(
 	if (!prop.people || !Array.isArray(prop.people)) {
 		return [];
 	}
-	
+
 	const results: string[] = [];
-	
+
 	for (const person of prop.people) {
 		// If person has full info (name), use it directly
 		if (person.name) {
@@ -474,7 +474,7 @@ async function mapPeoplePropertyToFrontmatter(
 					() => client.users.retrieve({ user_id: person.id }),
 					ctx
 				);
-				
+
 				if (user && 'name' in user) {
 					const userName = user.name || user.id;
 					results.push(userName);
@@ -495,7 +495,7 @@ async function mapPeoplePropertyToFrontmatter(
 			results.push(person.id);
 		}
 	}
-	
+
 	return results;
 }
 
@@ -512,9 +512,9 @@ async function mapFilesPropertyToFrontmatter(
 	if (!prop.files || prop.files.length === 0) {
 		return null;
 	}
-	
+
 	const { vault, app, ctx, currentFilePath, currentFolderPath, incrementalImport, onAttachmentDownloaded, getAvailableAttachmentPath } = params;
-	
+
 	if (!vault || !app || !ctx) {
 		// Fallback to URL if we don't have required parameters
 		return prop.files.map((f: any) => {
@@ -523,14 +523,14 @@ async function mapFilesPropertyToFrontmatter(
 			return '';
 		}).filter((url: string) => url);
 	}
-	
+
 	const results: string[] = [];
-	
+
 	for (const file of prop.files) {
 		try {
 			// Extract attachment info
 			let attachment: { type: 'file' | 'external', url: string, name?: string } | null = null;
-			
+
 			if (file.type === 'file' && file.file?.url) {
 				attachment = {
 					type: 'file',
@@ -545,9 +545,9 @@ async function mapFilesPropertyToFrontmatter(
 					name: file.name
 				};
 			}
-			
+
 			if (!attachment) continue;
-	
+
 			// Download and format the attachment
 			// Files property attachments are always downloaded, regardless of downloadExternalAttachments setting
 			// This is consistent with how cover images are handled
@@ -583,7 +583,7 @@ async function mapFilesPropertyToFrontmatter(
 			}
 		}
 	}
-	
+
 	return results.length > 0 ? results : null;
 }
 
@@ -599,7 +599,7 @@ function convertNotionDateToObsidian(dateString: string): string {
 	if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
 		return dateString;
 	}
-	
+
 	// It's a datetime, parse and convert to Obsidian format
 	// Notion uses ISO 8601: 2025-11-23T09:00:00.000+08:00
 	// Obsidian uses: 2025-11-23T09:00:00 (no milliseconds, no timezone)
@@ -612,7 +612,7 @@ function convertNotionDateToObsidian(dateString: string): string {
 		const hours = String(date.getHours()).padStart(2, '0');
 		const minutes = String(date.getMinutes()).padStart(2, '0');
 		const seconds = String(date.getSeconds()).padStart(2, '0');
-		
+
 		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 	}
 	catch (error) {
@@ -633,19 +633,19 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 	switch (prop.type) {
 		case 'number':
 			return prop.number;
-		
+
 		case 'checkbox':
 			return prop.checkbox;
-		
+
 		case 'select':
 			return prop.select?.name || null;
-		
+
 		case 'multi_select':
 			return prop.multi_select?.map((s: { name: string }) => s.name) || [];
-		
+
 		case 'status':
 			return prop.status?.name || null;
-		
+
 		case 'date':
 			if (!prop.date) return null;
 			// Convert Notion date format (ISO 8601) to Obsidian format
@@ -658,20 +658,20 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				return `${startDate} to ${endDate}`;
 			}
 			return startDate;
-		
+
 		case 'email':
 			return prop.email;
-		
+
 		case 'url':
 			return prop.url;
-		
+
 		case 'phone_number':
 			return prop.phone_number;
-		
+
 		case 'rich_text':
 			// Convert rich text to plain text
 			return prop.rich_text?.map((t: RichTextItemResponse) => t.plain_text).join('') || '';
-		
+
 		case 'people':
 			// Convert people to names, fallback to email, then id
 			// Priority: name > email > id
@@ -680,7 +680,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				if (p.type === 'person' && p.person?.email) return p.person.email;
 				return p.id;
 			}) || [];
-		
+
 		case 'files':
 			// Convert files to URLs
 			// Using 'any' because file items can be internal or external with different structures
@@ -689,7 +689,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				if (f.type === 'external') return f.external?.url || '';
 				return '';
 			}).filter((url: string) => url) || [];
-		
+
 		case 'formula':
 			// Extract formula result value
 			if (!prop.formula) return null;
@@ -706,22 +706,22 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				default:
 					return null;
 			}
-		
+
 		case 'relation':
 			// Relation properties contain page IDs
 			// We'll store the IDs temporarily and replace them with links later
 			return prop.relation?.map((r: { id: string }) => r.id) || [];
-		
+
 		case 'rollup':
 			// Rollup properties should NOT be included in page YAML
 			// They will be calculated dynamically in the .base file as formulas
 			// Skip adding rollup to frontmatter
 			return null;
-		
+
 		case 'created_time':
 			// Convert Notion timestamp to Obsidian datetime format
 			return prop.created_time ? convertNotionDateToObsidian(prop.created_time) : null;
-	
+
 		case 'created_by':
 			// Extract user info with priority: name > email > id
 			if (prop.created_by?.name) return prop.created_by.name;
@@ -733,7 +733,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		case 'last_edited_time':
 			// Convert Notion timestamp to Obsidian datetime format
 			return prop.last_edited_time ? convertNotionDateToObsidian(prop.last_edited_time) : null;
-	
+
 		case 'last_edited_by':
 			// Extract user info with priority: name > email > id
 			if (prop.last_edited_by?.name) return prop.last_edited_by.name;
@@ -741,22 +741,22 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				return prop.last_edited_by.person.email;
 			}
 			return prop.last_edited_by?.id || null;
-		
+
 		case 'unique_id':
 			// Unique ID property
 			if (prop.unique_id?.prefix) {
 				return `${prop.unique_id.prefix}-${prop.unique_id.number}`;
 			}
 			return prop.unique_id?.number || null;
-		
+
 		case 'verification':
 			// Verification property
 			return prop.verification?.state || null;
-	
+
 		case 'button':
 			// Button properties are UI elements, not data - ignore them
 			return null;
-	
+
 		case 'place':
 			// Place property - convert to Obsidian Maps format: [lat, lon]
 			if (prop.place?.lat != null && prop.place?.lon != null) {
