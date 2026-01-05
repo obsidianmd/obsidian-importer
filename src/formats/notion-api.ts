@@ -1255,8 +1255,9 @@ export class NotionAPIImporter extends FormatImporter {
 					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
 				},
 				// Function to get available attachment path using FormatImporter's method
+				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
-					return await this.getAvailablePathForAttachment(filename, []);
+					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
 				}
 			});
 		
@@ -1320,8 +1321,9 @@ export class NotionAPIImporter extends FormatImporter {
 					this.attachmentsDownloaded++;
 					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
 				},
+				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
-					return await this.getAvailablePathForAttachment(filename, []);
+					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
 				}
 			});
 			// Merge extracted properties (skip notion-id as we already added it)
@@ -1357,8 +1359,9 @@ export class NotionAPIImporter extends FormatImporter {
 							downloadExternalAttachments: true, // Always download cover images
 							incrementalImport: this.incrementalImport,
 							currentPageTitle: sanitizedTitle,
+							// Pass mdFilePath so attachments are placed relative to the actual page file
 							getAvailableAttachmentPath: async (filename: string) => {
-								return await this.getAvailablePathForAttachment(filename, []);
+								return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
 							}
 						}
 					);
