@@ -1,4 +1,4 @@
-import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon } from 'obsidian';
+import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -1424,7 +1424,10 @@ export class NotionAPIImporter extends FormatImporter {
 				console.log(`[CREATE FILE] Final path after uniqueness check: ${finalPath}`);
 
 				try {
-					await this.vault.create(normalizePath(finalPath), fullContent);
+					const options: DataWriteOptions = {};
+					if (page.created_time) options.ctime = new Date(page.created_time).getTime();
+					if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
+					await this.vault.create(normalizePath(finalPath), fullContent, options);
 					console.log(`[CREATE FILE] Successfully created: ${finalPath}`);
 				}
 				catch (error) {
@@ -1640,7 +1643,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Write back to file if content changed
 				if (newContent !== content) {
-					await this.vault.modify(pageFile, newContent);
+					await modifyFilePreservingTimestamps(this.vault, pageFile, newContent);
 				}
 			}
 			catch (error) {
@@ -1771,7 +1774,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await this.vault.modify(sourceFile, content);
+					await modifyFilePreservingTimestamps(this.vault, sourceFile, content);
 					filesModified++;
 				}
 			}
@@ -1858,7 +1861,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await this.vault.modify(file, content);
+					await modifyFilePreservingTimestamps(this.vault, file, content);
 					filesModified++;
 				}
 			}
@@ -1922,7 +1925,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await this.vault.modify(file, content);
+					await modifyFilePreservingTimestamps(this.vault, file, content);
 					filesModified++;
 				}
 			}
@@ -2200,7 +2203,7 @@ export class NotionAPIImporter extends FormatImporter {
 				);
 
 				// Write back to file
-				await this.vault.modify(file, newContent);
+				await modifyFilePreservingTimestamps(this.vault, file, newContent);
 				cleanedCount++;
 			}
 			catch (error) {
@@ -2216,5 +2219,8 @@ export class NotionAPIImporter extends FormatImporter {
 			console.warn(`⚠️ Failed to clean notion-id from ${failedCount} file(s)`);
 		}
 	}
-	
+}
+
+function modifyFilePreservingTimestamps(vault: Vault, file: TFile, newContent: string): Promise<void> {
+	return vault.modify(file, newContent, { mtime: file.stat.mtime, ctime: file.stat.ctime });
 }
