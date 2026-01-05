@@ -487,10 +487,10 @@ function mapDatabaseProperties(
 	dataSourceProperties: Record<string, any>,
 	formulaStrategy: FormulaImportStrategy = 'hybrid'
 ): {
-		formulas: Array<{ key: string, config: any }>;
-		regularProperties: Array<{ key: string, config: any }>;
-		titlePropertyName: string | null;
-	} {
+	formulas: Array<{ key: string, config: any }>;
+	regularProperties: Array<{ key: string, config: any }>;
+	titlePropertyName: string | null;
+} {
 	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
 	// which have different structures depending on the property type.
 	const mappings: Record<string, any> = {};
