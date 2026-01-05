@@ -25,37 +25,6 @@ export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName
 }
 
 /**
- * Get a unique file path by appending 1, 2, etc. if needed
- * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
- */
-export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
-	let basePath = normalizePath(`${parentPath}/${fileName}`);
-	let finalPath = basePath;
-	let counter = 1;
-	
-	console.log(`[GET UNIQUE FILE] Checking: ${basePath}`);
-	// Use getAbstractFileByPath for synchronous check (adapter.exists is async)
-	// This is acceptable here as it's used to find a non-existent path
-	while (vault.getAbstractFileByPath(finalPath)) {
-		// Insert counter before file extension
-		const lastDotIndex = fileName.lastIndexOf('.');
-		if (lastDotIndex > 0) {
-			const nameWithoutExt = fileName.substring(0, lastDotIndex);
-			const ext = fileName.substring(lastDotIndex);
-			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} ${counter}${ext}`);
-		}
-		else {
-			finalPath = normalizePath(`${parentPath}/${fileName} ${counter}`);
-		}
-		console.log(`[GET UNIQUE FILE] Path exists, trying: ${finalPath}`);
-		counter++;
-	}
-	
-	console.log(`[GET UNIQUE FILE] Final path: ${finalPath}`);
-	return finalPath;
-}
-
-/**
  * Update property types using Obsidian's official metadataTypeManager API
  * Only updates properties that don't already exist (respects user's manual changes)
  */
