@@ -15,6 +15,7 @@ import {
 import { ImportContext } from '../../main';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
+import { NotionAttachment } from './types';
 
 const MAX_RETRIES = 3;
 
@@ -529,7 +530,7 @@ async function mapFilesPropertyToFrontmatter(
 	for (const file of prop.files) {
 		try {
 			// Extract attachment info
-			let attachment: { type: 'file' | 'external', url: string, name?: string } | null = null;
+			let attachment: NotionAttachment | null = null;
 
 			if (file.type === 'file' && file.file?.url) {
 				attachment = {

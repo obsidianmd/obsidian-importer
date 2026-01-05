@@ -3,7 +3,7 @@
  * Handles downloading and processing attachments (images, files, videos, PDFs)
  */
 
-import { normalizePath, requestUrl, TFile } from 'obsidian';
+import { DataWriteOptions, normalizePath, requestUrl, TFile } from 'obsidian';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
@@ -133,7 +133,10 @@ export async function downloadAttachment(
 		}
 
 		// Save the file to disk
-		await vault.createBinary(targetFilePath, response.arrayBuffer);
+		const options: DataWriteOptions = {};
+		if (attachment.created_time) options.ctime = new Date(attachment.created_time).getTime();
+		if (attachment.last_edited_time) options.mtime = new Date(attachment.last_edited_time).getTime();
+		await vault.createBinary(targetFilePath, response.arrayBuffer, options);
 
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
@@ -210,6 +213,8 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 			type: 'file',
 			url: attachmentData.file.url,
 			name: attachmentData.name,
+			created_time: block.created_time,
+			last_edited_time: block.last_edited_time,
 		};
 	}
 	else if (attachmentData.type === 'external' && attachmentData.external) {
@@ -217,6 +222,8 @@ export function extractAttachmentFromBlock(block: any): NotionAttachment | null 
 			type: 'external',
 			url: attachmentData.external.url,
 			name: attachmentData.name,
+			created_time: block.created_time,
+			last_edited_time: block.last_edited_time,
 		};
 	}
 

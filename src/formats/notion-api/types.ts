@@ -150,6 +150,8 @@ export interface NotionAttachment {
 	url: string;
 	name?: string;
 	caption?: string;
+	created_time?: string;
+	last_edited_time?: string;
 }
 
 /**
