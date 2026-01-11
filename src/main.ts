@@ -1,6 +1,7 @@
 import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { AppleNotesImporter } from './formats/apple-notes';
+import { AppleJournalImporter } from './formats/apple-journal';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
@@ -250,6 +251,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Apple Notes',
 				importer: AppleNotesImporter,
 				helpPermalink: 'import/apple-notes'
+			},
+			'apple-journal': {
+				name: 'Apple Journal',
+				optionText: 'Apple Journal (HTML export)',
+				importer: AppleJournalImporter,
+				formatDescription: 'Import your Journal app entries to Obsidian',
 			},
 			'bear': {
 				name: 'Bear',

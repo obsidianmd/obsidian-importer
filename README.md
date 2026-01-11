@@ -18,6 +18,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
+- Import from Apple Journal (HTML export)
 
 ## Contributing
 
@@ -40,3 +41,4 @@ This plugin relies on important contributions:
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
 - [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
 - [@mirnovov](https://github.com/mirnovov) for Apple Notes import
+- [@wzs](https://github.com/wzs) for Apple Journal import
