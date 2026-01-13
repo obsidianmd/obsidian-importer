@@ -8,11 +8,16 @@ import { parseHTML, serializeFrontMatter } from '../util';
 
 const DATE_FORMAT = 'dddd, D MMMM YYYY';
 const DEFAULT_OUTPUT_FOLDER = 'Journal';
-const IGNORED_ASSET_TYPES = new Set<string>(['photo', 'live-photo', 'video']);
+
+
+// Apple does not document these; check Journal exports to derive the structure.
 const ASSET_TYPE_ALIASES = new Map<string, string>([
 	['generic-map', 'location'],
 	['multi-pin-map', 'location'],
 ]);
+
+// currently resource import is not supported
+const IGNORED_ASSET_TYPES = new Set<string>(['photo', 'live-photo', 'video']);
 const BODY_PARAGRAPH_SELECTOR = '.p2, .p3';
 const OVERLAY_TEXT_SELECTORS = [
 	'.gridItemOverlayHeader',
@@ -76,6 +81,7 @@ export class AppleJournalImporter extends FormatImporter {
 
 			const file = this.files[index];
 			if (file.name === 'index.html') {
+				ctx.reportSkipped(file.fullpath, 'index file is not a journal entry');
 				ctx.reportProgress(index + 1, this.files.length);
 				continue;
 			}
@@ -96,16 +102,9 @@ export class AppleJournalImporter extends FormatImporter {
 	private async importEntry(folder: TFolder, file: PickedFile): Promise<void> {
 		const htmlContent = await file.readText();
 		const documentEl = parseHTML(htmlContent);
-		const frontMatter: FrontMatterCache = {};
-
-		if (this.frontMatterEnabled) {
-			const tokens = collectFrontMatterTokens(documentEl);
-			if (tokens) {
-				for (const [key, value] of Object.entries(tokens)) {
-					frontMatter[key] = value;
-				}
-			}
-		}
+		const frontMatter = this.frontMatterEnabled
+			? (collectFrontMatterTokens(documentEl) ?? {})
+			: {};
 
 		const entryDate = extractEntryDate(documentEl);
 		if (entryDate) {
@@ -178,12 +177,8 @@ function collectFrontMatterTokens(source: HTMLElement): FrontMatterCache | null 
 		const tokens = parseOverlayTokens(item);
 		if (tokens.length === 0) continue;
 
-		const normalizedTokens = assetType === 'state-of-mind'
-			? tokens.map(token => token.toLowerCase())
-			: tokens;
-
 		const bucket = tokensByType.get(assetType) ?? new Set<string>();
-		for (const token of normalizedTokens) {
+		for (const token of tokens) {
 			bucket.add(token);
 		}
 		tokensByType.set(assetType, bucket);
@@ -213,13 +208,17 @@ function normalizeAssetType(item: Element): string | undefined {
 	if (!rawType) return undefined;
 
 	const normalized = rawType
-		.replace(/([a-z])([A-Z])/g, '$1-$2')
+		.replace(/(\w)([A-Z])/g, '$1-$2')
 		.replace(/_/g, '-')
 		.toLowerCase();
 
 	return ASSET_TYPE_ALIASES.get(normalized) ?? normalized;
 }
 
+/**
+ * Collects overlay strings and splits them into tokens (examples: "Memorial Hospital",
+ * "John Smith", "Outdoor Walk, 2.3 km, 35 min", "Taylor Swift, Pop").
+ */
 function parseOverlayTokens(item: Element): string[] {
 	const collected = collectOverlayText(item);
 	return splitTokens(collected);

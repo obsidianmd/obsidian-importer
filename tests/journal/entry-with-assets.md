@@ -1,7 +1,7 @@
 ---
 state-of-mind:
-  - sad
-  - overwhelmed
+  - Sad
+  - Overwhelmed
 contact:
   - Mom
 date: 2024-11-03
