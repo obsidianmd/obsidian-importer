@@ -1,10 +1,10 @@
-import { htmlToMarkdown, moment, Notice, Setting } from 'obsidian';
+import { htmlToMarkdown, moment, normalizePath, Notice, Setting, TFile } from 'obsidian';
 import type { FrontMatterCache, TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import type { ImportContext } from '../main';
-import { parseHTML, serializeFrontMatter } from '../util';
+import { parseHTML, sanitizeFileName, serializeFrontMatter } from '../util';
 
 const DATE_FORMAT = 'dddd, D MMMM YYYY';
 const DEFAULT_OUTPUT_FOLDER = 'Journal';
@@ -33,8 +33,18 @@ const OVERLAY_TEXT_SELECTORS = [
 	'.mediaCategory',
 ];
 
+const DUPLICATE_HANDLING = {
+	Skip: 'skip',
+	ImportUpdated: 'import-updated',
+	CreateCopy: 'create-copy',
+} as const;
+
+type DuplicateHandling = (typeof DUPLICATE_HANDLING)[keyof typeof DUPLICATE_HANDLING];
+const DEFAULT_DUPLICATE_HANDLING = DUPLICATE_HANDLING.ImportUpdated;
+
 export class AppleJournalImporter extends FormatImporter {
 	private frontMatterEnabled = true;
+	private duplicateHandling: DuplicateHandling = DEFAULT_DUPLICATE_HANDLING;
 
 	init(): void {
 		const defaultImportPath = detectDefaultEntriesPath();
@@ -58,6 +68,20 @@ export class AppleJournalImporter extends FormatImporter {
 				toggle.onChange(value => {
 					this.frontMatterEnabled = value;
 				});
+			});
+
+		new Setting(this.modal.contentEl)
+			.setName('Handle duplicate files')
+			.setDesc('How to handle entries that already exist in the vault.')
+			.addDropdown(dropdown => {
+				dropdown
+					.addOption(DUPLICATE_HANDLING.Skip, 'Skip import')
+					.addOption(DUPLICATE_HANDLING.ImportUpdated, 'Import only updated')
+					.addOption(DUPLICATE_HANDLING.CreateCopy, 'Create a copy')
+					.setValue(DEFAULT_DUPLICATE_HANDLING)
+					.onChange(value => {
+						this.duplicateHandling = value as DuplicateHandling;
+					});
 			});
 
 		this.addOutputLocationSetting(DEFAULT_OUTPUT_FOLDER);
@@ -88,8 +112,10 @@ export class AppleJournalImporter extends FormatImporter {
 
 			try {
 				ctx.status(`Importing note ${file.basename}`);
-				await this.importEntry(folder, file);
-				ctx.reportNoteSuccess(file.fullpath);
+				const imported = await this.importEntry(ctx, folder, file);
+				if (imported) {
+					ctx.reportNoteSuccess(file.fullpath);
+				}
 			}
 			catch (error) {
 				ctx.reportFailed(file.fullpath, error as Error);
@@ -99,7 +125,7 @@ export class AppleJournalImporter extends FormatImporter {
 		}
 	}
 
-	private async importEntry(folder: TFolder, file: PickedFile): Promise<void> {
+	private async importEntry(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<boolean> {
 		const htmlContent = await file.readText();
 		const documentEl = parseHTML(htmlContent);
 		const frontMatter = this.frontMatterEnabled
@@ -121,7 +147,39 @@ export class AppleJournalImporter extends FormatImporter {
 			}
 		}
 
-		await this.saveAsMarkdownFile(folder, file.basename, mdContent);
+		const sanitizedName = sanitizeFileName(file.basename);
+		const folderPath = folder.path === '/' ? '' : folder.path;
+		const fullPath = normalizePath(
+			folderPath ? `${folderPath}/${sanitizedName}.md` : `${sanitizedName}.md`
+		);
+		const existingFile = this.vault.getAbstractFileByPath(fullPath)
+			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
+
+		if (this.duplicateHandling === DUPLICATE_HANDLING.CreateCopy) {
+			await this.saveAsMarkdownFile(folder, file.basename, mdContent);
+			return true;
+		}
+
+		if (existingFile instanceof TFile) {
+			if (this.duplicateHandling === DUPLICATE_HANDLING.Skip) {
+				ctx.reportSkipped(file.fullpath, 'file already exists');
+				return false;
+			}
+
+			if (this.duplicateHandling === DUPLICATE_HANDLING.ImportUpdated) {
+				const existingContent = await this.vault.read(existingFile);
+				if (existingContent === mdContent) {
+					ctx.reportSkipped(file.fullpath, 'journal entry unchanged since last import');
+					return false;
+				}
+			}
+
+			await this.vault.modify(existingFile, mdContent);
+			return true;
+		}
+
+		await this.vault.create(fullPath, mdContent);
+		return true;
 	}
 }
 
