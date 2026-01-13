@@ -149,9 +149,7 @@ export class AppleJournalImporter extends FormatImporter {
 
 		const sanitizedName = sanitizeFileName(file.basename);
 		const folderPath = folder.path === '/' ? '' : folder.path;
-		const fullPath = normalizePath(
-			folderPath ? `${folderPath}/${sanitizedName}.md` : `${sanitizedName}.md`
-		);
+		const fullPath = normalizePath(path.join(folderPath, sanitizedName + '.md'));
 		const existingFile = this.vault.getAbstractFileByPath(fullPath)
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
 
