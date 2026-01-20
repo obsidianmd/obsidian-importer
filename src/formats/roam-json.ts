@@ -442,7 +442,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 				processedBlocks.push(processedBlock);
 			}
-			catch (error) {
+			catch {
 				// no block with that uid exists
 				// most likely just double ((WITH_REGULAR_TEXT))
 				processedBlocks.push(sourceBlockUID);

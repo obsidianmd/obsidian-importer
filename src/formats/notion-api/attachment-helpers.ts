@@ -171,7 +171,7 @@ function extractFilenameFromUrl(url: string): string {
 		// Decode URL encoding
 		return decodeURIComponent(filename) || 'attachment';
 	}
-	catch (error) {
+	catch {
 		return 'attachment';
 	}
 }

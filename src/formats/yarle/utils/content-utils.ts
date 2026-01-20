@@ -107,7 +107,7 @@ let btime: any;
 try {
 	btime = window.require('btime');
 }
-catch (e) {}
+catch {}
 
 export const setFileDates = (path: string, note: any): void => {
 	// also set creation time if supported
@@ -121,7 +121,7 @@ export const setFileDates = (path: string, note: any): void => {
 	try{
 		fs.utimesSync(path, mtime, mtime);
 	}
-	catch (e) {}
+	catch {}
 };
 
 export const getTimeStampMoment = (resource: any): any => {

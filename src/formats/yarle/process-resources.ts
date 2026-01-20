@@ -107,7 +107,7 @@ const processResource = (workDir: string, resource: any): any => {
 	try {
 		fs.utimesSync(absFilePath, atime, atime);
 	}
-	catch (e) { }
+	catch { }
 
 	if (resource.recognition && fileName) {
 		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);

@@ -67,7 +67,7 @@ export class TomboyImporter extends FormatImporter {
 			.setDesc('When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.')
 			.addToggle((toggle: ToggleComponent) => {
 				toggle.setValue(this.todoEnabled)
-					  .onChange((value: boolean) => this.todoEnabled = value);
+					.onChange((value: boolean) => this.todoEnabled = value);
 			});
 
 		new Setting(this.modal.contentEl)

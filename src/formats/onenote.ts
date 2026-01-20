@@ -106,7 +106,7 @@ export class OneNoteImporter extends FormatImporter {
 				await this.updateAccessToken();
 				authenticated = true;
 			}
-			catch (e) {
+			catch {
 				// Failed to auth with refresh token. Proceed with normal sign in flow.
 			}
 		}

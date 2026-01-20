@@ -39,10 +39,10 @@ export function parseHTML(html: string): HTMLElement {
 	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
-export function uint8arrayToArrayBuffer(input: Uint8Array): ArrayBuffer {
+export function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 	// Slice to ensure we only return the portion of the buffer that corresponds to this view
 	// Use slice which creates a new ArrayBuffer (not SharedArrayBuffer)
-	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
+	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
 }
 
 export function stringToUtf8(text: string): ArrayBuffer {
