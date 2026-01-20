@@ -65,7 +65,7 @@ export class NotionImporter extends FormatImporter {
 				total = Object.keys(info.idsToFileInfo).length + Object.keys(info.pathsToAttachmentInfo).length;
 				ctx.reportProgress(0, total);
 			}
-			catch (e) {
+			catch {
 				ctx.reportSkipped(file.fullpath);
 			}
 		});
@@ -182,7 +182,7 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 						try {
 							await processZips(ctx, [entry], callback);
 						}
-						catch (e) {
+						catch {
 							ctx.reportFailed(entry.fullpath);
 						}
 					}
@@ -192,7 +192,7 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 				}
 			});
 		}
-		catch (e) {
+		catch {
 			ctx.reportFailed(zipFile.fullpath);
 		}
 	}

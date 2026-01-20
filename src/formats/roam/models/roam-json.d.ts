@@ -1,10 +1,10 @@
 import { NodePickedFile } from 'filesystem';
 
 export interface RoamImportOptions {
-	saveAttachments: Boolean;
+	saveAttachments: boolean;
 	jsonSources: NodePickedFile[];
 	outputDir: string;
-	downloadAttachments: Boolean;
+	downloadAttachments: boolean;
 }
 
 export interface RoamPage {

@@ -496,7 +496,7 @@ export class AppleNotesImporter extends FormatImporter {
 		try {
 			return await fsPromises.readFile(path.join(account.path, sourcePath));
 		}
-		catch (e) {
+		catch {
 			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
 		}
 	}
