@@ -1,6 +1,6 @@
 import { TemplateBlockSettings } from '../template-settings';
 
-export const getTemplateBlockSettings = (text: string, check: Function, T: any, value?: string): TemplateBlockSettings => {
+export const getTemplateBlockSettings = (text: string, check: Function, T: any, value?: string, skipYamlEscaping?: boolean): TemplateBlockSettings => {
 	return {
 		template: text,
 		check,
@@ -8,5 +8,6 @@ export const getTemplateBlockSettings = (text: string, check: Function, T: any, 
 		endBlockPlaceholder: T.END_BLOCK,
 		valuePlaceholder: T.CONTENT_PLACEHOLDER,
 		value,
+		skipYamlEscaping,
 	};
 };
