@@ -27,7 +27,7 @@ interface ImporterDefinition {
 	optionText: string;
 	helpPermalink?: string;
 	formatDescription?: string;
-	importer: new (app: App, modal: Modal) => FormatImporter;
+	importer: new (app: App, modal: ImporterModal) => FormatImporter;
 }
 
 

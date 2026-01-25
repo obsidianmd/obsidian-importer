@@ -2,6 +2,7 @@ import { normalizePath, Notice, Setting, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
+import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
@@ -143,7 +144,7 @@ export class NotionImporter extends FormatImporter {
 				}
 			}
 			catch (e) {
-				if (e.message === 'page body was not found') {
+				if (extractErrorMessage(e) === 'page body was not found') {
 					ctx.reportSkipped(file.fullpath, 'page body was not found');
 					return;
 				}

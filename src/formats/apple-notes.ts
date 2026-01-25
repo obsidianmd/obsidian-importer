@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } f
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { sanitizeFileName } from '../util';
+import { extractErrorMessage, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -182,7 +182,7 @@ export class AppleNotesImporter extends FormatImporter {
 				await this.resolveFolder(f.Z_PK);
 			}
 			catch (e) {
-				this.ctx.reportFailed(f.ZTITLE2, e?.message);
+				this.ctx.reportFailed(f.ZTITLE2, extractErrorMessage(e));
 				console.error(e);
 			}
 		}
@@ -202,7 +202,7 @@ export class AppleNotesImporter extends FormatImporter {
 				await this.resolveNote(n.Z_PK);
 			}
 			catch (e) {
-				this.ctx.reportFailed(n.ZTITLE1, e?.message);
+				this.ctx.reportFailed(n.ZTITLE1, extractErrorMessage(e));
 				console.error(e);
 			}
 		}

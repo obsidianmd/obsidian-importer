@@ -2,7 +2,7 @@ import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, Da
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
-import { sanitizeFileName, serializeFrontMatter } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
@@ -147,7 +147,7 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 					catch (error) {
 						console.error('[Notion Importer] Error in loadPageTree:', error);
-						new Notice(`Failed to load pages: ${error.message}`);
+						new Notice(`Failed to load pages: ${extractErrorMessage(error)}`);
 					}
 				});
 
@@ -462,7 +462,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error('[Notion Importer] Failed to load pages:', error);
-			new Notice(`Failed to load pages: ${error.message || 'Unknown error'}`);
+			new Notice(`Failed to load pages: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
 		finally {
 			// Re-enable button
@@ -1058,7 +1058,7 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error('Notion API import error:', error);
 			ctx.reportFailed('Notion API import', error);
-			new Notice(`Import failed: ${error.message}`);
+			new Notice(`Import failed: ${extractErrorMessage(error)}`);
 		}
 	}
 

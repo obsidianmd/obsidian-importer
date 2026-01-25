@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, parseHTML } from '../util';
+import { genUid, extractErrorMessage, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
@@ -192,7 +192,7 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
 			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
-				.createEl('details', { text: e })
+				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
 		}
 	}
@@ -309,7 +309,7 @@ export class OneNoteImporter extends FormatImporter {
 						.setCta()
 						.setButtonText('Select all')
 						.onClick(() => {
-							notebookDiv.querySelectorAll('input[type="checkbox"]:not(:checked)').forEach((el: HTMLInputElement) => el.click());
+							notebookDiv.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:not(:checked)').forEach((el) => el.click());
 						}));
 				this.renderHierarchy(notebook, notebookDiv);
 			}
@@ -478,12 +478,12 @@ export class OneNoteImporter extends FormatImporter {
 				}
 				catch (e) {
 					consecutiveFailureCount++;
-					progress.reportFailed(page.title, e.toString());
+					progress.reportFailed(page.title, String(e));
 
 					if (consecutiveFailureCount > 5 || this.modal.abortController.signal.aborted) {
 						const status = this.modal.abortController.signal.aborted
 							// The import was aborted
-							? e.message
+							? extractErrorMessage(e) ?? String(e)
 							// Hit a string of consecutive failures, so something is
 							// wrong. This is NOT related to rate-limiting, as that
 							// is handled by the retry logic.
