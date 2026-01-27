@@ -247,9 +247,31 @@ export abstract class FormatImporter {
 
 	// Utility functions for vault
 
-	/** Remove any characters that would be illegal on any platform. */
+	/**
+	 * Sanitize a file path by sanitizing each segment individually.
+	 * This ensures that folder and file names in the path:
+	 * - Remove trailing dots and spaces (Windows requirement)
+	 * - Replace invalid path characters
+	 * - Handle reserved names, control characters, etc.
+	 */
 	sanitizeFilePath(path: string): string {
-		return path.replace(/[:|?<>*\\]/g, '');
+		// Split the path into segments (handles both / and \)
+		const segments = path.split(/[/\\]/);
+
+		// Sanitize each segment using the existing sanitizeFileName utility
+		const sanitizedSegments = segments.map(segment => {
+			// Preserve empty segments (from leading/trailing/consecutive slashes)
+			if (segment === '') return segment;
+
+			// Apply full sanitization to each segment
+			const sanitized = sanitizeFileName(segment);
+
+			// If sanitization results in empty string, use fallback
+			return sanitized || 'Untitled';
+		});
+
+		// Rejoin with forward slash (Obsidian normalizes paths internally)
+		return sanitizedSegments.join('/');
 	}
 
 	/**
