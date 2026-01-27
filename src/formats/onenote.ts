@@ -1,8 +1,9 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, parseHTML } from '../util';
+import { genUid, parseHTML, stringToUtf8 } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
+import { parseFilePath } from '../filesystem';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
@@ -554,13 +555,27 @@ export class OneNoteImporter extends FormatImporter {
 			try {
 				const svgContent = inkmlToSvg(splitContent.inkml);
 				if (svgContent) {
-					// Save the SVG as an attachment
+					// Save the SVG as an attachment with proper duplicate handling
 					const svgFilename = `${page.title} - Ink.svg`;
-					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
 
-					// Create markdown embed for the SVG
-					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
-					progress.reportAttachmentSuccess(svgFilename);
+					// Use getAvailablePathForAttachment to get a unique filename
+					// This matches the pattern used in fetchAttachment() at line 924
+					const svgOutputPath = await this.getAvailablePathForAttachment(
+						svgFilename,
+						[], // Empty claimedPaths since we're writing immediately
+						`${pageFolder.path}/dummy.md` // Provide sourcePath for folder context
+					);
+
+					// Extract the final filename from the full path for the markdown embed
+					const { name: finalSvgFilename, extension } = parseFilePath(svgOutputPath);
+					const fullFilename = extension ? `${finalSvgFilename}.${extension}` : finalSvgFilename;
+
+					// Create the SVG file as binary attachment (matching attachment pattern)
+					await this.vault.createBinary(svgOutputPath, stringToUtf8(svgContent));
+
+					// Create markdown embed using the deduplicated filename
+					inkEmbedMarkdown = `\n\n![[${fullFilename}]]\n`;
+					progress.reportAttachmentSuccess(fullFilename);
 				}
 			}
 			catch (e) {
