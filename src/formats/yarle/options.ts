@@ -20,6 +20,9 @@ export interface YarleOptions {
 	skipReminderOrder?: boolean;
 	skipReminderDoneTime?: boolean;
 	skipTags?: boolean;
+	includeTitleInFrontmatter?: boolean;
+	includeCreationTimeInFrontmatter?: boolean;
+	includeUpdateTimeInFrontmatter?: boolean;
 	useHashTags?: boolean;
 	replaceWhitespacesInTagsByUnderscore?: boolean;
 	skipEnexFileNameFromOutputPath?: boolean;
