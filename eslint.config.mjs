@@ -13,17 +13,12 @@ export default defineConfig(
 		},
 
 		rules: {
-			'@typescript-eslint/interface-name-prefix': 'off',
 			'@typescript-eslint/no-unused-vars': ['error', { 'vars': 'all', 'args': 'none' }],
 			'@typescript-eslint/no-explicit-any': 'off',
 			'@typescript-eslint/ban-ts-comment': 'off',
 			// '@typescript-eslint/no-use-before-define': ['error', { 'functions': false, 'classes': false }],
-			'@typescript-eslint/no-empty-function': 'off',
-			'@typescript-eslint/no-unsafe-function-type': 'off',
-			'@typescript-eslint/no-this-alias': 'off',
 			'prefer-rest-params': 'off',
 			'prefer-const': 'off',
-			'@typescript-eslint/prefer-as-const': 'off',
 			'@typescript-eslint/no-unused-expressions': ['error', { 'allowShortCircuit': true, 'allowTernary': true }],
 			'@typescript-eslint/no-require-imports': ['error', { 'allow': ['^xml-flow$'] }],
 

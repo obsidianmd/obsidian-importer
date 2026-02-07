@@ -7,7 +7,7 @@ interface FileEntry extends Entry {
 }
 
 export class ZipEntryFile implements PickedFile {
-	type: 'file' = 'file';
+	type = 'file' as const;
 	entry: FileEntry;
 	fullpath: string;
 	parent: string;
