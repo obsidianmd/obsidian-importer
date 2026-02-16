@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
@@ -727,7 +727,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	getEntityPathNoParent(entityID: string, currentPath: string): string | null {
 		for (const notebook of this.notebooks) {
-			const path = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
+			const path = this.getEntityPath(entityID, `${currentPath}/${sanitizeFileName(notebook.displayName!)}`, notebook);
 			if (path) return path;
 		}
 		return null;
@@ -779,7 +779,7 @@ export class OneNoteImporter extends FormatImporter {
 					 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 					 */
 					if (section.pages![i + 1] && section.pages![i + 1].level !== 0) {
-						returnPath = `${currentPath}/${page.title}`;
+						returnPath = `${currentPath}/${sanitizeFileName(page.title!)}`;
 					}
 					else returnPath = currentPath;
 				}
@@ -789,7 +789,7 @@ export class OneNoteImporter extends FormatImporter {
 					// Iterate backward to find the parent page
 					for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
 						if (section.pages![i].level === page.level! - 1) {
-							returnPath += '/' + section.pages![i].title;
+							returnPath += '/' + sanitizeFileName(section.pages![i].title!);
 							break;
 						}
 					}
@@ -804,9 +804,9 @@ export class OneNoteImporter extends FormatImporter {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
 		for (const sectionGroup of sectionGroups) {
-			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sectionGroup.displayName}`;
+			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sanitizeFileName(sectionGroup.displayName!)}`;
 			else {
-				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sectionGroup.displayName}`, sectionGroup);
+				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sanitizeFileName(sectionGroup.displayName!)}`, sectionGroup);
 				if (foundPath) {
 					returnPath = foundPath;
 					break;
