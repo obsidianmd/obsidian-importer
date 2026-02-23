@@ -16,6 +16,8 @@ const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
 const roamTableRe = /^\{\{(\[\[)?table(\]\])?\}\}$/i;
+const codeBlockLangs = ['clojure', 'css', 'elixir', 'html', 'plain text', 'python', 'ruby', 'swift', 'typescript', 'jsx', 'yaml', 'json', 'json-ld', 'rust', 'r', 'shell', 'php', 'java', 'c#', 'c', 'c\\+\\+', 'objective-c', 'go', 'kotlin', 'sql', 'haskell', 'scala', 'commonlisp', 'solidity', 'julia', 'sparql', 'turtle', 'lua', 'dart', 'latex', 'markdown', 'xml', 'toml', 'vb', 'vbscript', 'javascript'];
+const codeBlockLangRe = new RegExp('```(' + codeBlockLangs.join('|') + ')\\n', 'gi');
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
@@ -249,6 +251,13 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	private async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, skipDownload: boolean = false): Promise<string> {
+		// Strip language tags from code blocks (```javascript\n → ```\n)
+		blockText = blockText.replace(codeBlockLangRe, '```\n');
+		// Normalize code fences: ensure closing ``` is on its own line
+		blockText = blockText.replace(/([^\n])```/g, '$1\n```');
+		// Ensure opening ``` followed by content has a newline after it
+		blockText = blockText.replace(/```([^\n])/g, '```\n$1');
+
 		// Remove roam-specific components
 		blockText = blockText.replace(roamSpecificMarkupRe, '');
 
@@ -347,7 +356,12 @@ export class RoamJSONImporter extends FormatImporter {
 			if ('string' in json && json.string) {
 				const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
 				const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-				markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+				const linePrefix = isChild ? indent + '* ' : indent;
+				const continuationIndent = isChild ? indent + '  ' : indent;
+				const indented = scrubbed.contains('\n')
+					? scrubbed.split('\n').map((line, i) => i === 0 ? line : continuationIndent + line).join('\n')
+					: scrubbed;
+				markdown.push(`${linePrefix}${prefix}${indented}`);
 			}
 
 			if (json.children) {
