@@ -25,3 +25,7 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
+
+# Local docs
+_DOCS
+_gpt5_docs
