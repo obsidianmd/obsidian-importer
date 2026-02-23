@@ -15,6 +15,9 @@ const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
+const roamTableRe = /^\{\{(\[\[)?table(\]\])?\}\}$/i;
+const codeBlockLangs = ['clojure', 'css', 'elixir', 'html', 'plain text', 'python', 'ruby', 'swift', 'typescript', 'jsx', 'yaml', 'json', 'json-ld', 'rust', 'r', 'shell', 'php', 'java', 'c#', 'c', 'c\\+\\+', 'objective-c', 'go', 'kotlin', 'sql', 'haskell', 'scala', 'commonlisp', 'solidity', 'julia', 'sparql', 'turtle', 'lua', 'dart', 'latex', 'markdown', 'xml', 'toml', 'vb', 'vbscript', 'javascript'];
+const codeBlockLangRe = new RegExp('```(' + codeBlockLangs.join('|') + ')\\n', 'gi');
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
@@ -248,6 +251,13 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	private async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, skipDownload: boolean = false): Promise<string> {
+		// Strip language tags from code blocks (```javascript\n → ```\n)
+		blockText = blockText.replace(codeBlockLangRe, '```\n');
+		// Normalize code fences: ensure closing ``` is on its own line
+		blockText = blockText.replace(/([^\n])```/g, '$1\n```');
+		// Ensure opening ``` followed by content has a newline after it
+		blockText = blockText.replace(/```([^\n])/g, '```\n$1');
+
 		// Remove roam-specific components
 		blockText = blockText.replace(roamSpecificMarkupRe, '');
 
@@ -286,7 +296,7 @@ export class RoamJSONImporter extends FormatImporter {
 				blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
 			}
 		}
-		// blockText = blockText.replaceAll("{{[[table]]}}", ""); 
+		// table conversion is handled in jsonToMarkdown via convertRoamTable
 		// blockText = blockText.replaceAll("{{[[kanban]]}}", "");
 		// blockText = blockText.replaceAll("{{mermaid}}", "");
 		// blockText = blockText.replaceAll("{{[[mermaid]]}}", "");
@@ -339,15 +349,25 @@ export class RoamJSONImporter extends FormatImporter {
 			this.oldestTimestamp = createdTimestamp;
 		}
 
-		if ('string' in json && json.string) {
-			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
-			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-			markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+		if ('string' in json && json.string && roamTableRe.test(json.string.trim()) && json.children) {
+			markdown.push(await this.convertRoamTable(graphFolder, attachmentsFolder, json, indent));
 		}
+		else {
+			if ('string' in json && json.string) {
+				const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
+				const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
+				const linePrefix = isChild ? indent + '* ' : indent;
+				const continuationIndent = isChild ? indent + '  ' : indent;
+				const indented = scrubbed.contains('\n')
+					? scrubbed.split('\n').map((line, i) => i === 0 ? line : continuationIndent + line).join('\n')
+					: scrubbed;
+				markdown.push(`${linePrefix}${prefix}${indented}`);
+			}
 
-		if (json.children) {
-			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
+			if (json.children) {
+				for (const child of json.children) {
+					markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
+				}
 			}
 		}
 
@@ -385,6 +405,51 @@ export class RoamJSONImporter extends FormatImporter {
 		}
 
 		return markdown.join('\n');
+	}
+
+	private async convertRoamTable(
+		graphFolder: string,
+		attachmentsFolder: string,
+		json: RoamPage | RoamBlock,
+		indent: string
+	): Promise<string> {
+		const rows = json.children || [];
+		if (rows.length === 0) return '';
+
+		// Extract cells from each row by walking the linear first-child chain
+		const tableData: string[][] = [];
+		for (const row of rows) {
+			const cells: string[] = [];
+			let current: RoamBlock | undefined = row;
+			while (current) {
+				const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, current.string || '');
+				cells.push(scrubbed.replace(/\|/g, '\\|'));
+				current = current.children?.[0];
+			}
+			tableData.push(cells);
+		}
+
+		// Determine max columns and pad shorter rows
+		const numCols = Math.max(...tableData.map(r => r.length));
+		for (const row of tableData) {
+			while (row.length < numCols) {
+				row.push('');
+			}
+		}
+
+		// Build pipe table
+		const lines: string[] = [];
+		// Header row
+		lines.push(indent + '| ' + tableData[0].join(' | ') + ' |');
+		// Separator
+		lines.push(indent + '| ' + tableData[0].map(() => '---').join(' | ') + ' |');
+		// Data rows
+		for (let i = 1; i < tableData.length; i++) {
+			lines.push(indent + '| ' + tableData[i].join(' | ') + ' |');
+		}
+
+		// Blank line before table for clean rendering
+		return '\n' + lines.join('\n');
 	}
 
 	private async modifySourceBlockString(markdownPages: Map<string, string>, sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {
