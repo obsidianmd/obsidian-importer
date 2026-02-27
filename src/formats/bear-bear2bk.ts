@@ -95,14 +95,6 @@ export class Bear2bkImporter extends FormatImporter {
 		return Bear2bkImporter.hexColorTag.test(rawTag);
 	}
 
-	private escapeHexColorTags(content: string): string {
-		return this.transformOutsideCodeBlocks(content, (line) => {
-			return line.replace(Bear2bkImporter.hexColorInline, (_match, hex) => {
-				return `\\#${hex}`;
-			});
-		});
-	}
-
 	private transformOutsideCodeBlocks(content: string, transformLine: (line: string) => string): string {
 		const hasTrailingNewline = content.endsWith('\n');
 		const lines = hasTrailingNewline ? content.slice(0, -1).split('\n') : content.split('\n');
@@ -199,7 +191,6 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
-							mdContent = this.escapeHexColorTags(mdContent);
 							mdContent = this.fixListIndentation(mdContent);
 
 							const assetMatches = [...mdContent.matchAll(assetMatcher)];
@@ -220,9 +211,12 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Replace spaces in enclosed tags, then normalize simple tags (single pass)
+							// Escape hex color tags, normalize enclosed tags, then normalize simple tags (single pass)
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								const enclosedNormalized = line.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
+								const hexEscaped = line.replace(Bear2bkImporter.hexColorInline, (_match, hex) => {
+									return `\\#${hex}`;
+								});
+								const enclosedNormalized = hexEscaped.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
