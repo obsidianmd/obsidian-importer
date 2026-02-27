@@ -203,7 +203,7 @@ export class Bear2bkImporter extends FormatImporter {
 			let match;
 			tagCandidateRegex.lastIndex = 0;
 			while ((match = tagCandidateRegex.exec(line)) !== null) {
-				const rawTag = match[1].trim();
+				const rawTag = match[1];
 				const splitTag = this.splitTrailingPunctuation(rawTag);
 				const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
 				if (!normalizedTag) {
@@ -526,6 +526,34 @@ export class Bear2bkImporter extends FormatImporter {
 			return count;
 		};
 
+		const countLeadingWhitespace = (value: string): number => {
+			let count = 0;
+			while (count < value.length) {
+				const code = value.charCodeAt(count);
+				if (code !== 32 && code !== 9 && code !== 13) {
+					break;
+				}
+				count += 1;
+			}
+			return count;
+		};
+
+		const isFrontmatterFence = (lineValue: string): boolean => {
+			const start = countLeadingWhitespace(lineValue);
+			if (!lineValue.startsWith('---', start)) {
+				return false;
+			}
+			let idx = start + 3;
+			while (idx < lineValue.length) {
+				const code = lineValue.charCodeAt(idx);
+				if (code !== 32 && code !== 9 && code !== 13) {
+					return false;
+				}
+				idx += 1;
+			}
+			return true;
+		};
+
 		const adjustCodeIndent = (lineValue: string, sourceBase: number, targetBase: number): string => {
 			const leadingSpaces = countLeadingSpaces(lineValue);
 			if (leadingSpaces < sourceBase) {
@@ -546,7 +574,7 @@ export class Bear2bkImporter extends FormatImporter {
 		for (let i = 0; i < lines.length; i += 1) {
 			let line = lines[i];
 
-			if (i === 0 && line.trim() === '---') {
+			if (i === 0 && isFrontmatterFence(line)) {
 				inFrontmatter = true;
 				out.push(line);
 				continue;
@@ -554,15 +582,15 @@ export class Bear2bkImporter extends FormatImporter {
 
 			if (inFrontmatter) {
 				out.push(line);
-				if (line.trim() === '---') {
+				if (isFrontmatterFence(line)) {
 					inFrontmatter = false;
 				}
 				continue;
 			}
 
 			const listFence = listFenceMatch(line);
-			const stripped = line.trimStart();
-			if (listFence || stripped.startsWith('```')) {
+			const hasFence = listFence !== null || line.startsWith('```', countLeadingWhitespace(line));
+			if (hasFence) {
 				if (listFence) {
 					const targetIndent = listFence.indent * 2;
 					line = ' '.repeat(targetIndent) + listFence.marker + listFence.fence;
