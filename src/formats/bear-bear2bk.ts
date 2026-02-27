@@ -220,9 +220,9 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Replace spaces in enclosed tags with underscores and make them classic tags
+							// Replace spaces in enclosed tags, then normalize simple tags (single pass)
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
+								const enclosedNormalized = line.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
@@ -233,11 +233,8 @@ export class Bear2bkImporter extends FormatImporter {
 									}
 									return '#' + tag.replace(/\s+/g, '_');
 								});
-							});
 
-							// Remove special characters in simple tags
-							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
+								return enclosedNormalized.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
 									const normalizedTag = this.normalizeSimpleTag(rawTag);
 									if (!normalizedTag) {
 										return match;
