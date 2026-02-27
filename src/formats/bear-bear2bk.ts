@@ -480,6 +480,33 @@ export class Bear2bkImporter extends FormatImporter {
 		const out: string[] = [];
 		let inFrontmatter = false;
 		let inCode = false;
+		let codeIndentSourceBase: number | null = null;
+		let codeIndentTargetBase: number | null = null;
+
+		const countLeadingSpaces = (value: string): number => {
+			let count = 0;
+			while (count < value.length && value[count] === ' ') {
+				count += 1;
+			}
+			return count;
+		};
+
+		const adjustCodeIndent = (lineValue: string, sourceBase: number, targetBase: number): string => {
+			const leadingSpaces = countLeadingSpaces(lineValue);
+			if (leadingSpaces < sourceBase) {
+				return lineValue;
+			}
+			const newIndent = ' '.repeat(targetBase + (leadingSpaces - sourceBase));
+			return newIndent + lineValue.slice(leadingSpaces);
+		};
+
+		const listFenceMatch = (lineValue: string): { indent: number; marker: string; fence: string } | null => {
+			const match = lineValue.match(/^(\s*)([-*+]\s|\d+\.\s)(```.*)$/);
+			if (!match) {
+				return null;
+			}
+			return { indent: match[1].length, marker: match[2], fence: match[3] };
+		};
 
 		for (let i = 0; i < lines.length; i += 1) {
 			let line = lines[i];
@@ -498,14 +525,42 @@ export class Bear2bkImporter extends FormatImporter {
 				continue;
 			}
 
+			const listFence = listFenceMatch(line);
 			const stripped = line.trimStart();
-			if (stripped.startsWith('```')) {
+			if (listFence || stripped.startsWith('```')) {
+				if (listFence) {
+					const targetIndent = listFence.indent * 2;
+					line = ' '.repeat(targetIndent) + listFence.marker + listFence.fence;
+					if (!inCode) {
+						codeIndentSourceBase = listFence.indent + listFence.marker.length;
+						codeIndentTargetBase = targetIndent + listFence.marker.length;
+					}
+					else {
+						codeIndentSourceBase = null;
+						codeIndentTargetBase = null;
+					}
+				}
+				else {
+					const leadingSpaces = countLeadingSpaces(line);
+					line = ' '.repeat(leadingSpaces * 2) + line.slice(leadingSpaces);
+					if (!inCode) {
+						codeIndentSourceBase = leadingSpaces;
+						codeIndentTargetBase = leadingSpaces * 2;
+					}
+					else {
+						codeIndentSourceBase = null;
+						codeIndentTargetBase = null;
+					}
+				}
 				inCode = !inCode;
 				out.push(line);
 				continue;
 			}
 
 			if (inCode) {
+				if (codeIndentSourceBase !== null && codeIndentTargetBase !== null) {
+					line = adjustCodeIndent(line, codeIndentSourceBase, codeIndentTargetBase);
+				}
 				out.push(line);
 				continue;
 			}
