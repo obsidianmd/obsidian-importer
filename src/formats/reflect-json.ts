@@ -15,12 +15,18 @@ function truncateTitle(title: string): string {
 }
 
 export class ReflectImporter extends FormatImporter {
-	downloadAttachments: boolean = false;
-	tagsFrontmatter: boolean = true;
-	dateFrontmatter: boolean = false;
-	titleFrontmatter: boolean = false;
+	downloadAttachments: boolean;
+	tagsFrontmatter: boolean;
+	dateFrontmatter: boolean;
+	titleFrontmatter: boolean;
 
 	init() {
+		// Initialize defaults in init() because FormatImporter calls init() from its constructor.
+		this.downloadAttachments = false;
+		this.tagsFrontmatter = true;
+		this.dateFrontmatter = false;
+		this.titleFrontmatter = false;
+
 		this.addFileChooserSetting('Reflect (.json)', ['json']);
 		this.addOutputLocationSetting('Reflect');
 
@@ -34,7 +40,7 @@ export class ReflectImporter extends FormatImporter {
 			.addToggle(toggle => {
 				toggle.setValue(this.downloadAttachments);
 				toggle.onChange(async (value) => {
-					this.downloadAttachments = value;
+					this.downloadAttachments = value === true;
 				});
 			});
 
@@ -212,6 +218,9 @@ export class ReflectImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext) {
+		// Snapshot option values for this run so they can't drift mid-import.
+		const shouldDownloadAttachments = this.downloadAttachments === true;
+
 		let { files } = this;
 		if (files.length === 0) {
 			new Notice('Please pick at least one file to import.');
@@ -285,7 +294,7 @@ export class ReflectImporter extends FormatImporter {
 					}
 
 					// Download images and replace placeholders
-					if (this.downloadAttachments && result.images.length > 0) {
+					if (shouldDownloadAttachments && result.images.length > 0) {
 						for (const image of result.images) {
 							const localPath = await this.downloadImage(
 								image.url,
