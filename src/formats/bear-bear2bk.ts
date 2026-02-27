@@ -53,6 +53,10 @@ export class Bear2bkImporter extends FormatImporter {
 			return null;
 		}
 
+		if (this.isHexColorTag(rawTag)) {
+			return null;
+		}
+
 		const alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
 		const nonAlphaStart = /^[0-9_\-]/;
 		const invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
@@ -74,6 +78,18 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 
 		return null;
+	}
+
+	private isHexColorTag(rawTag: string): boolean {
+		return /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(rawTag);
+	}
+
+	private escapeHexColorTags(content: string): string {
+		return this.transformOutsideCodeBlocks(content, (line) => {
+			return line.replace(/(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?![0-9a-fA-F])#?/g, (_match, hex) => {
+				return `\\#${hex}`;
+			});
+		});
 	}
 
 	private transformOutsideCodeBlocks(content: string, transformLine: (line: string) => string): string {
@@ -171,6 +187,7 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
+							mdContent = this.escapeHexColorTags(mdContent);
 							mdContent = this.fixListIndentation(mdContent);
 
 							const assetMatches = [...mdContent.matchAll(assetMatcher)];
@@ -193,9 +210,15 @@ export class Bear2bkImporter extends FormatImporter {
 
 							// Replace spaces in enclosed tags with underscores and make them classic tags
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(/#(?!\s)([^\n#]*?\S)#(?=\S)/g, (_match, tag) => {
+								return line.replace(/#(?!\s)([^\n#]*?\S)#(?=\S)/g, (match, tag) => {
+									if (this.isHexColorTag(tag)) {
+										return match;
+									}
 									return '#' + tag.replace(/\s+/g, '_') + ' ';
-								}).replace(/#(?!\s)([^\n#]*?\S)#/g, (_match, tag) => {
+								}).replace(/#(?!\s)([^\n#]*?\S)#/g, (match, tag) => {
+									if (this.isHexColorTag(tag)) {
+										return match;
+									}
 									return '#' + tag.replace(/\s+/g, '_');
 								});
 							});
