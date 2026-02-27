@@ -23,6 +23,19 @@ export class Bear2bkImporter extends FormatImporter {
 	private flattenTags: boolean = false;
 	private storeId: boolean = false;
 
+	private static readonly alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
+	private static readonly nonAlphaStart = /^[0-9_\-]/;
+	private static readonly invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
+	private static readonly hexColorTag = /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+	private static readonly hexColorInline = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?![0-9a-fA-F])#?/g;
+	private static readonly tagCandidate = /(?<!\S)#([^\s#]+)/g;
+	private static readonly enclosedTagWithFollowingChar = /#(?!\s)([^\n#]*?\S)#(?=\S)/g;
+	private static readonly enclosedTag = /#(?!\s)([^\n#]*?\S)#/g;
+	private static readonly assetMatcher = /\[[^\]]*\]\((assets\/[^\)]+)\)/gm;
+	private static readonly bearLinkMatcher = /bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g;
+	private static readonly numericOnly = /^\d+$/;
+	private static readonly collapseUnderscores = /_+/g;
+
 	init() {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
@@ -57,13 +70,11 @@ export class Bear2bkImporter extends FormatImporter {
 			return null;
 		}
 
-		const alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
-		const nonAlphaStart = /^[0-9_\-]/;
-		const invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
+		const { alphaStart, nonAlphaStart, invalidChar } = Bear2bkImporter;
 
 		if (alphaStart.test(rawTag)) {
 			let cleanTag = rawTag.replace(invalidChar, '_');
-			cleanTag = cleanTag.replace(/_+/g, '_');
+			cleanTag = cleanTag.replace(Bear2bkImporter.collapseUnderscores, '_');
 			return cleanTag;
 		}
 
@@ -71,7 +82,7 @@ export class Bear2bkImporter extends FormatImporter {
 			if (invalidChar.test(rawTag)) {
 				return null;
 			}
-			if (/^\d+$/.test(rawTag)) {
+			if (Bear2bkImporter.numericOnly.test(rawTag)) {
 				return null;
 			}
 			return rawTag;
@@ -81,12 +92,12 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private isHexColorTag(rawTag: string): boolean {
-		return /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(rawTag);
+		return Bear2bkImporter.hexColorTag.test(rawTag);
 	}
 
 	private escapeHexColorTags(content: string): string {
 		return this.transformOutsideCodeBlocks(content, (line) => {
-			return line.replace(/(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?![0-9a-fA-F])#?/g, (_match, hex) => {
+			return line.replace(Bear2bkImporter.hexColorInline, (_match, hex) => {
 				return `\\#${hex}`;
 			});
 		});
@@ -114,11 +125,12 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private extractTagsFromContent(content: string): string[] {
 		const tags = new Set<string>();
-		const isNumericOnly = (value: string) => /^\d+$/.test(value);
-		const tagCandidateRegex = /(?<!\S)#([^\s#]+)/g;
+		const isNumericOnly = (value: string) => Bear2bkImporter.numericOnly.test(value);
+		const tagCandidateRegex = Bear2bkImporter.tagCandidate;
 
 		this.transformOutsideCodeBlocks(content, (line) => {
 			let match;
+			tagCandidateRegex.lastIndex = 0;
 			while ((match = tagCandidateRegex.exec(line)) !== null) {
 				const rawTag = match[1].trim();
 				const normalizedTag = this.normalizeSimpleTag(rawTag);
@@ -164,7 +176,7 @@ export class Bear2bkImporter extends FormatImporter {
 		let outputFolder = folder;
 
 		// match 1: assets/something.jpg
-		const assetMatcher = new RegExp('\\[[^\\]]*\\]\\((assets/[^\\)]+)\\)', 'gm');
+		const assetMatcher = Bear2bkImporter.assetMatcher;
 
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
@@ -210,12 +222,12 @@ export class Bear2bkImporter extends FormatImporter {
 
 							// Replace spaces in enclosed tags with underscores and make them classic tags
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(/#(?!\s)([^\n#]*?\S)#(?=\S)/g, (match, tag) => {
+								return line.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
 									return '#' + tag.replace(/\s+/g, '_') + ' ';
-								}).replace(/#(?!\s)([^\n#]*?\S)#/g, (match, tag) => {
+								}).replace(Bear2bkImporter.enclosedTag, (match, tag) => {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
@@ -225,7 +237,7 @@ export class Bear2bkImporter extends FormatImporter {
 
 							// Remove special characters in simple tags
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(/(?<!\S)#([^\s#]+)/g, (match, rawTag) => {
+								return line.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
 									const normalizedTag = this.normalizeSimpleTag(rawTag);
 									if (!normalizedTag) {
 										return match;
@@ -344,7 +356,7 @@ export class Bear2bkImporter extends FormatImporter {
 				mtime: metadata?.mtime,
 			};
 			await this.vault.process(file, (mdContent) => {
-				return mdContent.replace(/bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g,
+				return mdContent.replace(Bear2bkImporter.bearLinkMatcher,
 					(match, noteId) => {
 						const noteTitle = idMapping[noteId]?.filename;
 						if (noteTitle) {
