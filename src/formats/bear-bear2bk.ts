@@ -27,10 +27,8 @@ export class Bear2bkImporter extends FormatImporter {
 	private static readonly nonAlphaStart = /^[0-9_\-]/;
 	private static readonly invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
 	private static readonly hexColorTag = /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
-	private static readonly hexColorInline = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?/g;
 	private static readonly tagCandidate = /(?<!\S)#([^\s#]+)/g;
-	private static readonly enclosedTagWithFollowingChar = /#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)/g;
-	private static readonly enclosedTag = /#(?!\s)((?:(?!\s#)[^\n#])*?\S)#/g;
+	private static readonly tagNormalizationMatcher = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?|#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)|#(?!\s)((?:(?!\s#)[^\n#])*?\S)#|(?<!\S)#([^\s#]+)/g;
 	private static readonly assetMatcher = /\[[^\]]*\]\((assets\/[^\)]+)\)/gm;
 	private static readonly bearLinkMatcher = /bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g;
 	private static readonly numericOnly = /^\d+$/;
@@ -294,30 +292,28 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Escape hex color tags, normalize enclosed tags, then normalize simple tags (single pass)
+							// Normalize tags and escape hex color tags (single pass)
+							const tagMatcher = Bear2bkImporter.tagNormalizationMatcher;
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								const hexEscaped = line.replace(Bear2bkImporter.hexColorInline, (_match, hex) => {
-									return `\\#${hex}`;
-								});
-								const enclosedNormalized = hexEscaped.replace(Bear2bkImporter.enclosedTagWithFollowingChar, (match, tag) => {
-									if (this.isHexColorTag(tag)) {
-										return match;
+								return line.replace(tagMatcher, (match, hexTag, enclosedFollowing, enclosedTag, rawTag) => {
+									if (hexTag) {
+										return `\\#${hexTag}`;
 									}
-									return this.normalizeEnclosedTag(tag, match, true);
-								}).replace(Bear2bkImporter.enclosedTag, (match, tag) => {
-									if (this.isHexColorTag(tag)) {
-										return match;
+									if (enclosedFollowing) {
+										return this.normalizeEnclosedTag(enclosedFollowing, match, true);
 									}
-									return this.normalizeEnclosedTag(tag, match, false);
-								});
-
-								return enclosedNormalized.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
-									const splitTag = this.splitTrailingPunctuation(rawTag);
-									const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
-									if (!normalizedTag) {
-										return match;
+									if (enclosedTag) {
+										return this.normalizeEnclosedTag(enclosedTag, match, false);
 									}
-									return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
+									if (rawTag) {
+										const splitTag = this.splitTrailingPunctuation(rawTag);
+										const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
+										if (!normalizedTag) {
+											return match;
+										}
+										return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
+									}
+									return match;
 								});
 							});
 
