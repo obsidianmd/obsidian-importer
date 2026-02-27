@@ -48,32 +48,61 @@ export class Bear2bkImporter extends FormatImporter {
 			);
 	}
 
+	private normalizeSimpleTag(rawTag: string): string | null {
+		if (!rawTag) {
+			return null;
+		}
+
+		const alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
+		const nonAlphaStart = /^[0-9_\-]/;
+		const invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
+
+		if (alphaStart.test(rawTag)) {
+			let cleanTag = rawTag.replace(invalidChar, '_');
+			cleanTag = cleanTag.replace(/_+/g, '_');
+			return cleanTag;
+		}
+
+		if (nonAlphaStart.test(rawTag)) {
+			if (invalidChar.test(rawTag)) {
+				return null;
+			}
+			if (/^\d+$/.test(rawTag)) {
+				return null;
+			}
+			return rawTag;
+		}
+
+		return null;
+	}
+
 	private extractTagsFromContent(content: string): string[] {
 		const tags = new Set<string>();
+		const isNumericOnly = (value: string) => /^\d+$/.test(value);
+		const tagCandidateRegex = /(?<!\S)#([^\s#]+)/g;
 
-		// Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
-		//    Ensures it's not part of a URL or an already processed enclosed tag.
-		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
-		//    Diacritics regex range from https://stackoverflow.com/questions/30225552/regex-for-diacritics
-		const simpleTagRegex = /(?<!\S)#([A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_][A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]*[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]|[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]+)(?![#\w/])/g;
-		let matchSimple;
-		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
-			const rawSimpleTag = matchSimple[1].trim();
-			if (rawSimpleTag !== '') {
-				if (this.flattenTags && rawSimpleTag.includes('/')) {
-					const parts = rawSimpleTag.split('/');
-					for (const part of parts) {
+		let match;
+		while ((match = tagCandidateRegex.exec(content)) !== null) {
+			const rawTag = match[1].trim();
+			const normalizedTag = this.normalizeSimpleTag(rawTag);
+			if (!normalizedTag) {
+				continue;
+			}
+
+			if (this.flattenTags && normalizedTag.includes('/')) {
+				const parts = normalizedTag.split('/');
+				for (const part of parts) {
+					if (part !== '' && !isNumericOnly(part)) {
 						tags.add(part);
 					}
 				}
-				else {
-					tags.add(rawSimpleTag);
-				}
+			}
+			else if (!isNumericOnly(normalizedTag)) {
+				tags.add(normalizedTag);
 			}
 		}
 
-		const finalTags = Array.from(tags);
-		return finalTags;
+		return Array.from(tags);
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -145,10 +174,12 @@ export class Bear2bkImporter extends FormatImporter {
 							});
 
 							// Remove special characters in simple tags
-							mdContent = mdContent.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
-								let cleanTag = tag.replace(/[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]/g, '_');
-								cleanTag = cleanTag.replace(/_+/g, '_'); // collapse multiple underscores
-								return '#' + cleanTag;
+							mdContent = mdContent.replace(/(?<!\S)#([^\s#]+)/g, (match, rawTag) => {
+								const normalizedTag = this.normalizeSimpleTag(rawTag);
+								if (!normalizedTag) {
+									return match;
+								}
+								return '#' + normalizedTag;
 							});
 
 							// Extract tags from content
