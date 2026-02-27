@@ -76,31 +76,54 @@ export class Bear2bkImporter extends FormatImporter {
 		return null;
 	}
 
+	private transformOutsideCodeBlocks(content: string, transformLine: (line: string) => string): string {
+		const hasTrailingNewline = content.endsWith('\n');
+		const lines = hasTrailingNewline ? content.slice(0, -1).split('\n') : content.split('\n');
+		let inCode = false;
+		const out: string[] = [];
+
+		for (const line of lines) {
+			const trimmed = line.trimStart();
+			if (trimmed.startsWith('```')) {
+				inCode = !inCode;
+				out.push(line);
+				continue;
+			}
+
+			out.push(inCode ? line : transformLine(line));
+		}
+
+		return out.join('\n') + (hasTrailingNewline ? '\n' : '');
+	}
+
 	private extractTagsFromContent(content: string): string[] {
 		const tags = new Set<string>();
 		const isNumericOnly = (value: string) => /^\d+$/.test(value);
 		const tagCandidateRegex = /(?<!\S)#([^\s#]+)/g;
 
-		let match;
-		while ((match = tagCandidateRegex.exec(content)) !== null) {
-			const rawTag = match[1].trim();
-			const normalizedTag = this.normalizeSimpleTag(rawTag);
-			if (!normalizedTag) {
-				continue;
-			}
+		this.transformOutsideCodeBlocks(content, (line) => {
+			let match;
+			while ((match = tagCandidateRegex.exec(line)) !== null) {
+				const rawTag = match[1].trim();
+				const normalizedTag = this.normalizeSimpleTag(rawTag);
+				if (!normalizedTag) {
+					continue;
+				}
 
-			if (this.flattenTags && normalizedTag.includes('/')) {
-				const parts = normalizedTag.split('/');
-				for (const part of parts) {
-					if (part !== '' && !isNumericOnly(part)) {
-						tags.add(part);
+				if (this.flattenTags && normalizedTag.includes('/')) {
+					const parts = normalizedTag.split('/');
+					for (const part of parts) {
+						if (part !== '' && !isNumericOnly(part)) {
+							tags.add(part);
+						}
 					}
 				}
+				else if (!isNumericOnly(normalizedTag)) {
+					tags.add(normalizedTag);
+				}
 			}
-			else if (!isNumericOnly(normalizedTag)) {
-				tags.add(normalizedTag);
-			}
-		}
+			return line;
+		});
 
 		return Array.from(tags);
 	}
@@ -174,12 +197,14 @@ export class Bear2bkImporter extends FormatImporter {
 							});
 
 							// Remove special characters in simple tags
-							mdContent = mdContent.replace(/(?<!\S)#([^\s#]+)/g, (match, rawTag) => {
-								const normalizedTag = this.normalizeSimpleTag(rawTag);
-								if (!normalizedTag) {
-									return match;
-								}
-								return '#' + normalizedTag;
+							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
+								return line.replace(/(?<!\S)#([^\s#]+)/g, (match, rawTag) => {
+									const normalizedTag = this.normalizeSimpleTag(rawTag);
+									if (!normalizedTag) {
+										return match;
+									}
+									return '#' + normalizedTag;
+								});
 							});
 
 							// Extract tags from content
