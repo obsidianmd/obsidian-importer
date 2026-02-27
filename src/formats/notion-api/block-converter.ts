@@ -90,7 +90,7 @@ function isEmptyParagraph(block: BlockObjectResponse | null | undefined): boolea
 	if (!block || block.type !== 'paragraph') {
 		return false;
 	}
-	return block.paragraph.rich_text.length === 0;
+	return block.paragraph.rich_text.length === 0 && !block.has_children;
 }
 
 /**
@@ -299,7 +299,7 @@ export async function convertBlockToMarkdown(
 	
 	switch (type) {
 		case 'paragraph':
-			markdown = convertParagraph(block, context);
+			markdown = await convertParagraph(block, context);
 			break;
 		
 		case 'heading_1':
@@ -490,10 +490,39 @@ export async function convertBlockToMarkdown(
 
 /**
  * Convert paragraph block to Markdown
+ * Supports has_children: children are indented one level deeper (indentLevel + 1),
+ * consistent with how list items handle their children.
+ * Paragraphs at indentLevel > 0 get 4-space indentation prefix.
+ * Non-nestable child blocks (tables, code, images, etc.) don't apply indentation
+ * in their own converters, so they naturally render at the root level.
  */
-export function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): string {
+export async function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): Promise<string> {
 	if (block.type !== 'paragraph') return '';
-	return convertRichText(block.paragraph.rich_text, context);
+
+	const indentLevel = context?.indentLevel || 0;
+	const indent = indentLevel > 0 ? '    '.repeat(indentLevel) : '';
+	const text = convertRichText(block.paragraph.rich_text, context);
+
+	if (!text && !block.has_children) {
+		return '';
+	}
+
+	let markdown = text ? (indent + text) : '';
+
+	if (block.has_children && context) {
+		const childrenMarkdown = await processChildrenToMarkdown(
+			block,
+			context,
+			indentLevel + 1,
+			'paragraph'
+		);
+
+		if (childrenMarkdown) {
+			markdown += (markdown ? '\n' : '') + childrenMarkdown;
+		}
+	}
+
+	return markdown;
 }
 
 /**
