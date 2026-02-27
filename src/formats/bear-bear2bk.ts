@@ -257,7 +257,7 @@ export class Bear2bkImporter extends FormatImporter {
 								await this.updateNoteFrontmatter(metadata, file, tags);
 							}
 							if (metadata?.ctime && metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file);
+								await this.modifyFileTimestamps(metadata, file);
 							}
 
 							idMapping[metadata?.id] = {
@@ -331,7 +331,7 @@ export class Bear2bkImporter extends FormatImporter {
 		}, writeOptions);
 	}
 
-	private async modifFileTimestamps(metaData: Metadata, file: TFile) {
+	private async modifyFileTimestamps(metaData: Metadata, file: TFile) {
 		const writeOptions: DataWriteOptions = {
 			ctime: metaData.ctime,
 			mtime: metaData.mtime,
