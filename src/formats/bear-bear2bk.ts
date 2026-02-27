@@ -193,7 +193,9 @@ export class Bear2bkImporter extends FormatImporter {
 
 							// Replace spaces in enclosed tags with underscores and make them classic tags
 							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(/#(?!\s)([^\n#]*?\S)#/g, (_match, tag) => {
+								return line.replace(/#(?!\s)([^\n#]*?\S)#(?=\S)/g, (_match, tag) => {
+									return '#' + tag.replace(/\s+/g, '_') + ' ';
+								}).replace(/#(?!\s)([^\n#]*?\S)#/g, (_match, tag) => {
 									return '#' + tag.replace(/\s+/g, '_');
 								});
 							});
