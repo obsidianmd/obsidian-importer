@@ -119,6 +119,7 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
+							mdContent = this.fixListIndentation(mdContent);
 
 							const assetMatches = [...mdContent.matchAll(assetMatcher)];
 							if (assetMatches.length > 0) {
@@ -340,5 +341,55 @@ export class Bear2bkImporter extends FormatImporter {
 		return idx > 0
 			? mdContent.substring(idx + 1)
 			: '';
+	}
+
+	private fixListIndentation(text: string): string {
+		const hasTrailingNewline = text.endsWith('\n');
+		const lines = hasTrailingNewline ? text.slice(0, -1).split('\n') : text.split('\n');
+
+		const out: string[] = [];
+		let inFrontmatter = false;
+		let inCode = false;
+
+		for (let i = 0; i < lines.length; i += 1) {
+			let line = lines[i];
+
+			if (i === 0 && line.trim() === '---') {
+				inFrontmatter = true;
+				out.push(line);
+				continue;
+			}
+
+			if (inFrontmatter) {
+				out.push(line);
+				if (line.trim() === '---') {
+					inFrontmatter = false;
+				}
+				continue;
+			}
+
+			const stripped = line.trimStart();
+			if (stripped.startsWith('```')) {
+				inCode = !inCode;
+				out.push(line);
+				continue;
+			}
+
+			if (inCode) {
+				out.push(line);
+				continue;
+			}
+
+			const match = line.match(/^( +)([-*+]\s|\d+\.)/);
+			if (match) {
+				const spaces = match[1];
+				const newIndent = ' '.repeat(spaces.length * 2);
+				line = newIndent + line.slice(spaces.length);
+			}
+
+			out.push(line);
+		}
+
+		return out.join('\n') + (hasTrailingNewline ? '\n' : '');
 	}
 }
