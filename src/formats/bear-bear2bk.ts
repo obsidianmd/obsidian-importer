@@ -27,10 +27,10 @@ export class Bear2bkImporter extends FormatImporter {
 	private static readonly nonAlphaStart = /^[0-9_\-]/;
 	private static readonly invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
 	private static readonly hexColorTag = /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
-	private static readonly hexColorInline = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?![0-9a-fA-F])#?/g;
+	private static readonly hexColorInline = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?/g;
 	private static readonly tagCandidate = /(?<!\S)#([^\s#]+)/g;
-	private static readonly enclosedTagWithFollowingChar = /#(?!\s)([^\n#]*?\S)#(?=\S)/g;
-	private static readonly enclosedTag = /#(?!\s)([^\n#]*?\S)#/g;
+	private static readonly enclosedTagWithFollowingChar = /#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)/g;
+	private static readonly enclosedTag = /#(?!\s)((?:(?!\s#)[^\n#])*?\S)#/g;
 	private static readonly assetMatcher = /\[[^\]]*\]\((assets\/[^\)]+)\)/gm;
 	private static readonly bearLinkMatcher = /bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g;
 	private static readonly numericOnly = /^\d+$/;
@@ -91,7 +91,21 @@ export class Bear2bkImporter extends FormatImporter {
 		return null;
 	}
 
+	private splitTrailingPunctuation(rawTag: string): { tag: string; trailing: string } | null {
+		const match = rawTag.match(/^(.*?)([.,]+)$/);
+		if (!match) {
+			return null;
+		}
+		if (match[1] === '') {
+			return null;
+		}
+		return { tag: match[1], trailing: match[2] };
+	}
+
 	private normalizeEnclosedTag(tag: string, match: string, addTrailingSpace: boolean): string {
+		if (/\s#$/.test(match)) {
+			return match;
+		}
 		const normalizedSingle = tag.replace(/\s+/g, '_');
 		const normalized = this.normalizeSimpleTag(normalizedSingle);
 		if (!normalized) {
@@ -169,7 +183,8 @@ export class Bear2bkImporter extends FormatImporter {
 			tagCandidateRegex.lastIndex = 0;
 			while ((match = tagCandidateRegex.exec(line)) !== null) {
 				const rawTag = match[1].trim();
-				const normalizedTag = this.normalizeSimpleTag(rawTag);
+				const splitTag = this.splitTrailingPunctuation(rawTag);
+				const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
 				if (!normalizedTag) {
 					continue;
 				}
@@ -273,11 +288,12 @@ export class Bear2bkImporter extends FormatImporter {
 								});
 
 								return enclosedNormalized.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
-									const normalizedTag = this.normalizeSimpleTag(rawTag);
+									const splitTag = this.splitTrailingPunctuation(rawTag);
+									const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
 									if (!normalizedTag) {
 										return match;
 									}
-									return '#' + normalizedTag;
+									return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
 								});
 							});
 
