@@ -26,9 +26,9 @@ export class Bear2bkImporter extends FormatImporter {
 	private static readonly alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
 	private static readonly nonAlphaStart = /^[0-9_\-]/;
 	private static readonly invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
+	private static readonly invalidCharGlobal = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/g;
 	private static readonly hexColorTag = /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
-	private static readonly tagCandidate = /(?<!\S)#([^\s#]+)/g;
-	private static readonly tagNormalizationMatcher = /(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?|#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)|#(?!\s)((?:(?!\s#)[^\n#])*?\S)#|(?<!\S)#([^\s#]+)/g;
+	private static readonly tagNormalizationMatcher = /(?<!\\)(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?|(?<!\\)(?<![A-Za-z0-9_./:-])#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)|(?<!\\)(?<![A-Za-z0-9_./:-])#(?!\s)((?:(?!\s#)[^\n#])*?\S)#|(?<!\\)(?<!\S)#([^\s#]+)/g;
 	private static readonly assetMatcher = /\[[^\]]*\]\((assets\/[^\)]+)\)/gm;
 	private static readonly bearLinkMatcher = /bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g;
 	private static readonly numericOnly = /^\d+$/;
@@ -68,11 +68,14 @@ export class Bear2bkImporter extends FormatImporter {
 			return null;
 		}
 
-		const { alphaStart, nonAlphaStart, invalidChar } = Bear2bkImporter;
+		const { alphaStart, nonAlphaStart, invalidChar, invalidCharGlobal } = Bear2bkImporter;
 
 		if (alphaStart.test(rawTag)) {
-			let cleanTag = rawTag.replace(invalidChar, '_');
+			let cleanTag = rawTag.replace(invalidCharGlobal, '_');
 			cleanTag = cleanTag.replace(Bear2bkImporter.collapseUnderscores, '_');
+			if (cleanTag.endsWith('_') && invalidChar.test(rawTag[rawTag.length - 1])) {
+				cleanTag = cleanTag.replace(/_+$/g, '');
+			}
 			return cleanTag;
 		}
 
@@ -98,18 +101,6 @@ export class Bear2bkImporter extends FormatImporter {
 			return null;
 		}
 		return { tag: match[1], trailing: match[2] };
-	}
-
-	private normalizeEnclosedTag(tag: string, match: string, addTrailingSpace: boolean): string {
-		if (/\s#$/.test(match)) {
-			return match;
-		}
-		const normalizedSingle = tag.replace(/\s+/g, '_');
-		const normalized = this.normalizeSimpleTag(normalizedSingle);
-		if (!normalized) {
-			return match;
-		}
-		return '#' + normalized + (addTrailingSpace ? ' ' : '');
 	}
 
 	private isHexColorTag(rawTag: string): boolean {
@@ -194,38 +185,59 @@ export class Bear2bkImporter extends FormatImporter {
 		return parts.join('');
 	}
 
-	private extractTagsFromContent(content: string): string[] {
-		const tags = new Set<string>();
-		const isNumericOnly = (value: string) => Bear2bkImporter.numericOnly.test(value);
-		const tagCandidateRegex = Bear2bkImporter.tagCandidate;
-
-		this.transformOutsideCodeBlocks(content, (line) => {
-			let match;
-			tagCandidateRegex.lastIndex = 0;
-			while ((match = tagCandidateRegex.exec(line)) !== null) {
-				const rawTag = match[1];
-				const splitTag = this.splitTrailingPunctuation(rawTag);
-				const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
-				if (!normalizedTag) {
-					continue;
-				}
-
-				if (this.flattenTags && normalizedTag.includes('/')) {
-					const parts = normalizedTag.split('/');
-					for (const part of parts) {
-						if (part !== '' && !isNumericOnly(part)) {
-							tags.add(part);
-						}
-					}
-				}
-				else if (!isNumericOnly(normalizedTag)) {
-					tags.add(normalizedTag);
+	private addNormalizedTag(tags: Set<string>, normalizedTag: string): void {
+		if (this.flattenTags && normalizedTag.includes('/')) {
+			const parts = normalizedTag.split('/');
+			for (const part of parts) {
+				if (part !== '' && !Bear2bkImporter.numericOnly.test(part)) {
+					tags.add(part);
 				}
 			}
-			return line;
+		}
+		else if (!Bear2bkImporter.numericOnly.test(normalizedTag)) {
+			tags.add(normalizedTag);
+		}
+	}
+
+	private normalizeTagsAndCollect(content: string): { content: string; tags: string[] } {
+		const tags = new Set<string>();
+		const tagMatcher = Bear2bkImporter.tagNormalizationMatcher;
+
+		const normalizedContent = this.transformOutsideCodeBlocks(content, (line) => {
+			return line.replace(tagMatcher, (match, hexTag, enclosedFollowing, enclosedTag, rawTag) => {
+				if (hexTag) {
+					return `\\#${hexTag}`;
+				}
+
+				if (enclosedFollowing || enclosedTag) {
+					const enclosedValue = enclosedFollowing ?? enclosedTag;
+					if (/\s#$/.test(match)) {
+						return match;
+					}
+					const normalizedSingle = enclosedValue.replace(/\s+/g, '_');
+					const normalizedTag = this.normalizeSimpleTag(normalizedSingle);
+					if (!normalizedTag) {
+						return match;
+					}
+					this.addNormalizedTag(tags, normalizedTag);
+					return '#' + normalizedTag + (enclosedFollowing ? ' ' : '');
+				}
+
+				if (rawTag) {
+					const splitTag = this.splitTrailingPunctuation(rawTag);
+					const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
+					if (!normalizedTag) {
+						return match;
+					}
+					this.addNormalizedTag(tags, normalizedTag);
+					return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
+				}
+
+				return match;
+			});
 		});
 
-		return Array.from(tags);
+		return { content: normalizedContent, tags: Array.from(tags) };
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -291,33 +303,10 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Normalize tags and escape hex color tags (single pass)
-							const tagMatcher = Bear2bkImporter.tagNormalizationMatcher;
-							mdContent = this.transformOutsideCodeBlocks(mdContent, (line) => {
-								return line.replace(tagMatcher, (match, hexTag, enclosedFollowing, enclosedTag, rawTag) => {
-									if (hexTag) {
-										return `\\#${hexTag}`;
-									}
-									if (enclosedFollowing) {
-										return this.normalizeEnclosedTag(enclosedFollowing, match, true);
-									}
-									if (enclosedTag) {
-										return this.normalizeEnclosedTag(enclosedTag, match, false);
-									}
-									if (rawTag) {
-										const splitTag = this.splitTrailingPunctuation(rawTag);
-										const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
-										if (!normalizedTag) {
-											return match;
-										}
-										return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
-									}
-									return match;
-								});
-							});
-
-							// Extract tags from content
-							const tags = this.extractTagsFromContent(mdContent);
+							// Normalize tags and collect tag list (single pass)
+							const normalized = this.normalizeTagsAndCollect(mdContent);
+							mdContent = normalized.content;
+							const tags = normalized.tags;
 
 							// Use just the filename without extension
 							const fileName = mdFilename;
