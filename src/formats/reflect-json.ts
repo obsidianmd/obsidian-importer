@@ -98,10 +98,11 @@ export class ReflectImporter extends FormatImporter {
 		while (true) {
 			const candidateName = suffix === 0 ? baseName : `${baseName} ${suffix}`;
 			const candidatePath = normalizePath(`${folderPath}/${candidateName}.md`);
+			const candidateKey = candidatePath.toLowerCase();
 
 			const exists = this.vault.getAbstractFileByPath(candidatePath) || this.vault.getAbstractFileByPathInsensitive(candidatePath);
-			if (!claimedPaths.has(candidatePath) && !exists) {
-				claimedPaths.add(candidatePath);
+			if (!claimedPaths.has(candidateKey) && !exists) {
+				claimedPaths.add(candidateKey);
 				return candidatePath;
 			}
 
@@ -169,7 +170,6 @@ export class ReflectImporter extends FormatImporter {
 
 		const cachedPath = downloadedImagePathsByUrl.get(resolvedUrl);
 		if (cachedPath) {
-			ctx.reportAttachmentSuccess(parseFilePath(cachedPath).name);
 			return cachedPath;
 		}
 

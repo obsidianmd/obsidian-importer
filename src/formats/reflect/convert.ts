@@ -199,20 +199,40 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 
 	let result = '';
 	const children = node.content || [];
+	let wroteItemPrefix = false;
 
 	for (const child of children) {
 		if (child.type === 'paragraph') {
 			const text = convertInline(child.content || [], ctx);
 			const archivedComment = archived ? ' <!-- archived -->' : '';
-			result += indent + prefix + text + archivedComment + '\n';
+			const line = text + archivedComment;
+			if (!wroteItemPrefix) {
+				result += indent + prefix + line + '\n';
+				wroteItemPrefix = true;
+			}
+			else {
+				result += indentChildContent(line + '\n', depth);
+			}
 		}
 		else if (child.type === 'list') {
+			if (!wroteItemPrefix) {
+				result += indent + prefix + '\n';
+				wroteItemPrefix = true;
+			}
 			result += convertLegacyList(child, ctx, depth + 1);
 		}
 		else {
 			// Other nested content (e.g. heading inside a list)
-			result += convertNode(child, ctx);
+			if (!wroteItemPrefix) {
+				result += indent + prefix + '\n';
+				wroteItemPrefix = true;
+			}
+			result += indentChildContent(convertNode(child, ctx), depth);
 		}
+	}
+
+	if (!wroteItemPrefix) {
+		result += indent + prefix + '\n';
 	}
 
 	// Only add trailing newline at top level
