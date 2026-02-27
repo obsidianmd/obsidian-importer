@@ -119,28 +119,52 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private transformOutsideCodeBlocks(content: string, transformLine: (line: string) => string): string {
-		const hasTrailingNewline = content.endsWith('\n');
-		const lines = hasTrailingNewline ? content.slice(0, -1).split('\n') : content.split('\n');
-		let inCode = false;
 		const out: string[] = [];
+		let inCode = false;
+		let lineStart = 0;
+		const length = content.length;
 
-		for (const line of lines) {
-			const trimmed = line.trimStart();
-			if (trimmed.startsWith('```')) {
+		const isCodeFenceLine = (lineValue: string): boolean => {
+			let idx = 0;
+			while (idx < lineValue.length) {
+				const code = lineValue.charCodeAt(idx);
+				if (code !== 32 && code !== 9) {
+					break;
+				}
+				idx += 1;
+			}
+			return lineValue.startsWith('```', idx);
+		};
+
+		for (let i = 0; i <= length; i += 1) {
+			const atLineEnd = i === length || content.charCodeAt(i) === 10;
+			if (!atLineEnd) {
+				continue;
+			}
+
+			if (i === length && lineStart === length) {
+				break;
+			}
+
+			const line = content.slice(lineStart, i);
+			if (isCodeFenceLine(line)) {
 				inCode = !inCode;
 				out.push(line);
-				continue;
 			}
-
-			if (inCode) {
+			else if (inCode) {
 				out.push(line);
-				continue;
+			}
+			else {
+				out.push(this.transformOutsideInlineCode(line, transformLine));
 			}
 
-			out.push(this.transformOutsideInlineCode(line, transformLine));
+			if (i < length) {
+				out.push('\n');
+			}
+			lineStart = i + 1;
 		}
 
-		return out.join('\n') + (hasTrailingNewline ? '\n' : '');
+		return out.join('');
 	}
 
 	private transformOutsideInlineCode(line: string, transformLine: (line: string) => string): string {
