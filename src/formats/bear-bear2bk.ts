@@ -167,32 +167,31 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private transformOutsideInlineCode(line: string, transformLine: (line: string) => string): string {
 		let inInline = false;
-		let current = '';
-		let result = '';
+		let currentStart = 0;
+		const parts: string[] = [];
 
 		for (let i = 0; i < line.length; i += 1) {
-			const ch = line[i];
-			if (ch === '`') {
-				if (!inInline) {
-					result += transformLine(current);
-					current = '';
-					inInline = true;
-				}
-				else {
-					result += '`' + current + '`';
-					current = '';
-					inInline = false;
-				}
+			if (line[i] !== '`') {
 				continue;
 			}
-			current += ch;
+
+			if (!inInline) {
+				parts.push(transformLine(line.slice(currentStart, i)));
+				inInline = true;
+			}
+			else {
+				parts.push('`' + line.slice(currentStart, i) + '`');
+				inInline = false;
+			}
+			currentStart = i + 1;
 		}
 
 		if (inInline) {
 			return line;
 		}
 
-		return result + transformLine(current);
+		parts.push(transformLine(line.slice(currentStart)));
+		return parts.join('');
 	}
 
 	private extractTagsFromContent(content: string): string[] {
