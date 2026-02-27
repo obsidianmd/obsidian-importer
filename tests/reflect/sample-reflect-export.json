@@ -155,7 +155,7 @@
     {
       "id": "note16",
       "subject": "16 Image Test",
-      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Here is a Firebase image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Screenshot\",\"src\":\"https://firebasestorage.googleapis.com/v0/b/reflect-prod.appspot.com/o/users%2Ftest%2Fimage1.png?alt=media&token=abc123\",\"title\":\"\",\"resizable\":false,\"fileName\":\"screenshot.png\"}},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And a reflect-assets image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Diagram\",\"src\":\"https://reflect-assets.app/images/test-diagram.jpg\",\"title\":\"\",\"resizable\":false,\"fileName\":\"diagram.jpg\"}}]}",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Here is a Firebase image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Screenshot\",\"src\":\"https://httpbin.org/image/png\",\"title\":\"\",\"resizable\":false,\"fileName\":\"screenshot.png\"}},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And a reflect-assets image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Diagram\",\"src\":\"https://httpbin.org/image/jpeg\",\"title\":\"\",\"resizable\":false,\"fileName\":\"diagram.jpg\"}}]}",
       "created_at": "2025-01-28T09:00:00.000Z",
       "updated_at": "2025-01-28T09:20:00.000Z",
       "edited_at": "2025-01-28T09:20:00.000Z",

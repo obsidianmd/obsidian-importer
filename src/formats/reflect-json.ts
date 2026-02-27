@@ -148,34 +148,11 @@ export class ReflectImporter extends FormatImporter {
 		};
 	}
 
-	private getAvailableAttachmentPath(
-		attachmentsFolder: string,
-		fileName: string,
-		claimedPaths: Set<string>,
-	): string {
-		const { basename, extension } = parseFilePath(sanitizeFileName(fileName));
-		let suffix = 0;
-
-		while (true) {
-			const candidateBaseName = suffix === 0 ? basename : `${basename} ${suffix}`;
-			const candidateFileName = extension ? `${candidateBaseName}.${extension}` : candidateBaseName;
-			const candidatePath = normalizePath(`${attachmentsFolder}/${candidateFileName}`);
-
-			const exists = this.vault.getAbstractFileByPath(candidatePath) || this.vault.getAbstractFileByPathInsensitive(candidatePath);
-			if (!claimedPaths.has(candidatePath) && !exists) {
-				claimedPaths.add(candidatePath);
-				return candidatePath;
-			}
-
-			suffix++;
-		}
-	}
-
 	private async downloadImage(
 		url: string,
 		fileName: string,
-		attachmentsFolder: string,
-		claimedAttachmentPaths: Set<string>,
+		sourcePath: string,
+		claimedAttachmentPaths: string[],
 		downloadedImagePathsByUrl: Map<string, string>,
 		ctx: ImportContext,
 	): Promise<string | null> {
@@ -200,7 +177,13 @@ export class ReflectImporter extends FormatImporter {
 				name = `reflect-image-${Date.now()}${ext}`;
 			}
 
-			const filePath = this.getAvailableAttachmentPath(attachmentsFolder, name, claimedAttachmentPaths);
+			// Respect vault attachment settings, including "Same folder as current file".
+			const filePath = await this.getAvailablePathForAttachment(name, claimedAttachmentPaths, sourcePath);
+			claimedAttachmentPaths.push(filePath);
+			const parentPath = parseFilePath(filePath).parent;
+			if (parentPath) {
+				await this.createFolders(parentPath);
+			}
 
 			await this.vault.createBinary(filePath, data);
 			downloadedImagePathsByUrl.set(resolvedUrl, filePath);
@@ -253,7 +236,7 @@ export class ReflectImporter extends FormatImporter {
 			const idToSubject = new Map<string, string>();
 			const idToOutputPath = new Map<string, string>();
 			const claimedPaths = new Set<string>();
-			const claimedAttachmentPaths = new Set<string>();
+			const claimedAttachmentPaths: string[] = [];
 			const downloadedImagePathsByUrl = new Map<string, string>();
 			for (const note of data.notes) {
 				const title = this.getNoteTitle(note, userDNPFormat);
@@ -303,14 +286,11 @@ export class ReflectImporter extends FormatImporter {
 
 					// Download images and replace placeholders
 					if (this.downloadAttachments && result.images.length > 0) {
-						const attachmentsFolder = `${folder.path}/attachments`;
-						await this.createFolders(attachmentsFolder);
-
 						for (const image of result.images) {
 							const localPath = await this.downloadImage(
 								image.url,
 								image.fileName,
-								attachmentsFolder,
+								outputPath,
 								claimedAttachmentPaths,
 								downloadedImagePathsByUrl,
 								ctx,

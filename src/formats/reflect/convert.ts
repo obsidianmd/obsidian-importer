@@ -1,4 +1,5 @@
 import { sanitizeTag } from '../keep/util';
+import { sanitizeFileName } from '../../util';
 import { ProseMirrorNode, ProseMirrorMark } from './models';
 
 export interface ConvertResult {
@@ -228,17 +229,52 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 
 	for (const item of node.content || []) {
 		if (item.type === 'listItem') {
+			let wroteItemPrefix = false;
+
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
 					const text = convertInline(child.content || [], ctx);
-					result += indent + '- ' + text + '\n';
+					if (!wroteItemPrefix) {
+						result += indent + '- ' + text + '\n';
+						wroteItemPrefix = true;
+					}
+					else {
+						result += indentChildContent(text + '\n', depth);
+					}
 				}
 				else if (child.type === 'bulletList') {
+					if (!wroteItemPrefix) {
+						result += indent + '- \n';
+						wroteItemPrefix = true;
+					}
 					result += convertBulletList(child, ctx, depth + 1);
 				}
 				else if (child.type === 'taskList') {
+					if (!wroteItemPrefix) {
+						result += indent + '- \n';
+						wroteItemPrefix = true;
+					}
 					result += convertTaskList(child, ctx, depth + 1);
 				}
+				else if (child.type === 'list') {
+					if (!wroteItemPrefix) {
+						result += indent + '- \n';
+						wroteItemPrefix = true;
+					}
+					result += convertLegacyList(child, ctx, depth + 1);
+				}
+				else {
+					if (!wroteItemPrefix) {
+						result += indent + '- \n';
+						wroteItemPrefix = true;
+					}
+					// Preserve non-paragraph blocks (heading, blockquote, codeBlock, etc.) inside list items.
+					result += indentChildContent(convertNode(child, ctx), depth);
+				}
+			}
+
+			if (!wroteItemPrefix) {
+				result += indent + '- \n';
 			}
 		}
 	}
@@ -257,17 +293,52 @@ function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 		if (item.type === 'taskListItem') {
 			const checked = item.attrs?.checked;
 			const checkbox = checked ? '- [x] ' : '- [ ] ';
+			let wroteItemPrefix = false;
+
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
 					const text = convertInline(child.content || [], ctx);
-					result += indent + checkbox + text + '\n';
+					if (!wroteItemPrefix) {
+						result += indent + checkbox + text + '\n';
+						wroteItemPrefix = true;
+					}
+					else {
+						result += indentChildContent(text + '\n', depth);
+					}
 				}
 				else if (child.type === 'bulletList') {
+					if (!wroteItemPrefix) {
+						result += indent + checkbox + '\n';
+						wroteItemPrefix = true;
+					}
 					result += convertBulletList(child, ctx, depth + 1);
 				}
 				else if (child.type === 'taskList') {
+					if (!wroteItemPrefix) {
+						result += indent + checkbox + '\n';
+						wroteItemPrefix = true;
+					}
 					result += convertTaskList(child, ctx, depth + 1);
 				}
+				else if (child.type === 'list') {
+					if (!wroteItemPrefix) {
+						result += indent + checkbox + '\n';
+						wroteItemPrefix = true;
+					}
+					result += convertLegacyList(child, ctx, depth + 1);
+				}
+				else {
+					if (!wroteItemPrefix) {
+						result += indent + checkbox + '\n';
+						wroteItemPrefix = true;
+					}
+					// Preserve non-paragraph blocks (heading, blockquote, codeBlock, etc.) inside list items.
+					result += indentChildContent(convertNode(child, ctx), depth);
+				}
+			}
+
+			if (!wroteItemPrefix) {
+				result += indent + checkbox + '\n';
 			}
 		}
 	}
@@ -284,15 +355,22 @@ function convertBacklink(node: ProseMirrorNode, ctx: ConvertContext): string {
 	const subject = ctx.idToSubject.get(id);
 
 	if (!subject) {
-		// Unknown reference (null graphId or missing note), fall back to label
-		return `[[${label}]]`;
+		// Unknown reference (null graphId or missing note), fall back to sanitized label target.
+		const fallbackTarget = sanitizeFileName(label);
+		if (!isUnsafeWikiLabel(label) && fallbackTarget === label) {
+			return `[[${fallbackTarget}]]`;
+		}
+		return toMarkdownInternalLink(label, fallbackTarget);
 	}
 
-	if (subject === label) {
-		return `[[${subject}]]`;
+	if (!isUnsafeWikiLabel(label)) {
+		if (subject === label) {
+			return `[[${subject}]]`;
+		}
+		return `[[${subject}|${label}]]`;
 	}
 
-	return `[[${subject}|${label}]]`;
+	return toMarkdownInternalLink(label, subject);
 }
 
 function convertTag(node: ProseMirrorNode, ctx: ConvertContext): string {
@@ -317,4 +395,33 @@ function convertImage(node: ProseMirrorNode, ctx: ConvertContext): string {
 	const placeholder = `<<REFLECT_IMG_${ctx.images.length}>>`;
 	ctx.images.push({ url: src, fileName, placeholder });
 	return placeholder + '\n\n';
+}
+
+function isUnsafeWikiLabel(text: string): boolean {
+	return /[\\|\]]/.test(text);
+}
+
+function escapeMarkdownLinkText(text: string): string {
+	return text
+		.replace(/\\/g, '\\\\')
+		.replace(/\[/g, '\\[')
+		.replace(/\]/g, '\\]');
+}
+
+function toMarkdownInternalLink(label: string, target: string): string {
+	const safeLabel = escapeMarkdownLinkText(label);
+	return `[${safeLabel}](<${target}>)`;
+}
+
+function indentChildContent(content: string, depth: number): string {
+	const trimmed = content.trimEnd();
+	if (!trimmed) {
+		return '';
+	}
+
+	const childIndent = '\t'.repeat(depth + 1);
+	return trimmed
+		.split('\n')
+		.map(line => line ? childIndent + line : '')
+		.join('\n') + '\n';
 }
