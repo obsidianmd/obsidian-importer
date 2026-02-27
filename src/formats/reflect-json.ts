@@ -15,7 +15,7 @@ function truncateTitle(title: string): string {
 }
 
 export class ReflectImporter extends FormatImporter {
-	downloadAttachments: boolean = true;
+	downloadAttachments: boolean = false;
 	tagsFrontmatter: boolean = true;
 	dateFrontmatter: boolean = false;
 	titleFrontmatter: boolean = false;
