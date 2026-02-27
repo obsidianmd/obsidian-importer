@@ -91,6 +91,15 @@ export class Bear2bkImporter extends FormatImporter {
 		return null;
 	}
 
+	private normalizeEnclosedTag(tag: string, match: string, addTrailingSpace: boolean): string {
+		const normalizedSingle = tag.replace(/\s+/g, '_');
+		const normalized = this.normalizeSimpleTag(normalizedSingle);
+		if (!normalized) {
+			return match;
+		}
+		return '#' + normalized + (addTrailingSpace ? ' ' : '');
+	}
+
 	private isHexColorTag(rawTag: string): boolean {
 		return Bear2bkImporter.hexColorTag.test(rawTag);
 	}
@@ -220,12 +229,12 @@ export class Bear2bkImporter extends FormatImporter {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
-									return '#' + tag.replace(/\s+/g, '_') + ' ';
+									return this.normalizeEnclosedTag(tag, match, true);
 								}).replace(Bear2bkImporter.enclosedTag, (match, tag) => {
 									if (this.isHexColorTag(tag)) {
 										return match;
 									}
-									return '#' + tag.replace(/\s+/g, '_');
+									return this.normalizeEnclosedTag(tag, match, false);
 								});
 
 								return enclosedNormalized.replace(Bear2bkImporter.tagCandidate, (match, rawTag) => {
