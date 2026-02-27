@@ -118,10 +118,45 @@ export class Bear2bkImporter extends FormatImporter {
 				continue;
 			}
 
-			out.push(inCode ? line : transformLine(line));
+			if (inCode) {
+				out.push(line);
+				continue;
+			}
+
+			out.push(this.transformOutsideInlineCode(line, transformLine));
 		}
 
 		return out.join('\n') + (hasTrailingNewline ? '\n' : '');
+	}
+
+	private transformOutsideInlineCode(line: string, transformLine: (line: string) => string): string {
+		let inInline = false;
+		let current = '';
+		let result = '';
+
+		for (let i = 0; i < line.length; i += 1) {
+			const ch = line[i];
+			if (ch === '`') {
+				if (!inInline) {
+					result += transformLine(current);
+					current = '';
+					inInline = true;
+				}
+				else {
+					result += '`' + current + '`';
+					current = '';
+					inInline = false;
+				}
+				continue;
+			}
+			current += ch;
+		}
+
+		if (inInline) {
+			return line;
+		}
+
+		return result + transformLine(current);
 	}
 
 	private extractTagsFromContent(content: string): string[] {
