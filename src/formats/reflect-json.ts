@@ -1,9 +1,10 @@
-import { moment, Notice, requestUrl, Setting } from 'obsidian';
+import { moment, normalizePath, Notice, requestUrl, Setting, TFile } from 'obsidian';
+import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { sanitizeFileName, serializeFrontMatter } from '../util';
 import { sanitizeTag } from './keep/util';
-import { ReflectExport } from './reflect/models';
+import { ReflectExport, ReflectNote } from './reflect/models';
 import { convertDocument, ConvertOptions } from './reflect/convert';
 
 const MAX_FILENAME_LENGTH = 200;
@@ -77,6 +78,31 @@ export class ReflectImporter extends FormatImporter {
 		return plugin.instance.options?.format || 'YYYY-MM-DD';
 	}
 
+	private getNoteTitle(note: ReflectNote, userDNPFormat: string): string {
+		if (note.daily_at) {
+			return moment(note.daily_at).format(userDNPFormat);
+		}
+		return truncateTitle(note.subject);
+	}
+
+	private getAvailableNotePath(folderPath: string, title: string, claimedPaths: Set<string>): string {
+		const baseName = sanitizeFileName(title);
+		let suffix = 0;
+
+		while (true) {
+			const candidateName = suffix === 0 ? baseName : `${baseName} ${suffix}`;
+			const candidatePath = normalizePath(`${folderPath}/${candidateName}.md`);
+
+			const exists = this.vault.getAbstractFileByPath(candidatePath) || this.vault.getAbstractFileByPathInsensitive(candidatePath);
+			if (!claimedPaths.has(candidatePath) && !exists) {
+				claimedPaths.add(candidatePath);
+				return candidatePath;
+			}
+
+			suffix++;
+		}
+	}
+
 	private resolveImageUrl(url: string): string | null {
 		// Skip relative paths (orphaned refs from prior note app imports)
 		if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -122,15 +148,46 @@ export class ReflectImporter extends FormatImporter {
 		};
 	}
 
+	private getAvailableAttachmentPath(
+		attachmentsFolder: string,
+		fileName: string,
+		claimedPaths: Set<string>,
+	): string {
+		const { basename, extension } = parseFilePath(sanitizeFileName(fileName));
+		let suffix = 0;
+
+		while (true) {
+			const candidateBaseName = suffix === 0 ? basename : `${basename} ${suffix}`;
+			const candidateFileName = extension ? `${candidateBaseName}.${extension}` : candidateBaseName;
+			const candidatePath = normalizePath(`${attachmentsFolder}/${candidateFileName}`);
+
+			const exists = this.vault.getAbstractFileByPath(candidatePath) || this.vault.getAbstractFileByPathInsensitive(candidatePath);
+			if (!claimedPaths.has(candidatePath) && !exists) {
+				claimedPaths.add(candidatePath);
+				return candidatePath;
+			}
+
+			suffix++;
+		}
+	}
+
 	private async downloadImage(
 		url: string,
 		fileName: string,
 		attachmentsFolder: string,
+		claimedAttachmentPaths: Set<string>,
+		downloadedImagePathsByUrl: Map<string, string>,
 		ctx: ImportContext,
 	): Promise<string | null> {
 		const resolvedUrl = this.resolveImageUrl(url);
 		if (!resolvedUrl) {
 			return null;
+		}
+
+		const cachedPath = downloadedImagePathsByUrl.get(resolvedUrl);
+		if (cachedPath) {
+			ctx.reportAttachmentSuccess(parseFilePath(cachedPath).name);
+			return cachedPath;
 		}
 
 		try {
@@ -143,17 +200,11 @@ export class ReflectImporter extends FormatImporter {
 				name = `reflect-image-${Date.now()}${ext}`;
 			}
 
-			const filePath = `${attachmentsFolder}/${sanitizeFileName(name)}`;
-
-			// Check if file already exists
-			const existing = this.vault.getAbstractFileByPath(filePath);
-			if (existing) {
-				ctx.reportAttachmentSuccess(name);
-				return filePath;
-			}
+			const filePath = this.getAvailableAttachmentPath(attachmentsFolder, name, claimedAttachmentPaths);
 
 			await this.vault.createBinary(filePath, data);
-			ctx.reportAttachmentSuccess(name);
+			downloadedImagePathsByUrl.set(resolvedUrl, filePath);
+			ctx.reportAttachmentSuccess(parseFilePath(filePath).name);
 			return filePath;
 		}
 		catch (e) {
@@ -198,14 +249,17 @@ export class ReflectImporter extends FormatImporter {
 			ctx.status('Reading ' + file.name);
 			const data = JSON.parse(await file.readText()) as ReflectExport;
 
-			// Phase 1: Build ID → title map
+			// Phase 1: Build ID → output path and backlink target maps
 			const idToSubject = new Map<string, string>();
+			const idToOutputPath = new Map<string, string>();
+			const claimedPaths = new Set<string>();
+			const claimedAttachmentPaths = new Set<string>();
+			const downloadedImagePathsByUrl = new Map<string, string>();
 			for (const note of data.notes) {
-				let title = truncateTitle(note.subject);
-				if (note.daily_at) {
-					title = moment(note.daily_at).format(userDNPFormat);
-				}
-				idToSubject.set(note.id, title);
+				const title = this.getNoteTitle(note, userDNPFormat);
+				const outputPath = this.getAvailableNotePath(folder.path, title, claimedPaths);
+				idToOutputPath.set(note.id, outputPath);
+				idToSubject.set(note.id, parseFilePath(outputPath).basename);
 			}
 
 			const total = data.notes.length;
@@ -224,12 +278,11 @@ export class ReflectImporter extends FormatImporter {
 						note.subject,
 						convertOptions,
 					);
-
-					// Determine title (daily notes use formatted date)
-					let title = truncateTitle(note.subject);
-					if (note.daily_at) {
-						title = moment(note.daily_at).format(userDNPFormat);
+					const outputPath = idToOutputPath.get(note.id);
+					if (!outputPath) {
+						throw new Error(`Missing output path for note ${note.id}`);
 					}
+					const outputName = parseFilePath(outputPath).basename;
 
 					// Build frontmatter
 					let content = result.markdown;
@@ -258,6 +311,8 @@ export class ReflectImporter extends FormatImporter {
 								image.url,
 								image.fileName,
 								attachmentsFolder,
+								claimedAttachmentPaths,
+								downloadedImagePathsByUrl,
 								ctx,
 							);
 							if (localPath) {
@@ -275,7 +330,15 @@ export class ReflectImporter extends FormatImporter {
 						}
 					}
 
-					const mdFile = await this.saveAsMarkdownFile(folder, title, content);
+					let mdFile: TFile;
+					const existing = this.vault.getAbstractFileByPath(outputPath);
+					if (existing instanceof TFile) {
+						await this.vault.modify(existing, content);
+						mdFile = existing;
+					}
+					else {
+						mdFile = await this.vault.create(outputPath, content);
+					}
 
 					// Preserve timestamps
 					await this.vault.append(mdFile, '', {
@@ -283,7 +346,7 @@ export class ReflectImporter extends FormatImporter {
 						mtime: new Date(note.updated_at).getTime(),
 					});
 
-					ctx.reportNoteSuccess(title);
+					ctx.reportNoteSuccess(outputName);
 				}
 				catch (e) {
 					ctx.reportFailed(note.subject, e);
