@@ -92,7 +92,7 @@ export class Bear2bkImporter extends FormatImporter {
 		return null;
 	}
 
-	private splitTrailingPunctuation(rawTag: string): { tag: string; trailing: string } | null {
+	private splitTrailingPunctuation(rawTag: string): { tag: string, trailing: string } | null {
 		const match = rawTag.match(/^(.*?)([.,]+)$/);
 		if (!match) {
 			return null;
@@ -199,7 +199,7 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 	}
 
-	private normalizeTagsAndCollect(content: string): { content: string; tags: string[] } {
+	private normalizeTagsAndCollect(content: string): { content: string, tags: string[] } {
 		const tags = new Set<string>();
 		const tagMatcher = Bear2bkImporter.tagNormalizationMatcher;
 
@@ -552,7 +552,7 @@ export class Bear2bkImporter extends FormatImporter {
 			return newIndent + lineValue.slice(leadingSpaces);
 		};
 
-		const listFenceMatch = (lineValue: string): { indent: number; marker: string; fence: string } | null => {
+		const listFenceMatch = (lineValue: string): { indent: number, marker: string, fence: string } | null => {
 			const match = lineValue.match(/^(\s*)([-*+]\s|\d+\.\s)(```.*)$/);
 			if (!match) {
 				return null;
