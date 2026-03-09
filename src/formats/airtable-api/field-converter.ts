@@ -120,25 +120,11 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			}
 		
 		case 'rollup':
-			// Rollup fields - check if can be converted to formula
-			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options;
-				const linkedFieldId = options?.recordLinkFieldId;
-				const rollupFieldId = options?.fieldIdInLinkedTable;
-				
-				if (linkedFieldId && rollupFieldId) {
-					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
-					const rollupFieldName = fieldIdToNameMap.get(rollupFieldId);
-					
-					if (linkedFieldName && rollupFieldName) {
-						// Can be converted to formula - return null to skip YAML
-						console.log(`Rollup field "${fieldSchema.name}" converted to formula, skipping YAML`);
-						return null;
-					}
-				}
-			}
-			// Fall back to static value
-			return convertFormulaResult(fieldValue, fieldSchema);
+			// Rollup fields: Airtable API does not expose the rollup aggregation function,
+			// so we cannot convert it to an Obsidian formula.
+			// Only import the property name (return null to skip value in YAML).
+			// Users can manually add formulas in Obsidian after import.
+			return null;
 		
 		case 'count':
 			// Count fields - check if can be converted to formula

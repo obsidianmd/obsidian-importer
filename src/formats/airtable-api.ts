@@ -1302,8 +1302,17 @@ export class AirtableAPIImporter extends FormatImporter {
 			const convertedCache = new Map<string, any>();
 
 			// Convert field values
+			// Track rollup fields to ensure their property names appear in YAML (with null value)
+			const rollupFieldNames = new Set<string>();
 			for (const field of fields) {
 				const fieldValue = recordFields[field.name];
+
+				// Rollup fields: API doesn't expose aggregation function, so only import property name
+				if (field.type === 'rollup') {
+					rollupFieldNames.add(field.name);
+					if (hasBodyTemplate) templateData[field.name] = '';
+					continue;
+				}
 
 				if (fieldValue === null || fieldValue === undefined) {
 					if (hasBodyTemplate) templateData[field.name] = '';
@@ -1439,6 +1448,16 @@ export class AirtableAPIImporter extends FormatImporter {
 							continue;
 						}
 						frontMatter[propertyName] = propertyValue;
+					}
+				}
+			}
+
+			// Add rollup fields to frontmatter with null value (property name only)
+			if (this.templateConfig && rollupFieldNames.size > 0) {
+				for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
+					if (!propertyName || !propertyName.trim()) continue;
+					if (rollupFieldNames.has(fieldId)) {
+						frontMatter[propertyName] = null;
 					}
 				}
 			}
