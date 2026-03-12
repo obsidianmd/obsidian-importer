@@ -32,7 +32,7 @@ export class ScanConverter extends ANConverter {
 			if (!file) file = await this.importer.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 
 			if (file) {
-				links.push(this.importer.app.fileManager.generateMarkdownLink(file!, parentNotePath));
+				links.push('!' + this.importer.app.fileManager.generateMarkdownLink(file!, parentNotePath));
 			}
 			else {
 				return '**Cannot decode scan**';
