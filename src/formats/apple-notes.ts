@@ -46,6 +46,11 @@ export class AppleNotesImporter extends FormatImporter {
 	trashFolders: number[] = [];
 	filePrefixFormat: string;
 
+	addFrontmatter = false;
+	frontmatterCreate = 'create: YYYY-MM-DDTHH:mm:ssZ';
+	frontmatterUpdate = 'update: YYYY-MM-DDTHH:mm:ssZ';
+	frontmatterTitle = 'title';
+
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.modal.contentEl.createEl('p', {
@@ -78,6 +83,61 @@ export class AppleNotesImporter extends FormatImporter {
 					localStorage.setItem(LOCAL_STORAGE_KEY, v);
 				})
 			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Add frontmatter')
+			.setDesc(
+				'Add create date, update date, and title frontmatter.'
+			)
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => {
+					this.addFrontmatter = v;
+					frontmatterSettingsEl.hidden = !v;
+				})
+			);
+
+		const frontmatterSettingsEl = this.modal.contentEl.createDiv('apple-notes-frontmatter-settings', el => {
+			el.style.paddingLeft = '20px';
+			el.style.borderLeft = '2px solid var(--background-modifier-border)';
+			el.hidden = true;
+
+			new Setting(el)
+				.setName('Create date frontmatter format')
+				.setDesc(
+					'Format for the create date frontmatter (e.g. "create: YYYY-MM-DDTHH:mm:ssZ").' +
+					' Leave blank for no create date frontmatter.'
+				)
+				.addText(t => t
+					.setValue('create: YYYY-MM-DDTHH:mm:ssZ')
+					.setPlaceholder('create: YYYY-MM-DDTHH:mm:ssZ')
+					.onChange(async v => this.frontmatterCreate = v)
+				);
+
+			new Setting(el)
+				.setName('Update date frontmatter format')
+				.setDesc(
+					'Format for the update date frontmatter (e.g. "update: YYYY-MM-DDTHH:mm:ssZ").' +
+					' Leave blank for no update date frontmatter.'
+				)
+				.addText(t => t
+					.setValue('update: YYYY-MM-DDTHH:mm:ssZ')
+					.setPlaceholder('update: YYYY-MM-DDTHH:mm:ssZ')
+					.onChange(async v => this.frontmatterUpdate = v)
+				);
+
+			new Setting(el)
+				.setName('Title frontmatter format')
+				.setDesc(
+					'Format for the title frontmatter (e.g. "title").' +
+					' Leave blank for no title frontmatter.'
+				)
+				.addText(t => t
+					.setValue('title')
+					.setPlaceholder('title')
+					.onChange(async v => this.frontmatterTitle = v)
+				);
+		});
 
 		new Setting(this.modal.contentEl)
 			.setName('Import recently deleted notes')
@@ -334,8 +394,41 @@ export class AppleNotesImporter extends FormatImporter {
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
+		let content = await converter.format(false, file.path);
 
-		this.vault.modify(file, await converter.format(false, file.path), {
+		if (this.addFrontmatter) {
+			const creationTime = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
+			const modificationTime = this.decodeTime(row.ZMODIFICATIONDATE1);
+
+			const frontmatterLines = ['---'];
+			if (this.frontmatterCreate) {
+				const match = this.frontmatterCreate.match(/^([^:]+):\s*(.+)$/);
+				if (match) {
+					const [, key, format] = match;
+					frontmatterLines.push(
+						`${key.trim()}: ${moment(creationTime).format(format.trim())}`
+					);
+				}
+			}
+			if (this.frontmatterUpdate) {
+				const match = this.frontmatterUpdate.match(/^([^:]+):\s*(.+)$/);
+				if (match) {
+					const [, key, format] = match;
+					frontmatterLines.push(
+						`${key.trim()}: ${moment(modificationTime).format(format.trim())}`
+					);
+				}
+			}
+			if (this.frontmatterTitle) {
+				frontmatterLines.push(
+					`${this.frontmatterTitle}: "${title.replace(/"/g, '\\"')}"`
+				);
+			}
+			frontmatterLines.push('---', '');
+			content = frontmatterLines.join('\n') + content;
+		}
+
+		this.vault.modify(file, content, {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
