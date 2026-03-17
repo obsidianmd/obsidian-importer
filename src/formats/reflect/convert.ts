@@ -27,7 +27,7 @@ export function convertDocument(
 	const doc: ProseMirrorNode = JSON.parse(documentJson);
 	const tags = new Set<string>();
 	const images: ImageInfo[] = [];
-	const ctx: ConvertContext = { idToSubject, tags, images, depth: 0, stripInlineTags: options?.stripInlineTags ?? false };
+	const ctx: ConvertContext = { idToSubject, tags, images, stripInlineTags: options?.stripInlineTags ?? false };
 
 	let nodes = doc.content || [];
 
@@ -53,12 +53,23 @@ interface ConvertContext {
 	idToSubject: Map<string, string>;
 	tags: Set<string>;
 	images: ImageInfo[];
-	depth: number;
 	stripInlineTags: boolean;
 }
 
 function convertNodes(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
-	return nodes.map(node => convertNode(node, ctx)).join('');
+	let result = '';
+	let orderedIndex = 0;
+	for (const node of nodes) {
+		if (node.type === 'list' && node.attrs?.kind === 'ordered') {
+			orderedIndex++;
+			result += convertLegacyList(node, ctx, 0, orderedIndex);
+		}
+		else {
+			orderedIndex = 0;
+			result += convertNode(node, ctx);
+		}
+	}
+	return result;
 }
 
 function convertNode(node: ProseMirrorNode, ctx: ConvertContext): string {
@@ -180,7 +191,7 @@ function applyMarks(text: string, marks: ProseMirrorMark[]): string {
 	return result;
 }
 
-function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0): string {
+function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0, ordinal: number = 1): string {
 	const indent = '\t'.repeat(depth);
 	const kind = node.attrs?.kind || 'bullet';
 	const checked = node.attrs?.checked;
@@ -191,7 +202,7 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 		prefix = checked ? '- [x] ' : '- [ ] ';
 	}
 	else if (kind === 'ordered') {
-		prefix = '1. ';
+		prefix = `${ordinal}. `;
 	}
 	else {
 		prefix = '- ';
@@ -200,6 +211,7 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 	let result = '';
 	const children = node.content || [];
 	let wroteItemPrefix = false;
+	let childOrderedIndex = 0;
 
 	for (const child of children) {
 		if (child.type === 'paragraph') {
@@ -219,7 +231,13 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 				result += indent + prefix + '\n';
 				wroteItemPrefix = true;
 			}
-			result += convertLegacyList(child, ctx, depth + 1);
+			if (child.attrs?.kind === 'ordered') {
+				childOrderedIndex++;
+			}
+			else {
+				childOrderedIndex = 0;
+			}
+			result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
 		}
 		else {
 			// Other nested content (e.g. heading inside a list)
@@ -250,6 +268,7 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 	for (const item of node.content || []) {
 		if (item.type === 'listItem') {
 			let wroteItemPrefix = false;
+			let childOrderedIndex = 0;
 
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
@@ -281,7 +300,13 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 						result += indent + '- \n';
 						wroteItemPrefix = true;
 					}
-					result += convertLegacyList(child, ctx, depth + 1);
+					if (child.attrs?.kind === 'ordered') {
+						childOrderedIndex++;
+					}
+					else {
+						childOrderedIndex = 0;
+					}
+					result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
 				}
 				else {
 					if (!wroteItemPrefix) {
@@ -314,6 +339,7 @@ function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 			const checked = item.attrs?.checked;
 			const checkbox = checked ? '- [x] ' : '- [ ] ';
 			let wroteItemPrefix = false;
+			let childOrderedIndex = 0;
 
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
@@ -345,7 +371,13 @@ function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 						result += indent + checkbox + '\n';
 						wroteItemPrefix = true;
 					}
-					result += convertLegacyList(child, ctx, depth + 1);
+					if (child.attrs?.kind === 'ordered') {
+						childOrderedIndex++;
+					}
+					else {
+						childOrderedIndex = 0;
+					}
+					result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
 				}
 				else {
 					if (!wroteItemPrefix) {
