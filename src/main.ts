@@ -459,7 +459,6 @@ export class ImporterModal extends Modal {
 
 		if (selectedId && importers.hasOwnProperty(selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
-			importer.init();
 
 			//Hide the import buttons if it's not available.
 			//The actual message to display is handled by the importer, since it depends on what is being imported.

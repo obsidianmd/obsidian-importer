@@ -25,9 +25,3 @@ data.json
 # Exclude files specific to personal development process
 .hotreload
 .devtarget
-
-# Riptide artifacts (cloud-synced)
-.humanlayer/tasks/
-
-# Reflect personal export data
-/reflect/

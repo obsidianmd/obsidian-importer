@@ -21,6 +21,7 @@ export abstract class FormatImporter {
 		this.app = app;
 		this.vault = app.vault;
 		this.modal = modal;
+		this.init();
 	}
 
 	abstract init(): void;

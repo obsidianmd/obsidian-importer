@@ -1,17 +1,19 @@
-import { moment, normalizePath, Notice, requestUrl, Setting, TFile } from 'obsidian';
+import { FrontMatterCache, moment, normalizePath, Notice, requestUrl, Setting, TFile } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
-import { sanitizeFileName, serializeFrontMatter } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, truncateText } from '../util';
 import { sanitizeTag } from './keep/util';
 import { ReflectExport, ReflectNote } from './reflect/models';
 import { convertDocument, ConvertOptions } from './reflect/convert';
 
 const MAX_FILENAME_LENGTH = 200;
+const MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS = 4;
+const MAX_ATTACHMENT_RETRY_DELAY_SECONDS = 30;
 
-function truncateTitle(title: string): string {
-	if (title.length <= MAX_FILENAME_LENGTH) return title;
-	return title.substring(0, MAX_FILENAME_LENGTH).trim();
+interface ImageDownloadError extends Error {
+	status?: number;
+	retryAfterSeconds?: number;
 }
 
 export class ReflectImporter extends FormatImporter {
@@ -86,9 +88,12 @@ export class ReflectImporter extends FormatImporter {
 
 	private getNoteTitle(note: ReflectNote, userDNPFormat: string): string {
 		if (note.daily_at) {
-			return moment(note.daily_at).format(userDNPFormat);
+			const dailyTitle = moment(note.daily_at);
+			if (dailyTitle.isValid()) {
+				return dailyTitle.format(userDNPFormat);
+			}
 		}
-		return truncateTitle(note.subject);
+		return truncateText(note.subject, MAX_FILENAME_LENGTH, '').trim() || 'Untitled';
 	}
 
 	private getAvailableNotePath(folderPath: string, title: string, claimedPaths: Set<string>): string {
@@ -129,6 +134,136 @@ export class ReflectImporter extends FormatImporter {
 		return url;
 	}
 
+	private getErrorMessage(error: unknown): string {
+		const message = extractErrorMessage(error);
+		if (message) return message;
+		if (typeof error === 'string' && error.trim()) return error;
+		return 'Unknown error';
+	}
+
+	private parseRetryAfterSeconds(value: string | undefined | null): number | undefined {
+		if (!value) return undefined;
+
+		const numeric = Number(value);
+		if (Number.isFinite(numeric) && numeric > 0) {
+			return Math.ceil(numeric);
+		}
+
+		const dateMs = Date.parse(value);
+		if (!Number.isNaN(dateMs)) {
+			const seconds = Math.ceil((dateMs - Date.now()) / 1_000);
+			return seconds > 0 ? seconds : undefined;
+		}
+
+		return undefined;
+	}
+
+	private getRetryAfterFromHeaders(headers: Record<string, string> | undefined): number | undefined {
+		if (!headers) return undefined;
+
+		for (const [key, value] of Object.entries(headers)) {
+			if (key.toLowerCase() === 'retry-after') {
+				return this.parseRetryAfterSeconds(value);
+			}
+		}
+
+		return undefined;
+	}
+
+	private createHttpError(status: number, retryAfterSeconds?: number): ImageDownloadError {
+		const error = new Error(`HTTP ${status}`) as ImageDownloadError;
+		error.status = status;
+		if (retryAfterSeconds) {
+			error.retryAfterSeconds = retryAfterSeconds;
+		}
+		return error;
+	}
+
+	private getDownloadErrorStatus(error: unknown): number | undefined {
+		if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+		const { status } = error as { status?: unknown };
+		return typeof status === 'number' ? status : undefined;
+	}
+
+	private getDownloadRetryAfterSeconds(error: unknown): number | undefined {
+		if (typeof error !== 'object' || error === null || !('retryAfterSeconds' in error)) return undefined;
+		const { retryAfterSeconds } = error as { retryAfterSeconds?: unknown };
+		return typeof retryAfterSeconds === 'number' && retryAfterSeconds > 0 ? retryAfterSeconds : undefined;
+	}
+
+	private shouldRetryImageDownload(error: unknown): boolean {
+		const status = this.getDownloadErrorStatus(error);
+		if (status === 429 || (status !== undefined && status >= 500)) {
+			return true;
+		}
+
+		if (error instanceof TypeError) {
+			return true;
+		}
+
+		const message = this.getErrorMessage(error).toLowerCase();
+		return message.includes('network')
+			|| message.includes('timeout')
+			|| message.includes('timed out')
+			|| message.includes('fetch failed')
+			|| message.includes('econnreset');
+	}
+
+	private getDownloadRetryDelaySeconds(error: unknown, attempt: number): number {
+		const retryAfter = this.getDownloadRetryAfterSeconds(error);
+		if (retryAfter) {
+			return Math.min(retryAfter, MAX_ATTACHMENT_RETRY_DELAY_SECONDS);
+		}
+
+		const exponential = 2 ** attempt;
+		return Math.min(exponential, MAX_ATTACHMENT_RETRY_DELAY_SECONDS);
+	}
+
+	private parseReflectExport(content: string): ReflectExport {
+		let parsed: unknown;
+
+		try {
+			parsed = JSON.parse(content);
+		}
+		catch (error) {
+			throw new Error(`Invalid Reflect JSON: ${this.getErrorMessage(error)}`);
+		}
+
+		return this.validateReflectExport(parsed);
+	}
+
+	private validateReflectExport(data: unknown): ReflectExport {
+		if (!data || typeof data !== 'object') {
+			throw new Error('Invalid Reflect export: top-level object expected.');
+		}
+
+		const parsed = data as Partial<ReflectExport>;
+		if (!Array.isArray(parsed.notes)) {
+			throw new Error('Invalid Reflect export: "notes" must be an array.');
+		}
+
+		for (let i = 0; i < parsed.notes.length; i++) {
+			const note = parsed.notes[i] as Partial<ReflectNote> | undefined;
+			if (!note || typeof note !== 'object') {
+				throw new Error(`Invalid Reflect export: note ${i + 1} is not an object.`);
+			}
+			if (typeof note.id !== 'string' || !note.id.trim()) {
+				throw new Error(`Invalid Reflect export: note ${i + 1} is missing "id".`);
+			}
+			if (typeof note.subject !== 'string') {
+				throw new Error(`Invalid Reflect export: note ${i + 1} is missing "subject".`);
+			}
+			if (typeof note.document_json !== 'string') {
+				throw new Error(`Invalid Reflect export: note ${i + 1} is missing "document_json".`);
+			}
+			if (typeof note.created_at !== 'string' || typeof note.updated_at !== 'string') {
+				throw new Error(`Invalid Reflect export: note ${i + 1} is missing timestamps.`);
+			}
+		}
+
+		return parsed as ReflectExport;
+	}
+
 	private async fetchImageData(url: string): Promise<{ data: ArrayBuffer, contentType: string }> {
 		// Try fetch first, fall back to requestUrl (bypasses CORS in Electron)
 		try {
@@ -147,7 +282,8 @@ export class ReflectImporter extends FormatImporter {
 
 		const response = await requestUrl({ url, throw: false });
 		if (response.status !== 200) {
-			throw new Error(`HTTP ${response.status}`);
+			const retryAfterSeconds = this.getRetryAfterFromHeaders(response.headers);
+			throw this.createHttpError(response.status, retryAfterSeconds);
 		}
 		return {
 			data: response.arrayBuffer,
@@ -173,33 +309,52 @@ export class ReflectImporter extends FormatImporter {
 			return cachedPath;
 		}
 
-		try {
-			const { data, contentType } = await this.fetchImageData(resolvedUrl);
+		let lastError: unknown;
+		for (let attempt = 1; attempt <= MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS; attempt++) {
+			try {
+				const { data, contentType } = await this.fetchImageData(resolvedUrl);
 
-			// Determine filename
-			let name = fileName;
-			if (!name) {
-				const ext = this.getExtensionFromMimeType(contentType);
-				name = `reflect-image-${Date.now()}${ext}`;
+				// Determine filename
+				let name = fileName;
+				if (!name) {
+					const ext = this.getExtensionFromMimeType(contentType);
+					name = `reflect-image-${Date.now()}${ext}`;
+				}
+
+				// Respect vault attachment settings, including "Same folder as current file".
+				const filePath = await this.getAvailablePathForAttachment(name, claimedAttachmentPaths, sourcePath);
+				const parentPath = parseFilePath(filePath).parent;
+				if (parentPath) {
+					await this.createFolders(parentPath);
+				}
+
+				await this.vault.createBinary(filePath, data);
+				claimedAttachmentPaths.push(filePath);
+				downloadedImagePathsByUrl.set(resolvedUrl, filePath);
+				ctx.reportAttachmentSuccess(parseFilePath(filePath).name);
+				return filePath;
 			}
+			catch (error) {
+				lastError = error;
 
-			// Respect vault attachment settings, including "Same folder as current file".
-			const filePath = await this.getAvailablePathForAttachment(name, claimedAttachmentPaths, sourcePath);
-			claimedAttachmentPaths.push(filePath);
-			const parentPath = parseFilePath(filePath).parent;
-			if (parentPath) {
-				await this.createFolders(parentPath);
+				const shouldRetry = attempt < MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS
+					&& this.shouldRetryImageDownload(error);
+				if (!shouldRetry) {
+					break;
+				}
+
+				const delaySeconds = this.getDownloadRetryDelaySeconds(error, attempt);
+				await this.pause(delaySeconds, 'attachment download retry backoff', ctx);
 			}
+		}
 
-			await this.vault.createBinary(filePath, data);
-			downloadedImagePathsByUrl.set(resolvedUrl, filePath);
-			ctx.reportAttachmentSuccess(parseFilePath(filePath).name);
-			return filePath;
-		}
-		catch (e) {
-			ctx.reportFailed(fileName || url, e);
-			return null;
-		}
+		console.error('Reflect attachment download failed', {
+			url: resolvedUrl,
+			fileName,
+			error: lastError,
+		});
+		ctx.reportFailed(fileName || url, this.getErrorMessage(lastError));
+		return null;
 	}
 
 	private getExtensionFromMimeType(mimeType: string): string {
@@ -220,6 +375,9 @@ export class ReflectImporter extends FormatImporter {
 	async import(ctx: ImportContext) {
 		// Snapshot option values for this run so they can't drift mid-import.
 		const shouldDownloadAttachments = this.downloadAttachments === true;
+		const shouldAddTagsFrontmatter = this.tagsFrontmatter === true;
+		const shouldAddDateFrontmatter = this.dateFrontmatter === true;
+		const shouldAddTitleFrontmatter = this.titleFrontmatter === true;
 
 		let { files } = this;
 		if (files.length === 0) {
@@ -239,9 +397,17 @@ export class ReflectImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			ctx.status('Reading ' + file.name);
-			const data = JSON.parse(await file.readText()) as ReflectExport;
+			let data: ReflectExport;
+			try {
+				data = this.parseReflectExport(await file.readText());
+			}
+			catch (error) {
+				console.error('Failed to parse Reflect export', { file: file.name, error });
+				ctx.reportFailed(file.name, this.getErrorMessage(error));
+				continue;
+			}
 
-			// Phase 1: Build ID → output path and backlink target maps
+			// Phase 1: Build ID -> output path and backlink target maps
 			const idToSubject = new Map<string, string>();
 			const idToOutputPath = new Map<string, string>();
 			const claimedPaths = new Set<string>();
@@ -258,11 +424,12 @@ export class ReflectImporter extends FormatImporter {
 			for (let i = 0; i < data.notes.length; i++) {
 				if (ctx.isCancelled()) return;
 				const note = data.notes[i];
+				const noteDisplayName = note.subject || note.id || 'Untitled';
 
-				ctx.status('Importing ' + note.subject);
+				ctx.status('Importing ' + noteDisplayName);
 				try {
 					const convertOptions: ConvertOptions = {
-						stripInlineTags: this.tagsFrontmatter,
+						stripInlineTags: shouldAddTagsFrontmatter,
 					};
 					const result = convertDocument(
 						note.document_json,
@@ -278,22 +445,24 @@ export class ReflectImporter extends FormatImporter {
 
 					// Build frontmatter
 					let content = result.markdown;
-					const frontMatter: Record<string, any> = {};
-					if (this.titleFrontmatter) {
+					const frontMatter: FrontMatterCache = {
+						id: note.id,
+					};
+					if (shouldAddTitleFrontmatter) {
 						frontMatter['title'] = note.subject;
 					}
-					if (this.tagsFrontmatter && result.tags.size > 0) {
+					if (shouldAddTagsFrontmatter && result.tags.size > 0) {
 						frontMatter['tags'] = [...result.tags].map(t => sanitizeTag(t));
 					}
-					if (this.dateFrontmatter) {
+					if (shouldAddDateFrontmatter) {
 						frontMatter['created'] = note.created_at;
 						frontMatter['updated'] = note.updated_at;
 					}
 					if (Object.keys(frontMatter).length > 0) {
-						content = serializeFrontMatter(frontMatter) + result.markdown;
+						content = serializeFrontMatter(frontMatter) + content;
 					}
 
-					// Download images and replace placeholders
+					// Download images sequentially to avoid creating attachment request bursts.
 					if (shouldDownloadAttachments && result.images.length > 0) {
 						for (const image of result.images) {
 							const localPath = await this.downloadImage(
@@ -337,8 +506,9 @@ export class ReflectImporter extends FormatImporter {
 
 					ctx.reportNoteSuccess(outputName);
 				}
-				catch (e) {
-					ctx.reportFailed(note.subject, e);
+				catch (error) {
+					console.error('Failed to import Reflect note', { noteId: note.id, error });
+					ctx.reportFailed(noteDisplayName, this.getErrorMessage(error));
 				}
 				ctx.reportProgress(i + 1, total);
 			}
