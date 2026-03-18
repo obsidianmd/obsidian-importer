@@ -101,3 +101,118 @@ describe('hard breaks', () => {
 			`Expected <br> from top-level hardBreak, got:\n${result.markdown}`);
 	});
 });
+
+describe('tag stripping — empty item suppression', () => {
+	it('drops tag-only legacy list item and still collects tag (note17)', () => {
+		const json = getNoteJson(sampleFixture, 'note17');
+		const result = convertDocument(json, sampleFixture.idToSubject, '17 Daily With Backlink', { stripInlineTags: true });
+		// Should not contain a standalone bare bullet line
+		const lines = result.markdown.split('\n');
+		const bareBullets = lines.filter(l => /^\s*-\s*$/.test(l));
+		assert.equal(bareBullets.length, 0,
+			`Expected no bare bullet lines, found: ${JSON.stringify(bareBullets)}`);
+		// Tag should still be collected
+		assert.ok(result.tags.has('meeting'),
+			`Expected tags to contain "meeting", got: ${[...result.tags]}`);
+		// The backlink to note14 should still be present in the output
+		assert.ok(result.markdown.includes('[['),
+			`Expected backlink to be present in output, got:\n${result.markdown}`);
+	});
+
+	it('drops tag-only modern bulletList item with stripInlineTags', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'bulletList',
+				content: [
+					{
+						type: 'listItem',
+						content: [{
+							type: 'paragraph',
+							content: [{ type: 'tag', attrs: { id: 'sometag', label: 'sometag' } }],
+						}],
+					},
+					{
+						type: 'listItem',
+						content: [{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Visible item' }],
+						}],
+					},
+				],
+			}],
+		});
+		const result = convertDocument(doc, new Map(), undefined, { stripInlineTags: true });
+		// Positive: visible item is preserved
+		assert.ok(result.markdown.includes('- Visible item'),
+			`Expected visible item preserved, got:\n${result.markdown}`);
+		// Negative: no bare bullets from the stripped tag-only item
+		assert.ok(!result.markdown.includes('- \n'),
+			`Expected no bare bullet, got:\n${result.markdown}`);
+		// Tag still collected
+		assert.ok(result.tags.has('sometag'));
+		// Output should contain exactly one bullet item
+		const bulletLines = result.markdown.split('\n').filter(l => /^- /.test(l));
+		assert.equal(bulletLines.length, 1,
+			`Expected exactly 1 bullet line, got: ${JSON.stringify(bulletLines)}`);
+	});
+
+	it('drops tag-only taskList item with stripInlineTags', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'taskList',
+				content: [
+					{
+						type: 'taskListItem',
+						attrs: { checked: false },
+						content: [{
+							type: 'paragraph',
+							content: [{ type: 'tag', attrs: { id: 'tasktag', label: 'tasktag' } }],
+						}],
+					},
+					{
+						type: 'taskListItem',
+						attrs: { checked: true },
+						content: [{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Done task' }],
+						}],
+					},
+				],
+			}],
+		});
+		const result = convertDocument(doc, new Map(), undefined, { stripInlineTags: true });
+		// Positive: visible task preserved
+		assert.ok(result.markdown.includes('- [x] Done task'),
+			`Expected visible task preserved, got:\n${result.markdown}`);
+		// Negative: no bare checkbox from stripped item
+		const lines = result.markdown.split('\n');
+		const bareCheckboxes = lines.filter(l => /^\s*- \[.\]\s*$/.test(l));
+		assert.equal(bareCheckboxes.length, 0,
+			`Expected no bare checkboxes, got: ${JSON.stringify(bareCheckboxes)}`);
+		// Tag still collected
+		assert.ok(result.tags.has('tasktag'));
+	});
+
+	it('preserves archived annotation even when text is empty', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'list',
+				attrs: { kind: 'bullet', checked: false, archived: true },
+				content: [{
+					type: 'paragraph',
+					content: [{ type: 'tag', attrs: { id: 'archivedtag', label: 'archivedtag' } }],
+				}],
+			}],
+		});
+		const result = convertDocument(doc, new Map(), undefined, { stripInlineTags: true });
+		// Archived comment should be preserved (line.trim() includes it so guard doesn't skip)
+		assert.ok(result.markdown.includes('<!-- archived -->'),
+			`Expected archived comment preserved, got:\n${result.markdown}`);
+		// The archived item should still have a bullet prefix
+		assert.ok(result.markdown.includes('- '),
+			`Expected bullet prefix for archived item, got:\n${result.markdown}`);
+	});
+});
