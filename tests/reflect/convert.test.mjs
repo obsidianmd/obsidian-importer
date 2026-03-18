@@ -216,3 +216,72 @@ describe('tag stripping — empty item suppression', () => {
 			`Expected bullet prefix for archived item, got:\n${result.markdown}`);
 	});
 });
+
+describe('block-first list items — heading on prefix line', () => {
+	it('puts heading on same line as bullet prefix (list-edge-cases)', () => {
+		const json = getNoteJson(edgeCaseFixture, 'list-edge-cases');
+		const result = convertDocument(json, edgeCaseFixture.idToSubject);
+		// Positive: heading is on the same line as the bullet prefix
+		assert.ok(result.markdown.includes('- ### Heading inside list item'),
+			`Expected "- ### Heading inside list item", got:\n${result.markdown}`);
+		// Negative: no bare bullet followed by indented heading
+		assert.ok(!result.markdown.includes('- \n\t### Heading inside list item'),
+			`Expected heading NOT on separate indented line, got:\n${result.markdown}`);
+	});
+
+	it('does NOT merge heading onto task list prefix (task items unchanged)', () => {
+		const json = getNoteJson(edgeCaseFixture, 'list-edge-cases');
+		const result = convertDocument(json, edgeCaseFixture.idToSubject);
+		// Task list items should keep the current behavior (heading on separate line)
+		// Positive: verify the task item heading content exists in output
+		assert.ok(result.markdown.includes('Task heading child'),
+			`Expected task heading content in output, got:\n${result.markdown}`);
+		// Negative: heading should NOT be merged onto checkbox prefix
+		assert.ok(!result.markdown.includes('- [x] #### Task heading child'),
+			`Task item heading should NOT be merged onto prefix line, got:\n${result.markdown}`);
+	});
+
+	it('puts heading on prefix line for legacy bullet list', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'list',
+				attrs: { kind: 'bullet', checked: false },
+				content: [
+					{ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Legacy heading' }] },
+					{ type: 'paragraph', content: [{ type: 'text', text: 'Body text' }] },
+				],
+			}],
+		});
+		const result = convertDocument(doc, new Map());
+		// Positive: heading merged onto bullet prefix
+		assert.ok(result.markdown.includes('- ## Legacy heading'),
+			`Expected "- ## Legacy heading", got:\n${result.markdown}`);
+		// Positive: body text preserved as continuation
+		assert.ok(result.markdown.includes('Body text'),
+			`Expected body text preserved, got:\n${result.markdown}`);
+	});
+
+	it('preserves blockquote on separate line (not merged)', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'bulletList',
+				content: [{
+					type: 'listItem',
+					content: [{
+						type: 'blockquote',
+						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Quoted' }] }],
+					}],
+				}],
+			}],
+		});
+		const result = convertDocument(doc, new Map());
+		// Positive: blockquote content present and indented under bullet
+		assert.ok(result.markdown.includes('> Quoted'),
+			`Expected blockquote content in output, got:\n${result.markdown}`);
+		// Negative: blockquote should NOT be merged onto bullet prefix line
+		assert.ok(!result.markdown.includes('- > Quoted'),
+			`Blockquote should not be merged onto bullet prefix, got:\n${result.markdown}`);
+	});
+});

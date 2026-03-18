@@ -245,12 +245,19 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 			result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
 		}
 		else {
-			// Other nested content (e.g. heading inside a list)
 			if (!wroteItemPrefix) {
-				result += indent + prefix + '\n';
+				if (child.type === 'heading') {
+					result += prefixFirstLine(convertNode(child, ctx), indent, prefix, depth);
+				}
+				else {
+					result += indent + prefix + '\n';
+					result += indentChildContent(convertNode(child, ctx), depth);
+				}
 				wroteItemPrefix = true;
 			}
-			result += indentChildContent(convertNode(child, ctx), depth);
+			else {
+				result += indentChildContent(convertNode(child, ctx), depth);
+			}
 		}
 	}
 
@@ -320,11 +327,18 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 				}
 				else {
 					if (!wroteItemPrefix) {
-						result += indent + '- \n';
+						if (child.type === 'heading') {
+							result += prefixFirstLine(convertNode(child, ctx), indent, '- ', depth);
+						}
+						else {
+							result += indent + '- \n';
+							result += indentChildContent(convertNode(child, ctx), depth);
+						}
 						wroteItemPrefix = true;
 					}
-					// Preserve non-paragraph blocks (heading, blockquote, codeBlock, etc.) inside list items.
-					result += indentChildContent(convertNode(child, ctx), depth);
+					else {
+						result += indentChildContent(convertNode(child, ctx), depth);
+					}
 				}
 			}
 
@@ -491,4 +505,16 @@ function indentChildContent(content: string, depth: number): string {
 		.split('\n')
 		.map(line => line ? childIndent + line : '')
 		.join('\n') + '\n';
+}
+
+function prefixFirstLine(content: string, indent: string, prefix: string, depth: number): string {
+	const trimmed = content.trimEnd();
+	if (!trimmed) return indent + prefix + '\n';
+	const lines = trimmed.split('\n');
+	const first = lines[0].trimStart();
+	let result = indent + prefix + first + '\n';
+	if (lines.length > 1) {
+		result += indentChildContent(lines.slice(1).join('\n'), depth);
+	}
+	return result;
 }
