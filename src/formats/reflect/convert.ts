@@ -211,6 +211,7 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 	let result = '';
 	const children = node.content || [];
 	let wroteItemPrefix = false;
+	let skippedContent = false;
 	let childOrderedIndex = 0;
 
 	for (const child of children) {
@@ -218,6 +219,10 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 			const text = convertInline(child.content || [], ctx);
 			const archivedComment = archived ? ' <!-- archived -->' : '';
 			const line = text + archivedComment;
+			if (line.trim() === '') {
+				skippedContent = true;
+				continue;
+			}
 			if (!wroteItemPrefix) {
 				result += indent + prefix + line + '\n';
 				wroteItemPrefix = true;
@@ -249,7 +254,7 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 		}
 	}
 
-	if (!wroteItemPrefix) {
+	if (!wroteItemPrefix && !skippedContent) {
 		result += indent + prefix + '\n';
 	}
 
@@ -268,11 +273,16 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 	for (const item of node.content || []) {
 		if (item.type === 'listItem') {
 			let wroteItemPrefix = false;
+			let skippedContent = false;
 			let childOrderedIndex = 0;
 
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
 					const text = convertInline(child.content || [], ctx);
+					if (text.trim() === '') {
+						skippedContent = true;
+						continue;
+					}
 					if (!wroteItemPrefix) {
 						result += indent + '- ' + text + '\n';
 						wroteItemPrefix = true;
@@ -318,7 +328,7 @@ function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 				}
 			}
 
-			if (!wroteItemPrefix) {
+			if (!wroteItemPrefix && !skippedContent) {
 				result += indent + '- \n';
 			}
 		}
@@ -339,11 +349,16 @@ function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 			const checked = item.attrs?.checked;
 			const checkbox = checked ? '- [x] ' : '- [ ] ';
 			let wroteItemPrefix = false;
+			let skippedContent = false;
 			let childOrderedIndex = 0;
 
 			for (const child of item.content || []) {
 				if (child.type === 'paragraph') {
 					const text = convertInline(child.content || [], ctx);
+					if (text.trim() === '') {
+						skippedContent = true;
+						continue;
+					}
 					if (!wroteItemPrefix) {
 						result += indent + checkbox + text + '\n';
 						wroteItemPrefix = true;
@@ -389,7 +404,7 @@ function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 				}
 			}
 
-			if (!wroteItemPrefix) {
+			if (!wroteItemPrefix && !skippedContent) {
 				result += indent + checkbox + '\n';
 			}
 		}
