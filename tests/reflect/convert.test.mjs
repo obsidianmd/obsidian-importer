@@ -62,3 +62,42 @@ describe('convertDocument smoke test', () => {
 		assert.equal(result.markdown, 'Hello');
 	});
 });
+
+describe('hard breaks', () => {
+	it('converts hard breaks to <br> tags (note3)', () => {
+		const json = getNoteJson(sampleFixture, 'note3');
+		const result = convertDocument(json, sampleFixture.idToSubject);
+		assert.ok(result.markdown.includes('Line one<br>\nLine two<br>\nLine three'),
+			`Expected <br> between lines, got:\n${result.markdown}`);
+	});
+
+	it('converts inline hard breaks in a minimal fixture', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [{
+				type: 'paragraph',
+				content: [
+					{ type: 'text', text: 'A' },
+					{ type: 'hardBreak' },
+					{ type: 'text', text: 'B' },
+				],
+			}],
+		});
+		const result = convertDocument(doc, new Map());
+		assert.equal(result.markdown, 'A<br>\nB');
+	});
+
+	it('converts top-level hardBreak via convertNode path', () => {
+		const doc = JSON.stringify({
+			type: 'doc',
+			content: [
+				{ type: 'paragraph', content: [{ type: 'text', text: 'Above' }] },
+				{ type: 'hardBreak' },
+				{ type: 'paragraph', content: [{ type: 'text', text: 'Below' }] },
+			],
+		});
+		const result = convertDocument(doc, new Map());
+		assert.ok(result.markdown.includes('<br>'),
+			`Expected <br> from top-level hardBreak, got:\n${result.markdown}`);
+	});
+});
