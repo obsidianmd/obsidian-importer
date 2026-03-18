@@ -84,7 +84,7 @@ function convertNode(node: ProseMirrorNode, ctx: ConvertContext): string {
 			return text + '\n\n';
 		}
 		case 'hardBreak':
-			return '\n';
+			return '<br>\n';
 		case 'horizontalRule':
 			return '---\n\n';
 		case 'blockquote': {
@@ -147,7 +147,7 @@ function convertInline(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
 			parts.push(applyMarks(node.text || '', node.marks || []));
 		}
 		else if (node.type === 'hardBreak') {
-			parts.push('\n');
+			parts.push('<br>\n');
 		}
 		else if (node.type === 'backlink') {
 			parts.push(convertBacklink(node, ctx));
