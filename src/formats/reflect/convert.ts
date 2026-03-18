@@ -1,5 +1,5 @@
 import { sanitizeTag } from '../keep/util';
-import { sanitizeFileName } from '../../sanitize-file-name';
+import { sanitizeFileName } from '../../util';
 import { ProseMirrorNode, ProseMirrorMark } from './models';
 
 export interface ConvertResult {
