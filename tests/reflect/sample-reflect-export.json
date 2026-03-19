@@ -1,0 +1,177 @@
+{
+  "export_version": "1.0",
+  "graph_version": 15,
+  "notes": [
+    {
+      "id": "note1",
+      "subject": "01 Test Note Basic",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Welcome to Reflect\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is a basic test note with headings and paragraphs.\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Section 2\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Another paragraph of text.\"}]}]}",
+      "created_at": "2025-01-15T10:00:00.000Z",
+      "updated_at": "2025-01-15T12:00:00.000Z",
+      "edited_at": "2025-01-15T12:00:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note2",
+      "subject": "02 Daily Note Example",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is a daily note entry.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"It should be named using the daily note format.\"}]}]}",
+      "created_at": "2025-01-01T08:00:00.000Z",
+      "updated_at": "2025-01-01T09:00:00.000Z",
+      "edited_at": "2025-01-01T09:00:00.000Z",
+      "daily_at": "2025-01-01",
+      "backlinked_count": 0
+    },
+    {
+      "id": "note3",
+      "subject": "03 Note with Hard Breaks",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Line one\"},{\"type\":\"hardBreak\"},{\"type\":\"text\",\"text\":\"Line two\"},{\"type\":\"hardBreak\"},{\"type\":\"text\",\"text\":\"Line three\"}]}]}",
+      "created_at": "2025-01-10T14:00:00.000Z",
+      "updated_at": "2025-01-10T14:30:00.000Z",
+      "edited_at": "2025-01-10T14:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note4",
+      "subject": "04 Note with Horizontal Rule",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Content before the rule\"}]},{\"type\":\"horizontalRule\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Content after the rule\"}]}]}",
+      "created_at": "2025-01-12T16:00:00.000Z",
+      "updated_at": "2025-01-12T16:15:00.000Z",
+      "edited_at": "2025-01-12T16:15:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 1
+    },
+    {
+      "id": "note5",
+      "subject": "05 Complex Heading Structure",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Main Title\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Introduction paragraph.\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Subsection\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Subsection content.\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Sub-subsection\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Deeper content.\"}]}]}",
+      "created_at": "2025-01-20T11:00:00.000Z",
+      "updated_at": "2025-01-20T11:45:00.000Z",
+      "edited_at": "2025-01-20T11:45:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note6",
+      "subject": "06 Empty Note",
+      "document_json": "{\"type\":\"doc\",\"content\":[]}",
+      "created_at": "2025-01-05T09:00:00.000Z",
+      "updated_at": "2025-01-05T09:00:00.000Z",
+      "edited_at": "2025-01-05T09:00:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note7",
+      "subject": "07 Mixed Content Types",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Mixed Content\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"A paragraph with text.\"}]},{\"type\":\"horizontalRule\"},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"After the break\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"More text\"},{\"type\":\"hardBreak\"},{\"type\":\"text\",\"text\":\"on multiple lines.\"}]}]}",
+      "created_at": "2025-01-18T13:00:00.000Z",
+      "updated_at": "2025-01-18T13:30:00.000Z",
+      "edited_at": "2025-01-18T13:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note8",
+      "subject": "08 Another Daily Note",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Thursday, January 2nd, 2025\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Daily journal entry for January 2nd.\"}]}]}",
+      "created_at": "2025-01-02T07:00:00.000Z",
+      "updated_at": "2025-01-02T20:00:00.000Z",
+      "edited_at": "2025-01-02T20:00:00.000Z",
+      "daily_at": "2025-01-02",
+      "backlinked_count": 0
+    },
+    {
+      "id": "note9",
+      "subject": "09 Formatting Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Formatting Examples\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This has \",\"marks\":[]},{\"type\":\"text\",\"text\":\"bold text\",\"marks\":[{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\" and \",\"marks\":[]},{\"type\":\"text\",\"text\":\"italic text\",\"marks\":[{\"type\":\"italic\"}]},{\"type\":\"text\",\"text\":\" and \",\"marks\":[]},{\"type\":\"text\",\"text\":\"inline code\",\"marks\":[{\"type\":\"code\"}]},{\"type\":\"text\",\"text\":\" in one paragraph.\",\"marks\":[]}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This has \",\"marks\":[]},{\"type\":\"text\",\"text\":\"strikethrough\",\"marks\":[{\"type\":\"strike\"}]},{\"type\":\"text\",\"text\":\" and \",\"marks\":[]},{\"type\":\"text\",\"text\":\"underlined\",\"marks\":[{\"type\":\"underline\"}]},{\"type\":\"text\",\"text\":\" and a \",\"marks\":[]},{\"type\":\"text\",\"text\":\"link to example\",\"marks\":[{\"type\":\"link\",\"attrs\":{\"href\":\"https://example.com\"}}]},{\"type\":\"text\",\"text\":\".\",\"marks\":[]}]}]}",
+      "created_at": "2025-01-22T10:00:00.000Z",
+      "updated_at": "2025-01-22T10:30:00.000Z",
+      "edited_at": "2025-01-22T10:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note10",
+      "subject": "10 Code Block Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Here is some code:\"}]},{\"type\":\"codeBlock\",\"attrs\":{\"language\":\"javascript\"},\"content\":[{\"type\":\"text\",\"text\":\"function hello() {\\n  console.log('world');\\n}\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And a code block without a language:\"}]},{\"type\":\"codeBlock\",\"attrs\":{},\"content\":[{\"type\":\"text\",\"text\":\"plain text code\"}]}]}",
+      "created_at": "2025-01-23T09:00:00.000Z",
+      "updated_at": "2025-01-23T09:15:00.000Z",
+      "edited_at": "2025-01-23T09:15:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note11",
+      "subject": "11 Blockquote Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Someone once said:\"}]},{\"type\":\"blockquote\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is a quoted passage that spans a full paragraph.\"}]}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And that was the end of the quote.\"}]}]}",
+      "created_at": "2025-01-24T11:00:00.000Z",
+      "updated_at": "2025-01-24T11:10:00.000Z",
+      "edited_at": "2025-01-24T11:10:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note12",
+      "subject": "12 Legacy List Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Legacy Lists\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-111\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"First bullet item\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-112\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Nested bullet\"}]}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-113\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Second bullet item\"}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"ordered\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-114\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"First ordered item\"}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"ordered\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-115\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Second ordered item\"}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"task\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-116\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Unchecked task\"}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"task\",\"checked\":true,\"collapsed\":false,\"guid\":\"aaa-117\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Checked task\"}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"aaa-118\",\"archived\":true},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Archived item\"}]}]}]}",
+      "created_at": "2025-01-25T10:00:00.000Z",
+      "updated_at": "2025-01-25T10:30:00.000Z",
+      "edited_at": "2025-01-25T10:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note13",
+      "subject": "13 Modern List Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Modern Lists\"}]},{\"type\":\"bulletList\",\"content\":[{\"type\":\"listItem\",\"attrs\":{\"closed\":false,\"nested\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Modern bullet one\"}]},{\"type\":\"bulletList\",\"content\":[{\"type\":\"listItem\",\"attrs\":{\"closed\":false,\"nested\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Nested modern bullet\"}]}]}]}]},{\"type\":\"listItem\",\"attrs\":{\"closed\":false,\"nested\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Modern bullet two\"}]}]}]},{\"type\":\"taskList\",\"content\":[{\"type\":\"taskListItem\",\"attrs\":{\"guid\":\"bbb-201\",\"checked\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Modern unchecked task\"}]}]},{\"type\":\"taskListItem\",\"attrs\":{\"guid\":\"bbb-202\",\"checked\":true},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Modern checked task\"}]}]}]}]}",
+      "created_at": "2025-01-26T10:00:00.000Z",
+      "updated_at": "2025-01-26T10:30:00.000Z",
+      "edited_at": "2025-01-26T10:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note14",
+      "subject": "14 Backlinks and Tags Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Links and Tags\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"See \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"note1\",\"label\":\"01 Test Note Basic\",\"graphId\":\"sample-graph\"}},{\"type\":\"text\",\"text\":\" for the basics.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Also check \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"note5\",\"label\":\"Complex Headings\",\"graphId\":\"sample-graph\"}},{\"type\":\"text\",\"text\":\" which has an alias.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Unknown ref: \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"nonexistent-id\",\"label\":\"Deleted Note\",\"graphId\":null}},{\"type\":\"text\",\"text\":\".\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"ccc-301\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Type: \"},{\"type\":\"tag\",\"attrs\":{\"id\":\"meeting\",\"label\":\"meeting\",\"graphId\":\"sample-graph\"}}]}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"ccc-302\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Topic: \"},{\"type\":\"tag\",\"attrs\":{\"id\":\"project\",\"label\":\"project\",\"graphId\":\"sample-graph\"}}]}]}]}",
+      "created_at": "2025-01-27T14:00:00.000Z",
+      "updated_at": "2025-01-27T14:30:00.000Z",
+      "edited_at": "2025-01-27T14:30:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 2
+    },
+    {
+      "id": "note15",
+      "subject": "15 Backlink Target Note",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This note is linked from \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"note14\",\"label\":\"14 Backlinks and Tags Test\",\"graphId\":\"sample-graph\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
+      "created_at": "2025-01-27T15:00:00.000Z",
+      "updated_at": "2025-01-27T15:10:00.000Z",
+      "edited_at": "2025-01-27T15:10:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note16",
+      "subject": "16 Image Test",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Here is a Firebase image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Screenshot\",\"src\":\"https://httpbin.org/image/png\",\"title\":\"\",\"resizable\":false,\"fileName\":\"screenshot.png\"}},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And a reflect-assets image:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"Diagram\",\"src\":\"https://httpbin.org/image/jpeg\",\"title\":\"\",\"resizable\":false,\"fileName\":\"diagram.jpg\"}}]}",
+      "created_at": "2025-01-28T09:00:00.000Z",
+      "updated_at": "2025-01-28T09:20:00.000Z",
+      "edited_at": "2025-01-28T09:20:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "note17",
+      "subject": "17 Daily With Backlink",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Met with team, see \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"note14\",\"label\":\"14 Backlinks and Tags Test\",\"graphId\":\"sample-graph\"}},{\"type\":\"text\",\"text\":\".\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\",\"checked\":false,\"collapsed\":false,\"guid\":\"ddd-401\",\"archived\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"tag\",\"attrs\":{\"id\":\"meeting\",\"label\":\"meeting\",\"graphId\":\"sample-graph\"}}]}]}]}",
+      "created_at": "2025-01-15T08:00:00.000Z",
+      "updated_at": "2025-01-15T18:00:00.000Z",
+      "edited_at": "2025-01-15T18:00:00.000Z",
+      "daily_at": "2025-01-15",
+      "backlinked_count": 0
+    }
+  ],
+  "tags": ["meeting", "project", "test"]
+}
