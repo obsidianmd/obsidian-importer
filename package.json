@@ -7,7 +7,9 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
-		"lint": "eslint src --fix"
+		"lint": "eslint src --fix",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"keywords": [],
 	"author": "",
@@ -16,14 +18,19 @@
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.7.1",
 		"@types/node": "20.19.27",
+		"@types/turndown": "^5.0.6",
 		"@types/xml-flow": "1.0.1",
+		"@vitest/coverage-v8": "^4.1.4",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.25.4",
 		"eslint": "9.39.2",
+		"jsdom": "^29.0.2",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
+		"turndown": "^7.2.4",
 		"typescript": "5.9.3",
-		"typescript-eslint": "8.51.0"
+		"typescript-eslint": "8.51.0",
+		"vitest": "^4.1.4"
 	},
 	"dependencies": {
 		"@joplin/turndown-plugin-gfm": "1.0.62",

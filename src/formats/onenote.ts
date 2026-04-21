@@ -4,9 +4,16 @@ import { genUid, extractErrorMessage, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
-import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
-import { MathMLToLaTeX } from 'mathml-to-latex';
+import {
+	convertTags as _convertTags,
+	combineCodeBlocksAsNecessary as _combineCodeBlocksAsNecessary,
+	styledElementToHTML as _styledElementToHTML,
+	convertMathML as _convertMathML,
+	escapeTextNodes as _escapeTextNodes,
+	removeExtraListItemParagraphs as _removeExtraListItemParagraphs,
+	convertInternalLinks as _convertInternalLinks,
+} from './onenote/onenote-converter';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -54,10 +61,6 @@ function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedR
 	if (!Array.isArray((res as Record<string, unknown>).value)) {
 		throw new Error(`Expected response to have an error in 'value' property`);
 	}
-}
-
-function isHTMLElement(node: Node): node is HTMLElement {
-	return node instanceof HTMLElement;
 }
 
 export class OneNoteImporter extends FormatImporter {
@@ -604,36 +607,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	/** Convert MathML elements to LaTeX format for Obsidian */
 	convertMathML(pageElement: HTMLElement): void {
-		const mathElements = Array.from(pageElement.querySelectorAll('math'));
-
-		for (const mathElement of mathElements) {
-			try {
-				// Get the MathML as a string
-				const mathMLString = mathElement.outerHTML;
-
-				// Convert MathML to LaTeX using mathml2latex
-				const latexString = MathMLToLaTeX.convert(mathMLString);
-
-				// Create the appropriate LaTeX syntax for Obsidian.
-				//
-				// MathML exported from OneNote all include the attribute display="block",
-				// but we can safely convert them to inline form, as the block form would
-				// be wrapped in <br /> line breaks.
-				let obsidianMath = `$${latexString}$`;
-
-				// Create a text node with the LaTeX
-				const textNode = document.createTextNode(obsidianMath);
-
-				// Replace the MathML element with the LaTeX text node
-				mathElement.parentNode?.replaceChild(textNode, mathElement);
-			}
-			catch (error) {
-				console.warn('Failed to convert MathML to LaTeX:', error);
-				// If conversion fails, keep the original MathML or replace with a placeholder
-				const fallbackText = document.createTextNode('[Math equation - conversion failed]');
-				mathElement.parentNode?.replaceChild(fallbackText, mathElement);
-			}
-		}
+		_convertMathML(pageElement);
 	}
 
 	isLatexMath(text: string): boolean {
@@ -643,20 +617,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	/** Escape characters which will cause problems after converting to markdown. */
 	escapeTextNodes(node: ChildNode): void {
-		if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-			// Don't escape text that contains LaTeX math expressions
-			if (this.isLatexMath(node.textContent)) {
-				return;
-			}
-
-			node.textContent = node.textContent
-				.replace(/([<>])/g, '\\$1');
-		}
-		else {
-			for (let i = 0; i < node.childNodes.length; i++) {
-				this.escapeTextNodes(node.childNodes[i]);
-			}
-		}
+		_escapeTextNodes(node);
 	}
 
 	// OneNote returns page data and inking data in one file, so we need to split them
@@ -693,36 +654,12 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	convertTags(pageElement: HTMLElement): string {
-		const tagElements = Array.from(pageElement.querySelectorAll('[data-tag]'));
-
-		for (const element of tagElements) {
-			// If a to-do tag, then convert it into a Markdown task list
-			if (element.getAttribute('data-tag')?.contains('to-do')) {
-				const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
-				const check = isChecked ? '[x]' : '[ ]';
-				// We need to use innerHTML in case an image was marked as TO-DO
-				element.innerHTML = `- ${check} ${element.innerHTML}`;
-			}
-			// All other OneNote tags are already in the Obsidian tag format ;)
-			else {
-				const tags = element.getAttribute('data-tag')?.split(',');
-				tags?.forEach((tag) => {
-					element.innerHTML = element.innerHTML + ` #${tag.replace(':', '-')} `;
-				});
-			}
-		}
+		_convertTags(pageElement);
 		return pageElement.outerHTML;
 	}
 
 	convertInternalLinks(pageElement: HTMLElement): void {
-		const links: HTMLAnchorElement[] = pageElement.findAll('a') as HTMLAnchorElement[];
-		for (const link of links) {
-			if (link.href.startsWith('onenote:')) {
-				const startIdx = link.href.indexOf('#') + 1;
-				const endIdx = link.href.indexOf('&', startIdx);
-				link.href = link.href.slice(startIdx, endIdx);
-			}
-		}
+		_convertInternalLinks(pageElement);
 	}
 
 	getEntityPathNoParent(entityID: string, currentPath: string): string | null {
@@ -938,95 +875,12 @@ export class OneNoteImporter extends FormatImporter {
 	 * single newline (br), combine them.
 	 */
 	combineCodeBlocksAsNecessary(pageElement: HTMLElement): void {
-		const paragraphs = pageElement.querySelectorAll('p:has(+ br + p)');
-		// querySelectorAll must return results in document order, so we should combine nodes in reverse order
-		Array.from(paragraphs).reverse().forEach((p) => {
-			const firstParagraph = p;
-			const lineBreak = p.nextElementSibling;
-			if (!isBRElement(lineBreak)) {
-				throw new Error(`Expected a <br> element after the paragraph, but found: ${lineBreak?.nodeName}`);
-			}
-			const secondParagraph = lineBreak.nextElementSibling;
-			if (isParagraphWrappingOnlyCode(firstParagraph)
-				&& isParagraphWrappingOnlyCode(secondParagraph)) {
-				// move the line break ...
-				firstParagraph.appendChild(lineBreak);
-				// .. and add another line break to capture the newline between
-				// the two paragraphs
-				firstParagraph.appendChild(lineBreak.cloneNode());
-				// ... and clone second paragraph's children into the first paragraph
-				firstParagraph.insertAdjacentHTML('beforeend', secondParagraph.innerHTML);
-				// clean-up the DOM (linebreak was moved, second paragraph wasn't)
-				secondParagraph.remove();
-			}
-		});
+		_combineCodeBlocksAsNecessary(pageElement);
 	}
 
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
 	styledElementToHTML(pageElement: HTMLElement): void {
-		// Map styles to their elements
-		const styleMap: { [key: string]: string } = {
-			'font-weight:bold': 'b',
-			'font-style:italic': 'i',
-			'text-decoration:underline': 'u',
-			'text-decoration:line-through': 's',
-			'background-color': 'mark',
-		};
-		// Cites/quotes are not converted into Markdown (possible htmlToMarkdown bug?), so we do it ourselves temporarily
-		const cites = pageElement.findAll('cite');
-		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
-
-		const elements = pageElement.querySelectorAll('*');
-		elements.forEach(element => {
-			if (!pageElement.contains(element)) {
-				// already processed and removed, can skip
-				return;
-			}
-
-			if (isInlineCodeSpan(element)) {
-				// Convert preformatted text into an inline code span
-				const codeElement = document.createElement('code');
-				codeElement.innerHTML = element.innerHTML;
-				element.replaceWith(codeElement);
-			}
-			else if (isFenceCodeBlock(element)) {
-				// Convert preformatted text into a code fence
-				const codeBlockItems: string[] = [element.innerHTML];
-				getSiblingsInSameCodeBlock(element).forEach(sibling => {
-					codeBlockItems.push(
-						isBRElement(sibling) ? '\n' : sibling.innerHTML
-					);
-					sibling.remove();
-				});
-
-				// wrap the code in a pre element
-				const codeElement = document.createElement('pre');
-				codeElement.innerHTML =
-					'```\n' +
-					codeBlockItems.join('') +
-					'\n```';
-
-				// replace the original node with the pre element
-				element.replaceWith(codeElement);
-			}
-			else {
-				if (element.nodeName === 'TD') {
-					// Do not replace table cells if they are styled.
-					element.removeAttribute('style');
-					return;
-				}
-				else {
-					const style = element.getAttribute('style') || '';
-					const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
-					if (matchingStyle) {
-						const newElementTag = styleMap[matchingStyle];
-						const newElement = document.createElement(newElementTag);
-						newElement.innerHTML = element.innerHTML;
-						element.replaceWith(newElement);
-					}
-				}
-			}
-		});
+		_styledElementToHTML(pageElement);
 	}
 
 	// OneNote wraps list items in an extra, marginless paragraph. Remove these
@@ -1055,17 +909,7 @@ export class OneNoteImporter extends FormatImporter {
 	//
 	// https://github.com/obsidianmd/obsidian-importer/issues/363
 	removeExtraListItemParagraphs(element: HTMLElement): void {
-		// if the first list item child is a paragraph
-		element.querySelectorAll('li > p:first-child').forEach((p) => {
-			if (
-				isHTMLElement(p)
-				// and it has 0 margin (this is really just to sanity check that this isn't meant to create newlines, visually)
-				&& p.style.marginBottom === '0pt' && p.style.marginTop === '0pt'
-			) {
-				// then unwrap the paragraph (move its children up to its parent, so there is no paragraph)
-				p.replaceWith(...Array.from(p.childNodes));
-			}
-		});
+		_removeExtraListItemParagraphs(element);
 	}
 
 
