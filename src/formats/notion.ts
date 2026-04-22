@@ -11,16 +11,45 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 import { S3Config, uploadImagesToS3 } from './notion/s3-images';
 
+// Load S3 credentials from environment variables
+const getS3AccessKey = () => {
+	try {
+		return (globalThis as any).process?.env?.NOTION_S3_ACCESS_KEY || '';
+	} catch {
+		return '';
+	}
+};
+
+const getS3SecretKey = () => {
+	try {
+		return (globalThis as any).process?.env?.NOTION_S3_SECRET_KEY || '';
+	} catch {
+		return '';
+	}
+};
+
 export class NotionImporter extends FormatImporter {
 
 
 	parentsInSubfolders: boolean;
 	singleLineBreaks: boolean;
 	s3Enabled: boolean;
-	s3Config: S3Config = { bucket: '', region: '', keyPrefix: '', accessKey: '', secretKey: '' };
+	s3Config: S3Config = {
+		bucket: 'mayacrew-vault-assets',
+		region: 'ap-northeast-2',
+		keyPrefix: 'attachments/',
+		accessKey: '',
+		secretKey: '',
+	};
 
 	init() {
 		this.parentsInSubfolders = true;
+		// Load S3 credentials from environment if available
+		const envAccessKey = getS3AccessKey();
+		const envSecretKey = getS3SecretKey();
+		if (envAccessKey) this.s3Config.accessKey = envAccessKey;
+		if (envSecretKey) this.s3Config.secretKey = envSecretKey;
+
 		this.addFileChooserSetting('Exported Notion', ['zip']);
 		this.addOutputLocationSetting('Notion');
 		new Setting(this.modal.contentEl)
@@ -56,33 +85,33 @@ export class NotionImporter extends FormatImporter {
 		new Setting(s3DetailsEl)
 			.setName('S3 Bucket')
 			.addText((text) => text
-				.setPlaceholder('my-bucket')
+				.setValue(this.s3Config.bucket)
 				.onChange((value) => (this.s3Config.bucket = value)));
 
 		new Setting(s3DetailsEl)
 			.setName('S3 Region')
 			.addText((text) => text
-				.setPlaceholder('ap-northeast-2')
+				.setValue(this.s3Config.region)
 				.onChange((value) => (this.s3Config.region = value)));
 
 		new Setting(s3DetailsEl)
 			.setName('S3 Key Prefix')
 			.setDesc('e.g. "attachments/" — trailing slash required')
 			.addText((text) => text
-				.setPlaceholder('attachments/')
+				.setValue(this.s3Config.keyPrefix)
 				.onChange((value) => (this.s3Config.keyPrefix = value)));
 
 		new Setting(s3DetailsEl)
 			.setName('AWS Access Key')
 			.addText((text) => text
-				.setPlaceholder('AKIA...')
+				.setValue(this.s3Config.accessKey)
 				.onChange((value) => (this.s3Config.accessKey = value)));
 
 		new Setting(s3DetailsEl)
 			.setName('AWS Secret Key')
 			.addText((text) => {
 				text.inputEl.type = 'password';
-				text.setPlaceholder('secret')
+				text.setValue(this.s3Config.secretKey)
 					.onChange((value) => (this.s3Config.secretKey = value));
 			});
 	}
