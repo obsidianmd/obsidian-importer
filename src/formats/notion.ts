@@ -11,23 +11,6 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 import { S3Config, uploadImagesToS3 } from './notion/s3-images';
 
-// Load S3 credentials from environment variables
-const getS3AccessKey = () => {
-	try {
-		return (globalThis as any).process?.env?.NOTION_S3_ACCESS_KEY || '';
-	} catch {
-		return '';
-	}
-};
-
-const getS3SecretKey = () => {
-	try {
-		return (globalThis as any).process?.env?.NOTION_S3_SECRET_KEY || '';
-	} catch {
-		return '';
-	}
-};
-
 export class NotionImporter extends FormatImporter {
 
 
@@ -44,12 +27,6 @@ export class NotionImporter extends FormatImporter {
 
 	init() {
 		this.parentsInSubfolders = true;
-		// Load S3 credentials from environment if available
-		const envAccessKey = getS3AccessKey();
-		const envSecretKey = getS3SecretKey();
-		if (envAccessKey) this.s3Config.accessKey = envAccessKey;
-		if (envSecretKey) this.s3Config.secretKey = envSecretKey;
-
 		this.addFileChooserSetting('Exported Notion', ['zip']);
 		this.addOutputLocationSetting('Notion');
 		new Setting(this.modal.contentEl)
