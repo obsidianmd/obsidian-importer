@@ -116,7 +116,10 @@ export class NotionResolverInfo {
 			return '';
 		}
 
-		const pathSegments = parent.split('/').filter((seg) => seg.length > 0);
+		// Strip Notion export wrapper folder (Export-UUID/) from the path
+		const cleanParent = parent.replace(/^Export-[0-9a-f-]{36}\//i, '');
+
+		const pathSegments = cleanParent.split('/').filter((seg) => seg.length > 0);
 		const folderPath = pathSegments
 			.map((segment) => {
 				// Remove ID from folder name if present (format: "FolderName <id>")

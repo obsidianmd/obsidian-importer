@@ -14,10 +14,35 @@ import {
 	escapeHashtags,
 	getNotionId,
 	hoistChildren,
+	normalizeKoreanDate,
 	parseDate,
 	stripNotionId,
 	stripParentDirectories,
 } from './notion-utils';
+
+/** Safely decode a URI, returning the original string if malformed */
+function safeDecodeURI(uri: string): string {
+	try {
+		return decodeURI(uri);
+	}
+	catch {
+		return uri;
+	}
+}
+
+/** Maps Notion block-color class names to Obsidian callout types */
+const CALLOUT_COLOR_MAP: Record<string, string> = {
+	gray: 'note',
+	brown: 'quote',
+	orange: 'warning',
+	yellow: 'caution',
+	green: 'tip',
+	blue: 'info',
+	purple: 'abstract',
+	pink: 'question',
+	red: 'danger',
+	default: 'note',
+};
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	const text = await file.readText();
@@ -59,6 +84,8 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 		}
 	}
 
+	// B23: Remove decorative Notion icon images (notion.so/icons/...)
+	removeNotionIcons(body);
 	fixFormatTags(body, ['strong', 'em', 'mark', 'del']);
 	fixNotionBookmarks(body);
 	// fixEquations must come before fixNotionCallouts
@@ -68,6 +95,8 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	encodeNewlinesToBr(body);
 	fixNotionDates(body);
 
+	// B13: Convert Notion toggles to Obsidian collapsible callouts (must run before replaceElementsWithChildren)
+	fixNotionToggles(body);
 	// Some annoying elements Notion throws in as wrappers, which mess up .md
 	replaceElementsWithChildren(body, 'div.indented');
 	replaceElementsWithChildren(body, 'details');
@@ -156,13 +185,13 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 				content = '';
 			}
 			else if (dates.length === 1) {
-				content = parseDate(moment(dates.item(0)?.textContent));
+				content = parseDate(moment(normalizeKoreanDate(dates.item(0)?.textContent ?? '')));
 			}
 			else {
 				const dateList = [];
 				for (let i = 0; i < dates.length; i++) {
 					dateList.push(
-						parseDate(moment(dates.item(i)?.textContent))
+						parseDate(moment(normalizeKoreanDate(dates.item(i)?.textContent ?? '')))
 					);
 				}
 				content = dateList.join(' - ');
@@ -197,7 +226,7 @@ function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 
 	for (const a of body.findAll('a') as HTMLAnchorElement[]) {
 		const decodedURI = stripParentDirectories(
-			decodeURI(a.getAttribute('href') ?? '')
+			safeDecodeURI(a.getAttribute('href') ?? '')
 		);
 		const id = getNotionId(decodedURI);
 
@@ -215,6 +244,14 @@ function getNotionLinks(info: NotionResolverInfo, body: HTMLElement) {
 			a.parentElement?.classList.contains('table_of_contents-item')
 		) {
 			links.push({ type: 'toc-item', a, id });
+		}
+		// B20: notion.so/notion.site URLs and relative inline page mentions (e.g. Title-uuid?pvs=21) → relation links
+		else if (id && (
+			decodedURI.includes('notion.so/') ||
+			decodedURI.includes('notion.site/') ||
+			decodedURI.includes('?pvs=') // relative inline page mention with Notion view param
+		)) {
+			links.push({ type: 'relation', a, id });
 		}
 	}
 
@@ -288,14 +325,19 @@ function isCallout(element: Element) {
 function fixNotionCallouts(body: HTMLElement) {
 	const dom = body.ownerDocument;
 	for (let callout of body.findAll('figure.callout')) {
+		// B22: Extract callout color from class like "block-color-blue_background"
+		const colorMatch = callout.className.match(/block-color-(\w+)_background/);
+		const color = colorMatch?.[1] ?? 'default';
+		const calloutType = CALLOUT_COLOR_MAP[color] ?? 'note';
+
 		// Can have 1–2 children; we always want .lastElementChild for callout content.
 		const content = callout.lastElementChild?.childNodes;
 		if (!content) continue;
 		// Reformat as blockquote; HTMLtoMarkdown will convert automatically
 		const calloutBlock = dom.createElement('blockquote');
 		calloutBlock.append(...Array.from(content));
-		// Add & format callout title element
-		quoteToCallout(calloutBlock);
+		// Add & format callout title element with correct type
+		quoteToCallout(calloutBlock, calloutType);
 		callout.replaceWith(calloutBlock);
 	}
 }
@@ -309,7 +351,7 @@ function fixNotionCallouts(body: HTMLElement) {
  *
  * If the callout is empty, an empty callout will still be created
 */
-function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
+function quoteToCallout(quoteBlock: HTMLQuoteElement, calloutType: string = 'important'): void {
 	const node: ChildNode | null = quoteBlock.firstChild;
 	const name = node?.nodeName ?? '';
 	const titlePar = quoteBlock.ownerDocument.createElement('p');
@@ -320,8 +362,67 @@ function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
 	else (quoteBlock.prepend(titlePar));
 	// callout title must fit on one line in the MD file
 	titleTxt = titleTxt.replace(/<br>/g, '&lt;br&gt;');
-	titlePar.innerHTML = `[!important] ${titleTxt}`;
+	// B22: Use provided callout type instead of hard-coded 'important'
+	titlePar.innerHTML = `[!${calloutType}] ${titleTxt}`;
 	quoteBlock.firstChild?.replaceWith(titlePar);
+}
+
+/** B23: Remove Notion decorative icon images (notion.so/icons/...) */
+function removeNotionIcons(body: HTMLElement) {
+	for (const img of body.findAll('img[src*="notion.so/icons/"]') as HTMLImageElement[]) {
+		img.remove();
+	}
+}
+
+/**
+ * B13: Convert Notion <details>/<summary> toggle blocks into Obsidian collapsible callouts.
+ * Processes in reverse document order (deepest first) to handle arbitrary nesting.
+ *
+ * Input:  <details><summary>Title</summary>Body</details>
+ * Output: <blockquote><p>[!info]- Title</p>Body</blockquote>
+ */
+function fixNotionToggles(body: HTMLElement) {
+	const dom = body.ownerDocument;
+	const allDetails = Array.from(body.findAll('details'));
+
+	// Process deepest (last in document order) first to handle nesting correctly
+	for (let i = allDetails.length - 1; i >= 0; i--) {
+		const detail = allDetails[i];
+
+		// Find direct child <summary> only
+		const summary = Array.from(detail.childNodes)
+			.find((n): n is HTMLElement => n.nodeName === 'SUMMARY') as HTMLElement | undefined;
+
+		const blockquote = dom.createElement('blockquote') as HTMLQuoteElement;
+		const titlePar = dom.createElement('p');
+
+		if (summary) {
+			// Preserve inline formatting in the toggle title
+			const titleTxt = summary.innerHTML.replace(/<br>/g, ' ').trim();
+			titlePar.innerHTML = `[!info]- ${titleTxt}`;
+		}
+		else {
+			titlePar.innerHTML = '[!info]-';
+		}
+		blockquote.appendChild(titlePar);
+
+		// Move all non-summary children into the blockquote
+		for (const child of Array.from(detail.childNodes)) {
+			if (child === summary) continue;
+			blockquote.appendChild(child);
+		}
+
+		detail.replaceWith(blockquote);
+	}
+}
+
+/** B26: Strip Notion export UUID folder prefix and any UUID-only folder segments from wikilink paths */
+function stripExportPrefix(path: string): string {
+	// Strip top-level Export-UUID/ prefix
+	let result = path.replace(/^Export-[0-9a-f-]{36}\//i, '');
+	// Strip any path segments that are purely a 32-char hex UUID (e.g. abc123.../FolderName/ → FolderName/)
+	result = result.replace(/(^|\/)[0-9a-f]{32}\//g, (_, prefix) => prefix);
+	return result;
 }
 
 function fixNotionBookmarks(body: HTMLElement) {
@@ -358,6 +459,11 @@ function formatDatabases(body: HTMLElement) {
 	}
 
 	for (const a of body.findAll('a[href]') as HTMLAnchorElement[]) {
+		// Remove Notion's broken undefined links (export artifact from deleted/unresolved page refs)
+		if ((a.getAttribute('href') ?? '').includes('notion.soundefined')) {
+			a.remove();
+			continue;
+		}
 		// Strip URLs which aren't valid, changing them to normal text.
 		if (!/^(https?:\/\/|www\.)/.test(a.href)) {
 			const strippedURL = createSpan();
@@ -623,8 +729,12 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 
 	if (links.length === 0) return content;
 	for (const link of links) {
+		const href = link.getAttribute('href') ?? '';
 		const span = createSpan();
-		span.setText(link.getAttribute('href') ?? '');
+		// Skip Notion's broken undefined links (export artifact)
+		if (!href.includes('notion.soundefined')) {
+			span.setText(href);
+		}
 		link.replaceWith(span);
 	}
 }
@@ -639,16 +749,24 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				const linkInfo = info.idsToFileInfo[link.id];
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
-					const { basename } = parseFilePath(
-						decodeURI(link.a.getAttribute('href') ?? '')
-					);
-
-					linkContent = `[[${stripNotionId(basename)}]]`;
+					// Prefer visible link text to avoid [[uuid?pvs=21]] artifacts
+					const textContent = link.a.textContent?.trim() ?? '';
+					if (textContent) {
+						linkContent = `[[${textContent}]]`;
+					} else {
+						// Last resort: parse URL with query params stripped
+						const cleanHref = (link.a.getAttribute('href') ?? '').split('?')[0];
+						const { basename } = parseFilePath(safeDecodeURI(cleanHref));
+						const stripped = stripNotionId(basename);
+						linkContent = stripped ? `[[${stripped}]]` : '';
+					}
 				}
 				else {
 					const isInTable = link.a.closest('table');
+					// B26: Strip Export-UUID/ prefix and any UUID-only folder segments
+					const linkPath = stripExportPrefix(info.getPathForFile(linkInfo));
 					linkContent = `[[${linkInfo.fullLinkPathNeeded
-						? `${info.getPathForFile(linkInfo)}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
+						? `${linkPath}${linkInfo.title}${isInTable ? '\u005C' : ''}|${linkInfo.title}`
 						: linkInfo.title
 					}]]`;
 				}
@@ -672,6 +790,14 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				linkContent = link.a.textContent ?? '';
 				const endBracket = linkContent.endsWith(']') ?? false;
 				linkContent = `[[#${linkContent + (endBracket ? ' ' : '')}]]`;
+		}
+
+		// Don't emit empty wikilinks [[]] – replace with plain text or nothing
+		if (!linkContent) {
+			const fallbackText = link.a.textContent?.trim() ?? '';
+			obsidianLink.setText(fallbackText);
+			link.a.replaceWith(obsidianLink);
+			continue;
 		}
 
 		obsidianLink.setText(linkContent);

@@ -14,9 +14,47 @@ export const parseParentIds = (filename: string) => {
 	const { parent } = parseFilePath(filename);
 	return parent
 		.split('/')
+		.filter((seg) => !/^Export-/i.test(seg)) // Skip Notion export wrapper folder
 		.map((parentNote) => getNotionId(parentNote))
 		.filter((id) => id) as string[];
 };
+
+/**
+ * Normalize various Notion date formats to ISO before passing to moment.
+ * Handles:
+ *  - Korean: "2024년 2월 14일 오후 2:19" → "2024-02-14T14:19"
+ *  - Korean date only: "2024년 2월 14일" → "2024-02-14"
+ *  - Slash date: "2024/03/18" → "2024-03-18"
+ *  - Slash datetime: "2024/03/18 14:19" → "2024-03-18T14:19"
+ */
+export function normalizeKoreanDate(dateStr: string): string {
+	const s = dateStr.trim();
+
+	// Korean locale: 2024년 2월 14일 오후 2:19
+	const ko = s.match(
+		/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일(?:\s*(오전|오후)\s*(\d{1,2}):(\d{2}))?/
+	);
+	if (ko) {
+		const year = ko[1];
+		const month = ko[2].padStart(2, '0');
+		const day = ko[3].padStart(2, '0');
+		if (!ko[4]) return `${year}-${month}-${day}`;
+		let hours = parseInt(ko[5]);
+		const minutes = ko[6];
+		if (ko[4] === '오후' && hours < 12) hours += 12;
+		if (ko[4] === '오전' && hours === 12) hours = 0;
+		return `${year}-${month}-${day}T${String(hours).padStart(2, '0')}:${minutes}`;
+	}
+
+	// Slash date(time): 2024/03/18 or 2024/03/18 14:19
+	const sl = s.match(/^(\d{4})\/(\d{2})\/(\d{2})(?:\s+(\d{2}):(\d{2}))?$/);
+	if (sl) {
+		const base = `${sl[1]}-${sl[2]}-${sl[3]}`;
+		return sl[4] ? `${base}T${sl[4]}:${sl[5]}` : base;
+	}
+
+	return s;
+}
 
 export function parseDate(content: Moment) {
 	if (content.hour() === 0 && content.minute() === 0) {

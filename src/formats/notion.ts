@@ -126,7 +126,16 @@ export class NotionImporter extends FormatImporter {
 						writeOptions.mtime = fileInfo.mtime.getTime();
 					}
 
-					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
+					const basePath = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}`;
+					let path = `${basePath}.md`;
+					// If file already exists (duplicate title), append numeric suffix
+					if (await vault.adapter.exists(path)) {
+						let suffix = 2;
+						while (await vault.adapter.exists(`${basePath} ${suffix}.md`)) {
+							suffix++;
+						}
+						path = `${basePath} ${suffix}.md`;
+					}
 					await vault.create(path, markdownBody, writeOptions);
 					ctx.reportNoteSuccess(file.fullpath);
 				}
