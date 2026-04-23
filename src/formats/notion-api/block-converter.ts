@@ -299,7 +299,7 @@ export async function convertBlockToMarkdown(
 	
 	switch (type) {
 		case 'paragraph':
-			markdown = convertParagraph(block, context);
+			markdown = await convertParagraph(block, context);
 			break;
 		
 		case 'heading_1':
@@ -491,9 +491,25 @@ export async function convertBlockToMarkdown(
 /**
  * Convert paragraph block to Markdown
  */
-export function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): string {
+export async function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): Promise<string> {
 	if (block.type !== 'paragraph') return '';
-	return convertRichText(block.paragraph.rich_text, context);
+
+	const rawText = convertRichText(block.paragraph.rich_text, context);
+	const indentLevel = context?.indentLevel || 0;
+	const line = rawText ? '    '.repeat(indentLevel) + rawText : '';
+
+	if (!context) return line;
+
+	const childrenMarkdown = await processChildrenToMarkdown(
+		block,
+		context,
+		indentLevel + 1,
+		'paragraph'
+	);
+
+	if (!childrenMarkdown) return line;
+	if (!line) return childrenMarkdown;
+	return line + '\n' + childrenMarkdown;
 }
 
 /**
