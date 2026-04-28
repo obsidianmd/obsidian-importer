@@ -700,14 +700,14 @@ export class OneNoteImporter extends FormatImporter {
 			if (element.getAttribute('data-tag')?.contains('to-do')) {
 				const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
 				const check = isChecked ? '[x]' : '[ ]';
-				// We need to use innerHTML in case an image was marked as TO-DO
-				element.innerHTML = `- ${check} ${element.innerHTML}`;
+				// Prepend a text node so any nested elements (e.g. an image marked as TO-DO) are preserved
+				element.prepend(`- ${check} `);
 			}
 			// All other OneNote tags are already in the Obsidian tag format ;)
 			else {
 				const tags = element.getAttribute('data-tag')?.split(',');
 				tags?.forEach((tag) => {
-					element.innerHTML = element.innerHTML + ` #${tag.replace(':', '-')} `;
+					element.append(` #${tag.replace(':', '-')} `);
 				});
 			}
 		}
@@ -955,7 +955,7 @@ export class OneNoteImporter extends FormatImporter {
 				// the two paragraphs
 				firstParagraph.appendChild(lineBreak.cloneNode());
 				// ... and clone second paragraph's children into the first paragraph
-				firstParagraph.insertAdjacentHTML('beforeend', secondParagraph.innerHTML);
+				firstParagraph.append(...Array.from(secondParagraph.childNodes));
 				// clean-up the DOM (linebreak was moved, second paragraph wasn't)
 				secondParagraph.remove();
 			}
@@ -974,7 +974,10 @@ export class OneNoteImporter extends FormatImporter {
 		};
 		// Cites/quotes are not converted into Markdown (possible htmlToMarkdown bug?), so we do it ourselves temporarily
 		const cites = pageElement.findAll('cite');
-		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
+		cites.forEach((cite) => {
+			cite.prepend('> ');
+			cite.append(cite.ownerDocument.createElement('br'));
+		});
 
 		const elements = pageElement.querySelectorAll('*');
 		elements.forEach(element => {
@@ -986,25 +989,24 @@ export class OneNoteImporter extends FormatImporter {
 			if (isInlineCodeSpan(element)) {
 				// Convert preformatted text into an inline code span
 				const codeElement = document.createElement('code');
-				codeElement.innerHTML = element.innerHTML;
+				codeElement.append(...Array.from(element.childNodes));
 				element.replaceWith(codeElement);
 			}
 			else if (isFenceCodeBlock(element)) {
-				// Convert preformatted text into a code fence
-				const codeBlockItems: string[] = [element.innerHTML];
+				// Convert preformatted text into a code fence wrapped in a pre element
+				const codeElement = document.createElement('pre');
+				codeElement.append('```\n');
+				codeElement.append(...Array.from(element.childNodes));
 				getSiblingsInSameCodeBlock(element).forEach(sibling => {
-					codeBlockItems.push(
-						isBRElement(sibling) ? '\n' : sibling.innerHTML
-					);
+					if (isBRElement(sibling)) {
+						codeElement.append('\n');
+					}
+					else {
+						codeElement.append(...Array.from(sibling.childNodes));
+					}
 					sibling.remove();
 				});
-
-				// wrap the code in a pre element
-				const codeElement = document.createElement('pre');
-				codeElement.innerHTML =
-					'```\n' +
-					codeBlockItems.join('') +
-					'\n```';
+				codeElement.append('\n```');
 
 				// replace the original node with the pre element
 				element.replaceWith(codeElement);
@@ -1021,7 +1023,7 @@ export class OneNoteImporter extends FormatImporter {
 					if (matchingStyle) {
 						const newElementTag = styleMap[matchingStyle];
 						const newElement = document.createElement(newElementTag);
-						newElement.innerHTML = element.innerHTML;
+						newElement.append(...Array.from(element.childNodes));
 						element.replaceWith(newElement);
 					}
 				}
