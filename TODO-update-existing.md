@@ -2,12 +2,12 @@
 
 ## Tasks
 
-- [ ] Replace boolean property with 2-value enum type
+- [x] Replace boolean property with 2-value enum type
   In `onenote.ts`, replace `importPreviouslyImported: boolean = false` with an enum:
   `reimportBehavior: ReimportBehavior = ReimportBehavior.Skip`
   Enum values: `Skip`, `Reimport` (the `Update` value is added in the next step)
 
-- [ ] Replace toggle with dropdown in the UI, and add `Update` enum value
+- [x] Replace toggle with dropdown in the UI, and add `Update` enum value
   In `init()`, replace the "Skip previously imported" toggle (lines 95-101) with an `addDropdown`
   Setting offering three options:
   - "Skip previously imported" → `ReimportBehavior.Skip` (default)

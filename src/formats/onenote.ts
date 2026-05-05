@@ -12,6 +12,7 @@ const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 
 export enum ReimportBehavior {
 	Skip = 'skip',
+	Update = 'update',
 	Reimport = 'reimport',
 }
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
@@ -98,11 +99,14 @@ export class OneNoteImporter extends FormatImporter {
 			);
 
 		new Setting(this.modal.contentEl)
-			.setName('Skip previously imported')
-			.setDesc('If enabled, notes imported previously by this plugin will be skipped.')
-			.addToggle((toggle) => toggle
-				.setValue(true)
-				.onChange((value) => (this.reimportBehavior = value ? ReimportBehavior.Skip : ReimportBehavior.Reimport))
+			.setName('Previously imported notes')
+			.setDesc('How to handle notes that have already been imported.')
+			.addDropdown((dropdown) => dropdown
+				.addOption(ReimportBehavior.Skip, 'Skip previously imported')
+				.addOption(ReimportBehavior.Update, 'Update if modified in OneNote')
+				.addOption(ReimportBehavior.Reimport, 'Always reimport')
+				.setValue(ReimportBehavior.Skip)
+				.onChange((value) => (this.reimportBehavior = value as ReimportBehavior))
 			);
 
 		let authenticated = false;
