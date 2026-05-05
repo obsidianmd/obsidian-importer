@@ -14,7 +14,7 @@
   - "Update if modified in OneNote" → `ReimportBehavior.Update` (add this enum value here)
   - "Always reimport" → `ReimportBehavior.Reimport`
 
-- [ ] Update skip logic in the import loop
+- [x] Update skip logic in the import loop
   At `onenote.ts:459`, replace the single boolean check with a 3-branch condition:
   - `'skip'`: current behavior — skip if page id is in `previouslyImported`
   - `'update'`: skip only if existing markdown `mtime >= Date.parse(page.lastModifiedDateTime!)` (both are UTC ms since epoch)

@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
@@ -470,6 +470,15 @@ export class OneNoteImporter extends FormatImporter {
 					continue;
 				}
 
+				if (this.reimportBehavior === ReimportBehavior.Update && page.id && previouslyImported.has(page.id)) {
+					const oneNotePageModifiedTime = this.oneNotePageModifiedAt(page);
+					const obsidianNoteModifiedTime = await this.obsidianNoteModifiedAt(page, outputFolder!);
+					if (oneNotePageModifiedTime <= obsidianNoteModifiedTime) {
+						progress.reportSkipped(page.title, 'note is already up to date');
+						continue;
+					}
+				}
+
 				try {
 					progress.status(`Importing note ${page.title}`);
 
@@ -546,6 +555,19 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 		}
+	}
+
+	private oneNotePageModifiedAt(page: OnenotePage): number {
+		const endOfTime = Infinity;
+		return page.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : endOfTime;
+	}
+
+	private async obsidianNoteModifiedAt(page: OnenotePage, outputFolder: TFolder): Promise<number> {
+		const beginningOfTime = 0;
+		const folderPath = this.getEntityPathNoParent(page.id!, outputFolder.name);
+		const mdPath = folderPath ? `${folderPath}/${sanitizeFileName(page.title!)}.md` : null;
+		const stat = mdPath ? await this.vault.adapter.stat(mdPath) : null;
+		return stat?.mtime ?? beginningOfTime;
 	}
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
