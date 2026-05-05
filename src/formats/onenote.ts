@@ -9,6 +9,11 @@ import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
+
+export enum ReimportBehavior {
+	Skip = 'skip',
+	Reimport = 'reimport',
+}
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -62,7 +67,7 @@ function isHTMLElement(node: Node): node is HTMLElement {
 
 export class OneNoteImporter extends FormatImporter {
 	// Settings
-	importPreviouslyImported: boolean = false;
+	reimportBehavior: ReimportBehavior = ReimportBehavior.Skip;
 	importIncompatibleAttachments: boolean = false;
 	// UI
 	microsoftAccountSetting: Setting;
@@ -97,7 +102,7 @@ export class OneNoteImporter extends FormatImporter {
 			.setDesc('If enabled, notes imported previously by this plugin will be skipped.')
 			.addToggle((toggle) => toggle
 				.setValue(true)
-				.onChange((value) => (this.importPreviouslyImported = !value))
+				.onChange((value) => (this.reimportBehavior = value ? ReimportBehavior.Skip : ReimportBehavior.Reimport))
 			);
 
 		let authenticated = false;
@@ -456,7 +461,7 @@ export class OneNoteImporter extends FormatImporter {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
+				if (this.reimportBehavior === ReimportBehavior.Skip && page.id && previouslyImported.has(page.id)) {
 					progress.reportSkipped(page.title, 'it was previously imported');
 					continue;
 				}
