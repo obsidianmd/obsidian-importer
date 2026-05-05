@@ -22,7 +22,7 @@
   For `'update'`, find the existing `.md` file in the page folder using `getEntityPathNoParent`,
   then read its `stat.mtime` via `vault.adapter.stat()`.
 
-- [ ] Handle overwrite when reimporting an existing note
+- [x] Handle overwrite when reimporting an existing note
   When `'update'` or `'reimport'` causes an already-existing markdown file to be re-processed,
   delete the existing `.md` file before calling `processFile` — otherwise `saveAsMarkdownFile`
   (which calls `createNewMarkdownFile`) will create a duplicate with a numeric suffix.

@@ -1,5 +1,5 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
@@ -465,17 +465,21 @@ export class OneNoteImporter extends FormatImporter {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-				if (this.reimportBehavior === ReimportBehavior.Skip && page.id && previouslyImported.has(page.id)) {
-					progress.reportSkipped(page.title, 'it was previously imported');
-					continue;
-				}
-
-				if (this.reimportBehavior === ReimportBehavior.Update && page.id && previouslyImported.has(page.id)) {
-					const oneNotePageModifiedTime = this.oneNotePageModifiedAt(page);
-					const obsidianNoteModifiedTime = await this.obsidianNoteModifiedAt(page, outputFolder!);
-					if (oneNotePageModifiedTime <= obsidianNoteModifiedTime) {
-						progress.reportSkipped(page.title, 'note is already up to date');
+				if (page.id && previouslyImported.has(page.id)) {
+					
+					if (this.reimportBehavior === ReimportBehavior.Skip) {
+						progress.reportSkipped(page.title, 'it was previously imported');
 						continue;
+					}
+
+					if (this.reimportBehavior === ReimportBehavior.Update) {
+						const oneNotePageModifiedTime = this.oneNotePageModifiedAt(page);
+						const obsidianNoteModifiedTime = await this.obsidianNoteModifiedAt(page, outputFolder!);
+						if (oneNotePageModifiedTime <= obsidianNoteModifiedTime) {
+							progress.reportSkipped(page.title, 'note is already up to date');
+							continue;
+						}
+						await this.deleteExistingNote(page, outputFolder!);
 					}
 				}
 
@@ -562,12 +566,25 @@ export class OneNoteImporter extends FormatImporter {
 		return page.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : endOfTime;
 	}
 
+	private obsidianNotePath(page: OnenotePage, outputFolder: TFolder): string | null {
+		const folderPath = this.getEntityPathNoParent(page.id!, outputFolder.name);
+		return folderPath ? `${folderPath}/${sanitizeFileName(page.title!)}.md` : null;
+	}
+
 	private async obsidianNoteModifiedAt(page: OnenotePage, outputFolder: TFolder): Promise<number> {
 		const beginningOfTime = 0;
-		const folderPath = this.getEntityPathNoParent(page.id!, outputFolder.name);
-		const mdPath = folderPath ? `${folderPath}/${sanitizeFileName(page.title!)}.md` : null;
+		const mdPath = this.obsidianNotePath(page, outputFolder);
 		const stat = mdPath ? await this.vault.adapter.stat(mdPath) : null;
 		return stat?.mtime ?? beginningOfTime;
+	}
+
+	private async deleteExistingNote(page: OnenotePage, outputFolder: TFolder): Promise<void> {
+		const mdPath = this.obsidianNotePath(page, outputFolder);
+		if (!mdPath) return;
+		const file = this.vault.getAbstractFileByPath(mdPath);
+		if (file instanceof TFile) {
+			await this.vault.delete(file);
+		}
 	}
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
