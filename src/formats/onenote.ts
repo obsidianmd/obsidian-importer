@@ -444,8 +444,8 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			catch (e) {
 				console.error(`[OneNote Importer] Failed to fetch pages for section ${sectionLabel}, skipping to next section.`, e);
-				progress.reportFailed('Failed to fetch pages for section ${sectionInfo?.sectionName ?? sectionId}, skipping to next section.', String(e));
-				return;
+				progress.reportFailed(`Failed to fetch pages for section ${sectionInfo?.sectionName ?? sectionId}, skipping to next section.`, String(e));
+				continue;
 			}
 			if (!pages) {
 				console.log(`[OneNote Importer] No pages found for section ${sectionLabel}, skipping.`);
