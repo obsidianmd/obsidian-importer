@@ -114,7 +114,8 @@ export class NotionImporter extends FormatImporter {
 
 					ctx.status(`Importing note ${fileInfo.title}`);
 
-					const markdownBody = await readToMarkdown(info, file);
+					const noteDir = `${targetFolderPath}${info.getPathForFile(fileInfo)}`;
+					const markdownBody = await readToMarkdown(info, file, noteDir);
 					let writeOptions: DataWriteOptions = {};
 
 					if (fileInfo.ctime) {
@@ -149,7 +150,24 @@ export class NotionImporter extends FormatImporter {
 					return;
 				}
 
-				ctx.reportFailed(file.fullpath, e);
+				// Include target vault path in error for easier debugging
+				let targetPath = '';
+				if (file.extension === 'html') {
+					const id = getNotionId(file.name);
+					const fileInfo = id ? info.idsToFileInfo[id] : undefined;
+					if (fileInfo) {
+						targetPath = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
+					}
+				}
+				else {
+					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];
+					if (attachmentInfo) {
+						targetPath = `${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`;
+					}
+				}
+
+				const detail = targetPath ? `${e} (target: ${targetPath})` : e;
+				ctx.reportFailed(file.fullpath, detail);
 			}
 		});
 	}

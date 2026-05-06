@@ -13,13 +13,14 @@ import {
 import {
 	escapeHashtags,
 	getNotionId,
+	getRelativePath,
 	hoistChildren,
 	parseDate,
 	stripNotionId,
 	stripParentDirectories,
 } from './notion-utils';
 
-export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
+export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile, noteDir?: string): Promise<string> {
 	const text = await file.readText();
 
 	const dom = parseHTML(text);
@@ -31,14 +32,14 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	}
 
 	const notionLinks = getNotionLinks(info, body);
-	convertLinksToObsidian(info, notionLinks, true);
+	convertLinksToObsidian(info, notionLinks, true, noteDir);
 
 	let frontMatter: FrontMatterCache = {};
 
 	const rawProperties = dom.find('table[class=properties] > tbody') as HTMLTableSectionElement | undefined;
 	if (rawProperties) {
 		const propertyLinks = getNotionLinks(info, rawProperties);
-		convertLinksToObsidian(info, propertyLinks, false);
+		convertLinksToObsidian(info, propertyLinks, false, noteDir);
 		// YAML only takes raw URLS
 		convertHtmlLinksToURLs(rawProperties);
 
@@ -676,7 +677,7 @@ function convertHtmlLinksToURLs(content: HTMLElement) {
 	}
 }
 
-function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLink[], embedAttachments: boolean) {
+function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLink[], embedAttachments: boolean, noteDir?: string) {
 	for (let link of notionLinks) {
 		let obsidianLink = createSpan();
 		let linkContent: string = '';
@@ -706,13 +707,18 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 					console.warn('missing attachment data for: ' + link.path);
 					continue;
 				}
-				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentInfo.fullLinkPathNeeded
-					? attachmentInfo.targetParentFolder +
-					attachmentInfo.nameWithExtension +
-					'|' +
-					attachmentInfo.nameWithExtension
-					: attachmentInfo.nameWithExtension
-				}]]`;
+				const attachmentFullPath = `${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`;
+				let attachmentRef: string;
+				if (noteDir) {
+					attachmentRef = getRelativePath(noteDir, attachmentFullPath);
+				}
+				else if (attachmentInfo.fullLinkPathNeeded) {
+					attachmentRef = attachmentFullPath + '|' + attachmentInfo.nameWithExtension;
+				}
+				else {
+					attachmentRef = attachmentInfo.nameWithExtension;
+				}
+				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentRef}]]`;
 				break;
 			case 'toc-item':
 				// trailing space required in case link ends with ']'

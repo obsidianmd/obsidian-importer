@@ -163,7 +163,9 @@ export class ImportContext {
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Skipped: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
+			const fullText = `"${name}"` + (reason ? ` because ${String(reason)}` : '');
+			const displayText = `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '');
+			el.createSpan({ text: displayText, attr: { title: fullText } });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
 		importLogEl.show();
@@ -184,7 +186,9 @@ export class ImportContext {
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Failed: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
+			const fullText = `"${name}"` + (reason ? ` because ${String(reason)}` : '');
+			const displayText = `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '');
+			el.createSpan({ text: displayText, attr: { title: fullText } });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
 		importLogEl.show();

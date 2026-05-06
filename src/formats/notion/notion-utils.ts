@@ -86,3 +86,26 @@ export function escapeHashtags(body: string) {
 export function hoistChildren(el: ChildNode) {
 	el.replaceWith(...Array.from(el.childNodes));
 }
+
+/**
+ * Compute a relative path from a directory to a file path.
+ * Both paths must use '/' separators and share the same root.
+ * Returns './file' for same-dir, './sub/file' for subdirs, '../sibling/file' for siblings.
+ */
+export function getRelativePath(fromDir: string, toFilePath: string): string {
+	const from = fromDir.replace(/\/+$/, '').split('/').filter(p => p.length > 0);
+	const to = toFilePath.split('/').filter(p => p.length > 0);
+
+	let common = 0;
+	while (common < from.length && common < to.length && from[common] === to[common]) {
+		common++;
+	}
+
+	const upCount = from.length - common;
+	const remaining = to.slice(common).join('/');
+
+	if (upCount === 0) {
+		return './' + remaining;
+	}
+	return '../'.repeat(upCount) + remaining;
+}
