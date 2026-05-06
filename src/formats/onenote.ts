@@ -190,7 +190,7 @@ export class OneNoteImporter extends FormatImporter {
 			await this.showSectionPickerUI();
 		}
 		catch (e) {
-			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
+			console.error('[OneNote Importer] An error occurred while we were trying to sign you in. Error details: ', e);
 			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
@@ -315,7 +315,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 		catch (e) {
-			console.error('An error occurred while fetching your OneNote data: ', e);
+			console.error('[OneNote Importer] An error occurred while fetching your OneNote data: ', e);
 			this.showContentAreaErrorMessage();
 		}
 
@@ -422,6 +422,13 @@ export class OneNoteImporter extends FormatImporter {
 		let consecutiveFailureCount = 0;
 
 		for (let sectionId of this.selectedIds) {
+			const sectionInfo = this.findSectionInfo(sectionId);
+			const sectionLabel = sectionInfo
+				? `"${sectionInfo.sectionName}" (notebook: "${sectionInfo.notebookName}")`
+				: `[id: ${sectionId}]`;
+
+			console.log(`[OneNote Importer] Starting to import section ${sectionLabel}`);
+
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
@@ -436,13 +443,15 @@ export class OneNoteImporter extends FormatImporter {
 				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped', progress)).value);
 			}
 			catch (e) {
-				console.error(`Failed to fetch pages for section ${sectionId}, skipping to next section.`, e);
-				progress.status('Failed to fetch pages for a section, skipping to next section.');
+				console.error(`[OneNote Importer] Failed to fetch pages for section ${sectionLabel}, skipping to next section.`, e);
+				progress.reportFailed('Failed to fetch pages for section ${sectionInfo?.sectionName ?? sectionId}, skipping to next section.', String(e));
 				return;
 			}
 			if (!pages) {
+				console.log(`[OneNote Importer] No pages found for section ${sectionLabel}, skipping.`);
 				continue;
 			}
+			console.log(`[OneNote Importer] Found ${pages.length} pages in section ${sectionLabel}`);
 			progressTotal += pages.length;
 			this.insertPagesToSection(pages, sectionId);
 
@@ -457,10 +466,12 @@ export class OneNoteImporter extends FormatImporter {
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
 				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
+					console.log(`[OneNote Importer] Skipping previously imported note "${page.title}"`);
 					progress.reportSkipped(page.title, 'it was previously imported');
 					continue;
 				}
 
+				console.log(`[OneNote Importer] Importing note "${page.title}"`);
 				try {
 					progress.status(`Importing note ${page.title}`);
 
@@ -509,7 +520,30 @@ export class OneNoteImporter extends FormatImporter {
 				// report progress even if page import fails or is skipped
 				progress.reportProgress(++progressCurrent, progressTotal);
 			}
+
+			console.log(`[OneNote Importer] Finished section ${sectionLabel}`);
 		}
+	}
+
+	findSectionInfo(sectionId: string): { notebookName: string, sectionName: string } | null {
+		for (const notebook of this.notebooks) {
+			const result = this.findSectionInfoIn(sectionId, notebook, notebook.displayName ?? '');
+			if (result) return result;
+		}
+		return null;
+	}
+
+	private findSectionInfoIn(sectionId: string, entity: Notebook | SectionGroup, notebookName: string): { notebookName: string, sectionName: string } | null {
+		for (const section of entity.sections ?? []) {
+			if (section.id === sectionId) {
+				return { notebookName, sectionName: section.displayName ?? sectionId };
+			}
+		}
+		for (const group of entity.sectionGroups ?? []) {
+			const result = this.findSectionInfoIn(sectionId, group, notebookName);
+			if (result) return result;
+		}
+		return null;
 	}
 
 	insertPagesToSection(pages: OnenotePage[], sectionId: string, parentEntity?: Notebook | SectionGroup) {
@@ -564,7 +598,7 @@ export class OneNoteImporter extends FormatImporter {
 				}
 			}
 			catch (e) {
-				console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				console.error('[OneNote Importer] Failed to convert InkML to SVG in page:', page.title, e);
 			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
@@ -628,7 +662,7 @@ export class OneNoteImporter extends FormatImporter {
 				mathElement.parentNode?.replaceChild(textNode, mathElement);
 			}
 			catch (error) {
-				console.warn('Failed to convert MathML to LaTeX:', error);
+				console.warn('[OneNote Importer] Failed to convert MathML to LaTeX:', error);
 				// If conversion fails, keep the original MathML or replace with a placeholder
 				const fallbackText = document.createTextNode('[Math equation - conversion failed]');
 				mathElement.parentNode?.replaceChild(fallbackText, mathElement);
@@ -929,7 +963,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			progress.reportFailed(filename);
-			console.error(e);
+			console.error('[OneNote Importer]', e);
 		}
 	}
 
@@ -1099,7 +1133,7 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			// any errors that happen in the try block will be retried.
 			if (retryCount > 0) {
-				console.log(`Retry attempt #${retryCount} for ${url}`);
+				console.log(`[OneNote Importer] Retry attempt #${retryCount} for ${url}`);
 			}
 			let response = await fetch(
 				url,
@@ -1142,7 +1176,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (respJson.hasOwnProperty('error')) {
 					err = respJson.error;
 				}
-				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
+				console.log('[OneNote Importer] An error has occurred while fetching a resource:', err ? err : respJson);
 
 				// If our access token has expired, becomes invalid, or is
 				// otherwise no longer authorized, then refresh it and try
@@ -1166,7 +1200,7 @@ export class OneNoteImporter extends FormatImporter {
 					// https://learn.microsoft.com/en-us/graph/throttling-limits#onenote-service-limits
 					// for more info.
 					let retryTimeSeconds = retryAfter ? (+retryAfter * 1) : 60;
-					console.log(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
+					console.log(`[OneNote Importer] Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
 					await this.pause(
 						retryTimeSeconds,
 						`OneNote API is rate-limiting us`,
@@ -1189,7 +1223,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 		catch (e) {
-			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
+			console.error(`[OneNote Importer] An internal error occurred while trying to fetch '${url}'. Error details: `, e);
 
 			// Attachments sometimes just fail to download
 			// (`net::ERR_TIMED_OUT`) which will cause the `fetch` itself to
