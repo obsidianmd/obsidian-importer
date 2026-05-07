@@ -66,6 +66,7 @@ export class OneNoteImporter extends FormatImporter {
 	importPreviouslyImported: boolean = false;
 	attachmentWhitelist: string = '';
 	importHandwrittenNotes: boolean = true;
+	importEmbeddedImages: boolean = true;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -122,6 +123,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(true)
 				.onChange((value) => (this.importHandwrittenNotes = value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Import embedded images')
+			.setDesc('Images embedded in notes are downloaded and saved as attachments.')
+			.addToggle((toggle) => toggle
+				.setValue(true)
+				.onChange((value) => (this.importEmbeddedImages = value))
 			);
 
 		new Setting(this.modal.contentEl)
@@ -896,22 +905,24 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 
-		for (let i = 0; i < images.length; i++) {
-			const image = images[i];
-			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
-			const extension: string = split[1];
-			const currentDate = moment().format('YYYYMMDDHHmmss');
-			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
-			const contentLocation = image.getAttribute('data-fullres-src')!;
-			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
-			if (outputPath) {
-				image.src = encodeURI(outputPath);
-				if (!image.alt || BASE64_REGEX.test(image.alt)) {
-					image.alt = 'Exported image';
-				}
-				else {
-					// Sanitize OCR text to ensure valid markdown
-					image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
+		if (this.importEmbeddedImages) {
+			for (let i = 0; i < images.length; i++) {
+				const image = images[i];
+				let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
+				const extension: string = split[1];
+				const currentDate = moment().format('YYYYMMDDHHmmss');
+				const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
+				const contentLocation = image.getAttribute('data-fullres-src')!;
+				const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
+				if (outputPath) {
+					image.src = encodeURI(outputPath);
+					if (!image.alt || BASE64_REGEX.test(image.alt)) {
+						image.alt = 'Exported image';
+					}
+					else {
+						// Sanitize OCR text to ensure valid markdown
+						image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
+					}
 				}
 			}
 		}
