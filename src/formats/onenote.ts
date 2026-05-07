@@ -64,6 +64,7 @@ export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
+	importHandwrittenNotes: boolean = true;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -90,6 +91,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Import handwritten notes')
+			.setDesc('Handwritten notes are saved as SVG vector images.')
+			.addToggle((toggle) => toggle
+				.setValue(true)
+				.onChange((value) => (this.importHandwrittenNotes = value))
 			);
 
 		new Setting(this.modal.contentEl)
@@ -551,20 +560,19 @@ export class OneNoteImporter extends FormatImporter {
 
 			// Process InkML content if present and convert to SVG
 			let inkEmbedMarkdown = '';
-			try {
-				const svgContent = inkmlToSvg(splitContent.inkml);
-				if (svgContent) {
-					// Save the SVG as an attachment
-					const svgFilename = `${page.title} - Ink.svg`;
-					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
-
-					// Create markdown embed for the SVG
-					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
-					progress.reportAttachmentSuccess(svgFilename);
+			if (this.importHandwrittenNotes) {
+				try {
+					const svgContent = inkmlToSvg(splitContent.inkml);
+					if (svgContent) {
+						const svgFilename = `${page.title} - Ink.svg`;
+						await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
+						inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
+						progress.reportAttachmentSuccess(svgFilename);
+					}
 				}
-			}
-			catch (e) {
-				console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				catch (e) {
+					console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				}
 			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
