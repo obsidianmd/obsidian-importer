@@ -1,5 +1,6 @@
 import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
+import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
@@ -246,6 +247,12 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
+			'airtable-api': {
+				name: 'Airtable (API)',
+				optionText: 'Airtable (API)',
+				importer: AirtableAPIImporter,
+				helpPermalink: 'import/airtable',
+			},
 			'apple-notes': {
 				name: 'Apple Notes',
 				optionText: 'Apple Notes',

@@ -2,7 +2,7 @@ import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, Da
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
@@ -15,7 +15,7 @@ import {
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { getUniqueFolderPath, getUniqueFilePath } from './notion-api/vault-helpers';
+import { getUniqueFolderPath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
@@ -128,7 +128,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Add custom class for fixed width and initially hide
 			if (button.buttonEl) {
 				button.buttonEl.addClass('notion-toggle-button');
-				button.buttonEl.style.display = 'none'; // Hide until tree is loaded
+				button.buttonEl.hide(); // Hide until tree is loaded
 			}
 
 			return button;
@@ -163,24 +163,13 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const publishSection = this.modal.contentEl.createDiv();
-		publishSection.addClass('file-tree', 'publish-section');
-
+		const importSection = this.modal.contentEl.createDiv();
+		importSection.addClass('import-section', 'file-tree', 'publish-section');
+	
 		// Create the change list container
-		this.pageTreeContainer = publishSection.createDiv('publish-change-list');
-		this.pageTreeContainer.style.maxHeight = '200px';
-		this.pageTreeContainer.style.overflowY = 'auto';
-		this.pageTreeContainer.style.border = '1px solid var(--background-modifier-border)';
-		this.pageTreeContainer.style.borderRadius = 'var(--radius-s)';
-		this.pageTreeContainer.style.backgroundColor = 'var(--background-primary-alt)';
-		this.pageTreeContainer.style.padding = 'var(--size-4-2)';
-
+		this.pageTreeContainer = importSection.createDiv('publish-change-list');
 		// Add placeholder text
-		const placeholder = this.pageTreeContainer.createDiv();
-		placeholder.style.color = 'var(--text-muted)';
-		placeholder.style.fontSize = 'var(--font-ui-small)';
-		placeholder.style.textAlign = 'center';
-		placeholder.style.padding = '30px 10px';
+		const placeholder = this.pageTreeContainer.createDiv('publish-placeholder');
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Incremental import setting
@@ -455,7 +444,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Show the Select all button now that we have content
 			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
-				this.toggleSelectButton.buttonEl.style.display = '';
+				this.toggleSelectButton.buttonEl.show();
 			}
 
 			new Notice(`Found ${allItems.length} pages and databases.`);
@@ -681,18 +670,13 @@ export class NotionAPIImporter extends FormatImporter {
 			setIcon(collapseIcon, 'right-triangle');
 
 			// Add is-collapsed class for CSS control
-			if (node.collapsed) {
-				collapseIcon.addClass('is-collapsed');
-				treeItem.addClass('is-collapsed');
-			}
-
+			collapseIcon.toggleClass('is-collapsed', node.collapsed);
+			treeItem.toggleClass('is-collapsed', node.collapsed);
+		
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
 			}
-
-			// Store references for event handler
-			const treeItemRef = treeItem;
 			let childrenContainer: HTMLElement;
 			let iconContainer: HTMLElement;
 
@@ -703,32 +687,21 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Get references if not set yet
 				if (!childrenContainer) {
-					childrenContainer = treeItemRef.querySelector('.tree-item-children') as HTMLElement;
+					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
 				}
 				if (!iconContainer) {
-					iconContainer = treeItemRef.querySelector('.file-tree-item-icon') as HTMLElement;
+					iconContainer = treeItem.querySelector('.file-tree-item-icon') as HTMLElement;
 				}
 
 				// Toggle CSS classes and visibility
-				if (node.collapsed) {
-					collapseIcon.addClass('is-collapsed');
-					treeItemRef.addClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = 'none';
-					// Update folder icon
-					if (node.type !== 'database' && iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder');
-					}
-				}
-				else {
-					collapseIcon.removeClass('is-collapsed');
-					treeItemRef.removeClass('is-collapsed');
-					if (childrenContainer) childrenContainer.style.display = '';
-					// Update folder icon
-					if (node.type !== 'database' && iconContainer) {
-						iconContainer.empty();
-						setIcon(iconContainer, 'folder-open');
-					}
+				collapseIcon.toggleClass('is-collapsed', node.collapsed);
+				treeItem.toggleClass('is-collapsed', node.collapsed);
+				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
+				
+				// Update folder icon
+				if (node.type !== 'database' && iconContainer) {
+					iconContainer.empty();
+					setIcon(iconContainer, node.collapsed ? 'folder' : 'folder-open');
 				}
 			});
 		}
@@ -773,7 +746,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Hide children container if collapsed
 		if (node.collapsed) {
-			childrenContainer.style.display = 'none';
+			childrenContainer.hide();
 		}
 
 		// Render children (always render, but hide if collapsed)
