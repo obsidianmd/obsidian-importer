@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
@@ -589,7 +589,7 @@ export class OneNoteImporter extends FormatImporter {
 				const svgContent = inkmlToSvg(splitContent.inkml);
 				if (svgContent) {
 					// Save the SVG as an attachment
-					const svgFilename = `${page.title} - Ink.svg`;
+					const svgFilename = `${sanitizeFileName(page.title!)} - Ink.svg`;
 					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
 
 					// Create markdown embed for the SVG
