@@ -60,6 +60,20 @@ function isHTMLElement(node: Node): node is HTMLElement {
 	return node instanceof HTMLElement;
 }
 
+class SelectedSection {
+	static readonly ROOT_PATH: string[] = [];
+
+	constructor(public readonly id: string, public readonly path: string[]) {}
+
+	get label(): string {
+		return this.path.join(' > ');
+	}
+
+	static appendPath(parentPath: string[], entity: { displayName?: string | null }): string[] {
+		return [...parentPath, entity.displayName ?? 'NO-NAME'];
+	}
+}
+
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
@@ -70,7 +84,7 @@ export class OneNoteImporter extends FormatImporter {
 	loadingArea: HTMLDivElement;
 	contentArea: HTMLDivElement;
 	// Internal
-	selectedIds: string[] = [];
+	selectedIds: SelectedSection[] = [];
 	notebooks: Notebook[] = [];
 	graphData = {
 		state: genUid(32),
@@ -311,7 +325,7 @@ export class OneNoteImporter extends FormatImporter {
 						.onClick(() => {
 							notebookDiv.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:not(:checked)').forEach((el) => el.click());
 						}));
-				this.renderHierarchy(notebook, notebookDiv);
+				this.renderHierarchy(notebook, notebookDiv, SelectedSection.appendPath(SelectedSection.ROOT_PATH, notebook));
 			}
 		}
 		catch (e) {
@@ -335,7 +349,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Renders a HTML list of all section groups and sections
-	renderHierarchy(entity: SectionGroup | Notebook, parentEl: HTMLElement) {
+	renderHierarchy(entity: SectionGroup | Notebook, parentEl: HTMLElement, parentPath: string[]) {
 		if (entity.sectionGroups) {
 			for (const sectionGroup of entity.sectionGroups) {
 				let sectionGroupDiv = parentEl.createDiv(
@@ -349,7 +363,7 @@ export class OneNoteImporter extends FormatImporter {
 					text: sectionGroup.displayName!,
 				});
 
-				this.renderHierarchy(sectionGroup, sectionGroupDiv);
+				this.renderHierarchy(sectionGroup, sectionGroupDiv, SelectedSection.appendPath(parentPath, sectionGroup));
 			}
 		}
 
@@ -371,9 +385,9 @@ export class OneNoteImporter extends FormatImporter {
 				label.createEl('br');
 
 				checkbox.addEventListener('change', () => {
-					if (checkbox.checked) this.selectedIds.push(section.id!);
+					if (checkbox.checked) this.selectedIds.push(new SelectedSection(section.id!, SelectedSection.appendPath(parentPath, section)));
 					else {
-						const index = this.selectedIds.findIndex((sec) => sec === section.id);
+						const index = this.selectedIds.findIndex((sec) => sec.id === section.id);
 						if (index !== -1) {
 							this.selectedIds.splice(index, 1);
 						}
@@ -421,15 +435,12 @@ export class OneNoteImporter extends FormatImporter {
 		let progressCurrent = 0;
 		let consecutiveFailureCount = 0;
 
-		for (let sectionId of this.selectedIds) {
-			const sectionInfo = this.findSectionInfo(sectionId);
-			const sectionLabel = sectionInfo
-				? `"${sectionInfo.sectionName}" (notebook: "${sectionInfo.notebookName}")`
-				: `[id: ${sectionId}]`;
+		for (let section of this.selectedIds) {
+			const sectionLabel = section.label;
 
 			console.log(`[OneNote Importer] Starting to import section ${sectionLabel}`);
 
-			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
+			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages`;
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
 				$orderby: 'order',
@@ -444,7 +455,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			catch (e) {
 				console.error(`[OneNote Importer] Failed to fetch pages for section ${sectionLabel}, skipping to next section.`, e);
-				progress.reportFailed(`Failed to fetch pages for section ${sectionInfo?.sectionName ?? sectionId}, skipping to next section.`, String(e));
+				progress.reportFailed(`Failed to fetch pages for section ${sectionLabel}`, String(e));
 				continue;
 			}
 			if (!pages) {
@@ -453,7 +464,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			console.log(`[OneNote Importer] Found ${pages.length} pages in section ${sectionLabel}`);
 			progressTotal += pages.length;
-			this.insertPagesToSection(pages, sectionId);
+			this.insertPagesToSection(pages, section.id);
 
 			progress.reportProgress(progressCurrent, progressTotal);
 
@@ -523,27 +534,6 @@ export class OneNoteImporter extends FormatImporter {
 
 			console.log(`[OneNote Importer] Finished section ${sectionLabel}`);
 		}
-	}
-
-	findSectionInfo(sectionId: string): { notebookName: string, sectionName: string } | null {
-		for (const notebook of this.notebooks) {
-			const result = this.findSectionInfoIn(sectionId, notebook, notebook.displayName ?? '');
-			if (result) return result;
-		}
-		return null;
-	}
-
-	private findSectionInfoIn(sectionId: string, entity: Notebook | SectionGroup, notebookName: string): { notebookName: string, sectionName: string } | null {
-		for (const section of entity.sections ?? []) {
-			if (section.id === sectionId) {
-				return { notebookName, sectionName: section.displayName ?? sectionId };
-			}
-		}
-		for (const group of entity.sectionGroups ?? []) {
-			const result = this.findSectionInfoIn(sectionId, group, notebookName);
-			if (result) return result;
-		}
-		return null;
 	}
 
 	insertPagesToSection(pages: OnenotePage[], sectionId: string, parentEntity?: Notebook | SectionGroup) {
