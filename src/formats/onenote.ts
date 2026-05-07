@@ -1,5 +1,5 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
@@ -590,7 +590,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (svgContent) {
 					// Save the SVG as an attachment
 					const svgFilename = `${sanitizeFileName(page.title!)} - Ink.svg`;
-					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
+					await this.createOrOverwriteFile(`${pageFolder.path}/${svgFilename}`, svgContent);
 
 					// Create markdown embed for the SVG
 					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
@@ -939,6 +939,15 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		return pageElement;
+	}
+
+	private async createOrOverwriteFile(path: string, content: string): Promise<TFile> {
+		const existing = this.vault.getAbstractFileByPath(path);
+		if (existing instanceof TFile) {
+			await this.vault.modify(existing, content);
+			return existing;
+		}
+		return this.vault.create(path, content);
 	}
 
 	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string) {
