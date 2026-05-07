@@ -6,6 +6,7 @@ import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
+import { toWhitelist, findUnsupportedWhitelistPatterns, matchesAttachmentWhitelist } from './onenote/attachment-whitelist';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
@@ -63,7 +64,7 @@ function isHTMLElement(node: Node): node is HTMLElement {
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
-	importIncompatibleAttachments: boolean = false;
+	attachmentWhitelist: string = '';
 	importHandwrittenNotes: boolean = true;
 	// UI
 	microsoftAccountSetting: Setting;
@@ -83,15 +84,37 @@ export class OneNoteImporter extends FormatImporter {
 	lastSuccessfulFetchTime: number = performance.now();
 
 	async init() {
+		this.attachmentWhitelist = toWhitelist(ATTACHMENT_EXTS);
+
 		this.addOutputLocationSetting('OneNote');
 
-		new Setting(this.modal.contentEl)
-			.setName('Import incompatible attachments')
-			.setDesc('Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.')
-			.addToggle((toggle) => toggle
-				.setValue(false)
-				.onChange((value) => (this.importIncompatibleAttachments = value))
-			);
+		let whitelistWarning: HTMLElement;
+
+		const whitelistSetting = new Setting(this.modal.contentEl)
+			.setName('Import attachments')
+			.setDesc('Glob patterns for attachment types to import, comma-separated (e.g. *.pdf, *.png). Use * to import everything. The default list contains all Obsidian-compatible types.')
+			.addText((text) => {
+				text.inputEl.style.width = '100%';
+				text.setValue(this.attachmentWhitelist)
+					.onChange((value) => {
+						this.attachmentWhitelist = value;
+						const unsupported = findUnsupportedWhitelistPatterns(value);
+						if (unsupported.length > 0) {
+							whitelistWarning.setText(`Unsupported patterns (will be ignored): ${unsupported.join(', ')}`);
+							whitelistWarning.show();
+						}
+						else {
+							whitelistWarning.hide();
+						}
+					});
+			});
+		whitelistSetting.settingEl.style.flexWrap = 'wrap';
+		whitelistSetting.controlEl.style.width = '100%';
+
+		whitelistWarning = this.modal.contentEl.createEl('p', {
+			attr: { style: 'font-size: smaller; font-style: italic; color: var(--color-red);' },
+		});
+		whitelistWarning.hide();
 
 		new Setting(this.modal.contentEl)
 			.setName('Import handwritten notes')
@@ -856,15 +879,11 @@ export class OneNoteImporter extends FormatImporter {
 				object.parentNode?.insertBefore(object.firstChild, object.nextSibling);
 			}
 
-			let split: string[] = object.getAttribute('data-attachment')!.split('.');
-			const extension: string = split[split.length - 1];
-
-			// If the page contains an incompatible file and user doesn't want to import them, skip
-			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
+			const originalName = object.getAttribute('data-attachment')!;
+			if (!matchesAttachmentWhitelist(originalName, this.attachmentWhitelist)) {
 				continue;
 			}
 			else {
-				const originalName = object.getAttribute('data-attachment')!;
 				const contentLocation = object.getAttribute('data')!;
 				const filename = await this.fetchAttachment(progress, originalName, contentLocation);
 
