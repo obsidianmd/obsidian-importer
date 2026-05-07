@@ -599,6 +599,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			catch (e) {
 				console.error('[OneNote Importer] Failed to convert InkML to SVG in page:', page.title, e);
+				progress.reportFailed(`Failed to save handwriting to svg for note '${page.title}'`, e);
 			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
