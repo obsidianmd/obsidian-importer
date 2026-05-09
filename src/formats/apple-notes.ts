@@ -482,7 +482,7 @@ export class AppleNotesImporter extends FormatImporter {
 	}
 
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>) {
-		const unzipped = zlib.gunzipSync(Buffer.from(hexdata, 'hex'));
+		const unzipped = zlib.unzipSync(Buffer.from(hexdata, 'hex'));
 		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
 		return new converterType(this, decoded);
 	}
