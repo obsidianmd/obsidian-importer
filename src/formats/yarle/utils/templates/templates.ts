@@ -4,24 +4,27 @@ import { YarleOptions } from '../../options';
 import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate,applyTagsYamlListTemplate,  applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate } from './apply-functions';
 
 import * as T from './placeholders/metadata-placeholders';
-import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
+import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeTitlePlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
 
 export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) => {
 
 	let result = yarleOptions.currentTemplate;
 
-	result = applyTitleTemplate(noteData, result, () => noteData.title);
 	result = applyTagsTemplate(noteData, result, () => !yarleOptions.skipTags);
 	result = applyTagsYamlListTemplate(noteData, result, () => !yarleOptions.skipTags);
 	result = applyContentTemplate(noteData, result, () => noteData.content);
 
 	result = removeLinkToOriginalTemplate(result);
 
-	result = (!yarleOptions.skipCreationTime && noteData.createdAt)
+	result = (yarleOptions.includeTitleInFrontmatter && noteData.title)
+		? applyTitleTemplate(noteData, result, () => noteData.title)
+		: removeTitlePlaceholder(result);
+
+	result = (yarleOptions.includeCreationTimeInFrontmatter && noteData.createdAt)
 		? applyCreatedAtTemplate(noteData, result)
 		: removeCreatedAtPlaceholder(result);
 
-	result = (!yarleOptions.skipUpdateTime && noteData.updatedAt)
+	result = (yarleOptions.includeUpdateTimeInFrontmatter && noteData.updatedAt)
 		? applyUpdatedAtTemplate(noteData, result)
 		: removeUpdatedAtPlaceholder(result);
 

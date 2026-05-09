@@ -5,4 +5,5 @@ export interface TemplateBlockSettings {
 	endBlockPlaceholder: string;
 	valuePlaceholder: string;
 	value?: string;
+	skipYamlEscaping?: boolean;
 }
