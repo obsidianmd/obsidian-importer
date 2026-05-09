@@ -1,8 +1,10 @@
-import { DataWriteOptions, normalizePath, Notice, TFile, Setting } from 'obsidian';
+import { DataWriteOptions, moment, normalizePath, Notice, TFile, Setting } from 'obsidian';
 import { path, parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
+
+const LOCAL_STORAGE_KEY = 'bear-importer-file-prefix';
 
 type Metadata = {
 	id: string;
@@ -22,10 +24,34 @@ export class Bear2bkImporter extends FormatImporter {
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
 	private storeId: boolean = false;
+	private filePrefixFormat: string = '';
 
 	init() {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
+
+		const storedPrefix = localStorage.getItem(LOCAL_STORAGE_KEY) || '';
+		this.filePrefixFormat = storedPrefix;
+
+		new Setting(this.modal.contentEl)
+			.setName('File prefix format')
+			.setDesc(
+				'Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
+				' Leave blank for no prefix.'
+			)
+			.addText(t => {
+				const updatePrefix = (value: string) => {
+					this.filePrefixFormat = value;
+					localStorage.setItem(LOCAL_STORAGE_KEY, value);
+				};
+
+				t.setValue(storedPrefix);
+				t.setPlaceholder('YYYY-MM-DD');
+				t.onChange(v => updatePrefix(v));
+				// In practice, users may click Import while focus is still in this field.
+				// 'change' may not fire yet, so persist on each keystroke too.
+				t.inputEl.addEventListener('input', () => updatePrefix(t.inputEl.value));
+			});
 
 		new Setting(this.modal.contentEl)
 			.setName('Flatten nested tags')
@@ -77,6 +103,9 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
+		// The importer modal clears/rebuilds its DOM before import runs, so read from
+		// persisted settings here instead of trusting the now-detached input element.
+		this.filePrefixFormat = localStorage.getItem(LOCAL_STORAGE_KEY) || '';
 
 		// Keep track of Bear IDs to new Obsidian file names to update links based on the identifier
 		let idMapping: Record<string, IDMappingValue> = {};
@@ -154,8 +183,8 @@ export class Bear2bkImporter extends FormatImporter {
 							const tags = this.extractTagsFromContent(mdContent);
 
 							// Use just the filename without extension
-							const fileName = mdFilename;
 							const metadata = metadataLookup[parent];
+							const fileName = this.getNoteFileName(mdFilename, metadata);
 							let targetFolder = outputFolder;
 							if (metadata?.archivedtime !== undefined) {
 								targetFolder = archiveFolder;
@@ -174,7 +203,7 @@ export class Bear2bkImporter extends FormatImporter {
 							}
 
 							idMapping[metadata?.id] = {
-								filename: fileName,
+								filename: file.basename,
 								metadata: metadata,
 								file: file,
 							};
@@ -340,5 +369,18 @@ export class Bear2bkImporter extends FormatImporter {
 		return idx > 0
 			? mdContent.substring(idx + 1)
 			: '';
+	}
+
+	private getNoteFileName(mdFilename: string, metadata: Metadata | undefined): string {
+		if (!this.filePrefixFormat) {
+			return mdFilename;
+		}
+
+		if (!metadata?.ctime) {
+			return mdFilename;
+		}
+
+		const datePrefix = moment(metadata.ctime).format(this.filePrefixFormat);
+		return `${datePrefix} ${mdFilename}`;
 	}
 }
