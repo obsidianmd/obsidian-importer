@@ -1,4 +1,4 @@
-import builtins from "builtin-modules";
+import { builtinModules } from "module";
 import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
@@ -40,7 +40,7 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins],
+		...builtinModules],
 
 	// We don't need to include code to create zip files (deflate), only read them (inflate),
 	// so this cuts it out and makes the final bundle smaller.
