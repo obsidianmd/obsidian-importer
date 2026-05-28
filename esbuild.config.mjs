@@ -13,6 +13,24 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 
+// Replaces @protobufjs/inquire (which uses eval() to hide an optional require()
+// from bundlers) with a stub that always returns null. The optional modules it
+// probes for (buffer, long, fs) are not used in this codebase, and removing the
+// eval avoids a false-positive flag from the Obsidian community directory review.
+const stubInquirePlugin = {
+	name: 'stub-protobufjs-inquire',
+	setup(build) {
+		build.onResolve({ filter: /^@protobufjs\/inquire$/ }, args => ({
+			path: args.path,
+			namespace: 'stub-inquire',
+		}));
+		build.onLoad({ filter: /.*/, namespace: 'stub-inquire' }, () => ({
+			contents: 'module.exports = function inquire() { return null; };',
+			loader: 'js',
+		}));
+	},
+};
+
 let outfile = "main.js";
 if (fs.existsSync('./.devtarget')) {
 	outfile = path.join(fs.readFileSync('./.devtarget', 'utf8').trim(), outfile);
@@ -52,6 +70,7 @@ const context = await esbuild.context({
 	minify: prod,
 	platform: 'browser',
 	treeShaking: true,
+	plugins: [stubInquirePlugin],
 	outfile,
 });
 
