@@ -1,4 +1,4 @@
-import { FrontMatterCache, stringifyYaml } from 'obsidian';
+import { FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[\?<>:\*\|"]/g;
@@ -25,6 +25,38 @@ export function sanitizeFileName(name: string) {
 	// This prevents creating files like ".md" (no name) or folders with only spaces
 	const trimmed = sanitized.trim();
 	return trimmed || 'Untitled';
+}
+
+/**
+ * Get a unique file path by appending 1, 2, etc. if needed
+ * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
+ * 
+ * @param vault - Obsidian vault instance
+ * @param parentPath - Parent folder path
+ * @param fileName - File name with extension (e.g., "note.md")
+ * @returns Unique file path that doesn't conflict with existing files
+ */
+export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
+	let basePath = normalizePath(`${parentPath}/${fileName}`);
+	let finalPath = basePath;
+	let counter = 1;
+	
+	// Use getAbstractFileByPath for synchronous check
+	while (vault.getAbstractFileByPath(finalPath)) {
+		// Insert counter before file extension
+		const lastDotIndex = fileName.lastIndexOf('.');
+		if (lastDotIndex > 0) {
+			const nameWithoutExt = fileName.substring(0, lastDotIndex);
+			const ext = fileName.substring(lastDotIndex);
+			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} ${counter}${ext}`);
+		}
+		else {
+			finalPath = normalizePath(`${parentPath}/${fileName} ${counter}`);
+		}
+		counter++;
+	}
+	
+	return finalPath;
 }
 
 export function genUid(length: number): string {
