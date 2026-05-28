@@ -13,6 +13,7 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"packageManager": "pnpm@10.20.0",
 	"devDependencies": {
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.7.1",
