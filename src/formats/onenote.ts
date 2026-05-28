@@ -1,9 +1,10 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML } from '../util';
+import { Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { genUid, extractErrorMessage, parseHTML, serializeFrontMatter } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
+import { getOneNoteDateProperties, getOneNoteDateWriteOptions } from './onenote/date-properties';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
@@ -64,6 +65,7 @@ export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
+	addDateProperties: boolean = true;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -98,6 +100,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(true)
 				.onChange((value) => (this.importPreviouslyImported = !value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Add dates as properties')
+			.setDesc('Adds the original OneNote created and updated dates to each imported note.')
+			.addToggle((toggle) => toggle
+				.setValue(this.addDateProperties)
+				.onChange((value) => (this.addDateProperties = value))
 			);
 
 		let authenticated = false;
@@ -585,16 +595,13 @@ export class OneNoteImporter extends FormatImporter {
 				mdContent += inkEmbedMarkdown;
 			}
 
+			if (this.addDateProperties) {
+				mdContent = addOneNoteDateProperties(mdContent, page);
+			}
+
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
-			// Add the last modified and creation time metadata
-			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
-			const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
-			const writeOptions: DataWriteOptions = {
-				ctime: created ?? lastModified ?? Date.now(),
-				mtime: lastModified ?? created ?? Date.now(),
-			};
-			await this.vault.append(fileRef, '', writeOptions);
+			await this.vault.append(fileRef, '', getOneNoteDateWriteOptions(page));
 			progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
@@ -1201,4 +1208,9 @@ export class OneNoteImporter extends FormatImporter {
 			return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 		}
 	}
+}
+
+function addOneNoteDateProperties(content: string, page: OnenotePage): string {
+	const frontMatter = serializeFrontMatter(getOneNoteDateProperties(page));
+	return frontMatter ? frontMatter + content : content;
 }
