@@ -6,6 +6,7 @@ import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
+import { toWhitelist, findUnsupportedWhitelistPatterns, matchesAttachmentWhitelist } from './onenote/attachment-whitelist';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
@@ -63,7 +64,9 @@ function isHTMLElement(node: Node): node is HTMLElement {
 export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
-	importIncompatibleAttachments: boolean = false;
+	attachmentWhitelist: string = '';
+	importHandwrittenNotes: boolean = true;
+	importEmbeddedImages: boolean = true;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -82,14 +85,52 @@ export class OneNoteImporter extends FormatImporter {
 	lastSuccessfulFetchTime: number = performance.now();
 
 	async init() {
+		this.attachmentWhitelist = toWhitelist(ATTACHMENT_EXTS);
+
 		this.addOutputLocationSetting('OneNote');
 
+		let whitelistWarning: HTMLElement;
+
+		const whitelistSetting = new Setting(this.modal.contentEl)
+			.setName('Import attachments')
+			.setDesc('Glob patterns for attachment types to import, comma-separated (e.g. *.pdf, *.png). Use * to import everything. The default list contains all Obsidian-compatible types.')
+			.addText((text) => {
+				text.inputEl.style.width = '100%';
+				text.setValue(this.attachmentWhitelist)
+					.onChange((value) => {
+						this.attachmentWhitelist = value;
+						const unsupported = findUnsupportedWhitelistPatterns(value);
+						if (unsupported.length > 0) {
+							whitelistWarning.setText(`Unsupported patterns (will be ignored): ${unsupported.join(', ')}`);
+							whitelistWarning.show();
+						}
+						else {
+							whitelistWarning.hide();
+						}
+					});
+			});
+		whitelistSetting.settingEl.style.flexWrap = 'wrap';
+		whitelistSetting.controlEl.style.width = '100%';
+
+		whitelistWarning = this.modal.contentEl.createEl('p', {
+			attr: { style: 'font-size: smaller; font-style: italic; color: var(--color-red);' },
+		});
+		whitelistWarning.hide();
+
 		new Setting(this.modal.contentEl)
-			.setName('Import incompatible attachments')
-			.setDesc('Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.')
+			.setName('Import handwritten notes')
+			.setDesc('Handwritten notes are saved as SVG vector images.')
 			.addToggle((toggle) => toggle
-				.setValue(false)
-				.onChange((value) => (this.importIncompatibleAttachments = value))
+				.setValue(true)
+				.onChange((value) => (this.importHandwrittenNotes = value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Import embedded images')
+			.setDesc('Images embedded in notes are downloaded and saved as attachments.')
+			.addToggle((toggle) => toggle
+				.setValue(true)
+				.onChange((value) => (this.importEmbeddedImages = value))
 			);
 
 		new Setting(this.modal.contentEl)
@@ -551,20 +592,19 @@ export class OneNoteImporter extends FormatImporter {
 
 			// Process InkML content if present and convert to SVG
 			let inkEmbedMarkdown = '';
-			try {
-				const svgContent = inkmlToSvg(splitContent.inkml);
-				if (svgContent) {
-					// Save the SVG as an attachment
-					const svgFilename = `${page.title} - Ink.svg`;
-					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
-
-					// Create markdown embed for the SVG
-					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
-					progress.reportAttachmentSuccess(svgFilename);
+			if (this.importHandwrittenNotes) {
+				try {
+					const svgContent = inkmlToSvg(splitContent.inkml);
+					if (svgContent) {
+						const svgFilename = `${page.title} - Ink.svg`;
+						await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
+						inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
+						progress.reportAttachmentSuccess(svgFilename);
+					}
 				}
-			}
-			catch (e) {
-				console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				catch (e) {
+					console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				}
 			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
@@ -848,15 +888,11 @@ export class OneNoteImporter extends FormatImporter {
 				object.parentNode?.insertBefore(object.firstChild, object.nextSibling);
 			}
 
-			let split: string[] = object.getAttribute('data-attachment')!.split('.');
-			const extension: string = split[split.length - 1];
-
-			// If the page contains an incompatible file and user doesn't want to import them, skip
-			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
+			const originalName = object.getAttribute('data-attachment')!;
+			if (!matchesAttachmentWhitelist(originalName, this.attachmentWhitelist)) {
 				continue;
 			}
 			else {
-				const originalName = object.getAttribute('data-attachment')!;
 				const contentLocation = object.getAttribute('data')!;
 				const filename = await this.fetchAttachment(progress, originalName, contentLocation);
 
@@ -869,22 +905,24 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 
-		for (let i = 0; i < images.length; i++) {
-			const image = images[i];
-			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
-			const extension: string = split[1];
-			const currentDate = moment().format('YYYYMMDDHHmmss');
-			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
-			const contentLocation = image.getAttribute('data-fullres-src')!;
-			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
-			if (outputPath) {
-				image.src = encodeURI(outputPath);
-				if (!image.alt || BASE64_REGEX.test(image.alt)) {
-					image.alt = 'Exported image';
-				}
-				else {
-					// Sanitize OCR text to ensure valid markdown
-					image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
+		if (this.importEmbeddedImages) {
+			for (let i = 0; i < images.length; i++) {
+				const image = images[i];
+				let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
+				const extension: string = split[1];
+				const currentDate = moment().format('YYYYMMDDHHmmss');
+				const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
+				const contentLocation = image.getAttribute('data-fullres-src')!;
+				const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
+				if (outputPath) {
+					image.src = encodeURI(outputPath);
+					if (!image.alt || BASE64_REGEX.test(image.alt)) {
+						image.alt = 'Exported image';
+					}
+					else {
+						// Sanitize OCR text to ensure valid markdown
+						image.alt = this.sanitizeOCRText(image.alt) || 'Exported image';
+					}
 				}
 			}
 		}
