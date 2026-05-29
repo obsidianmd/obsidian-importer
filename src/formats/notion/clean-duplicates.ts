@@ -46,15 +46,23 @@ function cleanDuplicateNotes({
 	pathDuplicateChecks: Set<string>;
 	titleDuplicateChecks: Set<string>;
 }) {
-	for (let fileInfo of Object.values(info.idsToFileInfo)) {
-		let path = info.getPathForFile(fileInfo);
+	// Use case-insensitive checks to handle filesystems like Windows/macOS
+	// that treat "Getting started.md" and "Getting Started.md" as the same file.
+	const pathDuplicateChecksLower = new Set<string>();
 
-		if (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
-			let duplicateResolutionIndex = 2;
-			fileInfo.title = fileInfo.title + ' ' + duplicateResolutionIndex;
-			while (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
-				duplicateResolutionIndex++;
-				fileInfo.title = `${fileInfo.title.replace(/ \d+$/, '')} ${duplicateResolutionIndex}`;
+	for (let [id, fileInfo] of Object.entries(info.idsToFileInfo)) {
+		let path = info.getPathForFile(fileInfo);
+		const fullPathLower = `${path}${fileInfo.title}`.toLowerCase();
+
+		if (pathDuplicateChecksLower.has(fullPathLower)) {
+			// Case-insensitive collision: append first 4 chars of Notion ID
+			fileInfo.title = `${fileInfo.title}_${id.slice(0, 4)}`;
+
+			// If still collides (unlikely), keep appending more of the ID
+			let idLen = 4;
+			while (pathDuplicateChecksLower.has(`${path}${fileInfo.title}`.toLowerCase())) {
+				idLen = Math.min(idLen + 4, id.length);
+				fileInfo.title = `${fileInfo.title.replace(/_[a-z0-9]+$/, '')}_${id.slice(0, idLen)}`;
 			}
 		}
 
@@ -63,6 +71,7 @@ function cleanDuplicateNotes({
 		}
 
 		pathDuplicateChecks.add(`${path}${fileInfo.title}`);
+		pathDuplicateChecksLower.add(`${path}${fileInfo.title}`.toLowerCase());
 		titleDuplicateChecks.add(fileInfo.title + '.md');
 	}
 }
@@ -97,6 +106,10 @@ function cleanDuplicateAttachments({
 			.filter((file) => !file.path.endsWith('.md'))
 			.map((file) => file.path)
 	);
+	// Case-insensitive set for Windows/macOS filesystem collision detection
+	const attachmentPathsLower = new Set(
+		[...attachmentPaths].map((p) => p.toLowerCase())
+	);
 
 	let attachmentFolderPath = info.attachmentPath;
 	let attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
@@ -115,15 +128,19 @@ function cleanDuplicateAttachments({
 			);
 		}
 		else {
-			parentFolderPath = normalizePath(attachmentFolderPath + '/');
+			const basePath = attachmentFolderPath && attachmentFolderPath !== '/'
+				? attachmentFolderPath + '/'
+				: targetFolderPath;
+			parentFolderPath = normalizePath(basePath + info.getPathForFile(attachmentInfo));
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		if (attachmentPaths.has(parentFolderPath + attachmentInfo.nameWithExtension)) {
+		// Use case-insensitive check for filesystems like Windows/macOS
+		if (attachmentPathsLower.has((parentFolderPath + attachmentInfo.nameWithExtension).toLowerCase())) {
 			let duplicateResolutionIndex = 2;
 			const { basename, extension } = parseFilePath(attachmentInfo.path);
-			while (attachmentPaths.has(
-				`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`
+			while (attachmentPathsLower.has(
+				`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`.toLowerCase()
 			)) {
 				duplicateResolutionIndex++;
 			}
@@ -133,6 +150,7 @@ function cleanDuplicateAttachments({
 		attachmentInfo.targetParentFolder = parentFolderPath;
 
 		attachmentPaths.add(parentFolderPath + attachmentInfo.nameWithExtension);
+		attachmentPathsLower.add((parentFolderPath + attachmentInfo.nameWithExtension).toLowerCase());
 		titleDuplicateChecks.add(attachmentInfo.nameWithExtension);
 	}
 }
