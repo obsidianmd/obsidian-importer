@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-importer",
 	"version": "1.8.12",
-	"description": "Import data from Notion, Evernote, Apple Notes, Microsoft OneNote, Google Keep, Bear, Roam, Textbundle, CSV, and HTML files.",
+	"description": "Import data from Notion, Evernote, Apple Notes, Microsoft OneNote, Google Keep, Bear, Roam, Textbundle, CSV, HTML, and Help+Manual HMXP files.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -19,6 +19,7 @@
 		"@stylistic/eslint-plugin": "5.10.0",
 		"@types/node": "20.19.27",
 		"@types/xml-flow": "1.0.1",
+		"@xmldom/xmldom": "0.9.10",
 		"esbuild": "0.25.4",
 		"eslint": "9.39.4",
 		"obsidian": "latest",

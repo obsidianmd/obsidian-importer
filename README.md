@@ -18,6 +18,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
+- Import from Help+Manual HMXP projects
 - Import from Apple Journal (HTML export)
 
 ## Contributing

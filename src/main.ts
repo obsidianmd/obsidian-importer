@@ -6,6 +6,7 @@ import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
+import { HmxpImporter } from './formats/hmxp';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
@@ -287,6 +288,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'HTML (.html)',
 				importer: HtmlImporter,
 				helpPermalink: 'import/html',
+			},
+			'hmxp': {
+				name: 'Help+Manual',
+				optionText: 'Help+Manual (.hmxp)',
+				importer: HmxpImporter,
+				formatDescription: 'Import uncompressed Help+Manual HMXP project folders.',
 			},
 			'onenote': {
 				name: 'Microsoft OneNote',
