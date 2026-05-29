@@ -493,6 +493,10 @@ export class ImporterModal extends Modal {
 						try {
 							await importer.import(ctx);
 						}
+						catch (e) {
+							ctx.reportFailed('Import', e);
+							new Notice('Import failed. See the import log for details.');
+						}
 						finally {
 							if (this.current === ctx) {
 								this.current = null;
