@@ -180,7 +180,7 @@ export class HmxpImporter extends FormatImporter {
 			let index = 0;
 			const visit = (nodes: HmxpTocNode[]) => {
 				for (const node of nodes) {
-					if (!order.has(node.id)) {
+					if (node.id && !order.has(node.id)) {
 						order.set(node.id, index++);
 					}
 					visit(node.children);

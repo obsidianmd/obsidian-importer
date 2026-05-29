@@ -12,7 +12,7 @@ export interface HmxpTopic {
 }
 
 export interface HmxpTocNode {
-	id: string;
+	id?: string;
 	caption: string;
 	children: HmxpTocNode[];
 }
@@ -120,19 +120,23 @@ function parseXml(xml: string): Document {
 }
 
 function parseTocNode(element: Element): HmxpTocNode {
-	const id = normalizeTopicHref(element.getAttribute('href') || element.getAttribute('id') || 'Untitled');
-	const caption = directChildText(element, 'caption') || id;
-	return {
-		id,
+	const href = element.getAttribute('href');
+	const id = href ? normalizeTopicHref(href) : undefined;
+	const caption = directChildText(element, 'caption') || id || 'Untitled';
+	const node: HmxpTocNode = {
 		caption,
 		children: childElements(element, 'topicref').map(parseTocNode),
 	};
+	if (id) {
+		node.id = id;
+	}
+	return node;
 }
 
 function appendTocLines(lines: string[], nodes: HmxpTocNode[], depth: number): void {
 	const prefix = '  '.repeat(depth);
 	for (const node of nodes) {
-		lines.push(`${prefix}- ${formatWikiLink(node.id, node.caption)}`);
+		lines.push(`${prefix}- ${node.id ? formatWikiLink(node.id, node.caption) : node.caption}`);
 		appendTocLines(lines, node.children, depth + 1);
 	}
 }

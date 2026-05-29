@@ -73,6 +73,9 @@ test('renders Help+Manual table of contents and keyword index', () => {
 		<map defaulttopic="h100000">
 			<topicref href="h100000"><caption>Install Guide</caption>
 				<topicref href="h123456"><caption>Overview</caption></topicref>
+				<topicref id="427627830342772"><caption>Menu</caption>
+					<topicref href="h234567"><caption>File</caption></topicref>
+				</topicref>
 			</topicref>
 		</map>`);
 
@@ -83,12 +86,21 @@ test('renders Help+Manual table of contents and keyword index', () => {
 			id: 'h123456',
 			caption: 'Overview',
 			children: [],
+		}, {
+			caption: 'Menu',
+			children: [{
+				id: 'h234567',
+				caption: 'File',
+				children: [],
+			}],
 		}],
 	}]);
 	assert.equal(renderHmxpTocMarkdown(toc), `# Table of Contents
 
 - [[h100000|Install Guide]]
   - [[h123456|Overview]]
+  - Menu
+    - [[h234567|File]]
 `);
 
 	const first = convertHmxpTopicXml('<topic><title>Install Guide</title><keywords><keyword>setup</keyword></keywords><body/></topic>', 'h100000');
