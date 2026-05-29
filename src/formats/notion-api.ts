@@ -50,6 +50,7 @@ export class NotionAPIImporter extends FormatImporter {
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	incrementalImport: boolean = false; // Incremental import: skip files with same notion-id (default: disabled)
+	preserveHierarchy: boolean = true; // Mirror Notion sidebar hierarchy as nested folders
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -191,6 +192,16 @@ export class NotionAPIImporter extends FormatImporter {
 				.setValue(false) // Default to disabled
 				.onChange(value => {
 					this.incrementalImport = value;
+				}));
+
+		// Preserve Notion hierarchy
+		new Setting(this.modal.contentEl)
+			.setName('Preserve Notion hierarchy')
+			.setDesc('Mirror the Notion sidebar structure as nested folders. When disabled, all selected items are imported flat into the output folder.')
+			.addToggle(toggle => toggle
+				.setValue(true)
+				.onChange(value => {
+					this.preserveHierarchy = value;
 				}));
 
 		// Formula import strategy
@@ -407,7 +418,74 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 
-			// Phase 2: Process items and filter appropriately
+			// Phase 2: Build a full ancestry map (id → parentId) from ALL raw items including filtered ones.
+			// Used in buildTree to escalate past missing/filtered parents to the nearest visible ancestor.
+			// Items with block_id parent get null from extractParentId (blocks aren't returned by Search),
+			// so we resolve each unique block_id to its page ancestor via targeted API calls.
+			const rawParentMap = new Map<string, string | null>();
+
+			// First pass: populate with standard parent resolution (block_id → null)
+			for (const item of allRawItems) {
+				const isDatabase = item.object === 'data_source';
+				const parentObj = isDatabase ? item.database_parent : item.parent;
+				rawParentMap.set(item.id, this.extractParentId(parentObj, isDatabase ? 'database' : 'page'));
+			}
+
+			// Second pass: resolve block_ids of filtered items to their page ancestor.
+			// Without this, items whose parent chain passes through a block (e.g. a page inside
+			// a column/toggle) cannot be attached to their correct workspace parent and fall to root.
+			const blockIdsToResolve = new Set<string>();
+			for (const item of allRawItems) {
+				if (!filteredIds.has(item.id)) continue;
+				const isDatabase = item.object === 'data_source';
+				const parentObj = isDatabase ? item.database_parent : item.parent;
+				if (parentObj?.type === 'block_id') {
+					blockIdsToResolve.add(parentObj.block_id);
+				}
+			}
+
+			// Walk up the block chain until we reach a page_id, then update rawParentMap
+			const filteredBlockParents = new Map<string, string>(); // blockId → page_id
+			for (const blockId of blockIdsToResolve) {
+				try {
+					let currentId = blockId;
+					const visited = new Set<string>();
+					while (currentId) {
+						if (visited.has(currentId)) break;
+						visited.add(currentId);
+						const blockData: any = await makeNotionRequest(
+							() => this.notionClient!.blocks.retrieve({ block_id: currentId }) as Promise<any>,
+							tempCtx
+						);
+						if (!blockData?.parent) break;
+						if (blockData.parent.type === 'page_id') {
+							filteredBlockParents.set(blockId, blockData.parent.page_id);
+							break;
+						}
+						if (blockData.parent.type === 'block_id') {
+							currentId = blockData.parent.block_id;
+						}
+						else {
+							break;
+						}
+					}
+				}
+				catch (error) {
+					console.warn(`[Notion Importer] Could not resolve block ${blockId} to page:`, error);
+				}
+			}
+
+			for (const item of allRawItems) {
+				if (!filteredIds.has(item.id)) continue;
+				const isDatabase = item.object === 'data_source';
+				const parentObj = isDatabase ? item.database_parent : item.parent;
+				if (parentObj?.type === 'block_id') {
+					const resolvedPageId = filteredBlockParents.get(parentObj.block_id);
+					if (resolvedPageId) rawParentMap.set(item.id, resolvedPageId);
+				}
+			}
+
+			// Phase 3: Process items and filter appropriately
 			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
 			for (const item of allRawItems) {
 				// Skip if this item itself is in the filtered list
@@ -448,7 +526,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 
 			// Build tree structure
-			this.pageTree = this.buildTree(allItems);
+			this.pageTree = this.buildTree(allItems, rawParentMap);
 
 			// Render tree (this will also update button text)
 			this.renderPageTree();
@@ -567,13 +645,52 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Build tree structure from flat list
+	 * Build a flat map of all tree nodes by ID for O(1) lookup.
 	 */
-	private buildTree(items: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }>): NotionTreeNode[] {
+	private buildNodeMap(): Map<string, NotionTreeNode> {
+		const map = new Map<string, NotionTreeNode>();
+		const walk = (nodes: NotionTreeNode[]) => {
+			for (const node of nodes) {
+				map.set(node.id, node);
+				walk(node.children);
+			}
+		};
+		walk(this.pageTree);
+		return map;
+	}
+
+	/**
+	 * Compute the ancestor folder path for a node by walking up parentId links.
+	 * Returns a relative path like "GrandparentTitle/ParentTitle" (not including the node itself).
+	 */
+	private getAncestorPath(nodeId: string, nodeMap: Map<string, NotionTreeNode>): string {
+		const segments: string[] = [];
+		let current = nodeMap.get(nodeId);
+		if (!current) return '';
+
+		let parentId = current.parentId;
+		while (parentId) {
+			const parent = nodeMap.get(parentId);
+			if (!parent) break;
+			segments.unshift(sanitizeFileName(parent.title));
+			parentId = parent.parentId;
+		}
+
+		return segments.join('/');
+	}
+
+	/**
+	 * Build tree structure from flat list.
+	 * rawParentMap covers ALL raw items (including filtered) so nodes whose direct parent
+	 * is missing/filtered can escalate up the ancestry chain to the nearest visible ancestor.
+	 */
+	private buildTree(
+		items: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }>,
+		rawParentMap?: Map<string, string | null>
+	): NotionTreeNode[] {
 		const nodeMap = new Map<string, NotionTreeNode>();
 		const roots: NotionTreeNode[] = [];
 
-		// Create all nodes
 		for (const item of items) {
 			nodeMap.set(item.id, {
 				id: item.id,
@@ -583,28 +700,46 @@ export class NotionAPIImporter extends FormatImporter {
 				children: [],
 				selected: false,
 				disabled: false,
-				collapsed: true, // Default to collapsed
+				collapsed: true,
 			});
 		}
 
-		// Build tree relationships
+		// Walk up rawParentMap until we find an id present in nodeMap (cycle-safe)
+		const resolveVisibleParent = (startId: string | null): string | null => {
+			if (!rawParentMap) return null;
+			let id = startId;
+			const visited = new Set<string>();
+			while (id) {
+				if (visited.has(id)) break;
+				visited.add(id);
+				if (nodeMap.has(id)) return id;
+				id = rawParentMap.get(id) ?? null;
+			}
+			return null;
+		};
+
 		for (const node of nodeMap.values()) {
+			let resolvedParentId: string | null = null;
 			if (node.parentId && nodeMap.has(node.parentId)) {
-				const parent = nodeMap.get(node.parentId)!;
-				parent.children.push(node);
+				resolvedParentId = node.parentId;
+			}
+			else if (node.parentId) {
+				// Parent not in tree — escalate up the raw ancestry chain
+				resolvedParentId = resolveVisibleParent(rawParentMap?.get(node.parentId) ?? null);
+			}
+
+			if (resolvedParentId) {
+				node.parentId = resolvedParentId; // keep in sync for getAncestorPath
+				nodeMap.get(resolvedParentId)!.children.push(node);
 			}
 			else {
-				// No parent or parent not in list -> root node
 				roots.push(node);
 			}
 		}
 
-		// Sort children by title
 		const sortNodes = (nodes: NotionTreeNode[]) => {
 			nodes.sort((a, b) => a.title.localeCompare(b.title));
-			for (const node of nodes) {
-				sortNodes(node.children);
-			}
+			for (const node of nodes) sortNodes(node.children);
 		};
 		sortNodes(roots);
 
@@ -931,9 +1066,9 @@ export class NotionAPIImporter extends FormatImporter {
 						this.selectedNodeIds.add(node.id);
 					}
 
-					// Add to return array if it's a top-level selection (not disabled)
-					// This includes both pages and databases for the import loop
-					if (!node.disabled) {
+					// Always include databases even when disabled: unlike pages, databases are not
+					// imported as child_page blocks by their parent — they need an explicit import call.
+					if (!node.disabled || node.type === 'database') {
 						topLevelSelected.push(node.id);
 					}
 				}
@@ -993,6 +1128,9 @@ export class NotionAPIImporter extends FormatImporter {
 			// Import all selected pages/databases
 			ctx.status(`Importing ${selectedIds.length} item(s)...`);
 
+			// Build node map once for hierarchy path computation
+			const nodeMap = this.preserveHierarchy ? this.buildNodeMap() : null;
+
 			for (let i = 0; i < selectedIds.length; i++) {
 				if (ctx.isCancelled()) break;
 
@@ -1009,17 +1147,28 @@ export class NotionAPIImporter extends FormatImporter {
 						continue;
 					}
 
+				// Compute parentPath: flat (folder.path) or with ancestor hierarchy
+				let parentPath = folder.path;
+				if (nodeMap) {
+					const ancestorPath = this.getAncestorPath(itemId, nodeMap);
+					if (ancestorPath) {
+						parentPath = normalizePath(`${folder.path}/${ancestorPath}`);
+						// Ensure intermediate ancestor folders exist
+						await this.createFolders(parentPath);
+					}
+				}
+
 					if (node.type === 'database') {
 						// It's a database (data_source)!
 						// Use the data_source ID directly - no need to call databases.retrieve()
 						// The importDatabaseCore will use this as data_source_id
-						await this.importTopLevelDatabase(ctx, itemId, folder.path, {
+						await this.importTopLevelDatabase(ctx, itemId, parentPath, {
 							isDataSourceId: true
 						});
 					}
 					else if (node.type === 'page') {
 						// It's a page, import as page
-						await this.fetchAndImportPage({ ctx, pageId: itemId, parentPath: folder.path });
+						await this.fetchAndImportPage({ ctx, pageId: itemId, parentPath });
 					}
 					else {
 						console.warn(`Unknown node type: ${node.type} (ID: ${itemId})`);
@@ -1063,13 +1212,7 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Import a top-level database (when user provides a database ID directly)
-	 * 
-	 * Note: We create a fake block object because convertChildDatabase() expects a BlockObjectResponse.
-	 * This is a design limitation - convertChildDatabase() was originally designed to handle databases
-	 * that are children of pages (from the blocks array), but we're reusing it for top-level databases.
-	 * The fake block only needs the 'id' and 'type' fields, as the rest of the information is fetched
-	 * from the Notion API inside convertChildDatabase().
+	 * Import a top-level database selected from the tree.
 	 */
 	private async importTopLevelDatabase(
 		ctx: ImportContext,
@@ -2143,16 +2286,8 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Clean up notion-id from all imported files' frontmatter
-	 * This is called ONLY at the end of FULL import (not incremental import)
-	 * 
-	 * Strategy: We always write notion-id during import (for both modes)
-	 * to handle interruptions gracefully. If interrupted, next import can read
-	 * notion-id to correctly skip duplicates or resume.
-	 * - Incremental import: Keep notion-id for future imports to skip duplicates
-	 * - Full import: Remove notion-id after completion to avoid cluttering frontmatter
-	 * 
-	 * @param ctx - Import context for status updates
+	 * Remove notion-id from all imported files' frontmatter.
+	 * Called only after a full import — incremental imports keep notion-id for future deduplication.
 	 */
 	private async cleanupNotionIds(ctx: ImportContext): Promise<void> {
 		if (this.notionIdToPath.size === 0) {
