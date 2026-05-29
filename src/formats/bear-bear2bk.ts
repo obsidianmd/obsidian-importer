@@ -23,6 +23,17 @@ export class Bear2bkImporter extends FormatImporter {
 	private flattenTags: boolean = false;
 	private storeId: boolean = false;
 
+	private static readonly alphaStart = /^[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ]/;
+	private static readonly nonAlphaStart = /^[0-9_\-]/;
+	private static readonly invalidChar = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/;
+	private static readonly invalidCharGlobal = /[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_\/-]/g;
+	private static readonly hexColorTag = /^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+	private static readonly tagNormalizationMatcher = /(?<!\\)(?<!\S)#([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)(?=\s|$|[^A-Za-z0-9_\/-])#?|(?<!\\)(?<![A-Za-z0-9_./:-])#(?!\s)((?:(?!\s#)[^\n#])*?\S)#(?=\S)|(?<!\\)(?<![A-Za-z0-9_./:-])#(?!\s)((?:(?!\s#)[^\n#])*?\S)#|(?<!\\)(?<!\S)#([^\s#]+)/g;
+	private static readonly assetMatcher = /\[[^\]]*\]\((assets\/[^\)]+)\)/gm;
+	private static readonly bearLinkMatcher = /bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g;
+	private static readonly numericOnly = /^\d+$/;
+	private static readonly collapseUnderscores = /_+/g;
+
 	init() {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
@@ -48,32 +59,185 @@ export class Bear2bkImporter extends FormatImporter {
 			);
 	}
 
-	private extractTagsFromContent(content: string): string[] {
-		const tags = new Set<string>();
+	private normalizeSimpleTag(rawTag: string): string | null {
+		if (!rawTag) {
+			return null;
+		}
 
-		// Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
-		//    Ensures it's not part of a URL or an already processed enclosed tag.
-		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
-		//    Diacritics regex range from https://stackoverflow.com/questions/30225552/regex-for-diacritics
-		const simpleTagRegex = /(?<!\S)#([A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_][A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]*[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]|[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]+)(?![#\w/])/g;
-		let matchSimple;
-		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
-			const rawSimpleTag = matchSimple[1].trim();
-			if (rawSimpleTag !== '') {
-				if (this.flattenTags && rawSimpleTag.includes('/')) {
-					const parts = rawSimpleTag.split('/');
-					for (const part of parts) {
-						tags.add(part);
-					}
+		if (this.isHexColorTag(rawTag)) {
+			return null;
+		}
+
+		const { alphaStart, nonAlphaStart, invalidChar, invalidCharGlobal } = Bear2bkImporter;
+
+		if (alphaStart.test(rawTag)) {
+			let cleanTag = rawTag.replace(invalidCharGlobal, '_');
+			cleanTag = cleanTag.replace(Bear2bkImporter.collapseUnderscores, '_');
+			if (cleanTag.endsWith('_') && invalidChar.test(rawTag[rawTag.length - 1])) {
+				cleanTag = cleanTag.replace(/_+$/g, '');
+			}
+			return cleanTag;
+		}
+
+		if (nonAlphaStart.test(rawTag)) {
+			if (invalidChar.test(rawTag)) {
+				return null;
+			}
+			if (Bear2bkImporter.numericOnly.test(rawTag)) {
+				return null;
+			}
+			return rawTag;
+		}
+
+		return null;
+	}
+
+	private splitTrailingPunctuation(rawTag: string): { tag: string, trailing: string } | null {
+		const match = rawTag.match(/^(.*?)([.,]+)$/);
+		if (!match) {
+			return null;
+		}
+		if (match[1] === '') {
+			return null;
+		}
+		return { tag: match[1], trailing: match[2] };
+	}
+
+	private isHexColorTag(rawTag: string): boolean {
+		return Bear2bkImporter.hexColorTag.test(rawTag);
+	}
+
+	private transformOutsideCodeBlocks(content: string, transformLine: (line: string) => string): string {
+		const out: string[] = [];
+		let inCode = false;
+		let lineStart = 0;
+		const length = content.length;
+
+		const isCodeFenceLine = (lineValue: string): boolean => {
+			let idx = 0;
+			while (idx < lineValue.length) {
+				const code = lineValue.charCodeAt(idx);
+				if (code !== 32 && code !== 9) {
+					break;
 				}
-				else {
-					tags.add(rawSimpleTag);
+				idx += 1;
+			}
+			return lineValue.startsWith('```', idx);
+		};
+
+		for (let i = 0; i <= length; i += 1) {
+			const atLineEnd = i === length || content.charCodeAt(i) === 10;
+			if (!atLineEnd) {
+				continue;
+			}
+
+			if (i === length && lineStart === length) {
+				break;
+			}
+
+			const line = content.slice(lineStart, i);
+			if (isCodeFenceLine(line)) {
+				inCode = !inCode;
+				out.push(line);
+			}
+			else if (inCode) {
+				out.push(line);
+			}
+			else {
+				out.push(this.transformOutsideInlineCode(line, transformLine));
+			}
+
+			if (i < length) {
+				out.push('\n');
+			}
+			lineStart = i + 1;
+		}
+
+		return out.join('');
+	}
+
+	private transformOutsideInlineCode(line: string, transformLine: (line: string) => string): string {
+		let inInline = false;
+		let currentStart = 0;
+		const parts: string[] = [];
+
+		for (let i = 0; i < line.length; i += 1) {
+			if (line[i] !== '`') {
+				continue;
+			}
+
+			if (!inInline) {
+				parts.push(transformLine(line.slice(currentStart, i)));
+				inInline = true;
+			}
+			else {
+				parts.push('`' + line.slice(currentStart, i) + '`');
+				inInline = false;
+			}
+			currentStart = i + 1;
+		}
+
+		if (inInline) {
+			return line;
+		}
+
+		parts.push(transformLine(line.slice(currentStart)));
+		return parts.join('');
+	}
+
+	private addNormalizedTag(tags: Set<string>, normalizedTag: string): void {
+		if (this.flattenTags && normalizedTag.includes('/')) {
+			const parts = normalizedTag.split('/');
+			for (const part of parts) {
+				if (part !== '' && !Bear2bkImporter.numericOnly.test(part)) {
+					tags.add(part);
 				}
 			}
 		}
+		else if (!Bear2bkImporter.numericOnly.test(normalizedTag)) {
+			tags.add(normalizedTag);
+		}
+	}
 
-		const finalTags = Array.from(tags);
-		return finalTags;
+	private normalizeTagsAndCollect(content: string): { content: string, tags: string[] } {
+		const tags = new Set<string>();
+		const tagMatcher = Bear2bkImporter.tagNormalizationMatcher;
+
+		const normalizedContent = this.transformOutsideCodeBlocks(content, (line) => {
+			return line.replace(tagMatcher, (match, hexTag, enclosedFollowing, enclosedTag, rawTag) => {
+				if (hexTag) {
+					return `\\#${hexTag}`;
+				}
+
+				if (enclosedFollowing || enclosedTag) {
+					const enclosedValue = enclosedFollowing ?? enclosedTag;
+					if (/\s#$/.test(match)) {
+						return match;
+					}
+					const normalizedSingle = enclosedValue.replace(/\s+/g, '_');
+					const normalizedTag = this.normalizeSimpleTag(normalizedSingle);
+					if (!normalizedTag) {
+						return match;
+					}
+					this.addNormalizedTag(tags, normalizedTag);
+					return '#' + normalizedTag + (enclosedFollowing ? ' ' : '');
+				}
+
+				if (rawTag) {
+					const splitTag = this.splitTrailingPunctuation(rawTag);
+					const normalizedTag = this.normalizeSimpleTag(splitTag ? splitTag.tag : rawTag);
+					if (!normalizedTag) {
+						return match;
+					}
+					this.addNormalizedTag(tags, normalizedTag);
+					return '#' + normalizedTag + (splitTag ? splitTag.trailing : '');
+				}
+
+				return match;
+			});
+		});
+
+		return { content: normalizedContent, tags: Array.from(tags) };
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -96,7 +260,7 @@ export class Bear2bkImporter extends FormatImporter {
 		let outputFolder = folder;
 
 		// match 1: assets/something.jpg
-		const assetMatcher = new RegExp('\\[[^\\]]*\\]\\((assets/[^\\)]+)\\)', 'gm');
+		const assetMatcher = Bear2bkImporter.assetMatcher;
 
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
@@ -119,6 +283,7 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.status('Importing note ' + mdFilename);
 							let mdContent = await entry.readText();
 							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
+							mdContent = this.fixListIndentation(mdContent);
 
 							const assetMatches = [...mdContent.matchAll(assetMatcher)];
 							if (assetMatches.length > 0) {
@@ -138,20 +303,10 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Replace spaces in enclosed tags with underscores and make them classic tags
-							mdContent = mdContent.replace(/#([^\n#]+?[^\s])#/g, (_match, tag) => { // require non-space before closing to avoid using next tag's opening #
-								return '#' + tag.replace(/\s+/g, '_');
-							});
-
-							// Remove special characters in simple tags
-							mdContent = mdContent.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
-								let cleanTag = tag.replace(/[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]/g, '_');
-								cleanTag = cleanTag.replace(/_+/g, '_'); // collapse multiple underscores
-								return '#' + cleanTag;
-							});
-
-							// Extract tags from content
-							const tags = this.extractTagsFromContent(mdContent);
+							// Normalize tags and collect tag list (single pass)
+							const normalized = this.normalizeTagsAndCollect(mdContent);
+							mdContent = normalized.content;
+							const tags = normalized.tags;
 
 							// Use just the filename without extension
 							const fileName = mdFilename;
@@ -170,7 +325,7 @@ export class Bear2bkImporter extends FormatImporter {
 								await this.updateNoteFrontmatter(metadata, file, tags);
 							}
 							if (metadata?.ctime && metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file);
+								await this.modifyFileTimestamps(metadata, file);
 							}
 
 							idMapping[metadata?.id] = {
@@ -244,7 +399,7 @@ export class Bear2bkImporter extends FormatImporter {
 		}, writeOptions);
 	}
 
-	private async modifFileTimestamps(metaData: Metadata, file: TFile) {
+	private async modifyFileTimestamps(metaData: Metadata, file: TFile) {
 		const writeOptions: DataWriteOptions = {
 			ctime: metaData.ctime,
 			mtime: metaData.mtime,
@@ -260,7 +415,7 @@ export class Bear2bkImporter extends FormatImporter {
 				mtime: metadata?.mtime,
 			};
 			await this.vault.process(file, (mdContent) => {
-				return mdContent.replace(/bear:\/\/x-callback-url\/open-note\?id=([A-Z0-9\-]+)/g,
+				return mdContent.replace(Bear2bkImporter.bearLinkMatcher,
 					(match, noteId) => {
 						const noteTitle = idMapping[noteId]?.filename;
 						if (noteTitle) {
@@ -340,5 +495,138 @@ export class Bear2bkImporter extends FormatImporter {
 		return idx > 0
 			? mdContent.substring(idx + 1)
 			: '';
+	}
+
+	private fixListIndentation(text: string): string {
+		const hasTrailingNewline = text.endsWith('\n');
+		const lines = hasTrailingNewline ? text.slice(0, -1).split('\n') : text.split('\n');
+
+		const out: string[] = [];
+		let inFrontmatter = false;
+		let inCode = false;
+		let codeIndentSourceBase: number | null = null;
+		let codeIndentTargetBase: number | null = null;
+
+		const countLeadingSpaces = (value: string): number => {
+			let count = 0;
+			while (count < value.length && value[count] === ' ') {
+				count += 1;
+			}
+			return count;
+		};
+
+		const countLeadingWhitespace = (value: string): number => {
+			let count = 0;
+			while (count < value.length) {
+				const code = value.charCodeAt(count);
+				if (code !== 32 && code !== 9 && code !== 13) {
+					break;
+				}
+				count += 1;
+			}
+			return count;
+		};
+
+		const isFrontmatterFence = (lineValue: string): boolean => {
+			const start = countLeadingWhitespace(lineValue);
+			if (!lineValue.startsWith('---', start)) {
+				return false;
+			}
+			let idx = start + 3;
+			while (idx < lineValue.length) {
+				const code = lineValue.charCodeAt(idx);
+				if (code !== 32 && code !== 9 && code !== 13) {
+					return false;
+				}
+				idx += 1;
+			}
+			return true;
+		};
+
+		const adjustCodeIndent = (lineValue: string, sourceBase: number, targetBase: number): string => {
+			const leadingSpaces = countLeadingSpaces(lineValue);
+			if (leadingSpaces < sourceBase) {
+				return lineValue;
+			}
+			const newIndent = ' '.repeat(targetBase + (leadingSpaces - sourceBase));
+			return newIndent + lineValue.slice(leadingSpaces);
+		};
+
+		const listFenceMatch = (lineValue: string): { indent: number, marker: string, fence: string } | null => {
+			const match = lineValue.match(/^(\s*)([-*+]\s|\d+\.\s)(```.*)$/);
+			if (!match) {
+				return null;
+			}
+			return { indent: match[1].length, marker: match[2], fence: match[3] };
+		};
+
+		for (let i = 0; i < lines.length; i += 1) {
+			let line = lines[i];
+
+			if (i === 0 && isFrontmatterFence(line)) {
+				inFrontmatter = true;
+				out.push(line);
+				continue;
+			}
+
+			if (inFrontmatter) {
+				out.push(line);
+				if (isFrontmatterFence(line)) {
+					inFrontmatter = false;
+				}
+				continue;
+			}
+
+			const listFence = listFenceMatch(line);
+			const hasFence = listFence !== null || line.startsWith('```', countLeadingWhitespace(line));
+			if (hasFence) {
+				if (listFence) {
+					const targetIndent = listFence.indent * 2;
+					line = ' '.repeat(targetIndent) + listFence.marker + listFence.fence;
+					if (!inCode) {
+						codeIndentSourceBase = listFence.indent + listFence.marker.length;
+						codeIndentTargetBase = targetIndent + listFence.marker.length;
+					}
+					else {
+						codeIndentSourceBase = null;
+						codeIndentTargetBase = null;
+					}
+				}
+				else {
+					const leadingSpaces = countLeadingSpaces(line);
+					line = ' '.repeat(leadingSpaces * 2) + line.slice(leadingSpaces);
+					if (!inCode) {
+						codeIndentSourceBase = leadingSpaces;
+						codeIndentTargetBase = leadingSpaces * 2;
+					}
+					else {
+						codeIndentSourceBase = null;
+						codeIndentTargetBase = null;
+					}
+				}
+				inCode = !inCode;
+				out.push(line);
+				continue;
+			}
+
+			if (inCode) {
+				if (codeIndentSourceBase !== null && codeIndentTargetBase !== null) {
+					line = adjustCodeIndent(line, codeIndentSourceBase, codeIndentTargetBase);
+				}
+				out.push(line);
+				continue;
+			}
+
+			const match = line.match(/^( +)([-*+]\s|\d+\.)/);
+			if (match) {
+				const spaces = match[1];
+				const newIndent = ' '.repeat(spaces.length * 2);
+				line = newIndent + line.slice(spaces.length);
+			}
+
+			out.push(line);
+		}
+
+		return out.join('\n') + (hasTrailingNewline ? '\n' : '');
 	}
 }
