@@ -209,6 +209,10 @@ export const descriptor: any = {
 							'type': 'Color',
 							'id': 10
 						},
+						'emphasisColor': {
+							'type': 'int32',
+							'id': 14
+						},
 						'attachmentInfo': {
 							'type': 'AttachmentInfo',
 							'id': 12

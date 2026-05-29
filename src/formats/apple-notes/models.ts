@@ -82,6 +82,7 @@ export interface ANAttributeRun extends Message {
 	superscript?: ANBaseline;
 	link?: string;
 	color?: ANColor;
+	emphasisColor?: ANEmphasisColor;
 	attachmentInfo?: ANAttachmentInfo;
 
 	// internal additions, not part of the protobufs
@@ -145,6 +146,14 @@ export interface ANColor extends Message {
 	green: number;
 	blue: number;
 	alpha: number;
+}
+
+export enum ANEmphasisColor {
+	Purple = 1,
+	Pink = 2,
+	Orange = 3,
+	Mint = 4,
+	Blue = 5
 }
 
 export enum ANFolderType {
