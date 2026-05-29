@@ -1,5 +1,5 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment, normalizePath } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
@@ -10,7 +10,7 @@ import { MathMLToLaTeX } from 'mathml-to-latex';
 
 const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
-const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
+const GRAPH_SCOPES: string[] = ['user.read', 'notes.read', 'notes.read.all'];
 // Regex for fixing broken HTML returned by the OneNote API
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
 // Regex for fixing whitespace and paragraphs
@@ -80,6 +80,10 @@ export class OneNoteImporter extends FormatImporter {
 	rememberMe = false;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
+	// Exponential backoff configuration
+	private readonly baseRetryDelayMs: number = 1000;
+	private readonly maxRetryDelayMs: number = 60000;
+	private readonly rateLimitBaseDelayMs: number = 30000; // 30s base for rate limits
 
 	async init() {
 		this.addOutputLocationSetting('OneNote');
@@ -132,7 +136,14 @@ export class OneNoteImporter extends FormatImporter {
 						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 					})
 				);
+		// Ensure sign-in button is visible on mobile by scrolling it into view when shown
 		this.microsoftAccountSetting.settingEl.toggle(!authenticated);
+		if (!authenticated) {
+			// Add some bottom margin to ensure button is fully visible when scrolled
+			this.microsoftAccountSetting.settingEl.style.marginBottom = '1em';
+			// Scroll the sign-in button into view on mobile
+			setTimeout(() => this.microsoftAccountSetting.settingEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+		}
 
 		const rememberMeSetting = new Setting(this.modal.contentEl)
 			.setName('Remember me')
@@ -314,9 +325,19 @@ export class OneNoteImporter extends FormatImporter {
 				this.renderHierarchy(notebook, notebookDiv);
 			}
 		}
-		catch (e) {
+		catch (e: any) {
 			console.error('An error occurred while fetching your OneNote data: ', e);
-			this.showContentAreaErrorMessage();
+			// Extract error details if available
+			const errorDetails: { status?: number; code?: string; message?: string } = {};
+			if (e?.status) errorDetails.status = e.status;
+			if (e?.code) errorDetails.code = e.code;
+			if (e?.message) errorDetails.message = e.message;
+			// Check if error is wrapped in an 'error' property (Graph API format)
+			if (e?.error) {
+				if (e.error.code) errorDetails.code = e.error.code;
+				if (e.error.message) errorDetails.message = e.error.message;
+			}
+			this.showContentAreaErrorMessage(Object.keys(errorDetails).length > 0 ? errorDetails : undefined);
 		}
 
 		this.loadingArea.hide();
@@ -383,28 +404,42 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	showContentAreaErrorMessage() {
+	showContentAreaErrorMessage(error?: { status?: number; code?: string; message?: string }) {
 		this.contentArea.empty();
-		this.contentArea.createEl('p', {
-			text: 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.'
-		});
+
+		let errorMessage: string;
+		if (error?.status === 401 || error?.status === 403 || error?.code === '40004') {
+			errorMessage = 'Permission denied. Your account may not have access to these notebooks, or additional OAuth scopes may be required. Please try signing out and signing back in.';
+		}
+		else if (error?.status === 429 || error?.code === '20166') {
+			errorMessage = 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.';
+		}
+		else if (error?.status === 504) {
+			errorMessage = 'Server timeout while fetching notebooks. This may happen with large notebooks. Please try again later.';
+		}
+		else if (error?.message) {
+			errorMessage = `An error occurred: ${error.message}`;
+		}
+		else {
+			errorMessage = 'An unexpected error occurred while fetching your OneNote data. Please check the console for details.';
+		}
+
+		this.contentArea.createEl('p', { text: errorMessage });
+
+		// Add details if available
+		if (error?.code || error?.status) {
+			const details = this.contentArea.createEl('details');
+			details.createEl('summary', { text: 'Error details' });
+			if (error.status) details.createEl('p', { text: `Status: ${error.status}` });
+			if (error.code) details.createEl('p', { text: `Code: ${error.code}` });
+			if (error.message) details.createEl('p', { text: `Message: ${error.message}` });
+		}
 
 		this.contentArea.show();
 		this.loadingArea.hide();
 	}
 
 	async import(progress: ImportContext): Promise<void> {
-		const previouslyImported = new Set<string>();
-		const data = await this.modal.plugin.loadData();
-		if (!data.importers.onenote) {
-			data.importers.onenote = {
-				previouslyImportedIDs: [],
-			};
-		}
-		for (const id of data.importers.onenote.previouslyImportedIDs) {
-			previouslyImported.add(id);
-		}
-
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
@@ -456,9 +491,14 @@ export class OneNoteImporter extends FormatImporter {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
-					progress.reportSkipped(page.title, 'it was previously imported');
-					continue;
+				// Use frontmatter-based skip checking instead of data.json
+				if (!this.importPreviouslyImported && page.id) {
+					// Check if any file in the output folder has this onenote-id
+					const shouldSkip = await this.findExistingFileByOnenoteId(page.id, progress);
+					if (shouldSkip) {
+						progress.reportProgress(++progressCurrent, progressTotal);
+						continue;
+					}
 				}
 
 				try {
@@ -467,12 +507,6 @@ export class OneNoteImporter extends FormatImporter {
 					await this.processFile(progress,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress),
 						page);
-
-					if (page.id) {
-						previouslyImported.add(page.id);
-						data.importers.onenote.previouslyImportedIDs = Array.from(previouslyImported);
-						await this.modal.plugin.saveData(data);
-					}
 
 					consecutiveFailureCount = 0;
 				}
@@ -584,6 +618,10 @@ export class OneNoteImporter extends FormatImporter {
 			if (inkEmbedMarkdown) {
 				mdContent += inkEmbedMarkdown;
 			}
+
+			// Add frontmatter with onenote-id for incremental import tracking
+			const frontmatter = `---\nonenote-id: ${page.id}\n---\n\n`;
+			mdContent = frontmatter + mdContent;
 
 			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
 
@@ -1071,17 +1109,107 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 
+	/**
+	 * Check if a file already exists with the same onenote-id in frontmatter.
+	 * This implements frontmatter-based import tracking (like Notion API importer).
+	 * @param filePath - Expected file path to check
+	 * @param onenoteId - OneNote page ID to match
+	 * @param ctx - Import context for reporting
+	 * @returns true if file should be skipped, false otherwise
+	 */
+	async shouldSkipExistingFile(filePath: string, onenoteId: string, ctx: ImportContext): Promise<boolean> {
+		const normalizedPath = normalizePath(filePath);
+		const file = this.vault.getAbstractFileByPath(normalizedPath);
+
+		if (!(file instanceof TFile)) {
+			return false; // File doesn't exist, don't skip
+		}
+
+		try {
+			const content = await this.vault.read(file);
+			// Look for onenote-id in frontmatter
+			const onenoteIdMatch = content.match(/^onenote-id:\s*(.+)$/m);
+
+			if (onenoteIdMatch) {
+				const existingOnenoteId = onenoteIdMatch[1].trim();
+				if (existingOnenoteId === onenoteId) {
+					// Same onenote-id, skip this file
+					ctx.reportSkipped(file.basename, 'already exists with same onenote-id');
+					return true;
+				}
+			}
+			// Different onenote-id or no onenote-id, don't skip (will create with unique path)
+			return false;
+		}
+		catch (error) {
+			console.error(`Failed to read file for skip check: ${filePath}`, error);
+			return false;
+		}
+	}
+
+	/**
+	 * Scan the output folder for any existing file with the given onenote-id.
+	 * This handles the case where a file was renamed after import.
+	 * @param onenoteId - OneNote page ID to search for
+	 * @param ctx - Import context for reporting
+	 * @returns true if any file with this onenote-id exists, false otherwise
+	 */
+	async findExistingFileByOnenoteId(onenoteId: string, ctx: ImportContext): Promise<boolean> {
+		const outputFolder = await this.getOutputFolder();
+		if (!outputFolder) return false;
+
+		const files = this.vault.getMarkdownFiles().filter(f => f.path.startsWith(outputFolder.path));
+
+		for (const file of files) {
+			try {
+				const content = await this.vault.read(file);
+				const onenoteIdMatch = content.match(/^onenote-id:\s*(.+)$/m);
+				if (onenoteIdMatch && onenoteIdMatch[1].trim() === onenoteId) {
+					ctx.reportSkipped(file.basename, 'already exists with same onenote-id');
+					return true;
+				}
+			}
+			catch {
+				// Skip files that can't be read
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Calculate exponential backoff delay with jitter.
+	 * @param retryCount - Current retry attempt (0-based)
+	 * @param baseDelayMs - Base delay in milliseconds
+	 * @param maxDelayMs - Maximum delay cap in milliseconds
+	 * @returns Delay in milliseconds with added jitter
+	 */
+	private calculateBackoffDelay(retryCount: number, baseDelayMs: number, maxDelayMs: number): number {
+		// Exponential backoff: baseDelay * 2^retryCount
+		const exponentialDelay = baseDelayMs * Math.pow(2, retryCount);
+		// Cap at maxDelay
+		const cappedDelay = Math.min(exponentialDelay, maxDelayMs);
+		// Add jitter: random value between 0 and 25% of the delay
+		const jitter = Math.random() * cappedDelay * 0.25;
+		return Math.round(cappedDelay + jitter);
+	}
+
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext | undefined, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext | undefined, retryCount?: number | undefined, lastError?: { status?: number; code?: string; message?: string }): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext | undefined, retryCount?: number | undefined, lastError?: { status?: number; code?: string; message?: string }): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext | undefined, retryCount?: number | undefined, lastError?: { status?: number; code?: string; message?: string }): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext | undefined, retryCount?: number | undefined, lastError?: { status?: number; code?: string; message?: string }): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext | undefined, retryCount: number = 0, lastError?: { status?: number; code?: string; message?: string }): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
-			// fail fetching this resource
-			throw new Error('Exceeded maximum retry attempts');
+			// fail fetching this resource with details about the last error
+			const error: any = new Error('Exceeded maximum retry attempts');
+			if (lastError) {
+				error.status = lastError.status;
+				error.code = lastError.code;
+				error.message = lastError.message || error.message;
+			}
+			throw error;
 		}
 
 		const timeSinceLastFetch = performance.now() - this.lastSuccessfulFetchTime;
@@ -1144,6 +1272,13 @@ export class OneNoteImporter extends FormatImporter {
 				}
 				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
 
+				// Capture error details for potential re-throw (convert null to undefined for type safety)
+				const errorDetails = {
+					status: response.status,
+					code: err?.code ?? undefined,
+					message: err?.message ?? undefined,
+				};
+
 				// If our access token has expired, becomes invalid, or is
 				// otherwise no longer authorized, then refresh it and try
 				// again.
@@ -1152,23 +1287,25 @@ export class OneNoteImporter extends FormatImporter {
 					|| response.status === 401;
 				if (isNotAuthorized) {
 					await this.updateAccessToken();
-					return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+					return this.fetchResource(url, returnType as any, progress, retryCount + 1, errorDetails);
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166' || response.status === 429) {
 					const retryAfter = response.headers.get('Retry-After');
-					// If we're rate-limited, the soonest we'll be able to make
-					// the request again is the next minute, so wait either as
-					// long as the API tells us to (with the Retry-After header)
-					// or wait 1 minute. Note: the OneNote API does not
-					// currently ever provide the Retry-After header. See
-					// https://learn.microsoft.com/en-us/graph/throttling-limits#onenote-service-limits
-					// for more info.
-					let retryTimeSeconds = retryAfter ? (+retryAfter * 1) : 60;
-					console.log(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
+					let retryTimeMs: number;
+					if (retryAfter) {
+						// Use server-provided Retry-After value
+						retryTimeMs = (+retryAfter) * 1000;
+					}
+					else {
+						// Use exponential backoff with rate limit base delay
+						// Note: We use a separate rate limit retry counter to track 429 retries
+						retryTimeMs = this.calculateBackoffDelay(retryCount, this.rateLimitBaseDelayMs, this.maxRetryDelayMs * 2);
+					}
+					console.log(`Rate limit exceeded, waiting for: ${Math.round(retryTimeMs / 1000)} seconds`);
 					await this.pause(
-						retryTimeSeconds,
+						retryTimeMs / 1000,
 						`OneNote API is rate-limiting us`,
 						progress,
 					);
@@ -1177,19 +1314,30 @@ export class OneNoteImporter extends FormatImporter {
 						url,
 						returnType as any,
 						progress,
-						// don't increment the retryCount because we were told
-						// to backoff, and we should infinitely retry on backoff
-						// errors.
-						retryCount
+						// Increment retryCount for rate limits too, so backoff increases
+						retryCount + 1,
+						errorDetails
 					);
 				}
 
-				// for all other errors, retry.
-				return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+				// For other errors (504 timeout, 500 server error, etc.), use exponential backoff
+				const backoffDelayMs = this.calculateBackoffDelay(retryCount, this.baseRetryDelayMs, this.maxRetryDelayMs);
+				if (backoffDelayMs > 1000) {
+					console.log(`Error ${response.status}, retrying in ${Math.round(backoffDelayMs / 1000)} seconds...`);
+					await this.pause(backoffDelayMs / 1000, `Retrying after error...`, progress);
+				}
+				return this.fetchResource(url, returnType as any, progress, retryCount + 1, errorDetails);
 			}
 		}
-		catch (e) {
+		catch (e: any) {
 			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
+
+			// Capture error details from the exception
+			const errorDetails = {
+				status: e?.status,
+				code: e?.code,
+				message: e?.message || String(e),
+			};
 
 			// Attachments sometimes just fail to download
 			// (`net::ERR_TIMED_OUT`) which will cause the `fetch` itself to
@@ -1197,8 +1345,13 @@ export class OneNoteImporter extends FormatImporter {
 			// cases (e.g. the fetch itself must be bad in some way), but since
 			// I'm seeing such failures in normal imports where I'm not noticing
 			// any network instability on my end, let's retry those failures as
-			// well.
-			return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+			// well. Use exponential backoff for network errors.
+			const backoffDelayMs = this.calculateBackoffDelay(retryCount, this.baseRetryDelayMs, this.maxRetryDelayMs);
+			if (backoffDelayMs > 1000) {
+				console.log(`Network error, retrying in ${Math.round(backoffDelayMs / 1000)} seconds...`);
+				await this.pause(backoffDelayMs / 1000, `Retrying after network error...`, progress);
+			}
+			return this.fetchResource(url, returnType as any, progress, retryCount + 1, errorDetails);
 		}
 	}
 }
