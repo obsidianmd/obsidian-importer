@@ -1,0 +1,57 @@
+{
+  "export_version": "1.0",
+  "graph_version": 1,
+  "notes": [
+    {
+      "id": "target-note",
+      "subject": "Target ] Pipe | Backslash \\\\",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Target note for backlink tests.\"}]}]}",
+      "created_at": "2026-02-27T15:00:00.000Z",
+      "updated_at": "2026-02-27T15:00:00.000Z",
+      "edited_at": "2026-02-27T15:00:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "backlink-edge-cases",
+      "subject": "Backlink Edge Cases",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Known target with alias chars: \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"target-note\",\"label\":\"Alias with ] and | and \\\\ chars\"}}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Unknown target fallback with chars: \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"missing-note\",\"label\":\"Missing ] | \\\\ fallback\"}}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Safe label backlink (wiki expected): \"},{\"type\":\"backlink\",\"attrs\":{\"id\":\"target-note\",\"label\":\"Safe Alias\"}}]}]}",
+      "created_at": "2026-02-27T15:01:00.000Z",
+      "updated_at": "2026-02-27T15:01:00.000Z",
+      "edited_at": "2026-02-27T15:01:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "list-edge-cases",
+      "subject": "List Edge Cases",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"bulletList\",\"content\":[{\"type\":\"listItem\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Heading inside list item\"}]},{\"type\":\"blockquote\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Quoted content in list item\"}]}]},{\"type\":\"codeBlock\",\"attrs\":{\"language\":\"ts\"},\"content\":[{\"type\":\"text\",\"text\":\"const x = 1;\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"ordered\"},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Legacy nested ordered item\"}]}]},{\"type\":\"taskList\",\"content\":[{\"type\":\"taskListItem\",\"attrs\":{\"checked\":false},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Nested task item\"}]}]}]}]}]},{\"type\":\"taskList\",\"content\":[{\"type\":\"taskListItem\",\"attrs\":{\"checked\":true},\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":4},\"content\":[{\"type\":\"text\",\"text\":\"Task heading child\"}]},{\"type\":\"list\",\"attrs\":{\"kind\":\"bullet\"},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Legacy nested bullet under task\"}]}]}]}]}]}",
+      "created_at": "2026-02-27T15:02:00.000Z",
+      "updated_at": "2026-02-27T15:02:00.000Z",
+      "edited_at": "2026-02-27T15:02:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "image-collision-a",
+      "subject": "Image Collision A",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Image with shared URL and name.\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"src\":\"https://httpbin.org/image/png\",\"fileName\":\"photo.png\"}},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"src\":\"https://httpbin.org/image/jpeg\",\"fileName\":\"photo.png\"}}]}",
+      "created_at": "2026-02-27T15:03:00.000Z",
+      "updated_at": "2026-02-27T15:03:00.000Z",
+      "edited_at": "2026-02-27T15:03:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
+      "id": "image-collision-b",
+      "subject": "Image Collision B",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Same URL should reuse downloaded path.\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"src\":\"https://httpbin.org/image/png\",\"fileName\":\"photo.png\"}}]}",
+      "created_at": "2026-02-27T15:04:00.000Z",
+      "updated_at": "2026-02-27T15:04:00.000Z",
+      "edited_at": "2026-02-27T15:04:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    }
+  ],
+  "tags": []
+}

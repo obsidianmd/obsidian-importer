@@ -11,6 +11,7 @@ import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
+import { ReflectImporter } from './formats/reflect-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
 import { truncateText } from './util';
@@ -313,6 +314,13 @@ export default class ImporterPlugin extends Plugin {
 				importer: RoamJSONImporter,
 				helpPermalink: 'import/roam',
 				formatDescription: 'Export your Roam Research workspace to JSON format.',
+			},
+			'reflect-json': {
+				name: 'Reflect',
+				optionText: 'Reflect (.json)',
+				importer: ReflectImporter,
+				helpPermalink: 'import/reflect',
+				formatDescription: 'Export your Reflect workspace to JSON format.',
 			},
 			'textbundle': {
 				name: 'Textbundle files',

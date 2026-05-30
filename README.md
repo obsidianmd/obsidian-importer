@@ -16,6 +16,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)
 - [Import from Notion](https://help.obsidian.md/import/notion)
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
+- Import from Reflect (.json)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
 - Import from Apple Journal (HTML export)
