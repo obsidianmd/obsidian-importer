@@ -18,7 +18,8 @@ export function decodeLogseqName(name: string): string {
 	return name.replace(PERCENT_RUN, (run) => {
 		try {
 			return decodeURIComponent(run);
-		} catch {
+		}
+		catch {
 			// Valid hex escapes that don't form valid UTF-8: leave as-is.
 			return run;
 		}

@@ -37,7 +37,7 @@ function dimensionDisplay(suffix: string | undefined): string | null {
 export function convertAssetLinks(
 	content: string,
 	options: { keepAltText: boolean }
-): { content: string; assets: AssetRef[] } {
+): { content: string, assets: AssetRef[] } {
 	const assets: AssetRef[] = [];
 	const seen = new Set<string>();
 

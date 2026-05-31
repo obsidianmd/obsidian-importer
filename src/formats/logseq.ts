@@ -11,6 +11,7 @@ import { resolveBlockRefs, BlockRefTarget } from './logseq/block-ids';
 import { rewriteAliasReferences } from './logseq/links';
 import { journalFilenameToISO } from './logseq/journals';
 import { namespaceToPath } from './logseq/paths';
+import { deOutline } from './logseq/de-outline';
 
 const ISO_FORMAT = 'YYYY-MM-DD';
 // Note directories under a Logseq graph root (relative paths).
@@ -92,6 +93,29 @@ export class LogseqImporter extends FormatImporter {
 				.onChange(v => this.options.taskFormat = v as TaskFormat));
 
 		new Setting(this.modal.contentEl)
+			.setName('Document structure')
+			.setDesc('How to handle Logseq\'s outline (everything-is-a-bullet) model.')
+			.addDropdown(d => d
+				.addOption('preserve', 'Preserve outline (bullets) — recommended')
+				.addOption('flatten', 'Flatten to paragraphs and headings (experimental)')
+				.setValue(this.options.outlineMode)
+				.onChange(v => {
+					this.options.outlineMode = v as 'preserve' | 'flatten';
+					flattenScopeSetting.settingEl.style.display = v === 'flatten' ? '' : 'none';
+				}));
+
+		const flattenScopeSetting = new Setting(this.modal.contentEl)
+			.setName('Flatten scope')
+			.setDesc('Which note types to de-outline.')
+			.addDropdown(d => d
+				.addOption('pages', 'Pages only — keep journals as outlines')
+				.addOption('journals', 'Journals only')
+				.addOption('both', 'Pages and journals')
+				.setValue(this.options.flattenScope)
+				.onChange(v => this.options.flattenScope = v as 'pages' | 'journals' | 'both'));
+		flattenScopeSetting.settingEl.style.display = this.options.outlineMode === 'flatten' ? '' : 'none';
+
+		new Setting(this.modal.contentEl)
 			.setName('Journal folder')
 			.setDesc('Vault folder (relative to output) for imported journals/daily notes.')
 			.addText(t => t
@@ -145,7 +169,7 @@ export class LogseqImporter extends FormatImporter {
 				.onChange(v => this.options.keepAssetAltText = v));
 	}
 
-	private getDailyNotesConfig(): { format: string; folder: string } {
+	private getDailyNotesConfig(): { format: string, folder: string } {
 		try {
 			// @ts-expect-error : internalPlugins is not in the public API
 			const instance = this.app.internalPlugins.getPluginById('daily-notes')?.instance;
@@ -250,6 +274,17 @@ export class LogseqImporter extends FormatImporter {
 				if (options.journalDateFormat !== ISO_FORMAT) {
 					body = this.reformatIsoDateLinks(body, options.journalDateFormat);
 				}
+
+				// De-outline: flatten outline to paragraphs/headings when configured
+				if (options.outlineMode === 'flatten') {
+					const shouldFlatten = options.flattenScope === 'both'
+						|| (options.flattenScope === 'pages' && inter.kind === 'page')
+						|| (options.flattenScope === 'journals' && inter.kind === 'journal');
+					if (shouldFlatten) {
+						body = deOutline(body);
+					}
+				}
+
 				const final = inter.yaml ? `${inter.yaml}\n\n${body}\n` : `${body}\n`;
 				await this.writeNote(inter.outputPath, final);
 				ctx.reportNoteSuccess(inter.outputPath);
