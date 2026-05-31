@@ -24,7 +24,7 @@ export function shortenId(uuid: string): string {
 	return base.length > 0 ? base : 'ref';
 }
 
-export function attachBlockIds(content: string, shorten: boolean): { content: string; ids: DefinedId[] } {
+export function attachBlockIds(content: string, shorten: boolean): { content: string, ids: DefinedId[] } {
 	const lines = content.split('\n');
 	const out: string[] = [];
 	const ids: DefinedId[] = [];

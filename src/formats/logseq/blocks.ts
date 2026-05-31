@@ -72,7 +72,8 @@ export function convertNumberedLists(content: string): string {
 			const count = (counters.get(indentLen) ?? 0) + 1;
 			counters.set(indentLen, count);
 			out.push(`${indent}${count}. ${item}`);
-		} else {
+		}
+		else {
 			counters.set(indentLen, 0); // non-numbered sibling resets the counter
 			out.push(line);
 		}
