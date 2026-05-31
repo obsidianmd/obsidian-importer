@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { shortenId, attachBlockIds, resolveBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
+import { shortenId, attachBlockIds, resolveBlockRefs, removeOrphanBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
 
 const UUID = '64ab9aa4-459a-41b1-8c21-dbb38dc0c79b';
 
@@ -57,4 +57,21 @@ test('resolveBlockRefs rewrites block and page embeds', () => {
 test('resolveBlockRefs leaves unresolved references untouched', () => {
 	const index = new Map<string, BlockRefTarget>();
 	assert.equal(resolveBlockRefs('((unknownuuid))', index), '((unknownuuid))');
+});
+
+// --- removeOrphanBlockRefs ---
+test('removeOrphanBlockRefs strips unresolved ((uuid)) references', () => {
+	assert.equal(removeOrphanBlockRefs('see ((abc123)) here'), 'see  here');
+});
+
+test('removeOrphanBlockRefs strips unresolved {{embed ((uuid))}} embeds', () => {
+	assert.equal(removeOrphanBlockRefs('- {{embed ((abc123))}}').trim(), '');
+});
+
+test('removeOrphanBlockRefs leaves already-resolved [[Page#^id]] links untouched', () => {
+	assert.equal(removeOrphanBlockRefs('see [[Foo#^abc123]]'), 'see [[Foo#^abc123]]');
+});
+
+test('removeOrphanBlockRefs leaves page embeds untouched', () => {
+	assert.equal(removeOrphanBlockRefs('![[SomePage]]'), '![[SomePage]]');
 });

@@ -90,6 +90,29 @@ test('removeLeftoverBlockProperties keeps unknown user block properties', () => 
 	assert.equal(removeLeftoverBlockProperties(input), input);
 });
 
+test('removeLeftoverBlockProperties drops user-specified extra keys', () => {
+	const input = ['- a block', '  my-status:: draft', '  rating:: 5'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, ['my-status']), ['- a block', '  rating:: 5'].join('\n'));
+});
+
+test('extractPageProperties drops listed page property keys from frontmatter', () => {
+	const input = 'type:: note\npublic:: true\nmy-key:: val\n\ntext';
+	const { yaml } = extractPageProperties(input, { dropPageProperties: ['public', 'my-key'] });
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('extractPageProperties drops listed tags from frontmatter tags list', () => {
+	const input = 'tags:: foo, card, bar\n\ntext';
+	const { yaml } = extractPageProperties(input, { dropTags: ['card'] });
+	assert.equal(yaml, ['---', 'tags:', '  - foo', '  - bar', '---'].join('\n'));
+});
+
+test('extractPageProperties produces no frontmatter when all tags are dropped', () => {
+	const input = 'tags:: card\n\ntext';
+	const { yaml } = extractPageProperties(input, { dropTags: ['card'] });
+	assert.equal(yaml, '');
+});
+
 test('convertHeadingProperty turns heading:: N into a markdown heading prefix', () => {
 	const input = ['- Important section', '  heading:: 2', '- normal'].join('\n');
 	const out = convertHeadingProperty(input);
