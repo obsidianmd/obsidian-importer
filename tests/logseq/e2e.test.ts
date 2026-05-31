@@ -10,8 +10,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 import { convertLocal, LocalResult } from '../../src/formats/logseq/pipeline';
-import { resolveBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
-import { rewriteAliasReferences, LinkIndex } from '../../src/formats/logseq/links';
+import { resolveBlockRefs, removeOrphanBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
+import { convertTags, rewriteAliasReferences, disambiguateBasenameLinks, LinkIndex, BasenameIndex } from '../../src/formats/logseq/links';
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from '../../src/formats/logseq/options';
 import { namespaceToPath, decodeLogseqName } from '../../src/formats/logseq/paths';
 import { journalFilenameToISO } from '../../src/formats/logseq/journals';
@@ -84,13 +84,28 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		locals.push({ file, local, outputPath });
 	}
 
-	// Pass 2: resolve block refs and alias references.
+	// Pass 2: resolve block refs, alias references, and convert tags.
+	// Build knownPages from all output paths (basenames and full paths, lower-cased).
+	const knownPages = new Set<string>();
+	for (const { outputPath } of locals) {
+		knownPages.add(outputPath.toLowerCase());
+		const parts = outputPath.split('/');
+		knownPages.add(parts[parts.length - 1].toLowerCase());
+	}
+
 	const linkIndex: LinkIndex = { aliasMap };
 	const results: ConvertedFile[] = [];
 
 	for (const { file, local, outputPath } of locals) {
 		let body = resolveBlockRefs(local.body, blockIndex);
+		if (opts.removeOrphanBlockRefs) body = removeOrphanBlockRefs(body);
 		body = rewriteAliasReferences(body, linkIndex);
+		body = convertTags(body, {
+			toLinks: opts.convertTagsToLinks,
+			onlyExistingPages: opts.convertTagsOnlyExistingPages,
+			knownPages,
+			dropTags: new Set(opts.dropTags),
+		});
 		results.push({ outputPath, local, finalBody: body, sourceFile: file.path });
 	}
 
@@ -549,7 +564,7 @@ test('E2E: LOGBOOK kept when option is set', () => {
 // ---------------------------------------------------------------------------
 
 test('E2E: tags converted to wikilinks when option enabled', () => {
-	const linkOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, convertTagsToLinks: true };
+	const linkOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, convertTagsToLinks: true, convertTagsOnlyExistingPages: false };
 	const linkGraph = loadFixtureGraph(linkOpts);
 	const pn = findByOutput(linkGraph, 'Main Page');
 	assert.ok(pn.finalBody.includes('[[topic]]'));
