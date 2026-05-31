@@ -12,6 +12,7 @@ import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
+import { LogseqImporter } from './formats/logseq';
 import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
@@ -249,6 +250,13 @@ export default class ImporterPlugin extends Plugin {
 			'html': {
 				importer: HtmlImporter,
 				helpPermalink: 'import/html',
+			},
+			'logseq': {
+				name: 'Logseq',
+				optionText: 'Logseq (Markdown graph)',
+				importer: LogseqImporter,
+				helpPermalink: 'import/logseq',
+				formatDescription: 'Import a Logseq Markdown graph (pages, journals and assets).',
 			},
 			'onenote': {
 				importer: OneNoteImporter,
