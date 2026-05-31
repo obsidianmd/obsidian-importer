@@ -1,5 +1,5 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Setting, TFile, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
@@ -64,6 +64,7 @@ export class OneNoteImporter extends FormatImporter {
 	// Settings
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
+	addPageDatesAsProperties: boolean = false;
 	// UI
 	microsoftAccountSetting: Setting;
 	switchUserSetting: Setting;
@@ -98,6 +99,14 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(true)
 				.onChange((value) => (this.importPreviouslyImported = !value))
+			);
+
+		new Setting(this.modal.contentEl)
+			.setName('Add page dates as properties')
+			.setDesc('Adds the OneNote page created and last modified timestamps to each imported note as Obsidian properties.')
+			.addToggle((toggle) => toggle
+				.setValue(false)
+				.onChange((value) => (this.addPageDatesAsProperties = value))
 			);
 
 		let authenticated = false;
@@ -594,12 +603,26 @@ export class OneNoteImporter extends FormatImporter {
 				ctime: created ?? lastModified ?? Date.now(),
 				mtime: lastModified ?? created ?? Date.now(),
 			};
+			if (this.addPageDatesAsProperties) {
+				await this.addPageDateProperties(fileRef, page);
+			}
 			await this.vault.append(fileRef, '', writeOptions);
 			progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
 			progress.reportFailed(page.title!, e);
 		}
+	}
+
+	async addPageDateProperties(file: TFile, page: OnenotePage): Promise<void> {
+		await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+			if (page.createdDateTime) {
+				frontmatter['created'] = moment(page.createdDateTime).toISOString();
+			}
+			if (page.lastModifiedDateTime) {
+				frontmatter['modified'] = moment(page.lastModifiedDateTime).toISOString();
+			}
+		});
 	}
 
 	/** Convert MathML elements to LaTeX format for Obsidian */
