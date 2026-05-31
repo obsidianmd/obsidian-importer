@@ -1,7 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { convertAliasLinks, convertTags, rewriteAliasReferences } from '../../src/formats/logseq/links';
+import { convertAliasLinks, convertTags, rewriteAliasReferences, disambiguateBasenameLinks } from '../../src/formats/logseq/links';
+
+// Helper: build ConvertTagsOptions with minimal setup
+function tagOpts(toLinks: boolean, knownPages: string[] = [], dropTags: string[] = []) {
+	return {
+		toLinks,
+		onlyExistingPages: false,
+		knownPages: new Set(knownPages.map(p => p.toLowerCase())),
+		dropTags: new Set(dropTags),
+	};
+}
 
 // --- alias links: [display]([[Page]]) -> [[Page|display]] ---
 test('converts Logseq page-alias links', () => {
@@ -21,17 +31,32 @@ test('does not convert alias links inside fenced code', () => {
 
 // --- tags ---
 test('keeps simple tags but sanitizes multi-word tags (keep-as-tag mode)', () => {
-	assert.equal(convertTags('a #tag b', false), 'a #tag b');
-	assert.equal(convertTags('x #[[multi word]] y', false), 'x #multi-word y');
+	assert.equal(convertTags('a #tag b', tagOpts(false)), 'a #tag b');
+	assert.equal(convertTags('x #[[multi word]] y', tagOpts(false)), 'x #multi-word y');
 });
 
-test('converts tags to wikilinks when requested', () => {
-	assert.equal(convertTags('a #tag b', true), 'a [[tag]] b');
-	assert.equal(convertTags('x #[[multi word]] y', true), 'x [[multi word]] y');
+test('converts tags to wikilinks when requested (no page filter)', () => {
+	assert.equal(convertTags('a #tag b', tagOpts(true)), 'a [[tag]] b');
+	assert.equal(convertTags('x #[[multi word]] y', tagOpts(true)), 'x [[multi word]] y');
 });
 
 test('does not treat a mid-word hash as a tag', () => {
-	assert.equal(convertTags('color #fff and C#', true), 'color [[fff]] and C#');
+	assert.equal(convertTags('color #fff and C#', tagOpts(true)), 'color [[fff]] and C#');
+});
+
+test('drops listed tags from body text', () => {
+	assert.equal(convertTags('a #card b', tagOpts(false, [], ['card'])), 'a  b');
+	assert.equal(convertTags('a #[[my tag]] b', tagOpts(false, [], ['my-tag'])), 'a  b');
+});
+
+test('onlyExistingPages keeps tags as tags when no matching page', () => {
+	const opts = { toLinks: true, onlyExistingPages: true, knownPages: new Set(['realpage']), dropTags: new Set<string>() };
+	assert.equal(convertTags('see #realpage and #unknown', opts), 'see [[realpage]] and #unknown');
+});
+
+test('onlyExistingPages converts multi-word tag only when page exists', () => {
+	const opts = { toLinks: true, onlyExistingPages: true, knownPages: new Set(['multi word']), dropTags: new Set<string>() };
+	assert.equal(convertTags('x #[[multi word]] y #[[nope]] z', opts), 'x [[multi word]] y #nope z');
 });
 
 // --- alias references: rewrite [[Alias]] -> [[Canonical|Alias]] ---
@@ -59,4 +84,30 @@ test('leaves canonical names and unknown targets untouched', () => {
 test('does not rewrite block or heading references', () => {
 	const index = { aliasMap: new Map([['ml', 'Machine Learning']]) };
 	assert.equal(rewriteAliasReferences('[[ML#^abc123]]', index), '[[ML#^abc123]]');
+});
+
+// --- basename disambiguation ---
+test('disambiguates a bare [[name]] when two pages share the basename', () => {
+	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
+	assert.equal(disambiguateBasenameLinks('see [[Notes]]', index), 'see [[folder-a/notes|Notes]]');
+});
+
+test('leaves [[name]] untouched when basename is unique', () => {
+	const index = { basenameMap: new Map([['notes', ['folder-a/notes']]]) };
+	assert.equal(disambiguateBasenameLinks('see [[Notes]]', index), 'see [[Notes]]');
+});
+
+test('leaves full-path links untouched even when basename is ambiguous', () => {
+	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
+	assert.equal(disambiguateBasenameLinks('[[folder-a/notes]]', index), '[[folder-a/notes]]');
+});
+
+test('preserves embed prefix during disambiguation', () => {
+	const index = { basenameMap: new Map([['img', ['assets/img', 'pages/img']]]) };
+	assert.equal(disambiguateBasenameLinks('![[img]]', index), '![[assets/img|img]]');
+});
+
+test('preserves explicit display text during disambiguation', () => {
+	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
+	assert.equal(disambiguateBasenameLinks('[[Notes|my notes]]', index), '[[folder-a/notes|my notes]]');
 });
