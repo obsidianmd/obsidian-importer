@@ -7,8 +7,9 @@
 const PROPERTY_LINE = /^([A-Za-z0-9_.\-]+):: ?(.*)$/;
 const BLOCK_PROPERTY_LINE = /^(\s*)([A-Za-z0-9_.\-]+):: ?(.*)$/;
 
-// Logseq-internal block properties that have no meaning in Obsidian.
-const INTERNAL_BLOCK_PROPS = new Set([
+// Block properties that are always dropped regardless of user config.
+// These are purely Logseq-internal and have no meaning in Obsidian.
+const ALWAYS_DROP_BLOCK_PROPS = new Set([
 	'collapsed',
 	'background-color',
 	'heading',
@@ -59,15 +60,17 @@ function tagsFromItem(item: string): string[] {
 	return tokens;
 }
 
-function emitProperty(key: string, value: string, aliases: string[]): string[] {
+function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>): string[] {
 	if (key === 'alias' || key === 'aliases') {
 		for (const item of splitList(value)) aliases.push(stripWikiBrackets(item));
 		return []; // emitted later, after the whole block is parsed
 	}
 	if (key === 'tags') {
-		const items = splitList(value).flatMap(tagsFromItem);
+		const items = splitList(value).flatMap(tagsFromItem).filter(t => !dropTags.has(t));
+		if (items.length === 0) return [];
 		return ['tags:', ...items.map(i => `  - ${i}`)];
 	}
+	if (dropPageProps.has(key)) return [];
 	const parts = splitList(value);
 	const hasWiki = value.includes('[[');
 	if (hasWiki && parts.length > 1) {
@@ -79,7 +82,14 @@ function emitProperty(key: string, value: string, aliases: string[]): string[] {
 	return [`${key}: ${value}`];
 }
 
-export function extractPageProperties(content: string): PageProperties {
+export interface ExtractPagePropertiesOptions {
+	dropPageProperties?: string[];
+	dropTags?: string[];
+}
+
+export function extractPageProperties(content: string, opts: ExtractPagePropertiesOptions = {}): PageProperties {
+	const dropPageProps = new Set(opts.dropPageProperties ?? []);
+	const dropTags = new Set(opts.dropTags ?? []);
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
 	const bodyLines: string[] = [];
@@ -95,7 +105,7 @@ export function extractPageProperties(content: string): PageProperties {
 		const value = m[2].trim();
 		raw[key] = value;
 		if (key === 'title') continue; // dropped from YAML, kept in raw
-		propLines.push(...emitProperty(key, value, aliases));
+		propLines.push(...emitProperty(key, value, aliases, dropPageProps, dropTags));
 	}
 
 	// Skip blank lines between the property block and the body.
@@ -114,7 +124,8 @@ export function extractPageProperties(content: string): PageProperties {
 	return { yaml, body: bodyLines.join('\n'), raw };
 }
 
-export function removeLeftoverBlockProperties(content: string): string {
+export function removeLeftoverBlockProperties(content: string, dropBlockProperties: string[] = []): string {
+	const userDrop = new Set(dropBlockProperties);
 	return content
 		.split('\n')
 		.filter(line => {
@@ -122,7 +133,8 @@ export function removeLeftoverBlockProperties(content: string): string {
 			if (!m) return true;
 			const key = m[2];
 			if (key.startsWith('logseq.')) return false;
-			return !INTERNAL_BLOCK_PROPS.has(key);
+			if (key.startsWith('query-')) return false;
+			return !ALWAYS_DROP_BLOCK_PROPS.has(key) && !userDrop.has(key);
 		})
 		.join('\n');
 }
