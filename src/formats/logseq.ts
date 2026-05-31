@@ -1,4 +1,4 @@
-import { moment, Notice, Platform, Setting, TFile } from 'obsidian';
+import { moment, Notice, Platform, Setting, TFile, TextComponent } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 // Type-only: `main.ts` imports this file, so a value import here would be a
 // circular dependency and the imported binding would be undefined at init().
@@ -7,8 +7,8 @@ import { NodePickedFile, PickedFile, parseFilePath, fs, fsPromises, path, nodeBu
 import { sanitizeFileNameKeepPath } from './roam/utils';
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions, TaskFormat, KeepOrDrop } from './logseq/options';
 import { convertLocal } from './logseq/pipeline';
-import { resolveBlockRefs, BlockRefTarget } from './logseq/block-ids';
-import { rewriteAliasReferences } from './logseq/links';
+import { resolveBlockRefs, BlockRefTarget, removeOrphanBlockRefs } from './logseq/block-ids';
+import { rewriteAliasReferences, convertTags, disambiguateBasenameLinks, BasenameIndex } from './logseq/links';
 import { journalFilenameToISO } from './logseq/journals';
 import { namespaceToPath } from './logseq/paths';
 import { deOutline } from './logseq/de-outline';
@@ -80,11 +80,13 @@ export class LogseqImporter extends FormatImporter {
 
 		this.addOutputLocationSetting('Logseq');
 
-		new Setting(this.modal.contentEl).setName('Conversion').setHeading();
+		// ── Tasks ────────────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Tasks').setHeading();
 
 		new Setting(this.modal.contentEl)
 			.setName('Task format')
-			.setDesc('How rich Logseq tasks (TODO/DOING/SCHEDULED/priority...) are written in Obsidian.')
+			.setDesc('How rich Logseq tasks (TODO/DOING/SCHEDULED/priority…) are written in Obsidian.')
 			.addDropdown(d => d
 				.addOption('tasks-emoji', 'Tasks plugin — emoji')
 				.addOption('tasks-dataview', 'Tasks plugin — Dataview fields')
@@ -92,67 +94,82 @@ export class LogseqImporter extends FormatImporter {
 				.setValue(this.options.taskFormat)
 				.onChange(v => this.options.taskFormat = v as TaskFormat));
 
-		new Setting(this.modal.contentEl)
-			.setName('Document structure')
-			.setDesc('How to handle Logseq\'s outline (everything-is-a-bullet) model.')
-			.addDropdown(d => d
-				.addOption('preserve', 'Preserve outline (bullets) — recommended')
-				.addOption('flatten', 'Flatten to paragraphs and headings (experimental)')
-				.setValue(this.options.outlineMode)
-				.onChange(v => {
-					this.options.outlineMode = v as 'preserve' | 'flatten';
-					flattenScopeSetting.settingEl.style.display = v === 'flatten' ? '' : 'none';
-				}));
+		// ── Journals ──────────────────────────────────────────────────────────────
 
-		const flattenScopeSetting = new Setting(this.modal.contentEl)
-			.setName('Flatten scope')
-			.setDesc('Which note types to de-outline.')
-			.addDropdown(d => d
-				.addOption('pages', 'Pages only — keep journals as outlines')
-				.addOption('journals', 'Journals only')
-				.addOption('both', 'Pages and journals')
-				.setValue(this.options.flattenScope)
-				.onChange(v => this.options.flattenScope = v as 'pages' | 'journals' | 'both'));
-		flattenScopeSetting.settingEl.style.display = this.options.outlineMode === 'flatten' ? '' : 'none';
+		new Setting(this.modal.contentEl).setName('Journals').setHeading();
+
+		const dn2 = this.getDailyNotesConfig();
+		const dnFolder = dn2.folder || 'Journals';
+		const dnFormat = dn2.format;
+
+		let journalFolderText: TextComponent;
+		let journalFormatText: TextComponent;
+
+		new Setting(this.modal.contentEl)
+			.setName('Use Daily Notes settings')
+			.setDesc(`Migrate journals directly into your Daily Notes folder (${dnFolder}) using the configured date format (${dnFormat}).`)
+			.addToggle(t => t
+				.setValue(this.options.useDailyNotes)
+				.onChange(v => {
+					this.options.useDailyNotes = v;
+					journalFolderText.setDisabled(v);
+					journalFormatText.setDisabled(v);
+					if (v) {
+						this.options.journalFolder = dnFolder;
+						this.options.journalDateFormat = dnFormat;
+						journalFolderText.setValue(dnFolder);
+						journalFormatText.setValue(dnFormat);
+					}
+				}));
 
 		new Setting(this.modal.contentEl)
 			.setName('Journal folder')
-			.setDesc('Vault folder (relative to output) for imported journals/daily notes.')
-			.addText(t => t
-				.setValue(this.options.journalFolder)
-				.onChange(v => this.options.journalFolder = v));
+			.setDesc('Vault folder (relative to output) for imported journals.')
+			.addText(t => {
+				journalFolderText = t;
+				t.setValue(this.options.journalFolder)
+					.setDisabled(this.options.useDailyNotes)
+					.onChange(v => this.options.journalFolder = v);
+			});
 
 		new Setting(this.modal.contentEl)
 			.setName('Journal date format')
 			.setDesc('moment.js format for daily-note filenames. Prefilled from your Daily Notes settings.')
-			.addText(t => t
-				.setValue(this.options.journalDateFormat)
-				.onChange(v => this.options.journalDateFormat = v || ISO_FORMAT));
+			.addText(t => {
+				journalFormatText = t;
+				t.setValue(this.options.journalDateFormat)
+					.setDisabled(this.options.useDailyNotes)
+					.onChange(v => this.options.journalDateFormat = v || ISO_FORMAT);
+			});
 
 		new Setting(this.modal.contentEl)
-			.setName('Time tracking (LOGBOOK)')
-			.setDesc('Logseq LOGBOOK/CLOCK entries have no Obsidian equivalent in this format.')
-			.addDropdown(d => d
-				.addOption('drop', 'Drop')
-				.addOption('keep', 'Keep verbatim')
-				.setValue(this.options.logbook)
-				.onChange(v => this.options.logbook = v as KeepOrDrop));
-
-		new Setting(this.modal.contentEl)
-			.setName('Logseq-only content')
-			.setDesc('Queries, flashcards and macros that do not translate to Obsidian.')
-			.addDropdown(d => d
-				.addOption('keep', 'Keep verbatim')
-				.addOption('drop', 'Drop')
-				.setValue(this.options.logseqOnlyContent)
-				.onChange(v => this.options.logseqOnlyContent = v as KeepOrDrop));
-
-		new Setting(this.modal.contentEl)
-			.setName('Shorten block IDs')
-			.setDesc('Convert Logseq UUID block ids to short Obsidian-style anchors.')
+			.setName('De-outline journals')
+			.setDesc('Flatten journal outlines to paragraphs and headings (experimental).')
 			.addToggle(t => t
-				.setValue(this.options.shortenBlockIds)
-				.onChange(v => this.options.shortenBlockIds = v));
+				.setValue(this.options.deOutlineJournals)
+				.onChange(v => this.options.deOutlineJournals = v));
+
+		// ── Pages ─────────────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Pages').setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Pages folder')
+			.setDesc('Vault folder (relative to output) for imported pages. Leave empty to place pages in the output root.')
+			.addText(t => t
+				.setValue(this.options.pagesFolder)
+				.onChange(v => this.options.pagesFolder = v));
+
+		new Setting(this.modal.contentEl)
+			.setName('De-outline pages')
+			.setDesc('Flatten page outlines to paragraphs and headings (experimental).')
+			.addToggle(t => t
+				.setValue(this.options.deOutlinePages)
+				.onChange(v => this.options.deOutlinePages = v));
+
+		// ── Links & tags ──────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Links & tags').setHeading();
 
 		new Setting(this.modal.contentEl)
 			.setName('Convert tags to links')
@@ -162,11 +179,102 @@ export class LogseqImporter extends FormatImporter {
 				.onChange(v => this.options.convertTagsToLinks = v));
 
 		new Setting(this.modal.contentEl)
+			.setName('Only convert tags with a matching page')
+			.setDesc('When converting tags to links, keep tags as #tags if no corresponding page exists in the graph.')
+			.addToggle(t => t
+				.setValue(this.options.convertTagsOnlyExistingPages)
+				.onChange(v => this.options.convertTagsOnlyExistingPages = v));
+
+		new Setting(this.modal.contentEl)
+			.setName('Drop tags')
+			.setDesc('Comma-separated list of tags to remove entirely (e.g. "card, public").')
+			.addText(t => t
+				.setValue(this.options.dropTags.join(', '))
+				.onChange(v => {
+					this.options.dropTags = v.split(',').map(s => s.trim()).filter(s => s.length > 0);
+				}));
+
+		// ── Logseq-only content ───────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Logseq-only content').setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Queries')
+			.setDesc('{{query}} and #+BEGIN_QUERY blocks have no Obsidian equivalent.')
+			.addDropdown(d => d
+				.addOption('keep', 'Keep verbatim')
+				.addOption('drop', 'Drop')
+				.setValue(this.options.queries)
+				.onChange(v => this.options.queries = v as KeepOrDrop));
+
+		new Setting(this.modal.contentEl)
+			.setName('Flashcards')
+			.setDesc('#card markers and {{cloze}} wrappers.')
+			.addDropdown(d => d
+				.addOption('keep', 'Keep verbatim')
+				.addOption('drop', 'Drop (unwrap cloze to plain text)')
+				.setValue(this.options.flashcards)
+				.onChange(v => this.options.flashcards = v as KeepOrDrop));
+
+		new Setting(this.modal.contentEl)
+			.setName('Time tracking (LOGBOOK)')
+			.setDesc('Logseq LOGBOOK/CLOCK entries have no Obsidian equivalent.')
+			.addDropdown(d => d
+				.addOption('drop', 'Drop')
+				.addOption('keep', 'Keep verbatim')
+				.setValue(this.options.logbook)
+				.onChange(v => this.options.logbook = v as KeepOrDrop));
+
+		// ── Assets ────────────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Assets').setHeading();
+
+		new Setting(this.modal.contentEl)
 			.setName('Keep image alt text')
 			.setDesc('Preserve image alt text as the embed display text.')
 			.addToggle(t => t
 				.setValue(this.options.keepAssetAltText)
 				.onChange(v => this.options.keepAssetAltText = v));
+
+		// ── Block references ──────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Block references').setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Shorten block IDs')
+			.setDesc('Convert Logseq UUID block IDs to short Obsidian-style anchors.')
+			.addToggle(t => t
+				.setValue(this.options.shortenBlockIds)
+				.onChange(v => this.options.shortenBlockIds = v));
+
+		new Setting(this.modal.contentEl)
+			.setName('Remove orphan block references')
+			.setDesc('Remove ((uuid)) references that could not be resolved to a known block in the graph.')
+			.addToggle(t => t
+				.setValue(this.options.removeOrphanBlockRefs)
+				.onChange(v => this.options.removeOrphanBlockRefs = v));
+
+		// ── Properties ────────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Properties').setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Drop page properties')
+			.setDesc('Comma-separated list of page-level property keys to exclude from frontmatter (e.g. "public, exclude-from-graph-view").')
+			.addText(t => t
+				.setValue(this.options.dropPageProperties.join(', '))
+				.onChange(v => {
+					this.options.dropPageProperties = v.split(',').map(s => s.trim()).filter(s => s.length > 0);
+				}));
+
+		new Setting(this.modal.contentEl)
+			.setName('Drop block properties')
+			.setDesc('Comma-separated list of additional inline block property keys to strip (Logseq-internal keys like collapsed, background-color are always stripped).')
+			.addText(t => t
+				.setValue(this.options.dropBlockProperties.join(', '))
+				.onChange(v => {
+					this.options.dropBlockProperties = v.split(',').map(s => s.trim()).filter(s => s.length > 0);
+				}));
 	}
 
 	private getDailyNotesConfig(): { format: string, folder: string } {
@@ -214,7 +322,13 @@ export class LogseqImporter extends FormatImporter {
 			? `${outputFolder.path}/${options.journalFolder.trim()}`
 			: outputFolder.path;
 
+		const pagesDir = options.pagesFolder.trim()
+			? `${outputFolder.path}/${options.pagesFolder.trim()}`
+			: outputFolder.path;
+
 		// Plan output paths from pages/ and journals/ only.
+		// Use a Set to detect output-path collisions (two sources → same path).
+		const claimedPaths = new Set<string>();
 		const plans: PagePlan[] = [];
 		for (const file of notes) {
 			const rel = relPathFromGraph(this.graphRoot, this.absPath(file));
@@ -222,13 +336,34 @@ export class LogseqImporter extends FormatImporter {
 				ctx.reportSkipped(file.name, 'Whiteboards are not supported');
 				continue;
 			}
-			plans.push(this.planFor(file, rel, outputFolder.path, journalDir));
+			const plan = this.planFor(file, rel, pagesDir, journalDir);
+			if (claimedPaths.has(plan.outputPath)) {
+				ctx.reportSkipped(file.name, `Output path collision: ${plan.outputPath} already claimed by another note`);
+				continue;
+			}
+			claimedPaths.add(plan.outputPath);
+			plans.push(plan);
 		}
 
 		if (plans.length === 0) {
 			new Notice('No Logseq pages or journals found in the selected folder.');
 			return;
 		}
+
+		// Build basename disambiguation index: basename (lower-cased) -> [fullPath, ...]
+		// A "basename" here is the last path component of the canonical name without .md.
+		const basenameMap = new Map<string, string[]>();
+		for (const plan of plans) {
+			const name = plan.canonicalName;
+			const base = name.includes('/') ? name.slice(name.lastIndexOf('/') + 1).toLowerCase() : name.toLowerCase();
+			const existing = basenameMap.get(base);
+			if (existing) existing.push(name);
+			else basenameMap.set(base, [name]);
+		}
+		const basenameIndex: BasenameIndex = { basenameMap };
+
+		// Build vault-wide page set for tag→link page-existence check (lower-cased).
+		const knownPages = new Set(plans.map(p => p.canonicalName.toLowerCase()));
 
 		// PASS 1: per-file local conversion + index building.
 		const intermediates: Intermediate[] = [];
@@ -263,6 +398,8 @@ export class LogseqImporter extends FormatImporter {
 
 		for (const alias of ambiguousAliases) aliasMap.delete(alias);
 
+		const dropTags = new Set(options.dropTags);
+
 		// PASS 2: cross-file resolution + write.
 		let index = 0;
 		for (const inter of intermediates) {
@@ -270,19 +407,30 @@ export class LogseqImporter extends FormatImporter {
 			index++;
 			try {
 				let body = resolveBlockRefs(inter.body, blockIndex);
+
+				if (options.removeOrphanBlockRefs) {
+					body = removeOrphanBlockRefs(body);
+				}
+
 				body = rewriteAliasReferences(body, { aliasMap });
+				body = disambiguateBasenameLinks(body, basenameIndex);
+
+				// Tag conversion deferred to pass-2 so we have the full knownPages set.
+				body = convertTags(body, {
+					toLinks: options.convertTagsToLinks,
+					onlyExistingPages: options.convertTagsOnlyExistingPages,
+					knownPages,
+					dropTags,
+				});
+
 				if (options.journalDateFormat !== ISO_FORMAT) {
 					body = this.reformatIsoDateLinks(body, options.journalDateFormat);
 				}
 
 				// De-outline: flatten outline to paragraphs/headings when configured
-				if (options.outlineMode === 'flatten') {
-					const shouldFlatten = options.flattenScope === 'both'
-						|| (options.flattenScope === 'pages' && inter.kind === 'page')
-						|| (options.flattenScope === 'journals' && inter.kind === 'journal');
-					if (shouldFlatten) {
-						body = deOutline(body);
-					}
+				const shouldDeOutline = inter.kind === 'journal' ? options.deOutlineJournals : options.deOutlinePages;
+				if (shouldDeOutline) {
+					body = deOutline(body);
 				}
 
 				const final = inter.yaml ? `${inter.yaml}\n\n${body}\n` : `${body}\n`;
@@ -298,7 +446,7 @@ export class LogseqImporter extends FormatImporter {
 		await this.copyAssets(assetPlan, outputFolder.path, ctx);
 	}
 
-	private planFor(file: PickedFile, relPath: string, outputBase: string, journalDir: string): PagePlan {
+	private planFor(file: PickedFile, relPath: string, pagesDir: string, journalDir: string): PagePlan {
 		const sourceDir = path ? parseFilePath(this.absPath(file)).parent : '';
 		const isJournal = relPath.startsWith('journals/');
 
@@ -310,7 +458,7 @@ export class LogseqImporter extends FormatImporter {
 		}
 
 		const rel = sanitizeFileNameKeepPath(namespaceToPath(file.basename));
-		return { file, kind: 'page', canonicalName: rel, outputPath: `${outputBase}/${rel}.md`, sourceDir };
+		return { file, kind: 'page', canonicalName: rel, outputPath: `${pagesDir}/${rel}.md`, sourceDir };
 	}
 
 	private absPath(file: PickedFile): string {
@@ -336,17 +484,32 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private applyLogseqOnly(body: string, name: string, ctx: ImportContext): string {
+		const { options } = this;
+
+		// Queries
 		const hasQuery = /\{\{query|#\+BEGIN_QUERY/i.test(body);
-		const hasCard = /#card\b|\{\{cloze/i.test(body);
-		if (this.options.logseqOnlyContent === 'keep') {
-			if (hasQuery || hasCard) ctx.reportSkipped(name, 'Logseq-only content kept verbatim');
-			return body;
+		if (hasQuery) {
+			if (options.queries === 'keep') {
+				ctx.reportSkipped(name, 'Logseq queries kept verbatim');
+			}
+			else {
+				body = body.replace(/^[ \t]*#\+BEGIN_QUERY[\s\S]*?#\+END_QUERY[ \t]*$/gim, '');
+				body = body.replace(/\{\{query[\s\S]*?\}\}/gi, '');
+			}
 		}
-		// drop, cleanly
-		body = body.replace(/^[ \t]*#\+BEGIN_QUERY[\s\S]*?#\+END_QUERY[ \t]*$/gim, '');
-		body = body.replace(/\{\{query[\s\S]*?\}\}/gi, '');
-		body = body.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1');
-		body = body.replace(/(^|\s)#card\b/gi, '$1');
+
+		// Flashcards
+		const hasCard = /#card\b|\{\{cloze/i.test(body);
+		if (hasCard) {
+			if (options.flashcards === 'keep') {
+				ctx.reportSkipped(name, 'Logseq flashcard content kept verbatim');
+			}
+			else {
+				body = body.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1');
+				body = body.replace(/(^|\s)#card\b/gi, '$1');
+			}
+		}
+
 		return body;
 	}
 

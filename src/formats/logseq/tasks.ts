@@ -25,7 +25,7 @@ function checkbox(state: string, format: TaskFormat): string {
 	}
 }
 
-interface DateSpec { date: string; repeater?: string; }
+interface DateSpec { date: string, repeater?: string }
 
 function parseDateSpec(inner: string): DateSpec {
 	const date = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
@@ -126,9 +126,13 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 				continue;
 			}
 			const sched = cl.match(/^\s*SCHEDULED:\s*<(.+?)>/);
-			if (sched) { scheduled = parseDateSpec(sched[1]); continue; }
+			if (sched) {
+				scheduled = parseDateSpec(sched[1]); continue; 
+			}
 			const dead = cl.match(/^\s*DEADLINE:\s*<(.+?)>/);
-			if (dead) { deadline = parseDateSpec(dead[1]); continue; }
+			if (dead) {
+				deadline = parseDateSpec(dead[1]); continue; 
+			}
 			const prop = cl.match(/^\s*(created|completed|done|cancelled|canceled):: ?(.*)$/);
 			if (prop) {
 				const date = extractDate(prop[2]);
