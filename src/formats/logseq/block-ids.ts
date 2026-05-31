@@ -79,3 +79,22 @@ export function resolveBlockRefs(content: string, index: Map<string, BlockRefTar
 	});
 	return content;
 }
+
+/**
+ * Remove block references and block embeds that could not be resolved (i.e. the uuid
+ * does not appear in the block index). Resolved references are already rewritten to
+ * `[[Page#^id]]` form by resolveBlockRefs, so by the time this runs only raw
+ * `((uuid))` / `{{embed ((uuid))}}` patterns remain as orphans.
+ */
+export function removeOrphanBlockRefs(content: string): string {
+	// Orphan block embeds
+	content = content.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '');
+	// Orphan bare block references
+	content = content.replace(/\(\([^()]+?\)\)/g, '');
+	// Clean up lines that became empty or whitespace-only due to removal
+	return content
+		.split('\n')
+		.map(line => (/^\s*[-*+]?\s*$/.test(line) ? '' : line))
+		.join('\n')
+		.replace(/\n{3,}/g, '\n\n');
+}
