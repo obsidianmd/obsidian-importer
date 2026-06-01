@@ -3,6 +3,8 @@
 // time-tracking metadata live on the task line or on indented continuation
 // lines. We render them into one of the supported Obsidian task formats.
 
+import { logseqDateToISO } from './journals';
+
 export type TaskFormat = 'plain' | 'tasks-emoji' | 'tasks-dataview';
 
 interface TaskOptions {
@@ -28,14 +30,19 @@ function checkbox(state: string, format: TaskFormat): string {
 interface DateSpec { date: string, repeater?: string }
 
 function parseDateSpec(inner: string): DateSpec {
-	const date = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
+	// Try ISO date first, then fall back to Logseq long-date format.
+	const iso = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+	const date = iso ?? (logseqDateToISO(inner.replace(/\[\[|\]\]/g, '').trim()) ?? '');
 	const repeater = inner.match(/[.+]{1,2}\d+[ymwdh]/)?.[0];
 	return { date, repeater };
 }
 
 function extractDate(value: string): string {
 	const clean = value.replace(/\[\[|\]\]/g, '').trim();
-	return clean.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? clean;
+	// Guard: template tokens ({{...}}) are not real dates.
+	if (/\{\{/.test(clean)) return '';
+	// Try ISO first, then Logseq long-date.
+	return clean.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? logseqDateToISO(clean) ?? '';
 }
 
 const UNIT_WORDS: Record<string, string> = { y: 'year', m: 'month', w: 'week', d: 'day', h: 'hour' };
@@ -60,7 +67,21 @@ function leadingWidth(line: string): number {
 
 export function convertTasks(content: string, format: TaskFormat, options: TaskOptions = {}): string {
 	const logbook = options.logbook ?? 'drop';
-	const lines = content.split('\n');
+
+	// Issue 2: drop LOGBOOK drawers on ANY bullet (not just tasks) when logbook='drop'.
+	// Use a line-level filter so no trailing newlines are left behind.
+	let processed = content;
+	if (logbook === 'drop') {
+		let inLogbook = false;
+		processed = content.split('\n').filter(line => {
+			if (/^\s*:LOGBOOK:/.test(line)) { inLogbook = true; return false; }
+			if (inLogbook && /:END:/.test(line)) { inLogbook = false; return false; }
+			if (inLogbook) return false;
+			return true;
+		}).join('\n');
+	}
+
+	const lines = processed.split('\n');
 	const out: string[] = [];
 
 	let i = 0;
@@ -78,12 +99,24 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 		let rest = m[3] ?? '';
 
 		// Collect indented continuation lines that belong to this block.
+		// Issue 3: blank/whitespace-only lines between metadata props are consumed
+		// (they're Logseq outline separators) — only a non-blank line that is a
+		// sibling/parent bullet actually ends the continuation block.
 		const continuation: string[] = [];
 		let j = i + 1;
 		while (j < lines.length) {
 			const l = lines[j];
-			if (l.trim() === '') break;
-			if (/^\s*- /.test(l)) break; // a child or sibling bullet
+			if (l.trim() === '') {
+				// Peek at the next non-blank line to decide whether to continue.
+				const peek = lines.slice(j + 1).find(x => x.trim() !== '');
+				if (peek === undefined) break;
+				if (/^\s*- /.test(peek) && leadingWidth(peek) <= indent.length) break;
+				if (leadingWidth(peek) > indent.length || !/^\s*- /.test(peek)) {
+					continuation.push(l); j++; continue;
+				}
+				break;
+			}
+			if (/^\s*- /.test(l)) break;
 			if (leadingWidth(l) <= indent.length) break;
 			continuation.push(l);
 			j++;
@@ -122,7 +155,7 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 				continue;
 			}
 			if (format === 'plain') {
-				kept.push(cl);
+				if (cl.trim() !== '') kept.push(cl);
 				continue;
 			}
 			const sched = cl.match(/^\s*SCHEDULED:\s*<(.+?)>/);
@@ -141,7 +174,8 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 				else cancelled = date;
 				continue;
 			}
-			kept.push(cl);
+			// Blank separator lines between metadata are silently consumed.
+			if (cl.trim() !== '') kept.push(cl);
 		}
 
 		// Build trailing metadata segments.

@@ -162,3 +162,46 @@ test('cancelled property with wikilink date (emoji)', () => {
 	const input = ['- CANCELLED nope', '  cancelled:: [[2024-03-20]]'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [-] nope ❌ 2024-03-20');
 });
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 04) — RED tests for accepted fixes.
+// ---------------------------------------------------------------------------
+
+// Issue 1: Logseq long-date format must normalize to ISO in task metadata.
+test('[Issue 1] completed date in Logseq long-date format normalizes to ISO (emoji)', () => {
+	const input = ['- DONE x', '  completed:: [[Feb 13th, 2025]]'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ✅ 2025-02-13');
+});
+
+// Issue 2: a LOGBOOK/CLOCK drawer on a NON-task bullet must still be dropped.
+test('[Issue 2] drops LOGBOOK drawer attached to a non-task child bullet', () => {
+	const input = [
+		'- DONE parent',
+		'\t- plain child',
+		'\t  :LOGBOOK:',
+		'\t  CLOCK: [2024-11-13 Wed 17:04:11]--[2024-11-13 Wed 17:04:12] =>  00:00:01',
+		'\t  :END:',
+	].join('\n');
+	assert.equal(
+		convertTasks(input, 'tasks-emoji', { logbook: 'drop' }),
+		['- [x] parent', '\t- plain child'].join('\n'),
+	);
+});
+
+// Issue 3: a blank/whitespace-only continuation line must not orphan metadata.
+test('[Issue 3] metadata after a blank continuation line is still parsed (emoji)', () => {
+	const input = ['- DONE x', '  ', '  SCHEDULED: <2024-11-06 Wed>', '  ', '  completed:: 2024-11-06'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ⏳ 2024-11-06 ✅ 2024-11-06');
+});
+
+// Issue 4 (guard): time-of-day in SCHEDULED is intentionally dropped to date-only.
+test('[Issue 4] time-of-day in SCHEDULED is dropped to date-only (emoji)', () => {
+	const input = ['- TODO meet', '  SCHEDULED: <2025-02-20 Thu 14:00>'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] meet ⏳ 2025-02-20');
+});
+
+// Issue 5: an unparsable template-token date must not be emitted as a ➕ date.
+test('[Issue 5] template token in created date is not emitted as a plus-date (emoji)', () => {
+	const input = ['- TODO x', '  created:: [[{{date:YYYY-MM-DD}}]]'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] x');
+});

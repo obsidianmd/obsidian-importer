@@ -47,15 +47,31 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 		const m = line.match(ID_LINE);
 		if (m && lastContentIndex >= 0) {
 			const uuid = m[2];
+			const indent = m[1];
 			const shortId = makeUnique(shorten ? shortenId(uuid) : uuid);
 			ids.push({ uuid, shortId });
-			if (!new RegExp(`\\^${shortId}\\s*$`).test(out[lastContentIndex])) {
-				out[lastContentIndex] = out[lastContentIndex].replace(/\s*$/, '') + ` ^${shortId}`;
+			const target = out[lastContentIndex];
+			if (!new RegExp(`\\^${shortId}\\s*$`).test(target)) {
+				// BR-2: anchor after a closing fence (appending breaks CommonMark)
+				if (/^[ \t]*```[ \t]*$/.test(target)) {
+					out.push(indent + `^${shortId}`);
+					lastContentIndex = out.length - 1;
+				}
+				// BR-3: anchor on its own line below a heading
+				else if (/^#{1,6} /.test(target.trimStart())) {
+					out.push('');
+					out.push(`^${shortId}`);
+					lastContentIndex = out.length - 1;
+				}
+				else {
+					out[lastContentIndex] = target.replace(/\s*$/, '') + ` ^${shortId}`;
+				}
 			}
 			continue; // drop the id:: line
 		}
-		// Track the nearest preceding content line (non-blank, not a property).
-		if (line.trim() !== '' && !/^\s*[A-Za-z0-9_.\-]+:: /.test(line)) {
+		// BR-4: track the nearest preceding non-blank line as anchor target
+		// (including retained property lines).
+		if (line.trim() !== '') {
 			lastContentIndex = out.length;
 		}
 		out.push(line);
@@ -65,19 +81,48 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 }
 
 export function resolveBlockRefs(content: string, index: Map<string, BlockRefTarget>): string {
+	// BR-1: process line-by-line, skipping fenced code blocks and inline-code spans.
+	const lines = content.split('\n');
+	let inFence = false;
+	const resolved = lines.map(line => {
+		if (/^\s*```/.test(line)) {
+			inFence = !inFence;
+			return line;
+		}
+		if (inFence) return line;
+		// Protect inline-code spans within the line.
+		return resolveOutsideInlineCode(line, index);
+	});
+	return resolved.join('\n');
+}
+
+function resolveOutsideInlineCode(line: string, index: Map<string, BlockRefTarget>): string {
+	const inlineRe = /`[^`]*`/g;
+	let result = '';
+	let last = 0;
+	let m: RegExpExecArray | null;
+	while ((m = inlineRe.exec(line)) !== null) {
+		result += resolveSegment(line.slice(last, m.index), index);
+		result += m[0];
+		last = m.index + m[0].length;
+	}
+	return result + resolveSegment(line.slice(last), index);
+}
+
+function resolveSegment(text: string, index: Map<string, BlockRefTarget>): string {
 	// Block embeds: {{embed ((uuid))}} -> ![[Page#^shortId]]
-	content = content.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole, uuid) => {
+	text = text.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole, uuid) => {
 		const target = index.get(uuid.trim());
 		return target ? `![[${target.page}#^${target.shortId}]]` : whole;
 	});
 	// Page embeds: {{embed [[Page]]}} -> ![[Page]]
-	content = content.replace(/\{\{embed\s+\[\[([^\]]+?)\]\]\}\}/g, (_, page) => `![[${page}]]`);
+	text = text.replace(/\{\{embed\s+\[\[([^\]]+?)\]\]\}\}/g, (_, page) => `![[${page}]]`);
 	// Bare block references: ((uuid)) -> [[Page#^shortId]]
-	content = content.replace(/\(\(([^()]+?)\)\)/g, (whole, uuid) => {
+	text = text.replace(/\(\(([^()]+?)\)\)/g, (whole, uuid) => {
 		const target = index.get(uuid.trim());
 		return target ? `[[${target.page}#^${target.shortId}]]` : whole;
 	});
-	return content;
+	return text;
 }
 
 /**

@@ -9,10 +9,14 @@ export interface AssetRef {
 	filename: string;
 }
 
-// `![alt](path)` optionally followed by a Logseq dimension suffix `{: ... }`.
-const assetLinkRegex = /!\[([^\]]*)\]\(([^)]+)\)(\{:[^}]*\})?/g;
+// `[alt](path)` or `![alt](path)` optionally followed by `{: ... }`.
+// H1: path allows balanced parens (e.g. filename with `(...)`).
+// H2: leading `!` is optional so plain links are also converted.
+const assetLinkRegex = /(!?)\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
 // Triple-backtick fenced code blocks, which must be left untouched.
 const fencedCodeRegex = /```[\s\S]*?```/g;
+// Inline-code spans that must not be rewritten (M1).
+const inlineCodeRe = /`[^`]*`/g;
 
 function isUrl(path: string): boolean {
 	return /^(https?:|data:)/i.test(path.trim());
@@ -42,7 +46,23 @@ export function convertAssetLinks(
 	const seen = new Set<string>();
 
 	function transformSegment(segment: string): string {
-		return segment.replace(assetLinkRegex, (match, alt: string, path: string, dimSuffix?: string) => {
+		// M1: protect inline-code spans — only rewrite content outside them.
+		let result = '';
+		let last = 0;
+		let icm: RegExpExecArray | null;
+		inlineCodeRe.lastIndex = 0;
+		while ((icm = inlineCodeRe.exec(segment)) !== null) {
+			result += rewriteAssets(segment.slice(last, icm.index));
+			result += icm[0];
+			last = icm.index + icm[0].length;
+		}
+		result += rewriteAssets(segment.slice(last));
+		return result;
+	}
+
+	function rewriteAssets(text: string): string {
+		assetLinkRegex.lastIndex = 0;
+		return text.replace(assetLinkRegex, (match, bang: string, alt: string, path: string, dimSuffix?: string) => {
 			if (isUrl(path) || !path.includes('assets/')) return match;
 
 			const filename = basename(path);
@@ -57,7 +77,8 @@ export function convertAssetLinks(
 				display = alt;
 			}
 
-			return display !== null ? `![[${filename}|${display}]]` : `![[${filename}]]`;
+			const embed = bang === '!' ? '!' : '';
+			return display !== null ? `${embed}[[${filename}|${display}]]` : `${embed}[[${filename}]]`;
 		});
 	}
 

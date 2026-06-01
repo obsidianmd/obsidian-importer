@@ -75,3 +75,46 @@ test('removeOrphanBlockRefs leaves already-resolved [[Page#^id]] links untouched
 test('removeOrphanBlockRefs leaves page embeds untouched', () => {
 	assert.equal(removeOrphanBlockRefs('![[SomePage]]'), '![[SomePage]]');
 });
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 02) — RED tests for accepted fixes.
+// (BR-5 reformatIsoDateLinks is a internal orchestrator method, BR-8 always-embed
+//  needs a new option, BR-6/BR-7 are covered by existing tests / e2e — those are
+//  written in the fix phase, not here.)
+// ---------------------------------------------------------------------------
+
+// BR-1: refs/embeds inside code regions must stay inert (currently resolved).
+test('[BR-1] resolveBlockRefs leaves refs inside a fenced code block inert', () => {
+	const index = new Map<string, BlockRefTarget>([['u1', { page: 'P', shortId: 'abc' }]]);
+	const input = ['```', '{{embed ((u1))}} and ((u1))', '```'].join('\n');
+	assert.equal(resolveBlockRefs(input, index), input);
+});
+
+test('[BR-1] resolveBlockRefs leaves refs inside an inline code span inert', () => {
+	const index = new Map<string, BlockRefTarget>([['u1', { page: 'P', shortId: 'abc' }]]);
+	assert.equal(resolveBlockRefs('`((u1))`', index), '`((u1))`');
+});
+
+// BR-2: a block whose last line is a closing ``` fence must get its anchor on a
+// new line, not appended to the fence (which makes an invalid CommonMark close).
+test('[BR-2] attachBlockIds places the anchor after a code block, not on the fence', () => {
+	const input = ['- ```', '  code', '  ```', '  id:: abc123'].join('\n');
+	const { content } = attachBlockIds(input, true);
+	assert.equal(content, ['- ```', '  code', '  ```', '  ^abc123'].join('\n'));
+});
+
+// BR-3: a heading block must get its anchor on its own line below the heading,
+// not appended to the heading text (where Obsidian renders it as literal text).
+test('[BR-3] attachBlockIds places the anchor on its own line for a heading block', () => {
+	const input = ['# Tasks', '  id:: abc123'].join('\n');
+	const { content } = attachBlockIds(input, true);
+	assert.equal(content, ['# Tasks', '', '^abc123'].join('\n'));
+});
+
+// BR-4: anchor must land on the block's true last line, after retained block
+// properties (currently it lands on the content line above them).
+test('[BR-4] attachBlockIds anchors after a retained block property line', () => {
+	const input = ['- text', '  kept:: v', '  id:: abc123'].join('\n');
+	const { content } = attachBlockIds(input, true);
+	assert.equal(content, ['- text', '  kept:: v ^abc123'].join('\n'));
+});

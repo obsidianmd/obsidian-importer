@@ -126,3 +126,29 @@ test('returns content unchanged when there are no asset links', () => {
 	assert.equal(content, input);
 	assert.deepEqual(assets, []);
 });
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 06) — RED tests for accepted fixes.
+// ---------------------------------------------------------------------------
+
+// H1: an asset filename containing parentheses must not be truncated at the first ')'.
+test('[H1] asset filename containing parentheses is not truncated', () => {
+	const { content, assets } = convertAssetLinks('![b](../assets/Book_(2024)_v0.pdf)', { keepAltText: false });
+	assert.equal(content, '![[Book_(2024)_v0.pdf]]');
+	assert.deepEqual(assets, [{ sourcePath: '../assets/Book_(2024)_v0.pdf', filename: 'Book_(2024)_v0.pdf' }]);
+});
+
+// H2: a plain (non-embed) link to an asset must be converted to a wiki-link and collected.
+test('[H2] plain (non-embed) asset link is converted to a wiki-link and collected', () => {
+	const { content, assets } = convertAssetLinks('[doc](../assets/report.pdf)', { keepAltText: false });
+	assert.equal(content, '[[report.pdf]]');
+	assert.deepEqual(assets, [{ sourcePath: '../assets/report.pdf', filename: 'report.pdf' }]);
+});
+
+// M1: an asset embed inside an inline-code span must be left verbatim.
+test('[M1] asset link inside inline code is not rewritten', () => {
+	const input = 'before `![x](../assets/a.png)` after';
+	const { content, assets } = convertAssetLinks(input, { keepAltText: false });
+	assert.equal(content, input);
+	assert.deepEqual(assets, []);
+});

@@ -9,7 +9,7 @@ const opts = DEFAULT_LOGSEQ_OPTIONS;
 test('extracts frontmatter and converts a simple page body', () => {
 	const input = ['title:: My Page', 'tags:: a, b', '', '- TODO do it', '- a note ^^highlight^^'].join('\n');
 	const { yaml, body, raw } = convertLocal(input, opts);
-	assert.equal(yaml, ['---', 'tags:', '  - a', '  - b', '---'].join('\n'));
+	assert.equal(yaml, ['---', 'aliases:', '  - My Page', 'tags:', '  - a', '  - b', '---'].join('\n'));
 	assert.equal(raw.title, 'My Page');
 	assert.equal(body, ['- [ ] do it', '- a note ==highlight=='].join('\n'));
 });

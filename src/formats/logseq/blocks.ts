@@ -5,7 +5,8 @@ const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
 /** Replace Logseq highlights `^^text^^` with Obsidian `==text==`, skipping code. */
 export function convertHighlights(content: string): string {
-	const fenceRe = /^\s*```/;
+	// Issue 5: also match bullet-opened fences `- ``` `
+	const fenceRe = /^(?:\s*- )?\s*```/;
 	let inFence = false;
 	return content
 		.split('\n')
@@ -90,16 +91,62 @@ export function convertOrgBlocks(content: string): string {
 	return processOrgLines(content.split('\n')).join('\n');
 }
 
-const BEGIN_RE = /^(\s*)#\+BEGIN_(\w+)/i;
-const END_RE = /^\s*#\+END_\w+/i;
+const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)/i;
+const END_RE = /^(\s*)(?:- )?#\+END_\w+/i;
 
 function processOrgLines(lines: string[]): string[] {
 	const out: string[] = [];
 	let i = 0;
+	let inFence = false;
 	while (i < lines.length) {
-		const begin = BEGIN_RE.exec(lines[i]);
+		const line = lines[i];
+
+		// Issue 3: skip begin/end markers inside fenced code blocks.
+		if (/^\s*```/.test(line) || /^\s*- ```/.test(line)) {
+			inFence = !inFence;
+			out.push(line);
+			i++;
+			continue;
+		}
+		if (inFence) {
+			out.push(line);
+			i++;
+			continue;
+		}
+
+		const begin = BEGIN_RE.exec(line);
 		if (!begin) {
-			out.push(lines[i]);
+			out.push(line);
+			i++;
+			continue;
+		}
+
+		const type = begin[2].toUpperCase();
+		const hasBullet = /^\s*- /.test(line);
+
+		// Issue 4: #+BEGIN_QUERY → fenced ```query block (lossless).
+		if (type === 'QUERY') {
+			let qend = -1;
+			for (let j = i + 1; j < lines.length; j++) {
+				if (END_RE.test(lines[j])) { qend = j; break; }
+			}
+			if (qend >= 0) {
+				const indent = begin[1];
+				const inner = lines.slice(i + 1, qend);
+				if (hasBullet) {
+					out.push(`${indent}- \`\`\`query`);
+					out.push(...inner.map(l => `${indent}  ${l.replace(/^\s*/, '')}`));
+					out.push(`${indent}  \`\`\``);
+				}
+				else {
+					out.push(`${indent}\`\`\`query`);
+					out.push(...inner.map(l => stripIndent(l, indent.length)));
+					out.push(`${indent}\`\`\``);
+				}
+				i = qend + 1;
+				continue;
+			}
+			out.push(line);
 			i++;
 			continue;
 		}
@@ -120,28 +167,37 @@ function processOrgLines(lines: string[]): string[] {
 
 		if (end === -1) {
 			// No matching end: leave the line unchanged and continue.
-			out.push(lines[i]);
+			out.push(line);
 			i++;
 			continue;
 		}
 
 		const indent = begin[1];
-		const type = begin[2].toUpperCase();
 		const inner = processOrgLines(lines.slice(i + 1, end));
-		out.push(...renderOrgBlock(type, indent, inner));
+		out.push(...renderOrgBlock(type, indent, inner, hasBullet));
 		i = end + 1;
 	}
 	return out;
 }
 
-function renderOrgBlock(type: string, indent: string, inner: string[]): string[] {
-	const stripped = inner.map(line => stripIndent(line, indent.length));
+function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet: boolean): string[] {
+	// Issue 1: when bullet-prefixed, content is indented `indent + '  '` under the bullet.
+	const stripN = hasBullet ? indent.length + 2 : indent.length;
+	const stripped = inner.map(line => stripIndent(line, stripN));
 
 	if (type === 'COMMENT') {
 		return [`${indent}%%`, ...stripped.map(line => indent + line), `${indent}%%`];
 	}
 
 	if (type === 'QUOTE') {
+		if (hasBullet) {
+			// Issue 1: bullet-opened QUOTE — first line uses `- > `, rest use `  > `.
+			if (stripped.length === 0) return [`${indent}- >`];
+			return [
+				`${indent}- > ${stripped[0]}`,
+				...stripped.slice(1).map(line => line === '' ? `${indent}  >` : `${indent}  > ${line}`),
+			];
+		}
 		return stripped.map(line => quoteLine(indent, line));
 	}
 
@@ -156,6 +212,13 @@ function renderOrgBlock(type: string, indent: string, inner: string[]): string[]
 		body = body.slice(1);
 	}
 
+	if (hasBullet) {
+		// Issue 1: bullet-opened callout — keep the bullet, render callout as child content.
+		const header = title
+			? `${indent}- > [!${calloutType}] ${title}`
+			: `${indent}- > [!${calloutType}]`;
+		return [header, ...body.map(line => line === '' ? `${indent}  >` : `${indent}  > ${line}`)];
+	}
 	const header = title
 		? `${indent}> [!${calloutType}] ${title}`
 		: `${indent}> [!${calloutType}]`;
@@ -197,7 +260,8 @@ export function fixHeadingChildLists(content: string): string {
  * into Obsidian's markdown image/embed syntax `![](URL)`.
  */
 export function convertMediaEmbeds(content: string): string {
-	const fenceRe = /^\s*```/;
+	// Issue 5: also match bullet-opened fences `- ``` `
+	const fenceRe = /^(?:\s*- )?\s*```/;
 	let inFence = false;
 	return content
 		.split('\n')
@@ -215,23 +279,29 @@ export function convertMediaEmbeds(content: string): string {
 /** Align a list-nested fenced code block's closing fence with its opening fence. */
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
-	const openRe = /^(?:\s*(?:[-*+]\s+)?)```/;
+	// Issue 2: capture prefix + bullet separately to compute content indent (tab-safe).
+	const openRe = /^([ \t]*)([-*+]\s+)?```/;
 	const closeRe = /^[ \t]*```[ \t]*$/;
 	let inFence = false;
-	let fenceColumn = 0;
+	let fenceIndent = '';
 
 	return lines
 		.map(line => {
 			if (!inFence) {
-				if (openRe.test(line)) {
+				const m = openRe.exec(line);
+				if (m) {
 					inFence = true;
-					fenceColumn = line.indexOf('```');
+					const prefix = m[1]; // whitespace before the bullet (or fence)
+					const bullet = m[2]; // e.g. '- ' or undefined
+					// Content (and closing fence) indent = prefix + bullet-width spaces.
+					fenceIndent = bullet ? prefix + ' '.repeat(bullet.length) : prefix;
 				}
 				return line;
 			}
 			if (closeRe.test(line)) {
 				inFence = false;
-				return fenceColumn > 0 ? ' '.repeat(fenceColumn) + '```' : line;
+				// Only correct if there's a meaningful indent; leave top-level fences unchanged.
+				return fenceIndent ? fenceIndent + '```' : line;
 			}
 			return line;
 		})

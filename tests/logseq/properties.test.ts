@@ -38,10 +38,10 @@ test('tags property handles a value mixing wikilinks and hashtags without commas
 	assert.equal(yaml, ['---', 'tags:', '  - tag1', '  - tag2', '  - tag3', '---'].join('\n'));
 });
 
-test('title is dropped from yaml but returned in raw', () => {
+test('title is registered as an alias and returned in raw', () => {
 	const input = 'title:: My Title\ntype:: note\n\ntext';
 	const { yaml, raw } = extractPageProperties(input);
-	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+	assert.equal(yaml, ['---', 'aliases:', '  - My Title', 'type: note', '---'].join('\n'));
 	assert.equal(raw.title, 'My Title');
 });
 
@@ -123,4 +123,79 @@ test('convertHeadingProperty leaves heading:: true (auto) handling without crash
 	const input = ['- A', '  heading:: true'].join('\n');
 	// auto-heading has no explicit level; we just drop the property line.
 	assert.equal(convertHeadingProperty(input), '- A');
+});
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 05) — RED tests for accepted fixes.
+// ---------------------------------------------------------------------------
+
+// H1: a value starting with '#' must be quoted (else YAML reads it as a comment → null).
+test('[H1] scalar value starting with # is quoted', () => {
+	const { yaml } = extractPageProperties('status:: #in-progress\n\ntext');
+	assert.equal(yaml, ['---', 'status: "#in-progress"', '---'].join('\n'));
+});
+
+// H2: a value that is a markdown link must be quoted (else the whole block is invalid YAML).
+test('[H2] scalar value that is a markdown link is quoted', () => {
+	const { yaml } = extractPageProperties('file:: [doc](../a/b.pdf)\n\ntext');
+	assert.equal(yaml, ['---', 'file: "[doc](../a/b.pdf)"', '---'].join('\n'));
+});
+
+// H3: a comma inside a single wikilink must not be treated as a list separator.
+test('[H3] comma inside a single wikilink is not split into a list', () => {
+	const { yaml } = extractPageProperties('deadline:: [[Jul 18th, 2025]]\n\ntext');
+	assert.equal(yaml, ['---', 'deadline: "[[Jul 18th, 2025]]"', '---'].join('\n'));
+});
+
+// H4: general YAML-unsafe scalars must be quoted (colon-space, bool-like, leading-zero number).
+test('[H4] colon-space value is quoted', () => {
+	const { yaml } = extractPageProperties('k:: value: with colon\n\nx');
+	assert.equal(yaml, ['---', 'k: "value: with colon"', '---'].join('\n'));
+});
+
+test('[H4] boolean-like value stays a quoted string', () => {
+	const { yaml } = extractPageProperties('k:: yes\n\nx');
+	assert.equal(yaml, ['---', 'k: "yes"', '---'].join('\n'));
+});
+
+test('[H4] leading-zero numeric value stays a quoted string', () => {
+	const { yaml } = extractPageProperties('k:: 007\n\nx');
+	assert.equal(yaml, ['---', 'k: "007"', '---'].join('\n'));
+});
+
+// M1: an internal block property written as a bullet must still be stripped.
+test('[M1] internal block property written as a bullet is stripped', () => {
+	const input = ['- a block', '- collapsed:: true', '- next'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input), ['- a block', '- next'].join('\n'));
+});
+
+// M2: Logseq PDF-highlight internal props must be dropped from the body.
+test('[M2] PDF highlight props (ls-type / hl-*) are dropped', () => {
+	const input = ['- quote', '  ls-type:: annotation', '  hl-page:: 46', '  hl-color:: yellow'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input), '- quote');
+});
+
+// M3: a title:: page property must be preserved (carried as an alias).
+test('[M3] title page property is preserved as an alias', () => {
+	const { yaml, raw } = extractPageProperties('title:: Example Title\ntype:: note\n\ntext');
+	assert.equal(raw.title, 'Example Title');
+	assert.match(yaml, /aliases:\n {2}- Example Title/);
+});
+
+// L1: created/updated wikilink dates become plain ISO dates.
+test('[L1] created wikilink date is emitted as a plain ISO date', () => {
+	const { yaml } = extractPageProperties('created:: [[2024-01-16]]\n\nx');
+	assert.equal(yaml, ['---', 'created: 2024-01-16', '---'].join('\n'));
+});
+
+// L2: an empty-valued page property is omitted entirely.
+test('[L2] empty-valued page property is omitted', () => {
+	const { yaml } = extractPageProperties('icon::\n\nx');
+	assert.equal(yaml, '');
+});
+
+// L4: duplicate page-property keys are de-duplicated (last wins).
+test('[L4] duplicate page-property keys are de-duplicated (last wins)', () => {
+	const { yaml } = extractPageProperties('type:: a\ntype:: b\n\nx');
+	assert.equal(yaml, ['---', 'type: b', '---'].join('\n'));
 });

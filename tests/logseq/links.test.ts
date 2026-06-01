@@ -111,3 +111,40 @@ test('preserves explicit display text during disambiguation', () => {
 	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
 	assert.equal(disambiguateBasenameLinks('[[Notes|my notes]]', index), '[[folder-a/notes|my notes]]');
 });
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 06) — RED tests for accepted fixes.
+// ---------------------------------------------------------------------------
+
+// M1: an alias reference inside an inline-code span must be left verbatim.
+test('[M1] does not rewrite an alias reference inside inline code', () => {
+	const index = { aliasMap: new Map([['ml', 'Machine Learning']]) };
+	assert.equal(rewriteAliasReferences('use `[[ML]]` here', index), 'use `[[ML]]` here');
+});
+
+// M3: an alias equal to its own page name must not produce a redundant [[Name|Name]].
+test('[M3] does not rewrite a link when the alias equals the page name', () => {
+	const index = { aliasMap: new Map([['same page', 'Same Page']]) };
+	assert.equal(rewriteAliasReferences('[[Same Page]]', index), '[[Same Page]]');
+});
+
+// M4: disambiguation must prefer an exact non-namespaced match over a namespaced one.
+test('[M4] prefers the exact top-level page over a namespaced same-basename page', () => {
+	const index = { basenameMap: new Map([['feedback', ['team-a/feedback', 'feedback']]]) };
+	assert.equal(disambiguateBasenameLinks('[[feedback]]', index), '[[feedback]]');
+});
+
+// L2: an alias link whose target already has a pipe must not produce a double pipe.
+test('[L2] alias link with piped target does not produce a double pipe', () => {
+	assert.equal(convertAliasLinks('[disp]([[A|B]])'), '[[A|disp]]');
+});
+
+// L5: a hex colour token must never be treated as a tag.
+test('[L5] hex colour is not converted into a tag link', () => {
+	assert.equal(convertTags('#FF0000', tagOpts(true)), '#FF0000');
+});
+
+// L6: a tag preceded by an opening bracket/paren is recognized.
+test('[L6] tag preceded by an opening paren is recognized', () => {
+	assert.equal(convertTags('(#hashtag)', tagOpts(true)), '([[hashtag]])');
+});
