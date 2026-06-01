@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { journalFilenameToISO, isJournalFilename, convertJournalDateLinks } from '../../src/formats/logseq/journals';
+import { journalFilenameToISO, isJournalFilename, convertJournalDateLinks, reformatDateLinks } from '../../src/formats/logseq/journals';
 
 test('parses default Logseq journal filenames to ISO', () => {
 	assert.equal(journalFilenameToISO('2024_08_30'), '2024-08-30');
@@ -67,4 +67,19 @@ test('journalFilenameToISO rejects day > 31', () => {
 
 test('journalFilenameToISO rejects month > 12', () => {
 	assert.equal(journalFilenameToISO('2024_13_01'), null);
+});
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 02 / BR-5) — RED test for accepted fix.
+// reformatDateLinks must rewrite the date but preserve a trailing #^anchor (or
+// #heading) so journal block references stay valid under a non-ISO date format.
+// ---------------------------------------------------------------------------
+test('[BR-5] reformatDateLinks rewrites the date but preserves a block anchor', () => {
+	const fmt = (iso: string) => (iso === '2025-02-20' ? 'Feb 20th, 2025' : null);
+	assert.equal(reformatDateLinks('[[2025-02-20#^67bca6]]', fmt), '[[Feb 20th, 2025#^67bca6]]');
+});
+
+test('[BR-5] reformatDateLinks still rewrites a plain date link', () => {
+	const fmt = (iso: string) => (iso === '2025-02-20' ? 'Feb 20th, 2025' : null);
+	assert.equal(reformatDateLinks('[[2025-02-20]]', fmt), '[[Feb 20th, 2025]]');
 });

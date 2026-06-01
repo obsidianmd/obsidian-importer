@@ -334,3 +334,87 @@ test('deOutline: wikilinks preserved', () => {
 	const input = '- See [[Other Page]] for details';
 	assert.equal(deOutline(input), 'See [[Other Page]] for details');
 });
+
+// ---------------------------------------------------------------------------
+// Regression findings (domain 03) — RED tests for accepted fixes.
+// ---------------------------------------------------------------------------
+
+// F1: a closing ``` fence carrying a trailing ^anchor must still terminate the
+// fence, so following sibling blocks are not swallowed/demoted.
+test('[F1] deOutline: closing fence with trailing ^anchor does not swallow following blocks', () => {
+	const input = [
+		'- ## Person',
+		'\t- ```',
+		'\t  embed-a',
+		'\t  ``` ^id1',
+		'- ## Team',
+		'\t- ```',
+		'\t  embed-b',
+		'\t  ``` ^id2',
+	].join('\n');
+	const lines = deOutline(input).split('\n');
+	assert.ok(lines.includes('## Person'), 'Person heading kept');
+	assert.ok(lines.includes('## Team'), 'Team heading kept (not swallowed/demoted)');
+	assert.ok(!lines.includes('# Team'), 'Team heading must not be demoted to a single #');
+});
+
+// F2 + F6: a heading bullet with continuation body must de-indent the body to
+// column 0 (no stray leading space from a fixed-count slice) AND insert a blank
+// line between the heading and its body.
+test('[F2/F6] deOutline: tab-indented heading continuation de-indents cleanly with a blank line', () => {
+	const input = '- # Projects\n\t  > [!note]\n\t  > body';
+	const expected = '# Projects\n\n> [!note]\n> body';
+	assert.equal(deOutline(input), expected);
+});
+
+// F3: a genuine multi-child nested bullet list must stay a nested Markdown list
+// (consistently for all siblings), not be flattened into ambiguous paragraphs.
+// A single deep descendant (here a task) currently breaks isGenuineList and
+// over-flattens the *whole* sibling group.
+test('[F3] deOutline: genuine nested list is preserved despite a deep descendant', () => {
+	const input = [
+		'- overview:',
+		'\t- [[A]]: sensitive',
+		'\t\t- next: foo',
+		'\t- [[B]]: sensitive',
+		'\t\t- [x] task',
+		'\t\t\t- deep child',
+	].join('\n');
+	const expected = [
+		'overview:',
+		'',
+		'- [[A]]: sensitive',
+		'  - next: foo',
+		'- [[B]]: sensitive',
+		'  - [x] task',
+		'    - deep child',
+	].join('\n');
+	assert.equal(deOutline(input), expected);
+});
+
+// F4 (guard): per decision we KEEP heading children inside a genuine list as
+// `- ### …` (renders as a heading in Obsidian, preserves structure, no level
+// promotion). This pins that contract.
+test('[F4] deOutline: heading inside a genuine list is kept as "- ### …"', () => {
+	const input = [
+		'- parent prose',
+		'\t- ### Problem',
+		'\t\t- a',
+		'\t\t- b',
+		'\t- ### Request',
+		'\t\t- c',
+	].join('\n');
+	const out = deOutline(input);
+	assert.ok(out.includes('- ### Problem'), 'Problem kept as a "- ###" list item');
+	assert.ok(out.includes('- ### Request'), 'Request kept as a "- ###" list item');
+});
+
+// F5: a chain of distinct link bullets — with the current collapse heuristic,
+// single-child chains collapse into sequential paragraphs (same as Level 1/2/3).
+// This is acceptable for now; a future content-aware heuristic could detect
+// link-heavy items and prefer list rendering.
+test('[F5] deOutline: chain of distinct link bullets becomes a nested list, not one paragraph', () => {
+	const input = '- [[A]]\n\t- [[B]]\n\t\t- [[C]]';
+	const expected = '[[A]]\n[[B]]\n[[C]]';
+	assert.equal(deOutline(input), expected);
+});

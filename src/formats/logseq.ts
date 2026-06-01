@@ -9,7 +9,7 @@ import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions, TaskFormat, KeepOrDrop } f
 import { convertLocal } from './logseq/pipeline';
 import { resolveBlockRefs, BlockRefTarget, removeOrphanBlockRefs } from './logseq/block-ids';
 import { rewriteAliasReferences, convertTags, disambiguateBasenameLinks, BasenameIndex } from './logseq/links';
-import { journalFilenameToISO } from './logseq/journals';
+import { journalFilenameToISO, reformatDateLinks } from './logseq/journals';
 import { namespaceToPath } from './logseq/paths';
 import { deOutline } from './logseq/de-outline';
 
@@ -531,9 +531,9 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private reformatIsoDateLinks(content: string, format: string): string {
-		return content.replace(/\[\[(\d{4}-\d{2}-\d{2})\]\]/g, (whole, iso) => {
+		return reformatDateLinks(content, iso => {
 			const d = moment(iso, ISO_FORMAT, true);
-			return d.isValid() ? `[[${d.format(format)}]]` : whole;
+			return d.isValid() ? d.format(format) : null;
 		});
 	}
 

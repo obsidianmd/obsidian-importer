@@ -53,7 +53,8 @@ function parseOutline(content: string): OutlineNode[] {
 				// Inside code block: keep consuming until closing fence at same level
 				rawLines.push(nextLine);
 				const stripped = nextLine.replace(/^\s*/, '');
-				if (stripped.match(/^```\s*$/)) {
+				// F1: closing fence may have a trailing ^anchor
+				if (stripped.match(/^```\s*(\^\S+)?\s*$/)) {
 					inCodeBlock = false;
 				}
 				j++;
@@ -81,12 +82,36 @@ function parseOutline(content: string): OutlineNode[] {
 
 		// Build content: first line content + any continuation lines (stripped of indent)
 		let fullContent = firstLineContent;
+		// F2: compute the actual whitespace prefix to strip from continuations.
+		// In Logseq, continuations are indented with the bullet's indent + "  " (or a tab).
+		// We detect the indent from the first continuation line if available.
+		let continuationPrefix = '';
+		if (rawLines.length > 1) {
+			const firstCont = rawLines[1];
+			const ws = firstCont.match(/^(\s*)/)?.[1] ?? '';
+			// The continuation prefix is all leading whitespace (it should align with
+			// content after "- "). Use actual indent rather than char-count arithmetic.
+			continuationPrefix = ws.length >= continuationIndent ? ws.slice(0, Math.max(ws.length, continuationIndent)) : ws;
+			// If the whitespace is longer than continuationIndent, check if first non-ws
+			// would be content (not a deeper indent); use the full ws as prefix.
+			if (firstCont.trim() !== '') {
+				continuationPrefix = ws;
+			}
+		}
 		for (let k = 1; k < rawLines.length; k++) {
 			const rawLine = rawLines[k];
-			// Strip the continuation indent
-			const stripped = rawLine.length > continuationIndent
-				? rawLine.slice(continuationIndent)
-				: rawLine.trim() === '' ? '' : rawLine.replace(new RegExp(`^\\s{0,${continuationIndent}}`), '');
+			let stripped: string;
+			if (rawLine.trim() === '') {
+				stripped = '';
+			}
+			else if (continuationPrefix && rawLine.startsWith(continuationPrefix)) {
+				stripped = rawLine.slice(continuationPrefix.length);
+			}
+			else {
+				// Fallback: strip up to continuationIndent chars of whitespace
+				const leadingWs = rawLine.match(/^(\s*)/)?.[1] ?? '';
+				stripped = rawLine.slice(Math.min(leadingWs.length, continuationIndent));
+			}
 			fullContent += '\n' + stripped;
 		}
 
@@ -125,30 +150,37 @@ function isTask(content: string): boolean {
  */
 function isGenuineList(nodes: OutlineNode[]): boolean {
 	if (nodes.length < 2) return false;
-	return nodes.every(node => {
-		// Tasks are always list items
-		if (isTask(node.content)) return true;
-		// A leaf or near-leaf: has 0 or 1 children, and those children are also leaves
-		if (node.children.length === 0) return true;
-		// If it has children that form a genuine list, it's a list parent
-		if (node.children.length >= 2 && isGenuineList(node.children)) return true;
-		// Single child that is a leaf is OK (collapses)
-		if (node.children.length === 1 && node.children[0].children.length === 0) return true;
-		return false;
-	});
+	return nodes.every(node => isListCompatible(node));
+}
+
+/** Check recursively whether a node can participate in a list rendering. */
+function isListCompatible(node: OutlineNode): boolean {
+	// Tasks are always list items
+	if (isTask(node.content)) return true;
+	// A leaf node is list-compatible
+	if (node.children.length === 0) return true;
+	// If it has children that form a genuine list, it's a list parent
+	if (node.children.length >= 2 && isGenuineList(node.children)) return true;
+	// F3: a single child that is itself list-compatible (recursively) is OK
+	if (node.children.length === 1 && isListCompatible(node.children[0])) return true;
+	return false;
 }
 
 /**
  * Check if a node represents a single-child chain that should collapse:
  * one parent with one child (not a list, not a heading, just prose).
+ * F5: don't collapse if the single child has children that are NOT themselves
+ * a simple collapse chain (i.e. the subtree has branching or tasks).
  */
 function shouldCollapseChain(node: OutlineNode): boolean {
-	return (
-		node.children.length === 1 &&
-		!isHeading(node.children[0].content) &&
-		!isTask(node.children[0].content) &&
-		!isGenuineList(node.children)
-	);
+	if (node.children.length !== 1) return false;
+	const child = node.children[0];
+	if (isHeading(child.content) || isTask(child.content)) return false;
+	if (isGenuineList(node.children)) return false;
+	// If the child has no children, it's a simple 2-node collapse
+	if (child.children.length === 0) return true;
+	// If the child has exactly one child that is also collapsible, allow deep chains
+	return shouldCollapseChain(child);
 }
 
 /** Serialize nodes as a markdown list with proper indentation */
@@ -187,7 +219,14 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			output.push(content);
+			// F6: if the heading has multiline content (continuation body), split and
+			// insert a blank line between heading and body.
+			const headingLines = content.split('\n');
+			output.push(headingLines[0]);
+			if (headingLines.length > 1) {
+				output.push('');
+				output.push(...headingLines.slice(1));
+			}
 			if (node.children.length > 0) {
 				output.push('');
 				output.push(...serializeBodyUnderHeading(node.children));
@@ -292,7 +331,13 @@ function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			output.push(content);
+			// F6: split multiline heading content
+			const headingLines = content.split('\n');
+			output.push(headingLines[0]);
+			if (headingLines.length > 1) {
+				output.push('');
+				output.push(...headingLines.slice(1));
+			}
 			if (node.children.length > 0) {
 				output.push('');
 				output.push(...serializeBodyUnderHeading(node.children));
