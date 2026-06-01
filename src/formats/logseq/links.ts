@@ -25,10 +25,26 @@ function outsideCode(content: string, fn: (line: string) => string): string {
 		.join('\n');
 }
 
+/** Wrap a per-segment transform so that inline-code spans are passed through unchanged. */
+function outsideInlineCode(fn: (segment: string) => string): (line: string) => string {
+	return (line: string) => {
+		const inlineRe = /`[^`]*`/g;
+		let result = '';
+		let last = 0;
+		let m: RegExpExecArray | null;
+		while ((m = inlineRe.exec(line)) !== null) {
+			result += fn(line.slice(last, m.index));
+			result += m[0];
+			last = m.index + m[0].length;
+		}
+		return result + fn(line.slice(last));
+	};
+}
+
 export function convertAliasLinks(content: string): string {
 	return outsideCode(content, line =>
-		// [display]([[Target]]) -> [[Target|display]]
-		line.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g, (_, display, target) => `[[${target}|${display}]]`)
+		// [display]([[Target]]) -> [[Target|display]]. L2: strip any pre-existing pipe from target.
+		line.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g, (_, display, target) => `[[${target.split('|')[0]}|${display}]]`)
 	);
 }
 
@@ -51,7 +67,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 
 	return outsideCode(content, line => {
 		// #[[multi word tag]]
-		line = line.replace(/(^|\s)#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
+		line = line.replace(/(^|[\s(\[])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
 			if (dropTags.has(name) || dropTags.has(name.replace(/\s+/g, '-'))) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return `${pre}#${name.replace(/\s+/g, '-')}`;
@@ -59,8 +75,10 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			}
 			return `${pre}#${name.replace(/\s+/g, '-')}`;
 		});
-		// #simple-tag (letters, digits, /_-), must follow start or whitespace
-		line = line.replace(/(^|\s)#([\w/-]+)/g, (m, pre, name) => {
+		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`
+		line = line.replace(/(^|[\s(\[])#([\w/-]+)/g, (m, pre, name) => {
+			// L5: skip full hex colour tokens like #FF0000 (exactly 6 hex digits)
+			if (/^[0-9A-Fa-f]{6}$/.test(name)) return m;
 			if (dropTags.has(name)) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return m;
@@ -74,17 +92,19 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 
 export function rewriteAliasReferences(content: string, index: LinkIndex): string {
 	if (index.aliasMap.size === 0) return content;
-	return outsideCode(content, line =>
-		line.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
+	return outsideCode(content, outsideInlineCode(segment =>
+		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
 			const pipe = inner.indexOf('|');
 			const target = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
 			const display = pipe >= 0 ? inner.slice(pipe + 1) : target;
 			if (target.includes('#')) return whole; // block/heading ref, not a page alias
 			const canonical = index.aliasMap.get(target.toLowerCase());
 			if (!canonical) return whole;
+			// M3: skip if the alias resolves to the same name (would produce [[Name|Name]])
+			if (canonical.toLowerCase() === target.toLowerCase()) return whole;
 			return `${bang}[[${canonical}|${display}]]`;
 		})
-	);
+	));
 }
 
 export interface BasenameIndex {
@@ -114,6 +134,10 @@ export function disambiguateBasenameLinks(content: string, index: BasenameIndex)
 
 			const paths = index.basenameMap.get(target.toLowerCase());
 			if (!paths || paths.length < 2) return whole;
+
+			// M4: if one of the paths is an exact top-level match (no namespace), use it as-is.
+			const exact = paths.find(p => !p.includes('/') && p.toLowerCase() === target.toLowerCase());
+			if (exact) return whole;
 
 			// Use the first known path as the canonical (same as write order).
 			// The display text is the original target name, or the explicit display if given.
