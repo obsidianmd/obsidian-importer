@@ -399,10 +399,10 @@ test('[F3] deOutline: genuine nested list is preserved despite a deep descendant
 	assert.equal(deOutline(input), expected);
 });
 
-// F4 (guard): per decision we KEEP heading children inside a genuine list as
-// `- ### …` (renders as a heading in Obsidian, preserves structure, no level
-// promotion). This pins that contract.
-test('[F4] deOutline: heading inside a genuine list is kept as "- ### …"', () => {
+// [H-E4] Fix: headings as siblings inside list context must be promoted to real
+// headings, not emitted as "- ### Heading". This updates the previously pinned
+// F4 contract — the old behavior was accepted as a workaround; now it's fixed.
+test('[H-E4] deOutline: heading siblings in body context are promoted to real headings', () => {
 	const input = [
 		'- parent prose',
 		'\t- ### Problem',
@@ -412,8 +412,25 @@ test('[F4] deOutline: heading inside a genuine list is kept as "- ### …"', () 
 		'\t\t- c',
 	].join('\n');
 	const out = deOutline(input);
-	assert.ok(out.includes('- ### Problem'), 'Problem kept as a "- ###" list item');
-	assert.ok(out.includes('- ### Request'), 'Request kept as a "- ###" list item');
+	assert.ok(!out.includes('- ### Problem'), 'Problem must NOT be a "- ###" list item');
+	assert.ok(!out.includes('- ### Request'), 'Request must NOT be a "- ###" list item');
+	assert.ok(out.includes('### Problem'), 'Problem promoted to real heading');
+	assert.ok(out.includes('### Request'), 'Request promoted to real heading');
+});
+
+test('[H-E4] deOutline: standalone heading-only siblings become real headings', () => {
+	// Fixture pattern: meeting notes with named sections as bullets
+	const input = [
+		'- ## Meeting 2024-12-16',
+		'\t- ### Context and goals',
+		'\t\t- We need to migrate',
+		'\t- ### Discussion summary',
+		'\t\t- Decided on approach A',
+	].join('\n');
+	const out = deOutline(input).split('\n');
+	assert.ok(out.includes('### Context and goals'), 'subheading promoted');
+	assert.ok(out.includes('### Discussion summary'), 'subheading promoted');
+	assert.ok(!out.some(l => l.startsWith('- ###')), 'no bullet-heading pattern remaining');
 });
 
 // F5: a chain of distinct link bullets — with the current collapse heuristic,

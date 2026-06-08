@@ -155,6 +155,9 @@ function isGenuineList(nodes: OutlineNode[]): boolean {
 
 /** Check recursively whether a node can participate in a list rendering. */
 function isListCompatible(node: OutlineNode): boolean {
+	// Headings must not participate in list rendering — they should always be
+	// promoted to real headings via serializeBodyUnderHeading (H-E4).
+	if (isHeading(node.content)) return false;
 	// Tasks are always list items
 	if (isTask(node.content)) return true;
 	// A leaf node is list-compatible

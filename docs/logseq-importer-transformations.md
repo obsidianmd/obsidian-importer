@@ -164,8 +164,9 @@ and re-serializes it as idiomatic markdown using these heuristics:
   when the only continuation is a `^anchor` — in that case the anchor lands directly on the next
   line with no gap (required for Obsidian block-reference resolution).
 - A subtree that is a **genuine list** (2+ siblings where all are list-compatible — leaves, tasks,
-  or recursively list-compatible nodes with their own children) stays a list, re-indented from
-  depth 0.
+  or recursively list-compatible nodes with their own children — but **not headings**) stays a
+  list, re-indented from depth 0. Headings are never list-compatible and always promoted to real
+  headings, even when siblings of list items.
 - A **single-child chain** of prose collapses into one paragraph (avoids one-item lists), provided
   the leaf has no children of its own.
 - Other prose bullets become paragraphs separated by blank lines.
@@ -299,6 +300,16 @@ that the UUID must exist in the block index — unrecognised UUIDs are left as-i
 copy-pasteable code examples that include Logseq embed syntax are updated to the equivalent Obsidian
 form. Inline-code spans (single backticks) are still protected and never rewritten.
 
+**Always-embed option (`alwaysEmbedBlockRefs`).** By default, bare `((uuid))` references become
+plain links `[[Page#^id]]`. With `alwaysEmbedBlockRefs: true`, they become embeds `![[Page#^id]]`
+instead — useful because Obsidian displays embeds inline while plain links just show the anchor
+text. Block embeds (`{{embed ((uuid))}}`) always produce `![[...]]` regardless of this option.
+
+**Orphan block references.** A `((uuid))` whose target was never defined in the graph is left
+untouched by default (the raw text survives). With `removeOrphanBlockRefs` on, such unresolved
+`((uuid))` references and `{{embed ((uuid))}}` embeds are removed cleanly (including lines that
+become empty). This runs *after* `resolveBlockRefs`, so only genuine orphans remain to remove.
+
 ---
 
 ## 8. Tags
@@ -400,6 +411,7 @@ user block properties (e.g. `rating:: 5`) are **kept** by default.
 |---|---|---|
 | `![alt](../assets/x.png)` | `![[x.png]]` | bytes copied to `<output>/assets/` |
 | `[label](../assets/x.pdf)` | `[[x.pdf]]` | plain (non-embed) asset links also converted |
+| `[label [nested] label](../assets/x.pdf)` | `[[x.pdf]]` | label allows one level of nested brackets |
 | `![alt](../assets/x.png){:height H, :width W}` | `![[x.png\|WxH]]` | dimensions always win over alt text |
 | `![alt](../assets/x.png)` with `keepAssetAltText` | `![[x.png\|alt]]` | only when no dimensions and alt is non-empty |
 | `![](../assets/Book_(2024).pdf)` | `![[Book_(2024).pdf]]` | paren-balanced path matching |
