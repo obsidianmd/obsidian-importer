@@ -160,7 +160,9 @@ dynamic UI; both are always-visible switches). `deOutline` (`de-outline.ts`) par
 and re-serializes it as idiomatic markdown using these heuristics:
 
 - A bullet whose content is a **heading** (`# …`) de-nests to a real heading; its children become
-  the body under it. Multiline heading continuations get a blank line separator (F6).
+  the body under it. Multiline heading continuations get a blank line separator (F6), **except**
+  when the only continuation is a `^anchor` — in that case the anchor lands directly on the next
+  line with no gap (required for Obsidian block-reference resolution).
 - A subtree that is a **genuine list** (2+ siblings where all are list-compatible — leaves, tasks,
   or recursively list-compatible nodes with their own children) stays a list, re-indented from
   depth 0.
@@ -282,18 +284,20 @@ is context-aware:
 
 - On a closing code fence (`` ``` ``): the anchor goes on a **new line after** the fence (appending
   to the fence would break CommonMark).
-- On a heading line: the anchor goes on its own line **below** the heading (Obsidian renders anchors
-  on heading lines as literal text).
+- On a **bullet-heading** line (`- ## Title`): the anchor goes on the **next line, indented** to
+  content level (so it stays part of the block in outline mode). When the heading is later
+  de-outlined to `## Title`, the anchor appears directly below with no blank-line gap — enabling
+  both `[[Page#^anchor]]` and `[[Page#Title]]` reference styles.
+- On a plain heading line (`## Title`, rare outside de-outline): the anchor goes on the next line
+  with no blank-line gap, for the same reason.
 - After retained block properties: the anchor lands on the **last non-blank line** (including kept
   property lines), not the content line before them.
 
-**Orphan block references.** A `((uuid))` whose target was never defined in the graph is left
-untouched by default (the raw text survives). With `removeOrphanBlockRefs` on, such unresolved
-`((uuid))` references and `{{embed ((uuid))}}` embeds are removed cleanly (including lines that
-become empty). This runs *after* `resolveBlockRefs`, so only genuine orphans remain to remove.
-
-**Code protection.** Block reference resolution (`resolveBlockRefs`) skips both fenced code blocks
-and inline-code spans — `((uuid))` appearing inside code is not rewritten.
+**Block references inside code blocks.** `resolveBlockRefs` converts `((uuid))` and
+`{{embed ((uuid))}}` references **everywhere**, including inside fenced code blocks. The guard is
+that the UUID must exist in the block index — unrecognised UUIDs are left as-is. This means
+copy-pasteable code examples that include Logseq embed syntax are updated to the equivalent Obsidian
+form. Inline-code spans (single backticks) are still protected and never rewritten.
 
 ---
 

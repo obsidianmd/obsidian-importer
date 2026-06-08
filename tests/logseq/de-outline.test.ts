@@ -189,6 +189,13 @@ test('deOutline: ^id anchor preserved on heading', () => {
 	assert.equal(deOutline(input), '# Heading ^ref1');
 });
 
+test('deOutline: ^id anchor on continuation line stays adjacent to heading', () => {
+	// After attachBlockIds fix, bullet-heading anchors land on the indented next line.
+	// De-outline must not insert a blank separator between the heading and its anchor.
+	const input = ['- # Heading', '  ^ref1'].join('\n');
+	assert.equal(deOutline(input), ['# Heading', '^ref1'].join('\n'));
+});
+
 test('deOutline: ^id anchor preserved in list items', () => {
 	const input = [
 		'- List:',

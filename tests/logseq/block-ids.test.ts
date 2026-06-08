@@ -83,10 +83,20 @@ test('removeOrphanBlockRefs leaves page embeds untouched', () => {
 //  written in the fix phase, not here.)
 // ---------------------------------------------------------------------------
 
-// BR-1: refs/embeds inside code regions must stay inert (currently resolved).
-test('[BR-1] resolveBlockRefs leaves refs inside a fenced code block inert', () => {
-	const index = new Map<string, BlockRefTarget>([['u1', { page: 'P', shortId: 'abc' }]]);
-	const input = ['```', '{{embed ((u1))}} and ((u1))', '```'].join('\n');
+// BR-1: refs/embeds inside code fences ARE resolved when the UUID is known.
+// Logseq embed syntax is unambiguous; converted form is more useful in Obsidian
+// (e.g. code blocks used as copy-pasteable examples should show the resolved link).
+// Inline-code spans are still protected.
+test('[BR-1] resolveBlockRefs resolves refs inside a fenced code block when UUID is known', () => {
+	const index = new Map<string, BlockRefTarget>([['abc123', { page: 'P', shortId: 'abc123' }]]);
+	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');
+	const expected = ['```', '![[P#^abc123]] and [[P#^abc123]]', '```'].join('\n');
+	assert.equal(resolveBlockRefs(input, index), expected);
+});
+
+test('[BR-1] resolveBlockRefs leaves unresolved refs inside a fenced code block inert', () => {
+	const index = new Map<string, BlockRefTarget>(); // empty index
+	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');
 	assert.equal(resolveBlockRefs(input, index), input);
 });
 
@@ -104,11 +114,21 @@ test('[BR-2] attachBlockIds places the anchor after a code block, not on the fen
 });
 
 // BR-3: a heading block must get its anchor on its own line below the heading,
-// not appended to the heading text (where Obsidian renders it as literal text).
-test('[BR-3] attachBlockIds places the anchor on its own line for a heading block', () => {
+// not appended to the heading text (where Obsidian renders it as literal text
+// and prevents referencing the heading by content alone).
+test('[BR-3] attachBlockIds places the anchor on its own line for a plain heading block', () => {
+	// No blank line between heading and anchor — anchor must stay adjacent.
 	const input = ['# Tasks', '  id:: abc123'].join('\n');
 	const { content } = attachBlockIds(input, true);
-	assert.equal(content, ['# Tasks', '', '^abc123'].join('\n'));
+	assert.equal(content, ['# Tasks', '^abc123'].join('\n'));
+});
+
+test('[BR-3] attachBlockIds places an indented anchor below a bullet-heading block', () => {
+	// In Logseq, headings are always bullet items. The anchor must be indented
+	// at content level (same indent as the id:: line) so it stays part of the block.
+	const input = ['- ## Section', '  id:: abc123'].join('\n');
+	const { content } = attachBlockIds(input, true);
+	assert.equal(content, ['- ## Section', '  ^abc123'].join('\n'));
 });
 
 // BR-4: anchor must land on the block's true last line, after retained block
