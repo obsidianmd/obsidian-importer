@@ -220,11 +220,15 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 				output.push('');
 			}
 			// F6: if the heading has multiline content (continuation body), split and
-			// insert a blank line between heading and body.
+			// insert a blank line between heading and body — but NOT before a lone
+			// ^anchor, which must stay adjacent to the heading for Obsidian block refs.
 			const headingLines = content.split('\n');
 			output.push(headingLines[0]);
 			if (headingLines.length > 1) {
-				output.push('');
+				const nonBlankConts = headingLines.slice(1).filter(l => l.trim() !== '');
+				const isJustAnchors = nonBlankConts.length > 0 &&
+					nonBlankConts.every(l => /^\^[A-Za-z0-9-]+$/.test(l));
+				if (!isJustAnchors) output.push('');
 				output.push(...headingLines.slice(1));
 			}
 			if (node.children.length > 0) {

@@ -57,10 +57,17 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 					out.push(indent + `^${shortId}`);
 					lastContentIndex = out.length - 1;
 				}
-				// BR-3: anchor on its own line below a heading
-				else if (/^#{1,6} /.test(target.trimStart())) {
-					out.push('');
-					out.push(`^${shortId}`);
+				// BR-3: anchor on its own line below a heading. Strip optional bullet
+				// prefix before testing for heading syntax (Logseq headings are bullets).
+				else if (/^#{1,6} /.test(target.trimStart().replace(/^-\s+/, ''))) {
+					const isBulletHeading = /^\s*-\s+#{1,6} /.test(target);
+					if (isBulletHeading) {
+						// Outline mode: indent anchor at content level (id:: line's indent).
+						out.push(indent + `^${shortId}`);
+					} else {
+						// Plain heading (rare): anchor directly below, no blank line.
+						out.push(`^${shortId}`);
+					}
 					lastContentIndex = out.length - 1;
 				}
 				else {
@@ -81,19 +88,12 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 }
 
 export function resolveBlockRefs(content: string, index: Map<string, BlockRefTarget>): string {
-	// BR-1: process line-by-line, skipping fenced code blocks and inline-code spans.
-	const lines = content.split('\n');
-	let inFence = false;
-	const resolved = lines.map(line => {
-		if (/^\s*```/.test(line)) {
-			inFence = !inFence;
-			return line;
-		}
-		if (inFence) return line;
-		// Protect inline-code spans within the line.
-		return resolveOutsideInlineCode(line, index);
-	});
-	return resolved.join('\n');
+	// Logseq ref/embed syntax ({{embed ((uuid))}}, ((uuid))) is unambiguous enough
+	// that we convert even inside code fences — the resolved Obsidian syntax is more
+	// useful than stale UUIDs (e.g. in copy-pasteable examples). The only guard is
+	// that the UUID must exist in the index, which resolveSegment already enforces.
+	// Inline-code spans within a line are still protected.
+	return content.split('\n').map(line => resolveOutsideInlineCode(line, index)).join('\n');
 }
 
 function resolveOutsideInlineCode(line: string, index: Map<string, BlockRefTarget>): string {
