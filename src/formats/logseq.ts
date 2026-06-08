@@ -254,6 +254,13 @@ export class LogseqImporter extends FormatImporter {
 				.setValue(this.options.removeOrphanBlockRefs)
 				.onChange(v => this.options.removeOrphanBlockRefs = v));
 
+		new Setting(this.modal.contentEl)
+			.setName('Always embed block references')
+			.setDesc('Convert bare ((uuid)) block references to embeds (![[Page#^id]]) instead of plain links ([[Page#^id]]). Block embeds ({{embed ((uuid))}}) are always converted to embeds regardless.')
+			.addToggle(t => t
+				.setValue(this.options.alwaysEmbedBlockRefs)
+				.onChange(v => this.options.alwaysEmbedBlockRefs = v));
+
 		// ── Properties ────────────────────────────────────────────────────────────
 
 		new Setting(this.modal.contentEl).setName('Properties').setHeading();
