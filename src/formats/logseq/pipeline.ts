@@ -56,3 +56,37 @@ export function convertLocal(content: string, options: LogseqImportOptions): Loc
 
 	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets };
 }
+
+/**
+ * Register all aliases (and the title, if present) for a page in the shared alias map.
+ * `raw` is the raw page properties from `convertLocal`.
+ */
+export function indexPageAliases(
+	raw: Record<string, string>,
+	canonical: string,
+	aliasMap: Map<string, string>,
+	ambiguous: Set<string>
+): void {
+	// Collect all alias values: alias/aliases properties plus the title:: value (M3).
+	const aliasValues: string[] = [];
+	if (raw.alias ?? raw.aliases) aliasValues.push(raw.alias ?? raw.aliases);
+	if (raw.title) aliasValues.push(raw.title);
+	for (const value of aliasValues) {
+		for (const item of value.split(',')) {
+			const name = item.trim().replace(/^\[\[(.*)\]\]$/, '$1').trim();
+			if (!name) continue;
+			const key = name.toLowerCase();
+			const existing = aliasMap.get(key);
+			if (existing !== undefined && existing !== canonical) ambiguous.add(key);
+			else aliasMap.set(key, canonical);
+		}
+	}
+}
+
+/**
+ * Returns true when the page has no meaningful content: no YAML frontmatter and
+ * a blank/whitespace-only body. Used to skip writing empty output files.
+ */
+export function isBodyEmpty(yaml: string, body: string): boolean {
+	return !yaml && !body.trim();
+}
