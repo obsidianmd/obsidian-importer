@@ -34,11 +34,15 @@ The import runs in **two passes** so that cross-file references can be resolved 
 vault-wide index that only exists once every file has been planned and locally converted.
 
 **Planning.** Files under `pages/` and `journals/` are enumerated. Each is assigned a canonical
-name and an output path (section 6). Output-path collisions are detected here: the first writer
-wins; later colliders are reported via `ctx.reportSkipped` and skipped. From the plans we build:
+name and an output path (section 6). During planning, files are skipped when:
 
-- a **basename disambiguation index** (`basename → [full path, …]`, section 13),
-- a **known-pages set** (`canonicalName` lower-cased, used for page-aware tag conversion).
+- The path matches `whiteboards/` — not supported.
+- Two sources would map to the *same output path* — the first wins; later colliders are reported
+  and skipped (no silent overwrite).
+
+From the surviving plans we build:
+
+- a **basename disambiguation index** (`basename → [full path, …]`, section 13).
 
 **Pass 1 — per-file local conversion** (`convertLocal` in `pipeline.ts`). Everything that can be
 done on a single file without the vault index. In order:
@@ -59,12 +63,16 @@ done on a single file without the vault index. In order:
 14. `removeLeftoverBlockProperties` — strip remaining internal/user-listed block properties.
 
 While iterating, pass 1 also builds the **block-id index** (`uuid → {page, shortId}`), the
-**alias index** (`alias → canonical page`, ambiguous aliases removed afterward), and the
-**asset plan** (absolute source → filename). Logseq-only content (queries, flashcards) is applied
-here too (`applyLogseqOnly`).
+**alias index** (`alias → canonical page`, including `title::` — ambiguous aliases removed
+afterward), and the **asset plan** (absolute source → filename). Logseq-only content (queries,
+flashcards) is applied here too (`applyLogseqOnly`).
+
+After pass 1, the **known-pages set** is built from intermediates whose YAML or body is non-empty.
+Pages that are blank after pass-1 transforms are excluded so that tag conversion doesn't create
+links to pages that will never be written.
 
 > Tag conversion is **deliberately deferred to pass 2** because the `onlyExistingPages` option
-> needs the complete known-pages set, which is only available after planning.
+> needs the complete known-pages set, which is only available after pass 1 is complete.
 
 **Pass 2 — cross-file resolution + write** (in `logseq.ts`). For each file, in order:
 
@@ -76,7 +84,9 @@ here too (`applyLogseqOnly`).
 5. `convertTags` — keep / sanitize / link / drop tags (section 8).
 6. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
 7. `deOutline` — *(option)* flatten the outline for journals and/or pages.
-8. Write the note (`yaml + body`), then copy assets.
+8. **Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
+   is skipped (reported via `ctx.reportSkipped`) rather than written as an empty file.
+9. Write the note (`yaml + body`), then copy assets.
 
 ---
 
@@ -135,6 +145,7 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 |---|---|---|---|
 | `shortenBlockIds` | boolean | `true` | Shorten Logseq UUID block IDs to short Obsidian-style anchors. |
 | `removeOrphanBlockRefs` | boolean | `false` | Remove `((uuid))` references that could not be resolved to a known block. |
+| `alwaysEmbedBlockRefs` | boolean | `false` | Convert bare `((uuid))` block references to embeds (`![[…]]`) instead of plain links (`[[…]]`). |
 
 ### Properties
 
@@ -252,7 +263,6 @@ the target format so links keep matching the filenames.
   wikilinks target.
 - `whiteboards/` files are reported as unsupported and skipped. The scan only includes `pages/`
   and `journals/`.
-
 ---
 
 ## 7. Links, references & embeds
