@@ -138,3 +138,27 @@ test('[BR-4] attachBlockIds anchors after a retained block property line', () =>
 	const { content } = attachBlockIds(input, true);
 	assert.equal(content, ['- text', '  kept:: v ^abc123'].join('\n'));
 });
+
+// BR-8: alwaysEmbedBlockRefs option — bare ((uuid)) refs become ![[Page#^id]]
+// (embed) instead of [[Page#^id]] (link).
+test('[BR-8] resolveBlockRefs converts bare refs to embeds when alwaysEmbedBlockRefs is on', () => {
+	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
+	assert.equal(
+		resolveBlockRefs(`see ((${UUID}))`, index, { alwaysEmbedBlockRefs: true }),
+		'see ![[Foo#^64ab9a]]',
+	);
+});
+
+test('[BR-8] resolveBlockRefs keeps embed syntax unchanged when alwaysEmbedBlockRefs is on', () => {
+	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
+	// {{embed ((uuid))}} already produces ![[...]], option has no extra effect
+	assert.equal(
+		resolveBlockRefs(`{{embed ((${UUID}))}}`, index, { alwaysEmbedBlockRefs: true }),
+		'![[Foo#^64ab9a]]',
+	);
+});
+
+test('[BR-8] resolveBlockRefs default behaviour unchanged (link not embed)', () => {
+	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
+	assert.equal(resolveBlockRefs(`see ((${UUID}))`, index), 'see [[Foo#^64ab9a]]');
+});

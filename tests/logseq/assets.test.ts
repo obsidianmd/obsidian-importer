@@ -145,6 +145,17 @@ test('[H2] plain (non-embed) asset link is converted to a wiki-link and collecte
 	assert.deepEqual(assets, [{ sourcePath: '../assets/report.pdf', filename: 'report.pdf' }]);
 });
 
+// H2b: asset link whose label contains brackets (e.g. [Fw_ [Nested] _ desc]) must be
+// fully converted — the label regex must allow one level of nested brackets.
+test('[H2b] asset link with bracket in label is fully converted', () => {
+	const { content, assets } = convertAssetLinks(
+		'[Fw_ [Nested] _ prep.eml](../assets/Fw_Nested_prep_0.eml)',
+		{ keepAltText: false }
+	);
+	assert.equal(content, '[[Fw_Nested_prep_0.eml]]');
+	assert.deepEqual(assets, [{ sourcePath: '../assets/Fw_Nested_prep_0.eml', filename: 'Fw_Nested_prep_0.eml' }]);
+});
+
 // M1: an asset embed inside an inline-code span must be left verbatim.
 test('[M1] asset link inside inline code is not rewritten', () => {
 	const input = 'before `![x](../assets/a.png)` after';
