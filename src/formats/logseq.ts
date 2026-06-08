@@ -6,7 +6,7 @@ import type { ImportContext } from '../main';
 import { NodePickedFile, PickedFile, parseFilePath, fs, fsPromises, path, nodeBufferToArrayBuffer } from '../filesystem';
 import { sanitizeFileNameKeepPath } from './roam/utils';
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions, TaskFormat, KeepOrDrop } from './logseq/options';
-import { convertLocal } from './logseq/pipeline';
+import { convertLocal, indexPageAliases, isBodyEmpty } from './logseq/pipeline';
 import { resolveBlockRefs, BlockRefTarget, removeOrphanBlockRefs } from './logseq/block-ids';
 import { rewriteAliasReferences, convertTags, disambiguateBasenameLinks, BasenameIndex } from './logseq/links';
 import { journalFilenameToISO, reformatDateLinks } from './logseq/journals';
@@ -369,9 +369,6 @@ export class LogseqImporter extends FormatImporter {
 		}
 		const basenameIndex: BasenameIndex = { basenameMap };
 
-		// Build vault-wide page set for tag→link page-existence check (lower-cased).
-		const knownPages = new Set(plans.map(p => p.canonicalName.toLowerCase()));
-
 		// PASS 1: per-file local conversion + index building.
 		const intermediates: Intermediate[] = [];
 		const blockIndex = new Map<string, BlockRefTarget>();
@@ -404,6 +401,15 @@ export class LogseqImporter extends FormatImporter {
 		}
 
 		for (const alias of ambiguousAliases) aliasMap.delete(alias);
+
+		// Build vault-wide page set for tag→link page-existence check (lower-cased).
+		// Built after pass-1 so we can exclude pages already empty at that stage.
+		// Pages that become empty only after pass-2 transforms are skipped at write-time.
+		const knownPages = new Set(
+			intermediates
+				.filter(inter => !isBodyEmpty(inter.yaml, inter.body))
+				.map(inter => inter.canonicalName.toLowerCase())
+		);
 
 		const dropTags = new Set(options.dropTags);
 
@@ -440,6 +446,13 @@ export class LogseqImporter extends FormatImporter {
 					body = deOutline(body);
 				}
 
+				// Skip pages with no meaningful content after all transforms.
+				if (isBodyEmpty(inter.yaml, body)) {
+					ctx.reportSkipped(inter.outputPath, 'Empty page skipped');
+					ctx.reportProgress(index, intermediates.length);
+					continue;
+				}
+
 				const final = inter.yaml ? `${inter.yaml}\n\n${body}\n` : `${body}\n`;
 				await this.writeNote(inter.outputPath, final);
 				ctx.reportNoteSuccess(inter.outputPath);
@@ -472,23 +485,18 @@ export class LogseqImporter extends FormatImporter {
 		return (file as NodePickedFile).filepath ?? file.name;
 	}
 
-	private indexAliases(
-		raw: Record<string, string>,
-		canonical: string,
-		aliasMap: Map<string, string>,
-		ambiguous: Set<string>
-	): void {
-		const value = raw.alias ?? raw.aliases;
-		if (!value) return;
-		for (const item of value.split(',')) {
-			const name = item.trim().replace(/^\[\[(.*)\]\]$/, '$1').trim();
-			if (!name) continue;
-			const key = name.toLowerCase();
-			const existing = aliasMap.get(key);
-			if (existing !== undefined && existing !== canonical) ambiguous.add(key);
-			else aliasMap.set(key, canonical);
-		}
-	}
+/**
+ * Register all aliases (and the title, if present) for a page in the shared alias map.
+ * Delegates to the exported `indexPageAliases` from pipeline.ts.
+ */
+private indexAliases(
+	raw: Record<string, string>,
+	canonical: string,
+	aliasMap: Map<string, string>,
+	ambiguous: Set<string>
+): void {
+	indexPageAliases(raw, canonical, aliasMap, ambiguous);
+}
 
 	private applyLogseqOnly(body: string, name: string, ctx: ImportContext): string {
 		const { options } = this;
