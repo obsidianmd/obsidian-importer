@@ -77,6 +77,12 @@ export interface LogseqImportOptions {
 	shortenBlockIds: boolean;
 	/** Remove `((uuid))` block references that could not be resolved to a known block. */
 	removeOrphanBlockRefs: boolean;
+	/**
+	 * Convert bare `((uuid))` block references to embeds (`![[Page#^id]]`) instead of
+	 * plain links (`[[Page#^id]]`). Block embeds (`{{embed ((uuid))}}`) are always
+	 * converted to embeds regardless of this setting.
+	 */
+	alwaysEmbedBlockRefs: boolean;
 
 	// --- Assets ---
 
@@ -116,6 +122,7 @@ export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 
 	shortenBlockIds: true,
 	removeOrphanBlockRefs: false,
+	alwaysEmbedBlockRefs: false,
 
 	keepAssetAltText: false,
 };

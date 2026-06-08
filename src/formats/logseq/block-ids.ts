@@ -87,29 +87,34 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 	return { content: out.join('\n'), ids };
 }
 
-export function resolveBlockRefs(content: string, index: Map<string, BlockRefTarget>): string {
+export function resolveBlockRefs(
+	content: string,
+	index: Map<string, BlockRefTarget>,
+	opts: { alwaysEmbedBlockRefs?: boolean } = {},
+): string {
 	// Logseq ref/embed syntax ({{embed ((uuid))}}, ((uuid))) is unambiguous enough
 	// that we convert even inside code fences — the resolved Obsidian syntax is more
 	// useful than stale UUIDs (e.g. in copy-pasteable examples). The only guard is
 	// that the UUID must exist in the index, which resolveSegment already enforces.
 	// Inline-code spans within a line are still protected.
-	return content.split('\n').map(line => resolveOutsideInlineCode(line, index)).join('\n');
+	const alwaysEmbed = opts.alwaysEmbedBlockRefs ?? false;
+	return content.split('\n').map(line => resolveOutsideInlineCode(line, index, alwaysEmbed)).join('\n');
 }
 
-function resolveOutsideInlineCode(line: string, index: Map<string, BlockRefTarget>): string {
+function resolveOutsideInlineCode(line: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
 	const inlineRe = /`[^`]*`/g;
 	let result = '';
 	let last = 0;
 	let m: RegExpExecArray | null;
 	while ((m = inlineRe.exec(line)) !== null) {
-		result += resolveSegment(line.slice(last, m.index), index);
+		result += resolveSegment(line.slice(last, m.index), index, alwaysEmbed);
 		result += m[0];
 		last = m.index + m[0].length;
 	}
-	return result + resolveSegment(line.slice(last), index);
+	return result + resolveSegment(line.slice(last), index, alwaysEmbed);
 }
 
-function resolveSegment(text: string, index: Map<string, BlockRefTarget>): string {
+function resolveSegment(text: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
 	// Block embeds: {{embed ((uuid))}} -> ![[Page#^shortId]]
 	text = text.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole, uuid) => {
 		const target = index.get(uuid.trim());
@@ -117,10 +122,13 @@ function resolveSegment(text: string, index: Map<string, BlockRefTarget>): strin
 	});
 	// Page embeds: {{embed [[Page]]}} -> ![[Page]]
 	text = text.replace(/\{\{embed\s+\[\[([^\]]+?)\]\]\}\}/g, (_, page) => `![[${page}]]`);
-	// Bare block references: ((uuid)) -> [[Page#^shortId]]
+	// Bare block references: ((uuid)) -> [[Page#^shortId]] or ![[...]] when alwaysEmbed
 	text = text.replace(/\(\(([^()]+?)\)\)/g, (whole, uuid) => {
 		const target = index.get(uuid.trim());
-		return target ? `[[${target.page}#^${target.shortId}]]` : whole;
+		if (!target) return whole;
+		return alwaysEmbed
+			? `![[${target.page}#^${target.shortId}]]`
+			: `[[${target.page}#^${target.shortId}]]`;
 	});
 	return text;
 }

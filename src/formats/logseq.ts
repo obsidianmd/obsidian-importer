@@ -406,7 +406,7 @@ export class LogseqImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 			index++;
 			try {
-				let body = resolveBlockRefs(inter.body, blockIndex);
+				let body = resolveBlockRefs(inter.body, blockIndex, { alwaysEmbedBlockRefs: options.alwaysEmbedBlockRefs });
 
 				if (options.removeOrphanBlockRefs) {
 					body = removeOrphanBlockRefs(body);
