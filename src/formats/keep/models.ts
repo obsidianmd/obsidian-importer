@@ -18,6 +18,13 @@ export interface KeepLabel {
 	name: string;
 }
 
+export interface KeepAnnotation {
+	description?: string;
+	source?: string;
+	title?: string;
+	url?: string;
+}
+
 export interface KeepJson {
 	createdTimestampUsec: number;
 	userEditedTimestampUsec: number;
@@ -34,4 +41,5 @@ export interface KeepJson {
 	color?: string;
 	labels?: KeepLabel[];
 	sharees?: KeepSharee[];
+	annotations?: KeepAnnotation[];
 }

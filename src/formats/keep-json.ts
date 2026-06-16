@@ -5,7 +5,7 @@ import { ATTACHMENT_EXTS, ImportContext } from '../main';
 import { serializeFrontMatter } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
-import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
+import { formatAnnotations, sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -199,6 +199,12 @@ export class KeepImporter extends FormatImporter {
 			for (const attachment of keepJson.attachments) {
 				mdContent.push(`![[${attachment.filePath}]]`);
 			}
+		}
+
+		const annotations = formatAnnotations(keepJson.annotations);
+		if (annotations) {
+			mdContent.push('\n\n');
+			mdContent.push(annotations);
 		}
 
 		const file = await this.saveAsMarkdownFile(folder, filename, mdContent.join(''));
