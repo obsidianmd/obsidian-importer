@@ -1,7 +1,7 @@
 import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ImportContext, AuthCallback } from './main';
-import { sanitizeFileName } from './util';
+import { sanitizeFileName, sanitizeFilePath as sanitizeFilePathValue } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -249,7 +249,7 @@ export abstract class FormatImporter {
 
 	/** Remove any characters that would be illegal on any platform. */
 	sanitizeFilePath(path: string): string {
-		return path.replace(/[:|?<>*\\]/g, '');
+		return sanitizeFilePathValue(path);
 	}
 
 	/**
