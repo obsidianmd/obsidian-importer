@@ -1,5 +1,6 @@
 import { Notice, Platform, Setting, TFile, TFolder, moment } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
+import { getAppleNotesTitleFromText } from './apple-notes/title';
 import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
@@ -292,9 +293,10 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
+		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
 		// Get creation date and format it according to user preference
-		let title = row.ZTITLE1;
+		let title = getAppleNotesTitleFromText(converter.note.noteText) || row.ZTITLE1;
 		if (this.filePrefixFormat) {
 			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
 			const datePrefix = moment(creationTimestamp).format(this.filePrefixFormat);
@@ -308,7 +310,7 @@ export class AppleNotesImporter extends FormatImporter {
 
 		if (existingFile && existingFile instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
+				this.ctx.reportSkipped(title, 'note is a duplicate');
 				return existingFile;
 			}
 			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
@@ -318,7 +320,7 @@ export class AppleNotesImporter extends FormatImporter {
 
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
-					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
+					this.ctx.reportSkipped(title, 'note unchanged since last import');
 					return existingFile;
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
@@ -333,8 +335,6 @@ export class AppleNotesImporter extends FormatImporter {
 		this.owners[id] = this.owners[row.ZFOLDER];
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
-		const converter = this.decodeData(row.zhexdata, NoteConverter);
-
 		this.vault.modify(file, await converter.format(false, file.path), {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
