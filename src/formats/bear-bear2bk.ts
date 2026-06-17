@@ -3,6 +3,7 @@ import { path, parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
+import { extractBearTagsFromContent, normalizeBearTagsInMarkdown } from './bear-tags';
 
 type Metadata = {
 	id: string;
@@ -49,31 +50,7 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private extractTagsFromContent(content: string): string[] {
-		const tags = new Set<string>();
-
-		// Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
-		//    Ensures it's not part of a URL or an already processed enclosed tag.
-		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
-		//    Diacritics regex range from https://stackoverflow.com/questions/30225552/regex-for-diacritics
-		const simpleTagRegex = /(?<!\S)#([A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_][A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]*[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]|[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]+)(?![#\w/])/g;
-		let matchSimple;
-		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
-			const rawSimpleTag = matchSimple[1].trim();
-			if (rawSimpleTag !== '') {
-				if (this.flattenTags && rawSimpleTag.includes('/')) {
-					const parts = rawSimpleTag.split('/');
-					for (const part of parts) {
-						tags.add(part);
-					}
-				}
-				else {
-					tags.add(rawSimpleTag);
-				}
-			}
-		}
-
-		const finalTags = Array.from(tags);
-		return finalTags;
+		return extractBearTagsFromContent(content, this.flattenTags);
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -138,17 +115,7 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// Replace spaces in enclosed tags with underscores and make them classic tags
-							mdContent = mdContent.replace(/#([^\n#]+?[^\s])#/g, (_match, tag) => { // require non-space before closing to avoid using next tag's opening #
-								return '#' + tag.replace(/\s+/g, '_');
-							});
-
-							// Remove special characters in simple tags
-							mdContent = mdContent.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
-								let cleanTag = tag.replace(/[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/\-]/g, '_');
-								cleanTag = cleanTag.replace(/_+/g, '_'); // collapse multiple underscores
-								return '#' + cleanTag;
-							});
+							mdContent = normalizeBearTagsInMarkdown(mdContent);
 
 							// Extract tags from content
 							const tags = this.extractTagsFromContent(mdContent);
