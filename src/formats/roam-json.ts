@@ -6,6 +6,7 @@ import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
 import { blockRefRegex, extractBlockReferenceUIDs } from './roam/block-refs';
+import { formatRoamMarkdownLine, getRoamChildIndent } from './roam/list-format';
 import { moment } from 'obsidian';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
@@ -341,12 +342,13 @@ export class RoamJSONImporter extends FormatImporter {
 		if ('string' in json && json.string) {
 			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
 			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-			markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+			markdown.push(formatRoamMarkdownLine(`${prefix}${scrubbed}`, indent, isChild));
 		}
 
 		if (json.children) {
+			const childIndent = getRoamChildIndent(indent, isChild);
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, childIndent, true, '', this.oldestTimestamp, this.newestTimestamp));
 			}
 		}
 
