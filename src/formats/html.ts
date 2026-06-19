@@ -11,6 +11,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
 import { parseHTML, stringToUtf8 } from '../util';
+import { fixDocumentHeadingLinks } from './html/heading-links';
 
 export class HtmlImporter extends FormatImporter {
 	attachmentSizeLimit: number;
@@ -166,6 +167,7 @@ export class HtmlImporter extends FormatImporter {
 			const htmlContent = await file.readText();
 
 			const dom = parseHTML(htmlContent);
+			fixDocumentHeadingLinks(dom);
 			fixDocumentUrls(dom);
 
 			// Find all the attachments and download them
