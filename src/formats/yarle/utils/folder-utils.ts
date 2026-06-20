@@ -6,6 +6,13 @@ import { yarleOptions } from '../yarle';
 import { replaceLastOccurrenceInString } from './string-utils';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
+import {
+	getNotebookNameAndFolderNames,
+	getSanitizedNotebookFolderNames,
+	sanitizeNotebookFolderName,
+} from './notebook-folder-utils';
+
+export { getNotebookNameAndFolderNames, sanitizeNotebookFolderName };
 
 export interface Path {
 	mdPath: string;
@@ -156,20 +163,6 @@ export const clearResourceDir = (note: any): void => {
 	clearDistDir(resPath);
 	resourceDirClears.set(resPath, clears + 1);
 };
-export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
-	const notebookFolderNames = basename.split('@@@');
-
-	let notebookName = notebookFolderNames.pop();
-	if (!notebookName) {
-		notebookName = basename;
-	}
-	return {
-		notebookName,
-		notebookFolderNames
-	};
-};
-
-
 export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProps => {
 	if (!(baseEnex instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 
@@ -184,7 +177,7 @@ export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProp
 
 export const getNotebookStackOutputDir = (enex: PickedFile, options: YarleOptions): string => {
 
-	const { notebookFolderNames } = getNotebookNameAndFolderNames(enex.basename);
+	const notebookFolderNames = getSanitizedNotebookFolderNames(enex.basename);
 
 	fs.mkdirSync(path.join(options.outputDir, ...notebookFolderNames), { recursive: true });
 	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
@@ -214,10 +207,10 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
 	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
 		// Truncate enex filename if it's too long to prevent path issues
-		let truncatedBasename = enexFileBasename;
+		let truncatedBasename = sanitizeNotebookFolderName(enexFileBasename);
 
-		if (enexFileBasename.length > MAX_ENEX_DIR_LENGTH) {
-			truncatedBasename = enexFileBasename.substring(0, MAX_ENEX_DIR_LENGTH);
+		if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
+			truncatedBasename = truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH);
 			console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
 		}
 
