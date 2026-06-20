@@ -34,6 +34,7 @@ export class AppleNotesImporter extends FormatImporter {
 	resolvedAccounts: Record<number, ANAccount> = {};
 	resolvedFiles: Record<number, TFile> = {};
 	resolvedFolders: Record<number, TFolder> = {};
+	claimedNotePaths = new Set<string>();
 
 	multiAccount = false;
 	noteCount = 0;
@@ -301,10 +302,14 @@ export class AppleNotesImporter extends FormatImporter {
 			title = `${datePrefix} ${title}`;
 		}
 
-		const fullPath = path.join(folder.path, `${title}.md`);
+		const fileName = `${title}.md`;
+		const fullPath = this.getNotePath(folder, fileName);
+		const currentImportCollision = this.claimedNotePaths.has(fullPath);
 
 		// Check for duplicate notes based on the selected handling option
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		const existingFile = currentImportCollision
+			? null
+			: this.vault.getAbstractFileByPath(fullPath);
 
 		if (existingFile && existingFile instanceof TFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
@@ -318,6 +323,7 @@ export class AppleNotesImporter extends FormatImporter {
 
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
+					this.claimedNotePaths.add(fullPath);
 					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
 					return existingFile;
 				}
@@ -326,7 +332,8 @@ export class AppleNotesImporter extends FormatImporter {
 			// For CreateCopy option, we continue without skipping (will create numbered copy)
 		}
 
-		const file = await this.saveAsMarkdownFile(folder, `${title}.md`, '');
+		const file = await this.saveAsMarkdownFile(folder, fileName, '', currentImportCollision);
+		this.claimedNotePaths.add(file.path);
 
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file;
@@ -487,6 +494,10 @@ export class AppleNotesImporter extends FormatImporter {
 		return new converterType(this, decoded);
 	}
 
+	getNotePath(folder: TFolder, fileName: string): string {
+		return path.join(folder.path, sanitizeFileName(fileName));
+	}
+
 	decodeTime(timestamp: number): number {
 		if (!timestamp || timestamp < 1) return new Date().getTime();
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
@@ -501,8 +512,8 @@ export class AppleNotesImporter extends FormatImporter {
 		}
 	}
 
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
-		if (this.duplicateHandling === DuplicateHandling.Skip || this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, createCopy = false): Promise<TFile> {
+		if (!createCopy && (this.duplicateHandling === DuplicateHandling.Skip || this.duplicateHandling === DuplicateHandling.ImportUpdated)) {
 			// For Skip and ImportUpdated, create the file directly without numeric suffix
 			const sanitizedName = sanitizeFileName(title);
 			const fullPath = path.join(folder.path, sanitizedName);
