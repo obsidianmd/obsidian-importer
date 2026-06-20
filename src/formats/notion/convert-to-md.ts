@@ -18,6 +18,7 @@ import {
 	stripNotionId,
 	stripParentDirectories,
 } from './notion-utils';
+import { fixNotionLists } from './lists';
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	const text = await file.readText();
@@ -625,34 +626,6 @@ function fixMermaidCodeblock(body: HTMLElement) {
 	for (const codeblock of body.findAll('.language-Mermaid')) {
 		codeblock.removeClass('language-Mermaid');
 		codeblock.addClass('language-mermaid');
-	}
-}
-
-function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
-	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown.
-	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
-	for (const htmlList of body.findAll(tagName)) {
-		const htmlLists: HTMLElement[] = [];
-		const listItems: HTMLElement[] = [];
-		let nextAdjacentList: HTMLElement = htmlList;
-
-		while (nextAdjacentList.tagName === tagName.toUpperCase()) {
-			htmlLists.push(nextAdjacentList);
-			for (let i = 0; i < nextAdjacentList.children.length; i++) {
-				listItems.push(nextAdjacentList.children[i] as HTMLElement);
-			}
-			// classes are always "to-do-list, bulleted-list, or numbered-list"
-			if (!nextAdjacentList.nextElementSibling || nextAdjacentList.getAttribute('class') !== nextAdjacentList.nextElementSibling.getAttribute('class')) break;
-			nextAdjacentList = nextAdjacentList.nextElementSibling as HTMLElement;
-		}
-
-		const joinedList = body.createEl(tagName);
-		for (const li of listItems) {
-			joinedList.appendChild(li);
-		}
-
-		htmlLists[0].replaceWith(joinedList);
-		htmlLists.slice(1).forEach(htmlList => htmlList.remove());
 	}
 }
 
