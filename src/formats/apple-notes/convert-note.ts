@@ -54,12 +54,13 @@ export class NoteConverter extends ANConverter {
 			do {
 				attr = this.note.attributeRun[i];
 				offsetEnd = offsetEnd + attr.length;
-				attrText += this.note.noteText.substring(offsetStart, offsetEnd);
+				const attrRunText = this.note.noteText.substring(offsetStart, offsetEnd);
+				attrText += attrRunText;
 
 				offsetStart = offsetEnd;
 				nextIsSame = (i == this.note.attributeRun.length - 1)
 					? false
-					: attrEquals(attr, this.note.attributeRun[i + 1]);
+					: attrEquals(attr, this.note.attributeRun[i + 1]) && !attrRunText.endsWith('\n');
 
 				i++;
 			}
@@ -67,9 +68,16 @@ export class NoteConverter extends ANConverter {
 
 			/* Then, since Obsidian doesn't like formatting crossing new lines or 
 			starting/ending at spaces, divide tokens based on that */
-			for (let fragment of attrText.split(FRAGMENT_SPLIT)) {
+			const splitFragments = attrText.split(FRAGMENT_SPLIT);
+			for (let j = 0; j < splitFragments.length; j++) {
+				const fragment = splitFragments[j];
 				if (!fragment) continue;
-				tokens.push({ attr, fragment });
+				const hasLaterText = splitFragments.slice(j + 1).some(f => /\S/.test(f));
+				tokens.push({
+					attr,
+					fragment,
+					softLineBreak: fragment.includes('\n') && hasLaterText
+				});
 			}
 		}
 
@@ -78,14 +86,14 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		let firstLineSkip = !table && this.importer.omitFirstLine && this.note.noteText.contains('\n');
+		let firstLineSkip = !table && this.importer.omitFirstLine && this.note.noteText.includes('\n');
 		let converted = '';
 
 		for (let j = 0; j < fragments.length; j++) {
-			let { attr, fragment } = fragments[j];
+			let { attr, fragment, softLineBreak } = fragments[j];
 
 			if (firstLineSkip) {
-				if (fragment.contains('\n') || attr.attachmentInfo) {
+				if (fragment.includes('\n') || attr.attachmentInfo) {
 					firstLineSkip = false;
 				}
 				else {
@@ -94,11 +102,15 @@ export class NoteConverter extends ANConverter {
 			}
 
 			attr.fragment = fragment;
-			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
+			const previousFragment = fragments[j - 1];
+			attr.atLineStart = j == 0 ? true : previousFragment?.fragment.includes('\n') && !previousFragment.softLineBreak;
 
 			converted += this.formatMultiRun(attr);
 
-			if (!/\S/.test(attr.fragment) || this.multiRun == ANMultiRun.Monospaced) {
+			if (softLineBreak && attr.fragment.includes('\n') && this.multiRun != ANMultiRun.Monospaced) {
+				converted += attr.fragment.replace(/[ \t]*\n[ \t]*/g, '<br>');
+			}
+			else if (!/\S/.test(attr.fragment) || this.multiRun == ANMultiRun.Monospaced) {
 				converted += attr.fragment;
 			}
 			else if (attr.attachmentInfo) {

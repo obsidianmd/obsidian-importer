@@ -46,6 +46,7 @@ export type ANAccount = {
 export type ANFragmentPair = {
 	attr: ANAttributeRun;
 	fragment: string;
+	softLineBreak?: boolean;
 };
 
 export enum ANMultiRun {
