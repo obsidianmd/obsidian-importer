@@ -11,6 +11,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
 import { parseHTML, stringToUtf8 } from '../util';
+import { extractHtmlImportTitle } from './html-title';
 
 export class HtmlImporter extends FormatImporter {
 	attachmentSizeLimit: number;
@@ -223,7 +224,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 
 			let mdContent = htmlToMarkdown(dom);
-			let mdFile = await this.saveAsMarkdownFile(folder, file.basename, mdContent);
+			let mdFile = await this.saveAsMarkdownFile(folder, extractHtmlImportTitle(dom, file.basename), mdContent);
 
 			// Because `htmlToMarkdown` always gets us markdown links, we'll want to convert them into wikilinks, or relative links depending on the user's preference.
 			if (!Object.isEmpty(attachments)) {
