@@ -159,7 +159,7 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `normalizeWhitespace` | boolean | `true` | Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. |
+| `normalizeWhitespace` | boolean | `true` | Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks (both standard ` ``` ` and bullet-prefixed `- ``` ` fences) and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. |
 
 ---
 
