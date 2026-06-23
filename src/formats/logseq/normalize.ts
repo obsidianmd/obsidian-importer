@@ -9,11 +9,16 @@ const EMPTY_BULLET = /^\s*-\s*$/;
 // because the anchor may be referenced elsewhere.
 const ANCHOR_BULLET = /^\s*-\s+\^[A-Za-z0-9_-]+\s*$/;
 
+// Matches a fenced code-block delimiter. A fence can be a standard ``` line or a
+// bullet-prefixed one (- ``` or \t- ```) since the Logseq pipeline preserves
+// code blocks nested inside list bullets.
+const FENCE_LINE = /^\s*(?:-\s+)?```/;
+
 export function normalizeWhitespace(content: string): string {
 	const out: string[] = [];
 	let inFence = false;
 	for (const line of content.split('\n')) {
-		if (/^\s*```/.test(line)) {
+		if (FENCE_LINE.test(line)) {
 			inFence = !inFence;
 			out.push(line);
 			continue;
