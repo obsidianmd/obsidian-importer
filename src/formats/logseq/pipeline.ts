@@ -11,6 +11,7 @@ import { convertAssetLinks, AssetRef } from './assets';
 import { convertAliasLinks } from './links';
 import { convertJournalDateLinks } from './journals';
 import { attachBlockIds, DefinedId } from './block-ids';
+import { normalizeWhitespace } from './normalize';
 
 export interface LocalResult {
 	/** YAML frontmatter block (with fences) or '' when there are no page properties. */
@@ -52,7 +53,11 @@ export function convertLocal(content: string, options: LogseqImportOptions): Loc
 	const idResult = attachBlockIds(body, options.shortenBlockIds);
 	body = idResult.content;
 
-	body = removeLeftoverBlockProperties(body, options.dropBlockProperties);
+	body = removeLeftoverBlockProperties(body, options.dropBlockProperties, options.blockProperties);
+
+	if (options.normalizeWhitespace) {
+		body = normalizeWhitespace(body);
+	}
 
 	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets };
 }

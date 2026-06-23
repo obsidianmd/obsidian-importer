@@ -113,3 +113,19 @@ test('pageNameToPath matches namespaceToPath behavior', () => {
 		assert.equal(pageNameToPath(input), namespaceToPath(input));
 	}
 });
+
+// --- T8: bracket filename sanitization ---
+// The orchestrator builds page paths as sanitizeFileNameKeepPath(namespaceToPath(basename)).
+// sanitizeFileNameKeepPath lives in roam/utils (imports obsidian), so we replicate the
+// bracket-stripping portion of its regex here to assert the combined result is bracket-free.
+function stripBrackets(name: string): string {
+	return name.replace(/\[/g, '').replace(/\]/g, '');
+}
+
+test('[T8] namespaced page with [[brackets]] in the name yields a bracket-free folder path', () => {
+	const basename = "Team A___feedback___[[Alice]]'s experience";
+	const path = stripBrackets(namespaceToPath(basename));
+	assert.equal(path, "Team A/feedback/Alice's experience");
+	assert.ok(!path.includes('['));
+	assert.ok(!path.includes(']'));
+});

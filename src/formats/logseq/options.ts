@@ -11,6 +11,9 @@ export type TaskFormat =
 /** Generic keep-or-drop choice for Logseq-only content. */
 export type KeepOrDrop = 'keep' | 'drop';
 
+/** How retained (unknown) inline block properties are emitted. */
+export type BlockPropertyMode = 'keep' | 'wrap' | 'drop';
+
 export interface LogseqImportOptions {
 	/** Task target format. */
 	taskFormat: TaskFormat;
@@ -57,6 +60,13 @@ export interface LogseqImportOptions {
 	 * Keys that start with `logseq.` or `query-` are always stripped regardless.
 	 */
 	dropBlockProperties: string[];
+	/**
+	 * How to render retained (unknown) inline block properties:
+	 * - `keep`  — leave the raw `key:: value` line.
+	 * - `wrap`  — rewrite to a Dataview inline field `[key:: value]` (default).
+	 * - `drop`  — remove the line entirely.
+	 */
+	blockProperties: BlockPropertyMode;
 
 	// --- Tags ---
 
@@ -88,11 +98,19 @@ export interface LogseqImportOptions {
 
 	/** Preserve image alt text as the wikilink display text (`![[x|alt]]`). */
 	keepAssetAltText: boolean;
+
+	// --- Cleanup ---
+
+	/**
+	 * Trim trailing whitespace, remove lone empty bullets, and normalize
+	 * non-breaking spaces (U+00A0) to regular spaces. Default true.
+	 */
+	normalizeWhitespace: boolean;
 }
 
 // Logseq-only page properties that have no Obsidian equivalent and are safe to drop from
 // frontmatter. Users may add their own to dropPageProperties.
-export const DEFAULT_DROP_PAGE_PROPERTIES = ['public', 'exclude-from-graph-view'];
+export const DEFAULT_DROP_PAGE_PROPERTIES = ['public', 'exclude-from-graph-view', 'icon'];
 
 // Additional block properties to strip beyond the always-dropped Logseq-internal set.
 // Users may extend dropBlockProperties with their own graph-specific keys.
@@ -115,6 +133,7 @@ export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 
 	dropPageProperties: [...DEFAULT_DROP_PAGE_PROPERTIES],
 	dropBlockProperties: [...DEFAULT_DROP_BLOCK_PROPERTIES],
+	blockProperties: 'wrap',
 
 	convertTagsToLinks: false,
 	convertTagsOnlyExistingPages: true,
@@ -125,4 +144,6 @@ export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 	alwaysEmbedBlockRefs: false,
 
 	keepAssetAltText: false,
+
+	normalizeWhitespace: true,
 };

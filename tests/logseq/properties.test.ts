@@ -5,7 +5,9 @@ import {
 	extractPageProperties,
 	removeLeftoverBlockProperties,
 	convertHeadingProperty,
+	linkifyTagValuesInFrontmatter,
 } from '../../src/formats/logseq/properties';
+import { DEFAULT_DROP_PAGE_PROPERTIES } from '../../src/formats/logseq/options';
 
 test('returns empty yaml when there are no page properties', () => {
 	const { yaml, body } = extractPageProperties('- just a block\n- another');
@@ -95,10 +97,70 @@ test('removeLeftoverBlockProperties drops user-specified extra keys', () => {
 	assert.equal(removeLeftoverBlockProperties(input, ['my-status']), ['- a block', '  rating:: 5'].join('\n'));
 });
 
+// --- T3: blockProperties keep / wrap / drop ---
+test('[T3] keep mode leaves unknown block property unchanged', () => {
+	const input = ['- a block', '  rating:: 5'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), input);
+});
+
+test('[T3] wrap mode rewrites participants:: … into [participants:: …]', () => {
+	const input = ['- a block', '  participants:: [[Alice]], [[Bob]]'].join('\n');
+	assert.equal(
+		removeLeftoverBlockProperties(input, [], 'wrap'),
+		['- a block', '  [participants:: [[Alice]], [[Bob]]]'].join('\n'),
+	);
+});
+
+test('[T3] wrap mode preserves indentation and trailing ^anchor', () => {
+	const input = ['- a block', '\t  participants:: a, b ^abc123'].join('\n');
+	assert.equal(
+		removeLeftoverBlockProperties(input, [], 'wrap'),
+		['- a block', '\t  [participants:: a, b] ^abc123'].join('\n'),
+	);
+});
+
+test('[T3] drop mode removes the line', () => {
+	const input = ['- a block', '  rating:: 5'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
+});
+
+test('[T3] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropped in keep & wrap)', () => {
+	const input = [
+		'- a block',
+		'  collapsed:: true',
+		'  logseq.order-list-type:: number',
+		'  hl-color:: yellow',
+	].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), '- a block');
+});
+
+test('[T3] value containing ] falls back to keep', () => {
+	const input = ['- a block', '  note:: foo] bar'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
+});
+
+test('[T3] wrap mode does not touch property-like lines inside code fences', () => {
+	const input = ['- a block', '  ```', '  key:: value', '  ```'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
+});
+
 test('extractPageProperties drops listed page property keys from frontmatter', () => {
 	const input = 'type:: note\npublic:: true\nmy-key:: val\n\ntext';
 	const { yaml } = extractPageProperties(input, { dropPageProperties: ['public', 'my-key'] });
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[T4] icon page property is dropped from frontmatter by default', () => {
+	const input = 'type:: note\nicon:: \uEAE5\n\ntext';
+	const { yaml } = extractPageProperties(input, { dropPageProperties: DEFAULT_DROP_PAGE_PROPERTIES });
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[T4] icon is retained when removed from the drop list', () => {
+	const input = 'type:: note\nicon:: star\n\ntext';
+	const { yaml } = extractPageProperties(input, { dropPageProperties: [] });
+	assert.equal(yaml, ['---', 'type: note', 'icon: star', '---'].join('\n'));
 });
 
 test('extractPageProperties drops listed tags from frontmatter tags list', () => {
@@ -198,4 +260,65 @@ test('[L2] empty-valued page property is omitted', () => {
 test('[L4] duplicate page-property keys are de-duplicated (last wins)', () => {
 	const { yaml } = extractPageProperties('type:: a\ntype:: b\n\nx');
 	assert.equal(yaml, ['---', 'type: b', '---'].join('\n'));
+});
+
+// --- T5: linkify tag-style frontmatter values in pass-2 ---
+test('[T5] tag value linkifies to [[page]] when page exists and toLinks on', () => {
+	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(['in-progress']),
+		toLinks: true,
+		onlyExistingPages: true,
+	});
+	assert.equal(out, ['---', 'status: "[[IN-PROGRESS]]"', '---'].join('\n'));
+});
+
+test('[T5] multi-word #[[tag]] value linkifies to [[tag]]', () => {
+	const yaml = ['---', 'area: "#[[Page One]]"', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(['page one']),
+		toLinks: true,
+		onlyExistingPages: true,
+	});
+	assert.equal(out, ['---', 'area: "[[Page One]]"', '---'].join('\n'));
+});
+
+test('[T5] tag value stays quoted text when no matching page (onlyExistingPages)', () => {
+	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(),
+		toLinks: true,
+		onlyExistingPages: true,
+	});
+	assert.equal(out, yaml);
+});
+
+test('[T5] tag value stays quoted text when toLinks is off (default)', () => {
+	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(['in-progress']),
+		toLinks: false,
+		onlyExistingPages: true,
+	});
+	assert.equal(out, yaml);
+});
+
+test('[T5] tags: list is unaffected', () => {
+	const yaml = ['---', 'tags:', '  - foo', '  - bar', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(['foo', 'bar']),
+		toLinks: true,
+		onlyExistingPages: true,
+	});
+	assert.equal(out, yaml);
+});
+
+test('[T5] tag value linkifies regardless of page set when onlyExistingPages is off', () => {
+	const yaml = ['---', 'area: "#security"', '---'].join('\n');
+	const out = linkifyTagValuesInFrontmatter(yaml, {
+		knownPages: new Set(),
+		toLinks: true,
+		onlyExistingPages: false,
+	});
+	assert.equal(out, ['---', 'area: "[[security]]"', '---'].join('\n'));
 });
