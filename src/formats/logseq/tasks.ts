@@ -12,7 +12,7 @@ interface TaskOptions {
 }
 
 const KEYWORDS = ['TODO', 'DOING', 'DONE', 'LATER', 'NOW', 'WAITING', 'WAIT', 'IN-PROGRESS', 'CANCELLED', 'CANCELED'];
-const TASK_RE = new RegExp(`^(\\s*)- (${KEYWORDS.join('|')})(?:\\s+(.*))?$`);
+const TASK_RE = new RegExp(`^(\\s*)- (${KEYWORDS.join('|')}):?(?:\\s+(.*))?$`);
 
 function checkbox(state: string, format: TaskFormat): string {
 	const done = state === 'DONE' || state === 'CANCELLED' || state === 'CANCELED';
@@ -38,7 +38,15 @@ function parseDateSpec(inner: string): DateSpec {
 }
 
 function extractDate(value: string): string {
-	const clean = value.replace(/\[\[|\]\]/g, '').trim();
+	let raw = value.trim();
+	// T2: Logseq set-literal `#{...}`. Unwrap the first quoted token (if any)
+	// and try to parse it as a date; otherwise treat the value as absent.
+	const setLiteral = raw.match(/^#\{(.*)\}$/);
+	if (setLiteral) {
+		const quoted = setLiteral[1].match(/"([^"]*)"/);
+		raw = quoted ? quoted[1] : '';
+	}
+	const clean = raw.replace(/\[\[|\]\]/g, '').trim();
 	// Guard: template tokens ({{...}}) are not real dates.
 	if (/\{\{/.test(clean)) return '';
 	// Try ISO first, then Logseq long-date.

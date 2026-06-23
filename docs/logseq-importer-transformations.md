@@ -151,8 +151,15 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `dropPageProperties` | string[] | `['public', 'exclude-from-graph-view']` | Page-level property keys excluded from frontmatter. |
+| `dropPageProperties` | string[] | `['public', 'exclude-from-graph-view', 'icon']` | Page-level property keys excluded from frontmatter. `icon` is dropped by default because it carries a Logseq private-use glyph that renders as a tofu box (□) in Obsidian. |
 | `dropBlockProperties` | string[] | `[]` | **Additional** inline block-property keys to strip (beyond the always-dropped set). |
+| `blockProperties` | `keep` \| `wrap` \| `drop` | `wrap` | How retained (unknown) inline block properties are emitted. `keep` leaves the raw `key:: value` line; `wrap` rewrites it to a Dataview inline field `[key:: value]` (label hidden in reading view, value stays queryable); `drop` removes the line. The always-dropped set and `dropBlockProperties` keys win in every mode. |
+
+### Cleanup
+
+| Option | Type | Default | Effect |
+|---|---|---|---|
+| `normalizeWhitespace` | boolean | `true` | Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. |
 
 ---
 
@@ -197,8 +204,13 @@ Preserve is the default.
 Logseq tasks are bullets whose text starts with a workflow keyword. Recognized keywords:
 `TODO, DOING, DONE, LATER, NOW, WAITING, WAIT, IN-PROGRESS, CANCELLED, CANCELED`.
 
+A colon may follow the keyword (`- TODO: do the thing`); it is recognized as a task and the colon is
+dropped from the emitted text.
+
 The task line plus its indented continuation lines (`SCHEDULED:`, `DEADLINE:`, `:LOGBOOK:`, and
-`created/completed/done/cancelled` properties) are parsed as one unit and re-emitted.
+`created/completed/done/cancelled` properties) are parsed as one unit and re-emitted. A Logseq
+set-literal date value (`completed:: #{"Mar 3rd, 2025"}`) is unwrapped to its quoted date; a
+malformed set literal emits no completion date.
 
 ### Checkbox state mapping
 
@@ -355,7 +367,14 @@ The leading block of unindented `key:: value` lines becomes YAML frontmatter
   handled; values in `dropTags` removed; if all are removed, no `tags:` key is emitted).
 - `title` → registered as an additional alias (so the page is findable by title in Obsidian);
   removed from YAML as a standalone key. Also kept in `raw` for the filename / reporting.
-- Keys listed in `dropPageProperties` → dropped. Default: `public`, `exclude-from-graph-view`.
+- Keys listed in `dropPageProperties` → dropped. Default: `public`, `exclude-from-graph-view`,
+  `icon`. (`icon` carries a Logseq private-use glyph that renders as □ in Obsidian.)
+- **Tag-style values → links (pass-2):** a scalar value that is a single tag (`status:: #IN-PROGRESS`,
+  `area:: #[[Page One]]`) is emitted as quoted text (`status: "#IN-PROGRESS"`) by default. When tag
+  conversion is enabled (`convertTagsToLinks`), the value is linkified to a wikilink
+  (`status: "[[IN-PROGRESS]]"`) using the vault-wide page set, respecting
+  `convertTagsOnlyExistingPages`. With tag conversion off (the default) these values stay quoted text,
+  so default output is unchanged. `tags:` / `aliases:` lists are never affected.
 - **YAML quoting:** values that are YAML-unsafe (contain `: `, `#`, start with `[`, `{`, are
   boolean words, integers, floats, or reserved YAML tokens) are double-quoted. Wikilink-valued
   scalars are also quoted (`project: "[[Big Project]]"`); multiple wikilink values become a quoted
@@ -381,8 +400,20 @@ Both standard indented form (`  key:: value`) and bullet form (`- key:: value`) 
 `query-table`, `query-properties`, `query-sort-by`, `query-sort-desc`, `query-flag`, plus **any key
 starting with `logseq.`**, **`query-`**, **`hl-`**, or **`ls-`** (highlight/annotation-related).
 
-**Additionally dropped:** any key the user lists in `dropBlockProperties` (default empty). Unknown
-user block properties (e.g. `rating:: 5`) are **kept** by default.
+**Additionally dropped:** any key the user lists in `dropBlockProperties` (default empty).
+
+**Retained (unknown) block properties** (e.g. `rating:: 5`, `participants:: [[Alice]], [[Bob]]`) are
+handled by the `blockProperties` option:
+
+- `keep` — the raw `key:: value` line is left as-is.
+- `wrap` (default) — rewritten to a Dataview inline field `[key:: value]`, preserving leading
+  indentation and any trailing `^anchor` (which stays outside the brackets). The label is hidden in
+  reading view while the value stays queryable. Values containing a stray `]`/`[` (outside a
+  `[[wikilink]]`) fall back to `keep` so the inline-field syntax isn't broken; property-like lines
+  inside fenced code blocks are never touched.
+- `drop` — the line is removed entirely.
+
+The always-dropped set and `dropBlockProperties` keys win in every mode.
 
 ### Special property conversions
 
@@ -447,6 +478,10 @@ Each Logseq-only feature has an independent keep/drop choice. "Keep" preserves t
 | Time tracking | `:LOGBOOK:` / `CLOCK:` on tasks | `logbook` | `drop` | lines kept on the task | lines removed cleanly |
 
 Whiteboards (`whiteboards/*.edn`) are always skipped and reported (not migratable).
+
+**Template-field macros are out of scope.** Dynamic template placeholders such as `{{date:…}}`,
+`{{sunday:…}}`, `{{monday:…}}` and similar are left as literal text; converting them to Obsidian
+Templater/QuickAdd syntax is not attempted. They typically appear only on `template::` pages.
 
 ---
 

@@ -6,7 +6,10 @@
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.\-]+):: ?(.*)$/;
 // Also matches bullet-form block properties: `- key:: value`
-const BLOCK_PROPERTY_LINE = /^(\s*)(?:- )?([A-Za-z0-9_.\-]+):: ?(.*)$/;
+// Groups: 1=indent, 2=bullet (`- ` or undefined), 3=key, 4=value.
+const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.\-]+):: ?(.*)$/;
+// A trailing Logseq block anchor on a property value, e.g. ` ^68dc12`.
+const BLOCK_ANCHOR = /\s+(\^[A-Za-z0-9_-]+)\s*$/;
 
 // Block properties that are always dropped regardless of user config.
 // These are purely Logseq-internal and have no meaning in Obsidian.
@@ -227,19 +230,115 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	return { yaml, body: bodyLines.join('\n'), raw };
 }
 
-export function removeLeftoverBlockProperties(content: string, dropBlockProperties: string[] = []): string {
+/** How retained (unknown) inline block properties are emitted. */
+export type BlockPropertyMode = 'keep' | 'wrap' | 'drop';
+
+function isAlwaysDroppedBlockProp(key: string, userDrop: Set<string>): boolean {
+	if (ALWAYS_DROP_HL_PROPS(key)) return true;
+	if (key.startsWith('logseq.')) return true;
+	if (key.startsWith('query-')) return true;
+	return ALWAYS_DROP_BLOCK_PROPS.has(key) || userDrop.has(key);
+}
+
+/**
+ * Rewrite a retained `key:: value` line into a Dataview inline field
+ * `[key:: value]`, preserving indentation, any bullet prefix, and a trailing
+ * `^anchor`. Falls back to the original line when the value is empty or would
+ * break the inline-field bracket syntax (contains a stray `]`/`[` outside of a
+ * `[[wikilink]]`).
+ */
+function wrapBlockProperty(line: string, m: RegExpMatchArray): string {
+	const indent = m[1];
+	const bullet = m[2] ?? '';
+	const key = m[3];
+	let value = m[4];
+	let anchor = '';
+	const am = value.match(BLOCK_ANCHOR);
+	if (am) {
+		anchor = am[1];
+		value = value.slice(0, am.index);
+	}
+	const core = value.trim();
+	if (core === '') return line;
+	// Dataview inline fields can't contain a stray `]`/`[`; wikilinks are fine.
+	const withoutLinks = core.replace(/\[\[[^\]]*\]\]/g, '');
+	if (withoutLinks.includes(']') || withoutLinks.includes('[')) return line;
+	const wrapped = `${indent}${bullet}[${key}:: ${core}]`;
+	return anchor ? `${wrapped} ${anchor}` : wrapped;
+}
+
+export function removeLeftoverBlockProperties(
+	content: string,
+	dropBlockProperties: string[] = [],
+	mode: BlockPropertyMode = 'keep'
+): string {
 	const userDrop = new Set(dropBlockProperties);
-	return content
+	const out: string[] = [];
+	let inFence = false;
+	for (const line of content.split('\n')) {
+		if (/^\s*```/.test(line)) {
+			inFence = !inFence;
+			out.push(line);
+			continue;
+		}
+		if (inFence) {
+			out.push(line);
+			continue;
+		}
+		const m = line.match(BLOCK_PROPERTY_LINE);
+		if (!m) {
+			out.push(line);
+			continue;
+		}
+		const key = m[3];
+		// The always-drop set wins in every mode.
+		if (isAlwaysDroppedBlockProp(key, userDrop)) continue;
+		// Retained unknown key: apply the configured mode.
+		if (mode === 'drop') continue;
+		if (mode === 'wrap') {
+			out.push(wrapBlockProperty(line, m));
+			continue;
+		}
+		out.push(line); // keep
+	}
+	return out.join('\n');
+}
+
+export interface LinkifyTagValuesOptions {
+	/** Set of known page canonical names (lower-cased) for page-existence checks. */
+	knownPages: Set<string>;
+	/** Convert tag-style values to wikilinks. When false, the yaml is returned unchanged. */
+	toLinks: boolean;
+	/** Only linkify tags that resolve to an existing page. */
+	onlyExistingPages: boolean;
+}
+
+// A frontmatter scalar line whose value is a single, quoted Logseq tag token,
+// e.g. `status: "#IN-PROGRESS"` or `area: "#[[Page One]]"`.
+const TAG_VALUE_LINE = /^(\s*[A-Za-z0-9_.\-]+: )"(#(?:\[\[[^\]]+\]\]|[\w/-]+))"$/;
+
+/**
+ * Rewrite tag-style frontmatter scalar values (`key: "#tag"`) into wikilinks
+ * (`key: "[[tag]]"`) using the vault-wide page set. Must run in pass-2 where
+ * `knownPages` is available. Respects the user's tag-conversion options; when
+ * `toLinks` is off the yaml is returned unchanged (values stay quoted text).
+ * List values (`tags:` / `aliases:`) are untouched — they are multi-line and
+ * never match the single-scalar pattern.
+ */
+export function linkifyTagValuesInFrontmatter(yaml: string, opts: LinkifyTagValuesOptions): string {
+	if (!yaml || !opts.toLinks) return yaml;
+	const { knownPages, onlyExistingPages } = opts;
+	return yaml
 		.split('\n')
-		.filter(line => {
-			const m = line.match(BLOCK_PROPERTY_LINE);
-			if (!m) return true;
-			const key = m[2];
-			// M2: drop PDF-annotation props (hl-* / ls-* prefix).
-			if (ALWAYS_DROP_HL_PROPS(key)) return false;
-			if (key.startsWith('logseq.')) return false;
-			if (key.startsWith('query-')) return false;
-			return !ALWAYS_DROP_BLOCK_PROPS.has(key) && !userDrop.has(key);
+		.map(line => {
+			const m = line.match(TAG_VALUE_LINE);
+			if (!m) return line;
+			const prefix = m[1];
+			const token = m[2];
+			const multi = token.match(/^#\[\[([^\]]+)\]\]$/);
+			const name = multi ? multi[1] : token.slice(1);
+			if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return line;
+			return `${prefix}"[[${name}]]"`;
 		})
 		.join('\n');
 }

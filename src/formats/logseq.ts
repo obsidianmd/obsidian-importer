@@ -10,6 +10,7 @@ import { convertLocal, indexPageAliases, isBodyEmpty } from './logseq/pipeline';
 import { resolveBlockRefs, BlockRefTarget, removeOrphanBlockRefs } from './logseq/block-ids';
 import { rewriteAliasReferences, convertTags, disambiguateBasenameLinks, BasenameIndex } from './logseq/links';
 import { journalFilenameToISO, reformatDateLinks } from './logseq/journals';
+import { linkifyTagValuesInFrontmatter } from './logseq/properties';
 import { namespaceToPath } from './logseq/paths';
 import { deOutline } from './logseq/de-outline';
 
@@ -282,6 +283,27 @@ export class LogseqImporter extends FormatImporter {
 				.onChange(v => {
 					this.options.dropBlockProperties = v.split(',').map(s => s.trim()).filter(s => s.length > 0);
 				}));
+
+		new Setting(this.modal.contentEl)
+			.setName('Block properties')
+			.setDesc('How to handle retained inline block properties: keep the raw "key:: value" line, wrap it as a Dataview inline field "[key:: value]", or drop it.')
+			.addDropdown(d => d
+				.addOption('keep', 'Keep raw')
+				.addOption('wrap', 'Wrap as inline field')
+				.addOption('drop', 'Drop')
+				.setValue(this.options.blockProperties)
+				.onChange(v => this.options.blockProperties = v as 'keep' | 'wrap' | 'drop'));
+
+		// ── Cleanup ─────────────────────────────────────────────────────────────────
+
+		new Setting(this.modal.contentEl).setName('Cleanup').setHeading();
+
+		new Setting(this.modal.contentEl)
+			.setName('Normalize whitespace')
+			.setDesc('Trim trailing whitespace, remove empty bullets, and convert non-breaking spaces to regular spaces.')
+			.addToggle(t => t
+				.setValue(this.options.normalizeWhitespace)
+				.onChange(v => this.options.normalizeWhitespace = v));
 	}
 
 	private getDailyNotesConfig(): { format: string, folder: string } {
@@ -436,6 +458,13 @@ export class LogseqImporter extends FormatImporter {
 					dropTags,
 				});
 
+				// Linkify tag-style frontmatter values using the same knownPages set.
+				const yaml = linkifyTagValuesInFrontmatter(inter.yaml, {
+					knownPages,
+					toLinks: options.convertTagsToLinks,
+					onlyExistingPages: options.convertTagsOnlyExistingPages,
+				});
+
 				if (options.journalDateFormat !== ISO_FORMAT) {
 					body = this.reformatIsoDateLinks(body, options.journalDateFormat);
 				}
@@ -447,13 +476,13 @@ export class LogseqImporter extends FormatImporter {
 				}
 
 				// Skip pages with no meaningful content after all transforms.
-				if (isBodyEmpty(inter.yaml, body)) {
+				if (isBodyEmpty(yaml, body)) {
 					ctx.reportSkipped(inter.outputPath, 'Empty page skipped');
 					ctx.reportProgress(index, intermediates.length);
 					continue;
 				}
 
-				const final = inter.yaml ? `${inter.yaml}\n\n${body}\n` : `${body}\n`;
+				const final = yaml ? `${yaml}\n\n${body}\n` : `${body}\n`;
 				await this.writeNote(inter.outputPath, final);
 				ctx.reportNoteSuccess(inter.outputPath);
 				ctx.reportProgress(index, intermediates.length);
