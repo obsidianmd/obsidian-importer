@@ -1,10 +1,11 @@
-import { FrontMatterCache, Notice, Setting, TFolder } from 'obsidian';
+import { FrontMatterCache, Notice, Setting, TFile, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, ImportContext } from '../main';
 import { serializeFrontMatter } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
+import { getAvailableKeepMarkdownPath } from './keep/paths';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
 
 
@@ -201,12 +202,22 @@ export class KeepImporter extends FormatImporter {
 			}
 		}
 
-		const file = await this.saveAsMarkdownFile(folder, filename, mdContent.join(''));
+		const file = await this.saveKeepMarkdownFile(folder, filename, mdContent.join(''));
 
 		// Modifying the creation and modified timestamps without changing file contents.
 		await this.vault.append(file, '', {
 			ctime: keepJson.createdTimestampUsec / 1000,
 			mtime: keepJson.userEditedTimestampUsec / 1000,
 		});
+	}
+
+	async saveKeepMarkdownFile(folder: TFolder, filename: string, content: string): Promise<TFile> {
+		const filePath = getAvailableKeepMarkdownPath(
+			path => this.vault.getAbstractFileByPathInsensitive(path) !== null,
+			folder.path,
+			filename,
+		);
+
+		return await this.vault.create(filePath, content);
 	}
 }
