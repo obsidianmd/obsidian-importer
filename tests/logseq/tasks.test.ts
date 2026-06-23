@@ -25,6 +25,23 @@ test('does not touch non-task bullets or partial keywords', () => {
 	assert.equal(convertTasks('plain TODO line', 'tasks-emoji'), 'plain TODO line');
 });
 
+// --- T1: colon-style keyword tasks ---
+test('[T1] - TODO: text is recognized and the colon is dropped', () => {
+	assert.equal(convertTasks('- TODO: text', 'tasks-emoji'), '- [ ] text');
+});
+
+test('[T1] - DONE: text', () => {
+	assert.equal(convertTasks('- DONE: text', 'tasks-emoji'), '- [x] text');
+});
+
+test('[T1] - WAITING: text', () => {
+	assert.equal(convertTasks('- WAITING: text', 'tasks-emoji'), '- [ ] text');
+});
+
+test('[T1] partial keyword TODOX is still not a task', () => {
+	assert.equal(convertTasks('- TODOX foo', 'tasks-emoji'), '- TODOX foo');
+});
+
 // --- priority ---
 test('converts priority markers (emoji)', () => {
 	assert.equal(convertTasks('- TODO [#A] x', 'tasks-emoji'), '- [ ] x ⏫');
@@ -171,6 +188,17 @@ test('cancelled property with wikilink date (emoji)', () => {
 test('[Issue 1] completed date in Logseq long-date format normalizes to ISO (emoji)', () => {
 	const input = ['- DONE x', '  completed:: [[Feb 13th, 2025]]'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ✅ 2025-02-13');
+});
+
+// --- T2: Logseq set-literal completed:: #{…} ---
+test('[T2] completed:: #{"Mar 3rd, 2025"} becomes ✅ 2025-03-03', () => {
+	const input = ['- DONE x', '  completed:: #{"Mar 3rd, 2025"}'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ✅ 2025-03-03');
+});
+
+test('[T2] malformed completed:: #{"{"} emits no completion date and drops cleanly', () => {
+	const input = ['- DONE x', '  completed:: #{"{"}'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x');
 });
 
 // Issue 2: a LOGBOOK/CLOCK drawer on a NON-task bullet must still be dropped.
