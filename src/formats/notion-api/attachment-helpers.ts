@@ -10,6 +10,11 @@ import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
+interface DownloadedAttachment {
+	arrayBuffer: ArrayBuffer;
+	contentType?: string;
+}
+
 /**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
@@ -33,35 +38,48 @@ export async function downloadAttachment(
 		};
 	}
 
+	const isDataUrlAttachment = attachment.url.toLowerCase().startsWith('data:');
+
 	// Extract filename early for error reporting
 	// Priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
-	let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
+	let filename = attachment.name || (isDataUrlAttachment ? undefined : extractFilenameFromUrl(attachment.url)) || currentPageTitle || 'attachment';
 	filename = sanitizeFileName(filename);
 
 	try {
 		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
-		const response = await requestUrl({
-			url: attachment.url,
-			method: 'GET',
-			throw: false,
-		});
+		let downloadedAttachment: DownloadedAttachment;
 
-		if (response.status !== 200) {
-			console.error(`Failed to download attachment "${filename}": ${response.status}`);
-			ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
-			return {
-				path: attachment.url,
-				isLocal: false
+		if (isDataUrlAttachment) {
+			downloadedAttachment = decodeDataUrlAttachment(attachment.url);
+		}
+		else {
+			const response = await requestUrl({
+				url: attachment.url,
+				method: 'GET',
+				throw: false,
+			});
+
+			if (response.status !== 200) {
+				console.error(`Failed to download attachment "${filename}": ${response.status}`);
+				ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
+				return {
+					path: attachment.url,
+					isLocal: false
+				};
+			}
+
+			downloadedAttachment = {
+				arrayBuffer: response.arrayBuffer,
+				contentType: response.headers['content-type'] || response.headers['Content-Type'],
 			};
 		}
 
 		// Check if filename has an extension, if not, infer from Content-Type
 		const [basename, ext] = splitext(filename);
 		if (!ext) {
-			const contentType = response.headers['content-type'] || response.headers['Content-Type'];
-			if (contentType) {
-				const extension = extensionForMime(contentType);
+			if (downloadedAttachment.contentType) {
+				const extension = extensionForMime(downloadedAttachment.contentType);
 				if (extension) {
 					filename = `${basename}.${extension}`;
 				}
@@ -90,7 +108,8 @@ export async function downloadAttachment(
 			// Extract the basename from the target path to see if filename was changed
 			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
 			// Reconstruct the full filename with extension
-			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
+			const [, finalExt] = splitext(filename);
+			const targetFullName = targetBasename + (finalExt ? `.${finalExt}` : '');
 
 			console.log(`[ATTACHMENT] Target full filename: ${targetFullName}`);
 
@@ -105,7 +124,7 @@ export async function downloadAttachment(
 				const existingFile = vault.getAbstractFileByPath(originalFilePath);
 
 				if (existingFile && existingFile instanceof TFile) {
-					const downloadedSize = response.arrayBuffer.byteLength;
+					const downloadedSize = downloadedAttachment.arrayBuffer.byteLength;
 					console.log(`[ATTACHMENT] Downloaded size: ${downloadedSize} bytes, Existing size: ${existingFile.stat.size} bytes`);
 
 					// Compare file sizes
@@ -136,7 +155,7 @@ export async function downloadAttachment(
 		const options: DataWriteOptions = {};
 		if (attachment.created_time) options.ctime = new Date(attachment.created_time).getTime();
 		if (attachment.last_edited_time) options.mtime = new Date(attachment.last_edited_time).getTime();
-		await vault.createBinary(targetFilePath, response.arrayBuffer, options);
+		await vault.createBinary(targetFilePath, downloadedAttachment.arrayBuffer, options);
 
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
@@ -156,6 +175,57 @@ export async function downloadAttachment(
 			isLocal: false
 		};
 	}
+}
+
+/**
+ * Decode a data URL attachment without routing it through requestUrl, which only
+ * accepts HTTP(S) URLs.
+ */
+function decodeDataUrlAttachment(url: string): DownloadedAttachment {
+	const match = /^data:([^,]*),([\s\S]*)$/i.exec(url);
+	if (!match) {
+		throw new Error('Invalid data URL');
+	}
+
+	const metadata = match[1];
+	const data = match[2];
+	const metadataParts = metadata.split(';').map((part) => part.trim()).filter(Boolean);
+	const contentType = metadataParts[0]?.includes('/') ? metadataParts[0] : undefined;
+	const isBase64 = metadataParts.some((part) => part.toLowerCase() === 'base64');
+	const dataBytes = decodePercentEncodedBytes(data);
+	const bytes = isBase64
+		? Buffer.from(Buffer.from(dataBytes).toString('ascii').replace(/\s/g, ''), 'base64')
+		: dataBytes;
+
+	return {
+		arrayBuffer: uint8ArrayToArrayBuffer(bytes),
+		contentType,
+	};
+}
+
+function decodePercentEncodedBytes(data: string): Uint8Array {
+	const bytes: number[] = [];
+
+	for (let i = 0; i < data.length; i++) {
+		if (data[i] === '%' && i + 2 < data.length) {
+			const byte = Number.parseInt(data.substring(i + 1, i + 3), 16);
+			if (!Number.isNaN(byte)) {
+				bytes.push(byte);
+				i += 2;
+				continue;
+			}
+		}
+
+		bytes.push(data.charCodeAt(i));
+	}
+
+	return new Uint8Array(bytes);
+}
+
+function uint8ArrayToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	const copy = new Uint8Array(bytes.byteLength);
+	copy.set(bytes);
+	return copy.buffer;
 }
 
 /**
@@ -407,4 +477,3 @@ export async function downloadAndFormatAttachment(
 		return `${linkPrefix}[${linkText}](${attachment.url})`;
 	}
 }
-
