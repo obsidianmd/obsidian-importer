@@ -2,6 +2,7 @@ import { NoteData } from './models/NoteData';
 import { YarleOptions } from './options';
 
 import { getTurndownService } from './utils/turndown-service';
+import { restoreIntraWordEscapedUnderscores } from './utils/markdown-escaping';
 
 const unwrapElement = (node: Element) => {
 	node.replaceWith(...Array.from(node.children));
@@ -93,6 +94,7 @@ export const convertHtml2Md = (yarleOptions: YarleOptions, { htmlContent }: Note
 
 	const newLinePlaceholder = new RegExp('<YARLE_NEWLINE_PLACEHOLDER>', 'g');
 	contentInMd = contentInMd.replace(newLinePlaceholder, '');
+	contentInMd = restoreIntraWordEscapedUnderscores(contentInMd);
 
 	return contentInMd && contentInMd !== 'undefined' ? { content: contentInMd } : { content: '' };
 };
