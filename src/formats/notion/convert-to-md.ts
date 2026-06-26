@@ -18,6 +18,7 @@ import {
 	stripNotionId,
 	stripParentDirectories,
 } from './notion-utils';
+import { preserveBareUrlLinks } from './markdown-links';
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	const text = await file.readText();
@@ -88,6 +89,7 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 
 	markdownBody = escapeHashtags(markdownBody);
 	markdownBody = fixDoubleBackslash(markdownBody);
+	markdownBody = preserveBareUrlLinks(markdownBody);
 
 	const description = dom.find('p[class*=page-description]')?.textContent;
 	if (description) markdownBody = description + '\n\n' + markdownBody;
