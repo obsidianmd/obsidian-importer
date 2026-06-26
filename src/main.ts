@@ -239,6 +239,8 @@ const DEFAULT_DATA: ImporterData = {
 	},
 };
 
+const ACTIVE_IMPORT_BACKDROP_EVENTS = ['pointerdown', 'mousedown', 'click'] as const;
+
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
@@ -404,12 +406,26 @@ export class ImporterModal extends Modal {
 		this.modalEl.addClass('mod-importer');
 		this.abortController = new AbortController();
 
+		for (let eventName of ACTIVE_IMPORT_BACKDROP_EVENTS) {
+			this.containerEl.ownerDocument.addEventListener(eventName, this.onActiveImportBackdropEvent, { capture: true });
+		}
+
 		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
 			this.selectedId = keys[0];
 			this.updateContent();
 		}
 	}
+
+	onActiveImportBackdropEvent = (event: Event) => {
+		if (!this.current) return;
+
+		let eventPath = event.composedPath();
+		if (!eventPath.includes(this.containerEl) || eventPath.includes(this.modalEl)) return;
+
+		event.preventDefault();
+		event.stopImmediatePropagation();
+	};
 
 	updateContent() {
 		const { contentEl, selectedId } = this;
@@ -516,6 +532,10 @@ export class ImporterModal extends Modal {
 		const { contentEl, current } = this;
 		contentEl.empty();
 		this.abortController.abort('import was canceled by user');
+
+		for (let eventName of ACTIVE_IMPORT_BACKDROP_EVENTS) {
+			this.containerEl.ownerDocument.removeEventListener(eventName, this.onActiveImportBackdropEvent, { capture: true });
+		}
 
 		if (current) {
 			current.cancel();
