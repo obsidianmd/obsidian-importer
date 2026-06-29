@@ -53,7 +53,7 @@ function parseOutline(content: string): OutlineNode[] {
 				// Inside code block: keep consuming until closing fence at same level
 				rawLines.push(nextLine);
 				const stripped = nextLine.replace(/^\s*/, '');
-				// F1: closing fence may have a trailing ^anchor
+				// C1: closing fence may have a trailing ^anchor
 				if (stripped.match(/^```\s*(\^\S+)?\s*$/)) {
 					inCodeBlock = false;
 				}
@@ -82,7 +82,7 @@ function parseOutline(content: string): OutlineNode[] {
 
 		// Build content: first line content + any continuation lines (stripped of indent)
 		let fullContent = firstLineContent;
-		// F2: compute the actual whitespace prefix to strip from continuations.
+		// C1: compute the actual whitespace prefix to strip from continuations.
 		// In Logseq, continuations are indented with the bullet's indent + "  " (or a tab).
 		// We detect the indent from the first continuation line if available.
 		let continuationPrefix = '';
@@ -156,7 +156,7 @@ function isGenuineList(nodes: OutlineNode[]): boolean {
 /** Check recursively whether a node can participate in a list rendering. */
 function isListCompatible(node: OutlineNode): boolean {
 	// Headings must not participate in list rendering — they should always be
-	// promoted to real headings via serializeBodyUnderHeading (H-E4).
+	// promoted to real headings via serializeBodyUnderHeading (C1).
 	if (isHeading(node.content)) return false;
 	// Tasks are always list items
 	if (isTask(node.content)) return true;
@@ -164,7 +164,7 @@ function isListCompatible(node: OutlineNode): boolean {
 	if (node.children.length === 0) return true;
 	// If it has children that form a genuine list, it's a list parent
 	if (node.children.length >= 2 && isGenuineList(node.children)) return true;
-	// F3: a single child that is itself list-compatible (recursively) is OK
+	// C1: a single child that is itself list-compatible (recursively) is OK
 	if (node.children.length === 1 && isListCompatible(node.children[0])) return true;
 	return false;
 }
@@ -172,7 +172,7 @@ function isListCompatible(node: OutlineNode): boolean {
 /**
  * Check if a node represents a single-child chain that should collapse:
  * one parent with one child (not a list, not a heading, just prose).
- * F5: don't collapse if the single child has children that are NOT themselves
+ * C1: don't collapse if the single child has children that are NOT themselves
  * a simple collapse chain (i.e. the subtree has branching or tasks).
  */
 function shouldCollapseChain(node: OutlineNode): boolean {
@@ -222,7 +222,7 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			// F6: if the heading has multiline content (continuation body), split and
+			// C1: if the heading has multiline content (continuation body), split and
 			// insert a blank line between heading and body — but NOT before a lone
 			// ^anchor, which must stay adjacent to the heading for Obsidian block refs.
 			const headingLines = content.split('\n');
@@ -338,7 +338,7 @@ function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			// F6: split multiline heading content
+			// C1: split multiline heading content
 			const headingLines = content.split('\n');
 			output.push(headingLines[0]);
 			if (headingLines.length > 1) {

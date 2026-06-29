@@ -10,13 +10,13 @@ export interface AssetRef {
 }
 
 // `[alt](path)` or `![alt](path)` optionally followed by `{: ... }`.
-// H1: path allows balanced parens (e.g. filename with `(...)`).
-// H2: leading `!` is optional so plain links are also converted.
-// H2b: label allows one level of nested brackets (e.g. `[Fw_ [Nested] _ desc]`).
+// K1: path allows balanced parens (e.g. filename with `(...)`).
+// K1: leading `!` is optional so plain links are also converted.
+// K1: label allows one level of nested brackets (e.g. `[Fw_ [Nested] _ desc]`).
 const assetLinkRegex = /(!?)\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
 // Triple-backtick fenced code blocks, which must be left untouched.
 const fencedCodeRegex = /```[\s\S]*?```/g;
-// Inline-code spans that must not be rewritten (M1).
+// Inline-code spans that must not be rewritten.
 const inlineCodeRe = /`[^`]*`/g;
 
 function isUrl(path: string): boolean {
@@ -47,7 +47,7 @@ export function convertAssetLinks(
 	const seen = new Set<string>();
 
 	function transformSegment(segment: string): string {
-		// M1: protect inline-code spans — only rewrite content outside them.
+		// K1: protect inline-code spans — only rewrite content outside them.
 		let result = '';
 		let last = 0;
 		let icm: RegExpExecArray | null;

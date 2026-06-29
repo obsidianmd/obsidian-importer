@@ -72,7 +72,7 @@ export function indexPageAliases(
 	aliasMap: Map<string, string>,
 	ambiguous: Set<string>
 ): void {
-	// Collect all alias values: alias/aliases properties plus the title:: value (M3).
+	// Collect all alias values: alias/aliases properties plus the title:: value (G1).
 	const aliasValues: string[] = [];
 	if (raw.alias ?? raw.aliases) aliasValues.push(raw.alias ?? raw.aliases);
 	if (raw.title) aliasValues.push(raw.title);
@@ -95,3 +95,4 @@ export function indexPageAliases(
 export function isBodyEmpty(yaml: string, body: string): boolean {
 	return !yaml && !body.trim();
 }
+
