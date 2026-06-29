@@ -39,7 +39,7 @@ function parseDateSpec(inner: string): DateSpec {
 
 function extractDate(value: string): string {
 	let raw = value.trim();
-	// T2: Logseq set-literal `#{...}`. Unwrap the first quoted token (if any)
+	// D1: Logseq set-literal `#{...}`. Unwrap the first quoted token (if any)
 	// and try to parse it as a date; otherwise treat the value as absent.
 	const setLiteral = raw.match(/^#\{(.*)\}$/);
 	if (setLiteral) {
@@ -76,7 +76,7 @@ function leadingWidth(line: string): number {
 export function convertTasks(content: string, format: TaskFormat, options: TaskOptions = {}): string {
 	const logbook = options.logbook ?? 'drop';
 
-	// Issue 2: drop LOGBOOK drawers on ANY bullet (not just tasks) when logbook='drop'.
+	// D1: drop LOGBOOK drawers on ANY bullet (not just tasks) when logbook='drop'.
 	// Use a line-level filter so no trailing newlines are left behind.
 	let processed = content;
 	if (logbook === 'drop') {
@@ -107,7 +107,7 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 		let rest = m[3] ?? '';
 
 		// Collect indented continuation lines that belong to this block.
-		// Issue 3: blank/whitespace-only lines between metadata props are consumed
+		// D1: blank/whitespace-only lines between metadata props are consumed
 		// (they're Logseq outline separators) — only a non-blank line that is a
 		// sibling/parent bullet actually ends the continuation block.
 		const continuation: string[] = [];

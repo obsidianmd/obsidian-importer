@@ -128,26 +128,26 @@ test('returns content unchanged when there are no asset links', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 06) — RED tests for accepted fixes.
+// Documented transformation cases — K1.
 // ---------------------------------------------------------------------------
 
-// H1: an asset filename containing parentheses must not be truncated at the first ')'.
-test('[H1] asset filename containing parentheses is not truncated', () => {
+// K1: an asset filename containing parentheses must not be truncated at the first ')'.
+test('[K1] asset filename containing parentheses is not truncated', () => {
 	const { content, assets } = convertAssetLinks('![b](../assets/Book_(2024)_v0.pdf)', { keepAltText: false });
 	assert.equal(content, '![[Book_(2024)_v0.pdf]]');
 	assert.deepEqual(assets, [{ sourcePath: '../assets/Book_(2024)_v0.pdf', filename: 'Book_(2024)_v0.pdf' }]);
 });
 
-// H2: a plain (non-embed) link to an asset must be converted to a wiki-link and collected.
-test('[H2] plain (non-embed) asset link is converted to a wiki-link and collected', () => {
+// K1: a plain (non-embed) link to an asset must be converted to a wiki-link and collected.
+test('[K1] plain (non-embed) asset link is converted to a wiki-link and collected', () => {
 	const { content, assets } = convertAssetLinks('[doc](../assets/report.pdf)', { keepAltText: false });
 	assert.equal(content, '[[report.pdf]]');
 	assert.deepEqual(assets, [{ sourcePath: '../assets/report.pdf', filename: 'report.pdf' }]);
 });
 
-// H2b: asset link whose label contains brackets (e.g. [Fw_ [Nested] _ desc]) must be
+// K1: asset link whose label contains brackets (e.g. [Fw_ [Nested] _ desc]) must be
 // fully converted — the label regex must allow one level of nested brackets.
-test('[H2b] asset link with bracket in label is fully converted', () => {
+test('[K1] asset link with bracket in label is fully converted', () => {
 	const { content, assets } = convertAssetLinks(
 		'[Fw_ [Nested] _ prep.eml](../assets/Fw_Nested_prep_0.eml)',
 		{ keepAltText: false }
@@ -156,8 +156,8 @@ test('[H2b] asset link with bracket in label is fully converted', () => {
 	assert.deepEqual(assets, [{ sourcePath: '../assets/Fw_Nested_prep_0.eml', filename: 'Fw_Nested_prep_0.eml' }]);
 });
 
-// M1: an asset embed inside an inline-code span must be left verbatim.
-test('[M1] asset link inside inline code is not rewritten', () => {
+// K1: an asset embed inside an inline-code span must be left verbatim.
+test('[K1] asset link inside inline code is not rewritten', () => {
 	const input = 'before `![x](../assets/a.png)` after';
 	const { content, assets } = convertAssetLinks(input, { keepAltText: false });
 	assert.equal(content, input);

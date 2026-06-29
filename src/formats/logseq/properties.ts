@@ -47,7 +47,7 @@ function stripWikiBrackets(value: string): string {
 
 /**
  * Split a comma-separated property value into items, ignoring commas that
- * appear inside `[[wikilinks]]`.  H3 fix: a single `[[Jul 18th, 2025]]`
+ * appear inside `[[wikilinks]]`.  I1: a single `[[Jul 18th, 2025]]`
  * must remain one item, not split into `["[[Jul 18th"`, `"2025]]"]`.
  */
 function splitList(value: string): string[] {
@@ -133,7 +133,7 @@ function tagsFromItem(item: string): string[] {
 }
 
 function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>): string[] {
-	// L2: drop empty-valued properties.
+	// I1: drop empty-valued properties.
 	if (value.trim() === '') return [];
 
 	if (key === 'alias' || key === 'aliases') {
@@ -147,7 +147,7 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 	}
 	if (dropPageProps.has(key)) return [];
 
-	// L1: created/updated wikilink dates → plain ISO.
+	// I1: created/updated wikilink dates → plain ISO.
 	if ((key === 'created' || key === 'updated') && value.includes('[[')) {
 		const iso = extractIsoDate(value);
 		if (iso !== null) return [`${key}: ${iso}`];
@@ -162,7 +162,7 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 	if (hasWiki) {
 		return [`${key}: ${quote(value)}`];
 	}
-	// H1-H4: apply general YAML-safe quoting to all non-wikilink scalars.
+	// I1: apply general YAML-safe quoting to all non-wikilink scalars.
 	if (needsQuoting(value)) {
 		return [`${key}: ${quote(value)}`];
 	}
@@ -180,7 +180,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
 	const bodyLines: string[] = [];
-	// L4: use a Map to deduplicate keys (last value wins).
+	// I1: use a Map to deduplicate keys (last value wins).
 	const propMap = new Map<string, string[]>();
 	const propOrder: string[] = [];
 	const aliases: string[] = [];
@@ -201,7 +201,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		}
 	}
 
-	// M3: treat title:: as an additional alias (→ Obsidian aliases field).
+	// I1: treat title:: as an additional alias (→ Obsidian aliases field).
 	if (raw.title) {
 		const titleAlias = raw.title.replace(/^\[\[(.*)\]\]$/, '$1').trim();
 		if (titleAlias) aliases.push(titleAlias);

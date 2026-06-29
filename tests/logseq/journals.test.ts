@@ -70,16 +70,14 @@ test('journalFilenameToISO rejects month > 12', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 02 / BR-5) — RED test for accepted fix.
-// reformatDateLinks must rewrite the date but preserve a trailing #^anchor (or
-// #heading) so journal block references stay valid under a non-ISO date format.
+// Documented transformation cases — E1.
 // ---------------------------------------------------------------------------
-test('[BR-5] reformatDateLinks rewrites the date but preserves a block anchor', () => {
+test('[E1] reformatDateLinks rewrites the date but preserves a block anchor', () => {
 	const fmt = (iso: string) => (iso === '2025-02-20' ? 'Feb 20th, 2025' : null);
 	assert.equal(reformatDateLinks('[[2025-02-20#^67bca6]]', fmt), '[[Feb 20th, 2025#^67bca6]]');
 });
 
-test('[BR-5] reformatDateLinks still rewrites a plain date link', () => {
+test('[E1] reformatDateLinks still rewrites a plain date link', () => {
 	const fmt = (iso: string) => (iso === '2025-02-20' ? 'Feb 20th, 2025' : null);
 	assert.equal(reformatDateLinks('[[2025-02-20]]', fmt), '[[Feb 20th, 2025]]');
 });

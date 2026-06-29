@@ -77,53 +77,51 @@ test('removeOrphanBlockRefs leaves page embeds untouched', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 02) — RED tests for accepted fixes.
-// (BR-5 reformatIsoDateLinks is a internal orchestrator method, BR-8 always-embed
-//  needs a new option, BR-6/BR-7 are covered by existing tests / e2e — those are
-//  written in the fix phase, not here.)
+// Documented transformation cases — G1.
+// Date-link reformatting is covered in journals.test.ts against E1.
 // ---------------------------------------------------------------------------
 
-// BR-1: refs/embeds inside code fences ARE resolved when the UUID is known.
+// G1: refs/embeds inside code fences ARE resolved when the UUID is known.
 // Logseq embed syntax is unambiguous; converted form is more useful in Obsidian
 // (e.g. code blocks used as copy-pasteable examples should show the resolved link).
 // Inline-code spans are still protected.
-test('[BR-1] resolveBlockRefs resolves refs inside a fenced code block when UUID is known', () => {
+test('[G1] resolveBlockRefs resolves refs inside a fenced code block when UUID is known', () => {
 	const index = new Map<string, BlockRefTarget>([['abc123', { page: 'P', shortId: 'abc123' }]]);
 	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');
 	const expected = ['```', '![[P#^abc123]] and [[P#^abc123]]', '```'].join('\n');
 	assert.equal(resolveBlockRefs(input, index), expected);
 });
 
-test('[BR-1] resolveBlockRefs leaves unresolved refs inside a fenced code block inert', () => {
+test('[G1] resolveBlockRefs leaves unresolved refs inside a fenced code block inert', () => {
 	const index = new Map<string, BlockRefTarget>(); // empty index
 	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');
 	assert.equal(resolveBlockRefs(input, index), input);
 });
 
-test('[BR-1] resolveBlockRefs leaves refs inside an inline code span inert', () => {
+test('[G1] resolveBlockRefs leaves refs inside an inline code span inert', () => {
 	const index = new Map<string, BlockRefTarget>([['u1', { page: 'P', shortId: 'abc' }]]);
 	assert.equal(resolveBlockRefs('`((u1))`', index), '`((u1))`');
 });
 
-// BR-2: a block whose last line is a closing ``` fence must get its anchor on a
+// G1: a block whose last line is a closing ``` fence must get its anchor on a
 // new line, not appended to the fence (which makes an invalid CommonMark close).
-test('[BR-2] attachBlockIds places the anchor after a code block, not on the fence', () => {
+test('[G1] attachBlockIds places the anchor after a code block, not on the fence', () => {
 	const input = ['- ```', '  code', '  ```', '  id:: abc123'].join('\n');
 	const { content } = attachBlockIds(input, true);
 	assert.equal(content, ['- ```', '  code', '  ```', '  ^abc123'].join('\n'));
 });
 
-// BR-3: a heading block must get its anchor on its own line below the heading,
+// G1: a heading block must get its anchor on its own line below the heading,
 // not appended to the heading text (where Obsidian renders it as literal text
 // and prevents referencing the heading by content alone).
-test('[BR-3] attachBlockIds places the anchor on its own line for a plain heading block', () => {
+test('[G1] attachBlockIds places the anchor on its own line for a plain heading block', () => {
 	// No blank line between heading and anchor — anchor must stay adjacent.
 	const input = ['# Tasks', '  id:: abc123'].join('\n');
 	const { content } = attachBlockIds(input, true);
 	assert.equal(content, ['# Tasks', '^abc123'].join('\n'));
 });
 
-test('[BR-3] attachBlockIds places an indented anchor below a bullet-heading block', () => {
+test('[G1] attachBlockIds places an indented anchor below a bullet-heading block', () => {
 	// In Logseq, headings are always bullet items. The anchor must be indented
 	// at content level (same indent as the id:: line) so it stays part of the block.
 	const input = ['- ## Section', '  id:: abc123'].join('\n');
@@ -131,17 +129,17 @@ test('[BR-3] attachBlockIds places an indented anchor below a bullet-heading blo
 	assert.equal(content, ['- ## Section', '  ^abc123'].join('\n'));
 });
 
-// BR-4: anchor must land on the block's true last line, after retained block
+// G1: anchor must land on the block's true last line, after retained block
 // properties (currently it lands on the content line above them).
-test('[BR-4] attachBlockIds anchors after a retained block property line', () => {
+test('[G1] attachBlockIds anchors after a retained block property line', () => {
 	const input = ['- text', '  kept:: v', '  id:: abc123'].join('\n');
 	const { content } = attachBlockIds(input, true);
 	assert.equal(content, ['- text', '  kept:: v ^abc123'].join('\n'));
 });
 
-// BR-8: alwaysEmbedBlockRefs option — bare ((uuid)) refs become ![[Page#^id]]
+// G1: alwaysEmbedBlockRefs option — bare ((uuid)) refs become ![[Page#^id]]
 // (embed) instead of [[Page#^id]] (link).
-test('[BR-8] resolveBlockRefs converts bare refs to embeds when alwaysEmbedBlockRefs is on', () => {
+test('[G1] resolveBlockRefs converts bare refs to embeds when alwaysEmbedBlockRefs is on', () => {
 	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
 	assert.equal(
 		resolveBlockRefs(`see ((${UUID}))`, index, { alwaysEmbedBlockRefs: true }),
@@ -149,7 +147,7 @@ test('[BR-8] resolveBlockRefs converts bare refs to embeds when alwaysEmbedBlock
 	);
 });
 
-test('[BR-8] resolveBlockRefs keeps embed syntax unchanged when alwaysEmbedBlockRefs is on', () => {
+test('[G1] resolveBlockRefs keeps embed syntax unchanged when alwaysEmbedBlockRefs is on', () => {
 	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
 	// {{embed ((uuid))}} already produces ![[...]], option has no extra effect
 	assert.equal(
@@ -158,7 +156,7 @@ test('[BR-8] resolveBlockRefs keeps embed syntax unchanged when alwaysEmbedBlock
 	);
 });
 
-test('[BR-8] resolveBlockRefs default behaviour unchanged (link not embed)', () => {
+test('[G1] resolveBlockRefs default behaviour unchanged (link not embed)', () => {
 	const index = new Map<string, BlockRefTarget>([[UUID, { page: 'Foo', shortId: '64ab9a' }]]);
 	assert.equal(resolveBlockRefs(`see ((${UUID}))`, index), 'see [[Foo#^64ab9a]]');
 });

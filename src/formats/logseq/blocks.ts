@@ -5,7 +5,7 @@ const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
 /** Replace Logseq highlights `^^text^^` with Obsidian `==text==`, skipping code. */
 export function convertHighlights(content: string): string {
-	// Issue 5: also match bullet-opened fences `- ``` `
+	// J1: also match bullet-opened fences `- ``` `
 	const fenceRe = /^(?:\s*- )?\s*```/;
 	let inFence = false;
 	return content
@@ -101,7 +101,7 @@ function processOrgLines(lines: string[]): string[] {
 	while (i < lines.length) {
 		const line = lines[i];
 
-		// Issue 3: skip begin/end markers inside fenced code blocks.
+		// J1: skip begin/end markers inside fenced code blocks.
 		if (/^\s*```/.test(line) || /^\s*- ```/.test(line)) {
 			inFence = !inFence;
 			out.push(line);
@@ -124,7 +124,7 @@ function processOrgLines(lines: string[]): string[] {
 		const type = begin[2].toUpperCase();
 		const hasBullet = /^\s*- /.test(line);
 
-		// Issue 4: #+BEGIN_QUERY → fenced ```query block (lossless).
+		// J1: #+BEGIN_QUERY → fenced ```query block (lossless).
 		if (type === 'QUERY') {
 			let qend = -1;
 			for (let j = i + 1; j < lines.length; j++) {
@@ -181,7 +181,7 @@ function processOrgLines(lines: string[]): string[] {
 }
 
 function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet: boolean): string[] {
-	// Issue 1: when bullet-prefixed, content is indented `indent + '  '` under the bullet.
+	// J1: when bullet-prefixed, content is indented `indent + '  '` under the bullet.
 	const stripN = hasBullet ? indent.length + 2 : indent.length;
 	const stripped = inner.map(line => stripIndent(line, stripN));
 
@@ -191,7 +191,7 @@ function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet
 
 	if (type === 'QUOTE') {
 		if (hasBullet) {
-			// Issue 1: bullet-opened QUOTE — first line uses `- > `, rest use `  > `.
+			// J1: bullet-opened QUOTE — first line uses `- > `, rest use `  > `.
 			if (stripped.length === 0) return [`${indent}- >`];
 			return [
 				`${indent}- > ${stripped[0]}`,
@@ -213,7 +213,7 @@ function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet
 	}
 
 	if (hasBullet) {
-		// Issue 1: bullet-opened callout — keep the bullet, render callout as child content.
+		// J1: bullet-opened callout — keep the bullet, render callout as child content.
 		const header = title
 			? `${indent}- > [!${calloutType}] ${title}`
 			: `${indent}- > [!${calloutType}]`;
@@ -260,7 +260,7 @@ export function fixHeadingChildLists(content: string): string {
  * into Obsidian's markdown image/embed syntax `![](URL)`.
  */
 export function convertMediaEmbeds(content: string): string {
-	// Issue 5: also match bullet-opened fences `- ``` `
+	// J1: also match bullet-opened fences `- ``` `
 	const fenceRe = /^(?:\s*- )?\s*```/;
 	let inFence = false;
 	return content
@@ -279,7 +279,7 @@ export function convertMediaEmbeds(content: string): string {
 /** Align a list-nested fenced code block's closing fence with its opening fence. */
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
-	// Issue 2: capture prefix + bullet separately to compute content indent (tab-safe).
+	// J1: capture prefix + bullet separately to compute content indent (tab-safe).
 	const openRe = /^([ \t]*)([-*+]\s+)?```/;
 	const closeRe = /^[ \t]*```[ \t]*$/;
 	let inFence = false;
