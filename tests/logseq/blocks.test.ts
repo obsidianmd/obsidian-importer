@@ -334,65 +334,65 @@ test('convertOrgBlocks: multi-line QUOTE preserves blank lines as empty blockquo
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 01) — RED tests for accepted fixes.
+// Documented transformation cases — J1.
 // ---------------------------------------------------------------------------
 
-// Issue 1: bullet-prefixed `- #+BEGIN_*` blocks are currently left raw because
+// J1: bullet-prefixed `- #+BEGIN_*` blocks are currently left raw because
 // BEGIN_RE anchors `#+BEGIN` right after the indent. Decision: keep the bullet,
 // render the callout as the bullet's content (`- > [!tip]` / `  > body`).
-test('[Issue 1] convertOrgBlocks: tab-indented bullet TIP becomes a callout under the bullet', () => {
+test('[J1] convertOrgBlocks: tab-indented bullet TIP becomes a callout under the bullet', () => {
 	const input = ['\t- #+BEGIN_TIP', '\t  body', '\t  #+END_TIP'].join('\n');
 	const expected = ['\t- > [!tip]', '\t  > body'].join('\n');
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-test('[Issue 1] convertOrgBlocks: bullet TIP keeps a bold first line as the callout title', () => {
+test('[J1] convertOrgBlocks: bullet TIP keeps a bold first line as the callout title', () => {
 	const input = ['- #+BEGIN_TIP', '  **Role**', '  body', '  #+END_TIP'].join('\n');
 	const expected = ['- > [!tip] Role', '  > body'].join('\n');
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-test('[Issue 1] convertOrgBlocks: bullet QUOTE becomes a blockquote under the bullet', () => {
+test('[J1] convertOrgBlocks: bullet QUOTE becomes a blockquote under the bullet', () => {
 	const input = ['- #+BEGIN_QUOTE', '  quoted', '  #+END_QUOTE'].join('\n');
 	const expected = ['- > quoted'].join('\n');
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-// Issue 2: closing fence is re-emitted as spaces (tab counted as 1 char), losing
+// J1: closing fence is re-emitted as spaces (tab counted as 1 char), losing
 // the original tab indentation and breaking list nesting. Decision: preserve the
 // opener's exact indentation on the closing fence (leave an already-aligned block
 // untouched).
-test('[Issue 2] fixCodeBlocksInLists: preserves tab indentation on the closing fence', () => {
+test('[J1] fixCodeBlocksInLists: preserves tab indentation on the closing fence', () => {
 	const input = ['\t- ```js', '\t  x', '\t  ```'].join('\n');
 	assert.equal(fixCodeBlocksInLists(input), input);
 });
 
-// Issue 3: convertOrgBlocks has no fence-awareness and converts `#+BEGIN_*` that
+// J1: convertOrgBlocks has no fence-awareness and converts `#+BEGIN_*` that
 // appears literally inside a fenced code block. Decision: leave code content inert.
-test('[Issue 3] convertOrgBlocks: leaves org markup inside a code fence untouched', () => {
+test('[J1] convertOrgBlocks: leaves org markup inside a code fence untouched', () => {
 	const input = ['```', '#+BEGIN_QUERY', 'q', '#+END_QUERY', '```'].join('\n');
 	assert.equal(convertOrgBlocks(input), input);
 });
 
-// Issue 4: `#+BEGIN_QUERY` currently falls back to a `[!note]` callout, silently
+// J1: `#+BEGIN_QUERY` currently falls back to a `[!note]` callout, silently
 // relabelling the query DSL as prose. Decision: preserve verbatim in a ```query fence.
-test('[Issue 4] convertOrgBlocks: QUERY is preserved verbatim in a ```query fence', () => {
+test('[J1] convertOrgBlocks: QUERY is preserved verbatim in a ```query fence', () => {
 	const input = ['#+BEGIN_QUERY', '{:title "x"}', '#+END_QUERY'].join('\n');
 	const expected = ['```query', '{:title "x"}', '```'].join('\n');
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-// Issue 5: convertHighlights' fence detector (`/^\s*```/`) misses a bullet-opened
+// J1: convertHighlights' fence detector (`/^\s*```/`) misses a bullet-opened
 // fence, so highlights inside such a code block get converted. Decision: recognise
 // the bullet-opened form and leave code content inert.
-test('[Issue 5] convertHighlights: ignores a bullet-opened code fence', () => {
+test('[J1] convertHighlights: ignores a bullet-opened code fence', () => {
 	const input = ['- ```', '^^x^^', '```'].join('\n');
 	assert.equal(convertHighlights(input), input);
 });
 
-// Issue 7 (guard): a tab-indented numbered list must number independently and
+// J1 (guard): a tab-indented numbered list must number independently and
 // correctly (documents the expected contract; no live misconversion observed).
-test('[Issue 7] convertNumberedLists: tab-indented numbered list numbers correctly', () => {
+test('[J1] convertNumberedLists: tab-indented numbered list numbers correctly', () => {
 	const input = [
 		'\t- one',
 		'\t  logseq.order-list-type:: number',

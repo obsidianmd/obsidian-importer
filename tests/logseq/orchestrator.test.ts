@@ -82,10 +82,10 @@ test('isBodyEmpty: false when yaml is present (even with empty body)', () => {
 });
 
 test('isBodyEmpty: false when both yaml and body have content', () => {
-	assert.ok(!isBodyEmpty('---\ntags:\n  - area\n---', '- note content'));
+	assert.ok(!isBodyEmpty('---\ntags:\n  - work\n---', '- note content'));
 });
 
-test('[T7] empty page after pass-2 is skipped', () => {
+test('[A1] empty page after pass-2 is skipped', () => {
 	// A body that becomes empty after conversion (e.g. only whitespace remains)
 	// is reported as empty so the orchestrator can skip writing it.
 	assert.ok(isBodyEmpty('', '\n  \n'));

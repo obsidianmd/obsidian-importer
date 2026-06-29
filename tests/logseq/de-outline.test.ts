@@ -343,12 +343,12 @@ test('deOutline: wikilinks preserved', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 03) — RED tests for accepted fixes.
+// Documented transformation cases — C1.
 // ---------------------------------------------------------------------------
 
-// F1: a closing ``` fence carrying a trailing ^anchor must still terminate the
+// C1: a closing ``` fence carrying a trailing ^anchor must still terminate the
 // fence, so following sibling blocks are not swallowed/demoted.
-test('[F1] deOutline: closing fence with trailing ^anchor does not swallow following blocks', () => {
+test('[C1] deOutline: closing fence with trailing ^anchor does not swallow following blocks', () => {
 	const input = [
 		'- ## Person',
 		'\t- ```',
@@ -365,20 +365,20 @@ test('[F1] deOutline: closing fence with trailing ^anchor does not swallow follo
 	assert.ok(!lines.includes('# Team'), 'Team heading must not be demoted to a single #');
 });
 
-// F2 + F6: a heading bullet with continuation body must de-indent the body to
+// C1: a heading bullet with continuation body must de-indent the body to
 // column 0 (no stray leading space from a fixed-count slice) AND insert a blank
 // line between the heading and its body.
-test('[F2/F6] deOutline: tab-indented heading continuation de-indents cleanly with a blank line', () => {
+test('[C1] deOutline: tab-indented heading continuation de-indents cleanly with a blank line', () => {
 	const input = '- # Projects\n\t  > [!note]\n\t  > body';
 	const expected = '# Projects\n\n> [!note]\n> body';
 	assert.equal(deOutline(input), expected);
 });
 
-// F3: a genuine multi-child nested bullet list must stay a nested Markdown list
+// C1: a genuine multi-child nested bullet list must stay a nested Markdown list
 // (consistently for all siblings), not be flattened into ambiguous paragraphs.
 // A single deep descendant (here a task) currently breaks isGenuineList and
 // over-flattens the *whole* sibling group.
-test('[F3] deOutline: genuine nested list is preserved despite a deep descendant', () => {
+test('[C1] deOutline: genuine nested list is preserved despite a deep descendant', () => {
 	const input = [
 		'- overview:',
 		'\t- [[A]]: sensitive',
@@ -399,10 +399,10 @@ test('[F3] deOutline: genuine nested list is preserved despite a deep descendant
 	assert.equal(deOutline(input), expected);
 });
 
-// [H-E4] Fix: headings as siblings inside list context must be promoted to real
+// [C1] Fix: headings as siblings inside list context must be promoted to real
 // headings, not emitted as "- ### Heading". This updates the previously pinned
-// F4 contract — the old behavior was accepted as a workaround; now it's fixed.
-test('[H-E4] deOutline: heading siblings in body context are promoted to real headings', () => {
+// C1 contract — the old behavior was accepted as a workaround; now it's fixed.
+test('[C1] deOutline: heading siblings in body context are promoted to real headings', () => {
 	const input = [
 		'- parent prose',
 		'\t- ### Problem',
@@ -418,10 +418,10 @@ test('[H-E4] deOutline: heading siblings in body context are promoted to real he
 	assert.ok(out.includes('### Request'), 'Request promoted to real heading');
 });
 
-test('[H-E4] deOutline: standalone heading-only siblings become real headings', () => {
-	// Fixture pattern: meeting notes with named sections as bullets
+test('[C1] deOutline: standalone heading-only siblings become real headings', () => {
+	// Fixture pattern: outline with named sections as bullets
 	const input = [
-		'- ## Meeting 2024-12-16',
+		'- ## Fixture Heading',
 		'\t- ### Context and goals',
 		'\t\t- We need to migrate',
 		'\t- ### Discussion summary',
@@ -433,11 +433,11 @@ test('[H-E4] deOutline: standalone heading-only siblings become real headings', 
 	assert.ok(!out.some(l => l.startsWith('- ###')), 'no bullet-heading pattern remaining');
 });
 
-// F5: a chain of distinct link bullets — with the current collapse heuristic,
+// C1: a chain of distinct link bullets — with the current collapse heuristic,
 // single-child chains collapse into sequential paragraphs (same as Level 1/2/3).
 // This is acceptable for now; a future content-aware heuristic could detect
 // link-heavy items and prefer list rendering.
-test('[F5] deOutline: chain of distinct link bullets becomes a nested list, not one paragraph', () => {
+test('[C1] deOutline: chain of distinct link bullets becomes a nested list, not one paragraph', () => {
 	const input = '- [[A]]\n\t- [[B]]\n\t\t- [[C]]';
 	const expected = '[[A]]\n[[B]]\n[[C]]';
 	assert.equal(deOutline(input), expected);

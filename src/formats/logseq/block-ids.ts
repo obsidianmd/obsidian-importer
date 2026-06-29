@@ -52,12 +52,12 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 			ids.push({ uuid, shortId });
 			const target = out[lastContentIndex];
 			if (!new RegExp(`\\^${shortId}\\s*$`).test(target)) {
-				// BR-2: anchor after a closing fence (appending breaks CommonMark)
+				// G1: anchor after a closing fence (appending breaks CommonMark)
 				if (/^[ \t]*```[ \t]*$/.test(target)) {
 					out.push(indent + `^${shortId}`);
 					lastContentIndex = out.length - 1;
 				}
-				// BR-3: anchor on its own line below a heading. Strip optional bullet
+				// G1: anchor on its own line below a heading. Strip optional bullet
 				// prefix before testing for heading syntax (Logseq headings are bullets).
 				else if (/^#{1,6} /.test(target.trimStart().replace(/^-\s+/, ''))) {
 					const isBulletHeading = /^\s*-\s+#{1,6} /.test(target);
@@ -76,7 +76,7 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 			}
 			continue; // drop the id:: line
 		}
-		// BR-4: track the nearest preceding non-blank line as anchor target
+		// G1: track the nearest preceding non-blank line as anchor target
 		// (including retained property lines).
 		if (line.trim() !== '') {
 			lastContentIndex = out.length;

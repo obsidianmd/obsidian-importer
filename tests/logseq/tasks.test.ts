@@ -25,20 +25,20 @@ test('does not touch non-task bullets or partial keywords', () => {
 	assert.equal(convertTasks('plain TODO line', 'tasks-emoji'), 'plain TODO line');
 });
 
-// --- T1: colon-style keyword tasks ---
-test('[T1] - TODO: text is recognized and the colon is dropped', () => {
+// --- D1: colon-style keyword tasks ---
+test('[D1] - TODO: text is recognized and the colon is dropped', () => {
 	assert.equal(convertTasks('- TODO: text', 'tasks-emoji'), '- [ ] text');
 });
 
-test('[T1] - DONE: text', () => {
+test('[D1] - DONE: text', () => {
 	assert.equal(convertTasks('- DONE: text', 'tasks-emoji'), '- [x] text');
 });
 
-test('[T1] - WAITING: text', () => {
+test('[D1] - WAITING: text', () => {
 	assert.equal(convertTasks('- WAITING: text', 'tasks-emoji'), '- [ ] text');
 });
 
-test('[T1] partial keyword TODOX is still not a task', () => {
+test('[D1] partial keyword TODOX is still not a task', () => {
 	assert.equal(convertTasks('- TODOX foo', 'tasks-emoji'), '- TODOX foo');
 });
 
@@ -181,28 +181,28 @@ test('cancelled property with wikilink date (emoji)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 04) — RED tests for accepted fixes.
+// Documented transformation cases — D1.
 // ---------------------------------------------------------------------------
 
-// Issue 1: Logseq long-date format must normalize to ISO in task metadata.
-test('[Issue 1] completed date in Logseq long-date format normalizes to ISO (emoji)', () => {
+// D1: Logseq long-date format must normalize to ISO in task metadata.
+test('[D1] completed date in Logseq long-date format normalizes to ISO (emoji)', () => {
 	const input = ['- DONE x', '  completed:: [[Feb 13th, 2025]]'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ✅ 2025-02-13');
 });
 
-// --- T2: Logseq set-literal completed:: #{…} ---
-test('[T2] completed:: #{"Mar 3rd, 2025"} becomes ✅ 2025-03-03', () => {
+// --- D1: Logseq set-literal completed:: #{…} ---
+test('[D1] completed:: #{"Mar 3rd, 2025"} becomes ✅ 2025-03-03', () => {
 	const input = ['- DONE x', '  completed:: #{"Mar 3rd, 2025"}'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ✅ 2025-03-03');
 });
 
-test('[T2] malformed completed:: #{"{"} emits no completion date and drops cleanly', () => {
+test('[D1] malformed completed:: #{"{"} emits no completion date and drops cleanly', () => {
 	const input = ['- DONE x', '  completed:: #{"{"}'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x');
 });
 
-// Issue 2: a LOGBOOK/CLOCK drawer on a NON-task bullet must still be dropped.
-test('[Issue 2] drops LOGBOOK drawer attached to a non-task child bullet', () => {
+// D1: a LOGBOOK/CLOCK drawer on a NON-task bullet must still be dropped.
+test('[D1] drops LOGBOOK drawer attached to a non-task child bullet', () => {
 	const input = [
 		'- DONE parent',
 		'\t- plain child',
@@ -216,20 +216,20 @@ test('[Issue 2] drops LOGBOOK drawer attached to a non-task child bullet', () =>
 	);
 });
 
-// Issue 3: a blank/whitespace-only continuation line must not orphan metadata.
-test('[Issue 3] metadata after a blank continuation line is still parsed (emoji)', () => {
+// D1: a blank/whitespace-only continuation line must not orphan metadata.
+test('[D1] metadata after a blank continuation line is still parsed (emoji)', () => {
 	const input = ['- DONE x', '  ', '  SCHEDULED: <2024-11-06 Wed>', '  ', '  completed:: 2024-11-06'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ⏳ 2024-11-06 ✅ 2024-11-06');
 });
 
-// Issue 4 (guard): time-of-day in SCHEDULED is intentionally dropped to date-only.
-test('[Issue 4] time-of-day in SCHEDULED is dropped to date-only (emoji)', () => {
+// D1 (guard): time-of-day in SCHEDULED is intentionally dropped to date-only.
+test('[D1] time-of-day in SCHEDULED is dropped to date-only (emoji)', () => {
 	const input = ['- TODO meet', '  SCHEDULED: <2025-02-20 Thu 14:00>'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] meet ⏳ 2025-02-20');
 });
 
-// Issue 5: an unparsable template-token date must not be emitted as a ➕ date.
-test('[Issue 5] template token in created date is not emitted as a plus-date (emoji)', () => {
+// D1: an unparsable template-token date must not be emitted as a ➕ date.
+test('[D1] template token in created date is not emitted as a plus-date (emoji)', () => {
 	const input = ['- TODO x', '  created:: [[{{date:YYYY-MM-DD}}]]'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] x');
 });

@@ -97,13 +97,13 @@ test('removeLeftoverBlockProperties drops user-specified extra keys', () => {
 	assert.equal(removeLeftoverBlockProperties(input, ['my-status']), ['- a block', '  rating:: 5'].join('\n'));
 });
 
-// --- T3: blockProperties keep / wrap / drop ---
-test('[T3] keep mode leaves unknown block property unchanged', () => {
+// --- I1: blockProperties keep / wrap / drop ---
+test('[I1] keep mode leaves unknown block property unchanged', () => {
 	const input = ['- a block', '  rating:: 5'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), input);
 });
 
-test('[T3] wrap mode rewrites participants:: … into [participants:: …]', () => {
+test('[I1] wrap mode rewrites participants:: … into [participants:: …]', () => {
 	const input = ['- a block', '  participants:: [[Alice]], [[Bob]]'].join('\n');
 	assert.equal(
 		removeLeftoverBlockProperties(input, [], 'wrap'),
@@ -111,7 +111,7 @@ test('[T3] wrap mode rewrites participants:: … into [participants:: …]', () 
 	);
 });
 
-test('[T3] wrap mode preserves indentation and trailing ^anchor', () => {
+test('[I1] wrap mode preserves indentation and trailing ^anchor', () => {
 	const input = ['- a block', '\t  participants:: a, b ^abc123'].join('\n');
 	assert.equal(
 		removeLeftoverBlockProperties(input, [], 'wrap'),
@@ -119,12 +119,12 @@ test('[T3] wrap mode preserves indentation and trailing ^anchor', () => {
 	);
 });
 
-test('[T3] drop mode removes the line', () => {
+test('[I1] drop mode removes the line', () => {
 	const input = ['- a block', '  rating:: 5'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
 });
 
-test('[T3] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropped in keep & wrap)', () => {
+test('[I1] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropped in keep & wrap)', () => {
 	const input = [
 		'- a block',
 		'  collapsed:: true',
@@ -135,12 +135,12 @@ test('[T3] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropp
 	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), '- a block');
 });
 
-test('[T3] value containing ] falls back to keep', () => {
+test('[I1] value containing ] falls back to keep', () => {
 	const input = ['- a block', '  note:: foo] bar'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
 });
 
-test('[T3] wrap mode does not touch property-like lines inside code fences', () => {
+test('[I1] wrap mode does not touch property-like lines inside code fences', () => {
 	const input = ['- a block', '  ```', '  key:: value', '  ```'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
 });
@@ -151,13 +151,13 @@ test('extractPageProperties drops listed page property keys from frontmatter', (
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
 });
 
-test('[T4] icon page property is dropped from frontmatter by default', () => {
+test('[I1] icon page property is dropped from frontmatter by default', () => {
 	const input = 'type:: note\nicon:: \uEAE5\n\ntext';
 	const { yaml } = extractPageProperties(input, { dropPageProperties: DEFAULT_DROP_PAGE_PROPERTIES });
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
 });
 
-test('[T4] icon is retained when removed from the drop list', () => {
+test('[I1] icon is retained when removed from the drop list', () => {
 	const input = 'type:: note\nicon:: star\n\ntext';
 	const { yaml } = extractPageProperties(input, { dropPageProperties: [] });
 	assert.equal(yaml, ['---', 'type: note', 'icon: star', '---'].join('\n'));
@@ -188,82 +188,82 @@ test('convertHeadingProperty leaves heading:: true (auto) handling without crash
 });
 
 // ---------------------------------------------------------------------------
-// Regression findings (domain 05) — RED tests for accepted fixes.
+// Documented transformation cases — I1.
 // ---------------------------------------------------------------------------
 
-// H1: a value starting with '#' must be quoted (else YAML reads it as a comment → null).
-test('[H1] scalar value starting with # is quoted', () => {
+// I1: a value starting with '#' must be quoted (else YAML reads it as a comment → null).
+test('[I1] scalar value starting with # is quoted', () => {
 	const { yaml } = extractPageProperties('status:: #in-progress\n\ntext');
 	assert.equal(yaml, ['---', 'status: "#in-progress"', '---'].join('\n'));
 });
 
-// H2: a value that is a markdown link must be quoted (else the whole block is invalid YAML).
-test('[H2] scalar value that is a markdown link is quoted', () => {
+// I1: a value that is a markdown link must be quoted (else the whole block is invalid YAML).
+test('[I1] scalar value that is a markdown link is quoted', () => {
 	const { yaml } = extractPageProperties('file:: [doc](../a/b.pdf)\n\ntext');
 	assert.equal(yaml, ['---', 'file: "[doc](../a/b.pdf)"', '---'].join('\n'));
 });
 
-// H3: a comma inside a single wikilink must not be treated as a list separator.
-test('[H3] comma inside a single wikilink is not split into a list', () => {
+// I1: a comma inside a single wikilink must not be treated as a list separator.
+test('[I1] comma inside a single wikilink is not split into a list', () => {
 	const { yaml } = extractPageProperties('deadline:: [[Jul 18th, 2025]]\n\ntext');
 	assert.equal(yaml, ['---', 'deadline: "[[Jul 18th, 2025]]"', '---'].join('\n'));
 });
 
-// H4: general YAML-unsafe scalars must be quoted (colon-space, bool-like, leading-zero number).
-test('[H4] colon-space value is quoted', () => {
+// I1: general YAML-unsafe scalars must be quoted (colon-space, bool-like, leading-zero number).
+test('[I1] colon-space value is quoted', () => {
 	const { yaml } = extractPageProperties('k:: value: with colon\n\nx');
 	assert.equal(yaml, ['---', 'k: "value: with colon"', '---'].join('\n'));
 });
 
-test('[H4] boolean-like value stays a quoted string', () => {
+test('[I1] boolean-like value stays a quoted string', () => {
 	const { yaml } = extractPageProperties('k:: yes\n\nx');
 	assert.equal(yaml, ['---', 'k: "yes"', '---'].join('\n'));
 });
 
-test('[H4] leading-zero numeric value stays a quoted string', () => {
+test('[I1] leading-zero numeric value stays a quoted string', () => {
 	const { yaml } = extractPageProperties('k:: 007\n\nx');
 	assert.equal(yaml, ['---', 'k: "007"', '---'].join('\n'));
 });
 
-// M1: an internal block property written as a bullet must still be stripped.
-test('[M1] internal block property written as a bullet is stripped', () => {
+// I1: an internal block property written as a bullet must still be stripped.
+test('[I1] internal block property written as a bullet is stripped', () => {
 	const input = ['- a block', '- collapsed:: true', '- next'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input), ['- a block', '- next'].join('\n'));
 });
 
-// M2: Logseq PDF-highlight internal props must be dropped from the body.
-test('[M2] PDF highlight props (ls-type / hl-*) are dropped', () => {
+// I1: Logseq PDF-highlight internal props must be dropped from the body.
+test('[I1] PDF highlight props (ls-type / hl-*) are dropped', () => {
 	const input = ['- quote', '  ls-type:: annotation', '  hl-page:: 46', '  hl-color:: yellow'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input), '- quote');
 });
 
-// M3: a title:: page property must be preserved (carried as an alias).
-test('[M3] title page property is preserved as an alias', () => {
+// I1: a title:: page property must be preserved (carried as an alias).
+test('[I1] title page property is preserved as an alias', () => {
 	const { yaml, raw } = extractPageProperties('title:: Example Title\ntype:: note\n\ntext');
 	assert.equal(raw.title, 'Example Title');
 	assert.match(yaml, /aliases:\n {2}- Example Title/);
 });
 
-// L1: created/updated wikilink dates become plain ISO dates.
-test('[L1] created wikilink date is emitted as a plain ISO date', () => {
+// I1: created/updated wikilink dates become plain ISO dates.
+test('[I1] created wikilink date is emitted as a plain ISO date', () => {
 	const { yaml } = extractPageProperties('created:: [[2024-01-16]]\n\nx');
 	assert.equal(yaml, ['---', 'created: 2024-01-16', '---'].join('\n'));
 });
 
-// L2: an empty-valued page property is omitted entirely.
-test('[L2] empty-valued page property is omitted', () => {
+// I1: an empty-valued page property is omitted entirely.
+test('[I1] empty-valued page property is omitted', () => {
 	const { yaml } = extractPageProperties('icon::\n\nx');
 	assert.equal(yaml, '');
 });
 
-// L4: duplicate page-property keys are de-duplicated (last wins).
-test('[L4] duplicate page-property keys are de-duplicated (last wins)', () => {
+// I1: duplicate page-property keys are de-duplicated (last wins).
+test('[I1] duplicate page-property keys are de-duplicated (last wins)', () => {
 	const { yaml } = extractPageProperties('type:: a\ntype:: b\n\nx');
 	assert.equal(yaml, ['---', 'type: b', '---'].join('\n'));
 });
 
-// --- T5: linkify tag-style frontmatter values in pass-2 ---
-test('[T5] tag value linkifies to [[page]] when page exists and toLinks on', () => {
+// --- I1: linkify tag-style frontmatter values in pass-2 ---
+test('[I1] tag value linkifies to [[page]] when page exists and toLinks on', () => {
 	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(['in-progress']),
@@ -273,7 +273,7 @@ test('[T5] tag value linkifies to [[page]] when page exists and toLinks on', () 
 	assert.equal(out, ['---', 'status: "[[IN-PROGRESS]]"', '---'].join('\n'));
 });
 
-test('[T5] multi-word #[[tag]] value linkifies to [[tag]]', () => {
+test('[I1] multi-word #[[tag]] value linkifies to [[tag]]', () => {
 	const yaml = ['---', 'area: "#[[Page One]]"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(['page one']),
@@ -283,7 +283,7 @@ test('[T5] multi-word #[[tag]] value linkifies to [[tag]]', () => {
 	assert.equal(out, ['---', 'area: "[[Page One]]"', '---'].join('\n'));
 });
 
-test('[T5] tag value stays quoted text when no matching page (onlyExistingPages)', () => {
+test('[I1] tag value stays quoted text when no matching page (onlyExistingPages)', () => {
 	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(),
@@ -293,7 +293,7 @@ test('[T5] tag value stays quoted text when no matching page (onlyExistingPages)
 	assert.equal(out, yaml);
 });
 
-test('[T5] tag value stays quoted text when toLinks is off (default)', () => {
+test('[I1] tag value stays quoted text when toLinks is off (default)', () => {
 	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(['in-progress']),
@@ -303,7 +303,7 @@ test('[T5] tag value stays quoted text when toLinks is off (default)', () => {
 	assert.equal(out, yaml);
 });
 
-test('[T5] tags: list is unaffected', () => {
+test('[I1] tags: list is unaffected', () => {
 	const yaml = ['---', 'tags:', '  - foo', '  - bar', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(['foo', 'bar']),
@@ -313,7 +313,7 @@ test('[T5] tags: list is unaffected', () => {
 	assert.equal(out, yaml);
 });
 
-test('[T5] tag value linkifies regardless of page set when onlyExistingPages is off', () => {
+test('[I1] tag value linkifies regardless of page set when onlyExistingPages is off', () => {
 	const yaml = ['---', 'area: "#security"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
 		knownPages: new Set(),
