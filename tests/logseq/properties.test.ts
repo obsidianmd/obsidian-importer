@@ -387,3 +387,64 @@ test('[I1] template-including-parent block property is always dropped', () => {
 	const input = ['- a block', '  template-including-parent:: false'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input), '- a block');
 });
+
+// ---------------------------------------------------------------------------
+// snake_case conversion for page and block properties
+// ---------------------------------------------------------------------------
+
+test('[T-snake] snakeCasePageProperties converts kebab-case keys to snake_case', () => {
+	const input = 'test-hyphen:: value\ntype:: note\n\ntext';
+	const { yaml } = extractPageProperties(input, { snakeCasePageProperties: true });
+	assert.equal(yaml, ['---', 'test_hyphen: value', 'type: note', '---'].join('\n'));
+});
+
+test('[T-snake] page properties keep kebab-case keys by default', () => {
+	const input = 'test-hyphen:: value\n\ntext';
+	const { yaml } = extractPageProperties(input);
+	assert.equal(yaml, ['---', 'test-hyphen: value', '---'].join('\n'));
+});
+
+test('[T-snake] snakeCasePageProperties does not affect drop-list matching (kebab key still dropped)', () => {
+	const input = 'test-hyphen:: value\ntype:: note\n\ntext';
+	const { yaml } = extractPageProperties(input, {
+		snakeCasePageProperties: true,
+		dropPageProperties: ['test-hyphen'],
+	});
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[T-snake] snakeCasePageProperties works with list-valued properties', () => {
+	const input = 'multi-word:: [[Page One]], [[Page Two]]\n\ntext';
+	const { yaml } = extractPageProperties(input, { snakeCasePageProperties: true });
+	assert.equal(yaml, ['---', 'multi_word:', '  - "[[Page One]]"', '  - "[[Page Two]]"', '---'].join('\n'));
+});
+
+test('[T-snake] snakeCaseBlockProperties converts kebab-case keys in keep mode', () => {
+	const input = ['- a block', '  test-hyphen:: value'].join('\n');
+	const out = removeLeftoverBlockProperties(input, [], 'keep', true);
+	assert.equal(out, ['- a block', '  test_hyphen:: value'].join('\n'));
+});
+
+test('[T-snake] snakeCaseBlockProperties converts kebab-case keys in wrap mode', () => {
+	const input = ['- a block', '  test-hyphen:: value'].join('\n');
+	const out = removeLeftoverBlockProperties(input, [], 'wrap', true);
+	assert.equal(out, ['- a block', '  [test_hyphen:: value]'].join('\n'));
+});
+
+test('[T-snake] block properties keep kebab-case keys by default', () => {
+	const input = ['- a block', '  test-hyphen:: value'].join('\n');
+	const out = removeLeftoverBlockProperties(input, [], 'keep');
+	assert.equal(out, input);
+});
+
+test('[T-snake] snakeCaseBlockProperties preserves trailing block anchor', () => {
+	const input = ['- a block', '  test-hyphen:: value ^abc123'].join('\n');
+	const out = removeLeftoverBlockProperties(input, [], 'keep', true);
+	assert.equal(out, ['- a block', '  test_hyphen:: value ^abc123'].join('\n'));
+});
+
+test('[T-snake] snakeCaseBlockProperties does not affect always-drop or user drop-list matching', () => {
+	const input = ['- a block', '  background-color:: red', '  custom-key:: val'].join('\n');
+	const out = removeLeftoverBlockProperties(input, ['custom-key'], 'keep', true);
+	assert.equal(out, '- a block');
+});

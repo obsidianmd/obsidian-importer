@@ -150,7 +150,12 @@ function tagsFromItem(item: string): string[] {
 	return tokens;
 }
 
-function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>): string[] {
+/** Convert a kebab-case property key to snake_case, e.g. `test-hyphen` → `test_hyphen`. */
+function toSnakeCaseKey(key: string): string {
+	return key.replace(/-/g, '_');
+}
+
+function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>, snakeCase: boolean): string[] {
 	// I1: drop empty-valued properties.
 	if (value.trim() === '') return [];
 
@@ -167,36 +172,43 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 	if (isAlwaysDroppedPageProp(key)) return [];
 	if (dropPageProps.has(key)) return [];
 
+	// Output key: optionally converted to snake_case (drop/match checks above use the
+	// original kebab-case key, since that's how users configure their drop lists).
+	const outKey = snakeCase ? toSnakeCaseKey(key) : key;
+
 	// I1: created/updated wikilink dates → plain ISO.
 	if ((key === 'created' || key === 'updated') && value.includes('[[')) {
 		const iso = extractIsoDate(value);
-		if (iso !== null) return [`${key}: ${iso}`];
+		if (iso !== null) return [`${outKey}: ${iso}`];
 		// Fall through to normal handling if not a clean ISO date.
 	}
 
 	const parts = splitList(value);
 	const hasWiki = value.includes('[[');
 	if (hasWiki && parts.length > 1) {
-		return [`${key}:`, ...parts.map(p => `  - ${quote(p)}`)];
+		return [`${outKey}:`, ...parts.map(p => `  - ${quote(p)}`)];
 	}
 	if (hasWiki) {
-		return [`${key}: ${quote(value)}`];
+		return [`${outKey}: ${quote(value)}`];
 	}
 	// I1: apply general YAML-safe quoting to all non-wikilink scalars.
 	if (needsQuoting(value)) {
-		return [`${key}: ${quote(value)}`];
+		return [`${outKey}: ${quote(value)}`];
 	}
-	return [`${key}: ${value}`];
+	return [`${outKey}: ${value}`];
 }
 
 export interface ExtractPagePropertiesOptions {
 	dropPageProperties?: string[];
 	dropTags?: string[];
+	/** Convert kebab-case page property keys to snake_case (e.g. `test-hyphen` → `test_hyphen`). */
+	snakeCasePageProperties?: boolean;
 }
 
 export function extractPageProperties(content: string, opts: ExtractPagePropertiesOptions = {}): PageProperties {
 	const dropPageProps = new Set(opts.dropPageProperties ?? []);
 	const dropTags = new Set(opts.dropTags ?? []);
+	const snakeCase = opts.snakeCasePageProperties ?? false;
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
 	const bodyLines: string[] = [];
@@ -214,7 +226,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		const value = m[2].trim();
 		raw[key] = value;
 		if (key === 'title') continue; // kept in raw, emitted as alias below
-		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags);
+		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase);
 		if (emitted.length > 0) {
 			if (!propMap.has(key)) propOrder.push(key);
 			propMap.set(key, emitted);
@@ -270,10 +282,9 @@ function isAlwaysDroppedPageProp(key: string): boolean {
  * break the inline-field bracket syntax (contains a stray `]`/`[` outside of a
  * `[[wikilink]]`).
  */
-function wrapBlockProperty(line: string, m: RegExpMatchArray): string {
+function wrapBlockProperty(line: string, m: RegExpMatchArray, outKey: string): string {
 	const indent = m[1];
 	const bullet = m[2] ?? '';
-	const key = m[3];
 	let value = m[4];
 	let anchor = '';
 	const am = value.match(BLOCK_ANCHOR);
@@ -286,14 +297,28 @@ function wrapBlockProperty(line: string, m: RegExpMatchArray): string {
 	// Dataview inline fields can't contain a stray `]`/`[`; wikilinks are fine.
 	const withoutLinks = core.replace(/\[\[[^\]]*\]\]/g, '');
 	if (withoutLinks.includes(']') || withoutLinks.includes('[')) return line;
-	const wrapped = `${indent}${bullet}[${key}:: ${core}]`;
+	const wrapped = `${indent}${bullet}[${outKey}:: ${core}]`;
 	return anchor ? `${wrapped} ${anchor}` : wrapped;
+}
+
+/**
+ * Rewrite the `key` portion of a retained `key:: value` line to `outKey`,
+ * preserving indentation, bullet prefix, and the rest of the line untouched.
+ */
+function renameBlockPropertyKey(line: string, m: RegExpMatchArray, outKey: string): string {
+	const indent = m[1];
+	const bullet = m[2] ?? '';
+	const key = m[3];
+	const prefixLen = indent.length + bullet.length;
+	const rest = line.slice(prefixLen + key.length + 2); // +2 for '::'
+	return `${indent}${bullet}${outKey}::${rest}`;
 }
 
 export function removeLeftoverBlockProperties(
 	content: string,
 	dropBlockProperties: string[] = [],
-	mode: BlockPropertyMode = 'keep'
+	mode: BlockPropertyMode = 'keep',
+	snakeCase = false
 ): string {
 	const userDrop = new Set(dropBlockProperties);
 	const out: string[] = [];
@@ -318,11 +343,12 @@ export function removeLeftoverBlockProperties(
 		if (isAlwaysDroppedBlockProp(key, userDrop)) continue;
 		// Retained unknown key: apply the configured mode.
 		if (mode === 'drop') continue;
+		const outKey = snakeCase ? toSnakeCaseKey(key) : key;
 		if (mode === 'wrap') {
-			out.push(wrapBlockProperty(line, m));
+			out.push(wrapBlockProperty(line, m, outKey));
 			continue;
 		}
-		out.push(line); // keep
+		out.push(snakeCase ? renameBlockPropertyKey(line, m, outKey) : line); // keep
 	}
 	return out.join('\n');
 }
