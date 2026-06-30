@@ -67,6 +67,14 @@ export interface LogseqImportOptions {
 	 * - `drop`  — remove the line entirely.
 	 */
 	blockProperties: BlockPropertyMode;
+	/**
+	 * Convert kebab-case page-property keys (frontmatter) to snake_case, e.g.
+	 * `test-hyphen` → `test_hyphen`. Hyphens can break Bases/Dataview query syntax
+	 * (`note["test-hyphen"]` vs. `test_underscore`).
+	 */
+	snakeCasePageProperties: boolean;
+	/** Same as `snakeCasePageProperties`, but for inline block-property keys. */
+	snakeCaseBlockProperties: boolean;
 
 	// --- Tags ---
 
@@ -134,6 +142,8 @@ export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 	dropPageProperties: [...DEFAULT_DROP_PAGE_PROPERTIES],
 	dropBlockProperties: [...DEFAULT_DROP_BLOCK_PROPERTIES],
 	blockProperties: 'wrap',
+	snakeCasePageProperties: false,
+	snakeCaseBlockProperties: false,
 
 	convertTagsToLinks: false,
 	convertTagsOnlyExistingPages: true,
