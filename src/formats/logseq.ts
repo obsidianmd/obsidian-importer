@@ -294,6 +294,20 @@ export class LogseqImporter extends FormatImporter {
 				.setValue(this.options.blockProperties)
 				.onChange(v => this.options.blockProperties = v as 'keep' | 'wrap' | 'drop'));
 
+		new Setting(this.modal.contentEl)
+			.setName('Snake_case page properties')
+			.setDesc('Convert kebab-case page-property keys to snake_case (e.g. "test-hyphen" → "test_hyphen"). Hyphens can break Bases/Dataview query syntax.')
+			.addToggle(t => t
+				.setValue(this.options.snakeCasePageProperties)
+				.onChange(v => this.options.snakeCasePageProperties = v));
+
+		new Setting(this.modal.contentEl)
+			.setName('Snake_case block properties')
+			.setDesc('Convert kebab-case inline block-property keys to snake_case, same as above but for retained block properties.')
+			.addToggle(t => t
+				.setValue(this.options.snakeCaseBlockProperties)
+				.onChange(v => this.options.snakeCaseBlockProperties = v));
+
 		// ── Cleanup ─────────────────────────────────────────────────────────────────
 
 		new Setting(this.modal.contentEl).setName('Cleanup').setHeading();

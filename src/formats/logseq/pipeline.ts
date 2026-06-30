@@ -30,6 +30,7 @@ export function convertLocal(content: string, options: LogseqImportOptions): Loc
 	const { yaml, body: initialBody, raw } = extractPageProperties(content, {
 		dropPageProperties: options.dropPageProperties,
 		dropTags: options.dropTags,
+		snakeCasePageProperties: options.snakeCasePageProperties,
 	});
 
 	let body = initialBody;
@@ -53,7 +54,7 @@ export function convertLocal(content: string, options: LogseqImportOptions): Loc
 	const idResult = attachBlockIds(body, options.shortenBlockIds);
 	body = idResult.content;
 
-	body = removeLeftoverBlockProperties(body, options.dropBlockProperties, options.blockProperties);
+	body = removeLeftoverBlockProperties(body, options.dropBlockProperties, options.blockProperties, options.snakeCaseBlockProperties);
 
 	if (options.normalizeWhitespace) {
 		body = normalizeWhitespace(body);

@@ -158,6 +158,8 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 | `dropPageProperties` | string[] | `['public', 'exclude-from-graph-view', 'icon']` | Page-level property keys excluded from frontmatter. `icon` is dropped by default because it carries a Logseq private-use glyph that renders as a tofu box (□) in Obsidian. |
 | `dropBlockProperties` | string[] | `[]` | **Additional** inline block-property keys to strip (beyond the always-dropped set). |
 | `blockProperties` | `keep` \| `wrap` \| `drop` | `wrap` | How retained (unknown) inline block properties are emitted. `keep` leaves the raw `key:: value` line; `wrap` rewrites it to a Dataview inline field `[key:: value]` (label hidden in reading view, value stays queryable); `drop` removes the line. The always-dropped set and `dropBlockProperties` keys win in every mode. |
+| `snakeCasePageProperties` | boolean | `false` | Convert kebab-case page-property keys to snake_case (e.g. `test-hyphen` → `test_hyphen`). Drop-list matching (`dropPageProperties`) still uses the original kebab-case key. Hyphenated keys can break or complicate Bases/Dataview query syntax (`note["test-hyphen"]` vs. `test_underscore`). |
+| `snakeCaseBlockProperties` | boolean | `false` | Same as `snakeCasePageProperties`, but for retained inline block-property keys (applies in both `keep` and `wrap` modes). |
 
 ### Cleanup
 
