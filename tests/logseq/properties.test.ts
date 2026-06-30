@@ -322,3 +322,68 @@ test('[I1] tag value linkifies regardless of page set when onlyExistingPages is 
 	});
 	assert.equal(out, ['---', 'area: "[[security]]"', '---'].join('\n'));
 });
+
+// ---------------------------------------------------------------------------
+// Always-drop page properties (Logseq-internal with no Obsidian equivalent)
+// ---------------------------------------------------------------------------
+
+test('[I1] collapsed page property is always dropped from frontmatter', () => {
+	const { yaml } = extractPageProperties('collapsed:: true\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] filters page property is always dropped from frontmatter', () => {
+	const { yaml } = extractPageProperties('filters:: {}\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] background-color page property is always dropped from frontmatter', () => {
+	const { yaml } = extractPageProperties('background-color:: red\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] heading page property is always dropped from frontmatter', () => {
+	const { yaml } = extractPageProperties('heading:: true\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] template and template-including-parent page properties are always dropped', () => {
+	const { yaml } = extractPageProperties('template:: My Template\ntemplate-including-parent:: false\n\ntext');
+	assert.equal(yaml, '');
+});
+
+test('[I1] query-* prefixed page properties are always dropped', () => {
+	const { yaml } = extractPageProperties('query-table:: true\nquery-sort-by:: created\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] logseq.* prefixed page properties are always dropped', () => {
+	const { yaml } = extractPageProperties('logseq.order-list-type:: number\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+test('[I1] hl-* and ls-* prefixed page properties are always dropped', () => {
+	const { yaml } = extractPageProperties('hl-page:: 42\nls-type:: annotation\ntype:: note\n\ntext');
+	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
+});
+
+// ---------------------------------------------------------------------------
+// alias / aliases as block properties must be always dropped
+// ---------------------------------------------------------------------------
+
+test('[I1] alias block property is always dropped (not wrapped or kept)', () => {
+	const input = ['- a block', '  alias:: Some Alias'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), '- a block');
+	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
+});
+
+test('[I1] template block property is always dropped', () => {
+	const input = ['- a block', '  template:: My Template'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input), '- a block');
+});
+
+test('[I1] template-including-parent block property is always dropped', () => {
+	const input = ['- a block', '  template-including-parent:: false'].join('\n');
+	assert.equal(removeLeftoverBlockProperties(input), '- a block');
+});
