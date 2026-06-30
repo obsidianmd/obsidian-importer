@@ -375,6 +375,10 @@ Tags listed in `dropTags` are also removed from frontmatter `tags:` (section I).
   removed from YAML as a standalone key. Also kept in `raw` for the filename / reporting.
 - Keys listed in `dropPageProperties` → dropped. Default: `public`, `exclude-from-graph-view`,
   `icon`. (`icon` carries a Logseq private-use glyph that renders as □ in Obsidian.)
+- **Always dropped** (Logseq-internal, never meaningful in Obsidian — not user-overridable):
+  `collapsed`, `filters`, `background-color`, `heading`, `template`, `template-including-parent`,
+  plus **any key starting with `logseq.`**, **`query-`**, **`hl-`**, or **`ls-`**.
+  These keys cannot be un-dropped via `dropPageProperties`.
 - **[I1]** **Tag-style values → links (pass-2):** a scalar value that is a single tag (`status:: #IN-PROGRESS`,
   `area:: #[[Page One]]`) is emitted as quoted text (`status: "#IN-PROGRESS"`) by default. When tag
   conversion is enabled (`convertTagsToLinks`), the value is linkified to a wikilink
@@ -402,9 +406,13 @@ If a file starts with a `- ` bullet, it has no page-property block.
 Both standard indented form (`  key:: value`) and bullet form (`- key:: value`) are recognized.
 
 **Always dropped** (Logseq-internal, never meaningful in Obsidian — not user-overridable):
-`collapsed`, `background-color`, `heading`, `filters`, `public`, `exclude-from-graph-view`,
+`alias`, `aliases`, `collapsed`, `background-color`, `heading`, `filters`, `public`,
+`exclude-from-graph-view`, `template`, `template-including-parent`,
 `query-table`, `query-properties`, `query-sort-by`, `query-sort-desc`, `query-flag`, plus **any key
 starting with `logseq.`**, **`query-`**, **`hl-`**, or **`ls-`** (highlight/annotation-related).
+
+(`alias`/`aliases` are always dropped from blocks because they are only meaningful as page-level
+properties, where they are already handled by the frontmatter converter.)
 
 **Additionally dropped:** any key the user lists in `dropBlockProperties` (default empty).
 

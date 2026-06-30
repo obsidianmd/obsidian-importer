@@ -14,6 +14,8 @@ const BLOCK_ANCHOR = /\s+(\^[A-Za-z0-9_-]+)\s*$/;
 // Block properties that are always dropped regardless of user config.
 // These are purely Logseq-internal and have no meaning in Obsidian.
 const ALWAYS_DROP_BLOCK_PROPS = new Set([
+	'alias',
+	'aliases',
 	'collapsed',
 	'background-color',
 	'heading',
@@ -25,11 +27,27 @@ const ALWAYS_DROP_BLOCK_PROPS = new Set([
 	'filters',
 	'public',
 	'exclude-from-graph-view',
+	'template',
+	'template-including-parent',
 ]);
 
-// Logseq PDF-annotation internal properties — always dropped.
-const ALWAYS_DROP_HL_PROPS = (key: string): boolean =>
-	key.startsWith('hl-') || key.startsWith('ls-');
+// Page properties that are always dropped regardless of user config.
+// These are Logseq UI/internal properties with no equivalent in Obsidian.
+const ALWAYS_DROP_PAGE_PROPS = new Set([
+	'collapsed',
+	'filters',
+	'background-color',
+	'heading',
+	'template',
+	'template-including-parent',
+]);
+
+// Prefix-based always-drop rules for both page and block properties.
+const isAlwaysDroppedByPrefix = (key: string): boolean =>
+	key.startsWith('hl-') ||
+	key.startsWith('ls-') ||
+	key.startsWith('logseq.') ||
+	key.startsWith('query-');
 
 export interface PageProperties {
 	/** YAML frontmatter block including `---` fences, or '' when there are none. */
@@ -145,6 +163,8 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 		if (items.length === 0) return [];
 		return ['tags:', ...items.map(i => `  - ${i}`)];
 	}
+	// Always-drop Logseq-internal keys take precedence over user config.
+	if (isAlwaysDroppedPageProp(key)) return [];
 	if (dropPageProps.has(key)) return [];
 
 	// I1: created/updated wikilink dates → plain ISO.
@@ -234,10 +254,13 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 export type BlockPropertyMode = 'keep' | 'wrap' | 'drop';
 
 function isAlwaysDroppedBlockProp(key: string, userDrop: Set<string>): boolean {
-	if (ALWAYS_DROP_HL_PROPS(key)) return true;
-	if (key.startsWith('logseq.')) return true;
-	if (key.startsWith('query-')) return true;
+	if (isAlwaysDroppedByPrefix(key)) return true;
 	return ALWAYS_DROP_BLOCK_PROPS.has(key) || userDrop.has(key);
+}
+
+function isAlwaysDroppedPageProp(key: string): boolean {
+	if (isAlwaysDroppedByPrefix(key)) return true;
+	return ALWAYS_DROP_PAGE_PROPS.has(key);
 }
 
 /**
