@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
 import { AccessTokenResponse } from './onenote/models';
@@ -700,14 +700,14 @@ export class OneNoteImporter extends FormatImporter {
 			if (element.getAttribute('data-tag')?.contains('to-do')) {
 				const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
 				const check = isChecked ? '[x]' : '[ ]';
-				// We need to use innerHTML in case an image was marked as TO-DO
-				element.innerHTML = `- ${check} ${element.innerHTML}`;
+				// Prepend a text node so any nested elements (e.g. an image marked as TO-DO) are preserved
+				element.prepend(`- ${check} `);
 			}
 			// All other OneNote tags are already in the Obsidian tag format ;)
 			else {
 				const tags = element.getAttribute('data-tag')?.split(',');
 				tags?.forEach((tag) => {
-					element.innerHTML = element.innerHTML + ` #${tag.replace(':', '-')} `;
+					element.append(` #${tag.replace(':', '-')} `);
 				});
 			}
 		}
@@ -727,7 +727,8 @@ export class OneNoteImporter extends FormatImporter {
 
 	getEntityPathNoParent(entityID: string, currentPath: string): string | null {
 		for (const notebook of this.notebooks) {
-			const path = this.getEntityPath(entityID, `${currentPath}/${notebook.displayName}`, notebook);
+			const sanitizedName = sanitizeFileName(notebook.displayName || 'Untitled Notebook');
+			const path = this.getEntityPath(entityID, `${currentPath}/${sanitizedName}`, notebook);
 			if (path) return path;
 		}
 		return null;
@@ -779,7 +780,8 @@ export class OneNoteImporter extends FormatImporter {
 					 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 					 */
 					if (section.pages![i + 1] && section.pages![i + 1].level !== 0) {
-						returnPath = `${currentPath}/${page.title}`;
+						const sanitizedName = sanitizeFileName(page.title || 'Untitled');
+						returnPath = `${currentPath}/${sanitizedName}`;
 					}
 					else returnPath = currentPath;
 				}
@@ -789,7 +791,8 @@ export class OneNoteImporter extends FormatImporter {
 					// Iterate backward to find the parent page
 					for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
 						if (section.pages![i].level === page.level! - 1) {
-							returnPath += '/' + section.pages![i].title;
+							const sanitizedName = sanitizeFileName(section.pages![i].title || 'Untitled');
+							returnPath += '/' + sanitizedName;
 							break;
 						}
 					}
@@ -804,9 +807,10 @@ export class OneNoteImporter extends FormatImporter {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
 		for (const sectionGroup of sectionGroups) {
-			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sectionGroup.displayName}`;
+			const sanitizedName = sanitizeFileName(sectionGroup.displayName || 'Untitled');
+			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sanitizedName}`;
 			else {
-				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sectionGroup.displayName}`, sectionGroup);
+				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sanitizedName}`, sectionGroup);
 				if (foundPath) {
 					returnPath = foundPath;
 					break;
@@ -955,7 +959,7 @@ export class OneNoteImporter extends FormatImporter {
 				// the two paragraphs
 				firstParagraph.appendChild(lineBreak.cloneNode());
 				// ... and clone second paragraph's children into the first paragraph
-				firstParagraph.insertAdjacentHTML('beforeend', secondParagraph.innerHTML);
+				firstParagraph.append(...Array.from(secondParagraph.childNodes));
 				// clean-up the DOM (linebreak was moved, second paragraph wasn't)
 				secondParagraph.remove();
 			}
@@ -974,7 +978,10 @@ export class OneNoteImporter extends FormatImporter {
 		};
 		// Cites/quotes are not converted into Markdown (possible htmlToMarkdown bug?), so we do it ourselves temporarily
 		const cites = pageElement.findAll('cite');
-		cites.forEach((cite) => cite.innerHTML = '> ' + cite.innerHTML + '<br>');
+		cites.forEach((cite) => {
+			cite.prepend('> ');
+			cite.append(cite.ownerDocument.createElement('br'));
+		});
 
 		const elements = pageElement.querySelectorAll('*');
 		elements.forEach(element => {
@@ -986,25 +993,24 @@ export class OneNoteImporter extends FormatImporter {
 			if (isInlineCodeSpan(element)) {
 				// Convert preformatted text into an inline code span
 				const codeElement = document.createElement('code');
-				codeElement.innerHTML = element.innerHTML;
+				codeElement.append(...Array.from(element.childNodes));
 				element.replaceWith(codeElement);
 			}
 			else if (isFenceCodeBlock(element)) {
-				// Convert preformatted text into a code fence
-				const codeBlockItems: string[] = [element.innerHTML];
+				// Convert preformatted text into a code fence wrapped in a pre element
+				const codeElement = document.createElement('pre');
+				codeElement.append('```\n');
+				codeElement.append(...Array.from(element.childNodes));
 				getSiblingsInSameCodeBlock(element).forEach(sibling => {
-					codeBlockItems.push(
-						isBRElement(sibling) ? '\n' : sibling.innerHTML
-					);
+					if (isBRElement(sibling)) {
+						codeElement.append('\n');
+					}
+					else {
+						codeElement.append(...Array.from(sibling.childNodes));
+					}
 					sibling.remove();
 				});
-
-				// wrap the code in a pre element
-				const codeElement = document.createElement('pre');
-				codeElement.innerHTML =
-					'```\n' +
-					codeBlockItems.join('') +
-					'\n```';
+				codeElement.append('\n```');
 
 				// replace the original node with the pre element
 				element.replaceWith(codeElement);
@@ -1021,7 +1027,7 @@ export class OneNoteImporter extends FormatImporter {
 					if (matchingStyle) {
 						const newElementTag = styleMap[matchingStyle];
 						const newElement = document.createElement(newElementTag);
-						newElement.innerHTML = element.innerHTML;
+						newElement.append(...Array.from(element.childNodes));
 						element.replaceWith(newElement);
 					}
 				}

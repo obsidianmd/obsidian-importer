@@ -312,15 +312,26 @@ function fixNotionCallouts(body: HTMLElement) {
 function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
 	const node: ChildNode | null = quoteBlock.firstChild;
 	const name = node?.nodeName ?? '';
-	const titlePar = quoteBlock.ownerDocument.createElement('p');
-	let titleTxt = '';
-	if (name == '#text') titleTxt = node?.textContent ?? '';
-	else if (name == 'P') titleTxt = (<Element>node).innerHTML;
-	else if (['EM', 'STRONG', 'DEL', 'MARK'].includes(name)) titleTxt = (<Element>node).outerHTML;
-	else (quoteBlock.prepend(titlePar));
-	// callout title must fit on one line in the MD file
-	titleTxt = titleTxt.replace(/<br>/g, '&lt;br&gt;');
-	titlePar.innerHTML = `[!important] ${titleTxt}`;
+	const dom = quoteBlock.ownerDocument;
+	const titlePar = dom.createElement('p');
+	titlePar.appendText('[!important] ');
+
+	if (name == '#text') {
+		titlePar.appendText(node?.textContent ?? '');
+	}
+	else if (name == 'P' || ['EM', 'STRONG', 'DEL', 'MARK'].includes(name)) {
+		// callout title must fit on one line in the MD file: flatten any <br>s to literal text
+		const clone = (node as Element).cloneNode(true) as Element;
+		for (const br of Array.from(clone.querySelectorAll('br'))) {
+			br.replaceWith(dom.createTextNode('<br>'));
+		}
+		if (name == 'P') titlePar.append(...Array.from(clone.childNodes));
+		else titlePar.appendChild(clone);
+	}
+	else {
+		quoteBlock.prepend(titlePar);
+		return;
+	}
 	quoteBlock.firstChild?.replaceWith(titlePar);
 }
 
@@ -407,14 +418,22 @@ function replaceNestedTags(body: HTMLElement, tag: FormatTagName) {
  * Merges tags if identical tags are placed next to each other.
  */
 function mergeAdjacentTags(body: HTMLElement, tagName: FormatTagName) {
-	const tags = body.findAll(tagName);
-	if (!tags) return;
-	const regex = new RegExp(`</${tagName}>( *)<${tagName}>`, 'g');
-	for (const tag of tags) {
-		if (!tag || !tag.parentElement) continue;
-		const parent = tag.parentElement;
-		let parentHTML = parent?.innerHTML;
-		parent.innerHTML = parentHTML?.replace(regex, '$1');
+	const TAG = tagName.toUpperCase();
+	for (const tag of body.findAll(tagName)) {
+		if (!tag.parentElement) continue;
+		// Merge into this tag any subsequent same-tag siblings (with optional whitespace text node between, matching the regex `</tag>( *)<tag>`)
+		while (true) {
+			let next: ChildNode | null = tag.nextSibling;
+			let whitespace: Text | null = null;
+			if (next && next.nodeType === Node.TEXT_NODE && /^ *$/.test((next as Text).data)) {
+				whitespace = next as Text;
+				next = next.nextSibling;
+			}
+			if (!next || next.nodeName !== TAG) break;
+			if (whitespace) tag.appendChild(whitespace);
+			tag.append(...Array.from((next as Element).childNodes));
+			(next as Element).remove();
+		}
 	}
 }
 
@@ -432,17 +451,28 @@ function stripLeadingBr(body: HTMLElement, tagName: FormatTagName) {
 }
 
 function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
-	// Simpler to just use the HTML string for this replacement
-	let htmlString = body.innerHTML;
-	const tags = htmlString.match(new RegExp(`<${tagName}>.*?</${tagName}>`, 'sg'));
-	if (!tags) return;
-	for (let tag of tags.filter((tag) => tag.includes('<br>'))) {
-		htmlString = htmlString.replace(
-			tag,
-			tag.split('<br>').join(`</${tagName}><br><${tagName}>`)
-		);
+	// For each <tag>...<br>...</tag>, split into <tag>...</tag><br><tag>...</tag>
+	for (const el of body.findAll(tagName)) {
+		if (!el.parentElement) continue;
+		// Only split if there is a <br> directly inside (matches the original regex's behavior on flat formatting tags)
+		const hasDirectBr = Array.from(el.childNodes).some((n) => n.nodeName === 'BR');
+		if (!hasDirectBr) continue;
+		const dom = el.ownerDocument;
+		const replacement: Node[] = [];
+		let current = dom.createElement(tagName);
+		for (const child of Array.from(el.childNodes)) {
+			if (child.nodeName === 'BR') {
+				if (current.hasChildNodes()) replacement.push(current);
+				replacement.push(child);
+				current = dom.createElement(tagName);
+			}
+			else {
+				current.appendChild(child);
+			}
+		}
+		if (current.hasChildNodes()) replacement.push(current);
+		el.replaceWith(...replacement);
 	}
-	body.innerHTML = htmlString;
 }
 
 
@@ -524,7 +554,24 @@ function formatTableOfContents(body: HTMLElement) {
 }
 
 function encodeNewlinesToBr(body: HTMLElement) {
-	body.innerHTML = body.innerHTML.replace(/(?:\n|<br ?\/>)/g, '<br>');
+	// Replace \n in text nodes with <br> elements. (Self-closing <br/> is already normalized to <br> by parseHTML.)
+	const dom = body.ownerDocument;
+	const walker = dom.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+	const textNodes: Text[] = [];
+	let node = walker.nextNode();
+	while (node) {
+		if ((node as Text).data.includes('\n')) textNodes.push(node as Text);
+		node = walker.nextNode();
+	}
+	for (const textNode of textNodes) {
+		const parts = textNode.data.split('\n');
+		const replacement: Node[] = [];
+		for (let i = 0; i < parts.length; i++) {
+			if (parts[i]) replacement.push(dom.createTextNode(parts[i]));
+			if (i < parts.length - 1) replacement.push(dom.createElement('br'));
+		}
+		textNode.replaceWith(...replacement);
+	}
 	// Since <br> is ignored in codeblocks, we replace with newlines
 	for (const block of body.findAll('code')) {
 		for (const br of block.findAll('br')) {
