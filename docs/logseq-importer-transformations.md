@@ -2,17 +2,18 @@
 
 This document is the authoritative, up-to-date reference for **every transformation the Logseq
 importer performs** and **every option that controls it**. It reflects the actual implementation
-under `src/formats/logseq/`, including all adjustments made after the original
-[assessment](./logseq-importer-assessment.md) (which remains the design-rationale and roadmap
-document).
+under `src/formats/logseq/`. The companion
+[implementation summary](./logseq-importer-assessment.md) records the design considerations,
+decisions, and tradeoffs behind it.
 
 Tests and implementation comments cross-reference this document with letter-number labels: one
 letter per top-level section (`A` through `M`) plus a rule number, such as `[G1]`. Older
 development-phase labels are no longer used as public references.
 
-Guiding principle throughout: **never silently delete content.** Anything that cannot be faithfully
-converted is either preserved verbatim or skipped with an explicit `ctx.reportSkipped` /
-`reportFailed` entry, so the user always knows.
+Guiding principle throughout: preserve source content when there is no safe automatic mapping.
+Intentional cleanup is limited to documented defaults and user-selected drop options. Files that
+cannot be imported are reported through `ctx.reportSkipped` / `reportFailed`; individual syntax
+cleanup inside an imported note is governed by the options in section B.
 
 ## Contents
 
@@ -37,10 +38,10 @@ converted is either preserved verbatim or skipped with an explicit `ctx.reportSk
 The import runs in **two passes** so that cross-file references can be resolved against a
 vault-wide index that only exists once every file has been planned and locally converted.
 
-**Planning.** Files under `pages/` and `journals/` are enumerated. Each is assigned a canonical
-name and an output path (section F). During planning, files are skipped when:
+**Planning.** Markdown files under `pages/` and `journals/` are enumerated recursively. Each is
+assigned a canonical name and an output path (section F). During planning, files are skipped when:
 
-- The path matches `whiteboards/` — not supported.
+- A scanned Markdown path contains `/whiteboards/` — not supported.
 - Two sources would map to the *same output path* — the first wins; later colliders are reported
   and skipped (no silent overwrite).
 
@@ -64,16 +65,21 @@ done on a single file without the vault index. In order:
 11. `convertAliasLinks` — `[display]([[Page]])` → `[[Page|display]]`.
 12. `convertJournalDateLinks` — `[[Aug 30th, 2024]]` → `[[2024-08-30]]`.
 13. `attachBlockIds` — `id:: <uuid>` → `^shortid` anchor on the block; collect the id index.
-14. `removeLeftoverBlockProperties` — strip remaining internal/user-listed block properties.
+14. `removeLeftoverBlockProperties` — drop or serialize remaining block properties.
+15. `normalizeWhitespace` — optionally normalize non-breaking spaces, trailing whitespace, and
+    empty bullets.
 
 While iterating, pass 1 also builds the **block-id index** (`uuid → {page, shortId}`), the
 **alias index** (`alias → canonical page`, including `title::` — ambiguous aliases removed
 afterward), and the **asset plan** (absolute source → filename). Logseq-only content (queries,
-flashcards) is applied here too (`applyLogseqOnly`).
+flashcards) is applied after `convertLocal`; section L documents how this ordering affects advanced
+query blocks and flashcard tags.
 
-After pass 1, the **known-pages set** is built from intermediates whose YAML or body is non-empty.
-Pages that are blank after pass-1 transforms are excluded so that tag conversion doesn't create
-links to pages that will never be written.
+After pass 1, the **known-pages set** is built from the lower-cased canonical names of intermediates
+whose YAML or body is non-empty. Pages that are blank after pass-1 transforms are excluded so that
+tag conversion doesn't create links to pages that will never be written. A basename by itself does
+not represent a namespaced page in this set. A page that becomes empty only after pass-2 cleanup can
+still be present in the set.
 
 > Tag conversion is **deliberately deferred to pass 2** because the `onlyExistingPages` option
 > needs the complete known-pages set, which is only available after pass 1 is complete.
@@ -86,11 +92,12 @@ links to pages that will never be written.
 3. `rewriteAliasReferences` — `[[Alias]]` → `[[Canonical|Alias]]`.
 4. `disambiguateBasenameLinks` — bare `[[name]]` → `[[full/path|name]]` when the basename is shared.
 5. `convertTags` — keep / sanitize / link / drop tags (section H).
-6. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
-7. `deOutline` — *(option)* flatten the outline for journals and/or pages.
-8. **[A1] Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
+6. `linkifyTagValuesInFrontmatter` — apply the same tag-to-link policy to scalar frontmatter values.
+7. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
+8. `deOutline` — *(option)* flatten the outline for journals and/or pages.
+9. **[A1] Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
    is skipped (reported via `ctx.reportSkipped`) rather than written as an empty file.
-9. Write the note (`yaml + body`), then copy assets.
+10. Write or replace the note (`yaml + body`). After all notes, copy planned assets.
 
 ---
 
@@ -133,9 +140,9 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `queries` | `'keep' \| 'drop'` | `keep` | `{{query}}` / `#+BEGIN_QUERY` blocks (section L). |
-| `flashcards` | `'keep' \| 'drop'` | `keep` | `#card` markers and `{{cloze}}` wrappers (section L). |
-| `logbook` | `'keep' \| 'drop'` | `drop` | `:LOGBOOK:` / `CLOCK:` time-tracking blocks on tasks. |
+| `queries` | `'keep' \| 'drop'` | `keep` | Simple `{{query}}` macros. Org `#+BEGIN_QUERY` blocks are always converted to fenced `query` blocks earlier in pass 1 (section L). |
+| `flashcards` | `'keep' \| 'drop'` | `keep` | `#card` markers and `{{cloze}}` wrappers; `#card` is subsequently subject to `dropTags` (section L). |
+| `logbook` | `'keep' \| 'drop'` | `drop` | `:LOGBOOK:` / `CLOCK:` time-tracking drawers on any block. |
 
 ### Assets
 
@@ -165,7 +172,7 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `normalizeWhitespace` | boolean | `true` | **[B1]** Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks (both standard ` ``` ` and bullet-prefixed `- ``` ` fences) and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. |
+| `normalizeWhitespace` | boolean | `true` | **[B1]** Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks (both standard ` ``` ` and bullet-prefixed `- ``` ` fences) and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. This runs before Logseq-only drop operations and pass 2, not as a final cleanup pass. |
 
 ---
 
@@ -192,7 +199,7 @@ and re-serializes it as idiomatic markdown using these heuristics:
   list, re-indented from depth 0. Headings are never list-compatible and always promoted to real
   headings, even when siblings of list items.
 - **[C1]** A **single-child chain** of prose collapses into one paragraph (avoids one-item lists), provided
-  the leaf has no children of its own.
+  the descendants remain a simple non-heading, non-task chain without branching.
 - **[C1]** Other prose bullets become paragraphs separated by blank lines.
 - **[C1]** **Tasks** always remain list items; consecutive tasks are grouped into a compact list.
 - **[C1]** **Code blocks** with a trailing `^anchor` on the closing fence are recognized as terminated.
@@ -238,35 +245,40 @@ malformed set literal emits no completion date.
 | `created::` | `➕ date` | `[created:: date]` | — |
 | `completed::` / `done::` | `✅ date` | `[completion:: date]` | — |
 | `cancelled::` / `canceled::` | `❌ date` | `[cancelled:: date]` | — |
-| `:LOGBOOK:` … `:END:` | see `logbook` option | see `logbook` option | preserved as continuation |
+| `:LOGBOOK:` … `:END:` | see `logbook` option | see `logbook` option | see `logbook` option |
 
 Notes:
 - In **plain** format, priority and scheduling are not extracted into metadata — continuation lines
   are kept as-is, so no information is destroyed (it just stays inline).
 - The **repeater** emoji form distinguishes `.+`/`++` (→ "when done") from `+` (fixed).
 - **[D1]** Task metadata dates normalize ISO and Logseq long-date values to `YYYY-MM-DD`; unparsable values
-  such as template tokens are not emitted as task metadata.
+  such as template tokens are consumed but not emitted in the rich task formats. Plain mode keeps
+  those continuation lines verbatim.
 - **[D1]** **LOGBOOK** has no Obsidian target; with `logbook: 'drop'` (default) it is removed cleanly,
-  with `logbook: 'keep'` the `:LOGBOOK:`/`CLOCK:` lines are preserved verbatim.
+  with `logbook: 'keep'` the `:LOGBOOK:`/`CLOCK:` lines are preserved verbatim. The drop pass applies
+  to drawers on non-task blocks as well as tasks.
 
 ---
 
 ## E. Journals & dates
 
-Journals have two distinct format ends, neither hard-coded:
+Journals have two distinct source patterns:
 
-- **Source filename** — `journals/2024_08_30.md` style. `journalFilenameToISO` parses
-  `YYYY[_-]M[_-]D` to ISO `YYYY-MM-DD`.
+- **Source filename** — `journals/2024_08_30.md` style. `journalFilenameToISO` parses the built-in
+  `YYYY[_-]M[_-]D` pattern to ISO `YYYY-MM-DD`. Other source filename formats are not read from
+  `logseq/config.edn`; an unrecognized journal basename is retained.
 - **Source date links** — `[[Aug 30th, 2024]]` style. `convertJournalDateLinks` parses the
-  `MMM do, yyyy` family to `[[2024-08-30]]`.
+  English-month `MMM do, yyyy` family to `[[2024-08-30]]`. Custom source page-title formats are not
+  read from `config.edn`.
 
 **Target.** The journal filename is produced from the ISO date via moment using
 `journalDateFormat`. When `useDailyNotes` is on, the folder and format come from the **Daily Notes**
 core plugin (`app.internalPlugins.getPluginById('daily-notes')`), falling back to `Journals` /
-`YYYY-MM-DD`. When off, the user's `journalFolder` / `journalDateFormat` are used.
+`YYYY-MM-DD` in the settings UI. When off, the user's `journalFolder` / `journalDateFormat` are
+used. Periodic Notes settings are not read.
 
-**[E1]** If the target format differs from ISO, pass 2 reformats every in-content `[[YYYY-MM-DD]]` link to
-the target format so links keep matching the filenames.
+**[E1]** If the target format differs from ISO, pass 2 reformats every in-content
+`[[YYYY-MM-DD]]` link, including links with a `#^anchor`, so links keep matching the filenames.
 
 ---
 
@@ -281,8 +293,10 @@ the target format so links keep matching the filenames.
   keeping the folder hierarchy.
 - The **canonical name** (the namespace/date path without `.md`) is what block references and
   wikilinks target.
-- `whiteboards/` files are reported as unsupported and skipped. The scan only includes `pages/`
-  and `journals/`.
+- The scan is recursive, but output planning uses each source file's basename; physical
+  subdirectories under `pages/` or `journals/` are not preserved unless encoded in the basename.
+- The importer does not scan the graph-level `whiteboards/` directory. A Markdown path containing
+  `whiteboards/` below a scanned note directory is reported as unsupported and skipped.
 ---
 
 ## G. Links, references & embeds
@@ -305,7 +319,8 @@ display text). **Self-aliases** (where the alias matches the canonical page name
 avoid redundant `[[Name|Name]]` rewrites. Alias rewriting also skips inline-code spans.
 The alias values still go into the note's `aliases:` frontmatter so Obsidian autocomplete works.
 **Ambiguous aliases** (the same alias claimed by multiple pages) are dropped from the map and left
-unrewritten.
+unrewritten. If a page defines both `alias::` and `aliases::`, both contribute to frontmatter, but
+`alias::` takes precedence when building the cross-file rewrite index.
 
 **[G1] Block IDs.** Logseq UUIDs (e.g. `64ab9aa4-459a-41b1-8c21-dbb38dc0c79b`) are shortened to a stable
 6-char anchor (`^64ab9a`) when `shortenBlockIds` is on (default), or kept full when off. Short-id
@@ -323,6 +338,9 @@ is context-aware:
   with no blank-line gap, for the same reason.
 - After retained block properties: the anchor lands on the **last non-blank line** (including kept
   property lines), not the content line before them.
+
+If the same full UUID is defined in more than one file, the later pass-1 definition replaces the
+earlier entry in the graph-wide index.
 
 **[G1] Block references inside code blocks.** `resolveBlockRefs` converts `((uuid))` and
 `{{embed ((uuid))}}` references **everywhere**, including inside fenced code blocks. The guard is
@@ -354,7 +372,8 @@ opening bracket/paren (`([`). For each tag, in order:
 3. **Convert to link?** Only if `convertTagsToLinks` is on:
    - If `convertTagsOnlyExistingPages` is on (default), the tag becomes `[[tag]]` **only when a
      page with that name exists** in the graph; otherwise it stays a `#tag`. This is the "smart"
-     conversion: real pages become links, ad-hoc tags stay tags.
+     conversion: real pages become links, ad-hoc tags stay tags. Matching is case-insensitive against
+     the page's full canonical name; the bare basename of a namespaced page is not added separately.
    - If `convertTagsOnlyExistingPages` is off, every tag becomes `[[tag]]`.
 4. **Keep as tag (default).** Multi-word `#[[multi word]]` is sanitized to `#multi-word`; simple
    tags are left as-is.
@@ -374,7 +393,7 @@ Tags listed in `dropTags` are also removed from frontmatter `tags:` (section I).
 - `tags` → a `tags:` list (`#` and `[[…]]` stripped; comma- and space-separated values both
   handled; values in `dropTags` removed; if all are removed, no `tags:` key is emitted).
 - `title` → registered as an additional alias (so the page is findable by title in Obsidian);
-  removed from YAML as a standalone key. Also kept in `raw` for the filename / reporting.
+  removed from YAML as a standalone key. It does not replace the filename.
 - Keys listed in `dropPageProperties` → dropped. Default: `public`, `exclude-from-graph-view`,
   `icon`. (`icon` carries a Logseq private-use glyph that renders as □ in Obsidian.)
 - **Always dropped** (Logseq-internal, never meaningful in Obsidian — not user-overridable):
@@ -391,10 +410,11 @@ Tags listed in `dropTags` are also removed from frontmatter `tags:` (section I).
   boolean words, integers, floats, or reserved YAML tokens) are double-quoted. Wikilink-valued
   scalars are also quoted (`project: "[[Big Project]]"`); multiple wikilink values become a quoted
   list.
-- **[I1]** **Date extraction:** values wrapped in `[[…]]` that parse as dates are unwrapped and emitted as
-  bare ISO dates (not quoted). Template tokens like `{{date}}` are left as-is.
-- **[I1]** **List splitting:** comma-separated values are split with bracket-awareness (respects `[[…]]`
-  and `(…)` boundaries so `[[a, b]]` is not split mid-link).
+- **[I1]** **Date extraction:** `created` and `updated` values containing a plain
+  `[[YYYY-MM-DD]]` are unwrapped and emitted as bare ISO dates. Other property keys and date
+  formats follow the normal scalar/list rules.
+- **[I1]** **List splitting:** comma-separated values are split with wikilink-bracket awareness so
+  `[[a, b]]` is not split mid-link.
 - **[I1]** **Duplicate keys:** when the same key appears multiple times, last value wins; insertion order
   of first occurrence is preserved in the YAML output.
 - **[I1]** Empty-valued properties (key with no value) are silently dropped.
@@ -426,7 +446,7 @@ handled by the `blockProperties` option:
   indentation and any trailing `^anchor` (which stays outside the brackets). The label is hidden in
   reading view while the value stays queryable. Values containing a stray `]`/`[` (outside a
   `[[wikilink]]`) fall back to `keep` so the inline-field syntax isn't broken; property-like lines
-  inside fenced code blocks are never touched.
+  inside standard fenced code blocks are never touched.
 - `drop` — the line is removed entirely.
 
 The always-dropped set and `dropBlockProperties` keys win in every mode.
@@ -452,7 +472,7 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 | `#+BEGIN_NOTE/TIP/WARNING/IMPORTANT/CAUTION/EXAMPLE` | `> [!type]` callout | **[J1]** first `**bold**` line becomes the callout title |
 | `- #+BEGIN_TIP` (bullet-prefixed) | `- > [!tip]` callout under bullet | **[J1]** |
 | `#+BEGIN_COMMENT` | `%% … %%` | |
-| `#+BEGIN_QUERY` … `#+END_QUERY` | `` ```query `` … `` ``` `` | **[J1]** preserves query DSL verbatim in a fenced block |
+| `#+BEGIN_QUERY` … `#+END_QUERY` | `` ```query `` … `` ``` `` | **[J1]** preserves query DSL in a fenced block; this happens before the `queries` keep/drop option |
 | other `#+BEGIN_*` (CENTER/VERSE/PINNED/…) | `> [!note]` fallback | nesting supported |
 | `#+BEGIN_*` inside a fenced code block | left unchanged | **[J1]** fence-aware: org markers in code are inert |
 | numbered list (bullet + `logseq.order-list-type:: number`) | `1.` `2.` `3.` | **[J1]** counter resets on level change / non-numbered sibling |
@@ -477,27 +497,37 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 
 **[K1]** Only links whose path contains `assets/` are treated as local assets; URLs (`http:`, `https:`,
 `data:`) and other paths are left alone. Asset links inside fenced code blocks **and inline code
-spans** are not converted. Assets are de-duplicated by filename when copied; the byte copy resolves
-the source relative to the note's directory (tolerant of `../` prefixes).
+spans** are not converted. The byte copy resolves the source relative to the note's directory
+(tolerant of `../` prefixes) and flattens assets into `<output>/assets/`. If that destination
+filename already exists—whether from the vault or an earlier planned asset—it is retained and the
+later asset is not copied. Asset basename collisions are therefore not renamed or reported. If a
+rewritten source path cannot be resolved on disk, no asset is planned and the rewritten link remains
+without a corresponding copy.
 
 ---
 
 ## L. Logseq-only content
 
-Each Logseq-only feature has an independent keep/drop choice. "Keep" preserves the text verbatim
-(and reports it via `ctx.reportSkipped` so the user can revisit it); "drop" removes it cleanly.
+The importer exposes independent controls for simple queries, flashcard syntax, and LOGBOOK
+drawers. Their exact behavior reflects pipeline ordering and the separate tag controls:
 
 | Feature | Syntax | Option | Default | If kept | If dropped |
 |---|---|---|---|---|---|
-| Queries | `{{query …}}`, `#+BEGIN_QUERY … #+END_QUERY` | `queries` | `keep` | left verbatim + reported | block removed, no residue |
-| Flashcards | `#card`, `{{cloze …}}` | `flashcards` | `keep` | left verbatim + reported | `{{cloze X}}` → `X`, `#card` removed |
-| Time tracking | `:LOGBOOK:` / `CLOCK:` on tasks | `logbook` | `drop` | lines kept on the task | lines removed cleanly |
+| Simple queries | `{{query …}}` | `queries` | `keep` | left verbatim and a report entry is added | matching macro removed |
+| Advanced queries | `#+BEGIN_QUERY … #+END_QUERY` | none after normalization | retained | converted to a fenced `query` block | same as keep; conversion happens before `applyLogseqOnly` sees it |
+| Flashcards | `#card`, `{{cloze …}}` | `flashcards` | `keep` | cloze wrapper retained and a report entry is added; `#card` continues through tag handling | `{{cloze X}}` → `X`, `#card` removed |
+| Time tracking | `:LOGBOOK:` / `CLOCK:` drawers | `logbook` | `drop` | drawer lines kept | drawer lines removed |
 
-Whiteboards (`whiteboards/*.edn`) are always skipped and reported (not migratable).
+Because only Markdown under `pages/` and `journals/` is scanned, graph-level whiteboard `.edn`
+files are outside the import rather than individually reported.
+
+`dropTags` is applied after the flashcard keep/drop pass. With the defaults, `card` is in
+`dropTags`, so choosing `flashcards: 'keep'` preserves `{{cloze}}` wrappers but still removes
+`#card`. Remove `card` from `dropTags` to preserve the marker too.
 
 **Template-field macros are out of scope.** Dynamic template placeholders such as `{{date:…}}`,
 `{{sunday:…}}`, `{{monday:…}}` and similar are left as literal text; converting them to Obsidian
-Templater/QuickAdd syntax is not attempted. They typically appear only on `template::` pages.
+Templater/QuickAdd syntax is not attempted.
 
 ---
 
@@ -512,6 +542,8 @@ The importer handles this natively, with no flattening:
 
 - **Output-path collisions** (two sources mapping to the *exact same* path) are detected during
   planning. The first writer wins; later colliders are reported and skipped — no silent overwrite.
+- A note that already exists in the vault at a planned output path is replaced via
+  `vault.modify`; collision detection only covers sources within the current import plan.
 - **[M1] Ambiguous bare links.** A `basename → [paths]` index is built from all plans. In pass 2,
   `disambiguateBasenameLinks` rewrites any bare `[[name]]` whose basename maps to 2+ notes into
   `[[full/path|name]]` (using the first path as canonical, and preserving any explicit display
@@ -519,5 +551,5 @@ The importer handles this natively, with no flattening:
   left as-is — it already resolves unambiguously in Obsidian's shortest-path resolution. Links that
   already contain a `/` (namespace-style) or a `#` (block/heading ref) are also left untouched.
 
-This mirrors exactly how Obsidian itself disambiguates same-named notes, so the output stays
-idiomatic and no data is lost.
+This uses Obsidian's full-path link syntax so same-named notes can remain in their namespaces
+without global renaming.
