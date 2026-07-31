@@ -25,7 +25,7 @@ We're still experimenting with contributions, if you have any questions, please 
 
 ### Bounties
 
-Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty). We're looking for developers who have experience with the relevant import formats, and TypeScript/Obsidian development. How to claim a bounty:
+Some issues have been [tagged with #bounty][def]. We're looking for developers who have experience with the relevant import formats, and TypeScript/Obsidian development. How to claim a bounty:
 
 1. **Apply for a bounty** — to apply reply to the issue with the following details:
 	- 1-2 sentences about why you would be a good fit
@@ -37,3 +37,6 @@ Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidi
 5. **Pass code review** — your code must meet the requirements listed in the issue, and the code standards above
 6. **Agree to CLA** — the [Contributor License Agreement](https://github.com/obsidianmd/obsidian-releases/blob/master/cla.md) grants Obsidian license to use your code.
 7. **Merging and payment** — once your PR is merged, we will submit payment via [Obsidian Credit](https://help.obsidian.md/Licenses+and+payment/Obsidian+Credit), PayPal, GitHub Sponsors, Ko-Fi, or Buy Me a Coffee.
+
+
+[def]: https://github.com/obsidianmd/obsidian-importer/labels/bounty
