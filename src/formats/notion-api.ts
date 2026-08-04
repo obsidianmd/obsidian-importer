@@ -445,8 +445,10 @@ export class NotionAPIImporter extends FormatImporter {
 			new Notice(`Failed to load pages: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
 		finally {
-			// Re-enable button
-			if (this.listPagesButton) {
+			// Re-enable button. Compared rather than tested for truthiness: an
+			// Obsidian component carries a then() for chaining, which reads to
+			// typescript-eslint as testing a promise.
+			if (this.listPagesButton !== null) {
 				this.listPagesButton.setDisabled(false);
 				this.listPagesButton.setButtonText('Refresh');
 			}

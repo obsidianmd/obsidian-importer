@@ -14,7 +14,7 @@ import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
-import { truncateText } from './util';
+import { extractErrorMessage, truncateText } from './util';
 
 declare global {
 	interface Window {
@@ -50,6 +50,27 @@ export type AuthCallback = (data: ObsidianProtocolData) => void;
 
 // Temporary compatibility for in progress PRs
 export type ProgressReporter = ImportContext;
+
+/**
+ * A skip or failure reason as readable text.
+ *
+ * Callers pass strings, Errors and plain API error objects alike, and String()
+ * turns the last of those into "[object Object]".
+ */
+function describeReason(reason: unknown): string {
+	if (typeof reason === 'string') return reason;
+
+	const message = extractErrorMessage(reason);
+	if (message !== undefined) return message;
+
+	try {
+		return JSON.stringify(reason) ?? String(reason);
+	}
+	catch {
+		// Circular or otherwise unserialisable
+		return String(reason);
+	}
+}
 
 export class ImportContext {
 	notes = 0;
@@ -163,7 +184,7 @@ export class ImportContext {
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Skipped: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
+			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
 		importLogEl.show();
@@ -184,7 +205,7 @@ export class ImportContext {
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Failed: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(String(reason), this.maxFileNameLength)}` : '') });
+			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
 		});
 		importLogEl.scrollTop = importLogEl.scrollHeight;
 		importLogEl.show();

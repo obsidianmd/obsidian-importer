@@ -157,8 +157,8 @@ export async function makeNotionRequest<T>(
 			return makeNotionRequest(requestFn, ctx, retryCount + 1);
 		}
 
-		// Re-throw other errors
-		throw error;
+		// Re-throw what was caught, not the narrowed view of it
+		throw e;
 	}
 }
 
