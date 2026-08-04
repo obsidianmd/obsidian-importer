@@ -137,12 +137,12 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
-		this.addSecretSetting('Airtable Personal Access Token', this.createTokenDescription());
+		this.addSecretSetting('Airtable personal access token', this.createTokenDescription());
 
 		// Load bases and tables button
 		const loadSetting = new Setting(this.modal.contentEl)
 			.setName('Select tables to import')
-			.setDesc('Click "Load" to browse your Airtable bases and tables.');
+			.setDesc('Load your Airtable bases and tables, then choose what to import.');
 
 		// Toggle select all/none button
 		loadSetting.addButton(button => {
@@ -203,7 +203,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Add placeholder text
 		const placeholder = this.treeContainer.createDiv('publish-placeholder');
-		placeholder.setText('Click "Load" to load your Airtable bases and tables.');
+		placeholder.setText('Load your Airtable bases and tables to get started.');
 
 		// Formula import strategy
 		new Setting(this.modal.contentEl)
@@ -256,7 +256,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	private createTokenDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText('Create a Personal Access Token in your Airtable account settings. ');
 		frag.createEl('a', {
 			text: 'Get token',
@@ -270,7 +270,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private async loadTree(): Promise<void> {
 		if (!this.airtableToken) {
-			new Notice('Please enter your Airtable Personal Access Token first.');
+			new Notice('Please enter your Airtable personal access token first.');
 			return;
 		}
 
@@ -413,7 +413,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.treeContainer.empty();
 
 		if (this.tree.length === 0) {
-			this.treeContainer.createEl('div', {
+			this.treeContainer.createDiv({
 				text: 'No bases found.',
 				cls: 'airtable-tree-empty'
 			});
@@ -450,12 +450,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		const isCollapsible = node.type === 'base' || hasChildren;
 		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
 
-		// Apply disabled styling
-		if (node.disabled) {
-			treeItemSelf.addClass('is-disabled');
-			treeItemSelf.style.opacity = '0.5';
-			treeItemSelf.style.pointerEvents = 'none';
-		}
+		// Apply disabled styling. The dimming and pointer handling live in
+		// styles.css, keyed off is-disabled.
+		treeItemSelf.toggleClass('is-disabled', node.disabled);
 
 		// Collapse/Expand arrow
 		if (isCollapsible) {
@@ -470,10 +467,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
 			treeItem.toggleClass('is-collapsed', !!node.collapsed);
 
-			// Allow arrow click even when disabled
-			if (node.disabled) {
-				collapseIcon.style.pointerEvents = 'auto';
-			}
+			// The arrow stays clickable on a disabled row, so an inherited-selection
+			// base can still be expanded. Handled in styles.css.
 
 			let childrenContainer: HTMLElement;
 
@@ -855,7 +850,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	async import(ctx: ImportContext): Promise<void> {
 		if (!this.airtableToken) {
-			new Notice('Please enter your Airtable Personal Access Token.');
+			new Notice('Please enter your Airtable personal access token.');
 			return;
 		}
 

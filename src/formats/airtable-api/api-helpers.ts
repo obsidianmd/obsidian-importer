@@ -39,7 +39,7 @@ async function waitForRateLimit(): Promise<void> {
 
 	if (timeSinceLastRequest < RATE_LIMIT_DELAY) {
 		const waitTime = RATE_LIMIT_DELAY - timeSinceLastRequest;
-		await new Promise(resolve => setTimeout(resolve, waitTime));
+		await new Promise(resolve => window.setTimeout(resolve, waitTime));
 	}
 
 	lastRequestTime = Date.now();
@@ -77,7 +77,7 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions, at
 				: 30000; // Default 30 seconds as per Airtable docs
 
 			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s (attempt ${attempt}/${MAX_RATE_LIMIT_RETRIES})...`);
-			await new Promise(resolve => setTimeout(resolve, retryAfter));
+			await new Promise(resolve => window.setTimeout(resolve, retryAfter));
 			return makeAirtableRequest(options, attempt + 1);
 		}
 

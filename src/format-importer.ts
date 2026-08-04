@@ -189,15 +189,15 @@ export abstract class FormatImporter {
 		}
 
 		let updateFiles = () => {
-			let descriptionFragment = document.createDocumentFragment();
+			let descriptionFragment = createFragment();
 			let fileCount = this.files.length;
 			let pathText = this.files.map(f => f.name).join(', ');
 			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
 				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
 			}
-			descriptionFragment.createEl('span', { text: `These ${fileCount} files will be imported: ` });
+			descriptionFragment.createSpan({ text: `These ${fileCount} files will be imported: ` });
 			descriptionFragment.createEl('br');
-			descriptionFragment.createEl('span', { cls: 'u-pop', text: pathText });
+			descriptionFragment.createSpan({ cls: 'u-pop', text: pathText });
 			fileLocationSetting.setDesc(descriptionFragment);
 		};
 	}
@@ -306,7 +306,7 @@ export abstract class FormatImporter {
 	}
 
 	async pause(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
-		const promise = new Promise(resolve => setTimeout(resolve, durationSeconds * 1_000));
+		const promise = new Promise(resolve => window.setTimeout(resolve, durationSeconds * 1_000));
 
 		if (ctx) {
 			const previousStatusMessage = ctx.statusMessage;

@@ -21,6 +21,7 @@
 		"@types/xml-flow": "1.0.1",
 		"esbuild": "0.25.4",
 		"eslint": "9.39.4",
+		"eslint-plugin-obsidianmd": "^0.4.1",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"tsx": "4.22.1",

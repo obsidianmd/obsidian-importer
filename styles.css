@@ -197,6 +197,19 @@
 	padding: 30px 10px;
 }
 
+/*
+ * A row whose selection is inherited from its base: dimmed and not clickable,
+ * except for the collapse arrow, so the base can still be expanded.
+ */
+.import-section .tree-item-self.is-disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.import-section .tree-item-self.is-disabled .collapse-icon {
+	pointer-events: auto;
+}
+
 /* Shown while an importer prepares, e.g. fetching field schemas before configuration */
 .importer-loading {
 	display: flex;
