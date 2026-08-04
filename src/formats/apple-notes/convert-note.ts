@@ -371,7 +371,7 @@ export class NoteConverter extends ANConverter {
 
 		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
 		let link = attachment
-			? `\n${this.app.fileManager.generateMarkdownLink(attachment, parentNotePath)}\n` 
+			? `\n!${this.app.fileManager.generateMarkdownLink(attachment, parentNotePath)}\n` 
 			: ` **(error reading attachment)**`;
 		
 		if (this.importer.includeHandwriting && row.ZHANDWRITINGSUMMARY) {

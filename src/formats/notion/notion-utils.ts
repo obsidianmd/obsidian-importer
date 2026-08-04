@@ -1,4 +1,4 @@
-import type { Moment } from 'moment';
+import { moment } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 
 export const stripNotionId = (id: string) => {
@@ -18,7 +18,7 @@ export const parseParentIds = (filename: string) => {
 		.filter((id) => id) as string[];
 };
 
-export function parseDate(content: Moment) {
+export function parseDate(content: moment.Moment) {
 	if (content.hour() === 0 && content.minute() === 0) {
 		return content.format('YYYY-MM-DD');
 	}

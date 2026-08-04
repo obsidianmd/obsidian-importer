@@ -5,6 +5,7 @@ import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
+import { blockRefRegex, extractBlockReferenceUIDs } from './roam/block-refs';
 import { moment } from 'obsidian';
 
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
@@ -13,8 +14,6 @@ const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.jo
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
-
-const blockRefRegex = /(?<=\(\()\b(.*?)\b(?=\)\))/g;
 
 export class RoamJSONImporter extends FormatImporter {
 	downloadAttachments: boolean = false;
@@ -222,8 +221,8 @@ export class RoamJSONImporter extends FormatImporter {
 					blockString: block.string,
 				};
 
-				const blockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
-				if (blockRefRegex.test(block.string)) {
+				const containsBlockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
+				if (containsBlockRefRegex.test(block.string)) {
 					toPostProcessblockLocations.set(block.uid, info);
 				}
 				blockLocations.set(block.uid, info);
@@ -411,11 +410,10 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	private async extractAndProcessBlockReferences(markdownPages: Map<string, string>, blockLocations: Map<string, BlockInfo>, graphFolder: string, inputString: string): Promise<string> {
-		// Find all the matches using the regular expression
-		const blockReferences = inputString.match(blockRefRegex);
+		const blockReferences = extractBlockReferenceUIDs(inputString);
 
 		// If there are no block references, return the input string as is
-		if (!blockReferences) {
+		if (blockReferences.length === 0) {
 			return inputString;
 		}
 
@@ -451,7 +449,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		// Replace the block references in the input string with the processed ones
 		let index = 0;
-		const processedString = inputString.replace(/\(\(\b.*?\b\)\)/g, () => processedBlocks[index++]);
+		const processedString = inputString.replace(blockRefRegex, () => processedBlocks[index++]);
 
 		return processedString;
 	}
