@@ -425,7 +425,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 			and: [
 				`note["${databasePropertyName}"] == link("${databaseName}.base")`
 			]
-		} as any
+		}
 	};
 
 	// Add formulas if there are any
@@ -974,10 +974,8 @@ export async function processRelationProperties(
 				if (relatedPageIds.length > 0) {
 					// Get the target database ID from the relation config
 					// propConfig is from database schema, which has different structure than page properties
-					// Using 'as any' because the relation config structure is not fully typed in Notion's API,
-					// but we know it contains a database_id property for relation types.
 					const targetDatabaseId = propConfig.type === 'relation' && 'relation' in propConfig
-						? (propConfig.relation as any)?.database_id || ''
+						? propConfig.relation?.database_id || ''
 						: '';
 
 					// Add placeholder

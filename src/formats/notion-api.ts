@@ -597,7 +597,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderPageTree(): void {
 		// Try to get container reference if lost
 		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list') as HTMLElement;
+			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list');
 		}
 
 		if (!this.pageTreeContainer) {

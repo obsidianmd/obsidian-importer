@@ -118,7 +118,7 @@ export class AppleJournalImporter extends FormatImporter {
 				}
 			}
 			catch (error) {
-				ctx.reportFailed(file.fullpath, error as Error);
+				ctx.reportFailed(file.fullpath, error);
 			}
 
 			ctx.reportProgress(index + 1, this.files.length);

@@ -4,16 +4,7 @@
  */
 
 import { 
-	BlockObjectResponse, 
-	ToggleBlockObjectResponse,
-	TableBlockObjectResponse,
-	TableRowBlockObjectResponse,
-	CalloutBlockObjectResponse,
-	EquationBlockObjectResponse,
-	BookmarkBlockObjectResponse,
-	EmbedBlockObjectResponse,
-	LinkPreviewBlockObjectResponse,
-	CodeBlockObjectResponse,
+	BlockObjectResponse,
 	RichTextItemResponse,
 } from '@notionhq/client';
 import { normalizePath, TFile } from 'obsidian';
@@ -707,7 +698,7 @@ async function createSyncedBlockFile(
 			throw new Error(`Retrieved block ${blockId} is partial, cannot process synced block`);
 		}
 		
-		const block = retrievedBlock as BlockObjectResponse;
+		const block = retrievedBlock;
 		
 		// Get the block's children (the actual content)
 		const children: BlockObjectResponse[] = block.has_children 
@@ -835,8 +826,7 @@ export async function convertToggle(
 ): Promise<string> {
 	if (block.type !== 'toggle') return '';
 	
-	const toggleBlock = block as ToggleBlockObjectResponse;
-	const toggleData = toggleBlock.toggle;
+	const toggleData = block.toggle;
 	
 	// Get toggle text
 	const text = convertRichText(toggleData.rich_text, context);
@@ -855,8 +845,7 @@ export async function convertTable(
 ): Promise<string> {
 	if (block.type !== 'table') return '';
 	
-	const tableBlock = block as TableBlockObjectResponse;
-	const tableData = tableBlock.table;
+	const tableData = block.table;
 	
 	// Table configuration
 	const tableWidth = tableData.table_width || 0;
@@ -879,8 +868,7 @@ export async function convertTable(
 				const row = rows[rowIndex];
 				if (row.type !== 'table_row') continue;
 				
-				const rowBlock = row as TableRowBlockObjectResponse;
-				const rowData = rowBlock.table_row;
+				const rowData = row.table_row;
 				if (!rowData.cells) continue;
 				
 				const cells = rowData.cells; // Array of RichText arrays
@@ -1007,8 +995,7 @@ export async function convertQuote(block: BlockObjectResponse, context: BlockCon
 export async function convertCallout(block: BlockObjectResponse, context: BlockConversionContext): Promise<string> {
 	if (block.type !== 'callout') return '';
 	
-	const calloutBlock = block as CalloutBlockObjectResponse;
-	const calloutData = calloutBlock.callout;
+	const calloutData = block.callout;
 	
 	// Get callout icon and text
 	const icon = (calloutData.icon && 'emoji' in calloutData.icon) ? calloutData.icon.emoji : '📌';
@@ -1062,8 +1049,7 @@ export function convertDivider(block: BlockObjectResponse): string {
 export function convertEquation(block: BlockObjectResponse): string {
 	if (block.type !== 'equation') return '';
 	
-	const equationBlock = block as EquationBlockObjectResponse;
-	const equationData = equationBlock.equation;
+	const equationData = block.equation;
 	if (!equationData.expression) return '';
 	
 	// Obsidian uses $$ for block-level math
@@ -1076,8 +1062,7 @@ export function convertEquation(block: BlockObjectResponse): string {
 export function convertCode(block: BlockObjectResponse, context?: BlockConversionContext): string {
 	if (block.type !== 'code') return '';
 	
-	const codeBlock = block as CodeBlockObjectResponse;
-	const codeData = codeBlock.code;
+	const codeData = block.code;
 	if (!codeData) return '';
 	
 	// Get code content from rich_text - use plain_text to avoid formatting in code blocks
@@ -1203,8 +1188,7 @@ function isEmbeddableUrl(url: string): boolean {
 export function convertBookmark(block: BlockObjectResponse): string {
 	if (block.type !== 'bookmark') return '';
 	
-	const bookmarkBlock = block as BookmarkBlockObjectResponse;
-	const bookmarkData = bookmarkBlock.bookmark;
+	const bookmarkData = block.bookmark;
 	
 	const url = bookmarkData.url || '';
 	const caption = getCaptionFromBlock(block);
@@ -1224,8 +1208,7 @@ export function convertBookmark(block: BlockObjectResponse): string {
 export function convertEmbed(block: BlockObjectResponse): string {
 	if (block.type !== 'embed') return '';
 	
-	const embedBlock = block as EmbedBlockObjectResponse;
-	const embedData = embedBlock.embed;
+	const embedData = block.embed;
 	
 	const url = embedData.url || '';
 	const caption = getCaptionFromBlock(block);
@@ -1249,8 +1232,7 @@ export function convertEmbed(block: BlockObjectResponse): string {
 export function convertLinkPreview(block: BlockObjectResponse): string {
 	if (block.type !== 'link_preview') return '';
 	
-	const linkPreviewBlock = block as LinkPreviewBlockObjectResponse;
-	const linkPreviewData = linkPreviewBlock.link_preview;
+	const linkPreviewData = block.link_preview;
 	
 	const url = linkPreviewData.url || '';
 	

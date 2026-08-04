@@ -2020,7 +2020,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				// Parse existing YAML to extract existing views (Obsidian Bases internal format)
 				try {
-					const existingConfig = parseYaml(existingContent) as any;
+					const existingConfig = parseYaml(existingContent);
 					const existingViews = existingConfig.views || [];
 
 					// Merge new views with existing ones (avoid duplicates by view name)

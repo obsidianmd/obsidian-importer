@@ -6,9 +6,7 @@ import {
 	Client,
 	BlockObjectResponse,
 	PageObjectResponse,
-	Heading1BlockObjectResponse,
-	Heading2BlockObjectResponse,
-	Heading3BlockObjectResponse
+	Heading1BlockObjectResponse
 } from '@notionhq/client';
 import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
@@ -192,12 +190,12 @@ export interface FormatAttachmentLinkParams {
 export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
 
 /**
- * Common type for heading content with rich text and color
+ * Common type for heading content with rich text and color.
+ *
+ * Notion gives heading_1, heading_2 and heading_3 the same shape, so naming one
+ * of them describes all three; a union of the three collapses to this anyway.
  */
-export type HeaderContentWithRichTextAndColorResponse =
-	Heading1BlockObjectResponse['heading_1'] |
-	Heading2BlockObjectResponse['heading_2'] |
-	Heading3BlockObjectResponse['heading_3'];
+export type HeaderContentWithRichTextAndColorResponse = Heading1BlockObjectResponse['heading_1'];
 
 /**
  * Context for block conversion operations

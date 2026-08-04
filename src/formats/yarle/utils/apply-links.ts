@@ -42,7 +42,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 				}
 
 				const notebookName = linkProps.notebookName;
-				const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName as string) : fileName as string;
+				const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName) : fileName;
 
 				let replacement = encodedFileName;
 				if (notebookName && !notebookFolder.endsWith(notebookName)) {

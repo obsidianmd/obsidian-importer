@@ -1086,11 +1086,11 @@ export class OneNoteImporter extends FormatImporter {
 
 
 	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext | undefined, retryCount?: number | undefined): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext | undefined, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext, retryCount?: number): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext, retryCount?: number): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext, retryCount?: number): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext, retryCount?: number): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
