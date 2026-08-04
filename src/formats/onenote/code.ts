@@ -12,7 +12,7 @@ function isCode(node: Node|null): node is HTMLElement {
 export function isParagraphWrappingOnlyCode(node: Node|null): node is HTMLParagraphElement {
 	return (
 		node != null
-		&& node instanceof HTMLParagraphElement
+		&& node.instanceOf(HTMLParagraphElement)
 		&& Array.from(node.childNodes)
 			.every(c => isCode(c) || isBRElement(c))
 	);

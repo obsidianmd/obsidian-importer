@@ -259,8 +259,10 @@ export abstract class FormatImporter {
 	 * @returns Full path for where the attachment should be saved, according to the user's settings
 	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		let sourceFile: TFile | null = null;
-		
+		// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks at
+		// sourceFile.parent, so a stand-in carrying just the folder is enough.
+		let sourceFile: { parent: TFolder } | null = null;
+
 		// If sourcePath is provided, use its parent folder for attachment placement
 		// This is important for respecting user's "Same folder as current file" setting
 		if (sourcePath) {
@@ -268,18 +270,15 @@ export abstract class FormatImporter {
 			if (parent) {
 				const parentFolder = this.vault.getAbstractFileByPath(normalizePath(parent));
 				if (parentFolder instanceof TFolder) {
-					sourceFile = { parent: parentFolder } as TFile;
+					sourceFile = { parent: parentFolder };
 				}
 			}
 		}
-		
+
 		// Fallback to outputFolder if sourcePath not provided or parent folder not found
 		if (!sourceFile) {
 			const outputFolder = await this.getOutputFolder();
-			// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks sourceFile.parent.
-			sourceFile = !!outputFolder
-				? { parent: outputFolder } as TFile
-				: null;
+			sourceFile = outputFolder ? { parent: outputFolder } : null;
 		}
 
 		const { basename, extension } = parseFilePath(filename);

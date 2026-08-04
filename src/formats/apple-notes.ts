@@ -154,12 +154,13 @@ export class AppleNotesImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		this.ctx = ctx;
 		this.protobufRoot = Root.fromJSON(descriptor);
-		this.rootFolder = await this.getOutputFolder() as TFolder;
+		const rootFolder = await this.getOutputFolder();
 
-		if (!this.rootFolder) {
+		if (!rootFolder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
+		this.rootFolder = rootFolder;
 
 		this.database = await this.getNotesDatabase() as SQLiteTagSpawned;
 		if (!this.database) return;

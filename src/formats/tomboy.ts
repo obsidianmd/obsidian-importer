@@ -72,7 +72,7 @@ export class TomboyImporter extends FormatImporter {
 
 		new Setting(this.modal.contentEl)
 			.setName('Keep title in Markdown')
-			.setDesc('Choose whether to keep the note title in the Markdown content. "Automatic" keeps titles only when special characters are lost in filename conversion.')
+			.setDesc('Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.')
 			.addDropdown((dropdown: DropdownComponent) => {
 				dropdown.addOption('automatic', 'Automatic')
 					.addOption('yes', 'Keep titles')

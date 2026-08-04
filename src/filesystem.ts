@@ -1,9 +1,15 @@
 import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
+/*
+ * Type-only, so these are erased at compile time and nothing is loaded on
+ * mobile. The runtime lookups are the Platform.isDesktopApp requires below.
+ */
+/* eslint-disable obsidianmd/no-nodejs-modules */
 import type * as NodeFS from 'node:fs';
 import type * as NodeOS from 'node:os';
 import type * as NodePath from 'node:path';
 import type * as NodeUrl from 'node:url';
 import type * as NodeZlib from 'node:zlib';
+/* eslint-enable obsidianmd/no-nodejs-modules */
 import { Platform } from 'obsidian';
 import { configureWebWorker } from './z-worker-inline';
 

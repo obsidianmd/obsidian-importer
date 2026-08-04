@@ -32,13 +32,22 @@ export default defineConfig(
 			// Sentence case, but the products being imported keep their own casing,
 			// and identifiers that appear verbatim in a vault are not prose.
 			'obsidianmd/ui/sentence-case': ['warn', {
+				// Replaces the plugin's default list rather than extending it, so
+				// anything this repo writes has to be named here - including the
+				// defaults it still relies on, like Markdown.
 				brands: [
-					'Airtable', 'Apple', 'Bear', 'Evernote', 'Google Keep', 'Notion',
-					'Obsidian', 'OneNote', 'Roam', 'Tomboy', 'Microsoft', 'iCloud',
+					'Airtable', 'Apple', 'Apple Notes', 'Bear', 'Evernote', 'Google', 'Google Keep',
+					'Markdown', 'Microsoft', 'Notion', 'Obsidian', 'OneNote', 'Roam',
+					'Tomboy', 'iCloud',
 				],
-				// Property names that are written verbatim into a vault, so their
-				// casing is data rather than presentation
-				ignoreRegex: ['^base$', 'airtable-id'],
+				// Not prose: property names written verbatim into a vault, a date
+				// format, and quoted button labels the text is telling you to click.
+				ignoreRegex: [
+					'^base$', '^cover$', 'airtable-id', 'notion-id',
+					'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
+				],
+				// A unit, not a word
+				ignoreWords: ['MB', '(MB)', 'TODO'],
 			}],
 		},
 	},

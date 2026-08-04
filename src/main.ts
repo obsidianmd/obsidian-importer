@@ -342,13 +342,13 @@ export default class ImporterPlugin extends Plugin {
 			},
 		};
 
-		this.addRibbonIcon('lucide-import', 'Open Importer', () => {
+		this.addRibbonIcon('lucide-import', 'Open importer', () => {
 			new ImporterModal(this.app, this).open();
 		});
 
 		this.addCommand({
 			id: 'open-modal',
-			name: 'Open importer',
+			name: 'Import notes',
 			callback: () => {
 				new ImporterModal(this.app, this).open();
 			},

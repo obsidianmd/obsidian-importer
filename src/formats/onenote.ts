@@ -58,7 +58,7 @@ function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedR
 }
 
 function isHTMLElement(node: Node): node is HTMLElement {
-	return node instanceof HTMLElement;
+	return node.instanceOf(HTMLElement);
 }
 
 export class OneNoteImporter extends FormatImporter {
@@ -192,7 +192,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.modal.contentEl.createEl('div', { text: 'An error occurred while trying to sign you in.' })
+			this.modal.contentEl.createDiv({ text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
 		}
@@ -371,7 +371,7 @@ export class OneNoteImporter extends FormatImporter {
 				let checkbox = label.createEl('input');
 				checkbox.type = 'checkbox';
 
-				label.appendChild(document.createTextNode(section.displayName!));
+				label.appendText(section.displayName!);
 				label.createEl('br');
 
 				checkbox.addEventListener('change', () => {
@@ -416,7 +416,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		if (!this.graphData.accessToken) {
-			new Notice('Please sign in to your Microsoft Account.');
+			new Notice('Please sign in to your Microsoft account.');
 			return;
 		}
 
@@ -550,8 +550,14 @@ export class OneNoteImporter extends FormatImporter {
 			const outputPath = this.getEntityPathNoParent(page.id!, outputFolder!.name)!;
 
 			let pageFolder: TFolder;
-			if (!await this.vault.adapter.exists(outputPath)) pageFolder = await this.vault.createFolder(outputPath);
-			else pageFolder = this.vault.getAbstractFileByPath(outputPath) as TFolder;
+			if (!await this.vault.adapter.exists(outputPath)) {
+				pageFolder = await this.vault.createFolder(outputPath);
+			}
+			else {
+				const existing = this.vault.getAbstractFileByPath(outputPath);
+				if (!(existing instanceof TFolder)) throw new Error(`${outputPath} is not a folder`);
+				pageFolder = existing;
+			}
 
 			// Process InkML content if present and convert to SVG
 			let inkEmbedMarkdown = '';
@@ -626,7 +632,7 @@ export class OneNoteImporter extends FormatImporter {
 				let obsidianMath = `$${latexString}$`;
 
 				// Create a text node with the LaTeX
-				const textNode = document.createTextNode(obsidianMath);
+				const textNode = mathElement.doc.createTextNode(obsidianMath);
 
 				// Replace the MathML element with the LaTeX text node
 				mathElement.parentNode?.replaceChild(textNode, mathElement);
@@ -634,7 +640,7 @@ export class OneNoteImporter extends FormatImporter {
 			catch (error) {
 				console.warn('Failed to convert MathML to LaTeX:', error);
 				// If conversion fails, keep the original MathML or replace with a placeholder
-				const fallbackText = document.createTextNode('[Math equation - conversion failed]');
+				const fallbackText = mathElement.doc.createTextNode('[Math equation - conversion failed]');
 				mathElement.parentNode?.replaceChild(fallbackText, mathElement);
 			}
 		}
@@ -869,7 +875,7 @@ export class OneNoteImporter extends FormatImporter {
 				const filename = await this.fetchAttachment(progress, originalName, contentLocation);
 
 				// Create a new <p> element with the Markdown-style link
-				const markdownLink = document.createElement('p');
+				const markdownLink = createEl('p');
 				markdownLink.innerText = `![[${filename}]]`;
 
 				// Replace the <object> tag with the new <p> element
@@ -900,12 +906,12 @@ export class OneNoteImporter extends FormatImporter {
 		for (const video of videos) {
 			// Obsidian only supports embedding YouTube videos, unlike OneNote
 			if (video.src.contains('youtube.com') || video.src.contains('youtu.be')) {
-				const embedNode = document.createTextNode(`![Embedded YouTube video](${video.src})`);
+				const embedNode = video.doc.createTextNode(`![Embedded YouTube video](${video.src})`);
 				video.parentNode?.replaceChild(embedNode, video);
 			}
 			else {
 				// If it's any other website, convert to a basic link
-				const linkNode = document.createElement('a');
+				const linkNode = createEl('a');
 				linkNode.href = video.src;
 				video.parentNode?.replaceChild(linkNode, video);
 			}
@@ -920,7 +926,7 @@ export class OneNoteImporter extends FormatImporter {
 			await new Promise(resolve => {
 				progress.status('Pausing attachment download to avoid rate limiting.');
 				this.attachmentDownloadPauseCounter = 0;
-				setTimeout(resolve, 3000);
+				window.setTimeout(resolve, 3000);
 			});
 		}
 		this.attachmentDownloadPauseCounter++;
@@ -973,7 +979,7 @@ export class OneNoteImporter extends FormatImporter {
 	// Convert OneNote styled elements to valid HTML for proper htmlToMarkdown conversion
 	styledElementToHTML(pageElement: HTMLElement): void {
 		// Map styles to their elements
-		const styleMap: { [key: string]: string } = {
+		const styleMap: { [key: string]: keyof HTMLElementTagNameMap } = {
 			'font-weight:bold': 'b',
 			'font-style:italic': 'i',
 			'text-decoration:underline': 'u',
@@ -984,7 +990,7 @@ export class OneNoteImporter extends FormatImporter {
 		const cites = pageElement.findAll('cite');
 		cites.forEach((cite) => {
 			cite.prepend('> ');
-			cite.append(cite.ownerDocument.createElement('br'));
+			cite.append(createEl('br'));
 		});
 
 		const elements = pageElement.querySelectorAll('*');
@@ -996,13 +1002,13 @@ export class OneNoteImporter extends FormatImporter {
 
 			if (isInlineCodeSpan(element)) {
 				// Convert preformatted text into an inline code span
-				const codeElement = document.createElement('code');
+				const codeElement = createEl('code');
 				codeElement.append(...Array.from(element.childNodes));
 				element.replaceWith(codeElement);
 			}
 			else if (isFenceCodeBlock(element)) {
 				// Convert preformatted text into a code fence wrapped in a pre element
-				const codeElement = document.createElement('pre');
+				const codeElement = createEl('pre');
 				codeElement.append('```\n');
 				codeElement.append(...Array.from(element.childNodes));
 				getSiblingsInSameCodeBlock(element).forEach(sibling => {
@@ -1030,7 +1036,7 @@ export class OneNoteImporter extends FormatImporter {
 					const matchingStyle = Object.keys(styleMap).find(key => style.includes(key));
 					if (matchingStyle) {
 						const newElementTag = styleMap[matchingStyle];
-						const newElement = document.createElement(newElementTag);
+						const newElement = createEl(newElementTag);
 						newElement.append(...Array.from(element.childNodes));
 						element.replaceWith(newElement);
 					}

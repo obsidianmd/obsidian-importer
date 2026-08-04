@@ -46,6 +46,8 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 			const property = parseProperty(row);
 			if (property) {
 				if (property.title == 'Tags') {
+					// Not UI text: the frontmatter key Obsidian reads tags from
+					// eslint-disable-next-line obsidianmd/ui/sentence-case
 					property.title = 'tags';
 					if (typeof property.content === 'string') {
 						property.content = property.content.replace(/ /g, '-');
@@ -242,14 +244,13 @@ function fixEquations(body: HTMLElement) {
 	removeTags(body, 'style');
 	// Notion adds an extra <br> if there is math just after a linebreak
 	stripLeadingBr(body, 'span.notion-text-equation-token');
-	const dom = body.ownerDocument;
 	// Display Equations
 	const figEqnEls = body.findAll('figure.equation');
 	for (const figEqn of figEqnEls) {
 		const annotation = figEqn.find('annotation');
 		if (!annotation) continue;
 		// Turn into <div> for reliable Markdown conversion
-		const mathDiv = dom.createElement('div');
+		const mathDiv = createDiv();
 		mathDiv.className = 'annotation';
 		// Put in <div> to aid stability of htmlToMarkdown conversion
 		mathDiv.appendText(`$$${formatMath(annotation.textContent)}$$`);
@@ -286,13 +287,12 @@ function isCallout(element: Element) {
 }
 
 function fixNotionCallouts(body: HTMLElement) {
-	const dom = body.ownerDocument;
 	for (let callout of body.findAll('figure.callout')) {
 		// Can have 1–2 children; we always want .lastElementChild for callout content.
 		const content = callout.lastElementChild?.childNodes;
 		if (!content) continue;
 		// Reformat as blockquote; HTMLtoMarkdown will convert automatically
-		const calloutBlock = dom.createElement('blockquote');
+		const calloutBlock = createEl('blockquote');
 		calloutBlock.append(...Array.from(content));
 		// Add & format callout title element
 		quoteToCallout(calloutBlock);
@@ -313,7 +313,7 @@ function quoteToCallout(quoteBlock: HTMLQuoteElement): void {
 	const node: ChildNode | null = quoteBlock.firstChild;
 	const name = node?.nodeName ?? '';
 	const dom = quoteBlock.ownerDocument;
-	const titlePar = dom.createElement('p');
+	const titlePar = createEl('p');
 	titlePar.appendText('[!important] ');
 
 	if (name == '#text') {
@@ -441,8 +441,9 @@ function mergeAdjacentTags(body: HTMLElement, tagName: FormatTagName) {
  * Strips leading <br> artificats created by Notion
  * These often occur before strong | em | mark | del tags
  */
-function stripLeadingBr(body: HTMLElement, tagName: FormatTagName) {
-	const tags = body.findAll(tagName);
+// Takes a selector rather than a tag name: fixEquations passes one.
+function stripLeadingBr(body: HTMLElement, selector: string) {
+	const tags = body.findAll(selector);
 	if (!tags) return;
 	for (const tag of tags) {
 		const prevNode = tag.previousSibling;
@@ -457,14 +458,13 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 		// Only split if there is a <br> directly inside (matches the original regex's behavior on flat formatting tags)
 		const hasDirectBr = Array.from(el.childNodes).some((n) => n.nodeName === 'BR');
 		if (!hasDirectBr) continue;
-		const dom = el.ownerDocument;
 		const replacement: Node[] = [];
-		let current = dom.createElement(tagName);
+		let current = createEl(tagName);
 		for (const child of Array.from(el.childNodes)) {
 			if (child.nodeName === 'BR') {
 				if (current.hasChildNodes()) replacement.push(current);
 				replacement.push(child);
-				current = dom.createElement(tagName);
+				current = createEl(tagName);
 			}
 			else {
 				current.appendChild(child);
@@ -568,7 +568,7 @@ function encodeNewlinesToBr(body: HTMLElement) {
 		const replacement: Node[] = [];
 		for (let i = 0; i < parts.length; i++) {
 			if (parts[i]) replacement.push(dom.createTextNode(parts[i]));
-			if (i < parts.length - 1) replacement.push(dom.createElement('br'));
+			if (i < parts.length - 1) replacement.push(createEl('br'));
 		}
 		textNode.replaceWith(...replacement);
 	}

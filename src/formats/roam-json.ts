@@ -168,8 +168,8 @@ export class RoamJSONImporter extends FormatImporter {
 					//create folders for nested pages [[some/nested/subfolder/page]]
 					const { parent } = parseFilePath(filename);
 					await this.createFolders(parent);
-					const existingFile = vault.getAbstractFileByPath(filename) as TFile;
-					if (existingFile) {
+					const existingFile = vault.getAbstractFileByPath(filename);
+					if (existingFile instanceof TFile) {
 						await vault.modify(existingFile, markdownOutput);
 					}
 					else {

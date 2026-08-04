@@ -235,7 +235,7 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	private createTokenDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace. ');
 		frag.createEl('a', {
 			text: 'Get API token.',
@@ -245,13 +245,13 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	private createFormulaStrategyDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText('By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.');
 		return frag;
 	}
 
 	private createAttachmentDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText('Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. ');
 		frag.createEl('br');
 		frag.appendText('Attachments will be saved according to your vault\'s attachment folder settings.');
@@ -259,7 +259,7 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	private createCoverPropertyDescription(): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText('Property name for page cover image in YAML frontmatter. ');
 		frag.createEl('br');
 		frag.appendText('Leave as "cover" if you don\'t have conflicts with existing properties.');
@@ -608,7 +608,7 @@ export class NotionAPIImporter extends FormatImporter {
 		this.pageTreeContainer.empty();
 
 		if (this.pageTree.length === 0) {
-			this.pageTreeContainer.createEl('div', {
+			this.pageTreeContainer.createDiv({
 				text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
 				cls: 'notion-tree-empty'
 			});
@@ -646,14 +646,13 @@ export class NotionAPIImporter extends FormatImporter {
 			treeItemSelf.addClass('mod-file');
 		}
 
-		// Apply disabled styling
+		// Dimmed and unclickable; see .import-section .tree-item-self.is-disabled
 		if (node.disabled) {
 			treeItemSelf.addClass('is-disabled');
-			treeItemSelf.style.opacity = '0.5';
-			treeItemSelf.style.pointerEvents = 'none';
 		}
 
-		// Collapse/Expand arrow (only if has children)
+		// Collapse/Expand arrow (only if has children). Stays clickable on a
+		// disabled row, which styles.css restores.
 		if (node.children.length > 0) {
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
 
@@ -664,10 +663,6 @@ export class NotionAPIImporter extends FormatImporter {
 			collapseIcon.toggleClass('is-collapsed', node.collapsed);
 			treeItem.toggleClass('is-collapsed', node.collapsed);
 
-			// Allow arrow click even when disabled
-			if (node.disabled) {
-				collapseIcon.style.pointerEvents = 'auto';
-			}
 			let childrenContainer: HTMLElement;
 			let iconContainer: HTMLElement;
 

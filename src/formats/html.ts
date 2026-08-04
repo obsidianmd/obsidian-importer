@@ -207,7 +207,7 @@ export class HtmlImporter extends FormatImporter {
 						el.setAttribute('src', attachmentFile.path.replace(/ /g, '%20'));
 
 						// Convert `<audio>` and `<video>` into `<img>` so that htmlToMarkdown can properly parse it.
-						if (!(el instanceof HTMLImageElement)) {
+						if (!el.instanceOf(HTMLImageElement)) {
 							el.replaceWith(createEl('img', {
 								attr: {
 									src: attachmentFile.path.replace(/ /g, '%20'),
@@ -305,16 +305,16 @@ export class HtmlImporter extends FormatImporter {
 		}
 
 		if (!this.filterAttachmentSize(data)) return null;
-		if (el instanceof HTMLImageElement && !await this.filterImageSize(data)) return null;
+		if (el.instanceOf(HTMLImageElement) && !await this.filterImageSize(data)) return null;
 
 		if (!extension) {
-			if (el instanceof HTMLImageElement) {
+			if (el.instanceOf(HTMLImageElement)) {
 				extension = 'png';
 			}
-			else if (el instanceof HTMLAudioElement) {
+			else if (el.instanceOf(HTMLAudioElement)) {
 				extension = 'mp3';
 			}
-			else if (el instanceof HTMLVideoElement) {
+			else if (el.instanceOf(HTMLVideoElement)) {
 				extension = 'mp4';
 			}
 			else {

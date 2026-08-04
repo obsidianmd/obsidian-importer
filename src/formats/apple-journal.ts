@@ -198,12 +198,12 @@ function extractEntryDate(source: HTMLElement): string | undefined {
  * Builds a clean document that only contains the reflection prompt and entry body paragraphs.
  */
 function buildEntryDocument(source: HTMLElement): HTMLElement {
-	const doc = document.implementation.createHTMLDocument('');
-	const wrapper = doc.createElement('article');
+	const doc = activeDocument.implementation.createHTMLDocument('');
+	const wrapper = createEl('article');
 	doc.body.appendChild(wrapper);
 
 	const promptText = source.querySelector('.reflectionPrompt')?.textContent;
-	appendParagraph(doc, wrapper, promptText);
+	appendParagraph(wrapper, promptText);
 
 	const paragraphs = Array.from(source.querySelectorAll(BODY_PARAGRAPH_SELECTOR));
 	for (const paragraph of paragraphs) {
@@ -213,11 +213,11 @@ function buildEntryDocument(source: HTMLElement): HTMLElement {
 	return doc.documentElement;
 }
 
-function appendParagraph(doc: Document, parent: HTMLElement, text: string | undefined | null): void {
+function appendParagraph(parent: HTMLElement, text: string | undefined | null): void {
 	const trimmed = text?.trim();
 	if (!trimmed) return;
 
-	const paragraph = doc.createElement('p');
+	const paragraph = createEl('p');
 	paragraph.textContent = trimmed;
 	parent.appendChild(paragraph);
 }

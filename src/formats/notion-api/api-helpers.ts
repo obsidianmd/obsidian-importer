@@ -137,7 +137,7 @@ export async function makeNotionRequest<T>(
 			const previousStatus = ctx.statusMessage;
 			ctx.status(`Rate limited. Waiting ${retryAfter} seconds before retry (${retryCount + 1}/${MAX_RETRIES})...`);
 
-			await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+			await new Promise(resolve => window.setTimeout(resolve, retryAfter * 1000));
 
 			ctx.status(previousStatus);
 
