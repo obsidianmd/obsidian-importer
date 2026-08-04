@@ -91,8 +91,12 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
+	// Record counters span the whole import, across every base, so the progress
+	// bar and the imported tally do not restart when a new base begins
 	private processedRecordsCount: number = 0;
 	private totalRecordsToImport: number = 0;
+	private totalBasesToImport: number = 0;
+	private basesFetched: number = 0;
 	private attachmentsDownloaded: number = 0;
 
 	// Template configuration
@@ -864,6 +868,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.recordIdToPath.clear();
 			this.allFieldsForTypeInference.clear();
 			this.attachmentsDownloaded = 0;
+			this.processedRecordsCount = 0;
+			this.totalRecordsToImport = 0;
+			this.basesFetched = 0;
 
 			// Drop SDK handles from any previous run - the token may have changed
 			this.airtableClient = null;
@@ -872,6 +879,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Group selected nodes by base
 			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
 			const totalBases = baseGroups.size;
+			this.totalBasesToImport = totalBases;
 
 			ctx.status(`Found ${totalBases} base(s) to import`);
 
@@ -1019,9 +1027,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		// carry over
 		clearFormulaConversionCache();
 
-		// Reset per-base progress counters
-		this.processedRecordsCount = 0;
-		this.totalRecordsToImport = 0;
+		// Record counters are deliberately not reset: progress is reported across
+		// the whole import, not per base
 	}
 
 	/**
@@ -1032,10 +1039,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		baseInfo: BaseGroupInfo
 	): Promise<void> {
 		const { baseId, baseName, tables } = baseInfo;
-
-		// Reset counts for this base
-		this.totalRecordsToImport = 0;
-		this.processedRecordsCount = 0;
 
 		// Fetch data for each table in this base
 		for (const table of tables) {
@@ -1054,9 +1057,28 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 		}
 
-		// Report progress after fetching all tables for this base
+		// This base's records are now counted, so the estimate tightens
+		this.basesFetched++;
 		ctx.status(`Preparing records from ${baseName}${this.basePosition}`);
-		ctx.reportProgress(0, this.totalRecordsToImport);
+		this.reportOverallProgress(ctx);
+	}
+
+	/**
+	 * Report progress across the whole import rather than the current base.
+	 *
+	 * Records are fetched one base at a time, so while bases remain unfetched
+	 * the true total is unknown. Padding the denominator with an estimate for
+	 * those bases keeps the bar from reading as complete when there is still a
+	 * base to go, and the estimate disappears once the last base is counted.
+	 */
+	private reportOverallProgress(ctx: ImportContext): void {
+		const basesLeft = Math.max(0, this.totalBasesToImport - this.basesFetched);
+		const averagePerBase = this.basesFetched > 0
+			? Math.round(this.totalRecordsToImport / this.basesFetched)
+			: 0;
+		const estimatedTotal = this.totalRecordsToImport + basesLeft * averagePerBase;
+
+		ctx.reportProgress(this.processedRecordsCount, estimatedTotal);
 	}
 
 	/**
@@ -1260,7 +1282,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 				ctx.reportFailed(recordTitle, error);
 				this.processedRecordsCount++;
-				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+				this.reportOverallProgress(ctx);
 			}
 
 		}
@@ -1351,7 +1373,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (!hasAnyValue) {
 			ctx.reportSkipped('Untitled Record', 'Empty record');
 			this.processedRecordsCount++;
-			ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+			this.reportOverallProgress(ctx);
 			return;
 		}
 
@@ -1589,7 +1611,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		this.processedRecordsCount++;
-		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
+		this.reportOverallProgress(ctx);
 	}
 
 	/**
