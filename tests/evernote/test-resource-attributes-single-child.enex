@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20240101T000000Z" application="Evernote" version="10.0">
+<note>
+<title>Only File Name</title>
+<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note><div>body</div></en-note>]]></content>
+<created>20240101T000000Z</created>
+<resource><data encoding="base64">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8//8/AwAFAAEKLrTnAAAAAElFTkSuQmCC</data><mime>image/png</mime>
+<resource-attributes><file-name>dot.png</file-name></resource-attributes></resource>
+</note>
+<note>
+<title>File Name And Source</title>
+<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note><div>body</div></en-note>]]></content>
+<created>20240101T000000Z</created>
+<resource><data encoding="base64">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8//8/AwAFAAEKLrTnAAAAAElFTkSuQmCC</data><mime>image/png</mime>
+<resource-attributes><file-name>dot.png</file-name><source-url>http://example.com/dot.png</source-url></resource-attributes></resource>
+</note>
+</en-export>

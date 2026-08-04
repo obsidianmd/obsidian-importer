@@ -1,4 +1,4 @@
-import { EvernoteNote, EvernoteNoteAttributes } from './models/EvernoteNote';
+import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -109,6 +109,29 @@ interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
+/**
+ * Put each resource's attributes back as an object.
+ *
+ * The collected events are in document order, but only resources that carried
+ * a resource-attributes element produced one, so the queue is consumed in step
+ * with those rather than by position - otherwise a note whose first attachment
+ * has no attributes would hand them to the wrong resource.
+ */
+function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResourceAttributes[]): void {
+	if (collected.length === 0) return;
+
+	const resources = Array.isArray(note.resource) ? note.resource
+		: note.resource ? [note.resource]
+			: [];
+
+	let next = 0;
+	for (const resource of resources) {
+		if (resource['resource-attributes'] === undefined) continue;
+		const attributes = collected[next++];
+		if (attributes) resource['resource-attributes'] = attributes;
+	}
+}
+
 export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
@@ -135,6 +158,17 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			noteAttributes = na;
 		});
 
+		// Resources have the same problem as note-attributes: when
+		// resource-attributes holds a single child, xml-flow hands back that
+		// child's value instead of an object, so the field name is lost and an
+		// attachment whose only attribute is its file-name imports as
+		// "unknown_filename". The tag event still carries the object, so they
+		// are collected in document order and put back on the note below.
+		let resourceAttributes: EvernoteResourceAttributes[] = [];
+		xml.on('tag:resource-attributes', (ra: EvernoteResourceAttributes) => {
+			resourceAttributes.push(ra);
+		});
+
 		xml.on('tag:note', (note: EvernoteNote) => {
 			if (ctx.isCancelled()) {
 				stream.close();
@@ -150,6 +184,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 					// make sure single attributes are not collapsed
 					note['note-attributes'] = noteAttributes;
 				}
+				restoreResourceAttributes(note, resourceAttributes);
 
 				try {
 					processNode(note, notebookName);
@@ -161,6 +196,9 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				}
 			}
 			noteAttributes = null;
+			// Cleared per note, including a skipped one, so the next note's
+			// resources do not pick up attributes belonging to this one.
+			resourceAttributes = [];
 
 			const currentNotePath = runtimeProps.getCurrentNotePath();
 			if (currentNotePath) {
