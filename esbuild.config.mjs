@@ -3,6 +3,7 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import process from "process";
+import { execFile, execFileSync } from "child_process";
 
 const banner =
 `/*
@@ -30,6 +31,97 @@ const stubInquirePlugin = {
 		}));
 	},
 };
+
+const PLUGIN_ID = JSON.parse(fs.readFileSync("manifest.json", "utf8")).id;
+
+// Load OBSIDIAN_PATH from .env (path to your vault's plugins folder, relative
+// to $HOME, e.g. /Documents/Log/.obsidian/plugins). The plugin's own folder is
+// appended automatically. Optional: without a .env, `npm run dev` just builds
+// main.js in place, as it always has.
+function loadEnv() {
+	try {
+		const raw = fs.readFileSync(".env", "utf8");
+		for (const line of raw.split("\n")) {
+			const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/i);
+			if (!m) continue;
+			let val = m[2].trim();
+			if ((val.startsWith('"') && val.endsWith('"')) ||
+				(val.startsWith("'") && val.endsWith("'"))) {
+				val = val.slice(1, -1);
+			}
+			process.env[m[1]] = val;
+		}
+	} catch (e) {
+		if (e.code !== "ENOENT") throw e;
+	}
+}
+
+// Vault name = the folder that contains .obsidian in OBSIDIAN_PATH (used to
+// target the right vault when reloading via the Obsidian CLI).
+function vaultName() {
+	const parts = (process.env.OBSIDIAN_PATH || "").split("/").filter(Boolean);
+	const i = parts.indexOf(".obsidian");
+	return i > 0 ? parts[i - 1] : undefined;
+}
+
+// Ask Obsidian to hot-reload the plugin, so changes appear without a manual
+// toggle. Requires the `obsidian` CLI on PATH; silently skipped if absent.
+function reloadPlugin() {
+	const args = ["plugin:reload", `id=${PLUGIN_ID}`];
+	const vault = vaultName();
+	if (vault) args.push(`vault=${vault}`);
+	execFile("obsidian", args, (err, stdout) => {
+		if (err) console.warn(`Skipped plugin reload: ${err.message}`);
+		else console.log((stdout || "").trim() || `Reloaded: ${PLUGIN_ID}`);
+	});
+}
+
+// Type-check before pushing, so a broken intermediate save (which esbuild
+// happily bundles by stripping types) can't be copied in and disable the plugin
+// on reload.
+function typeChecks() {
+	try {
+		execFileSync("node_modules/.bin/tsc", ["-skipLibCheck"], { stdio: "pipe" });
+		return true;
+	} catch (e) {
+		const out = `${e.stdout || ""}${e.stderr || ""}`.trim();
+		console.warn(`Skipped vault copy: type errors\n${out}`);
+		return false;
+	}
+}
+
+// Copy the built plugin files into the vault after each rebuild, then reload.
+// styles.css matters as much as main.js here: the importer's modal UI is
+// entirely styled from it.
+function copyToVault() {
+	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
+	const dest = path.join(process.env.HOME, process.env.OBSIDIAN_PATH, PLUGIN_ID);
+	try {
+		fs.mkdirSync(dest, { recursive: true });
+		for (const file of [outfile, "manifest.json", "styles.css"]) {
+			if (fs.existsSync(file)) {
+				fs.copyFileSync(file, path.join(dest, path.basename(file)));
+			}
+		}
+		console.log(`Copied plugin to ${dest}`);
+		reloadPlugin();
+	} catch (e) {
+		console.warn(`Skipped vault copy: ${e.message}`);
+	}
+}
+
+const copyPlugin = {
+	name: "copy-to-vault",
+	setup(build) {
+		build.onEnd((result) => {
+			if (result.errors.length) return;
+			if (!typeChecks()) return;
+			copyToVault();
+		});
+	},
+};
+
+loadEnv();
 
 let outfile = "main.js";
 if (fs.existsSync('./.devtarget')) {
@@ -70,7 +162,7 @@ const context = await esbuild.context({
 	minify: prod,
 	platform: 'browser',
 	treeShaking: true,
-	plugins: [stubInquirePlugin],
+	plugins: prod ? [stubInquirePlugin] : [stubInquirePlugin, copyPlugin],
 	outfile,
 });
 
