@@ -10,6 +10,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 - [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
 - [Import from Bear](https://help.obsidian.md/import/bear)
+- Import from Airtable (API)
 - [Import from CSV files](https://help.obsidian.md/import/csv)
 - [Import from Evernote](https://help.obsidian.md/import/evernote)
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)
@@ -19,6 +20,8 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
 - Import from Apple Journal (HTML export)
+- Import from Textbundle (.textbundle, .textpack)
+- Import from Tomboy/Gnote (.note)
 
 ## Contributing
 
@@ -35,7 +38,7 @@ This plugin relies on important contributions:
 - [@akosbalasko](https://github.com/akosbalasko) for Evernote import via [Yarle](https://github.com/akosbalasko/yarle) (MIT)
 - [@daledesilva](https://github.com/daledesilva) for Google Keep import
 - [@arthurtyukayev](https://github.com/arthurtyukayev) for Bear import
-- [@xheldon](https://github.com/Xheldon) for Notion API import
+- [@xheldon](https://github.com/Xheldon) for Notion API import and Airtable import
 - [@joshuatazrein](https://github.com/joshuatazrein) for Notion file-based import
 - [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
