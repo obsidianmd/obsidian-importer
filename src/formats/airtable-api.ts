@@ -405,6 +405,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
+		// This container is the scroll box, and emptying it sends it back to the
+		// top. Ticking a checkbox re-renders the tree, so without this the list
+		// jumps away from whatever the user just clicked.
+		const scrollTop = this.treeContainer.scrollTop;
+
 		this.treeContainer.empty();
 
 		if (this.tree.length === 0) {
@@ -418,6 +423,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		for (const node of this.tree) {
 			this.renderTreeNode(this.treeContainer, node, 0);
 		}
+
+		this.treeContainer.scrollTop = scrollTop;
 
 		if (this.toggleSelectButton) {
 			this.updateToggleButtonText();
