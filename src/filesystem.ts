@@ -57,7 +57,7 @@ export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0,
 }
 
 export class NodePickedFile implements PickedFile {
-	readonly type: 'file' = 'file';
+	readonly type = 'file' as const;
 	readonly filepath: string;
 
 	readonly fullpath: string;
@@ -108,7 +108,7 @@ export class NodePickedFile implements PickedFile {
 }
 
 export class NodePickedFolder implements PickedFolder {
-	readonly type: 'folder' = 'folder';
+	readonly type = 'folder' as const;
 	readonly filepath: string;
 
 	readonly name: string;
@@ -141,7 +141,7 @@ export class NodePickedFolder implements PickedFolder {
 }
 
 export class WebPickedFile implements PickedFile {
-	readonly type: 'file' = 'file';
+	readonly type = 'file' as const;
 	readonly file: File;
 
 	readonly fullpath: string;

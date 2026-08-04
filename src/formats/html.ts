@@ -282,7 +282,7 @@ export class HtmlImporter extends FormatImporter {
 		let extension = '';
 		let data: ArrayBuffer;
 		switch (url.protocol) {
-			case 'file:':
+			case 'file:': {
 				// Validate the resolved URL is within the allowed base directory
 				// The URL constructor already normalizes paths (resolves .. sequences)
 				if (allowedBaseDirUrl && !url.href.startsWith(allowedBaseDirUrl)) {
@@ -292,14 +292,16 @@ export class HtmlImporter extends FormatImporter {
 				({ basename, extension } = parseFilePath(filepath));
 				data = nodeBufferToArrayBuffer(await fsPromises.readFile(filepath));
 				break;
+			}
 			case 'https:':
-			case 'http:':
+			case 'http:': {
 				let response = await requestURL(url);
 				let pathInfo = parseURL(url);
 				basename = pathInfo.basename;
 				data = response.data;
 				extension = extensionForMime(response.mime) || pathInfo.extension;
 				break;
+			}
 			default:
 				throw new Error(url.href);
 		}
@@ -382,7 +384,9 @@ async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }
 			};
 		}
 	}
-	catch { }
+	catch {
+		// Not a data URL we can read; fall through to fetching it
+	}
 
 	const response = await requestUrl(url.href);
 	return {

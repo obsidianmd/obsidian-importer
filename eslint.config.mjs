@@ -1,4 +1,5 @@
 import { defineConfig } from 'eslint/config';
+import js from '@eslint/js';
 import ts from 'typescript-eslint';
 import stylistic from '@stylistic/eslint-plugin';
 import obsidianmd from 'eslint-plugin-obsidianmd';
@@ -17,7 +18,23 @@ export default defineConfig(
 	// Its own entry so it applies globally. Inside a config object, ignores only
 	// scopes that object, and the file still reaches every other one.
 	{ ignores: ['src/z-worker-inline.js'] },
+	// The community review runs eslint's core rules, so run them here too.
+	// Without this, `npm run lint --fix` deletes disable directives as unused
+	// that the review then needs, and core findings only surface at review time.
+	js.configs.recommended,
 	ts.configs.recommended,
+	{
+		// no-undef only reaches the plain .js files - typescript-eslint turns it
+		// off for TypeScript, where the compiler already answers the question.
+		files: ['**/*.js'],
+		languageOptions: {
+			globals: {
+				window: 'readonly',
+				Buffer: 'readonly',
+				console: 'readonly',
+			},
+		},
+	},
 	{
 		// Several Obsidian rules need type information
 		languageOptions: {

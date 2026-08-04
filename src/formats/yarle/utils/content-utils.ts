@@ -107,7 +107,9 @@ let btime: any;
 try {
 	btime = window.require('btime');
 }
-catch {}
+catch {
+	// Optional native module; creation times are skipped without it
+}
 
 export const setFileDates = (path: string, note: any): void => {
 	// also set creation time if supported
@@ -121,7 +123,9 @@ export const setFileDates = (path: string, note: any): void => {
 	try{
 		fs.utimesSync(path, mtime, mtime);
 	}
-	catch {}
+	catch {
+		// Timestamps are best effort; the note is already written
+	}
 };
 
 export const getTimeStampMoment = (resource: any): any => {

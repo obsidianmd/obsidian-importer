@@ -647,7 +647,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 		case 'status':
 			return prop.status?.name || null;
 
-		case 'date':
+		case 'date': {
 			if (!prop.date) return null;
 			// Convert Notion date format (ISO 8601) to Obsidian format
 			// Date only: YYYY-MM-DD (keep as is)
@@ -659,6 +659,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				return `${startDate} to ${endDate}`;
 			}
 			return startDate;
+		}
 
 		case 'email':
 			return prop.email;
@@ -691,7 +692,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				return '';
 			}).filter((url: string) => url) || [];
 
-		case 'formula':
+		case 'formula': {
 			// Extract formula result value
 			if (!prop.formula) return null;
 			const formulaResult = prop.formula;
@@ -707,6 +708,7 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 				default:
 					return null;
 			}
+		}
 
 		case 'relation':
 			// Relation properties contain page IDs

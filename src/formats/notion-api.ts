@@ -522,11 +522,12 @@ export class NotionAPIImporter extends FormatImporter {
 				console.warn(`[Notion Importer] block_id parent should be filtered before calling extractParentId`);
 				return null;
 
-			default:
+			default: {
 				// TypeScript exhaustiveness check
 				const _exhaustive: never = parentObj;
 				console.warn(`[Notion Importer] Unexpected parent type for ${context}:`, _exhaustive);
 				return null;
+			}
 		}
 	}
 

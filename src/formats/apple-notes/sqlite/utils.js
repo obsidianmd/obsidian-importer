@@ -21,6 +21,7 @@ export const asValue = value => {
 			return '\'' + value.replace(quote, '\'\'') + '\'';
 		case 'number':
 			if (!isFinite(value)) return;
+			// falls through: a finite number is emitted as +value
 		case 'boolean':
 			return +value;
 		case 'object':
@@ -33,6 +34,7 @@ export const asValue = value => {
 				case value instanceof Buffer:
 				case value instanceof ArrayBuffer:
 					value = new Uint8Array(value);
+					// falls through: now a Uint8Array, hex-encoded below
 				case value instanceof Uint8Array:
 				case value instanceof Uint8ClampedArray:
 					return x(value);
@@ -60,7 +62,7 @@ export const sql2array = sql => {
 	let i = 0;
 	let match;
 
-	while (match = re.exec(sql)) {
+	while ((match = re.exec(sql))) {
 		out.push(sql.slice(i, match.index), match[3] || match[5]);
 		i = match.index + match[0].length;
 	}

@@ -288,9 +288,10 @@ export class NoteConverter extends ANConverter {
 				this.listNumber++;
 				return `${prelude}${indent}${this.listNumber}. ${attr.fragment}`;
 
-			case ANStyleType.Checkbox:
+			case ANStyleType.Checkbox: {
 				const box = attr.paragraphStyle!.checklist?.done ? '[x]' : '[ ]';
 				return `${prelude}${indent}- ${box} ${attr.fragment}`;
+			}
 		}
 
 		// Not a list but indented in line with one

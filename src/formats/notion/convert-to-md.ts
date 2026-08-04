@@ -150,7 +150,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 			content = Number(body.textContent);
 			if (isNaN(content)) return;
 			break;
-		case 'date':
+		case 'date': {
 			fixNotionDates(body);
 			const dates = body.getElementsByTagName('time');
 			if (dates.length === 0) {
@@ -170,7 +170,8 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 			}
 			if (content.length === 0) return;
 			break;
-		case 'list':
+		}
+		case 'list': {
 			const children = body.children;
 			const childList: string[] = [];
 			for (let i = 0; i < children.length; i++) {
@@ -181,6 +182,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 			content = childList;
 			if (content.length === 0) return;
 			break;
+		}
 		case 'text':
 			content = body.textContent ?? '';
 			if (content.length === 0) return;
@@ -681,7 +683,7 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 		let linkContent: string = '';
 
 		switch (link.type) {
-			case 'relation':
+			case 'relation': {
 				const linkInfo = info.idsToFileInfo[link.id];
 				if (!linkInfo) {
 					console.warn('missing relation data for id: ' + link.id);
@@ -699,7 +701,8 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 					}]]`;
 				}
 				break;
-			case 'attachment':
+			}
+			case 'attachment': {
 				const attachmentInfo = info.pathsToAttachmentInfo[link.path];
 				if (!attachmentInfo) {
 					console.warn('missing attachment data for: ' + link.path);
@@ -707,17 +710,19 @@ function convertLinksToObsidian(info: NotionResolverInfo, notionLinks: NotionLin
 				}
 				linkContent = `${embedAttachments ? '!' : ''}[[${attachmentInfo.fullLinkPathNeeded
 					? attachmentInfo.targetParentFolder +
-					attachmentInfo.nameWithExtension +
-					'|' +
-					attachmentInfo.nameWithExtension
+						attachmentInfo.nameWithExtension +
+						'|' +
+						attachmentInfo.nameWithExtension
 					: attachmentInfo.nameWithExtension
 				}]]`;
 				break;
-			case 'toc-item':
+			}
+			case 'toc-item': {
 				// trailing space required in case link ends with ']'
 				linkContent = link.a.textContent ?? '';
 				const endBracket = linkContent.endsWith(']') ?? false;
 				linkContent = `[[#${linkContent + (endBracket ? ' ' : '')}]]`;
+			}
 		}
 
 		obsidianLink.setText(linkContent);

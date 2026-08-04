@@ -110,7 +110,7 @@ export class TextbundleImporter extends FormatImporter {
 		if (infojson) {
 			const text = await (infojson as NodePickedFile).readText();
 			const parsed = JSON.parse(text);
-			if (parsed.hasOwnProperty('type') && parsed.type !== 'net.daringfireball.markdown') {
+			if (Object.prototype.hasOwnProperty.call(parsed, 'type') && parsed.type !== 'net.daringfireball.markdown') {
 				progress.reportSkipped(bundleName, 'The textbundle does not contain markdown');
 				return;
 			}

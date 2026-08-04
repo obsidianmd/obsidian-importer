@@ -9,4 +9,4 @@ export * from './apply-notebook-template';
 export * from './apply-remindertime-template';
 export * from './apply-reminderorder-template';
 export * from './apply-reminderdonetime-template';
-export * from './apply-tags-yaml-list-template';
+export * from './apply-tags-yaml-list-template';

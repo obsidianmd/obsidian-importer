@@ -15,7 +15,7 @@ const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
 // Regex for fixing whitespace and paragraphs
-const PARAGRAPH_REGEX = /(<\/p>)\s*(<p[^>]*>)|\n  \n/g;
+const PARAGRAPH_REGEX = /(<\/p>)\s*(<p[^>]*>)|\n {2}\n/g;
 // Maximum amount of request retries, before they're marked as failed. Does not include 429 backoff errors.
 const MAX_RETRY_ATTEMPTS = 5;
 
@@ -1153,7 +1153,7 @@ export class OneNoteImporter extends FormatImporter {
 			else {
 				let err: PublicError | null = null;
 				const respJson = await response.json();
-				if (respJson.hasOwnProperty('error')) {
+				if (Object.prototype.hasOwnProperty.call(respJson, 'error')) {
 					err = respJson.error;
 				}
 				console.log('An error has occurred while fetching an resource:', err ? err : respJson);

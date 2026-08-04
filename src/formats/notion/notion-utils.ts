@@ -52,6 +52,8 @@ export function stripParentDirectories(relativeURI: string) {
  * @todo Currently cannot ignore #s in multine code/math blocks as this function parses one line at a time.
  */
 export function escapeHashtags(body: string) {
+	 
+	// eslint-disable-next-line no-control-regex -- the range is deliberate: it matches tag characters outside ASCII
 	const tagExp = /#\d*?(?:[-_/a-z]|[^\x00-\x7F])/gi;
 
 	if (!tagExp.test(body)) return body;

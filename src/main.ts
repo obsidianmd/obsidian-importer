@@ -451,12 +451,12 @@ export class ImporterModal extends Modal {
 			.setDesc(descriptionFragment)
 			.addDropdown(dropdown => {
 				for (let id in importers) {
-					if (importers.hasOwnProperty(id)) {
+					if (Object.prototype.hasOwnProperty.call(importers, id)) {
 						dropdown.addOption(id, importers[id].optionText);
 					}
 				}
 				dropdown.onChange((value) => {
-					if (importers.hasOwnProperty(value)) {
+					if (Object.prototype.hasOwnProperty.call(importers, value)) {
 						this.selectedId = value;
 						this.updateContent();
 					}
@@ -464,7 +464,7 @@ export class ImporterModal extends Modal {
 				dropdown.setValue(this.selectedId);
 			});
 
-		if (selectedId && importers.hasOwnProperty(selectedId)) {
+		if (selectedId && Object.prototype.hasOwnProperty.call(importers, selectedId)) {
 			let importer = this.importer = new selectedImporter.importer(this.app, this);
 
 			//Hide the import buttons if it's not available.

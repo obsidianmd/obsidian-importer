@@ -16,6 +16,7 @@
 	"license": "MIT",
 	"packageManager": "pnpm@10.20.0",
 	"devDependencies": {
+		"@eslint/js": "9.39.4",
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.10.0",
 		"@types/node": "20.19.27",

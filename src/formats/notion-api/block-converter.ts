@@ -375,7 +375,7 @@ export async function convertBlockToMarkdown(
 			markdown = convertLinkPreview(block);
 			break;
 		
-		case 'child_database':
+		case 'child_database': {
 			// Database blocks are handled separately in the main importer
 			// Special handling for databases inside synced blocks
 			const isInSyncedBlockDb = context.isProcessingSyncedBlock || false;
@@ -397,8 +397,9 @@ export async function convertBlockToMarkdown(
 				markdown = placeholder;
 			}
 			break;
+		}
 		
-		case 'child_page':
+		case 'child_page': {
 			// Child page blocks: import the page and return a link
 			// Special handling for pages inside synced blocks
 			const isInSyncedBlock = context.isProcessingSyncedBlock || false;
@@ -469,6 +470,7 @@ export async function convertBlockToMarkdown(
 				markdown = '';
 			}
 			break;
+		}
 		
 		default:
 			// Unsupported block type - skip for now
@@ -777,7 +779,7 @@ export async function convertSyncedBlock(
 	
 	// Determine if this is an original block or a synced copy
 	const isOriginal = syncedBlockData.synced_from === null;
-	// If don't use the ! assertion, TypeScript will throw an error.
+	// If don't use the ! assertion, TypeScript will throw an error.
 	const originalBlockId = isOriginal ? block.id : syncedBlockData.synced_from!.block_id;
 	
 	// Check if we already have a file for this synced block
@@ -1333,7 +1335,7 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			}
 			return createPlaceholder(PlaceholderType.NOTION_PAGE, mention.page.id);
 		
-		case 'date':
+		case 'date': {
 			// Render date as plain text with spaces
 			const dateObj = mention.date;
 			let dateText = '';
@@ -1344,15 +1346,17 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 				}
 			}
 			return ` ${dateText} `;
+		}
 		
-		case 'link_mention':
+		case 'link_mention': {
 			// Render as external link
 			const url = mention.link_mention?.href || '';
 			// Prioritize link_mention.title, fallback to plain_text, then URL
 			const title = mention.link_mention?.title || richText.plain_text || url;
 			return `[${title}](${url})`;
+		}
 		
-		case 'user':
+		case 'user': {
 			// Render user as markdown link with email if available
 			const user = mention.user;
 			if (user) {
@@ -1366,11 +1370,13 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 			// Fallback to plain text
 			const userName = richText.plain_text || '';
 			return ` ${userName} `;
+		}
 		
-		default:
+		default: {
 			// For any other mention types, render as plain text with spaces
 			const text = richText.plain_text || '';
 			return ` ${text} `;
+		}
 	}
 }
 

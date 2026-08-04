@@ -510,7 +510,7 @@ function mapDatabaseProperties(
 				titlePropertyName = propName;
 				break;
 				
-			case 'formula':
+			case 'formula': {
 				// Handle formula based on import strategy
 				const formulaExpression = getNotionFormulaExpression(prop.formula);
 
@@ -543,6 +543,7 @@ function mapDatabaseProperties(
 					}
 				}
 				break;
+			}
 
 			case 'relation':
 				// Relation properties will be stored as list of links in page YAML
@@ -554,7 +555,7 @@ function mapDatabaseProperties(
 				};
 				break;
 
-			case 'rollup':
+			case 'rollup': {
 				// Rollup properties should be converted to formulas in .base file
 				const rollupFormula = convertRollupToFormula(prop.rollup);
 				if (rollupFormula) {
@@ -569,6 +570,7 @@ function mapDatabaseProperties(
 					console.warn(`Failed to convert rollup property "${propName}" to formula.`);
 				}
 				break;
+			}
 		
 			case 'button':
 				// Button properties are UI elements, not data - skip them
@@ -636,7 +638,7 @@ function extractPropertyTypesForTypesJson(
 				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.CHECKBOX;
 				break;
 			
-			case 'date':
+			case 'date': {
 				// Check if this date property is a range (has both start and end)
 				// If it's a range, treat as text (format: "start to end")
 				// If single date, determine date vs datetime based on time information
@@ -671,6 +673,7 @@ function extractPropertyTypesForTypesJson(
 					propertyTypes[propName] = hasTime ? OBSIDIAN_PROPERTY_TYPES.DATETIME : OBSIDIAN_PROPERTY_TYPES.DATE;
 				}
 				break;
+			}
 			
 			case 'number':
 				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.NUMBER;

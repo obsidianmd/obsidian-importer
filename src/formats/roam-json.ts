@@ -99,9 +99,7 @@ export class RoamJSONImporter extends FormatImporter {
 			const [blockLocations, toPostProcess] = this.preprocess(allPages);
 
 			const markdownPages: Map<string, string> = new Map();
-			for (let index in allPages) {
-				const pageData = allPages[index];
-
+			for (const pageData of allPages) {
 				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.userDNPFormat).trim();
 				if (pageName === '') {
 					progress.reportFailed(pageData.uid, 'Title is empty');
