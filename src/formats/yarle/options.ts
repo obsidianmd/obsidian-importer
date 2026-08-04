@@ -38,7 +38,7 @@ export interface YarleOptions {
 	addExtensionToInternalLinks?: boolean;
 	pathSeparator?: string;
 	resourcesDir: string;
-	turndownOptions?: Record<string, any>;
+	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;
 	useUniqueUnknownFileNames?: boolean;
 }

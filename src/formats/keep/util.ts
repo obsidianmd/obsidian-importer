@@ -13,7 +13,7 @@ export function sanitizeTag(name: string): string {
 	// Convert spaces to hyphens	
 	tagName = tagName.split(' ').join('-');
 	// Prevent tags starting with a number
-	if (!isNaN(tagName[0] as any)) {
+	if (!isNaN(Number(tagName[0]))) {
 		tagName = '_' + tagName;
 	}
 

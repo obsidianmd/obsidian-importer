@@ -11,7 +11,7 @@ const reMonospaceFont =
 const asElement = (node: ChildNode | null): TurndownNode | null =>
 	node?.instanceOf(HTMLElement) ? node : null;
 
-const deepestFont: (node: ChildNode) => string = node => {
+const deepestFont: (node: ChildNode) => string | null | undefined = node => {
 	const el = asElement(node);
 	if (!el) {
 		return null;

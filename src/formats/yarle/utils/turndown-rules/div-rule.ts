@@ -15,7 +15,8 @@ const getTaskGroupId = (node: TurndownNode) => {
 	const nodeProxy = getAttributeProxy(node);
 	const idAttr = '--en-id:';
 
-	return nodeProxy.style.value.split(idAttr)[1].split(';')[0];
+	// Only reached for a node isTaskBlock accepted, which required a style
+	return nodeProxy.style?.value.split(idAttr)[1]?.split(';')[0] ?? '';
 };
 
 export const divRule = {

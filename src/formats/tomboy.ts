@@ -1,6 +1,7 @@
-import { Notice, Setting, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
+import { Notice, Setting, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
+import { PickedFile } from '../filesystem';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
 
@@ -116,7 +117,7 @@ export class TomboyImporter extends FormatImporter {
 		}
 	}
 
-	private async processFile(ctx: ImportContext, folder: any, file: any): Promise<void> {
+	private async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<void> {
 		const xmlContent = await file.readText();
 
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);

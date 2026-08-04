@@ -15,7 +15,8 @@ const getIntendNumber = (node: TurndownNode): number => {
 	const paddingAttr = 'padding-left:';
 	let intendNumber = 0;
 	if (nodeProxy.style && nodeProxy.style.value.indexOf(paddingAttr) >= 0) {
-		intendNumber = Math.floor(nodeProxy.style.value.split(paddingAttr)[1].split('px')[0] / 20);
+		const padding = Number(nodeProxy.style.value.split(paddingAttr)[1].split('px')[0]);
+		intendNumber = Number.isNaN(padding) ? 0 : Math.floor(padding / 20);
 	}
 
 	return intendNumber;

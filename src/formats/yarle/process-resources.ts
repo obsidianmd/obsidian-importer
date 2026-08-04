@@ -14,7 +14,7 @@ const getResourceWorkDirs = (note: EvernoteNote) => {
 };
 
 export const processResources = (note: EvernoteNote): string => {
-	let resourceHashes: any = {};
+	let resourceHashes: Record<string, ResourceHashItem> = {};
 	let updatedContent = joinNoteContent(note.content);
 	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
 
@@ -39,9 +39,14 @@ export const processResources = (note: EvernoteNote): string => {
 	return updatedContent;
 };
 
-const addMediaReference = (content: string, resourceHashes: any, hash: any, workDir: string): string => {
-	const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, ' ')}`;
-	let updatedContent: any;
+const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string, workDir: string): string => {
+	// A resource with no file name cannot be linked to, so the content is left
+	// as it is rather than building a reference to nothing.
+	const fileName = resourceHashes[hash]?.fileName;
+	if (!fileName) return content;
+
+	const src = `${workDir}${yarleOptions.pathSeparator}${fileName.replace(/ /g, ' ')}`;
+	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
 	const matchedElements = content.match(re);
@@ -54,17 +59,17 @@ const addMediaReference = (content: string, resourceHashes: any, hash: any, work
 		const height = matchedElements[0].match(/height="(\w+)"/);
 		const heightParam = height ? ` height="${height[1]}"` : '';
 
-		updatedContent = content.replace(re, `<img src="${src}"${widthParam}${heightParam} alt="${resourceHashes[hash].fileName}">`);
+		updatedContent = content.replace(re, `<img src="${src}"${widthParam}${heightParam} alt="${fileName}">`);
 	}
 	else {
-		updatedContent = content.replace(re, `<a href="${src}" type="file">${resourceHashes[hash].fileName}</a>`);
+		updatedContent = content.replace(re, `<a href="${src}" type="file">${fileName}</a>`);
 	}
 
 	return updatedContent;
 };
 
-const processResource = (workDir: string, resource: EvernoteResource): any => {
-	const resourceHash: any = {};
+const processResource = (workDir: string, resource: EvernoteResource): Record<string, ResourceHashItem> => {
+	const resourceHash: Record<string, ResourceHashItem> = {};
 
 	// Check if resource data exists
 	if (!resource.data || !resource.data.$text) {
