@@ -1,4 +1,4 @@
-import { EvernoteNote } from '../models/EvernoteNote';
+import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs } from '../../../filesystem';
 import { MetaData } from '../models/MetaData';
@@ -83,7 +83,7 @@ export const logTags = (note: EvernoteNote): string => {
 		const tagArray = Array.isArray(note.tag) ? note.tag : [note.tag];
 		const tagOptions = yarleOptions.nestedTags;
 
-		const tags = tagArray.map((tag: any) => {
+		const tags = tagArray.map(tag => {
 			let cleanTag = tag
 				.toString()
 				.replace(/^#/, '');
@@ -104,7 +104,8 @@ export const logTags = (note: EvernoteNote): string => {
 	return '';
 };
 
-let btime: any;
+// Optional native module for setting file creation time; absent unless installed
+let btime: { btime(path: string, creationTime: number): void } | undefined;
 try {
 	btime = window.require('btime');
 }
@@ -129,7 +130,7 @@ export const setFileDates = (path: string, note: EvernoteNote): void => {
 	}
 };
 
-export const getTimeStampMoment = (resource: any): any => {
+export const getTimeStampMoment = (resource: EvernoteResource): moment.Moment => {
 	return resource['resource-attributes'] &&
 	resource['resource-attributes']['timestamp']
 		? moment(resource['resource-attributes']['timestamp'])

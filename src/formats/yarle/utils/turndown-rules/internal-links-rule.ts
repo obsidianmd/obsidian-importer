@@ -63,7 +63,7 @@ export const wikiStyleLinksRule = {
 };
 
 
-let htmlUnescapes: any = {
+let htmlUnescapes: Record<string, string> = {
 	'&amp;': '&',
 	'&lt;': '<',
 	'&gt;': '>',

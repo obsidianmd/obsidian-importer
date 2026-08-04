@@ -1,4 +1,4 @@
-import { EvernoteNote } from '../models/EvernoteNote';
+import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
@@ -34,7 +34,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number =>
 	return index;
 
 };
-export const getResourceFileProperties = (workDir: string, resource: any): ResourceFileProperties => {
+export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
 	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
@@ -68,7 +68,7 @@ export const getFilePrefix = (note: EvernoteNote): string => {
 export const getNoteFileName = (dstPath: string, note: EvernoteNote, extension: string = 'md'): string => {
 	return `${getNoteName(dstPath, note)}.${extension}`;
 };
-export const getExtensionFromResourceFileName = (resource: any): string | undefined => {
+export const getExtensionFromResourceFileName = (resource: EvernoteResource): string | undefined => {
 	if (!(resource['resource-attributes'] &&
 		resource['resource-attributes']['file-name'])) {
 		return '';
@@ -79,7 +79,7 @@ export const getExtensionFromResourceFileName = (resource: any): string | undefi
 
 };
 
-export const getExtensionFromMime = (resource: any): string => {
+export const getExtensionFromMime = (resource: EvernoteResource): string => {
 	const mimeType = resource.mime;
 	if (!mimeType) {
 		return '';
@@ -88,7 +88,7 @@ export const getExtensionFromMime = (resource: any): string => {
 	return extensionForMime(mimeType) || '';
 };
 
-export const getExtension = (resource: any): string => {
+export const getExtension = (resource: EvernoteResource): string => {
 	const UNKNOWNEXTENSION = 'dat';
 
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;

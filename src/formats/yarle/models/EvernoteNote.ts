@@ -17,6 +17,21 @@ export interface EvernoteNoteAttributes {
 	'reminder-done-time'?: string;
 }
 
+export interface EvernoteResourceAttributes {
+	'file-name'?: string;
+	timestamp?: string;
+}
+
+/** One <resource>: an attachment carried inline as base64. */
+export interface EvernoteResource {
+	/** xml-flow puts element text on $text */
+	data?: { $text?: string };
+	mime?: string;
+	/** OCR text, when Evernote produced any. Searched for the resource hash. */
+	recognition?: string;
+	'resource-attributes'?: EvernoteResourceAttributes;
+}
+
 export interface EvernoteNote {
 	title?: string;
 	/** Joined by the caller when xml-flow splits it across several chunks */
@@ -24,9 +39,8 @@ export interface EvernoteNote {
 	created?: string;
 	updated?: string;
 	tag?: string | string[];
-	// Resource contents vary by attachment type and are read through helpers
-	// that predate this interface.
-	resource?: any;
+	/** One resource, or several, or none - see joinNoteContent for the pattern */
+	resource?: EvernoteResource | EvernoteResource[];
 	'note-attributes'?: EvernoteNoteAttributes;
 }
 

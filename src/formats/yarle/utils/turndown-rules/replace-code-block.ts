@@ -23,7 +23,7 @@ const getIntendNumber = (node: TurndownNode): number => {
 
 export const unescapeMarkdown = (s: string): string => s.replace(/\\(.)/g, '$1');
 
-export const replaceCodeBlock = (content: string, node: TurndownNode): any => {
+export const replaceCodeBlock = (content: string, node: TurndownNode): string => {
 	const intend = getIntendNumber(node);
 	content = `${'\t'.repeat(intend)}${content}`;
 	if (isCodeBlock(node)) {

@@ -1,4 +1,4 @@
-import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
+import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/EvernoteNote';
 import { fs, nodeCrypto, path } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
@@ -21,18 +21,14 @@ export const processResources = (note: EvernoteNote): string => {
 
 
 	utils.clearResourceDir(note);
-	if (Array.isArray(note.resource)) {
-		for (const resource of note.resource) {
-			resourceHashes = {
-				...resourceHashes,
-				...processResource(absoluteResourceWorkDir, resource),
-			};
-		}
-	}
-	else {
+	// One resource comes back as an object, several as an array, none as nothing
+	const resources = Array.isArray(note.resource) ? note.resource
+		: note.resource ? [note.resource]
+			: [];
+	for (const resource of resources) {
 		resourceHashes = {
 			...resourceHashes,
-			...processResource(absoluteResourceWorkDir, note.resource),
+			...processResource(absoluteResourceWorkDir, resource),
 		};
 	}
 
@@ -67,7 +63,7 @@ const addMediaReference = (content: string, resourceHashes: any, hash: any, work
 	return updatedContent;
 };
 
-const processResource = (workDir: string, resource: any): any => {
+const processResource = (workDir: string, resource: EvernoteResource): any => {
 	const resourceHash: any = {};
 
 	// Check if resource data exists
@@ -106,9 +102,14 @@ const processResource = (workDir: string, resource: any): any => {
 		// Timestamps are best effort; the resource is already written
 	}
 
-	if (resource.recognition && fileName) {
-		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
-		resourceHash[hashIndex] = { fileName, alreadyUsed: false } as ResourceHashItem;
+	// Evernote's OCR text carries the resource's md5, which is what en-media
+	// references it by. Take the match itself: the whole match array used to be
+	// used as the key, which stringified to the hash by luck when there was one
+	// and to "null" when there was not, leaving the attachment unreferenced.
+	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
+
+	if (recognisedHash && fileName) {
+		resourceHash[recognisedHash] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 	else {
 		let hash = nodeCrypto.createHash('md5');

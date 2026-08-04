@@ -1,3 +1,4 @@
+import { TemplateValuePlaceholders } from './template-settings';
 import * as CREATIONTIME from './placeholders/createdat-placeholders';
 import * as LOCATION from './placeholders/location-placeholders';
 import * as METADATA from './placeholders/metadata-placeholders';
@@ -50,7 +51,7 @@ export const hasMetadataInTemplate = (templateContent: string): boolean => {
 export const hasUpdateTimeInTemplate = (templateContent: string): boolean => {
 	return hasItemInTemplate(UPDATETIME, templateContent);
 };
-const hasItemInTemplate = (item: any, templateContent: string): boolean => {
+const hasItemInTemplate = (item: TemplateValuePlaceholders, templateContent: string): boolean => {
 	return templateContent.includes(item.START_BLOCK) &&
 		templateContent.includes(item.CONTENT_PLACEHOLDER) &&
 		templateContent.includes(item.END_BLOCK);

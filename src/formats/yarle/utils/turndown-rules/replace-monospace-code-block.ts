@@ -63,7 +63,7 @@ export const monospaceCodeBlockRule = {
     },
 };
 */
-export const replaceMonospaceCodeBlock = (content: string, node: TurndownNode): any => {
+export const replaceMonospaceCodeBlock = (content: string, node: TurndownNode): string => {
 	if (isMonospaceCodeBlock(node)) {
 		const previous = asElement(node.previousSibling);
 		const previousIsBlock = previous && previous.tagName === node.tagName && isMonospaceCodeBlock(previous);

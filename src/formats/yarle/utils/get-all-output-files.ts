@@ -1,6 +1,6 @@
 import { fs, path } from '../../../filesystem';
 
-export const getAllOutputFilesWithExtension = (dirPath: string, arrayOfFiles: Array<any>, extension: string): Array<any> => {
+export const getAllOutputFilesWithExtension = (dirPath: string, arrayOfFiles: string[], extension: string): string[] => {
 	const files = fs.readdirSync(dirPath);
 
 	arrayOfFiles = arrayOfFiles || [];

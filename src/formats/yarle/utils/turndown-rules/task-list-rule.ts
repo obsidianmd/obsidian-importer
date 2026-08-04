@@ -6,7 +6,7 @@ import { getAttributeProxy } from './get-attribute-proxy';
 const indentCharacter = '	';
 export const taskListRule = {
 	filter: 'li',
-	replacement: (content: string, node: TurndownNode, options: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 
 		const isTodoDoneBlock = (node: TurndownNode) => {
 			const nodeProxy = getAttributeProxy(node);

@@ -1,4 +1,5 @@
-export const applyConditionalTemplate = (text: string, P: any, newValue?: string): string => {
+import { TemplateValuePlaceholders } from '../template-settings';
+export const applyConditionalTemplate = (text: string, P: TemplateValuePlaceholders, newValue?: string): string => {
 	return text
 		.replace(new RegExp(`${P.CONTENT_PLACEHOLDER}`, 'g'), newValue || '')
 		.replace(new RegExp(`${P.START_BLOCK}`, 'g'), '')
