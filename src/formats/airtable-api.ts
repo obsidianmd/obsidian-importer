@@ -922,17 +922,20 @@ export class AirtableAPIImporter extends FormatImporter {
 				// ============================================================
 				try {
 					await this.createFilesForBase(ctx, folder.path);
-
-					// PHASE 3: every record in this base now has a final path, so
-					// linked-record placeholders can be turned into real links
-					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}`);
-					await this.resolveRecordLinks(ctx, baseInfo.baseId);
 				}
 				catch (error) {
 					console.error(`Failed to create files for base "${baseInfo.baseName}":`, error);
 					ctx.reportFailed(`Base: ${baseInfo.baseName}`, error);
 					// Continue with next base
 					continue;
+				}
+				finally {
+					// PHASE 3: turn linked-record placeholders into real links.
+					// In a finally, and not honouring cancellation, because notes
+					// are written with placeholder text: skipping this after a
+					// stopped or failed run would leave that raw text in the vault.
+					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}`);
+					await this.resolveRecordLinks(baseInfo.baseId);
 				}
 			}
 
@@ -1656,12 +1659,15 @@ export class AirtableAPIImporter extends FormatImporter {
 	 *
 	 * Scoped to one base because Airtable record IDs are only unique within a
 	 * base, and because globalRecordIdToTitle is cleared between bases.
+	 *
+	 * Deliberately ignores cancellation: it only touches notes that have already
+	 * been written, and every one of those contains placeholder text until this
+	 * runs. Bailing out early would leave "[[airtable-record:...]]" in the vault.
 	 */
-	private async resolveRecordLinks(ctx: ImportContext, baseId: string): Promise<void> {
+	private async resolveRecordLinks(baseId: string): Promise<void> {
 		const prefix = `${baseId}:`;
 
 		for (const [key, filePath] of this.recordIdToPath) {
-			if (ctx.isCancelled()) return;
 			if (!key.startsWith(prefix)) continue;
 
 			try {
