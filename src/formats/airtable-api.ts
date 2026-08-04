@@ -1380,6 +1380,33 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
+	 * The columns a view shows, in the order it shows them.
+	 *
+	 * Airtable reports this per view as visibleFieldIds, but only for grid
+	 * views; a gallery or kanban view gets every column instead, which is what
+	 * the table as a whole offers.
+	 *
+	 * visibleFieldIds does list the primary field, but it has no column of its
+	 * own here - file.name stands in for it - so the lookup drops it and
+	 * file.name is put back at the front, where Airtable also shows it.
+	 */
+	private columnsForView(
+		view: AirtableViewInfo,
+		allColumns: string[],
+		columnKeyByFieldId: Map<string, string>
+	): string[] {
+		if (!view.visibleFieldIds) {
+			return allColumns;
+		}
+
+		const columns = view.visibleFieldIds
+			.map(fieldId => columnKeyByFieldId.get(fieldId))
+			.filter((key): key is string => key !== undefined);
+
+		return ['file.name', ...columns];
+	}
+
+	/**
 	 * Open the last .base file the import wrote.
 	 *
 	 * Best effort: a failure here has no bearing on whether the import
@@ -1898,6 +1925,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		// disagree about whether it is a formula.
 		const propertyColumns: string[] = ['file.name'];
 		const properties: BasesConfigFile['properties'] = {};
+		// Field id -> column key, so a view can be ordered from its visibleFieldIds
+		const columnKeyByFieldId = new Map<string, string>();
 
 		// file.name is the primary field
 		if (primaryFieldName) {
@@ -1914,6 +1943,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			const propertyKey = formulas.has(field.name) ? `formula.${sanitized}` : sanitized;
 			propertyColumns.push(propertyKey);
 			properties[propertyKey] = { displayName: field.name };
+			columnKeyByFieldId.set(field.id, propertyKey);
 		}
 
 		// Create ONE .base file for the table with multiple views
@@ -1948,7 +1978,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				type: obsidianViewType,
 				name: sanitizedViewName, // Must match the name in wiki link reference
 				filters: `note["${this.viewPropertyName}"].contains("${viewReference}")`,
-				order: propertyColumns,
+				order: this.columnsForView(view, propertyColumns, columnKeyByFieldId),
 			});
 		}
 

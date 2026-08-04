@@ -122,8 +122,10 @@ export async function fetchTableSchema(
 	// than the ID available here, so this only fills in when nothing else did
 	ctx.status(`Fetching tables for base ${baseId}...`);
 
+	// visibleFieldIds gives each view the fields it shows and their order, which
+	// the schema otherwise omits. Grid views only; anything else leaves it unset.
 	const response = await makeAirtableRequest<{ tables: AirtableTableInfo[] }>({
-		url: `${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`,
+		url: `${AIRTABLE_META_API_BASE}/bases/${baseId}/tables?include[]=visibleFieldIds`,
 		token,
 		ctx,
 	});

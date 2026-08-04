@@ -72,6 +72,12 @@ export interface AirtableViewInfo {
 	id: string;
 	name: string;
 	type: string;
+	/**
+	 * Fields this view shows, in the order it shows them. Returned only when the
+	 * schema is requested with include[]=visibleFieldIds, and only for grid
+	 * views - a gallery or kanban view leaves it undefined.
+	 */
+	visibleFieldIds?: string[];
 }
 
 /**
