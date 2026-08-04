@@ -197,6 +197,21 @@
 	padding: 30px 10px;
 }
 
+/* Shown while an importer prepares, e.g. fetching field schemas before configuration */
+.importer-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--size-4-3);
+	padding: 40px 10px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.importer-loading .loader-spinner {
+	margin: 0;
+}
+
 /*
  * Obsidian's .loader-spinner is sized and centred for a full-pane loader.
  * Shrink it to sit inline at the end of a tree row while a base's tables load.

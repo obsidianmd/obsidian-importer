@@ -646,8 +646,18 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// A base can be selected without ever being expanded, so its tables may
 		// not have been fetched yet. Resolve them before reading any field lists.
-		await this.ensureSelectedTablesLoaded(msg => this.loadButton.setButtonText(msg));
-		this.loadButton.setButtonText('Refresh');
+		//
+		// Report into the modal rather than onto the Load button: by this point
+		// the modal has cleared the previous screen and that button is detached,
+		// so its text would go nowhere and leave an empty dialog on screen.
+		const loadingEl = container.createDiv('importer-loading');
+		setIcon(loadingEl.createDiv('loader-spinner'), 'loader-2');
+		const loadingTextEl = loadingEl.createDiv();
+		loadingTextEl.setText('Loading fields...');
+
+		await this.ensureSelectedTablesLoaded(msg => loadingTextEl.setText(msg));
+
+		loadingEl.remove();
 
 		const selectedNodes = this.getSelectedNodes();
 		if (selectedNodes.length === 0) {
@@ -845,6 +855,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
+		// Set before the first await: the progress UI is already on screen by now,
+		// and without this its status line sits blank above a row of zeros
+		ctx.status('Connecting to Airtable API');
+
 		// Normally already done by showTemplateConfiguration; repeated here because
 		// a base selected but never expanded has no tables to import otherwise
 		await this.ensureSelectedTablesLoaded(msg => ctx.status(msg));
@@ -860,8 +874,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			new Notice('Please select a location to export to.');
 			return;
 		}
-
-		ctx.status('Connecting to Airtable API');
 
 		try {
 			// Initialize global data that persists across bases
