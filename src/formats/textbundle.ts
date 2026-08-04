@@ -69,19 +69,16 @@ export class TextbundleImporter extends FormatImporter {
 		const dotTextbundle = '.textbundle';
 		for (const entry of entries) {
 			if (!entry.fullpath.startsWith(prefix)) {
-				console.log('Skipping', entry.fullpath);
 				continue;
 			}
 
 			const path = entry.fullpath.slice(prefix.length);
 			if (path.startsWith('._') || path.startsWith('__MACOSX')) {
-				console.log('Skipping', entry.fullpath);
 				continue;
 			}
 
 			const idx = path.indexOf(dotTextbundle);
 			if (idx === -1) {
-				console.log('Skipping', entry.fullpath);
 				continue;
 			}
 
@@ -89,7 +86,6 @@ export class TextbundleImporter extends FormatImporter {
 			const rest = path.slice(idx + dotTextbundle.length + 1); // Skip the '.textbundle' and path separator
 
 			if (rest.startsWith('._')) {
-				console.log('Skipping', entry.fullpath);
 				continue;
 			}
 

@@ -2100,7 +2100,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return PROPERTY_TYPE_FOR_FIELD_TYPE[airtableType];
 		}
 
-		console.log(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
+		console.warn(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
 		return 'text';
 	}
 
@@ -2148,7 +2148,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Step 3: Cannot convert - fall back to static value
-		console.log(`Rollup formula "${rollupFormula}" cannot be converted, using static value`);
+		console.warn(`Rollup formula "${rollupFormula}" cannot be converted, using static value`);
 		return null;
 	}
 }

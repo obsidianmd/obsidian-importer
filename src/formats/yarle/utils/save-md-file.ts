@@ -7,5 +7,4 @@ export const saveMdFile = (data: any, note: any) => {
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	runtimeProps.setCurrentNotePath(absMdFilePath);
 	writeFile(absMdFilePath, data, note);
-	console.log(`Note saved to ${absMdFilePath}`);
 };

@@ -85,7 +85,7 @@ export async function convertChildDatabase(
 		// See: https://developers.notion.com/docs/working-with-databases#linked-databases
 		if (errorMsg.includes('Linked database') ||
 			errorMsg.includes('not supported by Notion API')) {
-			console.log(`Skipping linked database (block ID: ${databaseId})`);
+			console.warn(`Skipping linked database (block ID: ${databaseId})`);
 			return `<!-- Linked database (not supported by Notion API) -->`;
 		}
 
@@ -98,7 +98,7 @@ export async function convertChildDatabase(
 		);
 
 		if (isLinkedViewError) {
-			console.log(`Skipping linked database view (block ID: ${databaseId}) - this is a reference to an existing database`);
+			console.warn(`Skipping linked database view (block ID: ${databaseId}) - this is a reference to an existing database`);
 			return `<!-- Linked database view (skipped - references an existing database) -->`;
 		}
 
@@ -750,7 +750,7 @@ function extractPropertyTypesForTypesJson(
 			
 			default:
 				// Unsupported types -> text
-				console.log(`Unsupported property type: ${propType}, treating as text`);
+				console.warn(`Unsupported property type: ${propType}, treating as text`);
 				propertyTypes[propName] = OBSIDIAN_PROPERTY_TYPES.TEXT;
 		}
 	}

@@ -13,7 +13,6 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 	let entries = Object.entries(allLinks);
 	if (entries.length === 0) return;
 
-	console.log('About to update links...');
 
 	const allconvertedFiles: Array<string> = [];
 	for (const outputFolder of outputNotebookFolders) {
@@ -21,13 +20,11 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 	}
 
 	for (const notebookFolder of outputNotebookFolders) {
-		console.log(`Notebook: ${notebookFolder}`);
 		const filesInOutputDir = fs.readdirSync(notebookFolder);
 
 		const targetFiles = filesInOutputDir.filter(file => {
 			return path.extname(file).toLowerCase() === '.md';
 		});
-		console.log(`${targetFiles.length} files to check for links`);
 
 		for (const targetFile of targetFiles) {
 			let filepath = path.join(notebookFolder, targetFile);
@@ -54,12 +51,10 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 			}
 
 			if (fileContent !== updatedContent) {
-				console.log(`File written: ${filepath}`);
 				fs.writeFileSync(filepath, updatedContent);
 			}
 		}
 	}
 
-	console.log('Link update complete.');
 };
 

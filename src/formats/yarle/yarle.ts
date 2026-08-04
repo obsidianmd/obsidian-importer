@@ -1,5 +1,5 @@
 import { Platform } from 'obsidian';
-import { fs, NodePickedFile, path, PickedFile } from '../../filesystem';
+import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { YarleOptions } from './options';
@@ -94,8 +94,6 @@ const setOptions = (options: YarleOptions): void => {
 
 	yarleOptions.currentTemplate = template;
 
-	console.log(`Current config is: ${JSON.stringify(yarleOptions, null, 4)}`);
-	console.log(`Path separator:${path.sep}`);
 	/*}*/
 };
 
@@ -108,7 +106,6 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 
 	ctx.status('Processing ' + enexSource.name);
-	console.log(`Getting stream from ${enexSource}`);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = runtimeProps.getCurrentNotebookName();

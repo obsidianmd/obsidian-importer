@@ -1375,20 +1375,17 @@ export class NotionAPIImporter extends FormatImporter {
 			if (!shouldSkipParentFile) {
 				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 
-				console.log(`[CREATE FILE] About to create file: ${mdFilePath}, Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
 
 				// Get unique file path (will append " 1", " 2", etc. if file exists)
 				const { parent: parentPath, name: fileName } = parseFilePath(mdFilePath);
 				const finalPath = getUniqueFilePath(this.vault, parentPath, fileName);
 
-				console.log(`[CREATE FILE] Final path after uniqueness check: ${finalPath}`);
 
 				try {
 					const options: DataWriteOptions = {};
 					if (page.created_time) options.ctime = new Date(page.created_time).getTime();
 					if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
 					await this.vault.create(normalizePath(finalPath), fullContent, options);
-					console.log(`[CREATE FILE] Successfully created: ${finalPath}`);
 				}
 				catch (error) {
 					console.error(`[CREATE FILE] Failed to create file: ${finalPath}`);
@@ -2017,9 +2014,6 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 				}
 
-				if (unresolvedRelations.size > 0) {
-					console.log(`[Incremental Import] Collected ${unresolvedRelations.size} unresolved relation(s) from skipped file: ${pageId}`);
-				}
 			}
 		}
 
@@ -2040,7 +2034,6 @@ export class NotionAPIImporter extends FormatImporter {
 
 		if (mentionedIds.size > 0) {
 			this.mentionPlaceholders.set(filePath, mentionedIds);
-			console.log(`[Incremental Import] Collected ${mentionedIds.size} unresolved mention(s) from skipped file: ${filePath}`);
 		}
 
 		// 3. Collect unresolved synced child placeholders (in content, as [[SYNCED_CHILD_PAGE:id]] or [[SYNCED_CHILD_DATABASE:id]])
@@ -2060,12 +2053,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 		if (syncedPageIds.size > 0) {
 			this.syncedChildPagePlaceholders.set(filePath, syncedPageIds);
-			console.log(`[Incremental Import] Collected ${syncedPageIds.size} unresolved synced child page(s) from skipped file: ${filePath}`);
 		}
 
 		if (syncedDbIds.size > 0) {
 			this.syncedChildDatabasePlaceholders.set(filePath, syncedDbIds);
-			console.log(`[Incremental Import] Collected ${syncedDbIds.size} unresolved synced child database(s) from skipped file: ${filePath}`);
 		}
 	}
 
@@ -2119,7 +2110,6 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		let cleanedCount = 0;
 		let failedCount = 0;
 
 		// Iterate through all pages we've tracked (including skipped ones)
@@ -2164,7 +2154,6 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Write back to file
 				await modifyFilePreservingTimestamps(this.vault, file, newContent);
-				cleanedCount++;
 			}
 			catch (error) {
 				console.error(`Failed to clean notion-id from file: ${filePath}`, error);
@@ -2172,9 +2161,6 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 
-		if (cleanedCount > 0) {
-			console.log(`✓ Cleaned notion-id from ${cleanedCount} file(s)`);
-		}
 		if (failedCount > 0) {
 			console.warn(`⚠️ Failed to clean notion-id from ${failedCount} file(s)`);
 		}

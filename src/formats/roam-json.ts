@@ -190,7 +190,7 @@ export class RoamJSONImporter extends FormatImporter {
 		// @ts-expect-error : Internal Method
 		const dailyNotePluginInstance = this.app.internalPlugins.getPluginById('daily-notes').instance;
 		if (!dailyNotePluginInstance) {
-			console.log('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
+			console.warn('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
 			return 'YYYY-MM-DD';
 		}
 

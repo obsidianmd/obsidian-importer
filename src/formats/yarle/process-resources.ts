@@ -17,9 +17,7 @@ export const processResources = (note: any): string => {
 	let updatedContent = note.content;
 	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
 
-	console.log(`relative resource work dir: ${relativeResourceWorkDir}`);
 
-	console.log(`absolute resource work dir: ${absoluteResourceWorkDir}`);
 
 	utils.clearResourceDir(note);
 	if (Array.isArray(note.resource)) {
@@ -46,7 +44,6 @@ export const processResources = (note: any): string => {
 
 const addMediaReference = (content: string, resourceHashes: any, hash: any, workDir: string): string => {
 	const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, ' ')}`;
-	console.log(`mediaReference src ${src} added`);
 	let updatedContent: any;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
@@ -97,8 +94,6 @@ const processResource = (workDir: string, resource: any): any => {
 
 	const absFilePath = `${workDir}${path.sep}${fileName}`;
 
-	console.log(resource);
-	console.log(data);
 	let buffer = Buffer.from(data, 'base64');
 	fs.writeFileSync(absFilePath, buffer);
 
@@ -112,7 +107,6 @@ const processResource = (workDir: string, resource: any): any => {
 
 	if (resource.recognition && fileName) {
 		const hashIndex = resource.recognition.match(/[a-f0-9]{32}/);
-		console.log(`resource ${fileName} added with hash ${hashIndex}`);
 		resourceHash[hashIndex] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 	else {
@@ -166,7 +160,6 @@ const createResourceFromData = (
 	fs.writeFileSync(absFilePath, data, base64 ? 'base64' : undefined);
 	utils.setFileDates(absFilePath, note);
 
-	console.log(`data url resource ${fileName} added`);
 
 	return fileName;
 };

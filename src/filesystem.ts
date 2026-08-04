@@ -209,7 +209,7 @@ export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?:
 			}
 		}
 		catch (e) {
-			console.log('Skipping path: ', file.name, e);
+			console.error('Skipping path: ', file.name, e);
 		}
 	}
 	return results;

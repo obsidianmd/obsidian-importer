@@ -233,7 +233,6 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 	if ((!yarleOptions.haveEnexLevelResources && !yarleOptions.haveGlobalResources)) {
 		fs.mkdirSync(paths.resourcePath, { recursive: true });
 	}
-	console.log(`path ${paths.mdPath} created`);
 	// clearDistDir(paths.simpleMdPath);
 	// clearDistDir(paths.complexMdPath);
 };

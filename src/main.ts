@@ -160,7 +160,6 @@ export class ImportContext {
 		this.skipped.push(name);
 		this.skippedCountEl.setText(this.skipped.length.toString());
 
-		console.log('Import skipped', name, reason);
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Skipped: ' });
@@ -181,7 +180,7 @@ export class ImportContext {
 		this.failed.push(name);
 		this.failedCountEl.setText(this.failed.length.toString());
 
-		console.log('Import failed', name, reason);
+		console.error('Import failed', name, reason);
 
 		this.importLogEl.createDiv('list-item', el => {
 			el.createSpan({ cls: 'importer-error', text: 'Failed: ' });
@@ -199,7 +198,6 @@ export class ImportContext {
 	 */
 	reportProgress(current: number, total: number) {
 		if (total <= 0) return;
-		console.log('Current progress:', (100 * current / total).toFixed(1) + '%');
 		this.remainingCountEl.setText((total - current).toString());
 		this.importedCountEl.setText(current.toString());
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';

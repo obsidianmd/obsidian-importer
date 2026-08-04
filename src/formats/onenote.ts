@@ -1115,9 +1115,6 @@ export class OneNoteImporter extends FormatImporter {
 
 		try {
 			// any errors that happen in the try block will be retried.
-			if (retryCount > 0) {
-				console.log(`Retry attempt #${retryCount} for ${url}`);
-			}
 			let response = await fetch(
 				url,
 				{
@@ -1159,7 +1156,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (Object.prototype.hasOwnProperty.call(respJson, 'error')) {
 					err = respJson.error;
 				}
-				console.log('An error has occurred while fetching an resource:', err ? err : respJson);
+				console.error('An error has occurred while fetching an resource:', err ? err : respJson);
 
 				// If our access token has expired, becomes invalid, or is
 				// otherwise no longer authorized, then refresh it and try
@@ -1183,7 +1180,7 @@ export class OneNoteImporter extends FormatImporter {
 					// https://learn.microsoft.com/en-us/graph/throttling-limits#onenote-service-limits
 					// for more info.
 					let retryTimeSeconds = retryAfter ? (+retryAfter * 1) : 60;
-					console.log(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
+					console.warn(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
 					await this.pause(
 						retryTimeSeconds,
 						`OneNote API is rate-limiting us`,

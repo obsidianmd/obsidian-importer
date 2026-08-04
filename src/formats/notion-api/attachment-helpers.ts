@@ -82,8 +82,6 @@ export async function downloadAttachment(
 				: filename;
 		}
 
-		console.log(`[ATTACHMENT] Incremental import enabled: ${incrementalImport}, Original filename: ${filename}`);
-		console.log(`[ATTACHMENT] Available target path: ${targetFilePath}`);
 
 		// Check for incremental import: skip if file exists with same size
 		if (incrementalImport) {
@@ -92,25 +90,20 @@ export async function downloadAttachment(
 			// Reconstruct the full filename with extension
 			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
 
-			console.log(`[ATTACHMENT] Target full filename: ${targetFullName}`);
 
 			// If filename changed (e.g., "file.jpg" → "file 1.jpg"), it means the original file exists
 			if (targetFullName !== filename) {
-				console.log(`[ATTACHMENT] Filename changed (${filename} → ${targetFullName}), original file exists`);
 
 				// Construct the original file path by replacing the changed filename with the original
 				const originalFilePath = normalizePath(`${targetParent}/${filename}`);
 
-				console.log(`[ATTACHMENT] Checking original file: ${originalFilePath}`);
 				const existingFile = vault.getAbstractFileByPath(originalFilePath);
 
 				if (existingFile && existingFile instanceof TFile) {
 					const downloadedSize = response.arrayBuffer.byteLength;
-					console.log(`[ATTACHMENT] Downloaded size: ${downloadedSize} bytes, Existing size: ${existingFile.stat.size} bytes`);
 
 					// Compare file sizes
 					if (existingFile.stat.size === downloadedSize) {
-						console.log(`[ATTACHMENT] Skipping attachment (same size): ${filename}`);
 						ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
 
 						// Return existing file path (don't save to disk)
@@ -122,13 +115,7 @@ export async function downloadAttachment(
 							filename: filename
 						};
 					}
-					else {
-						console.log(`[ATTACHMENT] Sizes don't match, will save as new file: ${targetFullName}`);
-					}
 				}
-			}
-			else {
-				console.log(`[ATTACHMENT] Filename unchanged, original file doesn't exist`);
 			}
 		}
 

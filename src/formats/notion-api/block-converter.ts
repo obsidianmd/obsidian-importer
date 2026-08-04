@@ -474,7 +474,7 @@ export async function convertBlockToMarkdown(
 		
 		default:
 			// Unsupported block type - skip for now
-			console.log(`Unsupported block type: ${type}`);
+			console.warn(`Unsupported block type: ${type}`);
 			markdown = '';
 	}
 	
@@ -746,7 +746,6 @@ async function createSyncedBlockFile(
 		// Create the file
 		await vault.create(filePath, markdown);
 		
-		console.log(`Created synced block file: ${filePath}`);
 		
 		return filePath;
 	}
