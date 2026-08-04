@@ -1733,6 +1733,14 @@ export class AirtableAPIImporter extends FormatImporter {
 					(_match, baseId: string, recordId: string) => {
 						const targetPath = this.recordIdToPath.get(`${baseId}:${recordId}`);
 						if (targetPath) {
+							const target = this.vault.getAbstractFileByPath(`${targetPath}.md`);
+							if (target instanceof TFile) {
+								// Shortest form that still resolves: Obsidian falls back
+								// to a full path only where the name is not unique, so
+								// most links read as [[Electronics]] rather than
+								// [[Airtable/Belongings/Categories/Electronics]]
+								return `[[${this.app.metadataCache.fileToLinktext(target, file.path)}]]`;
+							}
 							return `[[${targetPath}]]`;
 						}
 						// Not imported - fall back to the record's title if we saw it
