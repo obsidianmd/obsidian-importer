@@ -1597,14 +1597,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Generate file content
 			const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
 
-			// Handle file name conflicts (different record with same name).
-			// Case-insensitive, because two records titled "Tron" and "TRON" are
-			// one file on a macOS or Windows filesystem: an exact-match check
-			// misses the conflict and vault.create then fails outright.
-			const existingFile = getAbstractFileByPathInsensitive(this.vault, filePath);
-			if (existingFile instanceof TFile) {
-				// File exists with different record - find unique name
-				filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
+			// Ask the vault for a free path rather than testing for a conflict
+			// first: it hands back the desired path when nothing occupies it, and
+			// compares case-insensitively, so two records titled "Tron" and "TRON"
+			// no longer resolve to one file that the second fails to create.
+			const availablePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
+			if (availablePath !== filePath) {
+				filePath = availablePath;
 				// Update sanitizedTitle to match the new file name (without .md)
 				const { basename } = parseFilePath(filePath);
 				sanitizedTitle = basename;

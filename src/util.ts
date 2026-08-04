@@ -27,8 +27,12 @@ export function sanitizeFileName(name: string) {
 	return trimmed || 'Untitled';
 }
 
-/** Vault.getAbstractFileByPathInsensitive exists at runtime but is not exported in obsidian.d.ts */
-type VaultWithInsensitiveLookup = Vault & {
+/**
+ * Vault.getAvailablePath and getAbstractFileByPathInsensitive exist at runtime
+ * but are not exported in obsidian.d.ts.
+ */
+type VaultInternals = Vault & {
+	getAvailablePath?(base: string, extension?: string): string;
 	getAbstractFileByPathInsensitive?(path: string): TAbstractFile | null;
 };
 
@@ -38,15 +42,13 @@ type VaultWithInsensitiveLookup = Vault & {
  * Vault.getAbstractFileByPath is an exact key match on the vault's file map, but
  * macOS and Windows filesystems are case-insensitive: "Tron.md" and "TRON.md"
  * are one file on disk while the public lookup reports only the exact spelling
- * as existing. Creating the second then fails with "File already exists", and
- * any caller relying on the public lookup to detect a conflict never sees it.
+ * as existing, so a caller relying on it never sees the conflict.
  *
- * Obsidian implements the comparison we need but does not export it, so it is
- * called through a cast, with the public lookup as a fallback in case it is ever
- * renamed or is missing on an older app version.
+ * Only for questions of the form "does this already exist?". To pick a path to
+ * create at, use getUniqueFilePath, which asks the vault for a free one.
  */
 export function getAbstractFileByPathInsensitive(vault: Vault, path: string): TAbstractFile | null {
-	const insensitive = (vault as VaultWithInsensitiveLookup).getAbstractFileByPathInsensitive;
+	const insensitive = (vault as VaultInternals).getAbstractFileByPathInsensitive;
 	if (typeof insensitive === 'function') {
 		return insensitive.call(vault, path);
 	}
@@ -54,38 +56,36 @@ export function getAbstractFileByPathInsensitive(vault: Vault, path: string): TA
 }
 
 /**
- * Get a unique file path by appending 1, 2, etc. if needed
- * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
+ * Get a free path to create a file at, appending 1, 2, etc. if needed.
  *
- * Matching ignores case, so a vault that already holds "Tron.md" yields
- * "Tron 1.md" for an incoming "TRON.md" rather than a path that collides on
- * disk.
+ * Defers to Vault.getAvailablePath, which is what Obsidian itself uses when
+ * creating a note. It applies the same "space + number" convention and compares
+ * case-insensitively, so it will not hand back a path that collides with an
+ * existing file on a case-insensitive filesystem.
  *
  * @param vault - Obsidian vault instance
  * @param parentPath - Parent folder path
  * @param fileName - File name with extension (e.g., "note.md")
- * @returns Unique file path that doesn't conflict with existing files
+ * @returns Path that no existing file occupies
  */
 export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
-	let basePath = normalizePath(`${parentPath}/${fileName}`);
-	let finalPath = basePath;
-	let counter = 1;
+	const lastDotIndex = fileName.lastIndexOf('.');
+	const hasExtension = lastDotIndex > 0;
+	const base = normalizePath(`${parentPath}/${hasExtension ? fileName.slice(0, lastDotIndex) : fileName}`);
+	const extension = hasExtension ? fileName.slice(lastDotIndex + 1) : undefined;
 
-	// Synchronous check; case-insensitive to match the filesystem
-	while (getAbstractFileByPathInsensitive(vault, finalPath)) {
-		// Insert counter before file extension
-		const lastDotIndex = fileName.lastIndexOf('.');
-		if (lastDotIndex > 0) {
-			const nameWithoutExt = fileName.substring(0, lastDotIndex);
-			const ext = fileName.substring(lastDotIndex);
-			finalPath = normalizePath(`${parentPath}/${nameWithoutExt} ${counter}${ext}`);
-		}
-		else {
-			finalPath = normalizePath(`${parentPath}/${fileName} ${counter}`);
-		}
-		counter++;
+	const getAvailablePath = (vault as VaultInternals).getAvailablePath;
+	if (typeof getAvailablePath === 'function') {
+		return getAvailablePath.call(vault, base, extension);
 	}
 
+	// Fallback for an app version without it: same convention, same comparison
+	let counter = 1;
+	let finalPath = normalizePath(`${parentPath}/${fileName}`);
+	while (getAbstractFileByPathInsensitive(vault, finalPath)) {
+		finalPath = normalizePath(`${base} ${counter}${hasExtension ? `.${extension}` : ''}`);
+		counter++;
+	}
 	return finalPath;
 }
 
