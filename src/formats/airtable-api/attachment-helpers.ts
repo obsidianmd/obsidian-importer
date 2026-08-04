@@ -21,7 +21,7 @@ export async function downloadAttachment(
 	}
 ): Promise<AttachmentResult> {
 	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath } = context;
-	
+
 	// If download is disabled, return URL
 	if (!downloadAttachments) {
 		return {
@@ -30,17 +30,17 @@ export async function downloadAttachment(
 			filename: attachment.filename,
 		};
 	}
-	
+
 	try {
 		ctx.status(`Downloading attachment: ${attachment.filename}`);
-		
+
 		// Download the file
 		const response = await requestUrl({
 			url: attachment.url,
 			method: 'GET',
 			throw: false,
 		});
-		
+
 		if (response.status !== 200) {
 			console.warn(`Failed to download attachment: ${attachment.filename}`);
 			return {
@@ -49,17 +49,17 @@ export async function downloadAttachment(
 				filename: attachment.filename,
 			};
 		}
-		
+
 		// Sanitize filename
 		const sanitized = sanitizeFileName(attachment.filename);
-		
+
 		// Get available path (respects user's attachment folder settings)
 		const targetPath = await getAvailableAttachmentPath(sanitized);
-		
+
 		// Create the file
 		const normalizedPath = normalizePath(targetPath);
 		await vault.createBinary(normalizedPath, response.arrayBuffer);
-		
+
 		return {
 			path: normalizedPath,
 			isLocal: true,
@@ -95,30 +95,30 @@ interface FormatAttachmentLinkContext {
  */
 export function formatAttachmentLink(ctx: FormatAttachmentLinkContext): string {
 	const { result, app, vault, sourceFilePath, mimeType } = ctx;
-	
+
 	if (!result.isLocal) {
 		// External URL - use markdown format
 		return `[${result.filename || 'Attachment'}](${result.path})`;
 	}
-	
+
 	// Local file - get the actual file
 	const file = vault.getAbstractFileByPath(result.path);
-	
+
 	if (file instanceof TFile) {
 		// Determine if it's an image/video that should be embedded based on MIME type
 		const isEmbeddable = mimeType ? (mimeType.startsWith('image/') || mimeType.startsWith('video/')) : false;
-		
+
 		// Use generateMarkdownLink to respect user's link format settings
 		// This respects both "Use [[Wikilinks]]" and "New link format" settings
 		const link = app.fileManager.generateMarkdownLink(file, sourceFilePath);
-		
+
 		// Add embed prefix for images/videos if not already present
 		if (isEmbeddable && !link.startsWith('!')) {
 			return '!' + link;
 		}
 		return link;
 	}
-	
+
 	// Fallback
 	return `[[${result.path}]]`;
 }
@@ -135,7 +135,7 @@ export function formatAttachmentForYAML(
 		// External URL - return plain URL (no Markdown syntax in YAML)
 		return result.path;
 	}
-	
+
 	// Local file - use wiki link with full path
 	return `[[${result.path}]]`;
 }
@@ -158,7 +158,7 @@ export async function processAttachments(
 ): Promise<string[]> {
 	const { ctx, currentFilePath, app, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
 	const results: string[] = [];
-	
+
 	for (const attachment of attachments) {
 		const result = await downloadAttachment(attachment, {
 			ctx,
@@ -166,11 +166,11 @@ export async function processAttachments(
 			downloadAttachments,
 			getAvailableAttachmentPath,
 		});
-		
+
 		if (result.isLocal && onAttachmentDownloaded) {
 			onAttachmentDownloaded();
 		}
-		
+
 		// Format as link for body content using user's link format settings
 		// Pass MIME type to determine if it should be embedded (images/videos)
 		const link = formatAttachmentLink({
@@ -180,10 +180,10 @@ export async function processAttachments(
 			sourceFilePath: currentFilePath,
 			mimeType: attachment.type,
 		});
-		
+
 		results.push(link);
 	}
-	
+
 	return results;
 }
 
@@ -203,7 +203,7 @@ export async function processAttachmentsForYAML(
 ): Promise<string[]> {
 	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
 	const results: string[] = [];
-	
+
 	for (const attachment of attachments) {
 		const result = await downloadAttachment(attachment, {
 			ctx,
@@ -211,16 +211,16 @@ export async function processAttachmentsForYAML(
 			downloadAttachments,
 			getAvailableAttachmentPath,
 		});
-		
+
 		if (result.isLocal && onAttachmentDownloaded) {
 			onAttachmentDownloaded();
 		}
-		
+
 		// Format for YAML (always wiki link)
 		const formatted = formatAttachmentForYAML(result);
 		results.push(formatted);
 	}
-	
+
 	return results;
 }
 

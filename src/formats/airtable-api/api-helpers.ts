@@ -13,11 +13,11 @@ const AIRTABLE_META_API_BASE = 'https://api.airtable.com/v0/meta';
 
 /**
  * Rate limit configuration for Meta API requests
- * 
+ *
  * Airtable limits:
  * - Data API: 5 requests/second per base (handled by SDK with built-in retry)
  * - Meta API: Unknown exact limit, but less strict than Data API
- * 
+ *
  * We use a conservative 50ms delay for Meta API calls (bases/tables schema)
  * to balance user experience with API limits. If 429 occurs, we'll wait 30s as required.
  */
@@ -30,12 +30,12 @@ let lastRequestTime = 0;
 async function waitForRateLimit(): Promise<void> {
 	const now = Date.now();
 	const timeSinceLastRequest = now - lastRequestTime;
-	
+
 	if (timeSinceLastRequest < RATE_LIMIT_DELAY) {
 		const waitTime = RATE_LIMIT_DELAY - timeSinceLastRequest;
 		await new Promise(resolve => setTimeout(resolve, waitTime));
 	}
-	
+
 	lastRequestTime = Date.now();
 }
 
@@ -44,9 +44,9 @@ async function waitForRateLimit(): Promise<void> {
  */
 export async function makeAirtableRequest<T>(options: AirtableRequestOptions): Promise<T> {
 	const { url, token, ctx, method = 'GET', body } = options;
-	
+
 	await waitForRateLimit();
-	
+
 	try {
 		const response = await requestUrl({
 			url,
@@ -58,24 +58,24 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions): P
 			body: body ? JSON.stringify(body) : undefined,
 			throw: false,
 		});
-		
+
 		if (response.status === 429) {
 			// Rate limited - Airtable requires 30 second wait per official docs
 			// https://airtable.com/developers/web/api/rate-limits
-			const retryAfter = response.headers?.['retry-after'] 
-				? parseInt(response.headers['retry-after']) * 1000 
+			const retryAfter = response.headers?.['retry-after']
+				? parseInt(response.headers['retry-after']) * 1000
 				: 30000; // Default 30 seconds as per Airtable docs
-			
+
 			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s...`);
 			await new Promise(resolve => setTimeout(resolve, retryAfter));
 			return makeAirtableRequest(options);
 		}
-		
+
 		if (response.status >= 400) {
 			const errorText = response.text || `HTTP ${response.status}`;
 			throw new Error(`Airtable API error: ${errorText}`);
 		}
-		
+
 		return response.json as T;
 	}
 	catch (error) {
@@ -92,13 +92,13 @@ export async function fetchBases(
 	ctx: StatusReporter
 ): Promise<AirtableBaseInfo[]> {
 	ctx.status('Fetching bases...');
-	
+
 	const response = await makeAirtableRequest<{ bases: AirtableBaseInfo[] }>({
 		url: `${AIRTABLE_META_API_BASE}/bases`,
 		token,
 		ctx,
 	});
-	
+
 	return response.bases || [];
 }
 
@@ -111,13 +111,13 @@ export async function fetchTableSchema(
 	ctx: StatusReporter
 ): Promise<AirtableTableInfo[]> {
 	ctx.status(`Fetching tables for base ${baseId}...`);
-	
+
 	const response = await makeAirtableRequest<{ tables: AirtableTableInfo[] }>({
 		url: `${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`,
 		token,
 		ctx,
 	});
-	
+
 	return response.tables || [];
 }
 
@@ -128,29 +128,29 @@ export async function fetchTableSchema(
 export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any[]> {
 	const { baseId, tableIdOrName, token, viewId, onProgress } = options;
 	const base = new Airtable({ apiKey: token }).base(baseId);
-	
+
 	// Airtable SDK record objects with methods like get(), _rawJson, etc.
 	const records: any[] = [];
-	
+
 	try {
 		// Airtable SDK select options
 		const selectOptions: any = {};
-		
+
 		if (viewId) {
 			selectOptions.view = viewId;
 		}
-		
+
 		await base(tableIdOrName)
 			.select(selectOptions)
-			// Airtable SDK returns untyped record objects
-			.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
+			// Airtable SDK returns untyped, readonly record arrays
+			.eachPage((pageRecords: readonly any[], fetchNextPage: () => void) => {
 				records.push(...pageRecords);
-				
+
 				// Update progress via callback
 				if (onProgress) {
 					onProgress(records.length);
 				}
-				
+
 				// Fetch next page
 				fetchNextPage();
 			});
@@ -159,7 +159,7 @@ export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any
 		console.error(`Failed to fetch records from table ${tableIdOrName}:`, error);
 		throw error;
 	}
-	
+
 	return records;
 }
 

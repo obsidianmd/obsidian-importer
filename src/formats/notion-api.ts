@@ -165,7 +165,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Create the section wrapper
 		const importSection = this.modal.contentEl.createDiv();
 		importSection.addClass('import-section', 'file-tree', 'publish-section');
-	
+
 		// Create the change list container
 		this.pageTreeContainer = importSection.createDiv('publish-change-list');
 		// Add placeholder text
@@ -672,7 +672,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Add is-collapsed class for CSS control
 			collapseIcon.toggleClass('is-collapsed', node.collapsed);
 			treeItem.toggleClass('is-collapsed', node.collapsed);
-		
+
 			// Allow arrow click even when disabled
 			if (node.disabled) {
 				collapseIcon.style.pointerEvents = 'auto';
@@ -697,7 +697,7 @@ export class NotionAPIImporter extends FormatImporter {
 				collapseIcon.toggleClass('is-collapsed', node.collapsed);
 				treeItem.toggleClass('is-collapsed', node.collapsed);
 				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-				
+
 				// Update folder icon
 				if (node.type !== 'database' && iconContainer) {
 					iconContainer.empty();

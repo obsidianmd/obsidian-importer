@@ -30,7 +30,7 @@ export function sanitizeFileName(name: string) {
 /**
  * Get a unique file path by appending 1, 2, etc. if needed
  * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
- * 
+ *
  * @param vault - Obsidian vault instance
  * @param parentPath - Parent folder path
  * @param fileName - File name with extension (e.g., "note.md")
@@ -40,7 +40,7 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 	let basePath = normalizePath(`${parentPath}/${fileName}`);
 	let finalPath = basePath;
 	let counter = 1;
-	
+
 	// Use getAbstractFileByPath for synchronous check
 	while (vault.getAbstractFileByPath(finalPath)) {
 		// Insert counter before file extension
@@ -55,7 +55,7 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 		}
 		counter++;
 	}
-	
+
 	return finalPath;
 }
 

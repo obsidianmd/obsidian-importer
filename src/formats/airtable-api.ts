@@ -7,7 +7,7 @@ import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYam
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
-import { sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
@@ -79,13 +79,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		viewName: string;
 		recordsProgress: string; // e.g., "100/200"
 	} = {
-			totalBases: 0,
-			currentBaseIndex: 0,
-			baseName: '',
-			tableName: '',
-			viewName: '',
-			recordsProgress: '',
-		};
+		totalBases: 0,
+		currentBaseIndex: 0,
+		baseName: '',
+		tableName: '',
+		viewName: '',
+		recordsProgress: '',
+	};
 
 	/**
 	 * Build status message with current context
@@ -179,7 +179,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					}
 					catch (error) {
 						console.error('[Airtable Importer] Error loading tree:', error);
-						new Notice(`Failed to load bases: ${error.message}`);
+						new Notice(`Failed to load bases: ${extractErrorMessage(error)}`);
 					}
 				});
 
@@ -347,7 +347,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error('[Airtable Importer] Failed to load bases:', error);
-			new Notice(`Failed to load bases: ${error.message || 'Unknown error'}`);
+			new Notice(`Failed to load bases: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
 		finally {
 			this.loadButton.setDisabled(false);
@@ -847,7 +847,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error('Airtable API import error:', error);
 			ctx.reportFailed('Airtable API import', error);
-			new Notice(`Import failed: ${error.message}`);
+			new Notice(`Import failed: ${extractErrorMessage(error)}`);
 		}
 	}
 
@@ -1175,7 +1175,7 @@ export class AirtableAPIImporter extends FormatImporter {
 						recordTitle = String(primaryFieldValue);
 					}
 				}
-				catch (e) {
+				catch {
 					// If title extraction fails, use default
 				}
 				ctx.reportFailed(recordTitle, error);
@@ -1211,8 +1211,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					view: view.id,
 					fields: [], // Request no fields, only IDs
 				})
-				// Airtable SDK returns untyped record objects
-				.eachPage((pageRecords: any[], fetchNextPage: () => void) => {
+				// Airtable SDK returns untyped, readonly record arrays
+				.eachPage((pageRecords: readonly any[], fetchNextPage: () => void) => {
 					// Extract only the IDs
 					recordIds.push(...pageRecords.map(r => r.id));
 					fetchNextPage();
@@ -1503,7 +1503,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Handle incremental import check for a record
 	 * If file exists with same airtable-id, executes the callback and returns true
 	 * Otherwise returns false to continue with normal import
-	 * 
+	 *
 	 * @param filePath - Path to check
 	 * @param recordId - Airtable record ID to compare
 	 * @returns true if same record already exists (should skip), false otherwise
@@ -1804,7 +1804,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					const updatedContent = stringifyYaml(baseConfig);
 					await this.vault.modify(existingFile, updatedContent);
 				}
-				catch (parseError) {
+				catch {
 					// If parsing fails, just overwrite
 					await this.vault.modify(existingFile, content);
 				}
@@ -1927,7 +1927,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Convert Airtable rollup formula to Obsidian formula
 	 * Replaces 'values' with the map expression
-	 * 
+	 *
 	 * Strategy:
 	 * 1. First try to match simple aggregation patterns like SUM(VALUES), AVERAGE(VALUES), etc.
 	 * 2. If no match, replace 'values' with mapExpression and try general formula conversion
