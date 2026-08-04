@@ -104,6 +104,12 @@ export interface AirtableTreeNode {
 	selected: boolean;
 	disabled: boolean;
 	collapsed?: boolean;
+	/**
+	 * Base nodes only: whether this base's table schemas have been fetched.
+	 * Schemas cost one API call per base, so they are loaded on demand rather
+	 * than all up front.
+	 */
+	tablesLoaded?: boolean;
 	// Additional metadata for table nodes
 	metadata?: {
 		baseId?: string;

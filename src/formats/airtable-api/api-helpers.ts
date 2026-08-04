@@ -120,6 +120,8 @@ export async function fetchTableSchema(
 	token: string,
 	ctx: StatusReporter
 ): Promise<AirtableTableInfo[]> {
+	// Caller-supplied reporters usually have a friendlier label (the base's name)
+	// than the ID available here, so this only fills in when nothing else did
 	ctx.status(`Fetching tables for base ${baseId}...`);
 
 	const response = await makeAirtableRequest<{ tables: AirtableTableInfo[] }>({

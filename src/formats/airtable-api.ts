@@ -117,57 +117,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	private airtableClient: Airtable | null = null;
 	private airtableBases: Map<string, any> = new Map();
 
-	// Status tracking for detailed progress display
-	private statusContext: {
-		totalBases: number;
-		currentBaseIndex: number;
-		baseName: string;
-		tableName: string;
-		viewName: string;
-		recordsProgress: string; // e.g., "100/200"
-	} = {
-		totalBases: 0,
-		currentBaseIndex: 0,
-		baseName: '',
-		tableName: '',
-		viewName: '',
-		recordsProgress: '',
-	};
-
-	/**
-	 * Build status message with current context
-	 * Format: Base 1/4 → {BaseName} → {Status} [→ {Table}] [→ {View}] [{Records}]
-	 */
-	private buildStatusMessage(status: 'Fetching' | 'Preparing' | 'Writing', options?: {
-		showTable?: boolean;
-		showView?: boolean;
-		showRecords?: boolean;
-		customSuffix?: string;
-	}): string {
-		const { totalBases, currentBaseIndex, baseName, tableName, viewName, recordsProgress } = this.statusContext;
-		const opts = options || {};
-
-		// Format: Base 1/4 → BaseName → Status
-		let message = `Base ${currentBaseIndex}/${totalBases} → ${baseName} → ${status}`;
-
-		if (opts.showTable && tableName) {
-			message += ` → ${tableName}`;
-		}
-
-		if (opts.showView && viewName) {
-			message += ` → ${viewName}`;
-		}
-
-		if (opts.showRecords && recordsProgress) {
-			message += ` (${recordsProgress})`;
-		}
-
-		if (opts.customSuffix) {
-			message += ` ${opts.customSuffix}`;
-		}
-
-		return message;
-	}
+	// Appended to status messages when more than one base is being imported,
+	// e.g. " (base 2 of 4)". Empty for a single base, where it says nothing.
+	private basePosition: string = '';
 
 	init() {
 		this.addOutputLocationSetting('Airtable');
@@ -340,59 +292,31 @@ export class AirtableAPIImporter extends FormatImporter {
 				return;
 			}
 
-			// Build tree structure
-			const treeNodes: AirtableTreeNode[] = [];
+			// Build the tree from the base list alone. Table schemas cost one API
+			// call per base, which on an account with many bases means a minute or
+			// more of staring at an empty list, so they are fetched on demand when
+			// a base is expanded or selected.
+			this.tree = bases.map(base => ({
+				id: base.id,
+				title: base.name,
+				type: 'base' as const,
+				parentId: null,
+				children: [],
+				selected: false,
+				disabled: false,
+				collapsed: true,
+				tablesLoaded: false,
+			}));
 
-			for (const base of bases) {
-				statusReporter.status(`Loading tables for ${base.name}...`);
-
-				// Fetch tables for this base
-				const tables = await fetchTableSchema(base.id, this.airtableToken, statusReporter);
-
-				// Create base node
-				const baseNode: AirtableTreeNode = {
-					id: base.id,
-					title: base.name,
-					type: 'base',
-					parentId: null,
-					children: [],
-					selected: false,
-					disabled: false,
-					collapsed: true,
-				};
-
-				// Add table nodes
-				for (const table of tables) {
-					const tableNode: AirtableTreeNode = {
-						id: `${base.id}:${table.id}`,
-						title: table.name,
-						type: 'table',
-						parentId: base.id,
-						selected: false,
-						disabled: false,
-						metadata: {
-							baseId: base.id,
-							tableName: table.name,
-							primaryFieldId: table.primaryFieldId,
-							fields: table.fields,
-							views: table.views,
-						},
-					};
-					baseNode.children!.push(tableNode);
-				}
-
-				treeNodes.push(baseNode);
-			}
-
-			this.tree = treeNodes;
 			this.renderTree();
 
 			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
 				this.toggleSelectButton.buttonEl.show();
 			}
 
-			const tableCount = treeNodes.reduce((sum, base) => sum + (base.children?.length || 0), 0);
-			new Notice(`Found ${bases.length} base(s) with ${tableCount} table(s).`);
+			// Table counts are deliberately absent: schemas are fetched per base on
+			// demand, so totalling them here would reintroduce the full scan
+			new Notice(`Found ${bases.length} base(s). Expand a base to see its tables.`);
 		}
 		catch (error) {
 			console.error('[Airtable Importer] Failed to load bases:', error);
@@ -401,6 +325,69 @@ export class AirtableAPIImporter extends FormatImporter {
 		finally {
 			this.loadButton.setDisabled(false);
 			this.loadButton.setButtonText('Refresh');
+		}
+	}
+
+	/**
+	 * Fetch a base's table schemas, if they have not been fetched already.
+	 *
+	 * Returns false if the fetch failed, so callers can avoid acting on a base
+	 * whose tables are still unknown.
+	 */
+	private async ensureTablesLoaded(baseNode: AirtableTreeNode, reportTo?: (msg: string) => void): Promise<boolean> {
+		if (baseNode.tablesLoaded) {
+			return true;
+		}
+
+		const statusReporter = {
+			// fetchTableSchema reports raw base IDs, which say nothing to the user;
+			// keep the base's name on screen instead
+			status: () => reportTo?.(`Loading tables for ${baseNode.title}...`),
+		};
+
+		try {
+			statusReporter.status();
+			const tables = await fetchTableSchema(baseNode.id, this.airtableToken, statusReporter);
+
+			baseNode.children = tables.map(table => ({
+				id: `${baseNode.id}:${table.id}`,
+				title: table.name,
+				type: 'table' as const,
+				parentId: baseNode.id,
+				// A table inherits its parent's selection, and inherited selection
+				// is shown as checked-but-disabled
+				selected: baseNode.selected,
+				disabled: baseNode.selected,
+				metadata: {
+					baseId: baseNode.id,
+					tableName: table.name,
+					primaryFieldId: table.primaryFieldId,
+					fields: table.fields,
+					views: table.views,
+				},
+			}));
+			baseNode.tablesLoaded = true;
+			return true;
+		}
+		catch (error) {
+			console.error(`[Airtable Importer] Failed to load tables for "${baseNode.title}":`, error);
+			new Notice(`Failed to load tables for "${baseNode.title}": ${extractErrorMessage(error) ?? 'Unknown error'}`);
+			return false;
+		}
+	}
+
+	/**
+	 * Fetch table schemas for every base the user has selected.
+	 *
+	 * Selecting a base without expanding it is the common case, so its tables
+	 * have to be resolved before the field list or the import can be built.
+	 */
+	private async ensureSelectedTablesLoaded(report: (msg: string) => void): Promise<void> {
+		const pending = this.tree.filter(node => node.selected && !node.tablesLoaded);
+
+		for (let i = 0; i < pending.length; i++) {
+			report(`Loading tables (${i + 1}/${pending.length})...`);
+			await this.ensureTablesLoaded(pending[i], report);
 		}
 	}
 
@@ -448,8 +435,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		const treeItemSelf = treeItem.createDiv('tree-item-self');
 		treeItemSelf.addClass('is-clickable');
 
-		// Add appropriate modifiers
-		const hasChildren = node.children && node.children.length > 0;
+		// Add appropriate modifiers.
+		// A base is always collapsible, even before its tables have been fetched -
+		// otherwise a lazily-loaded base would have no arrow to expand.
+		const hasChildren = !!(node.children && node.children.length > 0);
+		const isCollapsible = node.type === 'base' || hasChildren;
 		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
 
 		// Apply disabled styling
@@ -459,8 +449,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			treeItemSelf.style.pointerEvents = 'none';
 		}
 
-		// Collapse/Expand arrow (only for base nodes with children)
-		if (hasChildren) {
+		// Collapse/Expand arrow
+		if (isCollapsible) {
 			treeItemSelf.addClass('mod-collapsible');
 
 			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
@@ -480,9 +470,34 @@ export class AirtableAPIImporter extends FormatImporter {
 			let childrenContainer: HTMLElement;
 
 			// Toggle collapse state with pure DOM manipulation (no re-render)
-			collapseIcon.addEventListener('click', (e) => {
+			collapseIcon.addEventListener('click', async (e) => {
 				e.stopPropagation();
 				node.collapsed = !node.collapsed;
+
+				// Expanding a base for the first time fetches its tables. A full
+				// re-render is needed afterwards to draw the new child nodes.
+				if (!node.collapsed && node.type === 'base' && !node.tablesLoaded) {
+					// Obsidian's own spinner: .loader-spinner + the loader-2 icon,
+					// the same pairing app.css styles and Sync's modals use.
+					// Most bases resolve in a few hundred milliseconds, where a
+					// spinner reads as a flicker. Only reveal it if the fetch is
+					// still running after a beat.
+					const spinner = treeItemSelf.createDiv('loader-spinner');
+					setIcon(spinner, 'loader-2');
+					spinner.hide();
+					const spinnerDelay = window.setTimeout(() => spinner.show(), 250);
+
+					const ok = await this.ensureTablesLoaded(node);
+
+					window.clearTimeout(spinnerDelay);
+					spinner.remove();
+					if (!ok) {
+						node.collapsed = true;
+						return;
+					}
+					this.renderTree();
+					return;
+				}
 
 				// Get reference if not set yet
 				if (!childrenContainer) {
@@ -620,6 +635,16 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
 	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+		if (this.getSelectedNodes().length === 0) {
+			new Notice('Please select at least one table to import.');
+			return false;
+		}
+
+		// A base can be selected without ever being expanded, so its tables may
+		// not have been fetched yet. Resolve them before reading any field lists.
+		await this.ensureSelectedTablesLoaded(msg => this.loadButton.setButtonText(msg));
+		this.loadButton.setButtonText('Refresh');
+
 		const selectedNodes = this.getSelectedNodes();
 		if (selectedNodes.length === 0) {
 			new Notice('Please select at least one table to import.');
@@ -816,6 +841,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
+		// Normally already done by showTemplateConfiguration; repeated here because
+		// a base selected but never expanded has no tables to import otherwise
+		await this.ensureSelectedTablesLoaded(msg => ctx.status(msg));
+
 		const selectedNodes = this.getSelectedNodes();
 		if (selectedNodes.length === 0) {
 			new Notice('Please select at least one table to import.');
@@ -844,39 +873,23 @@ export class AirtableAPIImporter extends FormatImporter {
 			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
 			const totalBases = baseGroups.size;
 
-			// Initialize status context
-			this.statusContext = {
-				totalBases,
-				currentBaseIndex: 0,
-				baseName: '',
-				tableName: '',
-				viewName: '',
-				recordsProgress: '',
-			};
-
 			ctx.status(`Found ${totalBases} base(s) to import...`);
 
 			// Process each base sequentially to minimize memory usage
+			let baseIndex = 0;
 			for (const [, baseInfo] of baseGroups.entries()) {
 				if (ctx.isCancelled()) {
 					ctx.status('Import cancelled.');
 					return;
 				}
 
-				// Update status context for this base
-				this.statusContext.currentBaseIndex++;
-				this.statusContext.baseName = baseInfo.baseName;
-				this.statusContext.tableName = '';
-				this.statusContext.viewName = '';
-				this.statusContext.recordsProgress = '';
+				baseIndex++;
+				this.basePosition = totalBases > 1 ? ` (base ${baseIndex} of ${totalBases})` : '';
 
 				// Clear data from previous base to free memory
 				this.clearBaseData();
 
-				// Reset progress bar to 0% for the new base
-				ctx.reportProgress(0, 1);
-
-				ctx.status(this.buildStatusMessage('Fetching'));
+				ctx.status(`Fetching data from ${baseInfo.baseName}${this.basePosition}...`);
 
 				// ============================================================
 				// PHASE 1: Fetch data for this base
@@ -904,7 +917,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 					// PHASE 3: every record in this base now has a final path, so
 					// linked-record placeholders can be turned into real links
-					ctx.status(this.buildStatusMessage('Writing', { customSuffix: '→ Resolving linked records' }));
+					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}...`);
 					await this.resolveRecordLinks(ctx, baseInfo.baseId);
 				}
 				catch (error) {
@@ -1029,11 +1042,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			// Update status context
-			this.statusContext.tableName = table.tableName;
-			this.statusContext.viewName = '';
-			this.statusContext.recordsProgress = '';
-
-			ctx.status(this.buildStatusMessage('Fetching', { showTable: true }));
+			ctx.status(`Fetching records from ${table.tableName}${this.basePosition}...`);
 
 			await this.fetchTableData(ctx, {
 				baseId,
@@ -1046,9 +1055,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Report progress after fetching all tables for this base
-		this.statusContext.tableName = '';
-		this.statusContext.recordsProgress = `${this.totalRecordsToImport} records`;
-		ctx.status(this.buildStatusMessage('Preparing', { showRecords: true }));
+		ctx.status(`Preparing ${this.totalRecordsToImport} record(s) from ${baseName}${this.basePosition}...`);
 		ctx.reportProgress(0, this.totalRecordsToImport);
 	}
 
@@ -1064,9 +1071,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			// Update status context
-			this.statusContext.tableName = tableData.tableName;
-			this.statusContext.viewName = '';
-
 			await this.createFilesForTable(ctx, tableData, rootPath);
 		}
 	}
@@ -1114,9 +1118,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Step 1: Fetch ALL records from the table
 		// Update status - fetching records
-		this.statusContext.viewName = '';
-		this.statusContext.recordsProgress = '';
-		ctx.status(this.buildStatusMessage('Fetching', { showTable: true }));
+		ctx.status(`Fetching records from ${tableName}${this.basePosition}...`);
 
 		const allRecords = await fetchAllRecords({
 			baseId,
@@ -1124,8 +1126,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			token: this.airtableToken,
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
-				this.statusContext.recordsProgress = `${fetched} records`;
-				ctx.status(this.buildStatusMessage('Fetching', { showTable: true, showRecords: true }));
+				ctx.status(`Fetched ${fetched} record(s) from ${tableName}${this.basePosition}...`);
 			},
 		});
 
@@ -1154,9 +1155,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			// Update status - fetching view
-			this.statusContext.viewName = view.name;
-			this.statusContext.recordsProgress = '';
-			ctx.status(this.buildStatusMessage('Fetching', { showTable: true, showView: true }));
+			ctx.status(`Fetching view ${view.name} from ${tableName}${this.basePosition}...`);
 
 			// Fetch only record IDs from this view
 			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
@@ -1215,10 +1214,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		await this.createFolders(tablePath);
 
 		// Update status context for writing
-		this.statusContext.tableName = tableName;
-		this.statusContext.viewName = '';
-		this.statusContext.recordsProgress = `0/${records.length}`;
-		ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
+		ctx.status(`Creating ${records.length} note(s) in ${tableName}${this.basePosition}...`);
 
 		// Create .base file first
 		await this.createBaseFile({
@@ -1272,8 +1268,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			// Update progress display
 			processedInTable++;
-			this.statusContext.recordsProgress = `${processedInTable}/${totalRecordsInTable}`;
-			ctx.status(this.buildStatusMessage('Writing', { showTable: true, showRecords: true }));
+			ctx.status(`Creating note ${processedInTable}/${totalRecordsInTable} in ${tableName}${this.basePosition}`);
 		}
 
 	}

@@ -196,3 +196,15 @@
 	text-align: center;
 	padding: 30px 10px;
 }
+
+/*
+ * Obsidian's .loader-spinner is sized and centred for a full-pane loader.
+ * Shrink it to sit inline at the end of a tree row while a base's tables load.
+ */
+.import-section .tree-item-self .loader-spinner {
+	--icon-size: var(--icon-s);
+	width: var(--icon-s);
+	height: var(--icon-s);
+	flex-shrink: 0;
+	margin: 0 var(--size-4-1) 0 auto;
+}
