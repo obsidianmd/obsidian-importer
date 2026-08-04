@@ -343,8 +343,12 @@ export function convertAirtableFormulaToObsidian(
 				}
 			}
 
-			// Apply replacement
-			if (replacement !== null) {
+			// Apply replacement.
+			// The function pattern is case-insensitive, so a global function that
+			// keeps its shape (IF -> if, MAX -> max) re-matches its own output.
+			// Treating a no-op rewrite as progress would loop until the iteration
+			// cap and discard an otherwise valid formula.
+			if (replacement !== null && replacement !== result.substring(start, end)) {
 				changed = true;
 				foundMatch = true;
 				result = result.substring(0, start) + replacement + result.substring(end);
