@@ -9,7 +9,7 @@
 		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
 		"lint": "eslint src --fix",
 		"lint:review": "eslint src -c eslint.review.config.mjs",
-		"test": "tsx --test tests/**/*.test.ts"
+		"test": "tsx --tsconfig tsconfig.test.json --test tests/**/*.test.ts"
 	},
 	"keywords": [],
 	"author": "",
@@ -20,13 +20,17 @@
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.10.0",
 		"@types/node": "20.19.27",
+		"@types/turndown": "^5.0.6",
 		"@types/xml-flow": "1.0.1",
 		"esbuild": "0.25.4",
 		"eslint": "9.39.4",
 		"eslint-plugin-obsidianmd": "^0.4.1",
+		"linkedom": "^0.18.13",
+		"moment": "^2.30.1",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"tsx": "4.23.5",
+		"turndown": "^7.2.4",
 		"typescript": "5.9.3",
 		"typescript-eslint": "8.59.3"
 	},
