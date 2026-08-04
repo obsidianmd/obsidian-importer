@@ -217,7 +217,7 @@ export class Bear2bkImporter extends FormatImporter {
 		ctx.status('Updating internal links…');
 
 		// Second pass to update links based on note IDs
-		this.updateNotesLinks(idMapping);
+		await this.updateNotesLinks(idMapping);
 
 	}
 
@@ -227,7 +227,7 @@ export class Bear2bkImporter extends FormatImporter {
 			mtime: metaData?.mtime,
 		};
 
-		this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+		await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
 			if (this.storeId && metaData?.id) {
 				frontmatter['id'] = metaData.id;
 			}

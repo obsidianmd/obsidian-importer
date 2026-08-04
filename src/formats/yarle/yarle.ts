@@ -216,5 +216,5 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 	}
 
 	if (ctx.isCancelled()) return;
-	await applyLinks(options, outputNotebookFolders);
+	applyLinks(options, outputNotebookFolders);
 }

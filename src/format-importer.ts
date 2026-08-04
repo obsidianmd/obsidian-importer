@@ -24,10 +24,16 @@ export abstract class FormatImporter {
 		this.app = app;
 		this.vault = app.vault;
 		this.modal = modal;
-		this.init();
+		// OneNote's init is async because it may restore a session before it can
+		// draw its settings. A constructor cannot await, so the failure path is
+		// logged here: the importer still opens, just without a signed-in state.
+		const initialised = this.init();
+		if (initialised instanceof Promise) {
+			initialised.catch(e => console.error('Importer failed to initialise', e));
+		}
 	}
 
-	abstract init(): void;
+	abstract init(): void | Promise<void>;
 
 	/**
 	 * Optional: Show template configuration UI and prepare data for import.
@@ -78,11 +84,15 @@ export abstract class FormatImporter {
 				});
 
 			// Plugin data is only readable asynchronously, and init() is not, so
-			// the previously linked secret is filled in once it arrives
-			this.loadSecretId().then(secretId => {
-				this.secretId = secretId;
-				component.setValue(secretId ?? '');
-			});
+			// the previously linked secret is filled in once it arrives. Nothing
+			// can await this, so a failure is logged rather than left unhandled -
+			// the field simply stays empty and the user picks the secret again.
+			this.loadSecretId()
+				.then(secretId => {
+					this.secretId = secretId;
+					component.setValue(secretId ?? '');
+				})
+				.catch(e => console.error('Could not read the linked secret', e));
 
 			return component;
 		});

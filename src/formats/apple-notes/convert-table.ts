@@ -41,7 +41,7 @@ export class TableConverter extends ANConverter {
 
 		this.keys = data.mergeableDataObjectKeyItem;
 		this.types = data.mergeableDataObjectTypeItem;
-		this.uuids = data.mergeableDataObjectUuidItem.map(this.uuidToString);
+		this.uuids = data.mergeableDataObjectUuidItem.map(u => this.uuidToString(u));
 		this.objects = data.mergeableDataObjectEntry;
 	}
 

@@ -483,7 +483,7 @@ export class RoamJSONImporter extends FormatImporter {
 					const filenameParts = filename.split('/');
 					if (filenameParts.length > 1) {
 						filenameParts.splice(-1, 1);
-						this.createFolders(`${attachmentsFolder}/${filenameParts.join('/')}`);
+						await this.createFolders(`${attachmentsFolder}/${filenameParts.join('/')}`);
 					}
 				}
 				else {

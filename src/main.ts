@@ -473,7 +473,10 @@ export class ImporterModal extends Modal {
 
 			contentEl.createDiv('modal-button-container', el => {
 				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
-					el.addEventListener('click', async () => {
+					// A listener cannot be awaited, so the run is kicked off here and
+					// anything that escapes its own try/finally is logged rather than
+					// surfacing as an unhandled rejection.
+					el.addEventListener('click', () => void (async () => {
 						if (this.current) {
 							this.current.cancel();
 						}
@@ -521,7 +524,7 @@ export class ImporterModal extends Modal {
 							});
 							ctx.hideStatus();
 						}
-					});
+					})().catch(e => console.error('Import failed', e)));
 				});
 			});
 		}

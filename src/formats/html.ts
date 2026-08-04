@@ -326,8 +326,7 @@ export class HtmlImporter extends FormatImporter {
 
 		let attachmentFolder = await this.createFolders(normalizePath(folder.path + '/Attachments'));
 
-		// @ts-ignore
-		const path: string = await this.vault.getAvailablePath(attachmentFolder.getParentPrefix() + basename, extension);
+		const path: string = this.vault.getAvailablePath(attachmentFolder.getParentPrefix() + basename, extension);
 
 		return await this.vault.createBinary(path, data);
 	}
@@ -400,7 +399,7 @@ async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width:
 	const url = URL.createObjectURL(new Blob([data]));
 	try {
 		return await new Promise((resolve, reject) => {
-			image.addEventListener('error', ({ error }) => reject(error), { once: true, passive: true });
+			image.addEventListener('error', ({ error }) => reject(error instanceof Error ? error : new Error('Could not read image')), { once: true, passive: true });
 			image.addEventListener('load', () => resolve({ height: image.naturalHeight, width: image.naturalWidth }),
 				{ once: true, passive: true });
 			image.src = url;

@@ -35,6 +35,15 @@ declare module 'obsidian' {
 		getAvailablePath(base: string, extension?: string): string;
 	}
 
+	interface TFolder {
+		/**
+		 * This folder's path as a prefix to join child names onto: "Notes/" for
+		 * a subfolder, and "" for the vault root, so callers do not have to
+		 * special-case the root's "/" path.
+		 */
+		getParentPrefix(): string;
+	}
+
 	interface SecretStorage {
 		/**
 		 * Remove a secret.

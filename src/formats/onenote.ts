@@ -120,7 +120,10 @@ export class OneNoteImporter extends FormatImporter {
 					.setCta()
 					.setButtonText('Sign in')
 					.onClick(() => {
-						this.registerAuthCallback(this.authenticateUser.bind(this));
+						// authenticateUser handles its own errors, but the callback
+						// signature is void so anything escaping it is logged here.
+						this.registerAuthCallback(data => void this.authenticateUser(data)
+							.catch(e => console.error('Could not complete sign in', e)));
 
 						const requestBody = new URLSearchParams({
 							client_id: GRAPH_CLIENT_ID,

@@ -586,8 +586,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			let childrenContainer: HTMLElement;
 
-			// Toggle collapse state with pure DOM manipulation (no re-render)
-			collapseIcon.addEventListener('click', async (e) => {
+			// Toggle collapse state with pure DOM manipulation (no re-render).
+			// Expanding a base can fetch, which a listener cannot await, so a
+			// failure is logged rather than left as an unhandled rejection.
+			collapseIcon.addEventListener('click', (e) => void (async () => {
 				e.stopPropagation();
 				node.collapsed = !node.collapsed;
 
@@ -625,7 +627,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				collapseIcon.toggleClass('is-collapsed', node.collapsed);
 				treeItem.toggleClass('is-collapsed', node.collapsed);
 				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-			});
+			})().catch(err => console.error('Could not expand base', err)));
 		}
 
 		// Inner content (checkbox, icon, title)
@@ -725,7 +727,10 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Update toggle button text
 	 */
 	private updateToggleButtonText(): void {
-		if (!this.toggleSelectButton) {
+		// Compared rather than tested for truthiness: Obsidian components carry a
+		// then() for chaining, which makes a bare `if (component)` look to
+		// typescript-eslint like testing a promise.
+		if (this.toggleSelectButton === undefined) {
 			return;
 		}
 		const allSelected = this.areAllNodesSelected();
