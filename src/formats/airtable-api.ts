@@ -1565,7 +1565,10 @@ export class AirtableAPIImporter extends FormatImporter {
 					vault: this.vault,
 					downloadAttachments: this.downloadAttachments,
 					getAvailableAttachmentPath: async (filename: string) => {
-						return await this.getAvailablePathForAttachment(filename, []);
+						// Pass the note being written, so the "same folder as current
+						// file" and "in subfolder under current folder" settings put
+						// attachments beside their note rather than the output root
+						return await this.getAvailablePathForAttachment(filename, [], filePath);
 					},
 				});
 
