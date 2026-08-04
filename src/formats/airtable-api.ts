@@ -418,17 +418,23 @@ export class AirtableAPIImporter extends FormatImporter {
 			// call per base, which on an account with many bases means a minute or
 			// more of staring at an empty list, so they are fetched on demand when
 			// a base is expanded or selected.
-			this.tree = bases.map(base => ({
-				id: base.id,
-				title: base.name,
-				type: 'base' as const,
-				parentId: null,
-				children: [],
-				selected: false,
-				disabled: false,
-				collapsed: true,
-				tablesLoaded: false,
-			}));
+			// Sorted by name: the API returns bases in an order that means nothing
+			// here, and an account with dozens of them is otherwise a scavenger
+			// hunt. Table order within a base is left alone, since that one is
+			// arranged deliberately in Airtable.
+			this.tree = bases
+				.map(base => ({
+					id: base.id,
+					title: base.name,
+					type: 'base' as const,
+					parentId: null,
+					children: [],
+					selected: false,
+					disabled: false,
+					collapsed: true,
+					tablesLoaded: false,
+				}))
+				.sort((a, b) => a.title.localeCompare(b.title));
 
 			this.renderTree();
 
