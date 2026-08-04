@@ -4,19 +4,23 @@
  */
 
 import { Vault, normalizePath, App } from 'obsidian';
+import { getAbstractFileByPathInsensitive } from '../../util';
 
 /**
  * Get a unique folder path by appending 1, 2, etc. if needed
  * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
+ *
+ * Matching ignores case, since a folder named "Projects" and one named
+ * "projects" are the same folder on a macOS or Windows filesystem.
  */
 export function getUniqueFolderPath(vault: Vault, parentPath: string, folderName: string): string {
 	let basePath = normalizePath(`${parentPath}/${folderName}`);
 	let finalPath = basePath;
 	let counter = 1;
-	
-	// Use getAbstractFileByPath for synchronous check (adapter.exists is async)
+
+	// Synchronous check (adapter.exists is async)
 	// This is acceptable here as it's used to find a non-existent path
-	while (vault.getAbstractFileByPath(finalPath)) {
+	while (getAbstractFileByPathInsensitive(vault, finalPath)) {
 		finalPath = normalizePath(`${parentPath}/${folderName} ${counter}`);
 		counter++;
 	}

@@ -7,7 +7,7 @@ import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYam
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, getAbstractFileByPathInsensitive } from '../util';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
@@ -1585,8 +1585,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Generate file content
 			const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
 
-			// Handle file name conflicts (different record with same name)
-			const existingFile = this.vault.getAbstractFileByPath(filePath);
+			// Handle file name conflicts (different record with same name).
+			// Case-insensitive, because two records titled "Tron" and "TRON" are
+			// one file on a macOS or Windows filesystem: an exact-match check
+			// misses the conflict and vault.create then fails outright.
+			const existingFile = getAbstractFileByPathInsensitive(this.vault, filePath);
 			if (existingFile instanceof TFile) {
 				// File exists with different record - find unique name
 				filePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
@@ -1631,7 +1634,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return false;
 		}
 
-		const file = this.vault.getAbstractFileByPath(filePath);
+		const file = getAbstractFileByPathInsensitive(this.vault, filePath);
 		if (!file || !(file instanceof TFile)) {
 			return false;
 		}
@@ -1943,7 +1946,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			const content = stringifyYaml(baseConfig);
 
 			// Check if file already exists
-			const existingFile = this.vault.getAbstractFileByPath(baseFilePath);
+			const existingFile = getAbstractFileByPathInsensitive(this.vault, baseFilePath);
 
 			if (existingFile && existingFile instanceof TFile) {
 				// File exists - update it by merging views

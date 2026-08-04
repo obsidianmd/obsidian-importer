@@ -1,4 +1,4 @@
-import { FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsidian';
+import { FrontMatterCache, stringifyYaml, TAbstractFile, Vault, normalizePath } from 'obsidian';
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[\?<>:\*\|"]/g;
@@ -27,9 +27,39 @@ export function sanitizeFileName(name: string) {
 	return trimmed || 'Untitled';
 }
 
+/** Vault.getAbstractFileByPathInsensitive exists at runtime but is not exported in obsidian.d.ts */
+type VaultWithInsensitiveLookup = Vault & {
+	getAbstractFileByPathInsensitive?(path: string): TAbstractFile | null;
+};
+
+/**
+ * Look up a file or folder, ignoring case.
+ *
+ * Vault.getAbstractFileByPath is an exact key match on the vault's file map, but
+ * macOS and Windows filesystems are case-insensitive: "Tron.md" and "TRON.md"
+ * are one file on disk while the public lookup reports only the exact spelling
+ * as existing. Creating the second then fails with "File already exists", and
+ * any caller relying on the public lookup to detect a conflict never sees it.
+ *
+ * Obsidian implements the comparison we need but does not export it, so it is
+ * called through a cast, with the public lookup as a fallback in case it is ever
+ * renamed or is missing on an older app version.
+ */
+export function getAbstractFileByPathInsensitive(vault: Vault, path: string): TAbstractFile | null {
+	const insensitive = (vault as VaultWithInsensitiveLookup).getAbstractFileByPathInsensitive;
+	if (typeof insensitive === 'function') {
+		return insensitive.call(vault, path);
+	}
+	return vault.getAbstractFileByPath(path);
+}
+
 /**
  * Get a unique file path by appending 1, 2, etc. if needed
  * Uses the same naming convention as Obsidian's attachment deduplication (space + number)
+ *
+ * Matching ignores case, so a vault that already holds "Tron.md" yields
+ * "Tron 1.md" for an incoming "TRON.md" rather than a path that collides on
+ * disk.
  *
  * @param vault - Obsidian vault instance
  * @param parentPath - Parent folder path
@@ -41,8 +71,8 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 	let finalPath = basePath;
 	let counter = 1;
 
-	// Use getAbstractFileByPath for synchronous check
-	while (vault.getAbstractFileByPath(finalPath)) {
+	// Synchronous check; case-insensitive to match the filesystem
+	while (getAbstractFileByPathInsensitive(vault, finalPath)) {
 		// Insert counter before file extension
 		const lastDotIndex = fileName.lastIndexOf('.');
 		if (lastDotIndex > 0) {
