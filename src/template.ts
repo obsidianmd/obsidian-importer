@@ -39,6 +39,10 @@ export interface TemplateOptions {
 	defaults?: Partial<TemplateConfig>;
 	/** Description of placeholder syntax (e.g., "{{column_name}}") */
 	placeholderSyntax?: string;
+	/** Whether to show the title template field (default: true) */
+	showTitleTemplate?: boolean;
+	/** Whether to show the location template field (default: true) */
+	showLocationTemplate?: boolean;
 }
 
 /**
@@ -79,10 +83,14 @@ export class TemplateConfigurator {
 	private config: TemplateConfig;
 	private fields: TemplateField[];
 	private placeholderSyntax: string;
+	private showTitleTemplate: boolean;
+	private showLocationTemplate: boolean;
 
 	constructor(options: TemplateOptions) {
 		this.fields = options.fields;
 		this.placeholderSyntax = options.placeholderSyntax || '{{field_name}}';
+		this.showTitleTemplate = options.showTitleTemplate !== false; // Default to true
+		this.showLocationTemplate = options.showLocationTemplate !== false; // Default to true
 
 		// Initialize config with defaults
 		this.config = {
@@ -107,27 +115,31 @@ export class TemplateConfigurator {
 				text: `Configure how your data should be imported. Use ${this.placeholderSyntax} syntax to reference field values.`,
 			});
 
-			// Note title template
-			new Setting(container)
-				.setName('Note title')
-				.setDesc('Template for the note title. Use {{field_name}} to insert values.')
-				.addText(text => text
-					.setPlaceholder('{{Title}}')
-					.setValue(this.config.titleTemplate)
-					.onChange(value => {
-						this.config.titleTemplate = value;
-					}));
+			// Note title template (optional, based on configuration)
+			if (this.showTitleTemplate) {
+				new Setting(container)
+					.setName('Note title')
+					.setDesc('Template for the note title. Use {{field_name}} to insert values.')
+					.addText(text => text
+						.setPlaceholder('{{Title}}')
+						.setValue(this.config.titleTemplate)
+						.onChange(value => {
+							this.config.titleTemplate = value;
+						}));
+			}
 
-			// Note location template
-			new Setting(container)
-				.setName('Note location')
-				.setDesc('Template for note location/path. Use {{field_name}} to organize notes.')
-				.addText(text => text
-					.setPlaceholder('{{Category}}/{{Subcategory}}')
-					.setValue(this.config.locationTemplate)
-					.onChange(value => {
-						this.config.locationTemplate = value;
-					}));
+			// Note location template (optional, based on configuration)
+			if (this.showLocationTemplate) {
+				new Setting(container)
+					.setName('Note location')
+					.setDesc('Template for note location/path. Use {{field_name}} to organize notes.')
+					.addText(text => text
+						.setPlaceholder('{{Category}}/{{Subcategory}}')
+						.setValue(this.config.locationTemplate)
+						.onChange(value => {
+							this.config.locationTemplate = value;
+						}));
+			}
 
 			// Column selection for frontmatter
 			const headerContainer = container.createDiv({ cls: 'importer-frontmatter-header' });
@@ -209,8 +221,8 @@ export class TemplateConfigurator {
 			const buttonContainer = container.createDiv('modal-button-container');
 			buttonContainer.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
 				el.addEventListener('click', () => {
-					// Validate configuration
-					if (!this.config.titleTemplate.trim()) {
+					// Validate configuration (only if title template is shown)
+					if (this.showTitleTemplate && !this.config.titleTemplate.trim()) {
 						new Notice('Please provide a note title template.');
 						return;
 					}

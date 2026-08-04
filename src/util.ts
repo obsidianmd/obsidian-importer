@@ -1,4 +1,4 @@
-import { FrontMatterCache, stringifyYaml } from 'obsidian';
+import { App, FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[\?<>:\*\|"]/g;
@@ -27,6 +27,40 @@ export function sanitizeFileName(name: string) {
 	return trimmed || 'Untitled';
 }
 
+/**
+ * Get a free path to create a file or folder at, appending 1, 2, etc. if needed.
+ *
+ * Defers to Vault.getAvailablePath, which is what Obsidian itself uses when
+ * creating a note. A folder is just a path with no extension.
+ *
+ * @param vault - Obsidian vault instance
+ * @param parentPath - Parent folder path
+ * @param fileName - File name with extension (e.g., "note.md"), or a folder name
+ * @returns Path that no existing file occupies
+ */
+export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
+	const lastDotIndex = fileName.lastIndexOf('.');
+	const hasExtension = lastDotIndex > 0;
+	const base = normalizePath(`${parentPath}/${hasExtension ? fileName.slice(0, lastDotIndex) : fileName}`);
+
+	return vault.getAvailablePath(base, hasExtension ? fileName.slice(lastDotIndex + 1) : undefined);
+}
+
+/**
+ * Assign types to the properties an import created, using Obsidian's
+ * metadataTypeManager.
+ *
+ * Only properties without a type yet are assigned, so a type the user set by
+ * hand — or one an earlier import already settled on — is left alone.
+ */
+export function updatePropertyTypes(app: App, propertyTypes: Record<string, string>): void {
+	for (const [propName, propType] of Object.entries(propertyTypes)) {
+		if (!app.metadataTypeManager.getAssignedWidget(propName)) {
+			app.metadataTypeManager.setType(propName, propType);
+		}
+	}
+}
+
 export function genUid(length: number): string {
 	let array: string[] = [];
 	for (let i = 0; i < length; i++) {
@@ -39,7 +73,7 @@ export function parseHTML(html: string): HTMLElement {
 	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
-export function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
+function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 	// Slice to ensure we only return the portion of the buffer that corresponds to this view
 	// Use slice which creates a new ArrayBuffer (not SharedArrayBuffer)
 	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);

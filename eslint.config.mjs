@@ -1,12 +1,48 @@
 import { defineConfig } from 'eslint/config';
 import ts from 'typescript-eslint';
 import stylistic from '@stylistic/eslint-plugin';
+import obsidianmd from 'eslint-plugin-obsidianmd';
+
+// The plugin's recommended config also turns on ~170 general typescript-eslint
+// rules, several of which this repo deliberately disables below. Take just the
+// Obsidian-specific rules: those are the ones that catch plugin API misuse.
+//
+// Warnings rather than errors while the older importers are brought in line -
+// they still surface in `npm run lint` without failing the build.
+const obsidianRules = Object.fromEntries(
+	Object.keys(obsidianmd.rules).map(name => [`obsidianmd/${name}`, 'warn'])
+);
 
 export default defineConfig(
+	// Its own entry so it applies globally. Inside a config object, ignores only
+	// scopes that object, and the file still reaches every other one.
+	{ ignores: ['src/z-worker-inline.js'] },
 	ts.configs.recommended,
 	{
-		ignores: ['src/z-worker-inline.js'],
-
+		// Several Obsidian rules need type information
+		languageOptions: {
+			parserOptions: {
+				projectService: true,
+				tsconfigRootDir: import.meta.dirname,
+			},
+		},
+		plugins: { obsidianmd },
+		rules: {
+			...obsidianRules,
+			// Sentence case, but the products being imported keep their own casing,
+			// and identifiers that appear verbatim in a vault are not prose.
+			'obsidianmd/ui/sentence-case': ['warn', {
+				brands: [
+					'Airtable', 'Apple', 'Bear', 'Evernote', 'Google Keep', 'Notion',
+					'Obsidian', 'OneNote', 'Roam', 'Tomboy', 'Microsoft', 'iCloud',
+				],
+				// Property names that are written verbatim into a vault, so their
+				// casing is data rather than presentation
+				ignoreRegex: ['^base$', 'airtable-id'],
+			}],
+		},
+	},
+	{
 		plugins: {
 			'@typescript-eslint': ts.plugin,
 			'@stylistic': stylistic,

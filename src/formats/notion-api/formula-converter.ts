@@ -31,6 +31,7 @@
  */
 
 import { ConversionInfo } from './types';
+import { findMatchingParen, parseArguments } from '../../formula-utils';
 
 const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// Global functions (same in both Notion and Obsidian)
@@ -494,62 +495,6 @@ export function convertNotionFormulaToObsidian(
 }
 
 /**
- * Parse comma-separated arguments
- * This is a simple parser that doesn't handle nested parentheses well,
- * but works for the common cases after we've processed inner functions
- */
-function parseArguments(argsStr: string): string[] {
-	if (!argsStr.trim()) {
-		return [];
-	}
-	
-	const args: string[] = [];
-	let current = '';
-	let depth = 0;
-	let inString = false;
-	let stringChar = '';
-	
-	for (let i = 0; i < argsStr.length; i++) {
-		const char = argsStr[i];
-		
-		if (inString) {
-			current += char;
-			if (char === stringChar && argsStr[i - 1] !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-				current += char;
-			}
-			else if (char === '(' || char === '[') {
-				depth++;
-				current += char;
-			}
-			else if (char === ')' || char === ']') {
-				depth--;
-				current += char;
-			}
-			else if (char === ',' && depth === 0) {
-				args.push(current.trim());
-				current = '';
-			}
-			else {
-				current += char;
-			}
-		}
-	}
-	
-	if (current.trim()) {
-		args.push(current.trim());
-	}
-	
-	return args;
-}
-
-/**
  * Convert Notion date arithmetic functions to Obsidian syntax
  * @param argsStr - Arguments string from the function call
  * @param operator - The arithmetic operator ('+' for dateAdd, '-' for dateSubtract)
@@ -586,46 +531,6 @@ function convertDateArithmetic(argsStr: string, operator: '+' | '-'): string | n
 	
 	// Convert: date ± 'amount+unit'
 	return `(${dateArg}) ${operator} '${amountArg}${obsidianUnit}'`;
-}
-
-/**
- * Find the matching closing parenthesis for an opening parenthesis
- * @param str - The string to search in
- * @param openPos - The position of the opening parenthesis
- * @returns The position of the matching closing parenthesis, or -1 if not found
- */
-function findMatchingParen(str: string, openPos: number): number {
-	let depth = 1;
-	let inString = false;
-	let stringChar = '';
-	
-	for (let i = openPos + 1; i < str.length; i++) {
-		const char = str[i];
-		const prevChar = i > 0 ? str[i - 1] : '';
-		
-		if (inString) {
-			if (char === stringChar && prevChar !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-			}
-			else if (char === '(') {
-				depth++;
-			}
-			else if (char === ')') {
-				depth--;
-				if (depth === 0) {
-					return i;
-				}
-			}
-		}
-	}
-	
-	return -1; // No matching parenthesis found
 }
 
 /**

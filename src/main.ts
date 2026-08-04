@@ -1,5 +1,6 @@
 import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
+import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
@@ -229,6 +230,13 @@ export interface ImporterData {
 			previouslyImportedIDs: string[];
 		};
 	};
+	/**
+	 * Importer id -> the SecretStorage id holding that importer's credential.
+	 *
+	 * Only the id is kept here. The credential itself lives in Obsidian's
+	 * keychain, so it is never written to the plugin's data file.
+	 */
+	secrets: Record<string, string>;
 }
 
 const DEFAULT_DATA: ImporterData = {
@@ -237,6 +245,7 @@ const DEFAULT_DATA: ImporterData = {
 			previouslyImportedIDs: [],
 		},
 	},
+	secrets: {},
 };
 
 export default class ImporterPlugin extends Plugin {
@@ -246,6 +255,12 @@ export default class ImporterPlugin extends Plugin {
 
 	async onload() {
 		this.importers = {
+			'airtable-api': {
+				name: 'Airtable (API)',
+				optionText: 'Airtable (API)',
+				importer: AirtableAPIImporter,
+				helpPermalink: 'import/airtable',
+			},
 			'apple-notes': {
 				name: 'Apple Notes',
 				optionText: 'Apple Notes',

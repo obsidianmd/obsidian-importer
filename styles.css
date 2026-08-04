@@ -163,11 +163,69 @@
 	justify-content: center;
 }
 
-/* Fixed width buttons to prevent resizing during loading */
-.notion-load-button {
-	width: 70px;
+/*
+ * Tree selector buttons. Their labels change as the user works ("Load" ->
+ * "Loading..." -> "Refresh", "Select all" -> "Deselect all"), so they need a
+ * floor to stop the row shifting on every click.
+ */
+.importer-tree-button {
+	min-width: 95px;
 }
 
-.notion-toggle-button {
-	width: 95px;
+.import-section .publish-change-list {
+	max-height: 200px;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-primary-alt);
+	padding: var(--size-4-2);
+}
+
+.import-section .publish-placeholder {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-align: center;
+	padding: 30px 10px;
+}
+
+/*
+ * A row whose selection is inherited from its base: dimmed and not clickable,
+ * except for the collapse arrow, so the base can still be expanded.
+ */
+.import-section .tree-item-self.is-disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.import-section .tree-item-self.is-disabled .collapse-icon {
+	pointer-events: auto;
+}
+
+/* Shown while an importer prepares, e.g. fetching field schemas before configuration */
+.importer-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--size-4-3);
+	/* Asymmetric: the modal already reserves room below the content for its
+	   button bar, so matching that padding underneath reads as a large gap. */
+	padding: var(--size-4-8) var(--size-4-2) var(--size-4-2);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.importer-loading .loader-spinner {
+	margin: 0;
+}
+
+/*
+ * Obsidian's .loader-spinner is sized and centred for a full-pane loader.
+ * Shrink it to sit inline at the end of a tree row while a base's tables load.
+ */
+.import-section .tree-item-self .loader-spinner {
+	--icon-size: var(--icon-s);
+	width: var(--icon-s);
+	height: var(--icon-s);
+	flex-shrink: 0;
+	margin: 0 var(--size-4-1) 0 auto;
 }

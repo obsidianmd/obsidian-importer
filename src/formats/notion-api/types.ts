@@ -12,7 +12,7 @@ import {
 } from '@notionhq/client';
 import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
-import type { FormulaImportStrategy } from '../notion-api';
+import type { FormulaImportStrategy } from '../../base';
 
 /**
  * Configuration context for database processing operations
