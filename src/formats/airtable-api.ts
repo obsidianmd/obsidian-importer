@@ -342,7 +342,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const statusReporter = {
 			// fetchTableSchema reports raw base IDs, which say nothing to the user;
 			// keep the base's name on screen instead
-			status: () => reportTo?.(`Loading tables for ${baseNode.title}...`),
+			status: () => reportTo?.(`Loading tables for ${baseNode.title}`),
 		};
 
 		try {
@@ -386,7 +386,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const pending = this.tree.filter(node => node.selected && !node.tablesLoaded);
 
 		for (let i = 0; i < pending.length; i++) {
-			report(`Loading tables (${i + 1}/${pending.length})...`);
+			report(`Loading tables (${i + 1}/${pending.length})`);
 			await this.ensureTablesLoaded(pending[i], report);
 		}
 	}
@@ -857,7 +857,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		ctx.status('Connecting to Airtable API...');
+		ctx.status('Connecting to Airtable API');
 
 		try {
 			// Initialize global data that persists across bases
@@ -873,13 +873,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
 			const totalBases = baseGroups.size;
 
-			ctx.status(`Found ${totalBases} base(s) to import...`);
+			ctx.status(`Found ${totalBases} base(s) to import`);
 
 			// Process each base sequentially to minimize memory usage
 			let baseIndex = 0;
 			for (const [, baseInfo] of baseGroups.entries()) {
 				if (ctx.isCancelled()) {
-					ctx.status('Import cancelled.');
+					ctx.status('Import cancelled');
 					return;
 				}
 
@@ -889,7 +889,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Clear data from previous base to free memory
 				this.clearBaseData();
 
-				ctx.status(`Fetching data from ${baseInfo.baseName}${this.basePosition}...`);
+				ctx.status(`Fetching data from ${baseInfo.baseName}${this.basePosition}`);
 
 				// ============================================================
 				// PHASE 1: Fetch data for this base
@@ -905,7 +905,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 
 				if (ctx.isCancelled()) {
-					ctx.status('Import cancelled.');
+					ctx.status('Import cancelled');
 					return;
 				}
 
@@ -917,7 +917,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 					// PHASE 3: every record in this base now has a final path, so
 					// linked-record placeholders can be turned into real links
-					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}...`);
+					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}`);
 					await this.resolveRecordLinks(ctx, baseInfo.baseId);
 				}
 				catch (error) {
@@ -929,16 +929,16 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Update property types in Obsidian's types.json
-			ctx.status('Updating property types...');
+			ctx.status('Updating property types');
 			this.updatePropertyTypes();
 
 			// Clean up airtable-id only for full import (not incremental)
 			if (!this.incrementalImport) {
-				ctx.status('Cleaning up airtable-id attributes...');
+				ctx.status('Cleaning up airtable-id attributes');
 				await this.cleanupAirtableIds(ctx);
 			}
 
-			ctx.status('Import completed successfully!');
+			ctx.status('Import complete');
 		}
 		catch (error) {
 			console.error('Airtable API import error:', error);
@@ -1042,7 +1042,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			// Update status context
-			ctx.status(`Fetching records from ${table.tableName}${this.basePosition}...`);
+			ctx.status(`Fetching records from ${table.tableName}${this.basePosition}`);
 
 			await this.fetchTableData(ctx, {
 				baseId,
@@ -1055,7 +1055,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 
 		// Report progress after fetching all tables for this base
-		ctx.status(`Preparing ${this.totalRecordsToImport} record(s) from ${baseName}${this.basePosition}...`);
+		ctx.status(`Preparing records from ${baseName}${this.basePosition}`);
 		ctx.reportProgress(0, this.totalRecordsToImport);
 	}
 
@@ -1118,7 +1118,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Step 1: Fetch ALL records from the table
 		// Update status - fetching records
-		ctx.status(`Fetching records from ${tableName}${this.basePosition}...`);
+		ctx.status(`Fetching records from ${tableName}${this.basePosition}`);
 
 		const allRecords = await fetchAllRecords({
 			baseId,
@@ -1126,7 +1126,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			token: this.airtableToken,
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
-				ctx.status(`Fetched ${fetched} record(s) from ${tableName}${this.basePosition}...`);
+				ctx.status(`Fetched ${fetched} record(s) from ${tableName}${this.basePosition}`);
 			},
 		});
 
@@ -1155,7 +1155,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			// Update status - fetching view
-			ctx.status(`Fetching view ${view.name} from ${tableName}${this.basePosition}...`);
+			ctx.status(`Fetching view ${view.name} from ${tableName}${this.basePosition}`);
 
 			// Fetch only record IDs from this view
 			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
@@ -1214,7 +1214,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		await this.createFolders(tablePath);
 
 		// Update status context for writing
-		ctx.status(`Creating ${records.length} note(s) in ${tableName}${this.basePosition}...`);
+		ctx.status(`Creating notes in ${tableName}${this.basePosition}`);
 
 		// Create .base file first
 		await this.createBaseFile({
@@ -1229,9 +1229,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Create files for all records
 		// Note: Using globalRecordIdToTitle for resolving linked records across tables
-		const totalRecordsInTable = records.length;
-		let processedInTable = 0;
-
 		for (const record of records) {
 			if (ctx.isCancelled()) return;
 
@@ -1266,11 +1263,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 			}
 
-			// Update progress display
-			processedInTable++;
-			ctx.status(`Creating note ${processedInTable}/${totalRecordsInTable} in ${tableName}${this.basePosition}`);
 		}
-
+		// No per-record status update: the text would be identical every time,
+		// and the progress bar and counters below it already move per record.
 	}
 
 	/**
