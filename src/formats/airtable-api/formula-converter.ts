@@ -15,16 +15,18 @@
  * - COUNTALL(a, b, c) -> [a, b, c].flat().length (all elements)
  * - ARRAYJOIN(array, sep) -> array.join(sep)
  * - LEN(x) -> x.length (property, not method)
- * - UPPER(x) -> x.upper() (method)
+ * - LOWER(x) -> x.lower() (method; Bases has no uppercase equivalent)
  * - REGEX_MATCH(str, pattern) -> /pattern/.matches(str)
+ * - REGEX_REPLACE(str, pattern, x) -> str.replace(/pattern/g, x)
  * - ERROR() -> "!ERROR", BLANK() -> ""
  * - Many functions convert from global functions to methods/properties
  *
  * Important notes:
  * - Obsidian uses 'value' as the fixed parameter name in filter/map, not arrow functions:
  *   Example: array.filter(value > 2) NOT array.filter(v => v > 2)
- * - Obsidian only supports one regex function: /pattern/.matches(string)
- *   REGEX_EXTRACT and REGEX_REPLACE are NOT supported
+ * - Regex support is /pattern/.matches(string) and string.replace(/pattern/, "x").
+ *   REGEX_EXTRACT has no equivalent: replace() only substitutes, and its
+ *   replacement is a literal string rather than a callback.
  * - ERROR() and BLANK() are converted to literal values:
  *   ERROR() -> "!ERROR" (string literal to indicate error)
  *   BLANK() -> "" (empty string)
@@ -106,7 +108,8 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// ============================================================
 	// String methods
 	'TRIM': { type: 'method', obsidianName: 'trim' },
-	'UPPER': { type: 'method', obsidianName: 'upper' },
+	// Bases has lower() and title() but no uppercase equivalent
+	'UPPER': { type: 'unsupported' },
 	'LOWER': { type: 'method', obsidianName: 'lower' },
 	'LEN': { type: 'property', obsidianName: 'length' },
 
@@ -168,7 +171,7 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// ============================================================
 	'REGEX_MATCH': { type: 'operator' }, // REGEX_MATCH(str, regex) -> /regex/.matches(str)
 	'REGEX_EXTRACT': { type: 'unsupported' }, // Obsidian only has matches(), no extract
-	'REGEX_REPLACE': { type: 'unsupported' }, // Obsidian only has matches(), no replace
+	'REGEX_REPLACE': { type: 'operator' }, // REGEX_REPLACE(s, re, x) -> s.replace(/re/g, x)
 
 	// ============================================================
 	// Mathematical functions (not supported in Obsidian)
@@ -358,6 +361,16 @@ export function convertAirtableFormulaToObsidian(
 	}
 
 	return result;
+}
+
+/** Strip surrounding quotes from a literal argument */
+function unquote(arg: string): string {
+	const trimmed = arg.trim();
+	if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+		(trimmed.startsWith('\'') && trimmed.endsWith('\''))) {
+		return trimmed.slice(1, -1);
+	}
+	return trimmed;
 }
 
 /**
@@ -595,12 +608,19 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
 		// REGEX_MATCH(str, regex) -> /regex/.matches(str)
 		case 'REGEX_MATCH':
 			if (args.length === 2) {
-				let pattern = args[1].trim();
-				if ((pattern.startsWith('"') && pattern.endsWith('"')) ||
-				    (pattern.startsWith('\'') && pattern.endsWith('\''))) {
-					pattern = pattern.slice(1, -1);
-				}
+				const pattern = unquote(args[1]);
 				return `/${pattern}/.matches(${args[0]})`;
+			}
+			break;
+
+		// REGEX_REPLACE(string, regex, replacement) -> string.replace(/regex/g, replacement)
+		// Bases' replace() takes a regex as well as a plain string. The g flag is
+		// needed because Airtable replaces every match, while String.replace with
+		// a bare regex would stop after the first.
+		case 'REGEX_REPLACE':
+			if (args.length === 3) {
+				const pattern = unquote(args[1]);
+				return `(${args[0]}).replace(/${pattern}/g, ${args[2]})`;
 			}
 			break;
 	}

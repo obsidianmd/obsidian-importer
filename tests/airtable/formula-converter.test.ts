@@ -59,13 +59,13 @@ test('converts IF, which rewrites to a same-shaped global function', () => {
 
 test('converts nested calls inside IF', () => {
 	assert.equal(
-		convertAirtableFormulaToObsidian('IF(AND({A},{B}), UPPER({C}), LOWER({D}))'),
-		'if(((note["A"]).isTruthy() && (note["B"]).isTruthy()), (note["C"]).upper(), (note["D"]).lower())'
+		convertAirtableFormulaToObsidian('IF(AND({A},{B}), LOWER({C}), TRIM({D}))'),
+		'if(((note["A"]).isTruthy() && (note["B"]).isTruthy()), (note["C"]).lower(), (note["D"]).trim())'
 	);
 });
 
 test('converts string functions to methods', () => {
-	assert.equal(convertAirtableFormulaToObsidian('UPPER({Name})'), '(note["Name"]).upper()');
+	assert.equal(convertAirtableFormulaToObsidian('LOWER({Name})'), '(note["Name"]).lower()');
 	assert.equal(convertAirtableFormulaToObsidian('TRIM({Name})'), '(note["Name"]).trim()');
 });
 
@@ -75,8 +75,8 @@ test('converts LEN to a property rather than a method', () => {
 
 test('converts nested string functions inside out', () => {
 	assert.equal(
-		convertAirtableFormulaToObsidian('UPPER(TRIM({Name}))'),
-		'((note["Name"]).trim()).upper()'
+		convertAirtableFormulaToObsidian('LOWER(TRIM({Name}))'),
+		'((note["Name"]).trim()).lower()'
 	);
 });
 
@@ -165,6 +165,19 @@ test('converts REGEX_MATCH to a regex literal with matches()', () => {
 	);
 });
 
+// Bases' replace() takes a regex as well as a plain string. The g flag matters:
+// Airtable replaces every match, String.replace with a bare regex stops at the first.
+test('converts REGEX_REPLACE, replacing globally', () => {
+	assert.equal(
+		convertAirtableFormulaToObsidian('REGEX_REPLACE({Name}, "[0-9]+", "")'),
+		'(note["Name"]).replace(/[0-9]+/g, "")'
+	);
+});
+
+test('leaves REGEX_EXTRACT unsupported, since replace() only substitutes', () => {
+	assert.equal(convertAirtableFormulaToObsidian('REGEX_EXTRACT({A}, "x")'), null);
+});
+
 test('converts substring functions', () => {
 	assert.equal(convertAirtableFormulaToObsidian('LEFT({Name}, 3)'), '(note["Name"]).slice(0, 3)');
 	assert.equal(convertAirtableFormulaToObsidian('RIGHT({Name}, 3)'), '(note["Name"]).slice(-(3))');
@@ -182,9 +195,10 @@ test('converts literal-valued functions', () => {
 });
 
 test('returns null for functions Obsidian has no equivalent for', () => {
+	// Bases has lower() and title() but nothing that uppercases
+	assert.equal(convertAirtableFormulaToObsidian('UPPER({Name})'), null);
 	assert.equal(convertAirtableFormulaToObsidian('SQRT({N})'), null);
 	assert.equal(convertAirtableFormulaToObsidian('SWITCH({A}, 1, "a")'), null);
-	assert.equal(convertAirtableFormulaToObsidian('REGEX_REPLACE({A}, "a", "b")'), null);
 	assert.equal(convertAirtableFormulaToObsidian('FIND("x", {A})'), null);
 });
 
@@ -194,7 +208,7 @@ test('returns null for an unrecognised function', () => {
 
 test('never returns a formula still containing Airtable field-brace syntax', () => {
 	const formulas = [
-		'IF({Done}, UPPER({A}), LOWER({B}))',
+		'IF({Done}, LOWER({A}), TRIM({B}))',
 		'{First} & " " & {Last}',
 		'SUM({A}, {B})',
 		'ARRAYJOIN(ARRAYUNIQUE({Tags}), ", ")',
