@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-types';
 import { getAttributeProxy } from './get-attribute-proxy';
 import { unescapeMarkdown } from './replace-code-block';
 
@@ -7,11 +8,15 @@ const codeBlockFlag = '-en-codeblock:true';
 const reMonospaceFont =
 	/\b(Courier|Mono|Consolas|Console|Inconsolata|Pitch|Monaco|monospace)\b/;
 
-const deepestFont: (node: any) => string = node => {
-	if (node.nodeType !== 1) {
+const asElement = (node: ChildNode | null): TurndownNode | null =>
+	node?.instanceOf(HTMLElement) ? node : null;
+
+const deepestFont: (node: ChildNode) => string = node => {
+	const el = asElement(node);
+	if (!el) {
 		return null;
 	}
-	const children = node.childNodes;
+	const children = el.childNodes;
 	const numChildren = children.length;
 	if (numChildren > 1) {
 		return 'mixed';
@@ -22,8 +27,8 @@ const deepestFont: (node: any) => string = node => {
 			return font;
 		}
 	}
-	const nodeProxy = getAttributeProxy(node);
-	if (node.tagName === 'FONT') {
+	const nodeProxy = getAttributeProxy(el);
+	if (el.tagName === 'FONT') {
 		return nodeProxy.face?.value;
 	}
 	const style = nodeProxy.style?.value;
@@ -37,7 +42,7 @@ const deepestFont: (node: any) => string = node => {
 	return null;
 };
 
-const isMonospaceCodeBlock: (node: any) => boolean = node => {
+const isMonospaceCodeBlock: (node: TurndownNode) => boolean = node => {
 	const nodeProxy = getAttributeProxy(node);
 	const style = nodeProxy.style?.value;
 	if (style && style.includes(codeBlockFlag)) {
@@ -51,18 +56,18 @@ const isMonospaceCodeBlock: (node: any) => boolean = node => {
 /*
 export const monospaceCodeBlockRule = {
     filter: filterByNodeName('DIV'),
-    replacement: (content: string, node: any) => {
+    replacement: (content: string, node: TurndownNode) => {
         if (yarleOptions.monospaceIsCodeBlock && isMonospaceCodeBlock(node)) {
             return replaceMonospaceCodeBlock(content, node);
         }
     },
 };
 */
-export const replaceMonospaceCodeBlock = (content: string, node: any): any => {
+export const replaceMonospaceCodeBlock = (content: string, node: TurndownNode): any => {
 	if (isMonospaceCodeBlock(node)) {
-		const previous = node.previousSibling;
+		const previous = asElement(node.previousSibling);
 		const previousIsBlock = previous && previous.tagName === node.tagName && isMonospaceCodeBlock(previous);
-		const next = node.nextSibling;
+		const next = asElement(node.nextSibling);
 		const nextIsBlock = next && next.tagName === node.tagName && isMonospaceCodeBlock(next);
 		if (previousIsBlock || nextIsBlock) {
 			content = previousIsBlock ? `\n${content}` : `${markdownBlock}${content}`;

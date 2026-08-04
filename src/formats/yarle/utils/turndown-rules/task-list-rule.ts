@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-types';
 import { checkboxDone, checkboxTodo } from '../../constants';
 
 import { getAttributeProxy } from './get-attribute-proxy';
@@ -5,22 +6,22 @@ import { getAttributeProxy } from './get-attribute-proxy';
 const indentCharacter = '	';
 export const taskListRule = {
 	filter: 'li',
-	replacement: (content: any, node: any, options: any) => {
+	replacement: (content: string, node: TurndownNode, options: any) => {
 
-		const isTodoDoneBlock = (node: any) => {
+		const isTodoDoneBlock = (node: TurndownNode) => {
 			const nodeProxy = getAttributeProxy(node);
 			const taskFlag = '--en-checked:true;';
 
 			return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
 		};
-		const isTodoBlock = (node: any) => {
+		const isTodoBlock = (node: TurndownNode) => {
 			const nodeProxy = getAttributeProxy(node);
 			const taskFlag = '--en-checked:false;';
 
 			return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
 		};
 
-		const indentCount = content.match(/^\n*/)[0].length || 0;
+		const indentCount = content.match(/^\n*/)?.[0].length ?? 0;
 		const indentChars = indentCharacter.repeat(indentCount);
 
 		const singleLineContent = content
@@ -36,8 +37,10 @@ export const taskListRule = {
 					? `${checkboxTodo} `
 					: '* '))
 		;
-		const parent = node.parentNode;
-		if (parent.nodeName === 'OL') {
+		// parentElement rather than parentNode: the OL check below needs an
+		// element, which is what getAttribute and children come from.
+		const parent = node.parentElement;
+		if (parent?.nodeName === 'OL') {
 			const start = parent.getAttribute('start');
 			const index = Array.prototype.indexOf.call(parent.children, node);
 			prefix = `${(start ? Number(start) + index : index + 1)}. `;

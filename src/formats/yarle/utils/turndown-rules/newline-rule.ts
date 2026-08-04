@@ -1,8 +1,9 @@
+import { TurndownNode } from './turndown-types';
 import { filterByNodeName } from './filter-by-nodename';
 
 export const newLineRule = {
 	filter: filterByNodeName('BR'),
-	replacement: (content: any, node: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 		return '<YARLE_NEWLINE_PLACEHOLDER>';
 	},
 };

@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-rules/turndown-types';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 
 import { YarleOptions } from '../options';
@@ -9,13 +10,13 @@ export const getTurndownService = (yarleOptions: YarleOptions) => {
 	const turndownService = new window.TurndownService({
 		br: '',
 		...yarleOptions.turndownOptions,
-		blankReplacement: (content: any, node: any) => {
+		blankReplacement: (content: string, node: TurndownNode) => {
 			return node.isBlock ? '\n\n' : '';
 		},
-		keepReplacement: (content: any, node: any) => {
+		keepReplacement: (content: string, node: TurndownNode) => {
 			return node.isBlock ? `\n${node.outerHTML}\n` : node.outerHTML;
 		},
-		defaultReplacement: (content: any, node: any) => {
+		defaultReplacement: (content: string, node: TurndownNode) => {
 			return node.isBlock ? `\n${content}\n` : content;
 		},
 	});

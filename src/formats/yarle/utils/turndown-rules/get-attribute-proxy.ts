@@ -1,4 +1,5 @@
-export const getAttributeProxy = (node: any): any => {
+import { TurndownNode } from './turndown-types';
+export const getAttributeProxy = (node: TurndownNode): any => {
 	const handler = {
 		get(target: any, key: any): any {
 			return target[key];

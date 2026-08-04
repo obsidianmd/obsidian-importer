@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-types';
 import { yarleOptions } from '../../yarle';
 
 import { filterByNodeName } from './filter-by-nodename';
@@ -5,15 +6,18 @@ import { getAttributeProxy } from './get-attribute-proxy';
 
 export const imagesRule = {
 	filter: filterByNodeName('IMG'),
-	replacement: (content: any, node: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 		const nodeProxy = getAttributeProxy(node);
 
 		if (!nodeProxy.src) {
 			return '';
 		}
 		const value = nodeProxy.src.value;
-		const widthParam = node.width || '';
-		const heightParam = node.height || '';
+		// The filter is IMG, but narrow rather than assert so width and height
+		// come from a type that has them.
+		const image = node.instanceOf(HTMLImageElement) ? node : undefined;
+		const widthParam = image?.width || '';
+		const heightParam = image?.height || '';
 		let realValue = value;
 		if (yarleOptions.sanitizeResourceNameSpaces) {
 			realValue = realValue.replace(/ /g, yarleOptions.replacementChar);

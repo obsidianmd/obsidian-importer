@@ -4,7 +4,7 @@ import { languageItems } from '../../outputLanguages';
 // turndown-plugin-gfm rule for strikethrough (which always uses single '~')
 export const italicRule = {
 	filter: ['i'],
-	replacement: (content: any) => {
+	replacement: (content: string) => {
 		return (content.trim() !== '')
 			? `${languageItems.italic}${content}${languageItems.italic}`
 			: content;

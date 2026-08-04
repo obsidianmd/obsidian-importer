@@ -4,7 +4,7 @@ import { languageItems } from '../../outputLanguages';
 // turndown-plugin-gfm rule for strikethrough (which always uses single '~')
 export const strikethroughRule = {
 	filter: ['del', 's', 'strike'],
-	replacement: (content: any) => {
+	replacement: (content: string) => {
 		return `${languageItems.strikethrough}${content}${languageItems.strikethrough}`;
 	},
 };

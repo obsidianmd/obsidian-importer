@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-types';
 import { genUid } from '../../../../util';
 import { RuntimePropertiesSingleton } from '../../runtime-properties';
 import { yarleOptions } from '../../yarle';
@@ -17,7 +18,7 @@ export const removeDoubleBackSlashes = (str: string): string => {
 };
 export const wikiStyleLinksRule = {
 	filter: filterByNodeName('A'),
-	replacement: (content: any, node: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 		const nodeProxy = getAttributeProxy(node);
 
 		if (!nodeProxy.href) {

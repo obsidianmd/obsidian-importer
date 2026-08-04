@@ -1,15 +1,16 @@
+import { TurndownNode } from './turndown-types';
 import { getAttributeProxy } from './get-attribute-proxy';
 
 const markdownBlock = '\n```\n';
 
-const isCodeBlock = (node: any) => {
+const isCodeBlock = (node: TurndownNode) => {
 	const nodeProxy = getAttributeProxy(node);
 	const codeBlockFlag = '-en-codeblock:true';
 
 	return nodeProxy.style && nodeProxy.style.value.indexOf(codeBlockFlag) >= 0;
 };
 
-const getIntendNumber = (node: any): number => {
+const getIntendNumber = (node: TurndownNode): number => {
 	const nodeProxy = getAttributeProxy(node);
 	const paddingAttr = 'padding-left:';
 	let intendNumber = 0;
@@ -22,7 +23,7 @@ const getIntendNumber = (node: any): number => {
 
 export const unescapeMarkdown = (s: string): string => s.replace(/\\(.)/g, '$1');
 
-export const replaceCodeBlock = (content: string, node: any): any => {
+export const replaceCodeBlock = (content: string, node: TurndownNode): any => {
 	const intend = getIntendNumber(node);
 	content = `${'\t'.repeat(intend)}${content}`;
 	if (isCodeBlock(node)) {

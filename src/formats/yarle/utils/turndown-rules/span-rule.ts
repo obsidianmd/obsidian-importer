@@ -1,3 +1,4 @@
+import { TurndownNode } from './turndown-types';
 import { languageItems } from '../../outputLanguages';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
@@ -9,7 +10,7 @@ const ITALIC = 'italic';
 
 export const spanRule = {
 	filter: filterByNodeName('SPAN'),
-	replacement: (content: any, node: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 		const nodeProxy = getAttributeProxy(node);
 		if (nodeProxy.style && content.trim() !== '') {
 			const nodeValue: string = nodeProxy.style.value;

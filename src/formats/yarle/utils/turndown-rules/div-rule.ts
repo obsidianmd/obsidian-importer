@@ -1,16 +1,17 @@
+import { TurndownNode } from './turndown-types';
 import { yarleOptions } from '../../yarle';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 import { replaceCodeBlock } from './replace-code-block';
 import { replaceMonospaceCodeBlock } from './replace-monospace-code-block';
 
-const isTaskBlock = (node: any) => {
+const isTaskBlock = (node: TurndownNode) => {
 	const nodeProxy = getAttributeProxy(node);
 	const taskFlag = '--en-task-group:true';
 
 	return nodeProxy.style && nodeProxy.style.value.indexOf(taskFlag) >= 0;
 };
-const getTaskGroupId = (node: any) => {
+const getTaskGroupId = (node: TurndownNode) => {
 	const nodeProxy = getAttributeProxy(node);
 	const idAttr = '--en-id:';
 
@@ -19,7 +20,7 @@ const getTaskGroupId = (node: any) => {
 
 export const divRule = {
 	filter: filterByNodeName('DIV'),
-	replacement: (content: string, node: any) => {
+	replacement: (content: string, node: TurndownNode) => {
 		return (isTaskBlock(node))
 			? `<YARLE-EN-V10-TASK>${getTaskGroupId(node)}</YARLE-EN-V10-TASK>`
 			: (yarleOptions.monospaceIsCodeBlock)
