@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView, ButtonComponent } from 'obsidian';
+import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
@@ -184,7 +184,7 @@ const BASE_VIEW_TYPE_FOR_AIRTABLE_VIEW: Record<string, string> = {
  *
  * Returns null when there is no parseable frontmatter block.
  */
-function parseFrontMatterBlock(content: string): { frontMatter: Record<string, any>, body: string } | null {
+function parseFrontMatterBlock(content: string): { frontMatter: FrontMatterCache, body: string } | null {
 	const match = FRONT_MATTER_PATTERN.exec(content);
 	if (!match) {
 		return null;
@@ -195,7 +195,7 @@ function parseFrontMatterBlock(content: string): { frontMatter: Record<string, a
 		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
 			return null;
 		}
-		return { frontMatter: parsed as Record<string, any>, body: content.slice(match[0].length) };
+		return { frontMatter: parsed as FrontMatterCache, body: content.slice(match[0].length) };
 	}
 	catch {
 		return null;
@@ -1661,7 +1661,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Build frontmatter. airtable-id is what a later incremental import
 		// matches on to recognise an already-imported record, so it is only
 		// worth the space in the note when that setting is on.
-		const frontMatter: Record<string, any> = {};
+		const frontMatter: FrontMatterCache = {};
 		if (this.incrementalImport) {
 			frontMatter['airtable-id'] = recordId;
 		}

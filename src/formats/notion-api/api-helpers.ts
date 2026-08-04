@@ -12,7 +12,7 @@ import {
 	UserObjectResponse,
 	PartialBlockObjectResponse
 } from '@notionhq/client';
-import { App, Vault } from 'obsidian';
+import { App, FrontMatterCache, Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
@@ -317,7 +317,7 @@ export interface ExtractFrontMatterParams {
  */
 export async function extractFrontMatter(
 	params: ExtractFrontMatterParams
-): Promise<Record<string, any>> {
+): Promise<FrontMatterCache> {
 	const {
 		page,
 		formulaStrategy = 'hybrid',
@@ -326,7 +326,7 @@ export async function extractFrontMatter(
 		ctx
 	} = params;
 	// Using 'any' for frontMatter values because page properties have many different types
-	const frontMatter: Record<string, any> = {
+	const frontMatter: FrontMatterCache = {
 		'notion-id': page.id,
 	};
 

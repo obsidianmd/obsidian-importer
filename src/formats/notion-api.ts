@@ -1,4 +1,4 @@
-import { ButtonComponent, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
+import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -1255,7 +1255,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Prepare YAML frontmatter
 			// Start with notion-id and database link at the top
-			const frontMatter: Record<string, any> = {
+			const frontMatter: FrontMatterCache = {
 				'notion-id': page.id,
 			};
 
