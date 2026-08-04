@@ -1,4 +1,4 @@
-import { App, normalizePath, Platform, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { ImporterModal, ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
@@ -16,6 +16,9 @@ export abstract class FormatImporter {
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
+
+	/** SecretStorage id of the credential linked to this importer, if any. */
+	private secretId: string | null = null;
 
 	constructor(app: App, modal: ImporterModal) {
 		this.app = app;
@@ -49,6 +52,79 @@ export abstract class FormatImporter {
 	 */
 	registerAuthCallback(callback: AuthCallback): void {
 		this.modal.plugin.registerAuthCallback(callback);
+	}
+
+	/**
+	 * Add a setting for a credential kept in Obsidian's keychain.
+	 *
+	 * The credential itself lives in SecretStorage. All this plugin persists is
+	 * the id of the secret the user linked, so a token is remembered between
+	 * sessions without the importer ever writing it to its own data file.
+	 *
+	 * Read the credential back with getSecret().
+	 */
+	addSecretSetting(name: string, description?: string | DocumentFragment): Setting {
+		let setting = new Setting(this.modal.contentEl).setName(name);
+
+		if (description) {
+			setting.setDesc(description);
+		}
+
+		setting.addComponent(el => {
+			let component = new SecretComponent(this.app, el)
+				.onChange(async secretId => {
+					this.secretId = secretId || null;
+					await this.saveSecretId(this.secretId);
+				});
+
+			// Plugin data is only readable asynchronously, and init() is not, so
+			// the previously linked secret is filled in once it arrives
+			this.loadSecretId().then(secretId => {
+				this.secretId = secretId;
+				component.setValue(secretId ?? '');
+			});
+
+			return component;
+		});
+
+		return setting;
+	}
+
+	/**
+	 * The credential linked via addSecretSetting, or null if none is linked or
+	 * the secret has since been removed from the keychain.
+	 */
+	getSecret(): string | null {
+		if (!this.secretId) {
+			return null;
+		}
+		return this.app.secretStorage.getSecret(this.secretId);
+	}
+
+	private async loadSecretId(): Promise<string | null> {
+		let data = await this.modal.plugin.loadData();
+		return data.secrets?.[this.modal.selectedId] ?? null;
+	}
+
+	private async saveSecretId(secretId: string | null): Promise<void> {
+		let data = await this.modal.plugin.loadData();
+
+		// Copy rather than mutate: loadData shallow-merges DEFAULT_DATA, so a
+		// data file with no secrets yet hands back the default object itself,
+		// and writing into it would leave stale ids on the module-level default
+		// for the rest of the session.
+		let secrets = { ...data.secrets };
+
+		if (secretId) {
+			secrets[this.modal.selectedId] = secretId;
+		}
+		else {
+			delete secrets[this.modal.selectedId];
+		}
+
+		data.secrets = secrets;
+
+		await this.modal.plugin.saveData(data);
 	}
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {

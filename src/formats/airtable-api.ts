@@ -77,7 +77,11 @@ function parseFrontMatterBlock(content: string): { frontMatter: Record<string, a
 }
 
 export class AirtableAPIImporter extends FormatImporter {
-	airtableToken: string = '';
+	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
+	get airtableToken(): string {
+		return this.getSecret() ?? '';
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'base'; // Property name to track which views a record belongs to
@@ -128,19 +132,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	init() {
 		this.addOutputLocationSetting('Airtable');
 
-		// Airtable Personal Access Token input
-		new Setting(this.modal.contentEl)
-			.setName('Airtable Personal Access Token')
-			.setDesc(this.createTokenDescription())
-			.addText(text => text
-				.setPlaceholder('pat...')
-				.setValue(this.airtableToken)
-				.onChange(value => {
-					this.airtableToken = value.trim();
-				})
-				.then(textComponent => {
-					textComponent.inputEl.type = 'password';
-				}));
+		// Airtable Personal Access Token, held in Obsidian's keychain so it is
+		// remembered between sessions
+		this.addSecretSetting('Airtable Personal Access Token', this.createTokenDescription());
 
 		// Load bases and tables button
 		const loadSetting = new Setting(this.modal.contentEl)

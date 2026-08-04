@@ -230,6 +230,13 @@ export interface ImporterData {
 			previouslyImportedIDs: string[];
 		};
 	};
+	/**
+	 * Importer id -> the SecretStorage id holding that importer's credential.
+	 *
+	 * Only the id is kept here. The credential itself lives in Obsidian's
+	 * keychain, so it is never written to the plugin's data file.
+	 */
+	secrets: Record<string, string>;
 }
 
 const DEFAULT_DATA: ImporterData = {
@@ -238,6 +245,7 @@ const DEFAULT_DATA: ImporterData = {
 			previouslyImportedIDs: [],
 		},
 	},
+	secrets: {},
 };
 
 export default class ImporterPlugin extends Plugin {
