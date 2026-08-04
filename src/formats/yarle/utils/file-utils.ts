@@ -1,8 +1,9 @@
+import { EvernoteNote } from '../models/EvernoteNote';
 import { fs } from '../../../filesystem';
 
 import { setFileDates } from './content-utils';
 
-export const writeFile = (absFilePath: string, data: any, note: any): void => {
+export const writeFile = (absFilePath: string, data: any, note: EvernoteNote): void => {
 	try {
 		fs.writeFileSync(absFilePath, data);
 		setFileDates(absFilePath, note);

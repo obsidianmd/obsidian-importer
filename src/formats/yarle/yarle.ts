@@ -1,3 +1,4 @@
+import { EvernoteNote } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -134,14 +135,14 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			noteAttributes = na;
 		});
 
-		xml.on('tag:note', (note: any) => {
+		xml.on('tag:note', (note: EvernoteNote) => {
 			if (ctx.isCancelled()) {
 				stream.close();
 				return;
 			}
 
 			if (options.skipWebClips && isWebClip(note)) {
-				ctx.reportSkipped(note.title);
+				ctx.reportSkipped(note.title ?? enexSource.name);
 			}
 			else {
 				ctx.status('Importing note ' + note.title);
@@ -155,7 +156,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 					ctx.reportNoteSuccess(notebookName + '/' + note.title);
 				}
 				catch (e) {
-					ctx.reportFailed(note.title || enexSource, e);
+					ctx.reportFailed(note.title || enexSource.name, e);
 					return resolve();
 				}
 			}

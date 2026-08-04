@@ -1,10 +1,11 @@
+import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { fs, nodeCrypto, path } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';
 import { yarleOptions } from './yarle';
 
-const getResourceWorkDirs = (note: any) => {
+const getResourceWorkDirs = (note: EvernoteNote) => {
 	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
 	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, yarleOptions.pathSeparator || '/');
 	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,yarleOptions.pathSeparator)
@@ -12,9 +13,9 @@ const getResourceWorkDirs = (note: any) => {
 	return { absoluteResourceWorkDir, relativeResourceWorkDir };
 };
 
-export const processResources = (note: any): string => {
+export const processResources = (note: EvernoteNote): string => {
 	let resourceHashes: any = {};
-	let updatedContent = note.content;
+	let updatedContent = joinNoteContent(note.content);
 	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
 
 
@@ -120,7 +121,7 @@ const processResource = (workDir: string, resource: any): any => {
 };
 
 export const extractDataUrlResources = (
-	note: any,
+	note: EvernoteNote,
 	content: string,
 ): string => {
 	if (content.indexOf('src="data:') < 0) {
@@ -145,7 +146,7 @@ const createResourceFromData = (
 	base64: boolean,
 	data: string,
 	absoluteResourceWorkDir: string,
-	note: any,
+	note: EvernoteNote,
 ): string => {
 	const baseName = 'embedded'; // data doesn't seem to include useful base filename
 	const extension = extensionForMimeType(mediatype) || '.dat';

@@ -1,3 +1,4 @@
+import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
@@ -7,19 +8,20 @@ import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 import { applyTemplate } from './utils/templates/templates';
 import { yarleOptions } from './yarle';
 
-export const processNode = (note: any, notebookName: string): void => {
+export const processNode = (note: EvernoteNote, notebookName: string): void => {
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
-	runtimeProps.setCurrentNoteName(note.title);
+	const title = note.title ?? '';
+	runtimeProps.setCurrentNoteName(title);
 
-	if (Array.isArray(note.content)) {
-		note.content = note.content.join('');
-	}
+	const content = joinNoteContent(note.content);
+	note.content = content;
+
 	let noteData: NoteData = {
-		title: note.title,
-		content: note.content,
-		htmlContent: note.content,
-		originalContent: note.content,
+		title,
+		content,
+		htmlContent: content,
+		originalContent: content,
 	};
 
 

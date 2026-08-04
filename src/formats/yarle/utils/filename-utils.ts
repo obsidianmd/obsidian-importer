@@ -1,3 +1,4 @@
+import { EvernoteNote } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
@@ -60,11 +61,11 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 	};
 };
 
-export const getFilePrefix = (note: any): string => {
+export const getFilePrefix = (note: EvernoteNote): string => {
 	return normalizeTitle(note['title'] ? `${note['title'].toString()}` : 'Untitled');
 };
 
-export const getNoteFileName = (dstPath: string, note: any, extension: string = 'md'): string => {
+export const getNoteFileName = (dstPath: string, note: EvernoteNote, extension: string = 'md'): string => {
 	return `${getNoteName(dstPath, note)}.${extension}`;
 };
 export const getExtensionFromResourceFileName = (resource: any): string | undefined => {
@@ -93,11 +94,11 @@ export const getExtension = (resource: any): string => {
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
 
-export const getZettelKastelId = (note: any, dstPath: string): string => {
+export const getZettelKastelId = (note: EvernoteNote, dstPath: string): string => {
 	return moment(note['created']).format('YYYYMMDDHHmm');
 };
 
-export const getNoteName = (dstPath: string, note: any): string => {
+export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 	let noteName;
 
 	let filePrefix = getFilePrefix(note);

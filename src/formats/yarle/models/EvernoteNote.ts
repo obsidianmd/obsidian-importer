@@ -29,3 +29,14 @@ export interface EvernoteNote {
 	resource?: any;
 	'note-attributes'?: EvernoteNoteAttributes;
 }
+
+/**
+ * The note body as one string.
+ *
+ * xml-flow hands back an array when it splits the content across chunks, and
+ * omits it entirely when the note has none.
+ */
+export function joinNoteContent(content: EvernoteNote['content']): string {
+	if (Array.isArray(content)) return content.join('');
+	return content ?? '';
+}
