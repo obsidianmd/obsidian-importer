@@ -1331,11 +1331,30 @@ export class AirtableAPIImporter extends FormatImporter {
 				// New tab rather than the active one, so whatever the user had
 				// open is left where it was
 				await this.app.workspace.getLeaf(true).openFile(file);
+
+				// Opening a file does not move the navigation tree, so without this
+				// the import gives no indication of where in the vault it landed
+				this.revealInFileExplorer(file);
 			}
 		}
 		catch (error) {
 			console.error(`Failed to open base file: ${this.lastBaseFilePath}`, error);
 		}
+	}
+
+	/**
+	 * Expand the file explorer to a file and scroll it into view.
+	 *
+	 * This is what the "Reveal file in navigation" command does. Neither the
+	 * command registry nor the file explorer view is exported in obsidian.d.ts,
+	 * so the view's method is reached through a cast; doing nothing is an
+	 * acceptable outcome if it is unavailable or the explorer is closed.
+	 */
+	private revealInFileExplorer(file: TFile): void {
+		const explorerView = this.app.workspace.getLeavesOfType('file-explorer').first()?.view as
+			{ revealInFolder?(file: TFile): void } | undefined;
+
+		explorerView?.revealInFolder?.(file);
 	}
 
 	/**
