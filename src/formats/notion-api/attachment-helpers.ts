@@ -3,7 +3,8 @@
  * Handles downloading and processing attachments (images, files, videos, PDFs)
  */
 
-import { DataWriteOptions, normalizePath, requestUrl, TFile } from 'obsidian';
+import { App, DataWriteOptions, normalizePath, requestUrl, TFile, Vault } from 'obsidian';
+import { ImportContext } from '../../main';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
@@ -345,9 +346,9 @@ export function formatAttachmentLink(params: FormatAttachmentLinkParams): string
 export async function downloadAndFormatAttachment(
 	attachment: NotionAttachment,
 	context: {
-		vault: any;
-		app: any;
-		ctx: any;
+		vault: Vault;
+		app: App;
+		ctx: ImportContext;
 		currentFilePath?: string;
 		currentFolderPath?: string;
 		downloadExternalAttachments?: boolean;

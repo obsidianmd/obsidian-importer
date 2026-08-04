@@ -274,7 +274,7 @@ export class NotionAPIImporter extends FormatImporter {
 			auth: this.notionToken,
 			notionVersion: '2025-09-03',
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
-				const urlString = url instanceof URL ? url.href : String(url);
+				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
 
 				try {
 					const response = await requestUrl({

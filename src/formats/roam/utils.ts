@@ -1,9 +1,7 @@
 import { moment } from 'obsidian';
+import { stripControlCharacters } from '../../util';
 
 const illegalReNoDir = /[?<>\\:*|"]/g;
- 
-// eslint-disable-next-line no-control-regex -- matching control characters is the point: they are stripped from file names
-const controlRe = /[\x00-\x1f\x80-\x9f]/g;
 const reservedRe = /^\.+$/;
 const windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 const windowsTrailingRe = /[. ]+$/;
@@ -12,9 +10,7 @@ const squareBracketOpenRe = /\[/g; // Regular expression to match "["
 const squareBracketCloseRe = /\]/g; // Regular expression to match "]"
 
 export function sanitizeFileNameKeepPath(name: string) {
-	return name
-		.replace(illegalReNoDir, '')
-		.replace(controlRe, '')
+	return stripControlCharacters(name.replace(illegalReNoDir, ''))
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')

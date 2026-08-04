@@ -1,5 +1,5 @@
 import { path } from './filesystem';
-import { TFolder, TFile, BasesConfigFile, stringifyYaml, normalizePath } from 'obsidian';
+import { TFolder, TFile, BasesConfigFile, stringifyYaml, normalizePath, Vault } from 'obsidian';
 
 /**
  * How an importer treats a source database's computed fields (formulas, rollups,
@@ -36,7 +36,7 @@ export async function createBaseFile(
 	folder: TFolder,
 	fileName: string,
 	contents: BasesConfigFile,
-	vault: any
+	vault: Vault
 ): Promise<TFile> {
 	const yamlContent = stringifyYaml(contents);
 	const filePath = normalizePath(path.join(folder.path, fileName + '.base'));

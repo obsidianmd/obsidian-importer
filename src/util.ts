@@ -2,21 +2,37 @@ import { App, FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsi
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[?<>:*|"]/g;
- 
-// eslint-disable-next-line no-control-regex -- matching control characters is the point: they are stripped from file names
-let controlRe = /[\x00-\x1f\x80-\x9f]/g;
 let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 let windowsTrailingRe = /[. ]+$/;
 let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
 let badLinkRe = /[[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
+/**
+ * Drop the control characters a file name cannot contain: C0 (U+0000-U+001F)
+ * and C1 (U+0080-U+009F).
+ *
+ * A filter rather than a regex because the equivalent character class has to
+ * spell out control characters, which is worth avoiding in source.
+ */
+export function stripControlCharacters(name: string): string {
+	let out = '';
+	for (const ch of name) {
+		// Surrogate pairs read as their lead unit here, which is above the C1
+		// range, so astral characters are kept.
+		const code = ch.charCodeAt(0);
+		if (code <= 0x1f || (code >= 0x80 && code <= 0x9f)) continue;
+		out += ch;
+	}
+	return out;
+}
+
 // First remove illegal characters such as spaces and periods, then check for Windows reserved words.
 export function sanitizeFileName(name: string) {
-	const sanitized = name
-		.replace(slashesRe, '-') // Replace slashes with dash
-		.replace(illegalRe, '')
-		.replace(controlRe, '')
+	const sanitized = stripControlCharacters(
+		name
+			.replace(slashesRe, '-') // Replace slashes with dash
+			.replace(illegalRe, ''))
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')

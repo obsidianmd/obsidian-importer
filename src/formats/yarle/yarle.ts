@@ -1,4 +1,3 @@
-import { Platform } from 'obsidian';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -20,8 +19,15 @@ import {
 } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- xml-flow is bundled, not external, and this defers evaluating its Node-dependent top level so the module still loads on mobile
-const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
+/**
+ * xml-flow, loaded only when an .enex is actually parsed.
+ *
+ * Its top level calls require('events'). Node builtins are external in this
+ * bundle, so evaluating it on mobile throws - a static import would do that at
+ * plugin load. import() keeps esbuild's lazy wrapper, so the module is only
+ * evaluated on the desktop-only path in parseStream.
+ */
+let flow: typeof import('xml-flow') | undefined;
 
 export const defaultYarleOptions: YarleOptions = {
 	enexSources: [],
@@ -106,6 +112,10 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 
+	// Captured locally: TypeScript cannot narrow the module-level binding
+	// inside the Promise executor below.
+	const parseXml = flow ??= (await import('xml-flow')).default;
+
 	ctx.status('Processing ' + enexSource.name);
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
@@ -117,7 +127,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			return reject(e);
 		};
 
-		const xml = flow(stream);
+		const xml = parseXml(stream);
 
 		let noteAttributes: any = null;
 		xml.on('tag:note-attributes', (na: any) => {
