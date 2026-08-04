@@ -371,27 +371,23 @@ function parseURL(url: URL) {
 }
 
 async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }> {
-	try {
-		const response = await fetch(url, {
-			mode: 'cors',
-			referrerPolicy: 'no-referrer',
-		});
-		if (response.ok) {
-			return {
-				data: await response.arrayBuffer(),
-				mime: response.headers.get('Content-Type') ?? '',
-			};
-		}
-	}
-	catch {
-		// Not a data URL we can read; fall through to fetching it
-	}
-
+	// requestUrl rather than fetch: it is not bound by CORS, so it reaches
+	// assets a cross-origin fetch would be refused. This used to try fetch
+	// first and fall back to here anyway, which only added a failed request.
 	const response = await requestUrl(url.href);
 	return {
 		data: response.arrayBuffer,
-		mime: response.headers['Content-Type'] ?? '',
+		mime: headerValue(response.headers, 'content-type') ?? '',
 	};
+}
+
+/** Header lookup that does not assume how the response cased the name. */
+function headerValue(headers: Record<string, string>, name: string): string | undefined {
+	const wanted = name.toLowerCase();
+	for (const key of Object.keys(headers)) {
+		if (key.toLowerCase() === wanted) return headers[key];
+	}
+	return undefined;
 }
 
 async function getImageSize(data: ArrayBuffer): Promise<{ height: number, width: number }> {

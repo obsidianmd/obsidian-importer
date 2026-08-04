@@ -105,7 +105,7 @@ export interface RollupConfig {
 
 	// Note: Numeric aggregation functions (sum, average, median, min, max, range)
 	// are not yet implemented and will fall through to the default case
-	| string;              // Allow other values for forward compatibility
+	| (string & {});      // Allow other values without collapsing the union above
 }
 
 /**

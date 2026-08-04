@@ -60,8 +60,10 @@ export class AppleNotesImporter extends FormatImporter {
 
 		this.addOutputLocationSetting('Apple Notes');
 
-		// Retrieve stored file prefix format
-		const storedPrefix = localStorage.getItem(LOCAL_STORAGE_KEY) || '';
+		// Retrieve stored file prefix format. Scoped to the vault rather than
+		// shared across all of them, so a prefix set here does not follow the
+		// user into an unrelated vault.
+		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
 
 		new Setting(this.modal.contentEl)
@@ -75,7 +77,7 @@ export class AppleNotesImporter extends FormatImporter {
 				.setPlaceholder('YYYY-MM-DD')
 				.onChange(async v => {
 					this.filePrefixFormat = v;
-					localStorage.setItem(LOCAL_STORAGE_KEY, v);
+					this.app.saveLocalStorage(LOCAL_STORAGE_KEY, v);
 				})
 			);
 
@@ -347,7 +349,7 @@ export class AppleNotesImporter extends FormatImporter {
 		return file;
 	}
 
-	async resolveAttachment(id: number, uti: ANAttachment | string): Promise<TFile | null> {
+	async resolveAttachment(id: number, uti: ANAttachment | (string & {})): Promise<TFile | null> {
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;

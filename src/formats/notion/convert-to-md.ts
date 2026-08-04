@@ -122,7 +122,7 @@ const typesMap = new Map<NotionProperty['type'], NotionPropertyType[]>([
 function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined {
 	const notionType = property.className.match(/property-row-(.*)/)?.[1] as NotionPropertyType;
 	if (!notionType) {
-		throw new Error('property type not found for: ' + property);
+		throw new Error('property type not found for: ' + property.className);
 	}
 
 	const title = htmlToMarkdown(property.cells[0].textContent ?? '');
@@ -137,7 +137,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 		}
 	}
 
-	if (!type) throw new Error('type not found for: ' + body);
+	if (!type) throw new Error('type not found for: ' + body.textContent);
 
 	let content: YamlProperty['content'] = '';
 

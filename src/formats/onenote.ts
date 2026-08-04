@@ -1115,6 +1115,9 @@ export class OneNoteImporter extends FormatImporter {
 
 		try {
 			// any errors that happen in the try block will be retried.
+			// fetch rather than requestUrl: this is the only call that has to be
+			// abortable, and requestUrl takes no AbortSignal, so switching would
+			// leave a cancelled import still downloading.
 			let response = await fetch(
 				url,
 				{

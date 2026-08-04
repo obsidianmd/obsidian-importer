@@ -1,5 +1,5 @@
 import { ImportContext } from 'main';
-import { Notice, Setting, TFile } from 'obsidian';
+import { Notice, Setting, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
@@ -507,8 +507,7 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 
 				url = link[0].slice(0, -1);
-				const response = await fetch(url, {});
-				const data = await response.arrayBuffer();
+				const data = (await requestUrl(url)).arrayBuffer;
 
 				await vault.createBinary(newFilePath, data);
 
