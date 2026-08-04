@@ -41,7 +41,11 @@ interface NotionTreeNode {
 }
 
 export class NotionAPIImporter extends FormatImporter {
-	notionToken: string = '';
+	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
+	get notionToken(): string {
+		return this.getSecret() ?? '';
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
@@ -89,20 +93,9 @@ export class NotionAPIImporter extends FormatImporter {
 		// No file chooser needed since we're importing via API
 		this.addOutputLocationSetting('Notion');
 
-		// Notion API Token input
-		new Setting(this.modal.contentEl)
-			.setName('Notion API token')
-			.setDesc(this.createTokenDescription())
-			.addText(text => text
-				.setPlaceholder('ntn_...')
-				.setValue(this.notionToken)
-				.onChange(value => {
-					this.notionToken = value.trim();
-				})
-				.then(textComponent => {
-					// Set as password input
-					textComponent.inputEl.type = 'password';
-				}));
+		// Notion API token, held in Obsidian's keychain so it is remembered
+		// between sessions
+		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
 		// List pages and toggle selection buttons
 		const listPagesSetting = new Setting(this.modal.contentEl)

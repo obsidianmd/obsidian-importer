@@ -8,7 +8,8 @@ import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBREle
 import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
-const LOCAL_STORAGE_KEY = 'onenote-importer-refresh-token';
+// SecretStorage id: lowercase alphanumeric with dashes, per its own validation
+const REFRESH_TOKEN_SECRET_ID = 'onenote-importer-refresh-token';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -250,10 +251,13 @@ export class OneNoteImporter extends FormatImporter {
 		this.graphData.accessToken = tokenResponse.access_token;
 	}
 
+	// The refresh token is held in Obsidian's keychain rather than localStorage:
+	// it grants continued access to the user's OneNote account, and the keychain
+	// is where Obsidian keeps credentials that outlive a session.
 	private storeRefreshToken(refreshToken: string) {
 		this.refreshToken = refreshToken;
 		if (this.rememberMe) {
-			localStorage.setItem(LOCAL_STORAGE_KEY, refreshToken);
+			this.app.secretStorage.setSecret(REFRESH_TOKEN_SECRET_ID, refreshToken);
 		}
 	}
 
@@ -261,11 +265,11 @@ export class OneNoteImporter extends FormatImporter {
 		if (this.refreshToken) {
 			return this.refreshToken;
 		}
-		return localStorage.getItem(LOCAL_STORAGE_KEY);
+		return this.app.secretStorage.getSecret(REFRESH_TOKEN_SECRET_ID);
 	}
 
 	private clearStoredRefreshToken() {
-		localStorage.removeItem(LOCAL_STORAGE_KEY);
+		this.app.secretStorage.deleteSecret(REFRESH_TOKEN_SECRET_ID);
 	}
 
 	async showSectionPickerUI() {

@@ -34,4 +34,16 @@ declare module 'obsidian' {
 		 */
 		getAvailablePath(base: string, extension?: string): string;
 	}
+
+	interface SecretStorage {
+		/**
+		 * Remove a secret.
+		 *
+		 * setSecret, getSecret and listSecrets are public; this is not, but a
+		 * credential an importer stores on the user's behalf needs a way to be
+		 * withdrawn when they sign out. Writing an empty string in its place
+		 * would leave a dead entry in their keychain settings.
+		 */
+		deleteSecret(id: string): void;
+	}
 }
