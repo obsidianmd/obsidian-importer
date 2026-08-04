@@ -24,7 +24,7 @@
 		"eslint-plugin-obsidianmd": "^0.4.1",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
-		"tsx": "4.22.1",
+		"tsx": "4.23.5",
 		"typescript": "5.9.3",
 		"typescript-eslint": "8.59.3"
 	},
@@ -35,8 +35,15 @@
 		"airtable": "^0.12.2",
 		"mathml-to-latex": "^1.5.0",
 		"plain-tag": "0.1.3",
-		"protobufjs": "7.5.9",
+		"protobufjs": "7.6.5",
 		"static-params": "0.4.0",
 		"xml-flow": "1.0.4"
+	},
+	"pnpm": {
+		"overrides": {
+			"js-yaml": ">=4.2.0",
+			"brace-expansion": ">=5.0.9",
+			"esbuild": ">=0.28.1"
+		}
 	}
 }
