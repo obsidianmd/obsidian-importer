@@ -12,12 +12,25 @@ import {
 	UserObjectResponse,
 	PartialBlockObjectResponse
 } from '@notionhq/client';
+import { App, Vault } from 'obsidian';
 import { ImportContext } from '../../main';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
 import { NotionAttachment } from './types';
 
 const MAX_RETRIES = 3;
+
+/**
+ * A rejected Notion request.
+ *
+ * The SDK throws APIResponseError, but a transport failure arrives as a plain
+ * Error, so both fields are optional and callers check before using them.
+ */
+export interface NotionRequestError {
+	code?: string;
+	status?: number;
+	headers?: Record<string, string>;
+}
 
 /**
  * Get children blocks for a block, using cache if available
@@ -115,9 +128,8 @@ export async function makeNotionRequest<T>(
 	try {
 		return await requestFn();
 	}
-	// Using 'any' for error because we need to access error.code and error.status properties
-	// which may or may not exist depending on the error type (Notion API error vs generic error).
-	catch (error: any) {
+	catch (e) {
+		const error = e as NotionRequestError;
 		// Handle rate limiting (429 error)
 		if (error.code === 'rate_limited' || error.status === 429) {
 			if (retryCount >= MAX_RETRIES) {
@@ -162,9 +174,7 @@ export async function fetchAllBlocks(
 	let cursor: string | undefined = undefined;
 
 	do {
-		// Using 'any' for response because Notion API returns a paginated response with complex structure
-		// and we only need to access .results, .has_more, and .next_cursor properties.
-		const response: any = await makeNotionRequest(
+		const response = await makeNotionRequest(
 			() => client.blocks.children.list({
 				block_id: blockId,
 				start_cursor: cursor,
@@ -290,8 +300,8 @@ export interface ExtractFrontMatterParams {
 	client?: Client;
 	ctx?: ImportContext;
 	// Parameters for downloading file attachments
-	vault?: any;
-	app?: any;
+	vault?: Vault;
+	app?: App;
 	currentFilePath?: string;
 	currentFolderPath?: string;
 	downloadExternalAttachments?: boolean;

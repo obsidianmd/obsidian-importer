@@ -123,9 +123,7 @@ export async function queryAllDatabasePages(
 
 	do {
 		// In Notion API v2025-09-03, use dataSources.query instead of databases.query
-		// Using 'any' for response because the Notion API returns a paginated response with complex structure
-		// and we only need to access .results and .has_more properties which are consistent across versions.
-		const response: any = await makeNotionRequest(
+		const response = await makeNotionRequest(
 			() => client.dataSources.query({
 				data_source_id: databaseId,
 				start_cursor: cursor,
@@ -134,9 +132,11 @@ export async function queryAllDatabasePages(
 			ctx
 		);
 
-		// Filter to get full page objects
+		// Filter to get full page objects. A partial page also reports
+		// object === 'page', so the properties check is what separates them -
+		// Notion returns partials for pages the integration cannot read.
 		const fullPages = response.results.filter(
-			(page: PageObjectResponse | PartialPageObjectResponse): page is PageObjectResponse => page.object === 'page'
+			(page): page is PageObjectResponse => page.object === 'page' && 'properties' in page
 		);
 
 		pages.push(...fullPages);

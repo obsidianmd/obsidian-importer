@@ -1,4 +1,4 @@
-import { Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
+import { ButtonComponent, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -60,8 +60,8 @@ export class NotionAPIImporter extends FormatImporter {
 	// Page/database tree for selection
 	private pageTree: NotionTreeNode[] = [];
 	private pageTreeContainer: HTMLElement | null = null;
-	private listPagesButton: any = null;  // ButtonComponent from obsidian
-	private toggleSelectButton: any = null;  // ButtonComponent from obsidian
+	private listPagesButton: ButtonComponent | null = null;
+	private toggleSelectButton: ButtonComponent | null = null;
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -103,8 +103,8 @@ export class NotionAPIImporter extends FormatImporter {
 			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
 
 		// Store button references in closure to avoid constructor timing issues
-		let toggleButtonRef: any = null;
-		let listButtonRef: any = null;
+		let toggleButtonRef: ButtonComponent | null = null;
+		let listButtonRef: ButtonComponent | null = null;
 
 		// Toggle select all/none button
 		listPagesSetting.addButton(button => {
@@ -352,7 +352,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Use makeNotionRequest for rate limiting and error handling
 				// Note: Not using filter to get both pages and databases
-				const response: any = await makeNotionRequest(
+				const response = await makeNotionRequest(
 					() => this.notionClient!.search({
 						start_cursor: cursor,
 						page_size: 100,
@@ -363,7 +363,7 @@ export class NotionAPIImporter extends FormatImporter {
 				// Collect all raw items first
 				allRawItems.push(...response.results);
 
-				cursor = response.has_more ? response.next_cursor : undefined;
+				cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
 			} while (cursor);
 
 			// Phase 1: Identify items that should be filtered
