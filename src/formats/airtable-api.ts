@@ -129,6 +129,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	// e.g. " (base 2 of 4)". Empty for a single base, where it says nothing.
 	private basePosition: string = '';
 
+	// Last .base file written, opened once the import finishes
+	private lastBaseFilePath: string | null = null;
+
 	init() {
 		this.addOutputLocationSetting('Airtable');
 
@@ -877,6 +880,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
 			this.basesFetched = 0;
+			this.lastBaseFilePath = null;
 
 			// Drop SDK handles from any previous run - the token may have changed
 			this.airtableClient = null;
@@ -956,6 +960,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			ctx.status('Import complete');
+
+			// Leave the user looking at what they imported. Opens behind the
+			// modal, so it is waiting for them once they dismiss it.
+			await this.openLastBaseFile();
 		}
 		catch (error) {
 			console.error('Airtable API import error:', error);
@@ -1297,6 +1305,30 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		// No per-record status update: the text would be identical every time,
 		// and the progress bar and counters below it already move per record.
+	}
+
+	/**
+	 * Open the last .base file the import wrote.
+	 *
+	 * Best effort: a failure here has no bearing on whether the import
+	 * succeeded, so it is reported to the console and otherwise ignored.
+	 */
+	private async openLastBaseFile(): Promise<void> {
+		if (!this.lastBaseFilePath) {
+			return;
+		}
+
+		try {
+			const file = this.vault.getAbstractFileByPath(this.lastBaseFilePath);
+			if (file instanceof TFile) {
+				// New tab rather than the active one, so whatever the user had
+				// open is left where it was
+				await this.app.workspace.getLeaf(true).openFile(file);
+			}
+		}
+		catch (error) {
+			console.error(`Failed to open base file: ${this.lastBaseFilePath}`, error);
+		}
 	}
 
 	/**
@@ -1987,6 +2019,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				// File doesn't exist - create it
 				await this.vault.create(baseFilePath, content);
 			}
+
+			// Remembered so the import can leave the user looking at a base
+			this.lastBaseFilePath = baseFilePath;
 		}
 		catch (error) {
 			console.error(`Failed to create/update base file for table "${tableName}":`, error);
