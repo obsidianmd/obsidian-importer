@@ -33,6 +33,9 @@ export interface PickedFile {
 
 	/** Read the file as zip, processing the zip in the callback */
 	readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void>;
+
+	/** The path or name this file came from, for building sibling paths */
+	toString(): string;
 }
 
 export interface PickedFolder {
@@ -41,6 +44,9 @@ export interface PickedFolder {
 	readonly name: string;
 	/** List files in this folder */
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
+
+	/** The path or name this folder came from, for building child paths */
+	toString(): string;
 }
 
 // Named nodeCrypto so it does not shadow the global Web Crypto `crypto`
@@ -191,7 +197,7 @@ export class WebPickedFile implements PickedFile {
 	}
 
 	toString(): string {
-		return this.file.toString();
+		return this.file.name;
 	}
 }
 

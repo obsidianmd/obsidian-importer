@@ -274,7 +274,7 @@ export class NotionAPIImporter extends FormatImporter {
 			auth: this.notionToken,
 			notionVersion: '2025-09-03',
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
-				const urlString = url.toString();
+				const urlString = url instanceof URL ? url.href : String(url);
 
 				try {
 					const response = await requestUrl({
@@ -982,8 +982,8 @@ export class NotionAPIImporter extends FormatImporter {
 						await this.fetchAndImportPage({ ctx, pageId: itemId, parentPath: folder.path });
 					}
 					else {
-						console.warn(`Unknown node type: ${node.type} (ID: ${itemId})`);
-						ctx.reportFailed(`Import item ${itemId}`, `Unknown type: ${node.type}`);
+						console.warn(`Unknown node type: ${String(node.type)} (ID: ${itemId})`);
+						ctx.reportFailed(`Import item ${itemId}`, `Unknown type: ${String(node.type)}`);
 					}
 				}
 				catch (error) {

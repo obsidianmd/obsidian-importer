@@ -20,6 +20,7 @@ import {
 } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- xml-flow is bundled, not external, and this defers evaluating its Node-dependent top level so the module still loads on mobile
 const flow: typeof import('xml-flow') = Platform.isDesktopApp ? require('xml-flow') : null;
 
 export const defaultYarleOptions: YarleOptions = {

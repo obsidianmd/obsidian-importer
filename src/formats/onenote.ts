@@ -244,7 +244,7 @@ export class OneNoteImporter extends FormatImporter {
 		}).json;
 
 		if (!tokenResponse.access_token) {
-			throw new Error(`Unexpected data was returned instead of an access token. Error details: ${tokenResponse}`);
+			throw new Error(`Unexpected data was returned instead of an access token. Error details: ${JSON.stringify(tokenResponse)}`);
 		}
 
 		if (tokenResponse.refresh_token) {

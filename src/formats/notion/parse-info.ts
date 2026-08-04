@@ -85,7 +85,7 @@ function stripTo200(title: string) {
 // Function to parse the date-time string
 function parseDateTime(dateTimeStr: string): Date | null {
 	// If the string starts with "@", skip the first character
-	const cleanedStr = dateTimeStr.startsWith('@') ? dateTimeStr.substr(1).trim() : dateTimeStr.trim();
+	const cleanedStr = dateTimeStr.startsWith('@') ? dateTimeStr.slice(1).trim() : dateTimeStr.trim();
 
 	// Use the built-in Date constructor
 	const dateObj = new Date(cleanedStr);

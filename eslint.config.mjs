@@ -87,7 +87,6 @@ export default defineConfig(
 			'prefer-const': 'off',
 			'@typescript-eslint/prefer-as-const': 'off',
 			'@typescript-eslint/no-unused-expressions': ['error', { 'allowShortCircuit': true, 'allowTernary': true }],
-			'@typescript-eslint/no-require-imports': ['error', { 'allow': ['^xml-flow$'] }],
 
 			// Syntax
 			'@stylistic/comma-dangle': ['error', 'only-multiline'],

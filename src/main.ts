@@ -19,7 +19,7 @@ import { truncateText } from './util';
 declare global {
 	interface Window {
 		electron: any;
-		require: NodeRequire;
+		require: NodeJS.Require;
 	}
 }
 
