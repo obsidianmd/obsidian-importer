@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, ObsidianProtocolData, Plugin, Setting } from 'obsidian';
 import { FormatImporter } from './format-importer';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
@@ -46,7 +46,7 @@ export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg
  * AuthCallback is a function which will be called when the importer-auth
  * protocal is opened by an OAuth callback.
  */
-export type AuthCallback = (data: any) => void;
+export type AuthCallback = (data: ObsidianProtocolData) => void;
 
 // Temporary compatibility for in progress PRs
 export type ProgressReporter = ImportContext;
@@ -155,7 +155,7 @@ export class ImportContext {
 	 * @param name
 	 * @param reason
 	 */
-	reportSkipped(name: string, reason?: any) {
+	reportSkipped(name: string, reason?: unknown) {
 		let { importLogEl } = this;
 		this.skipped.push(name);
 		this.skippedCountEl.setText(this.skipped.length.toString());
@@ -174,7 +174,7 @@ export class ImportContext {
 	 * @param name
 	 * @param reason
 	 */
-	reportFailed(name: string, reason?: any) {
+	reportFailed(name: string, reason?: unknown) {
 		let { importLogEl } = this;
 
 		this.failed.push(name);

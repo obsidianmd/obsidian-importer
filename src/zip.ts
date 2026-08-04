@@ -49,12 +49,12 @@ export class ZipEntryFile implements PickedFile {
 		return this.entry.lastModDate;
 	}
 
-	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
 		return callback(new ZipReader(new BlobReader(new Blob([await this.read()]))));
 	}
 }
 
-export async function readZip(file: PickedFile, callback: (zip: ZipReader<any>, entries: ZipEntryFile[]) => Promise<void>) {
+export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknown>, entries: ZipEntryFile[]) => Promise<void>) {
 	await file.readZip(async zip => {
 		let entries = await zip.getEntries();
 		let files = entries

@@ -32,7 +32,7 @@ export interface PickedFile {
 	read(): Promise<ArrayBuffer>;
 
 	/** Read the file as zip, processing the zip in the callback */
-	readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void>;
+	readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void>;
 
 	/** The path or name this file came from, for building sibling paths */
 	toString(): string;
@@ -92,7 +92,7 @@ export class NodePickedFile implements PickedFile {
 		return nodeBufferToArrayBuffer(buffer);
 	}
 
-	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
 		let fd: FileHandle | null = null;
 		try {
 			fd = await fsPromises.open(this.filepath, 'r');
@@ -192,7 +192,7 @@ export class WebPickedFile implements PickedFile {
 		});
 	}
 
-	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
+	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
 		return callback(new ZipReader(new BlobReader(this.file)));
 	}
 

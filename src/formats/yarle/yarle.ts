@@ -1,4 +1,4 @@
-import { EvernoteNote } from './models/EvernoteNote';
+import { EvernoteNote, EvernoteNoteAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../main';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -130,8 +130,8 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 
 		const xml = parseXml(stream);
 
-		let noteAttributes: any = null;
-		xml.on('tag:note-attributes', (na: any) => {
+		let noteAttributes: EvernoteNoteAttributes | null = null;
+		xml.on('tag:note-attributes', (na: EvernoteNoteAttributes) => {
 			noteAttributes = na;
 		});
 

@@ -328,7 +328,7 @@ export abstract class FormatImporter {
 		}
 	}
 
-	abstract import(ctx: ImportContext): Promise<any>;
+	abstract import(ctx: ImportContext): Promise<void>;
 
 	// Utility functions for vault
 
