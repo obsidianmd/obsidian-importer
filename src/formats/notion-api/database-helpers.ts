@@ -23,7 +23,9 @@ import {
 	RollupConfig,
 	CreateBaseFileParams,
 	GenerateBaseFileContentParams,
-	DatabaseImportResult
+	DatabaseImportResult,
+	NotionProperties,
+	BasePropertyMapping
 } from './types';
 import { extractPlaceholderIds, createPlaceholder, PlaceholderType } from './utils';
 import type { FormulaImportStrategy } from '../../base';
@@ -432,6 +434,10 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	if (formulas.length > 0) {
 		baseConfig.formulas = {};
 		for (const item of formulas) {
+			// The list is built from entries that have one, but the field is
+			// optional on the mapping, so it is checked rather than asserted.
+			if (!item.config.formula) continue;
+
 			// Extract the formula name (remove "formula." prefix)
 			const formulaName = item.key.replace(/^formula\./, '');
 			baseConfig.formulas[formulaName] = item.config.formula;
@@ -483,16 +489,16 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
  *          property configurations vary widely by type (text, number, select, formula, relation, etc.)
  */
 function mapDatabaseProperties(
-	dataSourceProperties: Record<string, any>,
+	dataSourceProperties: NotionProperties,
 	formulaStrategy: FormulaImportStrategy = 'hybrid'
 ): {
-	formulas: Array<{ key: string, config: any }>;
-	regularProperties: Array<{ key: string, config: any }>;
+	formulas: Array<{ key: string, config: BasePropertyMapping }>;
+	regularProperties: Array<{ key: string, config: BasePropertyMapping }>;
 	titlePropertyName: string | null;
 } {
 	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
 	// which have different structures depending on the property type.
-	const mappings: Record<string, any> = {};
+	const mappings: Record<string, BasePropertyMapping> = {};
 	let titlePropertyName: string | null = null;
 
 	// First pass: create mappings for all properties
@@ -590,8 +596,8 @@ function mapDatabaseProperties(
 	// Note: Property order is based on Object.entries() iteration order
 	// which in modern JavaScript (ES2015+) preserves insertion order for string keys
 	// Using 'any' for config because property configurations have different structures by type
-	const formulas: Array<{ key: string, config: any }> = [];
-	const regularProperties: Array<{ key: string, config: any }> = [];
+	const formulas: Array<{ key: string, config: BasePropertyMapping }> = [];
+	const regularProperties: Array<{ key: string, config: BasePropertyMapping }> = [];
 
 	for (const [key, config] of Object.entries(mappings)) {
 		if (config.formula) {
@@ -623,7 +629,7 @@ function sanitizePropertyKey(key: string): string {
  * Returns a mapping of property name -> Obsidian type
  */
 function extractPropertyTypesForTypesJson(
-	dataSourceProperties: Record<string, any>,
+	dataSourceProperties: NotionProperties,
 	databasePages: Array<PageObjectResponse | PartialPageObjectResponse>
 ): Record<string, string> {
 	const propertyTypes: Record<string, string> = {};
@@ -946,7 +952,7 @@ function convertRollupToFormula(
  */
 export async function processRelationProperties(
 	databasePages: PageObjectResponse[],
-	dataSourceProperties: Record<string, any>,
+	dataSourceProperties: NotionProperties,
 	relationPlaceholders: RelationPlaceholder[]
 ): Promise<void> {
 	// Find all relation properties

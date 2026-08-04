@@ -5,12 +5,49 @@
 import {
 	Client,
 	BlockObjectResponse,
+	DataSourceObjectResponse,
 	PageObjectResponse,
 	Heading1BlockObjectResponse
 } from '@notionhq/client';
 import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../main';
 import type { FormulaImportStrategy } from '../../base';
+
+/**
+ * One property's configuration in a data source's schema.
+ *
+ * Reached through an indexed access because the SDK does not export the config
+ * union by name, only the response type that carries it. Widened with the
+ * property types Notion returns that the SDK's union does not list yet: button
+ * and place are real and do arrive, and the switches over these handle them.
+ * Naming them here keeps those cases compiling without giving up the narrowing
+ * the SDK's own members provide.
+ */
+export type NotionPropertyConfig =
+	| DataSourceObjectResponse['properties'][string]
+	| { type: 'button' | 'place', id: string, name: string, description: string | null };
+
+/** A data source's property schema. */
+export type NotionProperties = Record<string, NotionPropertyConfig>;
+
+/**
+ * One entry of the property map the importer builds for a .base file.
+ *
+ * Not a Notion type: this is the Obsidian-shaped result of mapping a Notion
+ * property, with formula present only when the property became one.
+ */
+export interface BasePropertyMapping {
+	displayName: string;
+	/** Present only when the property became a formula in the .base file */
+	formula?: string;
+	/**
+	 * Recorded for relation properties. Nothing reads these yet - only
+	 * displayName and formula reach the .base file - but they are written, so
+	 * they are described rather than quietly dropped.
+	 */
+	isRelation?: boolean;
+	relationConfig?: unknown;
+}
 
 /**
  * Configuration context for database processing operations
@@ -41,9 +78,7 @@ export interface DatabaseInfo {
 	title: string;
 	folderPath: string;
 	baseFilePath: string;
-	// Using 'any' because database properties have many different types and configurations
-	// (text, number, select, formula, relation, rollup, etc.) with varying structures.
-	properties: Record<string, any>;
+	properties: NotionProperties;
 	dataSourceId: string;
 }
 
@@ -55,7 +90,7 @@ export interface DatabaseImportResult {
 	baseFilePath: string;
 	databasePages: PageObjectResponse[];
 	dataSourceId: string;
-	dataSourceProperties: Record<string, any>;
+	dataSourceProperties: NotionProperties;
 }
 
 /**
@@ -123,8 +158,7 @@ export interface CreateBaseFileParams {
 	vault: Vault;
 	databaseName: string;
 	databaseFolderPath: string;
-	// Using 'any' because Notion database property schema has many variants with different structures
-	dataSourceProperties: Record<string, any>;
+	dataSourceProperties: NotionProperties;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
 }
@@ -134,8 +168,7 @@ export interface CreateBaseFileParams {
  */
 export interface GenerateBaseFileContentParams {
 	databaseName: string;
-	// Using 'any' because Notion database property schema has many variants with different structures
-	dataSourceProperties: Record<string, any>;
+	dataSourceProperties: NotionProperties;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
 }
