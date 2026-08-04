@@ -137,6 +137,8 @@ export interface AttachmentResult {
 	path: string;
 	isLocal: boolean;
 	filename?: string;
+	/** MIME type from Airtable, used to decide whether the link should be an embed */
+	mimeType?: string;
 }
 
 /**

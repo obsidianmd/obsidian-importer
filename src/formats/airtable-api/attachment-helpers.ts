@@ -28,6 +28,7 @@ export async function downloadAttachment(
 			path: attachment.url,
 			isLocal: false,
 			filename: attachment.filename,
+			mimeType: attachment.type,
 		};
 	}
 
@@ -47,6 +48,7 @@ export async function downloadAttachment(
 				path: attachment.url,
 				isLocal: false,
 				filename: attachment.filename,
+				mimeType: attachment.type,
 			};
 		}
 
@@ -73,6 +75,7 @@ export async function downloadAttachment(
 			path: attachment.url,
 			isLocal: false,
 			filename: attachment.filename,
+			mimeType: attachment.type,
 		};
 	}
 }
@@ -141,23 +144,25 @@ export function formatAttachmentForYAML(
 }
 
 /**
- * Process multiple attachments and return formatted markdown (for body content)
- * Uses generateMarkdownLink to respect user's link format settings
+ * Download a field's attachments once.
+ *
+ * A single attachment field can be rendered into both the note body and a YAML
+ * property. Downloading is done here exactly once so both renderings reference
+ * the same vault file — downloading per rendering would write a second copy
+ * under a deduplicated name and double-count ctx.attachments.
  */
-export async function processAttachments(
+export async function downloadAttachmentList(
 	attachments: AirtableAttachment[],
 	context: {
 		ctx: ImportContext;
-		currentFilePath: string;
 		vault: Vault;
-		app: App;
 		downloadAttachments: boolean;
 		getAvailableAttachmentPath: (filename: string) => Promise<string>;
 		onAttachmentDownloaded?: () => void;
 	}
-): Promise<string[]> {
-	const { ctx, currentFilePath, app, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
-	const results: string[] = [];
+): Promise<AttachmentResult[]> {
+	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
+	const results: AttachmentResult[] = [];
 
 	for (const attachment of attachments) {
 		const result = await downloadAttachment(attachment, {
@@ -171,56 +176,42 @@ export async function processAttachments(
 			onAttachmentDownloaded();
 		}
 
-		// Format as link for body content using user's link format settings
-		// Pass MIME type to determine if it should be embedded (images/videos)
-		const link = formatAttachmentLink({
-			result,
-			app,
-			vault,
-			sourceFilePath: currentFilePath,
-			mimeType: attachment.type,
-		});
-
-		results.push(link);
+		results.push(result);
 	}
 
 	return results;
 }
 
 /**
- * Process multiple attachments for YAML frontmatter
+ * Format already-downloaded attachments as markdown for body content
+ * Uses generateMarkdownLink to respect user's link format settings
+ */
+export function formatAttachmentsForBody(
+	results: AttachmentResult[],
+	context: {
+		currentFilePath: string;
+		vault: Vault;
+		app: App;
+	}
+): string[] {
+	const { currentFilePath, app, vault } = context;
+
+	// Pass MIME type to determine if it should be embedded (images/videos)
+	return results.map(result => formatAttachmentLink({
+		result,
+		app,
+		vault,
+		sourceFilePath: currentFilePath,
+		mimeType: result.mimeType,
+	}));
+}
+
+/**
+ * Format already-downloaded attachments for YAML frontmatter
  * Always uses wiki link format for YAML compatibility
  */
-export async function processAttachmentsForYAML(
-	attachments: AirtableAttachment[],
-	context: {
-		ctx: ImportContext;
-		vault: Vault;
-		downloadAttachments: boolean;
-		getAvailableAttachmentPath: (filename: string) => Promise<string>;
-		onAttachmentDownloaded?: () => void;
-	}
-): Promise<string[]> {
-	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath, onAttachmentDownloaded } = context;
-	const results: string[] = [];
-
-	for (const attachment of attachments) {
-		const result = await downloadAttachment(attachment, {
-			ctx,
-			vault,
-			downloadAttachments,
-			getAvailableAttachmentPath,
-		});
-
-		if (result.isLocal && onAttachmentDownloaded) {
-			onAttachmentDownloaded();
-		}
-
-		// Format for YAML (always wiki link)
-		const formatted = formatAttachmentForYAML(result);
-		results.push(formatted);
-	}
-
-	return results;
+export function formatAttachmentsForYAML(results: AttachmentResult[]): string[] {
+	return results.map(formatAttachmentForYAML);
 }
+
 

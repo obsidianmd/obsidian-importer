@@ -18,8 +18,8 @@ import {
 // Import helper modules
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, fetchAllRecords } from './airtable-api/api-helpers';
-import { convertFieldValue } from './airtable-api/field-converter';
-import { processAttachments, processAttachmentsForYAML } from './airtable-api/attachment-helpers';
+import { convertFieldValue, clearFormulaConversionCache } from './airtable-api/field-converter';
+import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
 import { convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
 import type {
 	FormulaImportStrategy,
@@ -27,12 +27,24 @@ import type {
 	AirtableViewInfo,
 	AirtableFieldSchema,
 	AirtableAttachment,
+	AttachmentResult,
 	PreparedTableData,
 	AirtableRecord,
 	RecordFileContext,
 	BaseFileContext,
 	BaseGroupInfo,
 } from './airtable-api/types';
+
+/**
+ * Linked records are written as placeholders during the write phase and resolved
+ * afterwards, once every record has a final file path. Both halves live here so
+ * the emitted token and the pattern that matches it cannot drift apart.
+ */
+function createRecordLinkPlaceholder(baseId: string, recordId: string): string {
+	return `[[airtable-record:${baseId}:${recordId}]]`;
+}
+
+const RECORD_LINK_PLACEHOLDER_PATTERN = /\[\[airtable-record:([^:\]]+):([^\]]+)\]\]/g;
 
 export class AirtableAPIImporter extends FormatImporter {
 	airtableToken: string = '';
@@ -823,6 +835,11 @@ export class AirtableAPIImporter extends FormatImporter {
 				// ============================================================
 				try {
 					await this.createFilesForBase(ctx, folder.path);
+
+					// PHASE 3: every record in this base now has a final path, so
+					// linked-record placeholders can be turned into real links
+					ctx.status(this.buildStatusMessage('Writing', { customSuffix: '→ Resolving linked records' }));
+					await this.resolveRecordLinks(ctx, baseInfo.baseId);
 				}
 				catch (error) {
 					console.error(`Failed to create files for base "${baseInfo.baseName}":`, error);
@@ -918,6 +935,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.globalFieldIdToNameMap.clear();
 		this.globalRecordIdToTitle.clear();
 		this.preparedData.clear();
+
+		// Field IDs are only unique within a base, so the formula cache must not
+		// carry over
+		clearFormulaConversionCache();
 
 		// Reset per-base progress counters
 		this.processedRecordsCount = 0;
@@ -1304,6 +1325,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Convert field values
 			// Track rollup fields to ensure their property names appear in YAML (with null value)
 			const rollupFieldNames = new Set<string>();
+			// Track attachment fields so the frontmatter pass can format the already-downloaded results
+			const attachmentFieldNames = new Set<string>();
 			for (const field of fields) {
 				const fieldValue = recordFields[field.name];
 
@@ -1319,38 +1342,45 @@ export class AirtableAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				// Handle linked records - resolve to wiki links
+				// Handle linked records - emit placeholders, resolved once every file exists.
+				// Resolving inline would bake in a title that a later filename conflict
+				// can still change, leaving earlier-written records pointing at the wrong file.
 				if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-					const links = fieldValue.map((linkedRecordId: string) => {
-						const linkedTitle = recordIdToTitle.get(linkedRecordId);
-						return linkedTitle ? `[[${sanitizeFileName(linkedTitle)}]]` : `[Unknown Record ${linkedRecordId.substring(0, 8)}]`;
-					});
+					const links = fieldValue.map((linkedRecordId: string) =>
+						createRecordLinkPlaceholder(fileContext.baseId, linkedRecordId)
+					);
 					convertedCache.set(field.name, links);
 					if (hasBodyTemplate) templateData[field.name] = links.join(', ');
 					continue;
 				}
 
-				// Handle attachments - download and convert to embeds
+				// Handle attachments - download once, then format for body and/or YAML
 				if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
 					const attachments = fieldValue as AirtableAttachment[];
-					convertedCache.set(field.name, attachments);
+					attachmentFieldNames.add(field.name);
+
+					const downloaded = await downloadAttachmentList(attachments, {
+						ctx,
+						vault: this.vault,
+						downloadAttachments: this.downloadAttachments,
+						getAvailableAttachmentPath: async (filename: string) => {
+							return await this.getAvailablePathForAttachment(filename, []);
+						},
+						onAttachmentDownloaded: () => {
+							this.attachmentsDownloaded++;
+							ctx.attachments = this.attachmentsDownloaded;
+							ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+						},
+					});
+
+					convertedCache.set(field.name, downloaded);
+
 					if (hasBodyTemplate) {
-						const processed = await processAttachments(attachments, {
-							ctx,
+						templateData[field.name] = formatAttachmentsForBody(downloaded, {
 							currentFilePath: filePath,
 							vault: this.vault,
 							app: this.app,
-							downloadAttachments: this.downloadAttachments,
-							getAvailableAttachmentPath: async (filename: string) => {
-								return await this.getAvailablePathForAttachment(filename, []);
-							},
-							onAttachmentDownloaded: () => {
-								this.attachmentsDownloaded++;
-								ctx.attachments = this.attachmentsDownloaded;
-								ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-							},
-						});
-						templateData[field.name] = processed.join('\n');
+						}).join('\n');
 					}
 					continue;
 				}
@@ -1422,22 +1452,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 					let propertyValue: any = convertedValue;
 
-					// Handle attachments: convert to wiki links for YAML
-					if (Array.isArray(convertedValue) && convertedValue.length > 0 && convertedValue[0]?.url) {
-						const attachments = convertedValue as AirtableAttachment[];
-						propertyValue = await processAttachmentsForYAML(attachments, {
-							ctx,
-							vault: this.vault,
-							downloadAttachments: this.downloadAttachments,
-							getAvailableAttachmentPath: async (filename: string) => {
-								return await this.getAvailablePathForAttachment(filename, []);
-							},
-							onAttachmentDownloaded: () => {
-								this.attachmentsDownloaded++;
-								ctx.attachments = this.attachmentsDownloaded;
-								ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-							},
-						});
+					// Handle attachments: format the results downloaded in the pass above
+					// into wiki links for YAML (no second download)
+					if (attachmentFieldNames.has(fieldId)) {
+						propertyValue = formatAttachmentsForYAML(convertedValue as AttachmentResult[]);
 					}
 
 					// Set property (skip null/undefined/empty values and non-serializable objects)
@@ -1478,7 +1496,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				// Update sanitizedTitle to match the new file name (without .md)
 				const { basename } = parseFilePath(filePath);
 				sanitizedTitle = basename;
-				// Update globalRecordIdToTitle so other tables' links point to the correct file
+				// Keep the title map in step with the rename. Links resolve through
+				// recordIdToPath, so this only affects the not-imported fallback and
+				// the names shown in progress/skip reporting.
 				recordIdToTitle.set(recordId, sanitizedTitle);
 			}
 
@@ -1489,12 +1509,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Use baseId:recordId as key to ensure uniqueness across bases (recordId is only unique within a base)
 			const uniqueKey = `${fileContext.baseId}:${recordId}`;
 			this.recordIdToPath.set(uniqueKey, filePath.replace(/\.md$/, ''));
+
+			ctx.reportNoteSuccess(sanitizedTitle);
 		}
 		else {
 			ctx.reportSkipped(sanitizedTitle, 'Already imported');
 		}
 
-		ctx.reportNoteSuccess(sanitizedTitle);
 		this.processedRecordsCount++;
 		ctx.reportProgress(this.processedRecordsCount, this.totalRecordsToImport);
 	}
@@ -1523,6 +1544,58 @@ export class AirtableAPIImporter extends FormatImporter {
 		const existingId = cachedMetadata?.frontmatter?.['airtable-id'];
 
 		return existingId === recordId;
+	}
+
+	/**
+	 * Replace linked-record placeholders with links to the records' final paths.
+	 *
+	 * Runs once a base's files have all been written, so a link is never left
+	 * pointing at a title that a later filename conflict renamed. Records that
+	 * were not imported (a table the user did not select, or a record skipped as
+	 * empty) have no path and degrade to their plain title.
+	 *
+	 * Scoped to one base because Airtable record IDs are only unique within a
+	 * base, and because globalRecordIdToTitle is cleared between bases.
+	 */
+	private async resolveRecordLinks(ctx: ImportContext, baseId: string): Promise<void> {
+		const prefix = `${baseId}:`;
+
+		for (const [key, filePath] of this.recordIdToPath) {
+			if (ctx.isCancelled()) return;
+			if (!key.startsWith(prefix)) continue;
+
+			try {
+				const file = this.vault.getAbstractFileByPath(filePath + '.md');
+				if (!(file instanceof TFile)) {
+					continue;
+				}
+
+				const content = await this.vault.read(file);
+				if (!content.includes('[[airtable-record:')) {
+					continue;
+				}
+
+				const resolved = content.replace(
+					RECORD_LINK_PLACEHOLDER_PATTERN,
+					(_match, baseId: string, recordId: string) => {
+						const targetPath = this.recordIdToPath.get(`${baseId}:${recordId}`);
+						if (targetPath) {
+							return `[[${targetPath}]]`;
+						}
+						// Not imported - fall back to the record's title if we saw it
+						const title = this.globalRecordIdToTitle.get(recordId);
+						return title ? sanitizeFileName(title) : `Unknown record ${recordId}`;
+					}
+				);
+
+				if (resolved !== content) {
+					await this.vault.modify(file, resolved);
+				}
+			}
+			catch (error) {
+				console.error(`Failed to resolve linked records in: ${filePath}`, error);
+			}
+		}
 	}
 
 	/**

@@ -25,6 +25,12 @@ const RATE_LIMIT_DELAY = 50; // milliseconds between Meta API requests
 let lastRequestTime = 0;
 
 /**
+ * Give up after this many consecutive 429s so a persistently throttled or
+ * over-scoped token surfaces an error instead of retrying forever.
+ */
+const MAX_RATE_LIMIT_RETRIES = 5;
+
+/**
  * Wait for rate limit if necessary
  */
 async function waitForRateLimit(): Promise<void> {
@@ -42,7 +48,7 @@ async function waitForRateLimit(): Promise<void> {
 /**
  * Make a rate-limited request to Airtable API
  */
-export async function makeAirtableRequest<T>(options: AirtableRequestOptions): Promise<T> {
+export async function makeAirtableRequest<T>(options: AirtableRequestOptions, attempt: number = 1): Promise<T> {
 	const { url, token, ctx, method = 'GET', body } = options;
 
 	await waitForRateLimit();
@@ -62,13 +68,17 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions): P
 		if (response.status === 429) {
 			// Rate limited - Airtable requires 30 second wait per official docs
 			// https://airtable.com/developers/web/api/rate-limits
+			if (attempt >= MAX_RATE_LIMIT_RETRIES) {
+				throw new Error(`Airtable API error: still rate limited after ${MAX_RATE_LIMIT_RETRIES} attempts`);
+			}
+
 			const retryAfter = response.headers?.['retry-after']
 				? parseInt(response.headers['retry-after']) * 1000
 				: 30000; // Default 30 seconds as per Airtable docs
 
-			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s...`);
+			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s (attempt ${attempt}/${MAX_RATE_LIMIT_RETRIES})...`);
 			await new Promise(resolve => setTimeout(resolve, retryAfter));
-			return makeAirtableRequest(options);
+			return makeAirtableRequest(options, attempt + 1);
 		}
 
 		if (response.status >= 400) {

@@ -353,6 +353,14 @@ export function convertAirtableFormulaToObsidian(
 		}
 	}
 
+	// The loop rewrites one call per pass. If it was still making progress when it
+	// hit the cap, the formula is only half-translated and would emit a mix of
+	// Airtable and Bases syntax - bail out and let the caller use static values.
+	if (changed) {
+		console.warn(`[Airtable] Formula too deeply nested to convert: ${airtableFormula}`);
+		return null;
+	}
+
 	return result;
 }
 

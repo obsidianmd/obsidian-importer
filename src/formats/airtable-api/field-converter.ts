@@ -5,6 +5,9 @@
 import type { AirtableFieldSchema, ConvertFieldOptions } from './types';
 import { convertAirtableFormulaToObsidian } from './formula-converter';
 
+/** Field types already warned about, so the warning is not repeated per record */
+const warnedUnknownFieldTypes: Set<string> = new Set();
+
 /**
  * Convert Airtable field value to Obsidian property value
  * @returns Converted value (string, number, boolean, array, or null)
@@ -111,11 +114,9 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 				if (converted) {
 					// Formula successfully converted - it will be defined in .base file
 					// Return null so it's not added to YAML frontmatter
-					console.log(`Formula field "${fieldSchema.name}" converted, skipping YAML`);
 					return null;
 				}
 				// Fall back to static value (formula couldn't be converted)
-				console.log(`Formula field "${fieldSchema.name}" could not be converted, using static value`);
 				return convertFormulaResult(fieldValue, fieldSchema);
 			}
 
@@ -137,7 +138,6 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 
 					if (linkedFieldName) {
 						// Can be converted to formula - return null to skip YAML
-						console.log(`Count field "${fieldSchema.name}" converted to formula, skipping YAML`);
 						return null;
 					}
 				}
@@ -175,7 +175,6 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 
 					if (linkedFieldName && lookupFieldName) {
 						// Can be converted to formula - return null to skip YAML
-						console.log(`Lookup field "${fieldSchema.name}" converted to formula, skipping YAML`);
 						return null;
 					}
 				}
@@ -187,8 +186,12 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return fieldValue;
 
 		default:
-			// Unknown field type, return as-is
-			console.warn(`Unknown field type: ${fieldType}`);
+			// Unknown field type, return as-is. Warn once per type rather than
+			// once per record.
+			if (!warnedUnknownFieldTypes.has(fieldType)) {
+				warnedUnknownFieldTypes.add(fieldType);
+				console.warn(`Unknown field type: ${fieldType}`);
+			}
 			return fieldValue;
 	}
 }
@@ -234,6 +237,23 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
 }
 
 /**
+ * Whether a field's formula converted, cached per field.
+ *
+ * Convertibility depends only on the field schema, but convertFieldValue runs
+ * once per record - without this a large table re-parses the same expression
+ * thousands of times.
+ */
+const formulaConversionCache: Map<string, boolean> = new Map();
+
+/**
+ * Reset the formula cache. Call between bases, since field IDs are only unique
+ * within a base.
+ */
+export function clearFormulaConversionCache(): void {
+	formulaConversionCache.clear();
+}
+
+/**
  * Convert Airtable formula to Obsidian formula (if possible)
  * Returns null if conversion is not possible
  */
@@ -245,34 +265,33 @@ function convertFormulaToObsidian(
 	const options = fieldSchema.options;
 	const formulaExpression = options?.formula;
 
-	console.log(`Converting formula for "${fieldSchema.name}":`, {
-		hasOptions: !!options,
-		formulaExpression,
-		hasFieldIdMap: !!fieldIdToNameMap,
-		fieldIdMapSize: fieldIdToNameMap?.size
-	});
-
 	if (!formulaExpression || typeof formulaExpression !== 'string') {
 		// No formula expression available
-		console.log(`No formula expression found`);
 		return null;
 	}
 
+	const cacheKey = fieldSchema.id || fieldSchema.name;
+	const cached = formulaConversionCache.get(cacheKey);
+	if (cached !== undefined) {
+		return cached ? FORMULA_CONVERTED_MARKER : null;
+	}
+
 	// Try to convert the formula
+	let converted = false;
 	try {
-		const converted = convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
-		if (converted) {
-			// Formula successfully converted - return a marker (actual formula is in .base file)
-			console.log(`Converted to: ${converted}`);
-			return '__FORMULA_CONVERTED__'; // Marker to indicate formula was converted
-		}
-		console.log(`Formula cannot be converted (unsupported functions)`);
+		converted = !!convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
 	}
 	catch (error) {
 		console.warn('Failed to convert Airtable formula:', error);
 	}
 
-	return null;
+	formulaConversionCache.set(cacheKey, converted);
+
+	// The actual formula text is written to the .base file; callers only need to
+	// know that it converted, so the value here is just a marker.
+	return converted ? FORMULA_CONVERTED_MARKER : null;
 }
+
+const FORMULA_CONVERTED_MARKER = '__FORMULA_CONVERTED__';
 
 
