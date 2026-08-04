@@ -1585,33 +1585,37 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Convert other field types
-			let convertedValue = convertFieldValue({
+			const convertedValue = convertFieldValue({
 				fieldValue,
 				fieldSchema: field,
 				computedByBase: formulaFieldNames.has(field.name),
 			});
 
-			// If formula was converted (returns null), use the computed value for templates
-			if (convertedValue === null && field.type === 'formula') {
-				convertedValue = fieldValue;
-			}
-
 			// Cache converted value for frontmatter pass
 			convertedCache.set(field.name, convertedValue);
 
-			// Convert to string for template (only if needed)
+			// Convert to string for template (only if needed).
+			// A field the .base computes has no frontmatter value, but a body
+			// template still has to render something, so fall back to the value
+			// Airtable computed. This is deliberately kept out of convertedCache:
+			// writing it there would put the static value back into frontmatter
+			// and leave the note and the .base each holding their own copy.
 			if (hasBodyTemplate) {
-				if (convertedValue === null || convertedValue === undefined) {
+				const templateValue = convertedValue === null && formulaFieldNames.has(field.name)
+					? fieldValue
+					: convertedValue;
+
+				if (templateValue === null || templateValue === undefined) {
 					templateData[field.name] = '';
 				}
-				else if (Array.isArray(convertedValue)) {
-					templateData[field.name] = convertedValue.map((item: any) => {
+				else if (Array.isArray(templateValue)) {
+					templateData[field.name] = templateValue.map((item: any) => {
 						if (typeof item === 'string') return item;
 						return String(item);
 					}).join(', ');
 				}
 				else {
-					templateData[field.name] = String(convertedValue);
+					templateData[field.name] = String(templateValue);
 				}
 			}
 		}
@@ -1655,9 +1659,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			frontMatter[propertyName] = propertyValue;
 		}
 
-		// Rollup fields get their property name with a null value: the API does not
-		// expose the aggregation, so there is nothing to put there
+		// A rollup the .base does not compute gets its property name with a null
+		// value, so the property exists for the user to fill in. One the .base
+		// does compute needs nothing here - the note would otherwise carry an
+		// empty property shadowing the formula column of the same name.
 		for (const fieldName of rollupFieldNames) {
+			if (formulaFieldNames.has(fieldName)) continue;
+
 			const configured = this.templateConfig?.propertyNames.get(fieldName);
 			if (configured?.trim()) {
 				frontMatter[this.propertyNameForField(fieldName)] = null;
