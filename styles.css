@@ -163,22 +163,13 @@
 	justify-content: center;
 }
 
-/* Fixed width buttons to prevent resizing during loading */
-.notion-load-button {
-	width: 70px;
-}
-
-.notion-toggle-button {
-	width: 95px;
-}
-
-/* Airtable buttons */
-.airtable-load-button {
-	width: 70px;
-}
-
-.airtable-toggle-button {
-	width: 95px;
+/*
+ * Tree selector buttons. Their labels change as the user works ("Load" ->
+ * "Loading..." -> "Refresh", "Select all" -> "Deselect all"), so they need a
+ * floor to stop the row shifting on every click.
+ */
+.importer-tree-button {
+	min-width: 95px;
 }
 
 .import-section .publish-change-list {
@@ -216,7 +207,9 @@
 	flex-direction: column;
 	align-items: center;
 	gap: var(--size-4-3);
-	padding: 40px 10px;
+	/* Asymmetric: the modal already reserves room below the content for its
+	   button bar, so matching that padding underneath reads as a large gap. */
+	padding: var(--size-4-8) var(--size-4-2) var(--size-4-2);
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }

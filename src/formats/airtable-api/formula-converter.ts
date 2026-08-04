@@ -52,6 +52,7 @@
  * - Obsidian: https://help.obsidian.md/bases/functions
  */
 
+import { findMatchingParen, mapOutsideStrings, parseArguments } from '../../formula-utils';
 
 // Regex patterns (compiled once, reuse with lastIndex reset)
 const FUNCTION_CALL_PATTERN = /([A-Z_][A-Z0-9_]*)\s*\(/gi;
@@ -60,8 +61,6 @@ const FUNCTION_CALL_PATTERN_STRICT = /(?<![.\w])([A-Z_][A-Z0-9_]*)\s*\(/gi;
 interface ConversionInfo {
 	type: 'global' | 'method' | 'property' | 'operator' | 'unsupported' | 'special';
 	obsidianName?: string;
-	argCount?: number;
-	note?: string;
 }
 
 const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
@@ -84,13 +83,13 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// ============================================================
 	// Number functions -> Methods
 	// ============================================================
-	'ABS': { type: 'method', obsidianName: 'abs', argCount: 1 },
+	'ABS': { type: 'method', obsidianName: 'abs' },
 	'CEILING': { type: 'special' }, // CEILING(value) -> ceil, CEILING(value, significance) -> unsupported
 	'FLOOR': { type: 'special' }, // FLOOR(value) -> floor, FLOOR(value, significance) -> unsupported
-	'ROUND': { type: 'method', obsidianName: 'round', argCount: 2 }, // ROUND(value, precision)
+	'ROUND': { type: 'method', obsidianName: 'round' }, // ROUND(value, precision)
 	'ROUNDUP': { type: 'unsupported' }, // Obsidian ceil() doesn't support precision parameter
 	'ROUNDDOWN': { type: 'unsupported' }, // Obsidian floor() doesn't support precision parameter
-	'INT': { type: 'method', obsidianName: 'floor', argCount: 1 }, // INT = floor
+	'INT': { type: 'method', obsidianName: 'floor' }, // INT = floor
 	'EVEN': { type: 'unsupported' }, // Return the nearest even number
 	'ODD': { type: 'unsupported' }, // Return the nearest odd number
 
@@ -106,10 +105,10 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// String functions
 	// ============================================================
 	// String methods
-	'TRIM': { type: 'method', obsidianName: 'trim', argCount: 1 },
-	'UPPER': { type: 'method', obsidianName: 'upper', argCount: 1 },
-	'LOWER': { type: 'method', obsidianName: 'lower', argCount: 1 },
-	'LEN': { type: 'property', obsidianName: 'length', argCount: 1 },
+	'TRIM': { type: 'method', obsidianName: 'trim' },
+	'UPPER': { type: 'method', obsidianName: 'upper' },
+	'LOWER': { type: 'method', obsidianName: 'lower' },
+	'LEN': { type: 'property', obsidianName: 'length' },
 
 	// String manipulation - need special handling
 	'CONCATENATE': { type: 'operator' }, // Convert to + operator
@@ -120,28 +119,28 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	'SEARCH': { type: 'unsupported' }, // No indexOf() in Obsidian
 	'SUBSTITUTE': { type: 'operator' }, // SUBSTITUTE(str, old, new, index?) -> str.replace(old, new) - index not supported
 	'REPLACE': { type: 'operator' }, // REPLACE(str, start, count, replacement)
-	'REPT': { type: 'method', obsidianName: 'repeat', argCount: 2 }, // REPT(str, count) -> str.repeat(count)
+	'REPT': { type: 'method', obsidianName: 'repeat' }, // REPT(str, count) -> str.repeat(count)
 	'ENCODE_URL_COMPONENT': { type: 'unsupported' },
 
 	// ============================================================
 	// Date/Time extraction -> Properties
 	// ============================================================
-	'YEAR': { type: 'property', obsidianName: 'year', argCount: 1 },
-	'MONTH': { type: 'property', obsidianName: 'month', argCount: 1 },
-	'DAY': { type: 'property', obsidianName: 'day', argCount: 1 },
-	'HOUR': { type: 'property', obsidianName: 'hour', argCount: 1 },
-	'MINUTE': { type: 'property', obsidianName: 'minute', argCount: 1 },
-	'SECOND': { type: 'property', obsidianName: 'second', argCount: 1 },
+	'YEAR': { type: 'property', obsidianName: 'year' },
+	'MONTH': { type: 'property', obsidianName: 'month' },
+	'DAY': { type: 'property', obsidianName: 'day' },
+	'HOUR': { type: 'property', obsidianName: 'hour' },
+	'MINUTE': { type: 'property', obsidianName: 'minute' },
+	'SECOND': { type: 'property', obsidianName: 'second' },
 	'WEEKDAY': { type: 'unsupported' }, // Obsidian doesn't support weekday property
 	'WEEKNUM': { type: 'unsupported' }, // ISO week number
 
 	// Date/Time formatting and manipulation
-	'DATETIME_FORMAT': { type: 'method', obsidianName: 'format', argCount: 2 }, // DATETIME_FORMAT(date, format) -> date.format(format)
+	'DATETIME_FORMAT': { type: 'method', obsidianName: 'format' }, // DATETIME_FORMAT(date, format) -> date.format(format)
 	'DATETIME_PARSE': { type: 'unsupported' }, // Returns date type, format is fixed, locale not supported
 	'DATEADD': { type: 'operator' }, // DATEADD(date, amount, unit) -> date + 'amount+unit'
 	'DATETIME_DIFF': { type: 'unsupported' }, // Complex date diff
 	'DATESTR': { type: 'special' }, // DATESTR(date) -> date.format("YYYY-MM-DD")
-	'TIMESTR': { type: 'method', obsidianName: 'time', argCount: 1 }, // TIMESTR(date) -> date.time()
+	'TIMESTR': { type: 'method', obsidianName: 'time' }, // TIMESTR(date) -> date.time()
 
 	// Date comparison functions
 	'IS_BEFORE': { type: 'operator' }, // IS_BEFORE(date1, date2) -> date1 < date2
@@ -159,9 +158,9 @@ const FUNCTION_MAPPING: Record<string, ConversionInfo> = {
 	// ============================================================
 	// Array functions -> Methods
 	// ============================================================
-	'ARRAYJOIN': { type: 'method', obsidianName: 'join', argCount: 2 },
-	'ARRAYFLATTEN': { type: 'method', obsidianName: 'flat', argCount: 1 },
-	'ARRAYUNIQUE': { type: 'method', obsidianName: 'unique', argCount: 1 },
+	'ARRAYJOIN': { type: 'method', obsidianName: 'join' },
+	'ARRAYFLATTEN': { type: 'method', obsidianName: 'flat' },
+	'ARRAYUNIQUE': { type: 'method', obsidianName: 'unique' },
 	'ARRAYCOMPACT': { type: 'operator' }, // Remove null/undefined/empty -> array.filter(!value.isEmpty())
 
 	// ============================================================
@@ -328,16 +327,9 @@ export function convertAirtableFormulaToObsidian(
 						}
 					}
 					else if (mapping.type === 'method') {
-						const args = parseArguments(argsStr);
-						if (args.length >= 1) {
-							const obj = args[0];
-							const methodArgs = args.slice(1);
-							if (methodArgs.length > 0) {
-								replacement = `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
-							}
-							else {
-								replacement = `(${obj}).${mapping.obsidianName}()`;
-							}
+						const [obj, ...methodArgs] = parseArguments(argsStr);
+						if (obj !== undefined) {
+							replacement = `(${obj}).${mapping.obsidianName}(${methodArgs.join(', ')})`;
 						}
 					}
 				}
@@ -621,37 +613,7 @@ function handleSpecialCases(funcName: string, argsStr: string): string | null {
  * Careful not to replace & inside strings
  */
 function convertConcatenationOperator(formula: string): string {
-	let result = '';
-	let inString = false;
-	let stringChar = '';
-
-	for (let i = 0; i < formula.length; i++) {
-		const char = formula[i];
-		const prevChar = i > 0 ? formula[i - 1] : '';
-
-		if (inString) {
-			result += char;
-			if (char === stringChar && prevChar !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-				result += char;
-			}
-			else if (char === '&') {
-				// Replace & with +
-				result += '+';
-			}
-			else {
-				result += char;
-			}
-		}
-	}
-
-	return result;
+	return mapOutsideStrings(formula, char => char === '&' ? '+' : char);
 }
 
 /**
@@ -663,139 +625,15 @@ function convertConcatenationOperator(formula: string): string {
  * - <= (less than or equal)
  */
 function convertEqualityOperator(formula: string): string {
-	let result = '';
-	let inString = false;
-	let stringChar = '';
+	return mapOutsideStrings(formula, (char, i, source) => {
+		if (char !== '=') return char;
 
-	for (let i = 0; i < formula.length; i++) {
-		const char = formula[i];
-		const prevChar = i > 0 ? formula[i - 1] : '';
-		const nextChar = i < formula.length - 1 ? formula[i + 1] : '';
+		// Leave !=, >=, <= and an existing == alone
+		const prevChar = source[i - 1] ?? '';
+		if (prevChar === '!' || prevChar === '>' || prevChar === '<' || prevChar === '=') return char;
+		if (source[i + 1] === '=') return char;
 
-		if (inString) {
-			result += char;
-			if (char === stringChar && prevChar !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-				result += char;
-			}
-			else if (char === '=') {
-				// Check if it's part of !=, >=, <=, or already ==
-				if (prevChar === '!' || prevChar === '>' || prevChar === '<' || prevChar === '=') {
-					// Part of !=, >=, <=, or ==, keep as is
-					result += char;
-				}
-				else if (nextChar === '=') {
-					// Already ==, keep as is
-					result += char;
-				}
-				else {
-					// Single = for equality, convert to ==
-					result += '==';
-				}
-			}
-			else {
-				result += char;
-			}
-		}
-	}
-
-	return result;
-}
-
-/**
- * Parse comma-separated arguments
- */
-function parseArguments(argsStr: string): string[] {
-	if (!argsStr.trim()) {
-		return [];
-	}
-
-	const args: string[] = [];
-	let current = '';
-	let depth = 0;
-	let inString = false;
-	let stringChar = '';
-
-	for (let i = 0; i < argsStr.length; i++) {
-		const char = argsStr[i];
-
-		if (inString) {
-			current += char;
-			if (char === stringChar && argsStr[i - 1] !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-				current += char;
-			}
-			else if (char === '(' || char === '[') {
-				depth++;
-				current += char;
-			}
-			else if (char === ')' || char === ']') {
-				depth--;
-				current += char;
-			}
-			else if (char === ',' && depth === 0) {
-				args.push(current.trim());
-				current = '';
-			}
-			else {
-				current += char;
-			}
-		}
-	}
-
-	if (current.trim()) {
-		args.push(current.trim());
-	}
-
-	return args;
-}
-
-/**
- * Find the matching closing parenthesis for an opening parenthesis
- */
-function findMatchingParen(str: string, openPos: number): number {
-	let depth = 1;
-	let inString = false;
-	let stringChar = '';
-
-	for (let i = openPos + 1; i < str.length; i++) {
-		const char = str[i];
-		const prevChar = i > 0 ? str[i - 1] : '';
-
-		if (inString) {
-			if (char === stringChar && prevChar !== '\\') {
-				inString = false;
-			}
-		}
-		else {
-			if (char === '"' || char === '\'') {
-				inString = true;
-				stringChar = char;
-			}
-			else if (char === '(') {
-				depth++;
-			}
-			else if (char === ')') {
-				depth--;
-				if (depth === 0) {
-					return i;
-				}
-			}
-		}
-	}
-
-	return -1;
+		return '==';
+	});
 }
 

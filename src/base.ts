@@ -2,6 +2,16 @@ import { path } from './filesystem';
 import { TFolder, TFile, BasesConfigFile, stringifyYaml, normalizePath } from 'obsidian';
 
 /**
+ * How an importer treats a source database's computed fields (formulas, rollups,
+ * lookups, counts).
+ *
+ * 'static' writes the value the source last computed into each note. 'hybrid'
+ * translates the expression into a Base formula where it can, so the values stay
+ * live, and falls back to the static value where it cannot.
+ */
+export type FormulaImportStrategy = 'static' | 'hybrid';
+
+/**
  * Creates a Base file in the specified folder.
  * 
  * @param folder - The folder to create the Base file in

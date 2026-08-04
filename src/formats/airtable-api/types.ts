@@ -11,30 +11,22 @@ export interface StatusReporter {
 }
 
 /**
- * Formula import strategy
- */
-export type FormulaImportStrategy = 'static' | 'hybrid';
-
-/**
  * Options for making Airtable API requests
  */
 export interface AirtableRequestOptions {
 	url: string;
 	token: string;
 	ctx: StatusReporter;
-	method?: 'GET' | 'POST';
-	// Request body varies by endpoint (JSON object)
-	body?: any;
 }
 
 /**
- * Options for fetching records from Airtable
+ * Options for selecting records from an Airtable table
  */
-export interface FetchRecordsOptions {
-	baseId: string;
-	tableIdOrName: string;
-	token: string;
-	viewId?: string;
+export interface SelectRecordsOptions {
+	/** Restrict to a view, by view ID */
+	view?: string;
+	/** Fields to return; pass [] for record IDs only */
+	fields?: string[];
 	/** Callback called when records are fetched, receives the count of fetched records */
 	onProgress?: (fetchedCount: number) => void;
 }
@@ -46,9 +38,11 @@ export interface ConvertFieldOptions {
 	// Field value type varies (string, number, array, object, etc.)
 	fieldValue: any;
 	fieldSchema: AirtableFieldSchema;
-	recordId: string;
-	formulaStrategy: FormulaImportStrategy;
-	fieldIdToNameMap?: Map<string, string>;
+	/**
+	 * Whether the accompanying .base file defines a formula for this field. If it
+	 * does, the note carries no value for it and the .base computes it instead.
+	 */
+	computedByBase: boolean;
 }
 
 /**
@@ -127,13 +121,7 @@ export interface AirtableAttachment {
 	id: string;
 	url: string;
 	filename: string;
-	size: number;
 	type: string;
-	thumbnails?: {
-		small?: { url: string, width: number, height: number };
-		large?: { url: string, width: number, height: number };
-		full?: { url: string, width: number, height: number };
-	};
 }
 
 /**
@@ -194,10 +182,18 @@ export interface BaseGroupInfo {
 export interface RecordFileContext {
 	baseId: string;
 	tablePath: string;
-	primaryFieldId: string;
+	primaryFieldName: string;
 	fields: AirtableFieldSchema[];
 	viewReferences: string[];
-	recordIdToTitle: Map<string, string>;
+	/** Fields the table's .base file defines a formula for; see ConvertFieldOptions */
+	formulaFieldNames: Set<string>;
+	/**
+	 * This table's fields that get a frontmatter property, with the property name
+	 * already resolved. Built once per table: the template config spans every
+	 * selected table, so a per-record walk of it is mostly fields this table does
+	 * not have.
+	 */
+	frontMatterFields: Array<{ fieldName: string, propertyName: string }>;
 }
 
 /**
@@ -209,5 +205,7 @@ export interface BaseFileContext {
 	views: AirtableViewInfo[];
 	fields: AirtableFieldSchema[];
 	primaryFieldId: string;
+	/** field name -> Obsidian formula, from computeTableFormulas */
+	formulas: Map<string, string>;
 }
 

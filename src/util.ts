@@ -1,4 +1,4 @@
-import { FrontMatterCache, stringifyYaml, TAbstractFile, Vault, normalizePath } from 'obsidian';
+import { App, FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[\?<>:\*\|"]/g;
@@ -28,65 +28,37 @@ export function sanitizeFileName(name: string) {
 }
 
 /**
- * Vault.getAvailablePath and getAbstractFileByPathInsensitive exist at runtime
- * but are not exported in obsidian.d.ts.
- */
-type VaultInternals = Vault & {
-	getAvailablePath?(base: string, extension?: string): string;
-	getAbstractFileByPathInsensitive?(path: string): TAbstractFile | null;
-};
-
-/**
- * Look up a file or folder, ignoring case.
- *
- * Vault.getAbstractFileByPath is an exact key match on the vault's file map, but
- * macOS and Windows filesystems are case-insensitive: "Tron.md" and "TRON.md"
- * are one file on disk while the public lookup reports only the exact spelling
- * as existing, so a caller relying on it never sees the conflict.
- *
- * Only for questions of the form "does this already exist?". To pick a path to
- * create at, use getUniqueFilePath, which asks the vault for a free one.
- */
-export function getAbstractFileByPathInsensitive(vault: Vault, path: string): TAbstractFile | null {
-	const insensitive = (vault as VaultInternals).getAbstractFileByPathInsensitive;
-	if (typeof insensitive === 'function') {
-		return insensitive.call(vault, path);
-	}
-	return vault.getAbstractFileByPath(path);
-}
-
-/**
- * Get a free path to create a file at, appending 1, 2, etc. if needed.
+ * Get a free path to create a file or folder at, appending 1, 2, etc. if needed.
  *
  * Defers to Vault.getAvailablePath, which is what Obsidian itself uses when
- * creating a note. It applies the same "space + number" convention and compares
- * case-insensitively, so it will not hand back a path that collides with an
- * existing file on a case-insensitive filesystem.
+ * creating a note. A folder is just a path with no extension.
  *
  * @param vault - Obsidian vault instance
  * @param parentPath - Parent folder path
- * @param fileName - File name with extension (e.g., "note.md")
+ * @param fileName - File name with extension (e.g., "note.md"), or a folder name
  * @returns Path that no existing file occupies
  */
 export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: string): string {
 	const lastDotIndex = fileName.lastIndexOf('.');
 	const hasExtension = lastDotIndex > 0;
 	const base = normalizePath(`${parentPath}/${hasExtension ? fileName.slice(0, lastDotIndex) : fileName}`);
-	const extension = hasExtension ? fileName.slice(lastDotIndex + 1) : undefined;
 
-	const getAvailablePath = (vault as VaultInternals).getAvailablePath;
-	if (typeof getAvailablePath === 'function') {
-		return getAvailablePath.call(vault, base, extension);
-	}
+	return vault.getAvailablePath(base, hasExtension ? fileName.slice(lastDotIndex + 1) : undefined);
+}
 
-	// Fallback for an app version without it: same convention, same comparison
-	let counter = 1;
-	let finalPath = normalizePath(`${parentPath}/${fileName}`);
-	while (getAbstractFileByPathInsensitive(vault, finalPath)) {
-		finalPath = normalizePath(`${base} ${counter}${hasExtension ? `.${extension}` : ''}`);
-		counter++;
+/**
+ * Assign types to the properties an import created, using Obsidian's
+ * metadataTypeManager.
+ *
+ * Only properties without a type yet are assigned, so a type the user set by
+ * hand — or one an earlier import already settled on — is left alone.
+ */
+export function updatePropertyTypes(app: App, propertyTypes: Record<string, string>): void {
+	for (const [propName, propType] of Object.entries(propertyTypes)) {
+		if (!app.metadataTypeManager.getAssignedWidget(propName)) {
+			app.metadataTypeManager.setType(propName, propType);
+		}
 	}
-	return finalPath;
 }
 
 export function genUid(length: number): string {
@@ -101,7 +73,7 @@ export function parseHTML(html: string): HTMLElement {
 	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
-export function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
+function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 	// Slice to ensure we only return the portion of the buffer that corresponds to this view
 	// Use slice which creates a new ArrayBuffer (not SharedArrayBuffer)
 	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);

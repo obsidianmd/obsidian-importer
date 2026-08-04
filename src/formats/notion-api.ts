@@ -3,6 +3,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
+import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
@@ -15,12 +16,9 @@ import {
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { getUniqueFolderPath } from './notion-api/vault-helpers';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
-
-export type FormulaImportStrategy = 'static' | 'hybrid';
 
 // Notion API parent types (based on @notionhq/client internal types)
 type NotionParent =
@@ -127,7 +125,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Add custom class for fixed width and initially hide
 			if (button.buttonEl) {
-				button.buttonEl.addClass('notion-toggle-button');
+				button.buttonEl.addClass('importer-tree-button');
 				button.buttonEl.hide(); // Hide until tree is loaded
 			}
 
@@ -153,7 +151,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Add custom class for fixed width
 			if (button.buttonEl) {
-				button.buttonEl.addClass('notion-load-button');
+				button.buttonEl.addClass('importer-tree-button');
 				button.buttonEl.addClass('mod-cta');
 			}
 
@@ -1156,7 +1154,7 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 				else {
 					// Create new folder with unique name if needed
-					pageFolderPath = getUniqueFolderPath(this.vault, parentPath, sanitizedTitle);
+					pageFolderPath = getUniqueFilePath(this.vault, parentPath, sanitizedTitle);
 					await this.createFolders(pageFolderPath);
 				}
 

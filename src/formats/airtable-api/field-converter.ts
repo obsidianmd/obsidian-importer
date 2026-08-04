@@ -3,7 +3,6 @@
  */
 
 import type { AirtableFieldSchema, ConvertFieldOptions } from './types';
-import { convertAirtableFormulaToObsidian } from './formula-converter';
 
 /** Field types already warned about, so the warning is not repeated per record */
 const warnedUnknownFieldTypes: Set<string> = new Set();
@@ -13,9 +12,15 @@ const warnedUnknownFieldTypes: Set<string> = new Set();
  * @returns Converted value (string, number, boolean, array, or null)
  */
 export function convertFieldValue(options: ConvertFieldOptions): any {
-	const { fieldValue, fieldSchema, formulaStrategy, fieldIdToNameMap } = options;
+	const { fieldValue, fieldSchema, computedByBase } = options;
 
 	if (fieldValue === null || fieldValue === undefined) {
+		return null;
+	}
+
+	// The .base file recomputes this field, so writing Airtable's snapshot of it
+	// into the note as well would only give the two a chance to disagree.
+	if (computedByBase) {
 		return null;
 	}
 
@@ -103,22 +108,8 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return null;
 
 		case 'formula':
-			// Handle formula fields based on strategy
-			if (formulaStrategy === 'static') {
-				// Return computed value
-				return convertFormulaResult(fieldValue, fieldSchema);
-			}
-			else {
-				// Try to convert to Obsidian formula
-				const converted = convertFormulaToObsidian(fieldSchema, fieldIdToNameMap);
-				if (converted) {
-					// Formula successfully converted - it will be defined in .base file
-					// Return null so it's not added to YAML frontmatter
-					return null;
-				}
-				// Fall back to static value (formula couldn't be converted)
-				return convertFormulaResult(fieldValue, fieldSchema);
-			}
+			// Not converted to a .base formula, so keep Airtable's computed value
+			return convertFormulaResult(fieldValue, fieldSchema);
 
 		case 'rollup':
 			// Rollup fields: Airtable API does not expose the rollup aggregation function,
@@ -128,21 +119,6 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return null;
 
 		case 'count':
-			// Count fields - check if can be converted to formula
-			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options;
-				const linkedFieldId = options?.recordLinkFieldId;
-
-				if (linkedFieldId) {
-					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
-
-					if (linkedFieldName) {
-						// Can be converted to formula - return null to skip YAML
-						return null;
-					}
-				}
-			}
-			// Fall back to static value
 			return Number(fieldValue) || 0;
 
 		case 'createdBy':
@@ -164,25 +140,6 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 
 		case 'multipleLookupValues':
 			// Lookup fields in Airtable API return type 'multipleLookupValues'
-			if (formulaStrategy === 'hybrid' && fieldIdToNameMap) {
-				const options = fieldSchema.options;
-				const linkedFieldId = options?.recordLinkFieldId;
-				const lookupFieldId = options?.fieldIdInLinkedTable;
-
-				if (linkedFieldId && lookupFieldId) {
-					const linkedFieldName = fieldIdToNameMap.get(linkedFieldId);
-					const lookupFieldName = fieldIdToNameMap.get(lookupFieldId);
-
-					if (linkedFieldName && lookupFieldName) {
-						// Can be converted to formula - return null to skip YAML
-						return null;
-					}
-				}
-			}
-			// Fall back to static value
-			if (Array.isArray(fieldValue)) {
-				return fieldValue;
-			}
 			return fieldValue;
 
 		default:
@@ -235,63 +192,5 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
 	}
 	return String(value);
 }
-
-/**
- * Whether a field's formula converted, cached per field.
- *
- * Convertibility depends only on the field schema, but convertFieldValue runs
- * once per record - without this a large table re-parses the same expression
- * thousands of times.
- */
-const formulaConversionCache: Map<string, boolean> = new Map();
-
-/**
- * Reset the formula cache. Call between bases, since field IDs are only unique
- * within a base.
- */
-export function clearFormulaConversionCache(): void {
-	formulaConversionCache.clear();
-}
-
-/**
- * Convert Airtable formula to Obsidian formula (if possible)
- * Returns null if conversion is not possible
- */
-function convertFormulaToObsidian(
-	fieldSchema: AirtableFieldSchema,
-	fieldIdToNameMap?: Map<string, string>
-): string | null {
-	// Get the formula expression from field schema options
-	const options = fieldSchema.options;
-	const formulaExpression = options?.formula;
-
-	if (!formulaExpression || typeof formulaExpression !== 'string') {
-		// No formula expression available
-		return null;
-	}
-
-	const cacheKey = fieldSchema.id || fieldSchema.name;
-	const cached = formulaConversionCache.get(cacheKey);
-	if (cached !== undefined) {
-		return cached ? FORMULA_CONVERTED_MARKER : null;
-	}
-
-	// Try to convert the formula
-	let converted = false;
-	try {
-		converted = !!convertAirtableFormulaToObsidian(formulaExpression, fieldIdToNameMap);
-	}
-	catch (error) {
-		console.warn('Failed to convert Airtable formula:', error);
-	}
-
-	formulaConversionCache.set(cacheKey, converted);
-
-	// The actual formula text is written to the .base file; callers only need to
-	// know that it converted, so the value here is just a marker.
-	return converted ? FORMULA_CONVERTED_MARKER : null;
-}
-
-const FORMULA_CONVERTED_MARKER = '__FORMULA_CONVERTED__';
 
 

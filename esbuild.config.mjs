@@ -79,9 +79,18 @@ function reloadPlugin() {
 // Type-check before pushing, so a broken intermediate save (which esbuild
 // happily bundles by stripping types) can't be copied in and disable the plugin
 // on reload.
+// Incremental, so repeat checks on a watch rebuild reuse the previous run's
+// results instead of re-checking the whole project each save.
+const TSC_ARGS = [
+	"--skipLibCheck",
+	"--incremental",
+	"--tsBuildInfoFile",
+	"node_modules/.cache/tsc.tsbuildinfo",
+];
+
 function typeChecks() {
 	try {
-		execFileSync("node_modules/.bin/tsc", ["-skipLibCheck"], { stdio: "pipe" });
+		execFileSync("node_modules/.bin/tsc", TSC_ARGS, { stdio: "pipe" });
 		return true;
 	} catch (e) {
 		const out = `${e.stdout || ""}${e.stderr || ""}`.trim();

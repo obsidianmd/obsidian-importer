@@ -3,8 +3,7 @@
  */
 
 import { requestUrl } from 'obsidian';
-import Airtable from 'airtable';
-import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, FetchRecordsOptions, StatusReporter } from './types';
+import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, SelectRecordsOptions, StatusReporter } from './types';
 
 /**
  * Airtable Meta API base URL
@@ -49,19 +48,18 @@ async function waitForRateLimit(): Promise<void> {
  * Make a rate-limited request to Airtable API
  */
 export async function makeAirtableRequest<T>(options: AirtableRequestOptions, attempt: number = 1): Promise<T> {
-	const { url, token, ctx, method = 'GET', body } = options;
+	const { url, token, ctx } = options;
 
 	await waitForRateLimit();
 
 	try {
 		const response = await requestUrl({
 			url,
-			method,
+			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${token}`,
 				'Content-Type': 'application/json',
 			},
-			body: body ? JSON.stringify(body) : undefined,
 			throw: false,
 		});
 
@@ -134,44 +132,41 @@ export async function fetchTableSchema(
 }
 
 /**
- * Fetch records from a table with pagination
- * Returns Airtable SDK record objects (not typed due to SDK complexity)
+ * Fetch every record a table select returns, following pagination.
+ *
+ * Takes a base handle rather than a token so callers reuse one SDK client for
+ * the whole import; constructing one per call would defeat that.
+ *
+ * @param base - Airtable SDK base handle
+ * @param tableIdOrName - Table to select from
+ * @param options.view - Restrict to a view, by view ID
+ * @param options.fields - Fields to return; pass [] for record IDs only
+ * @returns Airtable SDK record objects (not typed due to SDK complexity)
  */
-export async function fetchAllRecords(options: FetchRecordsOptions): Promise<any[]> {
-	const { baseId, tableIdOrName, token, viewId, onProgress } = options;
-	const base = new Airtable({ apiKey: token }).base(baseId);
+export async function selectRecords(
+	// Airtable SDK base handles are untyped
+	base: any,
+	tableIdOrName: string,
+	options: SelectRecordsOptions = {}
+): Promise<any[]> {
+	const { view, fields, onProgress } = options;
 
 	// Airtable SDK record objects with methods like get(), _rawJson, etc.
 	const records: any[] = [];
 
-	try {
-		// Airtable SDK select options
-		const selectOptions: any = {};
+	// Airtable SDK select options
+	const selectOptions: any = {};
+	if (view) selectOptions.view = view;
+	if (fields) selectOptions.fields = fields;
 
-		if (viewId) {
-			selectOptions.view = viewId;
-		}
-
-		await base(tableIdOrName)
-			.select(selectOptions)
-			// Airtable SDK returns untyped, readonly record arrays
-			.eachPage((pageRecords: readonly any[], fetchNextPage: () => void) => {
-				records.push(...pageRecords);
-
-				// Update progress via callback
-				if (onProgress) {
-					onProgress(records.length);
-				}
-
-				// Fetch next page
-				fetchNextPage();
-			});
-	}
-	catch (error) {
-		console.error(`Failed to fetch records from table ${tableIdOrName}:`, error);
-		throw error;
-	}
+	await base(tableIdOrName)
+		.select(selectOptions)
+		// Airtable SDK returns untyped, readonly record arrays
+		.eachPage((pageRecords: readonly any[], fetchNextPage: () => void) => {
+			records.push(...pageRecords);
+			onProgress?.(records.length);
+			fetchNextPage();
+		});
 
 	return records;
 }
-

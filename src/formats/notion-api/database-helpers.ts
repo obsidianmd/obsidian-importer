@@ -12,9 +12,8 @@ import {
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
-import { sanitizeFileName, getUniqueFilePath } from '../../util';
+import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../../util';
 import { parseFilePath } from '../../filesystem';
-import { getUniqueFolderPath, updatePropertyTypes } from './vault-helpers';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
@@ -27,7 +26,7 @@ import {
 	DatabaseImportResult
 } from './types';
 import { extractPlaceholderIds, createPlaceholder, PlaceholderType } from './utils';
-import type { FormulaImportStrategy } from '../notion-api';
+import type { FormulaImportStrategy } from '../../base';
 
 /**
  * Obsidian property types that are supported
@@ -281,7 +280,7 @@ export async function importDatabaseCore(
 	}
 	else {
 		// Create new folder with unique name if needed
-		databaseFolderPath = getUniqueFolderPath(vault, currentPageFolderPath, sanitizedTitle);
+		databaseFolderPath = getUniqueFilePath(vault, currentPageFolderPath, sanitizedTitle);
 		await vault.createFolder(normalizePath(databaseFolderPath));
 	}
 
