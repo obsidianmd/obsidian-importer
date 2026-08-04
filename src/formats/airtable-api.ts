@@ -46,6 +46,36 @@ function createRecordLinkPlaceholder(baseId: string, recordId: string): string {
 
 const RECORD_LINK_PLACEHOLDER_PATTERN = /\[\[airtable-record:([^:\]]+):([^\]]+)\]\]/g;
 
+const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+
+/**
+ * Read a note's frontmatter straight from its content.
+ *
+ * The metadata cache is populated asynchronously, so a file written moments
+ * earlier in the same import usually has no cache entry yet. Anything that
+ * inspects frontmatter mid-import has to parse the content itself, or it will
+ * silently treat freshly written notes as having none.
+ *
+ * Returns null when there is no parseable frontmatter block.
+ */
+function parseFrontMatterBlock(content: string): { frontMatter: Record<string, any>, body: string } | null {
+	const match = FRONT_MATTER_PATTERN.exec(content);
+	if (!match) {
+		return null;
+	}
+
+	try {
+		const parsed = parseYaml(match[1]);
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+			return null;
+		}
+		return { frontMatter: parsed as Record<string, any>, body: content.slice(match[0].length) };
+	}
+	catch {
+		return null;
+	}
+}
+
 export class AirtableAPIImporter extends FormatImporter {
 	airtableToken: string = '';
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
@@ -81,6 +111,11 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	// Prepared data cache for two-phase import
 	private preparedData: Map<string, PreparedTableData> = new Map();
+
+	// Airtable SDK handles, reused for the duration of an import. A table with
+	// many views would otherwise construct a client per view.
+	private airtableClient: Airtable | null = null;
+	private airtableBases: Map<string, any> = new Map();
 
 	// Status tracking for detailed progress display
 	private statusContext: {
@@ -251,7 +286,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				.setPlaceholder('base')
 				.setValue('base')
 				.onChange(value => {
-					this.viewPropertyName = value.trim() || 'base';
+					// Stripped rather than escaped: this name is embedded in a
+					// double-quoted Bases filter string in the generated .base file
+					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'base';
 				}));
 
 		// Incremental import setting
@@ -715,7 +752,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				return 'John Doe, Jane Smith';
 			case 'formula':
 			case 'rollup':
-			case 'lookup':
+			case 'multipleLookupValues':
 				return 'Computed value';
 			case 'count':
 				return '5';
@@ -732,20 +769,45 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Sanitize property name for use in YAML frontmatter.
-	 * Obsidian properties support most characters including spaces and hyphens,
-	 * so we return the original name to ensure consistency.
+	 * Sanitize property name for use in YAML frontmatter and .base files.
+	 *
+	 * Obsidian properties support most characters, including spaces and hyphens,
+	 * so the name is preserved as-is apart from double quotes and backslashes.
+	 * Those have to go because the same name is embedded in double-quoted
+	 * `note["..."]` expressions in the generated .base file, where they would
+	 * terminate the string and make the file unparseable.
+	 *
+	 * Every site that writes a property name - frontmatter keys, formula keys,
+	 * view column order, and cross-note lookups - goes through here, so both
+	 * sides of a reference stay in agreement.
 	 */
 	private sanitizePropertyName(name: string): string {
-		return name;
+		return name.replace(/["\\]/g, '');
 	}
 
 	/**
-	 * Sanitize view name for use in wiki links
+	 * The property name a field's value is written under.
+	 *
+	 * The template configurator lets the user rename any property, so the .base
+	 * file has to reference the name the user chose rather than the Airtable
+	 * field name - otherwise renaming a property silently leaves the generated
+	 * views pointing at a property no note has.
+	 */
+	private propertyNameForField(fieldName: string): string {
+		const configured = this.templateConfig?.propertyNames.get(fieldName);
+		return this.sanitizePropertyName(configured || fieldName);
+	}
+
+	/**
+	 * Sanitize view name for use in wiki links and .base filter expressions
+	 *
 	 * Wiki links can't contain: [ ] # | ^
+	 * Double quotes and backslashes are also stripped because the name is
+	 * embedded in a double-quoted Bases filter string, where they would
+	 * terminate the string and produce an unparseable .base file.
 	 */
 	private sanitizeViewName(name: string): string {
-		return name.replace(/[\[\]#|^]/g, '_');
+		return name.replace(/[\[\]#|^"\\]/g, '_');
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -773,6 +835,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.recordIdToPath.clear();
 			this.allFieldsForTypeInference.clear();
 			this.attachmentsDownloaded = 0;
+
+			// Drop SDK handles from any previous run - the token may have changed
+			this.airtableClient = null;
+			this.airtableBases.clear();
 
 			// Group selected nodes by base
 			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
@@ -1213,6 +1279,22 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
+	 * Get a cached Airtable SDK handle for a base
+	 */
+	private getAirtableBase(baseId: string): any {
+		if (!this.airtableClient) {
+			this.airtableClient = new Airtable({ apiKey: this.airtableToken });
+		}
+
+		let base = this.airtableBases.get(baseId);
+		if (!base) {
+			base = this.airtableClient.base(baseId);
+			this.airtableBases.set(baseId, base);
+		}
+		return base;
+	}
+
+	/**
 	 * Fetch only record IDs from a view (without full field data)
 	 * This is more efficient when we only need to know which records belong to a view
 	 */
@@ -1222,7 +1304,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		view: AirtableViewInfo,
 		ctx: ImportContext
 	): Promise<string[]> {
-		const base = new Airtable({ apiKey: this.airtableToken }).base(baseId);
+		const base = this.getAirtableBase(baseId);
 		const recordIds: string[] = [];
 
 		try {
@@ -1314,7 +1396,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
 
 		// Check for incremental import - skip if same record already exists
-		const shouldSkip = this.shouldSkipExistingRecord(filePath, recordId);
+		const shouldSkip = await this.shouldSkipExistingRecord(filePath, recordId);
 		if (!shouldSkip) {
 			// Check if we need to build templateData (only needed for body template)
 			const hasBodyTemplate = this.templateConfig?.bodyTemplate?.trim();
@@ -1465,7 +1547,7 @@ export class AirtableAPIImporter extends FormatImporter {
 							console.warn(`[Airtable] Skipping complex object for property "${propertyName}"`);
 							continue;
 						}
-						frontMatter[propertyName] = propertyValue;
+						frontMatter[this.propertyNameForField(fieldId)] = propertyValue;
 					}
 				}
 			}
@@ -1475,7 +1557,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				for (const [fieldId, propertyName] of this.templateConfig.propertyNames) {
 					if (!propertyName || !propertyName.trim()) continue;
 					if (rollupFieldNames.has(fieldId)) {
-						frontMatter[propertyName] = null;
+						frontMatter[this.propertyNameForField(fieldId)] = null;
 					}
 				}
 			}
@@ -1529,7 +1611,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * @param recordId - Airtable record ID to compare
 	 * @returns true if same record already exists (should skip), false otherwise
 	 */
-	private shouldSkipExistingRecord(filePath: string, recordId: string): boolean {
+	private async shouldSkipExistingRecord(filePath: string, recordId: string): Promise<boolean> {
 		if (!this.incrementalImport) {
 			return false;
 		}
@@ -1539,11 +1621,17 @@ export class AirtableAPIImporter extends FormatImporter {
 			return false;
 		}
 
-		// Use metadataCache to safely read frontmatter (handles complex YAML content)
-		const cachedMetadata = this.app.metadataCache.getFileCache(file);
-		const existingId = cachedMetadata?.frontmatter?.['airtable-id'];
-
-		return existingId === recordId;
+		// Parse the content rather than the metadata cache. A cold cache would
+		// report no frontmatter, which reads as "not yet imported" and silently
+		// turns an incremental import back into a full one.
+		try {
+			const parsed = parseFrontMatterBlock(await this.vault.read(file));
+			return parsed?.frontMatter['airtable-id'] === recordId;
+		}
+		catch (error) {
+			console.error(`Failed to read frontmatter from: ${filePath}`, error);
+			return false;
+		}
 	}
 
 	/**
@@ -1620,33 +1708,20 @@ export class AirtableAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				// Read file content
+				// Parse the content rather than the metadata cache: these files were
+				// written moments ago and are usually not cached yet
 				const content = await this.vault.read(file);
-
-				// Use metadataCache to check frontmatter
-				const cachedMetadata = this.app.metadataCache.getFileCache(file);
-				if (!cachedMetadata?.frontmatter || !cachedMetadata.frontmatter['airtable-id']) {
+				const parsed = parseFrontMatterBlock(content);
+				if (!parsed || !(('airtable-id') in parsed.frontMatter)) {
 					continue; // No frontmatter or no airtable-id, skip
 				}
 
-				// Get frontmatter position from cache
-				const frontmatterPos = cachedMetadata.frontmatterPosition;
-				if (!frontmatterPos) {
-					continue;
-				}
-
 				// Remove airtable-id from frontmatter object
-				const newFrontmatter = { ...cachedMetadata.frontmatter };
+				const newFrontmatter = { ...parsed.frontMatter };
 				delete newFrontmatter['airtable-id'];
-				delete newFrontmatter['position']; // Remove internal position property
-
-				// Get body content (everything after frontmatter)
-				const lines = content.split('\n');
-				const bodyStartLine = frontmatterPos.end.line + 1;
-				const bodyContent = lines.slice(bodyStartLine).join('\n');
 
 				// Reconstruct file content
-				const newContent = serializeFrontMatter(newFrontmatter) + bodyContent;
+				const newContent = serializeFrontMatter(newFrontmatter) + parsed.body;
 
 				// Write back to file
 				await this.vault.modify(file, newContent);
@@ -1714,7 +1789,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				if (field.type === 'count') {
 					// Count: note["Linked Records"].length
-					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
+					const sanitizedLinked = this.propertyNameForField(linkedFieldName);
 					formulas.set(field.name, `note["${sanitizedLinked}"].length`);
 				}
 				else if (targetFieldId) {
@@ -1722,8 +1797,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					if (!targetFieldName) continue;
 
 					// Build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
-					const sanitizedLinked = this.sanitizePropertyName(linkedFieldName);
-					const sanitizedTarget = this.sanitizePropertyName(targetFieldName);
+					const sanitizedLinked = this.propertyNameForField(linkedFieldName);
+					const sanitizedTarget = this.propertyNameForField(targetFieldName);
 					const mapExpression = `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
 
 					if (field.type === 'multipleLookupValues') {
@@ -1753,7 +1828,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Add as formula or regular property column
-			const sanitized = this.sanitizePropertyName(field.name);
+			const sanitized = this.propertyNameForField(field.name);
 			propertyColumns.push(formulas.has(field.name) ? `formula.${sanitized}` : sanitized);
 		}
 
@@ -1815,7 +1890,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (formulas.size > 0) {
 			baseConfig.formulas = {};
 			for (const [fieldName, obsidianFormula] of formulas) {
-				const formulaName = this.sanitizePropertyName(fieldName);
+				const formulaName = this.propertyNameForField(fieldName);
 				baseConfig.formulas[formulaName] = obsidianFormula;
 			}
 		}
@@ -1837,7 +1912,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Add display name for formula or regular property
-			const sanitized = this.sanitizePropertyName(field.name);
+			const sanitized = this.propertyNameForField(field.name);
 			const propertyKey = formulas.has(field.name) ? `formula.${sanitized}` : sanitized;
 			baseConfig.properties[propertyKey] = { displayName: field.name };
 		}
@@ -1981,7 +2056,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			case 'formula':
 			case 'rollup':
-			case 'lookup':
 			case 'multipleLookupValues':
 			case 'count':
 				// These are computed properties, let Obsidian auto-infer type
