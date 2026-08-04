@@ -41,7 +41,7 @@ export const getResourceFileProperties = (workDir: string, resource: EvernoteRes
 	let fileName = UNKNOWNFILENAME;
 
 	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
-		const fileNamePrefix = resource['resource-attributes']['file-name'].substr(0, MAX_RESOURCE_FILENAME_PREFIX_LENGTH);
+		const fileNamePrefix = resource['resource-attributes']['file-name'].slice(0, MAX_RESOURCE_FILENAME_PREFIX_LENGTH);
 		fileName = parseFilePath(fileNamePrefix).basename;
 
 	}

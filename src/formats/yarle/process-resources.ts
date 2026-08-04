@@ -114,13 +114,13 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
 
 	if (recognisedHash && fileName) {
-		resourceHash[recognisedHash] = { fileName, alreadyUsed: false } as ResourceHashItem;
+		resourceHash[recognisedHash] = { fileName, alreadyUsed: false };
 	}
 	else {
 		let hash = nodeCrypto.createHash('md5');
 		hash.update(buffer);
 		const md5Hash = hash.digest('hex');
-		resourceHash[md5Hash] = { fileName, alreadyUsed: false } as ResourceHashItem;
+		resourceHash[md5Hash] = { fileName, alreadyUsed: false };
 	}
 
 	return resourceHash;
