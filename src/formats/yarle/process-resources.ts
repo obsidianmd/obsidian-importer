@@ -45,7 +45,7 @@ export const processResources = (note: any): string => {
 };
 
 const addMediaReference = (content: string, resourceHashes: any, hash: any, workDir: string): string => {
-	const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, '\ ')}`;
+	const src = `${workDir}${yarleOptions.pathSeparator}${resourceHashes[hash].fileName.replace(/ /g, ' ')}`;
 	console.log(`mediaReference src ${src} added`);
 	let updatedContent: any;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;

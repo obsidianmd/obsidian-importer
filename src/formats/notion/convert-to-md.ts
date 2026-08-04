@@ -277,7 +277,7 @@ function formatMath(math: string | null | undefined, inline: boolean = false): s
 }
 
 function stripToSentence(paragraph: string) {
-	const firstSentence = paragraph.match(/^[^\.\?\!\n]*[\.\?\!]?/)?.[0];
+	const firstSentence = paragraph.match(/^[^.?!\n]*[.?!]?/)?.[0];
 	return firstSentence ?? '';
 }
 

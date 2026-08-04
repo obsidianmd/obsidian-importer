@@ -30,7 +30,7 @@ export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile
 		let title = stripTo200(sanitizeFileName(
 			parsedTitle
 				.replace(/\n/g, ' ')
-				.replace(/[:\/]/g, '-')
+				.replace(/[:/]/g, '-')
 				.replace(/#/g, '')
 				.trim()
 		));

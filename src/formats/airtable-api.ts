@@ -944,7 +944,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * terminate the string and produce an unparseable .base file.
 	 */
 	private sanitizeViewName(name: string): string {
-		return name.replace(/[\[\]#|^"\\]/g, '_');
+		return name.replace(/[[\]#|^"\\]/g, '_');
 	}
 
 	async import(ctx: ImportContext): Promise<void> {

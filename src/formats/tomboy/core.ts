@@ -356,7 +356,7 @@ export class TomboyCoreConverter {
 	 */
 	private escapeMarkdownSpecialChars(text: string): string {
 		// Escape markdown special characters that could interfere with formatting
-		return text.replace(/([\\`*_\[\]#])/g, '\\$1');
+		return text.replace(/([\\`*_[\]#])/g, '\\$1');
 	}
 
 	/**

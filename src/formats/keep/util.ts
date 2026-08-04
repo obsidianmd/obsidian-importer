@@ -1,5 +1,5 @@
 let potentialTagsRe = /(#[^ ^#]*)/g; // Finds any non-whitespace sections starting with #
-let illegalTagCharsRe = /[\\:*?<>\"|!@#$%^&()+=\`\'~;,.]/g;
+let illegalTagCharsRe = /[\\:*?<>"|!@#$%^&()+=`'~;,.]/g;
 
 /**
  * Searches a string for characters unsupported by Obsidian in the tag body and returns a sanitized string.

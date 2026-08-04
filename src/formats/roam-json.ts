@@ -8,7 +8,7 @@ import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
 import { blockRefRegex, extractBlockReferenceUIDs } from './roam/block-refs';
 import { moment } from 'obsidian';
 
-const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam\/render', 'calc'];
+const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
@@ -273,7 +273,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		blockText = blockText.replace(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, '![]($1)'); // youtube embeds
 		blockText = blockText.replace(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, '![]($1)'); // twitter embeds
-		blockText = blockText.replace(/\_\_(.+?)\_\_/g, '*$1*'); // __ __ itallic
+		blockText = blockText.replace(/__(.+?)__/g, '*$1*'); // __ __ itallic
 		blockText = blockText.replace(/\^\^(.+?)\^\^/g, '==$1=='); // ^^ ^^ highlight
 
 		// block and page embeds {{embed: ((asdf))}} {{[[embed]]: [[asadf]]}}

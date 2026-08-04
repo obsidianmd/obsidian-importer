@@ -13,7 +13,7 @@ const MAX_NOTE_NAME_LENGTH = 100; // Limit note name length to prevent path issu
 const MAX_RESOURCE_FILENAME_PREFIX_LENGTH = 50; // Maximum length for resource filename prefix
 
 export const normalizeTitle = (title: string) => {
-	return sanitizeFileName(title).replace(/[\[\]\#\^]/g, '');
+	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
 
 export const getFileIndex = (dstPath: string, fileNamePrefix: string): number => {
@@ -44,7 +44,7 @@ export const getResourceFileProperties = (workDir: string, resource: any): Resou
 		fileName = parseFilePath(fileNamePrefix).basename;
 
 	}
-	fileName = fileName.replace(/[/\\?%*:|"<>\[\]\+]/g, '-');
+	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
 
 	if (yarleOptions.sanitizeResourceNameSpaces) {
 		fileName = fileName.replace(/ /g, yarleOptions.replacementChar);

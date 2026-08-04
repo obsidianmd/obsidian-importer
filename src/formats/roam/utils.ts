@@ -1,10 +1,10 @@
 import { moment } from 'obsidian';
 
-const illegalReNoDir = /[\?<>\\:\*\|"]/g;
+const illegalReNoDir = /[?<>\\:*|"]/g;
 const controlRe = /[\x00-\x1f\x80-\x9f]/g;
 const reservedRe = /^\.+$/;
 const windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
-const windowsTrailingRe = /[\. ]+$/;
+const windowsTrailingRe = /[. ]+$/;
 const startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
 const squareBracketOpenRe = /\[/g; // Regular expression to match "["
 const squareBracketCloseRe = /\]/g; // Regular expression to match "]"
