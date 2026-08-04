@@ -47,7 +47,6 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 			if (property) {
 				if (property.title == 'Tags') {
 					// Not UI text: the frontmatter key Obsidian reads tags from
-					// eslint-disable-next-line obsidianmd/ui/sentence-case
 					property.title = 'tags';
 					if (typeof property.content === 'string') {
 						property.content = property.content.replace(/ /g, '-');

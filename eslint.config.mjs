@@ -43,7 +43,7 @@ export default defineConfig(
 				// Not prose: property names written verbatim into a vault, a date
 				// format, and quoted button labels the text is telling you to click.
 				ignoreRegex: [
-					'^base$', '^cover$', 'airtable-id', 'notion-id',
+					'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
 					'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
 				],
 				// A unit, not a word

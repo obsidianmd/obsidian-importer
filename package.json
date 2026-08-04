@@ -8,6 +8,7 @@
 		"build": "tsc --skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json package.json versions.json",
 		"lint": "eslint src --fix",
+		"lint:review": "eslint src -c eslint.review.config.mjs",
 		"test": "tsx --test tests/**/*.test.ts"
 	},
 	"keywords": [],

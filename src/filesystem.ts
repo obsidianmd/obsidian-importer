@@ -1,18 +1,16 @@
 import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
-/*
- * Type-only, so these are erased at compile time and nothing is loaded on
- * mobile. The runtime lookups are the Platform.isDesktopApp requires below.
- */
-/* eslint-disable obsidianmd/no-nodejs-modules */
-import type * as NodeCrypto from 'node:crypto';
-import type * as NodeFS from 'node:fs';
-import type * as NodeOS from 'node:os';
-import type * as NodePath from 'node:path';
-import type * as NodeUrl from 'node:url';
-import type * as NodeZlib from 'node:zlib';
-/* eslint-enable obsidianmd/no-nodejs-modules */
 import { Platform } from 'obsidian';
 import { configureWebWorker } from './z-worker-inline';
+
+/*
+ * Node's shapes, named through import types rather than import statements.
+ * These are desktop-only, and an import statement would say this module needs
+ * them to load - it does not. The values come from the guarded requires below,
+ * and on mobile nothing here is ever reached.
+ */
+type NodeFS = typeof import('node:fs');
+type Dirent = import('node:fs').Dirent;
+type FileHandle = import('node:fs').promises.FileHandle;
 
 configureWebWorker(configure);
 
@@ -46,13 +44,13 @@ export interface PickedFolder {
 }
 
 // Named nodeCrypto so it does not shadow the global Web Crypto `crypto`
-export const nodeCrypto: typeof NodeCrypto = Platform.isDesktopApp ? window.require('node:crypto') : null;
-export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
-export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null!;
-export const os: typeof NodeOS = Platform.isDesktopApp ? window.require('node:os') : null;
-export const path: typeof NodePath = Platform.isDesktopApp ? window.require('node:path') : null;
-export const url: typeof NodeUrl = Platform.isDesktopApp ? window.require('node:url') : null;
-export const zlib: typeof NodeZlib = Platform.isDesktopApp ? window.require('node:zlib') : null;
+export const nodeCrypto: typeof import('node:crypto') = Platform.isDesktopApp ? window.require('node:crypto') : null;
+export const fs: NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
+export const fsPromises: NodeFS['promises'] = Platform.isDesktopApp ? fs.promises : null!;
+export const os: typeof import('node:os') = Platform.isDesktopApp ? window.require('node:os') : null;
+export const path: typeof import('node:path') = Platform.isDesktopApp ? window.require('node:path') : null;
+export const url: typeof import('node:url') = Platform.isDesktopApp ? window.require('node:url') : null;
+export const zlib: typeof import('node:zlib') = Platform.isDesktopApp ? window.require('node:zlib') : null;
 
 export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
@@ -89,7 +87,7 @@ export class NodePickedFile implements PickedFile {
 	}
 
 	async readZip(callback: (zip: ZipReader<any>) => Promise<void>): Promise<void> {
-		let fd: NodeFS.promises.FileHandle | null = null;
+		let fd: FileHandle | null = null;
 		try {
 			fd = await fsPromises.open(this.filepath, 'r');
 			let stat = await fd.stat();
@@ -122,7 +120,7 @@ export class NodePickedFolder implements PickedFolder {
 
 	async list(): Promise<(PickedFile | PickedFolder)[]> {
 		let { filepath } = this;
-		let files: NodeFS.Dirent[] = await fsPromises.readdir(filepath, { withFileTypes: true });
+		let files: Dirent[] = await fsPromises.readdir(filepath, { withFileTypes: true });
 		let results = [];
 
 		for (let file of files) {
@@ -247,10 +245,10 @@ export function splitext(name: string) {
 	return [basename, extension];
 }
 
-class FSReader extends Reader<NodeFS.promises.FileHandle> {
-	fd: NodeFS.promises.FileHandle;
+class FSReader extends Reader<FileHandle> {
+	fd: FileHandle;
 
-	constructor(fd: NodeFS.promises.FileHandle, size: number) {
+	constructor(fd: FileHandle, size: number) {
 		super(fd);
 		this.fd = fd;
 		this.size = size;
