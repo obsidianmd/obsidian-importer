@@ -1,5 +1,4 @@
-import crypto from 'crypto';
-import { fs, path } from '../../filesystem';
+import { fs, nodeCrypto, path } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';
@@ -115,7 +114,7 @@ const processResource = (workDir: string, resource: any): any => {
 		resourceHash[hashIndex as any] = { fileName, alreadyUsed: false } as ResourceHashItem;
 	}
 	else {
-		let hash = crypto.createHash('md5');
+		let hash = nodeCrypto.createHash('md5');
 		hash.update(buffer);
 		const md5Hash = hash.digest('hex');
 		resourceHash[md5Hash] = { fileName, alreadyUsed: false } as ResourceHashItem;

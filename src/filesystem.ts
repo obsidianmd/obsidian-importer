@@ -4,6 +4,7 @@ import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
  * mobile. The runtime lookups are the Platform.isDesktopApp requires below.
  */
 /* eslint-disable obsidianmd/no-nodejs-modules */
+import type * as NodeCrypto from 'node:crypto';
 import type * as NodeFS from 'node:fs';
 import type * as NodeOS from 'node:os';
 import type * as NodePath from 'node:path';
@@ -44,6 +45,8 @@ export interface PickedFolder {
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 }
 
+// Named nodeCrypto so it does not shadow the global Web Crypto `crypto`
+export const nodeCrypto: typeof NodeCrypto = Platform.isDesktopApp ? window.require('node:crypto') : null;
 export const fs: typeof NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
 export const fsPromises: typeof NodeFS.promises = Platform.isDesktopApp ? fs.promises : null!;
 export const os: typeof NodeOS = Platform.isDesktopApp ? window.require('node:os') : null;
