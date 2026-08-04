@@ -342,7 +342,7 @@ export default class ImporterPlugin extends Plugin {
 			},
 		};
 
-		this.addRibbonIcon('lucide-import', 'Open importer', () => {
+		this.addRibbonIcon('lucide-import', 'Import notes', () => {
 			new ImporterModal(this.app, this).open();
 		});
 
