@@ -202,11 +202,10 @@ export async function buildRecordNote(
 	}
 
 	// The title is the file name, so it is only worth writing down where the
-	// two differ - a title a file name cannot hold is otherwise lost.
+	// two differ - a title a file name cannot hold is otherwise lost. Written
+	// after the fields below, so a field mapped to "aliases" does not lose it.
 	const title = recordTitle(record, primaryFieldName);
-	if (title !== sanitizeFileName(title)) {
-		frontMatter['aliases'] = [title];
-	}
+	const alias = title === sanitizeFileName(title) ? null : title;
 
 	if (viewReferences.length > 0) {
 		frontMatter[viewPropertyName] = viewReferences;
@@ -236,6 +235,11 @@ export async function buildRecordNote(
 		}
 
 		frontMatter[propertyName] = propertyValue;
+	}
+
+	if (alias) {
+		const existing = frontMatter['aliases'];
+		frontMatter['aliases'] = Array.isArray(existing) ? [alias, ...existing] : [alias];
 	}
 
 	const bodyContent = hasBodyTemplate ? applyTemplate(bodyTemplate!, templateData) : '';
