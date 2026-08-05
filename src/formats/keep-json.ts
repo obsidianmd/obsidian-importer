@@ -1,11 +1,10 @@
-import { FrontMatterCache, Notice, Setting, TFolder } from 'obsidian';
+import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, ImportContext } from '../main';
-import { serializeFrontMatter } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
-import { sanitizeTag, sanitizeTags, toSentenceCase } from './keep/util';
+import { convertKeepNote } from './keep/convert';
 
 
 const BUNDLE_EXTS = ['zip'];
@@ -17,16 +16,14 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
-	importArchivedSetting: Setting;
-	importTrashedSetting: Setting;
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
 
 	init() {
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
-		this.importArchivedSetting = new Setting(this.modal.contentEl)
-			.setName('Import archived notes')
+		this.addSetting()
+			?.setName('Import archived notes')
 			.setDesc('If imported, files archived in Google Keep will be tagged as archived.')
 			.addToggle(toggle => {
 				toggle.setValue(this.importArchived);
@@ -35,8 +32,8 @@ export class KeepImporter extends FormatImporter {
 				});
 			});
 
-		this.importTrashedSetting = new Setting(this.modal.contentEl)
-			.setName('Import deleted notes')
+		this.addSetting()
+			?.setName('Import deleted notes')
 			.setDesc('If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.')
 			.addToggle(toggle => {
 				toggle.setValue(this.importTrashed);
@@ -136,77 +133,10 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
-		let mdContent: string[] = [];
-
-		// First let's gather some metadata
-		let frontMatter: FrontMatterCache = {};
-
-		// Aliases
-		if (keepJson.title) {
-			let aliases = keepJson.title.split('\n').filter(a => a !== filename);
-
-			if (aliases.length > 0) {
-				frontMatter['aliases'] = aliases;
-			}
-		}
-
-		let tags: string[] = [];
-		// Add in tags to represent Keep properties
-		if (keepJson.color && keepJson.color !== 'DEFAULT') {
-			let colorName = keepJson.color.toLowerCase();
-			colorName = toSentenceCase(colorName);
-			tags.push(`Keep/Color/${colorName}`);
-		}
-		if (keepJson.isPinned) tags.push('Keep/Pinned');
-		if (keepJson.attachments) tags.push('Keep/Attachment');
-		if (keepJson.isArchived) tags.push('Keep/Archived');
-		if (keepJson.isTrashed) tags.push('Keep/Deleted');
-		if (keepJson.labels) {
-			for (let label of keepJson.labels) {
-				tags.push(`Keep/Label/${label.name}`);
-			}
-		}
-
-		if (tags.length > 0) {
-			frontMatter['tags'] = tags.map(tag => sanitizeTag(tag));
-		}
-
-		mdContent.push(serializeFrontMatter(frontMatter));
-
-		// Actual content
-
-		if (keepJson.textContent) {
-			mdContent.push('\n');
-			mdContent.push(sanitizeTags(keepJson.textContent));
-		}
-
-		if (keepJson.listContent) {
-			let mdListContent = [];
-			for (const listItem of keepJson.listContent) {
-				// Don't put in blank checkbox items
-				if (!listItem.text) continue;
-
-				let listItemContent = `- [${listItem.isChecked ? 'X' : ' '}] ${listItem.text}`;
-				mdListContent.push(sanitizeTags(listItemContent));
-			}
-
-			mdContent.push('\n\n');
-			mdContent.push(mdListContent.join('\n'));
-		}
-
-		if (keepJson.attachments) {
-			mdContent.push('\n\n');
-			for (const attachment of keepJson.attachments) {
-				mdContent.push(`![[${attachment.filePath}]]`);
-			}
-		}
-
-		const file = await this.saveAsMarkdownFile(folder, filename, mdContent.join(''));
+		const { content, ctime, mtime } = convertKeepNote(keepJson, filename);
+		const file = await this.saveAsMarkdownFile(folder, filename, content);
 
 		// Modifying the creation and modified timestamps without changing file contents.
-		await this.vault.append(file, '', {
-			ctime: keepJson.createdTimestampUsec / 1000,
-			mtime: keepJson.userEditedTimestampUsec / 1000,
-		});
+		await this.vault.append(file, '', { ctime, mtime });
 	}
 }

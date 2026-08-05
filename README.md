@@ -10,7 +10,7 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 
 - [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
 - [Import from Bear](https://help.obsidian.md/import/bear)
-- Import from Airtable (API)
+- [Import from Airtable](https://obsidian.md/help/import/airtable)
 - [Import from CSV files](https://help.obsidian.md/import/csv)
 - [Import from Evernote](https://help.obsidian.md/import/evernote)
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)
@@ -19,9 +19,71 @@ Import guides are hosted on the [official Obsidian Help site](https://help.obsid
 - [Import from Roam Research](https://help.obsidian.md/import/roam)
 - [Import from HTML files](https://help.obsidian.md/import/html)
 - [Import from Markdown files](https://help.obsidian.md/import/markdown)
+- [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
 - Import from Apple Journal (HTML export)
-- Import from Textbundle (.textbundle, .textpack)
 - Import from Tomboy/Gnote (.note)
+
+## Developers
+
+```bash
+npm install
+npm run dev      # build, copy into a vault, reload the plugin
+npm test         # convert every fixture and compare against its recording
+npm run build    # typecheck and build for release
+```
+
+Set `OBSIDIAN_PATH` in `.env` to the plugin folder `npm run dev` should copy into, relative to your home directory:
+
+```
+OBSIDIAN_PATH='/Documents/MyVault/.obsidian/plugins'
+```
+
+### Tests
+
+Each importer is tested by converting a real file and comparing the result with an output recorded beside it:
+
+```
+tests/notion/notion-testspace.zip           a fixture
+tests/notion/expected/notion-testspace/…    what converting it produces
+tests/notion/local/                         gitignored, for a file that cannot be committed
+```
+
+Run one importer's tests while working on it:
+
+```bash
+npm test -- notion
+```
+
+To record a new fixture's output, or update one after an intended change:
+
+```bash
+UPDATE_EXPECTED=1 npm test -- notion
+```
+
+That writes the output and then fails on purpose. Read what it wrote — `git diff` if it already existed — before committing it. A recording nobody reads is not a test.
+
+Debugging an issue someone reported? Drop their export in `tests/<importer>/local/`. It is gitignored, and so is the output recorded next to it, so you can work against a real file without committing it.
+
+### Testing against a live API
+
+Airtable and Notion's API importers have no export file to use as a fixture, so their fixtures are saved API responses. Those go stale quietly, so each has a check that asks the real API whether its responses still have the shape the fixture assumes. They skip unless a token is set in `.env`:
+
+```
+AIRTABLE_TOKEN=pat...
+NOTION_TOKEN=ntn_...
+```
+
+These only read.
+
+### Testing against Obsidian itself
+
+`npm test` runs the conversions outside Obsidian, against a small stand-in for its API in `tests/shims/`. To check that stand-in still agrees with the app:
+
+```bash
+npm run e2e
+```
+
+This imports fixtures through the running app — its `htmlToMarkdown`, its vault, its link settings — and compares what lands in the vault with what `npm test` recorded. It needs the [Obsidian CLI](https://help.obsidian.md/cli) and a build of your working copy installed in the active vault. It writes one folder and deletes it afterwards.
 
 ## Contributing
 

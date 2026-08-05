@@ -1,0 +1,145 @@
+{
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). `blocks` is keyed by block id, each value as GET /v1/blocks/{id}/children returns it; the page's own children are under its page id. tests/notion-api/live.test.ts checks these shapes against the real API when a token is available. Not a capture of a real workspace: the ids are made up and so is the content, and the point is to cover every block type the converter handles.",
+	"pageId": "10000000-0000-4000-8000-000000000001",
+	"blocks": {
+		"10000000-0000-4000-8000-000000000001": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000001", "type": "heading_1", "has_children": false, "archived": false,
+					"heading_1": { "rich_text": [{ "type": "text", "text": { "content": "A heading", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "A heading", "href": null }], "color": "default", "is_toggleable": false }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000002", "type": "paragraph", "has_children": false, "archived": false,
+					"paragraph": { "color": "default", "rich_text": [
+						{ "type": "text", "text": { "content": "Plain, ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Plain, ", "href": null },
+						{ "type": "text", "text": { "content": "bold", "link": null }, "annotations": { "bold": true, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "bold", "href": null },
+						{ "type": "text", "text": { "content": ", ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ", ", "href": null },
+						{ "type": "text", "text": { "content": "italic", "link": null }, "annotations": { "bold": false, "italic": true, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "italic", "href": null },
+						{ "type": "text", "text": { "content": ", ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ", ", "href": null },
+						{ "type": "text", "text": { "content": "struck", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": true, "underline": false, "code": false, "color": "default" }, "plain_text": "struck", "href": null },
+						{ "type": "text", "text": { "content": ", ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ", ", "href": null },
+						{ "type": "text", "text": { "content": "underlined", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": true, "code": false, "color": "default" }, "plain_text": "underlined", "href": null },
+						{ "type": "text", "text": { "content": ", ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ", ", "href": null },
+						{ "type": "text", "text": { "content": "code", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": true, "color": "default" }, "plain_text": "code", "href": null },
+						{ "type": "text", "text": { "content": ", ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ", ", "href": null },
+						{ "type": "text", "text": { "content": "highlighted", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "yellow_background" }, "plain_text": "highlighted", "href": null },
+						{ "type": "text", "text": { "content": " and a ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": " and a ", "href": null },
+						{ "type": "text", "text": { "content": "link", "link": { "url": "https://example.com" } }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "link", "href": "https://example.com" },
+						{ "type": "text", "text": { "content": ".", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": ".", "href": null }
+					] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000003", "type": "heading_2", "has_children": false, "archived": false,
+					"heading_2": { "rich_text": [{ "type": "text", "text": { "content": "Lists", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Lists", "href": null }], "color": "default", "is_toggleable": false }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000004", "type": "bulleted_list_item", "has_children": true, "archived": false,
+					"bulleted_list_item": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "First", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "First", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000006", "type": "numbered_list_item", "has_children": false, "archived": false,
+					"numbered_list_item": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Step one", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Step one", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000007", "type": "numbered_list_item", "has_children": false, "archived": false,
+					"numbered_list_item": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Step two", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Step two", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000008", "type": "to_do", "has_children": false, "archived": false,
+					"to_do": { "checked": true, "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Done", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Done", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000009", "type": "to_do", "has_children": false, "archived": false,
+					"to_do": { "checked": false, "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Not done", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Not done", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000a", "type": "quote", "has_children": false, "archived": false,
+					"quote": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "A quoted line.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "A quoted line.", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000b", "type": "callout", "has_children": false, "archived": false,
+					"callout": { "color": "gray_background", "icon": { "type": "emoji", "emoji": "💡" }, "rich_text": [{ "type": "text", "text": { "content": "Something to note.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Something to note.", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000c", "type": "code", "has_children": false, "archived": false,
+					"code": { "language": "javascript", "caption": [], "rich_text": [{ "type": "text", "text": { "content": "const answer = 42;\nconsole.log(answer);", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "const answer = 42;\nconsole.log(answer);", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000d", "type": "divider", "has_children": false, "archived": false,
+					"divider": {}
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000e", "type": "toggle", "has_children": true, "archived": false,
+					"toggle": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "More detail", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "More detail", "href": null }] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-00000000000f", "type": "equation", "has_children": false, "archived": false,
+					"equation": { "expression": "E = mc^2" }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000010", "type": "table", "has_children": true, "archived": false,
+					"table": { "table_width": 2, "has_column_header": true, "has_row_header": false }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000011", "type": "bookmark", "has_children": false, "archived": false,
+					"bookmark": { "url": "https://example.com/reading", "caption": [] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000012", "type": "paragraph", "has_children": false, "archived": false,
+					"paragraph": { "color": "default", "rich_text": [
+						{ "type": "text", "text": { "content": "A date mention: ", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "A date mention: ", "href": null },
+						{ "type": "mention", "mention": { "type": "date", "date": { "start": "2024-06-01", "end": null, "time_zone": null } }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "2024-06-01", "href": null }
+					] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000013", "type": "table_of_contents", "has_children": false, "archived": false,
+					"table_of_contents": { "color": "default" }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000014", "type": "unsupported", "has_children": false, "archived": false,
+					"unsupported": {}
+				}
+			]
+		},
+		"20000000-0000-4000-8000-000000000004": {
+			"object": "list", "has_more": false, "next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000005", "type": "bulleted_list_item", "has_children": false, "archived": false,
+					"bulleted_list_item": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Nested", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Nested", "href": null }] }
+				}
+			]
+		},
+		"20000000-0000-4000-8000-00000000000e": {
+			"object": "list", "has_more": false, "next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000015", "type": "paragraph", "has_children": false, "archived": false,
+					"paragraph": { "color": "default", "rich_text": [{ "type": "text", "text": { "content": "Hidden until opened.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Hidden until opened.", "href": null }] }
+				}
+			]
+		},
+		"20000000-0000-4000-8000-000000000010": {
+			"object": "list", "has_more": false, "next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000016", "type": "table_row", "has_children": false, "archived": false,
+					"table_row": { "cells": [
+						[{ "type": "text", "text": { "content": "Name", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Name", "href": null }],
+						[{ "type": "text", "text": { "content": "Value", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Value", "href": null }]
+					] }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000017", "type": "table_row", "has_children": false, "archived": false,
+					"table_row": { "cells": [
+						[{ "type": "text", "text": { "content": "Answer", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Answer", "href": null }],
+						[{ "type": "text", "text": { "content": "42", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "42", "href": null }]
+					] }
+				}
+			]
+		}
+	}
+}

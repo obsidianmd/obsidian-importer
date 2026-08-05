@@ -1,8 +1,9 @@
-import { DataWriteOptions, normalizePath, Notice, TFile, Setting } from 'obsidian';
-import { path, parseFilePath } from '../filesystem';
+import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
+import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { readZip, ZipEntryFile } from '../zip';
+import { convertBearNote } from './bear/convert';
 
 type Metadata = {
 	id: string;
@@ -27,8 +28,8 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
 
-		new Setting(this.modal.contentEl)
-			.setName('Flatten nested tags')
+		this.addSetting()
+			?.setName('Flatten nested tags')
 			.setDesc(
 				'When enabled, tags will be split on slashes (/) during import.'
 			)
@@ -37,8 +38,8 @@ export class Bear2bkImporter extends FormatImporter {
 				.onChange(async v => this.flattenTags = v)
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Store note identifiers in front matter')
+		this.addSetting()
+			?.setName('Store note identifiers in front matter')
 			.setDesc(
 				'Links will be automatically updated. Enable this if the note identifier is used outside of linking between notes.'
 			)
@@ -46,34 +47,6 @@ export class Bear2bkImporter extends FormatImporter {
 				.setValue(false)
 				.onChange(async v => this.storeId = v)
 			);
-	}
-
-	private extractTagsFromContent(content: string): string[] {
-		const tags = new Set<string>();
-
-		// Extract simple #tags (alphanumeric, underscore, hyphen, and slash, no spaces)
-		//    Ensures it's not part of a URL or an already processed enclosed tag.
-		//    Allows / in the middle of the tag, but not at the start or end of the simple tag.
-		//    Diacritics regex range from https://stackoverflow.com/questions/30225552/regex-for-diacritics
-		const simpleTagRegex = /(?<!\S)#([A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_][A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/-]*[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]|[A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_]+)(?![#\w/])/g;
-		let matchSimple;
-		while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
-			const rawSimpleTag = matchSimple[1].trim();
-			if (rawSimpleTag !== '') {
-				if (this.flattenTags && rawSimpleTag.includes('/')) {
-					const parts = rawSimpleTag.split('/');
-					for (const part of parts) {
-						tags.add(part);
-					}
-				}
-				else {
-					tags.add(rawSimpleTag);
-				}
-			}
-		}
-
-		const finalTags = Array.from(tags);
-		return finalTags;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -95,9 +68,6 @@ export class Bear2bkImporter extends FormatImporter {
 
 		let outputFolder = folder;
 
-		// match 1: assets/something.jpg
-		const assetMatcher = new RegExp('\\[[^\\]]*\\]\\((assets/[^\\)]+)\\)', 'gm');
-
 		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
 
@@ -117,41 +87,12 @@ export class Bear2bkImporter extends FormatImporter {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status('Importing note ' + mdFilename);
-							let mdContent = await entry.readText();
-							mdContent = this.removeMarkdownHeader(mdFilename, mdContent);
-
-							const assetMatches = [...mdContent.matchAll(assetMatcher)];
-							if (assetMatches.length > 0) {
-								for (const match of assetMatches) {
-									const [fullMatch, linkPath] = match;
-									let assetPath = path.join(parent, decodeURI(linkPath));
-									let replacementPath = await this.getAttachmentStoragePath(assetPath);
-
-									// Don't allow spaces in the file name.
-									replacementPath = encodeURI(replacementPath);
-
-									// NOTE: We can't use metadataCache.fileToLinktext to potentially shorten
-									// the path because the attachment might not yet exist, so we can't get a TFile.
-
-									const replacement = fullMatch.replace(linkPath, replacementPath);
-									mdContent = mdContent.replace(fullMatch, replacement);
-								}
-							}
-
-							// Replace spaces in enclosed tags with underscores and make them classic tags
-							mdContent = mdContent.replace(/#([^\n#]+?[^\s])#/g, (_match, tag) => { // require non-space before closing to avoid using next tag's opening #
-								return '#' + tag.replace(/\s+/g, '_');
+							const { content: mdContent, tags } = await convertBearNote(await entry.readText(), {
+								basename: mdFilename,
+								parent,
+								flattenTags: this.flattenTags,
+								resolveAsset: assetPath => this.getAttachmentStoragePath(assetPath),
 							});
-
-							// Remove special characters in simple tags
-							mdContent = mdContent.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
-								let cleanTag = tag.replace(/[^A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ0-9_/-]/g, '_');
-								cleanTag = cleanTag.replace(/_+/g, '_'); // collapse multiple underscores
-								return '#' + cleanTag;
-							});
-
-							// Extract tags from content
-							const tags = this.extractTagsFromContent(mdContent);
 
 							// Use just the filename without extension
 							const fileName = mdFilename;
@@ -321,24 +262,4 @@ export class Bear2bkImporter extends FormatImporter {
 		return outputPath;
 	}
 
-	/** Removes an H1 that is the first line of the content iff it matches the filename or is empty. */
-	private removeMarkdownHeader(mdFilename: string, mdContent: string): string {
-		if (!mdContent.startsWith('# ')) {
-			return mdContent;
-		}
-
-		const idx = mdContent.indexOf('\n');
-		let heading = idx > 0
-			? mdContent.substring(2, idx)
-			: mdContent.substring(2);
-		heading = heading.trim();
-
-		if (heading !== mdFilename.trim() && heading !== '') {
-			return mdContent;
-		}
-
-		return idx > 0
-			? mdContent.substring(idx + 1)
-			: '';
-	}
 }

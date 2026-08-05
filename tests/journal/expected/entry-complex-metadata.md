@@ -1,5 +1,4 @@
 ---
-date: 2023-12-17
 location:
   - Old Town Market Place
 motion-activity:
@@ -10,6 +9,7 @@ third-party-media:
   - Music
   - Tech News
   - Podcast
+date: 2023-12-17
 ---
 How was your day?
 

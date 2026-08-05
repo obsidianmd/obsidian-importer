@@ -1,14 +1,37 @@
 import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
-import { ImporterModal, ImportContext, AuthCallback } from './main';
+import ImporterPlugin, { ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
+/**
+ * What an importer needs besides the vault: somewhere to draw its settings,
+ * the plugin that stores its credentials, and which importer it is.
+ *
+ * The dialog is one host. An import driven from a script or a test is another,
+ * with no element to draw into - every setting then stays at its default, and
+ * the caller sets what it needs directly.
+ */
+export interface ImporterHost {
+	/** Where settings are drawn, or null when there is no dialog. */
+	contentEl: HTMLElement | null;
+	plugin: ImporterPlugin;
+	/**
+	 * Which importer this is, for scoping the credential it stores.
+	 *
+	 * Not `id`: a host is often something that already has one - the dialog is
+	 * a Modal, and Obsidian sets an id on those.
+	 */
+	importerId: string;
+	/** Aborted when the user cancels, for anything that outlives a check. */
+	abortController: AbortController;
+}
+
 export abstract class FormatImporter {
 	app: App;
 	vault: Vault;
-	modal: ImporterModal;
+	host: ImporterHost;
 
 	files: PickedFile[] = [];
 	outputLocation: string = '';
@@ -20,17 +43,44 @@ export abstract class FormatImporter {
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
 
-	constructor(app: App, modal: ImporterModal) {
+	/**
+	 * Settles when init() has finished and everything it started has arrived -
+	 * the linked credential, a session restored from a stored token.
+	 *
+	 * The dialog does not wait for this: it draws what it has and fills the
+	 * rest in as it lands, and a failure is reported to the console. An import
+	 * driven without one has nothing to redraw, so it waits - and rejects, so
+	 * a script hears about a credential that never arrived rather than running
+	 * as nobody.
+	 */
+	readonly ready: Promise<void>;
+
+	/** What ready waits for, beyond init() itself. */
+	private pending: Promise<unknown>[] = [];
+
+	constructor(app: App, host: ImporterHost) {
 		this.app = app;
 		this.vault = app.vault;
-		this.modal = modal;
+		this.host = host;
 		// OneNote's init is async because it may restore a session before it can
 		// draw its settings. A constructor cannot await, so the failure path is
 		// logged here: the importer still opens, just without a signed-in state.
-		const initialised = this.init();
-		if (initialised instanceof Promise) {
-			initialised.catch(e => console.error('Importer failed to initialise', e));
-		}
+		// init() is what fills `pending`, so this is built from it afterwards
+		this.ready = Promise.resolve(this.init())
+			.then(() => Promise.all(this.pending))
+			.then(() => undefined);
+
+		// Nothing awaits `ready` when there is a dialog - it draws what it has
+		// and fills the rest in as it lands - so the failure is reported here.
+		// It stays on `ready` for an import that does await it.
+		this.ready.catch(e => console.error('Importer failed to initialise', e));
+	}
+
+	/**
+	 * Something init() started that an import must not run ahead of. See ready.
+	 */
+	protected whenReady(work: Promise<unknown>): void {
+		this.pending.push(work);
 	}
 
 	abstract init(): void | Promise<void>;
@@ -57,7 +107,23 @@ export abstract class FormatImporter {
 	 * reregistered if a subsequent auth event is expected.
 	 */
 	registerAuthCallback(callback: AuthCallback): void {
-		this.modal.plugin.registerAuthCallback(callback);
+		this.host.plugin.registerAuthCallback(callback);
+	}
+
+	/**
+	 * A setting for this importer, or null when there is no dialog to draw in.
+	 *
+	 * An import run without one - from a script, or a test - draws nothing, so
+	 * a setting's only lasting effect is the default it was given. Assign that
+	 * default outside the chain, not in the component's callback.
+	 */
+	protected addSetting(): Setting | null {
+		return this.host.contentEl ? new Setting(this.host.contentEl) : null;
+	}
+
+	/** Draw into the dialog, if there is one. */
+	protected draw<T>(build: (contentEl: HTMLElement) => T): T | undefined {
+		return this.host.contentEl ? build(this.host.contentEl) : undefined;
 	}
 
 	/**
@@ -69,8 +135,21 @@ export abstract class FormatImporter {
 	 *
 	 * Read the credential back with getSecret().
 	 */
-	addSecretSetting(name: string, description?: string | DocumentFragment): Setting {
-		let setting = new Setting(this.modal.contentEl).setName(name);
+	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
+		let setting = this.addSetting();
+
+		if (!setting) {
+			// No dialog to fill in, but an import driven from a script still
+			// needs the credential the user linked, so it is read all the same -
+			// and waited for, since the import reads it straight away.
+			this.whenReady(this.loadSecretId()
+				.then(secretId => this.secretId = secretId)
+				.catch(e => console.error('Could not read the linked secret', e)));
+
+			return null;
+		}
+
+		setting.setName(name);
 
 		if (description) {
 			setting.setDesc(description);
@@ -112,12 +191,12 @@ export abstract class FormatImporter {
 	}
 
 	private async loadSecretId(): Promise<string | null> {
-		let data = await this.modal.plugin.loadData();
-		return data.secrets?.[this.modal.selectedId] ?? null;
+		let data = await this.host.plugin.loadData();
+		return data.secrets?.[this.host.importerId] ?? null;
 	}
 
 	private async saveSecretId(secretId: string | null): Promise<void> {
-		let data = await this.modal.plugin.loadData();
+		let data = await this.host.plugin.loadData();
 
 		// Copy rather than mutate: loadData shallow-merges DEFAULT_DATA, so a
 		// data file with no secrets yet hands back the default object itself,
@@ -126,19 +205,23 @@ export abstract class FormatImporter {
 		let secrets = { ...data.secrets };
 
 		if (secretId) {
-			secrets[this.modal.selectedId] = secretId;
+			secrets[this.host.importerId] = secretId;
 		}
 		else {
-			delete secrets[this.modal.selectedId];
+			delete secrets[this.host.importerId];
 		}
 
 		data.secrets = secrets;
 
-		await this.modal.plugin.saveData(data);
+		await this.host.plugin.saveData(data);
 	}
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
-		let fileLocationSetting = new Setting(this.modal.contentEl)
+		const fileLocationSetting = this.addSetting();
+		// Nothing to pick without a dialog: the caller sets this.files itself
+		if (!fileLocationSetting) return;
+
+		fileLocationSetting
 			.setName('Files to import')
 			.setDesc(description || 'Pick the files that you want to import.')
 			.addButton(button => button
@@ -214,8 +297,8 @@ export abstract class FormatImporter {
 
 	addOutputLocationSetting(defaultExportFolderName: string) {
 		this.outputLocation = defaultExportFolderName;
-		new Setting(this.modal.contentEl)
-			.setName('Output folder')
+		this.addSetting()
+			?.setName('Output folder')
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
 				.setValue(defaultExportFolderName)

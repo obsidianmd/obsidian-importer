@@ -19,7 +19,7 @@ VGhpcyBpcyBhbiBleGFtcGxlIHRlc3QgZmlsZQ==
       <mime>text/plain</mime>
       <resource-attributes>
         <file-name>test.file.with.many.dots.txt</file-name>
-        <source-url>en-cache://tokenKey%3D%22AuthToken%3AUser%3A244421476%22+56f7b80c-8f44-3459-488b-cb644494eaee+2c803c99b65e3d77857d8afc04b1ab1f+https://www.evernote.com/shard/s470/res/d337483d-7092-a7d4-be5a-bee0f829c665</source-url>
+        <source-url>en-cache://tokenKey%3D%22AuthToken%3AUser%3A10000000%22+56f7b80c-8f44-3459-488b-cb644494eaee+2c803c99b65e3d77857d8afc04b1ab1f+https://www.evernote.com/shard/s470/res/d337483d-7092-a7d4-be5a-bee0f829c665</source-url>
       </resource-attributes>
     </resource>
   </note>

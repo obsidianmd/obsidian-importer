@@ -1,6 +1,6 @@
-import { Notice, Platform, Setting, TFile, TFolder, moment } from 'obsidian';
+import { Notice, Platform, TFile, TFolder, moment } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
-import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
+import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
@@ -22,7 +22,7 @@ enum DuplicateHandling {
 	CreateCopy = 'create-copy'
 }
 
-export class AppleNotesImporter extends FormatImporter {
+export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	ctx: ImportContext;
 	rootFolder: TFolder;
 
@@ -48,11 +48,11 @@ export class AppleNotesImporter extends FormatImporter {
 
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
-			this.modal.contentEl.createEl('p', {
+			this.draw(contentEl => contentEl.createEl('p', {
 				text:
 					'Due to platform limitations, Apple Notes cannot be exported from this device.' +
 					' Open your vault on a Mac to export from Apple Notes.'
-			});
+			}));
 
 			this.notAvailable = true;
 			return;
@@ -66,8 +66,8 @@ export class AppleNotesImporter extends FormatImporter {
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
 
-		new Setting(this.modal.contentEl)
-			.setName('File prefix format')
+		this.addSetting()
+			?.setName('File prefix format')
 			.setDesc(
 				'Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
 				' Leave blank for no prefix.'
@@ -81,8 +81,8 @@ export class AppleNotesImporter extends FormatImporter {
 				})
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Import recently deleted notes')
+		this.addSetting()
+			?.setName('Import recently deleted notes')
 			.setDesc(
 				'Import notes in the "Recently Deleted" folder. Unlike in Apple Notes' +
 				', they will not be automatically removed after a set amount of time.'
@@ -92,8 +92,8 @@ export class AppleNotesImporter extends FormatImporter {
 				.onChange(async v => this.importTrashed = v)
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Omit first line')
+		this.addSetting()
+			?.setName('Omit first line')
 			.setDesc(
 				'Don\'t include the first line in the text, since Apple Notes uses it' +
 				' as the title. It will still be used as the note name.'
@@ -103,8 +103,8 @@ export class AppleNotesImporter extends FormatImporter {
 				.onChange(async v => this.omitFirstLine = v)
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Include handwriting text')
+		this.addSetting()
+			?.setName('Include handwriting text')
 			.setDesc(
 				'When Apple Notes has detected handwriting in drawings, include it as text before the drawing.'
 			)
@@ -113,8 +113,8 @@ export class AppleNotesImporter extends FormatImporter {
 				.onChange(async v => this.includeHandwriting = v)
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Handle duplicate files')
+		this.addSetting()
+			?.setName('Handle duplicate files')
 			.setDesc(
 				'How to handle notes that already exist in the vault.'
 			)
@@ -484,7 +484,12 @@ export class AppleNotesImporter extends FormatImporter {
 		return file;
 	}
 
-	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>) {
+	/** A link to a file, in whichever form the vault is set to write. See ANContext. */
+	linkTo(file: TFile, sourcePath: string, subpath?: string, display?: string): string {
+		return this.app.fileManager.generateMarkdownLink(file, sourcePath, subpath, display);
+	}
+
+	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
 		const unzipped = zlib.unzipSync(Buffer.from(hexdata, 'hex'));
 		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
 		return new converterType(this, decoded);

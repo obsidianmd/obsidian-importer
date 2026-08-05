@@ -1,0 +1,2630 @@
+[
+	{
+		"create-time": 1614356902401,
+		"title": "Table",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"string": "[[.--]]",
+				"create-time": 1616525892509,
+				":block/refs": [
+					{
+						":block/uid": "Kt8SWLSya"
+					}
+				],
+				"refs": [
+					{
+						"uid": "Kt8SWLSya"
+					}
+				],
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"uid": "m-rX6pr1t",
+				"edit-time": 1660320958101,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			},
+			{
+				"string": "{{[[table]]}}",
+				"create-time": 1614781651600,
+				":block/refs": [
+					{
+						":block/uid": "2-eIgz-4z"
+					}
+				],
+				"refs": [
+					{
+						"uid": "2-eIgz-4z"
+					}
+				],
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"uid": "7iwpSen79",
+				"edit-time": 1614882306954,
+				":edit/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				}
+			},
+			{
+				"edit-time": 1614781654212,
+				"children": [
+					{
+						"string": "[How to build a table in Roam Research](https://web.archive.org/web/20201109133038/https://www.roamtips.com/home/create-tables-roam-research) - [[Roam Tips and Hacks]] ",
+						"create-time": 1614880094150,
+						":block/refs": [
+							{
+								":block/uid": "TF3K-ab5g"
+							}
+						],
+						"refs": [
+							{
+								"uid": "TF3K-ab5g"
+							}
+						],
+						":create/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"uid": "u1drldhl1",
+						"edit-time": 1646654556472,
+						":edit/user": {
+							":user/uid": "TA5u8OWeTwRw1lcal0Jvoou6wRo1"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "cGQjOo9hq"
+					}
+				],
+				"uid": "gh6_VrFIC",
+				":block/refs": [
+					{
+						":block/uid": "cGQjOo9hq"
+					}
+				],
+				"string": "Articles::",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1614781654212,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"heading": 2
+			},
+			{
+				"edit-time": 1614792892119,
+				"children": [
+					{
+						"edit-time": 1614880167563,
+						"children": [
+							{
+								"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+								"create-time": 1614880167541,
+								":block/refs": [
+									{
+										":block/uid": "2h9V-FtAO"
+									}
+								],
+								"refs": [
+									{
+										"uid": "2h9V-FtAO"
+									}
+								],
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"uid": "hgsZ5KKn5",
+								"edit-time": 1614880190438,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							}
+						],
+						"refs": [
+							{
+								"uid": "OylLeH15w"
+							}
+						],
+						"uid": "vMBOon2pR",
+						":block/refs": [
+							{
+								":block/uid": "OylLeH15w"
+							}
+						],
+						"string": "How to Set Goals Using Tables in Roam Research by [[Jo Kim]]",
+						":create/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"create-time": 1614880155099,
+						":edit/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"heading": 3
+					},
+					{
+						"edit-time": 1614880189230,
+						"children": [
+							{
+								"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+								"create-time": 1614880180664,
+								":block/refs": [
+									{
+										":block/uid": "2h9V-FtAO"
+									}
+								],
+								"refs": [
+									{
+										"uid": "2h9V-FtAO"
+									}
+								],
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"uid": "PtAsn2w4q",
+								"edit-time": 1614880192586,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							}
+						],
+						"refs": [
+							{
+								"uid": "kel5KpA6A"
+							}
+						],
+						"uid": "YutdUPHjl",
+						":block/refs": [
+							{
+								":block/uid": "kel5KpA6A"
+							}
+						],
+						"string": "Roam Research: Tables by [[Pat Morgan]]",
+						":create/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"create-time": 1614880174892,
+						":edit/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"heading": 3
+					}
+				],
+				"refs": [
+					{
+						"uid": "3Ig0C8LkY"
+					}
+				],
+				"uid": "kaKBv3w8X",
+				":block/refs": [
+					{
+						":block/uid": "3Ig0C8LkY"
+					}
+				],
+				"string": "Community Videos::",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1614781654212,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"heading": 2
+			},
+			{
+				"edit-time": 1614792907702,
+				"children": [
+					{
+						"edit-time": 1615369432934,
+						"children": [
+							{
+								"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}\n#[[Table]]",
+								"create-time": 1615369432913,
+								":block/refs": [
+									{
+										":block/uid": "ZOxNKU481"
+									},
+									{
+										":block/uid": "2h9V-FtAO"
+									}
+								],
+								"refs": [
+									{
+										"uid": "ZOxNKU481"
+									},
+									{
+										"uid": "2h9V-FtAO"
+									}
+								],
+								":create/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								"uid": "W-Blnv1sY",
+								"edit-time": 1615370609239,
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								}
+							}
+						],
+						"refs": [
+							{
+								"uid": "CV_O2qTlP"
+							}
+						],
+						"uid": "axa1xlfm6",
+						":block/refs": [
+							{
+								":block/uid": "CV_O2qTlP"
+							}
+						],
+						"string": "Tables with Complex Cells (no audio) by [[Robin Alvarez]]",
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"create-time": 1614781654212,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"heading": 3
+					}
+				],
+				"refs": [
+					{
+						"uid": "oEhVJ0Eaw"
+					}
+				],
+				"uid": "zQX1pN6cG",
+				":block/refs": [
+					{
+						":block/uid": "oEhVJ0Eaw"
+					}
+				],
+				"string": "Roam Team Videos::",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1614781654212,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"heading": 2
+			},
+			{
+				"string": "[[.--]]",
+				"create-time": 1616525954130,
+				":block/refs": [
+					{
+						":block/uid": "Kt8SWLSya"
+					}
+				],
+				"refs": [
+					{
+						"uid": "Kt8SWLSya"
+					}
+				],
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"uid": "PKomS3lPT",
+				"edit-time": 1660320958101,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "ZOxNKU481",
+		"edit-time": 1614356902401,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1614357014132,
+		"title": "Query",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"edit-time": 1660320958101,
+				"children": [
+					{
+						"string": "**Types of queries**",
+						"create-time": 1614781660929,
+						"heading": 1,
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"children": [
+							{
+								"string": "**and**",
+								"create-time": 1614855054276,
+								"heading": 3,
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"children": [
+									{
+										"string": "Find all blocks matching multiple conditions \u2013 i.e. blocks or their parents containing multiple page or block references.",
+										"uid": "DUPSGZVRo",
+										"create-time": 1614855119334,
+										"edit-time": 1616495792203,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									},
+									{
+										"string": "`{{query: {and: [[page A]] [[page B]] }}}\n{{query: {and: [[articles]] ((block)) }}}\n{{query: {and: [[Chris Lee]] ((block)) [[econ]] }}}\n`",
+										"uid": "QtbK1vmr2",
+										"create-time": 1614855059691,
+										"edit-time": 1614855119344,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"uid": "H0_tzEYRj",
+								"edit-time": 1616495819643,
+								":edit/user": {
+									":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+								}
+							},
+							{
+								"string": "**or**",
+								"create-time": 1614855106944,
+								"heading": 3,
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"children": [
+									{
+										"string": "Find all blocks matching any of a number of conditions \u2013 i.e. blocks or their parents containing any of the selected page or block references.\n",
+										"uid": "UGDSzBToa",
+										"create-time": 1614855111077,
+										"edit-time": 1616495794916,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									},
+									{
+										"string": "`{{query: {or: [[page A]] [[page B]] }}}\n{{query: {or: [[Zen]] [[Buddhism]] }}}\n{{query: {or: [[Utah]] [[Idaho]] [[Montana]] }}}\n`",
+										"uid": "WC-AukIwQ",
+										"create-time": 1614855061308,
+										"edit-time": 1614855111087,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"uid": "m9WUcE0sZ",
+								"edit-time": 1616495823101,
+								":edit/user": {
+									":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+								}
+							},
+							{
+								"string": "**not**",
+								"create-time": 1614855097740,
+								"heading": 3,
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"children": [
+									{
+										"string": "Exclude blocks matching any of the page or block references selected.",
+										"uid": "RV54Zdrrl",
+										"create-time": 1614855065674,
+										"edit-time": 1616495797754,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									},
+									{
+										"string": "`{{query: {and: [[page A]] {not: [[page B]] }}}}\n{{query: {and: [[Slate Star Codex]] {not: [[psychiatry]] }}}}`",
+										"uid": "naxr93QYx",
+										"create-time": 1614855067084,
+										"edit-time": 1616495799314,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									}
+								],
+								"uid": "QMGiYywXa",
+								"edit-time": 1616495825133,
+								":edit/user": {
+									":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+								}
+							},
+							{
+								"string": "**between**",
+								"create-time": 1614855071950,
+								"heading": 3,
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"children": [
+									{
+										"string": "Finds all blocks on daily pages and blocks mentioning a date between two days. ^^**This only works on Daily Notes page**^^.",
+										"uid": "kZCwOh0Z4",
+										"create-time": 1619167429569,
+										"edit-time": 1619167429569,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									},
+									{
+										"string": "You can use the following as a shorthand: [[today]], [[tomorrow]], [[yesterday]], [[last week]], [[next week]], [[last month]], and [[next month]]. ",
+										"create-time": 1614855088197,
+										":block/refs": [
+											{
+												":block/uid": "V2Anu0om_"
+											},
+											{
+												":block/uid": "3K63Y8a65"
+											},
+											{
+												":block/uid": "A3i2JVpHy"
+											},
+											{
+												":block/uid": "c9SB7p-p4"
+											},
+											{
+												":block/uid": "jbGaO0daw"
+											},
+											{
+												":block/uid": "Nrt0l8j5K"
+											},
+											{
+												":block/uid": "zdWP7Ixgg"
+											}
+										],
+										"refs": [
+											{
+												"uid": "V2Anu0om_"
+											},
+											{
+												"uid": "3K63Y8a65"
+											},
+											{
+												"uid": "A3i2JVpHy"
+											},
+											{
+												"uid": "c9SB7p-p4"
+											},
+											{
+												"uid": "jbGaO0daw"
+											},
+											{
+												"uid": "Nrt0l8j5K"
+											},
+											{
+												"uid": "zdWP7Ixgg"
+											}
+										],
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										"uid": "E9gkHEO8V",
+										"edit-time": 1619167429589,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									},
+									{
+										"string": "`{{query: {between: [[January 1st, 2021]] [[today]] }}\n{{query: {and: [[mistakes]] {between: [[January 1st, 2020]] [[December 31st, 2020]] }}}}\n{{query: {and: [[TODO]] {between: [[last week]] [[today]] }}}}`",
+										"uid": "YYgsXiSEQ",
+										"create-time": 1614855085176,
+										"edit-time": 1614855089808,
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"uid": "iSCTn1SjI",
+								"edit-time": 1614855151667,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							}
+						],
+						"uid": "zHYzVa1_5",
+						"edit-time": 1616495809533,
+						":edit/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						}
+					},
+					{
+						"edit-time": 1615236457892,
+						"children": [
+							{
+								"edit-time": 1615236437700,
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001&t=20s&ab_channel=RobertHaisfield}}",
+										"create-time": 1615236437684,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "3VEyz63XIsX18jHTxX7ofCDmMLv2"
+										},
+										"uid": "gu3GPwPO9",
+										"edit-time": 1615236446435,
+										":edit/user": {
+											":user/uid": "3VEyz63XIsX18jHTxX7ofCDmMLv2"
+										}
+									}
+								],
+								"refs": [
+									{
+										"uid": "xrYZCB_Gl"
+									}
+								],
+								"uid": "e5dQ923Cu",
+								":block/refs": [
+									{
+										":block/uid": "xrYZCB_Gl"
+									}
+								],
+								"string": "Query syntax and logic: how to ask Roam questions with queries by [[Sam Patel]]",
+								":create/user": {
+									":user/uid": "3VEyz63XIsX18jHTxX7ofCDmMLv2"
+								},
+								"create-time": 1615236372797,
+								":edit/user": {
+									":user/uid": "3VEyz63XIsX18jHTxX7ofCDmMLv2"
+								},
+								"heading": 3
+							},
+							{
+								"edit-time": 1614855271814,
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+										"create-time": 1614855285331,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										"uid": "pltpmYn6z",
+										"edit-time": 1614855340541,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"refs": [
+									{
+										"uid": "Fu7jG-iaF"
+									}
+								],
+								"uid": "c_2x43Yhr",
+								":block/refs": [
+									{
+										":block/uid": "Fu7jG-iaF"
+									}
+								],
+								"string": "How Queries Work in Roam Research by [[R.J. Nestor]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614855264165,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"heading": 3
+							},
+							{
+								"edit-time": 1614855313911,
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+										"create-time": 1614855329282,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										"uid": "xq1ofV9j4",
+										"edit-time": 1614855336191,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"refs": [
+									{
+										"uid": "HagVusPK9"
+									}
+								],
+								"uid": "DDSPbRbBd",
+								":block/refs": [
+									{
+										":block/uid": "HagVusPK9"
+									}
+								],
+								"string": "Roam Research Search Queries by [[Alex Rivera]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614855303082,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"heading": 3
+							},
+							{
+								"edit-time": 1614855324951,
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+										"create-time": 1614855333811,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										"uid": "xJJ1PNSVm",
+										"edit-time": 1614855337837,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"refs": [
+									{
+										"uid": "RkvokA4jz"
+									}
+								],
+								"uid": "AfX8IMeao",
+								":block/refs": [
+									{
+										":block/uid": "RkvokA4jz"
+									}
+								],
+								"string": "Insight Hunting with Queries in Roam by [[Example Studio]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614855318817,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"heading": 3
+							},
+							{
+								"edit-time": 1616495871204,
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}",
+										"create-time": 1614855370720,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										},
+										"uid": "f1dKn40Tm",
+										"edit-time": 1616495873693,
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									}
+								],
+								"refs": [
+									{
+										"uid": "5RMLjxEGV"
+									}
+								],
+								"uid": "A-XBj12ks",
+								":block/refs": [
+									{
+										":block/uid": "5RMLjxEGV"
+									}
+								],
+								"string": "Roam Research Query Tutorial: Pending Tasks for Task Management and Task Dashboard Using Queries by [[The Upgraded Brain]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614855368907,
+								":edit/user": {
+									":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+								},
+								"heading": 3
+							}
+						],
+						"refs": [
+							{
+								"uid": "3Ig0C8LkY"
+							}
+						],
+						"uid": "K2Lmjh2PE",
+						":block/refs": [
+							{
+								":block/uid": "3Ig0C8LkY"
+							}
+						],
+						"string": "Community Videos::",
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"create-time": 1614781661901,
+						":edit/user": {
+							":user/uid": "3VEyz63XIsX18jHTxX7ofCDmMLv2"
+						},
+						"heading": 2
+					},
+					{
+						"edit-time": 1615272673069,
+						"children": [
+							{
+								"edit-time": 1615272673069,
+								"refs": [
+									{
+										"uid": "0BFn161YN"
+									}
+								],
+								"uid": "0-_G2uqU9",
+								":block/refs": [
+									{
+										":block/uid": "0BFn161YN"
+									}
+								],
+								"string": "[How to query in Roam](https://roamhacks.com/how-to-query-roam/) by [[Roamhacks]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614854882956,
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								"heading": 3
+							},
+							{
+								"edit-time": 1615272673069,
+								"refs": [
+									{
+										"uid": "oQb-jq8ee"
+									}
+								],
+								"uid": "uvqomBL30",
+								":block/refs": [
+									{
+										":block/uid": "oQb-jq8ee"
+									}
+								],
+								"string": "[Searching Roam With Queries: A Primer](https://www.roamstack.com/roam-queries-primer/) by [[RoamStack]]",
+								":create/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								},
+								"create-time": 1614854922615,
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								"heading": 3
+							}
+						],
+						"refs": [
+							{
+								"uid": "cGQjOo9hq"
+							}
+						],
+						"uid": "T2O42GFGw",
+						":block/refs": [
+							{
+								":block/uid": "cGQjOo9hq"
+							}
+						],
+						"string": "Articles::",
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"create-time": 1614781661901,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"heading": 2
+					},
+					{
+						"edit-time": 1615274334606,
+						"children": [
+							{
+								"string": "`/query`",
+								"uid": "gesIrp7nb",
+								"create-time": 1615274334600,
+								"edit-time": 1615274341672,
+								":create/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								}
+							}
+						],
+						"refs": [
+							{
+								"uid": "yzdfVWKFY"
+							}
+						],
+						"uid": "NRU_DUs5n",
+						":block/refs": [
+							{
+								":block/uid": "yzdfVWKFY"
+							}
+						],
+						"string": "Key Commands::",
+						":create/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"create-time": 1615274331476,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"heading": 2
+					}
+				],
+				"refs": [
+					{
+						"uid": "Kt8SWLSya"
+					}
+				],
+				"uid": "4FkvUj6no",
+				":block/refs": [
+					{
+						":block/uid": "Kt8SWLSya"
+					}
+				],
+				"string": "[[.--]]",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1616495782342,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "Gx35Ef0-S",
+		"edit-time": 1614357014133,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1614650691278,
+		"title": "Plugins",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"edit-time": 1660320958101,
+				"children": [
+					{
+						"edit-time": 1616550200867,
+						"text-align": "center",
+						"refs": [
+							{
+								"uid": "dmQooXFj9"
+							}
+						],
+						"uid": "SE-UkNDYs",
+						":block/refs": [
+							{
+								":block/uid": "dmQooXFj9"
+							}
+						],
+						"string": "[\ud83d\udea7](((dmQooXFj9)))[\ud83d\udea7](((dmQooXFj9)))[\ud83d\udea7](((dmQooXFj9)))",
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"create-time": 1616550163223,
+						":edit/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"heading": 1
+					},
+					{
+						"string": "[Request to be featured](https://roamresearch.typeform.com/to/g5W8uCqz)",
+						"create-time": 1616602314954,
+						"heading": 1,
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"uid": "PjXR4D3tQ",
+						"edit-time": 1616602314954,
+						"text-align": "center",
+						":edit/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						}
+					},
+					{
+						"edit-time": 1616550210999,
+						"text-align": "center",
+						"refs": [
+							{
+								"uid": "dmQooXFj9"
+							}
+						],
+						"uid": "92Nf3HlE2",
+						":block/refs": [
+							{
+								":block/uid": "dmQooXFj9"
+							}
+						],
+						"string": "[\ud83d\udea7](((dmQooXFj9)))[\ud83d\udea7](((dmQooXFj9)))[\ud83d\udea7](((dmQooXFj9)))",
+						":create/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"create-time": 1616550203164,
+						":edit/user": {
+							":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+						},
+						"heading": 1
+					}
+				],
+				"refs": [
+					{
+						"uid": "Kt8SWLSya"
+					}
+				],
+				"uid": "aOzBZAo9Z",
+				":block/refs": [
+					{
+						":block/uid": "Kt8SWLSya"
+					}
+				],
+				"string": "[[.--]]",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1616550224706,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "mOo2CZLs0",
+		"edit-time": 1614650691278,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1614653403727,
+		"title": "TODO",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"string": "[[TODO/DONE]] for feature explanation",
+				"create-time": 1615031432587,
+				":block/refs": [
+					{
+						":block/uid": "ujeQZM_YD"
+					}
+				],
+				"refs": [
+					{
+						"uid": "ujeQZM_YD"
+					}
+				],
+				":create/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				},
+				"uid": "-NmgeZgVi",
+				"edit-time": 1615031440045,
+				":edit/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				}
+			},
+			{
+				"string": "[[Task Management]] for use cases and workflows",
+				"create-time": 1615031104821,
+				":block/refs": [
+					{
+						":block/uid": "TmmLis-A8"
+					}
+				],
+				"refs": [
+					{
+						"uid": "TmmLis-A8"
+					}
+				],
+				":create/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				},
+				"uid": "8UFNVwibz",
+				"edit-time": 1616206270931,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				}
+			}
+		],
+		"uid": "3VEv-jR5D",
+		"edit-time": 1614653403727,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"uid": "03-02-2021",
+		"create-time": 1614674080554,
+		"edit-time": 1614688726456,
+		"title": "March 2nd, 2021",
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		":log/id": 1614674080552
+	},
+	{
+		"create-time": 1614674129926,
+		"title": "February 1st, 2021",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		":log/id": 1612162800000,
+		"children": [
+			{
+				"string": "{{[[TODO]]}} Have a [[meeting]] with [[John Smith]] about [[Roam Research]] on [[February 8th, 2021]]. #marketing",
+				"create-time": 1614684908258,
+				":block/refs": [
+					{
+						":block/uid": "3VEv-jR5D"
+					},
+					{
+						":block/uid": "02-08-2021"
+					},
+					{
+						":block/uid": "QjUFWtV_L"
+					},
+					{
+						":block/uid": "-oABPRAo3"
+					},
+					{
+						":block/uid": "kfTh4nRP-"
+					},
+					{
+						":block/uid": "_YkUdJrMi"
+					}
+				],
+				"refs": [
+					{
+						"uid": "3VEv-jR5D"
+					},
+					{
+						"uid": "02-08-2021"
+					},
+					{
+						"uid": "QjUFWtV_L"
+					},
+					{
+						"uid": "-oABPRAo3"
+					},
+					{
+						"uid": "kfTh4nRP-"
+					},
+					{
+						"uid": "_YkUdJrMi"
+					}
+				],
+				":create/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				},
+				"uid": "QhoXgk8VU",
+				"edit-time": 1614686446049,
+				":edit/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				}
+			}
+		],
+		"uid": "02-01-2021",
+		"edit-time": 1614674129926,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1614825940039,
+		"title": "Community Videos",
+		":create/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		},
+		"children": [
+			{
+				"string": "[Request to be featured](https://roamresearch.typeform.com/to/g5W8uCqz)",
+				"create-time": 1616602107882,
+				"heading": 3,
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"uid": "fFCOsFKfd",
+				"edit-time": 1616602109250,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				}
+			},
+			{
+				"string": "",
+				"uid": "yq90sGeoz",
+				"create-time": 1616602112298,
+				"edit-time": 1616602112298,
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				}
+			},
+			{
+				"edit-time": 1616400872245,
+				"text-align": "center",
+				"refs": [
+					{
+						"uid": "D8ld3cXC3"
+					}
+				],
+				"uid": "ELuwCmy4G",
+				":block/refs": [
+					{
+						":block/uid": "D8ld3cXC3"
+					}
+				],
+				"string": "Check out the [backlinks]([[Linked References]]) below to see all the videos our community has made!",
+				":create/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"create-time": 1614777576091,
+				":edit/user": {
+					":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+				},
+				"heading": 2
+			}
+		],
+		"uid": "3Ig0C8LkY",
+		"edit-time": 1614825940040,
+		":edit/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		}
+	},
+	{
+		"create-time": 1614682584534,
+		"title": "How to write a 21st Century Proof",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"string": "source:: https://lamport.azurewebsites.net/pubs/proof.pdf",
+				"create-time": 1617137914270,
+				":block/refs": [
+					{
+						":block/uid": "EUQ7nbjxH"
+					}
+				],
+				"refs": [
+					{
+						"uid": "EUQ7nbjxH"
+					}
+				],
+				":create/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				},
+				"uid": "9dC8ar_g1",
+				"edit-time": 1617137919515,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			},
+			{
+				"string": "",
+				"uid": "V3Jvvn_A1",
+				"create-time": 1617162377978,
+				"edit-time": 1617162377978,
+				":create/user": {
+					":user/uid": "TA5u8OWeTwRw1lcal0Jvoou6wRo1"
+				},
+				":edit/user": {
+					":user/uid": "TA5u8OWeTwRw1lcal0Jvoou6wRo1"
+				}
+			}
+		],
+		"uid": "0Fy1sEXdL",
+		"edit-time": 1614682584535,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1614684766527,
+		"title": "Welcome to Roam v2",
+		":create/user": {
+			":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+		},
+		"children": [
+			{
+				"children": [
+					{
+						"children": [
+							{
+								"children": [
+									{
+										"children": [
+											{
+												"children": [
+													{
+														"string": "This creates __children blocks__, which we can expand, collapse, and focus. ",
+														"uid": "lHUVdexI5",
+														"create-time": 1614685942970,
+														"edit-time": 1614685942970,
+														":create/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														},
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													},
+													{
+														"string": "Indenting provides structure. We can scan pages with ease and find related blocks. Try clicking the **\u1405** icon on the next block!",
+														"uid": "_QQO4smYx",
+														"edit-time": 1614688821433,
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													}
+												],
+												"string": "We create new blocks by pressing `Enter`; and nest them using `Tab` (press`Shift+Tab` to unindent)-",
+												"uid": "yfbujkSvW",
+												"edit-time": 1614685775800,
+												":edit/user": {
+													":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+												}
+											}
+										],
+										"string": "**Each bullet you see is a __block__, and we write them inside pages like this one.**",
+										"uid": "z9NzQosR2",
+										"edit-time": 1614686920222,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"heading": 3,
+								"string": "Everything is a block",
+								"uid": "4zWvHMJoa",
+								"edit-time": 1614684815182,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							},
+							{
+								"children": [
+									{
+										"children": [
+											{
+												"children": [
+													{
+														"refs": [
+															{
+																"uid": "QhoXgk8VU"
+															}
+														],
+														"string": "((QhoXgk8VU))",
+														"uid": "7QXK0fELS",
+														"edit-time": 1614686096069,
+														":block/refs": [
+															{
+																":block/uid": "QhoXgk8VU"
+															}
+														],
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													}
+												],
+												"string": "Let's say we have a meeting. In our Daily Notes, we might write",
+												"uid": "yz0aMiP1p",
+												"edit-time": 1614684815182,
+												":edit/user": {
+													":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+												}
+											},
+											{
+												"children": [
+													{
+														"string": "This automatically creates a page for each keyword--click the backlink to go the keyword's page. ",
+														"uid": "_tXBBAx0j",
+														"create-time": 1614686761349,
+														"edit-time": 1614686761349,
+														":create/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														},
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													},
+													{
+														"string": "At the bottom, you'll find instances where the page was mentioned--its __page references__.",
+														"uid": "B14zgtbBR",
+														"edit-time": 1614686761367,
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													},
+													{
+														"refs": [
+															{
+																"uid": "QjUFWtV_L"
+															},
+															{
+																"uid": "-oABPRAo3"
+															},
+															{
+																"uid": "kfTh4nRP-"
+															},
+															{
+																"uid": "_YkUdJrMi"
+															}
+														],
+														"string": "So the meeting reminder block appears on [[meeting]], [[John Smith]], [[marketing]], and [[Roam Research]]!",
+														"uid": "kIJGWjU1C",
+														"edit-time": 1614686294135,
+														":block/refs": [
+															{
+																":block/uid": "QjUFWtV_L"
+															},
+															{
+																":block/uid": "-oABPRAo3"
+															},
+															{
+																":block/uid": "kfTh4nRP-"
+															},
+															{
+																":block/uid": "_YkUdJrMi"
+															}
+														],
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													},
+													{
+														"refs": [
+															{
+																"uid": "d_lzd6U07"
+															}
+														],
+														"string": "This way, we never have to worry about which folder to file things in- just [[backlink]] as you go.",
+														"uid": "YPbo1I8Vh",
+														"edit-time": 1614684815182,
+														":block/refs": [
+															{
+																":block/uid": "d_lzd6U07"
+															}
+														],
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													}
+												],
+												"string": "Those square brackets turn text into **__backlinks__**.",
+												"uid": "tKzUls3it",
+												"edit-time": 1614686139307,
+												":edit/user": {
+													":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+												}
+											}
+										],
+										"refs": [
+											{
+												"uid": "l8uKkdhbc"
+											},
+											{
+												"uid": "vh3v5clCD"
+											}
+										],
+										"string": "**Organizing information is effortless with** [page]([[Page References]])/[block references]([[Block References]]).",
+										"uid": "POkojvMT4",
+										"edit-time": 1614764614214,
+										":block/refs": [
+											{
+												":block/uid": "l8uKkdhbc"
+											},
+											{
+												":block/uid": "vh3v5clCD"
+											}
+										],
+										":edit/user": {
+											":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+										}
+									}
+								],
+								"heading": 3,
+								"string": "Everything is where you need it to be",
+								"uid": "9UJD5m_aJ",
+								"edit-time": 1614684815182,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							},
+							{
+								"children": [
+									{
+										"children": [
+											{
+												"children": [
+													{
+														"string": "If you don't find what you're looking for, click on the Help",
+														"uid": "m5PWjudac",
+														"create-time": 1614687319014,
+														"edit-time": 1614687319014,
+														":create/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														},
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													},
+													{
+														"string": " icon in the top right of the page! If you can think it, you can do it in Roam.",
+														"uid": "bhFPuf92j",
+														"edit-time": 1614687319059,
+														":edit/user": {
+															":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+														}
+													}
+												],
+												"string": "just type `/` to bring up the inline command palette.",
+												"uid": "x82gr1Qrs",
+												"edit-time": 1614684922423,
+												":edit/user": {
+													":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+												}
+											}
+										],
+										"string": "Roam is packed with powerful features. Anytime you want to do more than type text,",
+										"uid": "oySvmYJGc",
+										"edit-time": 1614684815182,
+										":edit/user": {
+											":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+										}
+									}
+								],
+								"heading": 3,
+								"string": "Everything is a `/` away",
+								"uid": "bFgLXmyhq",
+								"edit-time": 1614685010988,
+								":edit/user": {
+									":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+								}
+							}
+						],
+						"string": "There's very little to know to start using Roam.",
+						"uid": "Peihxcfub",
+						"edit-time": 1614686812094,
+						":edit/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						}
+					}
+				],
+				"heading": 2,
+				"string": "**Quick Start**",
+				"uid": "Q7JQ6XNEl",
+				"edit-time": 1614685624045,
+				":edit/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				}
+			}
+		],
+		"uid": "-2g-Gpw5H",
+		"edit-time": 1614684766528,
+		":edit/user": {
+			":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+		}
+	},
+	{
+		"create-time": 1614685951298,
+		"title": "Unlinked References",
+		":create/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		},
+		"children": [
+			{
+				"edit-time": 1614855794739,
+				"children": [
+					{
+						"string": "{{[[video]]: https://www.youtube.com/watch?v=EXAMPLE0001}}`",
+						"create-time": 1614855778440,
+						":block/refs": [
+							{
+								":block/uid": "2h9V-FtAO"
+							}
+						],
+						"refs": [
+							{
+								"uid": "2h9V-FtAO"
+							}
+						],
+						":create/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						},
+						"uid": "HbNCB6i6K",
+						"edit-time": 1614855795844,
+						":edit/user": {
+							":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "oEhVJ0Eaw"
+					}
+				],
+				"uid": "wwJLrmSD0",
+				":block/refs": [
+					{
+						":block/uid": "oEhVJ0Eaw"
+					}
+				],
+				"string": "Roam Team Videos::",
+				":create/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				},
+				"create-time": 1614855787386,
+				":edit/user": {
+					":user/uid": "eyxGl1TJWCTcRVSJVJDyoLzWVqk2"
+				}
+			}
+		],
+		"uid": "iuHyHwocI",
+		"edit-time": 1614761949554,
+		":edit/user": {
+			":user/uid": "CHxhvJ7VwhSEeJI217QsbgO8hpu1"
+		}
+	},
+	{
+		"create-time": 1615264976761,
+		"title": "Code Block",
+		":create/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		},
+		"children": [
+			{
+				"string": "You can include code in different programming languages in Roam, for example",
+				"create-time": 1615265108334,
+				":create/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				},
+				"children": [
+					{
+						"string": "JS block",
+						"create-time": 1615266278817,
+						":create/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"children": [
+							{
+								"string": "```javascript\n<!DOCTYPE HTML>\n<html>\n\n<body>\n\n  <p>Before the script...</p>\n\n  <script>\n    alert( 'Hello, Roamans!' );\n  </script>\n\n  <p>...After the script.</p>\n\n</body>\n\n</html>```",
+								"uid": "EcjWdz7al",
+								"create-time": 1615265133238,
+								"edit-time": 1615266292355,
+								":create/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								}
+							}
+						],
+						"uid": "Z6vuUAQ0p",
+						"edit-time": 1615266282466,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						}
+					},
+					{
+						"string": "CSS block",
+						"create-time": 1615266333448,
+						":create/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"children": [
+							{
+								"string": "```css\n<style type=\"text/css\">\nh1 {\n\tcolor: DeepSkyBlue;\n}\n</style>\n\n<h1>Hello, Roamans!</h1>```",
+								"uid": "C_OmviWx9",
+								"create-time": 1615265150640,
+								"edit-time": 1615266329171,
+								":create/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								}
+							}
+						],
+						"uid": "aeMlMRHH4",
+						"edit-time": 1615266333448,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						}
+					},
+					{
+						"string": "Clojure block",
+						"create-time": 1615266340928,
+						":create/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						"children": [
+							{
+								"string": "```clojure\n(ns hello-world.core)\n\n(println \"Hello Roamans!\")```",
+								"uid": "TCmNYXLqP",
+								"create-time": 1615265168808,
+								"edit-time": 1615266340933,
+								":create/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								},
+								":edit/user": {
+									":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+								}
+							}
+						],
+						"uid": "TnmBwj9Lq",
+						"edit-time": 1615266340928,
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						}
+					}
+				],
+				"uid": "r538QvcP1",
+				"edit-time": 1615265143539,
+				":edit/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				}
+			},
+			{
+				"string": "Key Commands:",
+				"create-time": 1615265040391,
+				":create/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				},
+				"children": [
+					{
+						"string": "`/code block`",
+						"uid": "xKiHae-NV",
+						"create-time": 1615264986496,
+						"edit-time": 1615265106188,
+						":create/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						},
+						":edit/user": {
+							":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+						}
+					}
+				],
+				"uid": "NDaFKiF6M",
+				"edit-time": 1615265040391,
+				":edit/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				}
+			}
+		],
+		"uid": "Zl4MvhXnM",
+		"edit-time": 1615264976761,
+		":edit/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		}
+	},
+	{
+		"uid": "b5Vey6tkD",
+		"create-time": 1615393848237,
+		"edit-time": 1615393848237,
+		"title": "H/L Temp",
+		":create/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		},
+		":edit/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		}
+	},
+	{
+		"create-time": 1619170748327,
+		"title": "Customizable Hotkeys",
+		":create/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		},
+		"children": [
+			{
+				"string": "![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FOJFPJqjqmA.gif?alt=media&token=00000000-0000-0000-0000-000000000000)",
+				"uid": "3HccsaMof",
+				"create-time": 1619170864502,
+				"edit-time": 1619170883473,
+				":create/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				},
+				":edit/user": {
+					":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+				}
+			}
+		],
+		"uid": "ZQ8sXpP49",
+		"edit-time": 1619170748327,
+		":edit/user": {
+			":user/uid": "0srxZalJfufGq6CwC9viQbR4ctU2"
+		}
+	},
+	{
+		"create-time": 1621316233981,
+		"title": "Secret Feature",
+		":create/user": {
+			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+		},
+		"children": [
+			{
+				"edit-time": 1621468113192,
+				"children": [
+					{
+						"string": "https://twitter.com/example/status/1234567890?s=20",
+						"uid": "WDKNe8Jre",
+						"create-time": 1621468115015,
+						"edit-time": 1621468116526,
+						":create/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						},
+						":edit/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "V1RLPs0ai"
+					}
+				],
+				"uid": "lLqEokLHU",
+				":block/refs": [
+					{
+						":block/uid": "V1RLPs0ai"
+					}
+				],
+				"string": "((V1RLPs0ai))",
+				":create/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				},
+				"create-time": 1621468113192,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "EpL5GUHaa",
+		"edit-time": 1621316233994,
+		":edit/user": {
+			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+		}
+	},
+	{
+		"create-time": 1633644729897,
+		"title": "October 7th, 2021",
+		":create/user": {
+			":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+		},
+		":log/id": 1633644729897,
+		"children": [
+			{
+				"string": "{{embed: ((0yr0CgkfA))}}",
+				"create-time": 1633660041724,
+				":block/refs": [
+					{
+						":block/uid": "0yr0CgkfA"
+					}
+				],
+				"refs": [
+					{
+						"uid": "0yr0CgkfA"
+					}
+				],
+				":create/user": {
+					":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+				},
+				"uid": "83tUcSN8c",
+				"edit-time": 1633660044258,
+				":edit/user": {
+					":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+				}
+			}
+		],
+		"uid": "10-07-2021",
+		"edit-time": 1633644729897,
+		":edit/user": {
+			":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+		}
+	},
+	{
+		"create-time": 1660837435008,
+		"title": "Latex",
+		":create/user": {
+			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+		},
+		"children": [
+			{
+				"edit-time": 1660837555170,
+				"children": [
+					{
+						"string": "Any text entered with `$$double dollar signs$$` will be evaluated as latex, using [[Khan Academy]]'s katex typesetting library -- see docs for that here https://katex.org/ - particularly here https://katex.org/docs/supported.html",
+						"create-time": 1660837448847,
+						":block/refs": [
+							{
+								":block/uid": "458bFnZAJ"
+							}
+						],
+						"refs": [
+							{
+								"uid": "458bFnZAJ"
+							}
+						],
+						":create/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						},
+						"uid": "-cQEb0-o-",
+						"edit-time": 1660837656331,
+						":edit/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "IFW5SbN-Z"
+					}
+				],
+				"uid": "03bOXWwaf",
+				":block/refs": [
+					{
+						":block/uid": "IFW5SbN-Z"
+					}
+				],
+				"string": "Description::",
+				":create/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				},
+				"create-time": 1660837551617,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			},
+			{
+				"edit-time": 1660837667664,
+				"children": [
+					{
+						"string": "{{embed-path: ((UvCvJ2V3T))}}",
+						"create-time": 1660837510195,
+						":block/refs": [
+							{
+								":block/uid": "UvCvJ2V3T"
+							}
+						],
+						"refs": [
+							{
+								"uid": "UvCvJ2V3T"
+							}
+						],
+						":create/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						},
+						"uid": "id2f12lvC",
+						"edit-time": 1660837529361,
+						":edit/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "Ec97klr7x"
+					}
+				],
+				"uid": "YmFy6kNo1",
+				":block/refs": [
+					{
+						":block/uid": "Ec97klr7x"
+					}
+				],
+				"string": "[[Change Log]]",
+				":create/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				},
+				"create-time": 1660837556428,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "BsbrAE1TD",
+		"edit-time": 1660837435009,
+		":edit/user": {
+			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+		}
+	},
+	{
+		"create-time": 1676044939267,
+		"title": "February 10th, 2023",
+		":create/user": {
+			":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+		},
+		":log/id": 1676044939266,
+		"children": [
+			{
+				"edit-time": 1676091348201,
+				"children": [
+					{
+						"edit-time": 1676091779141,
+						"children": [
+							{
+								"string": "Video",
+								"create-time": 1676091991617,
+								":create/user": {
+									":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+								},
+								"children": [
+									{
+										"string": "{{[[video]]: https://www.loom.com/share/1adf78d01db9435fb69bf4249a296a66}}",
+										"create-time": 1676091994607,
+										":block/refs": [
+											{
+												":block/uid": "2h9V-FtAO"
+											}
+										],
+										"refs": [
+											{
+												"uid": "2h9V-FtAO"
+											}
+										],
+										":create/user": {
+											":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+										},
+										"uid": "jSiCIa5lc",
+										"edit-time": 1676091997769,
+										":edit/user": {
+											":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+										}
+									}
+								],
+								"uid": "2BYFmWKVk",
+								"edit-time": 1676091994615,
+								":edit/user": {
+									":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+								}
+							},
+							{
+								"string": "To use ",
+								"create-time": 1676091518962,
+								":create/user": {
+									":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+								},
+								"children": [
+									{
+										"edit-time": 1676091614947,
+										"children": [
+											{
+												"edit-time": 1676091593044,
+												"children": [
+													{
+														"string": "Congratulations! You have just created a new **Dropdown Template** ",
+														"create-time": 1676087148002,
+														":create/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														},
+														"children": [
+															{
+																"edit-time": 1676091352326,
+																"children": [
+																	{
+																		"edit-time": 1676091352326,
+																		"children": [
+																			{
+																				"edit-time": 1676091352326,
+																				"children": [
+																					{
+																						"string": "{{[[roam/render]]: ((pBiRi-Hba)) ((iYpGdGk0B))}}",
+																						"create-time": 1676086812868,
+																						":block/refs": [
+																							{
+																								":block/uid": "X7Mhc3nU8"
+																							},
+																							{
+																								":block/uid": "iYpGdGk0B"
+																							},
+																							{
+																								":block/uid": "pBiRi-Hba"
+																							}
+																						],
+																						"refs": [
+																							{
+																								"uid": "X7Mhc3nU8"
+																							},
+																							{
+																								"uid": "iYpGdGk0B"
+																							},
+																							{
+																								"uid": "pBiRi-Hba"
+																							}
+																						],
+																						":create/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						},
+																						"uid": "X_YrMsgru",
+																						"edit-time": 1676091352326,
+																						":edit/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						}
+																					}
+																				],
+																				"refs": [
+																					{
+																						"uid": "z3pJCF6p8"
+																					},
+																					{
+																						"uid": "iYpGdGk0B"
+																					},
+																					{
+																						"uid": "Hnv5nHppz"
+																					}
+																				],
+																				"uid": "ovqdW0R_j",
+																				":block/refs": [
+																					{
+																						":block/uid": "z3pJCF6p8"
+																					},
+																					{
+																						":block/uid": "iYpGdGk0B"
+																					},
+																					{
+																						":block/uid": "Hnv5nHppz"
+																					}
+																				],
+																				"string": "[[RM/Component/Select]] an item from ((iYpGdGk0B)) [[roam/templates]]",
+																				":create/user": {
+																					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																				},
+																				"create-time": 1676086812868,
+																				":edit/user": {
+																					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																				}
+																			}
+																		],
+																		"refs": [
+																			{
+																				"uid": "3VEv-jR5D"
+																			}
+																		],
+																		"uid": "WQIu_xzhu",
+																		":block/refs": [
+																			{
+																				":block/uid": "3VEv-jR5D"
+																			}
+																		],
+																		"string": "{{[[TODO]]}} Edit the block below to change the template",
+																		":create/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		},
+																		"create-time": 1676087796012,
+																		":edit/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		}
+																	},
+																	{
+																		"edit-time": 1676091352326,
+																		"children": [
+																			{
+																				"string": "Dropdown List",
+																				"create-time": 1676086812868,
+																				":create/user": {
+																					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																				},
+																				"children": [
+																					{
+																						"string": "A",
+																						"uid": "CUWBtGh8L",
+																						"create-time": 1676086812868,
+																						"edit-time": 1676091352326,
+																						":create/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						},
+																						":edit/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						}
+																					},
+																					{
+																						"string": "B",
+																						"uid": "bCP7uyrg_",
+																						"create-time": 1676086812868,
+																						"edit-time": 1676091352326,
+																						":create/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						},
+																						":edit/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						}
+																					},
+																					{
+																						"string": "C",
+																						"uid": "UeUlK2zen",
+																						"create-time": 1676086812868,
+																						"edit-time": 1676091352326,
+																						":create/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						},
+																						":edit/user": {
+																							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																						}
+																					}
+																				],
+																				"uid": "iYpGdGk0B",
+																				"edit-time": 1676091352326,
+																				":edit/user": {
+																					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																				}
+																			}
+																		],
+																		"refs": [
+																			{
+																				"uid": "3VEv-jR5D"
+																			}
+																		],
+																		"uid": "-2nNDooD3",
+																		":block/refs": [
+																			{
+																				":block/uid": "3VEv-jR5D"
+																			}
+																		],
+																		"string": "{{[[TODO]]}} Edit these blocks to change the items visible in the dropdown",
+																		":create/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		},
+																		"create-time": 1676087171774,
+																		":edit/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		}
+																	}
+																],
+																"refs": [
+																	{
+																		"uid": "KnkoPsb5q"
+																	},
+																	{
+																		"uid": "Zgt9SeZ3m"
+																	}
+																],
+																"uid": "B7Jge32Sb",
+																":block/refs": [
+																	{
+																		":block/uid": "KnkoPsb5q"
+																	},
+																	{
+																		":block/uid": "Zgt9SeZ3m"
+																	}
+																],
+																"string": "#.rm-g  #.rm-h ",
+																":create/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																},
+																"create-time": 1676087475491,
+																":edit/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																}
+															}
+														],
+														"uid": "Vz92zEmtp",
+														"edit-time": 1676091352326,
+														":edit/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														}
+													},
+													{
+														"edit-time": 1676091352326,
+														"children": [
+															{
+																"string": "{{[[TODO]]}} type `;;`   ",
+																"create-time": 1676088386577,
+																":block/refs": [
+																	{
+																		":block/uid": "3VEv-jR5D"
+																	}
+																],
+																"refs": [
+																	{
+																		"uid": "3VEv-jR5D"
+																	}
+																],
+																":create/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																},
+																"uid": "N27wWB4pZ",
+																"edit-time": 1676091352326,
+																":edit/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																}
+															},
+															{
+																"string": "{{[[TODO]]}} search for the label you've given it here [->](((ovqdW0R_j))) ",
+																"create-time": 1676088213042,
+																":block/refs": [
+																	{
+																		":block/uid": "3VEv-jR5D"
+																	},
+																	{
+																		":block/uid": "ovqdW0R_j"
+																	}
+																],
+																"refs": [
+																	{
+																		"uid": "3VEv-jR5D"
+																	},
+																	{
+																		"uid": "ovqdW0R_j"
+																	}
+																],
+																":create/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																},
+																"uid": "nknH6ltF_",
+																"edit-time": 1676091352326,
+																":edit/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																}
+															},
+															{
+																"string": " This will produce a custom Select Component like this one ",
+																"create-time": 1676088949072,
+																":create/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																},
+																"children": [
+																	{
+																		"string": "{{[[roam/render]]: ((pBiRi-Hba)) ((iYpGdGk0B))}} ",
+																		"create-time": 1676088944529,
+																		":block/refs": [
+																			{
+																				":block/uid": "X7Mhc3nU8"
+																			},
+																			{
+																				":block/uid": "iYpGdGk0B"
+																			},
+																			{
+																				":block/uid": "pBiRi-Hba"
+																			}
+																		],
+																		"refs": [
+																			{
+																				"uid": "X7Mhc3nU8"
+																			},
+																			{
+																				"uid": "iYpGdGk0B"
+																			},
+																			{
+																				"uid": "pBiRi-Hba"
+																			}
+																		],
+																		":create/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		},
+																		"uid": "NdUOgtsVv",
+																		"edit-time": 1676091352326,
+																		":edit/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		}
+																	},
+																	{
+																		"string": "built off this  ((iYpGdGk0B))",
+																		"create-time": 1676088417860,
+																		":block/refs": [
+																			{
+																				":block/uid": "iYpGdGk0B"
+																			}
+																		],
+																		"refs": [
+																			{
+																				"uid": "iYpGdGk0B"
+																			}
+																		],
+																		":create/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		},
+																		"uid": "6im_PKGjJ",
+																		"edit-time": 1676091352326,
+																		":edit/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		}
+																	}
+																],
+																"uid": "GjY1jlj60",
+																"edit-time": 1676091352326,
+																":edit/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																}
+															}
+														],
+														"refs": [
+															{
+																"uid": "3VEv-jR5D"
+															},
+															{
+																"uid": "X9D3IPXkB"
+															}
+														],
+														"uid": "n6C56ATMq",
+														":block/refs": [
+															{
+																":block/uid": "3VEv-jR5D"
+															},
+															{
+																":block/uid": "X9D3IPXkB"
+															}
+														],
+														"string": "{{[[TODO]]}}  Apply the template #.rm-E ",
+														":create/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														},
+														"create-time": 1676088433574,
+														":edit/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														}
+													},
+													{
+														"edit-time": 1676091352326,
+														"children": [
+															{
+																"edit-time": 1676091352326,
+																"children": [
+																	{
+																		"string": "```clojure\n(ns niki.dropdown\n  (:require\n    [clojure.string :as str]\n    [roam.block :as block]\n    [roam.datascript.reactive :as dr]))\n\n(defn replace-with-block-ref [block-uid opts-uid ref-uid]\n  (let [before (->> [:block/uid block-uid]\n                 (dr/pull [:block/string])\n                 (deref)\n                 :block/string)\n        pattern (re-pattern\n                  (str\n                    \"\\\\{\\\\{\"\n                    \"(?:\\\\[\\\\[)?roam/render(?:\\\\]\\\\])?:\" ;; [[roam/render]]\n                    \"\\\\s*\"\n                    \"\\\\(\\\\(([a-zA-Z0-9-]+)\\\\)\\\\)\"        ;; render code block\n                    \"\\\\s*\"\n                    \"\\\\(\\\\((\" opts-uid \")\\\\)\\\\)\"         ;; options block\n                    \"\\\\s*\"\n                    \"(\\\\(\\\\(([a-zA-Z0-9-]+)\\\\)\\\\))?\"     ;; selected block\n                    \"\\\\}\\\\}\"))\n        after   (str/replace before pattern\n                  (str \"{{[[roam/render]]: (($1)) (($2)) ((\" ref-uid \"))}}\"))]\n    (block/update\n      {:block\n       {:uid block-uid \n        :string after}})))\n\n(defn view-children-clickable [block-uid opts-uid selected-uid]\n  (let [children (->> [:block/uid opts-uid]\n                   (dr/pull [{:block/children [:block/uid :block/string]}])\n                   deref\n                   :block/children)]\n    [:select {:id opts-uid\n              :on-change #(replace-with-block-ref block-uid opts-uid (-> % .-target .-value))}\n     (for [c children]\n       [:option\n        {:value    (:block/uid c)\n         :selected (= (:block/uid c) selected-uid)\n         :on-change #(replace-with-block-ref (:block/string c))}\n        (:block/string c)])]))\n\n(defn main [{:keys [block-uid]} [_ opts-uid] & [[_ selected-uid]]]\n  [view-children-clickable block-uid opts-uid selected-uid])```",
+																		"uid": "pBiRi-Hba",
+																		"create-time": 1676086812868,
+																		"edit-time": 1676091352326,
+																		":create/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		},
+																		":edit/user": {
+																			":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																		}
+																	}
+																],
+																"refs": [
+																	{
+																		"uid": "pBiRi-Hba"
+																	}
+																],
+																"uid": "AxL8QTvQj",
+																":block/refs": [
+																	{
+																		":block/uid": "pBiRi-Hba"
+																	}
+																],
+																"string": "If you'd like to edit the code for the template - you can edit it [here](((pBiRi-Hba)))",
+																":create/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																},
+																"create-time": 1676088659738,
+																":edit/user": {
+																	":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+																}
+															}
+														],
+														"refs": [
+															{
+																"uid": "X7Mhc3nU8"
+															}
+														],
+														"uid": "guQKy7zZd",
+														":block/refs": [
+															{
+																":block/uid": "X7Mhc3nU8"
+															}
+														],
+														"string": "This component is an experiment, and was built paritally as a demo of what you can do with  [[roam/render]] - a feature of roam that allows you to build interactive components out of code blocks written __inside__ your roam graph and referenced by the component in this format `{{[[roam/render]]: ((id for the code block goes here)) }}` ",
+														":create/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														},
+														"create-time": 1676088878419,
+														":edit/user": {
+															":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+														}
+													}
+												],
+												"refs": [
+													{
+														"uid": "z3pJCF6p8"
+													},
+													{
+														"uid": "qkCWWggiH"
+													}
+												],
+												"uid": "Gr4pFT8M6",
+												":block/refs": [
+													{
+														":block/uid": "z3pJCF6p8"
+													},
+													{
+														":block/uid": "qkCWWggiH"
+													}
+												],
+												"string": "Conor's [[Factory Template]] for creating Option Dropdowns based on block refences  #[[roam/templates]]",
+												":create/user": {
+													":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+												},
+												"create-time": 1676087030896,
+												":edit/user": {
+													":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+												},
+												"heading": 2
+											}
+										],
+										"refs": [
+											{
+												"uid": "3VEv-jR5D"
+											},
+											{
+												"uid": "6r5zpRAp5"
+											}
+										],
+										"uid": "bOciISUpS",
+										":block/refs": [
+											{
+												":block/uid": "3VEv-jR5D"
+											},
+											{
+												":block/uid": "6r5zpRAp5"
+											}
+										],
+										"string": "{{[[TODO]]}} copy this block into your graph #.bp3-card",
+										":create/user": {
+											":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+										},
+										"create-time": 1676091498925,
+										":edit/user": {
+											":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+										}
+									}
+								],
+								"uid": "0Y6DLgzEE",
+								"edit-time": 1676091518962,
+								":edit/user": {
+									":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+								}
+							}
+						],
+						"refs": [
+							{
+								"uid": "X7Mhc3nU8"
+							},
+							{
+								"uid": "z3pJCF6p8"
+							},
+							{
+								"uid": "fsPJ2C4FF"
+							},
+							{
+								"uid": "qD_3Rh4ta"
+							}
+						],
+						"uid": "sxpAZBmCq",
+						":block/refs": [
+							{
+								":block/uid": "X7Mhc3nU8"
+							},
+							{
+								":block/uid": "z3pJCF6p8"
+							},
+							{
+								":block/uid": "fsPJ2C4FF"
+							},
+							{
+								":block/uid": "qD_3Rh4ta"
+							}
+						],
+						"string": "{{[[DONE]]}} [[Experiment]] - Demo how it was possible to use the combination of [[roam/render]] and [[roam/templates]] to create a **factory template** the creates customizable dropdowns which add block-refs to a selected item from a particular list.",
+						":create/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						},
+						"create-time": 1676091355854,
+						":edit/user": {
+							":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+						}
+					}
+				],
+				"refs": [
+					{
+						"uid": "uKZH_pceV"
+					}
+				],
+				"uid": "hGrw_cwmZ",
+				":block/refs": [
+					{
+						":block/uid": "uKZH_pceV"
+					}
+				],
+				"string": "[[Project: 30 Demos in 6 Weeks]]",
+				":create/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				},
+				"create-time": 1676091334695,
+				":edit/user": {
+					":user/uid": "BVbsWigfZ4YniEIvPnEMBwqbiSA2"
+				}
+			}
+		],
+		"uid": "02-10-2023",
+		"edit-time": 1676044939267,
+		":edit/user": {
+			":user/uid": "dkrWimjDPURurZhoRjXsD9Wwebg1"
+		}
+	}
+]

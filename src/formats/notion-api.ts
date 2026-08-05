@@ -17,7 +17,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
 // Notion API parent types (based on @notionhq/client internal types)
@@ -71,7 +71,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private relationPlaceholders: RelationPlaceholder[] = [];
 	// Progress counters: separate tracking for pages and attachments
 	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
-	private attachmentsDownloaded: number = 0;
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
@@ -98,7 +97,12 @@ export class NotionAPIImporter extends FormatImporter {
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
 		// List pages and toggle selection buttons
-		const listPagesSetting = new Setting(this.modal.contentEl)
+		// Everything below is the tree the user picks pages from. An import
+		// driven without a dialog sets what it wants directly.
+		const contentEl = this.host.contentEl;
+		if (!contentEl) return;
+
+		const listPagesSetting = new Setting(contentEl)
 			.setName('Select pages to import')
 			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
 
@@ -154,7 +158,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const importSection = this.modal.contentEl.createDiv();
+		const importSection = contentEl.createDiv();
 		importSection.addClass('import-section', 'file-tree', 'publish-section');
 
 		// Create the change list container
@@ -164,8 +168,8 @@ export class NotionAPIImporter extends FormatImporter {
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Incremental import setting
-		new Setting(this.modal.contentEl)
-			.setName('Incremental import')
+		this.addSetting()
+			?.setName('Incremental import')
 			.setDesc('Adds a notion-id property to pages so that future imports can skip pages that have already been imported.')
 			.addToggle(toggle => toggle
 				.setValue(false) // Default to disabled
@@ -174,8 +178,8 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 
 		// Formula import strategy
-		new Setting(this.modal.contentEl)
-			.setName('Convert formulas')
+		this.addSetting()
+			?.setName('Convert formulas')
 			.setDesc(this.createFormulaStrategyDescription())
 			.addDropdown(dropdown => {
 				dropdown
@@ -188,8 +192,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Download external attachments option
-		new Setting(this.modal.contentEl)
-			.setName('Download external attachments')
+		this.addSetting()
+			?.setName('Download external attachments')
 			.setDesc(this.createAttachmentDescription())
 			.addToggle(toggle => {
 				toggle
@@ -200,8 +204,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Single line breaks option
-		new Setting(this.modal.contentEl)
-			.setName('Single line breaks')
+		this.addSetting()
+			?.setName('Single line breaks')
 			.setDesc('Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.')
 			.addToggle(toggle => {
 				toggle
@@ -212,8 +216,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Cover property name
-		new Setting(this.modal.contentEl)
-			.setName('Cover property name')
+		this.addSetting()
+			?.setName('Cover property name')
 			.setDesc(this.createCoverPropertyDescription())
 			.addText(text => text
 				.setPlaceholder('cover')
@@ -223,8 +227,8 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 
 		// Database property name
-		new Setting(this.modal.contentEl)
-			.setName('Database property name')
+		this.addSetting()
+			?.setName('Database property name')
 			.setDesc('Property name in page frontmatter to link pages to their database .base file (default: "base")')
 			.addText(text => text
 				.setPlaceholder('base')
@@ -272,7 +276,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private initializeNotionClient(): void {
 		this.notionClient = new Client({
 			auth: this.notionToken,
-			notionVersion: '2025-09-03',
+			notionVersion: NOTION_VERSION,
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
 
@@ -600,7 +604,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderPageTree(): void {
 		// Try to get container reference if lost
 		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list');
+			this.pageTreeContainer = this.host.contentEl?.querySelector('.publish-change-list') ?? null;
 		}
 
 		if (!this.pageTreeContainer) {
@@ -941,7 +945,6 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
 			this.processedPagesCount = 0;
-			this.attachmentsDownloaded = 0;
 
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
 			ctx.status(`Preparing to import ${this.totalNodesToImport} item(s)...`);
@@ -1211,11 +1214,7 @@ export class NotionAPIImporter extends FormatImporter {
 					await this.fetchAndImportPage({ ctx, pageId: childPageId, parentPath });
 				},
 				// Callback when an attachment is downloaded
-				onAttachmentDownloaded: () => {
-					this.attachmentsDownloaded++;
-					ctx.attachments = this.attachmentsDownloaded;
-					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-				},
+				onAttachmentDownloaded: (filename: string) => ctx.reportAttachmentSuccess(filename),
 				// Function to get available attachment path using FormatImporter's method
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
@@ -1279,10 +1278,7 @@ export class NotionAPIImporter extends FormatImporter {
 				currentFolderPath: pageFolderPath,
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				incrementalImport: this.incrementalImport,
-				onAttachmentDownloaded: () => {
-					this.attachmentsDownloaded++;
-					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-				},
+				onAttachmentDownloaded: (filename: string) => ctx.reportAttachmentSuccess(filename),
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
 					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
@@ -1332,9 +1328,7 @@ export class NotionAPIImporter extends FormatImporter {
 					// Cover images should always be downloaded locally
 					if (result.isLocal && result.filename) {
 						// Report progress for cover image download
-						this.attachmentsDownloaded++;
-						ctx.attachments = this.attachmentsDownloaded;
-						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+						ctx.reportAttachmentSuccess(result.filename);
 
 						// Extract extension from filename
 						const ext = result.filename.substring(result.filename.lastIndexOf('.'));

@@ -306,7 +306,7 @@ export interface ExtractFrontMatterParams {
 	currentFolderPath?: string;
 	downloadExternalAttachments?: boolean;
 	incrementalImport?: boolean;
-	onAttachmentDownloaded?: () => void;
+	onAttachmentDownloaded?: (filename: string) => void;
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 }
 

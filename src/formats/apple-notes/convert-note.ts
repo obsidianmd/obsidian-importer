@@ -1,7 +1,7 @@
-import { AppleNotesImporter } from '../apple-notes';
 import { ScanConverter } from './convert-scan';
 import { TableConverter } from './convert-table';
 import {
+	ANContext,
 	ANAlignment,
 	ANAttachment,
 	ANAttributeRun,
@@ -31,11 +31,13 @@ export class NoteConverter extends ANConverter {
 	listNumber = 0;
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
+	/** The alignment of the block being written, if one is open. */
+	alignment: ANAlignment | undefined;
 
 	static protobufType = 'ciofecaforensics.Document';
 
-	constructor(importer: AppleNotesImporter, document: ANDocument | ANTableObject) {
-		super(importer);
+	constructor(ctx: ANContext, document: ANDocument | ANTableObject) {
+		super(ctx);
 		this.note = document.note;
 	}
 
@@ -78,7 +80,7 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		let firstLineSkip = !table && this.importer.omitFirstLine && this.note.noteText.contains('\n');
+		let firstLineSkip = !table && this.ctx.omitFirstLine && this.note.noteText.contains('\n');
 		let converted = '';
 
 		for (let j = 0; j < fragments.length; j++) {
@@ -142,8 +144,12 @@ export class NoteConverter extends ANConverter {
 				break;
 
 			case ANMultiRun.Alignment:
-				if (!attr.paragraphStyle?.alignment) {
+				// A different alignment needs a block of its own. Only checking
+				// for the absence of one left a right-aligned paragraph inside
+				// the centred block before it.
+				if (attr.paragraphStyle?.alignment !== this.alignment) {
 					this.multiRun = ANMultiRun.None;
+					this.alignment = undefined;
 					prefix += '</p>\n';
 				}
 				break;
@@ -163,7 +169,8 @@ export class NoteConverter extends ANConverter {
 			}
 			else if (attr.paragraphStyle?.alignment) {
 				this.multiRun = ANMultiRun.Alignment;
-				const val = this.convertAlign(attr?.paragraphStyle?.alignment);
+				this.alignment = attr.paragraphStyle.alignment;
+				const val = this.convertAlign(attr.paragraphStyle.alignment);
 				prefix += `\n<p style="text-align:${val};margin:0">`;
 			}
 		}
@@ -306,47 +313,47 @@ export class NoteConverter extends ANConverter {
 		switch (attr.attachmentInfo?.typeUti) {
 			case ANAttachment.Hashtag:
 			case ANAttachment.Mention:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT zalttext FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				return row.ZALTTEXT;
 
 			case ANAttachment.InternalLink:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT ztokencontentidentifier FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				return await this.getInternalLink(row.ZTOKENCONTENTIDENTIFIER, undefined, parentNotePath);
 
 			case ANAttachment.Table:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
-				converter = this.importer.decodeData(row.zhexdata, TableConverter);
+				converter = this.ctx.decodeData(row.zhexdata, TableConverter);
 				return await converter.format();
 
 			case ANAttachment.UrlCard:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT ztitle, zurlstring FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
 				return `[**${row.ZTITLE}**](${row.ZURLSTRING})`;
 
 			case ANAttachment.Scan:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT hex(zmergeabledata1) as zhexdata FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
 
-				converter = this.importer.decodeData(row.zhexdata, ScanConverter);
+				converter = this.ctx.decodeData(row.zhexdata, ScanConverter);
 				return await converter.format(false, parentNotePath);
 
 			case ANAttachment.ModifiedScan:
 			case ANAttachment.DrawingLegacy:
 			case ANAttachment.DrawingLegacy2:
 			case ANAttachment.Drawing:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT z_pk, zhandwritingsummary 
 					FROM (SELECT *, NULL AS zhandwritingsummary FROM ziccloudsyncingobject) 
 					WHERE zidentifier = ${attr.attachmentInfo.attachmentIdentifier}`;
@@ -357,7 +364,7 @@ export class NoteConverter extends ANConverter {
 			// Actual file on disk (eg image, audio, video, pdf, vcard)
 			// Hundreds of different utis so not in the enum
 			default:
-				row = await this.importer.database.get`
+				row = await this.ctx.database.get`
 					SELECT zmedia FROM ziccloudsyncingobject 
 					WHERE zidentifier = ${attr.attachmentInfo?.attachmentIdentifier}`;
 
@@ -370,12 +377,12 @@ export class NoteConverter extends ANConverter {
 			return ` **(unknown attachment: ${attr.attachmentInfo?.typeUti})** `;
 		}
 
-		const attachment = await this.importer.resolveAttachment(id, attr.attachmentInfo!.typeUti);
+		const attachment = await this.ctx.resolveAttachment(id, attr.attachmentInfo!.typeUti);
 		let link = attachment
-			? `\n!${this.app.fileManager.generateMarkdownLink(attachment, parentNotePath)}\n` 
+			? `\n!${this.ctx.linkTo(attachment, parentNotePath)}\n` 
 			: ` **(error reading attachment)**`;
 		
-		if (this.importer.includeHandwriting && row.ZHANDWRITINGSUMMARY) {
+		if (this.ctx.includeHandwriting && row.ZHANDWRITINGSUMMARY) {
 			link = `\n> [!Handwriting]-\n> ${row.ZHANDWRITINGSUMMARY.replace('\n', '\n> ')}${link}`;
 		}
 		
@@ -385,16 +392,14 @@ export class NoteConverter extends ANConverter {
 	async getInternalLink(uri: string, name: string | undefined = undefined, parentNotePath = ''): Promise<string> {
 		const identifier = uri.match(NOTE_URI)![1];
 
-		const row = await this.importer.database.get`
+		const row = await this.ctx.database.get`
 			SELECT z_pk FROM ziccloudsyncingobject 
 			WHERE zidentifier = ${identifier.toUpperCase()}`;
 
-		let file = await this.importer.resolveNote(row.Z_PK);
+		let file = await this.ctx.resolveNote(row.Z_PK);
 		if (!file) return '(unknown file link)';
 
-		return this.app.fileManager.generateMarkdownLink(
-			file, parentNotePath, undefined, name
-		);
+		return this.ctx.linkTo(file, parentNotePath, undefined, name);
 	}
 
 	convertColor(color: ANColor): string {

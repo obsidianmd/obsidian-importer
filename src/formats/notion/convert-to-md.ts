@@ -20,8 +20,17 @@ import {
 } from './notion-utils';
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
-	const text = await file.readText();
+	return convertHtmlToMarkdown(info, await file.readText());
+}
 
+/**
+ * Convert one exported Notion page.
+ *
+ * Split from readToMarkdown so the conversion can be driven from the page's
+ * HTML rather than from a zip entry - which is what lets it be tested, and
+ * what lets a single page from a user's export be run on its own.
+ */
+export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): string {
 	const dom = parseHTML(text);
 	// read the files etc.
 	const body = dom.find('div[class=page-body]');
@@ -478,7 +487,10 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 
 
 function getTOCIndent(tocItem: Element | null): number {
-	return Number(tocItem?.classList[1].slice(-1) ?? -1);
+	// The indent is the last character of the second class. An item with only
+	// one class has no indent to read, and used to throw here rather than fall
+	// back to -1 like a missing item does.
+	return Number(tocItem?.classList?.[1]?.slice(-1) ?? -1);
 }
 
 /**

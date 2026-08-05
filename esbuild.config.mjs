@@ -67,9 +67,12 @@ function vaultName() {
 // Ask Obsidian to hot-reload the plugin, so changes appear without a manual
 // toggle. Requires the `obsidian` CLI on PATH; silently skipped if absent.
 function reloadPlugin() {
-	const args = ["plugin:reload", `id=${PLUGIN_ID}`];
+	// vault= has to come before the command, or the CLI reloads whichever vault
+	// happens to be focused - which may not be the one just copied into
 	const vault = vaultName();
-	if (vault) args.push(`vault=${vault}`);
+	const args = vault
+		? [`vault=${vault}`, "plugin:reload", `id=${PLUGIN_ID}`]
+		: ["plugin:reload", `id=${PLUGIN_ID}`];
 	execFile("obsidian", args, (err, stdout) => {
 		if (err) console.warn(`Skipped plugin reload: ${err.message}`);
 		else console.log((stdout || "").trim() || `Reloaded: ${PLUGIN_ID}`);

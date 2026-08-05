@@ -11,8 +11,8 @@
 			<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
 			<en-note>
 			<ol>
-			<li><a style="color:#69aa35;" href="evernote:///view/16093948/s150/3d497667-de57-4f68-bcd8-91ed8e9cd0bd/3d497667-de57-4f68-bcd8-91ed8e9cd0bd/">Untitled</a></li>
-			<li><a style="color:#69aa35;" href="evernote:///view/16093948/s150/17d2af37-5200-46c8-a672-417bf4d42da0/17d2af37-5200-46c8-a672-417bf4d42da0/">Note in Notebook B</a></li>
+			<li><a style="color:#69aa35;" href="evernote:///view/10000000/s150/3d497667-de57-4f68-bcd8-91ed8e9cd0bd/3d497667-de57-4f68-bcd8-91ed8e9cd0bd/">Untitled</a></li>
+			<li><a style="color:#69aa35;" href="evernote:///view/10000000/s150/17d2af37-5200-46c8-a672-417bf4d42da0/17d2af37-5200-46c8-a672-417bf4d42da0/">Note in Notebook B</a></li>
 			</ol>
 			</en-note>
 			]]>
@@ -34,7 +34,7 @@
 				126.2247619628906
 			</altitude>
 			<author>
-				akos
+				example
 			</author>
 			<source>
 				desktop.mac
@@ -49,7 +49,7 @@
 			Note in Notebook B
 		</title>
 		<content>
-			<![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Reference to <a href="evernote:///view/16093948/s150/914ba57d-d5e6-4ef5-ba5b-b9134529c188/914ba57d-d5e6-4ef5-ba5b-b9134529c188/" style="color: rgb(105, 170, 53);">Note in Notebook A</a></div></en-note>]]>
+			<![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Reference to <a href="evernote:///view/10000000/s150/914ba57d-d5e6-4ef5-ba5b-b9134529c188/914ba57d-d5e6-4ef5-ba5b-b9134529c188/" style="color: rgb(105, 170, 53);">Note in Notebook A</a></div></en-note>]]>
 		</content>
 		<created>
 			20210828T221001Z
@@ -68,7 +68,7 @@
 				129.9622802734375
 			</altitude>
 			<author>
-				akos
+				example
 			</author>
 			<source>
 				desktop.mac
@@ -102,7 +102,7 @@
 				128.4759216308594
 			</altitude>
 			<author>
-				akos
+				example
 			</author>
 			<source>
 				desktop.mac

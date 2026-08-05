@@ -1,5 +1,6 @@
-import { App, Modal, Notice, ObsidianProtocolData, Plugin, Setting } from 'obsidian';
-import { FormatImporter } from './format-importer';
+import { App, Modal, Notice, ObsidianProtocolData, Platform, Plugin, Setting } from 'obsidian';
+import { FormatImporter, ImporterHost } from './format-importer';
+import { NodePickedFile } from './filesystem';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
@@ -28,7 +29,7 @@ interface ImporterDefinition {
 	optionText: string;
 	helpPermalink?: string;
 	formatDescription?: string;
-	importer: new (app: App, modal: ImporterModal) => FormatImporter;
+	importer: new (app: App, host: ImporterHost) => FormatImporter;
 }
 
 
@@ -72,6 +73,14 @@ function describeReason(reason: unknown): string {
 	}
 }
 
+/**
+ * What an import reports as it runs: what it wrote, what it skipped, and how
+ * far along it is.
+ *
+ * This holds the counts and nothing else. Showing them is ImportProgressUI's,
+ * which is what the dialog uses - an import driven from a script or a test
+ * reports into this and draws nothing.
+ */
 export class ImportContext {
 	notes = 0;
 	attachments = 0;
@@ -82,6 +91,98 @@ export class ImportContext {
 
 	cancelled: boolean = false;
 
+	/**
+	 * Sets the current user visible in-progress task. The purpose is to tell the user that something is happening,
+	 * and makes it easy to tell if something got stuck.
+	 *
+	 * Try to keep the message short, since longer ones will get truncated based on font and space availability.
+	 * @param message
+	 */
+	status(message: string) {
+		this.statusMessage = message;
+		this.onStatus(message);
+	}
+
+	/**
+	 * Report that a note has been successfully imported.
+	 * @param name
+	 */
+	reportNoteSuccess(name: string) {
+		this.notes++;
+		this.onNoteSuccess(name);
+	}
+
+	/**
+	 * Report that an attachment has been successfully imported.
+	 * @param name
+	 */
+	reportAttachmentSuccess(name: string) {
+		this.attachments++;
+		this.onAttachmentSuccess(name);
+	}
+
+	/**
+	 * Report that something has been skipped and ignored.
+	 * If the skipping action is on purpose and expected for the import, then prefer not to report it
+	 * (for example, some tools export to a Note.json and a Note.html, and we only use one of them).
+	 * @param name
+	 * @param reason
+	 */
+	reportSkipped(name: string, reason?: unknown) {
+		this.skipped.push(name);
+		this.onSkipped(name, reason);
+	}
+
+	/**
+	 * Report that something has failed to import.
+	 * @param name
+	 * @param reason
+	 */
+	reportFailed(name: string, reason?: unknown) {
+		this.failed.push(name);
+		console.error('Import failed', name, reason);
+		this.onFailed(name, reason);
+	}
+
+	/**
+	 * Report the current progress. This will update the progress bar as well as changing
+	 * the "imported" and "remaining" numbers on the UI.
+	 * @param current
+	 * @param total
+	 */
+	reportProgress(current: number, total: number) {
+		if (total <= 0) return;
+		this.onProgress(current, total);
+	}
+
+	cancel() {
+		this.cancelled = true;
+		this.hideStatus();
+	}
+
+	hideStatus() {
+		this.onHideStatus();
+	}
+
+	/**
+	 * Check if the user has cancelled this run.
+	 */
+	isCancelled() {
+		return this.cancelled;
+	}
+
+	/* Where a subclass draws what the import is doing. Nothing here does. */
+	protected onStatus(message: string): void {}
+	protected onNoteSuccess(name: string): void {}
+	protected onAttachmentSuccess(name: string): void {}
+	protected onSkipped(name: string, reason?: unknown): void {}
+	protected onFailed(name: string, reason?: unknown): void {}
+	protected onProgress(current: number, total: number): void {}
+	protected onHideStatus(): void {}
+}
+
+/** An import reporting into the dialog. */
+export class ImportProgressUI extends ImportContext {
 	el: HTMLElement;
 	progressBarEl: HTMLElement;
 	progressBarInnerEl: HTMLElement;
@@ -94,6 +195,7 @@ export class ImportContext {
 	importLogEl: HTMLElement;
 
 	constructor(el: HTMLElement) {
+		super();
 		this.el = el;
 		this.createProgressUI(el);
 	}
@@ -139,107 +241,49 @@ export class ImportContext {
 		this.importLogEl.hide();
 	}
 
-	/**
-	 * Sets the current user visible in-progress task. The purpose is to tell the user that something is happening,
-	 * and makes it easy to tell if something got stuck.
-	 *
-	 * Try to keep the message short, since longer ones will get truncated based on font and space availability.
-	 * @param message
-	 */
-	status(message: string) {
-		this.statusMessage = message;
+	protected onStatus(message: string): void {
 		this.statusEl.setText(message.trim() + '...');
 	}
 
-	/**
-	 * Report that a note has been successfully imported.
-	 * @param name
-	 */
-	reportNoteSuccess(name: string) {
-		this.notes++;
+	protected onNoteSuccess(): void {
 		this.importedCountEl.setText(this.notes.toString());
 	}
 
-	/**
-	 * Report that an attachment has been successfully imported.
-	 * @param name
-	 */
-	reportAttachmentSuccess(name: string) {
-		this.attachments++;
+	protected onAttachmentSuccess(): void {
 		this.attachmentCountEl.setText(this.attachments.toString());
 	}
 
-	/**
-	 * Report that something has been skipped and ignored.
-	 * If the skipping action is on purpose and expected for the import, then prefer not to report it
-	 * (for example, some tools export to a Note.json and a Note.html, and we only use one of them).
-	 * @param name
-	 * @param reason
-	 */
-	reportSkipped(name: string, reason?: unknown) {
-		let { importLogEl } = this;
-		this.skipped.push(name);
+	protected onSkipped(name: string, reason?: unknown): void {
 		this.skippedCountEl.setText(this.skipped.length.toString());
-
-
-		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'importer-error', text: 'Skipped: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
-		});
-		importLogEl.scrollTop = importLogEl.scrollHeight;
-		importLogEl.show();
+		this.log('Skipped: ', name, reason);
 	}
 
-	/**
-	 * Report that something has failed to import.
-	 * @param name
-	 * @param reason
-	 */
-	reportFailed(name: string, reason?: unknown) {
-		let { importLogEl } = this;
-
-		this.failed.push(name);
+	protected onFailed(name: string, reason?: unknown): void {
 		this.failedCountEl.setText(this.failed.length.toString());
-
-		console.error('Import failed', name, reason);
-
-		this.importLogEl.createDiv('list-item', el => {
-			el.createSpan({ cls: 'importer-error', text: 'Failed: ' });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
-		});
-		importLogEl.scrollTop = importLogEl.scrollHeight;
-		importLogEl.show();
+		this.log('Failed: ', name, reason);
 	}
 
-	/**
-	 * Report the current progress. This will update the progress bar as well as changing
-	 * the "imported" and "remaining" numbers on the UI.
-	 * @param current
-	 * @param total
-	 */
-	reportProgress(current: number, total: number) {
-		if (total <= 0) return;
+	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
 		this.importedCountEl.setText(current.toString());
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
-	cancel() {
-		this.cancelled = true;
+	protected onHideStatus(): void {
 		this.progressBarEl.hide();
 		this.statusEl.hide();
 	}
 
-	hideStatus() {
-		this.progressBarEl.hide();
-		this.statusEl.hide();
-	}
+	private log(prefix: string, name: string, reason?: unknown): void {
+		const { importLogEl } = this;
 
-	/**
-	 * Check if the user has cancelled this run.
-	 */
-	isCancelled() {
-		return this.cancelled;
+		importLogEl.createDiv('list-item', el => {
+			el.createSpan({ cls: 'importer-error', text: prefix });
+			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
+		});
+
+		importLogEl.scrollTop = importLogEl.scrollHeight;
+		importLogEl.show();
 	}
 }
 
@@ -421,13 +465,76 @@ export default class ImporterPlugin extends Plugin {
 	public registerAuthCallback(callback: AuthCallback): void {
 		this.authCallback = callback;
 	}
+
+	/**
+	 * Run an import without the dialog, from a script or a test.
+	 *
+	 * The dialog is what usually gathers this: which format, which files, where
+	 * they go, and the settings in between. Here the caller says so directly -
+	 * `configure` receives the importer with its defaults in place, and
+	 * whatever it sets is what the import runs with.
+	 *
+	 * Desktop only: the files are read from paths.
+	 */
+	public async runImport(
+		importerId: string,
+		filepaths: string[],
+		outputLocation: string,
+		configure?: (importer: FormatImporter) => void
+	): Promise<ImportContext> {
+		if (!Platform.isDesktopApp) {
+			throw new Error('An import driven by a script reads files from disk, which needs the desktop app.');
+		}
+
+		const definition = this.importers[importerId];
+		if (!definition) {
+			throw new Error(`No importer called "${importerId}". One of: ${Object.keys(this.importers).join(', ')}`);
+		}
+
+		const host: ImporterHost = {
+			contentEl: null,
+			plugin: this,
+			importerId,
+			abortController: new AbortController(),
+		};
+
+		const importer = new definition.importer(this.app, host);
+
+		// Whatever init() started - a credential, a restored session - has to
+		// have arrived before the import reads it
+		await importer.ready;
+
+		if (importer.notAvailable) {
+			throw new Error(`The ${definition.name} importer is not available here.`);
+		}
+
+		// The dialog gathers this from a second screen, which a script has no
+		// way to answer, so an importer that needs one cannot run headless yet
+		if (importer.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration) {
+			throw new Error(`The ${definition.name} importer is configured on a second screen, which an import without the dialog cannot show yet.`);
+		}
+
+		importer.files = filepaths.map(filepath => new NodePickedFile(filepath));
+		importer.outputLocation = outputLocation;
+		configure?.(importer);
+
+		const ctx = new ImportContext();
+		await importer.import(ctx);
+		return ctx;
+	}
 }
 
-export class ImporterModal extends Modal {
+/** The dialog is one importer host; see ImporterHost. */
+export class ImporterModal extends Modal implements ImporterHost {
 	plugin: ImporterPlugin;
 	importer: FormatImporter;
 	selectedId: string;
 	abortController: AbortController;
+
+	/** Which importer the dialog is showing, which is the one being hosted. */
+	get importerId(): string {
+		return this.selectedId;
+	}
 
 	current: ImportContext | null = null;
 
@@ -503,7 +610,7 @@ export class ImporterModal extends Modal {
 						// Clear content
 						contentEl.empty();
 						let configEl = contentEl.createDiv();
-						let ctx = this.current = new ImportContext(configEl);
+						let ctx = this.current = new ImportProgressUI(configEl);
 
 						// Check if importer needs template configuration
 						const templateResult = await importer.showTemplateConfiguration(ctx, configEl);

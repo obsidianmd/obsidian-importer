@@ -1,4 +1,4 @@
-import { Notice, Setting, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
+import { Notice, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { PickedFile } from '../filesystem';
@@ -63,16 +63,16 @@ export class TomboyImporter extends FormatImporter {
 		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
 		this.addOutputLocationSetting('Tomboy');
 
-		new Setting(this.modal.contentEl)
-			.setName('Convert TODO lists to checkboxes')
+		this.addSetting()
+			?.setName('Convert TODO lists to checkboxes')
 			.setDesc('When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.')
 			.addToggle((toggle: ToggleComponent) => {
 				toggle.setValue(this.todoEnabled)
 					.onChange((value: boolean) => this.todoEnabled = value);
 			});
 
-		new Setting(this.modal.contentEl)
-			.setName('Keep title in Markdown')
+		this.addSetting()
+			?.setName('Keep title in Markdown')
 			.setDesc('Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.')
 			.addDropdown((dropdown: DropdownComponent) => {
 				dropdown.addOption('automatic', 'Automatic')

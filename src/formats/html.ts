@@ -1,4 +1,4 @@
-import { CachedMetadata, htmlToMarkdown, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, normalizePath, Notice, parseLinktext, requestUrl, TFile, TFolder } from 'obsidian';
 import {
 	fsPromises,
 	nodeBufferToArrayBuffer,
@@ -8,9 +8,10 @@ import {
 	url as nodeUrl,
 } from '../filesystem';
 import { FormatImporter } from '../format-importer';
+import { convertHtmlDocument } from './html/convert';
 import { ImportContext } from '../main';
 import { extensionForMime } from '../mime';
-import { parseHTML, stringToUtf8 } from '../util';
+import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
 	attachmentSizeLimit: number;
@@ -25,8 +26,8 @@ export class HtmlImporter extends FormatImporter {
 
 	addAttachmentSizeLimit(defaultInMB: number) {
 		this.attachmentSizeLimit = defaultInMB * 10 ** 6;
-		new Setting(this.modal.contentEl)
-			.setName('Attachment size limit (MB)')
+		this.addSetting()
+			?.setName('Attachment size limit (MB)')
 			.setDesc('Set 0 to disable.')
 			.addText(text => text
 				.then(({ inputEl }) => {
@@ -46,8 +47,8 @@ export class HtmlImporter extends FormatImporter {
 
 	addMinimumImageSize(defaultInPx: number) {
 		this.minimumImageSize = defaultInPx;
-		new Setting(this.modal.contentEl)
-			.setName('Minimum image size (px)')
+		this.addSetting()
+			?.setName('Minimum image size (px)')
 			.setDesc('Set 0 to disable.')
 			.addText(text => text
 				.then(({ inputEl }) => inputEl.type = 'number')
@@ -165,68 +166,34 @@ export class HtmlImporter extends FormatImporter {
 		try {
 			const htmlContent = await file.readText();
 
-			const dom = parseHTML(htmlContent);
-			fixDocumentUrls(dom);
-
-			// Find all the attachments and download them
+			// Where the document lives, so its relative references resolve, and
+			// the directory nothing outside of may be read.
 			const baseUrl = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
-			// Get the directory URL for path traversal validation (URL resolves './' to parent directory)
 			const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
-			const attachments = new Map<string, TFile | null>;
+
 			const attachmentLookup = new Map<string, TFile>;
-			for (let el of dom.findAll('img, audio, video')) {
-				if (ctx.isCancelled()) return;
 
-				let src = el.getAttribute('src');
-				if (!src) continue;
+			const { markdown, attachments } = await convertHtmlDocument(htmlContent, {
+				baseUrl,
+				isCancelled: () => ctx.isCancelled(),
+				resolveAttachment: async (url, el) => {
+					ctx.status('Downloading attachment for ' + file.name);
+					const attachmentFile = await this.downloadAttachment(folder, el, url, allowedBaseDirUrl);
+					if (!attachmentFile) return null;
 
-				try {
-					const url = new URL(src.startsWith('//') ? `https:${src}` : src, baseUrl);
+					attachmentLookup.set(attachmentFile.path, attachmentFile);
+					return { path: attachmentFile.path, name: attachmentFile.name };
+				},
+				onAttachment: attachment => ctx.reportAttachmentSuccess(attachment.name),
+				onSkipped: src => ctx.reportSkipped(src),
+				onFailed: (src, e) => ctx.reportFailed(src, e),
+			});
 
-					if (url.protocol === 'data:') {
-						continue;
-					}
-
-					let key = url.href;
-					let attachmentFile = attachments.get(key);
-					if (!attachments.has(key)) {
-						ctx.status('Downloading attachment for ' + file.name);
-						attachmentFile = await this.downloadAttachment(folder, el, url, allowedBaseDirUrl);
-						attachments.set(key, attachmentFile);
-						if (attachmentFile) {
-							attachmentLookup.set(attachmentFile.path, attachmentFile);
-							ctx.reportAttachmentSuccess(attachmentFile.name);
-						}
-						else {
-							ctx.reportSkipped(src);
-						}
-					}
-
-					if (attachmentFile) {
-						// Convert the embed into a vault absolute path
-						el.setAttribute('src', attachmentFile.path.replace(/ /g, '%20'));
-
-						// Convert `<audio>` and `<video>` into `<img>` so that htmlToMarkdown can properly parse it.
-						if (!el.instanceOf(HTMLImageElement)) {
-							el.replaceWith(createEl('img', {
-								attr: {
-									src: attachmentFile.path.replace(/ /g, '%20'),
-									alt: el.getAttr('alt'),
-								},
-							}));
-						}
-					}
-				}
-				catch (e) {
-					ctx.reportFailed(src, e);
-				}
-			}
-
-			let mdContent = htmlToMarkdown(dom);
+			let mdContent = markdown;
 			let mdFile = await this.saveAsMarkdownFile(folder, file.basename, mdContent);
 
 			// Because `htmlToMarkdown` always gets us markdown links, we'll want to convert them into wikilinks, or relative links depending on the user's preference.
-			if (!Object.isEmpty(attachments)) {
+			if (attachments.size > 0) {
 				// Attempt to parse links using MetadataCache
 				let { metadataCache } = this.app;
 				let cache: CachedMetadata;
@@ -351,19 +318,6 @@ export class HtmlImporter extends FormatImporter {
 		const { height, width } = size;
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
 	}
-}
-
-function fixElementRef(element: Element, attribute: string) {
-	const value = element.getAttribute(attribute);
-	if (value !== null) {
-		element.setAttribute(attribute, value.replace(/ /gu, '%20'));
-	}
-}
-
-// Fix any links that happen to have spaces in them, since markdown links/embeds do not allow that.
-function fixDocumentUrls(el: Element) {
-	el.findAll('a').forEach(element => fixElementRef(element, 'href'));
-	el.findAll('audio, img, video').forEach(element => fixElementRef(element, 'src'));
 }
 
 function parseURL(url: URL) {

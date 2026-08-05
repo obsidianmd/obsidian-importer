@@ -85,16 +85,16 @@ export class OneNoteImporter extends FormatImporter {
 	async init() {
 		this.addOutputLocationSetting('OneNote');
 
-		new Setting(this.modal.contentEl)
-			.setName('Import incompatible attachments')
+		this.addSetting()
+			?.setName('Import incompatible attachments')
 			.setDesc('Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.')
 			.addToggle((toggle) => toggle
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Skip previously imported')
+		this.addSetting()
+			?.setName('Skip previously imported')
 			.setDesc('If enabled, notes imported previously by this plugin will be skipped.')
 			.addToggle((toggle) => toggle
 				.setValue(true)
@@ -112,8 +112,16 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 
+		// Everything below draws the sign-in flow, which needs a window to send
+		// the user to. An import driven without a dialog gets as far as whatever
+		// the stored refresh token gave it.
+		const contentEl = this.host.contentEl;
+		if (!contentEl) return;
+
+		const setting = () => new Setting(contentEl);
+
 		this.microsoftAccountSetting =
-			new Setting(this.modal.contentEl)
+			setting()
 				.setName('Sign in with your Microsoft account')
 				.setDesc('You need to sign in to import your OneNote data.')
 				.addButton((button) => button
@@ -138,7 +146,7 @@ export class OneNoteImporter extends FormatImporter {
 				);
 		this.microsoftAccountSetting.settingEl.toggle(!authenticated);
 
-		const rememberMeSetting = new Setting(this.modal.contentEl)
+		const rememberMeSetting = setting()
 			.setName('Remember me')
 			.setDesc('If checked, you will be automatically logged in for subsequent imports.')
 			.addToggle((toggle) => {
@@ -154,7 +162,7 @@ export class OneNoteImporter extends FormatImporter {
 			});
 		rememberMeSetting.settingEl.toggle(!authenticated);
 
-		this.switchUserSetting = new Setting(this.modal.contentEl)
+		this.switchUserSetting = setting()
 			.addButton((button) => button
 				.setCta()
 				.setButtonText('Switch user')
@@ -167,11 +175,11 @@ export class OneNoteImporter extends FormatImporter {
 				})
 			);
 
-		this.loadingArea = this.modal.contentEl.createDiv({
+		this.loadingArea = contentEl.createDiv({
 			text: 'Loading notebooks...',
 		});
 		this.loadingArea.hide();
-		this.contentArea = this.modal.contentEl.createDiv();
+		this.contentArea = contentEl.createDiv();
 		this.contentArea.hide();
 
 		if (authenticated) {
@@ -195,7 +203,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.modal.contentEl.createDiv({ text: 'An error occurred while trying to sign you in.' })
+			this.host.contentEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
 		}
@@ -402,7 +410,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	async import(progress: ImportContext): Promise<void> {
 		const previouslyImported = new Set<string>();
-		const data = await this.modal.plugin.loadData();
+		const data = await this.host.plugin.loadData();
 		if (!data.importers.onenote) {
 			data.importers.onenote = {
 				previouslyImportedIDs: [],
@@ -478,7 +486,7 @@ export class OneNoteImporter extends FormatImporter {
 					if (page.id) {
 						previouslyImported.add(page.id);
 						data.importers.onenote.previouslyImportedIDs = Array.from(previouslyImported);
-						await this.modal.plugin.saveData(data);
+						await this.host.plugin.saveData(data);
 					}
 
 					consecutiveFailureCount = 0;
@@ -487,8 +495,8 @@ export class OneNoteImporter extends FormatImporter {
 					consecutiveFailureCount++;
 					progress.reportFailed(page.title, String(e));
 
-					if (consecutiveFailureCount > 5 || this.modal.abortController.signal.aborted) {
-						const status = this.modal.abortController.signal.aborted
+					if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
+						const status = this.host.abortController.signal.aborted
 							// The import was aborted
 							? extractErrorMessage(e) ?? String(e)
 							// Hit a string of consecutive failures, so something is
@@ -1105,11 +1113,11 @@ export class OneNoteImporter extends FormatImporter {
 		const ninetyMinutesInMS = 1_000 * 60 * 90;
 		if (timeSinceLastFetch > ninetyMinutesInMS) {
 			// fail the entire import by aborting
-			this.modal.abortController.abort('stalled for >90 minutes');
+			this.host.abortController.abort('stalled for >90 minutes');
 		}
 
-		if (this.modal.abortController.signal.aborted) {
-			const abortReason = this.modal.abortController.signal.reason ?? 'no reason given';
+		if (this.host.abortController.signal.aborted) {
+			const abortReason = this.host.abortController.signal.reason ?? 'no reason given';
 			throw new Error(`The import was aborted (${abortReason})`);
 		}
 
@@ -1122,7 +1130,7 @@ export class OneNoteImporter extends FormatImporter {
 				url,
 				{
 					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
-					signal: this.modal.abortController.signal,
+					signal: this.host.abortController.signal,
 				}
 			);
 
