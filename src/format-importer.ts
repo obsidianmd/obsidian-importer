@@ -109,22 +109,20 @@ export abstract class FormatImporter {
 	 * Read the credential back with getSecret().
 	 */
 	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
-		// Plugin data is only readable asynchronously, and init() is not, so the
-		// previously linked secret arrives after this returns. It is read
-		// whether or not there is a dialog: an import driven without one still
-		// needs the credential. Nothing can await it, so a failure is logged
-		// rather than left unhandled - the importer simply has no secret.
-		const linked = this.loadSecretId()
-			.then(secretId => this.secretId = secretId)
-			.catch(e => {
-				console.error('Could not read the linked secret', e);
-				return null;
-			});
+		let setting = this.addSetting();
 
-		const setting = this.addSetting();
-		if (!setting) return null;
+		if (!setting) {
+			// No dialog to fill in, but an import driven from a script still
+			// needs the credential the user linked, so it is read all the same.
+			this.loadSecretId()
+				.then(secretId => this.secretId = secretId)
+				.catch(e => console.error('Could not read the linked secret', e));
+
+			return null;
+		}
 
 		setting.setName(name);
+
 		if (description) {
 			setting.setDesc(description);
 		}
@@ -136,7 +134,16 @@ export abstract class FormatImporter {
 					await this.saveSecretId(this.secretId);
 				});
 
-			void linked.then(secretId => component.setValue(secretId ?? ''));
+			// Plugin data is only readable asynchronously, and init() is not, so
+			// the previously linked secret is filled in once it arrives. Nothing
+			// can await this, so a failure is logged rather than left unhandled -
+			// the field simply stays empty and the user picks the secret again.
+			this.loadSecretId()
+				.then(secretId => {
+					this.secretId = secretId;
+					component.setValue(secretId ?? '');
+				})
+				.catch(e => console.error('Could not read the linked secret', e));
 
 			return component;
 		});
