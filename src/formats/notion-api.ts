@@ -2,7 +2,7 @@ import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requ
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
 import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
@@ -947,7 +947,7 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPagesCount = 0;
 
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
-			ctx.status(`Preparing to import ${this.totalNodesToImport} item(s)...`);
+			ctx.status(`Preparing to import ${plural(this.totalNodesToImport, 'item')}...`);
 
 			// Initialize progress display with known total count
 			ctx.reportProgress(0, this.totalNodesToImport);
@@ -956,7 +956,7 @@ export class NotionAPIImporter extends FormatImporter {
 			this.outputRootPath = folder.path;
 
 			// Import all selected pages/databases
-			ctx.status(`Importing ${selectedIds.length} item(s)...`);
+			ctx.status(`Importing ${plural(selectedIds.length, 'item')}...`);
 
 			for (let i = 0; i < selectedIds.length; i++) {
 				if (ctx.isCancelled()) break;
@@ -2158,7 +2158,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		if (failedCount > 0) {
-			console.warn(`⚠️ Failed to clean notion-id from ${failedCount} file(s)`);
+			console.warn(`⚠️ Failed to clean notion-id from ${plural(failedCount, 'file')}`);
 		}
 	}
 }

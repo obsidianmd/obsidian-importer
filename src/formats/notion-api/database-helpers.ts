@@ -12,7 +12,7 @@ import {
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../main';
-import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../../util';
+import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../../util';
 import { parseFilePath } from '../../filesystem';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
@@ -256,7 +256,7 @@ export async function importDatabaseCore(
 		);
 		templatePages = templatesResponse.templates || [];
 		if (templatePages.length > 0) {
-			ctx.status(`Found ${templatePages.length} template(s) in database ${sanitizedTitle}`);
+			ctx.status(`Found ${plural(templatePages.length, 'template')} in database ${sanitizedTitle}`);
 		}
 	}
 	catch (error) {

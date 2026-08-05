@@ -79,6 +79,17 @@ export function updatePropertyTypes(app: App, propertyTypes: Record<string, stri
 	}
 }
 
+/**
+ * A count and the thing counted, pluralised.
+ *
+ * The count is always in hand where this is used, so "1 record" and "2
+ * records" rather than "record(s)". Only the regular -s rule: every noun it is
+ * given takes one.
+ */
+export function plural(count: number, noun: string): string {
+	return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
 export function genUid(length: number): string {
 	let array: string[] = [];
 	for (let i = 0; i < length; i++) {

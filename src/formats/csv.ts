@@ -60,7 +60,7 @@ export class CSVImporter extends FormatImporter {
 		this.csvRows.push(...parsedData.rows);
 
 		if (this.csvHeaders.length === 0 || this.csvRows.length === 0) {
-			new Notice('No data found in CSV file(s).');
+			new Notice(`No data found in ${file.name}.`);
 			return false;
 		}
 

@@ -7,7 +7,7 @@ import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFil
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../util';
+import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
 import type { FormulaImportStrategy } from '../base';
 import {
 	TemplateConfigurator,
@@ -267,9 +267,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		// View property name
 		this.addSetting()
 			?.setName('View property name')
-			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in.')
+			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in. Defaults to views.')
 			.addText(text => text
-				.setPlaceholder('views')
 				.setValue('views')
 				.onChange(value => {
 					// Stripped rather than escaped: this name is embedded in a
@@ -354,7 +353,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			// Table counts are deliberately absent: schemas are fetched per base on
 			// demand, so totalling them here would reintroduce the full scan
-			new Notice(`Found ${bases.length} base(s). Expand a base to see its tables.`);
+			new Notice(`Found ${plural(bases.length, 'base')}. Expand a base to see its tables.`);
 		}
 		catch (error) {
 			console.error('[Airtable Importer] Failed to load bases:', error);
@@ -853,7 +852,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			const totalBases = baseGroups.size;
 			this.totalBasesToImport = totalBases;
 
-			ctx.status(`Found ${totalBases} base(s) to import`);
+			ctx.status(`Found ${plural(totalBases, 'base')} to import`);
 
 			// Process each base sequentially to minimize memory usage
 			let baseIndex = 0;
@@ -1315,7 +1314,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const allRecords = await selectRecords(this.getAirtableBase(baseId), tableName, {
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
-				ctx.status(`Fetched ${fetched} record(s) from ${tableName}${this.basePosition}`);
+				ctx.status(`Fetched ${plural(fetched, 'record')} from ${tableName}${this.basePosition}`);
 			},
 		});
 
