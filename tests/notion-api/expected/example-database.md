@@ -4,12 +4,12 @@ Year: 2019
 Sequel:
   - "[[Notion/Movies/The Long Way Back|The Long Way Back]]"
 Director:
-  - bbbbbbbb-0000-0000-0000-000000000001
+  - Ada Lovelace
 
 The Long Way Back
 notion-id: aaaaaaaa-0000-0000-0000-000000000002
 Year: 2023
 Sequel: []
 Director:
-  - bbbbbbbb-0000-0000-0000-000000000001
-  - bbbbbbbb-0000-0000-0000-000000000002
+  - Ada Lovelace
+  - Grace Hopper

@@ -16,7 +16,7 @@ import {
 	hasChildPagesOrDatabases
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
-import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
+import { processDatabasePlaceholders, importDatabaseCore, replaceRelationValue } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
@@ -69,6 +69,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
+	/** Titles of pages no note is written for, by id; see relatedPageTitle. */
+	private relatedPageTitles: Map<string, string | null> = new Map();
 	// Progress counters: separate tracking for pages and attachments
 	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
 	// Track Notion ID (page/database) to file path mapping for mention replacement
@@ -944,6 +946,7 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPages.clear();
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
+			this.relatedPageTitles.clear();
 			this.processedPagesCount = 0;
 
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
@@ -1559,9 +1562,10 @@ export class NotionAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				let newContent = content;
+				// What each related id should say, worked out before any of it is
+				// written so the replacement is one pass over the property
+				const replacements = new Map<string, string>();
 
-				// Build the actual links
 				for (const relatedPageId of placeholder.relatedPageIds) {
 					// Get the related page file path from mapping (O(1) lookup)
 					const relatedPagePath = this.notionIdToPath.get(relatedPageId);
@@ -1574,25 +1578,22 @@ export class NotionAPIImporter extends FormatImporter {
 							// This ensures precise linking (no ambiguity with duplicate names)
 							// while displaying only the clean file name
 							const displayName = relatedPageFile.basename; // Just the file name for display
-							const wikiLink = `"[[${relatedPagePath}|${displayName}]]"`;
+							replacements.set(relatedPageId, `[[${relatedPagePath}|${displayName}]]`);
+							continue;
+						}
 
-							// Replace the page ID with the link in the YAML
-							// Note: stringifyYaml does NOT add quotes to UUID strings, so we search for unquoted IDs
-							// and replace them with quoted links
-							newContent = newContent.replace(
-								new RegExp(`${relatedPageId}`, 'g'),
-								wikiLink
-							);
-						}
-						else {
-							console.warn(`Could not find related page file: ${relatedPagePath}`);
-						}
+						console.warn(`Could not find related page file: ${relatedPagePath}`);
 					}
-					else {
-						// Page still not found after importing missing databases
-						console.warn(`Could not find related page: ${relatedPageId}`);
+
+					// No note to point at. The page still has a name, and a name
+					// is worth more to a reader than the id was.
+					const title = await this.relatedPageTitle(relatedPageId);
+					if (title) {
+						replacements.set(relatedPageId, title);
 					}
 				}
+
+				const newContent = replaceRelationValue(content, placeholder.propertyKey, replacements);
 
 				// Write back to file if content changed
 				if (newContent !== content) {
@@ -1605,6 +1606,35 @@ export class NotionAPIImporter extends FormatImporter {
 				ctx.reportFailed(`Relation page ${placeholder.pageId}`, errorMessage);
 			}
 		}
+	}
+
+	/**
+	 * The title of a page the import is not writing a note for.
+	 *
+	 * A relation carries page ids and nothing else, so the only way to know
+	 * what one is called is to ask for it. Cached: a popular page is related to
+	 * from many others, and this would otherwise be a request per relation
+	 * rather than per page.
+	 *
+	 * Returns null when it cannot be read - a page in a part of the workspace
+	 * the integration was never shared - which leaves the id, as before.
+	 */
+	private async relatedPageTitle(pageId: string): Promise<string | null> {
+		const cached = this.relatedPageTitles.get(pageId);
+		if (cached !== undefined) return cached;
+
+		let title: string | null = null;
+
+		try {
+			const page = await this.notionClient!.pages.retrieve({ page_id: pageId });
+			title = extractPageTitle(page as PageObjectResponse);
+		}
+		catch (error) {
+			console.warn(`Could not read the title of related page ${pageId}:`, error);
+		}
+
+		this.relatedPageTitles.set(pageId, title);
+		return title;
 	}
 
 	/**

@@ -1001,6 +1001,74 @@ export async function processRelationProperties(
 }
 
 /**
+ * A value as YAML would write it in a list, so a name that needs quoting gets
+ * the quotes Obsidian would have given it and one that does not stays plain.
+ *
+ * A wiki link always needs them - "[[" opens a flow sequence - and this is what
+ * settles that too, rather than each caller remembering.
+ */
+export function yamlScalar(value: string): string {
+	const written = stringifyYaml([value]).trim();
+
+	// A value with a newline in it is written as a block scalar, which cannot
+	// stand in for one item of a list. Nothing here should have one.
+	if (written.includes('\n')) return JSON.stringify(value);
+
+	return written.replace(/^-\s*/, '');
+}
+
+/**
+ * Replace a page id with the text a relation should carry, inside the property
+ * that holds it and nowhere else.
+ *
+ * The id is a bare UUID rather than a token of the importer's own, so replacing
+ * it across the whole note would also catch one written anywhere else - a page
+ * that relates to itself has its own notion-id sitting in the same frontmatter,
+ * and a Notion link pasted into the body carries one too.
+ *
+ * Only the lines under `propertyKey` in the frontmatter block are rewritten. A
+ * line that already holds a link is left alone, so running this twice is the
+ * same as running it once.
+ */
+export function replaceRelationValue(
+	content: string,
+	propertyKey: string,
+	replacements: Map<string, string>
+): string {
+	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
+	if (!match) return content;
+
+	const lines = match[1].split('\n');
+	let inProperty = false;
+	let changed = false;
+
+	const rewritten = lines.map(line => {
+		// A property starts at the left margin: "Director:" opens one, and the
+		// next key at that indent closes it again
+		const opensProperty = /^([^\s:][^:]*):/.exec(line);
+		if (opensProperty) {
+			inProperty = opensProperty[1] === propertyKey;
+		}
+
+		if (!inProperty || line.includes('[[')) return line;
+
+		let rewrittenLine = line;
+		for (const [pageId, text] of replacements) {
+			if (!rewrittenLine.includes(pageId)) continue;
+
+			rewrittenLine = rewrittenLine.split(pageId).join(yamlScalar(text));
+			changed = true;
+		}
+
+		return rewrittenLine;
+	});
+
+	if (!changed) return content;
+
+	return content.slice(0, match.index) + `---\n${rewritten.join('\n')}\n---` + content.slice(match.index + match[0].length);
+}
+
+/**
  * Recursively find a block by ID in a block tree
  * @param blocks - Array of blocks to search
  * @param blockId - ID of the block to find

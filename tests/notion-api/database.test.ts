@@ -23,7 +23,7 @@ import * as nodePath from 'node:path';
 import { stringifyYaml } from 'obsidian';
 
 import { extractFrontMatter, extractPageTitle } from '../../src/formats/notion-api/api-helpers';
-import { processRelationProperties } from '../../src/formats/notion-api/database-helpers';
+import { processRelationProperties, replaceRelationValue, yamlScalar } from '../../src/formats/notion-api/database-helpers';
 import type { RelationPlaceholder } from '../../src/formats/notion-api/types';
 import { expectFile, expectedFor, type Fixture } from '../helpers';
 
@@ -53,31 +53,33 @@ test('the fixture has a relation that stays in the import and one that leaves it
  * The importer's second pass, which runs once every page has a path.
  *
  * A relation pointing at an imported page becomes a link to it. One pointing
- * anywhere else is left as the id: the importer first tries to import the
- * whole database it points into, and this is where that lands when it cannot -
- * an integration that was never shared that part of the workspace, a cancelled
- * import, or the round limit.
+ * anywhere else becomes that page's title, which the importer reads with
+ * GET /v1/pages/{id} - the fixture's relatedPages stand in for those calls.
  *
- * Mirrors replaceRelationPlaceholders in notion-api.ts: only the ids that page
- * actually relates to are replaced, and each is replaced wherever it appears in
- * the file rather than only in its property.
+ * The rewriting itself is the importer's own replaceRelationValue rather than a
+ * copy of it, so the two cannot say different things.
  */
 function resolveRelations(
 	content: string,
 	relatedPageIds: string[],
+	propertyKey: string,
 	pathForPage: Map<string, string>
 ): string {
-	let resolved = content;
+	const replacements = new Map<string, string>();
 
 	for (const pageId of relatedPageIds) {
 		const path = pathForPage.get(pageId);
-		if (!path) continue;
+		if (path) {
+			const name = path.slice(path.lastIndexOf('/') + 1);
+			replacements.set(pageId, `[[${path}|${name}]]`);
+			continue;
+		}
 
-		const name = path.slice(path.lastIndexOf('/') + 1);
-		resolved = resolved.replace(new RegExp(pageId, 'g'), `"[[${path}|${name}]]"`);
+		const page = fixture.relatedPages[pageId];
+		if (page) replacements.set(pageId, extractPageTitle(page as never));
 	}
 
-	return resolved;
+	return replaceRelationValue(content, propertyKey, replacements);
 }
 
 test('converts the database rows', async () => {
@@ -97,11 +99,13 @@ test('converts the database rows', async () => {
 			databaseProperties: fixture.properties,
 		});
 
-		const relatedPageIds = placeholders
-			.filter(placeholder => placeholder.pageId === page.id)
-			.flatMap(placeholder => placeholder.relatedPageIds);
+		// One pass per relation property, as the importer does it
+		let resolved = `---\n${stringifyYaml(frontMatter)}---`;
+		for (const placeholder of placeholders.filter(p => p.pageId === page.id)) {
+			resolved = resolveRelations(resolved, placeholder.relatedPageIds, placeholder.propertyKey, pathForPage);
+		}
 
-		notes.push(`${extractPageTitle(page)}\n${resolveRelations(stringifyYaml(frontMatter), relatedPageIds, pathForPage)}`);
+		notes.push(`${extractPageTitle(page)}\n${resolved.replace(/^---\n|---$/g, '')}`);
 	}
 
 	expectFile(notes.join('\n'), expectedFor(FIXTURE, 'example-database.md'), FIXTURE.name);
@@ -130,4 +134,59 @@ test('the pages a relation leaves the import for have titles to use', () => {
 		Object.values(fixture.relatedPages).map(page => extractPageTitle(page as never)),
 		['Ada Lovelace', 'Grace Hopper']
 	);
+});
+
+/**
+ * The rewriting on its own.
+ *
+ * A relation carries a bare UUID rather than a token of the importer's own, so
+ * what stops it being replaced somewhere it did not mean is the property it is
+ * scoped to.
+ */
+const NOTE = [
+	'---',
+	'notion-id: aaaaaaaa-0000-0000-0000-000000000001',
+	'Director:',
+	'  - bbbbbbbb-0000-0000-0000-000000000001',
+	'Sequel:',
+	'  - aaaaaaaa-0000-0000-0000-000000000001',
+	'---',
+	'',
+	'Notes on aaaaaaaa-0000-0000-0000-000000000001, which is this page.',
+].join('\n');
+
+test('rewrites only the property the relation belongs to', () => {
+	const rewritten = replaceRelationValue(NOTE, 'Director',
+		new Map([['bbbbbbbb-0000-0000-0000-000000000001', 'Ada Lovelace']]));
+
+	assert.match(rewritten, /Director:\n {2}- Ada Lovelace/);
+	// Everything else is where it was
+	assert.match(rewritten, /notion-id: aaaaaaaa-0000-0000-0000-000000000001/);
+	assert.match(rewritten, /Notes on aaaaaaaa-0000-0000-0000-000000000001, which is this page\./);
+});
+
+test('a page that relates to itself keeps its own notion-id', () => {
+	const rewritten = replaceRelationValue(NOTE, 'Sequel',
+		new Map([['aaaaaaaa-0000-0000-0000-000000000001', '[[Notion/Movies/This one|This one]]']]));
+
+	// The id is the page's own as well as the one it relates to, and only the
+	// relation is a link
+	assert.match(rewritten, /notion-id: aaaaaaaa-0000-0000-0000-000000000001/);
+	assert.match(rewritten, /Sequel:\n {2}- "\[\[Notion\/Movies\/This one\|This one\]\]"/);
+	assert.match(rewritten, /Notes on aaaaaaaa-0000-0000-0000-000000000001, which is this page\./);
+});
+
+test('a relation already resolved is left as it is', () => {
+	const once = replaceRelationValue(NOTE, 'Director',
+		new Map([['bbbbbbbb-0000-0000-0000-000000000001', 'Ada Lovelace']]));
+
+	assert.equal(replaceRelationValue(once, 'Director',
+		new Map([['bbbbbbbb-0000-0000-0000-000000000001', 'Ada Lovelace']])), once);
+});
+
+test('a name that needs quoting gets them, and one that does not stays plain', () => {
+	assert.equal(yamlScalar('Ada Lovelace'), 'Ada Lovelace');
+	assert.equal(yamlScalar('[[Notion/Movies/Tron|Tron]]'), '"[[Notion/Movies/Tron|Tron]]"');
+	assert.equal(yamlScalar('Notes: on quoting'), '"Notes: on quoting"');
+	assert.equal(yamlScalar('1984'), '"1984"');
 });
