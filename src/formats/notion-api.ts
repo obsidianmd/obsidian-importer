@@ -47,6 +47,14 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
+	/**
+	 * Whether a relation into a database the user did not select may import it.
+	 *
+	 * Off by default: an import doing more than was asked of it is the thing a
+	 * user cannot undo or predict, and a relation with nowhere to point now
+	 * reads as the page's name rather than as its id.
+	 */
+	importLinkedDatabases: boolean = false;
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
@@ -237,6 +245,16 @@ export class NotionAPIImporter extends FormatImporter {
 				.setValue('base')
 				.onChange(value => {
 					this.databasePropertyName = value.trim() || 'base';
+				}));
+
+		// Whether a relation may pull in a database that was not selected
+		this.addSetting()
+			?.setName('Import linked databases')
+			.setDesc('Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.')
+			.addToggle(toggle => toggle
+				.setValue(this.importLinkedDatabases)
+				.onChange(value => {
+					this.importLinkedDatabases = value;
 				}));
 	}
 
@@ -1446,87 +1464,10 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		ctx.status(`Replacing ${this.relationPlaceholders.length} relation placeholders...`);
+		ctx.status(`Replacing ${plural(this.relationPlaceholders.length, 'relation placeholder')}...`);
 
-		// Multi-round processing: keep importing databases until no new relations are discovered
-		let round = 1;
-		let previousPlaceholderCount = 0;
-		const maxRounds = 10; // Safety limit to prevent infinite loops
-
-		while (round <= maxRounds) {
-			const currentPlaceholderCount = this.relationPlaceholders.length;
-
-			// If no new placeholders were added in the last round, we're done
-			if (round > 1 && currentPlaceholderCount === previousPlaceholderCount) {
-				ctx.status(`No new relations discovered. Relation processing complete.`);
-				break;
-			}
-
-			ctx.status(`Round ${round}: Processing ${currentPlaceholderCount} relation placeholders...`);
-			previousPlaceholderCount = currentPlaceholderCount;
-
-			// Identify missing pages and their databases
-			const missingPageIds = new Set<string>();
-			const missingDatabaseIds = new Set<string>();
-
-			for (const placeholder of this.relationPlaceholders) {
-				for (const relatedPageId of placeholder.relatedPageIds) {
-					// Check if we have the file path mapping for this page (O(1) lookup)
-					const relatedPagePath = this.notionIdToPath.get(relatedPageId);
-					if (!relatedPagePath) {
-						missingPageIds.add(relatedPageId);
-						// If we have target database info, record it
-						if (placeholder.targetDatabaseId) {
-							missingDatabaseIds.add(placeholder.targetDatabaseId);
-						}
-					}
-				}
-			}
-
-			// Import missing databases if any
-			if (missingDatabaseIds.size > 0) {
-				ctx.status(`Round ${round}: Found ${missingDatabaseIds.size} unimported databases with relations. Importing...`);
-
-				// Import to the user-selected output root folder (e.g., "Notion")
-				// No need to create a separate "Relation Unimported Databases" subfolder
-				const unimportedDbPath = this.outputRootPath;
-
-				// Import each missing database
-				let importedCount = 0;
-				for (const databaseId of missingDatabaseIds) {
-					if (ctx.isCancelled()) break;
-
-					// Skip if already processed
-					if (this.processedDatabases.has(databaseId)) {
-						continue;
-					}
-
-					try {
-						await this.importUnimportedDatabase(ctx, databaseId, unimportedDbPath);
-						importedCount++;
-					}
-					catch (error) {
-						console.error(`Failed to import unimported database ${databaseId}:`, error);
-						// Continue with other databases even if one fails
-					}
-				}
-
-				ctx.status(`Round ${round}: Imported ${importedCount} databases.`);
-
-				// If we imported any databases, they might have added new relation placeholders
-				// Continue to next round to process them
-				if (importedCount > 0) {
-					round++;
-					continue;
-				}
-			}
-
-			// If we reach here and no databases were imported, we're done
-			break;
-		}
-
-		if (round > maxRounds) {
-			console.warn(`⚠️ Reached maximum rounds (${maxRounds}) for relation processing. Some relations may not be resolved.`);
+		if (this.importLinkedDatabases) {
+			await this.importDatabasesRelationsPointAt(ctx);
 		}
 
 		// Final pass: replace all placeholders with links
@@ -1605,6 +1546,42 @@ export class NotionAPIImporter extends FormatImporter {
 				console.error(`Failed to replace relation placeholder for page ${placeholder.pageId}:`, error);
 				ctx.reportFailed(`Relation page ${placeholder.pageId}`, errorMessage);
 			}
+		}
+	}
+
+	/**
+	 * Import the databases the selection's relations point into.
+	 *
+	 * One pass over what is already known, not until nothing new turns up: the
+	 * databases these pull in have relations of their own, and following those
+	 * too walks as much of a workspace as it is connected to. A direct relation
+	 * is the one a user asking for this is thinking of.
+	 *
+	 * Only relations recorded from a database schema carry the id of what they
+	 * point at, so the ones found by re-reading frontmatter cannot be followed
+	 * and fall back to a name, as they did before.
+	 */
+	private async importDatabasesRelationsPointAt(ctx: ImportContext): Promise<void> {
+		const missingDatabaseIds = new Set<string>();
+
+		for (const placeholder of this.relationPlaceholders) {
+			if (!placeholder.targetDatabaseId) continue;
+			if (this.processedDatabases.has(placeholder.targetDatabaseId)) continue;
+
+			// Only where something it points at has no note of its own
+			const anyMissing = placeholder.relatedPageIds.some(id => !this.notionIdToPath.get(id));
+			if (anyMissing) missingDatabaseIds.add(placeholder.targetDatabaseId);
+		}
+
+		if (missingDatabaseIds.size === 0) return;
+
+		ctx.status(`Importing ${plural(missingDatabaseIds.size, 'linked database')}...`);
+
+		for (const databaseId of missingDatabaseIds) {
+			if (ctx.isCancelled()) return;
+			if (this.processedDatabases.has(databaseId)) continue;
+
+			await this.importUnimportedDatabase(ctx, databaseId, this.outputRootPath);
 		}
 	}
 
