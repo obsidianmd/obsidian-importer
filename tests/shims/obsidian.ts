@@ -24,7 +24,23 @@ export { moment };
  * would change a recorded note without changing its meaning.
  */
 export function stringifyYaml(value: unknown): string {
-	return yaml.dump(value, { lineWidth: -1 });
+	// Obsidian's dialect, checked against the app by round-tripping values
+	// through processFrontMatter:
+	//
+	//   - a date or time keeps its plain form (2023-12-17, 12:30), so the
+	//     schema must not be the one that resolves timestamps
+	//   - so does "yes", which YAML 1.1 would have read as a boolean
+	//   - anything that does need quoting gets double quotes
+	//   - a null property is written as the key alone
+	//
+	// js-yaml handles the schema; the last two are done here, since js-yaml 5
+	// always writes single quotes and spells null out.
+	const dumped = yaml.dump(value, { schema: yaml.CORE_SCHEMA, lineWidth: -1 });
+
+	return dumped
+		.replace(/^(\s*(?:- |[^:\n]*: ))'((?:[^']|'')*)'$/gm, (_match, prefix: string, quoted: string) =>
+			`${prefix}"${quoted.replace(/''/g, '\'').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
+		.replace(/^([^:\n]*):\snull$/gm, '$1:');
 }
 
 export function parseYaml(text: string): unknown {

@@ -74,6 +74,20 @@ AIRTABLE_BASE_ID=app...
 
 See `tests/airtable/live.test.ts`. Live checks read; they never write.
 
+### The end-to-end check
+
+`npm run e2e` imports fixtures through the running app - its `htmlToMarkdown`,
+its vault, its YAML - and compares what lands in the vault with what `npm test`
+recorded. It is what catches the shim drifting from the real thing; it found
+the YAML dialect differences the shim now matches.
+
+It needs the Obsidian CLI, the plugin enabled in the active vault, and a build
+of the current source deployed there. It writes one folder and deletes it after.
+
+Cases are limited to fixtures whose conversion does not depend on the vault: no
+attachment downloads, no links to other imported notes. Anything else differs
+for good reasons - a vault path, a link in the user's preferred form.
+
 ## Verifying against Obsidian itself
 
 `tests/shims/obsidian.ts` reimplements `htmlToMarkdown` (turndown) and `stringifyYaml` (js-yaml). They agree with the app on the fixtures here, and each rule in the shim was added to close a difference that was measured rather than guessed.

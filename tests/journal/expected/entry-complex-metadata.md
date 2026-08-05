@@ -9,7 +9,7 @@ third-party-media:
   - Music
   - Tech News
   - Podcast
-date: '2023-12-17'
+date: 2023-12-17
 ---
 How was your day?
 

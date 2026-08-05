@@ -1,5 +1,6 @@
-import { App, Modal, Notice, ObsidianProtocolData, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, ObsidianProtocolData, Platform, Plugin, Setting } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
+import { NodePickedFile } from './filesystem';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
@@ -463,6 +464,48 @@ export default class ImporterPlugin extends Plugin {
 	 */
 	public registerAuthCallback(callback: AuthCallback): void {
 		this.authCallback = callback;
+	}
+
+	/**
+	 * Run an import without the dialog, from a script or a test.
+	 *
+	 * The dialog is what usually gathers this: which format, which files, where
+	 * they go, and the settings in between. Here the caller says so directly -
+	 * `configure` receives the importer with its defaults in place, and
+	 * whatever it sets is what the import runs with.
+	 *
+	 * Desktop only: the files are read from paths.
+	 */
+	public async runImport(
+		importerId: string,
+		filepaths: string[],
+		outputLocation: string,
+		configure?: (importer: FormatImporter) => void
+	): Promise<ImportContext> {
+		if (!Platform.isDesktopApp) {
+			throw new Error('An import driven by a script reads files from disk, which needs the desktop app.');
+		}
+
+		const definition = this.importers[importerId];
+		if (!definition) {
+			throw new Error(`No importer called "${importerId}". One of: ${Object.keys(this.importers).join(', ')}`);
+		}
+
+		const host: ImporterHost = {
+			contentEl: null,
+			plugin: this,
+			importerId,
+			abortController: new AbortController(),
+		};
+
+		const importer = new definition.importer(this.app, host);
+		importer.files = filepaths.map(filepath => new NodePickedFile(filepath));
+		importer.outputLocation = outputLocation;
+		configure?.(importer);
+
+		const ctx = new ImportContext();
+		await importer.import(ctx);
+		return ctx;
 	}
 }
 
