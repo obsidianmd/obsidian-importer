@@ -33,15 +33,62 @@ export function stringifyYaml(value: unknown): string {
 	//   - anything that does need quoting gets double quotes
 	//   - a null property is written as the key alone
 	//
-	// js-yaml handles the schema; the last two are done here, since js-yaml 5
-	// always writes single quotes and spells null out.
-	const dumped = yaml.dump(value, { schema: yaml.CORE_SCHEMA, lineWidth: -1 });
+	// js-yaml handles the schema; the last two are done line by line here,
+	// since js-yaml 5 always writes single quotes and spells null out.
+	const lines = yaml.dump(value, { schema: yaml.CORE_SCHEMA, lineWidth: -1 }).split('\n');
 
-	return dumped
-		.replace(/^(\s*(?:- |[^:\n]*: ))'((?:[^']|'')*)'$/gm, (_match, prefix: string, quoted: string) =>
-			`${prefix}"${quoted.replace(/''/g, '\'').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
-		.replace(/^([^:\n]*):\snull$/gm, '$1:');
+	// A block scalar's lines are its value, not YAML, and rewriting them would
+	// change what the property holds.
+	let blockIndent: number | null = null;
+
+	return lines
+		.map(line => {
+			const indent = line.length - line.trimStart().length;
+
+			if (blockIndent !== null) {
+				if (line.trim() === '' || indent >= blockIndent) return line;
+				blockIndent = null;
+			}
+
+			if (/(?:^|\s)[|>][+-]?\d*$/.test(line)) {
+				blockIndent = indent + 1;
+				return line;
+			}
+
+			return line
+				.replace(/^(\s*(?:- |[^:\n]*: ))'((?:[^']|'')*)'$/, (_match, prefix: string, quoted: string) =>
+					`${prefix}"${quoted.replace(/''/g, '\'').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
+				.replace(/^([^:\n]*):\snull$/, '$1:');
+		})
+		.join('\n');
 }
+
+/** Everything Obsidian's htmlToMarkdown accepts, as markup turndown can read. */
+function markupOf(html: string | Document | HTMLElement | DocumentFragment): string {
+	if (typeof html === 'string') return html;
+	if ('outerHTML' in html) return html.outerHTML;
+	if ('documentElement' in html) return html.documentElement.outerHTML;
+
+	// A fragment has no markup of its own, only its children's
+	return Array.from(html.childNodes)
+		.map(node => (node as Element).outerHTML ?? node.textContent ?? '')
+		.join('');
+}
+
+/**
+ * The shim's signatures, held against the real ones.
+ *
+ * Nothing typechecks this file with `obsidian` mapped to it - the plugin uses
+ * far more of the API than a conversion does, so substituting the shim for the
+ * whole of src would fail for good reasons. Anchoring each export to the type
+ * it stands in for catches the drift that matters: the app changing what it
+ * takes or returns.
+ */
+type RealApi = typeof import('obsidian');
+const _stringifyYaml: RealApi['stringifyYaml'] = stringifyYaml;
+const _parseYaml: RealApi['parseYaml'] = parseYaml;
+const _normalizePath: RealApi['normalizePath'] = normalizePath;
+const _htmlToMarkdown: RealApi['htmlToMarkdown'] = htmlToMarkdown;
 
 export function parseYaml(text: string): unknown {
 	return yaml.load(text);
@@ -62,8 +109,8 @@ export function parseYaml(text: string): unknown {
  * the transformations that run before it - which is where this importer's own
  * behaviour lives - rather than as proof of the exact markdown a user sees.
  */
-export function htmlToMarkdown(html: string | { innerHTML?: string, outerHTML?: string }): string {
-	const source = typeof html === 'string' ? html : html.outerHTML ?? html.innerHTML ?? '';
+export function htmlToMarkdown(html: string | Document | HTMLElement | DocumentFragment): string {
+	const source = markupOf(html);
 
 	// Required lazily: turndown wants a DOM, which the dom shim installs.
 	const TurndownService = require('turndown');
@@ -117,8 +164,8 @@ export function htmlToMarkdown(html: string | { innerHTML?: string, outerHTML?: 
 		replacement: (content: string) => `~~${content}~~`,
 	});
 
-	// turndown pads a list marker to four columns; Obsidian writes one space.
-	// and indents nested content by two. Checked against the app.
+	// turndown pads a list marker to four columns; Obsidian writes one space,
+	// and indents what follows within the item by four. Checked against the app.
 	service.addRule('listItem', {
 		filter: 'li',
 		replacement: (content: string, node: any) => {
@@ -127,9 +174,10 @@ export function htmlToMarkdown(html: string | { innerHTML?: string, outerHTML?: 
 
 			const parent = node.parentNode;
 			if (parent && parent.nodeName === 'OL') {
-				const start = parent.getAttribute('start');
+				// A start nobody can read is no start at all
+				const start = Number(parent.getAttribute('start'));
 				const index = Array.prototype.indexOf.call(parent.children, node);
-				prefix = `${start ? Number(start) + index : index + 1}. `;
+				prefix = `${Number.isFinite(start) && parent.getAttribute('start') ? start + index : index + 1}. `;
 			}
 
 			return prefix + body + (node.nextSibling && !/\n$/.test(body) ? '\n' : '');
