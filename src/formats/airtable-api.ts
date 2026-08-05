@@ -8,6 +8,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
+import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
 import type { FormulaImportStrategy } from '../base';
 import {
 	TemplateConfigurator,
@@ -194,8 +195,8 @@ export class AirtableAPIImporter extends FormatImporter {
 						return;
 					}
 
-					const allSelected = this.areAllNodesSelected();
-					this.selectAllNodes(!allSelected);
+					const allSelected = areAllSelected(this.tree);
+					setAllSelection(this.tree, !allSelected);
 					this.renderTree();
 				});
 
@@ -434,26 +435,19 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Render tree UI
 	 */
 	private renderTree(): void {
-		// This container is the scroll box, and emptying it sends it back to the
-		// top. Ticking a checkbox re-renders the tree, so without this the list
-		// jumps away from whatever the user just clicked.
-		const scrollTop = this.treeContainer.scrollTop;
+		redrawTree(this.treeContainer, () => {
+			if (this.tree.length === 0) {
+				this.treeContainer.createDiv({
+					text: 'No bases found.',
+					cls: 'publish-placeholder'
+				});
+				return;
+			}
 
-		this.treeContainer.empty();
-
-		if (this.tree.length === 0) {
-			this.treeContainer.createDiv({
-				text: 'No bases found.',
-				cls: 'publish-placeholder'
-			});
-			return;
-		}
-
-		for (const node of this.tree) {
-			this.renderTreeNode(this.treeContainer, node);
-		}
-
-		this.treeContainer.scrollTop = scrollTop;
+			for (const node of this.tree) {
+				this.renderTreeNode(this.treeContainer, node);
+			}
+		});
 
 		this.updateToggleButtonText();
 	}
@@ -556,7 +550,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
-				this.setNodeSelection(node, checkbox.checked);
+				setNodeSelection(node, checkbox.checked);
 				this.renderTree();
 			});
 		}
@@ -589,52 +583,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * Set selection state for node and all children recursively
 	 * Children are also disabled when selected (to indicate inherited selection)
 	 */
-	private setNodeSelection(node: AirtableTreeNode, selected: boolean, isRoot: boolean = true): void {
-		node.selected = selected;
-		if (!isRoot) {
-			node.disabled = selected;
-		}
-		if (node.children) {
-			for (const child of node.children) {
-				this.setNodeSelection(child, selected, false);
-			}
-		}
-	}
 
 	/**
 	 * Check if all nodes are selected
 	 */
-	private areAllNodesSelected(nodes: AirtableTreeNode[] = this.tree): boolean {
-		for (const node of nodes) {
-			if (!node.selected) {
-				return false;
-			}
-			if (!this.areAllNodesSelected(node.children || [])) {
-				return false;
-			}
-		}
-		return true;
-	}
 
 	/**
 	 * Select or deselect all nodes
 	 */
-	private selectAllNodes(selected: boolean): void {
-		const processNode = (node: AirtableTreeNode) => {
-			if (!node.disabled) {
-				this.setNodeSelection(node, selected);
-			}
-			if (node.children) {
-				for (const child of node.children) {
-					processNode(child);
-				}
-			}
-		};
-
-		for (const node of this.tree) {
-			processNode(node);
-		}
-	}
 
 	/**
 	 * Update toggle button text
@@ -646,7 +602,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (this.toggleSelectButton === undefined) {
 			return;
 		}
-		const allSelected = this.areAllNodesSelected();
+		const allSelected = areAllSelected(this.tree);
 		this.toggleSelectButton.setButtonText(allSelected ? 'Deselect all' : 'Select all');
 	}
 

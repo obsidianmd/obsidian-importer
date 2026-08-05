@@ -3,6 +3,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
+import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
 import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
@@ -632,27 +633,22 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		// This container is the scroll box, and emptying it sends it back to the
-		// top. Ticking a checkbox re-renders the tree, so without this the list
-		// jumps away from whatever the user just clicked.
-		const scrollTop = this.pageTreeContainer.scrollTop;
+		const container = this.pageTreeContainer;
 
-		this.pageTreeContainer.empty();
+		redrawTree(container, () => {
+			if (this.pageTree.length === 0) {
+				container.createDiv({
+					text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
+					cls: 'notion-tree-empty'
+				});
+				return;
+			}
 
-		if (this.pageTree.length === 0) {
-			this.pageTreeContainer.createDiv({
-				text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
-				cls: 'notion-tree-empty'
-			});
-			return;
-		}
-
-		// Render tree (buttons are now outside the scrollable container)
-		for (const node of this.pageTree) {
-			this.renderTreeNode(this.pageTreeContainer, node, 0);
-		}
-
-		this.pageTreeContainer.scrollTop = scrollTop;
+			// Render tree (buttons are now outside the scrollable container)
+			for (const node of this.pageTree) {
+				this.renderTreeNode(container, node, 0);
+			}
+		});
 
 		// Update toggle button text based on current selection state
 		if (this.toggleSelectButton) {
@@ -739,7 +735,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		if (!node.disabled) {
 			checkbox.addEventListener('change', () => {
-				this.toggleNodeSelection(node, checkbox.checked);
+				setNodeSelection(node, checkbox.checked);
 				this.renderPageTree();
 			});
 		}
@@ -777,94 +773,24 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Toggle node selection and update children/parent states
-	 */
-	private toggleNodeSelection(node: NotionTreeNode, selected: boolean): void {
-		node.selected = selected;
-
-		// If selected, disable and select all children (but don't expand)
-		if (selected) {
-			this.selectAllChildren(node, true);
-		}
-		// If deselected, enable all children (but keep them deselected)
-		else {
-			this.enableAllChildren(node);
-		}
-	}
 
 	/**
 	 * Select or deselect all nodes in the tree
 	 */
-	private selectAllNodes(selected: boolean): void {
-		const processNode = (node: NotionTreeNode) => {
-			// Only modify nodes that are not disabled
-			if (!node.disabled) {
-				node.selected = selected;
-				// If selecting, select children (but don't expand)
-				if (selected) {
-					this.selectAllChildren(node, true);
-				}
-				// If deselecting, enable all children
-				else {
-					this.enableAllChildren(node);
-				}
-			}
-			// Process children even if parent is disabled
-			for (const child of node.children) {
-				processNode(child);
-			}
-		};
-
-		for (const node of this.pageTree) {
-			processNode(node);
-		}
-	}
 
 	/**
 	 * Select/deselect all children recursively
 	 */
-	private selectAllChildren(node: NotionTreeNode, selected: boolean): void {
-		for (const child of node.children) {
-			child.selected = selected;
-			child.disabled = selected;
-			this.selectAllChildren(child, selected);
-		}
-	}
 
 	/**
 	 * Enable all children recursively (remove disabled state)
 	 */
-	private enableAllChildren(node: NotionTreeNode): void {
-		for (const child of node.children) {
-			child.disabled = false;
-			child.selected = false;
-			this.enableAllChildren(child);
-		}
-	}
 
 	/**
 	 * Check if all nodes in the tree are selected
 	 * Used to determine button text and behavior (Select all vs Deselect all)
 	 * Returns true if ALL nodes (including disabled children) are selected
 	 */
-	private areAllNodesSelected(): boolean {
-		const checkNode = (nodes: NotionTreeNode[]): boolean => {
-			for (const node of nodes) {
-				// If any node is not selected, return false
-				if (!node.selected) {
-					return false;
-				}
-				// Recursively check children
-				if (!checkNode(node.children)) {
-					return false;
-				}
-			}
-			return true;
-		};
-
-		return checkNode(this.pageTree);
-	}
 
 	/**
 	 * Handle toggle select button click
@@ -878,16 +804,9 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		// Check current state - if all nodes are selected, deselect all; otherwise select all
-		const allSelected = this.areAllNodesSelected();
+		const allSelected = areAllSelected(this.pageTree);
 
-		if (allSelected) {
-			// All selected, deselect all
-			this.selectAllNodes(false);
-		}
-		else {
-			// Not all selected (some or none), select all
-			this.selectAllNodes(true);
-		}
+		setAllSelection(this.pageTree, !allSelected);
 
 		this.renderPageTree(); // This will call updateToggleButtonText()
 	}
@@ -899,7 +818,7 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!this.toggleSelectButton) {
 			return;
 		}
-		const allSelected = this.areAllNodesSelected();
+		const allSelected = areAllSelected(this.pageTree);
 		this.toggleSelectButton.setButtonText(allSelected ? 'Deselect all' : 'Select all');
 	}
 
