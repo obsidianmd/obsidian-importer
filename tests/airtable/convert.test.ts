@@ -61,7 +61,7 @@ interface BaseFixture {
 }
 
 /** The importer's own defaults, which is what an unconfigured import produces. */
-const VIEW_PROPERTY = 'base';
+const VIEW_PROPERTY = 'views';
 const OUTPUT_FOLDER = 'Airtable';
 
 /**

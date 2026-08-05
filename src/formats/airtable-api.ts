@@ -115,7 +115,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
-	viewPropertyName: string = 'base'; // Property name to track which views a record belongs to
+	viewPropertyName: string = 'views'; // Property name to track which views a record belongs to
 	incrementalImport: boolean = false; // Incremental import: skip files with same airtable-id (default: disabled)
 
 	// Tree for base/table selection
@@ -269,12 +269,12 @@ export class AirtableAPIImporter extends FormatImporter {
 			?.setName('View property name')
 			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in.')
 			.addText(text => text
-				.setPlaceholder('base')
-				.setValue('base')
+				.setPlaceholder('views')
+				.setValue('views')
 				.onChange(value => {
 					// Stripped rather than escaped: this name is embedded in a
 					// double-quoted Bases filter string in the generated .base file
-					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'base';
+					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'views';
 				}));
 
 		// Incremental import setting

@@ -1,5 +1,5 @@
 ---
-base:
+views:
   - Covers
 Notes: Title exercises the file name sanitiser
 Authors: []

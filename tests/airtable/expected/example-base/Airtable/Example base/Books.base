@@ -86,7 +86,7 @@ views:
       - formula.Slug
   - type: cards
     name: Covers
-    filters: note["base"].contains("Covers")
+    filters: note["views"].contains("Covers")
     order:
       - file.name
       - Notes
@@ -125,7 +125,7 @@ views:
       - Mystery
   - type: table
     name: Reading _now_
-    filters: note["base"].contains("Reading _now_")
+    filters: note["views"].contains("Reading _now_")
     order:
       - file.name
       - Progress
