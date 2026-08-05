@@ -1,0 +1,131 @@
+filters: file.folder == "Airtable/Example base/Books"
+formulas:
+  Slug: (note["Title"]).lower()
+  Value: note["Price"]*note["Rating"]
+  Author count: note["Authors"].length
+properties:
+  file.name:
+    displayName: Title
+  Notes:
+    displayName: Notes
+  Summary:
+    displayName: Summary
+  Contact:
+    displayName: Contact
+  Website:
+    displayName: Website
+  Phone:
+    displayName: Phone
+  Pages:
+    displayName: Pages
+  Progress:
+    displayName: Progress
+  Reading time:
+    displayName: Reading time
+  Row:
+    displayName: Row
+  Price:
+    displayName: Price
+  Rating:
+    displayName: Rating
+  Status:
+    displayName: Status
+  Tags:
+    displayName: Tags
+  Owner:
+    displayName: Owner
+  Readers:
+    displayName: Readers
+  Published:
+    displayName: Published
+  Updated at:
+    displayName: Updated at
+  Created at:
+    displayName: Created at
+  Modified at:
+    displayName: Modified at
+  Read:
+    displayName: Read
+  Authors:
+    displayName: Authors
+  Cover:
+    displayName: Cover
+  formula.Slug:
+    displayName: Slug
+  formula.Value:
+    displayName: Value
+  formula.Author count:
+    displayName: Author count
+  Author names:
+    displayName: Author names
+  Author output:
+    displayName: Author output
+  Author rating:
+    displayName: Author rating
+  Created by:
+    displayName: Created by
+  Modified by:
+    displayName: Modified by
+  ISBN:
+    displayName: ISBN
+  Open:
+    displayName: Open
+  AI summary:
+    displayName: AI summary
+  Mystery:
+    displayName: Mystery
+views:
+  - type: table
+    name: All books
+    filters: note["base"].contains("[[Example base/Books.base#All books]]")
+    order:
+      - file.name
+      - Status
+      - Rating
+      - Authors
+      - formula.Slug
+  - type: cards
+    name: Covers
+    filters: note["base"].contains("[[Example base/Books.base#Covers]]")
+    order:
+      - file.name
+      - Notes
+      - Summary
+      - Contact
+      - Website
+      - Phone
+      - Pages
+      - Progress
+      - Reading time
+      - Row
+      - Price
+      - Rating
+      - Status
+      - Tags
+      - Owner
+      - Readers
+      - Published
+      - Updated at
+      - Created at
+      - Modified at
+      - Read
+      - Authors
+      - Cover
+      - formula.Slug
+      - formula.Value
+      - formula.Author count
+      - Author names
+      - Author output
+      - Author rating
+      - Created by
+      - Modified by
+      - ISBN
+      - Open
+      - AI summary
+      - Mystery
+  - type: table
+    name: Reading _now_
+    filters: note["base"].contains("[[Example base/Books.base#Reading _now_]]")
+    order:
+      - file.name
+      - Progress
