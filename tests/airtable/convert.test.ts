@@ -36,7 +36,6 @@ import {
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	recordTitle,
-	RECORD_LINK_PLACEHOLDER_PATTERN,
 } from '../../src/formats/airtable-api/record-note';
 import { computeTableFormulas } from '../../src/formats/airtable-api/table-formulas';
 import type {
@@ -101,8 +100,11 @@ test('there are bases to convert', () => {
  * `tables` is what the user ticked, which is not always the whole base. A user
  * can select a single table, and a link pointing out of it then has no note to
  * reach - the case the partial recording covers.
+ *
+ * Runs in the same two passes the importer does: work out where every note
+ * goes, then write each one once, with real links already in it.
  */
-async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produced: string): Promise<number> {
+async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produced: string): Promise<void> {
 	// Every field of every table, as the importer collects them: a lookup can
 	// point at a field in another table, so this has to span the base.
 	const fieldNameById = new Map<string, string>();
@@ -142,24 +144,63 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 		}
 	}
 
-	// Record id -> the note it became, for resolving links at the end
-	const noteForRecord = new Map<string, string>();
-	// Notes the importer would read back and rewrite in its second pass
-	let notesNeedingResolution = 0;
-	// Record id -> its title, which the importer only learns for tables it
-	// fetches. A link into a table nobody selected is not in here.
-	const titleForRecord = new Map<string, string>();
+	interface Planned {
+		record: AirtableRecord;
+		path: string;
+		title: string;
+	}
 
-	for (const table of tables) {
+	// First pass: where every note goes. A record with nothing in it gets no
+	// note and so claims no path, which is what makes a link to it fall back to
+	// a name.
+	const pathForRecord = new Map<string, string>();
+	const claimed = new Set<string>();
+	const plans = tables.map(table => {
 		const tableFolder = `${baseFolder}/${sanitizeFileName(table.name)}`;
 		const records = base.records[table.id]?.records ?? [];
 		assert.ok(records.length > 0, `table ${table.name} should have records`);
 
 		const primaryFieldName = table.fields.find(f => f.id === table.primaryFieldId)!.name;
+		const planned: Planned[] = [];
+
 		for (const record of records) {
-			titleForRecord.set(record.id, recordTitle(record, primaryFieldName));
+			if (isEmptyRecord(record)) continue;
+
+			// The vault hands back a free path, so a second record with the same
+			// title lands beside the first rather than over it
+			const title = sanitizeFileName(recordTitle(record, primaryFieldName));
+			let path = `${tableFolder}/${title}.md`;
+			for (let i = 1; claimed.has(path.toLowerCase()); i++) {
+				path = `${tableFolder}/${title} ${i}.md`;
+			}
+			claimed.add(path.toLowerCase());
+
+			pathForRecord.set(record.id, path.replace(/\.md$/, ''));
+			planned.push({ record, path, title: nodePath.basename(path, '.md') });
 		}
 
+		return { table, tableFolder, primaryFieldName, planned };
+	});
+
+	// Which notes [[Name]] alone reaches. The importer also asks the vault
+	// whether the user already had a note by that name; nothing exists here
+	// beside what this writes, so counting the plan is the whole answer.
+	const timesUsed = new Map<string, number>();
+	for (const path of pathForRecord.values()) {
+		const basename = nodePath.basename(path).toLowerCase();
+		timesUsed.set(basename, (timesUsed.get(basename) ?? 0) + 1);
+	}
+
+	const resolveRecordLink = (recordId: string): string | null => {
+		const path = pathForRecord.get(recordId);
+		if (!path) return null;
+
+		const basename = nodePath.basename(path);
+		return timesUsed.get(basename.toLowerCase()) === 1 ? basename : path;
+	};
+
+	// Second pass: write each note once, links and all
+	for (const { table, tableFolder, primaryFieldName, planned } of plans) {
 		const formulas = computeTableFormulas({
 			fields: table.fields,
 			primaryFieldId: table.primaryFieldId,
@@ -198,45 +239,24 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 			propertyNameForField,
 		});
 
-		const takenPaths = new Set<string>();
-
-		for (const record of records) {
-			// An empty record is written as no note at all
-			if (isEmptyRecord(record)) continue;
-
-			const { content, hasRecordLinks } = await buildRecordNote(record, {
-				baseId: base.baseId,
+		for (const { record, path } of planned) {
+			const { content } = await buildRecordNote(record, {
 				fields: table.fields,
 				primaryFieldName,
 				viewReferences: viewsForRecord.get(record.id) ?? [],
 				viewPropertyName: VIEW_PROPERTY,
 				formulaFieldNames: new Set(formulas.keys()),
 				frontMatterFields,
-				importedTableIds,
+				resolveRecordLink,
 				externalRecordTitle: linkedRecordId => externalTitle.get(linkedRecordId),
 				resolveAttachments: resolveAttachments(tableFolder),
 				formatAttachmentsForBody,
 				formatAttachmentsForYAML,
 			});
 
-			// The vault hands back a free path, so a second record with the
-			// same title lands beside the first rather than over it
-			const title = sanitizeFileName(recordTitle(record, primaryFieldName));
-			let path = `${tableFolder}/${title}.md`;
-			for (let i = 1; takenPaths.has(path.toLowerCase()); i++) {
-				path = `${tableFolder}/${title} ${i}.md`;
-			}
-			takenPaths.add(path.toLowerCase());
-
-			if (hasRecordLinks) notesNeedingResolution++;
-			noteForRecord.set(record.id, nodePath.basename(path, '.md'));
 			write(produced, path, content);
 		}
 	}
-
-	resolveRecordLinks(produced, noteForRecord, titleForRecord);
-
-	return notesNeedingResolution;
 }
 
 /** Convert into a temporary folder, compare against a recording, clean up. */
@@ -245,12 +265,11 @@ async function recordConversion(
 	tables: AirtableTableInfo[],
 	expected: string,
 	label: string
-): Promise<number> {
+): Promise<void> {
 	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-airtable-'));
 	try {
-		const notesNeedingResolution = await convertBase(base, tables, produced);
+		await convertBase(base, tables, produced);
 		expectTree(produced, expected, label);
-		return notesNeedingResolution;
 	}
 	finally {
 		nodeFs.rmSync(produced, { recursive: true, force: true });
@@ -265,11 +284,7 @@ for (const fixture of bases) {
 		const base = read();
 		assert.ok(base.schema.tables.length > 0, 'the base should contain tables');
 
-		const notesNeedingResolution = await recordConversion(
-			base, base.schema.tables, expectedFor(fixture, name), fixture.name);
-
-		assert.ok(notesNeedingResolution > 0,
-			'a whole-base import should still write placeholders for links it can resolve');
+		await recordConversion(base, base.schema.tables, expectedFor(fixture, name), fixture.name);
 	});
 
 	// A user can tick one table out of a base. Its links to the tables they left
@@ -284,14 +299,7 @@ for (const fixture of bases) {
 			'the table imported alone should link out, or this records nothing'
 		);
 
-		const notesNeedingResolution = await recordConversion(
-			base, [first], expectedFor(fixture, `${name}-single-table`), fixture.name);
-
-		// The second pass reads and rewrites every note it is given, which costs
-		// about what writing them did. Nothing here can resolve to a note, so
-		// nothing should be left for it to do.
-		assert.equal(notesNeedingResolution, 0,
-			'a link that leaves the import should be settled before the note is written');
+		await recordConversion(base, [first], expectedFor(fixture, `${name}-single-table`), fixture.name);
 	});
 }
 
@@ -299,39 +307,4 @@ function write(root: string, vaultPath: string, content: string): void {
 	const file = nodePath.join(root, vaultPath);
 	nodeFs.mkdirSync(nodePath.dirname(file), { recursive: true });
 	nodeFs.writeFileSync(file, content);
-}
-
-/**
- * The importer's second pass, which runs once every note has a final path. The
- * vault resolves a link to its shortest unambiguous form, which for these
- * fixtures is the note name.
- *
- * A record that was not imported has no note to point at, so it degrades to
- * plain text rather than a link - the title where one was seen, and the record
- * id where none was. Mirrors resolveRecordLinks in airtable-api.ts, including
- * that the fallbacks are not wrapped in brackets.
- */
-function resolveRecordLinks(
-	root: string,
-	noteForRecord: Map<string, string>,
-	titleForRecord: Map<string, string>
-): void {
-	for (const file of nodeFs.readdirSync(root, { recursive: true, encoding: 'utf8' })) {
-		const full = nodePath.join(root, file);
-		if (!file.endsWith('.md') || !nodeFs.statSync(full).isFile()) continue;
-
-		const content = nodeFs.readFileSync(full, 'utf8');
-		const resolved = content.replace(
-			RECORD_LINK_PLACEHOLDER_PATTERN,
-			(_match, _baseId: string, recordId: string) => {
-				const note = noteForRecord.get(recordId);
-				if (note) return `[[${note}]]`;
-
-				const title = titleForRecord.get(recordId);
-				return title ? sanitizeFileName(title) : `Unknown record ${recordId}`;
-			}
-		);
-
-		if (resolved !== content) nodeFs.writeFileSync(full, resolved);
-	}
 }

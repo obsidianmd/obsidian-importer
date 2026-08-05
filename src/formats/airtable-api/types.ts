@@ -178,7 +178,7 @@ export interface AirtableRecord {
 /**
  * Prepared table data for two-phase import
  * Phase 1: Fetch all data and prepare in memory
- * Phase 2: Write files locally
+ * Phase 2: Decide where every note goes, then write them
  */
 export interface PreparedTableData {
 	baseId: string;
@@ -190,6 +190,34 @@ export interface PreparedTableData {
 	records: AirtableRecord[];
 	// Map: recordId -> array of view references like ["[[Table.base#View1]]", "[[Table.base#View2]]"]
 	recordViewMemberships: Map<string, string[]>;
+}
+
+/**
+ * A record with its final path already decided.
+ *
+ * Every path in a base is settled before any note in it is written, which is
+ * what lets a note be written once, with real links in it, rather than with
+ * placeholders that a second pass reads back and rewrites.
+ */
+export interface PlannedRecord {
+	record: AirtableRecord;
+	/** Where the note goes. Nothing else in the plan may claim this path. */
+	filePath: string;
+	/** The file name without .md, after any rename for a collision. */
+	title: string;
+	/**
+	 * Why no note is written, or undefined when one is. An already-imported
+	 * record still holds its path and is still something links can point at; an
+	 * empty one has no note at all, so links to it fall back to its title.
+	 */
+	skipped?: 'Empty record' | 'Already imported';
+}
+
+/** One table's records with their paths decided, and where they go. */
+export interface TablePlan {
+	tableData: PreparedTableData;
+	tablePath: string;
+	records: PlannedRecord[];
 }
 
 /**
@@ -212,7 +240,6 @@ export interface BaseGroupInfo {
  */
 export interface RecordFileContext {
 	baseId: string;
-	tablePath: string;
 	primaryFieldName: string;
 	fields: AirtableFieldSchema[];
 	viewReferences: string[];

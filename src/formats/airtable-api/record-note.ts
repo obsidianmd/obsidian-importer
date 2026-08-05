@@ -4,8 +4,9 @@
  * A record becomes frontmatter properties plus whatever body template the user
  * configured. Downloading an attachment and deciding where it lands is the
  * caller's, passed in as a callback, as is rendering one into the body - both
- * need a vault. Linked records are written as placeholders here and resolved by
- * the importer once every note has a final path.
+ * need a vault, as does knowing what path a linked record's note ended up at -
+ * the importer settles every path in a base before the first note is built, so
+ * a link can be written into the note the first time round.
  */
 import { FrontMatterCache } from 'obsidian';
 import { sanitizeFileName, serializeFrontMatter } from '../../util';
@@ -13,19 +14,6 @@ import { applyTemplate } from '../../template';
 import { convertFieldValue } from './field-converter';
 import { sanitizePropertyName } from './base-file';
 import type { AirtableAttachment, AirtableFieldSchema, AirtableRecord, AttachmentResult } from './types';
-
-/**
- * Linked records are written as a placeholder and resolved once every record
- * has a final file path. Resolving inline would bake in a title that a later
- * filename conflict can still change, leaving earlier-written records pointing
- * at the wrong file. Both halves live here so the emitted token and the pattern
- * that matches it cannot drift apart.
- */
-export function createRecordLinkPlaceholder(baseId: string, recordId: string): string {
-	return `[[airtable-record:${baseId}:${recordId}]]`;
-}
-
-export const RECORD_LINK_PLACEHOLDER_PATTERN = /\[\[airtable-record:([^:\]]+):([^\]]+)\]\]/g;
 
 /**
  * Render a field value as a plain string, for the note title and for body
@@ -71,7 +59,6 @@ export function recordTitle(record: AirtableRecord, primaryFieldName: string): s
 }
 
 export interface BuildRecordNoteOptions {
-	baseId: string;
 	fields: AirtableFieldSchema[];
 	/** The field the note is titled after. */
 	primaryFieldName: string;
@@ -94,17 +81,17 @@ export interface BuildRecordNoteOptions {
 	recordId?: boolean;
 	bodyTemplate?: string;
 	/**
-	 * Ids of the tables this import writes notes for.
+	 * Where a linked record's note ended up, as the text to put between
+	 * brackets, or null where the import writes no note for it - a table the
+	 * user did not tick, or a record with nothing in it.
 	 *
-	 * A link into a table outside that set has nothing to point at, so it is
-	 * written as the record's title straight away rather than as a placeholder
-	 * for the second pass - which is what keeps a single-table import out of
-	 * that pass entirely. Left undefined, every link is a placeholder.
+	 * The caller settles every path in the base before the first note is built,
+	 * so this can answer for a record whose note has not been written yet.
 	 */
-	importedTableIds?: ReadonlySet<string>;
+	resolveRecordLink?: (recordId: string) => string | null;
 	/**
-	 * The title of a record in a table this import is not writing notes for.
-	 * Undefined where the title was never fetched, which leaves the id.
+	 * The title of a record no note is written for, which is the best a link to
+	 * it can do. Undefined where the title was never fetched, leaving the id.
 	 */
 	externalRecordTitle?: (recordId: string) => string | undefined;
 	/** Download one field's attachments and report where they landed. */
@@ -117,8 +104,6 @@ export interface BuildRecordNoteOptions {
 
 export interface BuiltRecordNote {
 	content: string;
-	/** Whether the note carries a linked-record placeholder still to resolve. */
-	hasRecordLinks: boolean;
 }
 
 export async function buildRecordNote(
@@ -126,8 +111,8 @@ export async function buildRecordNote(
 	options: BuildRecordNoteOptions
 ): Promise<BuiltRecordNote> {
 	const {
-		baseId, fields, primaryFieldName, viewReferences, viewPropertyName, formulaFieldNames,
-		frontMatterFields, recordId, bodyTemplate, importedTableIds, externalRecordTitle,
+		fields, primaryFieldName, viewReferences, viewPropertyName, formulaFieldNames,
+		frontMatterFields, recordId, bodyTemplate, resolveRecordLink, externalRecordTitle,
 		resolveAttachments, formatAttachmentsForBody, formatAttachmentsForYAML,
 	} = options;
 
@@ -140,8 +125,6 @@ export async function buildRecordNote(
 	// Convert field values
 	// Track attachment fields so the frontmatter pass can format the already-downloaded results
 	const attachmentFieldNames = new Set<string>();
-	// Whether this note ends up carrying a linked-record placeholder
-	let hasRecordLinks = false;
 
 	for (const field of fields) {
 		const fieldValue = recordFields[field.name];
@@ -151,24 +134,18 @@ export async function buildRecordNote(
 			continue;
 		}
 
-		// Handle linked records - emit placeholders, resolved once every file exists
+		// Handle linked records - a link where the import writes a note, the
+		// record's name as plain text where it does not
 		if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-			// Unless the link leaves the import, in which case no note will ever
-			// exist to point at and the title is as good as it gets. Settling it
-			// here rather than in the second pass is what keeps the note out of
-			// that pass, and the pass is a rewrite of every note it touches.
-			const linkedTableId = field.options?.linkedTableId;
-			const leavesImport = !!linkedTableId && !!importedTableIds && !importedTableIds.has(linkedTableId);
-
 			const links = fieldValue.map((linkedRecordId: string) => {
-				if (!leavesImport) return createRecordLinkPlaceholder(baseId, linkedRecordId);
+				const target = resolveRecordLink?.(linkedRecordId);
+				if (target) return `[[${target}]]`;
 
-				// Same fallback the second pass uses for a record it never saw
+				// Nothing to point at: a table the user left out, or a record
+				// with nothing in it. Its name is the most a reader can use.
 				const title = externalRecordTitle?.(linkedRecordId);
 				return title ? sanitizeFileName(title) : `Unknown record ${linkedRecordId}`;
 			});
-
-			hasRecordLinks ||= !leavesImport && links.length > 0;
 			convertedCache.set(field.name, links);
 			if (hasBodyTemplate) templateData[field.name] = links.join(', ');
 			continue;
@@ -275,7 +252,6 @@ export async function buildRecordNote(
 
 	return {
 		content: `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim(),
-		hasRecordLinks,
 	};
 }
 

@@ -28,17 +28,17 @@ import {
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	recordTitle,
-	RECORD_LINK_PLACEHOLDER_PATTERN,
 } from './airtable-api/record-note';
 import type {
 	AirtableTreeNode,
 	AirtableViewInfo,
 	AirtableFieldSchema,
 	PreparedTableData,
-	AirtableRecord,
 	RecordFileContext,
 	BaseFileContext,
 	BaseGroupInfo,
+	PlannedRecord,
+	TablePlan,
 } from './airtable-api/types';
 
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
@@ -125,14 +125,11 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
-	// Notes written with an unresolved linked-record placeholder in them, so the
-	// resolve pass reads back only those rather than every note in the base
-	private pendingLinkFiles: string[] = [];
 	/**
-	 * Ids of the tables being imported for the base in hand. A link out of this
-	 * set is written as text rather than as a placeholder for the second pass.
+	 * Note names that [[Name]] alone resolves to, lowercased. Worked out once
+	 * the whole plan is known; see chooseLinkForms.
 	 */
-	private importedTableIds: Set<string> = new Set();
+	private uniqueBasenames: Set<string> = new Set();
 	// Record counters span the whole import, across every base, so the progress
 	// bar and the imported tally do not restart when a new base begins
 	private processedRecordsCount: number = 0;
@@ -839,7 +836,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		try {
 			// Initialize global data that persists across bases
 			this.recordIdToPath.clear();
-			this.pendingLinkFiles = [];
+			this.uniqueBasenames.clear();
 			this.allFieldsForTypeInference.clear();
 			this.processedRecordsCount = 0;
 			this.totalRecordsToImport = 0;
@@ -892,7 +889,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 
 				// ============================================================
-				// PHASE 2: Create files for this base
+				// PHASE 2: Plan every path, then write the files
 				// ============================================================
 				try {
 					await this.createFilesForBase(ctx, folder.path);
@@ -902,13 +899,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					ctx.reportFailed(`Base: ${baseInfo.baseName}`, error);
 					// Continue with next base
 					continue;
-				}
-				finally {
-					// PHASE 3: turn linked-record placeholders into real links.
-					// In a finally, and not honouring cancellation, because notes
-					// are written with placeholder text: skipping this after a
-					// stopped or failed run would leave that raw text in the vault.
-					await this.resolveRecordLinks(ctx, `${baseInfo.baseName}${this.basePosition}`);
 				}
 			}
 
@@ -1009,8 +999,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		baseInfo: BaseGroupInfo
 	): Promise<void> {
 		const { baseId, baseName, tables } = baseInfo;
-
-		this.importedTableIds = new Set(tables.map(table => table.tableId));
 
 		// Fetch data for each table in this base
 		for (const table of tables) {
@@ -1126,13 +1114,158 @@ export class AirtableAPIImporter extends FormatImporter {
 		ctx: ImportContext,
 		rootPath: string
 	): Promise<void> {
-		// Process each table's prepared data
-		for (const tableData of this.preparedData) {
+		// Every path in the base is settled first, so each note can be written
+		// once with real links in it. Resolving links afterwards instead meant
+		// reading back and rewriting every note that had one, and rewriting a
+		// note costs about what writing it did.
+		const plans = await this.planRecordPaths(ctx, rootPath);
+		if (ctx.isCancelled()) return;
+
+		for (const plan of plans) {
 			if (ctx.isCancelled()) return;
 
-			// Update status context
-			await this.createFilesForTable(ctx, tableData, rootPath);
+			await this.createFilesForTable(ctx, plan);
 		}
+	}
+
+	/**
+	 * Decide where every record in the base goes, before writing anything.
+	 *
+	 * A note can only carry a link to another record if that record's path is
+	 * already known, and a path is not known until a title collision has been
+	 * settled - two records called "Tron" cannot both be Tron.md. Doing the
+	 * whole base up front is what makes both true at once.
+	 *
+	 * Fills recordIdToPath, which is what links resolve through, and leaves the
+	 * records grouped by table for the write pass that follows.
+	 */
+	private async planRecordPaths(ctx: ImportContext, rootPath: string): Promise<TablePlan[]> {
+		const plans: TablePlan[] = [];
+
+		// Paths this plan has handed out. The vault only knows files that exist,
+		// and none of these do yet, so it cannot keep two records off one path.
+		const claimed = new Set<string>();
+
+		for (const tableData of this.preparedData) {
+			if (ctx.isCancelled()) return plans;
+
+			const { baseId, baseName, tableName, primaryFieldId, fields, records } = tableData;
+			const primaryFieldName = fields.find(f => f.id === primaryFieldId)?.name || fields[0]?.name;
+
+			const tablePath = baseName
+				? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
+				: normalizePath(`${rootPath}/${sanitizeFileName(tableName)}`);
+
+			ctx.status(`Working out where ${tableName}${this.basePosition} goes`);
+
+			const planned: PlannedRecord[] = [];
+
+			for (const record of records) {
+				if (ctx.isCancelled()) return plans;
+
+				// Nothing in any field: no note, and links to it fall back to a
+				// title, which is why it claims no path
+				if (isEmptyRecord(record)) {
+					planned.push({ record, filePath: '', title: 'Untitled Record', skipped: 'Empty record' });
+					continue;
+				}
+
+				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
+				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
+
+				// Incremental import: a record already on disk under this id keeps
+				// the path it is already at - it is still something to link to -
+				// and its note is left alone.
+				if (await this.shouldSkipExistingRecord(desiredPath, record.id)) {
+					claimed.add(desiredPath.toLowerCase());
+					this.recordIdToPath.set(`${baseId}:${record.id}`, desiredPath.replace(/\.md$/, ''));
+					planned.push({ record, filePath: desiredPath, title, skipped: 'Already imported' });
+					continue;
+				}
+
+				const filePath = this.claimRecordPath(tablePath, title, claimed);
+				const { basename } = parseFilePath(filePath);
+
+				this.recordIdToPath.set(`${baseId}:${record.id}`, filePath.replace(/\.md$/, ''));
+				// Keep the title map in step with a rename. Links resolve through
+				// recordIdToPath, so this only affects the text a link to a record
+				// with no note falls back to, and the names shown in reporting.
+				this.globalRecordIdToTitle.set(record.id, basename);
+
+				planned.push({ record, filePath, title: basename });
+			}
+
+			plans.push({ tableData, tablePath, records: planned });
+		}
+
+		this.chooseLinkForms();
+
+		return plans;
+	}
+
+	/**
+	 * A path for this record that no other record in the plan has taken.
+	 *
+	 * getAvailablePath keeps it off a file that already exists and compares
+	 * case-insensitively, so "Tron" and "TRON" do not collapse into one file.
+	 * It cannot know about the rest of the plan, though, because none of it is
+	 * written yet - hence claimed.
+	 */
+	private claimRecordPath(tablePath: string, title: string, claimed: Set<string>): string {
+		let path = getUniqueFilePath(this.vault, tablePath, `${title}.md`);
+
+		for (let suffix = 1; claimed.has(path.toLowerCase()); suffix++) {
+			path = getUniqueFilePath(this.vault, tablePath, `${title} ${suffix}.md`);
+		}
+
+		claimed.add(path.toLowerCase());
+		return path;
+	}
+
+	/**
+	 * Which notes can be linked to by name alone.
+	 *
+	 * Obsidian resolves [[Name]] to the one file called Name, so where a name
+	 * belongs to a single note the link can be short. Where it does not - two
+	 * records that sanitised to the same name in different tables, or a note the
+	 * user already had - the full path is used instead, which always resolves.
+	 *
+	 * This is what fileToLinktext worked out per link when links were resolved
+	 * after the fact. It cannot be used here because it needs the file to exist.
+	 */
+	private chooseLinkForms(): void {
+		const timesUsed = new Map<string, number>();
+		for (const path of this.recordIdToPath.values()) {
+			const basename = path.slice(path.lastIndexOf('/') + 1).toLowerCase();
+			timesUsed.set(basename, (timesUsed.get(basename) ?? 0) + 1);
+		}
+
+		this.uniqueBasenames.clear();
+
+		for (const path of this.recordIdToPath.values()) {
+			const basename = path.slice(path.lastIndexOf('/') + 1);
+			if (timesUsed.get(basename.toLowerCase()) !== 1) continue;
+
+			// A note the user already had under this name would make the short
+			// form ambiguous. One sitting at the path being planned is this
+			// import's own, from a previous run, so it is not a clash.
+			const existing = this.app.metadataCache.getFirstLinkpathDest(basename, '');
+			if (existing && existing.path !== `${path}.md`) continue;
+
+			this.uniqueBasenames.add(basename.toLowerCase());
+		}
+	}
+
+	/**
+	 * What a link to this record should say, or null where no note is written
+	 * for it and the reader gets its name as text instead.
+	 */
+	private linkTextForRecord(baseId: string, recordId: string): string | null {
+		const path = this.recordIdToPath.get(`${baseId}:${recordId}`);
+		if (!path) return null;
+
+		const basename = path.slice(path.lastIndexOf('/') + 1);
+		return this.uniqueBasenames.has(basename.toLowerCase()) ? basename : path;
 	}
 
 
@@ -1252,19 +1385,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private async createFilesForTable(
 		ctx: ImportContext,
-		tableData: PreparedTableData,
-		rootPath: string
+		plan: TablePlan
 	): Promise<void> {
-		const { baseId, baseName, tableName, primaryFieldId, fields, views, records, recordViewMemberships } = tableData;
+		const { tableData, tablePath } = plan;
+		const { baseId, tableName, primaryFieldId, fields, views, recordViewMemberships } = tableData;
 
 		// Find primary field by ID (don't assume fields[0] is primary)
 		const primaryField = fields.find(f => f.id === primaryFieldId);
 		const primaryFieldName = primaryField?.name || fields[0]?.name;
-
-		// Build table path
-		const tablePath = baseName
-			? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
-			: normalizePath(`${rootPath}/${sanitizeFileName(tableName)}`);
 
 		await this.createFolders(tablePath);
 
@@ -1288,16 +1416,14 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (ctx.isCancelled()) return;
 
-		// Create files for all records
-		// Note: Using globalRecordIdToTitle for resolving linked records across tables
-		for (const record of records) {
+		// Write the notes, at the paths the plan settled on
+		for (const planned of plan.records) {
 			if (ctx.isCancelled()) return;
 
 			try {
-				const viewReferences = recordViewMemberships.get(record.id) || [];
-				await this.createRecordFile(ctx, record, {
+				const viewReferences = recordViewMemberships.get(planned.record.id) || [];
+				await this.createRecordFile(ctx, planned, {
 					baseId,
-					tablePath,
 					primaryFieldName,
 					fields,
 					viewReferences,
@@ -1306,8 +1432,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				});
 			}
 			catch (error) {
-				const recordTitle = String(record.fields?.[primaryFieldName] ?? 'Untitled Record');
-				ctx.reportFailed(recordTitle, error);
+				ctx.reportFailed(planned.title, error);
 				this.processedRecordsCount++;
 				this.reportOverallProgress(ctx);
 			}
@@ -1412,37 +1537,27 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Create a file for a single record (Phase 2)
-	 * Resolves all linked records before writing
+	 * Write one record's note, at the path the plan gave it.
+	 *
+	 * Everything a note needs to be written once is settled by then: its own
+	 * path, and the path of every record it links to.
 	 */
 	private async createRecordFile(
 		ctx: ImportContext,
-		record: AirtableRecord,
+		planned: PlannedRecord,
 		fileContext: RecordFileContext
 	): Promise<void> {
-		const { tablePath, primaryFieldName, fields, viewReferences, formulaFieldNames, frontMatterFields } = fileContext;
-		const recordId = record.id;
+		const { primaryFieldName, fields, viewReferences, formulaFieldNames, frontMatterFields } = fileContext;
+		const { record, filePath, title } = planned;
 
-		if (isEmptyRecord(record)) {
-			ctx.reportSkipped('Untitled Record', 'Empty record');
+		if (planned.skipped) {
+			ctx.reportSkipped(title, planned.skipped);
 			this.processedRecordsCount++;
 			this.reportOverallProgress(ctx);
 			return;
 		}
 
-		let sanitizedTitle = sanitizeFileName(recordTitle(record, primaryFieldName));
-		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
-
-		// Incremental import: a record already on disk under this id needs no work
-		if (await this.shouldSkipExistingRecord(filePath, recordId)) {
-			ctx.reportSkipped(sanitizedTitle, 'Already imported');
-			this.processedRecordsCount++;
-			this.reportOverallProgress(ctx);
-			return;
-		}
-
-		const { content: fileContent, hasRecordLinks } = await buildRecordNote(record, {
-			baseId: fileContext.baseId,
+		const { content } = await buildRecordNote(record, {
 			fields,
 			primaryFieldName,
 			viewReferences,
@@ -1450,7 +1565,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			formulaFieldNames,
 			frontMatterFields,
 			recordId: this.incrementalImport,
-			importedTableIds: this.importedTableIds,
+			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,
 			resolveAttachments: attachments => downloadAttachmentList(attachments, {
@@ -1472,34 +1587,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		// Ask the vault for a free path rather than testing for a conflict
-		// first: it hands back the desired path when nothing occupies it, and
-		// compares case-insensitively, so two records titled "Tron" and "TRON"
-		// no longer resolve to one file that the second fails to create.
-		const availablePath = getUniqueFilePath(this.vault, tablePath, `${sanitizedTitle}.md`);
-		if (availablePath !== filePath) {
-			filePath = availablePath;
-			// Update sanitizedTitle to match the new file name (without .md)
-			const { basename } = parseFilePath(filePath);
-			sanitizedTitle = basename;
-			// Keep the title map in step with the rename. Links resolve through
-			// recordIdToPath, so this only affects the not-imported fallback and
-			// the names shown in progress/skip reporting.
-			this.globalRecordIdToTitle.set(recordId, sanitizedTitle);
-		}
+		await this.vault.create(filePath, content);
 
-		// Create the file
-		await this.vault.create(filePath, fileContent);
-
-		// Use baseId:recordId as key to ensure uniqueness across bases (recordId is only unique within a base)
-		const uniqueKey = `${fileContext.baseId}:${recordId}`;
-		this.recordIdToPath.set(uniqueKey, filePath.replace(/\.md$/, ''));
-
-		if (hasRecordLinks) {
-			this.pendingLinkFiles.push(filePath);
-		}
-
-		ctx.reportNoteSuccess(sanitizedTitle);
+		ctx.reportNoteSuccess(title);
 
 		this.processedRecordsCount++;
 		this.reportOverallProgress(ctx);
@@ -1534,73 +1624,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to read frontmatter from: ${filePath}`, error);
 			return false;
-		}
-	}
-
-	/**
-	 * Replace linked-record placeholders with links to the records' final paths.
-	 *
-	 * Runs once a base's files have all been written, so a link is never left
-	 * pointing at a title that a later filename conflict renamed. Records that
-	 * were not imported (a table the user did not select, or a record skipped as
-	 * empty) have no path and degrade to their plain title.
-	 *
-	 * Runs per base because Airtable record IDs are only unique within a base,
-	 * and because globalRecordIdToTitle is cleared between bases.
-	 *
-	 * Deliberately ignores cancellation: it only touches notes that have already
-	 * been written, and every one of those contains placeholder text until this
-	 * runs. Bailing out early would leave "[[airtable-record:...]]" in the vault.
-	 */
-	private async resolveRecordLinks(ctx: ImportContext, label: string): Promise<void> {
-		// Only the notes the write phase recorded as carrying a placeholder, so a
-		// base where few records link does not cost a read of every note.
-		const pending = this.pendingLinkFiles;
-		this.pendingLinkFiles = [];
-
-		// Rewriting a note costs about what writing it did - the phase is a
-		// second pass over most of the import - so it needs a count rather than
-		// one message the user watches for minutes.
-		let resolved = 0;
-
-		for (const filePath of pending) {
-			ctx.status(`Resolving linked records in ${label} (${resolved++} of ${pending.length})`);
-
-			try {
-				const file = this.vault.getAbstractFileByPath(filePath);
-				if (!(file instanceof TFile)) {
-					continue;
-				}
-
-				const content = await this.vault.read(file);
-				const resolved = content.replace(
-					RECORD_LINK_PLACEHOLDER_PATTERN,
-					(_match, baseId: string, recordId: string) => {
-						const targetPath = this.recordIdToPath.get(`${baseId}:${recordId}`);
-						if (targetPath) {
-							const target = this.vault.getAbstractFileByPath(`${targetPath}.md`);
-							if (target instanceof TFile) {
-								// Shortest form that still resolves: Obsidian falls back
-								// to a full path only where the name is not unique, so
-								// most links read as [[Electronics]] rather than
-								// [[Airtable/Belongings/Categories/Electronics]]
-								return `[[${this.app.metadataCache.fileToLinktext(target, file.path)}]]`;
-							}
-							return `[[${targetPath}]]`;
-						}
-						// Not imported - fall back to the record's title if we saw it
-						const title = this.globalRecordIdToTitle.get(recordId);
-						return title ? sanitizeFileName(title) : `Unknown record ${recordId}`;
-					}
-				);
-
-				if (resolved !== content) {
-					await this.vault.modify(file, resolved);
-				}
-			}
-			catch (error) {
-				console.error(`Failed to resolve linked records in: ${filePath}`, error);
-			}
 		}
 	}
 
