@@ -35,6 +35,20 @@ for (const name of [
 	if (value !== undefined) globals[name] = value;
 }
 
+/**
+ * linkedom has createTreeWalker but no NodeFilter, so the constants callers
+ * pass it have to come from somewhere. These are the values from the DOM
+ * standard.
+ */
+if (globals.NodeFilter === undefined) {
+	globals.NodeFilter = {
+		SHOW_ALL: 0xFFFFFFFF, SHOW_ELEMENT: 1, SHOW_ATTRIBUTE: 2, SHOW_TEXT: 4,
+		SHOW_CDATA_SECTION: 8, SHOW_COMMENT: 128, SHOW_DOCUMENT: 256,
+		SHOW_DOCUMENT_FRAGMENT: 1024,
+		FILTER_ACCEPT: 1, FILTER_REJECT: 2, FILTER_SKIP: 3,
+	};
+}
+
 globals.window = window;
 (window as unknown as Record<string, unknown>).TurndownService = TurndownService;
 
@@ -63,6 +77,26 @@ define(elementProto, 'find', function (this: any, selector: string) { return thi
 define(elementProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 define(elementProto, 'appendText', function (this: any, text: string) { this.appendChild(this.doc.createTextNode(text)); });
 define(elementProto, 'empty', function (this: any) { while (this.firstChild) this.removeChild(this.firstChild); });
+/**
+ * linkedom exposes innerText read-only; browsers and Obsidian let you assign
+ * it, and the conversion code does. Backed by textContent, which is what
+ * linkedom's own getter reads.
+ */
+if (!Object.getOwnPropertyDescriptor(elementProto, 'innerText')?.set) {
+	Object.defineProperty(elementProto, 'innerText', {
+		get(this: any) { return this.textContent; },
+		set(this: any, value: string) { this.textContent = value; },
+		configurable: true,
+	});
+}
+
+define(elementProto, 'setText', function (this: any, text: unknown) {
+	if (text && typeof text === 'object' && 'nodeType' in (text as object)) {
+		this.textContent = '';
+		this.appendChild(text);
+	}
+	else this.textContent = String(text);
+});
 define(elementProto, 'getAttr', function (this: any, name: string) { return this.getAttribute(name); });
 define(elementProto, 'setAttr', function (this: any, name: string, value: string) { this.setAttribute(name, String(value)); });
 define(documentProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
@@ -76,6 +110,18 @@ function createEl(tag: string, options?: { text?: string, cls?: string, attr?: R
 	for (const [name, value] of Object.entries(options?.attr ?? {})) el.setAttribute(name, String(value));
 	return el;
 }
+
+/**
+ * The element methods append; the globals below do not. That difference is
+ * Obsidian's, and code here relies on both.
+ */
+define(elementProto, 'createEl', function (this: any, tag: string, options?: object) {
+	const child = createEl(tag, options);
+	this.appendChild(child);
+	return child;
+});
+define(elementProto, 'createDiv', function (this: any, options?: object) { return this.createEl('div', options); });
+define(elementProto, 'createSpan', function (this: any, options?: object) { return this.createEl('span', options); });
 
 globals.createEl = createEl;
 globals.createDiv = (options?: object) => createEl('div', options);
