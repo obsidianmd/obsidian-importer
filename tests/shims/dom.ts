@@ -115,6 +115,52 @@ define(elementProto, 'setText', function (this: any, text: unknown) {
 });
 define(elementProto, 'getAttr', function (this: any, name: string) { return this.getAttribute(name); });
 define(elementProto, 'setAttr', function (this: any, name: string, value: string) { this.setAttribute(name, String(value)); });
+
+/**
+ * rows and cells, which linkedom has neither of.
+ *
+ * The Notion conversion reads a page's property table through them - the rows
+ * of the <tbody>, then each row's cells - so without them the whole
+ * property-to-frontmatter path throws before it converts anything.
+ *
+ * linkedom gives every element the plain HTMLElement prototype, so these land
+ * on Element rather than on HTMLTableSectionElement and HTMLTableRowElement
+ * where the DOM puts them. turndown's GFM table rules read .rows as well, so
+ * <table> has to gather the rows of its sections rather than only its own
+ * children, or those rules see an empty table.
+ *
+ * Document order, where the DOM hoists thead first and sinks tfoot last. No
+ * export here writes either, and guessing at more would be inventing rather
+ * than matching.
+ */
+function childElements(el: any, tags: string[]): any[] {
+	return (Array.from(el.children) as any[]).filter(child => tags.includes(child.tagName));
+}
+
+if (!('rows' in elementProto)) {
+	Object.defineProperty(elementProto, 'rows', {
+		get(this: any) {
+			if (this.tagName !== 'TABLE') return childElements(this, ['TR']);
+
+			const rows: any[] = [];
+			for (const child of Array.from(this.children) as any[]) {
+				if (child.tagName === 'TR') rows.push(child);
+				else if (child.tagName === 'THEAD' || child.tagName === 'TBODY' || child.tagName === 'TFOOT') {
+					rows.push(...childElements(child, ['TR']));
+				}
+			}
+			return rows;
+		},
+		configurable: true,
+	});
+}
+
+if (!('cells' in elementProto)) {
+	Object.defineProperty(elementProto, 'cells', {
+		get(this: any) { return childElements(this, ['TD', 'TH']); },
+		configurable: true,
+	});
+}
 define(documentProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(documentProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 
