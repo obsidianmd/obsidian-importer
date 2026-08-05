@@ -1,3 +1,6 @@
+/** The Notion API version the importer pins; every request sends it. */
+export const NOTION_VERSION = '2025-09-03';
+
 /**
  * Type definitions for Notion API importer
  */

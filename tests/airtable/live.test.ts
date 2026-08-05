@@ -18,25 +18,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeFs from 'node:fs';
-import * as nodePath from 'node:path';
 
 import { PROPERTY_TYPE_FOR_FIELD_TYPE } from '../../src/formats/airtable-api/field-converter';
-
-/** .env, read as the plugin never does - this is a test convenience only. */
-function env(name: string): string | undefined {
-	if (process.env[name]) return process.env[name];
-
-	const file = nodePath.join(__dirname, '..', '..', '.env');
-	if (!nodeFs.existsSync(file)) return undefined;
-
-	for (const line of nodeFs.readFileSync(file, 'utf8').split('\n')) {
-		const match = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/i.exec(line);
-		if (match?.[1] === name) return match[2].trim().replace(/^["']|["']$/g, '');
-	}
-
-	return undefined;
-}
+import { env } from '../helpers';
 
 const token = env('AIRTABLE_TOKEN');
 const skip = token ? false : 'set AIRTABLE_TOKEN in .env to check the fixture against the live API';

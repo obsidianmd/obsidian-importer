@@ -145,7 +145,7 @@ export function fixtures(dir: string, extension: string): Fixture[] {
 	for (const [from, local] of [[dir, false], [nodePath.join(dir, 'local'), true]] as [string, boolean][]) {
 		if (!nodeFs.existsSync(from)) continue;
 
-		for (const name of nodeFs.readdirSync(from).sort()) {
+		for (const name of nodeFs.readdirSync(from).sort((a, b) => a.localeCompare(b))) {
 			if (!name.endsWith(extension)) continue;
 			found.push({ name, path: nodePath.join(from, name), local });
 		}
@@ -162,4 +162,24 @@ export function fixtures(dir: string, extension: string): Fixture[] {
  */
 export function expectedFor(fixture: Fixture, ...leaf: string[]): string {
 	return nodePath.join(nodePath.dirname(fixture.path), 'expected', ...leaf);
+}
+
+/**
+ * A value from the environment, or from .env at the repo root.
+ *
+ * Only the live checks use this, to find the token they need. .env is not
+ * committed, and nothing here writes to it.
+ */
+export function env(name: string): string | undefined {
+	if (process.env[name]) return process.env[name];
+
+	const file = nodePath.join(__dirname, '..', '.env');
+	if (!nodeFs.existsSync(file)) return undefined;
+
+	for (const line of nodeFs.readFileSync(file, 'utf8').split('\n')) {
+		const match = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/i.exec(line);
+		if (match?.[1] === name) return match[2].trim().replace(/^["']|["']$/g, '');
+	}
+
+	return undefined;
 }

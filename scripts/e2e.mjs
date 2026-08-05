@@ -76,7 +76,7 @@ const script = `
 (async () => {
 	const fs = require('fs');
 	const plugin = app.plugins.plugins['obsidian-importer'];
-	if (!plugin) return 'ERROR: the importer is not enabled in this vault';
+	if (!plugin) return JSON.stringify({ error: 'the importer is not enabled in the active vault (' + app.vault.getName() + ')' });
 
 	const cases = ${JSON.stringify(CASES)};
 	const repo = ${JSON.stringify(repo)};
@@ -116,7 +116,14 @@ const script = `
 
 // The CLI takes the code as one argument, so it goes over as a single line.
 // Any comment inside it has to be a block comment to survive that.
-const results = JSON.parse(evalInObsidian(script.replace(/\n\s*/g, ' ')));
+const answer = JSON.parse(evalInObsidian(script.replace(/\n\s*/g, ' ')));
+
+if (answer.error) {
+	console.error(`Cannot run: ${answer.error}`);
+	process.exit(1);
+}
+
+const results = answer;
 
 let failures = 0;
 for (const result of results) {

@@ -17,7 +17,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { processDatabasePlaceholders, importDatabaseCore } from './notion-api/database-helpers';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams } from './notion-api/types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 
 // Notion API parent types (based on @notionhq/client internal types)
@@ -276,7 +276,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private initializeNotionClient(): void {
 		this.notionClient = new Client({
 			auth: this.notionToken,
-			notionVersion: '2025-09-03',
+			notionVersion: NOTION_VERSION,
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
 
