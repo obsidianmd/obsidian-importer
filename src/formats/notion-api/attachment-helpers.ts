@@ -353,7 +353,7 @@ export async function downloadAndFormatAttachment(
 		currentFolderPath?: string;
 		downloadExternalAttachments?: boolean;
 		incrementalImport?: boolean;
-		onAttachmentDownloaded?: () => void;
+		onAttachmentDownloaded?: (filename: string) => void;
 		getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 	},
 	options?: {
@@ -371,7 +371,7 @@ export async function downloadAndFormatAttachment(
 
 		// Report progress if attachment was downloaded
 		if (result.isLocal && context.onAttachmentDownloaded) {
-			context.onAttachmentDownloaded();
+			context.onAttachmentDownloaded(result.filename ?? '');
 		}
 
 		// Format link according to user's vault settings

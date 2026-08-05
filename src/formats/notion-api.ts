@@ -71,7 +71,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private relationPlaceholders: RelationPlaceholder[] = [];
 	// Progress counters: separate tracking for pages and attachments
 	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
-	private attachmentsDownloaded: number = 0;
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
@@ -941,7 +940,6 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
 			this.processedPagesCount = 0;
-			this.attachmentsDownloaded = 0;
 
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
 			ctx.status(`Preparing to import ${this.totalNodesToImport} item(s)...`);
@@ -1211,11 +1209,7 @@ export class NotionAPIImporter extends FormatImporter {
 					await this.fetchAndImportPage({ ctx, pageId: childPageId, parentPath });
 				},
 				// Callback when an attachment is downloaded
-				onAttachmentDownloaded: () => {
-					this.attachmentsDownloaded++;
-					ctx.attachments = this.attachmentsDownloaded;
-					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-				},
+				onAttachmentDownloaded: (filename: string) => ctx.reportAttachmentSuccess(filename),
 				// Function to get available attachment path using FormatImporter's method
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
@@ -1279,10 +1273,7 @@ export class NotionAPIImporter extends FormatImporter {
 				currentFolderPath: pageFolderPath,
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				incrementalImport: this.incrementalImport,
-				onAttachmentDownloaded: () => {
-					this.attachmentsDownloaded++;
-					ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
-				},
+				onAttachmentDownloaded: (filename: string) => ctx.reportAttachmentSuccess(filename),
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
 					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
@@ -1332,9 +1323,7 @@ export class NotionAPIImporter extends FormatImporter {
 					// Cover images should always be downloaded locally
 					if (result.isLocal && result.filename) {
 						// Report progress for cover image download
-						this.attachmentsDownloaded++;
-						ctx.attachments = this.attachmentsDownloaded;
-						ctx.attachmentCountEl.setText(this.attachmentsDownloaded.toString());
+						ctx.reportAttachmentSuccess(result.filename);
 
 						// Extract extension from filename
 						const ext = result.filename.substring(result.filename.lastIndexOf('.'));

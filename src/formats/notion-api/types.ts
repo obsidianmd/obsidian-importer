@@ -252,7 +252,7 @@ export interface BlockConversionContext {
 	syncedChildPagePlaceholders?: Map<string, Set<string>>; // Map file path to synced child page IDs
 	syncedChildDatabasePlaceholders?: Map<string, Set<string>>; // Map file path to synced child database IDs
 	listCounters?: Map<number, number>; // Track list item numbers per indent level
-	onAttachmentDownloaded?: () => void; // Callback when an attachment is downloaded
+	onAttachmentDownloaded?: (filename: string) => void; // Callback when an attachment is downloaded
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
