@@ -632,6 +632,11 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
+		// This container is the scroll box, and emptying it sends it back to the
+		// top. Ticking a checkbox re-renders the tree, so without this the list
+		// jumps away from whatever the user just clicked.
+		const scrollTop = this.pageTreeContainer.scrollTop;
+
 		this.pageTreeContainer.empty();
 
 		if (this.pageTree.length === 0) {
@@ -646,6 +651,8 @@ export class NotionAPIImporter extends FormatImporter {
 		for (const node of this.pageTree) {
 			this.renderTreeNode(this.pageTreeContainer, node, 0);
 		}
+
+		this.pageTreeContainer.scrollTop = scrollTop;
 
 		// Update toggle button text based on current selection state
 		if (this.toggleSelectButton) {
