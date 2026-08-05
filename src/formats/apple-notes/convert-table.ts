@@ -1,6 +1,6 @@
-import { AppleNotesImporter } from '../apple-notes';
 import { NoteConverter } from './convert-note';
 import {
+	ANContext,
 	ANConverter,
 	ANMergableDataProto,
 	ANMergeableDataObject,
@@ -33,8 +33,8 @@ export class TableConverter extends ANConverter {
 
 	static protobufType = 'ciofecaforensics.MergableDataProto';
 
-	constructor(importer: AppleNotesImporter, table: ANMergableDataProto) {
-		super(importer);
+	constructor(ctx: ANContext, table: ANMergableDataProto) {
+		super(ctx);
 		this.table = table.mergableDataObject;
 
 		const data = this.table.mergeableDataObjectData;
@@ -111,7 +111,7 @@ export class TableConverter extends ANConverter {
 
 				if (!(rowLocation in result) || !rowContent) continue;
 
-				const converter = new NoteConverter(this.importer, rowContent);
+				const converter = new NoteConverter(this.ctx, rowContent);
 				result[rowLocation][columnLocation] = await converter.format(true);
 			}
 		}

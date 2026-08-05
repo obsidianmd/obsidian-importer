@@ -1,6 +1,6 @@
 import { Notice, Platform, Setting, TFile, TFolder, moment } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
-import { ANAccount, ANAttachment, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
+import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../main';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
@@ -22,7 +22,7 @@ enum DuplicateHandling {
 	CreateCopy = 'create-copy'
 }
 
-export class AppleNotesImporter extends FormatImporter {
+export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	ctx: ImportContext;
 	rootFolder: TFolder;
 
@@ -484,7 +484,12 @@ export class AppleNotesImporter extends FormatImporter {
 		return file;
 	}
 
-	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>) {
+	/** A link to a file, in whichever form the vault is set to write. See ANContext. */
+	linkTo(file: TFile, sourcePath: string, subpath?: string, display?: string): string {
+		return this.app.fileManager.generateMarkdownLink(file, sourcePath, subpath, display);
+	}
+
+	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
 		const unzipped = zlib.unzipSync(Buffer.from(hexdata, 'hex'));
 		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
 		return new converterType(this, decoded);

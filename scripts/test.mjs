@@ -34,7 +34,9 @@ function availableSuites() {
 }
 
 const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
-const result = spawnSync(tsx, ['--tsconfig', 'tsconfig.test.json', '--test', ...patterns], {
+// node:sqlite, which a fixture builds a notes database with, is still flagged
+// experimental and says so on every run
+const result = spawnSync(tsx, ['--disable-warning=ExperimentalWarning', '--tsconfig', 'tsconfig.test.json', '--test', ...patterns], {
 	cwd: root,
 	stdio: 'inherit',
 });
