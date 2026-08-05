@@ -1,5 +1,5 @@
 ---
-views:
+Views:
   - Covers
   - Reading _now_
 Notes: |-
