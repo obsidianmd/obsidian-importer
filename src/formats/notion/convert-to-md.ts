@@ -18,6 +18,7 @@ import {
 	stripNotionId,
 	stripParentDirectories,
 } from './notion-utils';
+import { parseNotionNumberPropertyValue } from './property-values';
 
 export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
 	return convertHtmlToMarkdown(info, await file.readText());
@@ -157,8 +158,7 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 			content = body.innerHTML.includes('checkbox-on');
 			break;
 		case 'number':
-			content = Number(body.textContent);
-			if (isNaN(content)) return;
+			content = parseNotionNumberPropertyValue(body.textContent);
 			break;
 		case 'date': {
 			fixNotionDates(body);
