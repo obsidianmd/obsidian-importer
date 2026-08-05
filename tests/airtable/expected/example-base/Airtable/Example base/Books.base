@@ -78,7 +78,6 @@ properties:
 views:
   - type: table
     name: All books
-    filters: note["base"].contains("[[Example base/Books.base#All books]]")
     order:
       - file.name
       - Status
@@ -87,7 +86,7 @@ views:
       - formula.Slug
   - type: cards
     name: Covers
-    filters: note["base"].contains("[[Example base/Books.base#Covers]]")
+    filters: note["base"].contains("Covers")
     order:
       - file.name
       - Notes
@@ -126,7 +125,7 @@ views:
       - Mystery
   - type: table
     name: Reading _now_
-    filters: note["base"].contains("[[Example base/Books.base#Reading _now_]]")
+    filters: note["base"].contains("Reading _now_")
     order:
       - file.name
       - Progress

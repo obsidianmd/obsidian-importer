@@ -19,7 +19,7 @@ import {
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { buildBaseFile, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
+import { buildBaseFile, sanitizePropertyName } from './airtable-api/base-file';
 import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
 import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
@@ -33,6 +33,7 @@ import type {
 	AirtableTreeNode,
 	AirtableViewInfo,
 	AirtableFieldSchema,
+	AirtableRecord,
 	PreparedTableData,
 	RecordFileContext,
 	BaseFileContext,
@@ -1328,16 +1329,20 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.globalRecordIdToTitle.set(record.id, title);
 		}
 
-		// Step 2: Fetch view memberships for each record
+		// Step 2: Fetch view memberships for each record.
+		// Held as view ids: what a note says to be picked up by a view is the
+		// other half of the filter in the .base file, and that is settled in
+		// buildBaseFile so the two cannot disagree.
 		const recordViewMemberships = new Map<string, string[]>();
-		const sanitizedTableName = sanitizeFileName(tableName);
-		const sanitizedBaseName = sanitizeFileName(baseName);
+		const viewsShowingEveryRecord = new Set<string>();
 
-		// Build .base file path relative to output folder (e.g., "BaseName/TableName.base")
-		// This ensures unique identification when multiple bases have same table names
-		const baseFilePath = normalizePath(baseName
-			? `${sanitizedBaseName}/${sanitizedTableName}.base`
-			: `${sanitizedTableName}.base`);
+		// Compared over the records that become notes, not everything the table
+		// returned: a record with nothing in it is written as no note at all, so
+		// a view is still "all of them" without it.
+		const emptyRecordIds = new Set<string>(
+			(allRecords as AirtableRecord[]).filter(isEmptyRecord).map(record => record.id)
+		);
+		const noteCount = allRecords.length - emptyRecordIds.size;
 
 		for (const view of supportedViews) {
 			if (ctx.isCancelled()) return;
@@ -1348,18 +1353,22 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Fetch only record IDs from this view
 			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
 
-			// Build view reference with full path to avoid ambiguity
-			// e.g., [[BaseName/TableName.base#Grid view]]
-			// Sanitize view name for wiki link compatibility
-			const sanitizedViewName = sanitizeViewName(view.name);
-			const viewReference = `[[${baseFilePath}#${sanitizedViewName}]]`;
+			const inView = viewRecordIds.filter(recordId => !emptyRecordIds.has(recordId));
+
+			// A view holding every note needs no filter, and so needs no note to
+			// name it: the base is already filtered to this table's folder. A
+			// view's records are a subset of the table's, so counting is enough.
+			if (inView.length === noteCount) {
+				viewsShowingEveryRecord.add(view.id);
+				continue;
+			}
 
 			// Tag these records with this view
-			for (const recordId of viewRecordIds) {
+			for (const recordId of inView) {
 				if (!recordViewMemberships.has(recordId)) {
 					recordViewMemberships.set(recordId, []);
 				}
-				recordViewMemberships.get(recordId)!.push(viewReference);
+				recordViewMemberships.get(recordId)!.push(view.id);
 			}
 		}
 
@@ -1373,6 +1382,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			views: supportedViews,
 			records: allRecords,
 			recordViewMemberships,
+			viewsShowingEveryRecord,
 		});
 
 		// Count total records to import
@@ -1404,14 +1414,16 @@ export class AirtableAPIImporter extends FormatImporter {
 		const formulaFieldNames = new Set(formulas.keys());
 		const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName);
 
-		// Create .base file first
-		await this.createBaseFile({
+		// Create .base file first. It settles what a note says to be picked up
+		// by each view, which the notes below then say.
+		const membershipTokens = await this.createBaseFile({
 			tableFolderPath: tablePath,
 			tableName,
 			views,
 			fields,
 			primaryFieldId,
 			formulas,
+			viewsShowingEveryRecord: tableData.viewsShowingEveryRecord,
 		});
 
 		if (ctx.isCancelled()) return;
@@ -1421,7 +1433,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (ctx.isCancelled()) return;
 
 			try {
-				const viewReferences = recordViewMemberships.get(planned.record.id) || [];
+				const viewReferences = (recordViewMemberships.get(planned.record.id) ?? [])
+					.map(viewId => membershipTokens.get(viewId))
+					.filter((token): token is string => token !== undefined);
 				await this.createRecordFile(ctx, planned, {
 					baseId,
 					primaryFieldName,
@@ -1653,10 +1667,10 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Create a single .base file for the table with multiple views
 	 */
-	private async createBaseFile(ctx: BaseFileContext): Promise<void> {
+	private async createBaseFile(ctx: BaseFileContext): Promise<Map<string, string>> {
 		const { tableName } = ctx;
 
-		const { path: baseFilePath, config: baseConfig } = buildBaseFile({
+		const { path: baseFilePath, config: baseConfig, membershipTokens } = buildBaseFile({
 			...ctx,
 			viewPropertyName: this.viewPropertyName,
 			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
@@ -1711,6 +1725,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			console.error(`Failed to create/update base file for table "${tableName}":`, error);
 			// Don't fail the entire import
 		}
+
+		// Returned even when writing the .base failed: the notes are still
+		// written, and a note that names its views is worth more than one that
+		// does not if the user fixes the .base by hand.
+		return membershipTokens;
 	}
 
 	/**

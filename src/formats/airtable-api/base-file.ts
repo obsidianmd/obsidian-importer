@@ -69,16 +69,28 @@ export interface BuildBaseFileOptions {
 	 * any property, so this is the importer's rather than the field name.
 	 */
 	propertyNameForField: (fieldName: string) => string;
+	/**
+	 * Ids of the views that hold every record in the table.
+	 *
+	 * The base is already filtered to the table's folder, which is exactly
+	 * those records, so such a view needs no filter of its own - and with no
+	 * filter, no note has to name it. Most default grid views are one of these.
+	 */
+	viewsShowingEveryRecord?: ReadonlySet<string>;
 }
 
 export interface BuiltBaseFile {
 	/** Where the .base goes, beside the table's folder. */
 	path: string;
 	/**
-	 * The .base as a note's view property refers to it, which is how a view's
-	 * filter finds its records.
+	 * What a note puts in its view property to be picked up by a view, by view
+	 * id. This is the other half of the filter written into the .base, so the
+	 * two are built here together and cannot drift apart.
+	 *
+	 * A view holding every record has no entry: it filters on nothing, so there
+	 * is nothing for a note to say.
 	 */
-	viewReferenceBasePath: string;
+	membershipTokens: Map<string, string>;
 	config: BasesConfigFile;
 }
 
@@ -102,7 +114,7 @@ function columnsForView(
 export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
 	const {
 		tableFolderPath, tableName, views, fields, primaryFieldId, formulas,
-		viewPropertyName, propertyNameForField,
+		viewPropertyName, propertyNameForField, viewsShowingEveryRecord,
 	} = options;
 
 	// Where the .base file goes
@@ -142,26 +154,28 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
 	const baseFileName = `${sanitizedTableName}.base`;
 	const baseFilePath = normalizePath(parentPath ? `${parentPath}/${baseFileName}` : baseFileName);
 
-	// The path a record's view property refers to, e.g. "BaseName/TableName.base"
-	// from a table folder of "Airtable/BaseName/TableName"
-	const { name: baseFolderName } = parseFilePath(parentPath);
-	const viewReferenceBasePath = baseFolderName
-		? normalizePath(`${baseFolderName}/${sanitizedTableName}.base`)
-		: `${sanitizedTableName}.base`;
-
 	const obsidianViews: BasesConfigFileView[] = [];
+	const membershipTokens = new Map<string, string>();
 
 	for (const view of views) {
 		const obsidianViewType = BASE_VIEW_TYPE_FOR_AIRTABLE_VIEW[view.type.toLowerCase()] ?? 'table';
-
-		// e.g. [[BaseName/TableName.base#Grid view]]
 		const sanitizedViewName = sanitizeViewName(view.name);
-		const viewReference = `[[${viewReferenceBasePath}#${sanitizedViewName}]]`;
+
+		// A view holding every note the table produces is the base's own filter
+		// over again. Leaving its filter out keeps its name off every note.
+		const needsFilter = !viewsShowingEveryRecord?.has(view.id);
+
+		if (needsFilter) {
+			membershipTokens.set(view.id, sanitizedViewName);
+		}
 
 		obsidianViews.push({
 			type: obsidianViewType,
-			name: sanitizedViewName, // Must match the name in wiki link reference
-			filters: `note["${viewPropertyName}"].contains("${viewReference}")`,
+			name: sanitizedViewName,
+			// The name alone: a view's filter is read on top of the base's,
+			// which already narrows to this table's folder, so there is nothing
+			// for a longer reference to disambiguate. Checked against the app.
+			...(needsFilter ? { filters: `note["${viewPropertyName}"].contains("${sanitizedViewName}")` } : {}),
 			order: columnsForView(view, propertyColumns, columnKeyByFieldId),
 		});
 	}
@@ -181,5 +195,5 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
 	config.properties = properties;
 	config.views = obsidianViews;
 
-	return { path: baseFilePath, viewReferenceBasePath, config };
+	return { path: baseFilePath, membershipTokens, config };
 }

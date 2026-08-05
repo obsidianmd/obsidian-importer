@@ -188,8 +188,17 @@ export interface PreparedTableData {
 	fields: AirtableFieldSchema[];
 	views: AirtableViewInfo[];
 	records: AirtableRecord[];
-	// Map: recordId -> array of view references like ["[[Table.base#View1]]", "[[Table.base#View2]]"]
+	/**
+	 * recordId -> the ids of the views holding it. Ids rather than what the
+	 * note will say: buildBaseFile decides that, alongside the filter that
+	 * reads it.
+	 */
 	recordViewMemberships: Map<string, string[]>;
+	/**
+	 * Views holding every record in the table, which therefore need no filter
+	 * and are named by no note. See BuildBaseFileOptions.
+	 */
+	viewsShowingEveryRecord: Set<string>;
 }
 
 /**
@@ -265,5 +274,10 @@ export interface BaseFileContext {
 	primaryFieldId: string;
 	/** field name -> Obsidian formula, from computeTableFormulas */
 	formulas: Map<string, string>;
+	/**
+	 * Views holding every record in the table, which need no filter of their
+	 * own. See BuildBaseFileOptions.
+	 */
+	viewsShowingEveryRecord?: ReadonlySet<string>;
 }
 

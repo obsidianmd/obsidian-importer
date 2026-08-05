@@ -208,6 +208,19 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 			propertyNameForField,
 		});
 
+		// A view holding every note needs no filter, so no note names it.
+		// Counted over records that become notes: an empty one is written as no
+		// note, so a view is still "all of them" without it.
+		const tableRecords = base.records[table.id]?.records ?? [];
+		const emptyRecordIds = new Set(tableRecords.filter(isEmptyRecord).map(record => record.id));
+		const noteCount = tableRecords.length - emptyRecordIds.size;
+		const viewsShowingEveryRecord = new Set(
+			table.views
+				.filter(view => (base.viewRecordIds[view.id] ?? [])
+					.filter(recordId => !emptyRecordIds.has(recordId)).length === noteCount)
+				.map(view => view.id)
+		);
+
 		const built = buildBaseFile({
 			tableFolderPath: tableFolder,
 			tableName: table.name,
@@ -217,16 +230,20 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 			formulas,
 			viewPropertyName: VIEW_PROPERTY,
 			propertyNameForField,
+			viewsShowingEveryRecord,
 		});
 
 		write(produced, built.path, stringifyYaml(built.config));
 
-		// Which views each record belongs to, as its note refers to them
+		// Which views each record belongs to, as its note names them
 		const viewsForRecord = new Map<string, string[]>();
 		for (const view of table.views) {
+			const token = built.membershipTokens.get(view.id);
+			if (!token) continue;
+
 			for (const recordId of base.viewRecordIds[view.id] ?? []) {
-				const reference = `[[${built.viewReferenceBasePath}#${view.name.replace(/[[\]#|^"\\]/g, '_')}]]`;
-				viewsForRecord.set(recordId, [...viewsForRecord.get(recordId) ?? [], reference]);
+				if (emptyRecordIds.has(recordId)) continue;
+				viewsForRecord.set(recordId, [...viewsForRecord.get(recordId) ?? [], token]);
 			}
 		}
 

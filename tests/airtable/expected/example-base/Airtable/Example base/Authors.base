@@ -11,7 +11,6 @@ properties:
 views:
   - type: table
     name: All authors
-    filters: note["base"].contains("[[Example base/Authors.base#All authors]]")
     order:
       - file.name
       - Books written

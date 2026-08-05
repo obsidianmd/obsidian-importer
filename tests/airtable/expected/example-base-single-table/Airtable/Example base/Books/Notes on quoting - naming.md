@@ -1,7 +1,6 @@
 ---
 base:
-  - "[[Example base/Books.base#All books]]"
-  - "[[Example base/Books.base#Covers]]"
+  - Covers
 Notes: Title exercises the file name sanitiser
 Authors: []
 Cover:
