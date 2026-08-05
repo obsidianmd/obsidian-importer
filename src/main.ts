@@ -474,7 +474,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	abortController: AbortController;
 
 	/** Which importer the dialog is showing, which is the one being hosted. */
-	get id(): string {
+	get importerId(): string {
 		return this.selectedId;
 	}
 

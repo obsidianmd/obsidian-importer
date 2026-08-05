@@ -17,8 +17,13 @@ export interface ImporterHost {
 	/** Where settings are drawn, or null when there is no dialog. */
 	contentEl: HTMLElement | null;
 	plugin: ImporterPlugin;
-	/** Which importer this is, for scoping the credential it stores. */
-	id: string;
+	/**
+	 * Which importer this is, for scoping the credential it stores.
+	 *
+	 * Not `id`: a host is often something that already has one - the dialog is
+	 * a Modal, and Obsidian sets an id on those.
+	 */
+	importerId: string;
 	/** Aborted when the user cancels, for anything that outlives a check. */
 	abortController: AbortController;
 }
@@ -152,7 +157,7 @@ export abstract class FormatImporter {
 
 	private async loadSecretId(): Promise<string | null> {
 		let data = await this.host.plugin.loadData();
-		return data.secrets?.[this.host.id] ?? null;
+		return data.secrets?.[this.host.importerId] ?? null;
 	}
 
 	private async saveSecretId(secretId: string | null): Promise<void> {
@@ -165,10 +170,10 @@ export abstract class FormatImporter {
 		let secrets = { ...data.secrets };
 
 		if (secretId) {
-			secrets[this.host.id] = secretId;
+			secrets[this.host.importerId] = secretId;
 		}
 		else {
-			delete secrets[this.host.id];
+			delete secrets[this.host.importerId];
 		}
 
 		data.secrets = secrets;
