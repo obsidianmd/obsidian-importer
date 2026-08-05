@@ -98,7 +98,7 @@ When a recording depends on one of them, check it against the real thing rather 
 2. `obsidian eval code="..."` runs in the app. Write the result to a file with `require('fs')` and diff it against the shim's.
 3. Revert the probe and rebuild.
 
-`obsidian eval` ignores a `vault=` argument — it always uses the active vault. Check which one that is (`app.vault.getName()`) before trusting a result.
+`vault=<name>` targets a vault other than the focused one, but only as the **first** argument: `obsidian vault=Importer eval code="…"`. After the command it is ignored, and you get the focused vault instead — check `app.vault.getName()` if a result looks like it came from somewhere else.
 
 ## Rules
 

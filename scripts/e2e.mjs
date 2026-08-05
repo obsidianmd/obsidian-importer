@@ -17,6 +17,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -56,8 +57,32 @@ const CASES = [
 	},
 ];
 
+/** The vault to run in, from E2E_VAULT or the one OBSIDIAN_PATH deploys to. */
+function vaultName() {
+	if (process.env.E2E_VAULT) return process.env.E2E_VAULT;
+
+	const parts = (process.env.OBSIDIAN_PATH ?? readEnvFile('OBSIDIAN_PATH') ?? '').split('/').filter(Boolean);
+	const i = parts.indexOf('.obsidian');
+	return i > 0 ? parts[i - 1] : undefined;
+}
+
+function readEnvFile(name) {
+	const file = path.join(repo, '.env');
+	if (!fs.existsSync(file)) return undefined;
+
+	for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+		const match = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/i.exec(line);
+		if (match?.[1] === name) return match[2].trim().replace(/^["']|["']$/g, '');
+	}
+
+	return undefined;
+}
+
 function evalInObsidian(code) {
-	const result = spawnSync('obsidian', ['eval', `code=${code}`], {
+	const vault = vaultName();
+	// vault= has to come first, before the command
+	const args = vault ? [`vault=${vault}`, 'eval', `code=${code}`] : ['eval', `code=${code}`];
+	const result = spawnSync('obsidian', args, {
 		encoding: 'utf8',
 		timeout: 120_000,
 	});
