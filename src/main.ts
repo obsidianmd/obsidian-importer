@@ -824,7 +824,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 			frag.createEl('br');
 			frag.createSpan({ cls: 'u-small', text: `${plural(ctx.notes, 'note')} imported. Click to show.` });
 		}));
-		notice.containerEl.addClass('mod-success');
 	}
 
 	private clearHiddenInterval() {
