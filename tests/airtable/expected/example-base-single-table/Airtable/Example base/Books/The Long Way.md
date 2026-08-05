@@ -29,8 +29,8 @@ Created at: 2024-01-05T09:00:00.000Z
 Modified at: 2024-06-01T12:30:00.000Z
 Read: true
 Authors:
-  - "Unknown record recAuthor000000001"
-  - "Unknown record recAuthor000000002"
+  - Ada Lovelace
+  - Grace Hopper
 Cover:
   - "[[Airtable/Example base/Books/Attachments/cover.png]]"
 Author names:

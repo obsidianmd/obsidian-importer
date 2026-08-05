@@ -93,6 +93,20 @@ export interface BuildRecordNoteOptions {
 	 */
 	recordId?: boolean;
 	bodyTemplate?: string;
+	/**
+	 * Ids of the tables this import writes notes for.
+	 *
+	 * A link into a table outside that set has nothing to point at, so it is
+	 * written as the record's title straight away rather than as a placeholder
+	 * for the second pass - which is what keeps a single-table import out of
+	 * that pass entirely. Left undefined, every link is a placeholder.
+	 */
+	importedTableIds?: ReadonlySet<string>;
+	/**
+	 * The title of a record in a table this import is not writing notes for.
+	 * Undefined where the title was never fetched, which leaves the id.
+	 */
+	externalRecordTitle?: (recordId: string) => string | undefined;
 	/** Download one field's attachments and report where they landed. */
 	resolveAttachments: (attachments: AirtableAttachment[]) => Promise<AttachmentResult[]>;
 	/** Render downloaded attachments into the note body. */
@@ -113,7 +127,7 @@ export async function buildRecordNote(
 ): Promise<BuiltRecordNote> {
 	const {
 		baseId, fields, primaryFieldName, viewReferences, viewPropertyName, formulaFieldNames,
-		frontMatterFields, recordId, bodyTemplate,
+		frontMatterFields, recordId, bodyTemplate, importedTableIds, externalRecordTitle,
 		resolveAttachments, formatAttachmentsForBody, formatAttachmentsForYAML,
 	} = options;
 
@@ -139,10 +153,22 @@ export async function buildRecordNote(
 
 		// Handle linked records - emit placeholders, resolved once every file exists
 		if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-			const links = fieldValue.map((linkedRecordId: string) =>
-				createRecordLinkPlaceholder(baseId, linkedRecordId)
-			);
-			hasRecordLinks ||= links.length > 0;
+			// Unless the link leaves the import, in which case no note will ever
+			// exist to point at and the title is as good as it gets. Settling it
+			// here rather than in the second pass is what keeps the note out of
+			// that pass, and the pass is a rewrite of every note it touches.
+			const linkedTableId = field.options?.linkedTableId;
+			const leavesImport = !!linkedTableId && !!importedTableIds && !importedTableIds.has(linkedTableId);
+
+			const links = fieldValue.map((linkedRecordId: string) => {
+				if (!leavesImport) return createRecordLinkPlaceholder(baseId, linkedRecordId);
+
+				// Same fallback the second pass uses for a record it never saw
+				const title = externalRecordTitle?.(linkedRecordId);
+				return title ? sanitizeFileName(title) : `Unknown record ${linkedRecordId}`;
+			});
+
+			hasRecordLinks ||= !leavesImport && links.length > 0;
 			convertedCache.set(field.name, links);
 			if (hasBodyTemplate) templateData[field.name] = links.join(', ');
 			continue;

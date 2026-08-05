@@ -10,5 +10,5 @@ Tags:
   - Fiction
 Read: false
 Authors:
-  - "Unknown record recAuthor000000001"
+  - Ada Lovelace
 ---

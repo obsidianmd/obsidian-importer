@@ -83,13 +83,36 @@ export interface AirtableViewInfo {
 /**
  * Airtable Field schema
  */
+/**
+ * A field's type-specific settings.
+ *
+ * Airtable gives every field type its own shape here, so only the keys the
+ * importer reads are named. Anything else is still reachable, as unknown,
+ * which is what asks a new reader to narrow before trusting it.
+ */
+export interface AirtableFieldOptions {
+	/** multipleRecordLinks: the table the link points at. */
+	linkedTableId?: string;
+	/** lookup, rollup and count: the link field they travel through. */
+	recordLinkFieldId?: string;
+	/** lookup and rollup: the field they read in the linked table. */
+	fieldIdInLinkedTable?: string;
+	/** formula and rollup: the expression Airtable computes. */
+	formula?: string;
+	/** formula and rollup: the type of what that expression returns. */
+	result?: { type?: string };
+	/** singleSelect and multipleSelects: the choices offered. */
+	choices?: Array<{ name: string }>;
+	[key: string]: unknown;
+}
+
 export interface AirtableFieldSchema {
 	id: string;
 	name: string;
 	type: string;
 	// Options structure varies by field type (formula, currency, rating, select, etc.)
 	// See: https://airtable.com/developers/web/api/field-model
-	options?: any;
+	options?: AirtableFieldOptions;
 }
 
 /**
@@ -113,6 +136,7 @@ export interface AirtableTreeNode {
 	// Additional metadata for table nodes
 	metadata?: {
 		baseId?: string;
+		tableId?: string;
 		tableName?: string;
 		primaryFieldId?: string;
 		fields?: AirtableFieldSchema[];
@@ -175,6 +199,7 @@ export interface BaseGroupInfo {
 	baseId: string;
 	baseName: string;
 	tables: Array<{
+		tableId: string;
 		tableName: string;
 		primaryFieldId: string;
 		fields: AirtableFieldSchema[];

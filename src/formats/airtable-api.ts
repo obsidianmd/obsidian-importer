@@ -128,6 +128,11 @@ export class AirtableAPIImporter extends FormatImporter {
 	// Notes written with an unresolved linked-record placeholder in them, so the
 	// resolve pass reads back only those rather than every note in the base
 	private pendingLinkFiles: string[] = [];
+	/**
+	 * Ids of the tables being imported for the base in hand. A link out of this
+	 * set is written as text rather than as a placeholder for the second pass.
+	 */
+	private importedTableIds: Set<string> = new Set();
 	// Record counters span the whole import, across every base, so the progress
 	// bar and the imported tally do not restart when a new base begins
 	private processedRecordsCount: number = 0;
@@ -395,6 +400,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				disabled: baseNode.selected,
 				metadata: {
 					baseId: baseNode.id,
+					tableId: table.id,
 					tableName: table.name,
 					primaryFieldId: table.primaryFieldId,
 					fields: table.fields,
@@ -902,8 +908,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					// In a finally, and not honouring cancellation, because notes
 					// are written with placeholder text: skipping this after a
 					// stopped or failed run would leave that raw text in the vault.
-					ctx.status(`Resolving linked records in ${baseInfo.baseName}${this.basePosition}`);
-					await this.resolveRecordLinks();
+					await this.resolveRecordLinks(ctx, `${baseInfo.baseName}${this.basePosition}`);
 				}
 			}
 
@@ -945,6 +950,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				for (const tableNode of node.children) {
 					group.tables.push({
+						tableId: tableNode.metadata?.tableId ?? '',
 						tableName: tableNode.metadata?.tableName || tableNode.title,
 						primaryFieldId: tableNode.metadata?.primaryFieldId || '',
 						fields: tableNode.metadata?.fields || [],
@@ -968,6 +974,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				const group = baseGroups.get(baseId)!;
 				group.tables.push({
+					tableId: node.metadata?.tableId ?? '',
 					tableName: node.metadata?.tableName || node.title,
 					primaryFieldId: node.metadata?.primaryFieldId || '',
 					fields: node.metadata?.fields || [],
@@ -1003,6 +1010,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<void> {
 		const { baseId, baseName, tables } = baseInfo;
 
+		this.importedTableIds = new Set(tables.map(table => table.tableId));
+
 		// Fetch data for each table in this base
 		for (const table of tables) {
 			if (ctx.isCancelled()) return;
@@ -1020,10 +1029,76 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 		}
 
+		await this.fetchLinkedRecordTitles(ctx, baseInfo);
+
 		// This base's records are now counted, so the estimate tightens
 		this.basesFetched++;
 		ctx.status(`Preparing records from ${baseName}${this.basePosition}`);
 		this.reportOverallProgress(ctx);
+	}
+
+	/**
+	 * Learn the titles of records in tables this import is leaving out.
+	 *
+	 * A link field carries record ids and nothing else, so the only way to know
+	 * what one is called is to ask the table it lives in. Where the user left
+	 * that table out - importing a single table of a base, most often - the link
+	 * has no note to reach and the note gets the title as text instead. Without
+	 * this the note would get the raw record id.
+	 *
+	 * Reads the primary field alone, so it is one paginated pass per linked
+	 * table and no more of the table than the titles. Nothing is written.
+	 *
+	 * Best effort: a table that cannot be read is reported and skipped, leaving
+	 * its records to fall back to their ids, which is worse to read but is not
+	 * wrong and is not worth failing an import over.
+	 */
+	private async fetchLinkedRecordTitles(ctx: ImportContext, baseInfo: BaseGroupInfo): Promise<void> {
+		const { baseId, tables } = baseInfo;
+		const imported = new Set(tables.map(table => table.tableId));
+
+		// Every table the selection links out to, which is what has no note
+		const linkedTableIds = new Set<string>();
+		for (const table of tables) {
+			for (const field of table.fields) {
+				const linkedTableId = field.options?.linkedTableId;
+				if (linkedTableId && !imported.has(linkedTableId)) {
+					linkedTableIds.add(linkedTableId);
+				}
+			}
+		}
+
+		if (linkedTableIds.size === 0) return;
+
+		// The whole base's schema, which the tree already holds: the user picked
+		// what to import out of it, so the tables they did not pick are here too
+		const schema = this.tree.find(node => node.id === baseId)?.children ?? [];
+
+		for (const tableId of linkedTableIds) {
+			if (ctx.isCancelled()) return;
+
+			const table = schema.find(node => node.metadata?.tableId === tableId);
+			const fields = table?.metadata?.fields ?? [];
+			const primaryFieldName = fields.find(field => field.id === table?.metadata?.primaryFieldId)?.name;
+			if (!primaryFieldName) continue;
+
+			const tableName = table?.metadata?.tableName ?? tableId;
+			ctx.status(`Reading names from ${tableName}${this.basePosition}`);
+
+			try {
+				const records = await selectRecords(this.getAirtableBase(baseId), tableId, {
+					fields: [primaryFieldName],
+				});
+
+				for (const record of records) {
+					this.globalRecordIdToTitle.set(record.id, recordTitle(record, primaryFieldName));
+				}
+			}
+			catch (error) {
+				console.error(`Failed to read record names from linked table "${tableName}":`, error);
+				ctx.reportSkipped(`Linked table: ${tableName}`, 'Could not read record names');
+			}
+		}
 	}
 
 	/**
@@ -1375,6 +1450,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			formulaFieldNames,
 			frontMatterFields,
 			recordId: this.incrementalImport,
+			importedTableIds: this.importedTableIds,
+			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,
 			resolveAttachments: attachments => downloadAttachmentList(attachments, {
 				ctx,
@@ -1475,13 +1552,20 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * been written, and every one of those contains placeholder text until this
 	 * runs. Bailing out early would leave "[[airtable-record:...]]" in the vault.
 	 */
-	private async resolveRecordLinks(): Promise<void> {
+	private async resolveRecordLinks(ctx: ImportContext, label: string): Promise<void> {
 		// Only the notes the write phase recorded as carrying a placeholder, so a
 		// base where few records link does not cost a read of every note.
 		const pending = this.pendingLinkFiles;
 		this.pendingLinkFiles = [];
 
+		// Rewriting a note costs about what writing it did - the phase is a
+		// second pass over most of the import - so it needs a count rather than
+		// one message the user watches for minutes.
+		let resolved = 0;
+
 		for (const filePath of pending) {
+			ctx.status(`Resolving linked records in ${label} (${resolved++} of ${pending.length})`);
+
 			try {
 				const file = this.vault.getAbstractFileByPath(filePath);
 				if (!(file instanceof TFile)) {

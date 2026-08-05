@@ -102,7 +102,7 @@ test('there are bases to convert', () => {
  * can select a single table, and a link pointing out of it then has no note to
  * reach - the case the partial recording covers.
  */
-async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produced: string): Promise<void> {
+async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produced: string): Promise<number> {
 	// Every field of every table, as the importer collects them: a lookup can
 	// point at a field in another table, so this has to span the base.
 	const fieldNameById = new Map<string, string>();
@@ -121,8 +121,31 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 
 	const baseFolder = `${OUTPUT_FOLDER}/${sanitizeFileName(base.baseName)}`;
 
+	// A link pointing at a table the user did not tick can never become a link,
+	// so the importer reads that table's primary field to write a name instead
+	// of a record id. Worked out the same way it works it out.
+	const importedTableIds = new Set(tables.map(table => table.id));
+	const linkedTableIds = new Set<string>();
+	for (const table of tables) {
+		for (const field of table.fields) {
+			const linkedTableId = field.options?.linkedTableId;
+			if (linkedTableId && !importedTableIds.has(linkedTableId)) linkedTableIds.add(linkedTableId);
+		}
+	}
+
+	const externalTitle = new Map<string, string>();
+	for (const table of base.schema.tables) {
+		if (!linkedTableIds.has(table.id)) continue;
+		const primary = table.fields.find(f => f.id === table.primaryFieldId)!.name;
+		for (const record of base.records[table.id]?.records ?? []) {
+			externalTitle.set(record.id, recordTitle(record, primary));
+		}
+	}
+
 	// Record id -> the note it became, for resolving links at the end
 	const noteForRecord = new Map<string, string>();
+	// Notes the importer would read back and rewrite in its second pass
+	let notesNeedingResolution = 0;
 	// Record id -> its title, which the importer only learns for tables it
 	// fetches. A link into a table nobody selected is not in here.
 	const titleForRecord = new Map<string, string>();
@@ -181,7 +204,7 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 			// An empty record is written as no note at all
 			if (isEmptyRecord(record)) continue;
 
-			const { content } = await buildRecordNote(record, {
+			const { content, hasRecordLinks } = await buildRecordNote(record, {
 				baseId: base.baseId,
 				fields: table.fields,
 				primaryFieldName,
@@ -189,6 +212,8 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 				viewPropertyName: VIEW_PROPERTY,
 				formulaFieldNames: new Set(formulas.keys()),
 				frontMatterFields,
+				importedTableIds,
+				externalRecordTitle: linkedRecordId => externalTitle.get(linkedRecordId),
 				resolveAttachments: resolveAttachments(tableFolder),
 				formatAttachmentsForBody,
 				formatAttachmentsForYAML,
@@ -203,12 +228,15 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 			}
 			takenPaths.add(path.toLowerCase());
 
+			if (hasRecordLinks) notesNeedingResolution++;
 			noteForRecord.set(record.id, nodePath.basename(path, '.md'));
 			write(produced, path, content);
 		}
 	}
 
 	resolveRecordLinks(produced, noteForRecord, titleForRecord);
+
+	return notesNeedingResolution;
 }
 
 /** Convert into a temporary folder, compare against a recording, clean up. */
@@ -217,11 +245,12 @@ async function recordConversion(
 	tables: AirtableTableInfo[],
 	expected: string,
 	label: string
-): Promise<void> {
+): Promise<number> {
 	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-airtable-'));
 	try {
-		await convertBase(base, tables, produced);
+		const notesNeedingResolution = await convertBase(base, tables, produced);
 		expectTree(produced, expected, label);
+		return notesNeedingResolution;
 	}
 	finally {
 		nodeFs.rmSync(produced, { recursive: true, force: true });
@@ -236,7 +265,11 @@ for (const fixture of bases) {
 		const base = read();
 		assert.ok(base.schema.tables.length > 0, 'the base should contain tables');
 
-		await recordConversion(base, base.schema.tables, expectedFor(fixture, name), fixture.name);
+		const notesNeedingResolution = await recordConversion(
+			base, base.schema.tables, expectedFor(fixture, name), fixture.name);
+
+		assert.ok(notesNeedingResolution > 0,
+			'a whole-base import should still write placeholders for links it can resolve');
 	});
 
 	// A user can tick one table out of a base. Its links to the tables they left
@@ -251,7 +284,14 @@ for (const fixture of bases) {
 			'the table imported alone should link out, or this records nothing'
 		);
 
-		await recordConversion(base, [first], expectedFor(fixture, `${name}-single-table`), fixture.name);
+		const notesNeedingResolution = await recordConversion(
+			base, [first], expectedFor(fixture, `${name}-single-table`), fixture.name);
+
+		// The second pass reads and rewrites every note it is given, which costs
+		// about what writing them did. Nothing here can resolve to a note, so
+		// nothing should be left for it to do.
+		assert.equal(notesNeedingResolution, 0,
+			'a link that leaves the import should be settled before the note is written');
 	});
 }
 

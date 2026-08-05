@@ -44,6 +44,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	padding: var(--size-4-2) 0;
+	font-variant: tabular-nums;
 }
 
 .importer-stats-container {
