@@ -82,6 +82,7 @@ export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): s
 	replaceElementsWithChildren(body, 'div.indented');
 	replaceElementsWithChildren(body, 'details');
 	fixToggleHeadings(body);
+	unwrapNotionListWrappers(body);
 	fixNotionLists(body, 'ul');
 	fixNotionLists(body, 'ol');
 	fixMermaidCodeblock(body);
@@ -641,6 +642,19 @@ function fixMermaidCodeblock(body: HTMLElement) {
 	}
 }
 
+function unwrapNotionListWrappers(body: HTMLElement) {
+	// Notion wraps each list item in <div style="display:contents"><ol/ul><li>...</li></ol/ul></div>.
+	// These wrappers prevent fixNotionLists from seeing adjacent <ol>/<ul> as siblings.
+	for (const div of body.findAll('div[style]')) {
+		const style = div.getAttribute('style') ?? '';
+		if (!style.includes('display:contents') && !style.includes('display: contents')) continue;
+		const children = Array.from(div.children);
+		if (children.length === 1 && (children[0].tagName === 'OL' || children[0].tagName === 'UL')) {
+			hoistChildren(div);
+		}
+	}
+}
+
 function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 	// Notion creates each list item within its own <ol> or <ul>, messing up newlines in the converted Markdown.
 	// Iterate all adjacent <ul>s or <ol>s and replace each string of adjacent lists with a single <ul> or <ol>.
@@ -660,6 +674,8 @@ function fixNotionLists(body: HTMLElement, tagName: 'ul' | 'ol') {
 		}
 
 		const joinedList = body.createEl(tagName);
+		const startAttr = htmlLists[0].getAttribute('start');
+		if (startAttr) joinedList.setAttribute('start', startAttr);
 		for (const li of listItems) {
 			joinedList.appendChild(li);
 		}
