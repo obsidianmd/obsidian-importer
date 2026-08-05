@@ -179,8 +179,6 @@ for (const fixture of bases) {
 						viewPropertyName: VIEW_PROPERTY,
 						formulaFieldNames: new Set(formulas.keys()),
 						frontMatterFields,
-						propertyNameForRollup: fieldName =>
-							propertyNames.get(fieldName)?.trim() ? propertyNameForField(fieldName) : null,
 						resolveAttachments: resolveAttachments(tableFolder),
 						formatAttachmentsForBody,
 						formatAttachmentsForYAML,

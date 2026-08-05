@@ -160,15 +160,12 @@ export function convertFieldValue(options: ConvertFieldOptions): any {
 			return null;
 
 		case 'formula':
-			// Not converted to a .base formula, so keep Airtable's computed value
-			return convertFormulaResult(fieldValue, fieldSchema);
-
 		case 'rollup':
-			// Rollup fields: Airtable API does not expose the rollup aggregation function,
-			// so we cannot convert it to an Obsidian formula.
-			// Only import the property name (return null to skip value in YAML).
-			// Users can manually add formulas in Obsidian after import.
-			return null;
+			// Reached only when the .base does not compute this field - an
+			// aggregation with no Obsidian equivalent, say. Airtable's own
+			// computed value is the best thing left, and better than the empty
+			// property this used to write.
+			return convertFormulaResult(fieldValue, fieldSchema);
 
 		case 'count':
 			return Number(fieldValue) || 0;

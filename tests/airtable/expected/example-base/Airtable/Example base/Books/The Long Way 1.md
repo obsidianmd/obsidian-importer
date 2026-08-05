@@ -12,5 +12,4 @@ Tags:
 Read: false
 Authors:
   - '[[Ada Lovelace]]'
-Author rating: null
 ---

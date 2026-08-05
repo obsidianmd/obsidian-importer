@@ -91,11 +91,6 @@ export interface BuildRecordNoteOptions {
 	 */
 	recordId?: boolean;
 	bodyTemplate?: string;
-	/**
-	 * The property name a rollup the .base does not compute is written under, or
-	 * null for no property at all.
-	 */
-	propertyNameForRollup: (fieldName: string) => string | null;
 	/** Download one field's attachments and report where they landed. */
 	resolveAttachments: (attachments: AirtableAttachment[]) => Promise<AttachmentResult[]>;
 	/** Render downloaded attachments into the note body. */
@@ -116,7 +111,7 @@ export async function buildRecordNote(
 ): Promise<BuiltRecordNote> {
 	const {
 		baseId, fields, viewReferences, viewPropertyName, formulaFieldNames,
-		frontMatterFields, recordId, bodyTemplate, propertyNameForRollup,
+		frontMatterFields, recordId, bodyTemplate,
 		resolveAttachments, formatAttachmentsForBody, formatAttachmentsForYAML,
 	} = options;
 
@@ -127,8 +122,6 @@ export async function buildRecordNote(
 	const convertedCache = new Map<string, any>();
 
 	// Convert field values
-	// Track rollup fields to ensure their property names appear in YAML (with null value)
-	const rollupFieldNames = new Set<string>();
 	// Track attachment fields so the frontmatter pass can format the already-downloaded results
 	const attachmentFieldNames = new Set<string>();
 	// Whether this note ends up carrying a linked-record placeholder
@@ -136,13 +129,6 @@ export async function buildRecordNote(
 
 	for (const field of fields) {
 		const fieldValue = recordFields[field.name];
-
-		// Rollup fields: API doesn't expose aggregation function, so only import property name
-		if (field.type === 'rollup') {
-			rollupFieldNames.add(field.name);
-			if (hasBodyTemplate) templateData[field.name] = '';
-			continue;
-		}
 
 		if (fieldValue === null || fieldValue === undefined) {
 			if (hasBodyTemplate) templateData[field.name] = '';
@@ -241,19 +227,6 @@ export async function buildRecordNote(
 		}
 
 		frontMatter[propertyName] = propertyValue;
-	}
-
-	// A rollup the .base does not compute gets its property name with a null
-	// value, so the property exists for the user to fill in. One the .base
-	// does compute needs nothing here - the note would otherwise carry an
-	// empty property shadowing the formula column of the same name.
-	for (const fieldName of rollupFieldNames) {
-		if (formulaFieldNames.has(fieldName)) continue;
-
-		const propertyName = propertyNameForRollup(fieldName);
-		if (propertyName) {
-			frontMatter[propertyName] = null;
-		}
 	}
 
 	const bodyContent = hasBodyTemplate ? applyTemplate(bodyTemplate!, templateData) : '';

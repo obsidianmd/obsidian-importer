@@ -1368,10 +1368,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			frontMatterFields,
 			recordId: this.incrementalImport,
 			bodyTemplate: this.templateConfig?.bodyTemplate,
-			propertyNameForRollup: fieldName => {
-				const configured = this.templateConfig?.propertyNames.get(fieldName);
-				return configured?.trim() ? this.propertyNameForField(fieldName) : null;
-			},
 			resolveAttachments: attachments => downloadAttachmentList(attachments, {
 				ctx,
 				vault: this.vault,

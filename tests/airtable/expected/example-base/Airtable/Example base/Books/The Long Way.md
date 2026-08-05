@@ -34,9 +34,9 @@ Authors:
   - '[[Grace Hopper]]'
 Cover:
   - '[[Airtable/Example base/Books/Attachments/cover.png]]'
+Author rating: AA
 Created by: Ada
 Modified by: Grace
 ISBN: '9780000000001'
 AI summary: A long journey.
-Author rating: null
 ---
