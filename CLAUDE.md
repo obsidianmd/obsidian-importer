@@ -99,7 +99,7 @@ When a recording depends on one of them, check it against the real thing rather 
 - `Element.createEl` **appends**; the global `createEl` does not. Using the wrong one on a document root attaches nodes to the page.
 - `createEl` with a `null` attribute value omits the attribute; `undefined` writes the string `"undefined"`.
 - **Don't add an `id` property to a Modal subclass.** Obsidian assigns one, and a getter with no setter swallows the write and hangs the app on open. Name it something else (`importerId`).
-- Closing two stacked modals in one tick from `eval` wedges the app. Close one at a time.
+- From `eval`, close a modal with an `Escape` keydown. Clicking `.modal-close-button` does not close it, and detaching `.modal-container` wedges the app.
 - linkedom has no `HTMLAudioElement` or `HTMLVideoElement`, so check `tagName` rather than `instanceOf` in conversion code.
 - `htmlToMarkdown` on a whole document drops `head`; turndown does not, which is why the shim removes it explicitly.
 - Obsidian's markdown escapes nothing coming out of HTML, and percent-encodes spaces in link targets rather than wrapping them in `<>`.
