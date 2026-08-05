@@ -103,11 +103,16 @@ define(documentProto, 'find', function (this: any, selector: string) { return th
 define(documentProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 
 /** createEl and friends, detached - matching what Obsidian's globals do. */
-function createEl(tag: string, options?: { text?: string, cls?: string, attr?: Record<string, string> }) {
+function createEl(tag: string, options?: { text?: string, cls?: string, attr?: Record<string, unknown> }) {
 	const el = window.document.createElement(tag);
 	if (options?.text) el.textContent = options.text;
 	if (options?.cls) el.className = options.cls;
-	for (const [name, value] of Object.entries(options?.attr ?? {})) el.setAttribute(name, String(value));
+	for (const [name, value] of Object.entries(options?.attr ?? {})) {
+		// null leaves the attribute off; undefined does not, which is
+		// Obsidian's behaviour rather than an oversight here.
+		if (value === null) continue;
+		el.setAttribute(name, String(value));
+	}
 	return el;
 }
 

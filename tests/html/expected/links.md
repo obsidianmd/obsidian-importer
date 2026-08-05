@@ -1,0 +1,16 @@
+# links.html
+
+- [embeds.html](embeds.html)
+- [./embeds.html](./embeds.html)
+- [../html/embeds.html](../html/embeds.html)
+- [../html/embeds.html#](../html/embeds.html#)
+- [../html/embeds.html?](../html/embeds.html?)
+- [special%20filename%23.html](special%20filename%23.html)
+- [special filename%23.html](special%20filename%23.html)
+- [%73%70%65%63%69%61%6C%20%66%69%6C%65%6E%61%6D%65%23%2E%68%74%6D%6C](%73%70%65%63%69%61%6C%20%66%69%6C%65%6E%61%6D%65%23%2E%68%74%6D%6C)
+- [404.html](404.html)
+- [https://example.com](https://example.com)
+- [http://example.com](http://example.com)
+- [//example.com](//example.com)
+- [https://example.com#example](https://example.com#example)
+- [https://example.com?example](https://example.com?example)

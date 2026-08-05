@@ -39,9 +39,11 @@ export function parseYaml(text: string): unknown {
  * what the app produces on the fixtures here: ATX headings, fenced code, and
  * asterisks for emphasis and bullets.
  *
- * This is the least certain part of the shim. Obsidian's build has rules of
- * its own, so treat a recording made through this as a regression check on the
- * transformations that run before it - which is where this importer's own
+ * The rules below were each added to close a difference from the app, checked
+ * against it on the fixtures here: as of the HTML and Notion fixtures the
+ * output is byte for byte the same. Obsidian's build still has rules of its
+ * own, so a recording made through this is best read as a regression check on
+ * the transformations that run before it - which is where this importer's own
  * behaviour lives - rather than as proof of the exact markdown a user sees.
  */
 export function htmlToMarkdown(html: string | { innerHTML?: string, outerHTML?: string }): string {
@@ -60,6 +62,32 @@ export function htmlToMarkdown(html: string | { innerHTML?: string, outerHTML?: 
 	// Obsidian does not escape markdown punctuation coming out of HTML, so a
 	// callout's [!important] stays as written rather than becoming \[!important\].
 	service.escape = (text: string) => text;
+
+	// Obsidian drops these rather than letting their text through, which
+	// matters when a whole document is converted and its head comes along.
+	service.remove(['head', 'title', 'style', 'script', 'iframe'] as never);
+
+	// Obsidian percent-encodes a space in a link target; turndown wraps the
+	// whole target in angle brackets instead.
+	const escapeUri = (uri: string) => uri.replace(/ /g, '%20').replace(/([()])/g, '\\$1');
+
+	service.addRule('inlineLink', {
+		filter: (node: any) => node.nodeName === 'A' && node.getAttribute('href'),
+		replacement: (content: string, node: any) => {
+			const title = node.getAttribute('title');
+			return `[${content}](${escapeUri(node.getAttribute('href'))}${title ? ` "${title}"` : ''})`;
+		},
+	});
+
+	service.addRule('image', {
+		filter: 'img',
+		replacement: (_content: string, node: any) => {
+			const src = node.getAttribute('src');
+			if (!src) return '';
+			const title = node.getAttribute('title');
+			return `![${node.getAttribute('alt') || ''}](${escapeUri(src)}${title ? ` "${title}"` : ''})`;
+		},
+	});
 
 	// <mark> is a highlight in Obsidian's flavour.
 	service.addRule('highlight', {
