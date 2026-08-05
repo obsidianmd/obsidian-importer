@@ -8,9 +8,9 @@ Install Importer in Obsidian → Community Plugins.
 
 Import guides are hosted on the [official Obsidian Help site](https://help.obsidian.md/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
 
+- [Import from Airtable](https://obsidian.md/help/import/airtable)
 - [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
 - [Import from Bear](https://help.obsidian.md/import/bear)
-- [Import from Airtable](https://obsidian.md/help/import/airtable)
 - [Import from CSV files](https://help.obsidian.md/import/csv)
 - [Import from Evernote](https://help.obsidian.md/import/evernote)
 - [Import from Google Keep](https://help.obsidian.md/import/google-keep)

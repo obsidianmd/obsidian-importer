@@ -240,10 +240,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('To get an API token create an integration in Notion and give it access to pages in your workspace. ');
+		frag.appendText('To get an API token create a connection in Notion and give it access to pages in your workspace. ');
 		frag.createEl('a', {
 			text: 'Get API token.',
-			href: 'https://www.notion.so/profile/integrations',
+			href: 'https://app.notion.com/developers/connections',
 		});
 		return frag;
 	}

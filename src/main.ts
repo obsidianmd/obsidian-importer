@@ -319,8 +319,8 @@ export default class ImporterPlugin extends Plugin {
 	async onload() {
 		this.importers = {
 			'airtable-api': {
-				name: 'Airtable (API)',
-				optionText: 'Airtable (API)',
+				name: 'Airtable',
+				optionText: 'Airtable',
 				importer: AirtableAPIImporter,
 				helpPermalink: 'import/airtable',
 			},
