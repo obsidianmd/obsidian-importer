@@ -10,7 +10,7 @@
  * data, and belongs behind the sink interface instead of here.
  */
 import moment from 'moment';
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 
 export { moment };
 
@@ -18,49 +18,16 @@ export { moment };
  * Frontmatter, in the dialect Obsidian writes.
  *
  * Checked against the app rather than assumed: a note written through
- * processFrontMatter comes back with two-space list indentation and plain
- * scalars wherever YAML allows them, which is what js-yaml produces here.
- * lineWidth is off so a long value is never wrapped, since a wrapped line
- * would change a recorded note without changing its meaning.
+ * processFrontMatter comes back with two-space list indentation, plain scalars
+ * wherever YAML allows them - a date, a time, "yes" - double quotes on anything
+ * that does need quoting, and a null property written as the key alone.
+ *
+ * All of that is what this library does by default, bar the null, hence
+ * nullStr. lineWidth is off so a long value is never wrapped, since a wrapped
+ * line would change a recorded note without changing what it holds.
  */
 export function stringifyYaml(value: unknown): string {
-	// Obsidian's dialect, checked against the app by round-tripping values
-	// through processFrontMatter:
-	//
-	//   - a date or time keeps its plain form (2023-12-17, 12:30), so the
-	//     schema must not be the one that resolves timestamps
-	//   - so does "yes", which YAML 1.1 would have read as a boolean
-	//   - anything that does need quoting gets double quotes
-	//   - a null property is written as the key alone
-	//
-	// js-yaml handles the schema; the last two are done line by line here,
-	// since js-yaml 5 always writes single quotes and spells null out.
-	const lines = yaml.dump(value, { schema: yaml.CORE_SCHEMA, lineWidth: -1 }).split('\n');
-
-	// A block scalar's lines are its value, not YAML, and rewriting them would
-	// change what the property holds.
-	let blockIndent: number | null = null;
-
-	return lines
-		.map(line => {
-			const indent = line.length - line.trimStart().length;
-
-			if (blockIndent !== null) {
-				if (line.trim() === '' || indent >= blockIndent) return line;
-				blockIndent = null;
-			}
-
-			if (/(?:^|\s)[|>][+-]?\d*$/.test(line)) {
-				blockIndent = indent + 1;
-				return line;
-			}
-
-			return line
-				.replace(/^(\s*(?:- |[^:\n]*: ))'((?:[^']|'')*)'$/, (_match, prefix: string, quoted: string) =>
-					`${prefix}"${quoted.replace(/''/g, '\'').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
-				.replace(/^([^:\n]*):\snull$/, '$1:');
-		})
-		.join('\n');
+	return yaml.stringify(value, { nullStr: '', lineWidth: 0 });
 }
 
 /** Everything Obsidian's htmlToMarkdown accepts, as markup turndown can read. */
@@ -91,7 +58,7 @@ const _normalizePath: RealApi['normalizePath'] = normalizePath;
 const _htmlToMarkdown: RealApi['htmlToMarkdown'] = htmlToMarkdown;
 
 export function parseYaml(text: string): unknown {
-	return yaml.load(text);
+	return yaml.parse(text);
 }
 
 /**

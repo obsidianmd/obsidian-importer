@@ -90,7 +90,7 @@ for good reasons - a vault path, a link in the user's preferred form.
 
 ## Verifying against Obsidian itself
 
-`tests/shims/obsidian.ts` reimplements `htmlToMarkdown` (turndown) and `stringifyYaml` (js-yaml). They agree with the app on the fixtures here, and each rule in the shim was added to close a difference that was measured rather than guessed.
+`tests/shims/obsidian.ts` reimplements `htmlToMarkdown` (turndown) and `stringifyYaml` (the `yaml` package). They agree with the app on the fixtures here, and each rule in the shim was added to close a difference that was measured rather than guessed.
 
 When a recording depends on one of them, check it against the real thing rather than assuming:
 

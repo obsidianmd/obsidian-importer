@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 
 import { stringifyYaml } from './obsidian';
 
@@ -51,10 +51,35 @@ test('writes YAML the way Obsidian does', () => {
 	].join('\n'));
 });
 
+test('quotes the way Obsidian does', () => {
+	// Round-tripped through processFrontMatter in the app, which quotes less
+	// than might be expected: a value with a double quote in it is single
+	// quoted, and one with both kinds is not quoted at all.
+	const written = stringifyYaml({
+		aliases: ['Notes: on "quoting" / naming'],
+		single: 'it\'s got an apostrophe',
+		both: 'has "double" and \'single\'',
+		colon: 'a: b',
+		backslash: 'a \\ b',
+		plain: 'hello',
+	});
+
+	assert.equal(written, [
+		'aliases:',
+		'  - \'Notes: on "quoting" / naming\'',
+		'single: it\'s got an apostrophe',
+		'both: has "double" and \'single\'',
+		'colon: "a: b"',
+		'backslash: a \\ b',
+		'plain: hello',
+		'',
+	].join('\n'));
+});
+
 test('leaves the inside of a multi-line value alone', () => {
 	// The quoting and null rules are applied line by line, and a block
 	// scalar's lines are its value rather than YAML
 	const value = { note: 'line one\nfoo: null\nquoted: \'x\'\nend', ok: null };
 
-	assert.deepEqual(yaml.load(stringifyYaml(value)), value);
+	assert.deepEqual(yaml.parse(stringifyYaml(value)), value);
 });
