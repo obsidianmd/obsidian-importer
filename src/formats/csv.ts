@@ -2,12 +2,11 @@ import { BasesConfigFile, Notice, Setting, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { CSVRow, parseCSV } from './csv/parse';
+import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
-	applyTemplate,
-	generateFrontmatter
 } from '../template';
 import { createBaseFile } from '../base';
 
@@ -72,26 +71,10 @@ export class CSVImporter extends FormatImporter {
 			exampleValue: this.findExampleValue(header),
 		}));
 
-		// Set up defaults
-		const propertyNames = new Map<string, string>();
-		const propertyValues = new Map<string, string>();
-		this.csvHeaders.forEach(header => {
-			propertyNames.set(header, this.sanitizeYAMLKey(header));
-			propertyValues.set(header, `{{${header}}}`);
-		});
-
-		const titleTemplate = this.csvHeaders.length > 0 ? `{{${this.csvHeaders[0]}}}` : '';
-
 		// Create and show configurator
 		const configurator = new TemplateConfigurator({
 			fields,
-			defaults: {
-				titleTemplate,
-				locationTemplate: '',
-				bodyTemplate: '',
-				propertyNames,
-				propertyValues,
-			},
+			defaults: defaultTemplateConfig(this.csvHeaders, sanitizeYAMLKey),
 			placeholderSyntax: '{{column_name}}',
 		});
 
@@ -125,11 +108,6 @@ export class CSVImporter extends FormatImporter {
 		return '';
 	}
 
-	private sanitizeYAMLKey(key: string): string {
-		// Remove special characters that aren't valid in YAML keys
-		return key.replace(/[^\w\s-]/g, '');
-	}
-
 	private async processRows(ctx: ImportContext): Promise<void> {
 		if (!this.config) {
 			new Notice('Configuration is missing.');
@@ -150,8 +128,7 @@ export class CSVImporter extends FormatImporter {
 			const row = this.csvRows[i];
 
 			try {
-				// Generate title
-				const title = applyTemplate(this.config.titleTemplate, row);
+				const { title, location, content } = convertRow(row, this.config);
 				if (!title.trim()) {
 					ctx.reportSkipped(`Row ${i + 1}`, 'Empty title');
 					continue;
@@ -159,30 +136,7 @@ export class CSVImporter extends FormatImporter {
 
 				ctx.status(`Creating note: ${title}`);
 
-				// Generate location
-				const locationPath = applyTemplate(this.config.locationTemplate, row);
-				const targetFolder = await this.getTargetFolder(folder, locationPath);
-
-				// Generate content
-				let content = '';
-
-				// Add frontmatter
-				const frontmatter = generateFrontmatter(
-					row,
-					this.config.propertyNames,
-					this.config.propertyValues,
-				);
-				if (frontmatter) {
-					content += frontmatter + '\n\n';
-				}
-
-				// Add body
-				const body = applyTemplate(this.config.bodyTemplate, row);
-				if (body) {
-					content += body;
-				}
-
-				// Save file
+				const targetFolder = await this.getTargetFolder(folder, location);
 				await this.saveAsMarkdownFile(targetFolder, title, content);
 				ctx.reportNoteSuccess(title);
 			}
