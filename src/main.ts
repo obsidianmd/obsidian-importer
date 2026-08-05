@@ -15,7 +15,7 @@ import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
-import { extractErrorMessage, truncateText } from './util';
+import { extractErrorMessage, plural, truncateText } from './util';
 
 declare global {
 	interface Window {
@@ -81,6 +81,18 @@ function describeReason(reason: unknown): string {
  * which is what the dialog uses - an import driven from a script or a test
  * reports into this and draws nothing.
  */
+/**
+ * A status message as it is shown, which is with an ellipsis: the messages are
+ * written as the thing being done rather than as a sentence. One that already
+ * ends in a stop keeps the one it has rather than collecting a second.
+ */
+function statusText(message: string): string {
+	const trimmed = message.trim();
+	if (!trimmed) return '';
+
+	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
+}
+
 export class ImportContext {
 	notes = 0;
 	attachments = 0;
@@ -90,6 +102,10 @@ export class ImportContext {
 	statusMessage: string = '';
 
 	cancelled: boolean = false;
+
+	/** Latest reportProgress, for a progress bar drawn outside the dialog. */
+	progressCurrent: number = 0;
+	progressTotal: number = 0;
 
 	/**
 	 * Sets the current user visible in-progress task. The purpose is to tell the user that something is happening,
@@ -152,6 +168,10 @@ export class ImportContext {
 	 */
 	reportProgress(current: number, total: number) {
 		if (total <= 0) return;
+		// Kept, not just handed on: anything drawing this outside the dialog -
+		// the notice shown while the dialog is hidden - has no other way to ask
+		this.progressCurrent = current;
+		this.progressTotal = total;
 		this.onProgress(current, total);
 	}
 
@@ -242,7 +262,7 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onStatus(message: string): void {
-		this.statusEl.setText(message.trim() + '...');
+		this.statusEl.setText(statusText(message));
 	}
 
 	protected onNoteSuccess(): void {
@@ -315,6 +335,13 @@ export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;
 
 	authCallback: AuthCallback | undefined;
+
+	/**
+	 * The dialog, while one is open. An import keeps running with the dialog
+	 * hidden, so opening the importer again has to bring that one back rather
+	 * than start a second dialog beside it.
+	 */
+	private modal: ImporterModal | null = null;
 
 	async onload() {
 		this.importers = {
@@ -406,14 +433,14 @@ export default class ImporterPlugin extends Plugin {
 		};
 
 		this.addRibbonIcon('lucide-import', 'Import notes', () => {
-			new ImporterModal(this.app, this).open();
+			this.openImporter();
 		});
 
 		this.addCommand({
 			id: 'open-modal',
 			name: 'Import notes',
 			callback: () => {
-				new ImporterModal(this.app, this).open();
+				this.openImporter();
 			},
 		});
 
@@ -441,6 +468,27 @@ export default class ImporterPlugin extends Plugin {
 			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
 		}
 		*/
+	}
+
+	/**
+	 * Show the import dialog, which may be one already running behind a notice.
+	 */
+	openImporter(): ImporterModal {
+		if (this.modal) {
+			this.modal.show();
+			return this.modal;
+		}
+
+		const modal = this.modal = new ImporterModal(this.app, this);
+		modal.open();
+		return modal;
+	}
+
+	/** Called by the dialog as it closes, so the next open starts a fresh one. */
+	forgetImporter(modal: ImporterModal): void {
+		if (this.modal === modal) {
+			this.modal = null;
+		}
 	}
 
 	onunload() {
@@ -538,12 +586,20 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	current: ImportContext | null = null;
 
+	/** Off screen but still open, with an import still running in it. */
+	private hidden: boolean = false;
+	/** The notice standing in for the dialog while hidden, so it can be taken back. */
+	private hiddenNotice: Notice | null = null;
+	/** Ticks the notice's progress bar while the dialog is hidden. */
+	private hiddenInterval: number | null = null;
+
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
 		this.plugin = plugin;
 		this.titleEl.setText('Import data into Obsidian');
 		this.modalEl.addClass('mod-importer');
 		this.abortController = new AbortController();
+		this.catchBackgroundClick();
 
 		let keys = Object.keys(plugin.importers);
 		if (keys.length > 0) {
@@ -641,6 +697,13 @@ export class ImporterModal extends Modal implements ImporterHost {
 							if (this.current === ctx) {
 								this.current = null;
 							}
+
+							// Nobody is looking at the dialog, so the result has
+							// to come to them
+							if (this.hidden) {
+								this.finishHiddenNotice(ctx);
+							}
+
 							buttonsEl.empty();
 							buttonsEl.createEl('button', { text: 'Import more' }, el => {
 								el.addEventListener('click', () => this.updateContent());
@@ -656,10 +719,169 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 	}
 
+	/**
+	 * Take the dialog off screen, leaving the import running.
+	 *
+	 * Closing cancels the import, so the ways a dialog gets dismissed by
+	 * accident - a click on the background, a stray Escape - hide it instead
+	 * while there is something to lose. Stop is the button that cancels.
+	 */
+	hide() {
+		if (this.hidden) return;
+		this.hidden = true;
+		this.containerEl.hide();
+
+		// The modal is still open as far as Obsidian is concerned, so its scope
+		// is still on the keymap and would swallow Escape everywhere else.
+		this.app.keymap.popScope(this.scope);
+
+		this.showHiddenNotice();
+	}
+
+	/** Put a hidden dialog back on screen, where the import left it. */
+	show() {
+		if (!this.hidden) return;
+		this.hidden = false;
+		this.containerEl.show();
+		this.app.keymap.pushScope(this.scope);
+
+		this.clearHiddenNotice();
+	}
+
+	/**
+	 * A notice standing in for the hidden dialog.
+	 *
+	 * Shaped like the one the app shows while it indexes a vault: what is
+	 * happening, a quieter line under it, and a progress bar that keeps moving,
+	 * so it reads as work in hand rather than as a message to dismiss.
+	 *
+	 * Clicking it brings the dialog back. A notice is dismissed by a click
+	 * anyway, so that is the same gesture rather than a second one.
+	 */
+	private showHiddenNotice() {
+		this.clearHiddenNotice();
+
+		// Left empty until there is a count to put in it, which is also where an
+		// importer that reports no progress leaves it
+		const remainingEl = createSpan({ cls: 'u-small' });
+
+		// Started empty rather than valueless. The app styles .notice progress
+		// on [value], so a bar with no value at all skips that rule and is
+		// drawn by the browser as an indeterminate one - a flat grey block that
+		// reads as broken. An importer yet to report progress gets an empty bar
+		// instead, and one that never reports keeps it.
+		const progressEl = createEl('progress');
+		progressEl.max = 1;
+		progressEl.value = 0;
+		const notice = this.hiddenNotice = new Notice(createFragment(frag => {
+			frag.createSpan({ text: 'Importing' });
+			frag.createEl('br');
+			frag.append(remainingEl);
+			frag.append(progressEl);
+		}), 0);
+
+		notice.containerEl.addEventListener('click', () => this.show());
+
+		const drawProgress = () => {
+			const ctx = this.current;
+			if (!ctx) return;
+
+			// Before there is anything to count - fetching, planning - say what
+			// the importer says it is doing, which is what the dialog shows too
+			if (ctx.progressTotal <= 0) {
+				remainingEl.setText(statusText(ctx.statusMessage));
+				return;
+			}
+
+			progressEl.max = ctx.progressTotal;
+			progressEl.value = ctx.progressCurrent;
+			remainingEl.setText(`${ctx.progressTotal - ctx.progressCurrent} remaining...`);
+		};
+
+		// Drawn before the notice goes up as well as on the timer, so it does
+		// not spend its first tick looking like it has not started
+		drawProgress();
+
+		this.hiddenInterval = window.setInterval(() => {
+			if (!notice.containerEl.offsetParent) {
+				this.clearHiddenInterval();
+				return;
+			}
+
+			drawProgress();
+		}, 300);
+	}
+
+	/** Turn the notice into what it has to say once the import has finished. */
+	private finishHiddenNotice(ctx: ImportContext) {
+		const notice = this.hiddenNotice;
+		if (!notice) return;
+
+		this.clearHiddenInterval();
+
+		notice.setMessage(createFragment(frag => {
+			frag.createSpan({ text: 'Import complete.' });
+			frag.createEl('br');
+			frag.createSpan({ cls: 'u-small', text: `${plural(ctx.notes, 'note')} imported. Click to show.` });
+		}));
+		notice.containerEl.addClass('mod-success');
+	}
+
+	private clearHiddenInterval() {
+		if (this.hiddenInterval !== null) {
+			window.clearInterval(this.hiddenInterval);
+			this.hiddenInterval = null;
+		}
+	}
+
+	private clearHiddenNotice() {
+		this.clearHiddenInterval();
+		this.hiddenNotice?.hide();
+		this.hiddenNotice = null;
+	}
+
+	/**
+	 * Catch a click on the background before the dialog closes on it.
+	 *
+	 * Modal offers onClickOutside, but only wires it up off macOS: there the
+	 * background click goes straight to close(), to leave room for a check
+	 * that the pointer did not move. So neither hook is reliable, and this
+	 * listens on the container in the capture phase instead, which runs before
+	 * either of them on every platform.
+	 */
+	private catchBackgroundClick() {
+		this.containerEl.addEventListener('click', evt => {
+			if (!this.current) return;
+			// A click that landed in the dialog is not a click outside it
+			if (evt.target instanceof Node && this.modalEl.contains(evt.target)) return;
+
+			evt.preventDefault();
+			evt.stopPropagation();
+			this.hide();
+		}, { capture: true });
+	}
+
+	/**
+	 * Not declared on Modal in obsidian.d.ts, so as far as the compiler is
+	 * concerned this adds a method rather than overrides one. It does override
+	 * at runtime: Modal's constructor registers this.onEscapeKey against its
+	 * scope, which resolves through the prototype.
+	 */
+	onEscapeKey(evt: KeyboardEvent) {
+		if (evt.defaultPrevented) return;
+		evt.preventDefault();
+		if (this.current) this.hide();
+		else this.close();
+	}
+
 	onClose() {
 		const { contentEl, current } = this;
 		contentEl.empty();
 		this.abortController.abort('import was canceled by user');
+
+		this.clearHiddenNotice();
+		this.hidden = false;
+		this.plugin.forgetImporter(this);
 
 		if (current) {
 			current.cancel();

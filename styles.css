@@ -58,6 +58,10 @@
 	text-align: center;
 }
 
+.notice-message {
+	font-variant: tabular-nums;
+}
+
 .importer-stat-count {
 	font-size: var(--font-ui-large);
 	font-variant: tabular-nums;
