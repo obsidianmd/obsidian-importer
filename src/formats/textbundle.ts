@@ -3,8 +3,7 @@ import { parseFilePath, NodePickedFolder, NodePickedFile, PickedFile, PickedFold
 import { FormatImporter } from '../format-importer';
 import { ProgressReporter } from '../main';
 import { readZip, ZipEntryFile } from 'zip';
-
-const assetMatcher = /!\[\]\(assets\/([^)]*)\)/g;
+import { bundleNoteName, convertTextbundleNote, groupFilesByTextbundle, isMarkdownBundle } from './textbundle/convert';
 
 export class TextbundleImporter extends FormatImporter {
 	private attachmentsFolderPath: TFolder;
@@ -49,7 +48,7 @@ export class TextbundleImporter extends FormatImporter {
 			}
 			else if (file.extension === 'zip') {
 				await readZip(file, async (zip, entries) => {
-					const textbundles = this.groupFilesByTextbundle(file.name, entries);
+					const textbundles = groupFilesByTextbundle(file.name, entries);
 					for (const textbundle of textbundles) {
 						await this.process(progress, file.name, textbundle);
 					}
@@ -63,53 +62,12 @@ export class TextbundleImporter extends FormatImporter {
 		}
 	}
 
-	groupFilesByTextbundle(zipName: string, entries: ZipEntryFile[]): ZipEntryFile[][] {
-		const buckets: Record<string, ZipEntryFile[]> = {};
-		const prefix = zipName + '/';
-		const dotTextbundle = '.textbundle';
-		for (const entry of entries) {
-			if (!entry.fullpath.startsWith(prefix)) {
-				continue;
-			}
-
-			const path = entry.fullpath.slice(prefix.length);
-			if (path.startsWith('._') || path.startsWith('__MACOSX')) {
-				continue;
-			}
-
-			const idx = path.indexOf(dotTextbundle);
-			if (idx === -1) {
-				continue;
-			}
-
-			const textBundle = path.slice(0, idx) + '.textbundle';
-			const rest = path.slice(idx + dotTextbundle.length + 1); // Skip the '.textbundle' and path separator
-
-			if (rest.startsWith('._')) {
-				continue;
-			}
-
-			if (textBundle in buckets) {
-				buckets[textBundle].push(entry);
-			}
-			else {
-				buckets[textBundle] = [entry];
-			}
-		}
-
-		return Object.values(buckets);
-	}
-
 	async process(progress: ProgressReporter, bundleName: string, entries: (PickedFile | PickedFolder | ZipEntryFile)[]) {
 		// First look for the info.json and check that the file type is Markdown
 		const infojson = entries.find((entry) => entry.name === 'info.json');
-		if (infojson) {
-			const text = await (infojson as NodePickedFile).readText();
-			const parsed = JSON.parse(text);
-			if (Object.prototype.hasOwnProperty.call(parsed, 'type') && parsed.type !== 'net.daringfireball.markdown') {
-				progress.reportSkipped(bundleName, 'The textbundle does not contain markdown');
-				return;
-			}
+		if (infojson && !isMarkdownBundle(await (infojson as NodePickedFile).readText())) {
+			progress.reportSkipped(bundleName, 'The textbundle does not contain markdown');
+			return;
 		}
 
 		for (let entry of entries) {
@@ -121,16 +79,11 @@ export class TextbundleImporter extends FormatImporter {
 
 			try {
 				if (entry.type === 'file' && (entry.extension === 'md' || entry.extension === 'markdown')) {
-					let mdFilename = 'parent' in entry
-						? entry.parent
-						: bundleName;
-					mdFilename = mdFilename.replace(/.textbundle$/, '');
+					const mdFilename = bundleNoteName('parent' in entry ? entry.parent : bundleName);
 
-					let mdContent = await (entry as NodePickedFile).readText();
-					if (mdContent.match(assetMatcher)) {
-						// Replace asset paths with new asset folder path.
-						mdContent = mdContent.replace(assetMatcher, `![[${this.attachmentsFolderPath.path}/$1]]`);
-					}
+					const mdContent = convertTextbundleNote(
+						await (entry as NodePickedFile).readText(),
+						this.attachmentsFolderPath.path);
 					let filePath = normalizePath(mdFilename);
 					const outputFolder = await this.getOutputFolder();
 					// We already asserted previously that the result from getOutputFolder is not null.

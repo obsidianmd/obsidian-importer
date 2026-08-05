@@ -52,6 +52,22 @@ if (globals.NodeFilter === undefined) {
 globals.window = window;
 (window as unknown as Record<string, unknown>).TurndownService = TurndownService;
 
+// Obsidian's handle on the document of whichever window has focus. Headless
+// there is only the one.
+globals.activeDocument = window.document;
+
+/**
+ * linkedom has no DOMImplementation, and a conversion that assembles its output
+ * into a fresh document needs one to assemble into.
+ */
+if ((window.document as unknown as { implementation?: unknown }).implementation === undefined) {
+	Object.defineProperty(window.document, 'implementation', {
+		value: {
+			createHTMLDocument: () => parseHTML('<!doctype html><html><body></body></html>').document,
+		},
+	});
+}
+
 /**
  * Obsidian's additions to Node and Element.
  *
