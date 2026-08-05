@@ -48,8 +48,10 @@ export abstract class FormatImporter {
 	 * the linked credential, a session restored from a stored token.
 	 *
 	 * The dialog does not wait for this: it draws what it has and fills the
-	 * rest in as it lands. An import driven without one has nothing to redraw,
-	 * so it waits, or it would run before it knew who it was.
+	 * rest in as it lands, and a failure is reported to the console. An import
+	 * driven without one has nothing to redraw, so it waits - and rejects, so
+	 * a script hears about a credential that never arrived rather than running
+	 * as nobody.
 	 */
 	readonly ready: Promise<void>;
 
@@ -63,16 +65,15 @@ export abstract class FormatImporter {
 		// OneNote's init is async because it may restore a session before it can
 		// draw its settings. A constructor cannot await, so the failure path is
 		// logged here: the importer still opens, just without a signed-in state.
-		const initialised = this.init();
-		if (initialised instanceof Promise) {
-			initialised.catch(e => console.error('Importer failed to initialise', e));
-		}
-
 		// init() is what fills `pending`, so this is built from it afterwards
-		this.ready = Promise.resolve(initialised)
+		this.ready = Promise.resolve(this.init())
 			.then(() => Promise.all(this.pending))
-			.then(() => undefined)
-			.catch(e => console.error('Importer failed to initialise', e));
+			.then(() => undefined);
+
+		// Nothing awaits `ready` when there is a dialog - it draws what it has
+		// and fills the rest in as it lands - so the failure is reported here.
+		// It stays on `ready` for an import that does await it.
+		this.ready.catch(e => console.error('Importer failed to initialise', e));
 	}
 
 	/**

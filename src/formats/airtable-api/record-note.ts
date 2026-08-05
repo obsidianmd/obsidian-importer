@@ -238,8 +238,11 @@ export async function buildRecordNote(
 	}
 
 	if (alias) {
-		const existing = frontMatter['aliases'];
-		frontMatter['aliases'] = Array.isArray(existing) ? [alias, ...existing] : [alias];
+		// FrontMatterCache holds any, so what is already there is narrowed
+		// before it is spread rather than after
+		const existing: unknown = frontMatter['aliases'];
+		const rest: unknown[] = Array.isArray(existing) ? existing : [];
+		frontMatter['aliases'] = [alias, ...rest];
 	}
 
 	const bodyContent = hasBodyTemplate ? applyTemplate(bodyTemplate!, templateData) : '';
