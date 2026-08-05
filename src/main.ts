@@ -499,6 +499,21 @@ export default class ImporterPlugin extends Plugin {
 		};
 
 		const importer = new definition.importer(this.app, host);
+
+		// Whatever init() started - a credential, a restored session - has to
+		// have arrived before the import reads it
+		await importer.ready;
+
+		if (importer.notAvailable) {
+			throw new Error(`The ${definition.name} importer is not available here.`);
+		}
+
+		// The dialog gathers this from a second screen, which a script has no
+		// way to answer, so an importer that needs one cannot run headless yet
+		if (importer.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration) {
+			throw new Error(`The ${definition.name} importer is configured on a second screen, which an import without the dialog cannot show yet.`);
+		}
+
 		importer.files = filepaths.map(filepath => new NodePickedFile(filepath));
 		importer.outputLocation = outputLocation;
 		configure?.(importer);

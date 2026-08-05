@@ -43,6 +43,19 @@ export abstract class FormatImporter {
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
 
+	/**
+	 * Settles when init() has finished and everything it started has arrived -
+	 * the linked credential, a session restored from a stored token.
+	 *
+	 * The dialog does not wait for this: it draws what it has and fills the
+	 * rest in as it lands. An import driven without one has nothing to redraw,
+	 * so it waits, or it would run before it knew who it was.
+	 */
+	readonly ready: Promise<void>;
+
+	/** What ready waits for, beyond init() itself. */
+	private pending: Promise<unknown>[] = [];
+
 	constructor(app: App, host: ImporterHost) {
 		this.app = app;
 		this.vault = app.vault;
@@ -54,6 +67,19 @@ export abstract class FormatImporter {
 		if (initialised instanceof Promise) {
 			initialised.catch(e => console.error('Importer failed to initialise', e));
 		}
+
+		// init() is what fills `pending`, so this is built from it afterwards
+		this.ready = Promise.resolve(initialised)
+			.then(() => Promise.all(this.pending))
+			.then(() => undefined)
+			.catch(e => console.error('Importer failed to initialise', e));
+	}
+
+	/**
+	 * Something init() started that an import must not run ahead of. See ready.
+	 */
+	protected whenReady(work: Promise<unknown>): void {
+		this.pending.push(work);
 	}
 
 	abstract init(): void | Promise<void>;
@@ -113,10 +139,11 @@ export abstract class FormatImporter {
 
 		if (!setting) {
 			// No dialog to fill in, but an import driven from a script still
-			// needs the credential the user linked, so it is read all the same.
-			this.loadSecretId()
+			// needs the credential the user linked, so it is read all the same -
+			// and waited for, since the import reads it straight away.
+			this.whenReady(this.loadSecretId()
 				.then(secretId => this.secretId = secretId)
-				.catch(e => console.error('Could not read the linked secret', e));
+				.catch(e => console.error('Could not read the linked secret', e)));
 
 			return null;
 		}
