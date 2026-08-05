@@ -37,6 +37,31 @@ globals.window = window;
 (window as unknown as Record<string, unknown>).TurndownService = TurndownService;
 
 /**
+ * Obsidian's additions to the language, not just the DOM.
+ *
+ * The app installs these on the built-in prototypes, so conversion code uses
+ * them as if they were standard. Anything hosting this code outside Obsidian -
+ * a browser tool as much as a test - has to provide them.
+ */
+Object.defineProperty(Object, 'isEmpty', {
+	value: (object: Record<string, unknown>) => Object.keys(object).length === 0,
+	writable: true, configurable: true,
+});
+
+for (const [proto, name, value] of [
+	[Array.prototype, 'contains', function (this: unknown[], target: unknown) { return this.includes(target); }],
+	[Array.prototype, 'remove', function (this: unknown[], target: unknown) {
+		const index = this.indexOf(target);
+		if (index > -1) this.splice(index, 1);
+	}],
+	[Array.prototype, 'first', function (this: unknown[]) { return this.length ? this[0] : undefined; }],
+	[Array.prototype, 'last', function (this: unknown[]) { return this.length ? this[this.length - 1] : undefined; }],
+	[String.prototype, 'contains', function (this: string, target: string) { return this.includes(target); }],
+] as [object, string, unknown][]) {
+	Object.defineProperty(proto, name, { value, writable: true, configurable: true, enumerable: false });
+}
+
+/**
  * Obsidian's additions to Node and Element.
  *
  * Only the ones the conversion path uses. instanceOf is Obsidian's
