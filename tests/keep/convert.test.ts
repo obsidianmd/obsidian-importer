@@ -7,20 +7,22 @@
  * Obsidian has nowhere to put but tags: pinned, archived, deleted, coloured,
  * labelled, and a checklist rather than text.
  *
- * Each is recorded as the file the importer would write.
+ * Each is recorded as the file the importer would write. Note that Keep's
+ * checklists have no nesting in the export - sub-items arrive as ordinary
+ * items - so the recorded notes are flat, which is a faithful conversion
+ * rather than a lost level.
  */
 import '../shims/runtime';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { convertKeepNote } from '../../src/formats/keep/convert';
 import { KeepJson } from '../../src/formats/keep/models';
 import { sanitizeFileName } from '../../src/util';
-import { expectTree, fixtures } from '../helpers';
+import { expectFile, fixtures } from '../helpers';
 
 const NOTES = nodePath.join(__dirname, 'notes');
 const EXPECTED = nodePath.join(__dirname, 'expected');
@@ -40,14 +42,7 @@ for (const note of notes) {
 		const filename = nodePath.basename(note, '.json');
 		const { content } = convertKeepNote(keepJson, filename);
 
-		const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-keep-'));
-		try {
-			nodeFs.writeFileSync(nodePath.join(produced, `${sanitizeFileName(filename)}.md`), content);
-			expectTree(produced, nodePath.join(EXPECTED, filename), note);
-		}
-		finally {
-			nodeFs.rmSync(produced, { recursive: true, force: true });
-		}
+		expectFile(content, nodePath.join(EXPECTED, filename, `${sanitizeFileName(filename)}.md`), note);
 	});
 }
 

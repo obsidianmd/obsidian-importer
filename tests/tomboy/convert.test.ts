@@ -14,12 +14,11 @@ import '../shims/dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { TomboyCoreConverter } from '../../src/formats/tomboy/core';
 import { sanitizeFileName } from '../../src/util';
-import { expectTree, fixtures } from '../helpers';
+import { expectFile, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
 const EXPECTED = nodePath.join(FIXTURES, 'expected');
@@ -36,15 +35,9 @@ for (const note of notes) {
 		const parsed = converter.parseTomboyXML(nodeFs.readFileSync(nodePath.join(FIXTURES, note), 'utf8'));
 		const markdown = converter.convertToMarkdown(parsed);
 
-		// Written the way the importer would: named after the note's title,
-		// through the same sanitiser, holding the body it produced.
-		const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-tomboy-'));
-		try {
-			nodeFs.writeFileSync(nodePath.join(produced, `${sanitizeFileName(parsed.title)}.md`), markdown);
-			expectTree(produced, nodePath.join(EXPECTED, nodePath.basename(note, '.note')), note);
-		}
-		finally {
-			nodeFs.rmSync(produced, { recursive: true, force: true });
-		}
+		// Recorded under the name the importer would give it, through the same
+		// sanitiser, holding the body it produced.
+		const name = `${sanitizeFileName(parsed.title)}.md`;
+		expectFile(markdown, nodePath.join(EXPECTED, nodePath.basename(note, '.note'), name), note);
 	});
 }

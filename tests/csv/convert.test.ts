@@ -6,6 +6,9 @@
  * column a property, the first column naming the note - and recorded as the
  * markdown files a user would end up with.
  *
+ * An empty column still gets its frontmatter key, written as "Key: " with the
+ * trailing space YAML leaves behind. That is visible in the recordings.
+ *
  * Quoting is where a CSV parser fails quietly: a comma inside quotes, a
  * newline inside a field, a doubled quote meaning one. comprehensive-test.csv
  * is built around exactly that, so its notes pin the behaviour.
@@ -67,6 +70,23 @@ test('reads a doubled quote as one quote', () => {
 
 test('keeps a newline that is inside quotes on one line', () => {
 	assert.deepEqual(splitCSVLines('a,b\n"one\ntwo",d\n'), ['a,b', '"one\ntwo",d']);
+});
+
+/**
+ * Two things the parser does that are worth knowing about rather than
+ * discovering. Both predate this test and are pinned here so a change to
+ * either is a decision rather than a surprise.
+ */
+test('trims a quoted field, padding and all', () => {
+	// Quoting normally means "keep this exactly", so losing the spaces is
+	// arguably wrong - but it is what the importer has always done.
+	assert.deepEqual(parseCSVLine('a,"  padded  ",c'), ['a', 'padded', 'c']);
+});
+
+test('drops fields beyond the number of headers', () => {
+	const { rows } = parseCSV('h1,h2\nv1,v2,v3\n', true);
+
+	assert.deepEqual(rows, [{ h1: 'v1', h2: 'v2' }], 'v3 has nowhere to go and is discarded');
 });
 
 test('names the columns when there is no header row', () => {

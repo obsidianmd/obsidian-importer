@@ -19,3 +19,10 @@ ij_typescript_import_prefer_absolute_path = false
 ij_typescript_use_double_quotes = false
 ij_typescript_force_quote_style = true
 ij_typescript_force_semicolon_style = true
+
+# Recorded conversion output: byte-for-byte what the importers produce, so it
+# must not be tidied. A final newline or trimmed trailing space here is a
+# change to the thing under test.
+[tests/**/expected/**]
+insert_final_newline = false
+trim_trailing_whitespace = false

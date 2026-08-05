@@ -68,30 +68,40 @@ export function diffTrees(actual: Map<string, Buffer>, expected: Map<string, Buf
 }
 
 /**
- * Compare a produced directory against a recorded one, recording it the first
- * time so a new fixture writes its own baseline to review.
+ * Recording is opt-in, and always fails the run.
+ *
+ * A test that quietly records whatever it was given is not a test: whatever
+ * the conversion happened to produce - correct or not - becomes the contract,
+ * and the run goes green. So a missing recording is a failure, and writing one
+ * takes UPDATE_EXPECTED=1 and still fails, to force a look at what was written
+ * before it is committed.
  */
+function record(write: () => void, expected: string, label: string): never {
+	const where = nodePath.relative(process.cwd(), expected);
+
+	if (!process.env.UPDATE_EXPECTED) {
+		assert.fail(`No recorded output for ${label}. Re-run with UPDATE_EXPECTED=1 to record it at ${where}, then read what it wrote before committing.`);
+	}
+
+	nodeFs.mkdirSync(nodePath.dirname(expected), { recursive: true });
+	write();
+	assert.fail(`Recorded ${where} for ${label}. Read it, then re-run without UPDATE_EXPECTED.`);
+}
+
+/** Compare a produced directory against the recorded one. */
 export function expectTree(produced: string, expectedDir: string, label: string): void {
 	if (!nodeFs.existsSync(expectedDir)) {
-		nodeFs.mkdirSync(nodePath.dirname(expectedDir), { recursive: true });
-		nodeFs.cpSync(produced, expectedDir, { recursive: true });
-		console.log(`Recorded a baseline for ${label} - review ${nodePath.relative(process.cwd(), expectedDir)}/`);
-		return;
+		record(() => nodeFs.cpSync(produced, expectedDir, { recursive: true }), expectedDir, label);
 	}
 
 	const problems = diffTrees(readTree(produced), readTree(expectedDir));
 	assert.deepEqual(problems, [], `output differs from ${nodePath.relative(process.cwd(), expectedDir)}/\n${problems.join('\n')}`);
 }
 
-/**
- * The same, for a conversion that produces one document rather than a tree.
- */
+/** The same, for a conversion that produces one document rather than a tree. */
 export function expectFile(produced: string, expectedPath: string, label: string): void {
 	if (!nodeFs.existsSync(expectedPath)) {
-		nodeFs.mkdirSync(nodePath.dirname(expectedPath), { recursive: true });
-		nodeFs.writeFileSync(expectedPath, produced);
-		console.log(`Recorded a baseline for ${label} - review ${nodePath.relative(process.cwd(), expectedPath)}`);
-		return;
+		record(() => nodeFs.writeFileSync(expectedPath, produced), expectedPath, label);
 	}
 
 	assert.equal(produced, nodeFs.readFileSync(expectedPath, 'utf8'), `output differs from ${nodePath.relative(process.cwd(), expectedPath)}`);

@@ -1,0 +1,6 @@
+# Normalise line endings in source, so a checkout on any platform matches.
+* text=auto eol=lf
+
+# Recorded conversion output is compared byte for byte. Leave it exactly as
+# the importers wrote it, on every platform.
+tests/**/expected/** -text

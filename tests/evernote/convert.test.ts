@@ -31,6 +31,7 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
+import { expectTree, fixtures, readTree } from '../helpers';
 import { defaultYarleOptions, dropTheRope } from '../../src/formats/yarle/yarle';
 
 // Before any conversion runs. yarle reads these when it works, not when it
@@ -57,62 +58,6 @@ function stubContext() {
 		cancel() { },
 		hideStatus() { },
 	};
-}
-
-/** Every file under a directory, by path relative to it, in path order. */
-function readTree(dir: string): Map<string, Buffer> {
-	const files = new Map<string, Buffer>();
-
-	const walk = (current: string) => {
-		for (const entry of nodeFs.readdirSync(current, { withFileTypes: true })) {
-			const full = nodePath.join(current, entry.name);
-			if (entry.isDirectory()) walk(full);
-			else files.set(nodePath.relative(dir, full).split(nodePath.sep).join('/'), nodeFs.readFileSync(full));
-		}
-	};
-	walk(dir);
-
-	return new Map([...files].sort(([a], [b]) => a.localeCompare(b)));
-}
-
-function copyTree(from: string, to: string): void {
-	nodeFs.mkdirSync(nodePath.dirname(to), { recursive: true });
-	nodeFs.cpSync(from, to, { recursive: true });
-}
-
-/**
- * Report how two trees differ, as lines, or nothing when they match.
- *
- * Content differences show both sides for anything that reads as text, since
- * that is the case worth eyeballing; binaries just report their sizes.
- */
-function diffTrees(actual: Map<string, Buffer>, expected: Map<string, Buffer>): string[] {
-	const problems: string[] = [];
-
-	for (const path of expected.keys()) {
-		if (!actual.has(path)) problems.push(`missing: ${path}`);
-	}
-	for (const path of actual.keys()) {
-		if (!expected.has(path)) problems.push(`unexpected: ${path}`);
-	}
-
-	for (const [path, actualBytes] of actual) {
-		const expectedBytes = expected.get(path);
-		if (!expectedBytes || actualBytes.equals(expectedBytes)) continue;
-
-		if (path.endsWith('.md') || path.endsWith('.base') || path.endsWith('.txt')) {
-			problems.push(
-				`differs: ${path}`,
-				`  expected: ${JSON.stringify(expectedBytes.toString('utf8'))}`,
-				`  actual:   ${JSON.stringify(actualBytes.toString('utf8'))}`,
-			);
-		}
-		else {
-			problems.push(`differs: ${path} (${expectedBytes.length} bytes expected, ${actualBytes.length} actual)`);
-		}
-	}
-
-	return problems;
 }
 
 /** Convert the named fixtures into a temp directory, and hand it to the caller. */
@@ -145,28 +90,19 @@ function notebookDir(outputDir: string): string {
 	return nodePath.join(outputDir, folders[0].name);
 }
 
-const fixtures = nodeFs.readdirSync(FIXTURES).filter(name => name.endsWith('.enex')).sort();
+const enexFiles = fixtures(FIXTURES, '.enex');
 
 test('there are fixtures to convert', () => {
-	assert.ok(fixtures.length > 0, 'expected at least one .enex in tests/evernote');
+	assert.ok(enexFiles.length > 0, 'expected at least one .enex in tests/evernote');
 });
 
-for (const fixture of fixtures) {
+for (const fixture of enexFiles) {
 	test(`converts ${fixture}`, async () => {
 		const expectedDir = nodePath.join(EXPECTED, nodePath.basename(fixture, '.enex'));
 
 		await convert([fixture], (outputDir, ctx) => {
 			assert.deepEqual(ctx.failures, [], 'no note should fail to convert');
-			const produced = notebookDir(outputDir);
-
-			if (!nodeFs.existsSync(expectedDir)) {
-				copyTree(produced, expectedDir);
-				console.log(`Recorded a baseline for ${fixture} - review tests/evernote/expected/${nodePath.basename(expectedDir)}/`);
-				return;
-			}
-
-			const problems = diffTrees(readTree(produced), readTree(expectedDir));
-			assert.deepEqual(problems, [], `output differs from tests/evernote/expected/${nodePath.basename(expectedDir)}/\n${problems.join('\n')}`);
+			expectTree(notebookDir(outputDir), expectedDir, fixture);
 		});
 	});
 }
