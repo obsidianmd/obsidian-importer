@@ -77,7 +77,10 @@ function context(page: PageFixture, options: Partial<BlockConversionContext> = {
 	} as unknown as BlockConversionContext;
 }
 
-const pages = fixtures(FIXTURES, '.json');
+// Only the page fixtures: a database fixture lives here too, and is driven by
+// database.test.ts rather than as a page's blocks
+const pages = fixtures(FIXTURES, '.json').filter(fixture =>
+	'pageId' in JSON.parse(nodeFs.readFileSync(fixture.path, 'utf8')));
 
 test('there are pages to convert', () => {
 	assert.ok(pages.length > 0, 'expected at least one .json in tests/notion-api');

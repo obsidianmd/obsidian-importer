@@ -1,0 +1,165 @@
+{
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com), Notion-Version 2025-09-03. properties is the properties of a data source as GET /v1/data_sources/{id} returns them, rows is POST /v1/data_sources/{id}/query, and relatedPages is GET /v1/pages/{id} for the pages a relation points at. Not a capture of a real workspace: the ids, titles and values are made up, and the point is to cover a relation that stays inside the import and one that leaves it. The Movies data source is the one being imported; Directors is linked to but not selected.",
+	"dataSourceId": "11111111-1111-1111-1111-111111111111",
+	"title": "Movies",
+	"properties": {
+		"Title": {
+			"id": "title",
+			"name": "Title",
+			"type": "title",
+			"title": {}
+		},
+		"Year": {
+			"id": "Y%3Ecd",
+			"name": "Year",
+			"type": "number",
+			"number": { "format": "number" }
+		},
+		"Sequel": {
+			"id": "aBc1",
+			"name": "Sequel",
+			"type": "relation",
+			"relation": {
+				"database_id": "11111111-1111-1111-1111-111111111111",
+				"data_source_id": "11111111-1111-1111-1111-111111111111",
+				"type": "dual_property",
+				"dual_property": { "synced_property_name": "Prequel", "synced_property_id": "eO%3Cb" }
+			}
+		},
+		"Director": {
+			"id": "dEf2",
+			"name": "Director",
+			"type": "relation",
+			"relation": {
+				"database_id": "22222222-2222-2222-2222-222222222222",
+				"data_source_id": "22222222-2222-2222-2222-222222222222",
+				"type": "dual_property",
+				"dual_property": { "synced_property_name": "Films", "synced_property_id": "pQr9" }
+			}
+		}
+	},
+	"rows": [
+		{
+			"object": "page",
+			"id": "aaaaaaaa-0000-0000-0000-000000000001",
+			"created_time": "2024-01-05T09:00:00.000Z",
+			"last_edited_time": "2024-06-01T12:30:00.000Z",
+			"parent": { "type": "data_source_id", "data_source_id": "11111111-1111-1111-1111-111111111111" },
+			"archived": false,
+			"in_trash": false,
+			"url": "https://www.notion.so/aaaaaaaa000000000000000000000001",
+			"properties": {
+				"Title": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": { "content": "The Long Way", "link": null },
+							"annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" },
+							"plain_text": "The Long Way",
+							"href": null
+						}
+					]
+				},
+				"Year": { "id": "Y%3Ecd", "type": "number", "number": 2019 },
+				"Sequel": {
+					"id": "aBc1",
+					"type": "relation",
+					"relation": [{ "id": "aaaaaaaa-0000-0000-0000-000000000002" }],
+					"has_more": false
+				},
+				"Director": {
+					"id": "dEf2",
+					"type": "relation",
+					"relation": [{ "id": "bbbbbbbb-0000-0000-0000-000000000001" }],
+					"has_more": false
+				}
+			}
+		},
+		{
+			"object": "page",
+			"id": "aaaaaaaa-0000-0000-0000-000000000002",
+			"created_time": "2024-02-05T09:00:00.000Z",
+			"last_edited_time": "2024-06-02T12:30:00.000Z",
+			"parent": { "type": "data_source_id", "data_source_id": "11111111-1111-1111-1111-111111111111" },
+			"archived": false,
+			"in_trash": false,
+			"url": "https://www.notion.so/aaaaaaaa000000000000000000000002",
+			"properties": {
+				"Title": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": { "content": "The Long Way Back", "link": null },
+							"annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" },
+							"plain_text": "The Long Way Back",
+							"href": null
+						}
+					]
+				},
+				"Year": { "id": "Y%3Ecd", "type": "number", "number": 2023 },
+				"Sequel": { "id": "aBc1", "type": "relation", "relation": [], "has_more": false },
+				"Director": {
+					"id": "dEf2",
+					"type": "relation",
+					"relation": [
+						{ "id": "bbbbbbbb-0000-0000-0000-000000000001" },
+						{ "id": "bbbbbbbb-0000-0000-0000-000000000002" }
+					],
+					"has_more": false
+				}
+			}
+		}
+	],
+	"relatedPages": {
+		"bbbbbbbb-0000-0000-0000-000000000001": {
+			"object": "page",
+			"id": "bbbbbbbb-0000-0000-0000-000000000001",
+			"parent": { "type": "data_source_id", "data_source_id": "22222222-2222-2222-2222-222222222222" },
+			"archived": false,
+			"in_trash": false,
+			"url": "https://www.notion.so/bbbbbbbb000000000000000000000001",
+			"properties": {
+				"Name": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": { "content": "Ada Lovelace", "link": null },
+							"annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" },
+							"plain_text": "Ada Lovelace",
+							"href": null
+						}
+					]
+				}
+			}
+		},
+		"bbbbbbbb-0000-0000-0000-000000000002": {
+			"object": "page",
+			"id": "bbbbbbbb-0000-0000-0000-000000000002",
+			"parent": { "type": "data_source_id", "data_source_id": "22222222-2222-2222-2222-222222222222" },
+			"archived": false,
+			"in_trash": false,
+			"url": "https://www.notion.so/bbbbbbbb000000000000000000000002",
+			"properties": {
+				"Name": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": { "content": "Grace Hopper", "link": null },
+							"annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" },
+							"plain_text": "Grace Hopper",
+							"href": null
+						}
+					]
+				}
+			}
+		}
+	}
+}
