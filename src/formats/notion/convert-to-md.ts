@@ -487,7 +487,10 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 
 
 function getTOCIndent(tocItem: Element | null): number {
-	return Number(tocItem?.classList[1].slice(-1) ?? -1);
+	// The indent is the last character of the second class. An item with only
+	// one class has no indent to read, and used to throw here rather than fall
+	// back to -1 like a missing item does.
+	return Number(tocItem?.classList?.[1]?.slice(-1) ?? -1);
 }
 
 /**

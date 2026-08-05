@@ -4,10 +4,35 @@ import { NotionResolverInfo } from './notion-types';
 import { getNotionId, parseParentIds } from './notion-utils';
 
 export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile) {
+	recordFileInfo(info, {
+		filepath: file.filepath,
+		name: file.name,
+		extension: file.extension,
+		text: file.extension === 'html' ? await file.readText() : undefined,
+	});
+}
+
+/** One entry of an export, as recordFileInfo needs to see it. */
+export interface NotionExportEntry {
+	filepath: string;
+	name: string;
+	extension: string;
+	/** The page's HTML. Only read for html entries. */
+	text?: string;
+}
+
+/**
+ * Note what one entry of an export is, so links to it can be resolved later.
+ *
+ * Split from parseFileInfo so the first pass can be driven from entries that
+ * are not zip files - which is what lets it be tested, and what lets a single
+ * export be walked without the importer around it.
+ */
+export function recordFileInfo(info: NotionResolverInfo, file: NotionExportEntry) {
 	let { filepath } = file;
 
 	if (file.extension === 'html') {
-		const text = await file.readText();
+		const text = file.text ?? '';
 
 		const dom = parseHTML(text);
 		const body = dom.find('body');
