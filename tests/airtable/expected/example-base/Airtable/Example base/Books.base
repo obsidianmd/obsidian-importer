@@ -4,7 +4,6 @@ formulas:
   Value: note["Price"]*note["Rating"]
   Author count: note["Authors"].length
   Author names: note["Authors"].map(value.asFile().properties["Name"])
-  Author output: note["Authors"].map(value.asFile().properties["Books written"]).sum()
 properties:
   file.name:
     displayName: Title
@@ -60,7 +59,7 @@ properties:
     displayName: Author count
   formula.Author names:
     displayName: Author names
-  formula.Author output:
+  Author output:
     displayName: Author output
   Author rating:
     displayName: Author rating
@@ -117,7 +116,7 @@ views:
       - formula.Value
       - formula.Author count
       - formula.Author names
-      - formula.Author output
+      - Author output
       - Author rating
       - Created by
       - Modified by

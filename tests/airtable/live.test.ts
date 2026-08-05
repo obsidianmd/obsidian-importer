@@ -52,6 +52,7 @@ test('the API still returns the shape the fixture is written to', { skip }, asyn
 	assert.ok(Array.isArray(schema.tables) && schema.tables.length > 0, 'the base should have tables');
 
 	const unknownTypes = new Set<string>();
+	const rollupsWithAnAggregation: string[] = [];
 
 	for (const table of schema.tables) {
 		assertShape(table, {
@@ -65,6 +66,13 @@ test('the API still returns the shape the fixture is written to', { skip }, asyn
 		for (const field of table.fields) {
 			assertShape(field, { id: 'string', name: 'string', type: 'string' }, `field ${field.name}`);
 			if (!(field.type in PROPERTY_TYPE_FOR_FIELD_TYPE)) unknownTypes.add(field.type);
+
+			// The metadata API says which field a rollup reads and through which
+			// link, but not what it does with the values, so a rollup is imported
+			// as the value Airtable computed rather than as a .base formula.
+			if (field.type === 'rollup' && field.options?.formula) {
+				rollupsWithAnAggregation.push(`${table.name} > ${field.name}: ${field.options.formula}`);
+			}
 		}
 
 		for (const view of table.views) {
@@ -91,4 +99,10 @@ test('the API still returns the shape the fixture is written to', { skip }, asyn
 	// the converter about is imported as text.
 	assert.deepEqual([...unknownTypes], [],
 		'field types this base uses that the importer does not know');
+
+	// If this fires, Airtable has started reporting rollup aggregations and the
+	// conversion in table-formulas.ts can compute them in the .base file again
+	// instead of importing Airtable's computed value. Good news, not a fault.
+	assert.deepEqual(rollupsWithAnAggregation, [],
+		'rollups now report their aggregation; rollup conversion can be turned back on');
 });

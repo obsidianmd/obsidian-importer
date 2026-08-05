@@ -213,6 +213,13 @@ function convertFormulaResult(value: any, fieldSchema: AirtableFieldSchema): any
 		return null;
 	}
 
+	// A result Airtable has no number for - an average over nothing, a division
+	// by zero - comes back as { specialValue: "NaN" }. Coercing that to a number
+	// writes NaN into the note, so it is treated as no value at all.
+	if (typeof value === 'object' && !Array.isArray(value) && 'specialValue' in value) {
+		return null;
+	}
+
 	// Check if formula options specify the result type
 	const options = fieldSchema.options;
 	if (options?.result) {

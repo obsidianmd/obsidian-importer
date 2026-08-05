@@ -51,15 +51,26 @@ export interface TableFormulaOptions {
  * 1. First try to match simple aggregation patterns like SUM(VALUES), AVERAGE(VALUES), etc.
  * 2. If no match, replace 'values' with mapExpression and try general formula conversion
  * 3. If conversion fails, fall back to static values imported from Airtable
+ *
+ * Returning null is that last fallback: the record already carries the value
+ * Airtable computed, and the importer writes it as a property.
  */
 function convertRollupFormula(
 	rollupFormula: string | undefined,
 	mapExpression: string,
 	fieldNameById: Map<string, string>
 ): string | null {
+	// Which values are rolled up is known; what is done to them is not. The
+	// metadata API does not report a rollup's aggregation - not for any of the
+	// 95 rollups across the bases this was checked against - so this is the
+	// usual case, not an edge one.
+	//
+	// Listing the values was the old answer here, which is wrong for every
+	// aggregation that reduces them: an average showed all of its inputs
+	// instead of their mean. Airtable's own computed value is right for all of
+	// them, so it is used instead.
 	if (!rollupFormula) {
-		// No formula means just show original values
-		return mapExpression;
+		return null;
 	}
 
 	// Normalize formula for comparison

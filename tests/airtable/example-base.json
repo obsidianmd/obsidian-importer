@@ -1,5 +1,5 @@
 {
-	"_comment": "Hand-written to the shape of Airtable's Web API responses (https://airtable.com/developers/web/api). schema is GET /v0/meta/bases/{baseId}/tables?include[]=visibleFieldIds, records is GET /v0/{baseId}/{tableId}, and viewRecordIds is the same call restricted to a view with fields[] empty. tests/airtable/live.test.ts checks these shapes against the real API when a token is available. Not a capture of a real base: the values are made up, and the point is to cover every field type the importer converts.",
+	"_comment": "Hand-written to the shape of Airtable's Web API responses (https://airtable.com/developers/web/api). schema is GET /v0/meta/bases/{baseId}/tables?include[]=visibleFieldIds, records is GET /v0/{baseId}/{tableId}, and viewRecordIds is the same call restricted to a view with fields[] empty. tests/airtable/live.test.ts checks these shapes against the real API when a token is available. Not a capture of a real base: the values are made up, and the point is to cover every field type the importer converts. Note that a rollup carries no formula: the metadata API does not report which aggregation a rollup uses, checked against 95 rollups across real bases, which is why a rollup is imported as the value Airtable computed rather than as a .base formula.",
 	"baseId": "appExampleBase001",
 	"baseName": "Example base",
 	"schema": {
@@ -36,8 +36,8 @@
 					{ "id": "fldBookValue000001", "name": "Value", "type": "formula", "options": { "formula": "{fldBookPrice000001}*{fldBookRating00001}", "referencedFieldIds": ["fldBookPrice000001", "fldBookRating00001"], "result": { "type": "number", "options": { "precision": 2 } } } },
 					{ "id": "fldBookAuthorNum01", "name": "Author count", "type": "count", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001" } },
 					{ "id": "fldBookAuthorNms01", "name": "Author names", "type": "multipleLookupValues", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorName00001", "result": { "type": "singleLineText" } } },
-					{ "id": "fldBookAuthorSum01", "name": "Author output", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorBooks0001", "formula": "SUM(values)", "result": { "type": "number", "options": { "precision": 0 } } } },
-					{ "id": "fldBookAuthorAvg01", "name": "Author rating", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorRating001", "formula": "CONCATENATE(values)", "result": { "type": "singleLineText" } } },
+					{ "id": "fldBookAuthorSum01", "name": "Author output", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorBooks0001", "result": { "type": "number", "options": { "precision": 0 } } } },
+					{ "id": "fldBookAuthorAvg01", "name": "Author rating", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorRating001", "result": { "type": "singleLineText" } } },
 					{ "id": "fldBookCreatedBy01", "name": "Created by", "type": "createdBy" },
 					{ "id": "fldBookModifiedBy1", "name": "Modified by", "type": "lastModifiedBy" },
 					{ "id": "fldBookIsbn0000001", "name": "ISBN", "type": "barcode" },

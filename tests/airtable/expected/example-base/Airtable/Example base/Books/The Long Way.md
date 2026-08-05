@@ -33,6 +33,7 @@ Authors:
   - "[[Grace Hopper]]"
 Cover:
   - "[[Airtable/Example base/Books/Attachments/cover.png]]"
+Author output: 7
 Author rating: AA
 Created by: Ada
 Modified by: Grace
