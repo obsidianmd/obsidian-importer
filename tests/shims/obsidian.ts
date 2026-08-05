@@ -10,8 +10,26 @@
  * data, and belongs behind the sink interface instead of here.
  */
 import moment from 'moment';
+import * as yaml from 'js-yaml';
 
 export { moment };
+
+/**
+ * Frontmatter, in the dialect Obsidian writes.
+ *
+ * Checked against the app rather than assumed: a note written through
+ * processFrontMatter comes back with two-space list indentation and plain
+ * scalars wherever YAML allows them, which is what js-yaml produces here.
+ * lineWidth is off so a long value is never wrapped, since a wrapped line
+ * would change a recorded note without changing its meaning.
+ */
+export function stringifyYaml(value: unknown): string {
+	return yaml.dump(value, { lineWidth: -1 });
+}
+
+export function parseYaml(text: string): unknown {
+	return yaml.load(text);
+}
 
 /**
  * Desktop, and not Obsidian.
