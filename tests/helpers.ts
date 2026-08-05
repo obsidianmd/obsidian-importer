@@ -107,7 +107,48 @@ export function expectFile(produced: string, expectedPath: string, label: string
 	assert.equal(produced, nodeFs.readFileSync(expectedPath, 'utf8'), `output differs from ${nodePath.relative(process.cwd(), expectedPath)}`);
 }
 
-/** Inputs in a directory with the given extension, in name order. */
-export function fixtures(dir: string, extension: string): string[] {
-	return nodeFs.readdirSync(dir).filter(name => name.endsWith(extension)).sort();
+export interface Fixture {
+	/** File name, including the extension. */
+	name: string;
+	/** Full path to the input. */
+	path: string;
+	/** Whether it came from the uncommitted local/ directory. */
+	local: boolean;
+}
+
+/**
+ * Inputs to convert: the ones committed here, plus anything in local/.
+ *
+ * local/ is gitignored, and exists for files that cannot be committed - a
+ * user's export attached to an issue, most of the time. Drop one in, run the
+ * tests, and its conversion is recorded beside it in local/expected/ for you
+ * to read. Nothing about that leaves the machine.
+ *
+ * A committed fixture and a local one behave identically otherwise, so a case
+ * that turns out to be worth keeping can be moved up a directory - with the
+ * reporter's say-so, and their data checked - and it keeps working.
+ */
+export function fixtures(dir: string, extension: string): Fixture[] {
+	const found: Fixture[] = [];
+
+	for (const [from, local] of [[dir, false], [nodePath.join(dir, 'local'), true]] as [string, boolean][]) {
+		if (!nodeFs.existsSync(from)) continue;
+
+		for (const name of nodeFs.readdirSync(from).sort()) {
+			if (!name.endsWith(extension)) continue;
+			found.push({ name, path: nodePath.join(from, name), local });
+		}
+	}
+
+	return found;
+}
+
+/**
+ * Where a fixture's recording belongs: beside the fixture itself.
+ *
+ * That keeps a local fixture's output inside the gitignored directory without
+ * anything having to branch on it.
+ */
+export function expectedFor(fixture: Fixture, ...leaf: string[]): string {
+	return nodePath.join(nodePath.dirname(fixture.path), 'expected', ...leaf);
 }

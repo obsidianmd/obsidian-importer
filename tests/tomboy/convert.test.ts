@@ -18,10 +18,9 @@ import * as nodePath from 'node:path';
 
 import { TomboyCoreConverter } from '../../src/formats/tomboy/core';
 import { sanitizeFileName } from '../../src/util';
-import { expectFile, fixtures } from '../helpers';
+import { expectedFor, expectFile, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
-const EXPECTED = nodePath.join(FIXTURES, 'expected');
 
 const notes = fixtures(FIXTURES, '.note');
 
@@ -30,14 +29,14 @@ test('there are fixtures to convert', () => {
 });
 
 for (const note of notes) {
-	test(`converts ${note}`, () => {
+	test(`converts ${note.name}`, () => {
 		const converter = new TomboyCoreConverter();
-		const parsed = converter.parseTomboyXML(nodeFs.readFileSync(nodePath.join(FIXTURES, note), 'utf8'));
+		const parsed = converter.parseTomboyXML(nodeFs.readFileSync(note.path, 'utf8'));
 		const markdown = converter.convertToMarkdown(parsed);
 
 		// Recorded under the name the importer would give it, through the same
 		// sanitiser, holding the body it produced.
 		const name = `${sanitizeFileName(parsed.title)}.md`;
-		expectFile(markdown, nodePath.join(EXPECTED, nodePath.basename(note, '.note'), name), note);
+		expectFile(markdown, expectedFor(note, nodePath.basename(note.name, '.note'), name), note.name);
 	});
 }

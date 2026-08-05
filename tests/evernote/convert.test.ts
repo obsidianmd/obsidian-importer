@@ -31,7 +31,7 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
-import { expectTree, fixtures, readTree } from '../helpers';
+import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
 import { defaultYarleOptions, dropTheRope } from '../../src/formats/yarle/yarle';
 
 // Before any conversion runs. yarle reads these when it works, not when it
@@ -40,7 +40,6 @@ provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: node
 
 // tsx runs these as CommonJS, so __dirname rather than import.meta.
 const FIXTURES = __dirname;
-const EXPECTED = nodePath.join(FIXTURES, 'expected');
 
 /** Enough of ImportContext for the conversion path, plus what it recorded. */
 function stubContext() {
@@ -61,14 +60,14 @@ function stubContext() {
 }
 
 /** Convert the named fixtures into a temp directory, and hand it to the caller. */
-async function convert<T>(fixtures: string[], use: (outputDir: string, ctx: ReturnType<typeof stubContext>) => T): Promise<T> {
+async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnType<typeof stubContext>) => T): Promise<T> {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-'));
 	const ctx = stubContext();
 
 	try {
 		await dropTheRope({
 			...defaultYarleOptions,
-			enexSources: fixtures.map(name => new NodePickedFile(nodePath.join(FIXTURES, name))),
+			enexSources: paths.map(path => new NodePickedFile(path)),
 			outputDir,
 		}, ctx as never);
 
@@ -97,12 +96,12 @@ test('there are fixtures to convert', () => {
 });
 
 for (const fixture of enexFiles) {
-	test(`converts ${fixture}`, async () => {
-		const expectedDir = nodePath.join(EXPECTED, nodePath.basename(fixture, '.enex'));
+	test(`converts ${fixture.name}`, async () => {
+		const expectedDir = expectedFor(fixture, nodePath.basename(fixture.name, '.enex'));
 
-		await convert([fixture], (outputDir, ctx) => {
+		await convert([fixture.path], (outputDir, ctx) => {
 			assert.deepEqual(ctx.failures, [], 'no note should fail to convert');
-			expectTree(notebookDir(outputDir), expectedDir, fixture);
+			expectTree(notebookDir(outputDir), expectedDir, fixture.name);
 		});
 	});
 }
@@ -112,7 +111,7 @@ for (const fixture of enexFiles) {
  * one cannot be a per-fixture recording.
  */
 test('resolves a link into another notebook', async () => {
-	await convert(['test-internotebook_links_A.enex', 'test-internotebook_links_B.enex'], outputDir => {
+	await convert(['test-internotebook_links_A.enex', 'test-internotebook_links_B.enex'].map(n => nodePath.join(FIXTURES, n)), outputDir => {
 		const note = readTree(outputDir).get('test-internotebook_links_B/Note in Notebook B.md');
 
 		assert.ok(note, 'note should exist');
@@ -127,7 +126,7 @@ test('resolves a link into another notebook', async () => {
  * but named here so a regression says what broke.
  */
 test('keeps a resource file name that is its only attribute', async () => {
-	await convert(['test-resource-attributes-single-child.enex'], outputDir => {
+	await convert([nodePath.join(FIXTURES, 'test-resource-attributes-single-child.enex')], outputDir => {
 		const attachments = [...readTree(outputDir).keys()].filter(path => path.endsWith('.png'));
 
 		assert.equal(attachments.length, 2);

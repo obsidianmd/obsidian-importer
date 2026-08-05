@@ -22,10 +22,9 @@ import * as nodePath from 'node:path';
 import { convertKeepNote } from '../../src/formats/keep/convert';
 import { KeepJson } from '../../src/formats/keep/models';
 import { sanitizeFileName } from '../../src/util';
-import { expectFile, fixtures } from '../helpers';
+import { expectedFor, expectFile, fixtures } from '../helpers';
 
 const NOTES = nodePath.join(__dirname, 'notes');
-const EXPECTED = nodePath.join(__dirname, 'expected');
 
 const notes = fixtures(NOTES, '.json');
 
@@ -34,15 +33,15 @@ test('there are fixtures to convert', () => {
 });
 
 for (const note of notes) {
-	test(`converts ${note}`, () => {
-		const keepJson = JSON.parse(nodeFs.readFileSync(nodePath.join(NOTES, note), 'utf8')) as KeepJson;
+	test(`converts ${note.name}`, () => {
+		const keepJson = JSON.parse(nodeFs.readFileSync(note.path, 'utf8')) as KeepJson;
 
 		// The importer names the file after the export's own file name, which
 		// is why a title matching it does not also become an alias.
-		const filename = nodePath.basename(note, '.json');
+		const filename = nodePath.basename(note.name, '.json');
 		const { content } = convertKeepNote(keepJson, filename);
 
-		expectFile(content, nodePath.join(EXPECTED, filename, `${sanitizeFileName(filename)}.md`), note);
+		expectFile(content, expectedFor(note, filename, `${sanitizeFileName(filename)}.md`), note.name);
 	});
 }
 

@@ -22,10 +22,9 @@ import * as nodePath from 'node:path';
 import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
 import { sanitizeFileName } from '../../src/util';
-import { expectTree, fixtures } from '../helpers';
+import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
-const EXPECTED = nodePath.join(FIXTURES, 'expected');
 
 const files = fixtures(FIXTURES, '.csv');
 
@@ -34,8 +33,8 @@ test('there are fixtures to convert', () => {
 });
 
 for (const file of files) {
-	test(`converts ${file}`, () => {
-		const content = nodeFs.readFileSync(nodePath.join(FIXTURES, file), 'utf8');
+	test(`converts ${file.name}`, () => {
+		const content = nodeFs.readFileSync(file.path, 'utf8');
 		const { headers, rows } = parseCSV(content, true);
 		const config = defaultTemplateConfig(headers, sanitizeYAMLKey);
 
@@ -52,7 +51,7 @@ for (const file of files) {
 				nodeFs.writeFileSync(nodePath.join(dir, `${sanitizeFileName(note.title)}.md`), note.content);
 			}
 
-			expectTree(produced, nodePath.join(EXPECTED, nodePath.basename(file, '.csv')), file);
+			expectTree(produced, expectedFor(file, nodePath.basename(file.name, '.csv')), file.name);
 		}
 		finally {
 			nodeFs.rmSync(produced, { recursive: true, force: true });

@@ -27,3 +27,8 @@ data.json
 .hotreload
 .devtarget
 .env
+
+# Conversion fixtures that cannot be committed - a user's export attached to an
+# issue, typically. Drop one in tests/<importer>/local/ and its output is
+# recorded beside it. See tests/helpers.ts.
+tests/**/local/
