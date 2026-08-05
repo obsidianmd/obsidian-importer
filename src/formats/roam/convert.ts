@@ -64,6 +64,10 @@ export class RoamPageConverter {
 			return '---';
 		} // Horizontal line in markup, replace it with MD
 
+		// Before page names are sanitised: [[>]] is Roam's blockquote, not a link,
+		// and sanitising it leaves an empty [[]] that nothing later can recognise.
+		blockText = blockText.replace(/\[\[>\]\]/g, '>');
+
 		//sanitize [[page names]]
 		//check for roam DNP and convert to obsidian DNP
 		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
@@ -76,7 +80,6 @@ export class RoamPageConverter {
 		// page alias
 		blockText = blockText.replace(/\[(.+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
 
-		blockText = blockText.replace(/\[\[>\]\]/g, '>');
 		blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
 		blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
 		blockText = blockText.replace('::', ':'); // Attributes::

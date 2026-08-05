@@ -113,7 +113,7 @@ and a second line of amazing code here```
     * comments
       * There is lots of controversial ideas in this block 
     * Blockquotes
-      * [[]] Regulare quote using page brackets
+      * > Regulare quote using page brackets
       * > bare quote without brackets
     * Collapsable Parenthesis 
       * A very long ((and interesting)) quote collapsed and one ((open)) also one with regular ((xNaGTlLLA)).

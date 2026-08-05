@@ -121,6 +121,11 @@ test('unwraps a block embed to its reference', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '{{embed: ((abc123))}}'), '((abc123))');
 });
 
+test('turns a Roam quote into a blockquote', async () => {
+	// The excerpt has no page using [[>]], so this is the only check on it
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '[[>]] quoted'), '> quoted');
+});
+
 test('turns a page alias into an Obsidian alias', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '[shown]([[Real Page]])'), '[[Real Page|shown]]');
 });
