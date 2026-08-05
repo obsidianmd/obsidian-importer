@@ -53,8 +53,12 @@ async function api(path: string, body?: unknown): Promise<any> {
 		body: body ? JSON.stringify(body) : undefined,
 	});
 
-	assert.equal(response.status, 200, `${path} returned ${response.status}: ${await response.text()}`);
-	return await response.json();
+	// Read once: building the message consumes the body, so it cannot be done
+	// inside the assertion.
+	const text = await response.text();
+	assert.equal(response.status, 200, `${path} returned ${response.status}: ${text}`);
+
+	return JSON.parse(text);
 }
 
 /** The keys the converter reads, and what it expects to find. */
