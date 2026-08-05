@@ -1,5 +1,5 @@
 import { App, Modal, Notice, ObsidianProtocolData, Plugin, Setting } from 'obsidian';
-import { FormatImporter } from './format-importer';
+import { FormatImporter, ImporterHost } from './format-importer';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
@@ -28,7 +28,7 @@ interface ImporterDefinition {
 	optionText: string;
 	helpPermalink?: string;
 	formatDescription?: string;
-	importer: new (app: App, modal: ImporterModal) => FormatImporter;
+	importer: new (app: App, host: ImporterHost) => FormatImporter;
 }
 
 
@@ -466,11 +466,17 @@ export default class ImporterPlugin extends Plugin {
 	}
 }
 
-export class ImporterModal extends Modal {
+/** The dialog is one importer host; see ImporterHost. */
+export class ImporterModal extends Modal implements ImporterHost {
 	plugin: ImporterPlugin;
 	importer: FormatImporter;
 	selectedId: string;
 	abortController: AbortController;
+
+	/** Which importer the dialog is showing, which is the one being hosted. */
+	get id(): string {
+		return this.selectedId;
+	}
 
 	current: ImportContext | null = null;
 

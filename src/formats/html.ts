@@ -1,4 +1,4 @@
-import { CachedMetadata, normalizePath, Notice, parseLinktext, requestUrl, Setting, TFile, TFolder } from 'obsidian';
+import { CachedMetadata, normalizePath, Notice, parseLinktext, requestUrl, TFile, TFolder } from 'obsidian';
 import {
 	fsPromises,
 	nodeBufferToArrayBuffer,
@@ -26,8 +26,8 @@ export class HtmlImporter extends FormatImporter {
 
 	addAttachmentSizeLimit(defaultInMB: number) {
 		this.attachmentSizeLimit = defaultInMB * 10 ** 6;
-		new Setting(this.modal.contentEl)
-			.setName('Attachment size limit (MB)')
+		this.addSetting()
+			?.setName('Attachment size limit (MB)')
 			.setDesc('Set 0 to disable.')
 			.addText(text => text
 				.then(({ inputEl }) => {
@@ -47,8 +47,8 @@ export class HtmlImporter extends FormatImporter {
 
 	addMinimumImageSize(defaultInPx: number) {
 		this.minimumImageSize = defaultInPx;
-		new Setting(this.modal.contentEl)
-			.setName('Minimum image size (px)')
+		this.addSetting()
+			?.setName('Minimum image size (px)')
 			.setDesc('Set 0 to disable.')
 			.addText(text => text
 				.then(({ inputEl }) => inputEl.type = 'number')

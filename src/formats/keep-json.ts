@@ -1,4 +1,4 @@
-import { Notice, Setting, TFolder } from 'obsidian';
+import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ATTACHMENT_EXTS, ImportContext } from '../main';
@@ -16,16 +16,14 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
-	importArchivedSetting: Setting;
-	importTrashedSetting: Setting;
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
 
 	init() {
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
-		this.importArchivedSetting = new Setting(this.modal.contentEl)
-			.setName('Import archived notes')
+		this.addSetting()
+			?.setName('Import archived notes')
 			.setDesc('If imported, files archived in Google Keep will be tagged as archived.')
 			.addToggle(toggle => {
 				toggle.setValue(this.importArchived);
@@ -34,8 +32,8 @@ export class KeepImporter extends FormatImporter {
 				});
 			});
 
-		this.importTrashedSetting = new Setting(this.modal.contentEl)
-			.setName('Import deleted notes')
+		this.addSetting()
+			?.setName('Import deleted notes')
 			.setDesc('If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.')
 			.addToggle(toggle => {
 				toggle.setValue(this.importTrashed);

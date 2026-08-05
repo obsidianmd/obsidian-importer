@@ -1,4 +1,4 @@
-import { DataWriteOptions, normalizePath, Notice, TFile, Setting } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
@@ -28,8 +28,8 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
 
-		new Setting(this.modal.contentEl)
-			.setName('Flatten nested tags')
+		this.addSetting()
+			?.setName('Flatten nested tags')
 			.setDesc(
 				'When enabled, tags will be split on slashes (/) during import.'
 			)
@@ -38,8 +38,8 @@ export class Bear2bkImporter extends FormatImporter {
 				.onChange(async v => this.flattenTags = v)
 			);
 
-		new Setting(this.modal.contentEl)
-			.setName('Store note identifiers in front matter')
+		this.addSetting()
+			?.setName('Store note identifiers in front matter')
 			.setDesc(
 				'Links will be automatically updated. Enable this if the note identifier is used outside of linking between notes.'
 			)

@@ -1,14 +1,32 @@
 import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
-import { ImporterModal, ImportContext, AuthCallback } from './main';
+import ImporterPlugin, { ImportContext, AuthCallback } from './main';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
+/**
+ * What an importer needs besides the vault: somewhere to draw its settings,
+ * the plugin that stores its credentials, and which importer it is.
+ *
+ * The dialog is one host. An import driven from a script or a test is another,
+ * with no element to draw into - every setting then stays at its default, and
+ * the caller sets what it needs directly.
+ */
+export interface ImporterHost {
+	/** Where settings are drawn, or null when there is no dialog. */
+	contentEl: HTMLElement | null;
+	plugin: ImporterPlugin;
+	/** Which importer this is, for scoping the credential it stores. */
+	id: string;
+	/** Aborted when the user cancels, for anything that outlives a check. */
+	abortController: AbortController;
+}
+
 export abstract class FormatImporter {
 	app: App;
 	vault: Vault;
-	modal: ImporterModal;
+	host: ImporterHost;
 
 	files: PickedFile[] = [];
 	outputLocation: string = '';
@@ -20,10 +38,10 @@ export abstract class FormatImporter {
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
 
-	constructor(app: App, modal: ImporterModal) {
+	constructor(app: App, host: ImporterHost) {
 		this.app = app;
 		this.vault = app.vault;
-		this.modal = modal;
+		this.host = host;
 		// OneNote's init is async because it may restore a session before it can
 		// draw its settings. A constructor cannot await, so the failure path is
 		// logged here: the importer still opens, just without a signed-in state.
@@ -57,7 +75,23 @@ export abstract class FormatImporter {
 	 * reregistered if a subsequent auth event is expected.
 	 */
 	registerAuthCallback(callback: AuthCallback): void {
-		this.modal.plugin.registerAuthCallback(callback);
+		this.host.plugin.registerAuthCallback(callback);
+	}
+
+	/**
+	 * A setting for this importer, or null when there is no dialog to draw in.
+	 *
+	 * An import run without one - from a script, or a test - draws nothing, so
+	 * a setting's only lasting effect is the default it was given. Assign that
+	 * default outside the chain, not in the component's callback.
+	 */
+	protected addSetting(): Setting | null {
+		return this.host.contentEl ? new Setting(this.host.contentEl) : null;
+	}
+
+	/** Draw into the dialog, if there is one. */
+	protected draw<T>(build: (contentEl: HTMLElement) => T): T | undefined {
+		return this.host.contentEl ? build(this.host.contentEl) : undefined;
 	}
 
 	/**
@@ -69,9 +103,23 @@ export abstract class FormatImporter {
 	 *
 	 * Read the credential back with getSecret().
 	 */
-	addSecretSetting(name: string, description?: string | DocumentFragment): Setting {
-		let setting = new Setting(this.modal.contentEl).setName(name);
+	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
+		// Plugin data is only readable asynchronously, and init() is not, so the
+		// previously linked secret arrives after this returns. It is read
+		// whether or not there is a dialog: an import driven without one still
+		// needs the credential. Nothing can await it, so a failure is logged
+		// rather than left unhandled - the importer simply has no secret.
+		const linked = this.loadSecretId()
+			.then(secretId => this.secretId = secretId)
+			.catch(e => {
+				console.error('Could not read the linked secret', e);
+				return null;
+			});
 
+		const setting = this.addSetting();
+		if (!setting) return null;
+
+		setting.setName(name);
 		if (description) {
 			setting.setDesc(description);
 		}
@@ -83,16 +131,7 @@ export abstract class FormatImporter {
 					await this.saveSecretId(this.secretId);
 				});
 
-			// Plugin data is only readable asynchronously, and init() is not, so
-			// the previously linked secret is filled in once it arrives. Nothing
-			// can await this, so a failure is logged rather than left unhandled -
-			// the field simply stays empty and the user picks the secret again.
-			this.loadSecretId()
-				.then(secretId => {
-					this.secretId = secretId;
-					component.setValue(secretId ?? '');
-				})
-				.catch(e => console.error('Could not read the linked secret', e));
+			void linked.then(secretId => component.setValue(secretId ?? ''));
 
 			return component;
 		});
@@ -112,12 +151,12 @@ export abstract class FormatImporter {
 	}
 
 	private async loadSecretId(): Promise<string | null> {
-		let data = await this.modal.plugin.loadData();
-		return data.secrets?.[this.modal.selectedId] ?? null;
+		let data = await this.host.plugin.loadData();
+		return data.secrets?.[this.host.id] ?? null;
 	}
 
 	private async saveSecretId(secretId: string | null): Promise<void> {
-		let data = await this.modal.plugin.loadData();
+		let data = await this.host.plugin.loadData();
 
 		// Copy rather than mutate: loadData shallow-merges DEFAULT_DATA, so a
 		// data file with no secrets yet hands back the default object itself,
@@ -126,19 +165,23 @@ export abstract class FormatImporter {
 		let secrets = { ...data.secrets };
 
 		if (secretId) {
-			secrets[this.modal.selectedId] = secretId;
+			secrets[this.host.id] = secretId;
 		}
 		else {
-			delete secrets[this.modal.selectedId];
+			delete secrets[this.host.id];
 		}
 
 		data.secrets = secrets;
 
-		await this.modal.plugin.saveData(data);
+		await this.host.plugin.saveData(data);
 	}
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
-		let fileLocationSetting = new Setting(this.modal.contentEl)
+		const fileLocationSetting = this.addSetting();
+		// Nothing to pick without a dialog: the caller sets this.files itself
+		if (!fileLocationSetting) return;
+
+		fileLocationSetting
 			.setName('Files to import')
 			.setDesc(description || 'Pick the files that you want to import.')
 			.addButton(button => button
@@ -214,8 +257,8 @@ export abstract class FormatImporter {
 
 	addOutputLocationSetting(defaultExportFolderName: string) {
 		this.outputLocation = defaultExportFolderName;
-		new Setting(this.modal.contentEl)
-			.setName('Output folder')
+		this.addSetting()
+			?.setName('Output folder')
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
 			.addText(text => text
 				.setValue(defaultExportFolderName)

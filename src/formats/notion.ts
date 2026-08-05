@@ -1,4 +1,4 @@
-import { normalizePath, Notice, Setting, DataWriteOptions } from 'obsidian';
+import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
@@ -20,15 +20,15 @@ export class NotionImporter extends FormatImporter {
 		this.parentsInSubfolders = true;
 		this.addFileChooserSetting('Exported Notion', ['zip']);
 		this.addOutputLocationSetting('Notion');
-		new Setting(this.modal.contentEl)
-			.setName('Save parent pages in subfolders')
+		this.addSetting()
+			?.setName('Save parent pages in subfolders')
 			.setDesc('Places the parent database pages in the same folder as the nested content.')
 			.addToggle((toggle) => toggle
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
 
-		new Setting(this.modal.contentEl)
-			.setName('Single line breaks')
+		this.addSetting()
+			?.setName('Single line breaks')
 			.setDesc('Separate Notion blocks with only one line break (default is 2).')
 			.addToggle((toggle) => toggle
 				.setValue(this.singleLineBreaks)

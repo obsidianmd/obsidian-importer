@@ -10,11 +10,11 @@ export class TextbundleImporter extends FormatImporter {
 
 	init() {
 		if (!Platform.isMacOS) {
-			this.modal.contentEl.createEl('p', {
+			this.draw(contentEl => contentEl.createEl('p', {
 				text:
 					'Due to platform limitations, only textpack and zip files can be imported from this device.' +
 					' Open your vault on a Mac to import textbundle files.'
-			});
+			}));
 		}
 
 		const formats = Platform.isMacOS

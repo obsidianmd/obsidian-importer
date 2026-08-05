@@ -171,8 +171,13 @@ export class AirtableAPIImporter extends FormatImporter {
 		// remembered between sessions
 		this.addSecretSetting('Airtable personal access token', this.createTokenDescription());
 
+		// Everything below is the tree the user picks tables from. An import
+		// driven without a dialog sets what it wants directly.
+		const contentEl = this.host.contentEl;
+		if (!contentEl) return;
+
 		// Load bases and tables button
-		const loadSetting = new Setting(this.modal.contentEl)
+		const loadSetting = new Setting(contentEl)
 			.setName('Select tables to import')
 			.setDesc('Load your Airtable bases and tables, then choose what to import.');
 
@@ -220,7 +225,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const importSection = this.modal.contentEl.createDiv();
+		const importSection = contentEl.createDiv();
 		importSection.addClass('import-section', 'file-tree', 'publish-section');
 
 		// Create the change list container
@@ -231,8 +236,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		placeholder.setText('Load your Airtable bases and tables to get started.');
 
 		// Formula import strategy
-		new Setting(this.modal.contentEl)
-			.setName('Convert formulas')
+		this.addSetting()
+			?.setName('Convert formulas')
 			.setDesc('Try to convert formulas to Obsidian syntax, or import as static values.')
 			.addDropdown(dropdown => {
 				dropdown
@@ -245,8 +250,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 
 		// Download attachments option
-		new Setting(this.modal.contentEl)
-			.setName('Download attachments')
+		this.addSetting()
+			?.setName('Download attachments')
 			.setDesc('Download attachment files to local vault. If disabled or download fails, external URLs will be used.')
 			.addToggle(toggle => {
 				toggle
@@ -257,8 +262,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			});
 
 		// View property name
-		new Setting(this.modal.contentEl)
-			.setName('View property name')
+		this.addSetting()
+			?.setName('View property name')
 			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in.')
 			.addText(text => text
 				.setPlaceholder('base')
@@ -270,8 +275,8 @@ export class AirtableAPIImporter extends FormatImporter {
 				}));
 
 		// Incremental import setting
-		new Setting(this.modal.contentEl)
-			.setName('Incremental import')
+		this.addSetting()
+			?.setName('Incremental import')
 			.setDesc('Adds an airtable-id property to records so that future imports can skip records that have already been imported.')
 			.addToggle(toggle => toggle
 				.setValue(false) // Default to disabled

@@ -97,7 +97,12 @@ export class NotionAPIImporter extends FormatImporter {
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
 		// List pages and toggle selection buttons
-		const listPagesSetting = new Setting(this.modal.contentEl)
+		// Everything below is the tree the user picks pages from. An import
+		// driven without a dialog sets what it wants directly.
+		const contentEl = this.host.contentEl;
+		if (!contentEl) return;
+
+		const listPagesSetting = new Setting(contentEl)
 			.setName('Select pages to import')
 			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
 
@@ -153,7 +158,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Page tree container (using Publish plugin's style with proper hierarchy)
 		// Create the section wrapper
-		const importSection = this.modal.contentEl.createDiv();
+		const importSection = contentEl.createDiv();
 		importSection.addClass('import-section', 'file-tree', 'publish-section');
 
 		// Create the change list container
@@ -163,8 +168,8 @@ export class NotionAPIImporter extends FormatImporter {
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Incremental import setting
-		new Setting(this.modal.contentEl)
-			.setName('Incremental import')
+		this.addSetting()
+			?.setName('Incremental import')
 			.setDesc('Adds a notion-id property to pages so that future imports can skip pages that have already been imported.')
 			.addToggle(toggle => toggle
 				.setValue(false) // Default to disabled
@@ -173,8 +178,8 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 
 		// Formula import strategy
-		new Setting(this.modal.contentEl)
-			.setName('Convert formulas')
+		this.addSetting()
+			?.setName('Convert formulas')
 			.setDesc(this.createFormulaStrategyDescription())
 			.addDropdown(dropdown => {
 				dropdown
@@ -187,8 +192,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Download external attachments option
-		new Setting(this.modal.contentEl)
-			.setName('Download external attachments')
+		this.addSetting()
+			?.setName('Download external attachments')
 			.setDesc(this.createAttachmentDescription())
 			.addToggle(toggle => {
 				toggle
@@ -199,8 +204,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Single line breaks option
-		new Setting(this.modal.contentEl)
-			.setName('Single line breaks')
+		this.addSetting()
+			?.setName('Single line breaks')
 			.setDesc('Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.')
 			.addToggle(toggle => {
 				toggle
@@ -211,8 +216,8 @@ export class NotionAPIImporter extends FormatImporter {
 			});
 
 		// Cover property name
-		new Setting(this.modal.contentEl)
-			.setName('Cover property name')
+		this.addSetting()
+			?.setName('Cover property name')
 			.setDesc(this.createCoverPropertyDescription())
 			.addText(text => text
 				.setPlaceholder('cover')
@@ -222,8 +227,8 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 
 		// Database property name
-		new Setting(this.modal.contentEl)
-			.setName('Database property name')
+		this.addSetting()
+			?.setName('Database property name')
 			.setDesc('Property name in page frontmatter to link pages to their database .base file (default: "base")')
 			.addText(text => text
 				.setPlaceholder('base')
@@ -599,7 +604,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderPageTree(): void {
 		// Try to get container reference if lost
 		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.modal.contentEl.querySelector('.publish-change-list');
+			this.pageTreeContainer = this.host.contentEl?.querySelector('.publish-change-list') ?? null;
 		}
 
 		if (!this.pageTreeContainer) {

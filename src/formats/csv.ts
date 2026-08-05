@@ -1,4 +1,4 @@
-import { BasesConfigFile, Notice, Setting, TFolder } from 'obsidian';
+import { BasesConfigFile, Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { CSVRow, parseCSV } from './csv/parse';
@@ -21,8 +21,8 @@ export class CSVImporter extends FormatImporter {
 		this.addOutputLocationSetting('CSV import');
 
 		this.hasHeaderRow = true;
-		new Setting(this.modal.contentEl)
-			.setName('CSV has header row')
+		this.addSetting()
+			?.setName('CSV has header row')
 			.setDesc('If enabled, the first row of the CSV file will be treated as column headers.')
 			.addToggle(toggle => {
 				toggle.setValue(this.hasHeaderRow);

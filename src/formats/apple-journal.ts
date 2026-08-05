@@ -1,4 +1,4 @@
-import { normalizePath, Notice, Setting, TFile } from 'obsidian';
+import { normalizePath, Notice, TFile } from 'obsidian';
 import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
@@ -33,12 +33,12 @@ export class AppleJournalImporter extends FormatImporter {
 			defaultImportPath
 		);
 
-		new Setting(this.modal.contentEl)
-			.setName('Journal metadata')
+		this.addSetting()
+			?.setName('Journal metadata')
 			.setHeading();
 
-		new Setting(this.modal.contentEl)
-			.setName('Add metadata as frontmatter')
+		this.addSetting()
+			?.setName('Add metadata as frontmatter')
 			.setDesc('Capture state-of-mind, contact, and similar tokens in YAML when available.')
 			.addToggle(toggle => {
 				toggle.setValue(this.frontMatterEnabled);
@@ -47,8 +47,8 @@ export class AppleJournalImporter extends FormatImporter {
 				});
 			});
 
-		new Setting(this.modal.contentEl)
-			.setName('Handle duplicate files')
+		this.addSetting()
+			?.setName('Handle duplicate files')
 			.setDesc('How to handle entries that already exist in the vault.')
 			.addDropdown(dropdown => {
 				dropdown

@@ -1,5 +1,5 @@
 import { ImportContext } from 'main';
-import { Notice, Setting, TFile, requestUrl } from 'obsidian';
+import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
@@ -26,12 +26,12 @@ export class RoamJSONImporter extends FormatImporter {
 		this.addOutputLocationSetting('Roam');
 		this.userDNPFormat = this.getUserDNPFormat();
 
-		new Setting(this.modal.contentEl)
-			.setName('Import settings')
+		this.addSetting()
+			?.setName('Import settings')
 			.setHeading();
 
-		new Setting(this.modal.contentEl)
-			.setName('Download all attachments')
+		this.addSetting()
+			?.setName('Download all attachments')
 			.setDesc('If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.')
 			.addToggle(toggle => {
 				toggle.setValue(this.downloadAttachments);
@@ -40,8 +40,8 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-		new Setting(this.modal.contentEl)
-			.setName('Add YAML created/update date')
+		this.addSetting()
+			?.setName('Add YAML created/update date')
 			.setDesc('If enabled, notes will have the create-time and edit-time from Roam added as properties.')
 			.addToggle(toggle => {
 				toggle.setValue(this.fileDateYAML);
@@ -50,8 +50,8 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-		new Setting(this.modal.contentEl)
-			.setName('Add YAML title')
+		this.addSetting()
+			?.setName('Add YAML title')
 			.setDesc('If enabled, notes will have the full title added as a property (regardless of illegal file name characters).')
 			.addToggle(toggle => {
 				toggle.setValue(this.titleYAML);
