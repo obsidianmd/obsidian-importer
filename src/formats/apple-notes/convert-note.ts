@@ -31,6 +31,8 @@ export class NoteConverter extends ANConverter {
 	listNumber = 0;
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
+	/** The alignment of the block being written, if one is open. */
+	alignment: ANAlignment | undefined;
 
 	static protobufType = 'ciofecaforensics.Document';
 
@@ -142,8 +144,12 @@ export class NoteConverter extends ANConverter {
 				break;
 
 			case ANMultiRun.Alignment:
-				if (!attr.paragraphStyle?.alignment) {
+				// A different alignment needs a block of its own. Only checking
+				// for the absence of one left a right-aligned paragraph inside
+				// the centred block before it.
+				if (attr.paragraphStyle?.alignment !== this.alignment) {
 					this.multiRun = ANMultiRun.None;
+					this.alignment = undefined;
 					prefix += '</p>\n';
 				}
 				break;
@@ -163,7 +169,8 @@ export class NoteConverter extends ANConverter {
 			}
 			else if (attr.paragraphStyle?.alignment) {
 				this.multiRun = ANMultiRun.Alignment;
-				const val = this.convertAlign(attr?.paragraphStyle?.alignment);
+				this.alignment = attr.paragraphStyle.alignment;
+				const val = this.convertAlign(attr.paragraphStyle.alignment);
 				prefix += `\n<p style="text-align:${val};margin:0">`;
 			}
 		}
