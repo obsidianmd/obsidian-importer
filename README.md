@@ -85,8 +85,6 @@ npm run e2e
 
 This imports fixtures through the running app — its `htmlToMarkdown`, its vault, its link settings — and compares what lands in the vault with what `npm test` recorded. It needs the [Obsidian CLI](https://help.obsidian.md/cli) and a build of your working copy installed in the active vault. It writes one folder and deletes it afterwards.
 
-More detail, including how each importer is split so its conversion can run without a vault, is in [CLAUDE.md](/CLAUDE.md).
-
 ## Contributing
 
 Importer is a community-led project. You can explore pull requests and see the credits below for reference. The Obsidian team is not actively working on adding new import capabilities, but we welcome pull requests for new formats and improvements.
