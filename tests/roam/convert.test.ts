@@ -30,11 +30,11 @@ const DAILY_NOTE_FORMAT = 'YYYY-MM-DD';
 /**
  * Above this many pages a graph is converted but not recorded.
  *
- * The help graph here produces about eleven hundred notes. Recording those
- * would be a megabyte of output that nobody is going to read, and a recording
- * nobody reads is not a check - it just goes green. Large graphs are still
- * worth converting, because that is what catches a page shape that throws, so
- * they are run and counted instead.
+ * The graphs committed here are small enough to record. A whole exported graph
+ * dropped into local/ is not: recording a thousand notes is output nobody is
+ * going to read, and a recording nobody reads is not a check - it just goes
+ * green. One that size is still worth converting, because that is what catches
+ * a page shape that throws, so it is run and counted instead.
  */
 const RECORDABLE_PAGES = 25;
 

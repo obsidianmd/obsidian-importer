@@ -50,11 +50,13 @@ To record or update:
 UPDATE_EXPECTED=1 npm test -- notion
 ```
 
-This writes the output and **fails on purpose**. Read what it wrote, then re-run without the variable. A recording nobody reads is not a check — it just goes green.
+This writes the output and **fails on purpose**. Read what it wrote — `git diff` if it already existed — then re-run without the variable. A recording nobody reads is not a check; it just goes green.
+
+Without `UPDATE_EXPECTED`, output that differs from its recording is a failure. That is the point: a conversion change shows up as a diff you have to look at.
 
 ### Fixing a bug
 
-1. Add a fixture that reproduces it, minimal and anonymised — replace real names, emails and URLs with placeholders.
+1. Add a fixture that reproduces it, as small as is useful and anonymised — replace real names, emails, account ids and tokens with placeholders. Organisations and product names can stay; how they convert is part of what is being checked.
 2. **Verify the fixture fails before the fix.** Record the expected output with the fix reverted, or check that the recording shows the wrong behaviour. A fixture that passes on both old and new code proves nothing.
 3. Apply the fix, re-record, and read the diff. Every changed line should be a line you meant to change.
 

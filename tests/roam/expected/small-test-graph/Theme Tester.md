@@ -24,15 +24,15 @@
       * ![swedish vallhund](https://i.imgur.com/SEr4dkd.jpg)
   * Uploaded Files
     * image
-      * some text before ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fhelp%2FywRWXjCVNW.png?alt=media&token=630eaa4f-819e-433c-96ba-a0735c5cdb51)
+      * some text before ![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FywRWXjCVNW.png?alt=media&token=00000000-0000-0000-0000-000000000000)
     * video
-      * some text before {{[[video]]: https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fhelp%2F5_JZnrFS-l.mp4?alt=media&token=b6bfe09e-14f3-42af-be58-02bb6a2fffbc}}
+      * some text before {{[[video]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2F5_JZnrFS-l.mp4?alt=media&token=00000000-0000-0000-0000-000000000000}}
     * gif
-      * some text before ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fhelp%2FCGJbyfjuGM.gif?alt=media&token=8bcd4699-2548-43b1-844c-dc91d675ae9f)
+      * some text before ![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FCGJbyfjuGM.gif?alt=media&token=00000000-0000-0000-0000-000000000000)
     * pdf
-      * some text before {{[[pdf]]: https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fhelp%2FAo1ZWqQOkv.pdf?alt=media&token=45412c15-335a-4bfd-aff8-d903d897fbcb}}
+      * some text before {{[[pdf]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FAo1ZWqQOkv.pdf?alt=media&token=00000000-0000-0000-0000-000000000000}}
     * audio
-      * some text before {{[[audio]]: https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fhelp-documentation%2Fhz3WHZhdUg.mp3?alt=media&token=9af83477-66d5-4b97-8643-2d9844ba6b99}}
+      * some text before {{[[audio]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp-documentation%2Fhz3WHZhdUg.mp3?alt=media&token=00000000-0000-0000-0000-000000000000}}
   * Links
     * The [[Theme Tester]] Page Link
       * [[bad improv]]

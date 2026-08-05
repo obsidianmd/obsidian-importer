@@ -72,17 +72,20 @@ export function diffTrees(actual: Map<string, Buffer>, expected: Map<string, Buf
  *
  * A test that quietly records whatever it was given is not a test: whatever
  * the conversion happened to produce - correct or not - becomes the contract,
- * and the run goes green. So a missing recording is a failure, and writing one
- * takes UPDATE_EXPECTED=1 and still fails, to force a look at what was written
- * before it is committed.
+ * and the run goes green. So a missing or differing recording is a failure, and
+ * writing one takes UPDATE_EXPECTED=1 and still fails, to force a look at what
+ * was written before it is committed.
  */
-function record(write: () => void, expected: string, label: string): never {
+function record(write: () => void, expected: string, label: string, existed: boolean): never {
 	const where = nodePath.relative(process.cwd(), expected);
 
 	if (!process.env.UPDATE_EXPECTED) {
-		assert.fail(`No recorded output for ${label}. Re-run with UPDATE_EXPECTED=1 to record it at ${where}, then read what it wrote before committing.`);
+		assert.fail(existed
+			? `Output for ${label} differs from ${where}. If the change is intended, re-run with UPDATE_EXPECTED=1 and read the diff before committing.`
+			: `No recorded output for ${label}. Re-run with UPDATE_EXPECTED=1 to record it at ${where}, then read what it wrote before committing.`);
 	}
 
+	nodeFs.rmSync(expected, { recursive: true, force: true });
 	nodeFs.mkdirSync(nodePath.dirname(expected), { recursive: true });
 	write();
 	assert.fail(`Recorded ${where} for ${label}. Read it, then re-run without UPDATE_EXPECTED.`);
@@ -90,21 +93,29 @@ function record(write: () => void, expected: string, label: string): never {
 
 /** Compare a produced directory against the recorded one. */
 export function expectTree(produced: string, expectedDir: string, label: string): void {
-	if (!nodeFs.existsSync(expectedDir)) {
-		record(() => nodeFs.cpSync(produced, expectedDir, { recursive: true }), expectedDir, label);
-	}
+	const existed = nodeFs.existsSync(expectedDir);
+	const problems = existed ? diffTrees(readTree(produced), readTree(expectedDir)) : ['not recorded'];
 
-	const problems = diffTrees(readTree(produced), readTree(expectedDir));
-	assert.deepEqual(problems, [], `output differs from ${nodePath.relative(process.cwd(), expectedDir)}/\n${problems.join('\n')}`);
+	if (problems.length > 0) {
+		if (process.env.UPDATE_EXPECTED || !existed) {
+			record(() => nodeFs.cpSync(produced, expectedDir, { recursive: true }), expectedDir, label, existed);
+		}
+
+		assert.deepEqual(problems, [], `output differs from ${nodePath.relative(process.cwd(), expectedDir)}/\n${problems.join('\n')}`);
+	}
 }
 
 /** The same, for a conversion that produces one document rather than a tree. */
 export function expectFile(produced: string, expectedPath: string, label: string): void {
-	if (!nodeFs.existsSync(expectedPath)) {
-		record(() => nodeFs.writeFileSync(expectedPath, produced), expectedPath, label);
-	}
+	const existed = nodeFs.existsSync(expectedPath);
 
-	assert.equal(produced, nodeFs.readFileSync(expectedPath, 'utf8'), `output differs from ${nodePath.relative(process.cwd(), expectedPath)}`);
+	if (!existed || produced !== nodeFs.readFileSync(expectedPath, 'utf8')) {
+		if (process.env.UPDATE_EXPECTED || !existed) {
+			record(() => nodeFs.writeFileSync(expectedPath, produced), expectedPath, label, existed);
+		}
+
+		assert.fail(`Output for ${label} differs from ${nodePath.relative(process.cwd(), expectedPath)}. If the change is intended, re-run with UPDATE_EXPECTED=1 and read the diff before committing.`);
+	}
 }
 
 export interface Fixture {
