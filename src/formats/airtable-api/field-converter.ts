@@ -4,6 +4,58 @@
 
 import type { AirtableFieldSchema, ConvertFieldOptions } from './types';
 
+/**
+ * Obsidian property type for each Airtable field type.
+ *
+ * A null means "computed" — Obsidian infers the type from the value rather than
+ * being told. A type absent from the table falls back to text.
+ */
+export const PROPERTY_TYPE_FOR_FIELD_TYPE: Record<string, string | null> = {
+	checkbox: 'checkbox',
+	date: 'date',
+	dateTime: 'datetime',
+	createdTime: 'datetime',
+	lastModifiedTime: 'datetime',
+	number: 'number',
+	percent: 'number',
+	duration: 'number',
+	autoNumber: 'number',
+	currency: 'number',
+	rating: 'number',
+	singleSelect: 'text',
+	singleLineText: 'text',
+	multilineText: 'text',
+	richText: 'text',
+	email: 'text',
+	url: 'text',
+	phoneNumber: 'text',
+	barcode: 'text',
+	aiText: 'text',
+	singleCollaborator: 'text',
+	createdBy: 'text',
+	lastModifiedBy: 'text',
+	multipleSelects: 'multitext',
+	multipleCollaborators: 'multitext',
+	multipleRecordLinks: 'multitext',
+	multipleAttachments: 'multitext',
+	formula: null,
+	rollup: null,
+	multipleLookupValues: null,
+	count: null,
+};
+
+/**
+ * Map Airtable field type to Obsidian property type
+ */
+export function mapAirtableTypeToObsidian(airtableType: string): string | null {
+	if (airtableType in PROPERTY_TYPE_FOR_FIELD_TYPE) {
+		return PROPERTY_TYPE_FOR_FIELD_TYPE[airtableType];
+	}
+
+	console.warn(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
+	return 'text';
+}
+
 /** Field types already warned about, so the warning is not repeated per record */
 const warnedUnknownFieldTypes: Set<string> = new Set();
 

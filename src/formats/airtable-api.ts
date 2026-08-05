@@ -3,31 +3,37 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, BasesConfigFile, BasesConfigFileView } from 'obsidian';
+import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, updatePropertyTypes } from '../util';
+import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../util';
 import type { FormulaImportStrategy } from '../base';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
-	applyTemplate,
 } from '../template';
 
 // Import helper modules
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
-import { convertFieldValue } from './airtable-api/field-converter';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { convertAirtableFormulaToObsidian } from './airtable-api/formula-converter';
+import { buildBaseFile, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
+import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
+import { computeTableFormulas } from './airtable-api/table-formulas';
+import {
+	buildRecordNote,
+	defaultPropertyConfig,
+	frontMatterFieldsForTable,
+	isEmptyRecord,
+	recordTitle,
+	RECORD_LINK_PLACEHOLDER_PATTERN,
+} from './airtable-api/record-note';
 import type {
 	AirtableTreeNode,
 	AirtableViewInfo,
 	AirtableFieldSchema,
-	AirtableAttachment,
-	AttachmentResult,
 	PreparedTableData,
 	AirtableRecord,
 	RecordFileContext,
@@ -35,80 +41,7 @@ import type {
 	BaseGroupInfo,
 } from './airtable-api/types';
 
-/**
- * Linked records are written as placeholders during the write phase and resolved
- * afterwards, once every record has a final file path. Both halves live here so
- * the emitted token and the pattern that matches it cannot drift apart.
- */
-function createRecordLinkPlaceholder(baseId: string, recordId: string): string {
-	return `[[airtable-record:${baseId}:${recordId}]]`;
-}
-
-const RECORD_LINK_PLACEHOLDER_PATTERN = /\[\[airtable-record:([^:\]]+):([^\]]+)\]\]/g;
-
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-
-/**
- * Obsidian property type for each Airtable field type.
- *
- * A null means "computed" — Obsidian infers the type from the value rather than
- * being told. A type absent from the table falls back to text.
- */
-const PROPERTY_TYPE_FOR_FIELD_TYPE: Record<string, string | null> = {
-	checkbox: 'checkbox',
-	date: 'date',
-	dateTime: 'datetime',
-	createdTime: 'datetime',
-	lastModifiedTime: 'datetime',
-	number: 'number',
-	percent: 'number',
-	duration: 'number',
-	autoNumber: 'number',
-	currency: 'number',
-	rating: 'number',
-	singleSelect: 'text',
-	singleLineText: 'text',
-	multilineText: 'text',
-	richText: 'text',
-	email: 'text',
-	url: 'text',
-	phoneNumber: 'text',
-	barcode: 'text',
-	aiText: 'text',
-	singleCollaborator: 'text',
-	createdBy: 'text',
-	lastModifiedBy: 'text',
-	multipleSelects: 'multitext',
-	multipleCollaborators: 'multitext',
-	multipleRecordLinks: 'multitext',
-	multipleAttachments: 'multitext',
-	formula: null,
-	rollup: null,
-	multipleLookupValues: null,
-	count: null,
-};
-
-/**
- * Render a field value as a plain string, for the note title and for body
- * templates. Handles the shapes a primary field can take: barcode objects,
- * arrays from formula results, and anything else Airtable returns.
- */
-function extractStringValue(value: any): string {
-	if (value === null || value === undefined) return '';
-	// Handle barcode: { text: "xxx", type: "code39" }
-	if (typeof value === 'object' && !Array.isArray(value) && value.text !== undefined) {
-		return String(value.text);
-	}
-	// Handle arrays (some formula results)
-	if (Array.isArray(value)) {
-		return value.map(v => String(v)).join(', ');
-	}
-	// Handle other objects (shouldn't happen for primary fields, but just in case)
-	if (typeof value === 'object') {
-		return JSON.stringify(value);
-	}
-	return String(value);
-}
 
 /**
  * Placeholder shown next to each field in the template configurator, so the user
@@ -143,35 +76,6 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 	rating: '3',
 	duration: '2:30:00',
 	barcode: '1234567890',
-};
-
-/**
- * Airtable rollup aggregations that map to a single Obsidian expression over the
- * rolled-up values. Keyed by the uppercased formula; ARRAYJOIN is handled
- * separately because it carries a separator argument.
- */
-const ROLLUP_AGGREGATIONS: Record<string, (values: string) => string> = {
-	'SUM(VALUES)': values => `${values}.sum()`,
-	'AVERAGE(VALUES)': values => `${values}.mean()`,
-	'AVG(VALUES)': values => `${values}.mean()`,
-	'MAX(VALUES)': values => `max(${values})`,
-	'MIN(VALUES)': values => `min(${values})`,
-	'COUNT(VALUES)': values => `${values}.filter(value.isType("number")).length`,
-	'COUNTA(VALUES)': values => `${values}.filter(!value.isEmpty()).length`,
-	'COUNTALL(VALUES)': values => `${values}.length`,
-	'ARRAYJOIN(VALUES)': values => `${values}.join(", ")`,
-	'ARRAYUNIQUE(VALUES)': values => `${values}.unique()`,
-	'ARRAYCOMPACT(VALUES)': values => `${values}.filter(!value.isEmpty())`,
-	'ARRAYFLATTEN(VALUES)': values => `${values}.flat()`,
-	'AND(VALUES)': values => `${values}.map(value.isTruthy()).every(value)`,
-	'OR(VALUES)': values => `${values}.map(value.isTruthy()).some(value)`,
-};
-
-/** Obsidian Bases view type for each Airtable view type; anything else is a table */
-const BASE_VIEW_TYPE_FOR_AIRTABLE_VIEW: Record<string, string> = {
-	grid: 'table',
-	gallery: 'cards',
-	list: 'list',
 };
 
 /**
@@ -819,23 +723,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			exampleValue: fieldExamples.get(field.name) || '',
 		}));
 
-		// Set up defaults - all fields go to properties by default
-		// Exclude fields that have the same name as viewPropertyName to avoid conflicts
-		const propertyNames = new Map<string, string>();
-		const propertyValues = new Map<string, string>();
-
-		for (const field of allFieldsMap.values()) {
-			const sanitizedName = this.sanitizePropertyName(field.name);
-
-			// Skip if the sanitized name conflicts with viewPropertyName
-			// The viewPropertyName is managed automatically by the importer
-			if (sanitizedName.toLowerCase() === this.viewPropertyName.toLowerCase()) {
-				continue;
-			}
-
-			propertyNames.set(field.name, sanitizedName);
-			propertyValues.set(field.name, `{{${field.name}}}`);
-		}
+		// Every field becomes a property, which the user can then pare back
+		const { propertyNames, propertyValues } = defaultPropertyConfig(allFieldsMap.values(), this.viewPropertyName);
 
 		// Note content is empty by default - let user decide what to put there
 		const bodyTemplate = '';
@@ -878,23 +767,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Sanitize property name for use in YAML frontmatter and .base files.
-	 *
-	 * Obsidian properties support most characters, including spaces and hyphens,
-	 * so the name is preserved as-is apart from double quotes and backslashes.
-	 * Those have to go because the same name is embedded in double-quoted
-	 * `note["..."]` expressions in the generated .base file, where they would
-	 * terminate the string and make the file unparseable.
-	 *
-	 * Every site that writes a property name - frontmatter keys, formula keys,
-	 * view column order, and cross-note lookups - goes through here, so both
-	 * sides of a reference stay in agreement.
-	 */
-	private sanitizePropertyName(name: string): string {
-		return name.replace(/["\\]/g, '');
-	}
-
-	/**
 	 * The property name a field's value is written under.
 	 *
 	 * The template configurator lets the user rename any property, so the .base
@@ -904,52 +776,25 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private propertyNameForField(fieldName: string): string {
 		const configured = this.templateConfig?.propertyNames.get(fieldName);
-		return this.sanitizePropertyName(configured || fieldName);
+		return sanitizePropertyName(configured || fieldName);
 	}
 
 	/**
 	 * The fields of one table that get written as frontmatter properties, paired
 	 * with the property name each is written under.
-	 *
-	 * The template config covers every selected table at once, so resolving this
-	 * per record would walk every field of every table for each note.
 	 */
 	private frontMatterFieldsForTable(
 		fields: AirtableFieldSchema[]
 	): Array<{ fieldName: string, propertyName: string }> {
-		const templateConfig = this.templateConfig;
-		if (!templateConfig) return [];
+		if (!this.templateConfig) return [];
 
-		const frontMatterFields = [];
-
-		for (const field of fields) {
-			const configured = templateConfig.propertyNames.get(field.name);
-			if (!configured?.trim()) continue;
-
-			// Skip the view property name to avoid duplicates
-			if (configured === this.viewPropertyName) continue;
-
-			if (!templateConfig.propertyValues.get(field.name)) continue;
-
-			frontMatterFields.push({
-				fieldName: field.name,
-				propertyName: this.propertyNameForField(field.name),
-			});
-		}
-
-		return frontMatterFields;
-	}
-
-	/**
-	 * Sanitize view name for use in wiki links and .base filter expressions
-	 *
-	 * Wiki links can't contain: [ ] # | ^
-	 * Double quotes and backslashes are also stripped because the name is
-	 * embedded in a double-quoted Bases filter string, where they would
-	 * terminate the string and produce an unparseable .base file.
-	 */
-	private sanitizeViewName(name: string): string {
-		return name.replace(/[[\]#|^"\\]/g, '_');
+		return frontMatterFieldsForTable({
+			fields,
+			propertyNames: this.templateConfig.propertyNames,
+			propertyValues: this.templateConfig.propertyValues,
+			viewPropertyName: this.viewPropertyName,
+			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
+		});
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -1291,7 +1136,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Build view reference with full path to avoid ambiguity
 			// e.g., [[BaseName/TableName.base#Grid view]]
 			// Sanitize view name for wiki link compatibility
-			const sanitizedViewName = this.sanitizeViewName(view.name);
+			const sanitizedViewName = sanitizeViewName(view.name);
 			const viewReference = `[[${baseFilePath}#${sanitizedViewName}]]`;
 
 			// Tag these records with this view
@@ -1401,22 +1246,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * own here - file.name stands in for it - so the lookup drops it and
 	 * file.name is put back at the front, where Airtable also shows it.
 	 */
-	private columnsForView(
-		view: AirtableViewInfo,
-		allColumns: string[],
-		columnKeyByFieldId: Map<string, string>
-	): string[] {
-		if (!view.visibleFieldIds) {
-			return allColumns;
-		}
-
-		const columns = view.visibleFieldIds
-			.map(fieldId => columnKeyByFieldId.get(fieldId))
-			.filter((key): key is string => key !== undefined);
-
-		return ['file.name', ...columns];
-	}
-
 	/**
 	 * Open the last .base file the import wrote.
 	 *
@@ -1511,38 +1340,15 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<void> {
 		const { tablePath, primaryFieldName, fields, viewReferences, formulaFieldNames, frontMatterFields } = fileContext;
 		const recordId = record.id;
-		const recordFields = record.fields || {};
 
-		// Skip completely empty records
-		const hasAnyValue = Object.values(recordFields).some(value => {
-			if (value === null || value === undefined) return false;
-			if (typeof value === 'string' && value.trim() === '') return false;
-			if (typeof value === 'object' && !Array.isArray(value)) {
-				// For aiText objects, check if they have valid state
-				if (value.state && value.state !== 'generated') return false;
-				if (value.state === 'generated' && !value.value) return false;
-			}
-			if (Array.isArray(value) && value.length === 0) return false;
-			return true;
-		});
-
-		if (!hasAnyValue) {
+		if (isEmptyRecord(record)) {
 			ctx.reportSkipped('Untitled Record', 'Empty record');
 			this.processedRecordsCount++;
 			this.reportOverallProgress(ctx);
 			return;
 		}
 
-		// Get primary field value (processed)
-		// Airtable always uses each table's primary field as note title
-		let title = extractStringValue(recordFields[primaryFieldName]);
-
-		if (!title || title.trim() === '') {
-			title = 'Untitled Record';
-		}
-
-		let sanitizedTitle = sanitizeFileName(title);
-
+		let sanitizedTitle = sanitizeFileName(recordTitle(record, primaryFieldName));
 		let filePath = normalizePath(`${tablePath}/${sanitizedTitle}.md`);
 
 		// Incremental import: a record already on disk under this id needs no work
@@ -1553,170 +1359,37 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		const hasBodyTemplate = this.templateConfig?.bodyTemplate?.trim();
-		const templateData: Record<string, string> = {};
-		// Cache converted values for frontmatter
-		const convertedCache = new Map<string, any>();
-
-		// Convert field values
-		// Track rollup fields to ensure their property names appear in YAML (with null value)
-		const rollupFieldNames = new Set<string>();
-		// Track attachment fields so the frontmatter pass can format the already-downloaded results
-		const attachmentFieldNames = new Set<string>();
-		// Whether this note ends up carrying a linked-record placeholder
-		let hasRecordLinks = false;
-		for (const field of fields) {
-			const fieldValue = recordFields[field.name];
-
-			// Rollup fields: API doesn't expose aggregation function, so only import property name
-			if (field.type === 'rollup') {
-				rollupFieldNames.add(field.name);
-				if (hasBodyTemplate) templateData[field.name] = '';
-				continue;
-			}
-
-			if (fieldValue === null || fieldValue === undefined) {
-				if (hasBodyTemplate) templateData[field.name] = '';
-				continue;
-			}
-
-			// Handle linked records - emit placeholders, resolved once every file exists.
-			// Resolving inline would bake in a title that a later filename conflict
-			// can still change, leaving earlier-written records pointing at the wrong file.
-			if (field.type === 'multipleRecordLinks' && Array.isArray(fieldValue)) {
-				const links = fieldValue.map((linkedRecordId: string) =>
-					createRecordLinkPlaceholder(fileContext.baseId, linkedRecordId)
-				);
-				hasRecordLinks ||= links.length > 0;
-				convertedCache.set(field.name, links);
-				if (hasBodyTemplate) templateData[field.name] = links.join(', ');
-				continue;
-			}
-
-			// Handle attachments - download once, then format for body and/or YAML
-			if (field.type === 'multipleAttachments' && Array.isArray(fieldValue)) {
-				const attachments = fieldValue as AirtableAttachment[];
-				attachmentFieldNames.add(field.name);
-
-				const downloaded = await downloadAttachmentList(attachments, {
-					ctx,
-					vault: this.vault,
-					downloadAttachments: this.downloadAttachments,
-					getAvailableAttachmentPath: async (filename: string) => {
-						// Pass the note being written, so the "same folder as current
-						// file" and "in subfolder under current folder" settings put
-						// attachments beside their note rather than the output root
-						return await this.getAvailablePathForAttachment(filename, [], filePath);
-					},
-				});
-
-				convertedCache.set(field.name, downloaded);
-
-				if (hasBodyTemplate) {
-					templateData[field.name] = formatAttachmentsForBody(downloaded, {
-						currentFilePath: filePath,
-						vault: this.vault,
-						app: this.app,
-					}).join('\n');
-				}
-				continue;
-			}
-
-			// Convert other field types
-			const convertedValue = convertFieldValue({
-				fieldValue,
-				fieldSchema: field,
-				computedByBase: formulaFieldNames.has(field.name),
-			});
-
-			// Cache converted value for frontmatter pass
-			convertedCache.set(field.name, convertedValue);
-
-			// Convert to string for template (only if needed).
-			// A field the .base computes has no frontmatter value, but a body
-			// template still has to render something, so fall back to the value
-			// Airtable computed. This is deliberately kept out of convertedCache:
-			// writing it there would put the static value back into frontmatter
-			// and leave the note and the .base each holding their own copy.
-			if (hasBodyTemplate) {
-				const templateValue = convertedValue === null && formulaFieldNames.has(field.name)
-					? fieldValue
-					: convertedValue;
-
-				if (templateValue === null || templateValue === undefined) {
-					templateData[field.name] = '';
-				}
-				else if (Array.isArray(templateValue)) {
-					templateData[field.name] = templateValue.map((item: any) => {
-						if (typeof item === 'string') return item;
-						return String(item);
-					}).join(', ');
-				}
-				else {
-					templateData[field.name] = String(templateValue);
-				}
-			}
-		}
-
-		// Build frontmatter. airtable-id is what a later incremental import
-		// matches on to recognise an already-imported record, so it is only
-		// worth the space in the note when that setting is on.
-		const frontMatter: FrontMatterCache = {};
-		if (this.incrementalImport) {
-			frontMatter['airtable-id'] = recordId;
-		}
-
-		// Add view property
-		if (viewReferences.length > 0) {
-			frontMatter[this.viewPropertyName] = viewReferences;
-		}
-
-		// Process fields for frontmatter, using the property names resolved once
-		// for this table
-		for (const { fieldName, propertyName } of frontMatterFields) {
-			// Get cached converted value (already processed in first pass)
-			const convertedValue = convertedCache.get(fieldName);
-
-			// Skip if convertedValue is null/undefined/empty string
-			if (convertedValue === null || convertedValue === undefined || convertedValue === '') {
-				continue;
-			}
-
-			// Attachments: format the results downloaded in the pass above into
-			// wiki links for YAML (no second download)
-			const propertyValue = attachmentFieldNames.has(fieldName)
-				? formatAttachmentsForYAML(convertedValue as AttachmentResult[])
-				: convertedValue;
-
-			// Ensure we're not setting complex objects that could cause YAML serialization issues
-			if (typeof propertyValue === 'object' && !Array.isArray(propertyValue)) {
-				console.warn(`[Airtable] Skipping complex object for property "${propertyName}"`);
-				continue;
-			}
-
-			frontMatter[propertyName] = propertyValue;
-		}
-
-		// A rollup the .base does not compute gets its property name with a null
-		// value, so the property exists for the user to fill in. One the .base
-		// does compute needs nothing here - the note would otherwise carry an
-		// empty property shadowing the formula column of the same name.
-		for (const fieldName of rollupFieldNames) {
-			if (formulaFieldNames.has(fieldName)) continue;
-
-			const configured = this.templateConfig?.propertyNames.get(fieldName);
-			if (configured?.trim()) {
-				frontMatter[this.propertyNameForField(fieldName)] = null;
-			}
-		}
-
-		// Apply body template
-		const bodyContent = hasBodyTemplate
-			? applyTemplate(this.templateConfig!.bodyTemplate, templateData)
-			: '';
-
-		// Generate file content
-		const fileContent = `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim();
+		const { content: fileContent, hasRecordLinks } = await buildRecordNote(record, {
+			baseId: fileContext.baseId,
+			fields,
+			viewReferences,
+			viewPropertyName: this.viewPropertyName,
+			formulaFieldNames,
+			frontMatterFields,
+			recordId: this.incrementalImport,
+			bodyTemplate: this.templateConfig?.bodyTemplate,
+			propertyNameForRollup: fieldName => {
+				const configured = this.templateConfig?.propertyNames.get(fieldName);
+				return configured?.trim() ? this.propertyNameForField(fieldName) : null;
+			},
+			resolveAttachments: attachments => downloadAttachmentList(attachments, {
+				ctx,
+				vault: this.vault,
+				downloadAttachments: this.downloadAttachments,
+				getAvailableAttachmentPath: async (filename: string) => {
+					// Pass the note being written, so the "same folder as current
+					// file" and "in subfolder under current folder" settings put
+					// attachments beside their note rather than the output root
+					return await this.getAvailablePathForAttachment(filename, [], filePath);
+				},
+			}),
+			formatAttachmentsForBody: results => formatAttachmentsForBody(results, {
+				currentFilePath: filePath,
+				vault: this.vault,
+				app: this.app,
+			}),
+			formatAttachmentsForYAML,
+		});
 
 		// Ask the vault for a free path rather than testing for a conflict
 		// first: it hands back the desired path when nothing occupies it, and
@@ -1851,166 +1524,32 @@ export class AirtableAPIImporter extends FormatImporter {
 	 *
 	 * Derived once per table and used twice: the .base file writes these formulas,
 	 * and the record writer omits the same fields from note frontmatter because
-	 * the .base recomputes them. Deriving it separately in each place let the two
-	 * halves disagree about a field, leaving it either duplicated or missing.
-	 *
-	 * The primary field is excluded throughout: it is the note's title, never a
-	 * column.
+	 * the .base recomputes them.
 	 */
 	private computeTableFormulas(fields: AirtableFieldSchema[], primaryFieldId: string): Map<string, string> {
-		const formulas: Map<string, string> = new Map(); // field name -> obsidian formula
-
 		if (this.formulaStrategy === 'static') {
-			return formulas;
+			return new Map();
 		}
 
-		for (const field of fields) {
-			// Skip primary field - it's used as note title/filename, not as a formula column
-			if (field.id === primaryFieldId) {
-				continue;
-			}
-
-			const options = field.options;
-			const linkedFieldId = options?.recordLinkFieldId;
-			const targetFieldId = options?.fieldIdInLinkedTable;
-
-			// Process formula fields
-			if (field.type === 'formula') {
-				const formulaExpression = options?.formula;
-				const converted = formulaExpression && convertAirtableFormulaToObsidian(formulaExpression, this.globalFieldIdToNameMap);
-				if (converted) {
-					formulas.set(field.name, converted);
-				}
-			}
-			// Process lookup/rollup/count fields (all use linked records)
-			else if (linkedFieldId) {
-				const linkedFieldName = this.globalFieldIdToNameMap.get(linkedFieldId);
-				if (!linkedFieldName) continue;
-
-				if (field.type === 'count') {
-					// Count: note["Linked Records"].length
-					const sanitizedLinked = this.propertyNameForField(linkedFieldName);
-					formulas.set(field.name, `note["${sanitizedLinked}"].length`);
-				}
-				else if (targetFieldId) {
-					const targetFieldName = this.globalFieldIdToNameMap.get(targetFieldId);
-					if (!targetFieldName) continue;
-
-					// Build map expression: note["LinkedField"].map(value.asFile().properties["TargetField"])
-					const sanitizedLinked = this.propertyNameForField(linkedFieldName);
-					const sanitizedTarget = this.propertyNameForField(targetFieldName);
-					const mapExpression = `note["${sanitizedLinked}"].map(value.asFile().properties["${sanitizedTarget}"])`;
-
-					if (field.type === 'multipleLookupValues') {
-						// Lookup: just the map expression
-						formulas.set(field.name, mapExpression);
-					}
-					else if (field.type === 'rollup') {
-						// Rollup: map expression + aggregation
-						const obsidianFormula = this.convertRollupFormula(options?.formula, mapExpression);
-						if (obsidianFormula) {
-							formulas.set(field.name, obsidianFormula);
-						}
-					}
-				}
-			}
-		}
-
-		return formulas;
+		return computeTableFormulas({
+			fields,
+			primaryFieldId,
+			fieldNameById: this.globalFieldIdToNameMap,
+			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
+		});
 	}
 
 	/**
 	 * Create a single .base file for the table with multiple views
 	 */
 	private async createBaseFile(ctx: BaseFileContext): Promise<void> {
-		const { tableFolderPath, tableName, views, fields, primaryFieldId, formulas } = ctx;
+		const { tableName } = ctx;
 
-		// Get parent folder (where .base file will be created)
-		const { parent: parentPath } = parseFilePath(tableFolderPath);
-
-		// Find primary field - this is used as note title/filename, not as a formula column
-		const primaryFieldName = fields.find(f => f.id === primaryFieldId)?.name || null;
-
-		// Column order and display names, both in original Airtable field order.
-		// Built together so a field's column key and its display-name key cannot
-		// disagree about whether it is a formula.
-		const propertyColumns: string[] = ['file.name'];
-		const properties: BasesConfigFile['properties'] = {};
-		// Field id -> column key, so a view can be ordered from its visibleFieldIds
-		const columnKeyByFieldId = new Map<string, string>();
-
-		// file.name is the primary field
-		if (primaryFieldName) {
-			properties['file.name'] = { displayName: primaryFieldName };
-		}
-
-		for (const field of fields) {
-			// Skip the primary field (it's represented by file.name)
-			if (field.id === primaryFieldId) {
-				continue;
-			}
-
-			const sanitized = this.propertyNameForField(field.name);
-			const propertyKey = formulas.has(field.name) ? `formula.${sanitized}` : sanitized;
-			propertyColumns.push(propertyKey);
-			properties[propertyKey] = { displayName: field.name };
-			columnKeyByFieldId.set(field.id, propertyKey);
-		}
-
-		// Create ONE .base file for the table with multiple views
-		const sanitizedTableName = sanitizeFileName(tableName);
-		const baseFileName = `${sanitizedTableName}.base`;
-		const baseFilePath = normalizePath(parentPath ? `${parentPath}/${baseFileName}` : baseFileName);
-
-		// Build the .base file path relative to output folder for viewReference
-		// Extract from tableFolderPath: "Airtable/BaseName/TableName" -> "BaseName/TableName.base"
-		// This ensures viewReference matches what's stored in record frontmatter
-		// parentPath = "Airtable/BaseName", extract "BaseName" from it
-		const { name: baseFolderName } = parseFilePath(parentPath);
-		const viewReferenceBasePath = baseFolderName
-			? normalizePath(`${baseFolderName}/${sanitizedTableName}.base`)
-			: `${sanitizedTableName}.base`;
-
-		// Build views array for .base file
-		const obsidianViews: BasesConfigFileView[] = [];
-
-		for (const view of views) {
-			const obsidianViewType = BASE_VIEW_TYPE_FOR_AIRTABLE_VIEW[view.type.toLowerCase()] ?? 'table';
-
-			// Build view reference with full path to match frontmatter values
-			// e.g., [[BaseName/TableName.base#Grid view]]
-			// Sanitize view name for wiki link compatibility
-			const sanitizedViewName = this.sanitizeViewName(view.name);
-			const viewReference = `[[${viewReferenceBasePath}#${sanitizedViewName}]]`;
-
-			// Add view with filter based on base property containing the view reference
-			// Correct Obsidian Bases filter syntax: note["propertyName"].contains("value")
-			obsidianViews.push({
-				type: obsidianViewType,
-				name: sanitizedViewName, // Must match the name in wiki link reference
-				filters: `note["${this.viewPropertyName}"].contains("${viewReference}")`,
-				order: this.columnsForView(view, propertyColumns, columnKeyByFieldId),
-			});
-		}
-
-		// Build base config using Obsidian's BasesConfigFile type
-		const baseConfig: BasesConfigFile = {
-			// Base filter: only files in this table's folder
-			filters: `file.folder == "${tableFolderPath}"`,
-		};
-
-		// Add formulas if there are any
-		if (formulas.size > 0) {
-			baseConfig.formulas = {};
-			for (const [fieldName, obsidianFormula] of formulas) {
-				baseConfig.formulas[this.propertyNameForField(fieldName)] = obsidianFormula;
-			}
-		}
-
-		baseConfig.properties = properties;
-
-		// Add views
-		baseConfig.views = obsidianViews;
+		const { path: baseFilePath, config: baseConfig } = buildBaseFile({
+			...ctx,
+			viewPropertyName: this.viewPropertyName,
+			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
+		});
 
 		// Create or update the .base file
 		try {
@@ -2033,7 +1572,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					for (const view of existingViews) {
 						viewMap.set(view.name, view);
 					}
-					for (const view of obsidianViews) {
+					for (const view of baseConfig.views ?? []) {
 						viewMap.set(view.name, view); // Override if exists
 					}
 
@@ -2083,7 +1622,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 
 			// Map Airtable field type to Obsidian property type
-			const obsidianType = this.mapAirtableTypeToObsidian(field.type);
+			const obsidianType = mapAirtableTypeToObsidian(field.type);
 			if (obsidianType) {
 				propertyTypes[propertyName] = obsidianType;
 			}
@@ -2092,64 +1631,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		updatePropertyTypes(this.app, propertyTypes);
 	}
 
-	/**
-	 * Map Airtable field type to Obsidian property type
-	 */
-	private mapAirtableTypeToObsidian(airtableType: string): string | null {
-		if (airtableType in PROPERTY_TYPE_FOR_FIELD_TYPE) {
-			return PROPERTY_TYPE_FOR_FIELD_TYPE[airtableType];
-		}
 
-		console.warn(`[Airtable] Unknown field type: ${airtableType}, treating as text`);
-		return 'text';
-	}
-
-	/**
-	 * Convert Airtable rollup formula to Obsidian formula
-	 * Replaces 'values' with the map expression
-	 *
-	 * Strategy:
-	 * 1. First try to match simple aggregation patterns like SUM(VALUES), AVERAGE(VALUES), etc.
-	 * 2. If no match, replace 'values' with mapExpression and try general formula conversion
-	 * 3. If conversion fails, fall back to static values imported from Airtable
-	 */
-	private convertRollupFormula(
-		rollupFormula: string | undefined,
-		mapExpression: string
-	): string | null {
-		if (!rollupFormula) {
-			// No formula means just show original values
-			return mapExpression;
-		}
-
-		// Normalize formula for comparison
-		const formula = rollupFormula.trim().toUpperCase();
-
-		// Step 1: Try to match simple aggregation patterns
-		const aggregation = ROLLUP_AGGREGATIONS[formula];
-		if (aggregation) {
-			return aggregation(mapExpression);
-		}
-
-		// ARRAYJOIN takes a separator, so it is a prefix match rather than a
-		// whole-formula one: ARRAYJOIN(VALUES, "separator")
-		if (formula.startsWith('ARRAYJOIN(VALUES,')) {
-			const match = formula.match(/ARRAYJOIN\(VALUES,\s*["'](.*)["']\)/i);
-			return `${mapExpression}.join("${match ? match[1] : ', '}")`;
-		}
-
-		// Step 2: Try general formula conversion
-		// Replace 'values' with the map expression and attempt conversion
-		const formulaWithMapExpr = rollupFormula.replace(/\bvalues\b/gi, mapExpression);
-
-		const result = convertAirtableFormulaToObsidian(formulaWithMapExpr, this.globalFieldIdToNameMap);
-		if (result) {
-			return result;
-		}
-
-		// Step 3: Cannot convert - fall back to static value
-		console.warn(`Rollup formula "${rollupFormula}" cannot be converted, using static value`);
-		return null;
-	}
 }
 

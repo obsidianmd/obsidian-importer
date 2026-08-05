@@ -1,0 +1,182 @@
+{
+	"_comment": "Hand-written to the shape of Airtable's Web API responses (https://airtable.com/developers/web/api). schema is GET /v0/meta/bases/{baseId}/tables?include[]=visibleFieldIds, records is GET /v0/{baseId}/{tableId}, and viewRecordIds is the same call restricted to a view with fields[] empty. tests/airtable/live.test.ts checks these shapes against the real API when a token is available. Not a capture of a real base: the values are made up, and the point is to cover every field type the importer converts.",
+	"baseId": "appExampleBase001",
+	"baseName": "Example base",
+	"schema": {
+		"tables": [
+			{
+				"id": "tblBooks0000000001",
+				"name": "Books",
+				"primaryFieldId": "fldBookTitle000001",
+				"fields": [
+					{ "id": "fldBookTitle000001", "name": "Title", "type": "singleLineText" },
+					{ "id": "fldBookNotes000001", "name": "Notes", "type": "multilineText" },
+					{ "id": "fldBookRich0000001", "name": "Summary", "type": "richText" },
+					{ "id": "fldBookEmail000001", "name": "Contact", "type": "email" },
+					{ "id": "fldBookUrl00000001", "name": "Website", "type": "url" },
+					{ "id": "fldBookPhone000001", "name": "Phone", "type": "phoneNumber" },
+					{ "id": "fldBookPages000001", "name": "Pages", "type": "number", "options": { "precision": 0 } },
+					{ "id": "fldBookProgress001", "name": "Progress", "type": "percent", "options": { "precision": 2 } },
+					{ "id": "fldBookReading001", "name": "Reading time", "type": "duration", "options": { "durationFormat": "h:mm" } },
+					{ "id": "fldBookRow00000001", "name": "Row", "type": "autoNumber" },
+					{ "id": "fldBookPrice000001", "name": "Price", "type": "currency", "options": { "precision": 2, "symbol": "$" } },
+					{ "id": "fldBookRating00001", "name": "Rating", "type": "rating", "options": { "max": 5, "icon": "star", "color": "yellowBright" } },
+					{ "id": "fldBookStatus00001", "name": "Status", "type": "singleSelect", "options": { "choices": [{ "id": "selToRead000000001", "name": "To read", "color": "blueLight2" }, { "id": "selReading000000001", "name": "Reading", "color": "yellowLight2" }, { "id": "selDone00000000001", "name": "Done", "color": "greenLight2" }] } },
+					{ "id": "fldBookTags0000001", "name": "Tags", "type": "multipleSelects", "options": { "choices": [{ "id": "selFiction00000001", "name": "Fiction", "color": "purpleLight2" }, { "id": "selReference0000001", "name": "Reference", "color": "cyanLight2" }] } },
+					{ "id": "fldBookOwner000001", "name": "Owner", "type": "singleCollaborator" },
+					{ "id": "fldBookReaders0001", "name": "Readers", "type": "multipleCollaborators" },
+					{ "id": "fldBookPublished01", "name": "Published", "type": "date", "options": { "dateFormat": { "name": "iso", "format": "YYYY-MM-DD" } } },
+					{ "id": "fldBookUpdated0001", "name": "Updated at", "type": "dateTime", "options": { "timeZone": "utc", "dateFormat": { "name": "iso", "format": "YYYY-MM-DD" }, "timeFormat": { "name": "24hour", "format": "HH:mm" } } },
+					{ "id": "fldBookCreated0001", "name": "Created at", "type": "createdTime" },
+					{ "id": "fldBookModified001", "name": "Modified at", "type": "lastModifiedTime" },
+					{ "id": "fldBookRead0000001", "name": "Read", "type": "checkbox", "options": { "icon": "check", "color": "greenBright" } },
+					{ "id": "fldBookAuthors0001", "name": "Authors", "type": "multipleRecordLinks", "options": { "linkedTableId": "tblAuthors00000001", "prefersSingleRecordLink": false } },
+					{ "id": "fldBookCover000001", "name": "Cover", "type": "multipleAttachments", "options": { "isReversed": false } },
+					{ "id": "fldBookSlug0000001", "name": "Slug", "type": "formula", "options": { "formula": "LOWER({fldBookTitle000001})", "referencedFieldIds": ["fldBookTitle000001"], "result": { "type": "singleLineText" } } },
+					{ "id": "fldBookValue000001", "name": "Value", "type": "formula", "options": { "formula": "{fldBookPrice000001}*{fldBookRating00001}", "referencedFieldIds": ["fldBookPrice000001", "fldBookRating00001"], "result": { "type": "number", "options": { "precision": 2 } } } },
+					{ "id": "fldBookAuthorNum01", "name": "Author count", "type": "count", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001" } },
+					{ "id": "fldBookAuthorNms01", "name": "Author names", "type": "multipleLookupValues", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorName00001", "result": { "type": "singleLineText" } } },
+					{ "id": "fldBookAuthorSum01", "name": "Author output", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorBooks0001", "formula": "SUM(values)", "result": { "type": "number", "options": { "precision": 0 } } } },
+					{ "id": "fldBookAuthorAvg01", "name": "Author rating", "type": "rollup", "options": { "isValid": true, "recordLinkFieldId": "fldBookAuthors0001", "fieldIdInLinkedTable": "fldAuthorRating001", "formula": "CONCATENATE(values)", "result": { "type": "singleLineText" } } },
+					{ "id": "fldBookCreatedBy01", "name": "Created by", "type": "createdBy" },
+					{ "id": "fldBookModifiedBy1", "name": "Modified by", "type": "lastModifiedBy" },
+					{ "id": "fldBookIsbn0000001", "name": "ISBN", "type": "barcode" },
+					{ "id": "fldBookOpen0000001", "name": "Open", "type": "button", "options": { "label": "Open", "url": "https://example.com" } },
+					{ "id": "fldBookAi000000001", "name": "AI summary", "type": "aiText", "options": { "prompt": ["Summarise ", { "field": { "fieldId": "fldBookNotes000001" } }], "referencedFieldIds": ["fldBookNotes000001"] } },
+					{ "id": "fldBookMystery0001", "name": "Mystery", "type": "someFutureFieldType" }
+				],
+				"views": [
+					{ "id": "viwBooksGrid000001", "name": "All books", "type": "grid", "visibleFieldIds": ["fldBookTitle000001", "fldBookStatus00001", "fldBookRating00001", "fldBookAuthors0001", "fldBookSlug0000001"] },
+					{ "id": "viwBooksGallery001", "name": "Covers", "type": "gallery" },
+					{ "id": "viwBooksReading001", "name": "Reading [now]", "type": "grid", "visibleFieldIds": ["fldBookTitle000001", "fldBookProgress001"] }
+				]
+			},
+			{
+				"id": "tblAuthors00000001",
+				"name": "Authors",
+				"primaryFieldId": "fldAuthorName00001",
+				"fields": [
+					{ "id": "fldAuthorName00001", "name": "Name", "type": "singleLineText" },
+					{ "id": "fldAuthorBooks0001", "name": "Books written", "type": "number", "options": { "precision": 0 } },
+					{ "id": "fldAuthorRating001", "name": "Rating", "type": "singleLineText" },
+					{ "id": "fldAuthorLinks0001", "name": "Books", "type": "multipleRecordLinks", "options": { "linkedTableId": "tblBooks0000000001", "prefersSingleRecordLink": false } }
+				],
+				"views": [
+					{ "id": "viwAuthorsGrid0001", "name": "All authors", "type": "grid", "visibleFieldIds": ["fldAuthorName00001", "fldAuthorBooks0001", "fldAuthorLinks0001"] }
+				]
+			}
+		]
+	},
+	"records": {
+		"tblBooks0000000001": {
+			"records": [
+				{
+					"id": "recBook00000000001",
+					"createdTime": "2024-01-05T09:00:00.000Z",
+					"fields": {
+						"Title": "The Long Way",
+						"Notes": "First line\nSecond line",
+						"Summary": "**Bold** and _italic_",
+						"Contact": "hello@example.com",
+						"Website": "https://example.com/the-long-way",
+						"Phone": "+1 555-0123",
+						"Pages": 512,
+						"Progress": 0.42,
+						"Reading time": 9000,
+						"Row": 1,
+						"Price": 18.99,
+						"Rating": 4,
+						"Status": "Reading",
+						"Tags": ["Fiction"],
+						"Owner": { "id": "usrExample00000001", "email": "ada@example.com", "name": "Ada" },
+						"Readers": [{ "id": "usrExample00000001", "email": "ada@example.com", "name": "Ada" }, { "id": "usrExample00000002", "email": "grace@example.com", "name": "Grace" }],
+						"Published": "2019-03-14",
+						"Updated at": "2024-06-01T12:30:00.000Z",
+						"Created at": "2024-01-05T09:00:00.000Z",
+						"Modified at": "2024-06-01T12:30:00.000Z",
+						"Read": true,
+						"Authors": ["recAuthor000000001", "recAuthor000000002"],
+						"Cover": [{ "id": "attExample00000001", "url": "https://v5.airtableusercontent.com/example/cover.png", "filename": "cover.png", "size": 2048, "type": "image/png" }],
+						"Slug": "the long way",
+						"Value": 75.96,
+						"Author count": 2,
+						"Author names": ["Ada Lovelace", "Grace Hopper"],
+						"Author output": 7,
+						"Author rating": "AA",
+						"Created by": { "id": "usrExample00000001", "email": "ada@example.com", "name": "Ada" },
+						"Modified by": { "id": "usrExample00000002", "email": "grace@example.com", "name": "Grace" },
+						"ISBN": { "text": "9780000000001", "type": "upce" },
+						"AI summary": { "state": "generated", "isStale": false, "value": "A long journey." },
+						"Mystery": { "shape": "not known here" }
+					}
+				},
+				{
+					"id": "recBook00000000002",
+					"createdTime": "2024-02-11T10:15:00.000Z",
+					"fields": {
+						"Title": "The Long Way",
+						"Notes": "A second record whose title collides with the first",
+						"Pages": 128,
+						"Rating": 2,
+						"Status": "To read",
+						"Tags": ["Reference", "Fiction"],
+						"Read": false,
+						"Authors": ["recAuthor000000001"],
+						"Slug": "the long way",
+						"Author count": 1,
+						"AI summary": { "state": "error", "errorType": "generationFailed" }
+					}
+				},
+				{
+					"id": "recBook00000000003",
+					"createdTime": "2024-03-02T08:00:00.000Z",
+					"fields": {
+						"Title": "Notes: on \"quoting\" / naming",
+						"Notes": "Title exercises the file name sanitiser",
+						"Cover": [
+							{ "id": "attExample00000002", "url": "https://v5.airtableusercontent.com/example/one.png", "filename": "page one.png", "size": 1024, "type": "image/png" },
+							{ "id": "attExample00000003", "url": "https://v5.airtableusercontent.com/example/notes.pdf", "filename": "notes.pdf", "size": 4096, "type": "application/pdf" }
+						],
+						"Authors": [],
+						"Mystery": "a plain string this time"
+					}
+				},
+				{
+					"id": "recBook00000000004",
+					"createdTime": "2024-03-03T08:00:00.000Z",
+					"fields": {}
+				}
+			]
+		},
+		"tblAuthors00000001": {
+			"records": [
+				{
+					"id": "recAuthor000000001",
+					"createdTime": "2023-11-01T00:00:00.000Z",
+					"fields": {
+						"Name": "Ada Lovelace",
+						"Books written": 4,
+						"Rating": "A",
+						"Books": ["recBook00000000001", "recBook00000000002"]
+					}
+				},
+				{
+					"id": "recAuthor000000002",
+					"createdTime": "2023-11-02T00:00:00.000Z",
+					"fields": {
+						"Name": "Grace Hopper",
+						"Books written": 3,
+						"Rating": "A",
+						"Books": ["recBook00000000001"]
+					}
+				}
+			]
+		}
+	},
+	"viewRecordIds": {
+		"viwBooksGrid000001": ["recBook00000000001", "recBook00000000002", "recBook00000000003"],
+		"viwBooksGallery001": ["recBook00000000001", "recBook00000000003"],
+		"viwBooksReading001": ["recBook00000000001"],
+		"viwAuthorsGrid0001": ["recAuthor000000001", "recAuthor000000002"]
+	}
+}
