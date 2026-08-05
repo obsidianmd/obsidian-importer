@@ -1,8 +1,9 @@
 ---
+aliases:
+  - 'Notes: on "quoting" / naming'
 base:
   - '[[Example base/Books.base#All books]]'
   - '[[Example base/Books.base#Covers]]'
-Title: 'Notes: on "quoting" / naming'
 Notes: Title exercises the file name sanitiser
 Authors: []
 Cover:

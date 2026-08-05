@@ -3,7 +3,6 @@ base:
   - '[[Example base/Books.base#All books]]'
   - '[[Example base/Books.base#Covers]]'
   - '[[Example base/Books.base#Reading _now_]]'
-Title: The Long Way
 Notes: |-
   First line
   Second line

@@ -8,7 +8,7 @@
  * the importer once every note has a final path.
  */
 import { FrontMatterCache } from 'obsidian';
-import { serializeFrontMatter } from '../../util';
+import { sanitizeFileName, serializeFrontMatter } from '../../util';
 import { applyTemplate } from '../../template';
 import { convertFieldValue } from './field-converter';
 import { sanitizePropertyName } from './base-file';
@@ -73,6 +73,8 @@ export function recordTitle(record: AirtableRecord, primaryFieldName: string): s
 export interface BuildRecordNoteOptions {
 	baseId: string;
 	fields: AirtableFieldSchema[];
+	/** The field the note is titled after. */
+	primaryFieldName: string;
 	/** Views this record belongs to, as the .base file refers to them. */
 	viewReferences: string[];
 	/** Property the view references are written under. */
@@ -110,7 +112,7 @@ export async function buildRecordNote(
 	options: BuildRecordNoteOptions
 ): Promise<BuiltRecordNote> {
 	const {
-		baseId, fields, viewReferences, viewPropertyName, formulaFieldNames,
+		baseId, fields, primaryFieldName, viewReferences, viewPropertyName, formulaFieldNames,
 		frontMatterFields, recordId, bodyTemplate,
 		resolveAttachments, formatAttachmentsForBody, formatAttachmentsForYAML,
 	} = options;
@@ -199,6 +201,13 @@ export async function buildRecordNote(
 		frontMatter['airtable-id'] = record.id;
 	}
 
+	// The title is the file name, so it is only worth writing down where the
+	// two differ - a title a file name cannot hold is otherwise lost.
+	const title = recordTitle(record, primaryFieldName);
+	if (title !== sanitizeFileName(title)) {
+		frontMatter['aliases'] = [title];
+	}
+
 	if (viewReferences.length > 0) {
 		frontMatter[viewPropertyName] = viewReferences;
 	}
@@ -245,6 +254,11 @@ export interface FrontMatterFieldsOptions {
 	propertyValues: Map<string, string>;
 	viewPropertyName: string;
 	propertyNameForField: (fieldName: string) => string;
+	/**
+	 * The table's primary field, left out: it is the note's title, and the
+	 * .base file shows it as file.name, so a property would say it twice.
+	 */
+	primaryFieldName: string;
 }
 
 /**
@@ -257,10 +271,12 @@ export interface FrontMatterFieldsOptions {
 export function frontMatterFieldsForTable(
 	options: FrontMatterFieldsOptions
 ): Array<{ fieldName: string, propertyName: string }> {
-	const { fields, propertyNames, propertyValues, viewPropertyName, propertyNameForField } = options;
+	const { fields, propertyNames, propertyValues, viewPropertyName, propertyNameForField, primaryFieldName } = options;
 	const frontMatterFields = [];
 
 	for (const field of fields) {
+		if (field.name === primaryFieldName) continue;
+
 		const configured = propertyNames.get(field.name);
 		if (!configured?.trim()) continue;
 

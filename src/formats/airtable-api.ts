@@ -784,12 +784,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * with the property name each is written under.
 	 */
 	private frontMatterFieldsForTable(
-		fields: AirtableFieldSchema[]
+		fields: AirtableFieldSchema[],
+		primaryFieldName: string
 	): Array<{ fieldName: string, propertyName: string }> {
 		if (!this.templateConfig) return [];
 
 		return frontMatterFieldsForTable({
 			fields,
+			primaryFieldName,
 			propertyNames: this.templateConfig.propertyNames,
 			propertyValues: this.templateConfig.propertyValues,
 			viewPropertyName: this.viewPropertyName,
@@ -1192,7 +1194,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Derived once and shared by the .base file and every record in the table
 		const formulas = this.computeTableFormulas(fields, primaryFieldId);
 		const formulaFieldNames = new Set(formulas.keys());
-		const frontMatterFields = this.frontMatterFieldsForTable(fields);
+		const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName);
 
 		// Create .base file first
 		await this.createBaseFile({
@@ -1362,6 +1364,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const { content: fileContent, hasRecordLinks } = await buildRecordNote(record, {
 			baseId: fileContext.baseId,
 			fields,
+			primaryFieldName,
 			viewReferences,
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,

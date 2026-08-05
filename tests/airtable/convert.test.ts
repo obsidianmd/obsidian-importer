@@ -160,6 +160,7 @@ for (const fixture of bases) {
 				const primaryFieldName = table.fields.find(f => f.id === table.primaryFieldId)!.name;
 				const frontMatterFields = frontMatterFieldsForTable({
 					fields: table.fields,
+					primaryFieldName,
 					propertyNames,
 					propertyValues,
 					viewPropertyName: VIEW_PROPERTY,
@@ -175,6 +176,7 @@ for (const fixture of bases) {
 					const { content } = await buildRecordNote(record, {
 						baseId: base.baseId,
 						fields: table.fields,
+						primaryFieldName,
 						viewReferences: viewsForRecord.get(record.id) ?? [],
 						viewPropertyName: VIEW_PROPERTY,
 						formulaFieldNames: new Set(formulas.keys()),
