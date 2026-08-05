@@ -127,14 +127,14 @@ export class RoamJSONImporter extends FormatImporter {
 					}
 				}
 
-				const converter = this.newConverter(graphFolder, attachmentsFolder);
+				const converter = this.newConverter();
 				const markdownOutput = await converter.jsonToMarkdown(graphFolder, attachmentsFolder, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
 			}
 
 			// POST-PROCESS: fix block refs //
 			for (const callingBlock of toPostProcess.values()) {
-				const callingBlockStringScrubbed = await this.newConverter(graphFolder, attachmentsFolder)
+				const callingBlockStringScrubbed = await this.newConverter()
 					.roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, true);
 				const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
 
@@ -198,10 +198,8 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	/** The conversion, with this importer's settings and its downloader. */
-	private newConverter(graphFolder: string, attachmentsFolder: string): RoamPageConverter {
+	private newConverter(): RoamPageConverter {
 		return new RoamPageConverter({
-			graphFolder,
-			attachmentsFolder,
 			userDNPFormat: this.userDNPFormat,
 			fileDateYAML: this.fileDateYAML,
 			titleYAML: this.titleYAML,

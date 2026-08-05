@@ -58,8 +58,6 @@ for (const graph of graphs) {
 				// One converter per page: it carries the timestamps the
 				// recursion accumulates.
 				const converter = new RoamPageConverter({
-					graphFolder: name,
-					attachmentsFolder: `${name}/Attachments`,
 					userDNPFormat: DAILY_NOTE_FORMAT,
 					fileDateYAML: false,
 					titleYAML: false,
@@ -98,8 +96,6 @@ for (const graph of graphs) {
  */
 function scrubber() {
 	return new RoamPageConverter({
-		graphFolder: 'Graph',
-		attachmentsFolder: 'Graph/Attachments',
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,

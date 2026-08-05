@@ -13,8 +13,6 @@ const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', '
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
 export interface RoamConverterOptions {
-	graphFolder: string;
-	attachmentsFolder: string;
 	/** The daily-note format to rewrite Roam's own date pages into. */
 	userDNPFormat: string;
 	fileDateYAML: boolean;
