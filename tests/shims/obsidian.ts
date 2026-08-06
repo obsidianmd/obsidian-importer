@@ -8,6 +8,13 @@
  * It is deliberately small. If a test needs more of the API than this, that is
  * a signal the code under test is reaching into the app rather than converting
  * data, and belongs behind the sink interface instead of here.
+ *
+ * The file classes below are the one deliberate exception. Every importer now
+ * writes through FormatImporter.createFile, and what that does with a name
+ * already taken is worth a test of its own - it is shared by all of them, and
+ * e2e reaches only the importers whose fixtures need no vault. Testing it needs
+ * `instanceof TFile` to work, which needs the classes to exist here. The vault
+ * they live in is tests/shims/vault.ts, not this file.
  */
 import moment from 'moment';
 import * as yaml from 'yaml';
@@ -176,4 +183,63 @@ export function normalizePath(path: string): string {
 		.replace(/([\\/])+/g, '/')
 		.replace(/(^\/+|\/+$)/g, '');
 	return normalized === '' ? '/' : normalized;
+}
+
+/**
+ * A file or folder in the vault.
+ *
+ * Only the fields the importers read. `stat` carries the size and times a
+ * duplicate check compares; nothing here keeps them up to date except the
+ * vault that writes them.
+ */
+export class TAbstractFile {
+	path: string = '';
+	name: string = '';
+	parent: TFolder | null = null;
+	/**
+	 * The vault the file is in, which nothing here reads.
+	 *
+	 * Declared as never, and never assigned, so that a shim file satisfies the
+	 * real TAbstractFile: tests are held against Obsidian's own types even
+	 * though they run against this.
+	 */
+	vault!: never;
+}
+
+export class TFile extends TAbstractFile {
+	basename: string = '';
+	extension: string = '';
+	stat = { ctime: 0, mtime: 0, size: 0 };
+}
+
+export class TFolder extends TAbstractFile {
+	children: TAbstractFile[] = [];
+
+	isRoot(): boolean {
+		return this.path === '/' || this.path === '';
+	}
+
+	/** See src/augment.d.ts: "Notes/" for a subfolder, "" for the root. */
+	getParentPrefix(): string {
+		return this.isRoot() ? '' : `${this.path}/`;
+	}
+}
+
+/**
+ * A setting row, which a headless import never draws.
+ *
+ * FormatImporter.addSetting returns null when there is no dialog, so nothing
+ * constructs this. It exists because the import of it is a value import, and
+ * an absent binding fails at load rather than at use.
+ */
+export class Setting {
+	constructor(_containerEl: unknown) {
+		throw new Error('Setting cannot be drawn outside Obsidian');
+	}
+}
+
+export class SecretComponent {
+	constructor(_app: unknown, _containerEl: unknown) {
+		throw new Error('SecretComponent cannot be drawn outside Obsidian');
+	}
 }

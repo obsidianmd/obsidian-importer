@@ -50,6 +50,12 @@ export interface Run {
 export interface NoteSpec {
 	title: string;
 	runs: Run[];
+	/**
+	 * The note's zidentifier. Left out, it gets one of its own, which is what
+	 * Apple does. Set to null for a note that carries none, so that what the
+	 * importer falls back on can be tested.
+	 */
+	identifier?: string | null;
 }
 
 /** Something a note's text points at: an attachment row, or another note. */
@@ -192,7 +198,7 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		const notePk = pk++;
 		notePks.push(notePk);
 
-		insertObject.run(notePk, entity.ICNote, note.title, null, `NOTE-${notePk}`, null, null, null, null, folderPk, null, null, null, null, created, created);
+		insertObject.run(notePk, entity.ICNote, note.title, null, note.identifier === undefined ? `NOTE-${notePk}` : note.identifier, null, null, null, null, folderPk, null, null, null, null, created, created);
 		insertData.run(notePk, notePk, encodeNote(note));
 	}
 

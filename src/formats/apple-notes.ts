@@ -1,4 +1,4 @@
-import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
@@ -511,7 +511,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	private async previouslyImported(folder: TFolder, title: string, noteId?: string): Promise<TFile | null> {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
-		const fullPath = path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`);
+		// Normalized, because what it is held against is: the vault's own paths,
+		// and the ones this run has written. At the vault root path.join leaves a
+		// leading slash that neither of those carries.
+		const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
 		if (this.claimedPaths.has(fullPath)) return null;
 
 		const existingFile = this.vault.getAbstractFileByPath(fullPath);
