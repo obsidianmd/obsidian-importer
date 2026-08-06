@@ -245,7 +245,15 @@ export interface BlockConversionContext {
 	app: App;
 	downloadExternalAttachments: boolean;
 	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
-	incrementalImport?: boolean; // Skip downloading attachments if same path and size
+	incrementalImport?: boolean; // Reuse a note or attachment an earlier import wrote
+	/**
+	 * Whether the server answers a request for a byte range, which is how an
+	 * attachment's size is learned without fetching it.
+	 *
+	 * One that will not costs a wasted request per attachment, so the first
+	 * refusal turns it off for the rest of the import.
+	 */
+	rangeProbe?: { answered: boolean };
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	importPageCallback?: ImportPageCallback;

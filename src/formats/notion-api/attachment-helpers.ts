@@ -53,8 +53,30 @@ export async function downloadAttachment(
 	filename = sanitizeFileName(filename);
 
 	try {
-		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
+
+		// Ask how big it is before fetching it. An attachment an earlier import
+		// already wrote then costs a request for its size rather than the whole
+		// file, which on a workspace of any size is most of what a re-import
+		// spends. A data URL carries its own bytes, so there is nothing to save.
+		const probe = context.rangeProbe ??= { answered: true };
+
+		if (incrementalImport && !isDataUrl && probe.answered) {
+			const probed = await probeAttachmentSize(attachment.url, probe);
+
+			if (probed) {
+				const probedName = withInferredExtension(filename, probed.contentType);
+				const existingFile = attachmentAlreadyImported(
+					vault, await resolveTargetPath(context, probedName), probedName, probed.size
+				);
+
+				if (existingFile) {
+					ctx.reportSkipped(`Attachment: ${probedName}`, 'already exists with same size (incremental import)');
+					return linkToExisting(existingFile, probedName);
+				}
+			}
+		}
+
 		let downloaded: DownloadedAttachment;
 
 		if (isDataUrl) {
@@ -83,44 +105,17 @@ export async function downloadAttachment(
 			};
 		}
 
-		// Check if filename has an extension, if not, infer from Content-Type
-		const [basename, ext] = splitext(filename);
-		if (!ext && downloaded.contentType) {
-			const extension = extensionForMime(downloaded.contentType);
-			if (extension) {
-				filename = `${basename}.${extension}`;
-			}
-		}
+		filename = withInferredExtension(filename, downloaded.contentType);
+		const targetFilePath = await resolveTargetPath(context, filename);
 
-		// Get available path for attachment using the provided function or fallback
-		let targetFilePath: string;
-		if (context.getAvailableAttachmentPath) {
-			// Use the FormatImporter's method which respects Obsidian's settings
-			targetFilePath = await context.getAvailableAttachmentPath(filename);
-		}
-		else {
-			// Fallback: construct path manually (shouldn't happen in normal usage)
-			const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
-			targetFilePath = sourceFilePath
-				? normalizePath(`${sourceFilePath}/${filename}`)
-				: filename;
-		}
-
-
-		// Link the copy already there rather than writing a second one
+		// The size was not knowable before the fetch, so the copy already there
+		// is found here instead. Only the download is wasted, not the write.
 		if (incrementalImport) {
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
 			if (existingFile) {
 				ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
-
-				const { parent: existingParent, basename: existingBasename } = parseFilePath(existingFile.path);
-				const filePathWithoutExt = normalizePath(existingParent ? `${existingParent}/${existingBasename}` : existingBasename);
-				return {
-					path: filePathWithoutExt,
-					isLocal: true,
-					filename: filename
-				};
+				return linkToExisting(existingFile, filename);
 			}
 		}
 
@@ -151,17 +146,76 @@ export async function downloadAttachment(
 }
 
 /**
+ * How big the attachment is, without fetching it.
+ *
+ * A ranged GET rather than a HEAD. A Notion attachment URL is a presigned S3
+ * one and the signature covers the method, so a HEAD is refused where a GET is
+ * allowed. Asking for the first byte is a GET, and the Content-Range that comes
+ * back carries the whole length after the slash: "bytes 0-0/12345".
+ *
+ * Returns null when the size cannot be learned this way, which leaves the
+ * caller to fetch the attachment and read the size off what arrives.
+ */
+async function probeAttachmentSize(url: string, probe: { answered: boolean }): Promise<{ size: number, contentType?: string } | null> {
+	const response = await requestUrl({ url, method: 'GET', headers: { Range: 'bytes=0-0' }, throw: false });
+
+	// 206 is the range being honoured. A 200 means the whole file came back
+	// instead, which answers nothing and is the download this was avoiding.
+	if (response.status !== 206) {
+		probe.answered = false;
+		return null;
+	}
+
+	const contentRange = response.headers['content-range'] ?? response.headers['Content-Range'];
+	const total = /\/(\d+)\s*$/.exec(contentRange ?? '')?.[1];
+	if (!total) {
+		probe.answered = false;
+		return null;
+	}
+
+	return {
+		size: Number(total),
+		contentType: response.headers['content-type'] ?? response.headers['Content-Type'],
+	};
+}
+
+/** The name to write under, once the media type has had its say. */
+function withInferredExtension(filename: string, contentType: string | undefined): string {
+	const [basename, extension] = splitext(filename);
+	if (extension || !contentType) return filename;
+
+	const inferred = extensionForMime(contentType);
+	return inferred ? `${basename}.${inferred}` : filename;
+}
+
+/** Where the attachment goes, by the vault's rules where it has any. */
+async function resolveTargetPath(context: BlockConversionContext, filename: string): Promise<string> {
+	// The FormatImporter's method, which respects Obsidian's own settings
+	if (context.getAvailableAttachmentPath) return await context.getAvailableAttachmentPath(filename);
+
+	// Fallback: construct the path here (shouldn't happen in normal usage)
+	const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
+	return sourceFilePath ? normalizePath(`${sourceFilePath}/${filename}`) : filename;
+}
+
+/** A link to the copy already in the vault, in place of writing another. */
+function linkToExisting(file: TFile, filename: string): AttachmentResult {
+	const { parent, basename } = parseFilePath(file.path);
+
+	return {
+		path: normalizePath(parent ? `${parent}/${basename}` : basename),
+		isLocal: true,
+		filename,
+	};
+}
+
+/**
  * The attachment already in the vault that this one would be a second copy of.
  *
  * An attachment carries no id, so what says two are the same is the name and
  * the size. The name having been taken is what getAvailableAttachmentPath
  * reports, by handing back a different one: asked for "photo.jpg" it returns
  * "photo 1.jpg" only when "photo.jpg" is there.
- *
- * The size is compared after the attachment has been fetched, so what this
- * saves is a second copy in the vault rather than the download. Knowing the
- * size without fetching would take a request of its own, and a server that
- * answers it - neither of which this asks for.
  */
 function attachmentAlreadyImported(vault: Vault, targetFilePath: string, filename: string, size: number): TFile | null {
 	const { parent, basename } = parseFilePath(targetFilePath);

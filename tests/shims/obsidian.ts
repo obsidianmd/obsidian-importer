@@ -243,3 +243,30 @@ export class SecretComponent {
 		throw new Error('SecretComponent cannot be drawn outside Obsidian');
 	}
 }
+
+/**
+ * The plugin's way out to the network, which nothing here reaches.
+ *
+ * requestUrl rather than fetch because it is not bound by CORS, and the
+ * importers download through it. A test that needs an answer supplies one with
+ * answerRequests; anything else asks for a request nobody meant to make, and
+ * says so rather than reaching a real server.
+ */
+type Request = { url: string, method?: string, headers?: Record<string, string>, throw?: boolean };
+type Response = { status: number, headers: Record<string, string>, arrayBuffer: ArrayBuffer };
+type RequestHandler = (request: Request) => Response | Promise<Response>;
+
+let requestHandler: RequestHandler = request => {
+	throw new Error(`No answer prepared for ${request.method ?? 'GET'} ${request.url}`);
+};
+
+/** Answer requests with this, for one test. Returns what it replaced. */
+export function answerRequests(handler: RequestHandler): RequestHandler {
+	const previous = requestHandler;
+	requestHandler = handler;
+	return previous;
+}
+
+export function requestUrl(request: Request): never {
+	return requestHandler(request) as never;
+}

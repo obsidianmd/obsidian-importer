@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 
 import { downloadAttachment } from '../../src/formats/notion-api/attachment-helpers';
 import type { BlockConversionContext, NotionAttachment } from '../../src/formats/notion-api/types';
+import { answerRequests } from '../shims/obsidian';
 import { MemoryVault } from '../shims/vault';
 
 interface Written {
@@ -197,4 +198,88 @@ test('without incremental import the copy is written even when it matches', asyn
 
 	assert.equal(result.path, 'Attachments/photo 1');
 	assert.deepEqual(vault.paths().sort(), ['Attachments/photo 1.txt', 'Attachments/photo.txt']);
+});
+
+/**
+ * A server that honours a byte range, and a record of what was asked of it.
+ *
+ * The point of the probe is the request it avoids, so what the test looks at
+ * is the list of requests rather than only the file that came out.
+ */
+function serving(bytes: number, options: { honoursRange?: boolean } = {}) {
+	const { honoursRange = true } = options;
+	const asked: string[] = [];
+	const body = new TextEncoder().encode('x'.repeat(bytes)).buffer;
+
+	answerRequests(request => {
+		const ranged = Boolean(request.headers?.Range);
+		asked.push(ranged ? 'range' : 'full');
+
+		if (ranged && honoursRange) {
+			const headers: Record<string, string> = {
+				'content-range': `bytes 0-0/${bytes}`,
+				'content-type': 'text/plain',
+			};
+
+			return { status: 206, headers, arrayBuffer: new TextEncoder().encode('x').buffer };
+		}
+
+		// A server that ignores the range sends the whole thing back
+		const headers: Record<string, string> = { 'content-type': 'text/plain' };
+
+		return { status: 200, headers, arrayBuffer: body };
+	});
+
+	return { asked };
+}
+
+const REMOTE: NotionAttachment = { type: 'external', url: 'https://example.com/photo.txt', name: 'photo.txt' };
+
+test('an attachment already in the vault is never fetched', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	await vault.create('Attachments/photo.txt', 'xxxxx');
+	const server = serving(5);
+
+	const result = await downloadAttachment(REMOTE, contextOverVault(vault, true));
+
+	assert.equal(result.path, 'Attachments/photo');
+	assert.deepEqual(server.asked, ['range'], 'the file itself should not have been fetched');
+	assert.deepEqual(vault.paths(), ['Attachments/photo.txt']);
+});
+
+test('an attachment of a different size is fetched after the range says so', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	await vault.create('Attachments/photo.txt', 'xxxxx');
+	const server = serving(9);
+
+	const result = await downloadAttachment(REMOTE, contextOverVault(vault, true));
+
+	assert.equal(result.path, 'Attachments/photo 1');
+	assert.deepEqual(server.asked, ['range', 'full']);
+});
+
+test('a server that ignores the range is not asked a second time', async () => {
+	// The whole file comes back for a range it will not honour, so probing
+	// costs a download rather than saving one. One attachment finds that out.
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = serving(5, { honoursRange: false });
+	const context = contextOverVault(vault, true);
+
+	await downloadAttachment(REMOTE, context);
+	await downloadAttachment(REMOTE, context);
+
+	assert.deepEqual(server.asked, ['range', 'full', 'full']);
+});
+
+test('without incremental import nothing is probed', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = serving(5);
+
+	await downloadAttachment(REMOTE, contextOverVault(vault, false));
+
+	assert.deepEqual(server.asked, ['full']);
 });
