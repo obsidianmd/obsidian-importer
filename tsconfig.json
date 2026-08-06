@@ -2,7 +2,6 @@
 	"compilerOptions": {
 		"noEmit": true,
 		"rootDir": "src",
-		"baseUrl": "src",
 		"inlineSourceMap": true,
 		"inlineSources": true,
 		"module": "ESNext",

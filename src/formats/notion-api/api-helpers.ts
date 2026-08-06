@@ -13,7 +13,7 @@ import {
 	PartialBlockObjectResponse
 } from '@notionhq/client';
 import { App, FrontMatterCache, Vault } from 'obsidian';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
 import { NotionAttachment } from './types';

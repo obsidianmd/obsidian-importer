@@ -3,7 +3,7 @@ import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import type { ImportContext } from '../main';
+import type { ImportContext } from '../import-context';
 import { sanitizeFileName } from '../util';
 import { convertJournalEntry } from './apple-journal/convert';
 

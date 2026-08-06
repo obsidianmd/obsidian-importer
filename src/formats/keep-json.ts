@@ -1,7 +1,8 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ATTACHMENT_EXTS, ImportContext } from '../main';
+import { ATTACHMENT_EXTS } from '../constants';
+import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { convertKeepNote } from './keep/convert';
@@ -134,9 +135,6 @@ export class KeepImporter extends FormatImporter {
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
 		const { content, ctime, mtime } = convertKeepNote(keepJson, filename);
-		const file = await this.saveAsMarkdownFile(folder, filename, content);
-
-		// Modifying the creation and modified timestamps without changing file contents.
-		await this.vault.append(file, '', { ctime, mtime });
+		await this.saveAsMarkdownFile(folder, filename, content, { ctime, mtime });
 	}
 }

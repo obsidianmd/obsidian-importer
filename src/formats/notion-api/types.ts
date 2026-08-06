@@ -13,7 +13,7 @@ import {
 	Heading1BlockObjectResponse
 } from '@notionhq/client';
 import { Vault, App } from 'obsidian';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import type { FormulaImportStrategy } from '../../base';
 
 /**

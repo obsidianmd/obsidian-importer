@@ -1,7 +1,7 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';

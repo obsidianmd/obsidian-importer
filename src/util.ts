@@ -28,9 +28,13 @@ export function stripControlCharacters(name: string): string {
 }
 
 // First remove illegal characters such as spaces and periods, then check for Windows reserved words.
-export function sanitizeFileName(name: string) {
+//
+// A missing name is allowed, and lands on the same "Untitled" every empty name
+// does. Titles arrive optional from most sources, and every caller spelling its
+// own `|| 'Untitled'` is one more place for that default to drift.
+export function sanitizeFileName(name: string | undefined | null) {
 	const sanitized = stripControlCharacters(
-		name
+		(name ?? '')
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, ''))
 		.replace(reservedRe, '')

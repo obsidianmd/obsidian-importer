@@ -1,6 +1,6 @@
 import { Notice, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { PickedFile } from '../filesystem';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';

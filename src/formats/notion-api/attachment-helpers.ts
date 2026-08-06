@@ -4,7 +4,7 @@
  */
 
 import { App, DataWriteOptions, normalizePath, requestUrl, TFile, Vault } from 'obsidian';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';

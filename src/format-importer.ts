@@ -1,6 +1,8 @@
-import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
-import ImporterPlugin, { ImportContext, AuthCallback } from './main';
+import { HostPlugin } from './plugin-data';
+import { AuthCallback } from './constants';
+import { ImportContext } from './import-context';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -16,7 +18,7 @@ const MAX_PATH_DESCRIPTION_LENGTH = 300;
 export interface ImporterHost {
 	/** Where settings are drawn, or null when there is no dialog. */
 	contentEl: HTMLElement | null;
-	plugin: ImporterPlugin;
+	plugin: HostPlugin;
 	/**
 	 * Which importer this is, for scoping the credential it stores.
 	 *
@@ -441,9 +443,23 @@ export abstract class FormatImporter {
 		return folder;
 	}
 
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
+	/**
+	 * Write a note, optionally carrying the timestamps it had in the source.
+	 *
+	 * createNewMarkdownFile is what gives the note a free name, and it takes no
+	 * write options, so the timestamps are set by appending nothing to the file
+	 * it just wrote. Three importers each kept their own copy of that trick
+	 * before it moved here.
+	 */
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		let sanitizedName = sanitizeFileName(title);
 		// @ts-ignore
-		return await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+		const file: TFile = await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+
+		if (options) {
+			await this.vault.append(file, '', options);
+		}
+
+		return file;
 	}
 }

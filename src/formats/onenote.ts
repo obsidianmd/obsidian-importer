@@ -2,7 +2,8 @@ import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection 
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
-import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
+import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
+import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';
@@ -606,16 +607,14 @@ export class OneNoteImporter extends FormatImporter {
 				mdContent += inkEmbedMarkdown;
 			}
 
-			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
-
-			// Add the last modified and creation time metadata
+			// Carry the last modified and creation time over from OneNote
 			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
 			const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
 			const writeOptions: DataWriteOptions = {
 				ctime: created ?? lastModified ?? Date.now(),
 				mtime: lastModified ?? created ?? Date.now(),
 			};
-			await this.vault.append(fileRef, '', writeOptions);
+			await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent, writeOptions);
 			progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
@@ -801,7 +800,7 @@ export class OneNoteImporter extends FormatImporter {
 					 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 					 */
 					if (section.pages![i + 1] && section.pages![i + 1].level !== 0) {
-						const sanitizedName = sanitizeFileName(page.title || 'Untitled');
+						const sanitizedName = sanitizeFileName(page.title);
 						returnPath = `${currentPath}/${sanitizedName}`;
 					}
 					else returnPath = currentPath;
@@ -812,7 +811,7 @@ export class OneNoteImporter extends FormatImporter {
 					// Iterate backward to find the parent page
 					for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
 						if (section.pages![i].level === page.level! - 1) {
-							const sanitizedName = sanitizeFileName(section.pages![i].title || 'Untitled');
+							const sanitizedName = sanitizeFileName(section.pages![i].title);
 							returnPath += '/' + sanitizedName;
 							break;
 						}
@@ -828,7 +827,7 @@ export class OneNoteImporter extends FormatImporter {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
 		for (const sectionGroup of sectionGroups) {
-			const sanitizedName = sanitizeFileName(sectionGroup.displayName || 'Untitled');
+			const sanitizedName = sanitizeFileName(sectionGroup.displayName);
 			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sanitizedName}`;
 			else {
 				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sanitizedName}`, sectionGroup);

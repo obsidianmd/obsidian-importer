@@ -4,7 +4,7 @@
 
 import { requestUrl, normalizePath, TFile } from 'obsidian';
 import type { Vault, App } from 'obsidian';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import type { AirtableAttachment, AttachmentResult } from './types';
 import { sanitizeFileName } from '../../util';
 

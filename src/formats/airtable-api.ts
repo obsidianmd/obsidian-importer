@@ -5,7 +5,7 @@
 
 import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
 import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
@@ -578,19 +578,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 		}
 	}
-
-	/**
-	 * Set selection state for node and all children recursively
-	 * Children are also disabled when selected (to indicate inherited selection)
-	 */
-
-	/**
-	 * Check if all nodes are selected
-	 */
-
-	/**
-	 * Select or deselect all nodes
-	 */
 
 	/**
 	 * Update toggle button text

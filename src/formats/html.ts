@@ -9,7 +9,7 @@ import {
 } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { convertHtmlDocument } from './html/convert';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { extensionForMime } from '../mime';
 import { stringToUtf8 } from '../util';
 

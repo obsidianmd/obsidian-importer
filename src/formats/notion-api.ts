@@ -1,6 +1,6 @@
 import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
 import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
@@ -572,25 +572,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-
-	/**
-	 * Select or deselect all nodes in the tree
-	 */
-
-	/**
-	 * Select/deselect all children recursively
-	 */
-
-	/**
-	 * Enable all children recursively (remove disabled state)
-	 */
-
-	/**
-	 * Check if all nodes in the tree are selected
-	 * Used to determine button text and behavior (Select all vs Deselect all)
-	 * Returns true if ALL nodes (including disabled children) are selected
-	 */
-
 	/**
 	 * Handle toggle select button click
 	 * Selects all nodes if not all selected, deselects all if all selected
@@ -852,7 +833,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Extract page title
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
-			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle || 'Untitled');
+			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
 
 			// Update status with page title instead of ID
 			ctx.status(`Importing: ${sanitizedTitle}`);

@@ -1,6 +1,6 @@
 import { BasesConfigFile, Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { CSVRow, parseCSV } from './csv/parse';
 import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
 import {
