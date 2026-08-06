@@ -1,0 +1,9 @@
+page     An orphan
+page     Getting started
+  page     A nested page
+  database Tasks
+    page     Water the plants
+database Reading list
+  page     The Long Way
+page     Untitled
+database Untitled Database
