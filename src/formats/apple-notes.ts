@@ -45,6 +45,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	duplicateHandling = DuplicateHandling.ImportUpdated;
 	trashFolders: number[] = [];
 	filePrefixFormat: string;
+	/** Every note path this run has written, to tell a copy from an update. */
+	private claimedPaths = new Set<string>();
 
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
@@ -304,12 +306,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			title = `${datePrefix} ${title}`;
 		}
 
-		const fullPath = path.join(folder.path, `${title}.md`);
-
 		// Check for duplicate notes based on the selected handling option
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		const existingFile = this.previouslyImported(folder, `${title}.md`);
 
-		if (existingFile && existingFile instanceof TFile) {
+		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
 				return existingFile;
@@ -509,20 +509,37 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 	}
 
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		if (this.duplicateHandling === DuplicateHandling.Skip || this.duplicateHandling === DuplicateHandling.ImportUpdated) {
-			// For Skip and ImportUpdated, create the file directly without numeric suffix
-			const sanitizedName = sanitizeFileName(title);
-			const fullPath = path.join(folder.path, sanitizedName);
+	/**
+	 * The note an earlier import left at this title, if there is one.
+	 *
+	 * A note this run already wrote is not that. Apple Notes lets two notes
+	 * share a title, and the second is a note of its own - it gets a copy's
+	 * name rather than being treated as an update of the first and collapsing
+	 * into it.
+	 *
+	 * Matching on the title is what makes this approximate: a note renamed in
+	 * Apple Notes reads as a new one. Recognising it properly needs the id the
+	 * source carries, which is not written down yet.
+	 */
+	private previouslyImported(folder: TFolder, title: string): TFile | null {
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
-			// Check if file already exists and handle overwriting
-			const existingFile = this.vault.getAbstractFileByPath(fullPath);
-			if (existingFile && existingFile instanceof TFile) {
-				// File exists -- will be updated later in resolveNote
-				return existingFile;
-			}
-		}
-		// For CreateCopy option, use the default behavior from FormatImporter (creates numbered copies)
-		return super.saveAsMarkdownFile(folder, title, content, options);
+		const fullPath = path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`);
+		if (this.claimedPaths.has(fullPath)) return null;
+
+		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		return existingFile instanceof TFile ? existingFile : null;
+	}
+
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
+		// For Skip and ImportUpdated, reuse the note an earlier import wrote
+		// rather than taking a copy's name; it is updated later in resolveNote.
+		const existingFile = this.previouslyImported(folder, title);
+		if (existingFile) return existingFile;
+
+		const file = await super.saveAsMarkdownFile(folder, title, content, options);
+		this.claimedPaths.add(file.path);
+
+		return file;
 	}
 }
