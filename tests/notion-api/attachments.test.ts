@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 
 import { downloadAttachment } from '../../src/formats/notion-api/attachment-helpers';
 import type { BlockConversionContext, NotionAttachment } from '../../src/formats/notion-api/types';
+import { MemoryVault } from '../shims/vault';
 
 interface Written {
 	path: string;
@@ -120,4 +121,80 @@ test('a malformed data URL fails that attachment and leaves the URL in place', a
 	assert.deepEqual(failures, ['Attachment: broken']);
 	assert.equal(written.length, 0);
 	assert.deepEqual(result, { path: url, isLocal: false });
+});
+
+/**
+ * A context whose vault is a real one, for the case that needs a file to
+ * already be in it. getAvailableAttachmentPath answers the way the importer's
+ * does: the name asked for when it is free, and a numbered one when it is not.
+ */
+function contextOverVault(vault: MemoryVault, incrementalImport: boolean): BlockConversionContext {
+	const skipped: string[] = [];
+
+	return {
+		ctx: {
+			isCancelled: () => false,
+			status: () => {},
+			reportSkipped: (name: string) => skipped.push(name),
+			reportFailed: (name: string, reason?: unknown) => assert.fail(`${name}: ${String(reason)}`),
+		},
+		skipped,
+		currentFolderPath: '',
+		client: {},
+		vault,
+		app: {},
+		downloadExternalAttachments: true,
+		incrementalImport,
+		getAvailableAttachmentPath: async (filename: string) => {
+			const dot = filename.lastIndexOf('.');
+			const base = dot > 0 ? filename.slice(0, dot) : filename;
+			const extension = dot > 0 ? filename.slice(dot + 1) : undefined;
+
+			return vault.getAvailablePath(`Attachments/${base}`, extension);
+		},
+	} as unknown as BlockConversionContext;
+}
+
+/** A data URL of a given size, so the sizes can be made to agree or not. */
+function attachmentOf(bytes: number): NotionAttachment {
+	return {
+		type: 'external',
+		url: `data:text/plain,${'x'.repeat(bytes)}`,
+		name: 'photo.txt',
+	};
+}
+
+test('an attachment already imported is linked rather than copied', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	await vault.create('Attachments/photo.txt', 'xxxxx');
+
+	const context = contextOverVault(vault, true);
+	const result = await downloadAttachment(attachmentOf(5), context);
+
+	assert.equal(result.path, 'Attachments/photo', 'the link should point at the copy already there');
+	assert.deepEqual(vault.paths(), ['Attachments/photo.txt'], 'nothing should have been written');
+	assert.deepEqual((context as never as { skipped: string[] }).skipped, ['Attachment: photo.txt']);
+});
+
+test('an attachment of the same name but a different size is a different file', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	await vault.create('Attachments/photo.txt', 'xxxxx');
+
+	const result = await downloadAttachment(attachmentOf(9), contextOverVault(vault, true));
+
+	assert.equal(result.path, 'Attachments/photo 1');
+	assert.deepEqual(vault.paths().sort(), ['Attachments/photo 1.txt', 'Attachments/photo.txt']);
+});
+
+test('without incremental import the copy is written even when it matches', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	await vault.create('Attachments/photo.txt', 'xxxxx');
+
+	const result = await downloadAttachment(attachmentOf(5), contextOverVault(vault, false));
+
+	assert.equal(result.path, 'Attachments/photo 1');
+	assert.deepEqual(vault.paths().sort(), ['Attachments/photo 1.txt', 'Attachments/photo.txt']);
 });

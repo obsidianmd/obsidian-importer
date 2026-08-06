@@ -107,43 +107,20 @@ export async function downloadAttachment(
 		}
 
 
-		// Check for incremental import: skip if file exists with same size
+		// Link the copy already there rather than writing a second one
 		if (incrementalImport) {
-			// Extract the basename from the target path to see if filename was changed
-			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
-			// Reconstruct the full filename with extension. Read it back off
-			// filename rather than reusing ext, which was taken before the
-			// Content-Type inference above and is empty for anything that got
-			// its extension from there.
-			const [, finalExt] = splitext(filename);
-			const targetFullName = targetBasename + (finalExt ? `.${finalExt}` : '');
+			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
+			if (existingFile) {
+				ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
 
-			// If filename changed (e.g., "file.jpg" → "file 1.jpg"), it means the original file exists
-			if (targetFullName !== filename) {
-
-				// Construct the original file path by replacing the changed filename with the original
-				const originalFilePath = normalizePath(`${targetParent}/${filename}`);
-
-				const existingFile = vault.getAbstractFileByPath(originalFilePath);
-
-				if (existingFile && existingFile instanceof TFile) {
-					const downloadedSize = downloaded.arrayBuffer.byteLength;
-
-					// Compare file sizes
-					if (existingFile.stat.size === downloadedSize) {
-						ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
-
-						// Return existing file path (don't save to disk)
-						const { parent: existingParent, basename: existingBasename } = parseFilePath(originalFilePath);
-						const filePathWithoutExt = normalizePath(existingParent ? `${existingParent}/${existingBasename}` : existingBasename);
-						return {
-							path: filePathWithoutExt,
-							isLocal: true,
-							filename: filename
-						};
-					}
-				}
+				const { parent: existingParent, basename: existingBasename } = parseFilePath(existingFile.path);
+				const filePathWithoutExt = normalizePath(existingParent ? `${existingParent}/${existingBasename}` : existingBasename);
+				return {
+					path: filePathWithoutExt,
+					isLocal: true,
+					filename: filename
+				};
 			}
 		}
 
@@ -171,6 +148,32 @@ export async function downloadAttachment(
 			isLocal: false
 		};
 	}
+}
+
+/**
+ * The attachment already in the vault that this one would be a second copy of.
+ *
+ * An attachment carries no id, so what says two are the same is the name and
+ * the size. The name having been taken is what getAvailableAttachmentPath
+ * reports, by handing back a different one: asked for "photo.jpg" it returns
+ * "photo 1.jpg" only when "photo.jpg" is there.
+ *
+ * The size is compared after the attachment has been fetched, so what this
+ * saves is a second copy in the vault rather than the download. Knowing the
+ * size without fetching would take a request of its own, and a server that
+ * answers it - neither of which this asks for.
+ */
+function attachmentAlreadyImported(vault: Vault, targetFilePath: string, filename: string, size: number): TFile | null {
+	const { parent, basename } = parseFilePath(targetFilePath);
+	// Read the extension off filename rather than the target: the target's has
+	// been through the Content-Type inference, and filename is what was asked
+	// for. A name that came back unchanged means nothing was in the way.
+	const [, extension] = splitext(filename);
+	if (basename + (extension ? `.${extension}` : '') === filename) return null;
+
+	const existingFile = vault.getAbstractFileByPathInsensitive(normalizePath(`${parent}/${filename}`));
+
+	return existingFile instanceof TFile && existingFile.stat.size === size ? existingFile : null;
 }
 
 /**
