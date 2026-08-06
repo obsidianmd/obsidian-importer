@@ -3,11 +3,11 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
+import { ButtonComponent, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
+import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, parseFrontMatterBlock, updatePropertyTypes, plural } from '../util';
 import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
 import type { FormulaImportStrategy } from '../base';
 import {
@@ -43,8 +43,6 @@ import type {
 	TablePlan,
 } from './airtable-api/types';
 
-const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-
 /**
  * Placeholder shown next to each field in the template configurator, so the user
  * can see the shape of what a property will hold. Select fields are handled in
@@ -79,34 +77,6 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 	duration: '2:30:00',
 	barcode: '1234567890',
 };
-
-/**
- * Read a note's frontmatter straight from its content.
- *
- * The metadata cache is populated asynchronously, so a file written moments
- * earlier in the same import usually has no cache entry yet. Anything that
- * inspects frontmatter mid-import has to parse the content itself, or it will
- * silently treat freshly written notes as having none.
- *
- * Returns null when there is no parseable frontmatter block.
- */
-function parseFrontMatterBlock(content: string): { frontMatter: FrontMatterCache, body: string } | null {
-	const match = FRONT_MATTER_PATTERN.exec(content);
-	if (!match) {
-		return null;
-	}
-
-	try {
-		const parsed = parseYaml(match[1]);
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-			return null;
-		}
-		return { frontMatter: parsed as FrontMatterCache, body: content.slice(match[0].length) };
-	}
-	catch {
-		return null;
-	}
-}
 
 export class AirtableAPIImporter extends FormatImporter {
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */

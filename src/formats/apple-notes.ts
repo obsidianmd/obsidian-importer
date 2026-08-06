@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName } from '../util';
+import { extractErrorMessage, parseFrontMatterBlock, sanitizeFileName, serializeFrontMatter } from '../util';
 import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -14,6 +14,8 @@ const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
+/** Frontmatter property holding the Apple Notes id a note was imported from. */
+const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 
 enum DuplicateHandling {
@@ -278,7 +280,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const row = await this.database.get`
 			SELECT
-				nd.z_pk, hex(nd.zdata) as zhexdata, zcso.ztitle1, zfolder,
+				nd.z_pk, hex(nd.zdata) as zhexdata, zcso.ztitle1, zfolder, zcso.zidentifier,
 				zcreationdate1, zcreationdate2, zcreationdate3, zmodificationdate1, zispasswordprotected
 			FROM
 				zicnotedata AS nd,
@@ -307,7 +309,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		// Check for duplicate notes based on the selected handling option
-		const existingFile = this.previouslyImported(folder, `${title}.md`);
+		const existingFile = await this.previouslyImported(folder, `${title}.md`, row.ZIDENTIFIER);
 
 		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
@@ -326,10 +328,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
 			}
-			// For CreateCopy option, we continue without skipping (will create numbered copy)
 		}
 
-		const file = await this.saveAsMarkdownFile(folder, `${title}.md`, '');
+		// The note an earlier import wrote is written over; anything else gets a
+		// name of its own, a copy's if the title is taken.
+		const file = existingFile ?? await this.saveAsMarkdownFile(folder, `${title}.md`, '');
 
 		this.ctx.status(`Importing note ${title}`);
 		this.resolvedFiles[id] = file;
@@ -338,7 +341,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
-		await this.vault.modify(file, await converter.format(false, file.path), {
+		const body = await converter.format(false, file.path);
+
+		await this.vault.modify(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
@@ -521,22 +526,52 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * Apple Notes reads as a new one. Recognising it properly needs the id the
 	 * source carries, which is not written down yet.
 	 */
-	private previouslyImported(folder: TFolder, title: string): TFile | null {
+	private async previouslyImported(folder: TFolder, title: string, noteId?: string): Promise<TFile | null> {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
 		const fullPath = path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`);
 		if (this.claimedPaths.has(fullPath)) return null;
 
 		const existingFile = this.vault.getAbstractFileByPath(fullPath);
-		return existingFile instanceof TFile ? existingFile : null;
+		if (!(existingFile instanceof TFile)) return null;
+
+		// A note that carries an id says which note it is. A different one is a
+		// note of its own however much the titles agree, and one with no id at
+		// all was written before ids were, so the title is all there is to go on.
+		const existingId = await this.importedNoteId(existingFile);
+		if (existingId && noteId && existingId !== noteId) return null;
+
+		return existingFile;
+	}
+
+	/** The Apple Notes id a note was imported from, if it was written down. */
+	private async importedNoteId(file: TFile): Promise<string | null> {
+		try {
+			const parsed = parseFrontMatterBlock(await this.vault.read(file));
+			const id: unknown = parsed?.frontMatter[NOTE_ID_PROPERTY];
+			return typeof id === 'string' ? id : null;
+		}
+		catch (error) {
+			console.error(`Failed to read frontmatter from: ${file.path}`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * The id a note was imported from, for the next import to recognise it by.
+	 *
+	 * Only written where it will be read. An Apple Notes import is usually a
+	 * one-time move, and a property in every note of a vault that will never be
+	 * imported into again is clutter that earns nothing. Choosing to skip or to
+	 * update existing notes is what says otherwise.
+	 */
+	private noteIdFrontMatter(noteId: string | undefined): string {
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy || !noteId) return '';
+
+		return serializeFrontMatter({ [NOTE_ID_PROPERTY]: noteId });
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		// For Skip and ImportUpdated, reuse the note an earlier import wrote
-		// rather than taking a copy's name; it is updated later in resolveNote.
-		const existingFile = this.previouslyImported(folder, title);
-		if (existingFile) return existingFile;
-
 		const file = await super.saveAsMarkdownFile(folder, title, content, options);
 		this.claimedPaths.add(file.path);
 

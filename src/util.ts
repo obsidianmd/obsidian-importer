@@ -1,4 +1,34 @@
-import { App, FrontMatterCache, stringifyYaml, Vault, normalizePath } from 'obsidian';
+import { App, FrontMatterCache, parseYaml, stringifyYaml, Vault, normalizePath } from 'obsidian';
+
+const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+
+/**
+ * Read a note's frontmatter straight from its content.
+ *
+ * The metadata cache is populated asynchronously, so a file written moments
+ * earlier in the same import usually has no cache entry yet. Anything that
+ * inspects frontmatter mid-import has to parse the content itself, or it will
+ * silently treat freshly written notes as having none.
+ *
+ * Returns null when there is no parseable frontmatter block.
+ */
+export function parseFrontMatterBlock(content: string): { frontMatter: FrontMatterCache, body: string } | null {
+	const match = FRONT_MATTER_PATTERN.exec(content);
+	if (!match) {
+		return null;
+	}
+
+	try {
+		const parsed = parseYaml(match[1]);
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+			return null;
+		}
+		return { frontMatter: parsed as FrontMatterCache, body: content.slice(match[0].length) };
+	}
+	catch {
+		return null;
+	}
+}
 
 let slashesRe = /[/\\]/g;
 let illegalRe = /[?<>:*|"]/g;
