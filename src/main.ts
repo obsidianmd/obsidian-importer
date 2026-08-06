@@ -3,6 +3,7 @@ import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback } from './constants';
 import { ImportContext } from './import-context';
+import { DEFAULT_DATA, ImporterData } from './plugin-data';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
@@ -173,30 +174,6 @@ export class ImportProgressUI extends ImportContext {
 		importLogEl.show();
 	}
 }
-
-export interface ImporterData {
-	importers: {
-		onenote?: {
-			previouslyImportedIDs: string[];
-		};
-	};
-	/**
-	 * Importer id -> the SecretStorage id holding that importer's credential.
-	 *
-	 * Only the id is kept here. The credential itself lives in Obsidian's
-	 * keychain, so it is never written to the plugin's data file.
-	 */
-	secrets: Record<string, string>;
-}
-
-const DEFAULT_DATA: ImporterData = {
-	importers: {
-		onenote: {
-			previouslyImportedIDs: [],
-		},
-	},
-	secrets: {},
-};
 
 export default class ImporterPlugin extends Plugin {
 	importers: Record<string, ImporterDefinition>;

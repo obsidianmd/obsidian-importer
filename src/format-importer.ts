@@ -1,10 +1,6 @@
 import { App, DataWriteOptions, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
-// `import type`, not a plain import: this is the one edge from an importer back
-// to main.ts, and it stays erased only while ImporterPlugin is used purely as a
-// type. Written plainly, a later use in value position would emit the import,
-// and loading any importer would pull the plugin in again.
-import type ImporterPlugin from './main';
+import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { ImportContext } from './import-context';
 import { sanitizeFileName } from './util';
@@ -22,7 +18,7 @@ const MAX_PATH_DESCRIPTION_LENGTH = 300;
 export interface ImporterHost {
 	/** Where settings are drawn, or null when there is no dialog. */
 	contentEl: HTMLElement | null;
-	plugin: ImporterPlugin;
+	plugin: HostPlugin;
 	/**
 	 * Which importer this is, for scoping the credential it stores.
 	 *
