@@ -532,65 +532,91 @@ export class ImporterModal extends Modal implements ImporterHost {
 					// A listener cannot be awaited, so the run is kicked off here and
 					// anything that escapes its own try/finally is logged rather than
 					// surfacing as an unhandled rejection.
-					el.addEventListener('click', () => void (async () => {
-						if (this.current) {
-							this.current.cancel();
-						}
-
-						// Clear content
-						contentEl.empty();
-						let configEl = contentEl.createDiv();
-						let ctx = this.current = new ImportProgressUI(configEl);
-
-						// Check if importer needs template configuration
-						const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
-
-						if (templateResult === false) {
-							// User cancelled or preparation failed
-							this.current = null;
-							this.updateContent();
-							return;
-						}
-
-						// Show progress UI
-						contentEl.empty();
-						let progressEl = contentEl.createDiv();
-						ctx.createProgressUI(progressEl);
-
-						let buttonsEl = contentEl.createDiv('modal-button-container');
-						let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
-							el.addEventListener('click', () => {
-								ctx.cancel();
-								cancelButtonEl.detach();
-							});
-						});
-						try {
-							await importer.import(ctx);
-						}
-						finally {
-							if (this.current === ctx) {
-								this.current = null;
-							}
-
-							// Nobody is looking at the dialog, so the result has
-							// to come to them
-							if (this.hidden) {
-								this.finishHiddenNotice(ctx);
-							}
-
-							buttonsEl.empty();
-							buttonsEl.createEl('button', { text: 'Import more' }, el => {
-								el.addEventListener('click', () => this.updateContent());
-							});
-							buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
-								el.addEventListener('click', () => this.close());
-							});
-							ctx.hideStatus();
-						}
-					})().catch(e => console.error('Import failed', e)));
+					el.addEventListener('click', () => void this.startImport(importer)
+						.catch(e => console.error('Import failed', e)));
 				});
 			});
 		}
+	}
+
+	/** Run the import the setup screen has been filled in for. */
+	private async startImport(importer: FormatImporter) {
+		if (this.current) {
+			this.current.cancel();
+		}
+
+		const { contentEl } = this;
+
+		// Clear content
+		contentEl.empty();
+		let configEl = contentEl.createDiv();
+		let ctx = this.current = new ImportProgressUI(configEl);
+
+		// Check if importer needs template configuration
+		const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
+
+		if (templateResult === false) {
+			// User cancelled or preparation failed
+			this.current = null;
+			this.updateContent();
+			return;
+		}
+
+		this.showProgress(ctx);
+		try {
+			await importer.import(ctx);
+		}
+		finally {
+			if (this.current === ctx) {
+				this.current = null;
+			}
+			ctx.hideStatus();
+
+			// Nobody is looking at the dialog, so the result has to come to them
+			if (this.hidden) {
+				this.finishHiddenNotice(ctx);
+			}
+
+			this.showFinished(ctx);
+		}
+	}
+
+	/**
+	 * The screen an import runs on: how far it has got, and Stop.
+	 *
+	 * Drawn from the context rather than added to as the import goes, so that
+	 * the screen can be drawn whenever there is somewhere to draw it.
+	 */
+	private showProgress(ctx: ImportProgressUI) {
+		const { contentEl } = this;
+		contentEl.empty();
+		ctx.createProgressUI(contentEl.createDiv());
+
+		// Stop has already been pressed: nothing left to stop
+		if (ctx.isCancelled()) return;
+
+		let buttonsEl = contentEl.createDiv('modal-button-container');
+		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
+			el.addEventListener('click', () => {
+				ctx.cancel();
+				cancelButtonEl.detach();
+			});
+		});
+	}
+
+	/** The screen an import leaves behind: what it did, and where to go next. */
+	private showFinished(ctx: ImportProgressUI) {
+		const { contentEl } = this;
+		contentEl.empty();
+		ctx.createProgressUI(contentEl.createDiv());
+
+		let buttonsEl = contentEl.createDiv('modal-button-container');
+		buttonsEl.createEl('button', { text: 'Import more' }, el => {
+			el.addEventListener('click', () => this.updateContent());
+		});
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+			el.addEventListener('click', () => this.close());
+		});
 	}
 
 	/**
