@@ -126,3 +126,54 @@ test('the API still returns the shape the fixture is written to', { skip }, asyn
 	// Not a failure, but worth seeing: what this page exercises
 	console.log(`   block types seen: ${[...types].sort().join(', ')}`);
 });
+
+/**
+ * Does an attachment URL still answer a request for a byte range?
+ *
+ * downloadAttachment asks how big an attachment is before fetching it, so that
+ * one an earlier import already wrote costs a byte rather than the whole file.
+ * That rests on two things Notion does not promise: that its storage refuses a
+ * HEAD, and that it honours a Range.
+ *
+ * Both were measured, and this is what would notice them changing. Nothing
+ * breaks if they do - the importer falls back to downloading, as it did before
+ * - but the saving quietly stops, which is worth being told about.
+ */
+test('an attachment URL answers a ranged GET', { skip }, async () => {
+	const search = await api('/search', { filter: { property: 'object', value: 'page' }, page_size: 100 });
+
+	let url: string | null = null;
+	for (const page of search.results) {
+		const { results } = await api(`/blocks/${page.id}/children?page_size=100`);
+
+		for (const block of results) {
+			const data = block.image ?? block.file ?? block.pdf ?? block.video;
+			if (data?.type === 'file' && data.file?.url) url = data.file.url;
+			if (url) break;
+		}
+		if (url) break;
+	}
+
+	if (!url) {
+		console.log('   no attachment among the pages this integration can see; nothing to ask');
+		return;
+	}
+
+	// A presigned URL is signed for one method, so a HEAD is refused. That is
+	// why the size is asked for with a range rather than a HEAD.
+	const head = await fetch(url, { method: 'HEAD' });
+	assert.notEqual(head.status, 200, 'a HEAD is expected to be refused; if it is allowed, it is the cheaper probe');
+
+	const ranged = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+	assert.equal(ranged.status, 206, 'the range should be honoured, or every probe costs a whole download');
+
+	const contentRange = ranged.headers.get('content-range');
+	assert.match(contentRange ?? '', /^bytes 0-0\/\d+$/, 'the total length is read off the end of this');
+
+	const received = (await ranged.arrayBuffer()).byteLength;
+	const total = Number(/\/(\d+)$/.exec(contentRange ?? '')?.[1]);
+	assert.equal(received, 1, 'only the byte asked for should arrive');
+	assert.ok(total > 1, 'the range should report a length larger than what it sent');
+
+	console.log(`   ${total} bytes learned from ${received}`);
+});
