@@ -2,6 +2,7 @@ import { App, DataWriteOptions, normalizePath, Platform, SecretComponent, Settin
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
+import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath } from './util';
 
@@ -365,12 +366,15 @@ export abstract class FormatImporter {
 		this.addSetting()
 			?.setName('Output folder')
 			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
-			.addText(text => text
-				.setValue(defaultExportFolderName)
-				.onChange(value => {
-					this.outputLocation = value;
-					this.outputFolder = null;
-				}));
+			.addText(text => {
+				text
+					.setValue(defaultExportFolderName)
+					.onChange(value => {
+						this.outputLocation = value;
+						this.outputFolder = null;
+					});
+				new FolderSuggest(this.app, text.inputEl);
+			});
 	}
 
 	async getOutputFolder(): Promise<TFolder | null> {

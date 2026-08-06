@@ -245,6 +245,34 @@ export class SecretComponent {
 }
 
 /**
+ * The type-ahead behind the output folder box, and the fuzzy search it ranks
+ * with. Drawn only in the dialog, so a headless import reaches none of it.
+ *
+ * Here for the same reason Setting is: FolderSuggest extends this one at load,
+ * and calls the others when a suggestion is asked for, so the names have to
+ * resolve even though nothing outside the app runs them.
+ */
+export class AbstractInputSuggest<T> {
+	constructor(_app: unknown, _textInputEl: unknown) {
+		throw new Error('AbstractInputSuggest cannot be drawn outside Obsidian');
+	}
+
+	selectSuggestion(_value: T, _evt: unknown): void {}
+}
+
+export function prepareFuzzySearch(_query: string): never {
+	throw new Error('prepareFuzzySearch is not available outside Obsidian');
+}
+
+export function renderMatches(_el: unknown, _text: string, _matches: unknown): never {
+	throw new Error('renderMatches is not available outside Obsidian');
+}
+
+export function sortSearchResults(_results: unknown[]): never {
+	throw new Error('sortSearchResults is not available outside Obsidian');
+}
+
+/**
  * The plugin's way out to the network, which nothing here reaches.
  *
  * requestUrl rather than fetch because it is not bound by CORS, and the
