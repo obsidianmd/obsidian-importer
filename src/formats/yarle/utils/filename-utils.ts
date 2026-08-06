@@ -6,8 +6,8 @@ import { sanitizeFileName } from '../../../util';
 import { yarleOptions } from '../yarle';
 
 import { ResourceFileProperties } from '../models/ResourceFileProperties';
-import { escapeStringRegexp } from './escape-string-regexp';
 import { extensionForMime } from '../../../mime';
+import { getNextFilenameIndex } from './filename-dedupe';
 
 // Filename length constants
 const MAX_NOTE_NAME_LENGTH = 100; // Limit note name length to prevent path issues
@@ -18,20 +18,9 @@ export const normalizeTitle = (title: string) => {
 };
 
 export const getFileIndex = (dstPath: string, fileNamePrefix: string): number => {
-	const index = fs
-		.readdirSync(dstPath)
-		.filter(file => {
-			// make sure we get the first copy with no count suffix or the copies whose filename changed
-			// drop the extension to compare with filename prefix
-			const filePrefix = file.split('.').slice(0, -1).join('.');
-			const escapedFilePrefix = escapeStringRegexp(fileNamePrefix);
-			const fileWithSameName = filePrefix.match(new RegExp(`${escapedFilePrefix}\\.\\d+`));
-
-			return filePrefix === fileNamePrefix || fileWithSameName;
-		})
-		.length;
-
-	return index;
+	// Pick an unused index case-insensitively so default macOS/Windows
+	// filesystems do not overwrite title variants.
+	return getNextFilenameIndex(fs.readdirSync(dstPath), fileNamePrefix);
 
 };
 export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
