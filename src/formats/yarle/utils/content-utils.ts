@@ -18,10 +18,6 @@ export const getMetadata = (note: EvernoteNote, notebookName: string): MetaData 
 	};
 };
 
-export const getTitle = (note: EvernoteNote): string => {
-	return note.title ? `# ${note.title}` : '';
-};
-
 export const getCreationTime = (note: EvernoteNote): string => {
 	return !yarleOptions.skipCreationTime && note.created
 		? moment(note.created).format(yarleOptions.dateFormat)

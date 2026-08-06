@@ -580,19 +580,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Set selection state for node and all children recursively
-	 * Children are also disabled when selected (to indicate inherited selection)
-	 */
-
-	/**
-	 * Check if all nodes are selected
-	 */
-
-	/**
-	 * Select or deselect all nodes
-	 */
-
-	/**
 	 * Update toggle button text
 	 */
 	private updateToggleButtonText(): void {

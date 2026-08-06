@@ -95,18 +95,6 @@ export const getMdFilePath = (note: EvernoteNote): string => {
 	return getFilePath(paths.mdPath, note, 'md');
 };
 
-export const getJsonFilePath = (note: EvernoteNote): string => {
-	return getFilePath(paths.mdPath, note, 'json');
-};
-export const getHtmlFilePath = (note: EvernoteNote): string => {
-	return getFilePath(paths.resourcePath, note, 'html');
-};
-
-export const getHtmlFileLink = (note: EvernoteNote): string => {
-	const filePath = getHtmlFilePath(note);
-
-	return `.${filePath.slice(paths.resourcePath.lastIndexOf(path.sep))}`;
-};
 
 const clearDistDir = (dstPath: string): void => {
 	if (fs.existsSync(dstPath)) {

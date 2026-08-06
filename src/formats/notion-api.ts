@@ -572,25 +572,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-
-	/**
-	 * Select or deselect all nodes in the tree
-	 */
-
-	/**
-	 * Select/deselect all children recursively
-	 */
-
-	/**
-	 * Enable all children recursively (remove disabled state)
-	 */
-
-	/**
-	 * Check if all nodes in the tree are selected
-	 * Used to determine button text and behavior (Select all vs Deselect all)
-	 * Returns true if ALL nodes (including disabled children) are selected
-	 */
-
 	/**
 	 * Handle toggle select button click
 	 * Selects all nodes if not all selected, deselects all if all selected
