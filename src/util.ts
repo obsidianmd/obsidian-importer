@@ -50,6 +50,26 @@ export function sanitizeFileName(name: string | undefined | null) {
 }
 
 /**
+ * Make a path out of names that came from the source.
+ *
+ * Each segment becomes a folder, so each has to survive as one: a CSV template
+ * like `{{Category}}/{{Name}}` puts a cell value straight into a path, and a
+ * value ending in a period is a folder Windows will create and then refuse to
+ * open. The same rule note titles go through, applied a segment at a time so
+ * the separators survive it.
+ *
+ * A segment left empty contributes nothing, rather than becoming a folder
+ * called "Untitled".
+ */
+export function sanitizeFilePath(path: string): string {
+	return path
+		.split('/')
+		.filter(segment => segment.trim())
+		.map(segment => sanitizeFileName(segment))
+		.join('/');
+}
+
+/**
  * Get a free path to create a file or folder at, appending 1, 2, etc. if needed.
  *
  * Defers to Vault.getAvailablePath, which is what Obsidian itself uses when

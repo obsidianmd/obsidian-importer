@@ -3,7 +3,7 @@ import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, Pic
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { ImportContext } from './import-context';
-import { sanitizeFileName } from './util';
+import { getUniqueFilePath, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -417,9 +417,9 @@ export abstract class FormatImporter {
 
 	// Utility functions for vault
 
-	/** Remove any characters that would be illegal on any platform. */
+	/** Make a path out of names that came from the source. See sanitizeFilePath. */
 	sanitizeFilePath(path: string): string {
-		return path.replace(/[:|?<>*\\]/g, '');
+		return sanitizeFilePath(path);
 	}
 
 	/**
@@ -444,22 +444,37 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * Write a file at a name no existing file occupies.
+	 *
+	 * The one place an importer creates something in the vault, so that what
+	 * happens when a name is taken is answered once. It is answered the way
+	 * Obsidian answers it: getUniqueFilePath defers to Vault.getAvailablePath,
+	 * which appends " 1", " 2" and compares case-insensitively, so nothing an
+	 * import writes lands on a note that is already there.
+	 *
+	 * Two notes wanting one name are two notes. Recognising that an incoming
+	 * note is one an earlier import already wrote is a different question -
+	 * it needs an id from the source, not a file name - and belongs to the
+	 * importers that carry one.
+	 *
+	 * @param fileName - Name with extension, e.g. "Note.md"
+	 */
+	async createFile(folder: TFolder, fileName: string, content: string, options?: DataWriteOptions): Promise<TFile> {
+		const path = getUniqueFilePath(this.vault, folder.path, fileName);
+
+		return await this.vault.create(path, content, options);
+	}
+
+	/**
 	 * Write a note, optionally carrying the timestamps it had in the source.
 	 *
-	 * createNewMarkdownFile is what gives the note a free name, and it takes no
-	 * write options, so the timestamps are set by appending nothing to the file
-	 * it just wrote. Three importers each kept their own copy of that trick
-	 * before it moved here.
+	 * Callers hand the title both with and without the extension, which
+	 * createNewMarkdownFile used to absorb: it treats a trailing ".md" as the
+	 * extension it was about to add, and any other dot as part of the name.
 	 */
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		let sanitizedName = sanitizeFileName(title);
-		// @ts-ignore
-		const file: TFile = await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+		const sanitizedName = sanitizeFileName(title).replace(/\.md$/i, '');
 
-		if (options) {
-			await this.vault.append(file, '', options);
-		}
-
-		return file;
+		return await this.createFile(folder, `${sanitizedName}.md`, content, options);
 	}
 }

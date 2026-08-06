@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sanitizeFileName, stripControlCharacters } from '../../src/util';
+import { sanitizeFileName, sanitizeFilePath, stripControlCharacters } from '../../src/util';
 
 test('a name with nothing usable in it falls back to Untitled', () => {
 	// A source that has no title at all hands over undefined or null rather
@@ -65,4 +65,33 @@ test('control characters go, astral characters stay', () => {
 	// Surrogate pairs read as their lead unit, which is above the C1 range
 	assert.equal(stripControlCharacters('a\u{1F642}b'), 'a\u{1F642}b');
 	assert.equal(sanitizeFileName('note\u0000name'), 'notename');
+});
+
+/**
+ * A path from the source is a run of names, each of which becomes a folder,
+ * so each has to survive as one. A CSV template like `{{Category}}/{{Name}}`
+ * puts a cell value straight into one of those positions.
+ */
+test('every segment of a path goes through the same rule a name does', () => {
+	assert.equal(sanitizeFilePath('Work/Q1 Plan'), 'Work/Q1 Plan');
+	// The separators are what sanitizeFileName would otherwise turn into dashes
+	assert.equal(sanitizeFilePath('a/b/c'), 'a/b/c');
+});
+
+test('a segment Windows would refuse is fixed where it stands', () => {
+	// The folder this used to make can be created on Windows and then not opened
+	assert.equal(sanitizeFilePath('Reports./Q1'), 'Reports/Q1');
+	assert.equal(sanitizeFilePath('Work/  Draft  '), 'Work/Draft');
+	assert.equal(sanitizeFilePath('Work/con/notes'), 'Work/Untitled/notes');
+});
+
+test('an empty segment contributes nothing rather than a folder', () => {
+	assert.equal(sanitizeFilePath('Work//Q1'), 'Work/Q1');
+	assert.equal(sanitizeFilePath('/Work/'), 'Work');
+	assert.equal(sanitizeFilePath('   '), '');
+});
+
+test('a segment with nothing usable still becomes a folder', () => {
+	// Unlike an empty one: the source named it, so a level is expected here.
+	assert.equal(sanitizeFilePath('Work/.../Q1'), 'Work/Untitled/Q1');
 });
