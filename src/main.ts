@@ -1,6 +1,8 @@
-import { App, Modal, Notice, ObsidianProtocolData, Platform, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Platform, Plugin, Setting } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
+import { AuthCallback } from './constants';
+import { ImportContext } from './import-context';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
 import { AppleJournalImporter } from './formats/apple-journal';
@@ -34,25 +36,6 @@ interface ImporterDefinition {
 
 
 /**
- * URI to use as the callback for OAuth applications.
- */
-export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
-
-/**
- * List of accepted attachment extensions
- */
-export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
-
-/**
- * AuthCallback is a function which will be called when the importer-auth
- * protocal is opened by an OAuth callback.
- */
-export type AuthCallback = (data: ObsidianProtocolData) => void;
-
-// Temporary compatibility for in progress PRs
-export type ProgressReporter = ImportContext;
-
-/**
  * A skip or failure reason as readable text.
  *
  * Callers pass strings, Errors and plain API error objects alike, and String()
@@ -74,14 +57,6 @@ function describeReason(reason: unknown): string {
 }
 
 /**
- * What an import reports as it runs: what it wrote, what it skipped, and how
- * far along it is.
- *
- * This holds the counts and nothing else. Showing them is ImportProgressUI's,
- * which is what the dialog uses - an import driven from a script or a test
- * reports into this and draws nothing.
- */
-/**
  * A status message as it is shown, which is with an ellipsis: the messages are
  * written as the thing being done rather than as a sentence. One that already
  * ends in a stop keeps the one it has rather than collecting a second.
@@ -91,114 +66,6 @@ function statusText(message: string): string {
 	if (!trimmed) return '';
 
 	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
-}
-
-export class ImportContext {
-	notes = 0;
-	attachments = 0;
-	skipped: string[] = [];
-	failed: string[] = [];
-	maxFileNameLength: number = 100;
-	statusMessage: string = '';
-
-	cancelled: boolean = false;
-
-	/** Latest reportProgress, for a progress bar drawn outside the dialog. */
-	progressCurrent: number = 0;
-	progressTotal: number = 0;
-
-	/**
-	 * Sets the current user visible in-progress task. The purpose is to tell the user that something is happening,
-	 * and makes it easy to tell if something got stuck.
-	 *
-	 * Try to keep the message short, since longer ones will get truncated based on font and space availability.
-	 * @param message
-	 */
-	status(message: string) {
-		this.statusMessage = message;
-		this.onStatus(message);
-	}
-
-	/**
-	 * Report that a note has been successfully imported.
-	 * @param name
-	 */
-	reportNoteSuccess(name: string) {
-		this.notes++;
-		this.onNoteSuccess(name);
-	}
-
-	/**
-	 * Report that an attachment has been successfully imported.
-	 * @param name
-	 */
-	reportAttachmentSuccess(name: string) {
-		this.attachments++;
-		this.onAttachmentSuccess(name);
-	}
-
-	/**
-	 * Report that something has been skipped and ignored.
-	 * If the skipping action is on purpose and expected for the import, then prefer not to report it
-	 * (for example, some tools export to a Note.json and a Note.html, and we only use one of them).
-	 * @param name
-	 * @param reason
-	 */
-	reportSkipped(name: string, reason?: unknown) {
-		this.skipped.push(name);
-		this.onSkipped(name, reason);
-	}
-
-	/**
-	 * Report that something has failed to import.
-	 * @param name
-	 * @param reason
-	 */
-	reportFailed(name: string, reason?: unknown) {
-		this.failed.push(name);
-		console.error('Import failed', name, reason);
-		this.onFailed(name, reason);
-	}
-
-	/**
-	 * Report the current progress. This will update the progress bar as well as changing
-	 * the "imported" and "remaining" numbers on the UI.
-	 * @param current
-	 * @param total
-	 */
-	reportProgress(current: number, total: number) {
-		if (total <= 0) return;
-		// Kept, not just handed on: anything drawing this outside the dialog -
-		// the notice shown while the dialog is hidden - has no other way to ask
-		this.progressCurrent = current;
-		this.progressTotal = total;
-		this.onProgress(current, total);
-	}
-
-	cancel() {
-		this.cancelled = true;
-		this.hideStatus();
-	}
-
-	hideStatus() {
-		this.onHideStatus();
-	}
-
-	/**
-	 * Check if the user has cancelled this run.
-	 */
-	isCancelled() {
-		return this.cancelled;
-	}
-
-	/* Where a subclass draws what the import is doing. Nothing here does. */
-	protected onStatus(message: string): void {}
-	protected onNoteSuccess(name: string): void {}
-	protected onAttachmentSuccess(name: string): void {}
-	protected onSkipped(name: string, reason?: unknown): void {}
-	protected onFailed(name: string, reason?: unknown): void {}
-	protected onProgress(current: number, total: number): void {}
-	protected onHideStatus(): void {}
 }
 
 /** An import reporting into the dialog. */

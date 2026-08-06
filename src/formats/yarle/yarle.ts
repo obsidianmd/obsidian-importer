@@ -1,6 +1,6 @@
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { YarleOptions } from './options';
 import { processNode } from './process-node';

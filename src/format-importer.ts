@@ -1,6 +1,8 @@
 import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
-import ImporterPlugin, { ImportContext, AuthCallback } from './main';
+import ImporterPlugin from './main';
+import { AuthCallback } from './constants';
+import { ImportContext } from './import-context';
 import { sanitizeFileName } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;

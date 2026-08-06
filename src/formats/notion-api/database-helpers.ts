@@ -11,7 +11,7 @@ import {
 	PartialPageObjectResponse
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
-import { ImportContext } from '../../main';
+import { ImportContext } from '../../import-context';
 import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../../util';
 import { parseFilePath } from '../../filesystem';
 import { makeNotionRequest } from './api-helpers';

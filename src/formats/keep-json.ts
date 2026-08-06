@@ -1,7 +1,8 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ATTACHMENT_EXTS, ImportContext } from '../main';
+import { ATTACHMENT_EXTS } from '../constants';
+import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { convertKeepNote } from './keep/convert';

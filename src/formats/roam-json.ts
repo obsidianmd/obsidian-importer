@@ -1,4 +1,4 @@
-import { ImportContext } from 'main';
+import { ImportContext } from '../import-context';
 import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';

@@ -1,7 +1,7 @@
 import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
 import { convertBearNote } from './bear/convert';
 

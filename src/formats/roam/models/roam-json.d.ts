@@ -1,4 +1,4 @@
-import { NodePickedFile } from 'filesystem';
+import { NodePickedFile } from '../../../filesystem';
 
 export interface RoamImportOptions {
 	saveAttachments: boolean;

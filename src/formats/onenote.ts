@@ -2,7 +2,8 @@ import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection 
 import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
-import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI, ImportContext } from '../main';
+import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
+import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
 import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBRElement, isParagraphWrappingOnlyCode } from './onenote/code';
 import { inkmlToSvg } from './onenote/inkml';

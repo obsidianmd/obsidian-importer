@@ -1,7 +1,7 @@
 import { FileSystemAdapter, Notice } from 'obsidian';
 import { path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ImportContext } from '../main';
+import { ImportContext } from '../import-context';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
