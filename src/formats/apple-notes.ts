@@ -42,7 +42,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-	duplicateHandling = DuplicateHandling.ImportUpdated;
+	duplicateHandling = DuplicateHandling.CreateCopy;
 	trashFolders: number[] = [];
 	filePrefixFormat: string;
 	/** Every note path this run has written, to tell a copy from an update. */
@@ -124,7 +124,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				.addOption(DuplicateHandling.Skip, 'Skip import')
 				.addOption(DuplicateHandling.ImportUpdated, 'Import only updated')
 				.addOption(DuplicateHandling.CreateCopy, 'Create a copy')
-				.setValue(DuplicateHandling.ImportUpdated)
+				.setValue(DuplicateHandling.CreateCopy)
 				.onChange(async v => this.duplicateHandling = v as DuplicateHandling)
 			);
 	}
