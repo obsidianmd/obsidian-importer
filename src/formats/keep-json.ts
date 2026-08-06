@@ -126,11 +126,10 @@ export class KeepImporter extends FormatImporter {
 		ctx.reportNoteSuccess(fullpath);
 	}
 
-	// Keep assets have filenames that appear unique, so no duplicate handling isn't implemented
 	async copyFile(file: PickedFile, folderPath: string) {
 		let assetFolder = await this.createFolders(folderPath);
 		let data = await file.read();
-		await this.vault.createBinary(`${assetFolder.path}/${file.name}`, data);
+		await this.createBinaryFile(assetFolder, file.name, data);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {

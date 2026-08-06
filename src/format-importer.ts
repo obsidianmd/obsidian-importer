@@ -529,6 +529,21 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * Write an attachment at a name no existing file occupies.
+	 *
+	 * createFile for the things an import carries alongside its notes. The
+	 * vault throws on a name that is taken rather than picking another, so a
+	 * second attachment of a name fails its note without this.
+	 *
+	 * @param fileName - Name with extension, e.g. "photo.jpg"
+	 */
+	async createBinaryFile(folder: TFolder, fileName: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {
+		const path = getUniqueFilePath(this.vault, folder.path, fileName);
+
+		return await this.vault.createBinary(path, data, options);
+	}
+
+	/**
 	 * Write a note, optionally carrying the timestamps it had in the source.
 	 *
 	 * Callers hand the title both with and without the extension, which
