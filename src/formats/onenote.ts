@@ -811,7 +811,7 @@ export class OneNoteImporter extends FormatImporter {
 					// Iterate backward to find the parent page
 					for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
 						if (section.pages![i].level === page.level! - 1) {
-							const sanitizedName = sanitizeFileName(section.pages![i].title || 'Untitled');
+							const sanitizedName = sanitizeFileName(section.pages![i].title);
 							returnPath += '/' + sanitizedName;
 							break;
 						}
@@ -827,7 +827,7 @@ export class OneNoteImporter extends FormatImporter {
 		// Recursively search in section groups
 		let returnPath: string | null = null;
 		for (const sectionGroup of sectionGroups) {
-			const sanitizedName = sanitizeFileName(sectionGroup.displayName || 'Untitled');
+			const sanitizedName = sanitizeFileName(sectionGroup.displayName);
 			if (sectionGroup.id === entityID) returnPath = `${currentPath}/${sanitizedName}`;
 			else {
 				const foundPath = this.getEntityPath(entityID, `${currentPath}/${sanitizedName}`, sectionGroup);

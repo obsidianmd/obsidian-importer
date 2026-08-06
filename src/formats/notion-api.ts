@@ -833,7 +833,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Extract page title
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
-			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle || 'Untitled');
+			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
 
 			// Update status with page title instead of ID
 			ctx.status(`Importing: ${sanitizedTitle}`);
