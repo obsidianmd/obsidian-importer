@@ -114,6 +114,6 @@ When a recording depends on one of them, check it against the real thing rather 
 - `createEl` with a `null` attribute value omits the attribute; `undefined` writes the string `"undefined"`.
 - **Don't add an `id` property to a Modal subclass.** Obsidian assigns one, and a getter with no setter swallows the write and hangs the app on open. Name it something else (`importerId`).
 - From `eval`, close a modal with an `Escape` keydown. Clicking `.modal-close-button` does not close it, and detaching `.modal-container` wedges the app.
-- linkedom has no `HTMLAudioElement` or `HTMLVideoElement`, so check `tagName` rather than `instanceOf` in conversion code.
+- linkedom has no `HTMLAudioElement`, `HTMLVideoElement` or `HTMLBRElement`, so check `tagName` rather than `instanceOf` in conversion code. It also does not specialise every tag it *does* have a constructor for — `p.instanceOf(HTMLParagraphElement)` is false under the shim while `img.instanceOf(HTMLImageElement)` is true. A missing constructor throws; an unspecialised one just returns false, so the predicate reads as working and the recording it produces looks green.
 - `htmlToMarkdown` on a whole document drops `head`; turndown does not, which is why the shim removes it explicitly.
 - Obsidian's markdown escapes nothing coming out of HTML, and percent-encodes spaces in link targets rather than wrapping them in `<>`.
