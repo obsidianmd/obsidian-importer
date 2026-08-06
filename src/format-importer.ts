@@ -1,4 +1,4 @@
-import { App, DataWriteOptions, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
@@ -8,17 +8,6 @@ import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFil
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
-/**
- * What an import does with a note that the vault already holds.
- *
- * Skip and ImportUpdated must know that an incoming note is one an earlier
- * import wrote. A file name does not tell them that - two notes share a title
- * often enough - so an importer that offers either one writes an id from the
- * source into the note, and reads it back on the next import.
- *
- * CreateCopy needs no id, and is what an importer does when it offers nothing
- * else: it adds notes, and it writes over none.
- */
 export enum DuplicateHandling {
 	Skip = 'skip',
 	ImportUpdated = 'import-updated',
@@ -361,6 +350,10 @@ export abstract class FormatImporter {
 			});
 	}
 
+	/**
+	 * Where the import writes, remembered between runs. The name passed in is
+	 * the fallback for an importer that has not been run before.
+	 */
 	addOutputLocationSetting(defaultExportFolderName: string) {
 		this.outputLocation = defaultExportFolderName;
 		this.addSetting()
@@ -372,10 +365,43 @@ export abstract class FormatImporter {
 					.onChange(value => {
 						this.outputLocation = value;
 						this.outputFolder = null;
+						this.saveOutputLocation(value);
 					});
 				new FolderSuggest(this.app, text.inputEl);
+
+				// Plugin data is only readable asynchronously, and init() is not,
+				// so the remembered folder is filled in once it arrives. Nothing
+				// can await it, so a failure leaves the default in place.
+				this.loadOutputLocation()
+					.then(location => {
+						if (location === null) return;
+						this.outputLocation = location;
+						this.outputFolder = null;
+						text.setValue(location);
+					})
+					.catch(e => console.error('Could not read the output folder', e));
 			});
 	}
+
+	private async loadOutputLocation(): Promise<string | null> {
+		let data = await this.host.plugin.loadData();
+		return data.outputLocations?.[this.host.importerId] ?? null;
+	}
+
+	/** Debounced: onChange runs per keystroke, and each save rewrites the file. */
+	private saveOutputLocation = debounce((location: string) => {
+		void (async () => {
+			try {
+				let data = await this.host.plugin.loadData();
+				// Copy rather than mutate, for the reason saveSecretId gives.
+				data.outputLocations = { ...data.outputLocations, [this.host.importerId]: location };
+				await this.host.plugin.saveData(data);
+			}
+			catch (e) {
+				console.error('Could not remember the output folder', e);
+			}
+		})();
+	}, 1000, true);
 
 	async getOutputFolder(): Promise<TFolder | null> {
 		if (this.outputFolder) {

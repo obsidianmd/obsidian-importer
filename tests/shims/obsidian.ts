@@ -11,7 +11,7 @@
  *
  * The file classes below are the one deliberate exception. Every importer now
  * writes through FormatImporter.createFile, and what that does with a name
- * already taken is worth a test of its own - it is shared by all of them, and
+ * already taken is worth a test of its own, it is shared by all of them, and
  * e2e reaches only the importers whose fixtures need no vault. Testing it needs
  * `instanceof TFile` to work, which needs the classes to exist here. The vault
  * they live in is tests/shims/vault.ts, not this file.
@@ -22,16 +22,7 @@ import * as yaml from 'yaml';
 export { moment };
 
 /**
- * Frontmatter, in the dialect Obsidian writes.
- *
- * Checked against the app rather than assumed: a note written through
- * processFrontMatter comes back with two-space list indentation, plain scalars
- * wherever YAML allows them - a date, a time, "yes" - double quotes on anything
- * that does need quoting, and a null property written as the key alone.
- *
- * All of that is what this library does by default, bar the null, hence
- * nullStr. lineWidth is off so a long value is never wrapped, since a wrapped
- * line would change a recorded note without changing what it holds.
+ * Frontmatter using the same format as Obsidian.
  */
 export function stringifyYaml(value: unknown): string {
 	return yaml.stringify(value, { nullStr: '', lineWidth: 0 });
@@ -244,14 +235,6 @@ export class SecretComponent {
 	}
 }
 
-/**
- * The type-ahead behind the output folder box, and the fuzzy search it ranks
- * with. Drawn only in the dialog, so a headless import reaches none of it.
- *
- * Here for the same reason Setting is: FolderSuggest extends this one at load,
- * and calls the others when a suggestion is asked for, so the names have to
- * resolve even though nothing outside the app runs them.
- */
 export class AbstractInputSuggest<T> {
 	constructor(_app: unknown, _textInputEl: unknown) {
 		throw new Error('AbstractInputSuggest cannot be drawn outside Obsidian');
@@ -272,14 +255,41 @@ export function sortSearchResults(_results: unknown[]): never {
 	throw new Error('sortSearchResults is not available outside Obsidian');
 }
 
-/**
- * The plugin's way out to the network, which nothing here reaches.
- *
- * requestUrl rather than fetch because it is not bound by CORS, and the
- * importers download through it. A test that needs an answer supplies one with
- * answerRequests; anything else asks for a request nobody meant to make, and
- * says so rather than reaching a real server.
- */
+export function debounce<T extends unknown[]>(cb: (...args: T) => unknown, timeout: number = 0, resetTimer: boolean = false) {
+	let timer: ReturnType<typeof setTimeout> | null = null;
+	let pending: T | null = null;
+
+	const debounced = (...args: T) => {
+		pending = args;
+		if (timer !== null) {
+			if (!resetTimer) return debounced;
+			clearTimeout(timer);
+		}
+		timer = setTimeout(() => {
+			timer = null;
+			const args = pending;
+			pending = null;
+			if (args) cb(...args);
+		}, timeout);
+		return debounced;
+	};
+
+	debounced.cancel = () => {
+		if (timer !== null) clearTimeout(timer);
+		timer = null;
+		pending = null;
+		return debounced;
+	};
+
+	debounced.run = () => {
+		const args = pending;
+		debounced.cancel();
+		return args ? cb(...args) : undefined;
+	};
+
+	return debounced;
+}
+
 type Request = { url: string, method?: string, headers?: Record<string, string>, throw?: boolean };
 type Response = { status: number, headers: Record<string, string>, arrayBuffer: ArrayBuffer };
 type RequestHandler = (request: Request) => Response | Promise<Response>;
@@ -288,7 +298,6 @@ let requestHandler: RequestHandler = request => {
 	throw new Error(`No answer prepared for ${request.method ?? 'GET'} ${request.url}`);
 };
 
-/** Answer requests with this, for one test. Returns what it replaced. */
 export function answerRequests(handler: RequestHandler): RequestHandler {
 	const previous = requestHandler;
 	requestHandler = handler;

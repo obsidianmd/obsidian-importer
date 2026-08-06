@@ -1,20 +1,8 @@
 import { AbstractInputSuggest, App, FuzzyMatch, prepareFuzzySearch, renderMatches, sortSearchResults, TFolder } from 'obsidian';
 
-/**
- * Type-ahead over the folders already in the vault, for a setting that takes a
- * folder path.
- *
- * The input stays free text. An import usually writes to a folder that is not
- * there yet - the importer creates it - and there is nothing to suggest for a
- * folder that does not exist, so this only offers to complete what does.
- */
+/** Type-ahead over the folders in the vault, for a setting that takes a path. */
 export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
-	/**
-	 * The element the suggestions are attached to.
-	 *
-	 * AbstractInputSuggest holds one too, but does not declare it, so this
-	 * keeps its own rather than reaching for a field the API does not promise.
-	 */
+	/** AbstractInputSuggest holds this too, but does not declare it. */
 	private readonly inputEl: HTMLInputElement;
 
 	constructor(app: App, inputEl: HTMLInputElement) {
@@ -26,8 +14,7 @@ export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
 		const search = prepareFuzzySearch(query);
 		const matches: FuzzyMatch<TFolder>[] = [];
 
-		// The root included: writing to it is what an empty path means, and a
-		// vault with no folders would otherwise suggest nothing at all.
+		// The root included, since writing to it is what an empty path means.
 		for (const folder of this.app.vault.getAllFolders(true)) {
 			const match = search(folder.path);
 			if (match) {
@@ -45,9 +32,7 @@ export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
 
 	selectSuggestion(value: FuzzyMatch<TFolder>, evt: MouseEvent | KeyboardEvent): void {
 		this.setValue(value.item.path);
-		// setValue writes the element's value directly, which fires nothing.
-		// The setting is listening for input, so say so, or the path shows in
-		// the box and the importer never hears about it.
+		// setValue fires nothing, and the setting is listening for input.
 		this.inputEl.trigger('input');
 		this.close();
 		super.selectSuggestion(value, evt);
