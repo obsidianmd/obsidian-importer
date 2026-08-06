@@ -1,6 +1,6 @@
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs, NodePickedFile, path, PickedFile } from '../../../filesystem';
-import { genUid } from '../../../util';
+import { genUid, sanitizeFileName } from '../../../util';
 import { YarleOptions } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { yarleOptions } from '../yarle';
@@ -158,6 +158,17 @@ export const getNotebookNameAndFolderNames = (basename: string): { notebookName:
 	};
 };
 
+/**
+ * The stack a notebook sits in, as folder names a filesystem will take.
+ *
+ * The notebook name itself is left alone: it is what templates and the
+ * runtime metadata show, and only the folder it becomes has to be legal.
+ */
+export const getSanitizedNotebookFolderNames = (basename: string): string[] => {
+	const { notebookFolderNames } = getNotebookNameAndFolderNames(basename);
+
+	return notebookFolderNames.map(name => sanitizeFileName(name));
+};
 
 export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProps => {
 	if (!(baseEnex instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
@@ -173,7 +184,7 @@ export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProp
 
 export const getNotebookStackOutputDir = (enex: PickedFile, options: YarleOptions): string => {
 
-	const { notebookFolderNames } = getNotebookNameAndFolderNames(enex.basename);
+	const notebookFolderNames = getSanitizedNotebookFolderNames(enex.basename);
 
 	fs.mkdirSync(path.join(options.outputDir, ...notebookFolderNames), { recursive: true });
 	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
@@ -202,11 +213,12 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 
 	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
 	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
-		// Truncate enex filename if it's too long to prevent path issues
-		let truncatedBasename = enexFileBasename;
+		// Sanitize before truncating: a name that ends in a dot or a space
+		// cannot be a folder on Windows, and truncation can leave one behind.
+		let truncatedBasename = sanitizeFileName(enexFileBasename);
 
-		if (enexFileBasename.length > MAX_ENEX_DIR_LENGTH) {
-			truncatedBasename = enexFileBasename.substring(0, MAX_ENEX_DIR_LENGTH);
+		if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
+			truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH));
 			console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
 		}
 
