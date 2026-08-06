@@ -1,7 +1,7 @@
 import { ImportContext } from '../import-context';
 import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
@@ -59,6 +59,10 @@ export class RoamJSONImporter extends FormatImporter {
 					this.titleYAML = value;
 				});
 			});
+
+		// A Roam page is addressed by its title, so the note of that name is the
+		// page - no id needed, and none to write
+		this.addDuplicateHandlingSetting();
 	}
 
 	async import(progress: ImportContext) {
@@ -163,14 +167,34 @@ export class RoamJSONImporter extends FormatImporter {
 
 				try {
 					//create folders for nested pages [[some/nested/subfolder/page]]
-					const { parent } = parseFilePath(filename);
-					await this.createFolders(parent);
-					const existingFile = vault.getAbstractFileByPath(filename);
+					const { parent, name } = parseFilePath(filename);
+					const folder = await this.createFolders(parent);
+
+					// A Roam page is addressed by its title, so a page imported
+					// before is the note of that name. Case-insensitively: on
+					// macOS "Page.md" and "page.md" are one file, and the exact
+					// lookup used to miss that and fail the page on create.
+					const existingFile = this.duplicateHandling === DuplicateHandling.CreateCopy
+						? null
+						: vault.getAbstractFileByPathInsensitive(filename);
+
 					if (existingFile instanceof TFile) {
+						if (this.duplicateHandling === DuplicateHandling.Skip) {
+							progress.reportSkipped(filename, 'page already exists');
+							index++;
+							continue;
+						}
+
+						if (await vault.read(existingFile) === markdownOutput) {
+							progress.reportSkipped(filename, 'page unchanged since last import');
+							index++;
+							continue;
+						}
+
 						await vault.modify(existingFile, markdownOutput);
 					}
 					else {
-						await vault.create(filename, markdownOutput);
+						await this.createFile(folder, name, markdownOutput);
 					}
 					progress.reportNoteSuccess(filename);
 					progress.reportProgress(index, totalCount);
