@@ -87,11 +87,11 @@ Bellow is a completely empty callout:
 
 > [!info] Cat  
 > The cat, also referred to as the domestic cat or house cat, is a small domesticated carnivorous mammal.  
-> [https://w.wiki/Wz6](https://w.wiki/Wz6)  
+> https://w.wiki/Wz6  
 
 **Webpage Bookmark**
 
-[https://w.wiki/Wz6](https://w.wiki/Wz6)
+https://w.wiki/Wz6
 
 **Embedded webpage**
 
