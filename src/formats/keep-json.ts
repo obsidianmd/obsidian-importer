@@ -135,9 +135,6 @@ export class KeepImporter extends FormatImporter {
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
 		const { content, ctime, mtime } = convertKeepNote(keepJson, filename);
-		const file = await this.saveAsMarkdownFile(folder, filename, content);
-
-		// Modifying the creation and modified timestamps without changing file contents.
-		await this.vault.append(file, '', { ctime, mtime });
+		await this.saveAsMarkdownFile(folder, filename, content, { ctime, mtime });
 	}
 }

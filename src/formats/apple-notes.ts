@@ -1,4 +1,4 @@
-import { Notice, Platform, TFile, TFolder, moment } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
@@ -509,7 +509,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 	}
 
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		if (this.duplicateHandling === DuplicateHandling.Skip || this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 			// For Skip and ImportUpdated, create the file directly without numeric suffix
 			const sanitizedName = sanitizeFileName(title);
@@ -523,6 +523,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 		// For CreateCopy option, use the default behavior from FormatImporter (creates numbered copies)
-		return super.saveAsMarkdownFile(folder, title, content);
+		return super.saveAsMarkdownFile(folder, title, content, options);
 	}
 }

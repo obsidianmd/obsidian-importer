@@ -607,16 +607,14 @@ export class OneNoteImporter extends FormatImporter {
 				mdContent += inkEmbedMarkdown;
 			}
 
-			const fileRef = await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent);
-
-			// Add the last modified and creation time metadata
+			// Carry the last modified and creation time over from OneNote
 			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
 			const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
 			const writeOptions: DataWriteOptions = {
 				ctime: created ?? lastModified ?? Date.now(),
 				mtime: lastModified ?? created ?? Date.now(),
 			};
-			await this.vault.append(fileRef, '', writeOptions);
+			await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent, writeOptions);
 			progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
@@ -802,7 +800,7 @@ export class OneNoteImporter extends FormatImporter {
 					 * ...Section/Example/Page.md and ...Section/Example/Lower level.md
 					 */
 					if (section.pages![i + 1] && section.pages![i + 1].level !== 0) {
-						const sanitizedName = sanitizeFileName(page.title || 'Untitled');
+						const sanitizedName = sanitizeFileName(page.title);
 						returnPath = `${currentPath}/${sanitizedName}`;
 					}
 					else returnPath = currentPath;

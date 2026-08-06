@@ -1,4 +1,4 @@
-import { App, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import ImporterPlugin from './main';
 import { AuthCallback } from './constants';
@@ -443,9 +443,23 @@ export abstract class FormatImporter {
 		return folder;
 	}
 
-	async saveAsMarkdownFile(folder: TFolder, title: string, content: string): Promise<TFile> {
+	/**
+	 * Write a note, optionally carrying the timestamps it had in the source.
+	 *
+	 * createNewMarkdownFile is what gives the note a free name, and it takes no
+	 * write options, so the timestamps are set by appending nothing to the file
+	 * it just wrote. Three importers each kept their own copy of that trick
+	 * before it moved here.
+	 */
+	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		let sanitizedName = sanitizeFileName(title);
 		// @ts-ignore
-		return await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+		const file: TFile = await this.app.fileManager.createNewMarkdownFile(folder, sanitizedName, content);
+
+		if (options) {
+			await this.vault.append(file, '', options);
+		}
+
+		return file;
 	}
 }
