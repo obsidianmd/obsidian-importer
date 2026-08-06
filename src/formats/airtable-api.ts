@@ -4,7 +4,7 @@
  */
 
 import { ButtonComponent, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, parseFrontMatterBlock, updatePropertyTypes, plural } from '../util';
@@ -87,7 +87,10 @@ export class AirtableAPIImporter extends FormatImporter {
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'Views'; // Property name to track which views a record belongs to
-	incrementalImport: boolean = false; // Incremental import: skip files with same airtable-id (default: disabled)
+	/** Whether a note carries airtable-id, and an import may skip one it wrote. */
+	get incrementalImport(): boolean {
+		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
+	}
 
 	// Tree for base/table selection
 	private tree: AirtableTreeNode[] = [];
@@ -248,15 +251,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 				}));
 
-		// Incremental import setting
-		this.addSetting()
-			?.setName('Incremental import')
-			.setDesc('Adds an airtable-id property to records so that future imports can skip records that have already been imported.')
-			.addToggle(toggle => toggle
-				.setValue(false) // Default to disabled
-				.onChange(value => {
-					this.incrementalImport = value;
-				}));
+		// Airtable skips a record it wrote before, but does not compare times
+		this.addDuplicateHandlingSetting({ idProperty: 'airtable-id', modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 	}
 
 	private createTokenDescription(): DocumentFragment {

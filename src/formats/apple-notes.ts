@@ -5,7 +5,7 @@ import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { extractErrorMessage, parseFrontMatterBlock, sanitizeFileName, serializeFrontMatter } from '../util';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
@@ -17,12 +17,6 @@ const CORETIME_OFFSET = 978307200;
 /** Frontmatter property holding the Apple Notes id a note was imported from. */
 const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
-
-enum DuplicateHandling {
-	Skip = 'skip',
-	ImportUpdated = 'import-updated',
-	CreateCopy = 'create-copy'
-}
 
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	ctx: ImportContext;
@@ -44,7 +38,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	omitFirstLine = true;
 	importTrashed = false;
 	includeHandwriting = false;
-	duplicateHandling = DuplicateHandling.CreateCopy;
 	trashFolders: number[] = [];
 	filePrefixFormat: string;
 	/** Every note path this run has written, to tell a copy from an update. */
@@ -117,18 +110,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				.onChange(async v => this.includeHandwriting = v)
 			);
 
-		this.addSetting()
-			?.setName('Handle duplicate files')
-			.setDesc(
-				'How to handle notes that already exist in the vault.'
-			)
-			.addDropdown(d => d
-				.addOption(DuplicateHandling.Skip, 'Skip import')
-				.addOption(DuplicateHandling.ImportUpdated, 'Import only updated')
-				.addOption(DuplicateHandling.CreateCopy, 'Create a copy')
-				.setValue(DuplicateHandling.CreateCopy)
-				.onChange(async v => this.duplicateHandling = v as DuplicateHandling)
-			);
+		this.addDuplicateHandlingSetting({ idProperty: NOTE_ID_PROPERTY });
 	}
 
 	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {

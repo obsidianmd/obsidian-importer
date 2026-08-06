@@ -2,7 +2,7 @@ import { normalizePath, Notice, TFile } from 'obsidian';
 import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import type { ImportContext } from '../import-context';
 import { sanitizeFileName } from '../util';
 import { convertJournalEntry } from './apple-journal/convert';
@@ -10,18 +10,8 @@ import { convertJournalEntry } from './apple-journal/convert';
 const DEFAULT_OUTPUT_FOLDER = 'Journal';
 
 
-const DUPLICATE_HANDLING = {
-	Skip: 'skip',
-	ImportUpdated: 'import-updated',
-	CreateCopy: 'create-copy',
-} as const;
-
-type DuplicateHandling = (typeof DUPLICATE_HANDLING)[keyof typeof DUPLICATE_HANDLING];
-const DEFAULT_DUPLICATE_HANDLING = DUPLICATE_HANDLING.ImportUpdated;
-
 export class AppleJournalImporter extends FormatImporter {
 	private frontMatterEnabled = true;
-	private duplicateHandling: DuplicateHandling = DEFAULT_DUPLICATE_HANDLING;
 
 	init(): void {
 		const defaultImportPath = detectDefaultEntriesPath();
@@ -47,19 +37,7 @@ export class AppleJournalImporter extends FormatImporter {
 				});
 			});
 
-		this.addSetting()
-			?.setName('Handle duplicate files')
-			.setDesc('How to handle entries that already exist in the vault.')
-			.addDropdown(dropdown => {
-				dropdown
-					.addOption(DUPLICATE_HANDLING.Skip, 'Skip import')
-					.addOption(DUPLICATE_HANDLING.ImportUpdated, 'Import only updated')
-					.addOption(DUPLICATE_HANDLING.CreateCopy, 'Create a copy')
-					.setValue(DEFAULT_DUPLICATE_HANDLING)
-					.onChange(value => {
-						this.duplicateHandling = value as DuplicateHandling;
-					});
-			});
+		this.addDuplicateHandlingSetting();
 
 		this.addOutputLocationSetting(DEFAULT_OUTPUT_FOLDER);
 	}
@@ -111,18 +89,18 @@ export class AppleJournalImporter extends FormatImporter {
 		const existingFile = this.vault.getAbstractFileByPath(fullPath)
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
 
-		if (this.duplicateHandling === DUPLICATE_HANDLING.CreateCopy) {
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy) {
 			await this.saveAsMarkdownFile(folder, file.basename, mdContent);
 			return true;
 		}
 
 		if (existingFile instanceof TFile) {
-			if (this.duplicateHandling === DUPLICATE_HANDLING.Skip) {
+			if (this.duplicateHandling === DuplicateHandling.Skip) {
 				ctx.reportSkipped(file.fullpath, 'file already exists');
 				return false;
 			}
 
-			if (this.duplicateHandling === DUPLICATE_HANDLING.ImportUpdated) {
+			if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 				const existingContent = await this.vault.read(existingFile);
 				if (existingContent === mdContent) {
 					ctx.reportSkipped(file.fullpath, 'journal entry unchanged since last import');

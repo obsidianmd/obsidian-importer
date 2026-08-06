@@ -1,5 +1,5 @@
 import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
@@ -41,7 +41,10 @@ export class NotionAPIImporter extends FormatImporter {
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
-	incrementalImport: boolean = false; // Incremental import: skip files with same notion-id (default: disabled)
+	/** Whether a note carries notion-id, and an import may skip one it wrote. */
+	get incrementalImport(): boolean {
+		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
+	}
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
@@ -159,15 +162,8 @@ export class NotionAPIImporter extends FormatImporter {
 		const placeholder = this.pageTreeContainer.createDiv('publish-placeholder');
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
-		// Incremental import setting
-		this.addSetting()
-			?.setName('Incremental import')
-			.setDesc('Adds a notion-id property to pages so that future imports can skip pages that have already been imported.')
-			.addToggle(toggle => toggle
-				.setValue(false) // Default to disabled
-				.onChange(value => {
-					this.incrementalImport = value;
-				}));
+		// Notion skips a page it wrote before, but does not compare times
+		this.addDuplicateHandlingSetting({ idProperty: 'notion-id', modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 
 		// Formula import strategy
 		this.addSetting()

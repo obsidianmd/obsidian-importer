@@ -8,6 +8,29 @@ import { getUniqueFilePath, sanitizeFileName, sanitizeFilePath } from './util';
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
 /**
+ * What an import does with a note that the vault already holds.
+ *
+ * Skip and ImportUpdated must know that an incoming note is one an earlier
+ * import wrote. A file name does not tell them that - two notes share a title
+ * often enough - so an importer that offers either one writes an id from the
+ * source into the note, and reads it back on the next import.
+ *
+ * CreateCopy needs no id, and is what an importer does when it offers nothing
+ * else: it adds notes, and it writes over none.
+ */
+export enum DuplicateHandling {
+	Skip = 'skip',
+	ImportUpdated = 'import-updated',
+	CreateCopy = 'create-copy',
+}
+
+const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
+	[DuplicateHandling.Skip]: 'Skip import',
+	[DuplicateHandling.ImportUpdated]: 'Import only updated',
+	[DuplicateHandling.CreateCopy]: 'Create a copy',
+};
+
+/**
  * What an importer needs besides the vault: somewhere to draw its settings,
  * the plugin that stores its credentials, and which importer it is.
  *
@@ -38,6 +61,8 @@ export abstract class FormatImporter {
 	files: PickedFile[] = [];
 	outputLocation: string = '';
 	notAvailable: boolean = false;
+	/** See addDuplicateHandlingSetting. Copy unless the importer offers a choice. */
+	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
@@ -295,6 +320,44 @@ export abstract class FormatImporter {
 			descriptionFragment.createSpan({ cls: 'u-pop', text: pathText });
 			fileLocationSetting.setDesc(descriptionFragment);
 		};
+	}
+
+	/**
+	 * Let the user say what to do with a note the vault already holds.
+	 *
+	 * Only for an importer that can recognise a note it wrote before. It says
+	 * which property carries the id, and which modes it can honour: an importer
+	 * that skips but does not compare times leaves ImportUpdated out rather
+	 * than offering a mode that behaves as Skip.
+	 *
+	 * An importer that offers nothing here keeps the default, and every import
+	 * it runs adds notes and writes over none.
+	 */
+	protected addDuplicateHandlingSetting(options: {
+		/** The property that carries the source id, where the importer has one. */
+		idProperty?: string;
+		/** The modes to offer. All three, unless the importer says otherwise. */
+		modes?: DuplicateHandling[];
+	} = {}): void {
+		const setting = this.addSetting();
+		if (!setting) return;
+
+		const { idProperty, modes = [DuplicateHandling.Skip, DuplicateHandling.ImportUpdated, DuplicateHandling.CreateCopy] } = options;
+		const copy = DUPLICATE_HANDLING_LABELS[DuplicateHandling.CreateCopy];
+
+		setting
+			.setName('Notes already in the vault')
+			.setDesc(idProperty
+				? `What to do when a note is already there. Every mode but "${copy}" adds a` +
+					` ${idProperty} property to each note, so that a later import knows which note is which.`
+				: `What to do when a note is already there. Every mode but "${copy}" finds that note by its file name.`)
+			.addDropdown(dropdown => {
+				for (const mode of modes) dropdown.addOption(mode, DUPLICATE_HANDLING_LABELS[mode]);
+
+				dropdown
+					.setValue(this.duplicateHandling)
+					.onChange(value => this.duplicateHandling = value as DuplicateHandling);
+			});
 	}
 
 	addOutputLocationSetting(defaultExportFolderName: string) {
