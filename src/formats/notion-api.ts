@@ -20,26 +20,7 @@ import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { processDatabasePlaceholders, importDatabaseCore, replaceRelationValue } from './notion-api/database-helpers';
 import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
-
-// Notion API parent types (based on @notionhq/client internal types)
-type NotionParent =
-	| { type: 'page_id', page_id: string }
-	| { type: 'data_source_id', data_source_id: string, database_id: string }
-	| { type: 'database_id', database_id: string }
-	| { type: 'workspace', workspace: true }
-	| { type: 'block_id', block_id: string };
-
-// Tree node for page/database selection
-interface NotionTreeNode {
-	id: string; // For pages: page ID; For databases: data_source ID
-	title: string;
-	type: 'page' | 'database';
-	parentId: string | null;
-	children: NotionTreeNode[];
-	selected: boolean;
-	disabled: boolean; // Disabled when parent is selected
-	collapsed: boolean; // Whether the node's children are collapsed
-}
+import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
 export class NotionAPIImporter extends FormatImporter {
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
@@ -391,69 +372,10 @@ export class NotionAPIImporter extends FormatImporter {
 				cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
 			} while (cursor);
 
-			// Phase 1: Identify items that should be filtered
-			// Collect IDs of pages and databases that won't appear in tree:
-			// - Databases with database_parent.type === 'block_id'
-			// - Pages with parent.type === 'block_id'
-			const filteredIds = new Set<string>();
-
-			for (const item of allRawItems) {
-				if (item.object === 'data_source') {
-					// Databases inside blocks
-					if (item.database_parent && item.database_parent.type === 'block_id') {
-						filteredIds.add(item.id);
-					}
-				}
-				else if (item.object === 'page') {
-					// Pages with block_id parent
-					if (item.parent && item.parent.type === 'block_id') {
-						filteredIds.add(item.id);
-					}
-				}
-			}
-
-			// Phase 2: Process items and filter appropriately
-			const allItems: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }> = [];
-			for (const item of allRawItems) {
-				// Skip if this item itself is in the filtered list
-				if (filteredIds.has(item.id)) {
-					continue;
-				}
-
-				// Skip databases whose parent page is filtered
-				if (item.object === 'data_source' && item.database_parent && item.database_parent.type === 'page_id') {
-					const parentPageId = item.database_parent.page_id;
-					if (filteredIds.has(parentPageId)) {
-						continue;
-					}
-				}
-
-				// Skip pages that belong to filtered databases
-				if (item.object === 'page' && item.parent && item.parent.type === 'data_source_id') {
-					const dataSourceId = item.parent.data_source_id;
-					if (filteredIds.has(dataSourceId)) {
-						continue;
-					}
-				}
-
-				// Process page or data_source (database)
-				if (item.object === 'page' || item.object === 'data_source') {
-					const isDatabase = item.object === 'data_source';
-					const title = this.extractItemTitle(item, isDatabase ? 'Untitled Database' : 'Untitled');
-					const parentObj = isDatabase ? item.database_parent : item.parent;
-					const parentId = this.extractParentId(parentObj, isDatabase ? 'database' : 'page');
-
-					allItems.push({
-						id: item.id,
-						title,
-						type: isDatabase ? 'database' : 'page',
-						parentId
-					});
-				}
-			}
+			const allItems = collectItems(allRawItems);
 
 			// Build tree structure
-			this.pageTree = this.buildTree(allItems);
+			this.pageTree = buildTree(allItems);
 
 			// Render tree (this will also update button text)
 			this.renderPageTree();
@@ -481,84 +403,6 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Extract title from a Notion item (page or data_source)
-	 * Both use the same title array structure with rich text
-	 */
-	private extractItemTitle(item: any, defaultTitle: string = 'Untitled'): string {
-		let titleArray: any[] | undefined;
-
-		// data_source has title directly
-		if (item.title) {
-			titleArray = item.title;
-		}
-		// page has title in properties object
-		// properties is an object where one of the keys has type: 'title'
-		else if (item.properties) {
-			// Find the property with type 'title'
-			for (const key in item.properties) {
-				const prop = item.properties[key];
-				if (prop.type === 'title' && prop.title) {
-					titleArray = prop.title;
-					break;
-				}
-			}
-		}
-
-		if (!titleArray || !Array.isArray(titleArray)) {
-			return defaultTitle;
-		}
-
-		const title = titleArray
-			.map((t: any) => t.text?.content || t.plain_text || '')
-			.join('')
-			.trim();
-
-		return title || defaultTitle;
-	}
-
-	/**
-	 * Extract parent ID from a parent object (used for both page.parent and data_source.database_parent)
-	 * Note: Items with block_id parent should be filtered out before calling this
-	 */
-	private extractParentId(
-		parentObj: NotionParent | null | undefined,
-		context: 'page' | 'database'
-	): string | null {
-		if (!parentObj) {
-			return null;
-		}
-
-		switch (parentObj.type) {
-			case 'page_id':
-				return parentObj.page_id;
-
-			case 'data_source_id':
-				// Pages in a database have data_source_id as parent
-				return parentObj.data_source_id;
-
-			case 'database_id':
-				// Databases can have database_id as parent (nested databases)
-				return parentObj.database_id;
-
-			case 'workspace':
-				// Top-level item
-				return null;
-
-			case 'block_id':
-				// This should have been filtered out before calling this function
-				console.warn(`[Notion Importer] block_id parent should be filtered before calling extractParentId`);
-				return null;
-
-			default: {
-				// TypeScript exhaustiveness check
-				const _exhaustive: never = parentObj;
-				console.warn(`[Notion Importer] Unexpected parent type for ${context}:`, _exhaustive);
-				return null;
-			}
-		}
-	}
-
-	/**
 	 * Find a node by ID in the tree (recursive search)
 	 */
 	private findNodeById(nodes: NotionTreeNode[], id: string): NotionTreeNode | null {
@@ -572,51 +416,6 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 		return null;
-	}
-
-	/**
-	 * Build tree structure from flat list
-	 */
-	private buildTree(items: Array<{ id: string, title: string, type: 'page' | 'database', parentId: string | null }>): NotionTreeNode[] {
-		const nodeMap = new Map<string, NotionTreeNode>();
-		const roots: NotionTreeNode[] = [];
-
-		// Create all nodes
-		for (const item of items) {
-			nodeMap.set(item.id, {
-				id: item.id,
-				title: item.title,
-				type: item.type,
-				parentId: item.parentId,
-				children: [],
-				selected: false,
-				disabled: false,
-				collapsed: true, // Default to collapsed
-			});
-		}
-
-		// Build tree relationships
-		for (const node of nodeMap.values()) {
-			if (node.parentId && nodeMap.has(node.parentId)) {
-				const parent = nodeMap.get(node.parentId)!;
-				parent.children.push(node);
-			}
-			else {
-				// No parent or parent not in list -> root node
-				roots.push(node);
-			}
-		}
-
-		// Sort children by title
-		const sortNodes = (nodes: NotionTreeNode[]) => {
-			nodes.sort((a, b) => a.title.localeCompare(b.title));
-			for (const node of nodes) {
-				sortNodes(node.children);
-			}
-		};
-		sortNodes(roots);
-
-		return roots;
 	}
 
 	/**
