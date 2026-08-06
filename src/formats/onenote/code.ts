@@ -16,6 +16,10 @@ export function isParagraphWrappingOnlyCode(node: Node|null): node is HTMLParagr
 		// the constructor check is false for every paragraph under the test
 		// shim - which would leave this silently returning false there
 		&& node.nodeName === 'P'
+		// every() holds vacuously over no children, which made an empty
+		// paragraph answer yes - and combineCodeBlocksAsNecessary then folded a
+		// blank line into the code block beside it
+		&& node.childNodes.length > 0
 		&& Array.from(node.childNodes)
 			.every(c => isCode(c) || isBRElement(c))
 	);

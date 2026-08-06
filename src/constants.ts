@@ -1,6 +1,6 @@
 import { ObsidianProtocolData } from 'obsidian';
 
-/**
+/*
  * Plugin-wide values an importer needs but the plugin object does not carry.
  *
  * Kept out of main.ts so that an importer wanting one of them does not pull in
