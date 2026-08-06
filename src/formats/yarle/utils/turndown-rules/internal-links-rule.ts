@@ -4,6 +4,7 @@ import { RuntimePropertiesSingleton } from '../../runtime-properties';
 import { yarleOptions } from '../../yarle';
 
 import { normalizeTitle } from '../filename-utils';
+import { isNormalMarkdownHref } from '../link-hrefs';
 import { getTurndownService } from '../turndown-service';
 import { isTOC } from '../is-toc';
 
@@ -40,10 +41,6 @@ export const wikiStyleLinksRule = {
 		if (type === 'file') {
 			return `![[${realValue}]]`;
 		}
-		if (value.match(/^(https?:|www\.|file:|ftp:|mailto:)/)) {
-			return prefix + getShortLinkIfPossible(text, value);
-		}
-
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(text);
 			const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
@@ -56,6 +53,9 @@ export const wikiStyleLinksRule = {
 			}
 
 			return prefix + `[[${value}]]`;
+		}
+		if (isNormalMarkdownHref(value)) {
+			return prefix + getShortLinkIfPossible(text, value);
 		}
 
 		return prefix + `[[${realValue}${text === realValue ? '' : `|${text}`}]]`;
