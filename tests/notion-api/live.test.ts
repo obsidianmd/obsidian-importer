@@ -56,17 +56,36 @@ function assertShape(value: any, shape: Record<string, string>, what: string): v
 }
 
 test('the API still returns the shape the fixture is written to', { skip }, async () => {
-	let pageId = env('NOTION_PAGE_ID');
+	const pageId = env('NOTION_PAGE_ID');
 
-	if (!pageId) {
-		const found = await api('/search', { filter: { property: 'object', value: 'page' }, page_size: 5 });
+	/**
+	 * A page with blocks in it, since a page with none says nothing about the
+	 * shape of a block.
+	 *
+	 * Without NOTION_PAGE_ID this has to go looking, and what search returns
+	 * first is whatever the workspace happens to hold - in one with a database
+	 * that is a row, which carries its content in properties and has no blocks
+	 * at all. So it reads candidates until one has some rather than trusting
+	 * the first.
+	 */
+	async function findPageWithBlocks(): Promise<{ id: string, children: any }> {
+		if (pageId) return { id: pageId, children: await api(`/blocks/${pageId}/children?page_size=100`) };
+
+		const found = await api('/search', { filter: { property: 'object', value: 'page' }, page_size: 25 });
 		assert.ok(Array.isArray(found.results), 'search should return a list');
-		pageId = found.results.find((r: any) => r.object === 'page')?.id;
+
+		const pages = found.results.filter((r: any) => r.object === 'page');
+		assert.ok(pages.length > 0, 'no page to read - share one with the integration, or set NOTION_PAGE_ID');
+
+		for (const page of pages) {
+			const children = await api(`/blocks/${page.id}/children?page_size=100`);
+			if (children.results?.length > 0) return { id: page.id, children };
+		}
+
+		assert.fail(`none of the ${pages.length} pages shared with the integration has any blocks - set NOTION_PAGE_ID to one that does`);
 	}
 
-	assert.ok(pageId, 'no page to read - share one with the integration, or set NOTION_PAGE_ID');
-
-	const children = await api(`/blocks/${pageId}/children?page_size=100`);
+	const { children } = await findPageWithBlocks();
 
 	assertShape(children, { object: 'string', results: 'array', has_more: 'boolean' }, 'children');
 	assert.equal(children.object, 'list');

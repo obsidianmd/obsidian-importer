@@ -1,0 +1,90 @@
+{
+	"_comment": "A page of GET/POST /v1/search results (https://developers.notion.com/reference/post-search), as the importer's page picker reads it. Hand-written, but every object/parent combination here was observed in a real workspace under Notion-Version 2025-09-03: page/workspace, page/page_id, page/data_source_id, page/block_id, data_source/workspace, data_source/page_id and data_source/block_id. Titles and ids are invented. Only the keys discovery.ts reads are kept - a real result carries far more.",
+	"results": [
+		{
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000001",
+			"parent": { "type": "workspace", "workspace": true },
+			"properties": { "title": { "type": "title", "title": [{ "type": "text", "text": { "content": "Getting started" }, "plain_text": "Getting started" }] } }
+		},
+		{
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000002",
+			"parent": { "type": "page_id", "page_id": "10000000-0000-4000-8000-000000000001" },
+			"properties": { "title": { "type": "title", "title": [{ "type": "text", "text": { "content": "A nested page" }, "plain_text": "A nested page" }] } }
+		},
+
+		{
+			"_note": "A database that is itself a top-level page in the sidebar - the case reported in #590.",
+			"object": "data_source",
+			"id": "20000000-0000-4000-8000-000000000001",
+			"database_parent": { "type": "workspace", "workspace": true },
+			"title": [{ "type": "text", "text": { "content": "Reading list" }, "plain_text": "Reading list" }]
+		},
+		{
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000003",
+			"parent": { "type": "data_source_id", "data_source_id": "20000000-0000-4000-8000-000000000001", "database_id": "30000000-0000-4000-8000-000000000001" },
+			"properties": { "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": "The Long Way" }, "plain_text": "The Long Way" }] } }
+		},
+
+		{
+			"_note": "A database living inside a page, which is the arrangement #590 says does work.",
+			"object": "data_source",
+			"id": "20000000-0000-4000-8000-000000000002",
+			"database_parent": { "type": "page_id", "page_id": "10000000-0000-4000-8000-000000000001" },
+			"title": [{ "type": "text", "text": { "content": "Tasks" }, "plain_text": "Tasks" }]
+		},
+		{
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000004",
+			"parent": { "type": "data_source_id", "data_source_id": "20000000-0000-4000-8000-000000000002", "database_id": "30000000-0000-4000-8000-000000000002" },
+			"properties": { "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": "Water the plants" }, "plain_text": "Water the plants" }] } }
+		},
+
+		{
+			"_note": "An inline database, which sits in a block. Dropped, along with its rows.",
+			"object": "data_source",
+			"id": "20000000-0000-4000-8000-000000000003",
+			"database_parent": { "type": "block_id", "block_id": "40000000-0000-4000-8000-000000000001" },
+			"title": [{ "type": "text", "text": { "content": "An inline database" }, "plain_text": "An inline database" }]
+		},
+		{
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000005",
+			"parent": { "type": "data_source_id", "data_source_id": "20000000-0000-4000-8000-000000000003", "database_id": "30000000-0000-4000-8000-000000000003" },
+			"properties": { "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": "A row of the inline database" }, "plain_text": "A row of the inline database" }] } }
+		},
+		{
+			"_note": "A page held by a block rather than by a page - a synced block, say. Dropped.",
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000006",
+			"parent": { "type": "block_id", "block_id": "40000000-0000-4000-8000-000000000002" },
+			"properties": { "title": { "type": "title", "title": [{ "type": "text", "text": { "content": "A page inside a block" }, "plain_text": "A page inside a block" }] } }
+		},
+
+		{
+			"_note": "No title at all, which the picker still has to name.",
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000007",
+			"parent": { "type": "workspace", "workspace": true },
+			"properties": { "title": { "type": "title", "title": [] } }
+		},
+		{
+			"object": "data_source",
+			"id": "20000000-0000-4000-8000-000000000004",
+			"database_parent": { "type": "workspace", "workspace": true },
+			"title": []
+		},
+
+		{
+			"_note": "A page whose parent was shared with nobody, so it is not in these results. It has to stand on its own rather than vanish.",
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000008",
+			"parent": { "type": "page_id", "page_id": "10000000-0000-4000-8000-0000000000ff" },
+			"properties": { "title": { "type": "title", "title": [{ "type": "text", "text": { "content": "An orphan" }, "plain_text": "An orphan" }] } }
+		}
+	],
+	"has_more": false,
+	"next_cursor": null
+}

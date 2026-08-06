@@ -1,0 +1,22 @@
+<!--
+	A page from a Notion database, as its HTML export writes one.
+
+	Hand-written to the shape the export uses rather than captured from a real
+	workspace: the exports committed here predate Notion's database export and
+	none of them carries a property table, so the markup below follows what
+	src/formats/notion/convert-to-md.ts reads - table.properties > tbody, a row
+	per property classed property-row-<type>, name in the first cell and value
+	in the second. A real export with a database should replace it.
+
+	The properties are chosen for the cases that have gone wrong: a number
+	Notion formatted as currency (#407), a multi-select named Tags, which is the
+	one property title the conversion rewrites, and a date, which it reads out
+	of <time> rather than the cell text.
+
+	Written on one line from <article> on, as the export is: whitespace between
+	those tags is not what Notion emits, and it reaches the markdown.
+-->
+<html>
+<head><meta charset="utf-8"><title>Espresso machine</title></head>
+<body><article id="1590080a-a5a3-8024-88c2-e857dea7aa7e" class="page sans"><header><h1 class="page-title">Espresso machine</h1><p class="page-description"></p><table class="properties"><tbody><tr class="property-row property-row-text"><th><span class="icon property-icon"></span>Notes</th><td>Double boiler, plumbed in.</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"></span>Price</th><td>67.3</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"></span>Price (BRL)</th><td>R$67.3</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"></span>Price (USD)</th><td>$1,234.56</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"></span>Discount</th><td>15%</td></tr><tr class="property-row property-row-auto_increment_id"><th><span class="icon property-icon"></span>ID</th><td>12</td></tr><tr class="property-row property-row-select"><th><span class="icon property-icon"></span>Status</th><td><span class="selected-value select-value-color-blue">Owned</span></td></tr><tr class="property-row property-row-multi_select"><th><span class="icon property-icon"></span>Tags</th><td><span class="selected-value select-value-color-green">home office</span><span class="selected-value select-value-color-orange">coffee</span></td></tr><tr class="property-row property-row-checkbox"><th><span class="icon property-icon"></span>Serviced</th><td><div class="checkbox checkbox-on"></div></td></tr><tr class="property-row property-row-checkbox"><th><span class="icon property-icon"></span>Sold</th><td><div class="checkbox checkbox-off"></div></td></tr><tr class="property-row property-row-date"><th><span class="icon property-icon"></span>Bought</th><td><time>@March 1, 2024</time></td></tr><tr class="property-row property-row-url"><th><span class="icon property-icon"></span>Manual</th><td><a href="https://example.com/manual">https://example.com/manual</a></td></tr><tr class="property-row property-row-text"><th><span class="icon property-icon"></span>Empty</th><td></td></tr></tbody></table></header><div class="page-body"><p id="15c0080a-a5a3-80b1-8bf8-d77dc412b120" class="">A row kept for its properties rather than its body.</p></div></article></body>
+</html>
