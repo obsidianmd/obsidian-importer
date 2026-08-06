@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extractErrorMessage, parseFrontMatterBlock, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
@@ -523,23 +523,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// A note that carries an id says which note it is. A different one is a
 		// note of its own however much the titles agree, and one with no id at
 		// all was written before ids were, so the title is all there is to go on.
-		const existingId = await this.importedNoteId(existingFile);
+		const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
 		if (existingId && noteId && existingId !== noteId) return null;
 
 		return existingFile;
-	}
-
-	/** The Apple Notes id a note was imported from, if it was written down. */
-	private async importedNoteId(file: TFile): Promise<string | null> {
-		try {
-			const parsed = parseFrontMatterBlock(await this.vault.read(file));
-			const id: unknown = parsed?.frontMatter[NOTE_ID_PROPERTY];
-			return typeof id === 'string' ? id : null;
-		}
-		catch (error) {
-			console.error(`Failed to read frontmatter from: ${file.path}`, error);
-			return null;
-		}
 	}
 
 	/**

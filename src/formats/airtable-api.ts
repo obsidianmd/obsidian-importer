@@ -7,7 +7,7 @@ import { ButtonComponent, Notice, Setting, normalizePath, TFile, setIcon, string
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, parseFrontMatterBlock, updatePropertyTypes, plural } from '../util';
+import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
 import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
 import type { FormulaImportStrategy } from '../base';
 import {
@@ -28,6 +28,7 @@ import {
 	defaultPropertyConfig,
 	frontMatterFieldsForTable,
 	isEmptyRecord,
+	RECORD_ID_PROPERTY,
 	recordTitle,
 } from './airtable-api/record-note';
 import type {
@@ -252,7 +253,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				}));
 
 		// Airtable skips a record it wrote before, but does not compare times
-		this.addDuplicateHandlingSetting({ idProperty: 'airtable-id', modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
+		this.addDuplicateHandlingSetting({ idProperty: RECORD_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 	}
 
 	private createTokenDescription(): DocumentFragment {
@@ -1532,22 +1533,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return false;
 		}
 
-		const file = this.vault.getAbstractFileByPathInsensitive(filePath);
-		if (!file || !(file instanceof TFile)) {
-			return false;
-		}
-
-		// Parse the content rather than the metadata cache. A cold cache would
-		// report no frontmatter, which reads as "not yet imported" and silently
-		// turns an incremental import back into a full one.
-		try {
-			const parsed = parseFrontMatterBlock(await this.vault.read(file));
-			return parsed?.frontMatter['airtable-id'] === recordId;
-		}
-		catch (error) {
-			console.error(`Failed to read frontmatter from: ${filePath}`, error);
-			return false;
-		}
+		return await this.noteImportedFrom(filePath, RECORD_ID_PROPERTY, recordId) !== null;
 	}
 
 	/**

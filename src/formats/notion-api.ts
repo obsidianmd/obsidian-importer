@@ -22,6 +22,9 @@ import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndI
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
+/** Frontmatter property holding the Notion page a note was imported from. */
+const NOTION_ID_PROPERTY = 'notion-id';
+
 export class NotionAPIImporter extends FormatImporter {
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get notionToken(): string {
@@ -163,7 +166,7 @@ export class NotionAPIImporter extends FormatImporter {
 		placeholder.setText('Click "Load" to load your Notion pages and databases.');
 
 		// Notion skips a page it wrote before, but does not compare times
-		this.addDuplicateHandlingSetting({ idProperty: 'notion-id', modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
+		this.addDuplicateHandlingSetting({ idProperty: NOTION_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 
 		// Formula import strategy
 		this.addSetting()
@@ -980,7 +983,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// Prepare YAML frontmatter
 			// Start with notion-id and database link at the top
 			const frontMatter: FrontMatterCache = {
-				'notion-id': page.id,
+				[NOTION_ID_PROPERTY]: page.id,
 			};
 
 			// Add database .base file link if this page belongs to a database (right after notion-id)
@@ -1621,33 +1624,32 @@ export class NotionAPIImporter extends FormatImporter {
 			return false; // File doesn't exist, don't skip
 		}
 
-		// Read file and extract notion-id from frontmatter
+		// Read the note's own text rather than the metadata cache, which is
+		// filled in afterwards and would report no frontmatter for a note this
+		// import wrote moments ago.
 		try {
 			const content = await this.vault.read(file);
-			const notionIdMatch = content.match(/^notion-id:\s*(.+)$/m);
 
-			if (notionIdMatch) {
-				const existingNotionId = notionIdMatch[1].trim();
-				if (existingNotionId === notionId) {
-					// Same notion-id, skip this file
-					const { basename } = parseFilePath(filePath);
-					ctx.reportSkipped(basename, 'already exists with same notion-id');
+			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) === notionId) {
+				// Same notion-id, skip this file
+				const { basename } = parseFilePath(filePath);
+				ctx.reportSkipped(basename, 'already exists with same notion-id');
 
-					// IMPORTANT: Register this skipped file in notionIdToPath mapping
-					// This ensures that relation/mention links can find this page even though it wasn't imported in this session
-					// Without this, we would fail to resolve relations to previously imported pages
-					const filePathWithoutExtension = filePath.replace(/\.md$/, '');
-					this.notionIdToPath.set(notionId, filePathWithoutExtension);
+				// IMPORTANT: Register this skipped file in notionIdToPath mapping
+				// This ensures that relation/mention links can find this page even though it wasn't imported in this session
+				// Without this, we would fail to resolve relations to previously imported pages
+				const filePathWithoutExtension = filePath.replace(/\.md$/, '');
+				this.notionIdToPath.set(notionId, filePathWithoutExtension);
 
-					// IMPORTANT: Scan for unresolved placeholders from previous imports
-					// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
-					// we need to re-collect them so they can be resolved in this import session
-					await this.collectUnresolvedPlaceholders(content, notionId, filePath);
+				// IMPORTANT: Scan for unresolved placeholders from previous imports
+				// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
+				// we need to re-collect them so they can be resolved in this import session
+				await this.collectUnresolvedPlaceholders(content, notionId, filePath);
 
-					return true;
-				}
+				return true;
 			}
-			// Different notion-id or no notion-id, don't skip (will rename with unique path)
+
+			// A different notion-id, or none, is a different page: do not skip it
 			return false;
 		}
 		catch (error) {

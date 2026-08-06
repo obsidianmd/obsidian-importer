@@ -15,6 +15,9 @@ import { convertFieldValue } from './field-converter';
 import { sanitizePropertyName } from './base-file';
 import type { AirtableAttachment, AirtableFieldSchema, AirtableRecord, AttachmentResult } from './types';
 
+/** Frontmatter property holding the Airtable record a note was imported from. */
+export const RECORD_ID_PROPERTY = 'airtable-id';
+
 /**
  * Render a field value as a plain string, for the note title and for body
  * templates. Handles the shapes a primary field can take: barcode objects,
@@ -201,7 +204,7 @@ export async function buildRecordNote(
 
 	const frontMatter: FrontMatterCache = {};
 	if (recordId) {
-		frontMatter['airtable-id'] = record.id;
+		frontMatter[RECORD_ID_PROPERTY] = record.id;
 	}
 
 	// The title is the file name, so it is only worth writing down where the

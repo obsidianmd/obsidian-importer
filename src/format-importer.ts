@@ -3,7 +3,7 @@ import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, Pic
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { ImportContext } from './import-context';
-import { getUniqueFilePath, sanitizeFileName, sanitizeFilePath } from './util';
+import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -526,6 +526,49 @@ export abstract class FormatImporter {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
 
 		return await this.vault.create(path, content, options);
+	}
+
+	/**
+	 * The id an earlier import wrote into a note, if it wrote one.
+	 *
+	 * Read out of the note's own text rather than the metadata cache: the cache
+	 * is filled in afterwards, so a note written moments ago in this same import
+	 * reads as having no frontmatter at all.
+	 */
+	protected sourceIdIn(content: string, idProperty: string): string | null {
+		const parsed = parseFrontMatterBlock(content);
+		const id: unknown = parsed?.frontMatter[idProperty];
+
+		return typeof id === 'string' ? id : null;
+	}
+
+	/** sourceIdIn, for a caller that has the note rather than its text. */
+	protected async sourceIdOf(file: TFile, idProperty: string): Promise<string | null> {
+		try {
+			return this.sourceIdIn(await this.vault.read(file), idProperty);
+		}
+		catch (error) {
+			console.error(`Failed to read frontmatter from: ${file.path}`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * The note an earlier import wrote for this record, if it is still there.
+	 *
+	 * Confirms rather than searches: the note at the path the record would take
+	 * is the candidate, and the id it carries says whether it is really that
+	 * record. A note that carries a different one is a note of its own.
+	 *
+	 * Case-insensitively, because the filesystem is: a note that differs only in
+	 * spelling is the same file, and an exact lookup would miss it and go on to
+	 * write a second one.
+	 */
+	protected async noteImportedFrom(path: string, idProperty: string, sourceId: string): Promise<TFile | null> {
+		const file = this.vault.getAbstractFileByPathInsensitive(normalizePath(path));
+		if (!(file instanceof TFile)) return null;
+
+		return await this.sourceIdOf(file, idProperty) === sourceId ? file : null;
 	}
 
 	/**
