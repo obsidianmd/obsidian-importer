@@ -82,6 +82,16 @@ export class ImportProgressUI extends ImportContext {
 	statusEl: HTMLElement;
 	importLogEl: HTMLElement;
 
+	/**
+	 * What the log has said so far, so that drawing the UI again says it again.
+	 * The counts survive a redraw in the context itself; the reason a note was
+	 * skipped is only ever here.
+	 */
+	private logEntries: { prefix: string, name: string, reason?: unknown }[] = [];
+
+	/** Whether the status line and progress bar have been hidden for good. */
+	private statusHidden: boolean = false;
+
 	constructor(el: HTMLElement) {
 		super();
 		this.el = el;
@@ -90,6 +100,11 @@ export class ImportProgressUI extends ImportContext {
 
 	/**
 	 * Creates the import progress UI.
+	 *
+	 * Draws what the import has done so far rather than an empty screen: it is
+	 * called again for the progress screen once the importer has been set up,
+	 * and anything reported in between belongs on the screen it lands on.
+	 *
 	 * @param container The container element to create the UI in
 	 */
 	createProgressUI(container: HTMLElement) {
@@ -127,6 +142,14 @@ export class ImportProgressUI extends ImportContext {
 
 		this.importLogEl = container.createDiv('importer-log');
 		this.importLogEl.hide();
+
+		// Where the import has got to, for a screen drawn after it started
+		if (this.statusMessage) this.onStatus(this.statusMessage);
+		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
+		for (const entry of this.logEntries) {
+			this.drawLogEntry(entry);
+		}
+		if (this.statusHidden) this.onHideStatus();
 	}
 
 	protected onStatus(message: string): void {
@@ -158,11 +181,18 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onHideStatus(): void {
+		this.statusHidden = true;
 		this.progressBarEl.hide();
 		this.statusEl.hide();
 	}
 
 	private log(prefix: string, name: string, reason?: unknown): void {
+		const entry = { prefix, name, reason };
+		this.logEntries.push(entry);
+		this.drawLogEntry(entry);
+	}
+
+	private drawLogEntry({ prefix, name, reason }: { prefix: string, name: string, reason?: unknown }): void {
 		const { importLogEl } = this;
 
 		importLogEl.createDiv('list-item', el => {
