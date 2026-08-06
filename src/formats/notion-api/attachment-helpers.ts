@@ -12,6 +12,15 @@ import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
 /**
+ * What a download produced, whichever way it was fetched: over HTTP, or
+ * decoded out of the URL itself.
+ */
+interface DownloadedAttachment {
+	arrayBuffer: ArrayBuffer;
+	contentType?: string;
+}
+
+/**
  * Download an attachment and save it to the vault
  * @param attachment - Attachment information
  * @param context - Block conversion context containing vault, import context, and settings
@@ -34,38 +43,52 @@ export async function downloadAttachment(
 		};
 	}
 
+	// A data URL carries the file in the URL, so there is no path to take a
+	// name from: what looks like one is the head of the base64 payload.
+	const isDataUrl = attachment.url.toLowerCase().startsWith('data:');
+
 	// Extract filename early for error reporting
 	// Priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
-	let filename = attachment.name || extractFilenameFromUrl(attachment.url) || currentPageTitle || 'attachment';
+	let filename = attachment.name || (isDataUrl ? '' : extractFilenameFromUrl(attachment.url)) || currentPageTitle || 'attachment';
 	filename = sanitizeFileName(filename);
 
 	try {
 		// Download the file first to get Content-Type header
 		ctx.status(`Downloading attachment: ${filename}...`);
-		const response = await requestUrl({
-			url: attachment.url,
-			method: 'GET',
-			throw: false,
-		});
+		let downloaded: DownloadedAttachment;
 
-		if (response.status !== 200) {
-			console.error(`Failed to download attachment "${filename}": ${response.status}`);
-			ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
-			return {
-				path: attachment.url,
-				isLocal: false
+		if (isDataUrl) {
+			// requestUrl speaks http(s) only, so decoding is the download.
+			downloaded = decodeDataUrl(attachment.url);
+		}
+		else {
+			const response = await requestUrl({
+				url: attachment.url,
+				method: 'GET',
+				throw: false,
+			});
+
+			if (response.status !== 200) {
+				console.error(`Failed to download attachment "${filename}": ${response.status}`);
+				ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
+				return {
+					path: attachment.url,
+					isLocal: false
+				};
+			}
+
+			downloaded = {
+				arrayBuffer: response.arrayBuffer,
+				contentType: response.headers['content-type'] || response.headers['Content-Type'],
 			};
 		}
 
 		// Check if filename has an extension, if not, infer from Content-Type
 		const [basename, ext] = splitext(filename);
-		if (!ext) {
-			const contentType = response.headers['content-type'] || response.headers['Content-Type'];
-			if (contentType) {
-				const extension = extensionForMime(contentType);
-				if (extension) {
-					filename = `${basename}.${extension}`;
-				}
+		if (!ext && downloaded.contentType) {
+			const extension = extensionForMime(downloaded.contentType);
+			if (extension) {
+				filename = `${basename}.${extension}`;
 			}
 		}
 
@@ -88,8 +111,12 @@ export async function downloadAttachment(
 		if (incrementalImport) {
 			// Extract the basename from the target path to see if filename was changed
 			const { parent: targetParent, basename: targetBasename } = parseFilePath(targetFilePath);
-			// Reconstruct the full filename with extension
-			const targetFullName = targetBasename + (ext ? `.${ext}` : '');
+			// Reconstruct the full filename with extension. Read it back off
+			// filename rather than reusing ext, which was taken before the
+			// Content-Type inference above and is empty for anything that got
+			// its extension from there.
+			const [, finalExt] = splitext(filename);
+			const targetFullName = targetBasename + (finalExt ? `.${finalExt}` : '');
 
 
 			// If filename changed (e.g., "file.jpg" → "file 1.jpg"), it means the original file exists
@@ -101,7 +128,7 @@ export async function downloadAttachment(
 				const existingFile = vault.getAbstractFileByPath(originalFilePath);
 
 				if (existingFile && existingFile instanceof TFile) {
-					const downloadedSize = response.arrayBuffer.byteLength;
+					const downloadedSize = downloaded.arrayBuffer.byteLength;
 
 					// Compare file sizes
 					if (existingFile.stat.size === downloadedSize) {
@@ -124,7 +151,7 @@ export async function downloadAttachment(
 		const options: DataWriteOptions = {};
 		if (attachment.created_time) options.ctime = new Date(attachment.created_time).getTime();
 		if (attachment.last_edited_time) options.mtime = new Date(attachment.last_edited_time).getTime();
-		await vault.createBinary(targetFilePath, response.arrayBuffer, options);
+		await vault.createBinary(targetFilePath, downloaded.arrayBuffer, options);
 
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
@@ -144,6 +171,65 @@ export async function downloadAttachment(
 			isLocal: false
 		};
 	}
+}
+
+/**
+ * Decode a `data:` URL into the bytes it carries.
+ *
+ * Follows the order the URL spec reads one in: percent-decode the body, then
+ * base64-decode it if the media type said so.
+ */
+function decodeDataUrl(url: string): DownloadedAttachment {
+	const match = /^data:([^,]*),([\s\S]*)$/i.exec(url);
+	if (!match) throw new Error('Malformed data URL');
+
+	const [, mediaType, body] = match;
+	const parameters = mediaType.split(';').map(part => part.trim()).filter(Boolean);
+	// The media type is only there if it looks like one; `data:;base64,…` and
+	// `data:,…` are both legal and leave the extension to be guessed elsewhere.
+	const contentType = parameters[0]?.includes('/') ? parameters[0] : undefined;
+	const isBase64 = parameters.some(parameter => parameter.toLowerCase() === 'base64');
+
+	const percentDecoded = decodePercentEncoding(body);
+	const bytes = isBase64 ? decodeBase64(percentDecoded) : percentDecoded;
+
+	// A fresh buffer, so what reaches createBinary is an ArrayBuffer of exactly
+	// these bytes rather than a view into a larger one.
+	const copy = new Uint8Array(bytes.length);
+	copy.set(bytes);
+	return { arrayBuffer: copy.buffer, contentType };
+}
+
+function decodePercentEncoding(body: string): Uint8Array {
+	const bytes: number[] = [];
+
+	for (let i = 0; i < body.length; i++) {
+		if (body[i] === '%' && i + 2 < body.length) {
+			const byte = Number.parseInt(body.substring(i + 1, i + 3), 16);
+			if (!Number.isNaN(byte)) {
+				bytes.push(byte);
+				i += 2;
+				continue;
+			}
+		}
+
+		bytes.push(body.charCodeAt(i));
+	}
+
+	return new Uint8Array(bytes);
+}
+
+function decodeBase64(bytes: Uint8Array): Uint8Array {
+	// The base64 alphabet is ASCII, so the percent-decoded bytes read back as
+	// the string atob wants. Whitespace is dropped: a data URL long enough to
+	// have been wrapped across lines still has to decode.
+	let encoded = '';
+	for (const byte of bytes) encoded += String.fromCharCode(byte);
+
+	const binary = atob(encoded.replace(/\s/g, ''));
+	const decoded = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) decoded[i] = binary.charCodeAt(i);
+	return decoded;
 }
 
 /**
