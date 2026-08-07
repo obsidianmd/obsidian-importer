@@ -18,7 +18,7 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { RoamPageConverter } from '../../src/formats/roam/convert';
-import { RoamPage } from '../../src/formats/roam/models/roam-json';
+import { RoamBlock, RoamPage } from '../../src/formats/roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from '../../src/formats/roam/utils';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
@@ -124,4 +124,64 @@ test('turns a Roam quote into a blockquote', async () => {
 
 test('turns a page alias into an Obsidian alias', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '[shown]([[Real Page]])'), '[[Real Page|shown]]');
+});
+
+/**
+ * Tables are the one place the converter reads the tree rather than a block's
+ * text, so the shapes Roam can produce are checked here by name. The recorded
+ * pages cover the ordinary case.
+ */
+
+/** A row, as Roam stores it: each column is the previous column's first child. */
+function row(cells: string[]): RoamBlock {
+	const [first, ...rest] = cells;
+	return rest.length > 0 ? { string: first, children: [row(rest)] } : { string: first };
+}
+
+/** One page holding one table marker, converted. */
+async function convertTable(rows: string[][], marker: string = '{{[[table]]}}'): Promise<string> {
+	const page: RoamPage = {
+		title: 'Tables', uid: 'tables',
+		children: [rows.length > 0 ? { string: marker, children: rows.map(row) } : { string: marker }],
+	};
+
+	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page, '', false, '', 0, 0);
+}
+
+test('converts a Roam table to a pipe table, first row as the header', async () => {
+	assert.equal(
+		await convertTable([['Name', 'Colour'], ['Apple', 'Red']]),
+		'\n| Name | Colour |\n| --- | --- |\n| Apple | Red |\n');
+});
+
+test('converts the bare {{table}} spelling too', async () => {
+	assert.equal(await convertTable([['One']], '{{table}}'), '\n| One |\n| --- |\n');
+});
+
+test('leaves an unbalanced table marker as an ordinary block', async () => {
+	assert.equal(await convertTable([['One']], '{{[[table}}'), '  * {{[[table}}\n    * One');
+});
+
+test('pads a row Roam left short', async () => {
+	assert.equal(
+		await convertTable([['Name', 'Colour'], ['Apple']]),
+		'\n| Name | Colour |\n| --- | --- |\n| Apple |  |\n');
+});
+
+test('escapes a pipe inside a cell', async () => {
+	assert.equal(await convertTable([['a | b']]), '\n| a \\| b |\n| --- |\n');
+});
+
+test('keeps a multi-line cell on one row', async () => {
+	assert.equal(await convertTable([['one\ntwo']]), '\n| one<br>two |\n| --- |\n');
+});
+
+test('a table marker with no rows leaves nothing behind', async () => {
+	assert.equal(await convertTable([]), '');
+});
+
+test('converts the markup inside a cell', async () => {
+	assert.equal(
+		await convertTable([['{{[[TODO]]}} ^^done^^']]),
+		'\n| [ ] ==done== |\n| --- |\n');
 });

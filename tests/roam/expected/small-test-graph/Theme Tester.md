@@ -94,13 +94,12 @@ and a second line of amazing code here```
             * "Cats" : 85
             * "Rats" : 15					
       * Table
-        * {{[[table]]}}
-          * another table
-            * another column
-          * more subtext
-            * even more subtext
-          * more subtext
-            * even more subtext
+
+| another table | another column |
+| --- | --- |
+| more subtext | even more subtext |
+| more subtext | even more subtext |
+
       * Kanban
         * {{[[kanban]]}}
           * one
