@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { areAllSelected, setAllSelection, setNodeSelection, type SelectableNode } from '../../src/tree';
+import { areAllSelected, areAnySelected, setAllSelection, setNodeSelection, type SelectableNode } from '../../src/tree';
 
 interface Node extends SelectableNode {
 	id: string;
@@ -100,4 +100,26 @@ test('children are optional, as one importer leaves them', () => {
 test('an empty tree counts as all selected, which names the button', () => {
 	// What updateToggleButtonText asks before anything is loaded
 	assert.equal(areAllSelected([]), true);
+});
+
+test('nothing is selected until something is, which is what Continue waits for', () => {
+	const nodes = tree();
+
+	assert.equal(areAnySelected(nodes), false);
+	assert.equal(areAnySelected([]), false);
+
+	// A leaf deep in the tree counts, not just a top-level one
+	setNodeSelection(nodes[0].children[0].children[0], true);
+	assert.equal(areAnySelected(nodes), true);
+});
+
+test('unticking the last thing leaves nothing selected again', () => {
+	const nodes = tree();
+
+	// Ticking a parent selects everything under it; unticking it frees them all
+	setNodeSelection(nodes[0], true);
+	assert.equal(areAnySelected(nodes), true);
+
+	setNodeSelection(nodes[0], false);
+	assert.equal(areAnySelected(nodes), false);
 });

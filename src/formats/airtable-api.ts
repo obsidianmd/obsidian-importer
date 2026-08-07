@@ -8,7 +8,8 @@ import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
-import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
+import { areAllSelected, areAnySelected, redrawTree, setAllSelection } from '../tree';
+import { renderTreeNodes, showTreePlaceholder } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import {
 	TemplateConfigurator,
@@ -87,9 +88,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
-	/** Nothing to pick: the token is what says where the records come from. */
+	/** Nothing to import until some of the loaded tables have been ticked. */
 	get sourceReady(): boolean {
-		return this.airtableToken !== '';
+		return areAnySelected(this.tree);
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
@@ -216,9 +217,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Create the change list container
 		this.treeContainer = importSection.createDiv('publish-change-list');
 
-		// Add placeholder text
-		const placeholder = this.treeContainer.createDiv('publish-placeholder');
-		placeholder.setText('Load your Airtable bases and tables to get started.');
+		showTreePlaceholder(this.treeContainer, 'Load your Airtable bases and tables to get started.');
 
 		// Formula import strategy
 		this.addSetting()
@@ -265,7 +264,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('Create a Personal Access Token in your Airtable account settings. ');
+		frag.appendText('Create a personal access token in your Airtable account settings. ');
 		frag.createEl('a', {
 			text: 'Get token',
 			href: 'https://airtable.com/create/tokens',
@@ -287,10 +286,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		try {
 			// Create a minimal status reporter for API calls during tree loading
+			// Where the tree is about to appear, rather than in the button: these
+			// are sentences, and a button grows to fit whatever it is given
 			const statusReporter = {
-				status: (msg: string) => {
-					this.loadButton.setButtonText(msg);
-				},
+				status: (msg: string) => showTreePlaceholder(this.treeContainer, msg),
 			};
 
 			// Fetch all bases
@@ -336,8 +335,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			new Notice(`Failed to load bases: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
 		finally {
+			// No longer the thing to do, now that there is a tree to pick from
 			this.loadButton.setDisabled(false);
-			this.loadButton.setButtonText('Refresh');
+			this.loadButton.setButtonText('Refresh').removeCta();
 		}
 	}
 
@@ -418,139 +418,53 @@ export class AirtableAPIImporter extends FormatImporter {
 				return;
 			}
 
-			for (const node of this.tree) {
-				this.renderTreeNode(this.treeContainer, node);
-			}
+			renderTreeNodes(this.treeContainer, this.tree, {
+				icon: node => node.type === 'base' ? 'database' : 'file',
+				// A base is collapsible before its tables are known, because
+				// expanding one is what fetches them
+				isCollapsible: node => node.type === 'base' || !!node.children?.length,
+				onExpand: (node, rowEl) => this.loadTablesForExpand(node, rowEl),
+				redraw: () => this.renderTree(),
+			});
 		});
 
 		this.updateToggleButtonText();
+		this.sourceChanged();
 	}
 
 	/**
 	 * Render a single tree node using Obsidian's standard tree structure
 	 * Airtable has only two levels: Base (database icon) -> Table (file icon)
 	 */
-	private renderTreeNode(container: HTMLElement, node: AirtableTreeNode): void {
-		// Main tree item container
-		const treeItem = container.createDiv('tree-item');
+	/**
+	 * Fetch a base's tables the first time it is opened.
+	 *
+	 * Says whether the tree gained anything, which is what asks for it to be
+	 * drawn again. A base that could not be read is left closed.
+	 */
+	private async loadTablesForExpand(node: AirtableTreeNode, rowEl: HTMLElement): Promise<boolean> {
+		if (node.type !== 'base' || node.tablesLoaded) return false;
 
-		// Tree item self (contains the node itself)
-		const treeItemSelf = treeItem.createDiv('tree-item-self');
-		treeItemSelf.addClass('is-clickable');
+		// Obsidian's own spinner: .loader-spinner + the loader-2 icon, the same
+		// pairing app.css styles and Sync's modals use. Most bases resolve in a
+		// few hundred milliseconds, where a spinner reads as a flicker. Only
+		// reveal it if the fetch is still running after a beat.
+		const spinner = rowEl.createDiv('loader-spinner');
+		setIcon(spinner, 'loader-2');
+		spinner.hide();
+		const spinnerDelay = window.setTimeout(() => spinner.show(), 250);
 
-		// Add appropriate modifiers.
-		// A base is always collapsible, even before its tables have been fetched -
-		// otherwise a lazily-loaded base would have no arrow to expand.
-		const hasChildren = !!(node.children && node.children.length > 0);
-		const isCollapsible = node.type === 'base' || hasChildren;
-		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
+		const ok = await this.ensureTablesLoaded(node);
 
-		// Apply disabled styling. The dimming and pointer handling live in
-		// styles.css, keyed off is-disabled.
-		treeItemSelf.toggleClass('is-disabled', node.disabled);
+		window.clearTimeout(spinnerDelay);
+		spinner.remove();
 
-		// Collapse/Expand arrow
-		if (isCollapsible) {
-			treeItemSelf.addClass('mod-collapsible');
-
-			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-
-			// Use right-triangle icon (Obsidian's standard)
-			setIcon(collapseIcon, 'right-triangle');
-
-			// Add is-collapsed class for CSS control
-			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
-			treeItem.toggleClass('is-collapsed', !!node.collapsed);
-
-			// The arrow stays clickable on a disabled row, so an inherited-selection
-			// base can still be expanded. Handled in styles.css.
-
-			let childrenContainer: HTMLElement;
-
-			// Toggle collapse state with pure DOM manipulation (no re-render).
-			// Expanding a base can fetch, which a listener cannot await, so a
-			// failure is logged rather than left as an unhandled rejection.
-			collapseIcon.addEventListener('click', (e) => void (async () => {
-				e.stopPropagation();
-				node.collapsed = !node.collapsed;
-
-				// Expanding a base for the first time fetches its tables. A full
-				// re-render is needed afterwards to draw the new child nodes.
-				if (!node.collapsed && node.type === 'base' && !node.tablesLoaded) {
-					// Obsidian's own spinner: .loader-spinner + the loader-2 icon,
-					// the same pairing app.css styles and Sync's modals use.
-					// Most bases resolve in a few hundred milliseconds, where a
-					// spinner reads as a flicker. Only reveal it if the fetch is
-					// still running after a beat.
-					const spinner = treeItemSelf.createDiv('loader-spinner');
-					setIcon(spinner, 'loader-2');
-					spinner.hide();
-					const spinnerDelay = window.setTimeout(() => spinner.show(), 250);
-
-					const ok = await this.ensureTablesLoaded(node);
-
-					window.clearTimeout(spinnerDelay);
-					spinner.remove();
-					if (!ok) {
-						node.collapsed = true;
-						return;
-					}
-					this.renderTree();
-					return;
-				}
-
-				// Get reference if not set yet
-				if (!childrenContainer) {
-					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
-				}
-
-				// Toggle CSS classes and visibility
-				collapseIcon.toggleClass('is-collapsed', node.collapsed);
-				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-			})().catch(err => console.error('Could not expand base', err)));
+		if (!ok) {
+			node.collapsed = true;
+			return false;
 		}
 
-		// Inner content (checkbox, icon, title)
-		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
-
-		// Checkbox (must set checked/disabled as DOM properties, not HTML attributes)
-		const checkbox = treeItemInner.createEl('input', {
-			type: 'checkbox',
-			cls: 'file-tree-item-checkbox',
-		});
-		checkbox.checked = node.selected;
-		checkbox.disabled = node.disabled;
-
-		if (!node.disabled) {
-			checkbox.addEventListener('change', () => {
-				setNodeSelection(node, checkbox.checked);
-				this.renderTree();
-			});
-		}
-
-		// Icon: Base uses database icon, Table uses file icon
-		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
-		setIcon(iconContainer, node.type === 'base' ? 'database' : 'file');
-
-		// Title
-		const titleEl = treeItemInner.createDiv('file-tree-item-title');
-		titleEl.setText(node.title);
-
-		// Children container
-		const childrenContainer = treeItem.createDiv('tree-item-children');
-
-		// Hide children container if collapsed
-		if (node.collapsed) {
-			childrenContainer.hide();
-		}
-
-		// Render children (always render, but hide if collapsed)
-		if (hasChildren) {
-			for (const child of node.children!) {
-				this.renderTreeNode(childrenContainer, child);
-			}
-		}
+		return true;
 	}
 
 	/**

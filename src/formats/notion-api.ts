@@ -1,9 +1,10 @@
-import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
+import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions, Vault } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
-import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
+import { areAllSelected, areAnySelected, redrawTree, setAllSelection } from '../tree';
+import { renderTreeNodes, showTreePlaceholder } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
@@ -33,9 +34,9 @@ export class NotionAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
-	/** Nothing to pick: the token is what says where the pages come from. */
+	/** Nothing to import until some of the listed pages have been ticked. */
 	get sourceReady(): boolean {
-		return this.notionToken !== '';
+		return areAnySelected(this.pageTree);
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
@@ -62,9 +63,15 @@ export class NotionAPIImporter extends FormatImporter {
 	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
 	// Page/database tree for selection
 	private pageTree: NotionTreeNode[] = [];
-	private pageTreeContainer: HTMLElement | null = null;
-	private listPagesButton: ButtonComponent | null = null;
-	private toggleSelectButton: ButtonComponent | null = null;
+	/**
+	 * Deliberately without an initialiser, as are the two buttons below: init()
+	 * runs from the base class constructor, which is before a derived class
+	 * assigns its fields, so `= null` here would discard what init() drew. It is
+	 * why renderPageTree has had to find this element again by searching for it.
+	 */
+	private pageTreeContainer: HTMLElement | null;
+	private listPagesButton: ButtonComponent | null;
+	private toggleSelectButton: ButtonComponent | null;
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -108,8 +115,8 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!contentEl) return;
 
 		const listPagesSetting = new Setting(contentEl)
-			.setName('Select pages to import')
-			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
+			.setName('Pages to import')
+			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.');
 
 		// Store button references in closure to avoid constructor timing issues
 		let toggleButtonRef: ButtonComponent | null = null;
@@ -168,9 +175,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Create the change list container
 		this.pageTreeContainer = importSection.createDiv('publish-change-list');
-		// Add placeholder text
-		const placeholder = this.pageTreeContainer.createDiv('publish-placeholder');
-		placeholder.setText('Click "Load" to load your Notion pages and databases.');
+		showTreePlaceholder(this.pageTreeContainer, 'Click "Load" to load your Notion pages and databases.');
 
 		// Notion skips a page it wrote before, but does not compare times
 		this.addDuplicateHandlingSetting({ idProperty: NOTION_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
@@ -335,11 +340,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Create a minimal context for makeNotionRequest
 			const tempCtx = {
+				// Where the tree is about to appear, rather than in the button:
+				// these are sentences, and a button grows to fit what it is given
 				status: (msg: string) => {
-					// Update button text with status
-					if (this.listPagesButton) {
-						this.listPagesButton.setButtonText(msg);
-					}
+					if (this.pageTreeContainer) showTreePlaceholder(this.pageTreeContainer, msg);
 				},
 				isCancelled: () => false,
 				reportFailed: (name: string, error: any) => {
@@ -402,8 +406,9 @@ export class NotionAPIImporter extends FormatImporter {
 			// Obsidian component carries a then() for chaining, which reads to
 			// typescript-eslint as testing a promise.
 			if (this.listPagesButton !== null) {
+				// No longer the thing to do, now that there is a tree to pick from
 				this.listPagesButton.setDisabled(false);
-				this.listPagesButton.setButtonText('Refresh');
+				this.listPagesButton.setButtonText('Refresh').removeCta();
 			}
 		}
 	}
@@ -443,139 +448,26 @@ export class NotionAPIImporter extends FormatImporter {
 		redrawTree(container, () => {
 			if (this.pageTree.length === 0) {
 				container.createDiv({
-					text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
-					cls: 'notion-tree-empty'
+					text: 'No pages or databases found. Make sure your connection has access to the pages you want to import.',
+					cls: 'publish-placeholder',
 				});
 				return;
 			}
 
-			// Render tree (buttons are now outside the scrollable container)
-			for (const node of this.pageTree) {
-				this.renderTreeNode(container, node, 0);
-			}
+			renderTreeNodes(container, this.pageTree, {
+				icon: node => node.type === 'database' ? 'database'
+					: node.children.length === 0 ? 'file'
+						: node.collapsed ? 'folder' : 'folder-open',
+				redraw: () => this.renderPageTree(),
+			});
 		});
 
 		// Update toggle button text based on current selection state
 		if (this.toggleSelectButton) {
 			this.updateToggleButtonText();
 		}
-	}
 
-	/**
-	 * Render a single tree node using Obsidian's standard tree structure
-	 */
-	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
-		// Main tree item container
-		const treeItem = container.createDiv('tree-item');
-
-		// Tree item self (contains the node itself)
-		const treeItemSelf = treeItem.createDiv('tree-item-self');
-		treeItemSelf.addClass('is-clickable');
-
-		// Add appropriate modifiers
-		if (node.children.length > 0) {
-			treeItemSelf.addClass('mod-collapsible');
-			treeItemSelf.addClass('mod-folder');
-		}
-		else {
-			treeItemSelf.addClass('mod-file');
-		}
-
-		// Dimmed and unclickable; see .import-section .tree-item-self.is-disabled
-		if (node.disabled) {
-			treeItemSelf.addClass('is-disabled');
-		}
-
-		// Collapse/Expand arrow (only if has children). Stays clickable on a
-		// disabled row, which styles.css restores.
-		if (node.children.length > 0) {
-			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-
-			// Use right-triangle icon (Obsidian's standard)
-			setIcon(collapseIcon, 'right-triangle');
-
-			// Add is-collapsed class for CSS control
-			collapseIcon.toggleClass('is-collapsed', node.collapsed);
-			treeItem.toggleClass('is-collapsed', node.collapsed);
-
-			let childrenContainer: HTMLElement;
-			let iconContainer: HTMLElement;
-
-			// Toggle collapse state with pure DOM manipulation (no re-render)
-			collapseIcon.addEventListener('click', (e) => {
-				e.stopPropagation();
-				node.collapsed = !node.collapsed;
-
-				// Get references if not set yet
-				if (!childrenContainer) {
-					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
-				}
-				if (!iconContainer) {
-					iconContainer = treeItem.querySelector('.file-tree-item-icon') as HTMLElement;
-				}
-
-				// Toggle CSS classes and visibility
-				collapseIcon.toggleClass('is-collapsed', node.collapsed);
-				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-
-				// Update folder icon
-				if (node.type !== 'database' && iconContainer) {
-					iconContainer.empty();
-					setIcon(iconContainer, node.collapsed ? 'folder' : 'folder-open');
-				}
-			});
-		}
-
-		// Inner content (checkbox, icon, title)
-		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
-
-		// Checkbox
-		const checkbox = treeItemInner.createEl('input', {
-			type: 'checkbox',
-			cls: 'file-tree-item-checkbox'
-		});
-		checkbox.checked = node.selected;
-		checkbox.disabled = node.disabled;
-
-		if (!node.disabled) {
-			checkbox.addEventListener('change', () => {
-				setNodeSelection(node, checkbox.checked);
-				this.renderPageTree();
-			});
-		}
-
-		// Icon
-		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
-		if (node.type === 'database') {
-			setIcon(iconContainer, 'database');
-		}
-		else if (node.children.length > 0) {
-			// Use folder-open for pages with children
-			setIcon(iconContainer, !node.collapsed ? 'folder-open' : 'folder');
-		}
-		else {
-			setIcon(iconContainer, 'file');
-		}
-
-		// Title
-		const titleEl = treeItemInner.createDiv('file-tree-item-title');
-		titleEl.setText(node.title);
-
-		// Children container
-		const childrenContainer = treeItem.createDiv('tree-item-children');
-
-		// Hide children container if collapsed
-		if (node.collapsed) {
-			childrenContainer.hide();
-		}
-
-		// Render children (always render, but hide if collapsed)
-		if (node.children.length > 0) {
-			for (const child of node.children) {
-				this.renderTreeNode(childrenContainer, child, level + 1);
-			}
-		}
+		this.sourceChanged();
 	}
 
 	/**

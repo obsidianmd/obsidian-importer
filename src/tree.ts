@@ -61,6 +61,14 @@ export function areAllSelected(nodes: SelectableNode[]): boolean {
 }
 
 /**
+ * Whether anything at all is selected, which is what the dialog waits for
+ * before it will move on from the screen the tree is on.
+ */
+export function areAnySelected(nodes: SelectableNode[]): boolean {
+	return nodes.some(node => node.selected || areAnySelected(node.children ?? []));
+}
+
+/**
  * Redraw a tree without losing where the user was.
  *
  * The container is the scroll box, so emptying it sends the list back to the
