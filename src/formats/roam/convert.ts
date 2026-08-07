@@ -12,6 +12,14 @@ import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
+/**
+ * The block Roam marks a table with.
+ *
+ * The brackets are one alternation rather than two optional groups, so only
+ * the two spellings Roam writes match - `{{[[table}}` is not one of them.
+ */
+const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
+
 export interface RoamConverterOptions {
 	/** The daily-note format to rewrite Roam's own date pages into. */
 	userDNPFormat: string;
@@ -112,9 +120,15 @@ export class RoamPageConverter {
 		return blockText;
 	};
 
-	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
-		let markdown: string[] = [];
-		let frontMatterYAML: string[] = [];
+	/**
+	 * Fold a block's own timestamps into the page's oldest and newest.
+	 *
+	 * The recursion carries these down from block to block, so one reached any
+	 * other way - a table's cells, which are walked rather than recursed into -
+	 * has to fold its own in, or a page whose latest edit happened inside a
+	 * table comes out dated before its own content.
+	 */
+	private accumulateTimestamps(json: RoamPage | RoamBlock, createdTimestamp: number, updatedTimestamp: number): void {
 		// use Roam's create-time and edit-time values to set timestamps
 		const jsonEditTime = json['edit-time'];
 		const jsonCreateTime = json['create-time'];
@@ -144,16 +158,37 @@ export class RoamPageConverter {
 		else {
 			this.oldestTimestamp = createdTimestamp;
 		}
+	}
 
-		if ('string' in json && json.string) {
-			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
-			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-			markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
+		let markdown: string[] = [];
+		let frontMatterYAML: string[] = [];
+
+		this.accumulateTimestamps(json, createdTimestamp, updatedTimestamp);
+
+		if ('string' in json && json.string && roamTableRe.test(json.string.trim())) {
+			// The block's children are the table's rows, so they are read as
+			// cells here instead of being recursed into as bullets.
+			const table = await this.convertRoamTable(graphFolder, attachmentsFolder, json);
+			if (table) markdown.push(table);
 		}
+		else {
+			if ('string' in json && json.string) {
+				const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
+				const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
+				markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+			}
 
-		if (json.children) {
-			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
+			if (json.children) {
+				for (const child of json.children) {
+					const converted = await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp);
+					// A table marker with no rows under it converts to nothing,
+					// and leaves no line behind either. Every other block keeps
+					// its line, empty or not, the way it always has.
+					if (converted || !roamTableRe.test((child.string ?? '').trim())) {
+						markdown.push(converted);
+					}
+				}
 			}
 		}
 
@@ -191,5 +226,56 @@ export class RoamPageConverter {
 		}
 
 		return markdown.join('\n');
+	}
+
+	/**
+	 * A Roam table, as a markdown pipe table.
+	 *
+	 * Roam stores a table as the marker block's children: each child is a row,
+	 * and the columns of that row are its first child, that child's first
+	 * child, and so on down a linear chain. The first row is read as the
+	 * header, which is what Roam shows too.
+	 *
+	 * The table is written at the left margin with a blank line either side,
+	 * whatever depth the marker sat at. Obsidian does not render a pipe table
+	 * indented inside a list item, so keeping the outline's indentation here
+	 * would keep the bullets tidy and leave the table as rows of text.
+	 */
+	private async convertRoamTable(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock): Promise<string> {
+		const rows: string[][] = [];
+
+		for (const row of json.children ?? []) {
+			const cells: string[] = [];
+
+			for (let cell: RoamBlock | undefined = row; cell; cell = cell.children?.[0]) {
+				this.accumulateTimestamps(cell, this.oldestTimestamp, this.newestTimestamp);
+
+				if (cell.children && cell.children.length > 1) {
+					// Only the first child continues the row, so anything Roam
+					// allowed alongside it is not part of the table and cannot
+					// be shown. Say so rather than dropping it quietly.
+					console.warn(`Roam table cell "${cell.string}" has ${cell.children.length} children; only the first is read as the next column.`);
+				}
+
+				const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, cell.string ?? '');
+				// A pipe ends the cell and a newline ends the row, so neither
+				// can survive as itself.
+				cells.push(scrubbed.replace(/\|/g, '\\|').replace(/\n/g, '<br>'));
+			}
+
+			rows.push(cells);
+		}
+
+		if (rows.length === 0) return '';
+
+		// Roam lets a row stop short; markdown wants every row the same width.
+		const width = Math.max(...rows.map(row => row.length));
+		for (const row of rows) {
+			while (row.length < width) row.push('');
+		}
+
+		rows.splice(1, 0, rows[0].map(() => '---'));
+
+		return '\n' + rows.map(row => `| ${row.join(' | ')} |`).join('\n') + '\n';
 	}
 }
