@@ -87,6 +87,12 @@ export default defineConfig(
 			'prefer-const': 'off',
 			'@typescript-eslint/prefer-as-const': 'off',
 			'@typescript-eslint/no-unused-expressions': ['error', { 'allowShortCircuit': true, 'allowTernary': true }],
+			// A promise-returning check that lost its await reads as its own
+			// answer: `if (ctx.shouldStop())` tests the promise, which is always
+			// truthy, so the import stops while looking like it finished. The
+			// community review runs this rule; running it here too is what stops
+			// that landing as a review finding instead of a failing lint.
+			'@typescript-eslint/no-misused-promises': 'error',
 
 			// Syntax
 			'@stylistic/comma-dangle': ['error', 'only-multiline'],

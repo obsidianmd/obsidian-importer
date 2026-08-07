@@ -66,7 +66,9 @@ const interactiveExec = (bin, args, timeout) => {
 			stdin.write('.quit\n');
 			next = null;
 		} 
-		else if (next) {
+		// Null once closed, a promise otherwise: a null check rather than a
+		// promise asked whether it is truthy, which it always is
+		else if (next !== null) {
 			next = next.then(
 				() => new Promise(done => {
 					let out = '';
