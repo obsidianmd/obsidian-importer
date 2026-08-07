@@ -353,16 +353,21 @@ export abstract class FormatImporter {
 		let updateFiles = () => {
 			this.sourceChanged();
 
-			let descriptionFragment = createFragment();
-			let fileCount = this.files.length;
 			let pathText = this.files.map(f => f.name).join(', ');
 			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
 				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
 			}
-			descriptionFragment.createSpan({ text: `These ${fileCount} files will be imported: ` });
-			descriptionFragment.createEl('br');
-			descriptionFragment.createSpan({ cls: 'u-pop', text: pathText });
-			fileLocationSetting.setDesc(descriptionFragment);
+
+			fileLocationSetting.setDesc(createFragment(frag => {
+				// A single name is its own count, and several importers only
+				// ever have one: the count is for when the names run together
+				if (this.files.length > 1) {
+					frag.createSpan({ text: `${plural(this.files.length, 'file')} will be imported: ` });
+					frag.createEl('br');
+				}
+
+				frag.createSpan({ cls: 'u-pop', text: pathText });
+			}));
 		};
 	}
 

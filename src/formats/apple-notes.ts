@@ -187,12 +187,16 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		setting.setName('Apple Notes data folder');
 
 		const showAccess = () => {
-			if (this.dataPath) {
-				setting.setDesc(`Obsidian can read your notes from ${this.dataPath}`);
-			}
-			else {
+			if (!this.dataPath) {
 				setting.setDesc('macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.');
+				return;
 			}
+
+			// The path picked out the way the file chooser picks out what it was
+			// given, and on its own: the row it sits under already says what it is
+			setting.setDesc(createFragment(frag => {
+				frag.createSpan({ cls: 'u-pop', text: this.dataPath! });
+			}));
 		};
 
 		// Already granted, from this import or a previous one
