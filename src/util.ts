@@ -35,7 +35,11 @@ let illegalRe = /[?<>:*|"]/g;
 let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 let windowsTrailingRe = /[. ]+$/;
-let startsWithDotRe = /^\./; // Regular expression to match filenames starting with "."
+// Leading dots, and any spacing between them: a title opening with an ellipsis
+// written as ". . ." leaves one behind if only the first dot goes. Obsidian
+// hides a file whose name starts with a dot, and never indexes it, so a name
+// that keeps one is a file the app cannot see and the next import cannot write.
+let startsWithDotRe = /^[.\s]+/;
 let badLinkRe = /[[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
 /**
@@ -70,8 +74,10 @@ export function sanitizeFileName(name: string | undefined | null) {
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')
-		.replace(startsWithDotRe, '')
-		.replace(badLinkRe, '');
+		.replace(badLinkRe, '')
+		// Last, so that a dot a link character was standing in front of is
+		// still a leading dot by the time this looks
+		.replace(startsWithDotRe, '');
 
 	// If the result is empty or only whitespace after sanitization, return a default name
 	// This prevents creating files like ".md" (no name) or folders with only spaces

@@ -29,11 +29,11 @@ test('separators cannot escape the folder they were meant for', () => {
 	assert.equal(sanitizeFileName('a\\b'), 'a-b');
 
 	// Traversal is defeated by there being no separator left to traverse on,
-	// not by the dots being tidied away: only the first leading dot goes, so
-	// what is left still reads oddly. It is one path segment, which is the
-	// property that matters here.
+	// not by the dots being tidied away: the ones the leading pair became are
+	// still in there, so what is left reads oddly. It is one path segment,
+	// which is the property that matters here.
 	const traversal = sanitizeFileName('../../etc/passwd');
-	assert.equal(traversal, '.-..-etc-passwd');
+	assert.equal(traversal, '-..-etc-passwd');
 	assert.ok(!traversal.includes('/') && !traversal.includes('\\'));
 });
 
@@ -52,8 +52,21 @@ test('Windows reserved names do not survive', () => {
 	assert.equal(sanitizeFileName('CONTENTS'), 'CONTENTS');
 });
 
+/**
+ * A name left starting with a dot is worse than untidy. Obsidian hides those,
+ * so the file never enters the vault's index: the next import asks for a free
+ * name, is told this one is free, and the write fails against a file that is
+ * there on disk and invisible in the app.
+ *
+ * One dot was all that used to go, which is not what a title opening with an
+ * ellipsis needs - and the dots a link character was standing in front of were
+ * uncovered after the rule had already run.
+ */
 test('a name cannot start with a dot or end in a dot or space', () => {
 	assert.equal(sanitizeFileName('.hidden'), 'hidden');
+	assert.equal(sanitizeFileName('...hidden'), 'hidden');
+	assert.equal(sanitizeFileName('. . . In that Empire'), 'In that Empire');
+	assert.equal(sanitizeFileName('[.]hidden'), 'hidden');
 	assert.equal(sanitizeFileName('trailing.'), 'trailing');
 	assert.equal(sanitizeFileName('trailing   '), 'trailing');
 });
