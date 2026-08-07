@@ -80,7 +80,7 @@ export class OneNoteImporter extends FormatImporter {
 		state: genUid(32),
 		accessToken: '',
 	};
-	attachmentDownloadPauseCounter = 0;
+	attachmentsSinceBackOff = 0;
 	rememberMe = false;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
@@ -934,14 +934,11 @@ export class OneNoteImporter extends FormatImporter {
 
 	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string) {
 		// Every 7 attachments, do a few second break to prevent rate limiting
-		if (this.attachmentDownloadPauseCounter === 7) {
-			await new Promise(resolve => {
-				progress.status('Pausing attachment download to avoid rate limiting.');
-				this.attachmentDownloadPauseCounter = 0;
-				window.setTimeout(resolve, 3000);
-			});
+		if (this.attachmentsSinceBackOff === 7) {
+			this.attachmentsSinceBackOff = 0;
+			await this.backOff(3, 'staying under OneNote rate limits', progress);
 		}
-		this.attachmentDownloadPauseCounter++;
+		this.attachmentsSinceBackOff++;
 
 		progress.status('Downloading attachment ' + filename);
 
@@ -1195,7 +1192,7 @@ export class OneNoteImporter extends FormatImporter {
 					console.warn(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
 					await this.backOff(
 						retryTimeSeconds,
-						`OneNote API is rate-limiting us`,
+						'rate limited by OneNote',
 						progress,
 					);
 
