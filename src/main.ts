@@ -1,4 +1,4 @@
-import { App, getLanguage, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback } from './constants';
@@ -67,6 +67,20 @@ function statusText(message: string): string {
 
 	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
 }
+
+/**
+ * A glyph for a format the help site has no mark for.
+ *
+ * The rest are drawn by .importer-app-icon.mod-<id> in styles.css, which is the
+ * help site's own artwork. These four are file formats rather than apps with a
+ * logo, so Lucide says more about them than a mark would.
+ */
+const FALLBACK_ICONS: Record<string, IconName> = {
+	'csv': 'table',
+	'html': 'code-2',
+	'textbundle': 'package',
+	'tomboy': 'sticky-note',
+};
 
 /**
  * A help page, in the language the app is set to.
@@ -570,6 +584,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 						if (match) renderMatches(frag, definition.optionText, match.matches);
 						else frag.appendText(definition.optionText);
 					}));
+
+				// The app it comes from, in the slot the app's own settings rows
+				// keep an icon in - which is before the name, so it is prepended
+				const iconEl = createDiv(`setting-item-icon importer-app-icon mod-${id}`);
+				if (FALLBACK_ICONS[id]) setIcon(iconEl, FALLBACK_ICONS[id]);
+				setting.settingEl.prepend(iconEl);
 
 				setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
 
