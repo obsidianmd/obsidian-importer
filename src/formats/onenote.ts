@@ -1193,7 +1193,7 @@ export class OneNoteImporter extends FormatImporter {
 					// for more info.
 					let retryTimeSeconds = retryAfter ? (+retryAfter * 1) : 60;
 					console.warn(`Rate limit exceeded, waiting for: ${retryTimeSeconds} seconds`);
-					await this.pause(
+					await this.backOff(
 						retryTimeSeconds,
 						`OneNote API is rate-limiting us`,
 						progress,

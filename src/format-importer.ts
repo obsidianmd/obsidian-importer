@@ -4,7 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
-import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath } from './util';
+import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -512,12 +512,21 @@ export abstract class FormatImporter {
 		return normalizePath(outputPath);
 	}
 
-	async pause(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
+	/**
+	 * Wait, because the far end has asked us to, saying so where the import
+	 * says what it is doing.
+	 *
+	 * Not ctx.pause(), which is the user holding the import until they lift it.
+	 * This one ends on its own, and the word is kept away from it so that the
+	 * status line means one thing: an import that says it is paused was paused
+	 * by someone.
+	 */
+	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => window.setTimeout(resolve, durationSeconds * 1_000));
 
 		if (ctx) {
 			const previousStatusMessage = ctx.statusMessage;
-			ctx.status(`⏸️ Pausing import for ${durationSeconds} seconds (${reason})`);
+			ctx.status(`Waiting ${plural(durationSeconds, 'second')} (${reason})`);
 			await promise;
 			ctx.status(previousStatusMessage);
 		}
