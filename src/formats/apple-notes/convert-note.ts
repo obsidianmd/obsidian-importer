@@ -129,9 +129,14 @@ export class NoteConverter extends ANConverter {
 		}
 
 		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun({} as ANAttributeRun);
-		if (table) converted.replace('\n', '<br>').replace('|', '&#124;');
+		converted = converted.trim();
 
-		return converted.trim();
+		// Trimmed first, so the newlines a cell is padded with do not each
+		// become a <br>. Every one after that has to go: a row ends at the
+		// first newline, and an unescaped pipe starts the next cell.
+		if (table) converted = converted.replace(/\n/g, '<br>').replace(/\|/g, '&#124;');
+
+		return converted;
 	}
 
 	/** Format things that cover multiple ANAttributeRuns. */

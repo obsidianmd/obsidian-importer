@@ -36,7 +36,7 @@ import {
 	SQLiteTagSpawned,
 } from '../../src/formats/apple-notes/models';
 import { expectedFor, expectTree, fixtures } from '../helpers';
-import { buildStore, NoteSpec, StoreSpec } from './store';
+import { buildStore, encodeNote, NoteSpec, StoreSpec } from './store';
 
 provideNodeModules({ zlib: nodeZlib });
 
@@ -261,6 +261,34 @@ test('keeps the first line when asked to', async () => {
 
 		assert.match(kept.get('Headings')!, /^# Headings/);
 		assert.doesNotMatch(dropped.get('Headings')!, /^# Headings/);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
+ * A cell is converted with `table` set, which is what tells the converter that
+ * its result has to survive inside a `|`-delimited row. A line break has to
+ * become a `<br>` and a pipe an entity, or the row ends early and everything
+ * after it lands outside the table.
+ */
+test('a table cell keeps its line breaks and pipes', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const cell = context(store.database).decodeData(
+			encodeNote({ title: 'Cell', runs: [{ text: 'first\nsecond\nthird | fourth' }] }).toString('hex'),
+			NoteConverter
+		);
+
+		const formatted = await cell.format(true);
+
+		assert.doesNotMatch(formatted, /\n/, 'a newline would end the table row');
+		assert.doesNotMatch(formatted, /(?<!&#124;)\|/, 'a bare pipe would split the cell');
+		assert.equal(formatted, 'first<br>second<br>third &#124; fourth');
 	}
 	finally {
 		store.close();
