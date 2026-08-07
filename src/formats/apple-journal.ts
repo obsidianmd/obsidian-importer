@@ -21,7 +21,7 @@ export class AppleJournalImporter extends FormatImporter {
 			'Journal entries',
 			['htm', 'html'],
 			true,
-			'Pick the Journal app exported folder',
+			'Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.',
 			defaultImportPath
 		);
 

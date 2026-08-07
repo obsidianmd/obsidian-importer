@@ -21,6 +21,15 @@ const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
 };
 
 /**
+ * Which of the dialog's setup screens a setting is drawn on.
+ *
+ * 'source'  - where the notes are coming from: the files to import, or the
+ *             account to sign in to and what to pull from it
+ * 'options' - everything else, and the last screen before the import runs
+ */
+export type ImporterStep = 'source' | 'options';
+
+/**
  * What an importer needs besides the vault: somewhere to draw its settings,
  * the plugin that stores its credentials, and which importer it is.
  *
@@ -29,8 +38,10 @@ const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
  * the caller sets what it needs directly.
  */
 export interface ImporterHost {
-	/** Where settings are drawn, or null when there is no dialog. */
-	contentEl: HTMLElement | null;
+	/** Where the source step is drawn, or null when there is no dialog. */
+	sourceEl: HTMLElement | null;
+	/** Where the options step is drawn, or null when there is no dialog. */
+	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	/**
 	 * Which importer this is, for scoping the credential it stores.
@@ -39,6 +50,11 @@ export interface ImporterHost {
 	 * a Modal, and Obsidian sets an id on those.
 	 */
 	importerId: string;
+	/**
+	 * Told that sourceReady may now answer differently. Only the dialog cares:
+	 * it is what waits for the answer before offering the next step.
+	 */
+	sourceChanged?(): void;
 	/** Aborted when the user cancels, for anything that outlives a check. */
 	abortController: AbortController;
 }
@@ -137,19 +153,43 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * Whether the source step has been answered, which is what the dialog waits
+	 * for before it offers the one after it.
+	 *
+	 * Files, for the importers that pick some. One that is pointed at its notes
+	 * another way - an account signed in to, a folder it was let into - says
+	 * what it is waiting for instead, and calls sourceChanged() when it lands.
+	 */
+	get sourceReady(): boolean {
+		return this.files.length > 0;
+	}
+
+	/** Say that sourceReady may now answer differently. */
+	protected sourceChanged(): void {
+		this.host.sourceChanged?.();
+	}
+
+	/** Where a step is drawn, or null when there is no dialog. */
+	protected stepEl(step: ImporterStep): HTMLElement | null {
+		return step === 'source' ? this.host.sourceEl : this.host.optionsEl;
+	}
+
+	/**
 	 * A setting for this importer, or null when there is no dialog to draw in.
 	 *
 	 * An import run without one - from a script, or a test - draws nothing, so
 	 * a setting's only lasting effect is the default it was given. Assign that
 	 * default outside the chain, not in the component's callback.
 	 */
-	protected addSetting(): Setting | null {
-		return this.host.contentEl ? new Setting(this.host.contentEl) : null;
+	protected addSetting(step: ImporterStep = 'options'): Setting | null {
+		const contentEl = this.stepEl(step);
+		return contentEl ? new Setting(contentEl) : null;
 	}
 
 	/** Draw into the dialog, if there is one. */
-	protected draw<T>(build: (contentEl: HTMLElement) => T): T | undefined {
-		return this.host.contentEl ? build(this.host.contentEl) : undefined;
+	protected draw<T>(build: (contentEl: HTMLElement) => T, step: ImporterStep = 'options'): T | undefined {
+		const contentEl = this.stepEl(step);
+		return contentEl ? build(contentEl) : undefined;
 	}
 
 	/**
@@ -162,7 +202,8 @@ export abstract class FormatImporter {
 	 * Read the credential back with getSecret().
 	 */
 	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
-		let setting = this.addSetting();
+		// Signing in is how this importer is told where the notes come from
+		let setting = this.addSetting('source');
 
 		if (!setting) {
 			// No dialog to fill in, but an import driven from a script still
@@ -185,6 +226,7 @@ export abstract class FormatImporter {
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
+					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
 
@@ -196,6 +238,7 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
+					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));
 
@@ -243,7 +286,7 @@ export abstract class FormatImporter {
 	}
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
-		const fileLocationSetting = this.addSetting();
+		const fileLocationSetting = this.addSetting('source');
 		// Nothing to pick without a dialog: the caller sets this.files itself
 		if (!fileLocationSetting) return;
 
@@ -292,7 +335,7 @@ export abstract class FormatImporter {
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
 						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
-							title: 'Pick folders to import',
+							title: 'Folders to import',
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 							defaultPath: defaultPath || undefined,
 						});
@@ -308,16 +351,31 @@ export abstract class FormatImporter {
 		}
 
 		let updateFiles = () => {
-			let descriptionFragment = createFragment();
-			let fileCount = this.files.length;
+			this.sourceChanged();
+
+			// A folder can be picked that holds nothing this importer reads, and
+			// a row saying nothing beside a button that will not go on says less
+			// than the question it replaced
+			if (this.files.length === 0) {
+				fileLocationSetting.setDesc(`Nothing to import there. Pick ${extensions.map(e => '.' + e).join(', ')} files, or a folder holding some.`);
+				return;
+			}
+
 			let pathText = this.files.map(f => f.name).join(', ');
 			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
 				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
 			}
-			descriptionFragment.createSpan({ text: `These ${fileCount} files will be imported: ` });
-			descriptionFragment.createEl('br');
-			descriptionFragment.createSpan({ cls: 'u-pop', text: pathText });
-			fileLocationSetting.setDesc(descriptionFragment);
+
+			fileLocationSetting.setDesc(createFragment(frag => {
+				// A single name is its own count, and several importers only
+				// ever have one: the count is for when the names run together
+				if (this.files.length > 1) {
+					frag.createSpan({ text: `${plural(this.files.length, 'file')} will be imported: ` });
+					frag.createEl('br');
+				}
+
+				frag.createSpan({ cls: 'u-pop', text: pathText });
+			}));
 		};
 	}
 

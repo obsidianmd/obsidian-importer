@@ -1,7 +1,9 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
+import { selectedNodes } from '../tree';
+import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
@@ -9,8 +11,14 @@ import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBREle
 import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
-// SecretStorage id: lowercase alphanumeric with dashes, per its own validation
-const REFRESH_TOKEN_SECRET_ID = 'onenote-importer-refresh-token';
+// SecretStorage id: lowercase alphanumeric with dashes, per its own validation.
+// Named for the account rather than for what is stored about it, since the
+// keychain lists these to the user beside the ones they named themselves.
+const ACCOUNT_SECRET_ID = 'onenote-importer';
+/** What ACCOUNT_SECRET_ID used to be called. See retrieveRefreshToken. */
+const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
+/** What the picker says while there is no account to list notebooks from. */
+const SIGNED_OUT_HINT = 'Sign in to see your OneNote notebooks.';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -62,6 +70,20 @@ function isHTMLElement(node: Node): node is HTMLElement {
 	return node.instanceOf(HTMLElement);
 }
 
+/**
+ * A notebook, section group or section, as the picker holds it.
+ *
+ * The same shape Airtable and the Notion API pick from, so the selection rules
+ * in tree.ts and the markup the app styles are shared rather than rewritten.
+ * Only a section carries pages, so only a section's id reaches the import.
+ */
+interface OneNoteTreeNode extends ViewableNode<OneNoteTreeNode> {
+	id: string;
+	type: 'notebook' | 'group' | 'section';
+	collapsed: boolean;
+	children: OneNoteTreeNode[];
+}
+
 export class OneNoteImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -69,10 +91,11 @@ export class OneNoteImporter extends FormatImporter {
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
 	// UI
-	microsoftAccountSetting: Setting;
-	switchUserSetting: Setting;
-	loadingArea: HTMLDivElement;
-	contentArea: HTMLDivElement;
+	/** The account row, which says who is signed in and offers the way in or out. */
+	accountSetting: Setting;
+	private accountButton: ButtonComponent;
+	/** The section picker, once there is a dialog to draw it in. */
+	private picker: TreePicker<OneNoteTreeNode>;
 	// Internal
 	selectedIds: string[] = [];
 	notebooks: Notebook[] = [];
@@ -81,9 +104,18 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentsSinceBackOff = 0;
-	rememberMe = false;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
+
+	/** Whether there is an account to list notebooks from. */
+	private get signedIn(): boolean {
+		return this.graphData.accessToken !== '';
+	}
+
+	/** Nothing to import until some of the loaded sections have been ticked. */
+	get sourceReady(): boolean {
+		return this.selectedIds.length > 0;
+	}
 
 	async init() {
 		this.addOutputLocationSetting('OneNote');
@@ -104,93 +136,57 @@ export class OneNoteImporter extends FormatImporter {
 				.onChange((value) => (this.importPreviouslyImported = !value))
 			);
 
-		let authenticated = false;
-		if (this.retrieveRefreshToken()) {
-			try {
-				await this.updateAccessToken();
-				authenticated = true;
-			}
-			catch {
-				// Failed to auth with refresh token. Proceed with normal sign in flow.
-			}
-		}
-
 		// Everything below draws the sign-in flow, which needs a window to send
 		// the user to. An import driven without a dialog gets as far as whatever
 		// the stored refresh token gave it.
-		const contentEl = this.host.contentEl;
-		if (!contentEl) return;
+		const contentEl = this.host.sourceEl;
+		if (!contentEl) {
+			// Nothing to draw, so nothing to draw it in the right order for
+			await this.signInWithStoredToken();
+			return;
+		}
 
-		const setting = () => new Setting(contentEl);
-
-		this.microsoftAccountSetting =
-			setting()
-				.setName('Sign in with your Microsoft account')
-				.setDesc('You need to sign in to import your OneNote data.')
-				.addButton((button) => button
-					.setCta()
-					.setButtonText('Sign in')
-					.onClick(() => {
-						// authenticateUser handles its own errors, but the callback
-						// signature is void so anything escaping it is logged here.
-						this.registerAuthCallback(data => void this.authenticateUser(data)
-							.catch(e => console.error('Could not complete sign in', e)));
-
-						const requestBody = new URLSearchParams({
-							client_id: GRAPH_CLIENT_ID,
-							scope: 'offline_access ' + GRAPH_SCOPES.join(' '),
-							response_type: 'code',
-							redirect_uri: AUTH_REDIRECT_URI,
-							response_mode: 'query',
-							state: this.graphData.state,
-						});
-						window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
-					})
-				);
-		this.microsoftAccountSetting.settingEl.toggle(!authenticated);
-
-		const rememberMeSetting = setting()
-			.setName('Remember me')
-			.setDesc('If checked, you will be automatically logged in for subsequent imports.')
-			.addToggle((toggle) => {
-				toggle.onChange((value) => {
-					this.rememberMe = value;
-					if (value && this.refreshToken) {
-						this.storeRefreshToken(this.refreshToken);
-					}
-					else {
-						this.clearStoredRefreshToken();
-					}
+		// One row, in whichever state the account is in: two of them would leave
+		// the hidden one's divider above the visible one
+		this.accountSetting = new Setting(contentEl)
+			.setName('Microsoft account')
+			.addButton((button) => {
+				this.accountButton = button;
+				button.onClick(() => {
+					if (this.signedIn) this.signOut();
+					else this.signIn();
 				});
 			});
-		rememberMeSetting.settingEl.toggle(!authenticated);
 
-		this.switchUserSetting = setting()
-			.addButton((button) => button
-				.setCta()
-				.setButtonText('Switch user')
-				.onClick(() => {
-					this.microsoftAccountSetting.settingEl.show();
-					rememberMeSetting.settingEl.show();
-					this.clearStoredRefreshToken();
-					this.switchUserSetting.settingEl.hide();
-					this.contentArea.empty();
-				})
-			);
+		this.drawSectionPicker(contentEl);
 
-		this.loadingArea = contentEl.createDiv({
-			text: 'Loading notebooks...',
-		});
-		this.loadingArea.hide();
-		this.contentArea = contentEl.createDiv();
-		this.contentArea.hide();
+		// Signed out until the stored token says otherwise, which is a request
+		// to Microsoft: the row is drawn in that state first, rather than the
+		// screen staying empty until the answer comes back.
+		this.showSignedOut();
 
-		if (authenticated) {
-			await this.setSwitchUser();
+		if (await this.signInWithStoredToken()) {
+			await this.showSignedIn();
 			await this.showSectionPickerUI();
 		}
-		else {
-			this.switchUserSetting.settingEl.hide();
+	}
+
+	/**
+	 * Take up the account the last import signed in to, if it is still good.
+	 *
+	 * A token that is no longer accepted leaves the sign-in button to do its
+	 * job, which is why nothing is reported here.
+	 */
+	private async signInWithStoredToken(): Promise<boolean> {
+		if (!this.retrieveRefreshToken()) return false;
+
+		try {
+			await this.updateAccessToken();
+			return true;
+		}
+		catch {
+			// Failed to auth with refresh token. Proceed with normal sign in flow.
+			return false;
 		}
 	}
 
@@ -201,25 +197,67 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			await this.updateAccessToken(protocolData['code']);
-			await this.setSwitchUser();
+			await this.showSignedIn();
 			await this.showSectionPickerUI();
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.host.contentEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
+			this.host.sourceEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
 		}
 	}
 
-	async setSwitchUser() {
-		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
-		this.switchUserSetting.setDesc(
-			`Signed in as ${userData.displayName} (${userData.mail}). If that's not the correct account, sign in again.`
-		);
+	/** The account row while nobody is signed in: the way in. */
+	private showSignedOut() {
+		this.accountSetting.setDesc('Sign in to import your OneNote notebooks.');
+		this.accountButton.setButtonText('Sign in').setCta();
+		this.accountButton.buttonEl.removeClass('mod-destructive');
+	}
 
-		this.switchUserSetting.settingEl.show();
-		this.microsoftAccountSetting.settingEl.hide();
+	/** The account row once somebody is: who, and the way back out. */
+	async showSignedIn() {
+		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
+		this.accountSetting.setDesc(`Signed in as ${userData.displayName} (${userData.mail}).`);
+		this.accountButton.setButtonText('Sign out').removeCta();
+
+		// The way Obsidian marks Log out in Settings > About: tinted rather than
+		// solid, since it is a way out rather than the thing to do here
+		this.accountButton.buttonEl.addClass('mod-destructive');
+	}
+
+	/** Send the user to Microsoft, and wait to be told how it went. */
+	private signIn() {
+		// authenticateUser handles its own errors, but the callback signature
+		// is void so anything escaping it is logged here.
+		this.registerAuthCallback(data => void this.authenticateUser(data)
+			.catch(e => console.error('Could not complete sign in', e)));
+
+		const requestBody = new URLSearchParams({
+			client_id: GRAPH_CLIENT_ID,
+			scope: 'offline_access ' + GRAPH_SCOPES.join(' '),
+			response_type: 'code',
+			redirect_uri: AUTH_REDIRECT_URI,
+			response_mode: 'query',
+			state: this.graphData.state,
+		});
+		window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
+	}
+
+	/** Forget the account, here and in the keychain. */
+	private signOut() {
+		this.clearStoredRefreshToken();
+
+		// Nobody is signed in until the next one is, which means forgetting the
+		// token held for this session as well as the stored one
+		this.graphData.accessToken = '';
+		this.refreshToken = undefined;
+
+		// Back to what the picker says before there is an account to fill it,
+		// which empties it and says so - selectedIds follows from onChange
+		this.picker.reset();
+
+		this.showSignedOut();
 	}
 
 	/**
@@ -263,35 +301,63 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		this.graphData.accessToken = tokenResponse.access_token;
+		this.sourceChanged();
 	}
 
 	// The refresh token is held in Obsidian's keychain rather than localStorage:
 	// it grants continued access to the user's OneNote account, and the keychain
-	// is where Obsidian keeps credentials that outlive a session.
+	// is where Obsidian keeps credentials that outlive a session. Kept for every
+	// sign-in, so the next import starts signed in; Sign out withdraws it.
 	private storeRefreshToken(refreshToken: string) {
 		this.refreshToken = refreshToken;
-		if (this.rememberMe) {
-			this.app.secretStorage.setSecret(REFRESH_TOKEN_SECRET_ID, refreshToken);
-		}
+		this.app.secretStorage.setSecret(ACCOUNT_SECRET_ID, refreshToken);
 	}
 
 	private retrieveRefreshToken(): string | null {
 		if (this.refreshToken) {
 			return this.refreshToken;
 		}
-		return this.app.secretStorage.getSecret(REFRESH_TOKEN_SECRET_ID);
+
+		const stored = this.app.secretStorage.getSecret(ACCOUNT_SECRET_ID);
+		if (stored) return stored;
+
+		// Signed in before this secret was renamed. Carried over rather than
+		// asked for again, and the old name is withdrawn as it goes.
+		const previous = this.app.secretStorage.getSecret(PREVIOUS_SECRET_ID);
+		if (previous) {
+			this.app.secretStorage.setSecret(ACCOUNT_SECRET_ID, previous);
+			this.app.secretStorage.deleteSecret(PREVIOUS_SECRET_ID);
+		}
+
+		return previous;
 	}
 
 	private clearStoredRefreshToken() {
-		this.app.secretStorage.deleteSecret(REFRESH_TOKEN_SECRET_ID);
+		this.app.secretStorage.deleteSecret(ACCOUNT_SECRET_ID);
+	}
+	/**
+	 * Fetch the notebooks and what is in them, and draw them.
+	 *
+	 * Run as soon as there is an account to run it against, and again whenever
+	 * Refresh is pressed - a notebook made since signing in is not otherwise
+	 * something this screen would ever hear about.
+	 */
+	async showSectionPickerUI(): Promise<void> {
+		if (!this.signedIn) {
+			new Notice(SIGNED_OUT_HINT);
+			return;
+		}
+
+		try {
+			await this.picker.load(() => this.readNotebooks());
+		}
+		catch (e) {
+			console.error('An error occurred while fetching your OneNote data: ', e);
+		}
 	}
 
-	async showSectionPickerUI() {
-		this.loadingArea.show();
-
-		// Emptying, as the user may have leftover selections from previous sign-in attempt
-		this.selectedIds = [];
-
+	/** The notebooks, with their section groups and sections, as a tree. */
+	private async readNotebooks(): Promise<OneNoteTreeNode[]> {
 		const baseUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks';
 
 		// Fetch the sections & section groups directly under the notebook
@@ -300,48 +366,68 @@ export class OneNoteImporter extends FormatImporter {
 			$select: 'id,displayName,lastModifiedDateTime',
 			$orderby: 'lastModifiedDateTime DESC',
 		});
-		const sectionsUrl = `${baseUrl}?${params.toString()}`;
-		try {
-			this.notebooks = (await this.fetchResource<Notebook>(sectionsUrl, 'json-wrapped')).value;
 
-			// Make sure the element is empty, in case the user signs in twice
-			this.contentArea.empty();
-			this.contentArea.createEl('h4', {
-				text: 'Choose data to import',
-			});
+		this.notebooks = (await this.fetchResource<Notebook>(`${baseUrl}?${params.toString()}`, 'json-wrapped')).value;
 
-			for (const notebook of this.notebooks) {
-				// Check if there are any nested section groups, if so, fetch them
-				if (notebook.sectionGroups?.length !== 0) {
-					for (const sectionGroup of notebook.sectionGroups!) {
-						await this.fetchNestedSectionGroups(sectionGroup);
-					}
+		for (const notebook of this.notebooks) {
+			// Check if there are any nested section groups, if so, fetch them
+			if (notebook.sectionGroups?.length !== 0) {
+				for (const sectionGroup of notebook.sectionGroups!) {
+					await this.fetchNestedSectionGroups(sectionGroup);
 				}
-
-				let notebookDiv = this.contentArea.createDiv();
-
-				new Setting(notebookDiv)
-					.setName(notebook.displayName!)
-					.setDesc(`Last edited on: ${(moment.utc(notebook.lastModifiedDateTime)).format('Do MMMM YYYY')}. Contains ${notebook.sections?.length} sections.`)
-					.addButton((button) => button
-						.setCta()
-						.setButtonText('Select all')
-						.onClick(() => {
-							notebookDiv.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:not(:checked)').forEach((el) => el.click());
-						}));
-				this.renderHierarchy(notebook, notebookDiv);
 			}
 		}
-		catch (e) {
-			console.error('An error occurred while fetching your OneNote data: ', e);
-			this.showContentAreaErrorMessage();
-		}
 
-		this.loadingArea.hide();
-		this.contentArea.show();
+		return this.notebooks.map(notebook => this.treeNode(
+			notebook.id!, notebook.displayName!, 'notebook', this.childNodes(notebook)
+		));
 	}
 
-	// Gets the content of a nested section group
+	/**
+	 * The picker's own furniture: what it is for, and the tree it fills.
+	 *
+	 * Drawn beside the account row rather than inside something of its own, so
+	 * that the two are siblings and the dividers between settings fall where
+	 * they do everywhere else. There from the start, the way Airtable and the
+	 * Notion API leave theirs there, saying what it is waiting for.
+	 */
+	private drawSectionPicker(contentEl: HTMLElement): void {
+		this.picker = new TreePicker<OneNoteTreeNode>(contentEl, {
+			name: 'Sections to import',
+			desc: 'Select a notebook, or sections within it.',
+			hint: SIGNED_OUT_HINT,
+			loading: 'Loading notebooks...',
+			empty: 'No notebooks found.',
+			failed: 'Could not load your notebooks. OneNote may be limiting how fast they can be read; try again shortly.',
+			view: {
+				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
+			},
+			onChange: () => {
+				// What the import walks, kept in step with what the tree shows. An
+				// import run without the dialog sets it directly and never gets here.
+				this.selectedIds = selectedNodes(this.picker.nodes, node => node.type === 'section').map(node => node.id);
+				this.sourceChanged();
+			},
+		});
+
+		this.picker.onLoad(() => void this.showSectionPickerUI());
+	}
+
+	/** One node of the picker's tree, unselected and open. */
+	private treeNode(id: string, title: string, type: OneNoteTreeNode['type'], children: OneNoteTreeNode[]): OneNoteTreeNode {
+		return { id, title, type, selected: false, disabled: false, collapsed: false, children };
+	}
+
+	/** The section groups and sections directly under a notebook or group. */
+	private childNodes(entity: Notebook | SectionGroup): OneNoteTreeNode[] {
+		const groups = (entity.sectionGroups ?? []).map(group =>
+			this.treeNode(group.id!, group.displayName!, 'group', this.childNodes(group)));
+
+		const sections = (entity.sections ?? []).map(section =>
+			this.treeNode(section.id!, section.displayName!, 'section', []));
+
+		return [...groups, ...sections];
+	}
 	async fetchNestedSectionGroups(parentGroup: SectionGroup) {
 		parentGroup.sectionGroups = (await this.fetchResource<SectionGroup>(parentGroup.sectionGroupsUrl + '?$expand=sectionGroups($expand=sections),sections', 'json-wrapped')).value;
 
@@ -351,66 +437,6 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 	}
-
-	// Renders a HTML list of all section groups and sections
-	renderHierarchy(entity: SectionGroup | Notebook, parentEl: HTMLElement) {
-		if (entity.sectionGroups) {
-			for (const sectionGroup of entity.sectionGroups) {
-				let sectionGroupDiv = parentEl.createDiv(
-					{
-						attr: {
-							style: 'padding-inline-start: 1em; padding-top: 8px'
-						}
-					});
-
-				sectionGroupDiv.createEl('strong', {
-					text: sectionGroup.displayName!,
-				});
-
-				this.renderHierarchy(sectionGroup, sectionGroupDiv);
-			}
-		}
-
-		if (entity.sections) {
-			const sectionList = parentEl.createEl('ul', {
-				attr: {
-					style: 'padding-inline-start: 1em;',
-				},
-			});
-			for (const section of entity.sections) {
-				const listElement = sectionList.createEl('li', {
-					cls: 'task-list-item',
-				});
-				let label = listElement.createEl('label');
-				let checkbox = label.createEl('input');
-				checkbox.type = 'checkbox';
-
-				label.appendText(section.displayName!);
-				label.createEl('br');
-
-				checkbox.addEventListener('change', () => {
-					if (checkbox.checked) this.selectedIds.push(section.id!);
-					else {
-						const index = this.selectedIds.findIndex((sec) => sec === section.id);
-						if (index !== -1) {
-							this.selectedIds.splice(index, 1);
-						}
-					}
-				});
-			}
-		}
-	}
-
-	showContentAreaErrorMessage() {
-		this.contentArea.empty();
-		this.contentArea.createEl('p', {
-			text: 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.'
-		});
-
-		this.contentArea.show();
-		this.loadingArea.hide();
-	}
-
 	async import(progress: ImportContext): Promise<void> {
 		const previouslyImported = new Set<string>();
 		const data = await this.host.plugin.loadData();

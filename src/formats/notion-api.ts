@@ -1,9 +1,10 @@
-import { ButtonComponent, FrontMatterCache, Notice, Setting, normalizePath, requestUrl, TFile, TFolder, setIcon, DataWriteOptions, Vault } from 'obsidian';
+import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions, Vault } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
-import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
+import { areAnySelected } from '../tree';
+import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
@@ -33,6 +34,11 @@ export class NotionAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
+	/** Nothing to import until some of the listed pages have been ticked. */
+	get sourceReady(): boolean {
+		return areAnySelected(this.pickedTree);
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	/**
 	 * Whether a relation into a database the user did not select may import it.
@@ -55,11 +61,19 @@ export class NotionAPIImporter extends FormatImporter {
 	private requestCount: number = 0;
 	private totalNodesToImport: number = 0; // Total number of nodes selected for import
 	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
-	// Page/database tree for selection
-	private pageTree: NotionTreeNode[] = [];
-	private pageTreeContainer: HTMLElement | null = null;
-	private listPagesButton: ButtonComponent | null = null;
-	private toggleSelectButton: ButtonComponent | null = null;
+	/** The page and database picker, once there is a dialog to draw it in. */
+	private picker: TreePicker<NotionTreeNode>;
+
+	/**
+	 * What was picked, or nothing when there was no dialog to pick in.
+	 *
+	 * An import driven from a script has no picker at all, and reaches import()
+	 * all the same - where an empty tree is the answer it can report rather
+	 * than a property it cannot read.
+	 */
+	private get pickedTree(): NotionTreeNode[] {
+		return this.picker?.nodes ?? [];
+	}
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -99,73 +113,25 @@ export class NotionAPIImporter extends FormatImporter {
 		// List pages and toggle selection buttons
 		// Everything below is the tree the user picks pages from. An import
 		// driven without a dialog sets what it wants directly.
-		const contentEl = this.host.contentEl;
+		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
-		const listPagesSetting = new Setting(contentEl)
-			.setName('Select pages to import')
-			.setDesc('Click "Load" to see data you can import. If a page or database is missing, check that your Notion integration has access to it.');
-
-		// Store button references in closure to avoid constructor timing issues
-		let toggleButtonRef: ButtonComponent | null = null;
-		let listButtonRef: ButtonComponent | null = null;
-
-		// Toggle select all/none button
-		listPagesSetting.addButton(button => {
-			toggleButtonRef = button;
-			button
-				.setButtonText('Select all')
-				.onClick(() => {
-					this.toggleSelectButton = toggleButtonRef;
-					this.handleToggleSelectClick();
-				});
-
-			// Add custom class for fixed width and initially hide
-			if (button.buttonEl) {
-				button.buttonEl.addClass('importer-tree-button');
-				button.buttonEl.hide(); // Hide until tree is loaded
-			}
-
-			return button;
+		this.picker = new TreePicker<NotionTreeNode>(contentEl, {
+			name: 'Pages to import',
+			desc: 'Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.',
+			hint: 'Click "Load" to load your Notion pages and databases.',
+			loading: 'Loading pages and databases...',
+			empty: 'No pages or databases found. Make sure your connection has access to the pages you want to import.',
+			failed: 'Could not load your pages. Check your token and try again.',
+			view: {
+				icon: node => node.type === 'database' ? 'database'
+					: node.children.length === 0 ? 'file'
+						: node.collapsed ? 'folder' : 'folder-open',
+			},
+			onChange: () => this.sourceChanged(),
 		});
 
-		// List pages button
-		listPagesSetting.addButton(button => {
-			listButtonRef = button;
-			button
-				.setButtonText('Load')
-				.onClick(async () => {
-					try {
-						this.listPagesButton = listButtonRef;
-						this.toggleSelectButton = toggleButtonRef;
-						await this.loadPageTree();
-					}
-					catch (error) {
-						console.error('[Notion Importer] Error in loadPageTree:', error);
-						new Notice(`Failed to load pages: ${extractErrorMessage(error)}`);
-					}
-				});
-
-			// Add custom class for fixed width
-			if (button.buttonEl) {
-				button.buttonEl.addClass('importer-tree-button');
-				button.buttonEl.addClass('mod-cta');
-			}
-
-			return button;
-		});
-
-
-		// Page tree container (using Publish plugin's style with proper hierarchy)
-		// Create the section wrapper
-		const importSection = contentEl.createDiv();
-		importSection.addClass('import-section', 'file-tree', 'publish-section');
-
-		// Create the change list container
-		this.pageTreeContainer = importSection.createDiv('publish-change-list');
-		// Add placeholder text
-		const placeholder = this.pageTreeContainer.createDiv('publish-placeholder');
-		placeholder.setText('Click "Load" to load your Notion pages and databases.');
+		this.picker.onLoad(() => void this.loadPageTree());
 
 		// Notion skips a page it wrote before, but does not compare times
 		this.addDuplicateHandlingSetting({ idProperty: NOTION_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
@@ -307,100 +273,69 @@ export class NotionAPIImporter extends FormatImporter {
 		});
 	}
 
-	/**
-	 * Load page tree from Notion API using search
-	 */
 	private async loadPageTree(): Promise<void> {
 		if (!this.notionToken) {
 			new Notice('Please enter your Notion API token first.');
 			return;
 		}
 
-		if (!this.listPagesButton) {
-			return;
-		}
-
-		// Disable button and show loading state
-		this.listPagesButton.setDisabled(true);
-		this.listPagesButton.setButtonText('Loading...');
-
 		try {
-			// Re-initialize client to ensure current token is used
-			this.initializeNotionClient();
-
-			// Create a minimal context for makeNotionRequest
-			const tempCtx = {
-				status: (msg: string) => {
-					// Update button text with status
-					if (this.listPagesButton) {
-						this.listPagesButton.setButtonText(msg);
-					}
-				},
-				isCancelled: () => false,
-				reportFailed: (name: string, error: any) => {
-					console.error(`Failed: ${name}`, error);
-				},
-				statusMessage: '',
-			} as unknown as ImportContext;
-
-			// Search for all pages and databases with pagination
-			// Two-phase filtering:
-			// Phase 1: Collect all items and identify databases that are inside blocks
-			// Phase 2: Filter out pages that belong to those databases
-			const allRawItems: any[] = [];
-			let cursor: string | undefined = undefined;
-			let pageCount = 0;
-
-			do {
-				pageCount++;
-
-				// Update button text with progress
-				tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
-
-				// Use makeNotionRequest for rate limiting and error handling
-				// Note: Not using filter to get both pages and databases
-				const response = await makeNotionRequest(
-					() => this.notionClient!.search({
-						start_cursor: cursor,
-						page_size: 100,
-					}),
-					tempCtx
-				);
-
-				// Collect all raw items first
-				allRawItems.push(...response.results);
-
-				cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-			} while (cursor);
-
-			const allItems = collectItems(allRawItems);
-
-			// Build tree structure
-			this.pageTree = buildTree(allItems);
-
-			// Render tree (this will also update button text)
-			this.renderPageTree();
-
-			// Show the Select all button now that we have content
-			if (this.toggleSelectButton && this.toggleSelectButton.buttonEl) {
-				this.toggleSelectButton.buttonEl.show();
-			}
-
-			new Notice(`Found ${allItems.length} pages and databases.`);
+			await this.picker.load(() => this.readPages());
 		}
 		catch (error) {
 			console.error('[Notion Importer] Failed to load pages:', error);
 			new Notice(`Failed to load pages: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
-		finally {
-			// Re-enable button. Compared rather than tested for truthiness: an
-			// Obsidian component carries a then() for chaining, which reads to
-			// typescript-eslint as testing a promise.
-			if (this.listPagesButton !== null) {
-				this.listPagesButton.setDisabled(false);
-				this.listPagesButton.setButtonText('Refresh');
-			}
-		}
+	}
+
+	/**
+	 * Every page and database the connection can see, as a tree.
+	 *
+	 * Two-phase filtering: collect every item and identify the databases that
+	 * are inside blocks, then drop the pages belonging to those databases.
+	 */
+	private async readPages(): Promise<NotionTreeNode[]> {
+		// Re-initialize client to ensure current token is used
+		this.initializeNotionClient();
+
+		// A minimal context for makeNotionRequest. Progress goes where the tree
+		// is about to appear, rather than in the button: these are sentences,
+		// and a button grows to fit whatever it is given.
+		const tempCtx = {
+			status: (msg: string) => this.picker.setStatus(msg),
+			isCancelled: () => false,
+			reportFailed: (name: string, error: any) => {
+				console.error(`Failed: ${name}`, error);
+			},
+			statusMessage: '',
+		} as unknown as ImportContext;
+
+		const allRawItems: any[] = [];
+		let cursor: string | undefined = undefined;
+		let pageCount = 0;
+
+		do {
+			pageCount++;
+			tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
+
+			// Use makeNotionRequest for rate limiting and error handling.
+			// Not using filter, to get both pages and databases.
+			const response = await makeNotionRequest(
+				() => this.notionClient!.search({
+					start_cursor: cursor,
+					page_size: 100,
+				}),
+				tempCtx
+			);
+
+			allRawItems.push(...response.results);
+			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+		} while (cursor);
+
+		const allItems = collectItems(allRawItems);
+		new Notice(`Found ${allItems.length} pages and databases.`);
+
+		return buildTree(allItems);
 	}
 
 	/**
@@ -417,190 +352,6 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 		return null;
-	}
-
-	/**
-	 * Render page tree UI
-	 */
-	private renderPageTree(): void {
-		// Try to get container reference if lost
-		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.host.contentEl?.querySelector('.publish-change-list') ?? null;
-		}
-
-		if (!this.pageTreeContainer) {
-			console.error('[Notion Importer] Container not found!');
-			return;
-		}
-
-		const container = this.pageTreeContainer;
-
-		redrawTree(container, () => {
-			if (this.pageTree.length === 0) {
-				container.createDiv({
-					text: 'No pages or databases found. Make sure your integration has access to the pages you want to import.',
-					cls: 'notion-tree-empty'
-				});
-				return;
-			}
-
-			// Render tree (buttons are now outside the scrollable container)
-			for (const node of this.pageTree) {
-				this.renderTreeNode(container, node, 0);
-			}
-		});
-
-		// Update toggle button text based on current selection state
-		if (this.toggleSelectButton) {
-			this.updateToggleButtonText();
-		}
-	}
-
-	/**
-	 * Render a single tree node using Obsidian's standard tree structure
-	 */
-	private renderTreeNode(container: HTMLElement, node: NotionTreeNode, level: number): void {
-		// Main tree item container
-		const treeItem = container.createDiv('tree-item');
-
-		// Tree item self (contains the node itself)
-		const treeItemSelf = treeItem.createDiv('tree-item-self');
-		treeItemSelf.addClass('is-clickable');
-
-		// Add appropriate modifiers
-		if (node.children.length > 0) {
-			treeItemSelf.addClass('mod-collapsible');
-			treeItemSelf.addClass('mod-folder');
-		}
-		else {
-			treeItemSelf.addClass('mod-file');
-		}
-
-		// Dimmed and unclickable; see .import-section .tree-item-self.is-disabled
-		if (node.disabled) {
-			treeItemSelf.addClass('is-disabled');
-		}
-
-		// Collapse/Expand arrow (only if has children). Stays clickable on a
-		// disabled row, which styles.css restores.
-		if (node.children.length > 0) {
-			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-
-			// Use right-triangle icon (Obsidian's standard)
-			setIcon(collapseIcon, 'right-triangle');
-
-			// Add is-collapsed class for CSS control
-			collapseIcon.toggleClass('is-collapsed', node.collapsed);
-			treeItem.toggleClass('is-collapsed', node.collapsed);
-
-			let childrenContainer: HTMLElement;
-			let iconContainer: HTMLElement;
-
-			// Toggle collapse state with pure DOM manipulation (no re-render)
-			collapseIcon.addEventListener('click', (e) => {
-				e.stopPropagation();
-				node.collapsed = !node.collapsed;
-
-				// Get references if not set yet
-				if (!childrenContainer) {
-					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
-				}
-				if (!iconContainer) {
-					iconContainer = treeItem.querySelector('.file-tree-item-icon') as HTMLElement;
-				}
-
-				// Toggle CSS classes and visibility
-				collapseIcon.toggleClass('is-collapsed', node.collapsed);
-				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-
-				// Update folder icon
-				if (node.type !== 'database' && iconContainer) {
-					iconContainer.empty();
-					setIcon(iconContainer, node.collapsed ? 'folder' : 'folder-open');
-				}
-			});
-		}
-
-		// Inner content (checkbox, icon, title)
-		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
-
-		// Checkbox
-		const checkbox = treeItemInner.createEl('input', {
-			type: 'checkbox',
-			cls: 'file-tree-item-checkbox'
-		});
-		checkbox.checked = node.selected;
-		checkbox.disabled = node.disabled;
-
-		if (!node.disabled) {
-			checkbox.addEventListener('change', () => {
-				setNodeSelection(node, checkbox.checked);
-				this.renderPageTree();
-			});
-		}
-
-		// Icon
-		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
-		if (node.type === 'database') {
-			setIcon(iconContainer, 'database');
-		}
-		else if (node.children.length > 0) {
-			// Use folder-open for pages with children
-			setIcon(iconContainer, !node.collapsed ? 'folder-open' : 'folder');
-		}
-		else {
-			setIcon(iconContainer, 'file');
-		}
-
-		// Title
-		const titleEl = treeItemInner.createDiv('file-tree-item-title');
-		titleEl.setText(node.title);
-
-		// Children container
-		const childrenContainer = treeItem.createDiv('tree-item-children');
-
-		// Hide children container if collapsed
-		if (node.collapsed) {
-			childrenContainer.hide();
-		}
-
-		// Render children (always render, but hide if collapsed)
-		if (node.children.length > 0) {
-			for (const child of node.children) {
-				this.renderTreeNode(childrenContainer, child, level + 1);
-			}
-		}
-	}
-
-	/**
-	 * Handle toggle select button click
-	 * Selects all nodes if not all selected, deselects all if all selected
-	 */
-	private handleToggleSelectClick(): void {
-		// Check if page tree is loaded
-		if (this.pageTree.length === 0) {
-			new Notice('Please list importable pages first.');
-			return;
-		}
-
-		// Check current state - if all nodes are selected, deselect all; otherwise select all
-		const allSelected = areAllSelected(this.pageTree);
-
-		setAllSelection(this.pageTree, !allSelected);
-
-		this.renderPageTree(); // This will call updateToggleButtonText()
-	}
-
-	/**
-	 * Update toggle select button text based on current selection state
-	 */
-	private updateToggleButtonText(): void {
-		if (!this.toggleSelectButton) {
-			return;
-		}
-		const allSelected = areAllSelected(this.pageTree);
-		this.toggleSelectButton.setButtonText(allSelected ? 'Deselect all' : 'Select all');
 	}
 
 	/**
@@ -634,7 +385,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		};
 
-		collectNodes(this.pageTree);
+		collectNodes(this.pickedTree);
 		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)	
 		return topLevelSelected;
 	}
@@ -694,7 +445,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				try {
 					// Find the node in the tree to determine its type
-					const node = this.findNodeById(this.pageTree, itemId);
+					const node = this.findNodeById(this.pickedTree, itemId);
 
 					if (!node) {
 						console.warn(`Could not find node with ID: ${itemId}`);

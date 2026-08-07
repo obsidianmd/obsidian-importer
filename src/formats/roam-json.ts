@@ -2,6 +2,7 @@ import { ImportContext } from '../import-context';
 import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
@@ -11,6 +12,9 @@ import { blockRefRegex, extractBlockReferenceUIDs } from './roam/block-refs';
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
+
+/** The help page this importer's own guide lives at; see main.ts's registry. */
+const HELP_PERMALINK = 'import/roam';
 
 export class RoamJSONImporter extends FormatImporter {
 	interruption = 'pause' as const;
@@ -24,7 +28,16 @@ export class RoamJSONImporter extends FormatImporter {
 	titleYAML: boolean = false;
 
 	init() {
-		this.addFileChooserSetting('Roam (.json)', ['json']);
+		// Above the chooser, because it is where the thing to choose comes from
+		this.addSetting('source')
+			?.setName('Export your data')
+			.setDesc('Export your data in JSON format.')
+			.addButton(button => button
+				.setButtonText('Open')
+				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+
+		this.addFileChooserSetting('Roam (.json)', ['json'], false,
+			'Pick the JSON file from your Roam export.');
 		this.addOutputLocationSetting('Roam');
 		this.userDNPFormat = this.getUserDNPFormat();
 

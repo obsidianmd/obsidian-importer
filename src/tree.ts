@@ -61,6 +61,30 @@ export function areAllSelected(nodes: SelectableNode[]): boolean {
 }
 
 /**
+ * Whether anything at all is selected, which is what the dialog waits for
+ * before it will move on from the screen the tree is on.
+ */
+export function areAnySelected(nodes: SelectableNode[]): boolean {
+	return nodes.some(node => node.selected || areAnySelected(node.children ?? []));
+}
+
+/**
+ * Everything selected, at any depth, that the importer can do something with.
+ *
+ * A tree usually holds more kinds of thing than the import can fetch from - a
+ * notebook holds sections, an account holds folders - so the caller says which
+ * of them it means, and gets those regardless of how deeply they sit.
+ */
+export function selectedNodes<T extends SelectableNode>(nodes: T[], canImport: (node: T) => boolean = () => true, into: T[] = []): T[] {
+	for (const node of nodes) {
+		if (node.selected && canImport(node)) into.push(node);
+		selectedNodes((node.children ?? []) as T[], canImport, into);
+	}
+
+	return into;
+}
+
+/**
  * Redraw a tree without losing where the user was.
  *
  * The container is the scroll box, so emptying it sends the list back to the

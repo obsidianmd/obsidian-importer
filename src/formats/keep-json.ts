@@ -1,12 +1,15 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { ATTACHMENT_EXTS } from '../constants';
+import { ATTACHMENT_EXTS, helpUrl } from '../constants';
 import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { convertKeepNote } from './keep/convert';
 
+
+/** The help page this importer's own guide lives at; see main.ts's registry. */
+const HELP_PERMALINK = 'import/google-keep';
 
 const BUNDLE_EXTS = ['zip'];
 const NOTE_EXTS = ['json'];
@@ -23,6 +26,19 @@ export class KeepImporter extends FormatImporter {
 	importTrashed: boolean = false;
 
 	init() {
+		// Above the chooser, because it is where the thing to choose comes from:
+		// Keep has no export of its own, and Takeout is not an obvious place to
+		// be sent looking for one
+		this.addSetting('source')
+			?.setName('Export your data')
+			.setDesc(createFragment(frag => {
+				frag.appendText('Get your Google Keep data from Google Takeout. ');
+				frag.createEl('a', { text: 'Learn more.', href: helpUrl(HELP_PERMALINK) });
+			}))
+			.addButton(button => button
+				.setButtonText('Open')
+				.onClick(() => window.open('https://takeout.google.com/settings/takeout')));
+
 		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
 		this.addSetting()

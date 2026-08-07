@@ -3,12 +3,13 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { ButtonComponent, Notice, Setting, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
+import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
-import { areAllSelected, redrawTree, setAllSelection, setNodeSelection } from '../tree';
+import { areAnySelected, selectedNodes } from '../tree';
+import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import {
 	TemplateConfigurator,
@@ -87,6 +88,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
+	/** Nothing to import until some of the loaded tables have been ticked. */
+	get sourceReady(): boolean {
+		return areAnySelected(this.picker?.nodes ?? []);
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'Views'; // Property name to track which views a record belongs to
@@ -95,11 +101,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
 
-	// Tree for base/table selection
-	private tree: AirtableTreeNode[] = [];
-	private treeContainer: HTMLElement;
-	private loadButton: ButtonComponent;
-	private toggleSelectButton: ButtonComponent;
+	/** The base and table picker, once there is a dialog to draw it in. */
+	private picker: TreePicker<AirtableTreeNode>;
 
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
@@ -153,67 +156,27 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Everything below is the tree the user picks tables from. An import
 		// driven without a dialog sets what it wants directly.
-		const contentEl = this.host.contentEl;
+		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
-		// Load bases and tables button
-		const loadSetting = new Setting(contentEl)
-			.setName('Select tables to import')
-			.setDesc('Load your Airtable bases and tables, then choose what to import.');
-
-		// Toggle select all/none button
-		loadSetting.addButton(button => {
-			button
-				.setButtonText('Select all')
-				.onClick(() => {
-					if (this.tree.length === 0) {
-						new Notice('Please load bases first.');
-						return;
-					}
-
-					const allSelected = areAllSelected(this.tree);
-					setAllSelection(this.tree, !allSelected);
-					this.renderTree();
-				});
-
-			this.toggleSelectButton = button;
-			button.buttonEl.addClass('importer-tree-button');
-			button.buttonEl.hide();
-
-			return button;
+		this.picker = new TreePicker<AirtableTreeNode>(contentEl, {
+			name: 'Tables to import',
+			desc: 'Load your Airtable bases and tables, then choose what to import.',
+			hint: 'Load your Airtable bases and tables to get started.',
+			loading: 'Fetching bases...',
+			empty: 'No bases found.',
+			failed: 'Could not load your bases. Check your token and try again.',
+			view: {
+				icon: node => node.type === 'base' ? 'database' : 'file',
+				// A base is collapsible before its tables are known, because
+				// expanding one is what fetches them
+				isCollapsible: node => node.type === 'base' || !!node.children?.length,
+				onExpand: (node, rowEl) => this.loadTablesForExpand(node, rowEl),
+			},
+			onChange: () => this.sourceChanged(),
 		});
 
-		// Load button
-		loadSetting.addButton(button => {
-			button
-				.setButtonText('Load')
-				.onClick(async () => {
-					try {
-						await this.loadTree();
-					}
-					catch (error) {
-						console.error('[Airtable Importer] Error loading tree:', error);
-						new Notice(`Failed to load bases: ${extractErrorMessage(error)}`);
-					}
-				});
-
-			this.loadButton = button;
-			button.buttonEl.addClass('importer-tree-button', 'mod-cta');
-
-			return button;
-		});
-
-		// Page tree container (using Publish plugin's style with proper hierarchy)
-		// Create the section wrapper
-		const importSection = contentEl.createDiv();
-		importSection.addClass('import-section', 'file-tree', 'publish-section');
-
-		// Create the change list container
-		this.treeContainer = importSection.createDiv('publish-change-list');
-
-		// Add placeholder text
-		const placeholder = this.treeContainer.createDiv('publish-placeholder');
-		placeholder.setText('Load your Airtable bases and tables to get started.');
+		this.picker.onLoad(() => void this.loadTree());
 
 		// Formula import strategy
 		this.addSetting()
@@ -260,7 +223,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('Create a Personal Access Token in your Airtable account settings. ');
+		frag.appendText('Create a personal access token in your Airtable account settings. ');
 		frag.createEl('a', {
 			text: 'Get token',
 			href: 'https://airtable.com/create/tokens',
@@ -277,63 +240,76 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		this.loadButton.setDisabled(true);
-		this.loadButton.setButtonText('Loading...');
-
 		try {
-			// Create a minimal status reporter for API calls during tree loading
-			const statusReporter = {
-				status: (msg: string) => {
-					this.loadButton.setButtonText(msg);
-				},
-			};
-
-			// Fetch all bases
-			const bases = await fetchBases(this.airtableToken, statusReporter);
-
-			if (bases.length === 0) {
-				new Notice('No bases found. Make sure your token has proper permissions.');
-				return;
-			}
-
-			// Build the tree from the base list alone. Table schemas cost one API
-			// call per base, which on an account with many bases means a minute or
-			// more of staring at an empty list, so they are fetched on demand when
-			// a base is expanded or selected.
-			// Sorted by name: the API returns bases in an order that means nothing
-			// here, and an account with dozens of them is otherwise a scavenger
-			// hunt. Table order within a base is left alone, since that one is
-			// arranged deliberately in Airtable.
-			this.tree = bases
-				.map(base => ({
-					id: base.id,
-					title: base.name,
-					type: 'base' as const,
-					parentId: null,
-					children: [],
-					selected: false,
-					disabled: false,
-					collapsed: true,
-					tablesLoaded: false,
-				}))
-				.sort((a, b) => a.title.localeCompare(b.title));
-
-			this.renderTree();
-
-			this.toggleSelectButton.buttonEl.show();
-
-			// Table counts are deliberately absent: schemas are fetched per base on
-			// demand, so totalling them here would reintroduce the full scan
-			new Notice(`Found ${plural(bases.length, 'base')}. Expand a base to see its tables.`);
+			await this.picker.load(() => this.readBases());
 		}
 		catch (error) {
 			console.error('[Airtable Importer] Failed to load bases:', error);
 			new Notice(`Failed to load bases: ${extractErrorMessage(error) ?? 'Unknown error'}`);
 		}
-		finally {
-			this.loadButton.setDisabled(false);
-			this.loadButton.setButtonText('Refresh');
+	}
+
+	/**
+	 * The bases, as a tree of one level.
+	 *
+	 * Table schemas cost one API call per base, which on an account with many
+	 * bases means a minute or more of staring at an empty list, so they are
+	 * fetched on demand when a base is expanded or selected.
+	 *
+	 * Sorted by name: the API returns bases in an order that means nothing here,
+	 * and an account with dozens of them is otherwise a scavenger hunt. Table
+	 * order within a base is left alone, since that one is arranged
+	 * deliberately in Airtable.
+	 */
+	private async readBases(): Promise<AirtableTreeNode[]> {
+		// Where the tree is about to appear, rather than in the button: these
+		// are sentences, and a button grows to fit whatever it is given
+		const bases = await fetchBases(this.airtableToken, { status: (msg: string) => this.picker.setStatus(msg) });
+
+		return bases
+			.map(base => ({
+				id: base.id,
+				title: base.name,
+				type: 'base' as const,
+				parentId: null,
+				children: [],
+				selected: false,
+				disabled: false,
+				collapsed: true,
+				tablesLoaded: false,
+			}))
+			.sort((a, b) => a.title.localeCompare(b.title));
+	}
+
+	/**
+	 * Fetch a base's tables the first time it is opened.
+	 *
+	 * Says whether the tree gained anything, which is what asks for it to be
+	 * drawn again. A base that could not be read is left closed.
+	 */
+	private async loadTablesForExpand(node: AirtableTreeNode, rowEl: HTMLElement): Promise<boolean> {
+		if (node.type !== 'base' || node.tablesLoaded) return false;
+
+		// Obsidian's own spinner: .loader-spinner + the loader-2 icon, the same
+		// pairing app.css styles and Sync's modals use. Most bases resolve in a
+		// few hundred milliseconds, where a spinner reads as a flicker. Only
+		// reveal it if the fetch is still running after a beat.
+		const spinner = rowEl.createDiv('loader-spinner');
+		setIcon(spinner, 'loader-2');
+		spinner.hide();
+		const spinnerDelay = window.setTimeout(() => spinner.show(), 250);
+
+		const ok = await this.ensureTablesLoaded(node);
+
+		window.clearTimeout(spinnerDelay);
+		spinner.remove();
+
+		if (!ok) {
+			node.collapsed = true;
+			return false;
 		}
+
+		return true;
 	}
 
 	/**
@@ -392,7 +368,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * have to be resolved before the field list or the import can be built.
 	 */
 	private async ensureSelectedTablesLoaded(report: (msg: string) => void): Promise<void> {
-		const pending = this.tree.filter(node => node.selected && !node.tablesLoaded);
+		const pending = this.picker.nodes.filter(node => node.selected && !node.tablesLoaded);
 
 		for (let i = 0; i < pending.length; i++) {
 			report(`Loading tables (${i + 1}/${pending.length})`);
@@ -401,181 +377,11 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	/**
-	 * Render tree UI
+	 * What was picked: the topmost of each selection, since a node under a
+	 * selected one is disabled and comes with its parent either way.
 	 */
-	private renderTree(): void {
-		redrawTree(this.treeContainer, () => {
-			if (this.tree.length === 0) {
-				this.treeContainer.createDiv({
-					text: 'No bases found.',
-					cls: 'publish-placeholder'
-				});
-				return;
-			}
-
-			for (const node of this.tree) {
-				this.renderTreeNode(this.treeContainer, node);
-			}
-		});
-
-		this.updateToggleButtonText();
-	}
-
-	/**
-	 * Render a single tree node using Obsidian's standard tree structure
-	 * Airtable has only two levels: Base (database icon) -> Table (file icon)
-	 */
-	private renderTreeNode(container: HTMLElement, node: AirtableTreeNode): void {
-		// Main tree item container
-		const treeItem = container.createDiv('tree-item');
-
-		// Tree item self (contains the node itself)
-		const treeItemSelf = treeItem.createDiv('tree-item-self');
-		treeItemSelf.addClass('is-clickable');
-
-		// Add appropriate modifiers.
-		// A base is always collapsible, even before its tables have been fetched -
-		// otherwise a lazily-loaded base would have no arrow to expand.
-		const hasChildren = !!(node.children && node.children.length > 0);
-		const isCollapsible = node.type === 'base' || hasChildren;
-		treeItemSelf.addClass(node.type === 'base' ? 'mod-folder' : 'mod-file');
-
-		// Apply disabled styling. The dimming and pointer handling live in
-		// styles.css, keyed off is-disabled.
-		treeItemSelf.toggleClass('is-disabled', node.disabled);
-
-		// Collapse/Expand arrow
-		if (isCollapsible) {
-			treeItemSelf.addClass('mod-collapsible');
-
-			const collapseIcon = treeItemSelf.createDiv('tree-item-icon collapse-icon');
-
-			// Use right-triangle icon (Obsidian's standard)
-			setIcon(collapseIcon, 'right-triangle');
-
-			// Add is-collapsed class for CSS control
-			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
-			treeItem.toggleClass('is-collapsed', !!node.collapsed);
-
-			// The arrow stays clickable on a disabled row, so an inherited-selection
-			// base can still be expanded. Handled in styles.css.
-
-			let childrenContainer: HTMLElement;
-
-			// Toggle collapse state with pure DOM manipulation (no re-render).
-			// Expanding a base can fetch, which a listener cannot await, so a
-			// failure is logged rather than left as an unhandled rejection.
-			collapseIcon.addEventListener('click', (e) => void (async () => {
-				e.stopPropagation();
-				node.collapsed = !node.collapsed;
-
-				// Expanding a base for the first time fetches its tables. A full
-				// re-render is needed afterwards to draw the new child nodes.
-				if (!node.collapsed && node.type === 'base' && !node.tablesLoaded) {
-					// Obsidian's own spinner: .loader-spinner + the loader-2 icon,
-					// the same pairing app.css styles and Sync's modals use.
-					// Most bases resolve in a few hundred milliseconds, where a
-					// spinner reads as a flicker. Only reveal it if the fetch is
-					// still running after a beat.
-					const spinner = treeItemSelf.createDiv('loader-spinner');
-					setIcon(spinner, 'loader-2');
-					spinner.hide();
-					const spinnerDelay = window.setTimeout(() => spinner.show(), 250);
-
-					const ok = await this.ensureTablesLoaded(node);
-
-					window.clearTimeout(spinnerDelay);
-					spinner.remove();
-					if (!ok) {
-						node.collapsed = true;
-						return;
-					}
-					this.renderTree();
-					return;
-				}
-
-				// Get reference if not set yet
-				if (!childrenContainer) {
-					childrenContainer = treeItem.querySelector('.tree-item-children') as HTMLElement;
-				}
-
-				// Toggle CSS classes and visibility
-				collapseIcon.toggleClass('is-collapsed', node.collapsed);
-				treeItem.toggleClass('is-collapsed', node.collapsed);
-				if (childrenContainer) childrenContainer.toggle(!node.collapsed);
-			})().catch(err => console.error('Could not expand base', err)));
-		}
-
-		// Inner content (checkbox, icon, title)
-		const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
-
-		// Checkbox (must set checked/disabled as DOM properties, not HTML attributes)
-		const checkbox = treeItemInner.createEl('input', {
-			type: 'checkbox',
-			cls: 'file-tree-item-checkbox',
-		});
-		checkbox.checked = node.selected;
-		checkbox.disabled = node.disabled;
-
-		if (!node.disabled) {
-			checkbox.addEventListener('change', () => {
-				setNodeSelection(node, checkbox.checked);
-				this.renderTree();
-			});
-		}
-
-		// Icon: Base uses database icon, Table uses file icon
-		const iconContainer = treeItemInner.createDiv('file-tree-item-icon');
-		setIcon(iconContainer, node.type === 'base' ? 'database' : 'file');
-
-		// Title
-		const titleEl = treeItemInner.createDiv('file-tree-item-title');
-		titleEl.setText(node.title);
-
-		// Children container
-		const childrenContainer = treeItem.createDiv('tree-item-children');
-
-		// Hide children container if collapsed
-		if (node.collapsed) {
-			childrenContainer.hide();
-		}
-
-		// Render children (always render, but hide if collapsed)
-		if (hasChildren) {
-			for (const child of node.children!) {
-				this.renderTreeNode(childrenContainer, child);
-			}
-		}
-	}
-
-	/**
-	 * Update toggle button text
-	 */
-	private updateToggleButtonText(): void {
-		// Compared rather than tested for truthiness: Obsidian components carry a
-		// then() for chaining, which makes a bare `if (component)` look to
-		// typescript-eslint like testing a promise.
-		if (this.toggleSelectButton === undefined) {
-			return;
-		}
-		const allSelected = areAllSelected(this.tree);
-		this.toggleSelectButton.setButtonText(allSelected ? 'Deselect all' : 'Select all');
-	}
-
-	/**
-	 * Get selected nodes for import
-	 */
-	private getSelectedNodes(nodes: AirtableTreeNode[] = this.tree): AirtableTreeNode[] {
-		const selected: AirtableTreeNode[] = [];
-		for (const node of nodes) {
-			if (node.selected && !node.disabled) {
-				selected.push(node);
-			}
-			if (node.children) {
-				selected.push(...this.getSelectedNodes(node.children));
-			}
-		}
-		return selected;
+	private getSelectedNodes(): AirtableTreeNode[] {
+		return selectedNodes(this.picker.nodes, node => !node.disabled);
 	}
 
 	/**
@@ -605,7 +411,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Loading a base's tables only adds children that inherit its selection as
 		// checked-but-disabled, which getSelectedNodes filters out, so the
 		// selection checked above still holds
-		const selectedNodes = this.getSelectedNodes();
+		const picked = this.getSelectedNodes();
 
 		// Collect all unique fields from selected tables (union of all fields across tables)
 		// Collect all fields from selected tables for template configuration
@@ -630,7 +436,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 		};
 
-		collectFields(selectedNodes);
+		collectFields(picked);
 
 		if (allFieldsMap.size === 0) {
 			new Notice('No fields found in selected tables. Please check your selection.');
@@ -734,8 +540,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		// a base selected but never expanded has no tables to import otherwise
 		await this.ensureSelectedTablesLoaded(msg => ctx.status(msg));
 
-		const selectedNodes = this.getSelectedNodes();
-		if (selectedNodes.length === 0) {
+		const picked = this.getSelectedNodes();
+		if (picked.length === 0) {
 			new Notice('Please select at least one table to import.');
 			return;
 		}
@@ -761,7 +567,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.airtableBases.clear();
 
 			// Group selected nodes by base
-			const baseGroups = this.groupSelectedNodesByBase(selectedNodes);
+			const baseGroups = this.groupSelectedNodesByBase(picked);
 			const totalBases = baseGroups.size;
 			this.totalBasesToImport = totalBases;
 
@@ -867,7 +673,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				if (!baseGroups.has(baseId)) {
 					// Find the base node to get the base name
-					const baseName = this.tree.find(baseNode => baseNode.id === baseId)?.title ?? '';
+					const baseName = this.picker.nodes.find(baseNode => baseNode.id === baseId)?.title ?? '';
 					baseGroups.set(baseId, {
 						baseId,
 						baseName,
@@ -973,7 +779,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// The whole base's schema, which the tree already holds: the user picked
 		// what to import out of it, so the tables they did not pick are here too
-		const schema = this.tree.find(node => node.id === baseId)?.children ?? [];
+		const schema = this.picker.nodes.find(node => node.id === baseId)?.children ?? [];
 
 		for (const tableId of linkedTableIds) {
 			if (await ctx.shouldStop()) return;

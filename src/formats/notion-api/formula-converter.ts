@@ -27,7 +27,7 @@
  * 
  * Based on:
  * - Notion: https://www.notion.com/help/formula-syntax
- * - Obsidian: https://help.obsidian.md/bases/functions
+ * - Obsidian: https://obsidian.md/help/bases/functions
  */
 
 import { ConversionInfo } from './types';

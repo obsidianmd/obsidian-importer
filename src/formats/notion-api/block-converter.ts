@@ -1202,7 +1202,7 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 /**
  * Check if URL is embeddable in Obsidian
  * Obsidian supports embedding YouTube and Twitter/X content
- * @see https://help.obsidian.md/embed-web-pages
+ * @see https://obsidian.md/help/embed-web-pages
  */
 function isEmbeddableUrl(url: string): boolean {
 	return url.includes('youtube.com') || 

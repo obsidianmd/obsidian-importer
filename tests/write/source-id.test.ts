@@ -37,7 +37,7 @@ class ReadingImporter extends FormatImporter {
 
 function importer() {
 	const vault = new MemoryVault();
-	return { vault, subject: new ReadingImporter(memoryApp(vault), { contentEl: null } as never) };
+	return { vault, subject: new ReadingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never) };
 }
 
 const NOTE = serializeFrontMatter({ 'notion-id': 'abc-123' }) + 'The body of the note.\n';

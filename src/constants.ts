@@ -1,4 +1,4 @@
-import { ObsidianProtocolData } from 'obsidian';
+import { getLanguage, ObsidianProtocolData } from 'obsidian';
 
 /*
  * Plugin-wide values an importer needs but the plugin object does not carry.
@@ -22,3 +22,16 @@ export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg
  * protocal is opened by an OAuth callback.
  */
 export type AuthCallback = (data: ObsidianProtocolData) => void;
+
+/**
+ * A help page, in the language the app is set to.
+ *
+ * Every language but English is served under its own code, so English is the
+ * one with nothing in front: obsidian.md/help/… beside obsidian.md/fr/help/….
+ */
+export function helpUrl(permalink: string): string {
+	const language = getLanguage();
+	const prefix = language === 'en' ? '' : `/${language}`;
+
+	return `https://obsidian.md${prefix}/help/${permalink}`;
+}

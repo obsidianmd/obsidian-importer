@@ -26,7 +26,7 @@ class WritingImporter extends FormatImporter {
 
 function importer(): { vault: MemoryVault, subject: WritingImporter } {
 	const vault = new MemoryVault();
-	const subject = new WritingImporter(memoryApp(vault), { contentEl: null } as never);
+	const subject = new WritingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
 	return { vault, subject };
 }

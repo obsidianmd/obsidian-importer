@@ -51,7 +51,7 @@
  *
  * Based on:
  * - Airtable: https://support.airtable.com/docs/formula-field-reference
- * - Obsidian: https://help.obsidian.md/bases/functions
+ * - Obsidian: https://obsidian.md/help/bases/functions
  */
 
 import { findMatchingParen, mapOutsideStrings, parseArguments } from '../../formula-utils';
