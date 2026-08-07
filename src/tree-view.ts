@@ -33,6 +33,16 @@ export interface TreeView<T extends ViewableNode<T>> {
 	 */
 	isCollapsible?(node: T): boolean;
 	/**
+	 * A count beside the node's name, quietly and to the right, the way the
+	 * app's own trees carry one.
+	 *
+	 * It is how many notes ticking that node would write, and nothing else: a
+	 * number that counted something else - the tables in a base, the sections
+	 * in a notebook - reads as the size of the import and is not. An importer
+	 * that cannot say cheaply says nothing, which is what leaving this out does.
+	 */
+	flair?(node: T): string;
+	/**
 	 * Called as a node is opened, for one that fetches what is under it. Says
 	 * whether the tree changed underneath and has to be drawn again.
 	 *
@@ -105,6 +115,12 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	setIcon(iconEl, view.icon(node));
 
 	treeItemInner.createDiv('file-tree-item-title').setText(node.title);
+
+	// After the row's contents, which is what puts it at the far end
+	const flair = view.flair?.(node);
+	if (flair) {
+		treeItemSelf.createDiv('tree-item-flair-outer').createSpan({ cls: 'tree-item-flair', text: flair });
+	}
 
 	const childrenContainer = treeItem.createDiv('tree-item-children');
 	if (node.collapsed) childrenContainer.hide();

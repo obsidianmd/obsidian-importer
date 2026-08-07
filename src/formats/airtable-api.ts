@@ -164,7 +164,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Load bases and tables button
 		const loadSetting = new Setting(contentEl)
-			.setName('Select tables to import')
+			.setName('Data to import')
 			.setDesc('Load your Airtable bases and tables, then choose what to import.');
 
 		// Toggle select all/none button

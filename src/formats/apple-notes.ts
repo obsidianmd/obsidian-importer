@@ -1,11 +1,13 @@
-import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
+import { ButtonComponent, DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
-import { fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
+import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { areAllSelected, redrawTree, setAllSelection } from '../tree';
+import { renderTreeNodes, showTreePlaceholder, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
@@ -17,6 +19,37 @@ const CORETIME_OFFSET = 978307200;
 /** Frontmatter property holding the Apple Notes id a note was imported from. */
 const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
+/** What the picker says while it has not been let into the notes database. */
+const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
+
+/**
+ * A folder, or the account it belongs to, as the picker holds it.
+ *
+ * The same shape the other importers pick from, so the ticking and the drawing
+ * are the shared ones. Only a folder holds notes; an account is a heading with
+ * a checkbox, and is only there when there is more than one.
+ */
+interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
+	id: number;
+	type: 'account' | 'folder';
+	collapsed: boolean;
+	children: AppleNotesTreeNode[];
+}
+
+/** One row of the account listing, for the level above the folders. */
+interface ANAccountRow {
+	Z_PK: number;
+	ZNAME: string;
+}
+
+/** One row of the folder listing the picker is built from. */
+interface ANFolderRow {
+	Z_PK: number;
+	ZTITLE2: string;
+	ZPARENT: number | null;
+	ZFOLDERTYPE: number;
+	ZOWNER: number;
+}
 
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	interruption = 'pause' as const;
@@ -38,19 +71,38 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	parsedNotes = 0;
 
 	omitFirstLine = true;
-	importTrashed = false;
 	includeHandwriting = false;
-	trashFolders: number[] = [];
 	filePrefixFormat: string;
 	/** Every note path this run has written, to tell a copy from an update. */
 	private claimedPaths = new Set<string>();
 
-	/** The notes folder, once the user has let Obsidian read it. */
-	private dataPath: string | null = null;
+	/**
+	 * The notes folder, once macOS is letting Obsidian read it.
+	 *
+	 * Without an initialiser: init() runs from the base class constructor,
+	 * before a derived class assigns its fields, so `= null` would throw away
+	 * the access addAccessSetting had just found.
+	 */
+	private dataPath: string | null;
 
-	/** Nothing to pick: what this importer waits for is being let in. */
+	/** The folder picker, and what it was drawn from. */
+	private tree: AppleNotesTreeNode[];
+	private treeContainer: HTMLElement;
+	private toggleSelectButton: ButtonComponent;
+	private loadButton: ButtonComponent;
+
+	/**
+	 * Which folders the import walks, worked out from the tree the dialog draws.
+	 * An import run without one says which it wants directly.
+	 */
+	selectedFolders: number[] = [];
+
+	/** How many notes each folder holds, for the count beside its name. */
+	private noteCounts = new Map<number, number>();
+
+	/** Nothing to import until some of the folders have been ticked. */
 	get sourceReady(): boolean {
-		return this.dataPath !== null;
+		return this.selectedFolders.length > 0;
 	}
 
 	init(): void {
@@ -66,6 +118,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		this.addAccessSetting();
+		this.drawFolderPicker();
+
+		// Already allowed in, so the folders can be listed without being asked
+		if (this.dataPath) {
+			void this.loadFolders().catch(e => console.error('Could not read your Apple Notes folders', e));
+		}
 
 		this.addOutputLocationSetting('Apple Notes');
 
@@ -88,17 +146,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					this.filePrefixFormat = v;
 					this.app.saveLocalStorage(LOCAL_STORAGE_KEY, v);
 				})
-			);
-
-		this.addSetting()
-			?.setName('Import recently deleted notes')
-			.setDesc(
-				'Import notes in the "Recently Deleted" folder. Unlike in Apple Notes' +
-				', they will not be automatically removed after a set amount of time.'
-			)
-			.addToggle(t => t
-				.setValue(false)
-				.onChange(async v => this.importTrashed = v)
 			);
 
 		this.addSetting()
@@ -130,28 +177,231 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * user has pointed at the folder themselves.
 	 *
 	 * That is asked here rather than when the import starts, so that the step
-	 * about where the notes are coming from is the one that asks for them.
+	 * about where the notes are coming from is the one that asks for them - and
+	 * only when it still has to be asked, since the answer outlasts the session.
 	 */
 	private addAccessSetting(): void {
 		const setting = this.addSetting('source');
 		if (!setting) return;
 
-		setting
-			.setName('Apple Notes data folder')
-			.setDesc('macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.')
-			.addButton(button => button
-				.setButtonText('Select folder')
-				.onClick(() => {
-					const dataPath = this.askForDataFolder();
-					if (!dataPath) {
-						new Notice('Ensure you have selected the correct Apple Notes data folder.');
-						return;
-					}
+		setting.setName('Apple Notes data folder');
 
-					this.dataPath = dataPath;
-					this.sourceChanged();
-					setting.setDesc(`Obsidian can read your notes from ${dataPath}`);
-				}));
+		const showAccess = () => {
+			if (this.dataPath) {
+				setting.setDesc(`Obsidian can read your notes from ${this.dataPath}`);
+			}
+			else {
+				setting.setDesc('macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.');
+			}
+		};
+
+		// Already granted, from this import or a previous one
+		this.dataPath = this.readableDataFolder();
+		showAccess();
+
+		setting.addButton(button => button
+			.setButtonText('Select folder')
+			.onClick(() => {
+				const dataPath = this.askForDataFolder();
+				if (!dataPath) {
+					new Notice('Ensure you have selected the correct Apple Notes data folder.');
+					return;
+				}
+
+				this.dataPath = dataPath;
+				showAccess();
+				void this.loadFolders().catch(e => console.error('Could not read your Apple Notes folders', e));
+			}));
+	}
+
+	/** The folders to import from, which is the tree and the buttons over it. */
+	private drawFolderPicker(): void {
+		const setting = this.addSetting('source');
+		if (!setting) return;
+
+		setting
+			.setName('Folders to import')
+			.setDesc('Pick the folders whose notes to bring across.')
+			.addButton(button => {
+				this.toggleSelectButton = button;
+				button.buttonEl.addClass('importer-tree-button');
+				button.buttonEl.hide();
+				button.setButtonText('Select all').onClick(() => {
+					setAllSelection(this.tree, !areAllSelected(this.tree));
+					this.renderTree();
+				});
+			})
+			.addButton(button => {
+				this.loadButton = button;
+				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
+				button.setButtonText('Load').onClick(() => void this.loadFolders()
+					.catch(e => console.error('Could not read your Apple Notes folders', e)));
+			});
+
+		this.treeContainer = this.draw(contentEl => contentEl
+			.createDiv('import-section file-tree publish-section')
+			.createDiv('publish-change-list'), 'source')!;
+
+		this.tree = [];
+		showTreePlaceholder(this.treeContainer, NO_ACCESS_HINT);
+	}
+
+	/**
+	 * Read the folders out of the notes database and put them in the picker.
+	 *
+	 * The database is read where it lives rather than copied first: this is one
+	 * quick query, and the copy the import makes is for the long walk that comes
+	 * after it, which wants a snapshot the Notes app cannot move underneath.
+	 */
+	private async loadFolders(): Promise<void> {
+		if (!this.dataPath) {
+			new Notice(NO_ACCESS_HINT);
+			return;
+		}
+
+		this.tree = [];
+		this.selectedFolders = [];
+		this.loadButton.setDisabled(true).setButtonText('Loading...');
+		this.toggleSelectButton.buttonEl.hide();
+		showTreePlaceholder(this.treeContainer, 'Reading folders...');
+
+		//@ts-ignore
+		const db = new SQLiteTag(path.join(this.dataPath, NOTE_DB), { readonly: true, persistent: true }) as SQLiteTagSpawned;
+
+		try {
+			const keys = Object.fromEntries(
+				(await db.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
+			);
+
+			const folders = await db.all`
+				SELECT z_pk, ztitle2, zparent, zfoldertype, zowner
+				FROM ziccloudsyncingobject
+				WHERE z_ent = ${keys.ICFolder} AND ztitle2 IS NOT NULL
+			` as unknown as ANFolderRow[];
+
+			const accounts = await db.all`
+				SELECT z_pk, zname FROM ziccloudsyncingobject WHERE z_ent = ${keys.ICAccount}
+			` as unknown as ANAccountRow[];
+
+			// The notes each folder holds directly, counted the way the import
+			// counts them: a note with no title is not one it would write
+			const counts = await db.all`
+				SELECT zfolder, COUNT(*) AS notes FROM ziccloudsyncingobject
+				WHERE z_ent = ${keys.ICNote} AND ztitle1 IS NOT NULL
+				GROUP BY zfolder
+			` as unknown as { ZFOLDER: number, notes: number }[];
+
+			this.noteCounts = new Map(counts.map(row => [row.ZFOLDER, row.notes]));
+			this.tree = this.buildTree(folders, accounts);
+			this.renderTree();
+			this.toggleSelectButton.buttonEl.show();
+		}
+		finally {
+			db.close();
+			this.loadButton.setDisabled(false).setButtonText('Refresh').removeCta();
+		}
+	}
+
+	/**
+	 * The folders as a tree, under their accounts when there is more than one.
+	 *
+	 * A smart folder is left out: it is a saved search rather than somewhere
+	 * notes live, and resolveFolder skips it for the same reason.
+	 */
+	private buildTree(folders: ANFolderRow[], accounts: ANAccountRow[]): AppleNotesTreeNode[] {
+		const nodes = new Map<number, AppleNotesTreeNode>();
+
+		for (const folder of folders) {
+			if (folder.ZFOLDERTYPE === ANFolderType.Smart) continue;
+
+			nodes.set(folder.Z_PK, {
+				id: folder.Z_PK,
+				title: folder.ZTITLE2,
+				type: 'folder',
+				selected: false,
+				disabled: false,
+				collapsed: false,
+				children: [],
+			});
+		}
+
+		// Nested under its parent where it has one that survived the filtering
+		const roots: AppleNotesTreeNode[] = [];
+		for (const folder of folders) {
+			const node = nodes.get(folder.Z_PK);
+			if (!node) continue;
+
+			const parent = folder.ZPARENT === null ? undefined : nodes.get(folder.ZPARENT);
+			if (parent) parent.children.push(node);
+			else roots.push(node);
+		}
+
+		// One account is the account everything is in, and says nothing
+		if (accounts.length < 2) return roots;
+
+		return accounts
+			.map(account => ({
+				id: account.Z_PK,
+				title: account.ZNAME,
+				type: 'account' as const,
+				selected: false,
+				disabled: false,
+				collapsed: false,
+				children: roots.filter(node => folders.find(f => f.Z_PK === node.id)?.ZOWNER === account.Z_PK),
+			}))
+			.filter(account => account.children.length > 0);
+	}
+
+	private renderTree(): void {
+		redrawTree(this.treeContainer, () => {
+			if (this.tree.length === 0) {
+				this.treeContainer.createDiv({ cls: 'publish-placeholder', text: 'No folders found.' });
+				return;
+			}
+
+			renderTreeNodes(this.treeContainer, this.tree, {
+				icon: node => node.type === 'account' ? 'user' : 'folder',
+				// An account holds nothing of its own; its folders each say theirs
+				flair: node => node.type === 'account' ? '' : String(this.noteCounts.get(node.id) ?? 0),
+				redraw: () => this.renderTree(),
+			});
+		});
+
+		// What the import walks, kept in step with what the tree shows
+		this.selectedFolders = this.selectedFolderIds(this.tree);
+
+		this.toggleSelectButton.setButtonText(areAllSelected(this.tree) ? 'Deselect all' : 'Select all');
+		this.sourceChanged();
+	}
+
+	/** Every folder the selection covers; an account holds none of its own. */
+	private selectedFolderIds(nodes: AppleNotesTreeNode[], into: number[] = []): number[] {
+		for (const node of nodes) {
+			if (node.type === 'folder' && node.selected) into.push(node.id);
+			this.selectedFolderIds(node.children, into);
+		}
+
+		return into;
+	}
+
+	/**
+	 * The notes folder, if macOS is already letting Obsidian read it.
+	 *
+	 * The access a user grants by picking the folder outlives the session, so
+	 * asking again is asking a question that has been answered. Tried rather
+	 * than remembered: what was granted is the system's to say, not ours, and a
+	 * grant that has since been withdrawn would answer the same either way.
+	 */
+	private readableDataFolder(): string | null {
+		const dataPath = path.join(os.homedir(), NOTE_FOLDER_PATH);
+
+		try {
+			fs.accessSync(path.join(dataPath, NOTE_DB), fs.constants.R_OK);
+			return dataPath;
+		}
+		catch {
+			return null;
+		}
 	}
 
 	/**
@@ -202,6 +452,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 		this.rootFolder = rootFolder;
 
+		if (this.selectedFolders.length === 0) {
+			new Notice('Please select at least one folder to import.');
+			return;
+		}
+
 		this.database = await this.getNotesDatabase() as SQLiteTagSpawned;
 		if (!this.database) return;
 
@@ -212,8 +467,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const noteAccounts = await this.database.all`
 			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
 		`;
+		// Only the folders that were picked, and only those the notes are in
 		const noteFolders = await this.database.all`
-			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICFolder}
+			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
+			WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
 		`;
 
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
@@ -238,7 +495,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			WHERE
 				z_ent = ${this.keys.ICNote}
 				AND ztitle1 IS NOT NULL
-				AND zfolder NOT IN (${this.trashFolders})
+				AND zfolder IN (${this.selectedFolders})
 		`;
 		this.noteCount = notes.length;
 
@@ -285,10 +542,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		let prefix;
 
 		if (folder.ZFOLDERTYPE == ANFolderType.Smart) {
-			return null;
-		}
-		else if (!this.importTrashed && folder.ZFOLDERTYPE == ANFolderType.Trash) {
-			this.trashFolders.push(id);
 			return null;
 		}
 		else if (folder.ZPARENT !== null) {
