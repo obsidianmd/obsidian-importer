@@ -421,7 +421,7 @@ export class OneNoteImporter extends FormatImporter {
 	 */
 	private drawSectionPicker(contentEl: HTMLElement): void {
 		new Setting(contentEl)
-			.setName('Data to import')
+			.setName('Sections to import')
 			.setDesc('Select a notebook, or sections within it.')
 			.addButton(button => {
 				this.toggleSelectButton = button;

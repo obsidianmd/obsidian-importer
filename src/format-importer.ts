@@ -335,7 +335,7 @@ export abstract class FormatImporter {
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
 						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
-							title: 'Pick folders to import',
+							title: 'Folders to import',
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 							defaultPath: defaultPath || undefined,
 						});
