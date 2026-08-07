@@ -42,6 +42,8 @@ export interface Run {
 	blockquote?: boolean;
 	link?: string;
 	color?: { red: number, green: number, blue: number, alpha: number };
+	/** A highlight: 1 purple, 2 pink, 3 orange, 4 mint, 5 blue. */
+	emphasis?: number;
 	font?: { fontName?: string, pointSize?: number, fontHints?: number };
 	/** An attachment stands in the text as one character. */
 	attachment?: { identifier: string, uti: string };
@@ -119,6 +121,7 @@ export function encodeNote(note: NoteSpec): Buffer {
 			...(run.baseline !== undefined ? { superscript: run.baseline } : {}),
 			...(run.link ? { link: run.link } : {}),
 			...(run.color ? { color: run.color } : {}),
+			...(run.emphasis !== undefined ? { emphasisColor: run.emphasis } : {}),
 			...(run.font ? { font: run.font } : {}),
 			...(run.attachment
 				? {

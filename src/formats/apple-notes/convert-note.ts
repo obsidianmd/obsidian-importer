@@ -6,9 +6,9 @@ import {
 	ANAttachment,
 	ANAttributeRun,
 	ANBaseline,
-	ANColor,
 	ANConverter,
 	ANDocument,
+	ANEmphasisColor,
 	ANFontWeight,
 	ANFragmentPair,
 	ANMultiRun,
@@ -21,6 +21,20 @@ const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
 const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
 const DEFAULT_EMOJI = '.AppleColorEmojiUI';
+
+/**
+ * Obsidian takes a highlight's colour from an emoji leading its content, and has no
+ * pink or mint of its own, so those go to the nearest it does have. An unmarked
+ * highlight is already yellow, which is the colour Apple leaves unset.
+ */
+const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
+	[ANEmphasisColor.Purple]: '🟣',
+	[ANEmphasisColor.Pink]: '🔴',
+	[ANEmphasisColor.Orange]: '🟠',
+	[ANEmphasisColor.Mint]: '🟢',
+	[ANEmphasisColor.Blue]: '🔵'
+};
+
 const LIST_STYLES = [
 	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
 ];
@@ -106,7 +120,7 @@ export class NoteConverter extends ANConverter {
 			else if (attr.attachmentInfo) {
 				converted += await this.formatAttachment(attr, parentNotePath);
 			}
-			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
+			else if (attr.superscript || attr.underlined || attr.font || this.multiRun == ANMultiRun.Alignment) {
 				converted += await this.formatHtmlAttr(attr);
 			}
 			else {
@@ -206,7 +220,6 @@ export class NoteConverter extends ANConverter {
 		}
 
 		if (attr.font?.pointSize) style += `font-size:${attr.font.pointSize}pt;`;
-		if (attr.color) style += `color:${this.convertColor(attr.color)};`;
 
 		if (attr.link && !NOTE_URI.test(attr.link)) {
 			if (style) style = ` style="${style}"`;
@@ -220,6 +233,8 @@ export class NoteConverter extends ANConverter {
 
 			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
 		}
+
+		attr.fragment = emphasise(attr);
 
 		if (attr.atLineStart) {
 			return this.formatParagraph(attr);
@@ -254,6 +269,8 @@ export class NoteConverter extends ANConverter {
 				attr.fragment = `[${attr.fragment}](${attr.link})`;
 			}
 		}
+
+		attr.fragment = emphasise(attr);
 
 		if (attr.atLineStart) {
 			return this.formatParagraph(attr);
@@ -402,16 +419,6 @@ export class NoteConverter extends ANConverter {
 		return this.ctx.linkTo(file, parentNotePath, undefined, name);
 	}
 
-	convertColor(color: ANColor): string {
-		let hexcode = '#';
-
-		for (const channel of Object.values(color)) {
-			hexcode += Math.floor(channel * 255).toString(16);
-		}
-
-		return hexcode;
-	}
-
 	convertAlign(alignment: ANAlignment): string {
 		switch (alignment) {
 			default:
@@ -424,6 +431,12 @@ export class NoteConverter extends ANConverter {
 				return 'justify';
 		}
 	}
+}
+
+/** Wrap a highlighted run, colouring it by the marker Obsidian reads. */
+function emphasise(attr: ANAttributeRun): string {
+	if (!attr.emphasisColor) return attr.fragment;
+	return `==${EMPHASIS_MARKERS[attr.emphasisColor] ?? ''}${attr.fragment}==`;
 }
 
 function isBlockAttachment(attr: ANAttributeRun) {

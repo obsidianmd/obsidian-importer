@@ -137,7 +137,11 @@ const STORE: StoreSpec = {
 				{ text: ' and H' },
 				{ text: '2', baseline: -1 },
 				{ text: 'O\n' },
-				{ text: 'highlighted', color: { red: 1, green: 0.9, blue: 0.2, alpha: 1 } },
+				// Obsidian has no coloured text, so a colour is dropped rather than
+				// carried over as a style Obsidian would not render
+				{ text: 'coloured text', color: { red: 1, green: 0.9, blue: 0.2, alpha: 1 } },
+				{ text: ' and ' },
+				{ text: 'the default black', color: { red: 0, green: 0, blue: 0, alpha: 1 } },
 			],
 		},
 		{
@@ -179,6 +183,28 @@ const STORE: StoreSpec = {
 				{ text: '', attachment: { identifier: 'IMAGE-1', uti: 'public.png' } },
 				{ text: '\n' },
 				{ text: '', attachment: { identifier: 'NOTHING-1', uti: 'public.unrecognised' } },
+			],
+		},
+		{
+			title: 'Highlights',
+			runs: [
+				{ text: 'Highlights\n', style: ANStyleType.Title },
+				{ text: 'purple', emphasis: 1 },
+				{ text: ' and ' },
+				{ text: 'pink', emphasis: 2 },
+				{ text: ' and ' },
+				{ text: 'orange', emphasis: 3 },
+				{ text: ' and ' },
+				{ text: 'mint', emphasis: 4 },
+				{ text: ' and ' },
+				{ text: 'blue', emphasis: 5 },
+				{ text: '\n' },
+				// A highlight is markdown, so it wraps whichever way the run is written
+				{ text: 'bold', bold: true, emphasis: 1 },
+				{ text: ' and ' },
+				{ text: 'underlined', underlined: true, emphasis: 5 },
+				{ text: ' and ' },
+				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
 			],
 		},
 	],
