@@ -166,8 +166,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 		catch (e) {
 			// Said where the tree would have been, rather than left on the line
 			// that says it is still coming. What went wrong is the caller's to
-			// report; that it did not arrive is this screen's.
+			// report; that it did not arrive is this screen's - including to
+			// whatever was waiting on a selection that no longer exists.
 			this.setStatus(this.options.failed);
+			this.options.onChange?.();
 			throw e;
 		}
 		finally {

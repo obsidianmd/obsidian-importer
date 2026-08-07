@@ -19,8 +19,6 @@ const ACCOUNT_SECRET_ID = 'onenote-importer';
 const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
 /** What the picker says while there is no account to list notebooks from. */
 const SIGNED_OUT_HINT = 'Sign in to see your OneNote notebooks.';
-/** What it says when the API asks to be left alone for a while. */
-const RATE_LIMITED_HINT = 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -400,7 +398,7 @@ export class OneNoteImporter extends FormatImporter {
 			hint: SIGNED_OUT_HINT,
 			loading: 'Loading notebooks...',
 			empty: 'No notebooks found.',
-			failed: RATE_LIMITED_HINT,
+			failed: 'Could not load your notebooks. OneNote may be limiting how fast they can be read; try again shortly.',
 			view: {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
 			},

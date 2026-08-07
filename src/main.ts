@@ -1,7 +1,7 @@
-import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
-import { AuthCallback } from './constants';
+import { AuthCallback, helpUrl } from './constants';
 import { ImportContext } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
 import { AirtableAPIImporter } from './formats/airtable-api';
@@ -81,19 +81,6 @@ const FALLBACK_ICONS: Record<string, IconName> = {
 	'textbundle': 'package',
 	'tomboy': 'sticky-note',
 };
-
-/**
- * A help page, in the language the app is set to.
- *
- * Every language but English is served under its own code, so English is the
- * one with nothing in front: obsidian.md/help/… beside obsidian.md/fr/help/….
- */
-function helpUrl(permalink: string): string {
-	const language = getLanguage();
-	const prefix = language === 'en' ? '' : `/${language}`;
-
-	return `https://obsidian.md${prefix}/help/${permalink}`;
-}
 
 /** The same message while the import is held: "Paused - Reading files". */
 function pausedText(message: string): string {

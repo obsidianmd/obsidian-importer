@@ -353,6 +353,14 @@ export abstract class FormatImporter {
 		let updateFiles = () => {
 			this.sourceChanged();
 
+			// A folder can be picked that holds nothing this importer reads, and
+			// a row saying nothing beside a button that will not go on says less
+			// than the question it replaced
+			if (this.files.length === 0) {
+				fileLocationSetting.setDesc(`Nothing to import there. Pick ${extensions.map(e => '.' + e).join(', ')} files, or a folder holding some.`);
+				return;
+			}
+
 			let pathText = this.files.map(f => f.name).join(', ');
 			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
 				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';

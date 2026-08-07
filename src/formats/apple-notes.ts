@@ -34,10 +34,25 @@ interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	type: 'account' | 'folder';
 	/** Which account it belongs to, for grouping under one. */
 	owner: number;
-	/** How many notes it holds, which is how many files it would write. */
+	/**
+	 * How many notes ticking it would write: its own and its subfolders', since
+	 * selecting a folder selects everything under it.
+	 */
 	notes: number;
 	collapsed: boolean;
 	children: AppleNotesTreeNode[];
+}
+
+/**
+ * Fold each folder's subfolders into its count, and give back the total.
+ *
+ * A folder holding two notes above a subfolder of three hundred would read as
+ * two otherwise, while ticking it writes three hundred and two.
+ */
+function countSubtree(node: AppleNotesTreeNode): number {
+	node.notes = node.children.reduce((total, child) => total + countSubtree(child), node.notes);
+
+	return node.notes;
 }
 
 /** Where macOS keeps the Notes database, which is the only place it is. */
@@ -342,6 +357,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			if (parent) parent.children.push(node);
 			else roots.push(node);
 		}
+
+		// Counted after nesting, because what a folder brings with it is not
+		// known until its subfolders are under it
+		for (const root of roots) countSubtree(root);
 
 		// One account is the account everything is in, and says nothing
 		if (accounts.length < 2) return roots;

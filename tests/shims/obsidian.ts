@@ -159,6 +159,11 @@ export function htmlToMarkdown(html: string | Document | HTMLElement | DocumentF
  * import time; the test supplies node's real modules through
  * provideNodeModules instead.
  */
+/** The app's language, which nothing under test varies. */
+export function getLanguage(): string {
+	return 'en';
+}
+
 export const Platform = {
 	isDesktopApp: false,
 	isDesktop: true,

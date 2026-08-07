@@ -36,7 +36,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/** Nothing to import until some of the listed pages have been ticked. */
 	get sourceReady(): boolean {
-		return areAnySelected(this.picker?.nodes ?? []);
+		return areAnySelected(this.pickedTree);
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
@@ -63,6 +63,17 @@ export class NotionAPIImporter extends FormatImporter {
 	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
 	/** The page and database picker, once there is a dialog to draw it in. */
 	private picker: TreePicker<NotionTreeNode>;
+
+	/**
+	 * What was picked, or nothing when there was no dialog to pick in.
+	 *
+	 * An import driven from a script has no picker at all, and reaches import()
+	 * all the same - where an empty tree is the answer it can report rather
+	 * than a property it cannot read.
+	 */
+	private get pickedTree(): NotionTreeNode[] {
+		return this.picker?.nodes ?? [];
+	}
 	// save output root path for database handling
 	//  we will flatten all database in this folder later
 	private outputRootPath: string = '';
@@ -374,7 +385,7 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		};
 
-		collectNodes(this.picker.nodes);
+		collectNodes(this.pickedTree);
 		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)	
 		return topLevelSelected;
 	}
@@ -434,7 +445,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				try {
 					// Find the node in the tree to determine its type
-					const node = this.findNodeById(this.picker.nodes, itemId);
+					const node = this.findNodeById(this.pickedTree, itemId);
 
 					if (!node) {
 						console.warn(`Could not find node with ID: ${itemId}`);

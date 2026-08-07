@@ -1,6 +1,7 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
+import { helpUrl } from '../constants';
 import { ImportContext } from '../import-context';
 import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
@@ -10,6 +11,9 @@ import { NotionResolverInfo } from './notion/notion-types';
 import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
+/** The help page this importer's own guide lives at; see main.ts's registry. */
+const HELP_PERMALINK = 'import/notion';
+
 export class NotionImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -18,8 +22,17 @@ export class NotionImporter extends FormatImporter {
 
 	init() {
 		this.parentsInSubfolders = true;
+
+		// Above the chooser, because it is where the thing to choose comes from
+		this.addSetting('source')
+			?.setName('Export your data')
+			.setDesc('Export your workspace in HTML format, you will receive a zip file.')
+			.addButton(button => button
+				.setButtonText('Open')
+				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+
 		this.addFileChooserSetting('Exported Notion', ['zip'], false,
-			'Export your Notion workspace to HTML format, then pick the zip file it produced.');
+			'Pick the zip file Notion sent you.');
 		this.addOutputLocationSetting('Notion');
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')
