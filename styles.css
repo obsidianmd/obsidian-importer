@@ -16,12 +16,53 @@
 .modal.mod-importer .modal-button-container {
 	margin: 0 0 0 calc(var(--size-4-4) * -1);
 	padding: var(--size-4-4);
+	display: flex;
+	justify-content: flex-end;
 	gap: var(--size-4-2);
 	position: absolute;
 	bottom: 0;
 	background-color: var(--background-primary);
 	border-top: var(--border-width) solid var(--background-modifier-border);
 	width: 100%;
+}
+
+/* The format picker has no buttons, so nothing to leave room for */
+.modal.mod-importer.is-picking-format .modal-content {
+	margin-bottom: 0;
+}
+
+/* Pushed to the far side of the row, away from the buttons that go forward */
+.importer-back-button {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	margin-inline-end: auto;
+	padding-inline-start: var(--size-4-2);
+}
+
+.importer-back-icon {
+	display: flex;
+	--icon-size: var(--icon-s);
+}
+
+/*
+ * The format list is the app's own .setting-group markup, so all it needs from
+ * here is the arrow that says the row leads to the next step.
+ */
+.importer-format-chevron {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.setting-group.mod-list .setting-item.mod-navigable:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+/* What the chosen format is, above the settings it asks for */
+.importer-format-about {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding-bottom: var(--size-4-2);
 }
 
 .importer-progress-bar {

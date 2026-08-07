@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, Plugin, Setting } from 'obsidian';
+import { App, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback } from './constants';
@@ -350,8 +350,8 @@ export default class ImporterPlugin extends Plugin {
 		// Create and open the importer on boot
 		let modal = new ImporterModal(this.app, this);
 		modal.open();
-		// Select my importer
-		modal.updateContent('html');
+		// Select my importer, skipping the format picker
+		modal.selectFormat('html');
 		if (modal.importer instanceof HtmlImporter) {
 			// Automatically pick file
 			modal.importer.files = [new NodePickedFile('path/to/test/file.html')];
@@ -485,73 +485,199 @@ export class ImporterModal extends Modal implements ImporterHost {
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
 		this.plugin = plugin;
-		this.titleEl.setText('Import data into Obsidian');
 		this.modalEl.addClass('mod-importer');
 		this.abortController = new AbortController();
 		this.catchBackgroundClick();
 
-		let keys = Object.keys(plugin.importers);
-		if (keys.length > 0) {
-			this.selectedId = keys[0];
-			this.updateContent();
-		}
+		this.showFormatPicker();
 	}
 
-	updateContent() {
-		const { contentEl, selectedId } = this;
-		let importers = this.plugin.importers;
-		let selectedImporter = importers[selectedId];
+	/**
+	 * The first screen: which app the notes are coming from.
+	 *
+	 * There is no component for a filtered list - SuggestModal is one, but it is
+	 * a modal of its own, and this is a step in this one - so it is built the way
+	 * the app builds the same screen in its settings: a SearchComponent in a
+	 * .setting-group-search above .setting-items of rows. Hotkeys and the
+	 * keychain are those three elements, so the app styles this list too.
+	 */
+	showFormatPicker() {
+		const { contentEl, modalEl } = this;
 		contentEl.empty();
+		modalEl.addClass('is-picking-format');
+		this.titleEl.setText('Import data into Obsidian');
 
-		let descriptionFragment = new DocumentFragment();
-		descriptionFragment.createSpan({ text: 'The format to be imported.' });
-		if (selectedImporter.formatDescription) {
-			descriptionFragment.createEl('br');
-			descriptionFragment.createSpan({ text: selectedImporter.formatDescription });
-		}
-		if (selectedImporter.helpPermalink) {
-			descriptionFragment.createEl('br');
-			descriptionFragment.createEl('a', {
-				text: `Learn more about importing from ${selectedImporter.name}.`,
-				href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
-			});
-		}
+		const groupEl = contentEl.createDiv('setting-group mod-list');
+		const searchEl = groupEl.createDiv('setting-group-search');
+		const itemsEl = groupEl.createDiv('setting-items');
 
-		new Setting(contentEl)
-			.setName('File format')
-			.setDesc(descriptionFragment)
-			.addDropdown(dropdown => {
-				for (let id in importers) {
-					if (Object.prototype.hasOwnProperty.call(importers, id)) {
-						dropdown.addOption(id, importers[id].optionText);
+		/** The rows as drawn, in order, for the arrow keys to walk. */
+		let rows: HTMLElement[] = [];
+
+		/** Focus by position in the list, where anything above it is the filter. */
+		const focusRow = (index: number) => {
+			if (index < 0 || rows.length === 0) search.inputEl.focus();
+			else rows[Math.min(index, rows.length - 1)].focus();
+		};
+
+		const draw = (query: string) => {
+			itemsEl.empty();
+			rows = [];
+
+			for (const [id, match] of this.searchFormats(query)) {
+				const definition = this.plugin.importers[id];
+
+				const setting = new Setting(itemsEl)
+					// The app's own "row that leads somewhere" - see mobile settings
+					.setClass('mod-navigable')
+					.setName(createFragment(frag => {
+						// The part of the name that was typed, marked as the app marks it
+						if (match) renderMatches(frag, definition.optionText, match.matches);
+						else frag.appendText(definition.optionText);
+					}));
+
+				if (definition.formatDescription) setting.setDesc(definition.formatDescription);
+				setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
+
+				const { settingEl } = setting;
+				const index = rows.length;
+				settingEl.tabIndex = 0;
+				settingEl.addEventListener('click', () => this.selectFormat(id));
+				settingEl.addEventListener('keydown', evt => {
+					switch (evt.key) {
+						case 'Enter':
+						case ' ':
+							this.selectFormat(id);
+							break;
+						case 'ArrowDown':
+							focusRow(index + 1);
+							break;
+						case 'ArrowUp':
+							focusRow(index - 1);
+							break;
+						default:
+							return;
 					}
-				}
-				dropdown.onChange((value) => {
-					if (Object.prototype.hasOwnProperty.call(importers, value)) {
-						this.selectedId = value;
-						this.updateContent();
-					}
+
+					// Escape still belongs to the dialog; these keys do not
+					evt.preventDefault();
 				});
-				dropdown.setValue(this.selectedId);
+
+				rows.push(settingEl);
+			}
+
+			if (rows.length === 0) {
+				new Setting(itemsEl).setClass('mod-empty-state').setName('No formats found.');
+			}
+		};
+
+		const search = new SearchComponent(searchEl)
+			.setPlaceholder('Filter...')
+			.onChange(value => draw(value));
+
+		search.inputEl.addEventListener('keydown', evt => {
+			// Enter takes the best match, the way it does in a suggester
+			if (evt.key !== 'ArrowDown' && evt.key !== 'Enter') return;
+			evt.preventDefault();
+
+			if (evt.key === 'Enter') rows[0]?.click();
+			else focusRow(0);
+		});
+
+		draw('');
+		search.inputEl.focus();
+	}
+
+	/**
+	 * The formats a query matches, best first, each with what it matched on.
+	 *
+	 * Matched against the option text, which is what the row shows and so what
+	 * the highlight can be drawn against, and against the name as well - "HTML
+	 * files" is a name and "HTML (.html)" is the option text.
+	 */
+	private searchFormats(query: string): [string, SearchResult | null][] {
+		const importers = this.plugin.importers;
+		const ids = Object.keys(importers);
+
+		if (!query) return ids.map(id => [id, null]);
+
+		const search = prepareFuzzySearch(query);
+		const results: { id: string, match: SearchResult | null, score: number }[] = [];
+
+		for (const id of ids) {
+			const definition = importers[id];
+			const match = search(definition.optionText);
+			const byName = search(definition.name);
+
+			// A match on either puts the row in the list; only one on the text
+			// being drawn can be marked up in it
+			const best = Math.max(match?.score ?? -Infinity, byName?.score ?? -Infinity);
+			if (best === -Infinity) continue;
+
+			results.push({ id, match, score: best });
+		}
+
+		results.sort((a, b) => b.score - a.score);
+		return results.map(({ id, match }) => [id, match]);
+	}
+
+	/** Leave the picker for the chosen format's setup screen. */
+	selectFormat(id: string) {
+		if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, id)) return;
+
+		this.selectedId = id;
+		this.updateContent();
+	}
+
+	/** The second screen: what this format needs before it can be imported. */
+	updateContent() {
+		const { contentEl, modalEl, selectedId } = this;
+		let selectedImporter = this.plugin.importers[selectedId];
+		contentEl.empty();
+		modalEl.removeClass('is-picking-format');
+		this.titleEl.setText(`Import from ${selectedImporter.name}`);
+
+		if (selectedImporter.formatDescription || selectedImporter.helpPermalink) {
+			contentEl.createDiv('importer-format-about', el => {
+				if (selectedImporter.formatDescription) {
+					el.createDiv({ text: selectedImporter.formatDescription });
+				}
+				if (selectedImporter.helpPermalink) {
+					el.createEl('a', {
+						text: `Learn more about importing from ${selectedImporter.name}.`,
+						href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
+					});
+				}
 			});
+		}
 
-		if (selectedId && Object.prototype.hasOwnProperty.call(importers, selectedId)) {
-			let importer = this.importer = new selectedImporter.importer(this.app, this);
+		let importer = this.importer = new selectedImporter.importer(this.app, this);
 
-			//Hide the import buttons if it's not available.
-			//The actual message to display is handled by the importer, since it depends on what is being imported.
+		contentEl.createDiv('modal-button-container', el => {
+			this.addBackButton(el, () => this.showFormatPicker());
+
+			// Hide the import button if it's not available. The actual message to
+			// display is handled by the importer, since it depends on what is
+			// being imported - but the way back is still needed either way.
 			if (importer.notAvailable) return;
 
-			contentEl.createDiv('modal-button-container', el => {
-				el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
-					// A listener cannot be awaited, so the run is kicked off here and
-					// anything that escapes its own try/finally is logged rather than
-					// surfacing as an unhandled rejection.
-					el.addEventListener('click', () => void this.startImport(importer)
-						.catch(e => console.error('Import failed', e)));
-				});
+			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
+				// A listener cannot be awaited, so the run is kicked off here and
+				// anything that escapes its own try/finally is logged rather than
+				// surfacing as an unhandled rejection.
+				el.addEventListener('click', () => void this.startImport(importer)
+					.catch(e => console.error('Import failed', e)));
 			});
-		}
+		});
+	}
+
+	/** The way back out of a screen, at the far side of the button row. */
+	private addBackButton(containerEl: HTMLElement, onClick: () => void): void {
+		containerEl.createEl('button', { cls: 'importer-back-button' }, el => {
+			setIcon(el.createSpan('importer-back-icon'), 'lucide-chevron-left');
+			el.createSpan({ text: 'Back' });
+			el.addEventListener('click', onClick);
+		});
 	}
 
 	/** Run the import the setup screen has been filled in for. */
