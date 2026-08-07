@@ -44,6 +44,9 @@ const FIXTURES = __dirname;
 
 const protobufRoot = Root.fromJSON(descriptor);
 
+/** What Shift-Return puts in the text: a line separator, not a paragraph end. */
+const SOFT_RETURN = '\u2028';
+
 /**
  * What the converter needs from outside the note: the database it came from,
  * and a vault. The vault here writes nothing - an attachment resolves to where
@@ -205,6 +208,21 @@ const STORE: StoreSpec = {
 				{ text: 'underlined', underlined: true, emphasis: 5 },
 				{ text: ' and ' },
 				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
+			],
+		},
+		// Last, so that adding it leaves the primary keys the notes above were
+		// given - an internal link is recorded as the key it points at
+		{
+			// Shift-Return in Apple Notes writes U+2028, a line separator, rather
+			// than ending the paragraph. It breaks the line without starting a new
+			// bullet, so it has to survive as a break rather than as the literal
+			// character, which renders as nothing.
+			title: 'Soft returns',
+			runs: [
+				{ text: 'Soft returns\n', style: ANStyleType.Title },
+				{ text: `A paragraph${SOFT_RETURN}broken by a soft return.\n` },
+				{ text: `First bullet${SOFT_RETURN}still the first bullet\n`, style: ANStyleType.DottedList },
+				{ text: 'Second bullet', style: ANStyleType.DottedList },
 			],
 		},
 	],

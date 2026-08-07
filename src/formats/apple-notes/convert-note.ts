@@ -18,6 +18,8 @@ import {
 } from './models';
 
 const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
+/** What Shift-Return puts in the text: a line separator, not a paragraph end. */
+const SOFT_RETURN = '\u2028';
 const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
 const DEFAULT_EMOJI = '.AppleColorEmojiUI';
@@ -113,6 +115,16 @@ export class NoteConverter extends ANConverter {
 			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
 
 			converted += this.formatMultiRun(attr);
+
+			// Shift-Return writes a line separator rather than ending the
+			// paragraph, so the break belongs to the line it is on: a new
+			// bullet must not start. Markdown has no character for that, so it
+			// takes a <br> - except inside a code block, where the newline it
+			// stands for is what the text already means.
+			if (attr.fragment.contains(SOFT_RETURN)) {
+				attr.fragment = attr.fragment.split(SOFT_RETURN)
+					.join(this.multiRun == ANMultiRun.Monospaced ? '\n' : '<br>');
+			}
 
 			if (!/\S/.test(attr.fragment) || this.multiRun == ANMultiRun.Monospaced) {
 				converted += attr.fragment;
