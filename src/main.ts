@@ -731,7 +731,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	/** The second screen: the files to import, or the account they come from. */
 	showSourceStep() {
 		this.drawStep(this.sourceEl, () => this.showFormatPicker(), el => {
-			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: 'Next' }, el => {
+			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
 				el.addEventListener('click', () => this.showOptionsStep());
 			});
 
