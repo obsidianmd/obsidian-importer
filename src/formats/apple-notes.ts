@@ -19,6 +19,8 @@ const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
+	interruption = 'pause' as const;
+
 	ctx: ImportContext;
 	rootFolder: TFolder;
 

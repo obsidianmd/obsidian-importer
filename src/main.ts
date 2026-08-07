@@ -583,7 +583,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			return;
 		}
 
-		this.showProgress(ctx);
+		this.showProgress(ctx, importer.interruption);
 		try {
 			await importer.import(ctx);
 		}
@@ -592,6 +592,16 @@ export class ImporterModal extends Modal implements ImporterHost {
 				this.current = null;
 			}
 			ctx.hideStatus();
+
+			// The buttons were drawn on a promise this import never kept. Said
+			// here rather than checked in a test, because what it is checking is
+			// the running import rather than what the source looks like.
+			if (importer.interruption !== 'none' && ctx.checkpoints === 0) {
+				console.warn(
+					`${importer.constructor.name} offers ${importer.interruption} but never awaited ` +
+					`ctx.shouldStop(), so neither button could have done anything`
+				);
+			}
 
 			// Nobody is looking at the dialog, so the result has to come to them
 			if (this.hidden) {
@@ -608,7 +618,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	 * Drawn from the context rather than added to as the import goes, so that
 	 * the screen can be drawn whenever there is somewhere to draw it.
 	 */
-	private showProgress(ctx: ImportProgressUI) {
+	private showProgress(ctx: ImportProgressUI, interruption: FormatImporter['interruption']) {
 		const { contentEl } = this;
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
@@ -616,23 +626,32 @@ export class ImporterModal extends Modal implements ImporterHost {
 		// Stop has already been pressed: nothing left to stop
 		if (ctx.isCancelled()) return;
 
+		// Nothing this import will honour, so nothing to offer. The button that
+		// is not drawn is the point: one that does nothing reads as a hung app.
+		if (interruption === 'none') return;
+
 		let buttonsEl = contentEl.createDiv('modal-button-container');
 
-		// Labelled for what pressing it does, and for what the import is doing
-		// now if the screen is being drawn onto a paused one.
-		let pauseButtonEl = buttonsEl.createEl('button', { text: ctx.isPaused() ? 'Resume' : 'Pause' }, el => {
-			el.addEventListener('click', () => {
-				if (ctx.isPaused()) ctx.resume();
-				else ctx.pause();
+		// Only where the import can be held soon enough for it to read as held
+		let pauseButtonEl: HTMLElement | null = null;
+		if (interruption === 'pause') {
+			// Labelled for what pressing it does, and for what the import is
+			// doing now if the screen is being drawn onto a paused one.
+			let button = buttonsEl.createEl('button', { text: ctx.isPaused() ? 'Resume' : 'Pause' }, el => {
+				el.addEventListener('click', () => {
+					if (ctx.isPaused()) ctx.resume();
+					else ctx.pause();
 
-				pauseButtonEl.setText(ctx.isPaused() ? 'Resume' : 'Pause');
+					button.setText(ctx.isPaused() ? 'Resume' : 'Pause');
+				});
 			});
-		});
+			pauseButtonEl = button;
+		}
 
 		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
-				pauseButtonEl.detach();
+				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
 			});
 		});

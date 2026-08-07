@@ -63,6 +63,8 @@ function isHTMLElement(node: Node): node is HTMLElement {
 }
 
 export class OneNoteImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	// Settings
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;

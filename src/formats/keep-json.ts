@@ -17,6 +17,8 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
 

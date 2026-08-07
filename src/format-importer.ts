@@ -54,6 +54,26 @@ export abstract class FormatImporter {
 	/** See addDuplicateHandlingSetting. Copy unless the importer offers a choice. */
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
 
+	/**
+	 * How far the dialog can interrupt this import, which is which of its
+	 * buttons it draws.
+	 *
+	 * 'none'  - import() never asks, so neither button appears
+	 * 'stop'  - it asks, but not somewhere it can be held: Stop only
+	 * 'pause' - it awaits shouldStop() between items, close enough together
+	 *           that holding at one feels immediate
+	 *
+	 * The two are separate because they are asked for different things. Stop
+	 * is "wind up when you can", and arriving a moment later still did what it
+	 * said. Pause is "hold now", so an importer whose next checkpoint is
+	 * minutes away has no Pause worth offering: Evernote reads a whole .enex
+	 * before it can be held, while stopping lands within a note.
+	 *
+	 * Left at 'none' so an importer nobody has thought about this for draws no
+	 * button, rather than one that does nothing when pressed.
+	 */
+	interruption: 'none' | 'stop' | 'pause' = 'none';
+
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
 

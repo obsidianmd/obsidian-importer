@@ -26,6 +26,8 @@ import { buildTree, collectItems, type NotionTreeNode } from './notion-api/disco
 const NOTION_ID_PROPERTY = 'notion-id';
 
 export class NotionAPIImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get notionToken(): string {
 		return this.getSecret() ?? '';

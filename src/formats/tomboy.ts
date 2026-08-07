@@ -6,6 +6,8 @@ import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
 
 export class TomboyImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private coreConverter: TomboyCoreConverter;
 	private todoEnabled: boolean;
 	private keepTitleMode: KeepTitleMode;

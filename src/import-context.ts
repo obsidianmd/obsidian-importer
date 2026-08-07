@@ -26,6 +26,14 @@ export class ImportContext {
 	/** Waiting at a checkpoint for the pause to be lifted. */
 	private waiting: (() => void)[] = [];
 
+	/**
+	 * How many checkpoints the import has reached, which is what the dialog
+	 * checks its promise of Pause and Stop against. Only shouldStop() counts:
+	 * isCancelled() is read by the dialog itself, so counting it would say yes
+	 * about every import whether or not the importer ever asked.
+	 */
+	checkpoints: number = 0;
+
 	/** Latest reportProgress, for a progress bar drawn outside the dialog. */
 	progressCurrent: number = 0;
 	progressTotal: number = 0;
@@ -157,6 +165,8 @@ export class ImportContext {
 	 * never asks can be neither.
 	 */
 	async shouldStop(): Promise<boolean> {
+		this.checkpoints++;
+
 		while (this.paused && !this.cancelled) {
 			await new Promise<void>(wake => this.waiting.push(wake));
 		}

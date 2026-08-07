@@ -6,6 +6,8 @@ import { readZip, ZipEntryFile } from '../zip';
 import { bundleNoteName, convertTextbundleNote, groupFilesByTextbundle, isMarkdownBundle } from './textbundle/convert';
 
 export class TextbundleImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private attachmentsFolderPath: TFolder;
 
 	init() {

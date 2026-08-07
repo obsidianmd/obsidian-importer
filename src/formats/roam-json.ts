@@ -13,6 +13,8 @@ const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 export class RoamJSONImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	downloadAttachments: boolean = false;
 	progress: ImportContext;
 	userDNPFormat: string;

@@ -14,6 +14,8 @@ import { extensionForMime } from '../mime';
 import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
 

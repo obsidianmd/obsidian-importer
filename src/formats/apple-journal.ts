@@ -11,6 +11,8 @@ const DEFAULT_OUTPUT_FOLDER = 'Journal';
 
 
 export class AppleJournalImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private frontMatterEnabled = true;
 
 	init(): void {

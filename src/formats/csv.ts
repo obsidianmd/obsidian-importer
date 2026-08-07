@@ -11,6 +11,8 @@ import {
 import { createBaseFile } from '../base';
 
 export class CSVImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private csvHeaders: string[] = [];
 	private csvRows: CSVRow[] = [];
 	private config: TemplateConfig | null = null;

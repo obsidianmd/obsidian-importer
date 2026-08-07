@@ -80,6 +80,8 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 };
 
 export class AirtableAPIImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get airtableToken(): string {
 		return this.getSecret() ?? '';

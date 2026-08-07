@@ -20,6 +20,8 @@ type IDMappingValue = {
 };
 
 export class Bear2bkImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
 	private storeId: boolean = false;

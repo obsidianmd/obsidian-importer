@@ -114,3 +114,55 @@ test('the dialog is told when the pause goes on and comes off', async () => {
 
 	assert.deepEqual(seen, [true, false], 'said once each way, not once per press');
 });
+
+// With a timeout for the same reason as the one above: a re-arm that goes wrong
+// leaves the import waiting on a promise nothing will resolve.
+test('a pause lifted and put back on holds the import again', { timeout: 2000 }, async () => {
+	const ctx = new ImportContext();
+	const { done, finished } = runImport(ctx, 4);
+
+	ctx.pause();
+	await settle();
+	assert.deepEqual(done, ['item 1']);
+
+	// Lifted and put back on before the import is given a turn. It is woken and
+	// finds the pause on again, so it stays at the checkpoint it reached - and
+	// the waiter resume() cleared has to have been replaced by a fresh one, or
+	// the resume() below is a wake nothing is listening for.
+	ctx.resume();
+	ctx.pause();
+	await settle();
+	assert.deepEqual(done, ['item 1'], 'still held, not run on');
+
+	ctx.resume();
+	await finished;
+	assert.deepEqual(done, ['item 1', 'item 2', 'item 3', 'item 4']);
+});
+
+/*
+ * The count the dialog checks its own promise against: it draws Pause and Stop
+ * for an importer that says it honours them, and warns if the import then
+ * finished without ever reaching a checkpoint.
+ */
+
+test('reaching a checkpoint is counted', async () => {
+	const ctx = new ImportContext();
+	assert.equal(ctx.checkpoints, 0, 'nothing asked yet');
+
+	const { finished } = runImport(ctx, 3);
+	await finished;
+
+	assert.equal(ctx.checkpoints, 3);
+});
+
+test('asking whether it was cancelled is not reaching a checkpoint', async () => {
+	const ctx = new ImportContext();
+
+	// What the dialog itself calls, on an import that never asks. Counting it
+	// would report every importer as interruptible and the warning would never
+	// fire, which is the whole reason the count exists.
+	ctx.isCancelled();
+	ctx.isCancelled();
+
+	assert.equal(ctx.checkpoints, 0);
+});

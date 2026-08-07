@@ -11,7 +11,7 @@ import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
 export class NotionImporter extends FormatImporter {
-
+	interruption = 'pause' as const;
 
 	parentsInSubfolders: boolean;
 	singleLineBreaks: boolean;
