@@ -126,8 +126,11 @@ export class NotionImporter extends FormatImporter {
 						writeOptions.mtime = fileInfo.mtime.getTime();
 					}
 
-					const path = `${targetFolderPath}${info.getPathForFile(fileInfo)}${fileInfo.title}.md`;
-					await vault.create(path, markdownBody, writeOptions);
+					// The folder is asked for rather than assumed: createFolders
+					// is what made it, and it drops a leading dot from a name,
+					// so the path it returns is the one that really exists.
+					const parent = await this.createFolders(`${targetFolderPath}${info.getPathForFile(fileInfo)}`);
+					await this.createFile(parent, `${fileInfo.title}.md`, markdownBody, writeOptions);
 					ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
@@ -139,7 +142,8 @@ export class NotionImporter extends FormatImporter {
 					ctx.status(`Importing attachment ${file.name}`);
 
 					const data = await file.read();
-					await vault.createBinary(`${attachmentInfo.targetParentFolder}${attachmentInfo.nameWithExtension}`, data);
+					const parent = await this.createFolders(attachmentInfo.targetParentFolder);
+					await this.createBinaryFile(parent, attachmentInfo.nameWithExtension, data);
 					ctx.reportAttachmentSuccess(file.fullpath);
 				}
 			}
