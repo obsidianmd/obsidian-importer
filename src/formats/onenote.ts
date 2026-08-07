@@ -2,8 +2,8 @@ import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection 
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
-import { areAllSelected, redrawTree, setAllSelection } from '../tree';
-import { renderTreeNodes, showTreePlaceholder, ViewableNode } from '../tree-view';
+import { selectedNodes } from '../tree';
+import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
@@ -19,6 +19,8 @@ const ACCOUNT_SECRET_ID = 'onenote-importer';
 const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
 /** What the picker says while there is no account to list notebooks from. */
 const SIGNED_OUT_HINT = 'Sign in to see your OneNote notebooks.';
+/** What it says when the API asks to be left alone for a while. */
+const RATE_LIMITED_HINT = 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
 // Regex for fixing broken HTML returned by the OneNote API
@@ -94,14 +96,11 @@ export class OneNoteImporter extends FormatImporter {
 	/** The account row, which says who is signed in and offers the way in or out. */
 	accountSetting: Setting;
 	private accountButton: ButtonComponent;
-	private treeContainer: HTMLElement;
-	private toggleSelectButton: ButtonComponent | undefined;
-	private loadButton: ButtonComponent;
+	/** The section picker, once there is a dialog to draw it in. */
+	private picker: TreePicker<OneNoteTreeNode>;
 	// Internal
 	selectedIds: string[] = [];
 	notebooks: Notebook[] = [];
-	/** What the picker shows, and what selectedIds is read back out of. */
-	private tree: OneNoteTreeNode[] = [];
 	graphData = {
 		state: genUid(32),
 		accessToken: '',
@@ -255,14 +254,10 @@ export class OneNoteImporter extends FormatImporter {
 		// token held for this session as well as the stored one
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
-		this.tree = [];
-		this.selectedIds = [];
-		this.sourceChanged();
 
-		// Back to what the picker says before there is an account to fill it
-		this.toggleSelectButton?.buttonEl.hide();
-		this.loadButton.setButtonText('Load').setCta();
-		showTreePlaceholder(this.treeContainer, SIGNED_OUT_HINT);
+		// Back to what the picker says before there is an account to fill it,
+		// which empties it and says so - selectedIds follows from onChange
+		this.picker.reset();
 
 		this.showSignedOut();
 	}
@@ -342,11 +337,6 @@ export class OneNoteImporter extends FormatImporter {
 	private clearStoredRefreshToken() {
 		this.app.secretStorage.deleteSecret(ACCOUNT_SECRET_ID);
 	}
-
-	async showSectionPickerUI() {
-		await this.loadNotebooks();
-	}
-
 	/**
 	 * Fetch the notebooks and what is in them, and draw them.
 	 *
@@ -354,22 +344,22 @@ export class OneNoteImporter extends FormatImporter {
 	 * Refresh is pressed - a notebook made since signing in is not otherwise
 	 * something this screen would ever hear about.
 	 */
-	private async loadNotebooks(): Promise<void> {
+	async showSectionPickerUI(): Promise<void> {
 		if (!this.signedIn) {
 			new Notice(SIGNED_OUT_HINT);
 			return;
 		}
 
-		// Emptying, as the user may have leftover selections from previous sign-in attempt
-		this.selectedIds = [];
-		this.tree = [];
+		try {
+			await this.picker.load(() => this.readNotebooks());
+		}
+		catch (e) {
+			console.error('An error occurred while fetching your OneNote data: ', e);
+		}
+	}
 
-		this.loadButton.setDisabled(true).setButtonText('Loading...');
-		this.toggleSelectButton?.buttonEl.hide();
-
-		// Said where the notebooks are about to appear
-		showTreePlaceholder(this.treeContainer, 'Loading notebooks...');
-
+	/** The notebooks, with their section groups and sections, as a tree. */
+	private async readNotebooks(): Promise<OneNoteTreeNode[]> {
 		const baseUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks';
 
 		// Fetch the sections & section groups directly under the notebook
@@ -378,37 +368,21 @@ export class OneNoteImporter extends FormatImporter {
 			$select: 'id,displayName,lastModifiedDateTime',
 			$orderby: 'lastModifiedDateTime DESC',
 		});
-		const sectionsUrl = `${baseUrl}?${params.toString()}`;
-		try {
-			this.notebooks = (await this.fetchResource<Notebook>(sectionsUrl, 'json-wrapped')).value;
 
-			for (const notebook of this.notebooks) {
-				// Check if there are any nested section groups, if so, fetch them
-				if (notebook.sectionGroups?.length !== 0) {
-					for (const sectionGroup of notebook.sectionGroups!) {
-						await this.fetchNestedSectionGroups(sectionGroup);
-					}
+		this.notebooks = (await this.fetchResource<Notebook>(`${baseUrl}?${params.toString()}`, 'json-wrapped')).value;
+
+		for (const notebook of this.notebooks) {
+			// Check if there are any nested section groups, if so, fetch them
+			if (notebook.sectionGroups?.length !== 0) {
+				for (const sectionGroup of notebook.sectionGroups!) {
+					await this.fetchNestedSectionGroups(sectionGroup);
 				}
 			}
+		}
 
-			this.tree = this.notebooks.map(notebook => this.treeNode(
-				notebook.id!,
-				notebook.displayName!,
-				'notebook',
-				this.childNodes(notebook)
-			));
-
-			this.renderTree();
-			this.toggleSelectButton?.buttonEl.show();
-		}
-		catch (e) {
-			console.error('An error occurred while fetching your OneNote data: ', e);
-			this.showContentAreaErrorMessage();
-		}
-		finally {
-			// No longer the thing to do, now that there is a tree to pick from
-			this.loadButton.setDisabled(false).setButtonText('Refresh').removeCta();
-		}
+		return this.notebooks.map(notebook => this.treeNode(
+			notebook.id!, notebook.displayName!, 'notebook', this.childNodes(notebook)
+		));
 	}
 
 	/**
@@ -420,30 +394,25 @@ export class OneNoteImporter extends FormatImporter {
 	 * Notion API leave theirs there, saying what it is waiting for.
 	 */
 	private drawSectionPicker(contentEl: HTMLElement): void {
-		new Setting(contentEl)
-			.setName('Sections to import')
-			.setDesc('Select a notebook, or sections within it.')
-			.addButton(button => {
-				this.toggleSelectButton = button;
-				button.buttonEl.addClass('importer-tree-button');
-				button.buttonEl.hide();
-				button.setButtonText('Select all').onClick(() => {
-					setAllSelection(this.tree, !areAllSelected(this.tree));
-					this.renderTree();
-				});
-			})
-			.addButton(button => {
-				this.loadButton = button;
-				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
-				button.setButtonText('Load').onClick(() => void this.loadNotebooks()
-					.catch(e => console.error('Could not load your OneNote notebooks', e)));
-			});
+		this.picker = new TreePicker<OneNoteTreeNode>(contentEl, {
+			name: 'Sections to import',
+			desc: 'Select a notebook, or sections within it.',
+			hint: SIGNED_OUT_HINT,
+			loading: 'Loading notebooks...',
+			empty: 'No notebooks found.',
+			failed: RATE_LIMITED_HINT,
+			view: {
+				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
+			},
+			onChange: () => {
+				// What the import walks, kept in step with what the tree shows. An
+				// import run without the dialog sets it directly and never gets here.
+				this.selectedIds = selectedNodes(this.picker.nodes, node => node.type === 'section').map(node => node.id);
+				this.sourceChanged();
+			},
+		});
 
-		this.treeContainer = contentEl
-			.createDiv('import-section file-tree publish-section')
-			.createDiv('publish-change-list');
-
-		showTreePlaceholder(this.treeContainer, SIGNED_OUT_HINT);
+		this.picker.onLoad(() => void this.showSectionPickerUI());
 	}
 
 	/** One node of the picker's tree, unselected and open. */
@@ -461,44 +430,6 @@ export class OneNoteImporter extends FormatImporter {
 
 		return [...groups, ...sections];
 	}
-
-	private renderTree(): void {
-		redrawTree(this.treeContainer, () => {
-			if (this.tree.length === 0) {
-				this.treeContainer.createDiv({ cls: 'publish-placeholder', text: 'No notebooks found.' });
-				return;
-			}
-
-			renderTreeNodes(this.treeContainer, this.tree, {
-				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
-				redraw: () => this.renderTree(),
-			});
-		});
-
-		// What the import walks, kept in step with what the tree shows. An
-		// import run without the dialog sets it directly and never gets here.
-		this.selectedIds = this.selectedSections(this.tree);
-
-		this.toggleSelectButton?.setButtonText(areAllSelected(this.tree) ? 'Deselect all' : 'Select all');
-		this.sourceChanged();
-	}
-
-	/**
-	 * The sections the selection covers, which is all the import can fetch from.
-	 *
-	 * A notebook or group being ticked selects everything under it - see
-	 * setNodeSelection - so only the sections themselves need reading.
-	 */
-	private selectedSections(nodes: OneNoteTreeNode[], into: string[] = []): string[] {
-		for (const node of nodes) {
-			if (node.type === 'section' && node.selected) into.push(node.id);
-			this.selectedSections(node.children, into);
-		}
-
-		return into;
-	}
-
-	// Gets the content of a nested section group
 	async fetchNestedSectionGroups(parentGroup: SectionGroup) {
 		parentGroup.sectionGroups = (await this.fetchResource<SectionGroup>(parentGroup.sectionGroupsUrl + '?$expand=sectionGroups($expand=sections),sections', 'json-wrapped')).value;
 
@@ -508,13 +439,6 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 	}
-
-	showContentAreaErrorMessage() {
-		// In the tree rather than over the whole picker, which would take the
-		// button that tries again with it
-		showTreePlaceholder(this.treeContainer, 'Microsoft OneNote has limited how fast notes can be imported. Please try again in 1 hour to continue importing.');
-	}
-
 	async import(progress: ImportContext): Promise<void> {
 		const previouslyImported = new Set<string>();
 		const data = await this.host.plugin.loadData();

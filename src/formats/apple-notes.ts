@@ -1,4 +1,4 @@
-import { ButtonComponent, DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
 import { NoteConverter } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
@@ -6,8 +6,8 @@ import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
-import { areAllSelected, redrawTree, setAllSelection } from '../tree';
-import { renderTreeNodes, showTreePlaceholder, ViewableNode } from '../tree-view';
+import { selectedNodes } from '../tree';
+import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
@@ -32,8 +32,17 @@ const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
 	type: 'account' | 'folder';
+	/** Which account it belongs to, for grouping under one. */
+	owner: number;
+	/** How many notes it holds, which is how many files it would write. */
+	notes: number;
 	collapsed: boolean;
 	children: AppleNotesTreeNode[];
+}
+
+/** Where macOS keeps the Notes database, which is the only place it is. */
+function notesFolder(): string {
+	return path.join(os.homedir(), NOTE_FOLDER_PATH);
 }
 
 /** One row of the account listing, for the level above the folders. */
@@ -85,20 +94,14 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 */
 	private dataPath: string | null;
 
-	/** The folder picker, and what it was drawn from. */
-	private tree: AppleNotesTreeNode[];
-	private treeContainer: HTMLElement;
-	private toggleSelectButton: ButtonComponent;
-	private loadButton: ButtonComponent;
+	/** The folder picker, once there is a dialog to draw it in. */
+	private picker: TreePicker<AppleNotesTreeNode>;
 
 	/**
 	 * Which folders the import walks, worked out from the tree the dialog draws.
 	 * An import run without one says which it wants directly.
 	 */
 	selectedFolders: number[] = [];
-
-	/** How many notes each folder holds, for the count beside its name. */
-	private noteCounts = new Map<number, number>();
 
 	/** Nothing to import until some of the folders have been ticked. */
 	get sourceReady(): boolean {
@@ -122,7 +125,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		// Already allowed in, so the folders can be listed without being asked
 		if (this.dataPath) {
-			void this.loadFolders().catch(e => console.error('Could not read your Apple Notes folders', e));
+			void this.loadFolders();
 		}
 
 		this.addOutputLocationSetting('Apple Notes');
@@ -212,65 +215,67 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					return;
 				}
 
+				// Re-picking the folder already being read changes nothing, and
+				// re-reading it would throw away whatever was ticked
+				if (dataPath === this.dataPath) return;
+
 				this.dataPath = dataPath;
 				showAccess();
-				void this.loadFolders().catch(e => console.error('Could not read your Apple Notes folders', e));
+				void this.loadFolders();
 			}));
 	}
 
 	/** The folders to import from, which is the tree and the buttons over it. */
 	private drawFolderPicker(): void {
-		const setting = this.addSetting('source');
-		if (!setting) return;
-
-		setting
-			.setName('Folders to import')
-			.setDesc('Pick the folders whose notes to bring across.')
-			.addButton(button => {
-				this.toggleSelectButton = button;
-				button.buttonEl.addClass('importer-tree-button');
-				button.buttonEl.hide();
-				button.setButtonText('Select all').onClick(() => {
-					setAllSelection(this.tree, !areAllSelected(this.tree));
-					this.renderTree();
-				});
-			})
-			.addButton(button => {
-				this.loadButton = button;
-				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
-				button.setButtonText('Load').onClick(() => void this.loadFolders()
-					.catch(e => console.error('Could not read your Apple Notes folders', e)));
+		this.draw(contentEl => {
+			this.picker = new TreePicker<AppleNotesTreeNode>(contentEl, {
+				name: 'Folders to import',
+				desc: 'Pick the folders whose notes to bring across.',
+				hint: NO_ACCESS_HINT,
+				loading: 'Reading folders...',
+				empty: 'No folders found.',
+				failed: 'Could not read your notes. Check that the folder is still where it was.',
+				view: {
+					icon: node => node.type === 'account' ? 'user' : 'folder',
+					// An account holds nothing of its own; its folders say theirs
+					flair: node => node.type === 'account' ? '' : String(node.notes),
+				},
+				onChange: () => {
+					// What the import walks, kept in step with the tree
+					this.selectedFolders = selectedNodes(this.picker.nodes, node => node.type === 'folder').map(node => node.id);
+					this.sourceChanged();
+				},
 			});
 
-		this.treeContainer = this.draw(contentEl => contentEl
-			.createDiv('import-section file-tree publish-section')
-			.createDiv('publish-change-list'), 'source')!;
-
-		this.tree = [];
-		showTreePlaceholder(this.treeContainer, NO_ACCESS_HINT);
+			this.picker.onLoad(() => void this.loadFolders());
+		}, 'source');
 	}
 
-	/**
-	 * Read the folders out of the notes database and put them in the picker.
-	 *
-	 * The database is read where it lives rather than copied first: this is one
-	 * quick query, and the copy the import makes is for the long walk that comes
-	 * after it, which wants a snapshot the Notes app cannot move underneath.
-	 */
+	/** Read the folders, saying so where they are about to appear. */
 	private async loadFolders(): Promise<void> {
 		if (!this.dataPath) {
 			new Notice(NO_ACCESS_HINT);
 			return;
 		}
 
-		this.tree = [];
-		this.selectedFolders = [];
-		this.loadButton.setDisabled(true).setButtonText('Loading...');
-		this.toggleSelectButton.buttonEl.hide();
-		showTreePlaceholder(this.treeContainer, 'Reading folders...');
+		try {
+			await this.picker.load(() => this.readFolders());
+		}
+		catch (e) {
+			console.error('Could not read your Apple Notes folders', e);
+		}
+	}
 
+	/**
+	 * The folders in the notes database, as a tree.
+	 *
+	 * The database is read where it lives rather than copied first: these are
+	 * three quick queries, and the copy the import makes is for the long walk
+	 * that comes after it, which wants a snapshot Notes cannot move underneath.
+	 */
+	private async readFolders(): Promise<AppleNotesTreeNode[]> {
 		//@ts-ignore
-		const db = new SQLiteTag(path.join(this.dataPath, NOTE_DB), { readonly: true, persistent: true }) as SQLiteTagSpawned;
+		const db = new SQLiteTag(path.join(this.dataPath!, NOTE_DB), { readonly: true, persistent: true }) as SQLiteTagSpawned;
 
 		try {
 			const keys = Object.fromEntries(
@@ -295,14 +300,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				GROUP BY zfolder
 			` as unknown as { ZFOLDER: number, notes: number }[];
 
-			this.noteCounts = new Map(counts.map(row => [row.ZFOLDER, row.notes]));
-			this.tree = this.buildTree(folders, accounts);
-			this.renderTree();
-			this.toggleSelectButton.buttonEl.show();
+			return this.buildTree(folders, accounts, new Map(counts.map(row => [row.ZFOLDER, row.notes])));
 		}
 		finally {
 			db.close();
-			this.loadButton.setDisabled(false).setButtonText('Refresh').removeCta();
 		}
 	}
 
@@ -312,7 +313,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * A smart folder is left out: it is a saved search rather than somewhere
 	 * notes live, and resolveFolder skips it for the same reason.
 	 */
-	private buildTree(folders: ANFolderRow[], accounts: ANAccountRow[]): AppleNotesTreeNode[] {
+	private buildTree(folders: ANFolderRow[], accounts: ANAccountRow[], counts: Map<number, number>): AppleNotesTreeNode[] {
 		const nodes = new Map<number, AppleNotesTreeNode>();
 
 		for (const folder of folders) {
@@ -322,6 +323,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				id: folder.Z_PK,
 				title: folder.ZTITLE2,
 				type: 'folder',
+				owner: folder.ZOWNER,
+				notes: counts.get(folder.Z_PK) ?? 0,
 				selected: false,
 				disabled: false,
 				collapsed: false,
@@ -348,44 +351,14 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				id: account.Z_PK,
 				title: account.ZNAME,
 				type: 'account' as const,
+				owner: account.Z_PK,
+				notes: 0,
 				selected: false,
 				disabled: false,
 				collapsed: false,
-				children: roots.filter(node => folders.find(f => f.Z_PK === node.id)?.ZOWNER === account.Z_PK),
+				children: roots.filter(node => node.owner === account.Z_PK),
 			}))
 			.filter(account => account.children.length > 0);
-	}
-
-	private renderTree(): void {
-		redrawTree(this.treeContainer, () => {
-			if (this.tree.length === 0) {
-				this.treeContainer.createDiv({ cls: 'publish-placeholder', text: 'No folders found.' });
-				return;
-			}
-
-			renderTreeNodes(this.treeContainer, this.tree, {
-				icon: node => node.type === 'account' ? 'user' : 'folder',
-				// An account holds nothing of its own; its folders each say theirs
-				flair: node => node.type === 'account' ? '' : String(this.noteCounts.get(node.id) ?? 0),
-				redraw: () => this.renderTree(),
-			});
-		});
-
-		// What the import walks, kept in step with what the tree shows
-		this.selectedFolders = this.selectedFolderIds(this.tree);
-
-		this.toggleSelectButton.setButtonText(areAllSelected(this.tree) ? 'Deselect all' : 'Select all');
-		this.sourceChanged();
-	}
-
-	/** Every folder the selection covers; an account holds none of its own. */
-	private selectedFolderIds(nodes: AppleNotesTreeNode[], into: number[] = []): number[] {
-		for (const node of nodes) {
-			if (node.type === 'folder' && node.selected) into.push(node.id);
-			this.selectedFolderIds(node.children, into);
-		}
-
-		return into;
 	}
 
 	/**
@@ -397,7 +370,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * grant that has since been withdrawn would answer the same either way.
 	 */
 	private readableDataFolder(): string | null {
-		const dataPath = path.join(os.homedir(), NOTE_FOLDER_PATH);
+		const dataPath = notesFolder();
 
 		try {
 			fs.accessSync(path.join(dataPath, NOTE_DB), fs.constants.R_OK);
@@ -413,7 +386,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * chosen. Selecting it is what grants the access; nothing else does.
 	 */
 	private askForDataFolder(): string | null {
-		const dataPath = path.join(os.homedir(), NOTE_FOLDER_PATH);
+		const dataPath = notesFolder();
 
 		const names: string[] | undefined = window.electron.remote.dialog.showOpenDialogSync({
 			defaultPath: dataPath,

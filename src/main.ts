@@ -252,10 +252,11 @@ export default class ImporterPlugin extends Plugin {
 	authCallback: AuthCallback | undefined;
 
 	/**
-	 * The auth requests already handed to a callback, by the state they carry,
-	 * so that the same one arriving twice is recognised rather than reported.
+	 * The auth request last handed to a callback, by the state it carried, so
+	 * that the same one arriving twice is recognised rather than reported. Only
+	 * the last matters: the repeat follows the first within moments.
 	 */
-	private handledAuthStates = new Set<string>();
+	private handledAuthState: string | undefined;
 
 	/**
 	 * The dialog, while one is open. An import keeps running with the dialog
@@ -365,7 +366,7 @@ export default class ImporterPlugin extends Plugin {
 		this.registerObsidianProtocolHandler('importer-auth',
 			(data) => {
 				if (this.authCallback) {
-					if (data['state']) this.handledAuthStates.add(data['state']);
+					this.handledAuthState = data['state'];
 					this.authCallback(data);
 					this.authCallback = undefined;
 					return;
@@ -375,7 +376,7 @@ export default class ImporterPlugin extends Plugin {
 				// time with an error, because the code it was given has already
 				// been used. That is the sign-in just handled arriving again
 				// rather than a stale one, and there is nothing to restart.
-				if (data['state'] && this.handledAuthStates.has(data['state'])) return;
+				if (data['state'] && data['state'] === this.handledAuthState) return;
 
 				new Notice('Unexpected auth event. Please restart the auth process.');
 			});
@@ -757,7 +758,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			// Hide the import button if it's not available. The actual message to
 			// display is handled by the importer, since it depends on what is
 			// being imported - but the way back is still needed either way.
-			if (importer.notAvailable) return;
+			if (!hasSource) return;
 
 			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
 				// A listener cannot be awaited, so the run is kicked off here and

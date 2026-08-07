@@ -1,17 +1,19 @@
-import { IconName, setIcon } from 'obsidian';
-import { redrawTree, SelectableNode, setNodeSelection } from './tree';
+import { ButtonComponent, IconName, setIcon, Setting } from 'obsidian';
+import { areAllSelected, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
 
 /**
  * The tree pickers, drawn.
  *
- * Airtable, the Notion API and OneNote all ask the same question - which of
- * these do you want? - and had each grown their own copy of the same markup:
- * the app's file tree, which styles.css dresses for the import dialog. This is
- * the copy they share. What ticking a box means is tree.ts, next door, which
- * stays free of the DOM because it is what the tests drive.
+ * Airtable, the Notion API, OneNote and Apple Notes all ask the same question -
+ * which of these do you want? - and had each grown their own copy of the same
+ * screen: a row naming what is being picked, a Select all beside a Load, and
+ * the app's file tree below them, which styles.css dresses for this dialog.
+ * This is the copy they share. What ticking a box means is tree.ts, next door,
+ * which stays free of the DOM because it is what the tests drive.
  *
- * What is left to each importer is the icon, whether a node opens, and what
- * opening one does - an Airtable base fetches its tables when it is expanded.
+ * What is left to each importer is where its nodes come from, and how one is
+ * drawn: the icon, whether it opens, and what opening it does - an Airtable
+ * base fetches its tables when it is expanded.
  */
 
 /** What drawing a node needs of it, beyond what selecting it needs. */
@@ -62,9 +64,148 @@ export interface TreeView<T extends ViewableNode<T>> {
  * to appear, and it is a place that can hold a sentence without resizing.
  */
 export function showTreePlaceholder(container: HTMLElement, text: string): void {
-	redrawTree(container, () => {
-		container.createDiv({ cls: 'publish-placeholder', text });
-	});
+	redrawTree(container, () => drawPlaceholder(container, text));
+}
+
+/** showTreePlaceholder, for a caller already inside a redraw. */
+function drawPlaceholder(container: HTMLElement, text: string): void {
+	container.createDiv({ cls: 'publish-placeholder', text });
+}
+
+/** What a picker needs of its importer beyond how to draw a node. */
+export interface TreePickerOptions<T extends ViewableNode<T>> {
+	/** What is being picked: "Pages to import". */
+	name: string;
+	desc?: string;
+	/** What the tree says before anything has been loaded into it. */
+	hint: string;
+	/** What it says while a load is in flight, which each names its own way. */
+	loading: string;
+	/** What it says when a load came back with nothing. */
+	empty: string;
+	/** What it says when a load did not come back at all. */
+	failed: string;
+	/** How a node is drawn. redraw is the picker's own; see TreeView. */
+	view: Omit<TreeView<T>, 'redraw'>;
+	/** Told when the selection changes, and when a load has landed. */
+	onChange?(): void;
+}
+
+/**
+ * The screen an importer picks from: a row, two buttons, and a tree.
+ *
+ * The importer says where its nodes come from and hands them over; everything
+ * about showing them - which button is offered, what the empty tree says, when
+ * Select all becomes Deselect all - is answered here, once.
+ */
+export class TreePicker<T extends ViewableNode<T>> {
+	/** What is being picked from, as the last load left it. */
+	nodes: T[] = [];
+	/** The scroll box the tree is drawn in, for anything else to write into. */
+	readonly treeEl: HTMLElement;
+
+	private toggleButton: ButtonComponent;
+	private loadButton: ButtonComponent;
+
+	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
+		new Setting(containerEl)
+			.setName(options.name)
+			.setDesc(options.desc ?? '')
+			.addButton(button => {
+				this.toggleButton = button;
+				button.buttonEl.addClass('importer-tree-button');
+				// Nothing to select until there is something loaded to select
+				button.buttonEl.hide();
+				button.setButtonText('Select all').onClick(() => {
+					setAllSelection(this.nodes, !areAllSelected(this.nodes));
+					this.render();
+				});
+			})
+			.addButton(button => {
+				this.loadButton = button;
+				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
+				button.setButtonText('Load');
+			});
+
+		this.treeEl = containerEl
+			.createDiv('import-section file-tree publish-section')
+			.createDiv('publish-change-list');
+
+		showTreePlaceholder(this.treeEl, options.hint);
+	}
+
+	/**
+	 * What Load and Refresh do.
+	 *
+	 * The importer's own entry point rather than its loader, so that whatever
+	 * it checks before fetching - a token linked, an account signed in, a
+	 * folder it has been let into - is checked on a click too.
+	 */
+	onLoad(action: () => void): void {
+		this.loadButton.onClick(action);
+	}
+
+	/**
+	 * Fetch what goes in the tree, saying so while it happens.
+	 *
+	 * The button is held and renamed around the wait, since after the first
+	 * time it is no longer the thing to do; a failure leaves what it says in
+	 * the tree, where the button that tries again is still reachable.
+	 */
+	async load(load: () => Promise<T[]>): Promise<void> {
+		this.nodes = [];
+		this.toggleButton.buttonEl.hide();
+		this.loadButton.setDisabled(true).setButtonText('Loading...');
+		this.setStatus(this.options.loading);
+
+		try {
+			this.nodes = await load();
+			this.render();
+			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
+		}
+		catch (e) {
+			// Said where the tree would have been, rather than left on the line
+			// that says it is still coming. What went wrong is the caller's to
+			// report; that it did not arrive is this screen's.
+			this.setStatus(this.options.failed);
+			throw e;
+		}
+		finally {
+			this.loadButton.setDisabled(false).setButtonText('Refresh').removeCta();
+		}
+	}
+
+	/** Say what is happening where the tree is going to appear. */
+	setStatus(text: string): void {
+		showTreePlaceholder(this.treeEl, text);
+	}
+
+	/** Put the picker back to how it looked before anything was loaded. */
+	reset(): void {
+		this.nodes = [];
+		this.toggleButton.buttonEl.hide();
+		this.loadButton.setButtonText('Load').setCta();
+		this.setStatus(this.options.hint);
+		this.options.onChange?.();
+	}
+
+	/** Draw the tree as it now stands, and say that it changed. */
+	render(): void {
+		redrawTree(this.treeEl, () => {
+			if (this.nodes.length === 0) {
+				drawPlaceholder(this.treeEl, this.options.empty);
+				return;
+			}
+
+			renderTreeNodes(this.treeEl, this.nodes, {
+				...this.options.view,
+				redraw: () => this.render(),
+			});
+		});
+
+		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? 'Deselect all' : 'Select all');
+		this.options.onChange?.();
+	}
 }
 
 /** Draw these nodes, and everything under them, into a container. */
