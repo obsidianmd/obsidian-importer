@@ -56,7 +56,7 @@ export class AppleJournalImporter extends FormatImporter {
 
 		ctx.reportProgress(0, this.files.length);
 		for (let index = 0; index < this.files.length; index++) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const file = this.files[index];
 			if (file.name === 'index.html') {

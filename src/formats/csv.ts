@@ -47,7 +47,7 @@ export class CSVImporter extends FormatImporter {
 
 		// Parse CSV files to extract headers
 		const file = files[0];
-		if (ctx.isCancelled()) return false;
+		if (await ctx.shouldStop()) return false;
 
 		ctx.status('Parsing ' + file.name);
 		const csvContent = await file.readText();
@@ -123,7 +123,7 @@ export class CSVImporter extends FormatImporter {
 		ctx.reportProgress(0, this.csvRows.length);
 
 		for (let i = 0; i < this.csvRows.length; i++) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const row = this.csvRows[i];
 

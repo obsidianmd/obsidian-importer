@@ -465,7 +465,7 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportProgress(progressCurrent, progressTotal);
 
 			for (let i = 0; i < pages.length; i++) {
-				if (progress.isCancelled()) {
+				if (await progress.shouldStop()) {
 					return;
 				}
 

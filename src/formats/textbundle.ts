@@ -41,6 +41,8 @@ export class TextbundleImporter extends FormatImporter {
 		this.attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
 
 		for (let file of files) {
+			if (await progress.shouldStop()) return;
+
 			if (file.extension === 'textpack') {
 				await readZip(file, async (zip, entries) => {
 					await this.process(progress, file.name, entries);
@@ -50,6 +52,7 @@ export class TextbundleImporter extends FormatImporter {
 				await readZip(file, async (zip, entries) => {
 					const textbundles = groupFilesByTextbundle(file.name, entries);
 					for (const textbundle of textbundles) {
+						if (await progress.shouldStop()) return;
 						await this.process(progress, file.name, textbundle);
 					}
 				});
@@ -71,6 +74,8 @@ export class TextbundleImporter extends FormatImporter {
 		}
 
 		for (let entry of entries) {
+			if (await progress.shouldStop()) return;
+
 			if (entry.name.startsWith('._')) {
 				// We don't need to notify users that we're skipping these hidden files.
 				// progress.reportSkipped(entry.name, 'skipping system file.');

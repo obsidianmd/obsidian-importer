@@ -69,6 +69,17 @@ function statusText(message: string): string {
 	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
 }
 
+/**
+ * The same message while the import is paused: what it was doing, said as the
+ * thing it is no longer getting on with.
+ */
+function pausedText(message: string): string {
+	const trimmed = message.trim();
+	if (!trimmed) return 'Paused';
+
+	return `Paused - ${trimmed.replace(/\.+$/, '')}`;
+}
+
 /** An import reporting into the dialog. */
 export class ImportProgressUI extends ImportContext {
 	el: HTMLElement;
@@ -144,7 +155,8 @@ export class ImportProgressUI extends ImportContext {
 		this.importLogEl.hide();
 
 		// Where the import has got to, for a screen drawn after it started
-		if (this.statusMessage) this.onStatus(this.statusMessage);
+		if (this.isPaused()) this.onPaused(true);
+		else if (this.statusMessage) this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
 		for (const entry of this.logEntries) {
 			this.drawLogEntry(entry);
@@ -153,7 +165,16 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onStatus(message: string): void {
-		this.statusEl.setText(statusText(message));
+		this.statusEl.setText(this.isPaused() ? pausedText(message) : statusText(message));
+	}
+
+	/**
+	 * A pause is shown where the import says what it is doing, which is the
+	 * line that has stopped changing.
+	 */
+	protected onPaused(paused: boolean): void {
+		this.el.toggleClass('is-paused', paused);
+		this.onStatus(this.statusMessage);
 	}
 
 	protected onNoteSuccess(): void {
@@ -596,9 +617,22 @@ export class ImporterModal extends Modal implements ImporterHost {
 		if (ctx.isCancelled()) return;
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
+
+		// Labelled for what pressing it does, and for what the import is doing
+		// now if the screen is being drawn onto a paused one.
+		let pauseButtonEl = buttonsEl.createEl('button', { text: ctx.isPaused() ? 'Resume' : 'Pause' }, el => {
+			el.addEventListener('click', () => {
+				if (ctx.isPaused()) ctx.resume();
+				else ctx.pause();
+
+				pauseButtonEl.setText(ctx.isPaused() ? 'Resume' : 'Pause');
+			});
+		});
+
 		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
+				pauseButtonEl.detach();
 				cancelButtonEl.detach();
 			});
 		});
@@ -689,13 +723,18 @@ export class ImporterModal extends Modal implements ImporterHost {
 			// Before there is anything to count - fetching, planning - say what
 			// the importer says it is doing, which is what the dialog shows too
 			if (ctx.progressTotal <= 0) {
-				remainingEl.setText(statusText(ctx.statusMessage));
+				remainingEl.setText(ctx.isPaused() ? pausedText(ctx.statusMessage) : statusText(ctx.statusMessage));
 				return;
 			}
 
 			progressEl.max = ctx.progressTotal;
 			progressEl.value = ctx.progressCurrent;
-			remainingEl.setText(`${ctx.progressTotal - ctx.progressCurrent} remaining...`);
+
+			// A count that has stopped moving needs to say why, since nothing
+			// else here does
+			remainingEl.setText(ctx.isPaused()
+				? `Paused - ${ctx.progressTotal - ctx.progressCurrent} remaining`
+				: `${ctx.progressTotal - ctx.progressCurrent} remaining...`);
 		};
 
 		// Drawn before the notice goes up as well as on the timer, so it does

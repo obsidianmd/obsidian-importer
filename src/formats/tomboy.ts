@@ -101,7 +101,7 @@ export class TomboyImporter extends FormatImporter {
 
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const file = files[i];
 			ctx.status('Processing ' + file.name);

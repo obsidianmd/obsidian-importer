@@ -70,7 +70,7 @@ export class NotionImporter extends FormatImporter {
 				ctx.reportSkipped(file.fullpath);
 			}
 		});
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		ctx.status('Resolving links and de-duplicating files');
 
@@ -91,7 +91,7 @@ export class NotionImporter extends FormatImporter {
 			flatFolderPaths.add(folderPath);
 		}
 		for (let path of flatFolderPaths) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 			await this.createFolders(path);
 		}
 
@@ -157,11 +157,11 @@ export class NotionImporter extends FormatImporter {
 
 async function processZips(ctx: ImportContext, files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 		try {
 			await readZip(zipFile, async (zip, entries) => {
 				for (let entry of entries) {
-					if (ctx.isCancelled()) return;
+					if (await ctx.shouldStop()) return;
 
 					// throw an error for Notion Markdown exports
 					if (entry.extension === 'md' && getNotionId(entry.name)) {

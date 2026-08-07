@@ -225,7 +225,7 @@ export async function convertBlocksToMarkdown(
 	const lines: string[] = [];
 	
 	for (let i = 0; i < blocks.length; i++) {
-		if (context.ctx.isCancelled()) break;
+		if (await context.ctx.shouldStop()) break;
 		
 		const block = blocks[i];
 		

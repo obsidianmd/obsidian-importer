@@ -170,6 +170,9 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 		});
 
 		xml.on('tag:note', (note: EvernoteNote) => {
+			// The parser hands each note over from a listener that cannot be
+			// awaited, so this is a stop but not a pause: an .enex being read
+			// is read to the end of the note it is on.
 			if (ctx.isCancelled()) {
 				stream.close();
 				return;
@@ -236,7 +239,7 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 	const outputNotebookFolders = [];
 	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		
 		let notebookStackProperties;
@@ -262,6 +265,6 @@ export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Pr
 		options.outputDir = orginalOutputDir;
 	}
 
-	if (ctx.isCancelled()) return;
+	if (await ctx.shouldStop()) return;
 	applyLinks(options, outputNotebookFolders);
 }

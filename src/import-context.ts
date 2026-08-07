@@ -21,6 +21,11 @@ export class ImportContext {
 
 	cancelled: boolean = false;
 
+	private paused: boolean = false;
+
+	/** Waiting at a checkpoint for the pause to be lifted. */
+	private waiting: (() => void)[] = [];
+
 	/** Latest reportProgress, for a progress bar drawn outside the dialog. */
 	progressCurrent: number = 0;
 	progressTotal: number = 0;
@@ -95,7 +100,38 @@ export class ImportContext {
 
 	cancel() {
 		this.cancelled = true;
+		// A paused import has to be able to stop, so whatever is waiting at a
+		// checkpoint is let go to find that it should
+		this.resume();
 		this.hideStatus();
+	}
+
+	/**
+	 * Hold the import at its next checkpoint.
+	 *
+	 * Whatever it is in the middle of finishes: a note being written is written,
+	 * a request already sent is waited for. What stops is the work after that.
+	 */
+	pause() {
+		if (this.paused || this.cancelled) return;
+		this.paused = true;
+		this.onPaused(true);
+	}
+
+	/** Let a paused import go on from the checkpoint it is waiting at. */
+	resume() {
+		if (!this.paused) return;
+		this.paused = false;
+
+		const waiting = this.waiting;
+		this.waiting = [];
+		for (const wake of waiting) wake();
+
+		this.onPaused(false);
+	}
+
+	isPaused() {
+		return this.paused;
 	}
 
 	hideStatus() {
@@ -104,8 +140,27 @@ export class ImportContext {
 
 	/**
 	 * Check if the user has cancelled this run.
+	 *
+	 * Where the caller can wait - which is anywhere it can await - shouldStop()
+	 * answers the same question and honours a pause as well.
 	 */
 	isCancelled() {
+		return this.cancelled;
+	}
+
+	/**
+	 * A point the import can be stopped or held at: waits while it is paused,
+	 * then says whether to stop.
+	 *
+	 * This is what an importer's loop asks between one item and the next. How
+	 * often it asks is how responsive Pause and Stop are, and an importer that
+	 * never asks can be neither.
+	 */
+	async shouldStop(): Promise<boolean> {
+		while (this.paused && !this.cancelled) {
+			await new Promise<void>(wake => this.waiting.push(wake));
+		}
+
 		return this.cancelled;
 	}
 
@@ -117,4 +172,5 @@ export class ImportContext {
 	protected onFailed(name: string, reason?: unknown): void {}
 	protected onProgress(current: number, total: number): void {}
 	protected onHideStatus(): void {}
+	protected onPaused(paused: boolean): void {}
 }
