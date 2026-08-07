@@ -71,7 +71,8 @@ interface ANFolderRow {
 	Z_PK: number;
 	ZTITLE2: string;
 	ZPARENT: number | null;
-	ZFOLDERTYPE: number;
+	/** The column ANFolderType names, so that comparing the two is one type. */
+	ZFOLDERTYPE: ANFolderType;
 	ZOWNER: number;
 }
 
