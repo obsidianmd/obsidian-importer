@@ -6,19 +6,19 @@ This Obsidian plugin allows you to import notes from other apps and file formats
 
 Install Importer in Obsidian → Community Plugins.
 
-Import guides are hosted on the [official Obsidian Help site](https://help.obsidian.md/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
+Import guides are hosted on the [official Obsidian Help site](https://obsidian.md/help/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
 
 - [Import from Airtable](https://obsidian.md/help/import/airtable)
-- [Import from Apple Notes](https://help.obsidian.md/import/apple-notes)
-- [Import from Bear](https://help.obsidian.md/import/bear)
-- [Import from CSV files](https://help.obsidian.md/import/csv)
-- [Import from Evernote](https://help.obsidian.md/import/evernote)
-- [Import from Google Keep](https://help.obsidian.md/import/google-keep)
-- [Import from Microsoft OneNote](https://help.obsidian.md/import/onenote)
-- [Import from Notion](https://help.obsidian.md/import/notion)
-- [Import from Roam Research](https://help.obsidian.md/import/roam)
-- [Import from HTML files](https://help.obsidian.md/import/html)
-- [Import from Markdown files](https://help.obsidian.md/import/markdown)
+- [Import from Apple Notes](https://obsidian.md/help/import/apple-notes)
+- [Import from Bear](https://obsidian.md/help/import/bear)
+- [Import from CSV files](https://obsidian.md/help/import/csv)
+- [Import from Evernote](https://obsidian.md/help/import/evernote)
+- [Import from Google Keep](https://obsidian.md/help/import/google-keep)
+- [Import from Microsoft OneNote](https://obsidian.md/help/import/onenote)
+- [Import from Notion](https://obsidian.md/help/import/notion)
+- [Import from Roam Research](https://obsidian.md/help/import/roam)
+- [Import from HTML files](https://obsidian.md/help/import/html)
+- [Import from Markdown files](https://obsidian.md/help/import/markdown)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
 - Import from Apple Journal (HTML export)
 - Import from Tomboy/Gnote (.note)
@@ -83,7 +83,7 @@ These only read.
 npm run e2e
 ```
 
-This imports fixtures through the running app — its `htmlToMarkdown`, its vault, its link settings — and compares what lands in the vault with what `npm test` recorded. It needs the [Obsidian CLI](https://help.obsidian.md/cli) and a build of your working copy installed in the active vault. It writes one folder and deletes it afterwards.
+This imports fixtures through the running app — its `htmlToMarkdown`, its vault, its link settings — and compares what lands in the vault with what `npm test` recorded. It needs the [Obsidian CLI](https://obsidian.md/help/cli) and a build of your working copy installed in the active vault. It writes one folder and deletes it afterwards.
 
 ## Contributing
 
