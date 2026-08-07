@@ -6,10 +6,9 @@ import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
 	/**
-	 * Stop lands within a note, from the parser's tag:note listener. Pause
-	 * cannot: that listener is synchronous, so the only checkpoint that can be
-	 * awaited is between .enex files, and one file is long enough that Pause
-	 * would sit there looking broken while notes kept arriving.
+	 * Stop lands within a note, from the parser's tag:note listener. That
+	 * listener is synchronous, so the only checkpoint that can be awaited is
+	 * between .enex files - too far apart to offer Pause.
 	 */
 	interruption = 'stop' as const;
 

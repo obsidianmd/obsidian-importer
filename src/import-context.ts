@@ -27,10 +27,8 @@ export class ImportContext {
 	private waiting: (() => void)[] = [];
 
 	/**
-	 * How many checkpoints the import has reached, which is what the dialog
-	 * checks its promise of Pause and Stop against. Only shouldStop() counts:
-	 * isCancelled() is read by the dialog itself, so counting it would say yes
-	 * about every import whether or not the importer ever asked.
+	 * Checkpoints reached, which the dialog checks its buttons against. Only
+	 * shouldStop() counts: the dialog calls isCancelled() itself.
 	 */
 	checkpoints: number = 0;
 
@@ -108,17 +106,15 @@ export class ImportContext {
 
 	cancel() {
 		this.cancelled = true;
-		// A paused import has to be able to stop, so whatever is waiting at a
-		// checkpoint is let go to find that it should
+		// Release anything waiting at a checkpoint, or a paused import
+		// could never be stopped
 		this.resume();
 		this.hideStatus();
 	}
 
 	/**
-	 * Hold the import at its next checkpoint.
-	 *
-	 * Whatever it is in the middle of finishes: a note being written is written,
-	 * a request already sent is waited for. What stops is the work after that.
+	 * Hold the import at its next checkpoint. Whatever it is in the middle of
+	 * finishes first.
 	 */
 	pause() {
 		if (this.paused || this.cancelled) return;
@@ -147,22 +143,17 @@ export class ImportContext {
 	}
 
 	/**
-	 * Check if the user has cancelled this run.
-	 *
-	 * Where the caller can wait - which is anywhere it can await - shouldStop()
-	 * answers the same question and honours a pause as well.
+	 * Check if the user has cancelled this run. Callers that can await should
+	 * use shouldStop(), which also honours a pause.
 	 */
 	isCancelled() {
 		return this.cancelled;
 	}
 
 	/**
-	 * A point the import can be stopped or held at: waits while it is paused,
-	 * then says whether to stop.
-	 *
-	 * This is what an importer's loop asks between one item and the next. How
-	 * often it asks is how responsive Pause and Stop are, and an importer that
-	 * never asks can be neither.
+	 * A checkpoint: waits while paused, then says whether to stop. An importer
+	 * asks between one item and the next, and how often it asks is how
+	 * responsive Pause and Stop are.
 	 */
 	async shouldStop(): Promise<boolean> {
 		this.checkpoints++;

@@ -168,8 +168,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
 
-		// Breaks rather than returns, here and below: the database is a sqlite
-		// process this import spawned, and it is closed at the end of this method
+		// Breaks rather than returns, here and below: the sqlite process this
+		// spawned is closed at the end of the method
 		for (let f of noteFolders) {
 			if (await ctx.shouldStop()) break;
 

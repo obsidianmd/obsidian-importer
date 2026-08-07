@@ -69,10 +69,7 @@ function statusText(message: string): string {
 	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
 }
 
-/**
- * The same message while the import is paused: what it was doing, said as the
- * thing it is no longer getting on with.
- */
+/** The same message while the import is held: "Paused - Reading files". */
 function pausedText(message: string): string {
 	const trimmed = message.trim();
 	if (!trimmed) return 'Paused';
@@ -168,10 +165,7 @@ export class ImportProgressUI extends ImportContext {
 		this.statusEl.setText(this.isPaused() ? pausedText(message) : statusText(message));
 	}
 
-	/**
-	 * A pause is shown where the import says what it is doing, which is the
-	 * line that has stopped changing.
-	 */
+	/** Shown on the status line, which is what has stopped changing. */
 	protected onPaused(paused: boolean): void {
 		this.el.toggleClass('is-paused', paused);
 		this.onStatus(this.statusMessage);
@@ -593,19 +587,13 @@ export class ImporterModal extends Modal implements ImporterHost {
 			}
 			ctx.hideStatus();
 
-			// The buttons were drawn on a promise this import never kept. Said
-			// here rather than checked in a test, because what it is checking is
-			// the running import rather than what the source looks like.
-			//
-			// An import that reported nothing never got as far as its first
-			// checkpoint for a reason it has already given: no files picked, no
-			// output folder, a token it was not given. Those are the common way
-			// to press Import, and warning about them says the importer is
-			// broken when what happened is the dialog was answered wrongly.
+			// The buttons were drawn on a promise this import never kept. An
+			// import that reported nothing returned before its first checkpoint
+			// for a reason it has already given - no files picked, no output
+			// folder - so it is not evidence either way.
 			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length;
 			if (importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
-				// The name the dialog knows it by: a class name is mangled by
-				// the release build, which is where a report would come from.
+				// Not constructor.name, which the release build mangles
 				const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
 				console.warn(
 					`The ${name} importer offers ${importer.interruption} but never awaited ` +
@@ -636,17 +624,14 @@ export class ImporterModal extends Modal implements ImporterHost {
 		// Stop has already been pressed: nothing left to stop
 		if (ctx.isCancelled()) return;
 
-		// Nothing this import will honour, so nothing to offer. The button that
-		// is not drawn is the point: one that does nothing reads as a hung app.
+		// A button this import would not honour is worse than no button
 		if (interruption === 'none') return;
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
 
-		// Only where the import can be held soon enough for it to read as held
 		let pauseButtonEl: HTMLElement | null = null;
 		if (interruption === 'pause') {
-			// Labelled for what pressing it does, and for what the import is
-			// doing now if the screen is being drawn onto a paused one.
+			// Labelled Resume when the screen is drawn onto a paused import
 			let button = buttonsEl.createEl('button', { text: ctx.isPaused() ? 'Resume' : 'Pause' }, el => {
 				el.addEventListener('click', () => {
 					if (ctx.isPaused()) ctx.resume();
@@ -759,8 +744,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			progressEl.max = ctx.progressTotal;
 			progressEl.value = ctx.progressCurrent;
 
-			// A count that has stopped moving needs to say why, since nothing
-			// else here does
+			// A count that has stopped moving says why: nothing else here does
 			remainingEl.setText(ctx.isPaused()
 				? `Paused - ${ctx.progressTotal - ctx.progressCurrent} remaining`
 				: `${ctx.progressTotal - ctx.progressCurrent} remaining...`);

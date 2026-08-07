@@ -55,22 +55,11 @@ export abstract class FormatImporter {
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
 
 	/**
-	 * How far the dialog can interrupt this import, which is which of its
-	 * buttons it draws.
+	 * Which of the dialog's buttons this import honours.
 	 *
-	 * 'none'  - import() never asks, so neither button appears
-	 * 'stop'  - it asks, but not somewhere it can be held: Stop only
-	 * 'pause' - it awaits shouldStop() between items, close enough together
-	 *           that holding at one feels immediate
-	 *
-	 * The two are separate because they are asked for different things. Stop
-	 * is "wind up when you can", and arriving a moment later still did what it
-	 * said. Pause is "hold now", so an importer whose next checkpoint is
-	 * minutes away has no Pause worth offering: Evernote reads a whole .enex
-	 * before it can be held, while stopping lands within a note.
-	 *
-	 * Left at 'none' so an importer nobody has thought about this for draws no
-	 * button, rather than one that does nothing when pressed.
+	 * 'none'  - import() never awaits ctx.shouldStop()
+	 * 'stop'  - it does, but too far apart to hold at: Stop only
+	 * 'pause' - between items, near enough that a pause feels immediate
 	 */
 	interruption: 'none' | 'stop' | 'pause' = 'none';
 
@@ -513,13 +502,10 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * Wait, because the far end has asked us to, saying so where the import
-	 * says what it is doing.
+	 * Wait, because the far end asked us to, saying so in the status line.
 	 *
-	 * Not ctx.pause(), which is the user holding the import until they lift it.
-	 * This one ends on its own, and the word is kept away from it so that the
-	 * status line means one thing: an import that says it is paused was paused
-	 * by someone.
+	 * Not ctx.pause(), which is the user holding the import: this one ends on
+	 * its own, so it avoids the word.
 	 */
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => window.setTimeout(resolve, durationSeconds * 1_000));

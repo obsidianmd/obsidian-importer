@@ -170,9 +170,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 		});
 
 		xml.on('tag:note', (note: EvernoteNote) => {
-			// The parser hands each note over from a listener that cannot be
-			// awaited, so this is a stop but not a pause: an .enex being read
-			// is read to the end of the note it is on.
+			// A listener that cannot be awaited, so this stops but cannot pause
 			if (ctx.isCancelled()) {
 				stream.close();
 				return;
