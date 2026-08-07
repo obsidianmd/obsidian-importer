@@ -476,6 +476,7 @@ export class OneNoteImporter extends FormatImporter {
 
 				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
 					progress.reportSkipped(page.title, 'it was previously imported');
+					progress.reportProgress(++progressCurrent, progressTotal);
 					continue;
 				}
 
