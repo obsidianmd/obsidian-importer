@@ -13,6 +13,8 @@ const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 export class RoamJSONImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	downloadAttachments: boolean = false;
 	progress: ImportContext;
 	userDNPFormat: string;
@@ -80,7 +82,7 @@ export class RoamJSONImporter extends FormatImporter {
 		}
 
 		for (let file of files) {
-			if (progress.isCancelled()) {
+			if (await progress.shouldStop()) {
 				return;
 			}
 
@@ -161,7 +163,7 @@ export class RoamJSONImporter extends FormatImporter {
 			const totalCount = markdownPages.size;
 			let index = 1;
 			for (const [filename, markdownOutput] of markdownPages.entries()) {
-				if (progress.isCancelled()) {
+				if (await progress.shouldStop()) {
 					return;
 				}
 

@@ -20,6 +20,8 @@ type IDMappingValue = {
 };
 
 export class Bear2bkImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
 	private storeId: boolean = false;
@@ -72,12 +74,12 @@ export class Bear2bkImporter extends FormatImporter {
 		const trashFolder = await this.createFolders(`${folder.path}/trash`);
 
 		for (let file of files) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 			ctx.status('Processing ' + file.name);
 			await readZip(file, async (zip, entries) => {
 				const metadataLookup = await this.collectMetadata(ctx, entries);
 				for (let entry of entries) {
-					if (ctx.isCancelled()) return;
+					if (await ctx.shouldStop()) return;
 					let { fullpath, filepath, parent, name, extension } = entry;
 					if (name === 'info.json' || name === 'tags.json' || name === 'backup.json') {
 						continue;
@@ -217,7 +219,7 @@ export class Bear2bkImporter extends FormatImporter {
 	private async collectMetadata(ctx: ImportContext, entries: ZipEntryFile[]): Promise<{ [key: string]: Metadata }> {
 		let metaData: { [key: string]: Metadata } = {};
 		for (let entry of entries) {
-			if (ctx.isCancelled()) return metaData;
+			if (await ctx.shouldStop()) return metaData;
 
 			if (entry.name !== 'info.json') {
 				continue;

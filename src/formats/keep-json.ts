@@ -17,6 +17,8 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
 
@@ -63,7 +65,7 @@ export class KeepImporter extends FormatImporter {
 		let assetFolderPath = `${folder.path}/Assets`;
 
 		for (let file of files) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 			await this.handleFile(file, folder, assetFolderPath, ctx);
 		}
 	}
@@ -96,7 +98,7 @@ export class KeepImporter extends FormatImporter {
 	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
 		await readZip(file, async (zip, entries) => {
 			for (let entry of entries) {
-				if (ctx.isCancelled()) return;
+				if (await ctx.shouldStop()) return;
 				await this.handleFile(entry, folder, assetFolderPath, ctx);
 			}
 		});

@@ -32,6 +32,7 @@ function context(written: Written[], overrides: Partial<BlockConversionContext> 
 	return {
 		ctx: {
 			isCancelled: () => false,
+			shouldStop: async () => false,
 			status: () => {},
 			reportSkipped: () => {},
 			reportFailed: (name: string, reason?: unknown) => assert.fail(`${name}: ${reason}`),
@@ -112,6 +113,7 @@ test('a malformed data URL fails that attachment and leaves the URL in place', a
 		context(written, {
 			ctx: {
 				isCancelled: () => false,
+				shouldStop: async () => false,
 				status: () => {},
 				reportSkipped: () => {},
 				reportFailed: (name: string) => failures.push(name),
@@ -135,6 +137,7 @@ function contextOverVault(vault: MemoryVault, incrementalImport: boolean): Block
 	return {
 		ctx: {
 			isCancelled: () => false,
+			shouldStop: async () => false,
 			status: () => {},
 			reportSkipped: (name: string) => skipped.push(name),
 			reportFailed: (name: string, reason?: unknown) => assert.fail(`${name}: ${String(reason)}`),

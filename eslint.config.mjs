@@ -87,6 +87,9 @@ export default defineConfig(
 			'prefer-const': 'off',
 			'@typescript-eslint/prefer-as-const': 'off',
 			'@typescript-eslint/no-unused-expressions': ['error', { 'allowShortCircuit': true, 'allowTernary': true }],
+			// `if (ctx.shouldStop())` without the await tests the promise,
+			// which is always truthy. The community review runs this rule too.
+			'@typescript-eslint/no-misused-promises': 'error',
 
 			// Syntax
 			'@stylistic/comma-dangle': ['error', 'only-multiline'],

@@ -14,6 +14,8 @@ import { extensionForMime } from '../mime';
 import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
 
@@ -80,7 +82,7 @@ export class HtmlImporter extends FormatImporter {
 
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const file = files[i];
 			const tFile = await this.processFile(ctx, folder, file);
@@ -106,7 +108,7 @@ export class HtmlImporter extends FormatImporter {
 		metadataCache.onCleanCache(async () => {
 			// This function must call resolveUpdatesCompletePromise() before returning.
 			for (const [fileKey, { file, tFile }] of fileLookup) {
-				if (ctx.isCancelled()) break;
+				if (await ctx.shouldStop()) break;
 
 				try {
 					// Attempt to parse links using MetadataCache

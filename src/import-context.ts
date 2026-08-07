@@ -21,6 +21,17 @@ export class ImportContext {
 
 	cancelled: boolean = false;
 
+	private paused: boolean = false;
+
+	/** Waiting at a checkpoint for the pause to be lifted. */
+	private waiting: (() => void)[] = [];
+
+	/**
+	 * Checkpoints reached, which the dialog checks its buttons against. Only
+	 * shouldStop() counts: the dialog calls isCancelled() itself.
+	 */
+	checkpoints: number = 0;
+
 	/** Latest reportProgress, for a progress bar drawn outside the dialog. */
 	progressCurrent: number = 0;
 	progressTotal: number = 0;
@@ -95,7 +106,36 @@ export class ImportContext {
 
 	cancel() {
 		this.cancelled = true;
+		// Release anything waiting at a checkpoint, or a paused import
+		// could never be stopped
+		this.resume();
 		this.hideStatus();
+	}
+
+	/**
+	 * Hold the import at its next checkpoint. Whatever it is in the middle of
+	 * finishes first.
+	 */
+	pause() {
+		if (this.paused || this.cancelled) return;
+		this.paused = true;
+		this.onPaused(true);
+	}
+
+	/** Let a paused import go on from the checkpoint it is waiting at. */
+	resume() {
+		if (!this.paused) return;
+		this.paused = false;
+
+		const waiting = this.waiting;
+		this.waiting = [];
+		for (const wake of waiting) wake();
+
+		this.onPaused(false);
+	}
+
+	isPaused() {
+		return this.paused;
 	}
 
 	hideStatus() {
@@ -103,9 +143,25 @@ export class ImportContext {
 	}
 
 	/**
-	 * Check if the user has cancelled this run.
+	 * Check if the user has cancelled this run. Callers that can await should
+	 * use shouldStop(), which also honours a pause.
 	 */
 	isCancelled() {
+		return this.cancelled;
+	}
+
+	/**
+	 * A checkpoint: waits while paused, then says whether to stop. An importer
+	 * asks between one item and the next, and how often it asks is how
+	 * responsive Pause and Stop are.
+	 */
+	async shouldStop(): Promise<boolean> {
+		this.checkpoints++;
+
+		while (this.paused && !this.cancelled) {
+			await new Promise<void>(wake => this.waiting.push(wake));
+		}
+
 		return this.cancelled;
 	}
 
@@ -117,4 +173,5 @@ export class ImportContext {
 	protected onFailed(name: string, reason?: unknown): void {}
 	protected onProgress(current: number, total: number): void {}
 	protected onHideStatus(): void {}
+	protected onPaused(paused: boolean): void {}
 }

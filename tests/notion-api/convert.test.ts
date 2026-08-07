@@ -35,6 +35,7 @@ interface PageFixture {
 /** Reports nothing and cancels nothing, which is all the conversion asks of it. */
 const REPORTER = {
 	isCancelled: () => false,
+	shouldStop: async () => false,
 	status: () => {},
 	reportNoteSuccess: () => {},
 	reportAttachmentSuccess: () => {},

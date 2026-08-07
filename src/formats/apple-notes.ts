@@ -19,6 +19,8 @@ const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
+	interruption = 'pause' as const;
+
 	ctx: ImportContext;
 	rootFolder: TFolder;
 
@@ -166,7 +168,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
 
+		// Breaks rather than returns, here and below: the sqlite process this
+		// spawned is closed at the end of the method
 		for (let f of noteFolders) {
+			if (await ctx.shouldStop()) break;
+
 			try {
 				await this.resolveFolder(f.Z_PK);
 			}
@@ -187,6 +193,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.noteCount = notes.length;
 
 		for (let n of notes) {
+			if (await ctx.shouldStop()) break;
+
 			try {
 				await this.resolveNote(n.Z_PK);
 			}

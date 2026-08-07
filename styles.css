@@ -39,6 +39,11 @@
 	background-color: var(--interactive-accent);
 }
 
+/* Paused: the bar is not filling, and says as much rather than looking stuck */
+.is-paused .importer-progress-bar-inner {
+	background-color: var(--text-faint);
+}
+
 .importer-status {
 	white-space: nowrap;
 	overflow: hidden;

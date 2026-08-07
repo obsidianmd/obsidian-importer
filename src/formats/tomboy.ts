@@ -6,6 +6,8 @@ import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
 
 export class TomboyImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	private coreConverter: TomboyCoreConverter;
 	private todoEnabled: boolean;
 	private keepTitleMode: KeepTitleMode;
@@ -101,7 +103,7 @@ export class TomboyImporter extends FormatImporter {
 
 		ctx.reportProgress(0, files.length);
 		for (let i = 0; i < files.length; i++) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const file = files[i];
 			ctx.status('Processing ' + file.name);

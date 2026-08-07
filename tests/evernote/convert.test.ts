@@ -54,6 +54,7 @@ function stubContext() {
 		reportFailed(name: string, reason?: unknown) { this.failures.push(`${String(name)}: ${String(reason)}`); },
 		reportProgress() { },
 		isCancelled() { return false; },
+		async shouldStop() { return false; },
 		cancel() { },
 		hideStatus() { },
 	};

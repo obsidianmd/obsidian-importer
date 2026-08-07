@@ -4,7 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
-import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath } from './util';
+import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -53,6 +53,15 @@ export abstract class FormatImporter {
 	notAvailable: boolean = false;
 	/** See addDuplicateHandlingSetting. Copy unless the importer offers a choice. */
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
+
+	/**
+	 * Which of the dialog's buttons this import honours.
+	 *
+	 * 'none'  - import() never awaits ctx.shouldStop()
+	 * 'stop'  - it does, but too far apart to hold at: Stop only
+	 * 'pause' - between items, near enough that a pause feels immediate
+	 */
+	interruption: 'none' | 'stop' | 'pause' = 'none';
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
@@ -492,12 +501,18 @@ export abstract class FormatImporter {
 		return normalizePath(outputPath);
 	}
 
-	async pause(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
+	/**
+	 * Wait, because the far end asked us to, saying so in the status line.
+	 *
+	 * Not ctx.pause(), which is the user holding the import: this one ends on
+	 * its own, so it avoids the word.
+	 */
+	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => window.setTimeout(resolve, durationSeconds * 1_000));
 
 		if (ctx) {
 			const previousStatusMessage = ctx.statusMessage;
-			ctx.status(`⏸️ Pausing import for ${durationSeconds} seconds (${reason})`);
+			ctx.status(`Waiting ${plural(durationSeconds, 'second')} (${reason})`);
 			await promise;
 			ctx.status(previousStatusMessage);
 		}

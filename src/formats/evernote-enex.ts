@@ -5,6 +5,13 @@ import { ImportContext } from '../import-context';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 export class EvernoteEnexImporter extends FormatImporter {
+	/**
+	 * Stop lands within a note, from the parser's tag:note listener. That
+	 * listener is synchronous, so the only checkpoint that can be awaited is
+	 * between .enex files - too far apart to offer Pause.
+	 */
+	interruption = 'stop' as const;
+
 	init() {
 		this.addFileChooserSetting('Evernote', ['enex'], true);
 		this.addOutputLocationSetting('Evernote');

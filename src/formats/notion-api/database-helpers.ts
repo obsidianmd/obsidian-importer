@@ -303,7 +303,7 @@ export async function importDatabaseCore(
 
 	// Import each database page with .base file tag
 	for (const page of databasePages) {
-		if (ctx.isCancelled()) break;
+		if (await ctx.shouldStop()) break;
 		await importPageCallback(page.id, databaseFolderPath, baseFileTag);
 	}
 
@@ -312,7 +312,7 @@ export async function importDatabaseCore(
 	if (templatePages.length > 0) {
 		// Import each template page to the database folder
 		for (const template of templatePages) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 			ctx.status(`Importing template: ${template.name}...`);
 			// Template pages should not have database tag (they are templates, not database entries)
 			// Use custom file name format: {Database name} {Template name}

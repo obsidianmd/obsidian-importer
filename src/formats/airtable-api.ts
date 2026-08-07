@@ -80,6 +80,8 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 };
 
 export class AirtableAPIImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get airtableToken(): string {
 		return this.getSecret() ?? '';
@@ -768,7 +770,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Process each base sequentially to minimize memory usage
 			let baseIndex = 0;
 			for (const [, baseInfo] of baseGroups.entries()) {
-				if (ctx.isCancelled()) {
+				if (await ctx.shouldStop()) {
 					ctx.status('Import cancelled');
 					return;
 				}
@@ -794,7 +796,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				if (ctx.isCancelled()) {
+				if (await ctx.shouldStop()) {
 					ctx.status('Import cancelled');
 					return;
 				}
@@ -913,7 +915,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Fetch data for each table in this base
 		for (const table of tables) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			// Update status context
 			ctx.status(`Fetching records from ${table.tableName}${this.basePosition}`);
@@ -974,7 +976,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const schema = this.tree.find(node => node.id === baseId)?.children ?? [];
 
 		for (const tableId of linkedTableIds) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			const table = schema.find(node => node.metadata?.tableId === tableId);
 			const fields = table?.metadata?.fields ?? [];
@@ -1030,10 +1032,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		// reading back and rewriting every note that had one, and rewriting a
 		// note costs about what writing it did.
 		const plans = await this.planRecordPaths(ctx, rootPath);
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		for (const plan of plans) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			await this.createFilesForTable(ctx, plan);
 		}
@@ -1058,7 +1060,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const claimed = new Set<string>();
 
 		for (const tableData of this.preparedData) {
-			if (ctx.isCancelled()) return plans;
+			if (await ctx.shouldStop()) return plans;
 
 			const { baseId, baseName, tableName, primaryFieldId, fields, records } = tableData;
 			const primaryFieldName = fields.find(f => f.id === primaryFieldId)?.name || fields[0]?.name;
@@ -1072,7 +1074,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			const planned: PlannedRecord[] = [];
 
 			for (const record of records) {
-				if (ctx.isCancelled()) return plans;
+				if (await ctx.shouldStop()) return plans;
 
 				// Nothing in any field: no note, and links to it fall back to a
 				// title, which is why it claims no path
@@ -1196,7 +1198,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<void> {
 		const { baseId, baseName, tableName, primaryFieldId, fields, views } = tableInfo;
 
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		// Filter to supported views only
 		const supportedViews = views.filter(view =>
@@ -1229,7 +1231,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			},
 		});
 
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		// Build global record ID to title mapping (for resolving linked records across tables)
 		for (const record of allRecords) {
@@ -1255,7 +1257,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const noteCount = allRecords.length - emptyRecordIds.size;
 
 		for (const view of supportedViews) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			// Update status - fetching view
 			ctx.status(`Fetching view ${view.name} from ${tableName}${this.basePosition}`);
@@ -1336,11 +1338,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewsShowingEveryRecord: tableData.viewsShowingEveryRecord,
 		});
 
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		// Write the notes, at the paths the plan settled on
 		for (const planned of plan.records) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 
 			try {
 				const viewReferences = (recordViewMemberships.get(planned.record.id) ?? [])

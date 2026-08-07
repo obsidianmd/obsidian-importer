@@ -38,6 +38,7 @@ function reporter() {
 		skipped,
 		ctx: {
 			isCancelled: () => false,
+			shouldStop: async () => false,
 			status: () => {},
 			reportProgress: () => {},
 			reportNoteSuccess: () => {},

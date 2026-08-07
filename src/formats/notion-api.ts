@@ -26,6 +26,8 @@ import { buildTree, collectItems, type NotionTreeNode } from './notion-api/disco
 const NOTION_ID_PROPERTY = 'notion-id';
 
 export class NotionAPIImporter extends FormatImporter {
+	interruption = 'pause' as const;
+
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get notionToken(): string {
 		return this.getSecret() ?? '';
@@ -685,7 +687,7 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status(`Importing ${plural(selectedIds.length, 'item')}...`);
 
 			for (let i = 0; i < selectedIds.length; i++) {
-				if (ctx.isCancelled()) break;
+				if (await ctx.shouldStop()) break;
 
 				const itemId = selectedIds[i];
 				ctx.status(`Importing item ${i + 1}/${selectedIds.length}...`);
@@ -770,7 +772,7 @@ export class NotionAPIImporter extends FormatImporter {
 			isDataSourceId?: boolean;
 		} = {}
 	): Promise<void> {
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		const { isDataSourceId = false } = options;
 
@@ -813,7 +815,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
 		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
 
-		if (ctx.isCancelled()) return;
+		if (await ctx.shouldStop()) return;
 
 		// Check if already processed
 		if (this.processedPages.has(pageId)) {
@@ -1179,7 +1181,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// This happens after all rounds of database imports are complete
 		ctx.status(`Replacing relation placeholders with wiki links...`);
 		for (const placeholder of this.relationPlaceholders) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 
 			try {
 				// Get the page file path from mapping (O(1) lookup)
@@ -1283,7 +1285,7 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx.status(`Importing ${plural(missingDatabaseIds.size, 'linked database')}...`);
 
 		for (const databaseId of missingDatabaseIds) {
-			if (ctx.isCancelled()) return;
+			if (await ctx.shouldStop()) return;
 			if (this.processedDatabases.has(databaseId)) continue;
 
 			await this.importUnimportedDatabase(ctx, databaseId, this.outputRootPath);
@@ -1376,7 +1378,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Iterate through files that have mentions (using file path as key for O(1) lookup)
 		for (const [sourceFilePath, mentionedIds] of this.mentionPlaceholders) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 
 			try {
 				// Get the source file directly by path (O(1) lookup)
@@ -1475,7 +1477,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Process page placeholders
 		for (const [filePath, pageIds] of this.syncedChildPagePlaceholders) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 
 			try {
 				// Get the file directly by path (O(1) lookup)
@@ -1539,7 +1541,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Process database placeholders
 		for (const [filePath, databaseIds] of this.syncedChildDatabasePlaceholders) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 
 			try {
 				// Get the file directly by path (O(1) lookup)
@@ -1821,7 +1823,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Iterate through all pages we've tracked (including skipped ones)
 		for (const filePath of this.notionIdToPath.values()) {
-			if (ctx.isCancelled()) break;
+			if (await ctx.shouldStop()) break;
 
 			try {
 				const file = this.vault.getAbstractFileByPath(filePath + '.md');
