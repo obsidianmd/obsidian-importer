@@ -596,9 +596,19 @@ export class ImporterModal extends Modal implements ImporterHost {
 			// The buttons were drawn on a promise this import never kept. Said
 			// here rather than checked in a test, because what it is checking is
 			// the running import rather than what the source looks like.
-			if (importer.interruption !== 'none' && ctx.checkpoints === 0) {
+			//
+			// An import that reported nothing never got as far as its first
+			// checkpoint for a reason it has already given: no files picked, no
+			// output folder, a token it was not given. Those are the common way
+			// to press Import, and warning about them says the importer is
+			// broken when what happened is the dialog was answered wrongly.
+			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length;
+			if (importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
+				// The name the dialog knows it by: a class name is mangled by
+				// the release build, which is where a report would come from.
+				const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
 				console.warn(
-					`${importer.constructor.name} offers ${importer.interruption} but never awaited ` +
+					`The ${name} importer offers ${importer.interruption} but never awaited ` +
 					`ctx.shouldStop(), so neither button could have done anything`
 				);
 			}
