@@ -382,6 +382,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				outExt = 'jpg';
 				break;
 
+			// Apple has used three UTIs for a drawing, and the converter hands
+			// over all three. An older one taken for a file attachment finds no
+			// media row at that key and fails the note it was in.
+			case ANAttachment.DrawingLegacy:
+			case ANAttachment.DrawingLegacy2:
 			case ANAttachment.Drawing:
 				row = await this.database.get`
 					SELECT

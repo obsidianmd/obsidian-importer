@@ -57,6 +57,17 @@ export class MemoryVault {
 		}
 	}
 
+	/**
+	 * Where an attachment goes, at the setting Obsidian ships with.
+	 *
+	 * The real one reads attachmentFolderPath, whose default is "/": the vault
+	 * root, whatever note the attachment belongs to, which is why the note it
+	 * came with is not asked about here.
+	 */
+	async getAvailablePathForAttachments(basename: string, extension: string): Promise<string> {
+		return this.getAvailablePath(basename, extension);
+	}
+
 	async createFolder(path: string): Promise<TFolder> {
 		const normalized = normalizePath(path);
 		const folder = new TFolder();
@@ -107,7 +118,22 @@ export class MemoryVault {
 	}
 }
 
-/** An app with nothing in it but the vault, which is all FormatImporter reads. */
+/**
+ * An app with nothing in it but the vault, the link writer and local storage.
+ *
+ * FormatImporter reads the vault; an importer that links to what it wrote asks
+ * fileManager for the link, in whichever form the vault is set to. The plain
+ * wiki form stands in for all of them here, as it does in the conversion tests.
+ * Local storage holds nothing, so every setting kept there stays at its default.
+ */
 export function memoryApp(vault: MemoryVault) {
-	return { vault } as never;
+	return {
+		vault,
+		loadLocalStorage: () => null,
+		saveLocalStorage: () => {},
+		fileManager: {
+			generateMarkdownLink: (file: { path: string }, _sourcePath: string, subpath?: string, display?: string) =>
+				`[[${file.path}${subpath ?? ''}${display ? `|${display}` : ''}]]`,
+		},
+	} as never;
 }

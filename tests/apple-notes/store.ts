@@ -71,6 +71,14 @@ export interface AttachmentSpec {
 	tokenContentIdentifier?: string;
 	/** A file on disk, which the importer would copy into the vault. */
 	media?: number;
+	/**
+	 * Which note it hangs off, as an index into the spec's notes.
+	 *
+	 * The importer reads it to know whose account the file sits under, so an
+	 * attachment it has to fetch needs one. By index because the primary keys
+	 * are handed out here, and the spec is written before they exist.
+	 */
+	note?: number;
 	/** A drawing's transcription. */
 	handwriting?: string;
 	/** A table or scan, as its own protobuf. */
@@ -149,7 +157,8 @@ const SCHEMA = `
 		ZACCOUNT3 INTEGER, ZACCOUNT4 INTEGER, ZNOTE INTEGER, ZMEDIA INTEGER,
 		ZMERGEABLEDATA1 BLOB, ZHANDWRITINGSUMMARY TEXT,
 		ZFILENAME TEXT, ZTYPEUTI TEXT, ZIDENTIFIER1 TEXT,
-		ZCREATIONDATE INTEGER, ZCREATIONDATE1 INTEGER, ZMODIFICATIONDATE1 INTEGER,
+		ZCREATIONDATE INTEGER, ZMODIFICATIONDATE INTEGER,
+		ZCREATIONDATE1 INTEGER, ZMODIFICATIONDATE1 INTEGER,
 		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER
 	);
 
@@ -164,6 +173,8 @@ export interface BuiltStore {
 	database: SQLiteTagSpawned;
 	/** Primary key of each note, in the order they were given. */
 	notePks: number[];
+	/** Primary key of the one folder every note is in, which owns the account. */
+	folderPk: number;
 	close(): void;
 }
 
@@ -202,16 +213,28 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		insertData.run(notePk, notePk, encodeNote(note));
 	}
 
+	// An attachment carries the columns the importer reads on its way to a file:
+	// which note it hangs off, and the dates the copy in the vault is given
+	const insertAttachment = db.prepare(`
+		INSERT INTO ziccloudsyncingobject (
+			Z_PK, Z_ENT, ZIDENTIFIER, ZALTTEXT, ZTOKENCONTENTIDENTIFIER,
+			ZURLSTRING, ZTITLE, ZTYPEUTI, ZMEDIA, ZMERGEABLEDATA1,
+			ZHANDWRITINGSUMMARY, ZNOTE, ZCREATIONDATE, ZMODIFICATIONDATE
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+
 	for (const attachment of spec.attachments ?? []) {
-		insertObject.run(
-			pk++, entity.ICAttachment, null, null, attachment.identifier,
+		insertAttachment.run(
+			pk++, entity.ICAttachment, attachment.identifier,
 			attachment.altText ?? null, attachment.tokenContentIdentifier ?? null,
-			attachment.url ?? null, attachment.title ?? null, null, null,
+			attachment.url ?? null, attachment.title ?? null, attachment.uti,
 			attachment.media ?? null, attachment.mergeableData ?? null,
-			attachment.handwriting ?? null, created, created);
+			attachment.handwriting ?? null,
+			attachment.note === undefined ? null : notePks[attachment.note],
+			created, created);
 	}
 
-	return { database: tagged(db), notePks, close: () => db.close() };
+	return { database: tagged(db), notePks, folderPk, close: () => db.close() };
 }
 
 /**
