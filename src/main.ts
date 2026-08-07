@@ -587,11 +587,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			}
 			ctx.hideStatus();
 
-			// The buttons were drawn on a promise this import never kept. An
-			// import that reported nothing returned before its first checkpoint
-			// for a reason it has already given - no files picked, no output
-			// folder - so it is not evidence either way.
-			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length;
+			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length; // did anything happen?
 			if (importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
 				// Not constructor.name, which the release build mangles
 				const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
