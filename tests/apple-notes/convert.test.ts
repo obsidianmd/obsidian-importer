@@ -185,6 +185,28 @@ const STORE: StoreSpec = {
 				{ text: '', attachment: { identifier: 'NOTHING-1', uti: 'public.unrecognised' } },
 			],
 		},
+		{
+			title: 'Highlights',
+			runs: [
+				{ text: 'Highlights\n', style: ANStyleType.Title },
+				{ text: 'purple', emphasis: 1 },
+				{ text: ' and ' },
+				{ text: 'pink', emphasis: 2 },
+				{ text: ' and ' },
+				{ text: 'orange', emphasis: 3 },
+				{ text: ' and ' },
+				{ text: 'mint', emphasis: 4 },
+				{ text: ' and ' },
+				{ text: 'blue', emphasis: 5 },
+				{ text: '\n' },
+				// A highlight is markdown, so it wraps whichever way the run is written
+				{ text: 'bold', bold: true, emphasis: 1 },
+				{ text: ' and ' },
+				{ text: 'underlined', underlined: true, emphasis: 5 },
+				{ text: ' and ' },
+				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
+			],
+		},
 	],
 	attachments: [
 		{ identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag, altText: '#a-tag' },

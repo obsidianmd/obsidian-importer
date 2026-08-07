@@ -8,6 +8,7 @@ import {
 	ANBaseline,
 	ANConverter,
 	ANDocument,
+	ANEmphasisColor,
 	ANFontWeight,
 	ANFragmentPair,
 	ANMultiRun,
@@ -20,6 +21,20 @@ const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
 const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
 const DEFAULT_EMOJI = '.AppleColorEmojiUI';
+
+/**
+ * Obsidian takes a highlight's colour from an emoji leading its content, and has no
+ * pink or mint of its own, so those go to the nearest it does have. An unmarked
+ * highlight is already yellow, which is the colour Apple leaves unset.
+ */
+const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
+	[ANEmphasisColor.Purple]: '🟣',
+	[ANEmphasisColor.Pink]: '🔴',
+	[ANEmphasisColor.Orange]: '🟠',
+	[ANEmphasisColor.Mint]: '🟢',
+	[ANEmphasisColor.Blue]: '🔵'
+};
+
 const LIST_STYLES = [
 	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
 ];
@@ -219,6 +234,8 @@ export class NoteConverter extends ANConverter {
 			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
 		}
 
+		attr.fragment = emphasise(attr);
+
 		if (attr.atLineStart) {
 			return this.formatParagraph(attr);
 		}
@@ -252,6 +269,8 @@ export class NoteConverter extends ANConverter {
 				attr.fragment = `[${attr.fragment}](${attr.link})`;
 			}
 		}
+
+		attr.fragment = emphasise(attr);
 
 		if (attr.atLineStart) {
 			return this.formatParagraph(attr);
@@ -412,6 +431,12 @@ export class NoteConverter extends ANConverter {
 				return 'justify';
 		}
 	}
+}
+
+/** Wrap a highlighted run, colouring it by the marker Obsidian reads. */
+function emphasise(attr: ANAttributeRun): string {
+	if (!attr.emphasisColor) return attr.fragment;
+	return `==${EMPHASIS_MARKERS[attr.emphasisColor] ?? ''}${attr.fragment}==`;
 }
 
 function isBlockAttachment(attr: ANAttributeRun) {

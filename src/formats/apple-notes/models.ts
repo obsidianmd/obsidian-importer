@@ -112,6 +112,7 @@ export interface ANAttributeRun extends Message {
 	superscript?: ANBaseline;
 	link?: string;
 	color?: ANColor;
+	emphasisColor?: ANEmphasisColor;
 	attachmentInfo?: ANAttachmentInfo;
 
 	// internal additions, not part of the protobufs
@@ -175,6 +176,18 @@ export interface ANColor extends Message {
 	green: number;
 	blue: number;
 	alpha: number;
+}
+
+/**
+ * The colour of a highlight. Apple's own yellow is the value this is left unset for,
+ * so a yellow highlight is indistinguishable from no highlight at all.
+ */
+export enum ANEmphasisColor {
+	Purple = 1,
+	Pink = 2,
+	Orange = 3,
+	Mint = 4,
+	Blue = 5
 }
 
 export enum ANFolderType {
