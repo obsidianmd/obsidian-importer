@@ -33,6 +33,11 @@ export class NotionAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
+	/** Nothing to pick: the token is what says where the pages come from. */
+	get sourceReady(): boolean {
+		return this.notionToken !== '';
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
 	/**
 	 * Whether a relation into a database the user did not select may import it.
@@ -99,7 +104,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// List pages and toggle selection buttons
 		// Everything below is the tree the user picks pages from. An import
 		// driven without a dialog sets what it wants directly.
-		const contentEl = this.host.contentEl;
+		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		const listPagesSetting = new Setting(contentEl)
@@ -425,7 +430,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private renderPageTree(): void {
 		// Try to get container reference if lost
 		if (!this.pageTreeContainer) {
-			this.pageTreeContainer = this.host.contentEl?.querySelector('.publish-change-list') ?? null;
+			this.pageTreeContainer = this.host.sourceEl?.querySelector('.publish-change-list') ?? null;
 		}
 
 		if (!this.pageTreeContainer) {

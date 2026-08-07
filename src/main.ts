@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, getLanguage, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback } from './constants';
@@ -31,7 +31,6 @@ interface ImporterDefinition {
 	name: string;
 	optionText: string;
 	helpPermalink?: string;
-	formatDescription?: string;
 	importer: new (app: App, host: ImporterHost) => FormatImporter;
 }
 
@@ -67,6 +66,19 @@ function statusText(message: string): string {
 	if (!trimmed) return '';
 
 	return trimmed.endsWith('.') ? trimmed : `${trimmed}...`;
+}
+
+/**
+ * A help page, in the language the app is set to.
+ *
+ * Every language but English is served under its own code, so English is the
+ * one with nothing in front: obsidian.md/help/… beside obsidian.md/fr/help/….
+ */
+function helpUrl(permalink: string): string {
+	const language = getLanguage();
+	const prefix = language === 'en' ? '' : `/${language}`;
+
+	return `https://obsidian.md${prefix}/help/${permalink}`;
 }
 
 /** The same message while the import is held: "Paused - Reading files". */
@@ -226,6 +238,12 @@ export default class ImporterPlugin extends Plugin {
 	authCallback: AuthCallback | undefined;
 
 	/**
+	 * The auth requests already handed to a callback, by the state they carry,
+	 * so that the same one arriving twice is recognised rather than reported.
+	 */
+	private handledAuthStates = new Set<string>();
+
+	/**
 	 * The dialog, while one is open. An import keeps running with the dialog
 	 * hidden, so opening the importer again has to bring that one back rather
 	 * than start a second dialog beside it.
@@ -250,7 +268,6 @@ export default class ImporterPlugin extends Plugin {
 				name: 'Apple Journal',
 				optionText: 'Apple Journal (HTML export)',
 				importer: AppleJournalImporter,
-				formatDescription: 'Import your Journal app entries to Obsidian',
 			},
 			'bear': {
 				name: 'Bear',
@@ -299,14 +316,12 @@ export default class ImporterPlugin extends Plugin {
 				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
-				formatDescription: 'Export your Notion workspace to HTML format.',
 			},
 			'roam-json': {
 				name: 'Roam Research',
 				optionText: 'Roam Research (.json)',
 				importer: RoamJSONImporter,
 				helpPermalink: 'import/roam',
-				formatDescription: 'Export your Roam Research workspace to JSON format.',
 			},
 			'textbundle': {
 				name: 'Textbundle files',
@@ -336,10 +351,17 @@ export default class ImporterPlugin extends Plugin {
 		this.registerObsidianProtocolHandler('importer-auth',
 			(data) => {
 				if (this.authCallback) {
+					if (data['state']) this.handledAuthStates.add(data['state']);
 					this.authCallback(data);
 					this.authCallback = undefined;
 					return;
 				}
+
+				// The page that redirects back can be reached twice, the second
+				// time with an error, because the code it was given has already
+				// been used. That is the sign-in just handled arriving again
+				// rather than a stale one, and there is nothing to restart.
+				if (data['state'] && this.handledAuthStates.has(data['state'])) return;
 
 				new Notice('Unexpected auth event. Please restart the auth process.');
 			});
@@ -429,7 +451,8 @@ export default class ImporterPlugin extends Plugin {
 		}
 
 		const host: ImporterHost = {
-			contentEl: null,
+			sourceEl: null,
+			optionsEl: null,
 			plugin: this,
 			importerId,
 			abortController: new AbortController(),
@@ -467,6 +490,16 @@ export class ImporterModal extends Modal implements ImporterHost {
 	importer: FormatImporter;
 	selectedId: string;
 	abortController: AbortController;
+
+	/**
+	 * The two setup screens, drawn when the importer is built and shown one at
+	 * a time. Off screen until then, and again once the import starts.
+	 */
+	sourceEl: HTMLElement | null = null;
+	optionsEl: HTMLElement | null = null;
+
+	/** Next, while the source step is the one showing. See sourceChanged. */
+	private nextButtonEl: HTMLButtonElement | null = null;
 
 	/** Which importer the dialog is showing, which is the one being hosted. */
 	get importerId(): string {
@@ -527,6 +560,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 			for (const [id, match] of this.searchFormats(query)) {
 				const definition = this.plugin.importers[id];
 
+				// Just the name: what to do before importing is on the step that
+				// asks for the files, which is where there is something to do
 				const setting = new Setting(itemsEl)
 					// The app's own "row that leads somewhere" - see mobile settings
 					.setClass('mod-navigable')
@@ -536,7 +571,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 						else frag.appendText(definition.optionText);
 					}));
 
-				if (definition.formatDescription) setting.setDesc(definition.formatDescription);
 				setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
 
 				const { settingEl } = setting;
@@ -621,41 +655,85 @@ export class ImporterModal extends Modal implements ImporterHost {
 		return results.map(({ id, match }) => [id, match]);
 	}
 
-	/** Leave the picker for the chosen format's setup screen. */
+	/** Leave the picker for the chosen format's first setup step. */
 	selectFormat(id: string) {
 		if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, id)) return;
 
-		this.selectedId = id;
-		this.updateContent();
-	}
-
-	/** The second screen: what this format needs before it can be imported. */
-	updateContent() {
-		const { contentEl, modalEl, selectedId } = this;
-		let selectedImporter = this.plugin.importers[selectedId];
-		contentEl.empty();
-		modalEl.removeClass('is-picking-format');
-		this.titleEl.setText(`Import from ${selectedImporter.name}`);
-
-		if (selectedImporter.formatDescription || selectedImporter.helpPermalink) {
-			contentEl.createDiv('importer-format-about', el => {
-				if (selectedImporter.formatDescription) {
-					el.createDiv({ text: selectedImporter.formatDescription });
-				}
-				if (selectedImporter.helpPermalink) {
-					el.createEl('a', {
-						text: `Learn more about importing from ${selectedImporter.name}.`,
-						href: `https://help.obsidian.md/${selectedImporter.helpPermalink}`,
-					});
-				}
-			});
+		// Coming back to the format the dialog is already set up for keeps that
+		// setup: the files chosen, the account signed in to, the tree loaded
+		// from it. A sign-in the user stepped away from while waiting for the
+		// browser lands on the importer that started it, which is this one.
+		if (id === this.selectedId && this.importer) {
+			this.showFirstStep();
+			return;
 		}
 
-		let importer = this.importer = new selectedImporter.importer(this.app, this);
+		this.selectedId = id;
+		this.setUpImporter();
+	}
 
-		contentEl.createDiv('modal-button-container', el => {
-			this.addBackButton(el, () => this.showFormatPicker());
+	/**
+	 * Build the chosen importer and show the first step it asks for.
+	 *
+	 * Its two screens are drawn once, here, and moved in and out of the dialog
+	 * as the user steps back and forth: building it again would forget the files
+	 * that were picked, the account that was signed in to, and the tree that was
+	 * loaded from it.
+	 */
+	private setUpImporter() {
+		const definition = this.plugin.importers[this.selectedId];
 
+		// Held off screen until the step that shows them
+		this.sourceEl = createDiv();
+		this.optionsEl = createDiv();
+
+		this.importer = new definition.importer(this.app, this);
+
+		this.showFirstStep();
+	}
+
+	/** The step a format opens on, which is not always the source one. */
+	private showFirstStep() {
+		if (this.hasSourceStep()) this.showSourceStep();
+		else this.showOptionsStep();
+	}
+
+	/**
+	 * Whether this importer asks where the notes come from. Every one of them
+	 * does - files to pick, an account to sign in to, a folder to be let into -
+	 * except one that cannot run here at all, whose only screen is the options
+	 * one, because that is where it says so.
+	 */
+	private hasSourceStep(): boolean {
+		return !this.importer.notAvailable;
+	}
+
+	/** The second screen: the files to import, or the account they come from. */
+	showSourceStep() {
+		this.drawStep(this.sourceEl, () => this.showFormatPicker(), el => {
+			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: 'Next' }, el => {
+				el.addEventListener('click', () => this.showOptionsStep());
+			});
+
+			// Nothing to go on to until the question on this screen is answered
+			this.sourceChanged();
+		});
+	}
+
+	/**
+	 * See ImporterHost: what the source step was waiting for may have arrived.
+	 * Asked again rather than told what changed, since only the answer matters.
+	 */
+	sourceChanged(): void {
+		if (this.nextButtonEl) this.nextButtonEl.disabled = !this.importer.sourceReady;
+	}
+
+	/** The third screen: how to import it, and the button that starts. */
+	showOptionsStep() {
+		const { importer } = this;
+		const hasSource = this.hasSourceStep();
+
+		this.drawStep(this.optionsEl, () => hasSource ? this.showSourceStep() : this.showFormatPicker(), el => {
 			// Hide the import button if it's not available. The actual message to
 			// display is handled by the importer, since it depends on what is
 			// being imported - but the way back is still needed either way.
@@ -671,12 +749,39 @@ export class ImporterModal extends Modal implements ImporterHost {
 		});
 	}
 
-	/** The way back out of a screen, at the far side of the button row. */
-	private addBackButton(containerEl: HTMLElement, onClick: () => void): void {
-		containerEl.createEl('button', { cls: 'importer-back-button' }, el => {
-			setIcon(el.createSpan('importer-back-icon'), 'lucide-chevron-left');
-			el.createSpan({ text: 'Back' });
-			el.addEventListener('click', onClick);
+	/**
+	 * A setup screen: what the importer drew for that step, under the format it
+	 * is for, over the buttons that leave it.
+	 *
+	 * The ways off this screen that are not onward - back, and out to the help
+	 * page - are on the left; buildButtons adds the one that goes on, which the
+	 * button row pushes to the right.
+	 */
+	private drawStep(stepEl: HTMLElement | null, onBack: () => void, buildButtons: (buttonsEl: HTMLElement) => void) {
+		const { contentEl, modalEl } = this;
+		const definition = this.plugin.importers[this.selectedId];
+
+		contentEl.empty();
+		this.nextButtonEl = null;
+		modalEl.removeClass('is-picking-format');
+		this.titleEl.setText(`Import from ${definition.name}`);
+
+		// Put back, with everything the importer has done to it since
+		if (stepEl) contentEl.append(stepEl);
+
+		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
+			el.createEl('button', { text: 'Back' }, el => {
+				el.addEventListener('click', onBack);
+			});
+
+			if (definition.helpPermalink) {
+				const permalink = definition.helpPermalink;
+				el.createEl('button', { text: 'Help' }, el => {
+					el.addEventListener('click', () => window.open(helpUrl(permalink)));
+				});
+			}
+
+			buildButtons(el);
 		});
 	}
 
@@ -697,9 +802,10 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
 
 		if (templateResult === false) {
-			// User cancelled or preparation failed
+			// User cancelled or preparation failed. Back to the screen Import was
+			// pressed on, with what was filled in on it still there.
 			this.current = null;
-			this.updateContent();
+			this.showOptionsStep();
 			return;
 		}
 
@@ -781,8 +887,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 		ctx.createProgressUI(contentEl.createDiv());
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
+		// A fresh importer: the last one has run, and its files are imported
 		buttonsEl.createEl('button', { text: 'Import more' }, el => {
-			el.addEventListener('click', () => this.updateContent());
+			el.addEventListener('click', () => this.setUpImporter());
 		});
 		buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
 			el.addEventListener('click', () => this.close());

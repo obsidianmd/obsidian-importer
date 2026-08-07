@@ -87,6 +87,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
+	/** Nothing to pick: the token is what says where the records come from. */
+	get sourceReady(): boolean {
+		return this.airtableToken !== '';
+	}
+
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'Views'; // Property name to track which views a record belongs to
@@ -153,7 +158,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Everything below is the tree the user picks tables from. An import
 		// driven without a dialog sets what it wants directly.
-		const contentEl = this.host.contentEl;
+		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		// Load bases and tables button

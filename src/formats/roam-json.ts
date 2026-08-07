@@ -24,7 +24,8 @@ export class RoamJSONImporter extends FormatImporter {
 	titleYAML: boolean = false;
 
 	init() {
-		this.addFileChooserSetting('Roam (.json)', ['json']);
+		this.addFileChooserSetting('Roam (.json)', ['json'], false,
+			'Export your Roam Research workspace to JSON format, then pick the file it produced.');
 		this.addOutputLocationSetting('Roam');
 		this.userDNPFormat = this.getUserDNPFormat();
 

@@ -70,7 +70,7 @@ async function importing(spec: StoreSpec) {
 
 	const vault = new MemoryVault();
 	const failed: string[] = [];
-	const subject = new AppleNotesImporter(memoryApp(vault), { contentEl: null } as never);
+	const subject = new AppleNotesImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
 	subject.ctx = {
 		isCancelled: () => false,

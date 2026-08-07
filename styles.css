@@ -31,18 +31,9 @@
 	margin-bottom: 0;
 }
 
-/* Pushed to the far side of the row, away from the buttons that go forward */
-.importer-back-button {
-	display: flex;
-	align-items: center;
-	gap: var(--size-2-1);
-	margin-inline-end: auto;
-	padding-inline-start: var(--size-4-2);
-}
-
-.importer-back-icon {
-	display: flex;
-	--icon-size: var(--icon-s);
+/* The way onward sits at the far side from the ways back out */
+.importer-step-buttons .mod-cta {
+	margin-inline-start: auto;
 }
 
 /*
@@ -56,13 +47,6 @@
 
 .setting-group.mod-list .setting-item.mod-navigable:hover {
 	background-color: var(--background-modifier-hover);
-}
-
-/* What the chosen format is, above the settings it asks for */
-.importer-format-about {
-	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
-	padding-bottom: var(--size-4-2);
 }
 
 .importer-progress-bar {

@@ -85,6 +85,11 @@ export class OneNoteImporter extends FormatImporter {
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
+	/** Nothing to pick: signing in is what says whose notes these are. */
+	get sourceReady(): boolean {
+		return this.graphData.accessToken !== '';
+	}
+
 	async init() {
 		this.addOutputLocationSetting('OneNote');
 
@@ -118,7 +123,7 @@ export class OneNoteImporter extends FormatImporter {
 		// Everything below draws the sign-in flow, which needs a window to send
 		// the user to. An import driven without a dialog gets as far as whatever
 		// the stored refresh token gave it.
-		const contentEl = this.host.contentEl;
+		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		const setting = () => new Setting(contentEl);
@@ -175,6 +180,10 @@ export class OneNoteImporter extends FormatImporter {
 					this.clearStoredRefreshToken();
 					this.switchUserSetting.settingEl.hide();
 					this.contentArea.empty();
+
+					// Nobody is signed in until the next one is
+					this.graphData.accessToken = '';
+					this.sourceChanged();
 				})
 			);
 
@@ -206,7 +215,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.host.contentEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
+			this.host.sourceEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
 				.createEl('summary', { text: 'Click here to show error details' });
 		}
@@ -263,6 +272,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		this.graphData.accessToken = tokenResponse.access_token;
+		this.sourceChanged();
 	}
 
 	// The refresh token is held in Obsidian's keychain rather than localStorage:

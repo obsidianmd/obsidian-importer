@@ -18,7 +18,8 @@ export class NotionImporter extends FormatImporter {
 
 	init() {
 		this.parentsInSubfolders = true;
-		this.addFileChooserSetting('Exported Notion', ['zip']);
+		this.addFileChooserSetting('Exported Notion', ['zip'], false,
+			'Export your Notion workspace to HTML format, then pick the zip file it produced.');
 		this.addOutputLocationSetting('Notion');
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')

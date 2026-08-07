@@ -63,7 +63,7 @@ async function importing(notes: NoteSpec[], mode: DuplicateHandling) {
 	const { ctx, skipped } = reporter();
 	const subject = new AppleNotesImporter(
 		{ vault, loadLocalStorage: () => null, saveLocalStorage: () => {} } as never,
-		{ contentEl: null } as never
+		{ sourceEl: null, optionsEl: null } as never
 	);
 
 	subject.ctx = ctx as never;

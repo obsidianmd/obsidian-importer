@@ -45,6 +45,14 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	/** Every note path this run has written, to tell a copy from an update. */
 	private claimedPaths = new Set<string>();
 
+	/** The notes folder, once the user has let Obsidian read it. */
+	private dataPath: string | null = null;
+
+	/** Nothing to pick: what this importer waits for is being let in. */
+	get sourceReady(): boolean {
+		return this.dataPath !== null;
+	}
+
 	init(): void {
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.draw(contentEl => contentEl.createEl('p', {
@@ -56,6 +64,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			this.notAvailable = true;
 			return;
 		}
+
+		this.addAccessSetting();
 
 		this.addOutputLocationSetting('Apple Notes');
 
@@ -115,17 +125,57 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.addDuplicateHandlingSetting({ idProperty: NOTE_ID_PROPERTY });
 	}
 
-	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {
+	/**
+	 * Where the notes come from, which macOS only lets Obsidian read once the
+	 * user has pointed at the folder themselves.
+	 *
+	 * That is asked here rather than when the import starts, so that the step
+	 * about where the notes are coming from is the one that asks for them.
+	 */
+	private addAccessSetting(): void {
+		const setting = this.addSetting('source');
+		if (!setting) return;
+
+		setting
+			.setName('Apple Notes data folder')
+			.setDesc('macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.')
+			.addButton(button => button
+				.setButtonText('Select folder')
+				.onClick(() => {
+					const dataPath = this.askForDataFolder();
+					if (!dataPath) {
+						new Notice('Ensure you have selected the correct Apple Notes data folder.');
+						return;
+					}
+
+					this.dataPath = dataPath;
+					this.sourceChanged();
+					setting.setDesc(`Obsidian can read your notes from ${dataPath}`);
+				}));
+	}
+
+	/**
+	 * Ask for the notes folder, and give back the path if that is what was
+	 * chosen. Selecting it is what grants the access; nothing else does.
+	 */
+	private askForDataFolder(): string | null {
 		const dataPath = path.join(os.homedir(), NOTE_FOLDER_PATH);
 
-		const names = window.electron.remote.dialog.showOpenDialogSync({
+		const names: string[] | undefined = window.electron.remote.dialog.showOpenDialogSync({
 			defaultPath: dataPath,
 			properties: ['openDirectory'],
 			//see https://developer.apple.com/videos/play/wwdc2019/701/
 			message: 'Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.'
 		});
 
-		if (!names?.includes(dataPath)) {
+		return names?.includes(dataPath) ? dataPath : null;
+	}
+
+	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {
+		// Asked for here too, for an import run without the dialog that asks
+		const dataPath = this.dataPath ?? this.askForDataFolder();
+
+		if (!dataPath) {
 			new Notice('Data import failed. Ensure you have selected the correct Apple Notes data folder.');
 			return null;
 		}
