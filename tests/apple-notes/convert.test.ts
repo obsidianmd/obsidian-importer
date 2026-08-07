@@ -137,7 +137,11 @@ const STORE: StoreSpec = {
 				{ text: ' and H' },
 				{ text: '2', baseline: -1 },
 				{ text: 'O\n' },
-				{ text: 'highlighted', color: { red: 1, green: 0.9, blue: 0.2, alpha: 1 } },
+				// Obsidian has no coloured text, so a colour is dropped rather than
+				// carried over as a style Obsidian would not render
+				{ text: 'coloured text', color: { red: 1, green: 0.9, blue: 0.2, alpha: 1 } },
+				{ text: ' and ' },
+				{ text: 'the default black', color: { red: 0, green: 0, blue: 0, alpha: 1 } },
 			],
 		},
 		{

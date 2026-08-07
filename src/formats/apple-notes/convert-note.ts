@@ -6,7 +6,6 @@ import {
 	ANAttachment,
 	ANAttributeRun,
 	ANBaseline,
-	ANColor,
 	ANConverter,
 	ANDocument,
 	ANFontWeight,
@@ -106,7 +105,7 @@ export class NoteConverter extends ANConverter {
 			else if (attr.attachmentInfo) {
 				converted += await this.formatAttachment(attr, parentNotePath);
 			}
-			else if (attr.superscript || attr.underlined || attr.color || attr.font || this.multiRun == ANMultiRun.Alignment) {
+			else if (attr.superscript || attr.underlined || attr.font || this.multiRun == ANMultiRun.Alignment) {
 				converted += await this.formatHtmlAttr(attr);
 			}
 			else {
@@ -206,7 +205,6 @@ export class NoteConverter extends ANConverter {
 		}
 
 		if (attr.font?.pointSize) style += `font-size:${attr.font.pointSize}pt;`;
-		if (attr.color) style += `color:${this.convertColor(attr.color)};`;
 
 		if (attr.link && !NOTE_URI.test(attr.link)) {
 			if (style) style = ` style="${style}"`;
@@ -400,16 +398,6 @@ export class NoteConverter extends ANConverter {
 		if (!file) return '(unknown file link)';
 
 		return this.ctx.linkTo(file, parentNotePath, undefined, name);
-	}
-
-	convertColor(color: ANColor): string {
-		let hexcode = '#';
-
-		for (const channel of Object.values(color)) {
-			hexcode += Math.floor(channel * 255).toString(16);
-		}
-
-		return hexcode;
 	}
 
 	convertAlign(alignment: ANAlignment): string {
