@@ -1,6 +1,50 @@
 import { normalizePath, TAbstractFile, Vault } from 'obsidian';
-import { parseFilePath } from '../../filesystem';
+import { availableFileName } from '../../util';
 import { NotionResolverInfo } from './notion-types';
+
+/**
+ * The paths an import has spoken for.
+ *
+ * Notion settles every file name before it converts a single page: a link to
+ * another page is written as [[title]], so the title has to be the one that
+ * note is really saved under. The vault cannot be asked - none of those files
+ * exist yet - so what is taken is tracked here, seeded with what the vault
+ * already holds, and what a taken name becomes is left to availableFileName,
+ * which is the rule createFile follows when the write finally happens.
+ *
+ * Compared without regard to case, because the filesystem is: on macOS and
+ * Windows "MYITEM.md" and "Myitem.md" are one file, and an exact comparison
+ * hands the second one back as free, which is a note the import then loses to
+ * "File already exists" (#223).
+ */
+class ReservedPaths {
+	private taken = new Set<string>();
+
+	constructor(existing: TAbstractFile[]) {
+		for (const file of existing) this.add(file.path);
+	}
+
+	private add(path: string): void {
+		this.taken.add(normalizePath(path).toLowerCase());
+	}
+
+	private has(path: string): boolean {
+		return this.taken.has(normalizePath(path).toLowerCase());
+	}
+
+	/**
+	 * Reserve a free name in a folder, and say which name that was.
+	 *
+	 * @param parentPath - Folder to reserve in, ending in "/" as this importer writes them
+	 * @param fileName - Name with extension, e.g. "Note.md"
+	 */
+	take(parentPath: string, fileName: string): string {
+		const name = availableFileName(fileName, candidate => this.has(`${parentPath}${candidate}`));
+
+		this.add(`${parentPath}${name}`);
+		return name;
+	}
+}
 
 export function cleanDuplicates({
 	info,
@@ -14,9 +58,12 @@ export function cleanDuplicates({
 	parentsInSubfolders: boolean;
 }) {
 	const loadedFiles = vault.getAllLoadedFiles();
-	const pathDuplicateChecks = new Set<string>();
-	const titleDuplicateChecks = new Set<string>(
-		loadedFiles.map((file) => file.name)
+	const reserved = new ReservedPaths(loadedFiles);
+	// A name that occurs anywhere in the vault, which is a different question
+	// from a taken path: it is what decides whether a link has to carry a path
+	// to say which of them it means.
+	const ambiguousNames = new Set<string>(
+		loadedFiles.map((file) => file.name.toLowerCase())
 	);
 
 	if (parentsInSubfolders) {
@@ -25,45 +72,41 @@ export function cleanDuplicates({
 
 	cleanDuplicateNotes({
 		info,
-		pathDuplicateChecks,
-		titleDuplicateChecks,
+		targetFolderPath,
+		reserved,
+		ambiguousNames,
 	});
 
 	cleanDuplicateAttachments({
 		info,
-		loadedFiles,
-		titleDuplicateChecks,
 		targetFolderPath,
+		reserved,
+		ambiguousNames,
 	});
 }
 
 function cleanDuplicateNotes({
 	info,
-	pathDuplicateChecks,
-	titleDuplicateChecks,
+	targetFolderPath,
+	reserved,
+	ambiguousNames,
 }: {
 	info: NotionResolverInfo;
-	pathDuplicateChecks: Set<string>;
-	titleDuplicateChecks: Set<string>;
+	targetFolderPath: string;
+	reserved: ReservedPaths;
+	ambiguousNames: Set<string>;
 }) {
 	for (let fileInfo of Object.values(info.idsToFileInfo)) {
-		let path = info.getPathForFile(fileInfo);
+		const parentPath = `${targetFolderPath}${info.getPathForFile(fileInfo)}`;
+		const fileName = reserved.take(parentPath, `${fileInfo.title}.md`);
 
-		if (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
-			let duplicateResolutionIndex = 2;
-			fileInfo.title = fileInfo.title + ' ' + duplicateResolutionIndex;
-			while (pathDuplicateChecks.has(`${path}${fileInfo.title}`)) {
-				duplicateResolutionIndex++;
-				fileInfo.title = `${fileInfo.title.replace(/ \d+$/, '')} ${duplicateResolutionIndex}`;
-			}
-		}
+		fileInfo.title = fileName.slice(0, -'.md'.length);
 
-		if (titleDuplicateChecks.has(fileInfo.title + '.md')) {
+		if (ambiguousNames.has(fileName.toLowerCase())) {
 			fileInfo.fullLinkPathNeeded = true;
 		}
 
-		pathDuplicateChecks.add(`${path}${fileInfo.title}`);
-		titleDuplicateChecks.add(fileInfo.title + '.md');
+		ambiguousNames.add(fileName.toLowerCase());
 	}
 }
 
@@ -83,31 +126,21 @@ function moveParentsToSubfolders(info: NotionResolverInfo) {
 
 function cleanDuplicateAttachments({
 	info,
-	loadedFiles,
-	titleDuplicateChecks,
 	targetFolderPath,
+	reserved,
+	ambiguousNames,
 }: {
 	info: NotionResolverInfo;
-	loadedFiles: TAbstractFile[];
-	titleDuplicateChecks: Set<string>;
 	targetFolderPath: string;
+	reserved: ReservedPaths;
+	ambiguousNames: Set<string>;
 }) {
-	const attachmentPaths = new Set(
-		loadedFiles
-			.filter((file) => !file.path.endsWith('.md'))
-			.map((file) => file.path)
-	);
-
 	let attachmentFolderPath = info.attachmentPath;
 	let attachmentsInCurrentFolder = /^\.\//.test(attachmentFolderPath);
 	// Obsidian formatting for attachments in subfolders is ./<folder>
 	let attachmentSubfolder = attachmentFolderPath.match(/\.\/(.*)/)?.[1];
 
 	for (let attachmentInfo of Object.values(info.pathsToAttachmentInfo)) {
-		if (titleDuplicateChecks.has(attachmentInfo.nameWithExtension)) {
-			attachmentInfo.fullLinkPathNeeded = true;
-		}
-
 		let parentFolderPath = '';
 		if (attachmentsInCurrentFolder) {
 			parentFolderPath = normalizePath(
@@ -119,20 +152,16 @@ function cleanDuplicateAttachments({
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		if (attachmentPaths.has(parentFolderPath + attachmentInfo.nameWithExtension)) {
-			let duplicateResolutionIndex = 2;
-			const { basename, extension } = parseFilePath(attachmentInfo.path);
-			while (attachmentPaths.has(
-				`${parentFolderPath}${basename} ${duplicateResolutionIndex}.${extension}`
-			)) {
-				duplicateResolutionIndex++;
-			}
-			attachmentInfo.nameWithExtension = `${basename} ${duplicateResolutionIndex}.${extension}`;
-		}
-
+		// From the name it already carries, which parse-info decoded and
+		// sanitized. Rebuilding it from the path in the zip, as this used to,
+		// brings back the percent-encoding that name exists to undo.
+		attachmentInfo.nameWithExtension = reserved.take(parentFolderPath, attachmentInfo.nameWithExtension);
 		attachmentInfo.targetParentFolder = parentFolderPath;
 
-		attachmentPaths.add(parentFolderPath + attachmentInfo.nameWithExtension);
-		titleDuplicateChecks.add(attachmentInfo.nameWithExtension);
+		if (ambiguousNames.has(attachmentInfo.nameWithExtension.toLowerCase())) {
+			attachmentInfo.fullLinkPathNeeded = true;
+		}
+
+		ambiguousNames.add(attachmentInfo.nameWithExtension.toLowerCase());
 	}
 }

@@ -125,6 +125,32 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 }
 
 /**
+ * The rule getUniqueFilePath defers to, for a caller that cannot ask the vault.
+ *
+ * Notion settles every file name before it converts a single page, because a
+ * link to another page is written as [[title]] and that title has to be the one
+ * the note is really saved under - so it has to know the answer while none of
+ * those files exist yet. What is taken is the caller's question; what a taken
+ * name becomes is this one, answered the way Vault.getAvailablePath answers it:
+ * " 1", then " 2".
+ *
+ * @param fileName - Name with extension, e.g. "Note.md"
+ * @param isTaken - Whether a name is spoken for. Case is the caller's to
+ *   handle: on macOS and Windows "Note.md" and "note.md" are one file.
+ */
+export function availableFileName(fileName: string, isTaken: (candidate: string) => boolean): string {
+	const lastDotIndex = fileName.lastIndexOf('.');
+	const hasExtension = lastDotIndex > 0;
+	const base = hasExtension ? fileName.slice(0, lastDotIndex) : fileName;
+	const extension = hasExtension ? fileName.slice(lastDotIndex) : '';
+
+	for (let index = 0; ; index++) {
+		const candidate = index === 0 ? fileName : `${base} ${index}${extension}`;
+		if (!isTaken(candidate)) return candidate;
+	}
+}
+
+/**
  * Assign types to the properties an import created, using Obsidian's
  * metadataTypeManager.
  *

@@ -36,6 +36,11 @@ export class MemoryVault {
 		return [...this.contents.keys()];
 	}
 
+	/** Every file and folder the vault holds, as Obsidian hands them out. */
+	getAllLoadedFiles(): TAbstractFile[] {
+		return [...this.entries.values()];
+	}
+
 	getAbstractFileByPath(path: string): TAbstractFile | null {
 		const found = this.entries.get(normalizePath(path).toLowerCase());
 
