@@ -74,9 +74,8 @@ export interface AttachmentSpec {
 	/** A file on disk, which the importer would copy into the vault. */
 	media?: number;
 	/**
-	 * The name the media row carries, which the copy in the vault is named
-	 * after. Given one, a media row is written and the attachment points at
-	 * it; `media` sets the key directly, for when there is to be no row.
+	 * Create a media row with this file name and point the attachment to it.
+	 * Use `media` directly to reference a missing or separately defined row.
 	 */
 	mediaFilename?: string;
 	/**
@@ -92,8 +91,8 @@ export interface AttachmentSpec {
 	/** A table or scan, as its own protobuf. */
 	mergeableData?: Uint8Array;
 	/**
-	 * The generation directory a rendered drawing is kept under. Left out, with
-	 * no size either, the row looks like a drawing iCloud never brought down.
+	 * Directory containing a rendered drawing. Omitting this and `size` models
+	 * a drawing that iCloud has not downloaded.
 	 */
 	fallbackImageGeneration?: string;
 	size?: { width: number, height: number };
@@ -242,10 +241,8 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 
-	/** Each media row's directory and file name, for a test to write the file. */
 	const mediaFiles: [string, string][] = [];
 
-	// ICMedia is the row carrying the file name, which an attachment points at
 	const insertMedia = db.prepare(`
 		INSERT INTO ziccloudsyncingobject (Z_PK, Z_ENT, ZIDENTIFIER, ZFILENAME)
 		VALUES (?, ?, ?, ?)

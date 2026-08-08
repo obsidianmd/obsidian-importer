@@ -1,8 +1,4 @@
-/**
- * An Apple Notes importer pointed at a built database, ready for resolveNote.
- * import() picks a folder through a dialog and opens the real Notes database,
- * so what it sets up is set up here instead.
- */
+/** Build an importer around a fixture database without invoking its dialog. */
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
@@ -16,7 +12,6 @@ import { descriptor } from '../../src/formats/apple-notes/descriptor';
 import { MemoryVault } from '../shims/vault';
 import { buildStore, NoteSpec } from './store';
 
-/** Reports everything, so a test can see what the import decided. */
 export function reporter() {
 	const skipped: string[] = [];
 	return {

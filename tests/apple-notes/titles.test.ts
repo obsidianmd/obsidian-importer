@@ -1,11 +1,3 @@
-/**
- * What an imported note is named. ZTITLE1 holds an abbreviation of the first
- * line, cut short with an ellipsis past about eighty characters (#541), so the
- * line itself is what to name the note after.
- *
- * A first line that is a URL cannot survive as a file name, so naming the note
- * after it and dropping it from the body loses it altogether (#591).
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -21,7 +13,6 @@ import { importing } from './importing';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
 
-/** A first line long enough that Apple stores an abbreviation of it. */
 const LONG_LINE = 'The reason we moved buttons to the bottom is to improve accessibility for one-handed use';
 const ABBREVIATED = 'The reason we moved buttons to the bottom is to improve accessibility…';
 

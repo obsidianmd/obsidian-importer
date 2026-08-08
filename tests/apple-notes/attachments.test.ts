@@ -1,16 +1,3 @@
-/**
- * A drawing, from a note that carries one, into the vault.
- *
- * Apple has used three UTIs for a drawing: com.apple.drawing, its .2 successor,
- * and com.apple.paper. The converter has known all three since #183, and it
- * hands each of them to resolveAttachment - which knew only the newest, so an
- * older one fell through to the branch for a file attachment, found no media
- * row at that key, and threw reading a column of the row that was not there.
- * The note it was in failed with it.
- *
- * The drawings here are made up, and so is the account directory they are read
- * from: what is being checked is that all three UTIs take the same path out.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -31,14 +18,13 @@ import { buildStore, StoreSpec } from './store';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
 
-/** A one-pixel PNG, so what is written is something a sniffer could recognise. */
+/** Minimal PNG used to test file-signature detection. */
 const PNG_BYTES = Buffer.from(
 	'89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a4944415478' +
 	'9c6300010000050001' + '0d0a2db4' + '0000000049454e44ae426082',
 	'hex'
 );
 
-/** One drawing per UTI Apple has used for one, all in a single note. */
 const DRAWINGS: StoreSpec = {
 	notes: [{
 		title: 'Sketches',
@@ -58,17 +44,12 @@ const DRAWINGS: StoreSpec = {
 	],
 };
 
-/**
- * An importer pointed at a built database and an account directory holding the
- * drawings, ready for resolveNote. See duplicates.test.ts: import() would ask
- * for a folder through a dialog, so what it sets up is set up here.
- */
+/** Build an importer with a fixture database and attachment directory. */
 async function importing(spec: StoreSpec, writeFiles = true) {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), spec);
 
-	// Where Apple keeps the rendered copy of a drawing, which is what the
-	// importer reads: no generation directory, since none of these have one
+	// Mirror Apple's attachment directory under the owning account.
 	const account = nodePath.join(dir, 'Accounts', 'ACCOUNT-1');
 	nodeFs.mkdirSync(nodePath.join(account, 'FallbackImages'), { recursive: true });
 	if (writeFiles) {
@@ -76,7 +57,6 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 			nodeFs.writeFileSync(nodePath.join(account, 'FallbackImages', `${attachment.identifier}.jpg`), attachment.identifier);
 		}
 
-		// A media attachment is read from Media/<media uuid>//<file name>
 		for (const [identifier, name] of store.mediaFiles) {
 			const into = nodePath.join(account, 'Media', identifier, '');
 			nodeFs.mkdirSync(into, { recursive: true });
@@ -120,12 +100,6 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 	};
 }
 
-/**
- * A file attachment whose media row is not there, which threw reading a column
- * off the row that was not returned (#218). The note's file is created empty
- * before the conversion runs, so that left it in the vault with nothing in it
- * (#391): one bad attachment should cost the attachment, not the note.
- */
 const MISSING_MEDIA: StoreSpec = {
 	notes: [{
 		title: 'Holiday',
@@ -135,7 +109,8 @@ const MISSING_MEDIA: StoreSpec = {
 			{ text: '', attachment: { identifier: 'PHOTO-1', uti: 'public.jpeg' } },
 		],
 	}],
-	// ZMEDIA points at a primary key no ICMedia row was written for
+	// Reproduce #218 with a ZMEDIA key that has no ICMedia row. The note body
+	// must still survive (#391).
 	attachments: [{ identifier: 'PHOTO-1', uti: 'public.jpeg', media: 9999, note: 0 }],
 };
 
@@ -156,11 +131,7 @@ test('a note keeps its text when an attachment it points at is gone', async () =
 	}
 });
 
-/**
- * A media file whose name carries no extension, which the Evernote web clipper
- * leaves behind: a bare uuid. Obsidian goes by the extension, so the copy in
- * the vault is a file it will not open and the link does not resolve (#471.1).
- */
+/** Evernote clips can leave media named with a bare UUID (#471.1). */
 const NO_EXTENSION: StoreSpec = {
 	notes: [{
 		title: 'Clipped',
@@ -192,7 +163,6 @@ test('a media file with no extension is named for what it holds', async () => {
 	}
 });
 
-/** A drawing Apple has rendered, whose copy is not where the row says it is. */
 const RENDERED: StoreSpec = {
 	notes: [{
 		title: 'Sketch',
@@ -207,11 +177,6 @@ const RENDERED: StoreSpec = {
 	}],
 };
 
-/**
- * A file that should have been there. It is read from under the account that
- * owns it and from the container, and naming only the second in the failure
- * reads as though the first was never tried.
- */
 test('an attachment that is at neither path says where it looked', async () => {
 	const run = await importing(RENDERED, false);
 
@@ -220,7 +185,6 @@ test('an attachment that is at neither path says where it looked', async () => {
 
 		assert.ok(note, 'the note should be imported');
 
-		// The conversion ran to the end rather than throwing part way through
 		const body = String(run.vault.contents.get(note.path));
 		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 1);
 
@@ -234,11 +198,6 @@ test('an attachment that is at neither path says where it looked', async () => {
 	}
 });
 
-/**
- * A drawing this Mac never had: nothing rendered, no drawing data, and no size
- * Notes ever learned. Nothing was lost that was ever here and no path is worth
- * printing, so it is skipped rather than reported as a failure to look into.
- */
 test('a drawing that was never downloaded is skipped, not failed', async () => {
 	const run = await importing(DRAWINGS, false);
 
@@ -249,7 +208,6 @@ test('a drawing that was never downloaded is skipped, not failed', async () => {
 		assert.deepEqual(run.failed, [], 'there is no file to have failed to read');
 		assert.deepEqual(run.skipped, ['Drawing in Sketches', 'Drawing in Sketches', 'Drawing in Sketches']);
 
-		// The log reads: Skipped: "<name>" because <reason>
 		assert.deepEqual([...new Set(run.reasons)], [
 			'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it',
 		]);
@@ -266,15 +224,12 @@ test('a drawing is imported whichever UTI it carries', async () => {
 		assert.ok(note, 'the note should be imported');
 		assert.deepEqual(run.failed, [], 'nothing should have failed');
 
-		// One file per drawing, each linked from the note it came out of
 		const drawings = run.vault.paths().filter(path => path.endsWith('.png'));
 		assert.deepEqual(drawings, ['Drawing.png', 'Drawing 1.png', 'Drawing 2.png']);
 
 		const body = String(run.vault.contents.get(note.path));
 		for (const drawing of drawings) assert.ok(body.includes(`![[${drawing}]]`), `${drawing} is not linked`);
 
-		// Read from the account directory rather than made up: each file holds
-		// what was written under the identifier the row carries
 		const held = (path: string) => Buffer.from(run.vault.contents.get(path) as ArrayBuffer).toString();
 		assert.equal(held('Drawing.png'), 'DRAWING-PAPER');
 		assert.equal(held('Drawing 1.png'), 'DRAWING-LEGACY');

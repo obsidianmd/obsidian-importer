@@ -44,7 +44,6 @@ const FIXTURES = __dirname;
 
 const protobufRoot = Root.fromJSON(descriptor);
 
-/** What Shift-Return puts in the text: a line separator, not a paragraph end. */
 const SOFT_RETURN = '\u2028';
 
 /**
@@ -211,11 +210,9 @@ const STORE: StoreSpec = {
 				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
 			],
 		},
-		// Last, so adding it leaves the primary keys the notes above were given:
-		// an internal link is recorded as the key it points at
+		// Keep this last because internal links store the target note's generated
+		// primary key.
 		{
-			// A soft return breaks the line without starting a new bullet, so it
-			// has to survive as a break rather than as the literal character
 			title: 'Soft returns',
 			runs: [
 				{ text: 'Soft returns\n', style: ANStyleType.Title },
@@ -285,11 +282,6 @@ test('keeps the first line when asked to', async () => {
 	}
 });
 
-/**
- * The title is the first line with anything on it, so a note starting with
- * blank lines has it further down. Omitting "the first line" omitted a blank
- * one and left the title in the body as well as in the file name.
- */
 test('a note starting with blank lines does not repeat its title', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
@@ -314,10 +306,6 @@ test('a note starting with blank lines does not repeat its title', async () => {
 	}
 });
 
-/**
- * A newline is the break a soft return meant, until the vault turns strict
- * line breaks on and it stops being one. Then it is spelled out.
- */
 test('a soft return is spelled out when the vault has strict line breaks on', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
@@ -349,11 +337,7 @@ test('a soft return is spelled out when the vault has strict line breaks on', as
 	}
 });
 
-/**
- * A title that is the first item of a list is the parent of what follows it.
- * Dropping it leaves those items with nothing to hang off, and the list with
- * an empty item in its place.
- */
+/** Keep a title that parents nested list items so they are not orphaned. */
 test('a first line with a list nested under it is kept', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
@@ -374,7 +358,6 @@ test('a first line with a list nested under it is kept', async () => {
 
 		assert.equal(await nested.format(false, 'Airtable is for.md'), '- Airtable is for\n\t- databases');
 
-		// A first item the rest are siblings of loses nothing by going
 		const flat = ctx.decodeData(
 			encodeNote({
 				title: 'Price',
@@ -394,12 +377,7 @@ test('a first line with a list nested under it is kept', async () => {
 	}
 });
 
-/**
- * A real tag, as Apple hands it over. Apple Notes allows a space in a tag name
- * and a tag that is only digits; Obsidian allows neither, so "#gift ideas"
- * becomes the tag #gift with stray text after it, and #2024 is not a tag at
- * all (#471.4, #471.6).
- */
+/** Apple allows spaces and all-digit tag names; Obsidian does not (#471.4, #471.6). */
 test('what a tag with a space or only digits converts to today', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
@@ -421,7 +399,6 @@ test('what a tag with a space or only digits converts to today', async () => {
 	try {
 		const converted = await convertStore(store.database, context(store.database));
 
-		// Recorded as it stands: neither survives as the tag it was
 		assert.equal(converted.get('Tagged'), '#gift ideas\n#2024');
 	}
 	finally {
@@ -430,11 +407,7 @@ test('what a tag with a space or only digits converts to today', async () => {
 	}
 });
 
-/**
- * Apple marks a real tag as an attachment, so a # left in the text is not one:
- * a Slack channel, a hashtag in some copy, "#s" for numbers. Obsidian reads it
- * as a tag all the same (#471.5).
- */
+/** Apple encodes real tags as attachments; tag-shaped plain text is not a tag. */
 test('a hash in the text is escaped, and a real tag is not', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
@@ -443,8 +416,6 @@ test('a hash in the text is escaped, and a real tag is not', async () => {
 			runs: [
 				{ text: 'Tags\n' },
 				{ text: 'Bugs go in Slack #web-issues, and #s means numbers.\n' },
-				// Neither is a tag in Obsidian, so both are left as they are: a
-				// hash mid-word, and one leading a heading the note typed out
 				{ text: 'Written in C# and F#.\n' },
 				{ text: '## Not a tag\n' },
 				{ text: '', attachment: { identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag } },
@@ -470,10 +441,6 @@ test('a hash in the text is escaped, and a real tag is not', async () => {
 	}
 });
 
-/**
- * A link is an attachment, and an attachment was written without the prefix
- * its line calls for, so an item starting with one lost its checkbox (#471.8).
- */
 test('a list item starting with a link keeps its checkbox', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
@@ -506,11 +473,6 @@ test('a list item starting with a link keeps its checkbox', async () => {
 	}
 });
 
-/**
- * A cell's result has to survive inside a `|`-delimited row: a line break
- * becomes a `<br>` and a pipe an entity, or the row ends early and everything
- * after it lands outside the table.
- */
 test('a table cell keeps its line breaks and pipes', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });

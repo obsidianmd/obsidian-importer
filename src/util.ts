@@ -221,19 +221,11 @@ export function extractErrorMessage(error: unknown): string | undefined {
 	return undefined;
 }
 
-/**
- * The extension a file's own first bytes call for, or null when they say
- * nothing recognisable.
- *
- * A media file can arrive with no extension - one the Evernote web clipper
- * left behind is a bare uuid - and Obsidian goes by the extension, so the copy
- * in the vault is a file it will not open and a link that does not resolve.
- */
+/** Infer a common media extension from a file signature. */
 export function extensionFromBytes(bytes: Uint8Array): string | null {
 	const magic = (offset: number, ...signature: number[]) =>
 		signature.every((byte, i) => bytes[offset + i] === byte);
 
-	/** The four characters at an offset, which is how a container names itself. */
 	const tag = (offset: number) =>
 		String.fromCharCode(...bytes.subarray(offset, offset + 4));
 
@@ -251,7 +243,7 @@ export function extensionFromBytes(bytes: Uint8Array): string | null {
 		if (tag(8) === 'WAVE') return 'wav';
 	}
 
-	// An ISO base media file names its flavour in the brand after "ftyp"
+	// ISO base media files identify their format with the brand after "ftyp".
 	if (tag(4) === 'ftyp') {
 		const brand = tag(8);
 		if (brand.startsWith('hei') || brand === 'mif1') return 'heic';
@@ -259,7 +251,7 @@ export function extensionFromBytes(bytes: Uint8Array): string | null {
 		return 'mp4';
 	}
 
-	// A zip, which is also what every Office document is inside
+	// Office documents share ZIP's signature, so leave them as ZIP archives.
 	if (magic(0, 0x50, 0x4b, 0x03, 0x04)) return 'zip';
 
 	return null;

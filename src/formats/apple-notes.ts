@@ -99,9 +99,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	includeHandwriting = false;
 
 	/**
-	 * A getter rather than a field: a field initialiser runs after init(), and
-	 * the vault is not there to ask at construction. Compared rather than
-	 * defaulted, since getConfig is typed as any.
+	 * This must remain a getter: the vault is unavailable during construction,
+	 * and field initialisers run after init(). The explicit comparison narrows
+	 * getConfig's `any` return value to boolean.
 	 */
 	get strictLineBreaks(): boolean {
 		return this.vault.getConfig('strictLineBreaks') === true;
@@ -600,7 +600,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 
-		// Decoded before the file is named: the title is the note's first line
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
 		// Get creation date and format it according to user preference
@@ -717,8 +716,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				if (!row) break;
 
-				// No rendered copy, no drawing data, and no size Notes ever
-				// learned: the drawing only exists in iCloud
+				// Missing render, drawing data, and dimensions means the drawing
+				// exists only in iCloud.
 				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.ZMERGEABLEDATA1 && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
@@ -753,9 +752,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				break;
 		}
 
-		// A branch leaves these unset when its lookup found nothing. Reading a
-		// column off the missing row threw, and since a note's file is created
-		// before its body, that left the note empty (#218, #391).
+		// A missing attachment row must not abort conversion after the empty note
+		// file has already been created (#218, #391).
 		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
 			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
 			return null;
@@ -798,9 +796,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		try {
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
-			// A media row can carry a name with no extension - the one the
-			// Evernote web clipper leaves is a bare uuid - and Obsidian goes by
-			// the extension, so the file is asked what it is (#471).
+			// Obsidian identifies media by extension, so infer one when Apple
+			// provides only a bare file name (#471).
 			if (!outExt) outExt = extensionFromBytes(binary) ?? '';
 
 			const attachmentPath = await this.getAvailablePathForAttachment(
@@ -813,8 +810,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 		}
 		catch (e) {
-			// Nothing is lost until the fallback fails too, so it is neither
-			// reported nor logged (#393)
+			// Suppress an expected failed probe; the caller reports only if its
+			// fallback also fails (#393).
 			if (hasFallback) return null;
 
 			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
@@ -852,11 +849,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 
-	/**
-	 * How an attachment is named in the import log. On its own it would be
-	 * "Drawing", which every drawing in the import is called, and the path it
-	 * was read from is a uuid: the note is the part the user can go and open.
-	 */
+	/** Identify an attachment in the log by the note the user can locate. */
 	private async describeAttachment(outName: string, notePk: number): Promise<string> {
 		const imported = this.resolvedFiles[notePk];
 		if (imported) return `${outName} in ${imported.basename}`;
@@ -869,8 +862,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
-		// Under the account that owns it, or loose in the container for the
-		// older ones written before Notes kept accounts apart
+		// Older attachments predate per-account storage and remain loose in the
+		// Notes container.
 		const candidates = [
 			path.join(account.path, sourcePath),
 			path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath),
@@ -885,8 +878,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 
-		// Both, since naming only the second reads as though the first was
-		// never tried. Worded to follow the "because" the log puts it after.
+		// Include both attempted paths and phrase the message to follow the
+		// import log's "because".
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 

@@ -1,8 +1,3 @@
-/**
- * Settings the importer reads from the vault rather than asking for. The
- * conversion tests hand the converter a context of their own, so they cannot
- * tell whether the importer fills it in from the right place.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -18,7 +13,6 @@ import { importing } from './importing';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
 
-/** What Shift-Return puts in the text: a line separator, not a paragraph end. */
 const SOFT_RETURN = '\u2028';
 
 const NOTE = [{
@@ -26,7 +20,6 @@ const NOTE = [{
 	runs: [{ text: `Soft returns\nA paragraph${SOFT_RETURN}broken by a soft return.` }],
 }];
 
-/** Off, which is the default: a newline already renders as the break. */
 test('a soft return is a bare newline when the vault leaves strict line breaks off', async () => {
 	const run = await importing(NOTE, DuplicateHandling.CreateCopy);
 
@@ -41,7 +34,6 @@ test('a soft return is a bare newline when the vault leaves strict line breaks o
 	}
 });
 
-/** On: a lone newline is no longer a break, so it is spelled out. */
 test('a soft return is spelled out when the vault has strict line breaks on', async () => {
 	const run = await importing(NOTE, DuplicateHandling.CreateCopy);
 	run.vault.config.set('strictLineBreaks', true);

@@ -37,22 +37,19 @@ const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 	[ANEmphasisColor.Blue]: '🔵'
 };
 
-/** How long a title may get before the file name it becomes is at risk. */
+/** Keep generated file names within practical filesystem limits. */
 const TITLE_LIMIT = 200;
 
-/** A first line holding nothing but a URL, which no file name can keep. */
 const URL_LINE = /^https?:\/\/\S+$/;
 
-/** The note's first line with anything on it, which is the title Apple shows. */
+/** Return the first non-blank line, which Apple displays as the note title. */
 export function firstLine(noteText: string): string {
 	return noteText.split('\n').find(line => line.trim() !== '')?.trim() ?? '';
 }
 
 /**
- * What to name a note. ZTITLE1 is an abbreviation Apple stores, cut short with
- * an ellipsis past about eighty characters (#541), so the first line itself is
- * what to read it from. `stored` is the fallback for a note with no text, which
- * is one holding nothing but an attachment.
+ * Derive a title from the note text because Apple truncates ZTITLE1 at roughly
+ * 80 characters (#541). Fall back to ZTITLE1 for attachment-only notes.
  */
 export function noteTitle(noteText: string, stored: string): string {
 	const line = firstLine(noteText ?? '');
@@ -120,8 +117,8 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		// The first line goes because the file name keeps it - which a URL does
-		// not survive, so that one stays in the body (#591)
+		// Keep URL-only titles in the body because sanitising them for a file name
+		// would destroy the working URL (#591).
 		let firstLineSkip = !table && this.ctx.omitFirstLine
 			&& this.note.noteText.contains('\n')
 			&& !URL_LINE.test(firstLine(this.note.noteText));
@@ -132,7 +129,7 @@ export class NoteConverter extends ANConverter {
 			let { attr, fragment } = fragments[j];
 
 			if (firstLineSkip) {
-				// An attachment is content rather than a title
+				// Do not treat an attachment as part of the title.
 				if (attr.attachmentInfo) {
 					firstLineSkip = false;
 				}
@@ -140,9 +137,8 @@ export class NoteConverter extends ANConverter {
 					firstLineSkip = false;
 				}
 				else {
-					// The title is the first line with anything on it, so a note
-					// starting with blank lines has it further down: stopping at
-					// the first newline would leave the title in the body too
+					// Skip through leading blank lines, then stop after the first
+					// non-blank line so the title is not repeated in the body.
 					if (/\S/.test(fragment)) titleStarted = true;
 					if (titleStarted && fragment.contains('\n')) firstLineSkip = false;
 					continue;
@@ -164,10 +160,8 @@ export class NoteConverter extends ANConverter {
 			else if (attr.attachmentInfo) {
 				attr.fragment = await this.formatAttachment(attr, parentNotePath);
 
-				// An inline attachment is the line's first content when it leads
-				// one, so it takes the prefix that line calls for - a checkbox
-				// was lost on an item starting with a link (#471). A block one
-				// stands on its own and takes none.
+				// An inline attachment can be the first content in a list item and
+				// must receive that item's prefix. Block attachments stand alone.
 				converted += attr.atLineStart && !isBlockAttachment(attr)
 					? this.formatParagraph(attr)
 					: attr.fragment;
@@ -183,9 +177,8 @@ export class NoteConverter extends ANConverter {
 		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun({} as ANAttributeRun);
 		converted = converted.trim();
 
-		// Trimmed first, so a cell's padding does not become <br>s. A row ends
-		// at the first newline and an unescaped pipe starts the next cell; the
-		// <br> is the break, so a hard break's spaces go with it.
+		// Inside a table cell, raw newlines end the row and raw pipes start a new
+		// cell. Remove hard-break spaces before replacing the newline.
 		if (table) {
 			converted = converted.replace(/ *\n/g, '<br>').replace(/\|/g, '&#124;');
 		}
@@ -194,12 +187,11 @@ export class NoteConverter extends ANConverter {
 	}
 
 	/**
-	 * A fragment's soft returns written out as line breaks.
+	 * Convert a fragment's soft returns to Markdown line breaks.
 	 *
-	 * A newline is one, unless the vault has strict line breaks on and it has
-	 * to be spelled with two trailing spaces. Inside a list item it is indented
-	 * too, or it reads as the end of the item - but not when nothing precedes
-	 * it on the line, where an indent after a blank line reads as a code block.
+	 * Strict line breaks require two trailing spaces. List continuations also
+	 * require indentation, except after an empty line where indentation would
+	 * create a code block.
 	 */
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
 		const style = attr.paragraphStyle;
@@ -231,10 +223,8 @@ export class NoteConverter extends ANConverter {
 	}
 
 	/**
-	 * Whether the fragment at `from` is a list item with items nested under it,
-	 * which are written relative to it: dropping it as the title would leave
-	 * them orphaned and the list with an empty item where it was. A first item
-	 * the rest are siblings of loses nothing, so that one still goes.
+	 * Whether the fragment at `from` is the parent of a nested list. Removing a
+	 * parent used as the title would orphan its children and leave an empty item.
 	 */
 	leadsNestedList(fragments: ANFragmentPair[], from: number): boolean {
 		const style = fragments[from].attr.paragraphStyle;
@@ -364,14 +354,11 @@ export class NoteConverter extends ANConverter {
 		// Escape square brackets.
 		attr.fragment = attr.fragment.replace(/([[\]])/g, '\\$1');
 
-		// And a hash Obsidian would read as a tag: one starting a word, with a
-		// non-digit somewhere in what follows. Apple marks a real tag as an
-		// attachment, so a hash left in the text is not one (#471).
+		// Apple represents real tags as attachments. Escape tag-shaped hashes that
+		// remain in plain text so Obsidian does not reinterpret them (#471).
 		//
-		// Narrow on purpose. "C#" keeps its hash because a tag has to start a
-		// word, and "## Heading" keeps both because that is not a tag either -
-		// whether text a note wrote as markdown should stay markdown is a
-		// different question from this one.
+		// Limit this to a hash at a word boundary followed by at least one
+		// non-digit tag character. This preserves C#, F#, and Markdown headings.
 		attr.fragment = attr.fragment.replace(/(^|\s)#(?=[\w/-]*[A-Za-z_/-])/g, '$1\\#');
 
 		switch (attr.fontWeight) {
