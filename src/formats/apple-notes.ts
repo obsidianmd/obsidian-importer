@@ -616,7 +616,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
+				this.ctx.reportSkipped(title, 'note is a duplicate');
 				return existingFile;
 			}
 			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
@@ -626,7 +626,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
-					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
+					this.ctx.reportSkipped(title, 'note unchanged since last import');
 					return existingFile;
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
