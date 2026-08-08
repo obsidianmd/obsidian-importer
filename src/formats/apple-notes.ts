@@ -603,15 +603,21 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
 		// Get creation date and format it according to user preference
-		let title = noteTitle(converter.note.noteText, row.ZTITLE1);
+		let prefix = '';
 		if (this.filePrefixFormat) {
 			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
-			const datePrefix = moment(creationTimestamp).format(this.filePrefixFormat);
-			title = `${datePrefix} ${title}`;
+			prefix = `${moment(creationTimestamp).format(this.filePrefixFormat)} `;
 		}
 
-		// Check for duplicate notes based on the selected handling option
-		const existingFile = await this.previouslyImported(folder, `${title}.md`, row.ZIDENTIFIER);
+		const storedTitle = String(row.ZTITLE1);
+		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
+
+		// Check for duplicate notes based on the selected handling option. An
+		// earlier import named the note after ZTITLE1, so a vault one of those
+		// wrote holds it there rather than under the first line.
+		const existingFile = await this.previouslyImported(
+			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
+		);
 
 		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
@@ -769,11 +775,18 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		try {
-			// Read before the name is settled: an extension inferred from the
-			// bytes is part of the name the duplicate check looks for (#471).
-			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+			// A name with no extension is settled by reading the file, and that
+			// name is what the duplicate check looks for, so the read comes
+			// first (#471). A name that already says what it is skips that:
+			// Apple can take the source back while the copy the vault holds is
+			// still good, and reading first would lose it.
+			let binary;
 
-			if (!outExt) outExt = extensionFromBytes(binary) ?? '';
+			if (!outExt) {
+				binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+				outExt = extensionFromBytes(binary) ?? '';
+			}
+
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
 			// Check for existing attachment based on the selected handling option
@@ -800,6 +813,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				}
 				// For CreateCopy option, we continue without skipping (will create numbered copy)
 			}
+
+			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
 			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
 
@@ -894,25 +909,29 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * Apple Notes reads as a new one. Recognising it properly needs the id the
 	 * source carries, which is not written down yet.
 	 */
-	private async previouslyImported(folder: TFolder, title: string, noteId?: string): Promise<TFile | null> {
+	private async previouslyImported(folder: TFolder, titles: string[], noteId?: string): Promise<TFile | null> {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
-		// Normalized, because what it is held against is: the vault's own paths,
-		// and the ones this run has written. At the vault root path.join leaves a
-		// leading slash that neither of those carries.
-		const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
-		if (this.claimedPaths.has(fullPath)) return null;
+		for (const title of new Set(titles)) {
+			// Normalized, because what it is held against is: the vault's own
+			// paths, and the ones this run has written. At the vault root
+			// path.join leaves a leading slash that neither of those carries.
+			const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
+			if (this.claimedPaths.has(fullPath)) return null;
 
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
-		if (!(existingFile instanceof TFile)) return null;
+			const existingFile = this.vault.getAbstractFileByPath(fullPath);
+			if (!(existingFile instanceof TFile)) continue;
 
-		// A note that carries an id says which note it is. A different one is a
-		// note of its own however much the titles agree, and one with no id at
-		// all was written before ids were, so the title is all there is to go on.
-		const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
-		if (existingId && noteId && existingId !== noteId) return null;
+			// A note that carries an id says which note it is. A different one is
+			// a note of its own however much the titles agree, and one with no id
+			// at all was written before ids were, so the title is all there is.
+			const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
+			if (existingId && noteId && existingId !== noteId) continue;
 
-		return existingFile;
+			return existingFile;
+		}
+
+		return null;
 	}
 
 	/**

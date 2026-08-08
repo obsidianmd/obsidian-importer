@@ -44,6 +44,34 @@ test('a soft return in the first line does not reach the file name', () => {
 	assert.doesNotMatch(sanitizeFileName(title), /[\u2028\u2029]/);
 });
 
+/**
+ * A vault an older importer wrote holds the note under the abbreviated title it
+ * used. Recognising a note is by path, so naming it from the first line now
+ * looks somewhere the old file is not, and the note is imported twice.
+ */
+test('a note an older import named after ZTITLE1 is still recognised', async () => {
+	const run = await importing(
+		[{
+			title: ABBREVIATED,
+			runs: [{ text: `${LONG_LINE}\n` }, { text: 'And the rest of the note.' }],
+		}],
+		DuplicateHandling.Skip
+	);
+
+	try {
+		// What the previous importer left behind
+		await run.vault.create(`${ABBREVIATED}.md`, 'The note as it was imported before.');
+
+		await run.resolve(run.notePks[0]);
+
+		assert.deepEqual(run.vault.paths(), [`${ABBREVIATED}.md`], 'the note was imported a second time');
+		assert.equal(run.skipped.length, 1, 'it should have been recognised as already imported');
+	}
+	finally {
+		run.close();
+	}
+});
+
 const LONG_LINE = 'The reason we moved buttons to the bottom is to improve accessibility for one-handed use';
 const ABBREVIATED = 'The reason we moved buttons to the bottom is to improve accessibility…';
 

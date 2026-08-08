@@ -105,6 +105,8 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 
 	return {
 		vault, failed, skipped, reasons, notePks: store.notePks,
+		/** Where the source files are, so a test can take one away. */
+		account,
 		resolve: (pk: number) => first(pk),
 		/** A later import into the same vault, as a second run of the importer. */
 		reimport: (mode: DuplicateHandling) => run(mode),
@@ -230,6 +232,49 @@ test('an extensionless attachment is recognised again on a later import', async 
 		assert.deepEqual(run.vault.paths(), [
 			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
 		]);
+	}
+	finally {
+		run.close();
+	}
+});
+
+/** An attachment whose name already says what it is. */
+const NAMED_MEDIA: StoreSpec = {
+	notes: [{
+		title: 'Trip',
+		runs: [
+			{ text: 'Trip\n' },
+			{ text: '', attachment: { identifier: 'PHOTO-3', uti: 'public.png' } },
+		],
+	}],
+	attachments: [{ identifier: 'PHOTO-3', uti: 'public.png', note: 0, mediaFilename: 'photo.png' }],
+};
+
+/**
+ * Apple can take the source file back - offloaded, or the note edited on
+ * another device - while the copy this vault already holds is still good. The
+ * attachment is already known by name, so it is reused rather than re-read.
+ */
+test('an attachment already in the vault survives its source going away', async () => {
+	const run = await importing(NAMED_MEDIA);
+
+	try {
+		await run.resolve(run.notePks[0]);
+		assert.deepEqual(run.vault.paths(), ['Trip.md', 'photo.png']);
+
+		nodeFs.rmSync(nodePath.join(run.account, 'Media'), { recursive: true, force: true });
+
+		const note = run.vault.getAbstractFileByPath('Trip.md');
+		assert.ok(note instanceof TFile);
+		note.stat.mtime = 0;
+
+		await run.reimport(DuplicateHandling.ImportUpdated)(run.notePks[0]);
+
+		assert.deepEqual(run.failed, [], 'the vault still has the attachment');
+		assert.ok(
+			String(run.vault.contents.get('Trip.md')).contains('photo.png'),
+			`the link was replaced: ${JSON.stringify(run.vault.contents.get('Trip.md'))}`
+		);
 	}
 	finally {
 		run.close();

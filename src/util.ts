@@ -244,9 +244,12 @@ export function extensionFromBytes(bytes: Uint8Array): string | null {
 	}
 
 	// ISO base media files identify their format with the brand after "ftyp".
+	// Most of those are not video, and naming an image mp4 leaves Obsidian
+	// treating it as one, which does not embed.
 	if (tag(4) === 'ftyp') {
 		const brand = tag(8);
-		if (brand.startsWith('hei') || brand === 'mif1') return 'heic';
+		if (brand.startsWith('avi')) return 'avif';
+		if (brand.startsWith('hei') || brand === 'mif1' || brand === 'msf1') return 'heic';
 		if (brand.startsWith('qt')) return 'mov';
 		return 'mp4';
 	}
