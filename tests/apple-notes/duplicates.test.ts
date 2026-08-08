@@ -20,75 +20,16 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 import * as nodeZlib from 'node:zlib';
 
-import { Root } from 'protobufjs';
-
 import { provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
-import { AppleNotesImporter } from '../../src/formats/apple-notes';
-import { descriptor } from '../../src/formats/apple-notes/descriptor';
-import { MemoryVault } from '../shims/vault';
-import { buildStore, NoteSpec } from './store';
+import { importing } from './importing';
+import { NoteSpec } from './store';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
 
-/** Reports everything, so a test can see what the import decided. */
-function reporter() {
-	const skipped: string[] = [];
-	return {
-		skipped,
-		ctx: {
-			isCancelled: () => false,
-			shouldStop: async () => false,
-			status: () => {},
-			reportProgress: () => {},
-			reportNoteSuccess: () => {},
-			reportAttachmentSuccess: () => {},
-			reportSkipped: (name: string) => skipped.push(name),
-			reportFailed: (name: string, reason?: unknown) => assert.fail(`${name}: ${String(reason)}`),
-		},
-	};
-}
-
-/**
- * An importer pointed at a built database, ready for resolveNote.
- *
- * import() picks a folder through a dialog and opens the real Notes database,
- * so what it sets up is set up here instead.
- */
-async function importing(notes: NoteSpec[], mode: DuplicateHandling) {
-	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
-	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes });
-
-	const vault = new MemoryVault();
-	const { ctx, skipped } = reporter();
-	const subject = new AppleNotesImporter(
-		{ vault, loadLocalStorage: () => null, saveLocalStorage: () => {} } as never,
-		{ sourceEl: null, optionsEl: null } as never
-	);
-
-	subject.ctx = ctx as never;
-	subject.vault = vault as never;
-	subject.rootFolder = vault.root;
-	subject.protobufRoot = Root.fromJSON(descriptor);
-	subject.duplicateHandling = mode;
-	subject.keys = Object.fromEntries(
-		(await store.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
-	);
-	subject.database = store.database;
-
-	return {
-		vault, skipped, notePks: store.notePks,
-		resolve: (pk: number) => subject.resolveNote(pk),
-		close: () => {
-			store.close();
-			nodeFs.rmSync(dir, { recursive: true, force: true });
-		},
-	};
-}
-
 const SAME_TITLE: NoteSpec[] = [
-	{ title: 'Groceries', runs: [{ text: 'Groceries' }, { text: 'Milk' }] },
-	{ title: 'Groceries', runs: [{ text: 'Groceries' }, { text: 'Bread' }] },
+	{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Milk' }] },
+	{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Bread' }] },
 ];
 
 for (const mode of [DuplicateHandling.ImportUpdated, DuplicateHandling.Skip, DuplicateHandling.CreateCopy]) {
@@ -139,8 +80,8 @@ test('two notes of one title stay two notes even with no id to tell them apart',
 	// back on the file name, and every name this run has written is a note of
 	// its own rather than one an earlier import left.
 	const run = await importing([
-		{ title: 'Groceries', runs: [{ text: 'Groceries' }, { text: 'Milk' }], identifier: null },
-		{ title: 'Groceries', runs: [{ text: 'Groceries' }, { text: 'Bread' }], identifier: null },
+		{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Milk' }], identifier: null },
+		{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Bread' }], identifier: null },
 	], DuplicateHandling.ImportUpdated);
 
 	try {

@@ -24,11 +24,14 @@ export class ScanConverter extends ANConverter {
 			const imageUuid = object.customMap.mapEntry[0].value.stringValue;
 
 			const row = await this.ctx.database.get`
-				SELECT z_pk, zmedia, ztypeuti FROM ziccloudsyncingobject 
+				SELECT z_pk, zmedia, ztypeuti FROM ziccloudsyncingobject
 				WHERE zidentifier = ${imageUuid}`;
 
-			// Try to get the nicely cropped version, but fallback to the raw image if that fails
-			let file = await this.ctx.resolveAttachment(row.Z_PK, ANAttachment.Scan);
+			if (!row) return '**Cannot decode scan**';
+
+			// Missing cropped previews are expected. Report a failure only if the
+			// raw image is also unavailable (#393).
+			let file = await this.ctx.resolveAttachment(row.Z_PK, ANAttachment.Scan, true);
 			if (!file) file = await this.ctx.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 
 			if (file) {

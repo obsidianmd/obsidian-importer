@@ -74,6 +74,11 @@ export interface AttachmentSpec {
 	/** A file on disk, which the importer would copy into the vault. */
 	media?: number;
 	/**
+	 * Create a media row with this file name and point the attachment to it.
+	 * Use `media` directly to reference a missing or separately defined row.
+	 */
+	mediaFilename?: string | null;
+	/**
 	 * Which note it hangs off, as an index into the spec's notes.
 	 *
 	 * The importer reads it to know whose account the file sits under, so an
@@ -85,6 +90,12 @@ export interface AttachmentSpec {
 	handwriting?: string;
 	/** A table or scan, as its own protobuf. */
 	mergeableData?: Uint8Array;
+	/**
+	 * Directory containing a rendered drawing. Omitting this and `size` models
+	 * a drawing that iCloud has not downloaded.
+	 */
+	fallbackImageGeneration?: string;
+	size?: { width: number, height: number };
 }
 
 const root = Root.fromJSON(descriptor);
@@ -162,7 +173,8 @@ const SCHEMA = `
 		ZFILENAME TEXT, ZTYPEUTI TEXT, ZIDENTIFIER1 TEXT,
 		ZCREATIONDATE INTEGER, ZMODIFICATIONDATE INTEGER,
 		ZCREATIONDATE1 INTEGER, ZMODIFICATIONDATE1 INTEGER,
-		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER
+		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER,
+		ZFALLBACKIMAGEGENERATION TEXT, ZSIZEWIDTH INTEGER, ZSIZEHEIGHT INTEGER
 	);
 
 	CREATE TABLE zicnotedata (
@@ -178,6 +190,8 @@ export interface BuiltStore {
 	notePks: number[];
 	/** Primary key of the one folder every note is in, which owns the account. */
 	folderPk: number;
+	/** Each media row's directory and file name, for a test to write the file. */
+	mediaFiles: [string, string][];
 	close(): void;
 }
 
@@ -222,22 +236,40 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		INSERT INTO ziccloudsyncingobject (
 			Z_PK, Z_ENT, ZIDENTIFIER, ZALTTEXT, ZTOKENCONTENTIDENTIFIER,
 			ZURLSTRING, ZTITLE, ZTYPEUTI, ZMEDIA, ZMERGEABLEDATA1,
-			ZHANDWRITINGSUMMARY, ZNOTE, ZCREATIONDATE, ZMODIFICATIONDATE
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ZHANDWRITINGSUMMARY, ZNOTE, ZCREATIONDATE, ZMODIFICATIONDATE,
+			ZFALLBACKIMAGEGENERATION, ZSIZEWIDTH, ZSIZEHEIGHT
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+
+	const mediaFiles: [string, string][] = [];
+
+	const insertMedia = db.prepare(`
+		INSERT INTO ziccloudsyncingobject (Z_PK, Z_ENT, ZIDENTIFIER, ZFILENAME)
+		VALUES (?, ?, ?, ?)
 	`);
 
 	for (const attachment of spec.attachments ?? []) {
+		let media = attachment.media ?? null;
+
+		if (attachment.mediaFilename !== undefined) {
+			media = pk++;
+			insertMedia.run(media, entity.ICMedia, `MEDIA-${media}`, attachment.mediaFilename);
+			if (attachment.mediaFilename !== null) mediaFiles.push([`MEDIA-${media}`, attachment.mediaFilename]);
+		}
+
 		insertAttachment.run(
 			pk++, entity.ICAttachment, attachment.identifier,
 			attachment.altText ?? null, attachment.tokenContentIdentifier ?? null,
 			attachment.url ?? null, attachment.title ?? null, attachment.uti,
-			attachment.media ?? null, attachment.mergeableData ?? null,
+			media, attachment.mergeableData ?? null,
 			attachment.handwriting ?? null,
 			attachment.note === undefined ? null : notePks[attachment.note],
-			created, created);
+			created, created,
+			attachment.fallbackImageGeneration ?? null,
+			attachment.size?.width ?? 0, attachment.size?.height ?? 0);
 	}
 
-	return { database: tagged(db), notePks, folderPk, close: () => db.close() };
+	return { database: tagged(db), notePks, folderPk, mediaFiles, close: () => db.close() };
 }
 
 /**
