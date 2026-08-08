@@ -165,14 +165,8 @@ export class NoteConverter extends ANConverter {
 
 			converted += this.formatMultiRun(attr);
 
-			// Shift-Return writes a line separator rather than ending the
-			// paragraph, so the break belongs to the line it is on: a new
-			// bullet must not start. Markdown has no character for that, so it
-			// takes a <br> - except inside a code block, where the newline it
-			// stands for is what the text already means.
 			if (attr.fragment.contains(SOFT_RETURN)) {
-				attr.fragment = attr.fragment.split(SOFT_RETURN)
-					.join(this.multiRun == ANMultiRun.Monospaced ? '\n' : '<br>');
+				attr.fragment = this.expandSoftReturns(attr, converted);
 			}
 
 			if (!/\S/.test(attr.fragment) || this.multiRun == ANMultiRun.Monospaced) {
@@ -198,6 +192,49 @@ export class NoteConverter extends ANConverter {
 		if (table) converted = converted.replace(/\n/g, '<br>').replace(/\|/g, '&#124;');
 
 		return converted;
+	}
+
+	/**
+	 * A fragment's soft returns written out as line breaks.
+	 *
+	 * Shift-Return breaks the line without ending the paragraph, and a newline
+	 * is what that is in markdown - Obsidian renders one as a line break unless
+	 * strict line breaks are turned on. Inside a list item the line has to be
+	 * indented as well, or it reads as the end of the item rather than more of
+	 * it; the indent is a tab, which is what nesting an item uses.
+	 *
+	 * A soft return with nothing before it on its line has no item to continue,
+	 * so it stays a bare newline. Indenting there would leave a line standing
+	 * on its own after a blank one, which markdown reads as a code block.
+	 */
+	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
+		const style = attr.paragraphStyle;
+		let indent = '\n';
+
+		if (
+			this.multiRun != ANMultiRun.Monospaced
+			&& style?.styleType !== undefined
+			&& LIST_STYLES.includes(style.styleType)
+		) {
+			indent += '\t'.repeat((style.indentAmount ?? 0) + 1);
+		}
+
+		// What has been written of the line the fragment starts on
+		let onALine = /\S/.test(converted.slice(converted.lastIndexOf('\n') + 1));
+		let out = '';
+
+		for (const char of attr.fragment) {
+			if (char == SOFT_RETURN) {
+				out += onALine ? indent : '\n';
+				onALine = false;
+			}
+			else {
+				out += char;
+				onALine = char == '\n' ? false : onALine || /\S/.test(char);
+			}
+		}
+
+		return out;
 	}
 
 	/**
