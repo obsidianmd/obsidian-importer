@@ -183,8 +183,10 @@ test('an attachment that is at neither path says where it looked', async () => {
 		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 1);
 
 		assert.deepEqual(run.skipped, [], 'the drawing was rendered, so this is a failure');
-		assert.equal(run.failed.length, 1);
-		assert.match(String(run.reasons[0]), /not found at .*Accounts.*FallbackImages/);
+
+		// Named after the note it is in, since that is what the user can open
+		assert.deepEqual(run.failed, ['Drawing in Sketch']);
+		assert.match(String(run.reasons[0]), /^there is no file at .*Accounts.*FallbackImages/);
 		assert.match(String(run.reasons[0]), / or .*group\.com\.apple\.notes\/FallbackImages/);
 	}
 	finally {
@@ -208,8 +210,13 @@ test('a drawing that was never downloaded is skipped, not failed', async () => {
 
 		assert.ok(note, 'the note should be imported');
 		assert.deepEqual(run.failed, [], 'there is no file to have failed to read');
-		assert.deepEqual(run.skipped, ['Drawing', 'Drawing', 'Drawing']);
-		assert.deepEqual([...new Set(run.reasons)], ['not downloaded from iCloud']);
+		assert.deepEqual(run.skipped, ['Drawing in Sketches', 'Drawing in Sketches', 'Drawing in Sketches']);
+
+		// The log reads "Skipped: <name> because <reason>", so the reason has
+		// to carry on from the because, and say what to do about it
+		assert.deepEqual([...new Set(run.reasons)], [
+			'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it',
+		]);
 	}
 	finally {
 		run.close();

@@ -822,14 +822,20 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			// and that is what the second call reports (#393).
 			if (hasFallback) return null;
 
-			// Nothing was lost that this Mac ever had, so it is not a failure
-			// to look into: opening the note in Apple Notes is what fetches it
+			// Named after the note holding it, since that is what the user has
+			// to open to do anything about it - the file name on disk is a uuid
+			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
+
+			// Nothing was lost that this Mac ever had, so it is not a failure to
+			// go looking into
 			if (neverDownloaded) {
-				this.ctx.reportSkipped(outName, 'not downloaded from iCloud');
+				this.ctx.reportSkipped(
+					label, 'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it'
+				);
 				return null;
 			}
 
-			this.ctx.reportFailed(sourcePath, extractErrorMessage(e));
+			this.ctx.reportFailed(label, extractErrorMessage(e));
 			console.error(e);
 			return null;
 		}
@@ -855,6 +861,27 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 
+	/**
+	 * How an attachment is named in the import log: what it is, and the note it
+	 * came out of.
+	 *
+	 * On its own it would be "Drawing", which is every drawing in the import,
+	 * and the path it was read from is a uuid. The note is the part the user
+	 * can go and open.
+	 */
+	private async describeAttachment(outName: string, notePk: number): Promise<string> {
+		// The file this run wrote for that note, which is named the way the
+		// user will find it in their vault
+		const imported = this.resolvedFiles[notePk];
+		if (imported) return `${outName} in ${imported.basename}`;
+
+		const note = await this.database.get`
+			SELECT ztitle1 FROM ziccloudsyncingobject WHERE z_pk = ${notePk}
+		`;
+
+		return note?.ZTITLE1 ? `${outName} in ${String(note.ZTITLE1)}` : outName;
+	}
+
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
 		// An attachment sits under the account that owns it, except for the
 		// older ones written before Notes kept them apart, which are loose in
@@ -873,9 +900,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 
-		// Naming both, since reporting only the second reads as though the
-		// first was never tried
-		throw new Error(`not found at ${candidates.join(' or ')}`);
+		// Both are named, since reporting only the second reads as though the
+		// first was never tried. Phrased to follow the "because" the log puts
+		// a reason after.
+		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
 	/**
