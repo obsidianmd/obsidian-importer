@@ -3,6 +3,7 @@ import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { helpUrl } from '../constants';
+import { formattedMarkdown, modifyMarkdown } from '../markdown-output';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
@@ -38,10 +39,6 @@ export class RoamJSONImporter extends FormatImporter {
 			'Pick the JSON file from your Roam export.');
 		this.addOutputLocationSetting('Roam');
 		this.userDNPFormat = this.getUserDNPFormat();
-
-		this.addSetting()
-			?.setName('Import settings')
-			.setHeading();
 
 		this.addSetting()
 			?.setName('Download all attachments')
@@ -158,7 +155,7 @@ export class RoamJSONImporter extends FormatImporter {
 				if (callingBlockMarkdown) {
 					let lines = callingBlockMarkdown.split('\n');
 
-					let index = lines.findIndex((item: string) => item.contains('* ' + callingBlockStringScrubbed));
+					let index = lines.findIndex((item: string) => item.contains('- ' + callingBlockStringScrubbed));
 					if (index !== -1) {
 						lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
 					}
@@ -192,13 +189,13 @@ export class RoamJSONImporter extends FormatImporter {
 							continue;
 						}
 
-						if (await vault.read(existingFile) === markdownOutput) {
+						if (await vault.read(existingFile) === formattedMarkdown(vault, markdownOutput)) {
 							progress.reportSkipped(filename, 'page unchanged since last import');
 							index++;
 							continue;
 						}
 
-						await vault.modify(existingFile, markdownOutput);
+						await modifyMarkdown(vault, existingFile, markdownOutput);
 					}
 					else {
 						await this.createFile(folder, name, markdownOutput);
@@ -299,7 +296,7 @@ export class RoamJSONImporter extends FormatImporter {
 				let lines = markdown.split('\n');
 
 				// Edit the specific line, for example, the 5th line.
-				let index = lines.findIndex((item: string) => item.contains('* ' + sourceBlock.blockString));
+				let index = lines.findIndex((item: string) => item.contains('- ' + sourceBlock.blockString));
 				if (index !== -1) {
 					let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
 

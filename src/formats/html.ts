@@ -11,6 +11,7 @@ import { FormatImporter } from '../format-importer';
 import { convertHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
 import { extensionForMime } from '../mime';
+import { modifyMarkdown } from '../markdown-output';
 import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
@@ -150,7 +151,7 @@ export class HtmlImporter extends FormatImporter {
 						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 					}
 
-					await this.vault.modify(tFile, mdContent);
+					await modifyMarkdown(this.vault, tFile, mdContent);
 				}
 				catch (e) {
 					ctx.reportFailed(file.fullpath, e);
@@ -232,7 +233,7 @@ export class HtmlImporter extends FormatImporter {
 					mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 				}
 
-				await this.vault.modify(mdFile, mdContent);
+				await modifyMarkdown(this.vault, mdFile, mdContent);
 			}
 
 			ctx.reportNoteSuccess(file.fullpath);

@@ -125,3 +125,56 @@ test('turns a Roam quote into a blockquote', async () => {
 test('turns a page alias into an Obsidian alias', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '[shown]([[Real Page]])'), '[[Real Page|shown]]');
 });
+
+/** The conversion writes four spaces a level; markdown-output.ts applies what the vault uses. */
+function outline() {
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+	});
+
+	const page = {
+		title: 'Outline',
+		children: [{
+			string: 'Block level',
+			children: [
+				{ string: 'testing' },
+				{ string: 'test', children: [{ string: 'testing' }] },
+			],
+		}],
+	} as unknown as RoamPage;
+
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0);
+}
+
+test('starts the outline at the margin and indents each level by four spaces', async () => {
+	assert.equal(await outline(), [
+		'- Block level',
+		'    - testing',
+		'    - test',
+		'        - testing',
+	].join('\n'));
+});
+
+test('indents the lines after the first to the item text, so a fence stays in the item', async () => {
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+	});
+
+	const page = {
+		title: 'Code',
+		children: [{ string: 'Code', children: [{ string: '```js\none();\ntwo();```' }] }],
+	} as unknown as RoamPage;
+
+	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0), [
+		'- Code',
+		'    - ```js',
+		'      one();',
+		'      two();```',
+	].join('\n'));
+});

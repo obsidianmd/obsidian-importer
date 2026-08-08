@@ -2,6 +2,8 @@ import { moment } from 'obsidian';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 
+const INDENT = '    ';
+
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
@@ -103,12 +105,20 @@ export class RoamPageConverter {
 		if ('string' in json && json.string) {
 			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
 			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-			markdown.push(`${isChild ? indent + '* ' : indent}${prefix}${scrubbed}`);
+			// A block can hold several lines - a fence, say - and every one after the
+			// first has to be indented or it falls out of the item
+			const [first, ...rest] = `${prefix}${scrubbed}`.split('\n');
+			const continuation = isChild ? indent + '  ' : indent;
+			markdown.push([
+				`${isChild ? indent + '- ' : indent}${first}`,
+				...rest.map(line => line ? continuation + line : line),
+			].join('\n'));
 		}
 
 		if (json.children) {
 			for (const child of json.children) {
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, indent + '  ', true, '', this.oldestTimestamp, this.newestTimestamp));
+				// The page is not a bullet, so its own blocks start at the margin
+				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, isChild ? indent + INDENT : indent, true, '', this.oldestTimestamp, this.newestTimestamp));
 			}
 		}
 
