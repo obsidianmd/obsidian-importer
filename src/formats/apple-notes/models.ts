@@ -22,10 +22,7 @@ export interface ANContext<F extends ANFile = ANFile> {
 	omitFirstLine: boolean;
 	/** Whether a drawing's transcription is kept as a callout. */
 	includeHandwriting: boolean;
-	/**
-	 * The vault's own setting, which decides what a soft return has to be
-	 * written as: with strict line breaks on, a lone newline is not a break.
-	 */
+	/** With strict line breaks on, a lone newline is not one: see #328. */
 	strictLineBreaks: boolean;
 	database: SQLiteTagSpawned;
 
@@ -33,10 +30,8 @@ export interface ANContext<F extends ANFile = ANFile> {
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T;
 	/**
 	 * Bring an attachment into the vault, or null if it cannot be read.
-	 *
-	 * `hasFallback` is for a caller with something else to try: the failure is
-	 * still a null, but it is not reported, since the attachment is only lost
-	 * if what comes after fails too.
+	 * `hasFallback` is for a caller with something else to try: still a null,
+	 * but nothing is reported, since only both failing loses the attachment.
 	 */
 	resolveAttachment(id: number, uti: string, hasFallback?: boolean): Promise<F | null>;
 	/** Import a note this one links to, so the link has something to point at. */

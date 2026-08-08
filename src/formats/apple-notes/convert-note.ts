@@ -49,21 +49,15 @@ export function firstLine(noteText: string): string {
 }
 
 /**
- * What to name a note.
- *
- * ZTITLE1 holds an abbreviation of the first line rather than the line itself:
- * past about eighty characters Apple cuts it short and puts an ellipsis in
- * place of the rest, and that ellipsis went into the file name (#541). The
- * line is in the note text, so that is what to read it from.
- *
- * `stored` is what to fall back on when there is no text to read a title from,
- * which is the case for a note holding nothing but an attachment.
+ * What to name a note. ZTITLE1 is an abbreviation Apple stores, cut short with
+ * an ellipsis past about eighty characters (#541), so the first line itself is
+ * what to read it from. `stored` is the fallback for a note with no text, which
+ * is one holding nothing but an attachment.
  */
 export function noteTitle(noteText: string, stored: string): string {
 	const line = firstLine(noteText ?? '');
 	if (!line) return stored;
 
-	// A file name has a length limit; a first line has none
 	return line.length > TITLE_LIMIT ? line.slice(0, TITLE_LIMIT).trimEnd() : line;
 }
 
@@ -126,22 +120,19 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		// The first line is dropped because the file name keeps it. A URL is the
-		// case where it cannot: the slashes become dashes and the colon goes, so
-		// dropping it would leave the note with no working link anywhere (#591).
+		// The first line goes because the file name keeps it - which a URL does
+		// not survive, so that one stays in the body (#591)
 		let firstLineSkip = !table && this.ctx.omitFirstLine
 			&& this.note.noteText.contains('\n')
 			&& !URL_LINE.test(firstLine(this.note.noteText));
 		let converted = '';
-		/** Whether the line being skipped has had anything on it yet. */
 		let titleStarted = false;
 
 		for (let j = 0; j < fragments.length; j++) {
 			let { attr, fragment } = fragments[j];
 
 			if (firstLineSkip) {
-				// An attachment is content rather than a title, so it stops the
-				// skip and is kept
+				// An attachment is content rather than a title
 				if (attr.attachmentInfo) {
 					firstLineSkip = false;
 				}
@@ -149,11 +140,9 @@ export class NoteConverter extends ANConverter {
 					firstLineSkip = false;
 				}
 				else {
-					// Apple takes the title from the first line with anything on
-					// it, so a note starting with blank lines has its title
-					// further down. Stopping at the first newline would stop on a
-					// blank one and leave the title in the body as well as in the
-					// file name.
+					// The title is the first line with anything on it, so a note
+					// starting with blank lines has it further down: stopping at
+					// the first newline would leave the title in the body too
 					if (/\S/.test(fragment)) titleStarted = true;
 					if (titleStarted && fragment.contains('\n')) firstLineSkip = false;
 					continue;
@@ -186,11 +175,9 @@ export class NoteConverter extends ANConverter {
 		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun({} as ANAttributeRun);
 		converted = converted.trim();
 
-		// Trimmed first, so the newlines a cell is padded with do not each
-		// become a <br>. Every one after that has to go: a row ends at the
-		// first newline, and an unescaped pipe starts the next cell. The <br>
-		// is the break itself, so the spaces a hard break is spelled with are
-		// dropped rather than left stranded in front of it.
+		// Trimmed first, so a cell's padding does not become <br>s. A row ends
+		// at the first newline and an unescaped pipe starts the next cell; the
+		// <br> is the break, so a hard break's spaces go with it.
 		if (table) {
 			converted = converted.replace(/ *\n/g, '<br>').replace(/\|/g, '&#124;');
 		}
@@ -201,19 +188,10 @@ export class NoteConverter extends ANConverter {
 	/**
 	 * A fragment's soft returns written out as line breaks.
 	 *
-	 * Shift-Return breaks the line without ending the paragraph, and a newline
-	 * is what that is in markdown - Obsidian renders one as a line break, which
-	 * is all it takes unless the vault has strict line breaks turned on. Where
-	 * it does, the break has to be spelled out, and two trailing spaces are how
-	 * markdown says it.
-	 *
-	 * Inside a list item the line is indented as well, or it reads as the end
-	 * of the item rather than more of it; the indent is a tab, which is what
-	 * nesting an item uses.
-	 *
-	 * A soft return with nothing before it on its line has no item to continue,
-	 * so it stays a bare newline. Indenting there would leave a line standing
-	 * on its own after a blank one, which markdown reads as a code block.
+	 * A newline is one, unless the vault has strict line breaks on and it has
+	 * to be spelled with two trailing spaces. Inside a list item it is indented
+	 * too, or it reads as the end of the item - but not when nothing precedes
+	 * it on the line, where an indent after a blank line reads as a code block.
 	 */
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
 		const style = attr.paragraphStyle;
@@ -227,7 +205,6 @@ export class NoteConverter extends ANConverter {
 			indent += '\t'.repeat((style.indentAmount ?? 0) + 1);
 		}
 
-		// What has been written of the line the fragment starts on
 		let onALine = /\S/.test(converted.slice(converted.lastIndexOf('\n') + 1));
 		let out = '';
 
@@ -246,12 +223,10 @@ export class NoteConverter extends ANConverter {
 	}
 
 	/**
-	 * Whether the fragment at `from` is a list item with items nested under it.
-	 *
-	 * Those items are written relative to their parent, so dropping it as the
-	 * title leaves them with nothing to hang off and the list gains an empty
-	 * item where it was. A first item whose next item is a sibling loses
-	 * nothing that way, so that one is still dropped.
+	 * Whether the fragment at `from` is a list item with items nested under it,
+	 * which are written relative to it: dropping it as the title would leave
+	 * them orphaned and the list with an empty item where it was. A first item
+	 * the rest are siblings of loses nothing, so that one still goes.
 	 */
 	leadsNestedList(fragments: ANFragmentPair[], from: number): boolean {
 		const style = fragments[from].attr.paragraphStyle;

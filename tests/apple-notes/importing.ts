@@ -1,9 +1,7 @@
 /**
  * An Apple Notes importer pointed at a built database, ready for resolveNote.
- *
  * import() picks a folder through a dialog and opens the real Notes database,
- * so what it sets up is set up here instead. Shared by the tests that check
- * what the importer writes rather than what the conversion produces.
+ * so what it sets up is set up here instead.
  */
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';

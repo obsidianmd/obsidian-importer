@@ -1,14 +1,10 @@
 /**
- * What an imported note is named.
+ * What an imported note is named. ZTITLE1 holds an abbreviation of the first
+ * line, cut short with an ellipsis past about eighty characters (#541), so the
+ * line itself is what to name the note after.
  *
- * Apple shows a note's first line as its title, but ZTITLE1 holds only an
- * abbreviation of it: past about eighty characters it is cut short and an
- * ellipsis put in place of the rest (#541). The line itself is in the note
- * text, and is what the note should be named after.
- *
- * A first line that is a URL cannot survive as a file name - a slash is a path
- * separator and a colon is not allowed - so naming the note after it and then
- * dropping it from the body loses the URL altogether (#591). It stays.
+ * A first line that is a URL cannot survive as a file name, so naming the note
+ * after it and dropping it from the body loses it altogether (#591).
  */
 import '../shims/runtime';
 
@@ -63,8 +59,6 @@ test('a first line that is a URL is kept in the note', async () => {
 
 		assert.ok(file, 'the note should be imported');
 
-		// The file name cannot hold it - that is the reason it has to stay in
-		// the body, where it is still a URL that works
 		const body = String(run.vault.contents.get(file.path));
 		assert.ok(body.contains(URL), `the URL was lost; the note holds ${JSON.stringify(body)}`);
 	}

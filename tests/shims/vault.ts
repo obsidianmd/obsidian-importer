@@ -33,7 +33,7 @@ export class MemoryVault {
 		return this.entries.get('/') as TFolder;
 	}
 
-	/** A vault setting, as Obsidian hands it out: undefined when never set. */
+	/** Undefined when never set, as Obsidian hands one out. */
 	getConfig(key: string): unknown {
 		return this.config.get(key);
 	}

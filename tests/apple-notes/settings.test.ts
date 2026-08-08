@@ -1,9 +1,7 @@
 /**
- * Settings the importer reads from the vault rather than asking for.
- *
- * The conversion tests hand the converter a context of their own, so they
- * cannot tell whether the importer fills it in from the right place. These
- * drive the importer, which is where a setting is read.
+ * Settings the importer reads from the vault rather than asking for. The
+ * conversion tests hand the converter a context of their own, so they cannot
+ * tell whether the importer fills it in from the right place.
  */
 import '../shims/runtime';
 
@@ -28,10 +26,7 @@ const NOTE = [{
 	runs: [{ text: `Soft returns\nA paragraph${SOFT_RETURN}broken by a soft return.` }],
 }];
 
-/**
- * With strict line breaks off - Obsidian's default - a newline already renders
- * as the break the soft return meant, so that is all the markdown needs.
- */
+/** Off, which is the default: a newline already renders as the break. */
 test('a soft return is a bare newline when the vault leaves strict line breaks off', async () => {
 	const run = await importing(NOTE, DuplicateHandling.CreateCopy);
 
@@ -46,7 +41,7 @@ test('a soft return is a bare newline when the vault leaves strict line breaks o
 	}
 });
 
-/** With it on, a lone newline is no longer a break, so the break is spelled out. */
+/** On: a lone newline is no longer a break, so it is spelled out. */
 test('a soft return is spelled out when the vault has strict line breaks on', async () => {
 	const run = await importing(NOTE, DuplicateHandling.CreateCopy);
 	run.vault.config.set('strictLineBreaks', true);

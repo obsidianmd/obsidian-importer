@@ -99,15 +99,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	includeHandwriting = false;
 
 	/**
-	 * The vault's own setting, read rather than asked for: it is what decides
-	 * whether a lone newline renders as the break a soft return meant.
-	 *
-	 * A getter so it is never captured before the vault is there to ask, and
-	 * so a field initialiser cannot throw away what init() would have set.
+	 * A getter rather than a field: a field initialiser runs after init(), and
+	 * the vault is not there to ask at construction. Compared rather than
+	 * defaulted, since getConfig is typed as any.
 	 */
 	get strictLineBreaks(): boolean {
-		// Compared rather than returned: getConfig is typed as any, and a
-		// setting the vault has never been given is undefined
 		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
@@ -604,8 +600,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 
-		// Decoded here rather than where it is converted, since the note has to
-		// be named after its own first line and that is only in the text
+		// Decoded before the file is named: the title is the note's first line
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
 		// Get creation date and format it according to user preference
@@ -666,7 +661,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;
-		/** Whether the attachment was never on this Mac to begin with. */
 		let neverDownloaded = false;
 
 		switch (uti) {
@@ -723,10 +717,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				if (!row) break;
 
-				// A drawing iCloud has never brought down: no rendered copy to
-				// read, no drawing data, and a size Notes never learned. There
-				// is nothing on this Mac to import, which is worth saying
-				// differently from a file that should have been there.
+				// No rendered copy, no drawing data, and no size Notes ever
+				// learned: the drawing only exists in iCloud
 				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.ZMERGEABLEDATA1 && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
@@ -761,11 +753,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				break;
 		}
 
-		// The row an attachment points at can be gone - one iCloud has not
-		// brought down, typically. Reading a column off it threw, and since a
-		// note's file is created before its body is converted, the note was
-		// left in the vault empty (#218, #391). It costs the attachment now.
-		// Each branch above leaves these unset when its lookup found nothing
+		// A branch leaves these unset when its lookup found nothing. Reading a
+		// column off the missing row threw, and since a note's file is created
+		// before its body, that left the note empty (#218, #391).
 		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
 			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
 			return null;
@@ -815,19 +805,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 		}
 		catch (e) {
-			// A caller with a fallback has not lost the attachment yet, so this
-			// is neither reported nor logged: a scan reads the cropped copy
-			// first and the raw image after it, and Apple writes the cropped
-			// one when it feels like it. Only the pair failing costs anything,
-			// and that is what the second call reports (#393).
+			// Nothing is lost until the fallback fails too, so it is neither
+			// reported nor logged (#393)
 			if (hasFallback) return null;
 
-			// Named after the note holding it, since that is what the user has
-			// to open to do anything about it - the file name on disk is a uuid
 			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
 
-			// Nothing was lost that this Mac ever had, so it is not a failure to
-			// go looking into
 			if (neverDownloaded) {
 				this.ctx.reportSkipped(
 					label, 'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it'
@@ -862,16 +845,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	/**
-	 * How an attachment is named in the import log: what it is, and the note it
-	 * came out of.
-	 *
-	 * On its own it would be "Drawing", which is every drawing in the import,
-	 * and the path it was read from is a uuid. The note is the part the user
-	 * can go and open.
+	 * How an attachment is named in the import log. On its own it would be
+	 * "Drawing", which every drawing in the import is called, and the path it
+	 * was read from is a uuid: the note is the part the user can go and open.
 	 */
 	private async describeAttachment(outName: string, notePk: number): Promise<string> {
-		// The file this run wrote for that note, which is named the way the
-		// user will find it in their vault
 		const imported = this.resolvedFiles[notePk];
 		if (imported) return `${outName} in ${imported.basename}`;
 
@@ -883,9 +861,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
-		// An attachment sits under the account that owns it, except for the
-		// older ones written before Notes kept them apart, which are loose in
-		// the container
+		// Under the account that owns it, or loose in the container for the
+		// older ones written before Notes kept accounts apart
 		const candidates = [
 			path.join(account.path, sourcePath),
 			path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath),
@@ -900,9 +877,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 
-		// Both are named, since reporting only the second reads as though the
-		// first was never tried. Phrased to follow the "because" the log puts
-		// a reason after.
+		// Both, since naming only the second reads as though the first was
+		// never tried. Worded to follow the "because" the log puts it after.
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 

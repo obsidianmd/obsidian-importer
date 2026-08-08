@@ -86,13 +86,10 @@ export interface AttachmentSpec {
 	/** A table or scan, as its own protobuf. */
 	mergeableData?: Uint8Array;
 	/**
-	 * The generation directory a rendered drawing is kept under, which only a
-	 * drawing Apple has drawn a copy of has. Left out, the row looks like one
-	 * iCloud has never brought down: nothing rendered, and no size Notes ever
-	 * learned.
+	 * The generation directory a rendered drawing is kept under. Left out, with
+	 * no size either, the row looks like a drawing iCloud never brought down.
 	 */
 	fallbackImageGeneration?: string;
-	/** What Notes measured the attachment at, which it only knows once it has it. */
 	size?: { width: number, height: number };
 }
 

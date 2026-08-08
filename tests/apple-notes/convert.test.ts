@@ -211,13 +211,11 @@ const STORE: StoreSpec = {
 				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
 			],
 		},
-		// Last, so that adding it leaves the primary keys the notes above were
-		// given - an internal link is recorded as the key it points at
+		// Last, so adding it leaves the primary keys the notes above were given:
+		// an internal link is recorded as the key it points at
 		{
-			// Shift-Return in Apple Notes writes U+2028, a line separator, rather
-			// than ending the paragraph. It breaks the line without starting a new
-			// bullet, so it has to survive as a break rather than as the literal
-			// character, which renders as nothing.
+			// A soft return breaks the line without starting a new bullet, so it
+			// has to survive as a break rather than as the literal character
 			title: 'Soft returns',
 			runs: [
 				{ text: 'Soft returns\n', style: ANStyleType.Title },
@@ -288,10 +286,9 @@ test('keeps the first line when asked to', async () => {
 });
 
 /**
- * Apple takes the title from the first line with anything on it, so a note
- * starting with blank lines has its title further down. Omitting "the first
- * line" omitted a blank one and stopped there, leaving the title in the body -
- * written twice, once as the file name and once at the top of the note.
+ * The title is the first line with anything on it, so a note starting with
+ * blank lines has it further down. Omitting "the first line" omitted a blank
+ * one and left the title in the body as well as in the file name.
  */
 test('a note starting with blank lines does not repeat its title', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
@@ -318,10 +315,8 @@ test('a note starting with blank lines does not repeat its title', async () => {
 });
 
 /**
- * A soft return is a newline, which Obsidian renders as the break it meant -
- * until the vault turns strict line breaks on, where a lone newline is no
- * longer one. The setting is the vault's rather than the importer's, so it is
- * read rather than asked for, and the break is spelled out where it has to be.
+ * A newline is the break a soft return meant, until the vault turns strict
+ * line breaks on and it stops being one. Then it is spelled out.
  */
 test('a soft return is spelled out when the vault has strict line breaks on', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
@@ -355,9 +350,9 @@ test('a soft return is spelled out when the vault has strict line breaks on', as
 });
 
 /**
- * A title that is the first item of a list is the parent of what follows it,
- * and those items are written relative to it. Dropping it leaves them with
- * nothing to hang off, and the list gains an empty item in its place.
+ * A title that is the first item of a list is the parent of what follows it.
+ * Dropping it leaves those items with nothing to hang off, and the list with
+ * an empty item in its place.
  */
 test('a first line with a list nested under it is kept', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
@@ -379,8 +374,7 @@ test('a first line with a list nested under it is kept', async () => {
 
 		assert.equal(await nested.format(false, 'Airtable is for.md'), '- Airtable is for\n\t- databases');
 
-		// A first item the rest are siblings of loses nothing by going, so it
-		// still goes - the file name holds it
+		// A first item the rest are siblings of loses nothing by going
 		const flat = ctx.decodeData(
 			encodeNote({
 				title: 'Price',
@@ -401,9 +395,8 @@ test('a first line with a list nested under it is kept', async () => {
 });
 
 /**
- * A cell is converted with `table` set, which is what tells the converter that
- * its result has to survive inside a `|`-delimited row. A line break has to
- * become a `<br>` and a pipe an entity, or the row ends early and everything
+ * A cell's result has to survive inside a `|`-delimited row: a line break
+ * becomes a `<br>` and a pipe an entity, or the row ends early and everything
  * after it lands outside the table.
  */
 test('a table cell keeps its line breaks and pipes', async () => {

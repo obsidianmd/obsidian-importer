@@ -107,16 +107,10 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 }
 
 /**
- * A file attachment whose media row is not there.
- *
- * resolveAttachment reads a column off whatever the lookup returned, without
- * checking that it returned anything. A note pointing at a row that is gone -
- * an attachment iCloud has not brought down, say - throws "Cannot read
- * properties of undefined (reading 'ZIDENTIFIER')" (#218).
- *
- * The note is worse off than the attachment: its file is created empty before
- * the conversion runs, so a throw leaves it in the vault with nothing in it
- * (#391). One bad attachment should cost that attachment, not the note.
+ * A file attachment whose media row is not there, which threw reading a column
+ * off the row that was not returned (#218). The note's file is created empty
+ * before the conversion runs, so that left it in the vault with nothing in it
+ * (#391): one bad attachment should cost the attachment, not the note.
  */
 const MISSING_MEDIA: StoreSpec = {
 	notes: [{
@@ -164,11 +158,9 @@ const RENDERED: StoreSpec = {
 };
 
 /**
- * A file that should have been there.
- *
- * It is read from under the account that owns it, and from the container for
- * the older ones that predate accounts being kept apart. Naming only the
- * second reads as though the first was never tried.
+ * A file that should have been there. It is read from under the account that
+ * owns it and from the container, and naming only the second in the failure
+ * reads as though the first was never tried.
  */
 test('an attachment that is at neither path says where it looked', async () => {
 	const run = await importing(RENDERED, false);
@@ -178,13 +170,11 @@ test('an attachment that is at neither path says where it looked', async () => {
 
 		assert.ok(note, 'the note should be imported');
 
-		// The conversion ran to the end rather than throwing part way through it
+		// The conversion ran to the end rather than throwing part way through
 		const body = String(run.vault.contents.get(note.path));
 		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 1);
 
 		assert.deepEqual(run.skipped, [], 'the drawing was rendered, so this is a failure');
-
-		// Named after the note it is in, since that is what the user can open
 		assert.deepEqual(run.failed, ['Drawing in Sketch']);
 		assert.match(String(run.reasons[0]), /^there is no file at .*Accounts.*FallbackImages/);
 		assert.match(String(run.reasons[0]), / or .*group\.com\.apple\.notes\/FallbackImages/);
@@ -195,12 +185,9 @@ test('an attachment that is at neither path says where it looked', async () => {
 });
 
 /**
- * A drawing this Mac never had.
- *
- * Nothing rendered, no drawing data, and a size Notes never learned: the note
- * refers to a drawing that only exists in iCloud. Nothing was lost that was
- * ever here, and no path is worth printing, so it is skipped rather than
- * reported as a failure the user could go and look into.
+ * A drawing this Mac never had: nothing rendered, no drawing data, and no size
+ * Notes ever learned. Nothing was lost that was ever here and no path is worth
+ * printing, so it is skipped rather than reported as a failure to look into.
  */
 test('a drawing that was never downloaded is skipped, not failed', async () => {
 	const run = await importing(DRAWINGS, false);
@@ -212,8 +199,7 @@ test('a drawing that was never downloaded is skipped, not failed', async () => {
 		assert.deepEqual(run.failed, [], 'there is no file to have failed to read');
 		assert.deepEqual(run.skipped, ['Drawing in Sketches', 'Drawing in Sketches', 'Drawing in Sketches']);
 
-		// The log reads "Skipped: <name> because <reason>", so the reason has
-		// to carry on from the because, and say what to do about it
+		// The log reads: Skipped: "<name>" because <reason>
 		assert.deepEqual([...new Set(run.reasons)], [
 			'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it',
 		]);
