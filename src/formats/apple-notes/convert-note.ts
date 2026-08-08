@@ -162,7 +162,15 @@ export class NoteConverter extends ANConverter {
 				converted += attr.fragment;
 			}
 			else if (attr.attachmentInfo) {
-				converted += await this.formatAttachment(attr, parentNotePath);
+				attr.fragment = await this.formatAttachment(attr, parentNotePath);
+
+				// An inline attachment is the line's first content when it leads
+				// one, so it takes the prefix that line calls for - a checkbox
+				// was lost on an item starting with a link (#471). A block one
+				// stands on its own and takes none.
+				converted += attr.atLineStart && !isBlockAttachment(attr)
+					? this.formatParagraph(attr)
+					: attr.fragment;
 			}
 			else if (attr.superscript || attr.underlined || attr.font || this.multiRun == ANMultiRun.Alignment) {
 				converted += await this.formatHtmlAttr(attr);

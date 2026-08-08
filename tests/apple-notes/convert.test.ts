@@ -395,6 +395,42 @@ test('a first line with a list nested under it is kept', async () => {
 });
 
 /**
+ * A link is an attachment, and an attachment was written without the prefix
+ * its line calls for, so an item starting with one lost its checkbox (#471.8).
+ */
+test('a list item starting with a link keeps its checkbox', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tasks',
+			runs: [
+				{ text: 'Tasks\n' },
+				{ text: 'Write the notes\n', style: ANStyleType.Checkbox, checked: false },
+				{ text: '', attachment: { identifier: 'LINK-1', uti: ANAttachment.InternalLink }, style: ANStyleType.Checkbox, checked: false },
+				{ text: ', and the rest of the item', style: ANStyleType.Checkbox, checked: false },
+			],
+		}],
+		attachments: [
+			{ identifier: 'LINK-1', uti: ANAttachment.InternalLink, tokenContentIdentifier: 'applenotes:note/00000000-0000-0000-0000-000000000001' },
+			{ identifier: '00000000-0000-0000-0000-000000000001', uti: 'note' },
+		],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		assert.equal(
+			converted.get('Tasks'),
+			'- [ ] Write the notes\n- [ ] [[Apple Notes/Note 5.md]], and the rest of the item'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
  * A cell's result has to survive inside a `|`-delimited row: a line break
  * becomes a `<br>` and a pipe an entity, or the row ends early and everything
  * after it lands outside the table.
