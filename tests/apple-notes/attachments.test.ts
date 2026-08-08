@@ -102,6 +102,48 @@ async function importing(spec: StoreSpec) {
 	};
 }
 
+/**
+ * A file attachment whose media row is not there.
+ *
+ * resolveAttachment reads a column off whatever the lookup returned, without
+ * checking that it returned anything. A note pointing at a row that is gone -
+ * an attachment iCloud has not brought down, say - throws "Cannot read
+ * properties of undefined (reading 'ZIDENTIFIER')" (#218).
+ *
+ * The note is worse off than the attachment: its file is created empty before
+ * the conversion runs, so a throw leaves it in the vault with nothing in it
+ * (#391). One bad attachment should cost that attachment, not the note.
+ */
+const MISSING_MEDIA: StoreSpec = {
+	notes: [{
+		title: 'Holiday',
+		runs: [
+			{ text: 'Holiday\n' },
+			{ text: 'Text that should survive.\n' },
+			{ text: '', attachment: { identifier: 'PHOTO-1', uti: 'public.jpeg' } },
+		],
+	}],
+	// ZMEDIA points at a primary key no ICMedia row was written for
+	attachments: [{ identifier: 'PHOTO-1', uti: 'public.jpeg', media: 9999, note: 0 }],
+};
+
+test('a note keeps its text when an attachment it points at is gone', async () => {
+	const run = await importing(MISSING_MEDIA);
+
+	try {
+		const note = await run.resolve(run.notePks[0]);
+
+		assert.ok(note, 'the note should be imported');
+
+		const body = String(run.vault.contents.get(note.path));
+		assert.ok(body.contains('Text that should survive.'), `the note is empty: ${JSON.stringify(body)}`);
+		assert.equal(run.failed.length, 1, 'the attachment is what failed, and it is reported');
+	}
+	finally {
+		run.close();
+	}
+});
+
 test('a drawing is imported whichever UTI it carries', async () => {
 	const run = await importing(DRAWINGS);
 	try {

@@ -106,7 +106,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * so a field initialiser cannot throw away what init() would have set.
 	 */
 	get strictLineBreaks(): boolean {
-		return this.vault.getConfig('strictLineBreaks') ?? false;
+		// Compared rather than returned: getConfig is typed as any, and a
+		// setting the vault has never been given is undefined
+		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
 	filePrefixFormat: string;
@@ -658,7 +660,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return file;
 	}
 
-	async resolveAttachment(id: number, uti: ANAttachment | (string & {})): Promise<TFile | null> {
+	async resolveAttachment(
+		id: number, uti: ANAttachment | (string & {}), hasFallback = false
+	): Promise<TFile | null> {
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;
@@ -676,6 +680,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND z_pk = ${id}
 				`;
 
+				if (!row) break;
 				sourcePath = path.join('FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf');
 				outName = 'Scan';
 				outExt = 'pdf';
@@ -691,6 +696,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND z_pk = ${id}
 				`;
 
+				if (!row) break;
 				sourcePath = path.join('Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`);
 				outName = 'Scan Page';
 				outExt = 'jpg';
@@ -712,6 +718,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id}
 				`;
+
+				if (!row) break;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
@@ -739,9 +747,20 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND a.z_pk = b.zmedia
 				`;
 
+				if (!row) break;
 				sourcePath = path.join('Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
+		}
+
+		// The row an attachment points at can be gone - one iCloud has not
+		// brought down, typically. Reading a column off it threw, and since a
+		// note's file is created before its body is converted, the note was
+		// left in the vault empty (#218, #391). It costs the attachment now.
+		// Each branch above leaves these unset when its lookup found nothing
+		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
+			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
+			return null;
 		}
 
 		// Apply date prefix to attachment name if configured
@@ -788,7 +807,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 		}
 		catch (e) {
-			this.ctx.reportFailed(sourcePath);
+			// A caller with a fallback has not lost the attachment yet, so this
+			// is not reported: a scan reads the cropped copy first and the raw
+			// image after it, and only the pair failing costs anything (#393).
+			if (!hasFallback) this.ctx.reportFailed(sourcePath);
 			console.error(e);
 			return null;
 		}

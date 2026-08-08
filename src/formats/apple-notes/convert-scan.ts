@@ -24,11 +24,17 @@ export class ScanConverter extends ANConverter {
 			const imageUuid = object.customMap.mapEntry[0].value.stringValue;
 
 			const row = await this.ctx.database.get`
-				SELECT z_pk, zmedia, ztypeuti FROM ziccloudsyncingobject 
+				SELECT z_pk, zmedia, ztypeuti FROM ziccloudsyncingobject
 				WHERE zidentifier = ${imageUuid}`;
 
-			// Try to get the nicely cropped version, but fallback to the raw image if that fails
-			let file = await this.ctx.resolveAttachment(row.Z_PK, ANAttachment.Scan);
+			// The page the scan names may not be in the database at all
+			if (!row) return '**Cannot decode scan**';
+
+			// Try to get the nicely cropped version, but fallback to the raw image
+			// if that fails. The cropped copy is often not on disk - Apple writes
+			// it when it feels like it - so the first attempt does not report a
+			// failure: the page is only lost if the raw image fails as well.
+			let file = await this.ctx.resolveAttachment(row.Z_PK, ANAttachment.Scan, true);
 			if (!file) file = await this.ctx.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 
 			if (file) {
