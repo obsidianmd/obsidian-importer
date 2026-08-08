@@ -243,3 +243,56 @@ test('still nests a sub-item that follows a blank line', () => {
 		formatMarkdown(['- one', '    - two', '', '        - three'].join('\n'), TABS),
 		['- one', '\t- two', '', '\t\t- three'].join('\n'));
 });
+
+test('an outdented fence cannot close a fence that was inside a list', () => {
+	const markdown = [
+		'- item',
+		'  ```',
+		'  code',
+		'```',
+		'* literal',
+		'```',
+	].join('\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), markdown);
+});
+
+test('restores the parent item before recognizing its indented code', () => {
+	const markdown = [
+		'- one',
+		'    - two',
+		'  parent continuation',
+		'',
+		'      * literal',
+	].join('\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), [
+		'- one',
+		'\t- two',
+		'  parent continuation',
+		'',
+		'      * literal',
+	].join('\n'));
+});
+
+test('a blank line does not end a fence inside a list item', () => {
+	const markdown = [
+		'- item',
+		'  ```js',
+		'  const a = 1;',
+		'',
+		'  * not a bullet',
+		'  ```',
+		'* after',
+	].join('\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), [
+		'- item',
+		'  ```js',
+		'  const a = 1;',
+		'',
+		'  * not a bullet',
+		'  ```',
+		'- after',
+	].join('\n'));
+});

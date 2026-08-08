@@ -16,11 +16,8 @@ const CONVERSION_STEP = 4;
 
 const LIST_MARKER = /^(?:[-*+]|\d+[.)])(?:[ \t]+|\r?$)/;
 const FENCE_OPEN = /^(`{3,}|~{3,})/;
-/**
- * A fence closes on its own delimiter, at least as long, nothing after it, and
- * no more than three spaces in front - four makes it code the fence contains.
- */
-const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*\r?$/;
+/** A fence closes on its own delimiter, at least as long, and nothing after it. */
+const FENCE_CLOSE = /^(`{3,}|~{3,})[ \t]*\r?$/;
 /** "***" and "* * *" open with what looks like a bullet, and are not one. */
 const THEMATIC_BREAK = /^([-*_])(?:[ \t]*\1){2,}[ \t]*\r?$/;
 
@@ -68,10 +65,10 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 	let fenceTo: string | null = null;
 	// The delimiter that opened it. A ``` line inside a ```` fence is code
 	let fenceDelimiter = '';
-	let inList = false;
-	// Where the current item's text starts, and whether a blank line has passed:
-	// together they say whether an indented line is the item's code or a sub-item
-	let itemText = 0;
+	// A fence in a list cannot be closed by a line that has left that list item
+	let fenceContainer = 0;
+	// A stack restores the parent's text column when a nested item is left
+	const items: { marker: number, text: number }[] = [];
 	let blank = false;
 	let codeFloor = -1;
 
@@ -79,13 +76,21 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 		const line = lines[i];
 		const indent = line.match(/^[\t ]*/)![0];
 		const rest = line.slice(indent.length);
+		const indentColumn = columns(indent);
 
 		if (fenceFrom !== null) {
-			// Measured from where the fence itself sits, not from the margin
-			const inside = line.startsWith(fenceFrom) ? line.slice(fenceFrom.length) : rest;
-			if (line.startsWith(fenceFrom)) lines[i] = fenceTo + inside;
-			if (closes(inside, fenceDelimiter)) fenceFrom = fenceTo = null;
-			continue;
+			// A blank line has left nothing: it neither ends the item nor the fence
+			if (rest.trim() === '' || indentColumn >= fenceContainer) {
+				// Move the code with its opening fence, but measure a close from the
+				// list container: up to three spaces are allowed beyond that point
+				if (line.startsWith(fenceFrom)) lines[i] = fenceTo + line.slice(fenceFrom.length);
+				if (closes(rest, fenceDelimiter, indentColumn - fenceContainer)) fenceFrom = fenceTo = null;
+				continue;
+			}
+
+			// Leaving the list item implicitly ends its fence. This line belongs to
+			// the outer container, so process it again as ordinary Markdown below
+			fenceFrom = fenceTo = null;
 		}
 
 		if (rest.trim() === '') { // A blank line does not end the item
@@ -94,35 +99,41 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 		}
 
 		// An indented code block inside the item, which runs until the indent drops
-		if (codeFloor >= 0 && columns(indent) >= codeFloor) {
+		if (codeFloor >= 0 && indentColumn >= codeFloor) {
 			blank = false;
 			continue;
 		}
 		codeFloor = -1;
 
-		if (inList && blank && columns(indent) >= itemText + CODE_INDENT) {
-			codeFloor = itemText + CODE_INDENT;
+		while (items.length && indentColumn < items[items.length - 1].text) items.pop();
+		const item = items[items.length - 1];
+
+		if (item && blank && indentColumn >= item.text + CODE_INDENT) {
+			codeFloor = item.text + CODE_INDENT;
 			blank = false;
 			continue;
 		}
 		blank = false;
 
 		const marker = THEMATIC_BREAK.test(rest) ? '' : rest.match(LIST_MARKER)?.[0] ?? '';
-		if (marker) itemText = columns(indent) + marker.length;
+		if (marker) {
+			while (items.length && items[items.length - 1].marker >= indentColumn) items.pop();
+			items.push({ marker: indentColumn, text: columns(indent + marker) });
+		}
 		const opened = rest.slice(marker.length).match(FENCE_OPEN)?.[1];
 
-		const reindented: string = marker || (inList && indent !== '')
+		const reindented: string = marker || (items.length > 0 && indent !== '')
 			? reindent(indent, indentUnit)
 			: indent;
 
 		lines[i] = reindented + (/^[*+]/.test(marker) ? BULLET + rest.slice(1) : rest);
-		inList = reindented !== indent || !!marker || (inList && indent !== '');
 
 		if (opened) {
 			// A fence can open on a list item's own line: "- ```js"
 			fenceFrom = indent + ' '.repeat(marker.length);
 			fenceTo = reindented + ' '.repeat(marker.length);
 			fenceDelimiter = opened;
+			fenceContainer = items[items.length - 1]?.text ?? 0;
 		}
 	}
 
@@ -140,7 +151,8 @@ function columns(indent: string): number {
 	return at;
 }
 
-function closes(rest: string, delimiter: string): boolean {
+function closes(rest: string, delimiter: string, indent: number): boolean {
+	if (indent > 3) return false; // Four spaces makes the delimiter literal code
 	const fence = rest.match(FENCE_CLOSE)?.[1];
 
 	return !!fence && fence[0] === delimiter[0] && fence.length >= delimiter.length;
