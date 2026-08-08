@@ -11,7 +11,6 @@ import { FormatImporter } from '../format-importer';
 import { convertHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
 import { extensionForMime } from '../mime';
-import { modifyMarkdown } from '../markdown-output';
 import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
@@ -151,7 +150,7 @@ export class HtmlImporter extends FormatImporter {
 						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 					}
 
-					await modifyMarkdown(this.vault, tFile, mdContent);
+					await this.modifyMarkdown(tFile, mdContent);
 				}
 				catch (e) {
 					ctx.reportFailed(file.fullpath, e);
@@ -173,13 +172,14 @@ export class HtmlImporter extends FormatImporter {
 			const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
 
 			const attachmentLookup = new Map<string, TFile>;
+			const notePath = normalizePath(`${folder.path}/${file.basename}.md`);
 
 			const { markdown, attachments } = await convertHtmlDocument(htmlContent, {
 				baseUrl,
 				isCancelled: () => ctx.isCancelled(),
 				resolveAttachment: async (url, el) => {
 					ctx.status('Downloading attachment for ' + file.name);
-					const attachmentFile = await this.downloadAttachment(folder, el, url, allowedBaseDirUrl);
+					const attachmentFile = await this.downloadAttachment(el, url, notePath, allowedBaseDirUrl);
 					if (!attachmentFile) return null;
 
 					attachmentLookup.set(attachmentFile.path, attachmentFile);
@@ -222,7 +222,7 @@ export class HtmlImporter extends FormatImporter {
 					for (let { link, position } of cache.embeds) {
 						if (attachmentLookup.has(link)) {
 							let newLink = this.app.fileManager.generateMarkdownLink(attachmentLookup.get(link)!, mdFile.path);
-							changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
+							changes.push({ from: position.start.offset, to: position.end.offset, text: '!' + newLink });
 						}
 					}
 				}
@@ -233,7 +233,7 @@ export class HtmlImporter extends FormatImporter {
 					mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
 				}
 
-				await modifyMarkdown(this.vault, mdFile, mdContent);
+				await this.modifyMarkdown(mdFile, mdContent);
 			}
 
 			ctx.reportNoteSuccess(file.fullpath);
@@ -245,7 +245,7 @@ export class HtmlImporter extends FormatImporter {
 		return null;
 	}
 
-	async downloadAttachment(folder: TFolder, el: HTMLElement, url: URL, allowedBaseDirUrl?: string) {
+	async downloadAttachment(el: HTMLElement, url: URL, notePath: string, allowedBaseDirUrl?: string) {
 		let basename = '';
 		let extension = '';
 		let data: ArrayBuffer;
@@ -292,9 +292,8 @@ export class HtmlImporter extends FormatImporter {
 			}
 		}
 
-		let attachmentFolder = await this.createFolders(normalizePath(folder.path + '/Attachments'));
-
-		const path: string = this.vault.getAvailablePath(attachmentFolder.getParentPrefix() + basename, extension);
+		const filename = extension ? `${basename}.${extension}` : basename;
+		const path = await this.getAvailablePathForAttachment(filename, [], notePath);
 
 		return await this.vault.createBinary(path, data);
 	}

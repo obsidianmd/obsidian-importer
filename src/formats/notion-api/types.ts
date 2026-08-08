@@ -11,7 +11,7 @@ import {
 	PageObjectResponse,
 	Heading1BlockObjectResponse
 } from '@notionhq/client';
-import { Vault, App } from 'obsidian';
+import { Vault, App, TFile } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import type { FormulaImportStrategy } from '../../base';
 
@@ -231,6 +231,7 @@ export interface BlockConversionContext {
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
+	writeMarkdownFile: (path: string, content: string) => Promise<TFile>; // Importer-owned writer, so post-import normalization tracks the file
 }
 
 /**

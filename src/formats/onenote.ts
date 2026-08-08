@@ -527,6 +527,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (!(existing instanceof TFolder)) throw new Error(`${outputPath} is not a folder`);
 				pageFolder = existing;
 			}
+			const notePath = `${pageFolder.path}/${sanitizeFileName(page.title!)}.md`;
 
 			// Process InkML content if present and convert to SVG
 			let inkEmbedMarkdown = '';
@@ -535,10 +536,11 @@ export class OneNoteImporter extends FormatImporter {
 				if (svgContent) {
 					// Save the SVG as an attachment
 					const svgFilename = `${page.title} - Ink.svg`;
-					await this.vault.create(`${pageFolder.path}/${svgFilename}`, svgContent);
+					const svgPath = await this.getAvailablePathForAttachment(svgFilename, [], notePath);
+					await this.vault.create(svgPath, svgContent);
 
 					// Create markdown embed for the SVG
-					inkEmbedMarkdown = `\n\n![[${svgFilename}]]\n`;
+					inkEmbedMarkdown = `\n\n![[${svgPath}]]\n`;
 					progress.reportAttachmentSuccess(svgFilename);
 				}
 			}
@@ -547,7 +549,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			let taggedPage = this.convertTags(parseHTML(splitContent.html));
-			let html = await this.getAllAttachments(progress, taggedPage.replace(PARAGRAPH_REGEX, '<br />'));
+			let html = await this.getAllAttachments(progress, taggedPage.replace(PARAGRAPH_REGEX, '<br />'), notePath);
 			this.combineCodeBlocksAsNecessary(html);
 			this.styledElementToHTML(html);
 			this.convertInternalLinks(html);
@@ -813,7 +815,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Download all attachments and add embedding syntax for supported file formats.
-	async getAllAttachments(progress: ImportContext, pageHTML: string): Promise<HTMLElement> {
+	async getAllAttachments(progress: ImportContext, pageHTML: string, notePath: string): Promise<HTMLElement> {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
 
 		const objects: HTMLElement[] = pageElement.findAll('object');
@@ -838,7 +840,7 @@ export class OneNoteImporter extends FormatImporter {
 			else {
 				const originalName = object.getAttribute('data-attachment')!;
 				const contentLocation = object.getAttribute('data')!;
-				const filename = await this.fetchAttachment(progress, originalName, contentLocation);
+				const filename = await this.fetchAttachment(progress, originalName, contentLocation, notePath);
 
 				// Create a new <p> element with the Markdown-style link
 				const markdownLink = createEl('p');
@@ -856,7 +858,7 @@ export class OneNoteImporter extends FormatImporter {
 			const currentDate = moment().format('YYYYMMDDHHmmss');
 			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
 			const contentLocation = image.getAttribute('data-fullres-src')!;
-			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation);
+			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation, notePath);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
 				if (!image.alt || BASE64_REGEX.test(image.alt)) {
@@ -886,7 +888,7 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 
-	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string) {
+	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string, notePath: string) {
 		// Every 7 attachments, do a few second break to prevent rate limiting
 		if (this.attachmentsSinceBackOff === 7) {
 			this.attachmentsSinceBackOff = 0;
@@ -898,7 +900,7 @@ export class OneNoteImporter extends FormatImporter {
 
 		try {
 			// We don't need to remember claimedPaths because we're writing the attachments immediately.
-			const outputPath = await this.getAvailablePathForAttachment(filename, []);
+			const outputPath = await this.getAvailablePathForAttachment(filename, [], notePath);
 			const data = (await this.fetchResource(contentLocation, 'file', progress));
 			await this.app.vault.createBinary(outputPath, data);
 			progress.reportAttachmentSuccess(filename);

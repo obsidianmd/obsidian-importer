@@ -20,9 +20,10 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
-import { convertBlocksToMarkdown } from '../../src/formats/notion-api/block-converter';
+import { convertBlocksToMarkdown, convertSyncedBlock } from '../../src/formats/notion-api/block-converter';
 import type { BlockConversionContext } from '../../src/formats/notion-api/types';
 import { expectedFor, expectFile, fixtures } from '../helpers';
+import { MemoryVault, memoryApp } from '../shims/vault';
 
 const FIXTURES = __dirname;
 
@@ -109,4 +110,36 @@ test('writes one line between blocks when asked to', async () => {
 
 	assert.ok(tight.length < spaced.length, 'single line breaks should produce a shorter note');
 	assert.doesNotMatch(tight, /\n\n\n/);
+});
+
+test('creates synced-block notes through the importer-owned Markdown writer', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	const block = {
+		id: 'synced-id',
+		type: 'synced_block',
+		has_children: false,
+		synced_block: { synced_from: null },
+	};
+	let writtenPath = '';
+	const syncedContext = {
+		ctx: REPORTER,
+		client: { blocks: { retrieve: async () => block } },
+		currentFolderPath: 'Notion',
+		currentFilePath: 'Notion/Example.md',
+		currentPageTitle: 'Example',
+		downloadExternalAttachments: false,
+		syncedBlocksMap: new Map(),
+		vault,
+		app: memoryApp(vault),
+		writeMarkdownFile: async (path: string, content: string) => {
+			writtenPath = path;
+			return await vault.create(path, content) as never;
+		},
+	} as unknown as BlockConversionContext;
+
+	const link = await convertSyncedBlock(block as never, syncedContext);
+
+	assert.equal(writtenPath, 'Notion/Example synced block.md');
+	assert.equal(link, '![[Notion/Example synced block.md]]');
 });

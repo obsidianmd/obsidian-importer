@@ -16,7 +16,8 @@ export function convertTextbundleNote(mdContent: string, assetsFolderPath: strin
 		return mdContent;
 	}
 
-	return mdContent.replace(ASSET_LINK, `![[${assetsFolderPath}/$1]]`);
+	const prefix = assetsFolderPath && assetsFolderPath !== '/' ? `${assetsFolderPath}/` : '';
+	return mdContent.replace(ASSET_LINK, `![[${prefix}$1]]`);
 }
 
 export function groupFilesByTextbundle<T extends { fullpath: string }>(zipName: string, entries: T[]): T[][] {

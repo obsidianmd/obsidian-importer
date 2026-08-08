@@ -78,6 +78,40 @@ test('an attachment is given a free name too', async () => {
 	assert.equal(second.path, 'photo 1.jpg');
 });
 
+test('an attachment follows the vault subfolder setting relative to its note', async () => {
+	const { vault, subject } = importer();
+	await subject.createFolders('Imported/Nested');
+	vault.config.set('attachmentFolderPath', './media');
+
+	assert.equal(
+		await subject.getAvailablePathForAttachment('photo.jpg', [], 'Imported/Nested/Note.md'),
+		'Imported/Nested/media/photo.jpg'
+	);
+});
+
+test('Markdown finalization reports failures, restores status, and clears its run', async () => {
+	const vault = new MemoryVault();
+	const app = memoryApp(vault) as unknown as {
+		metadataCache?: { computeMetadataAsync: () => Promise<never> };
+	};
+	app.metadataCache = {
+		computeMetadataAsync: async () => { throw new Error('parser failed'); },
+	};
+	const subject = new WritingImporter(app as never, { sourceEl: null, optionsEl: null } as never);
+	await subject.createFile(vault.root, 'Note.md', 'body');
+	const ctx = new ImportContext();
+	ctx.status('Import complete');
+
+	await subject.finalizeMarkdownOutput(ctx);
+
+	assert.deepEqual(ctx.failed, ['Note.md']);
+	assert.equal(ctx.statusMessage, 'Import complete');
+
+	// The failed file belonged to the completed run and is not retried forever.
+	await subject.finalizeMarkdownOutput(ctx);
+	assert.deepEqual(ctx.failed, ['Note.md']);
+});
+
 test('a note keeps the extension it was given, and only that one', async () => {
 	// The title reaches saveAsMarkdownFile both with and without ".md", and a
 	// dotted title is a title rather than a name carrying an extension.

@@ -3,7 +3,7 @@ import { Notice, TFile, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { helpUrl } from '../constants';
-import { formattedMarkdown, modifyMarkdown } from '../markdown-output';
+import { standardizedMarkdown } from '../markdown-output';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
@@ -94,11 +94,9 @@ export class RoamJSONImporter extends FormatImporter {
 
 			const graphName = sanitizeFileName(file.basename);
 			const graphFolder = `${outputFolder.path}/${graphName}`;
-			const attachmentsFolder = `${outputFolder.path}/${graphName}/Attachments`;
 
 			// create the base graph folders
 			await this.createFolders(graphFolder);
-			await this.createFolders(attachmentsFolder);
 
 			// read the graph
 			const data = await file.readText();
@@ -139,15 +137,18 @@ export class RoamJSONImporter extends FormatImporter {
 					}
 				}
 
+				// The attachment resolver needs the note's real parent for `.` and
+				// `./subfolder` settings, including Roam titles that create folders.
+				await this.createFolders(parseFilePath(filename).parent);
 				const converter = this.newConverter();
-				const markdownOutput = await converter.jsonToMarkdown(graphFolder, attachmentsFolder, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
+				const markdownOutput = await converter.jsonToMarkdown(graphFolder, filename, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
 			}
 
 			// POST-PROCESS: fix block refs //
 			for (const callingBlock of toPostProcess.values()) {
 				const callingBlockStringScrubbed = await this.newConverter()
-					.roamMarkupScrubber(graphFolder, attachmentsFolder, callingBlock.blockString, true);
+					.roamMarkupScrubber(graphFolder, `${graphFolder}/${callingBlock.pageName}.md`, callingBlock.blockString, true);
 				const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
 
 				const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
@@ -189,13 +190,13 @@ export class RoamJSONImporter extends FormatImporter {
 							continue;
 						}
 
-						if (await vault.read(existingFile) === formattedMarkdown(vault, markdownOutput)) {
+						if (await vault.read(existingFile) === await standardizedMarkdown(this.app, filename, markdownOutput)) {
 							progress.reportSkipped(filename, 'page unchanged since last import');
 							index++;
 							continue;
 						}
 
-						await modifyMarkdown(vault, existingFile, markdownOutput);
+						await this.modifyMarkdown(existingFile, markdownOutput);
 					}
 					else {
 						await this.createFile(folder, name, markdownOutput);
@@ -355,7 +356,7 @@ export class RoamJSONImporter extends FormatImporter {
 		return processedString;
 	}
 
-	private async downloadFirebaseFile(line: string, attachmentsFolder: string): Promise<string> {
+	private async downloadFirebaseFile(line: string, sourcePath: string): Promise<string> {
 		const { progress, vault } = this;
 
 		let url = '';
@@ -381,15 +382,7 @@ export class RoamJSONImporter extends FormatImporter {
 				const firebaseShort = 'https://firebasestorage' + link[1];
 
 				let filename = decodeURIComponent(firebaseShort.split('/').last() || '');
-				if (filename) {
-					// Ensure the required subfolders exist
-					const filenameParts = filename.split('/');
-					if (filenameParts.length > 1) {
-						filenameParts.splice(-1, 1);
-						await this.createFolders(`${attachmentsFolder}/${filenameParts.join('/')}`);
-					}
-				}
-				else {
+				if (!filename) {
 					// If we can't find the filename, then generate one with a timestamp and the original extension.
 					const timestamp = Math.floor(Date.now() / 1000);
 					const extMatch = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
@@ -401,7 +394,7 @@ export class RoamJSONImporter extends FormatImporter {
 					filename = `${timestamp}.${extMatch[2]}`;
 				}
 
-				const newFilePath = `${attachmentsFolder}/${filename}`;
+				const newFilePath = await this.getAvailablePathForAttachment(filename, [], sourcePath);
 
 				const existingFile = vault.getAbstractFileByPath(newFilePath);
 				if (existingFile) {

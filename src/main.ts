@@ -398,7 +398,12 @@ export default class ImporterPlugin extends Plugin {
 		configure?.(importer);
 
 		const ctx = new ImportContext();
-		await importer.import(ctx);
+		try {
+			await importer.import(ctx);
+		}
+		finally {
+			await importer.finalizeMarkdownOutput(ctx);
+		}
 		return ctx;
 	}
 }
@@ -653,6 +658,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			await importer.import(ctx);
 		}
 		finally {
+			await importer.finalizeMarkdownOutput(ctx);
 			if (this.current === ctx) {
 				this.current = null;
 			}

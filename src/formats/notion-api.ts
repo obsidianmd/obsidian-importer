@@ -1,9 +1,8 @@
-import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions, Vault } from 'obsidian';
+import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
-import { createMarkdown, modifyMarkdown } from '../markdown-output';
 import { areAnySelected } from '../tree';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
@@ -660,7 +659,10 @@ export class NotionAPIImporter extends FormatImporter {
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
 					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
-				}
+				},
+				writeMarkdownFile: async (path: string, content: string) => {
+					return await this.createMarkdown(path, content);
+				},
 			});
 
 			// Process database placeholders
@@ -761,7 +763,10 @@ export class NotionAPIImporter extends FormatImporter {
 							// Pass mdFilePath so attachments are placed relative to the actual page file
 							getAvailableAttachmentPath: async (filename: string) => {
 								return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
-							}
+							},
+							writeMarkdownFile: async (path: string, content: string) => {
+								return await this.createMarkdown(path, content);
+							},
 						}
 					);
 
@@ -822,7 +827,7 @@ export class NotionAPIImporter extends FormatImporter {
 					const options: DataWriteOptions = {};
 					if (page.created_time) options.ctime = new Date(page.created_time).getTime();
 					if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
-					await createMarkdown(this.vault, normalizePath(finalPath), fullContent, options);
+					await this.createMarkdown(normalizePath(finalPath), fullContent, options);
 				}
 				catch (error) {
 					console.error(`[CREATE FILE] Failed to create file: ${finalPath}`);
@@ -954,7 +959,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Write back to file if content changed
 				if (newContent !== content) {
-					await modifyFilePreservingTimestamps(this.vault, pageFile, newContent);
+					await this.modifyPreservingTimestamps(pageFile, newContent);
 				}
 			}
 			catch (error) {
@@ -1126,7 +1131,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await modifyFilePreservingTimestamps(this.vault, sourceFile, content);
+					await this.modifyPreservingTimestamps(sourceFile, content);
 					filesModified++;
 				}
 			}
@@ -1213,7 +1218,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await modifyFilePreservingTimestamps(this.vault, file, content);
+					await this.modifyPreservingTimestamps(file, content);
 					filesModified++;
 				}
 			}
@@ -1277,7 +1282,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Save the file if it was modified
 				if (content !== originalContent) {
-					await modifyFilePreservingTimestamps(this.vault, file, content);
+					await this.modifyPreservingTimestamps(file, content);
 					filesModified++;
 				}
 			}
@@ -1478,6 +1483,13 @@ export class NotionAPIImporter extends FormatImporter {
 		return getUniqueFilePath(this.vault, parentPath, fileName);
 	}
 
+	private async modifyPreservingTimestamps(file: TFile, content: string): Promise<void> {
+		await this.modifyMarkdown(file, content, {
+			mtime: file.stat.mtime,
+			ctime: file.stat.ctime,
+		});
+	}
+
 	/**
 	 * Clean up notion-id from all imported files' frontmatter
 	 * This is called ONLY at the end of FULL import (not incremental import)
@@ -1538,7 +1550,10 @@ export class NotionAPIImporter extends FormatImporter {
 				);
 
 				// Write back to file
-				await modifyFilePreservingTimestamps(this.vault, file, newContent);
+				await this.modifyMarkdown(file, newContent, {
+					mtime: file.stat.mtime,
+					ctime: file.stat.ctime,
+				});
 			}
 			catch (error) {
 				console.error(`Failed to clean notion-id from file: ${filePath}`, error);
@@ -1550,8 +1565,4 @@ export class NotionAPIImporter extends FormatImporter {
 			console.warn(`⚠️ Failed to clean notion-id from ${plural(failedCount, 'file')}`);
 		}
 	}
-}
-
-function modifyFilePreservingTimestamps(vault: Vault, file: TFile, newContent: string): Promise<void> {
-	return modifyMarkdown(vault, file, newContent, { mtime: file.stat.mtime, ctime: file.stat.ctime });
 }

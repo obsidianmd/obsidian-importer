@@ -3,7 +3,7 @@ import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { getMarkdownOutput, YarleOptions } from './options';
+import { getMarkdownOutput, trackMarkdownWrite, YarleOptions } from './options';
 import { processNode } from './process-node';
 import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
@@ -188,6 +188,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
 
 					fs.writeFileSync(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
+					trackMarkdownWrite(currentNotePath);
 				}
 			}
 		});

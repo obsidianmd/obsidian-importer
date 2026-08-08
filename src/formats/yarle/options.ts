@@ -4,6 +4,7 @@ import type { MarkdownOutput } from '../../markdown-output';
 
 /** Set by the importer, because yarle's writes never reach createMarkdown. */
 let markdownOutput: MarkdownOutput = { indentUnit: '    ' };
+let markdownTracker: ((absolutePath: string) => void) | null = null;
 
 export function setMarkdownOutput(output: MarkdownOutput): void {
 	markdownOutput = output;
@@ -11,6 +12,14 @@ export function setMarkdownOutput(output: MarkdownOutput): void {
 
 export function getMarkdownOutput(): MarkdownOutput {
 	return markdownOutput;
+}
+
+export function setMarkdownTracker(tracker: ((absolutePath: string) => void) | null): void {
+	markdownTracker = tracker;
+}
+
+export function trackMarkdownWrite(absolutePath: string): void {
+	markdownTracker?.(absolutePath);
 }
 
 export interface YarleOptions {

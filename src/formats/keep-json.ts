@@ -23,6 +23,8 @@ export class KeepImporter extends FormatImporter {
 
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
+	private attachmentPaths = new Map<string, string>();
+	private claimedAttachmentPaths: string[] = [];
 
 	init() {
 		this.addSetting('source')
@@ -74,28 +76,37 @@ export class KeepImporter extends FormatImporter {
 			new Notice('Please select a location to import your files to.');
 			return;
 		}
-		let assetFolderPath = `${folder.path}/Assets`;
+		await this.handleFiles(files, folder, ctx);
+	}
 
-		for (let file of files) {
+	async handleFiles(files: PickedFile[], folder: TFolder, ctx: ImportContext): Promise<void> {
+		// Attachments first, so note links can point at their final collision-free paths.
+		for (const file of files) {
 			if (await ctx.shouldStop()) return;
-			await this.handleFile(file, folder, assetFolderPath, ctx);
+			if (!ATTACHMENT_EXTS.contains(file.extension)) continue;
+			try {
+				await this.importAttachment(file, folder, ctx);
+			}
+			catch (error) {
+				ctx.reportFailed(file.fullpath, error);
+			}
+		}
+
+		for (const file of files) {
+			if (await ctx.shouldStop()) return;
+			if (!ATTACHMENT_EXTS.contains(file.extension)) await this.handleFile(file, folder, ctx);
 		}
 	}
 
-	async handleFile(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
+	async handleFile(file: PickedFile, folder: TFolder, ctx: ImportContext) {
 		let { fullpath, name, extension } = file;
 		ctx.status('Processing ' + name);
 		try {
 			if (extension === 'zip') {
-				await this.readZipEntries(file, folder, assetFolderPath, ctx);
+				await this.readZipEntries(file, folder, ctx);
 			}
 			else if (extension === 'json') {
 				await this.importKeepNote(file, folder, ctx);
-			}
-			else if (ATTACHMENT_EXTS.contains(extension)) {
-				ctx.status('Importing attachment ' + name);
-				await this.copyFile(file, assetFolderPath);
-				ctx.reportAttachmentSuccess(fullpath);
 			}
 			// Don't mention skipped files when parsing zips, because
 			else if (!(file instanceof ZipEntryFile) && !ZIP_IGNORED_EXTS.contains(extension)) {
@@ -107,12 +118,9 @@ export class KeepImporter extends FormatImporter {
 		}
 	}
 
-	async readZipEntries(file: PickedFile, folder: TFolder, assetFolderPath: string, ctx: ImportContext) {
+	async readZipEntries(file: PickedFile, folder: TFolder, ctx: ImportContext) {
 		await readZip(file, async (zip, entries) => {
-			for (let entry of entries) {
-				if (await ctx.shouldStop()) return;
-				await this.handleFile(entry, folder, assetFolderPath, ctx);
-			}
+			await this.handleFiles(entries, folder, ctx);
 		});
 	}
 
@@ -140,14 +148,25 @@ export class KeepImporter extends FormatImporter {
 		ctx.reportNoteSuccess(fullpath);
 	}
 
-	async copyFile(file: PickedFile, folderPath: string) {
-		let assetFolder = await this.createFolders(folderPath);
-		let data = await file.read();
-		await this.createBinaryFile(assetFolder, file.name, data);
+	async importAttachment(file: PickedFile, folder: TFolder, ctx: ImportContext): Promise<void> {
+		ctx.status('Importing attachment ' + file.name);
+		const notePath = `${folder.path}/Keep.md`;
+		const outputPath = await this.getAvailablePathForAttachment(file.name, this.claimedAttachmentPaths, notePath);
+		this.claimedAttachmentPaths.push(outputPath);
+		await this.vault.createBinary(outputPath, await file.read());
+		this.attachmentPaths.set(file.name, outputPath);
+		this.attachmentPaths.set(file.fullpath, outputPath);
+		ctx.reportAttachmentSuccess(file.fullpath);
 	}
 
 	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
-		const { content, ctime, mtime } = convertKeepNote(keepJson, filename);
+		const strictLineBreaks = this.vault.getConfig('strictLineBreaks') === true;
+		const { content, ctime, mtime } = convertKeepNote(
+			keepJson,
+			filename,
+			strictLineBreaks,
+			sourcePath => this.attachmentPaths.get(sourcePath) ?? this.attachmentPaths.get(sourcePath.split('/').pop() ?? '') ?? sourcePath
+		);
 		await this.saveAsMarkdownFile(folder, filename, content, { ctime, mtime });
 	}
 }

@@ -9,7 +9,8 @@ import '../shims/runtime';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatMarkdown } from '../../src/markdown-output';
+import { formatMarkdown, standardizedMarkdown, standardizeMarkdownFile } from '../../src/markdown-output';
+import { MemoryVault } from '../shims/vault';
 
 const TABS = { indentUnit: '\t' };
 const SPACES = { indentUnit: '    ' };
@@ -273,6 +274,57 @@ test('restores the parent item before recognizing its indented code', () => {
 		'',
 		'      * literal',
 	].join('\n'));
+});
+
+test('writes resolved links with Obsidian link settings after targets exist', async () => {
+	const markdown = 'See [[Folder/Target#Heading|label]] and ![[assets/image.png]].';
+	const link = '[[Folder/Target#Heading|label]]';
+	const embed = '![[assets/image.png]]';
+	const at = (text: string) => {
+		const start = markdown.indexOf(text);
+		return { start: { offset: start }, end: { offset: start + text.length } };
+	};
+	const target = { path: 'Folder/Target.md' };
+	const image = { path: 'assets/image.png' };
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => ({
+				links: [{ link: 'Folder/Target#Heading', displayText: 'label', position: at(link) }],
+				embeds: [{ link: 'assets/image.png', position: at(embed) }],
+			}),
+			getFirstLinkpathDest: (path: string) => path === 'Folder/Target' ? target : image,
+		},
+		fileManager: {
+			generateMarkdownLink: (file: typeof target, _source: string, subpath = '', alias = '') =>
+				`[${alias}](${file.path}${subpath})`,
+		},
+	} as never;
+
+	assert.equal(await standardizedMarkdown(app, 'Imported/Note.md', markdown),
+		'See [label](Folder/Target.md#Heading) and ![](assets/image.png).');
+});
+
+test('does not apply cached link offsets to newly formatted content', async () => {
+	const vault = new MemoryVault();
+	vault.config.set('useTab', true);
+	const file = await vault.create('Note.md', '- one\n    - two\n\nSee [[Target]].');
+	let readStaleCache = false;
+	const app = {
+		vault,
+		metadataCache: {
+			getFileCache: () => {
+				readStaleCache = true;
+				return { links: [{ link: 'Target', position: { start: { offset: 27 }, end: { offset: 37 } } }] };
+			},
+		},
+		fileManager: {},
+	} as never;
+
+	await standardizeMarkdownFile(app, file as never);
+
+	assert.equal(await vault.read(file), '- one\n\t- two\n\nSee [[Target]].');
+	assert.equal(readStaleCache, false);
 });
 
 test('a blank line does not end a fence inside a list item', () => {

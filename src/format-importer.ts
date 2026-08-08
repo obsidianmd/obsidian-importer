@@ -4,7 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
-import { formatMarkdown, markdownOutputFor } from './markdown-output';
+import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -47,6 +47,9 @@ export abstract class FormatImporter {
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
+
+	/** Markdown written by this run, for the post-import Obsidian link pass. */
+	private markdownFiles = new Set<string>();
 
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
@@ -414,10 +417,9 @@ export abstract class FormatImporter {
 		if (sourcePath) {
 			const { parent } = parseFilePath(sourcePath);
 			if (parent) {
-				const parentFolder = this.vault.getAbstractFileByPath(normalizePath(parent));
-				if (parentFolder instanceof TFolder) {
-					sourceFile = { parent: parentFolder };
-				}
+				const existing = this.vault.getAbstractFileByPath(normalizePath(parent));
+				const parentFolder = existing instanceof TFolder ? existing : await this.createFolders(parent);
+				sourceFile = { parent: parentFolder };
 			}
 		}
 
@@ -466,6 +468,92 @@ export abstract class FormatImporter {
 
 	abstract import(ctx: ImportContext): Promise<void>;
 
+	/**
+	 * Apply settings that need the whole import to exist, notably shortest and
+	 * relative links. Called by both interactive and scripted import entrypoints.
+	 */
+	async finalizeMarkdownOutput(ctx?: ImportContext): Promise<void> {
+		const previousStatus = ctx?.statusMessage ?? '';
+		try {
+			if (this.markdownFiles.size > 0) ctx?.status('Waiting for imported Markdown…');
+			await this.waitForExternalMarkdownWrites();
+
+			const total = this.markdownFiles.size;
+			let current = 0;
+			for (const path of this.markdownFiles) {
+				ctx?.status(`Standardizing Markdown (${++current}/${total})`);
+				const file = this.vault.getAbstractFileByPath(path);
+				if (!(file instanceof TFile)) {
+					const error = new Error('The imported file did not appear in the vault.');
+					if (ctx) ctx.reportFailed(path, error);
+					else console.error(`Failed to standardize Markdown links in: ${path}`, error);
+					continue;
+				}
+				try {
+					await standardizeMarkdownFile(this.app, file);
+				}
+				catch (error) {
+					if (ctx) ctx.reportFailed(file.path, error);
+					else console.error(`Failed to standardize Markdown links in: ${file.path}`, error);
+				}
+			}
+		}
+		catch (error) {
+			if (ctx) ctx.reportFailed('Markdown finalization', error);
+			else console.error('Failed to finalize imported Markdown', error);
+		}
+		finally {
+			this.markdownFiles.clear();
+			if (ctx) ctx.status(previousStatus);
+		}
+	}
+
+	/** Direct filesystem writers arrive in Vault through its watcher. */
+	private async waitForExternalMarkdownWrites(): Promise<void> {
+		const missing = new Set([...this.markdownFiles]
+			.filter(path => !(this.vault.getAbstractFileByPath(path) instanceof TFile)));
+		if (missing.size === 0) return;
+
+		await new Promise<void>(resolve => {
+			let settled = false;
+			const finish = () => {
+				if (settled) return;
+				settled = true;
+				this.vault.offref(ref);
+				window.clearTimeout(timeout);
+				resolve();
+			};
+			const ref = this.vault.on('create', file => {
+				missing.delete(file.path);
+				if (missing.size === 0) finish();
+			});
+			const timeout = window.setTimeout(finish, 2_000);
+
+			// Close the race between the first check and registering the listener.
+			for (const path of missing) {
+				if (this.vault.getAbstractFileByPath(path) instanceof TFile) missing.delete(path);
+			}
+			if (missing.size === 0) finish();
+		});
+	}
+
+	/** Register Markdown written outside createFile (for example by Yarle). */
+	trackMarkdownFile(file: TFile | string): void {
+		const path = typeof file === 'string' ? normalizePath(file) : file.path;
+		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
+	}
+
+	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
+		const file = await createMarkdown(this.vault, path, content, options);
+		this.trackMarkdownFile(file);
+		return file;
+	}
+
+	async modifyMarkdown(file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
+		await modifyMarkdown(this.vault, file, content, options);
+		this.trackMarkdownFile(file);
+	}
+
 	// Utility functions for vault
 
 	sanitizeFilePath(path: string): string {
@@ -500,7 +588,9 @@ export abstract class FormatImporter {
 			content = formatMarkdown(content, markdownOutputFor(this.vault));
 		}
 
-		return await this.vault.create(path, content, options);
+		const file = await this.vault.create(path, content, options);
+		this.trackMarkdownFile(file);
+		return file;
 	}
 
 	protected sourceIdIn(content: string, idProperty: string): string | null {

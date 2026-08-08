@@ -1,10 +1,10 @@
-import { FileSystemAdapter, Notice } from 'obsidian';
+import { FileSystemAdapter, normalizePath, Notice } from 'obsidian';
 import { helpUrl } from '../constants';
 import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
-import { setMarkdownOutput } from './yarle/options';
+import { setMarkdownOutput, setMarkdownTracker } from './yarle/options';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 const HELP_PERMALINK = 'import/evernote';
@@ -52,6 +52,14 @@ export class EvernoteEnexImporter extends FormatImporter {
 			},
 		};
 
-		await dropTheRope(yarleOptions, ctx);
+		setMarkdownTracker(absolutePath => {
+			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
+		});
+		try {
+			await dropTheRope(yarleOptions, ctx);
+		}
+		finally {
+			setMarkdownTracker(null);
+		}
 	}
 }

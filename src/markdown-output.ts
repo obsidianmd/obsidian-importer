@@ -5,7 +5,8 @@
  * and the vault's preferences are applied here instead, so the same note does
  * not import differently depending on where it came from.
  */
-import { DataWriteOptions, TFile, Vault } from 'obsidian';
+import { App, CachedMetadata, DataWriteOptions, parseLinktext, TFile, Vault } from 'obsidian';
+import { stringToUtf8 } from './util';
 
 export interface MarkdownOutput {
 	indentUnit: string;
@@ -48,6 +49,66 @@ export async function createMarkdown(vault: Vault, path: string, content: string
 
 export async function modifyMarkdown(vault: Vault, file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
 	return await vault.modify(file, formattedMarkdown(vault, content), options);
+}
+
+type MarkdownChange = { from: number, to: number, text: string };
+
+/**
+ * Write resolvable vault links the same way Obsidian's editor creates them.
+ *
+ * Converters may naturally emit either wikilinks or Markdown links. Waiting
+ * until the import is complete means their targets exist, so Obsidian can
+ * apply both `useMarkdownLinks` and `newLinkFormat` without each converter
+ * having to reproduce link resolution itself.
+ */
+export async function standardizedMarkdown(app: App, sourcePath: string, content: string): Promise<string> {
+	content = formattedMarkdown(app.vault, content);
+	return await standardizeLinks(app, sourcePath, content);
+}
+
+async function standardizeLinks(app: App, sourcePath: string, content: string): Promise<string> {
+	const cache = await computeMetadata(app, content);
+	if (!cache) return content;
+
+	const changes: MarkdownChange[] = [];
+	for (const { reference, embed } of [
+		...(cache.links ?? []).map(reference => ({ reference, embed: false })),
+		...(cache.embeds ?? []).map(reference => ({ reference, embed: true })),
+	]) {
+		const { path, subpath } = parseLinktext(reference.link);
+		const target = app.metadataCache.getFirstLinkpathDest(path, sourcePath);
+		if (!target) continue;
+
+		let text = app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
+		if (embed) text = '!' + text;
+		changes.push({ from: reference.position.start.offset, to: reference.position.end.offset, text });
+	}
+
+	changes.sort((a, b) => b.from - a.from);
+	for (const change of changes) {
+		content = content.slice(0, change.from) + change.text + content.slice(change.to);
+	}
+
+	return content;
+}
+
+/** Standardize an imported file without changing its imported timestamps. */
+export async function standardizeMarkdownFile(app: App, file: TFile): Promise<void> {
+	const original = await app.vault.read(file);
+	const standardized = await standardizeLinks(app, file.path, formattedMarkdown(app.vault, original));
+	if (standardized === original) return;
+
+	await app.vault.modify(file, standardized, { ctime: file.stat.ctime, mtime: file.stat.mtime });
+}
+
+async function computeMetadata(app: App, content: string): Promise<CachedMetadata | null> {
+	const cache = app.metadataCache as typeof app.metadataCache & {
+		computeMetadataAsync?: (content: ArrayBuffer) => Promise<CachedMetadata>;
+	};
+
+	return cache.computeMetadataAsync
+		? await cache.computeMetadataAsync(stringToUtf8(content))
+		: null;
 }
 
 /**

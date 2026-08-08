@@ -99,15 +99,6 @@ export class Bear2bkImporter extends FormatImporter {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status('Importing note ' + mdFilename);
-							const { content: mdContent, tags } = await convertBearNote(await entry.readText(), {
-								basename: mdFilename,
-								parent,
-								flattenTags: this.flattenTags,
-								resolveAsset: assetPath => this.getAttachmentStoragePath(assetPath),
-							});
-
-							// Use just the filename without extension
-							const fileName = mdFilename;
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archivedtime !== undefined) {
@@ -116,6 +107,16 @@ export class Bear2bkImporter extends FormatImporter {
 							else if (metadata?.trashedtime !== undefined) {
 								targetFolder = trashFolder;
 							}
+							const notePath = normalizePath(`${targetFolder.path}/${mdFilename}.md`);
+							const { content: mdContent, tags } = await convertBearNote(await entry.readText(), {
+								basename: mdFilename,
+								parent,
+								flattenTags: this.flattenTags,
+								resolveAsset: assetPath => this.getAttachmentStoragePath(assetPath, notePath),
+							});
+
+							// Use just the filename without extension
+							const fileName = mdFilename;
 
 							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
 
@@ -136,7 +137,14 @@ export class Bear2bkImporter extends FormatImporter {
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + entry.name);
-							const outputPath = await this.getAttachmentStoragePath(entry.filepath);
+							const noteParent = filepath.slice(0, filepath.indexOf('/assets/'));
+							const noteMetadata = metadataLookup[noteParent];
+							const noteFolder = noteMetadata?.archivedtime !== undefined
+								? archiveFolder
+								: noteMetadata?.trashedtime !== undefined ? trashFolder : outputFolder;
+							const noteName = parseFilePath(noteParent).basename;
+							const notePath = normalizePath(`${noteFolder.path}/${noteName}.md`);
+							const outputPath = await this.getAttachmentStoragePath(entry.filepath, notePath);
 							const assetData = await entry.read();
 
 							const writeOptions: DataWriteOptions = {};
@@ -259,7 +267,7 @@ export class Bear2bkImporter extends FormatImporter {
 	 * with other assets existing in the vault or named using this function,
 	 * even if the file has not yet been created.
 	 */
-	private async getAttachmentStoragePath(attachmentPath: string): Promise<string> {
+	private async getAttachmentStoragePath(attachmentPath: string, sourcePath?: string): Promise<string> {
 		const normalizedPath = normalizePath(attachmentPath);
 
 		if (this.attachmentMap[normalizedPath]) {
@@ -267,7 +275,7 @@ export class Bear2bkImporter extends FormatImporter {
 		}
 
 		const usedPaths = Object.values(this.attachmentMap);
-		let outputPath = await this.getAvailablePathForAttachment(normalizedPath, usedPaths);
+		let outputPath = await this.getAvailablePathForAttachment(normalizedPath, usedPaths, sourcePath);
 		// Colons are not allowed in Obsidian file paths.
 		outputPath = outputPath.replace(/:/g, '');
 		this.attachmentMap[normalizedPath] = outputPath;

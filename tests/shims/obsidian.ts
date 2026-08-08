@@ -54,6 +54,7 @@ const _stringifyYaml: RealApi['stringifyYaml'] = stringifyYaml;
 const _parseYaml: RealApi['parseYaml'] = parseYaml;
 const _normalizePath: RealApi['normalizePath'] = normalizePath;
 const _htmlToMarkdown: RealApi['htmlToMarkdown'] = htmlToMarkdown;
+const _parseLinktext: RealApi['parseLinktext'] = parseLinktext;
 
 export function parseYaml(text: string): unknown {
 	return yaml.parse(text);
@@ -179,6 +180,13 @@ export function normalizePath(path: string): string {
 		.replace(/([\\/])+/g, '/')
 		.replace(/(^\/+|\/+$)/g, '');
 	return normalized === '' ? '/' : normalized;
+}
+
+export function parseLinktext(linktext: string): { path: string, subpath: string } {
+	const hash = linktext.indexOf('#');
+	return hash === -1
+		? { path: linktext, subpath: '' }
+		: { path: linktext.slice(0, hash), subpath: linktext.slice(hash) };
 }
 
 /**

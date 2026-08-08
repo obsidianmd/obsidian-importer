@@ -8,7 +8,6 @@ import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
-import { createMarkdown } from '../markdown-output';
 import { areAnySelected, selectedNodes } from '../tree';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
@@ -1187,7 +1186,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		await createMarkdown(this.vault, filePath, content);
+		await this.createMarkdown(filePath, content);
 
 		ctx.reportNoteSuccess(title);
 

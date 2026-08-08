@@ -74,8 +74,24 @@ export class MemoryVault {
 	 * root, whatever note the attachment belongs to, which is why the note it
 	 * came with is not asked about here.
 	 */
-	async getAvailablePathForAttachments(basename: string, extension: string): Promise<string> {
-		return this.getAvailablePath(basename, extension);
+	async getAvailablePathForAttachments(
+		basename: string,
+		extension: string,
+		currentFile?: { parent: TFolder } | null
+	): Promise<string> {
+		let folderPath = String(this.config.get('attachmentFolderPath') ?? '/');
+		if (folderPath === '.' || folderPath === './') {
+			folderPath = currentFile?.parent.path ?? '';
+		}
+		else if (folderPath.startsWith('./')) {
+			const parent = currentFile?.parent.path ?? '';
+			folderPath = normalizePath(`${parent}/${folderPath.slice(2)}`);
+		}
+
+		if (folderPath === '/') folderPath = '';
+		if (folderPath && !this.getAbstractFileByPathInsensitive(folderPath)) await this.createFolder(folderPath);
+		const prefix = folderPath ? `${folderPath}/` : '';
+		return this.getAvailablePath(prefix + basename, extension);
 	}
 
 	async createFolder(path: string): Promise<TFolder> {

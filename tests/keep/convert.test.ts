@@ -72,3 +72,13 @@ test('converts microseconds to the milliseconds the vault wants', () => {
 	assert.equal(ctime, 1690425909718);
 	assert.equal(mtime, 1690864927360);
 });
+
+test('preserves Keep line breaks when the vault uses strict Markdown line breaks', () => {
+	const { content } = convertKeepNote({
+		textContent: 'first\nsecond\n\nthird',
+		createdTimestampUsec: 0,
+		userEditedTimestampUsec: 0,
+	} as KeepJson, 'note', true);
+
+	assert.ok(content.endsWith('\nfirst  \nsecond  \n  \nthird'));
+});

@@ -40,7 +40,8 @@ export class TextbundleImporter extends FormatImporter {
 			return;
 		}
 
-		this.attachmentsFolderPath = await this.createFolders(`${folder.path}/assets`);
+		const attachmentProbe = await this.getAvailablePathForAttachment('attachment', [], `${folder.path}/Textbundle.md`);
+		this.attachmentsFolderPath = await this.createFolders(parseFilePath(attachmentProbe).parent);
 
 		for (let file of files) {
 			if (await progress.shouldStop()) return;
@@ -128,10 +129,11 @@ export class TextbundleImporter extends FormatImporter {
 			return;
 		}
 
-		let assetFileVaultPath = `${this.attachmentsFolderPath.path}/${entry.name}`;
+		let assetFileVaultPath = normalizePath(`${this.attachmentsFolderPath.path}/${entry.name}`);
 		let existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 		if (existingFile) {
 			progress.reportSkipped(entry.name, 'the file already exists.');
+			return;
 		}
 
 		let assetData = await entry.read();

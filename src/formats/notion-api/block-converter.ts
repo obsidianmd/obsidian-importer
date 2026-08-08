@@ -9,7 +9,6 @@ import {
 } from '@notionhq/client';
 import { normalizePath, TFile } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
-import { createMarkdown } from '../../markdown-output';
 import { sanitizeFileName } from '../../util';
 import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
@@ -766,7 +765,7 @@ async function createSyncedBlockFile(
 		}
 	
 		// Create the file
-		await createMarkdown(vault, filePath, markdown);
+		await context.writeMarkdownFile(filePath, markdown);
 		
 		
 		return filePath;
@@ -1394,4 +1393,3 @@ function convertMention(richText: any, context?: BlockConversionContext): string
 		}
 	}
 }
-

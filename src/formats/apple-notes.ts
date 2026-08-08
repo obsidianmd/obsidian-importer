@@ -6,7 +6,6 @@ import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
-import { modifyMarkdown } from '../markdown-output';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
@@ -550,7 +549,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
 
-		await modifyMarkdown(this.vault, file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
+		await this.modifyMarkdown(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
@@ -682,7 +681,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
 			// First resolve the configured folder, then check the unsuffixed name there.
-			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
+			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
+			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
 			const { parent } = parseFilePath(uniqueAttachmentPath);
 			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
 
@@ -704,7 +704,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
-			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
+			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
 
 			file = await this.vault.createBinary(
 				attachmentPath, nodeBufferToArrayBuffer(binary),

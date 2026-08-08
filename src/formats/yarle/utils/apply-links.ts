@@ -2,6 +2,7 @@ import { fs, path } from '../../../filesystem';
 
 import { YarleOptions } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
+import { trackMarkdownWrite } from '../options';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { truncatFileName } from './folder-utils';
 import { getAllOutputFilesWithExtension } from './get-all-output-files';
@@ -52,9 +53,9 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 
 			if (fileContent !== updatedContent) {
 				fs.writeFileSync(filepath, updatedContent);
+				trackMarkdownWrite(filepath);
 			}
 		}
 	}
 
 };
-

@@ -28,7 +28,12 @@ function collectTags(keepJson: KeepJson): string[] {
 	return tags;
 }
 
-export function convertKeepNote(keepJson: KeepJson, filename: string): ConvertedKeepNote {
+export function convertKeepNote(
+	keepJson: KeepJson,
+	filename: string,
+	strictLineBreaks = false,
+	resolveAttachment: (sourcePath: string) => string = sourcePath => sourcePath
+): ConvertedKeepNote {
 	const frontMatter: FrontMatterCache = {};
 
 	if (keepJson.title) {
@@ -42,7 +47,9 @@ export function convertKeepNote(keepJson: KeepJson, filename: string): Converted
 	const parts: string[] = [serializeFrontMatter(frontMatter)];
 
 	if (keepJson.textContent) {
-		parts.push('\n', sanitizeTags(keepJson.textContent));
+		let text = sanitizeTags(keepJson.textContent);
+		if (strictLineBreaks) text = text.replace(/(?<! {2})\r?\n/g, '  \n');
+		parts.push('\n', text);
 	}
 
 	if (keepJson.listContent) {
@@ -56,7 +63,7 @@ export function convertKeepNote(keepJson: KeepJson, filename: string): Converted
 	if (keepJson.attachments) {
 		parts.push('\n\n');
 		for (const attachment of keepJson.attachments) {
-			parts.push(`![[${attachment.filePath}]]`);
+			parts.push(`![[${resolveAttachment(attachment.filePath)}]]`);
 		}
 	}
 
