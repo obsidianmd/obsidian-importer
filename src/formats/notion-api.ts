@@ -3,6 +3,7 @@ import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
+import { createMarkdown, modifyMarkdown } from '../markdown-output';
 import { areAnySelected } from '../tree';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
@@ -821,7 +822,7 @@ export class NotionAPIImporter extends FormatImporter {
 					const options: DataWriteOptions = {};
 					if (page.created_time) options.ctime = new Date(page.created_time).getTime();
 					if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
-					await this.vault.create(normalizePath(finalPath), fullContent, options);
+					await createMarkdown(this.vault, normalizePath(finalPath), fullContent, options);
 				}
 				catch (error) {
 					console.error(`[CREATE FILE] Failed to create file: ${finalPath}`);
@@ -1552,5 +1553,5 @@ export class NotionAPIImporter extends FormatImporter {
 }
 
 function modifyFilePreservingTimestamps(vault: Vault, file: TFile, newContent: string): Promise<void> {
-	return vault.modify(file, newContent, { mtime: file.stat.mtime, ctime: file.stat.ctime });
+	return modifyMarkdown(vault, file, newContent, { mtime: file.stat.mtime, ctime: file.stat.ctime });
 }

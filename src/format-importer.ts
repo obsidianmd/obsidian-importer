@@ -4,6 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
+import { formatMarkdown, markdownOutputFor } from './markdown-output';
 import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -494,6 +495,10 @@ export abstract class FormatImporter {
 
 	async createFile(folder: TFolder, fileName: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
+
+		if (path.toLowerCase().endsWith('.md')) {
+			content = formatMarkdown(content, markdownOutputFor(this.vault));
+		}
 
 		return await this.vault.create(path, content, options);
 	}

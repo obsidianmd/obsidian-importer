@@ -1,5 +1,17 @@
 import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
+import type { MarkdownOutput } from '../../markdown-output';
+
+/** Set by the importer, because yarle's writes never reach createMarkdown. */
+let markdownOutput: MarkdownOutput = { indentUnit: '    ' };
+
+export function setMarkdownOutput(output: MarkdownOutput): void {
+	markdownOutput = output;
+}
+
+export function getMarkdownOutput(): MarkdownOutput {
+	return markdownOutput;
+}
 
 export interface YarleOptions {
 	enexSources: PickedFile[];

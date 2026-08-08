@@ -6,6 +6,7 @@ import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { modifyMarkdown } from '../markdown-output';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
@@ -549,7 +550,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
 
-		await this.vault.modify(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
+		await modifyMarkdown(this.vault, file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});

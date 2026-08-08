@@ -95,3 +95,22 @@ test('a title a file name cannot hold is sanitized before the name is picked', a
 
 	assert.equal(file.path, 'Q1-Q2 plan.md');
 });
+
+/** The pass is checked in tests/markdown-output; this is that the write reaches it. */
+test('markdown is written with the indent the vault uses', async () => {
+	const { vault, subject } = importer();
+	vault.config.set('useTab', true);
+
+	const file = await subject.saveAsMarkdownFile(vault.root, 'Outline', '- one\n    - two');
+
+	assert.equal(await vault.read(file), '- one\n\t- two');
+});
+
+test('a file that is not markdown is written as it was given', async () => {
+	const { vault, subject } = importer();
+	vault.config.set('useTab', true);
+
+	const file = await subject.createFile(vault.root, 'View.base', 'views:\n    - type: table');
+
+	assert.equal(await vault.read(file), 'views:\n    - type: table');
+});

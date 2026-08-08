@@ -4,6 +4,7 @@ import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import type { ImportContext } from '../import-context';
+import { createMarkdown, formattedMarkdown, modifyMarkdown } from '../markdown-output';
 import { sanitizeFileName } from '../util';
 import { convertJournalEntry } from './apple-journal/convert';
 
@@ -104,17 +105,17 @@ export class AppleJournalImporter extends FormatImporter {
 
 			if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
 				const existingContent = await this.vault.read(existingFile);
-				if (existingContent === mdContent) {
+				if (existingContent === formattedMarkdown(this.vault, mdContent)) {
 					ctx.reportSkipped(file.fullpath, 'journal entry unchanged since last import');
 					return false;
 				}
 			}
 
-			await this.vault.modify(existingFile, mdContent);
+			await modifyMarkdown(this.vault, existingFile, mdContent);
 			return true;
 		}
 
-		await this.vault.create(fullPath, mdContent);
+		await createMarkdown(this.vault, fullPath, mdContent);
 		return true;
 	}
 }

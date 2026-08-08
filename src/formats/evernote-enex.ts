@@ -1,8 +1,10 @@
 import { FileSystemAdapter, Notice } from 'obsidian';
 import { helpUrl } from '../constants';
 import { path } from '../filesystem';
+import { markdownOutputFor } from '../markdown-output';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { setMarkdownOutput } from './yarle/options';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
 const HELP_PERMALINK = 'import/evernote';
@@ -38,6 +40,9 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let { app } = this;
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
+
+		// yarle writes its own files rather than through the vault
+		setMarkdownOutput(markdownOutputFor(app.vault));
 
 		let yarleOptions = {
 			...defaultYarleOptions,
