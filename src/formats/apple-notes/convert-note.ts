@@ -364,6 +364,16 @@ export class NoteConverter extends ANConverter {
 		// Escape square brackets.
 		attr.fragment = attr.fragment.replace(/([[\]])/g, '\\$1');
 
+		// And a hash Obsidian would read as a tag: one starting a word, with a
+		// non-digit somewhere in what follows. Apple marks a real tag as an
+		// attachment, so a hash left in the text is not one (#471).
+		//
+		// Narrow on purpose. "C#" keeps its hash because a tag has to start a
+		// word, and "## Heading" keeps both because that is not a tag either -
+		// whether text a note wrote as markdown should stay markdown is a
+		// different question from this one.
+		attr.fragment = attr.fragment.replace(/(^|\s)#(?=[\w/-]*[A-Za-z_/-])/g, '$1\\#');
+
 		switch (attr.fontWeight) {
 			case ANFontWeight.Bold:
 				attr.fragment = `**${attr.fragment}**`;

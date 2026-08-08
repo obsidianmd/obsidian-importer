@@ -395,6 +395,46 @@ test('a first line with a list nested under it is kept', async () => {
 });
 
 /**
+ * Apple marks a real tag as an attachment, so a # left in the text is not one:
+ * a Slack channel, a hashtag in some copy, "#s" for numbers. Obsidian reads it
+ * as a tag all the same, and as a heading at the start of a line (#471.5).
+ */
+test('a hash in the text is escaped, and a real tag is not', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tags',
+			runs: [
+				{ text: 'Tags\n' },
+				{ text: 'Bugs go in Slack #web-issues, and #s means numbers.\n' },
+				// Neither is a tag in Obsidian, so both are left as they are: a
+				// hash mid-word, and one leading a heading the note typed out
+				{ text: 'Written in C# and F#.\n' },
+				{ text: '## Not a tag\n' },
+				{ text: '', attachment: { identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag } },
+			],
+		}],
+		attachments: [{ identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag, altText: '#a-real-tag' }],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		assert.equal(
+			converted.get('Tags'),
+			'Bugs go in Slack \\#web-issues, and \\#s means numbers.\n'
+			+ 'Written in C# and F#.\n'
+			+ '## Not a tag\n'
+			+ '#a-real-tag'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
  * A link is an attachment, and an attachment was written without the prefix
  * its line calls for, so an item starting with one lost its checkbox (#471.8).
  */
