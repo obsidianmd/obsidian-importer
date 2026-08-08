@@ -527,7 +527,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (!(existing instanceof TFolder)) throw new Error(`${outputPath} is not a folder`);
 				pageFolder = existing;
 			}
-			const notePath = `${pageFolder.path}/${sanitizeFileName(page.title!)}.md`;
+			const notePath = `${pageFolder.path}/${sanitizeFileName(page.title)}.md`;
 
 			// Process InkML content if present and convert to SVG
 			let inkEmbedMarkdown = '';
