@@ -97,6 +97,18 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	omitFirstLine = true;
 	includeHandwriting = false;
+
+	/**
+	 * The vault's own setting, read rather than asked for: it is what decides
+	 * whether a lone newline renders as the break a soft return meant.
+	 *
+	 * A getter so it is never captured before the vault is there to ask, and
+	 * so a field initialiser cannot throw away what init() would have set.
+	 */
+	get strictLineBreaks(): boolean {
+		return this.vault.getConfig('strictLineBreaks') ?? false;
+	}
+
 	filePrefixFormat: string;
 	/** Every note path this run has written, to tell a copy from an update. */
 	private claimedPaths = new Set<string>();

@@ -188,8 +188,12 @@ export class NoteConverter extends ANConverter {
 
 		// Trimmed first, so the newlines a cell is padded with do not each
 		// become a <br>. Every one after that has to go: a row ends at the
-		// first newline, and an unescaped pipe starts the next cell.
-		if (table) converted = converted.replace(/\n/g, '<br>').replace(/\|/g, '&#124;');
+		// first newline, and an unescaped pipe starts the next cell. The <br>
+		// is the break itself, so the spaces a hard break is spelled with are
+		// dropped rather than left stranded in front of it.
+		if (table) {
+			converted = converted.replace(/ *\n/g, '<br>').replace(/\|/g, '&#124;');
+		}
 
 		return converted;
 	}
@@ -198,10 +202,14 @@ export class NoteConverter extends ANConverter {
 	 * A fragment's soft returns written out as line breaks.
 	 *
 	 * Shift-Return breaks the line without ending the paragraph, and a newline
-	 * is what that is in markdown - Obsidian renders one as a line break unless
-	 * strict line breaks are turned on. Inside a list item the line has to be
-	 * indented as well, or it reads as the end of the item rather than more of
-	 * it; the indent is a tab, which is what nesting an item uses.
+	 * is what that is in markdown - Obsidian renders one as a line break, which
+	 * is all it takes unless the vault has strict line breaks turned on. Where
+	 * it does, the break has to be spelled out, and two trailing spaces are how
+	 * markdown says it.
+	 *
+	 * Inside a list item the line is indented as well, or it reads as the end
+	 * of the item rather than more of it; the indent is a tab, which is what
+	 * nesting an item uses.
 	 *
 	 * A soft return with nothing before it on its line has no item to continue,
 	 * so it stays a bare newline. Indenting there would leave a line standing
@@ -209,7 +217,7 @@ export class NoteConverter extends ANConverter {
 	 */
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
 		const style = attr.paragraphStyle;
-		let indent = '\n';
+		let indent = this.ctx.strictLineBreaks ? '  \n' : '\n';
 
 		if (
 			this.multiRun != ANMultiRun.Monospaced

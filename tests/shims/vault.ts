@@ -19,6 +19,8 @@ export class MemoryVault {
 	private entries = new Map<string, TAbstractFile>();
 	/** What each file holds, so a test can read back what an import wrote. */
 	readonly contents = new Map<string, string | ArrayBuffer>();
+	/** The vault settings an importer reads, which a test can set. */
+	readonly config = new Map<string, unknown>();
 
 	constructor() {
 		const root = new TFolder();
@@ -29,6 +31,11 @@ export class MemoryVault {
 
 	get root(): TFolder {
 		return this.entries.get('/') as TFolder;
+	}
+
+	/** A vault setting, as Obsidian hands it out: undefined when never set. */
+	getConfig(key: string): unknown {
+		return this.config.get(key);
 	}
 
 	/** Every file path written, in the order the paths were taken. */

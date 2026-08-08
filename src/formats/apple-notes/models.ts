@@ -22,6 +22,11 @@ export interface ANContext<F extends ANFile = ANFile> {
 	omitFirstLine: boolean;
 	/** Whether a drawing's transcription is kept as a callout. */
 	includeHandwriting: boolean;
+	/**
+	 * The vault's own setting, which decides what a soft return has to be
+	 * written as: with strict line breaks on, a lone newline is not a break.
+	 */
+	strictLineBreaks: boolean;
 	database: SQLiteTagSpawned;
 
 	/** Gunzip and decode one of the protobufs a note refers to. */

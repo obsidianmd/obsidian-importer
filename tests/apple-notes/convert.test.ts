@@ -56,6 +56,7 @@ function context(database: SQLiteTagSpawned, options: Partial<ANContext> = {}): 
 	const ctx: ANContext = {
 		omitFirstLine: true,
 		includeHandwriting: false,
+		strictLineBreaks: false,
 		database,
 
 		decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
@@ -309,6 +310,43 @@ test('a note starting with blank lines does not repeat its title', async () => {
 
 		assert.doesNotMatch(body, /Android reviews/, 'the file name holds the title; the body repeated it');
 		assert.equal(body, 'Obsidian is a small team.');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
+ * A soft return is a newline, which Obsidian renders as the break it meant -
+ * until the vault turns strict line breaks on, where a lone newline is no
+ * longer one. The setting is the vault's rather than the importer's, so it is
+ * read rather than asked for, and the break is spelled out where it has to be.
+ */
+test('a soft return is spelled out when the vault has strict line breaks on', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	const note = encodeNote({
+		title: 'Soft returns',
+		runs: [
+			{ text: `A paragraph${SOFT_RETURN}broken by a soft return.\n` },
+			{ text: `First bullet${SOFT_RETURN}still the first bullet`, style: ANStyleType.DottedList },
+		],
+	}).toString('hex');
+
+	try {
+		const relaxed = context(store.database, { omitFirstLine: false });
+		assert.equal(
+			await relaxed.decodeData(note, NoteConverter).format(false, 'Soft returns.md'),
+			'A paragraph\nbroken by a soft return.\n- First bullet\n\tstill the first bullet'
+		);
+
+		const strict = context(store.database, { omitFirstLine: false, strictLineBreaks: true });
+		assert.equal(
+			await strict.decodeData(note, NoteConverter).format(false, 'Soft returns.md'),
+			'A paragraph  \nbroken by a soft return.\n- First bullet  \n\tstill the first bullet'
+		);
 	}
 	finally {
 		store.close();
