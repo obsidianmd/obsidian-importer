@@ -74,6 +74,7 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 	const failed: string[] = [];
 	const subject = new AppleNotesImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
+	const skipped: string[] = [];
 	const reasons: (string | undefined)[] = [];
 	subject.ctx = {
 		isCancelled: () => false,
@@ -82,7 +83,7 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 		reportProgress: () => {},
 		reportNoteSuccess: () => {},
 		reportAttachmentSuccess: () => {},
-		reportSkipped: (name: string) => failed.push(name),
+		reportSkipped: (name: string, reason?: string) => { skipped.push(name); reasons.push(reason); },
 		reportFailed: (name: string, reason?: string) => { failed.push(name); reasons.push(reason); },
 	} as never;
 	subject.vault = vault as never;
@@ -96,7 +97,7 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 	subject.owners = { [store.folderPk]: 1 };
 
 	return {
-		vault, failed, reasons, notePks: store.notePks,
+		vault, failed, skipped, reasons, notePks: store.notePks,
 		resolve: (pk: number) => subject.resolveNote(pk),
 		close: () => {
 			store.close();
@@ -147,16 +148,30 @@ test('a note keeps its text when an attachment it points at is gone', async () =
 	}
 });
 
+/** A drawing Apple has rendered, whose copy is not where the row says it is. */
+const RENDERED: StoreSpec = {
+	notes: [{
+		title: 'Sketch',
+		runs: [
+			{ text: 'Sketch\n' },
+			{ text: '', attachment: { identifier: 'DRAWING-1', uti: ANAttachment.DrawingLegacy2 } },
+		],
+	}],
+	attachments: [{
+		identifier: 'DRAWING-1', uti: ANAttachment.DrawingLegacy2, note: 0,
+		fallbackImageGeneration: '1_FF5E5DAE', size: { width: 1536, height: 836 },
+	}],
+};
+
 /**
- * A drawing Apple has not rendered a copy of.
+ * A file that should have been there.
  *
  * It is read from under the account that owns it, and from the container for
- * the older ones that predate accounts being kept apart. Reporting only the
- * second reads as though the first was never tried, which is what the ENOENT
- * from a failed import looked like.
+ * the older ones that predate accounts being kept apart. Naming only the
+ * second reads as though the first was never tried.
  */
-test('an attachment that is at neither path says so', async () => {
-	const run = await importing(DRAWINGS, false);
+test('an attachment that is at neither path says where it looked', async () => {
+	const run = await importing(RENDERED, false);
 
 	try {
 		const note = await run.resolve(run.notePks[0]);
@@ -165,11 +180,36 @@ test('an attachment that is at neither path says so', async () => {
 
 		// The conversion ran to the end rather than throwing part way through it
 		const body = String(run.vault.contents.get(note.path));
-		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 3);
+		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 1);
 
-		assert.equal(run.failed.length, 3, 'one failure per drawing');
+		assert.deepEqual(run.skipped, [], 'the drawing was rendered, so this is a failure');
+		assert.equal(run.failed.length, 1);
 		assert.match(String(run.reasons[0]), /not found at .*Accounts.*FallbackImages/);
 		assert.match(String(run.reasons[0]), / or .*group\.com\.apple\.notes\/FallbackImages/);
+	}
+	finally {
+		run.close();
+	}
+});
+
+/**
+ * A drawing this Mac never had.
+ *
+ * Nothing rendered, no drawing data, and a size Notes never learned: the note
+ * refers to a drawing that only exists in iCloud. Nothing was lost that was
+ * ever here, and no path is worth printing, so it is skipped rather than
+ * reported as a failure the user could go and look into.
+ */
+test('a drawing that was never downloaded is skipped, not failed', async () => {
+	const run = await importing(DRAWINGS, false);
+
+	try {
+		const note = await run.resolve(run.notePks[0]);
+
+		assert.ok(note, 'the note should be imported');
+		assert.deepEqual(run.failed, [], 'there is no file to have failed to read');
+		assert.deepEqual(run.skipped, ['Drawing', 'Drawing', 'Drawing']);
+		assert.deepEqual([...new Set(run.reasons)], ['not downloaded from iCloud']);
 	}
 	finally {
 		run.close();

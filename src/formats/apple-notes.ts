@@ -666,6 +666,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;
+		/** Whether the attachment was never on this Mac to begin with. */
+		let neverDownloaded = false;
 
 		switch (uti) {
 			case ANAttachment.ModifiedScan:
@@ -711,7 +713,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				row = await this.database.get`
 					SELECT
 						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate,
-						znote, zhandwritingsummary
+						znote, zhandwritingsummary, zsizewidth, zmergeabledata1
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -720,6 +722,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				`;
 
 				if (!row) break;
+
+				// A drawing iCloud has never brought down: no rendered copy to
+				// read, no drawing data, and a size Notes never learned. There
+				// is nothing on this Mac to import, which is worth saying
+				// differently from a file that should have been there.
+				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.ZMERGEABLEDATA1 && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
@@ -812,11 +820,17 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			// first and the raw image after it, and Apple writes the cropped
 			// one when it feels like it. Only the pair failing costs anything,
 			// and that is what the second call reports (#393).
-			if (!hasFallback) {
-				this.ctx.reportFailed(sourcePath, extractErrorMessage(e));
-				console.error(e);
+			if (hasFallback) return null;
+
+			// Nothing was lost that this Mac ever had, so it is not a failure
+			// to look into: opening the note in Apple Notes is what fetches it
+			if (neverDownloaded) {
+				this.ctx.reportSkipped(outName, 'not downloaded from iCloud');
+				return null;
 			}
 
+			this.ctx.reportFailed(sourcePath, extractErrorMessage(e));
+			console.error(e);
 			return null;
 		}
 

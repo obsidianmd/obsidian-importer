@@ -85,6 +85,15 @@ export interface AttachmentSpec {
 	handwriting?: string;
 	/** A table or scan, as its own protobuf. */
 	mergeableData?: Uint8Array;
+	/**
+	 * The generation directory a rendered drawing is kept under, which only a
+	 * drawing Apple has drawn a copy of has. Left out, the row looks like one
+	 * iCloud has never brought down: nothing rendered, and no size Notes ever
+	 * learned.
+	 */
+	fallbackImageGeneration?: string;
+	/** What Notes measured the attachment at, which it only knows once it has it. */
+	size?: { width: number, height: number };
 }
 
 const root = Root.fromJSON(descriptor);
@@ -162,7 +171,8 @@ const SCHEMA = `
 		ZFILENAME TEXT, ZTYPEUTI TEXT, ZIDENTIFIER1 TEXT,
 		ZCREATIONDATE INTEGER, ZMODIFICATIONDATE INTEGER,
 		ZCREATIONDATE1 INTEGER, ZMODIFICATIONDATE1 INTEGER,
-		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER
+		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER,
+		ZFALLBACKIMAGEGENERATION TEXT, ZSIZEWIDTH INTEGER, ZSIZEHEIGHT INTEGER
 	);
 
 	CREATE TABLE zicnotedata (
@@ -222,8 +232,9 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		INSERT INTO ziccloudsyncingobject (
 			Z_PK, Z_ENT, ZIDENTIFIER, ZALTTEXT, ZTOKENCONTENTIDENTIFIER,
 			ZURLSTRING, ZTITLE, ZTYPEUTI, ZMEDIA, ZMERGEABLEDATA1,
-			ZHANDWRITINGSUMMARY, ZNOTE, ZCREATIONDATE, ZMODIFICATIONDATE
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ZHANDWRITINGSUMMARY, ZNOTE, ZCREATIONDATE, ZMODIFICATIONDATE,
+			ZFALLBACKIMAGEGENERATION, ZSIZEWIDTH, ZSIZEHEIGHT
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 
 	for (const attachment of spec.attachments ?? []) {
@@ -234,7 +245,9 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 			attachment.media ?? null, attachment.mergeableData ?? null,
 			attachment.handwriting ?? null,
 			attachment.note === undefined ? null : notePks[attachment.note],
-			created, created);
+			created, created,
+			attachment.fallbackImageGeneration ?? null,
+			attachment.size?.width ?? 0, attachment.size?.height ?? 0);
 	}
 
 	return { database: tagged(db), notePks, folderPk, close: () => db.close() };
