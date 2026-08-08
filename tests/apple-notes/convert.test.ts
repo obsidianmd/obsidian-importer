@@ -287,6 +287,82 @@ test('keeps the first line when asked to', async () => {
 });
 
 /**
+ * Apple takes the title from the first line with anything on it, so a note
+ * starting with blank lines has its title further down. Omitting "the first
+ * line" omitted a blank one and stopped there, leaving the title in the body -
+ * written twice, once as the file name and once at the top of the note.
+ */
+test('a note starting with blank lines does not repeat its title', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const converter = context(store.database).decodeData(
+			encodeNote({
+				title: 'Android reviews',
+				runs: [{ text: '\n\nAndroid reviews\n\nObsidian is a small team.' }],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		const body = await converter.format(false, 'Android reviews.md');
+
+		assert.doesNotMatch(body, /Android reviews/, 'the file name holds the title; the body repeated it');
+		assert.equal(body, 'Obsidian is a small team.');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
+ * A title that is the first item of a list is the parent of what follows it,
+ * and those items are written relative to it. Dropping it leaves them with
+ * nothing to hang off, and the list gains an empty item in its place.
+ */
+test('a first line with a list nested under it is kept', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const ctx = context(store.database);
+
+		const nested = ctx.decodeData(
+			encodeNote({
+				title: 'Airtable is for',
+				runs: [
+					{ text: 'Airtable is for\n', style: ANStyleType.DashedList, indent: 0 },
+					{ text: 'databases', style: ANStyleType.DashedList, indent: 1 },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(await nested.format(false, 'Airtable is for.md'), '- Airtable is for\n\t- databases');
+
+		// A first item the rest are siblings of loses nothing by going, so it
+		// still goes - the file name holds it
+		const flat = ctx.decodeData(
+			encodeNote({
+				title: 'Price',
+				runs: [
+					{ text: 'Price\n', style: ANStyleType.NumberedList, indent: 0 },
+					{ text: 'Quality', style: ANStyleType.NumberedList, indent: 0 },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(await flat.format(false, 'Price.md'), '1. Quality');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
  * A cell is converted with `table` set, which is what tells the converter that
  * its result has to survive inside a `|`-delimited row. A line break has to
  * become a `<br>` and a pipe an entity, or the row ends early and everything

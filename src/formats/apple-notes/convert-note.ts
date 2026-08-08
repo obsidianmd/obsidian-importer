@@ -133,15 +133,29 @@ export class NoteConverter extends ANConverter {
 			&& this.note.noteText.contains('\n')
 			&& !URL_LINE.test(firstLine(this.note.noteText));
 		let converted = '';
+		/** Whether the line being skipped has had anything on it yet. */
+		let titleStarted = false;
 
 		for (let j = 0; j < fragments.length; j++) {
 			let { attr, fragment } = fragments[j];
 
 			if (firstLineSkip) {
-				if (fragment.contains('\n') || attr.attachmentInfo) {
+				// An attachment is content rather than a title, so it stops the
+				// skip and is kept
+				if (attr.attachmentInfo) {
+					firstLineSkip = false;
+				}
+				else if (!titleStarted && /\S/.test(fragment) && this.leadsNestedList(fragments, j)) {
 					firstLineSkip = false;
 				}
 				else {
+					// Apple takes the title from the first line with anything on
+					// it, so a note starting with blank lines has its title
+					// further down. Stopping at the first newline would stop on a
+					// blank one and leave the title in the body as well as in the
+					// file name.
+					if (/\S/.test(fragment)) titleStarted = true;
+					if (titleStarted && fragment.contains('\n')) firstLineSkip = false;
 					continue;
 				}
 			}
@@ -184,6 +198,28 @@ export class NoteConverter extends ANConverter {
 		if (table) converted = converted.replace(/\n/g, '<br>').replace(/\|/g, '&#124;');
 
 		return converted;
+	}
+
+	/**
+	 * Whether the fragment at `from` is a list item with items nested under it.
+	 *
+	 * Those items are written relative to their parent, so dropping it as the
+	 * title leaves them with nothing to hang off and the list gains an empty
+	 * item where it was. A first item whose next item is a sibling loses
+	 * nothing that way, so that one is still dropped.
+	 */
+	leadsNestedList(fragments: ANFragmentPair[], from: number): boolean {
+		const style = fragments[from].attr.paragraphStyle;
+		if (style?.styleType === undefined || !LIST_STYLES.includes(style.styleType)) return false;
+
+		const indent = style.indentAmount ?? 0;
+
+		for (let k = from + 1; k < fragments.length; k++) {
+			if (!/\S/.test(fragments[k].fragment)) continue;
+			return (fragments[k].attr.paragraphStyle?.indentAmount ?? 0) > indent;
+		}
+
+		return false;
 	}
 
 	/** Format things that cover multiple ANAttributeRuns. */
