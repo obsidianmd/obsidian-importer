@@ -37,7 +37,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Roam (.json)', ['json'], false,
 			'Pick the JSON file from your Roam export.');
-		this.addOutputLocationSetting('Roam');
+		this.defaultOutputFolder = 'Roam';
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()
@@ -70,7 +70,6 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-		this.addDuplicateHandlingSetting();
 	}
 
 	async import(progress: ImportContext) {

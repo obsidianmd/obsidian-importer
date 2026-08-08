@@ -112,7 +112,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			void this.loadFolders();
 		}
 
-		this.addOutputLocationSetting('Apple Notes');
+		this.defaultOutputFolder = 'Apple Notes';
 
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
@@ -153,7 +153,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				.onChange(async v => this.includeHandwriting = v)
 			);
 
-		this.addDuplicateHandlingSetting({ idProperty: NOTE_ID_PROPERTY });
 	}
 
 	private addAccessSetting(): void {
@@ -526,7 +525,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				this.ctx.reportSkipped(title, 'note is a duplicate');
 				return existingFile;
 			}
-			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			else if (this.duplicateHandling === DuplicateHandling.Update) {
 				// Check modification times before skipping
 				const appleNoteModTime = this.decodeTime(row.ZMODIFICATIONDATE1);
 				const existingFileModTime = existingFile.stat.mtime;
@@ -691,7 +690,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
 					return existingAttachment;
 				}
-				else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+				else if (this.duplicateHandling === DuplicateHandling.Update) {
 					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
 					const existingAttachmentModTime = existingAttachment.stat.mtime;
 

@@ -1,5 +1,5 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
@@ -10,21 +10,54 @@ import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, san
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
 export enum DuplicateHandling {
-	Skip = 'skip',
-	ImportUpdated = 'import-updated',
 	CreateCopy = 'create-copy',
+	Skip = 'skip',
+	Update = 'update',
 }
 
 const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
-	[DuplicateHandling.Skip]: 'Skip import',
-	[DuplicateHandling.ImportUpdated]: 'Import only updated',
 	[DuplicateHandling.CreateCopy]: 'Create a copy',
+	[DuplicateHandling.Skip]: 'Skip',
+	[DuplicateHandling.Update]: 'Update',
 };
 
-export type ImporterStep = 'source' | 'options';
+/**
+ * Where attachments land, mirroring Obsidian's "Default location for new
+ * attachments". The import starts from whatever the vault is set to, so the
+ * choice is visible, and changing it here does not touch the app setting.
+ */
+export type AttachmentLocationMode = 'vault' | 'folder' | 'note' | 'subfolder';
+
+export interface AttachmentLocation {
+	mode: AttachmentLocationMode;
+	/** A folder for 'folder', a subfolder name for 'subfolder'; unused otherwise. */
+	path: string;
+}
+
+const ATTACHMENT_MODE_LABELS: Record<AttachmentLocationMode, string> = {
+	vault: 'Vault folder',
+	folder: 'In the folder specified below',
+	note: 'Same folder as the note',
+	subfolder: 'In subfolder under the note',
+};
+
+/** Read the vault's attachment setting as a location this step can show. */
+export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
+	const configured = vault.getConfig('attachmentFolderPath');
+	const value = typeof configured === 'string' ? configured.trim() : '';
+
+	if (value === '' || value === '/') return { mode: 'vault', path: '' };
+	if (value === '.' || value === './') return { mode: 'note', path: '' };
+	if (value.startsWith('./')) return { mode: 'subfolder', path: value.slice(2) };
+
+	return { mode: 'folder', path: normalizePath(value) };
+}
+
+export type ImporterStep = 'source' | 'output' | 'options';
 
 export interface ImporterHost {
 	sourceEl: HTMLElement | null;
+	outputEl: HTMLElement | null;
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	importerId: string;
@@ -40,13 +73,31 @@ export abstract class FormatImporter {
 	files: PickedFile[] = [];
 	outputLocation: string = '';
 	notAvailable: boolean = false;
+
+	/**
+	 * Folder the output step offers first. Set it in init(); do not give it a
+	 * field initialiser in a subclass, which would run after init().
+	 */
+	defaultOutputFolder: string = 'Import';
+
+	attachmentLocation: AttachmentLocation;
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
+
+	/** Duplicate modes this importer can honour. */
+	duplicateModes: DuplicateHandling[] = [
+		DuplicateHandling.CreateCopy,
+		DuplicateHandling.Skip,
+		DuplicateHandling.Update,
+	];
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
+
+	/** Set once the output step has been built, so it is not built twice. */
+	private outputStepDrawn: boolean = false;
 
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
@@ -62,9 +113,13 @@ export abstract class FormatImporter {
 		this.app = app;
 		this.vault = app.vault;
 		this.host = host;
+		// Start from the vault's own setting, so the output step opens showing
+		// where attachments would have gone anyway.
+		this.attachmentLocation = vaultAttachmentLocation(app.vault);
 		// init() may queue additional startup work through whenReady().
 		this.ready = Promise.resolve(this.init())
 			.then(() => Promise.all(this.pending))
+			.then(() => this.loadOutputSettings())
 			.then(() => undefined);
 
 		this.ready.catch(e => console.error('Importer failed to initialise', e));
@@ -110,7 +165,14 @@ export abstract class FormatImporter {
 	}
 
 	protected stepEl(step: ImporterStep): HTMLElement | null {
-		return step === 'source' ? this.host.sourceEl : this.host.optionsEl;
+		switch (step) {
+			case 'source':
+				return this.host.sourceEl;
+			case 'output':
+				return this.host.outputEl;
+			case 'options':
+				return this.host.optionsEl;
+		}
 	}
 
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
@@ -296,71 +358,155 @@ export abstract class FormatImporter {
 		};
 	}
 
-	protected addDuplicateHandlingSetting(options: {
-		idProperty?: string;
-		modes?: DuplicateHandling[];
-	} = {}): void {
-		const setting = this.addSetting();
-		if (!setting) return;
+	/**
+	 * The output step: where notes go, where attachments go, and what to do
+	 * about notes that are already in the vault. The same for every importer,
+	 * so the base class draws it rather than each importer adding its own.
+	 *
+	 * Called by the host once this.ready has resolved, so the settings the last
+	 * import used are already in hand.
+	 */
+	drawOutputStep(): void {
+		const contentEl = this.stepEl('output');
+		if (!contentEl || this.outputStepDrawn) return;
+		this.outputStepDrawn = true;
 
-		const { idProperty, modes = [DuplicateHandling.Skip, DuplicateHandling.ImportUpdated, DuplicateHandling.CreateCopy] } = options;
-		const copy = DUPLICATE_HANDLING_LABELS[DuplicateHandling.CreateCopy];
+		this.addOutputFolderSetting(contentEl);
+		this.addAttachmentLocationSetting(contentEl);
+		this.addDuplicateHandlingSetting(contentEl);
+	}
 
-		setting
+	private addOutputFolderSetting(contentEl: HTMLElement): void {
+		new Setting(contentEl)
+			.setName('Output folder')
+			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
+			.addText(text => {
+				text
+					.setValue(this.outputLocation)
+					.onChange(value => {
+						this.outputLocation = value;
+						this.outputFolder = null;
+						this.saveOutputSettings();
+					});
+				new FolderSuggest(this.app, text.inputEl);
+			});
+	}
+
+	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
+		const setting = new Setting(contentEl)
+			.setName('Attachments')
+			.setDesc('Where to put images and other files this import brings with it.');
+
+		// The folder only means something for two of the modes, so it appears
+		// under the dropdown the way Obsidian's own attachment setting does.
+		const pathSetting = new Setting(contentEl)
+			.setClass('importer-sub-setting');
+
+		const drawPathSetting = () => {
+			const { mode } = this.attachmentLocation;
+			pathSetting.settingEl.toggle(mode === 'folder' || mode === 'subfolder');
+			pathSetting.setName(mode === 'subfolder' ? 'Subfolder name' : 'Attachment folder');
+		};
+
+		setting.addDropdown(dropdown => {
+			for (const mode of Object.keys(ATTACHMENT_MODE_LABELS) as AttachmentLocationMode[]) {
+				dropdown.addOption(mode, ATTACHMENT_MODE_LABELS[mode]);
+			}
+
+			dropdown
+				.setValue(this.attachmentLocation.mode)
+				.onChange(value => {
+					this.attachmentLocation = { ...this.attachmentLocation, mode: value as AttachmentLocationMode };
+					drawPathSetting();
+					this.saveOutputSettings();
+				});
+		});
+
+		pathSetting.addText(text => {
+			text
+				.setValue(this.attachmentLocation.path)
+				.onChange(value => {
+					this.attachmentLocation = { ...this.attachmentLocation, path: value };
+					this.saveOutputSettings();
+				});
+			new FolderSuggest(this.app, text.inputEl);
+		});
+
+		drawPathSetting();
+	}
+
+	private addDuplicateHandlingSetting(contentEl: HTMLElement): void {
+		const modes = this.duplicateModes;
+		if (modes.length < 2) return;
+
+		new Setting(contentEl)
 			.setName('Notes already in the vault')
-			.setDesc(idProperty
-				? `What to do when a note is already there. Every mode but "${copy}" adds a` +
-					` ${idProperty} property to each note, so that a later import knows which note is which.`
-				: `What to do when a note is already there. Every mode but "${copy}" finds that note by its file name.`)
+			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {
 				for (const mode of modes) dropdown.addOption(mode, DUPLICATE_HANDLING_LABELS[mode]);
 
 				dropdown
 					.setValue(this.duplicateHandling)
-					.onChange(value => this.duplicateHandling = value as DuplicateHandling);
-			});
-	}
-
-	addOutputLocationSetting(defaultExportFolderName: string) {
-		this.outputLocation = defaultExportFolderName;
-		this.addSetting()
-			?.setName('Output folder')
-			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
-			.addText(text => {
-				text
-					.setValue(defaultExportFolderName)
 					.onChange(value => {
-						this.outputLocation = value;
-						this.outputFolder = null;
-						this.saveOutputLocation(value);
+						this.duplicateHandling = value as DuplicateHandling;
+						this.saveOutputSettings();
 					});
-				new FolderSuggest(this.app, text.inputEl);
-
-				this.loadOutputLocation()
-					.then(location => {
-						if (location === null) return;
-						this.outputLocation = location;
-						this.outputFolder = null;
-						text.setValue(location);
-					})
-					.catch(e => console.error('Could not read the output folder', e));
 			});
 	}
 
-	private async loadOutputLocation(): Promise<string | null> {
-		let data = await this.host.plugin.loadData();
-		return data.outputLocations?.[this.host.importerId] ?? null;
+	private describeDuplicateHandling(): DocumentFragment {
+		return createFragment(frag => {
+			frag.appendText('What to do when a note from this import is already in the vault.');
+			frag.createEl('br');
+			frag.appendText(`"${DUPLICATE_HANDLING_LABELS[DuplicateHandling.Update]}" leaves a note alone when it has not changed, `
+				+ 'or when it has been edited in Obsidian since the last import.');
+		});
 	}
 
-	private saveOutputLocation = debounce((location: string) => {
+	private async loadOutputSettings(): Promise<void> {
+		this.outputLocation = this.defaultOutputFolder;
+
+		// A scripted import has no plugin to remember anything for.
+		if (!this.host.plugin) return;
+
+		try {
+			const data = await this.host.plugin.loadData();
+
+			// Folders remembered before the output step existed.
+			const legacyFolder = data.outputLocations?.[this.host.importerId];
+			if (legacyFolder !== undefined) this.outputLocation = legacyFolder;
+
+			const saved = data.outputSettings?.[this.host.importerId];
+			if (!saved) return;
+
+			if (saved.folder !== undefined) this.outputLocation = saved.folder;
+			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
+			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
+				this.duplicateHandling = saved.duplicates;
+			}
+			this.outputFolder = null;
+		}
+		catch (e) {
+			console.error('Could not read the output settings', e);
+		}
+	}
+
+	private saveOutputSettings = debounce(() => {
 		void (async () => {
 			try {
-				let data = await this.host.plugin.loadData();
-				data.outputLocations = { ...data.outputLocations, [this.host.importerId]: location };
+				const data = await this.host.plugin.loadData();
+				data.outputSettings = {
+					...data.outputSettings,
+					[this.host.importerId]: {
+						folder: this.outputLocation,
+						attachments: { ...this.attachmentLocation },
+						duplicates: this.duplicateHandling,
+					},
+				};
 				await this.host.plugin.saveData(data);
 			}
 			catch (e) {
-				console.error('Could not remember the output folder', e);
+				console.error('Could not remember the output settings', e);
 			}
 		})();
 	}, 1000, true);
@@ -394,62 +540,64 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * The folder this import puts attachments in, from the location picked on
+	 * the output step. The vault's own setting is only the starting point: it
+	 * was read into attachmentLocation when the importer was constructed, and
+	 * the user may have changed it since.
+	 */
+	private async attachmentFolderPath(sourcePath?: string): Promise<string> {
+		const { mode, path: configured } = this.attachmentLocation;
+
+		if (mode === 'vault') return '/';
+		if (mode === 'folder') return configured ? normalizePath(configured) : '/';
+
+		// Both note-relative modes need a note to be relative to. An importer
+		// that saves an attachment before it knows the note measures from the
+		// output folder instead.
+		let noteFolder = sourcePath ? parseFilePath(sourcePath).parent : '';
+		if (!noteFolder) noteFolder = (await this.getOutputFolder())?.path ?? '/';
+
+		if (mode === 'note' || !configured) return normalizePath(noteFolder);
+
+		return normalizePath(`${noteFolder}/${configured}`);
+	}
+
+	/**
 	 * Resolves a unique path for the attachment file being saved.
 	 * Ensures that the parent directory exists and dedupes the
 	 * filename if the destination filename already exists.
 	 *
-	 * NOTE: This is a duplicate of `fileManager.getAvailablePathForAttachment`
-	 * which adds two key adjustments to aid Importer:
+	 * This stands in for `fileManager.getAvailablePathForAttachment` with three
+	 * adjustments Importer needs:
+	 *   - Put attachments where the output step says, not where the vault setting does.
 	 *   - Use the provided `sourcePath` even if the file doesn't exist yet.
-	 *   - Avoid duplicating a list of provided filesnames that do not yet exist, but will in the future.
+	 *   - Avoid duplicating a list of provided filenames that do not yet exist, but will in the future.
 	 *
 	 * @param filename Name of the attachment being saved
 	 * @param claimedPaths List of filepaths that may not exist yet but will in the future.
-	 * @param sourcePath Optional path of the current file being imported (for "Same folder as current file" setting)
-	 * @returns Full path for where the attachment should be saved, according to the user's settings
+	 * @param sourcePath Optional path of the note being imported, for the note-relative modes
+	 * @returns Full path for where the attachment should be saved
 	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		// The vault method only reads parent from this stand-in.
-		let sourceFile: { parent: TFolder } | null = null;
+		const folderPath = await this.attachmentFolderPath(sourcePath);
+		const folder = await this.createFolders(folderPath);
+		const parent = folder.path === '/' ? '' : folder.path;
 
-		// If sourcePath is provided, use its parent folder for attachment placement
-		// This is important for respecting user's "Same folder as current file" setting
-		if (sourcePath) {
-			const { parent } = parseFilePath(sourcePath);
-			if (parent) {
-				const existing = this.vault.getAbstractFileByPath(normalizePath(parent));
-				const parentFolder = existing instanceof TFolder ? existing : await this.createFolders(parent);
-				sourceFile = { parent: parentFolder };
-			}
-		}
-
-		// Fallback to outputFolder if sourcePath not provided or parent folder not found
-		if (!sourceFile) {
-			const outputFolder = await this.getOutputFolder();
-			sourceFile = outputFolder ? { parent: outputFolder } : null;
-		}
-
+		// A parent in the name is dropped, the way the vault method drops it.
 		const { basename, extension } = parseFilePath(filename);
+		const name = sanitizeFileName(basename);
+		const fullExt = extension ? '.' + extension : '';
 
-		// Use getAvailablePathForAttachments because it can give us the configured output path.
-		//@ts-ignore
-		const prelimOutPath = await this.vault.getAvailablePathForAttachments(basename, extension, sourceFile);
-		const parsedPrelimOutPath = parseFilePath(prelimOutPath);
+		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
+		const taken = (candidate: string) =>
+			claimedPaths.includes(candidate) || !!this.vault.getAbstractFileByPath(candidate);
 
-		const fullExt = parsedPrelimOutPath.extension ?
-			'.' + parsedPrelimOutPath.extension
-			: '.' + extension;
-
-		// Increase number until the path is unique.
-		let i = 1;
-		let outputPath = prelimOutPath;
-		while (claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
-			outputPath = path.join(parsedPrelimOutPath.parent, `${parsedPrelimOutPath.name} ${i}${fullExt}`);
-			i++;
+		let outputPath = at(`${name}${fullExt}`);
+		for (let i = 1; taken(outputPath); i++) {
+			outputPath = at(`${name} ${i}${fullExt}`);
 		}
 
-		// Normalize the final outputPath before returning
-		return normalizePath(outputPath);
+		return outputPath;
 	}
 
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {

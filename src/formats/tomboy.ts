@@ -63,7 +63,7 @@ export class TomboyImporter extends FormatImporter {
 		this.keepTitleMode = 'automatic';
 
 		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
-		this.addOutputLocationSetting('Tomboy');
+		this.defaultOutputFolder = 'Tomboy';
 
 		this.addSetting()
 			?.setName('Convert TODO lists to checkboxes')

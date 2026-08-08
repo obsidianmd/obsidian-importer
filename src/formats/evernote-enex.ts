@@ -21,7 +21,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		this.addFileChooserSetting('Evernote', ['enex'], true);
-		this.addOutputLocationSetting('Evernote');
+		this.defaultOutputFolder = 'Evernote';
 	}
 
 	async import(ctx: ImportContext) {

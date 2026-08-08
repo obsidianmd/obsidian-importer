@@ -20,7 +20,7 @@ export class CSVImporter extends FormatImporter {
 
 	init() {
 		this.addFileChooserSetting('CSV', ['csv']);
-		this.addOutputLocationSetting('CSV import');
+		this.defaultOutputFolder = 'CSV import';
 
 		this.hasHeaderRow = true;
 		this.addSetting()

@@ -1,4 +1,13 @@
 import { AuthCallback } from './constants';
+// Types only: format-importer imports HostPlugin back from here.
+import type { AttachmentLocation, DuplicateHandling } from './format-importer';
+
+/** What the output step remembers, per importer. */
+export interface OutputSettings {
+	folder: string;
+	attachments: AttachmentLocation;
+	duplicates: DuplicateHandling;
+}
 
 export interface ImporterData {
 	importers: {
@@ -7,7 +16,9 @@ export interface ImporterData {
 		};
 	};
 	secrets: Record<string, string>;
+	/** Superseded by outputSettings; still read so a remembered folder survives. */
 	outputLocations: Record<string, string>;
+	outputSettings: Record<string, OutputSettings>;
 }
 
 export const DEFAULT_DATA: ImporterData = {
@@ -18,6 +29,7 @@ export const DEFAULT_DATA: ImporterData = {
 	},
 	secrets: {},
 	outputLocations: {},
+	outputSettings: {},
 };
 
 export interface HostPlugin {

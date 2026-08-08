@@ -375,6 +375,7 @@ export default class ImporterPlugin extends Plugin {
 
 		const host: ImporterHost = {
 			sourceEl: null,
+			outputEl: null,
 			optionsEl: null,
 			plugin: this,
 			importerId,
@@ -415,6 +416,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	abortController: AbortController;
 
 	sourceEl: HTMLElement | null = null;
+	outputEl: HTMLElement | null = null;
 	optionsEl: HTMLElement | null = null;
 
 	private nextButtonEl: HTMLButtonElement | null = null;
@@ -563,6 +565,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const definition = this.plugin.importers[this.selectedId];
 
 		this.sourceEl = createDiv();
+		this.outputEl = createDiv();
 		this.optionsEl = createDiv();
 
 		this.importer = new definition.importer(this.app, this);
@@ -571,18 +574,28 @@ export class ImporterModal extends Modal implements ImporterHost {
 	}
 
 	private showFirstStep() {
-		if (this.hasSourceStep()) this.showSourceStep();
-		else this.showOptionsStep();
+		// An importer that cannot run here has already drawn its explanation,
+		// and there is nothing to configure or import.
+		if (this.importer.notAvailable) {
+			this.drawStep(this.optionsEl, () => this.showFormatPicker(), () => {});
+			return;
+		}
+
+		this.showSourceStep();
 	}
 
-	private hasSourceStep(): boolean {
-		return !this.importer.notAvailable;
+	/**
+	 * Formats whose settings all moved to the output step have nothing left of
+	 * their own, so the step is dropped rather than shown empty.
+	 */
+	private hasOptionsStep(): boolean {
+		return (this.optionsEl?.childElementCount ?? 0) > 0;
 	}
 
 	showSourceStep() {
 		this.drawStep(this.sourceEl, () => this.showFormatPicker(), el => {
 			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
-				el.addEventListener('click', () => this.showOptionsStep());
+				el.addEventListener('click', () => void this.showOutputStep());
 			});
 
 			this.sourceChanged();
@@ -593,17 +606,37 @@ export class ImporterModal extends Modal implements ImporterHost {
 		if (this.nextButtonEl) this.nextButtonEl.disabled = !this.importer.sourceReady;
 	}
 
+	async showOutputStep() {
+		const { importer } = this;
+
+		// The step opens on the folder and duplicate mode the last import used.
+		await importer.ready;
+		importer.drawOutputStep();
+
+		this.drawStep(this.outputEl, () => this.showSourceStep(), el => {
+			if (this.hasOptionsStep()) {
+				el.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
+					el.addEventListener('click', () => this.showOptionsStep());
+				});
+				return;
+			}
+
+			this.addImportButton(el, importer);
+		});
+	}
+
 	showOptionsStep() {
 		const { importer } = this;
-		const hasSource = this.hasSourceStep();
 
-		this.drawStep(this.optionsEl, () => hasSource ? this.showSourceStep() : this.showFormatPicker(), el => {
-			if (!hasSource) return;
+		this.drawStep(this.optionsEl, () => void this.showOutputStep(), el => {
+			this.addImportButton(el, importer);
+		});
+	}
 
-			el.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
-				el.addEventListener('click', () => void this.startImport(importer)
-					.catch(e => console.error('Import failed', e)));
-			});
+	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter) {
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
+			el.addEventListener('click', () => void this.startImport(importer)
+				.catch(e => console.error('Import failed', e)));
 		});
 	}
 
@@ -649,7 +682,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		if (templateResult === false) {
 			this.current = null;
-			this.showOptionsStep();
+			if (this.hasOptionsStep()) this.showOptionsStep();
+			else void this.showOutputStep();
 			return;
 		}
 

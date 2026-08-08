@@ -59,7 +59,7 @@ export class KeepImporter extends FormatImporter {
 				});
 			});
 
-		this.addOutputLocationSetting('Google Keep');
+		this.defaultOutputFolder = 'Google Keep';
 
 	}
 

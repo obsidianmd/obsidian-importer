@@ -84,7 +84,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	init() {
 		// No file chooser needed since we're importing via API
-		this.addOutputLocationSetting('Notion');
+		this.defaultOutputFolder = 'Notion';
 
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
@@ -108,7 +108,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		this.picker.onLoad(() => void this.loadPageTree());
 
-		this.addDuplicateHandlingSetting({ idProperty: NOTION_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
+		this.duplicateModes = [DuplicateHandling.CreateCopy, DuplicateHandling.Skip];
 
 		// Formula import strategy
 		this.addSetting()

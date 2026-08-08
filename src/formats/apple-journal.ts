@@ -40,9 +40,8 @@ export class AppleJournalImporter extends FormatImporter {
 				});
 			});
 
-		this.addDuplicateHandlingSetting();
 
-		this.addOutputLocationSetting(DEFAULT_OUTPUT_FOLDER);
+		this.defaultOutputFolder = DEFAULT_OUTPUT_FOLDER;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -103,7 +102,7 @@ export class AppleJournalImporter extends FormatImporter {
 				return false;
 			}
 
-			if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			if (this.duplicateHandling === DuplicateHandling.Update) {
 				const existingContent = await this.vault.read(existingFile);
 				if (existingContent === await standardizedMarkdown(this.app, fullPath, mdContent)) {
 					ctx.reportSkipped(file.fullpath, 'journal entry unchanged since last import');

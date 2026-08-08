@@ -31,7 +31,7 @@ export class NotionImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Exported Notion', ['zip'], false,
 			'Pick the zip file Notion sent you.');
-		this.addOutputLocationSetting('Notion');
+		this.defaultOutputFolder = 'Notion';
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')
 			.setDesc('Places the parent database pages in the same folder as the nested content.')

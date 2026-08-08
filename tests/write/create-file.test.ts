@@ -24,8 +24,11 @@ class WritingImporter extends FormatImporter {
 	async import(_ctx: ImportContext): Promise<void> {}
 }
 
-function importer(): { vault: MemoryVault, subject: WritingImporter } {
+function importer(configure?: (vault: MemoryVault) => void): { vault: MemoryVault, subject: WritingImporter } {
 	const vault = new MemoryVault();
+	// The attachment location is read off the vault when the importer is built,
+	// so anything the vault has to say has to be said before that.
+	configure?.(vault);
 	const subject = new WritingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
 	return { vault, subject };
@@ -79,13 +82,56 @@ test('an attachment is given a free name too', async () => {
 });
 
 test('an attachment follows the vault subfolder setting relative to its note', async () => {
-	const { vault, subject } = importer();
+	const { subject } = importer(vault => vault.config.set('attachmentFolderPath', './media'));
 	await subject.createFolders('Imported/Nested');
-	vault.config.set('attachmentFolderPath', './media');
 
 	assert.equal(
 		await subject.getAvailablePathForAttachment('photo.jpg', [], 'Imported/Nested/Note.md'),
 		'Imported/Nested/media/photo.jpg'
+	);
+});
+
+test('the vault setting is only where the output step starts, not where it ends', async () => {
+	// Picking a location for the import must not write it back to the app.
+	const { vault, subject } = importer(vault => vault.config.set('attachmentFolderPath', './media'));
+	await subject.createFolders('Imported/Nested');
+
+	subject.attachmentLocation = { mode: 'folder', path: 'Files' };
+
+	assert.equal(
+		await subject.getAvailablePathForAttachment('photo.jpg', [], 'Imported/Nested/Note.md'),
+		'Files/photo.jpg'
+	);
+	assert.equal(vault.config.get('attachmentFolderPath'), './media');
+});
+
+test('each attachment location puts the file where it says', async () => {
+	const notePath = 'Imported/Nested/Note.md';
+	const cases: [Parameters<typeof importer>[0], { mode: 'vault' | 'folder' | 'note' | 'subfolder', path: string }, string][] = [
+		[undefined, { mode: 'vault', path: '' }, 'photo.jpg'],
+		[undefined, { mode: 'folder', path: 'Attachments' }, 'Attachments/photo.jpg'],
+		[undefined, { mode: 'note', path: '' }, 'Imported/Nested/photo.jpg'],
+		[undefined, { mode: 'subfolder', path: 'media' }, 'Imported/Nested/media/photo.jpg'],
+	];
+
+	for (const [configure, location, expected] of cases) {
+		const { subject } = importer(configure);
+		await subject.createFolders('Imported/Nested');
+		subject.attachmentLocation = location;
+
+		assert.equal(await subject.getAvailablePathForAttachment('photo.jpg', [], notePath), expected, location.mode);
+	}
+});
+
+test('an attachment with nowhere to be relative to falls back to the output folder', async () => {
+	// Some importers save an attachment before they know which note wants it.
+	const { subject } = importer();
+	subject.outputLocation = 'Imported';
+	subject.attachmentLocation = { mode: 'subfolder', path: 'media' };
+
+	assert.equal(
+		await subject.getAvailablePathForAttachment('photo.jpg', []),
+		'Imported/media/photo.jpg'
 	);
 });
 

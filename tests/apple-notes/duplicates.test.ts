@@ -32,7 +32,7 @@ const SAME_TITLE: NoteSpec[] = [
 	{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Bread' }] },
 ];
 
-for (const mode of [DuplicateHandling.ImportUpdated, DuplicateHandling.Skip, DuplicateHandling.CreateCopy]) {
+for (const mode of [DuplicateHandling.Update, DuplicateHandling.Skip, DuplicateHandling.CreateCopy]) {
 	test(`two notes of one title stay two notes, importing with ${mode}`, async () => {
 		const run = await importing(SAME_TITLE, mode);
 		try {
@@ -55,7 +55,7 @@ for (const mode of [DuplicateHandling.ImportUpdated, DuplicateHandling.Skip, Dup
 }
 
 test('the id a note came from is written only where it will be read', async () => {
-	const updating = await importing([SAME_TITLE[0]], DuplicateHandling.ImportUpdated);
+	const updating = await importing([SAME_TITLE[0]], DuplicateHandling.Update);
 	try {
 		const file = await updating.resolve(updating.notePks[0]);
 		assert.match(String(updating.vault.contents.get(file!.path)), /^---\napple-notes-id: NOTE-\d+\n---\n/);
@@ -82,7 +82,7 @@ test('two notes of one title stay two notes even with no id to tell them apart',
 	const run = await importing([
 		{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Milk' }], identifier: null },
 		{ title: 'Groceries', runs: [{ text: 'Groceries\n' }, { text: 'Bread' }], identifier: null },
-	], DuplicateHandling.ImportUpdated);
+	], DuplicateHandling.Update);
 
 	try {
 		const first = await run.resolve(run.notePks[0]);

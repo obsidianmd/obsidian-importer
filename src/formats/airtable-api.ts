@@ -141,7 +141,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	private lastBaseFilePath: string | null = null;
 
 	init() {
-		this.addOutputLocationSetting('Airtable');
+		this.defaultOutputFolder = 'Airtable';
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
@@ -206,7 +206,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 				}));
 
-		this.addDuplicateHandlingSetting({ idProperty: RECORD_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
+		this.duplicateModes = [DuplicateHandling.CreateCopy, DuplicateHandling.Skip];
 	}
 
 	private createTokenDescription(): DocumentFragment {

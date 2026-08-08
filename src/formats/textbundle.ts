@@ -24,7 +24,7 @@ export class TextbundleImporter extends FormatImporter {
 			: ['textpack', 'zip'];
 
 		this.addFileChooserSetting('Textbundle', formats, true);
-		this.addOutputLocationSetting('Textbundle');
+		this.defaultOutputFolder = 'Textbundle';
 	}
 
 	async import(progress: ImportContext): Promise<void> {
