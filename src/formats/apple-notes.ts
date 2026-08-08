@@ -1,10 +1,10 @@
 import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
-import { NoteConverter } from './apple-notes/convert-note';
+import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -97,6 +97,16 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	omitFirstLine = true;
 	includeHandwriting = false;
+
+	/**
+	 * This must remain a getter: the vault is unavailable during construction,
+	 * and field initialisers run after init(). The explicit comparison narrows
+	 * getConfig's `any` return value to boolean.
+	 */
+	get strictLineBreaks(): boolean {
+		return this.vault.getConfig('strictLineBreaks') === true;
+	}
+
 	filePrefixFormat: string;
 	/** Every note path this run has written, to tell a copy from an update. */
 	private claimedPaths = new Set<string>();
@@ -590,20 +600,28 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 
+		const converter = this.decodeData(row.zhexdata, NoteConverter);
+
 		// Get creation date and format it according to user preference
-		let title = row.ZTITLE1;
+		let prefix = '';
 		if (this.filePrefixFormat) {
 			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
-			const datePrefix = moment(creationTimestamp).format(this.filePrefixFormat);
-			title = `${datePrefix} ${title}`;
+			prefix = `${moment(creationTimestamp).format(this.filePrefixFormat)} `;
 		}
 
-		// Check for duplicate notes based on the selected handling option
-		const existingFile = await this.previouslyImported(folder, `${title}.md`, row.ZIDENTIFIER);
+		const storedTitle = String(row.ZTITLE1);
+		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
+
+		// Check for duplicate notes based on the selected handling option. An
+		// earlier import named the note after ZTITLE1, so a vault one of those
+		// wrote holds it there rather than under the first line.
+		const existingFile = await this.previouslyImported(
+			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
+		);
 
 		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(row.ZTITLE1, 'note is a duplicate');
+				this.ctx.reportSkipped(title, 'note is a duplicate');
 				return existingFile;
 			}
 			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
@@ -613,7 +631,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
-					this.ctx.reportSkipped(row.ZTITLE1, 'note unchanged since last import');
+					this.ctx.reportSkipped(title, 'note unchanged since last import');
 					return existingFile;
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
@@ -629,8 +647,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.owners[id] = this.owners[row.ZFOLDER];
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
-		const converter = this.decodeData(row.zhexdata, NoteConverter);
-
 		const body = await converter.format(false, file.path);
 
 		await this.vault.modify(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
@@ -644,10 +660,13 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return file;
 	}
 
-	async resolveAttachment(id: number, uti: ANAttachment | (string & {})): Promise<TFile | null> {
+	async resolveAttachment(
+		id: number, uti: ANAttachment | (string & {}), hasFallback = false
+	): Promise<TFile | null> {
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;
+		let neverDownloaded = false;
 
 		switch (uti) {
 			case ANAttachment.ModifiedScan:
@@ -662,6 +681,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND z_pk = ${id}
 				`;
 
+				if (!row) break;
 				sourcePath = path.join('FallbackPDFs', row.ZIDENTIFIER, row.ZFALLBACKPDFGENERATION || '', 'FallbackPDF.pdf');
 				outName = 'Scan';
 				outExt = 'pdf';
@@ -677,6 +697,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND z_pk = ${id}
 				`;
 
+				if (!row) break;
 				sourcePath = path.join('Previews', `${row.ZIDENTIFIER}-1-${row.ZSIZEWIDTH}x${row.ZSIZEHEIGHT}-0.jpeg`);
 				outName = 'Scan Page';
 				outExt = 'jpg';
@@ -691,13 +712,20 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				row = await this.database.get`
 					SELECT
 						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate,
-						znote, zhandwritingsummary
+						znote, zhandwritingsummary, zsizewidth,
+					zmergeabledata1 IS NOT NULL AS hasdrawing
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
 						z_ent = ${this.keys.ICAttachment}
 						AND z_pk = ${id}
 				`;
+
+				if (!row) break;
+
+				// Missing render, drawing data, and dimensions means the drawing
+				// exists only in iCloud.
+				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.hasdrawing && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
@@ -725,9 +753,17 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND a.z_pk = b.zmedia
 				`;
 
+				if (!row || !row.ZFILENAME) break;
 				sourcePath = path.join('Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
+		}
+
+		// A missing attachment row must not abort conversion after the empty note
+		// file has already been created (#218, #391).
+		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
+			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
+			return null;
 		}
 
 		// Apply date prefix to attachment name if configured
@@ -738,35 +774,49 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			finalAttachmentName = `${datePrefix} ${outName}`;
 		}
 
-		// Check for existing attachment based on the selected handling option
-		// Abuse getAvailablePathForAttachment to get the expected attachment path
-		const uniqueAttachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
-		const { parent } = parseFilePath(uniqueAttachmentPath);
-		const expectedAttachmentPath = path.join(parent, `${finalAttachmentName}.${outExt}`);
-		const existingAttachment = this.vault.getAbstractFileByPath(expectedAttachmentPath);
+		try {
+			// A name with no extension is settled by reading the file, and that
+			// name is what the duplicate check looks for, so the read comes
+			// first (#471). A name that already says what it is skips that:
+			// Apple can take the source back while the copy the vault holds is
+			// still good, and reading first would lose it.
+			let binary;
 
-		if (existingAttachment && existingAttachment instanceof TFile) {
-			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
-				return existingAttachment;
+			if (!outExt) {
+				binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+				outExt = extensionFromBytes(binary) ?? '';
 			}
-			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
-				// Check modification times for attachments
-				const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
-				const existingAttachmentModTime = existingAttachment.stat.mtime;
 
-				if (appleAttachmentModTime <= existingAttachmentModTime) {
-					this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
+			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
+
+			// Check for existing attachment based on the selected handling option
+			// Abuse getAvailablePathForAttachment to get the expected attachment path
+			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
+			const { parent } = parseFilePath(uniqueAttachmentPath);
+			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
+
+			if (existingAttachment && existingAttachment instanceof TFile) {
+				if (this.duplicateHandling === DuplicateHandling.Skip) {
+					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
 					return existingAttachment;
 				}
-				// If Apple attachment is newer, continue with import (will overwrite)
-			}
-			// For CreateCopy option, we continue without skipping (will create numbered copy)
-		}
+				else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+					// Check modification times for attachments
+					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
+					const existingAttachmentModTime = existingAttachment.stat.mtime;
 
-		try {
-			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
-			const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
+					if (appleAttachmentModTime <= existingAttachmentModTime) {
+						this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
+						return existingAttachment;
+					}
+					// If Apple attachment is newer, continue with import (will overwrite)
+				}
+				// For CreateCopy option, we continue without skipping (will create numbered copy)
+			}
+
+			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
+
+			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
 
 			file = await this.vault.createBinary(
 				attachmentPath, nodeBufferToArrayBuffer(binary),
@@ -774,13 +824,26 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 		}
 		catch (e) {
-			this.ctx.reportFailed(sourcePath);
+			// Suppress an expected failed probe; the caller reports only if its
+			// fallback also fails (#393).
+			if (hasFallback) return null;
+
+			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
+
+			if (neverDownloaded) {
+				this.ctx.reportSkipped(
+					label, 'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it'
+				);
+				return null;
+			}
+
+			this.ctx.reportFailed(label, extractErrorMessage(e));
 			console.error(e);
 			return null;
 		}
 
 		this.resolvedFiles[id] = file;
-		this.ctx.reportAttachmentSuccess(`${finalAttachmentName}.${outExt}`);
+		this.ctx.reportAttachmentSuccess(file.name);
 		return file;
 	}
 
@@ -800,13 +863,38 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 
+	/** Identify an attachment in the log by the note the user can locate. */
+	private async describeAttachment(outName: string, notePk: number): Promise<string> {
+		const imported = this.resolvedFiles[notePk];
+		if (imported) return `${outName} in ${imported.basename}`;
+
+		const note = await this.database.get`
+			SELECT ztitle1 FROM ziccloudsyncingobject WHERE z_pk = ${notePk}
+		`;
+
+		return note?.ZTITLE1 ? `${outName} in ${String(note.ZTITLE1)}` : outName;
+	}
+
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
-		try {
-			return await fsPromises.readFile(path.join(account.path, sourcePath));
+		// Older attachments predate per-account storage and remain loose in the
+		// Notes container.
+		const candidates = [
+			path.join(account.path, sourcePath),
+			path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath),
+		];
+
+		for (const candidate of candidates) {
+			try {
+				return await fsPromises.readFile(candidate);
+			}
+			catch {
+				continue;
+			}
 		}
-		catch {
-			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
-		}
+
+		// Include both attempted paths and phrase the message to follow the
+		// import log's "because".
+		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
 	/**
@@ -821,25 +909,29 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	 * Apple Notes reads as a new one. Recognising it properly needs the id the
 	 * source carries, which is not written down yet.
 	 */
-	private async previouslyImported(folder: TFolder, title: string, noteId?: string): Promise<TFile | null> {
+	private async previouslyImported(folder: TFolder, titles: string[], noteId?: string): Promise<TFile | null> {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
-		// Normalized, because what it is held against is: the vault's own paths,
-		// and the ones this run has written. At the vault root path.join leaves a
-		// leading slash that neither of those carries.
-		const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
-		if (this.claimedPaths.has(fullPath)) return null;
+		for (const title of new Set(titles)) {
+			// Normalized, because what it is held against is: the vault's own
+			// paths, and the ones this run has written. At the vault root
+			// path.join leaves a leading slash that neither of those carries.
+			const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
+			if (this.claimedPaths.has(fullPath)) return null;
 
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
-		if (!(existingFile instanceof TFile)) return null;
+			const existingFile = this.vault.getAbstractFileByPath(fullPath);
+			if (!(existingFile instanceof TFile)) continue;
 
-		// A note that carries an id says which note it is. A different one is a
-		// note of its own however much the titles agree, and one with no id at
-		// all was written before ids were, so the title is all there is to go on.
-		const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
-		if (existingId && noteId && existingId !== noteId) return null;
+			// A note that carries an id says which note it is. A different one is
+			// a note of its own however much the titles agree, and one with no id
+			// at all was written before ids were, so the title is all there is.
+			const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
+			if (existingId && noteId && existingId !== noteId) continue;
 
-		return existingFile;
+			return existingFile;
+		}
+
+		return null;
 	}
 
 	/**

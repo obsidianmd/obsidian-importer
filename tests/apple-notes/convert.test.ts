@@ -36,13 +36,15 @@ import {
 	SQLiteTagSpawned,
 } from '../../src/formats/apple-notes/models';
 import { expectedFor, expectTree, fixtures } from '../helpers';
-import { buildStore, NoteSpec, StoreSpec } from './store';
+import { buildStore, encodeNote, NoteSpec, StoreSpec } from './store';
 
 provideNodeModules({ zlib: nodeZlib });
 
 const FIXTURES = __dirname;
 
 const protobufRoot = Root.fromJSON(descriptor);
+
+const SOFT_RETURN = '\u2028';
 
 /**
  * What the converter needs from outside the note: the database it came from,
@@ -53,6 +55,7 @@ function context(database: SQLiteTagSpawned, options: Partial<ANContext> = {}): 
 	const ctx: ANContext = {
 		omitFirstLine: true,
 		includeHandwriting: false,
+		strictLineBreaks: false,
 		database,
 
 		decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
@@ -207,6 +210,17 @@ const STORE: StoreSpec = {
 				{ text: 'linked', link: 'https://example.com', emphasis: 3 },
 			],
 		},
+		// Keep this last because internal links store the target note's generated
+		// primary key.
+		{
+			title: 'Soft returns',
+			runs: [
+				{ text: 'Soft returns\n', style: ANStyleType.Title },
+				{ text: `A paragraph${SOFT_RETURN}broken by a soft return.\n` },
+				{ text: `First bullet${SOFT_RETURN}still the first bullet\n`, style: ANStyleType.DottedList },
+				{ text: 'Second bullet', style: ANStyleType.DottedList },
+			],
+		},
 	],
 	attachments: [
 		{ identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag, altText: '#a-tag' },
@@ -261,6 +275,234 @@ test('keeps the first line when asked to', async () => {
 
 		assert.match(kept.get('Headings')!, /^# Headings/);
 		assert.doesNotMatch(dropped.get('Headings')!, /^# Headings/);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('a note starting with blank lines does not repeat its title', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const converter = context(store.database).decodeData(
+			encodeNote({
+				title: 'Android reviews',
+				runs: [{ text: '\n\nAndroid reviews\n\nObsidian is a small team.' }],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		const body = await converter.format(false, 'Android reviews.md');
+
+		assert.doesNotMatch(body, /Android reviews/, 'the file name holds the title; the body repeated it');
+		assert.equal(body, 'Obsidian is a small team.');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('a soft return is spelled out when the vault has strict line breaks on', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	const note = encodeNote({
+		title: 'Soft returns',
+		runs: [
+			{ text: `A paragraph${SOFT_RETURN}broken by a soft return.\n` },
+			{ text: `First bullet${SOFT_RETURN}still the first bullet`, style: ANStyleType.DottedList },
+		],
+	}).toString('hex');
+
+	try {
+		const relaxed = context(store.database, { omitFirstLine: false });
+		assert.equal(
+			await relaxed.decodeData(note, NoteConverter).format(false, 'Soft returns.md'),
+			'A paragraph\nbroken by a soft return.\n- First bullet\n\tstill the first bullet'
+		);
+
+		const strict = context(store.database, { omitFirstLine: false, strictLineBreaks: true });
+		assert.equal(
+			await strict.decodeData(note, NoteConverter).format(false, 'Soft returns.md'),
+			'A paragraph  \nbroken by a soft return.\n- First bullet  \n\tstill the first bullet'
+		);
+
+		// A newline is already the break inside a code block, so nothing is
+		// spelled out there and no spaces land in the user's code
+		const code = encodeNote({
+			title: 'Code',
+			runs: [
+				{ text: `const a = 1;${SOFT_RETURN}const b = 2;\n`, style: ANStyleType.Monospaced },
+				{ text: 'After.', style: ANStyleType.Default },
+			],
+		}).toString('hex');
+
+		assert.equal(
+			await strict.decodeData(code, NoteConverter).format(false, 'Code.md'),
+			'```\nconst a = 1;\nconst b = 2;\n```\nAfter.'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/** Keep a title that parents nested list items so they are not orphaned. */
+test('a first line with a list nested under it is kept', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const ctx = context(store.database);
+
+		const nested = ctx.decodeData(
+			encodeNote({
+				title: 'Airtable is for',
+				runs: [
+					{ text: 'Airtable is for\n', style: ANStyleType.DashedList, indent: 0 },
+					{ text: 'databases', style: ANStyleType.DashedList, indent: 1 },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(await nested.format(false, 'Airtable is for.md'), '- Airtable is for\n\t- databases');
+
+		const flat = ctx.decodeData(
+			encodeNote({
+				title: 'Price',
+				runs: [
+					{ text: 'Price\n', style: ANStyleType.NumberedList, indent: 0 },
+					{ text: 'Quality', style: ANStyleType.NumberedList, indent: 0 },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(await flat.format(false, 'Price.md'), '1. Quality');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/** Apple allows spaces and all-digit tag names; Obsidian does not (#471.4, #471.6). */
+test('what a tag with a space or only digits converts to today', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tagged',
+			runs: [
+				{ text: 'Tagged\n' },
+				{ text: '', attachment: { identifier: 'TAG-SPACE', uti: ANAttachment.Hashtag } },
+				{ text: '\n' },
+				{ text: '', attachment: { identifier: 'TAG-DIGITS', uti: ANAttachment.Hashtag } },
+			],
+		}],
+		attachments: [
+			{ identifier: 'TAG-SPACE', uti: ANAttachment.Hashtag, altText: '#gift ideas' },
+			{ identifier: 'TAG-DIGITS', uti: ANAttachment.Hashtag, altText: '#2024' },
+		],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		assert.equal(converted.get('Tagged'), '#gift ideas\n#2024');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/** Apple encodes real tags as attachments; tag-shaped plain text is not a tag. */
+test('a hash in the text is escaped, and a real tag is not', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tags',
+			runs: [
+				{ text: 'Tags\n' },
+				{ text: 'Bugs go in Slack #web-issues, and #s means numbers.\n' },
+				{ text: 'Written in C# and F#.\n' },
+				{ text: '## Not a tag\n' },
+				{ text: '', attachment: { identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag } },
+			],
+		}],
+		attachments: [{ identifier: 'HASHTAG-1', uti: ANAttachment.Hashtag, altText: '#a-real-tag' }],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		assert.equal(
+			converted.get('Tags'),
+			'Bugs go in Slack \\#web-issues, and \\#s means numbers.\n'
+			+ 'Written in C# and F#.\n'
+			+ '## Not a tag\n'
+			+ '#a-real-tag'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('a list item starting with a link keeps its checkbox', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tasks',
+			runs: [
+				{ text: 'Tasks\n' },
+				{ text: 'Write the notes\n', style: ANStyleType.Checkbox, checked: false },
+				{ text: '', attachment: { identifier: 'LINK-1', uti: ANAttachment.InternalLink }, style: ANStyleType.Checkbox, checked: false },
+				{ text: ', and the rest of the item', style: ANStyleType.Checkbox, checked: false },
+			],
+		}],
+		attachments: [
+			{ identifier: 'LINK-1', uti: ANAttachment.InternalLink, tokenContentIdentifier: 'applenotes:note/00000000-0000-0000-0000-000000000001' },
+			{ identifier: '00000000-0000-0000-0000-000000000001', uti: 'note' },
+		],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		assert.equal(
+			converted.get('Tasks'),
+			'- [ ] Write the notes\n- [ ] [[Apple Notes/Note 5.md]], and the rest of the item'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('a table cell keeps its line breaks and pipes', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const cell = context(store.database).decodeData(
+			encodeNote({ title: 'Cell', runs: [{ text: 'first\nsecond\nthird | fourth' }] }).toString('hex'),
+			NoteConverter
+		);
+
+		const formatted = await cell.format(true);
+
+		assert.doesNotMatch(formatted, /\n/, 'a newline would end the table row');
+		assert.doesNotMatch(formatted, /(?<!&#124;)\|/, 'a bare pipe would split the cell');
+		assert.equal(formatted, 'first<br>second<br>third &#124; fourth');
 	}
 	finally {
 		store.close();

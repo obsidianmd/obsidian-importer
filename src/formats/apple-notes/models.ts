@@ -22,12 +22,18 @@ export interface ANContext<F extends ANFile = ANFile> {
 	omitFirstLine: boolean;
 	/** Whether a drawing's transcription is kept as a callout. */
 	includeHandwriting: boolean;
+	/** Whether the vault requires explicit Markdown line breaks. */
+	strictLineBreaks: boolean;
 	database: SQLiteTagSpawned;
 
 	/** Gunzip and decode one of the protobufs a note refers to. */
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T;
-	/** Bring an attachment into the vault, or null if it cannot be read. */
-	resolveAttachment(id: number, uti: string): Promise<F | null>;
+	/**
+	 * Bring an attachment into the vault, or null if it cannot be read.
+	 * Suppress reporting when `hasFallback` is true; the caller reports only if
+	 * the fallback also fails.
+	 */
+	resolveAttachment(id: number, uti: string, hasFallback?: boolean): Promise<F | null>;
 	/** Import a note this one links to, so the link has something to point at. */
 	resolveNote(id: number): Promise<F | null>;
 	/** A link to a file, in whichever form the vault is set to write. */
