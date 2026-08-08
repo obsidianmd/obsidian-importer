@@ -14,12 +14,18 @@ export interface MarkdownOutput {
 /** The step a conversion indents by before this runs. A tab counts as one too. */
 const CONVERSION_STEP = 4;
 
-const LIST_MARKER = /^(?:[-*+]|\d+[.)])(?:[ \t]+|$)/;
+const LIST_MARKER = /^(?:[-*+]|\d+[.)])(?:[ \t]+|\r?$)/;
 const FENCE_OPEN = /^(`{3,}|~{3,})/;
-/** A fence closes on its own delimiter, at least as long, and nothing after it. */
-const FENCE_CLOSE = /^(`{3,}|~{3,})[ \t]*\r?$/;
+/**
+ * A fence closes on its own delimiter, at least as long, nothing after it, and
+ * no more than three spaces in front - four makes it code the fence contains.
+ */
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*\r?$/;
 /** "***" and "* * *" open with what looks like a bullet, and are not one. */
-const THEMATIC_BREAK = /^([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+const THEMATIC_BREAK = /^([-*_])(?:[ \t]*\1){2,}[ \t]*\r?$/;
+
+/** Indenting this far past its item's text makes a line code, not a nested list. */
+const CODE_INDENT = 4;
 
 /** The bullet Obsidian itself writes, in turndown and in the editor. */
 const BULLET = '-';
@@ -63,6 +69,11 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 	// The delimiter that opened it. A ``` line inside a ```` fence is code
 	let fenceDelimiter = '';
 	let inList = false;
+	// Where the current item's text starts, and whether a blank line has passed:
+	// together they say whether an indented line is the item's code or a sub-item
+	let itemText = 0;
+	let blank = false;
+	let codeFloor = -1;
 
 	for (let i = frontMatterEnd(lines); i < lines.length; i++) {
 		const line = lines[i];
@@ -70,14 +81,34 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 		const rest = line.slice(indent.length);
 
 		if (fenceFrom !== null) {
-			if (line.startsWith(fenceFrom)) lines[i] = fenceTo + line.slice(fenceFrom.length);
-			if (closes(rest, fenceDelimiter)) fenceFrom = fenceTo = null;
+			// Measured from where the fence itself sits, not from the margin
+			const inside = line.startsWith(fenceFrom) ? line.slice(fenceFrom.length) : rest;
+			if (line.startsWith(fenceFrom)) lines[i] = fenceTo + inside;
+			if (closes(inside, fenceDelimiter)) fenceFrom = fenceTo = null;
 			continue;
 		}
 
-		if (rest.trim() === '') continue; // A blank line does not end the item
+		if (rest.trim() === '') { // A blank line does not end the item
+			blank = true;
+			continue;
+		}
+
+		// An indented code block inside the item, which runs until the indent drops
+		if (codeFloor >= 0 && columns(indent) >= codeFloor) {
+			blank = false;
+			continue;
+		}
+		codeFloor = -1;
+
+		if (inList && blank && columns(indent) >= itemText + CODE_INDENT) {
+			codeFloor = itemText + CODE_INDENT;
+			blank = false;
+			continue;
+		}
+		blank = false;
 
 		const marker = THEMATIC_BREAK.test(rest) ? '' : rest.match(LIST_MARKER)?.[0] ?? '';
+		if (marker) itemText = columns(indent) + marker.length;
 		const opened = rest.slice(marker.length).match(FENCE_OPEN)?.[1];
 
 		const reindented: string = marker || (inList && indent !== '')
@@ -96,6 +127,17 @@ export function formatMarkdown(content: string, { indentUnit }: MarkdownOutput):
 	}
 
 	return lines.join('\n');
+}
+
+/** How wide an indent is, with a tab taking the line to the next stop. */
+function columns(indent: string): number {
+	let at = 0;
+
+	for (const character of indent) {
+		at = character === '\t' ? at + CONVERSION_STEP - at % CONVERSION_STEP : at + 1;
+	}
+
+	return at;
 }
 
 function closes(rest: string, delimiter: string): boolean {

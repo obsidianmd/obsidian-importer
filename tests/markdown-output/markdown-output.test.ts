@@ -201,3 +201,45 @@ test('formatting what was already formatted changes nothing', () => {
 		assert.equal(formatMarkdown(once, output), once);
 	}
 });
+
+test('leaves a CRLF thematic break as it is', () => {
+	const markdown = ['- one', '', '* * *', '', '***'].join('\r\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), markdown);
+});
+
+test('a fence-like line indented four past its fence is code, not a close', () => {
+	const markdown = [
+		'```',
+		'    ```',
+		'* not a bullet',
+		'```',
+		'* a bullet',
+	].join('\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), [
+		'```',
+		'    ```',
+		'* not a bullet',
+		'```',
+		'- a bullet',
+	].join('\n'));
+});
+
+test('leaves an indented code block inside a list item literal', () => {
+	// Four past the item's text is code, and "* literal" is a line of it
+	const markdown = [
+		'- one',
+		'',
+		'      * literal',
+		'      + literal',
+	].join('\n');
+
+	assert.equal(formatMarkdown(markdown, TABS), markdown);
+});
+
+test('still nests a sub-item that follows a blank line', () => {
+	assert.equal(
+		formatMarkdown(['- one', '    - two', '', '        - three'].join('\n'), TABS),
+		['- one', '\t- two', '', '\t\t- three'].join('\n'));
+});
