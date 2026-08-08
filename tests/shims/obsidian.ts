@@ -202,6 +202,11 @@ export class TAbstractFile {
 	vault!: never;
 }
 
+export interface DataWriteOptions {
+	ctime?: number;
+	mtime?: number;
+}
+
 export class TFile extends TAbstractFile {
 	basename: string = '';
 	extension: string = '';

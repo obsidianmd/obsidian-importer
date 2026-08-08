@@ -9,9 +9,40 @@ import * as nodeZlib from 'node:zlib';
 
 import { provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
+import { noteTitle } from '../../src/formats/apple-notes/convert-note';
+import { sanitizeFileName } from '../../src/util';
 import { importing } from './importing';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
+
+/** An attachment stands in the note text as one character. */
+const ATTACHMENT = '\uFFFC';
+const SOFT_RETURN = '\u2028';
+
+/**
+ * Apple looks past a line holding nothing but an attachment: a note opening
+ * with a photo is titled from the text under it. Naming it after that
+ * character instead put every such note at the same name.
+ */
+test('a note opening with an attachment is named after its text', () => {
+	assert.equal(noteTitle(`${ATTACHMENT}\nPhotos from Rome`, 'Photos from Rome'), 'Photos from Rome');
+	assert.equal(noteTitle(`${ATTACHMENT}${ATTACHMENT}\n\nRome`, 'Rome'), 'Rome');
+	assert.equal(noteTitle(`${ATTACHMENT}Photos from Rome\nMore`, 'x'), 'Photos from Rome');
+
+	// Nothing but attachments, so there is no text to name it after
+	assert.equal(noteTitle(`${ATTACHMENT}\n${ATTACHMENT}`, 'Photos from Rome'), 'Photos from Rome');
+});
+
+/**
+ * A soft return is part of the line Apple titles a note with - ZTITLE1 carries
+ * one - but a line separator in a file name is invisible.
+ */
+test('a soft return in the first line does not reach the file name', () => {
+	const title = noteTitle(`Sennheiser 416${SOFT_RETURN}Deity - S-Mic 2S\nBody`, 'x');
+
+	assert.equal(title, 'Sennheiser 416 Deity - S-Mic 2S');
+	assert.doesNotMatch(sanitizeFileName(title), /[\u2028\u2029]/);
+});
 
 const LONG_LINE = 'The reason we moved buttons to the bottom is to improve accessibility for one-handed use';
 const ABBREVIATED = 'The reason we moved buttons to the bottom is to improve accessibility…';

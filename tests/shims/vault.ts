@@ -12,7 +12,7 @@
  * taken, the app returns "Note 1", then "Note 2", and it compares without
  * regard to case, so "note" does not come back free while "Note" exists.
  */
-import { TAbstractFile, TFile, TFolder, normalizePath } from './obsidian';
+import { DataWriteOptions, TAbstractFile, TFile, TFolder, normalizePath } from './obsidian';
 
 export class MemoryVault {
 	/** Every file and folder, keyed by its lower-cased path. */
@@ -88,12 +88,12 @@ export class MemoryVault {
 		return folder;
 	}
 
-	async create(path: string, data: string): Promise<TFile> {
-		return this.write(path, data);
+	async create(path: string, data: string, options?: DataWriteOptions): Promise<TFile> {
+		return this.write(path, data, options);
 	}
 
-	async createBinary(path: string, data: ArrayBuffer): Promise<TFile> {
-		return this.write(path, data);
+	async createBinary(path: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {
+		return this.write(path, data, options);
 	}
 
 	// Taken by path rather than by TFile: what an importer hands back is
@@ -103,12 +103,15 @@ export class MemoryVault {
 		return String(this.contents.get(file.path) ?? '');
 	}
 
-	async modify(file: { path: string }, data: string): Promise<void> {
+	async modify(file: { path: string }, data: string, options?: DataWriteOptions): Promise<void> {
 		this.contents.set(file.path, data);
+
+		const entry = this.entries.get(normalizePath(file.path).toLowerCase());
+		if (entry instanceof TFile && options) Object.assign(entry.stat, options);
 	}
 
 	/** The vault refuses a name that is taken rather than picking another. */
-	private write(path: string, data: string | ArrayBuffer): TFile {
+	private write(path: string, data: string | ArrayBuffer, options?: DataWriteOptions): TFile {
 		const normalized = normalizePath(path);
 		if (this.entries.has(normalized.toLowerCase())) {
 			throw new Error('File already exists.');
@@ -121,6 +124,9 @@ export class MemoryVault {
 		file.basename = dot > 0 ? file.name.slice(0, dot) : file.name;
 		file.extension = dot > 0 ? file.name.slice(dot + 1) : '';
 		file.stat.size = typeof data === 'string' ? data.length : data.byteLength;
+
+		// The dates an importer asks for, which duplicate handling compares
+		if (options) Object.assign(file.stat, options);
 
 		this.entries.set(normalized.toLowerCase(), file);
 		this.contents.set(normalized, data);

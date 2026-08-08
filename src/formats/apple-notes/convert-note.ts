@@ -42,9 +42,16 @@ const TITLE_LIMIT = 200;
 
 const URL_LINE = /^https?:\/\/\S+$/;
 
-/** Return the first non-blank line, which Apple displays as the note title. */
+/**
+ * Return the first line with text on it, which Apple displays as the note
+ * title. A line holding only attachments is not one, and a soft return within
+ * the line is a space rather than a character no file name should carry.
+ */
 export function firstLine(noteText: string): string {
-	return noteText.split('\n').find(line => line.trim() !== '')?.trim() ?? '';
+	return noteText
+		.split('\n')
+		.map(line => line.replace(/\uFFFC/g, '').replace(/[\u2028\u2029]/g, ' ').trim())
+		.find(line => line !== '') ?? '';
 }
 
 /**
@@ -191,17 +198,14 @@ export class NoteConverter extends ANConverter {
 	 *
 	 * Strict line breaks require two trailing spaces. List continuations also
 	 * require indentation, except after an empty line where indentation would
-	 * create a code block.
+	 * create a code block. Inside one, a newline is already the break.
 	 */
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
 		const style = attr.paragraphStyle;
-		let indent = this.ctx.strictLineBreaks ? '  \n' : '\n';
+		const inCode = this.multiRun == ANMultiRun.Monospaced;
+		let indent = this.ctx.strictLineBreaks && !inCode ? '  \n' : '\n';
 
-		if (
-			this.multiRun != ANMultiRun.Monospaced
-			&& style?.styleType !== undefined
-			&& LIST_STYLES.includes(style.styleType)
-		) {
+		if (!inCode && style?.styleType !== undefined && LIST_STYLES.includes(style.styleType)) {
 			indent += '\t'.repeat((style.indentAmount ?? 0) + 1);
 		}
 

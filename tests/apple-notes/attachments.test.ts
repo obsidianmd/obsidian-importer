@@ -10,9 +10,11 @@ import * as nodeZlib from 'node:zlib';
 import { Root } from 'protobufjs';
 
 import { provideNodeModules } from '../../src/filesystem';
+import { DuplicateHandling } from '../../src/format-importer';
 import { AppleNotesImporter } from '../../src/formats/apple-notes';
 import { descriptor } from '../../src/formats/apple-notes/descriptor';
 import { ANAttachment } from '../../src/formats/apple-notes/models';
+import { TFile } from '../shims/obsidian';
 import { MemoryVault, memoryApp } from '../shims/vault';
 import { buildStore, StoreSpec } from './store';
 
@@ -66,33 +68,46 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 
 	const vault = new MemoryVault();
 	const failed: string[] = [];
-	const subject = new AppleNotesImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
-
 	const skipped: string[] = [];
 	const reasons: (string | undefined)[] = [];
-	subject.ctx = {
-		isCancelled: () => false,
-		shouldStop: async () => false,
-		status: () => {},
-		reportProgress: () => {},
-		reportNoteSuccess: () => {},
-		reportAttachmentSuccess: () => {},
-		reportSkipped: (name: string, reason?: string) => { skipped.push(name); reasons.push(reason); },
-		reportFailed: (name: string, reason?: string) => { failed.push(name); reasons.push(reason); },
-	} as never;
-	subject.vault = vault as never;
-	subject.rootFolder = vault.root;
-	subject.protobufRoot = Root.fromJSON(descriptor);
-	subject.keys = Object.fromEntries(
+	const keys = Object.fromEntries(
 		(await store.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
 	);
-	subject.database = store.database;
-	subject.resolvedAccounts = { 1: { name: 'Test account', uuid: 'ACCOUNT-1', path: account } };
-	subject.owners = { [store.folderPk]: 1 };
+
+	// One importer per run over the same vault, so a second run sees what the
+	// first one wrote - which is what duplicate handling reads
+	const run = (mode = DuplicateHandling.CreateCopy) => {
+		const subject = new AppleNotesImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+
+		subject.ctx = {
+			isCancelled: () => false,
+			shouldStop: async () => false,
+			status: () => {},
+			reportProgress: () => {},
+			reportNoteSuccess: () => {},
+			reportAttachmentSuccess: () => {},
+			reportSkipped: (name: string, reason?: string) => { skipped.push(name); reasons.push(reason); },
+			reportFailed: (name: string, reason?: string) => { failed.push(name); reasons.push(reason); },
+		} as never;
+		subject.vault = vault as never;
+		subject.rootFolder = vault.root;
+		subject.protobufRoot = Root.fromJSON(descriptor);
+		subject.keys = keys;
+		subject.duplicateHandling = mode;
+		subject.database = store.database;
+		subject.resolvedAccounts = { 1: { name: 'Test account', uuid: 'ACCOUNT-1', path: account } };
+		subject.owners = { [store.folderPk]: 1 };
+
+		return (pk: number) => subject.resolveNote(pk);
+	};
+
+	const first = run();
 
 	return {
 		vault, failed, skipped, reasons, notePks: store.notePks,
-		resolve: (pk: number) => subject.resolveNote(pk),
+		resolve: (pk: number) => first(pk),
+		/** A later import into the same vault, as a second run of the importer. */
+		reimport: (mode: DuplicateHandling) => run(mode),
 		close: () => {
 			store.close();
 			nodeFs.rmSync(dir, { recursive: true, force: true });
@@ -154,6 +169,64 @@ test('a media file with no extension is named for what it holds', async () => {
 
 		assert.ok(note, 'the note should be imported');
 		assert.deepEqual(run.failed, [], 'nothing should have failed');
+		assert.deepEqual(run.vault.paths(), [
+			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
+		]);
+	}
+	finally {
+		run.close();
+	}
+});
+
+/** A media row that is there but carries no name for the file. */
+const NULL_FILENAME: StoreSpec = {
+	notes: [{
+		title: 'Holiday',
+		runs: [
+			{ text: 'Holiday\n' },
+			{ text: 'Text that should survive.\n' },
+			{ text: '', attachment: { identifier: 'PHOTO-2', uti: 'public.jpeg' } },
+		],
+	}],
+	attachments: [{ identifier: 'PHOTO-2', uti: 'public.jpeg', note: 0, mediaFilename: null }],
+};
+
+test('a note keeps its text when a media row carries no file name', async () => {
+	const run = await importing(NULL_FILENAME);
+
+	try {
+		const note = await run.resolve(run.notePks[0]);
+
+		assert.ok(note, 'the note should be imported');
+
+		const body = String(run.vault.contents.get(note.path));
+		assert.ok(body.contains('Text that should survive.'), `the note is empty: ${JSON.stringify(body)}`);
+		assert.equal(run.failed.length, 1);
+	}
+	finally {
+		run.close();
+	}
+});
+
+test('an extensionless attachment is recognised again on a later import', async () => {
+	const run = await importing(NO_EXTENSION);
+
+	try {
+		await run.resolve(run.notePks[0]);
+		assert.deepEqual(run.vault.paths(), [
+			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
+		]);
+
+		// Age the note so the second run reimports it rather than skipping it,
+		// which is what brings the attachment back through resolveAttachment
+		const note = run.vault.getAbstractFileByPath('Clipped.md');
+		assert.ok(note instanceof TFile);
+		note.stat.mtime = 0;
+
+		// The attachment is already there under the name its bytes gave it, so
+		// no second copy is written
+		await run.reimport(DuplicateHandling.ImportUpdated)(run.notePks[0]);
+
 		assert.deepEqual(run.vault.paths(), [
 			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
 		]);

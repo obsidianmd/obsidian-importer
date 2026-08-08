@@ -706,7 +706,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				row = await this.database.get`
 					SELECT
 						zidentifier, zfallbackimagegeneration, zcreationdate, zmodificationdate,
-						znote, zhandwritingsummary, zsizewidth, zmergeabledata1
+						znote, zhandwritingsummary, zsizewidth,
+					zmergeabledata1 IS NOT NULL AS hasdrawing
 					FROM
 						(SELECT *, NULL AS zfallbackimagegeneration FROM ziccloudsyncingobject)
 					WHERE
@@ -718,7 +719,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				// Missing render, drawing data, and dimensions means the drawing
 				// exists only in iCloud.
-				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.ZMERGEABLEDATA1 && !row.ZSIZEWIDTH;
+				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.hasdrawing && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
 					// macOS 14/iOS 17 and above
@@ -746,7 +747,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						AND a.z_pk = b.zmedia
 				`;
 
-				if (!row) break;
+				if (!row || !row.ZFILENAME) break;
 				sourcePath = path.join('Media', row.ZIDENTIFIER, row.ZGENERATION1 || '', row.ZFILENAME);
 				[outName, outExt] = splitext(row.ZFILENAME);
 				break;
@@ -767,42 +768,40 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			finalAttachmentName = `${datePrefix} ${outName}`;
 		}
 
-		// Check for existing attachment based on the selected handling option
-		// Abuse getAvailablePathForAttachment to get the expected attachment path
-		const uniqueAttachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
-		const { parent } = parseFilePath(uniqueAttachmentPath);
-		const expectedAttachmentPath = path.join(parent, `${finalAttachmentName}.${outExt}`);
-		const existingAttachment = this.vault.getAbstractFileByPath(expectedAttachmentPath);
-
-		if (existingAttachment && existingAttachment instanceof TFile) {
-			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
-				return existingAttachment;
-			}
-			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
-				// Check modification times for attachments
-				const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
-				const existingAttachmentModTime = existingAttachment.stat.mtime;
-
-				if (appleAttachmentModTime <= existingAttachmentModTime) {
-					this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
-					return existingAttachment;
-				}
-				// If Apple attachment is newer, continue with import (will overwrite)
-			}
-			// For CreateCopy option, we continue without skipping (will create numbered copy)
-		}
-
 		try {
+			// Read before the name is settled: an extension inferred from the
+			// bytes is part of the name the duplicate check looks for (#471).
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
-			// Obsidian identifies media by extension, so infer one when Apple
-			// provides only a bare file name (#471).
 			if (!outExt) outExt = extensionFromBytes(binary) ?? '';
+			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
-			const attachmentPath = await this.getAvailablePathForAttachment(
-				outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName, []
-			);
+			// Check for existing attachment based on the selected handling option
+			// Abuse getAvailablePathForAttachment to get the expected attachment path
+			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
+			const { parent } = parseFilePath(uniqueAttachmentPath);
+			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
+
+			if (existingAttachment && existingAttachment instanceof TFile) {
+				if (this.duplicateHandling === DuplicateHandling.Skip) {
+					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
+					return existingAttachment;
+				}
+				else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+					// Check modification times for attachments
+					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
+					const existingAttachmentModTime = existingAttachment.stat.mtime;
+
+					if (appleAttachmentModTime <= existingAttachmentModTime) {
+						this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
+						return existingAttachment;
+					}
+					// If Apple attachment is newer, continue with import (will overwrite)
+				}
+				// For CreateCopy option, we continue without skipping (will create numbered copy)
+			}
+
+			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
 
 			file = await this.vault.createBinary(
 				attachmentPath, nodeBufferToArrayBuffer(binary),

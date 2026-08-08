@@ -77,7 +77,7 @@ export interface AttachmentSpec {
 	 * Create a media row with this file name and point the attachment to it.
 	 * Use `media` directly to reference a missing or separately defined row.
 	 */
-	mediaFilename?: string;
+	mediaFilename?: string | null;
 	/**
 	 * Which note it hangs off, as an index into the spec's notes.
 	 *
@@ -254,7 +254,7 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		if (attachment.mediaFilename !== undefined) {
 			media = pk++;
 			insertMedia.run(media, entity.ICMedia, `MEDIA-${media}`, attachment.mediaFilename);
-			mediaFiles.push([`MEDIA-${media}`, attachment.mediaFilename]);
+			if (attachment.mediaFilename !== null) mediaFiles.push([`MEDIA-${media}`, attachment.mediaFilename]);
 		}
 
 		insertAttachment.run(

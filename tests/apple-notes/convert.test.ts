@@ -330,6 +330,21 @@ test('a soft return is spelled out when the vault has strict line breaks on', as
 			await strict.decodeData(note, NoteConverter).format(false, 'Soft returns.md'),
 			'A paragraph  \nbroken by a soft return.\n- First bullet  \n\tstill the first bullet'
 		);
+
+		// A newline is already the break inside a code block, so nothing is
+		// spelled out there and no spaces land in the user's code
+		const code = encodeNote({
+			title: 'Code',
+			runs: [
+				{ text: `const a = 1;${SOFT_RETURN}const b = 2;\n`, style: ANStyleType.Monospaced },
+				{ text: 'After.', style: ANStyleType.Default },
+			],
+		}).toString('hex');
+
+		assert.equal(
+			await strict.decodeData(code, NoteConverter).format(false, 'Code.md'),
+			'```\nconst a = 1;\nconst b = 2;\n```\nAfter.'
+		);
 	}
 	finally {
 		store.close();
