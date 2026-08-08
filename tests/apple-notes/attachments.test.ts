@@ -31,6 +31,13 @@ import { buildStore, StoreSpec } from './store';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
 
+/** A one-pixel PNG, so what is written is something a sniffer could recognise. */
+const PNG_BYTES = Buffer.from(
+	'89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a4944415478' +
+	'9c6300010000050001' + '0d0a2db4' + '0000000049454e44ae426082',
+	'hex'
+);
+
 /** One drawing per UTI Apple has used for one, all in a single note. */
 const DRAWINGS: StoreSpec = {
 	notes: [{
@@ -67,6 +74,13 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 	if (writeFiles) {
 		for (const attachment of spec.attachments ?? []) {
 			nodeFs.writeFileSync(nodePath.join(account, 'FallbackImages', `${attachment.identifier}.jpg`), attachment.identifier);
+		}
+
+		// A media attachment is read from Media/<media uuid>//<file name>
+		for (const [identifier, name] of store.mediaFiles) {
+			const into = nodePath.join(account, 'Media', identifier, '');
+			nodeFs.mkdirSync(into, { recursive: true });
+			nodeFs.writeFileSync(nodePath.join(into, name), PNG_BYTES);
 		}
 	}
 
@@ -136,6 +150,42 @@ test('a note keeps its text when an attachment it points at is gone', async () =
 		const body = String(run.vault.contents.get(note.path));
 		assert.ok(body.contains('Text that should survive.'), `the note is empty: ${JSON.stringify(body)}`);
 		assert.equal(run.failed.length, 1, 'the attachment is what failed, and it is reported');
+	}
+	finally {
+		run.close();
+	}
+});
+
+/**
+ * A media file whose name carries no extension, which the Evernote web clipper
+ * leaves behind: a bare uuid. Obsidian goes by the extension, so the copy in
+ * the vault is a file it will not open and the link does not resolve (#471.1).
+ */
+const NO_EXTENSION: StoreSpec = {
+	notes: [{
+		title: 'Clipped',
+		runs: [
+			{ text: 'Clipped\n' },
+			{ text: '', attachment: { identifier: 'CLIP-1', uti: 'public.png' } },
+		],
+	}],
+	attachments: [{
+		identifier: 'CLIP-1', uti: 'public.png', note: 0,
+		mediaFilename: '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B',
+	}],
+};
+
+test('a media file with no extension is named for what it holds', async () => {
+	const run = await importing(NO_EXTENSION);
+
+	try {
+		const note = await run.resolve(run.notePks[0]);
+
+		assert.ok(note, 'the note should be imported');
+		assert.deepEqual(run.failed, [], 'nothing should have failed');
+		assert.deepEqual(run.vault.paths(), [
+			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
+		]);
 	}
 	finally {
 		run.close();

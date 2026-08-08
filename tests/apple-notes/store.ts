@@ -74,6 +74,12 @@ export interface AttachmentSpec {
 	/** A file on disk, which the importer would copy into the vault. */
 	media?: number;
 	/**
+	 * The name the media row carries, which the copy in the vault is named
+	 * after. Given one, a media row is written and the attachment points at
+	 * it; `media` sets the key directly, for when there is to be no row.
+	 */
+	mediaFilename?: string;
+	/**
 	 * Which note it hangs off, as an index into the spec's notes.
 	 *
 	 * The importer reads it to know whose account the file sits under, so an
@@ -185,6 +191,8 @@ export interface BuiltStore {
 	notePks: number[];
 	/** Primary key of the one folder every note is in, which owns the account. */
 	folderPk: number;
+	/** Each media row's directory and file name, for a test to write the file. */
+	mediaFiles: [string, string][];
 	close(): void;
 }
 
@@ -234,12 +242,29 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 
+	/** Each media row's directory and file name, for a test to write the file. */
+	const mediaFiles: [string, string][] = [];
+
+	// ICMedia is the row carrying the file name, which an attachment points at
+	const insertMedia = db.prepare(`
+		INSERT INTO ziccloudsyncingobject (Z_PK, Z_ENT, ZIDENTIFIER, ZFILENAME)
+		VALUES (?, ?, ?, ?)
+	`);
+
 	for (const attachment of spec.attachments ?? []) {
+		let media = attachment.media ?? null;
+
+		if (attachment.mediaFilename !== undefined) {
+			media = pk++;
+			insertMedia.run(media, entity.ICMedia, `MEDIA-${media}`, attachment.mediaFilename);
+			mediaFiles.push([`MEDIA-${media}`, attachment.mediaFilename]);
+		}
+
 		insertAttachment.run(
 			pk++, entity.ICAttachment, attachment.identifier,
 			attachment.altText ?? null, attachment.tokenContentIdentifier ?? null,
 			attachment.url ?? null, attachment.title ?? null, attachment.uti,
-			attachment.media ?? null, attachment.mergeableData ?? null,
+			media, attachment.mergeableData ?? null,
 			attachment.handwriting ?? null,
 			attachment.note === undefined ? null : notePks[attachment.note],
 			created, created,
@@ -247,7 +272,7 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 			attachment.size?.width ?? 0, attachment.size?.height ?? 0);
 	}
 
-	return { database: tagged(db), notePks, folderPk, close: () => db.close() };
+	return { database: tagged(db), notePks, folderPk, mediaFiles, close: () => db.close() };
 }
 
 /**

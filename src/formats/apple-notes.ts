@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -797,7 +797,15 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		try {
 			const binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
-			const attachmentPath = await this.getAvailablePathForAttachment(`${finalAttachmentName}.${outExt}`, []);
+
+			// A media row can carry a name with no extension - the one the
+			// Evernote web clipper leaves is a bare uuid - and Obsidian goes by
+			// the extension, so the file is asked what it is (#471).
+			if (!outExt) outExt = extensionFromBytes(binary) ?? '';
+
+			const attachmentPath = await this.getAvailablePathForAttachment(
+				outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName, []
+			);
 
 			file = await this.vault.createBinary(
 				attachmentPath, nodeBufferToArrayBuffer(binary),
@@ -824,7 +832,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		this.resolvedFiles[id] = file;
-		this.ctx.reportAttachmentSuccess(`${finalAttachmentName}.${outExt}`);
+		this.ctx.reportAttachmentSuccess(file.name);
 		return file;
 	}
 
