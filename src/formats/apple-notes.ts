@@ -1,5 +1,5 @@
 import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
-import { NoteConverter } from './apple-notes/convert-note';
+import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
@@ -590,8 +590,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 
+		// Decoded here rather than where it is converted, since the note has to
+		// be named after its own first line and that is only in the text
+		const converter = this.decodeData(row.zhexdata, NoteConverter);
+
 		// Get creation date and format it according to user preference
-		let title = row.ZTITLE1;
+		let title = noteTitle(converter.note.noteText, row.ZTITLE1);
 		if (this.filePrefixFormat) {
 			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
 			const datePrefix = moment(creationTimestamp).format(this.filePrefixFormat);
@@ -629,8 +633,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.owners[id] = this.owners[row.ZFOLDER];
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
-		const converter = this.decodeData(row.zhexdata, NoteConverter);
-
 		const body = await converter.format(false, file.path);
 
 		await this.vault.modify(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {

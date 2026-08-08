@@ -37,6 +37,36 @@ const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 	[ANEmphasisColor.Blue]: '🔵'
 };
 
+/** How long a title may get before the file name it becomes is at risk. */
+const TITLE_LIMIT = 200;
+
+/** A first line holding nothing but a URL, which no file name can keep. */
+const URL_LINE = /^https?:\/\/\S+$/;
+
+/** The note's first line with anything on it, which is the title Apple shows. */
+export function firstLine(noteText: string): string {
+	return noteText.split('\n').find(line => line.trim() !== '')?.trim() ?? '';
+}
+
+/**
+ * What to name a note.
+ *
+ * ZTITLE1 holds an abbreviation of the first line rather than the line itself:
+ * past about eighty characters Apple cuts it short and puts an ellipsis in
+ * place of the rest, and that ellipsis went into the file name (#541). The
+ * line is in the note text, so that is what to read it from.
+ *
+ * `stored` is what to fall back on when there is no text to read a title from,
+ * which is the case for a note holding nothing but an attachment.
+ */
+export function noteTitle(noteText: string, stored: string): string {
+	const line = firstLine(noteText ?? '');
+	if (!line) return stored;
+
+	// A file name has a length limit; a first line has none
+	return line.length > TITLE_LIMIT ? line.slice(0, TITLE_LIMIT).trimEnd() : line;
+}
+
 const LIST_STYLES = [
 	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
 ];
@@ -96,7 +126,12 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		let firstLineSkip = !table && this.ctx.omitFirstLine && this.note.noteText.contains('\n');
+		// The first line is dropped because the file name keeps it. A URL is the
+		// case where it cannot: the slashes become dashes and the colon goes, so
+		// dropping it would leave the note with no working link anywhere (#591).
+		let firstLineSkip = !table && this.ctx.omitFirstLine
+			&& this.note.noteText.contains('\n')
+			&& !URL_LINE.test(firstLine(this.note.noteText));
 		let converted = '';
 
 		for (let j = 0; j < fragments.length; j++) {
