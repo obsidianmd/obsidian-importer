@@ -395,9 +395,45 @@ test('a first line with a list nested under it is kept', async () => {
 });
 
 /**
+ * A real tag, as Apple hands it over. Apple Notes allows a space in a tag name
+ * and a tag that is only digits; Obsidian allows neither, so "#gift ideas"
+ * becomes the tag #gift with stray text after it, and #2024 is not a tag at
+ * all (#471.4, #471.6).
+ */
+test('what a tag with a space or only digits converts to today', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), {
+		notes: [{
+			title: 'Tagged',
+			runs: [
+				{ text: 'Tagged\n' },
+				{ text: '', attachment: { identifier: 'TAG-SPACE', uti: ANAttachment.Hashtag } },
+				{ text: '\n' },
+				{ text: '', attachment: { identifier: 'TAG-DIGITS', uti: ANAttachment.Hashtag } },
+			],
+		}],
+		attachments: [
+			{ identifier: 'TAG-SPACE', uti: ANAttachment.Hashtag, altText: '#gift ideas' },
+			{ identifier: 'TAG-DIGITS', uti: ANAttachment.Hashtag, altText: '#2024' },
+		],
+	});
+
+	try {
+		const converted = await convertStore(store.database, context(store.database));
+
+		// Recorded as it stands: neither survives as the tag it was
+		assert.equal(converted.get('Tagged'), '#gift ideas\n#2024');
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+/**
  * Apple marks a real tag as an attachment, so a # left in the text is not one:
  * a Slack channel, a hashtag in some copy, "#s" for numbers. Obsidian reads it
- * as a tag all the same, and as a heading at the start of a line (#471.5).
+ * as a tag all the same (#471.5).
  */
 test('a hash in the text is escaped, and a real tag is not', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
