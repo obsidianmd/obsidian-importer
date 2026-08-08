@@ -88,28 +88,21 @@ export class AirtableAPIImporter extends FormatImporter {
 		return this.getSecret() ?? '';
 	}
 
-	/** Nothing to import until some of the loaded tables have been ticked. */
 	get sourceReady(): boolean {
 		return areAnySelected(this.picker?.nodes ?? []);
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
-	viewPropertyName: string = 'Views'; // Property name to track which views a record belongs to
-	/** Whether a note carries airtable-id, and an import may skip one it wrote. */
+	viewPropertyName: string = 'Views';
 	get incrementalImport(): boolean {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
 
-	/** The base and table picker, once there is a dialog to draw it in. */
 	private picker: TreePicker<AirtableTreeNode>;
 
 	// Tracking data
 	private recordIdToPath: Map<string, string> = new Map(); // baseId:recordId -> file path (recordId only unique within base)
-	/**
-	 * Note names that [[Name]] alone resolves to, lowercased. Worked out once
-	 * the whole plan is known; see chooseLinkForms.
-	 */
 	private uniqueBasenames: Set<string> = new Set();
 	// Record counters span the whole import, across every base, so the progress
 	// bar and the imported tally do not restart when a new base begins
@@ -154,8 +147,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		// remembered between sessions
 		this.addSecretSetting('Airtable personal access token', this.createTokenDescription());
 
-		// Everything below is the tree the user picks tables from. An import
-		// driven without a dialog sets what it wants directly.
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
@@ -168,8 +159,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			failed: 'Could not load your bases. Check your token and try again.',
 			view: {
 				icon: node => node.type === 'base' ? 'database' : 'file',
-				// A base is collapsible before its tables are known, because
-				// expanding one is what fetches them
 				isCollapsible: node => node.type === 'base' || !!node.children?.length,
 				onExpand: (node, rowEl) => this.loadTablesForExpand(node, rowEl),
 			},
@@ -217,7 +206,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 				}));
 
-		// Airtable skips a record it wrote before, but does not compare times
 		this.addDuplicateHandlingSetting({ idProperty: RECORD_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 	}
 
@@ -249,21 +237,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * The bases, as a tree of one level.
-	 *
-	 * Table schemas cost one API call per base, which on an account with many
-	 * bases means a minute or more of staring at an empty list, so they are
-	 * fetched on demand when a base is expanded or selected.
-	 *
-	 * Sorted by name: the API returns bases in an order that means nothing here,
-	 * and an account with dozens of them is otherwise a scavenger hunt. Table
-	 * order within a base is left alone, since that one is arranged
-	 * deliberately in Airtable.
-	 */
 	private async readBases(): Promise<AirtableTreeNode[]> {
-		// Where the tree is about to appear, rather than in the button: these
-		// are sentences, and a button grows to fit whatever it is given
 		const bases = await fetchBases(this.airtableToken, { status: (msg: string) => this.picker.setStatus(msg) });
 
 		return bases
@@ -281,19 +255,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			.sort((a, b) => a.title.localeCompare(b.title));
 	}
 
-	/**
-	 * Fetch a base's tables the first time it is opened.
-	 *
-	 * Says whether the tree gained anything, which is what asks for it to be
-	 * drawn again. A base that could not be read is left closed.
-	 */
 	private async loadTablesForExpand(node: AirtableTreeNode, rowEl: HTMLElement): Promise<boolean> {
 		if (node.type !== 'base' || node.tablesLoaded) return false;
 
-		// Obsidian's own spinner: .loader-spinner + the loader-2 icon, the same
-		// pairing app.css styles and Sync's modals use. Most bases resolve in a
-		// few hundred milliseconds, where a spinner reads as a flicker. Only
-		// reveal it if the fetch is still running after a beat.
 		const spinner = rowEl.createDiv('loader-spinner');
 		setIcon(spinner, 'loader-2');
 		spinner.hide();
@@ -376,10 +340,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * What was picked: the topmost of each selection, since a node under a
-	 * selected one is disabled and comes with its parent either way.
-	 */
 	private getSelectedNodes(): AirtableTreeNode[] {
 		return selectedNodes(this.picker.nodes, node => !node.disabled);
 	}
@@ -450,7 +410,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			exampleValue: fieldExamples.get(field.name) || '',
 		}));
 
-		// Every field becomes a property, which the user can then pare back
 		const { propertyNames, propertyValues } = defaultPropertyConfig(allFieldsMap.values(), this.viewPropertyName);
 
 		// Note content is empty by default - let user decide what to put there
@@ -607,9 +566,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					return;
 				}
 
-				// ============================================================
-				// PHASE 2: Plan every path, then write the files
-				// ============================================================
 				try {
 					await this.createFilesForBase(ctx, folder.path);
 				}
@@ -744,27 +700,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.reportOverallProgress(ctx);
 	}
 
-	/**
-	 * Learn the titles of records in tables this import is leaving out.
-	 *
-	 * A link field carries record ids and nothing else, so the only way to know
-	 * what one is called is to ask the table it lives in. Where the user left
-	 * that table out - importing a single table of a base, most often - the link
-	 * has no note to reach and the note gets the title as text instead. Without
-	 * this the note would get the raw record id.
-	 *
-	 * Reads the primary field alone, so it is one paginated pass per linked
-	 * table and no more of the table than the titles. Nothing is written.
-	 *
-	 * Best effort: a table that cannot be read is reported and skipped, leaving
-	 * its records to fall back to their ids, which is worse to read but is not
-	 * wrong and is not worth failing an import over.
-	 */
 	private async fetchLinkedRecordTitles(ctx: ImportContext, baseInfo: BaseGroupInfo): Promise<void> {
 		const { baseId, tables } = baseInfo;
 		const imported = new Set(tables.map(table => table.tableId));
 
-		// Every table the selection links out to, which is what has no note
 		const linkedTableIds = new Set<string>();
 		for (const table of tables) {
 			for (const field of table.fields) {
@@ -777,8 +716,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (linkedTableIds.size === 0) return;
 
-		// The whole base's schema, which the tree already holds: the user picked
-		// what to import out of it, so the tables they did not pick are here too
 		const schema = this.picker.nodes.find(node => node.id === baseId)?.children ?? [];
 
 		for (const tableId of linkedTableIds) {
@@ -833,10 +770,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		ctx: ImportContext,
 		rootPath: string
 	): Promise<void> {
-		// Every path in the base is settled first, so each note can be written
-		// once with real links in it. Resolving links afterwards instead meant
-		// reading back and rewriting every note that had one, and rewriting a
-		// note costs about what writing it did.
 		const plans = await this.planRecordPaths(ctx, rootPath);
 		if (await ctx.shouldStop()) return;
 
@@ -847,22 +780,11 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Decide where every record in the base goes, before writing anything.
-	 *
-	 * A note can only carry a link to another record if that record's path is
-	 * already known, and a path is not known until a title collision has been
-	 * settled - two records called "Tron" cannot both be Tron.md. Doing the
-	 * whole base up front is what makes both true at once.
-	 *
-	 * Fills recordIdToPath, which is what links resolve through, and leaves the
-	 * records grouped by table for the write pass that follows.
-	 */
 	private async planRecordPaths(ctx: ImportContext, rootPath: string): Promise<TablePlan[]> {
+		// Resolve every path first so record links use final, deduplicated names.
 		const plans: TablePlan[] = [];
 
-		// Paths this plan has handed out. The vault only knows files that exist,
-		// and none of these do yet, so it cannot keep two records off one path.
+		// The vault cannot see files that this import has not written yet.
 		const claimed = new Set<string>();
 
 		for (const tableData of this.preparedData) {
@@ -882,8 +804,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			for (const record of records) {
 				if (await ctx.shouldStop()) return plans;
 
-				// Nothing in any field: no note, and links to it fall back to a
-				// title, which is why it claims no path
 				if (isEmptyRecord(record)) {
 					planned.push({ record, filePath: '', title: 'Untitled Record', skipped: 'Empty record' });
 					continue;
@@ -892,9 +812,6 @@ export class AirtableAPIImporter extends FormatImporter {
 				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
 				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
 
-				// Incremental import: a record already on disk under this id keeps
-				// the path it is already at - it is still something to link to -
-				// and its note is left alone.
 				if (await this.shouldSkipExistingRecord(desiredPath, record.id)) {
 					claimed.add(desiredPath.toLowerCase());
 					this.recordIdToPath.set(`${baseId}:${record.id}`, desiredPath.replace(/\.md$/, ''));
@@ -906,9 +823,6 @@ export class AirtableAPIImporter extends FormatImporter {
 				const { basename } = parseFilePath(filePath);
 
 				this.recordIdToPath.set(`${baseId}:${record.id}`, filePath.replace(/\.md$/, ''));
-				// Keep the title map in step with a rename. Links resolve through
-				// recordIdToPath, so this only affects the text a link to a record
-				// with no note falls back to, and the names shown in reporting.
 				this.globalRecordIdToTitle.set(record.id, basename);
 
 				planned.push({ record, filePath, title: basename });
@@ -922,14 +836,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		return plans;
 	}
 
-	/**
-	 * A path for this record that no other record in the plan has taken.
-	 *
-	 * getAvailablePath keeps it off a file that already exists and compares
-	 * case-insensitively, so "Tron" and "TRON" do not collapse into one file.
-	 * It cannot know about the rest of the plan, though, because none of it is
-	 * written yet - hence claimed.
-	 */
 	private claimRecordPath(tablePath: string, title: string, claimed: Set<string>): string {
 		let path = getUniqueFilePath(this.vault, tablePath, `${title}.md`);
 
@@ -941,18 +847,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		return path;
 	}
 
-	/**
-	 * Which notes can be linked to by name alone.
-	 *
-	 * Obsidian resolves [[Name]] to the one file called Name, so where a name
-	 * belongs to a single note the link can be short. Where it does not - two
-	 * records that sanitised to the same name in different tables, or a note the
-	 * user already had - the full path is used instead, which always resolves.
-	 *
-	 * This is what fileToLinktext worked out per link when links were resolved
-	 * after the fact. It cannot be used here because it needs the file to exist.
-	 */
 	private chooseLinkForms(): void {
+		// Use a short link only when its basename is unambiguous.
 		const timesUsed = new Map<string, number>();
 		for (const path of this.recordIdToPath.values()) {
 			const basename = path.slice(path.lastIndexOf('/') + 1).toLowerCase();
@@ -965,9 +861,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			const basename = path.slice(path.lastIndexOf('/') + 1);
 			if (timesUsed.get(basename.toLowerCase()) !== 1) continue;
 
-			// A note the user already had under this name would make the short
-			// form ambiguous. One sitting at the path being planned is this
-			// import's own, from a previous run, so it is not a clash.
 			const existing = this.app.metadataCache.getFirstLinkpathDest(basename, '');
 			if (existing && existing.path !== `${path}.md`) continue;
 
@@ -975,10 +868,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * What a link to this record should say, or null where no note is written
-	 * for it and the reader gets its name as text instead.
-	 */
 	private linkTextForRecord(baseId: string, recordId: string): string | null {
 		const path = this.recordIdToPath.get(`${baseId}:${recordId}`);
 		if (!path) return null;
@@ -1047,16 +936,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			this.globalRecordIdToTitle.set(record.id, title);
 		}
 
-		// Step 2: Fetch view memberships for each record.
-		// Held as view ids: what a note says to be picked up by a view is the
-		// other half of the filter in the .base file, and that is settled in
-		// buildBaseFile so the two cannot disagree.
 		const recordViewMemberships = new Map<string, string[]>();
 		const viewsShowingEveryRecord = new Set<string>();
 
-		// Compared over the records that become notes, not everything the table
-		// returned: a record with nothing in it is written as no note at all, so
-		// a view is still "all of them" without it.
 		const emptyRecordIds = new Set<string>(
 			(allRecords as AirtableRecord[]).filter(isEmptyRecord).map(record => record.id)
 		);
@@ -1073,9 +955,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 			const inView = viewRecordIds.filter(recordId => !emptyRecordIds.has(recordId));
 
-			// A view holding every note needs no filter, and so needs no note to
-			// name it: the base is already filtered to this table's folder. A
-			// view's records are a subset of the table's, so counting is enough.
 			if (inView.length === noteCount) {
 				viewsShowingEveryRecord.add(view.id);
 				continue;
@@ -1132,8 +1011,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		const formulaFieldNames = new Set(formulas.keys());
 		const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName);
 
-		// Create .base file first. It settles what a note says to be picked up
-		// by each view, which the notes below then say.
 		const membershipTokens = await this.createBaseFile({
 			tableFolderPath: tablePath,
 			tableName,
@@ -1146,7 +1023,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (await ctx.shouldStop()) return;
 
-		// Write the notes, at the paths the plan settled on
 		for (const planned of plan.records) {
 			if (await ctx.shouldStop()) return;
 
@@ -1268,12 +1144,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Write one record's note, at the path the plan gave it.
-	 *
-	 * Everything a note needs to be written once is settled by then: its own
-	 * path, and the path of every record it links to.
-	 */
 	private async createRecordFile(
 		ctx: ImportContext,
 		planned: PlannedRecord,
@@ -1305,9 +1175,6 @@ export class AirtableAPIImporter extends FormatImporter {
 				vault: this.vault,
 				downloadAttachments: this.downloadAttachments,
 				getAvailableAttachmentPath: async (filename: string) => {
-					// Pass the note being written, so the "same folder as current
-					// file" and "in subfolder under current folder" settings put
-					// attachments beside their note rather than the output root
 					return await this.getAvailablePathForAttachment(filename, [], filePath);
 				},
 			}),
@@ -1346,13 +1213,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	/**
 	 * Create a single .base file for the table with multiple views
-	 */
-	/**
-	 * Which of a table's fields the .base file computes, and the formula for each.
-	 *
-	 * Derived once per table and used twice: the .base file writes these formulas,
-	 * and the record writer omits the same fields from note frontmatter because
-	 * the .base recomputes them.
 	 */
 	private computeTableFormulas(fields: AirtableFieldSchema[], primaryFieldId: string): Map<string, string> {
 		if (this.formulaStrategy === 'static') {
@@ -1429,9 +1289,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			// Don't fail the entire import
 		}
 
-		// Returned even when writing the .base failed: the notes are still
-		// written, and a note that names its views is worth more than one that
-		// does not if the user fixes the .base by hand.
 		return membershipTokens;
 	}
 
@@ -1466,4 +1323,3 @@ export class AirtableAPIImporter extends FormatImporter {
 
 
 }
-

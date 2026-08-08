@@ -21,7 +21,6 @@ export const processResources = (note: EvernoteNote): string => {
 
 
 	utils.clearResourceDir(note);
-	// One resource comes back as an object, several as an array, none as nothing
 	const resources = Array.isArray(note.resource) ? note.resource
 		: note.resource ? [note.resource]
 			: [];
@@ -40,8 +39,6 @@ export const processResources = (note: EvernoteNote): string => {
 };
 
 const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string, workDir: string): string => {
-	// A resource with no file name cannot be linked to, so the content is left
-	// as it is rather than building a reference to nothing.
 	const fileName = resourceHashes[hash]?.fileName;
 	if (!fileName) return content;
 
@@ -104,13 +101,9 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 		fs.utimesSync(absFilePath, atime, atime);
 	}
 	catch {
-		// Timestamps are best effort; the resource is already written
+		// The resource is already written; timestamps are best effort.
 	}
 
-	// Evernote's OCR text carries the resource's md5, which is what en-media
-	// references it by. Take the match itself: the whole match array used to be
-	// used as the key, which stringified to the hash by luck when there was one
-	// and to "null" when there was not, leaving the attachment unreferenced.
 	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
 
 	if (recognisedHash && fileName) {

@@ -83,25 +83,12 @@ export interface AirtableViewInfo {
 /**
  * Airtable Field schema
  */
-/**
- * A field's type-specific settings.
- *
- * Airtable gives every field type its own shape here, so only the keys the
- * importer reads are named. Anything else is still reachable, as unknown,
- * which is what asks a new reader to narrow before trusting it.
- */
 export interface AirtableFieldOptions {
-	/** multipleRecordLinks: the table the link points at. */
 	linkedTableId?: string;
-	/** lookup, rollup and count: the link field they travel through. */
 	recordLinkFieldId?: string;
-	/** lookup and rollup: the field they read in the linked table. */
 	fieldIdInLinkedTable?: string;
-	/** formula and rollup: the expression Airtable computes. */
 	formula?: string;
-	/** formula and rollup: the type of what that expression returns. */
 	result?: { type?: string };
-	/** singleSelect and multipleSelects: the choices offered. */
 	choices?: Array<{ name: string }>;
 	[key: string]: unknown;
 }
@@ -175,11 +162,6 @@ export interface AirtableRecord {
 	createdTime: string;
 }
 
-/**
- * Prepared table data for two-phase import
- * Phase 1: Fetch all data and prepare in memory
- * Phase 2: Decide where every note goes, then write them
- */
 export interface PreparedTableData {
 	baseId: string;
 	baseName: string;
@@ -188,41 +170,17 @@ export interface PreparedTableData {
 	fields: AirtableFieldSchema[];
 	views: AirtableViewInfo[];
 	records: AirtableRecord[];
-	/**
-	 * recordId -> the ids of the views holding it. Ids rather than what the
-	 * note will say: buildBaseFile decides that, alongside the filter that
-	 * reads it.
-	 */
 	recordViewMemberships: Map<string, string[]>;
-	/**
-	 * Views holding every record in the table, which therefore need no filter
-	 * and are named by no note. See BuildBaseFileOptions.
-	 */
 	viewsShowingEveryRecord: Set<string>;
 }
 
-/**
- * A record with its final path already decided.
- *
- * Every path in a base is settled before any note in it is written, which is
- * what lets a note be written once, with real links in it, rather than with
- * placeholders that a second pass reads back and rewrites.
- */
 export interface PlannedRecord {
 	record: AirtableRecord;
-	/** Where the note goes. Nothing else in the plan may claim this path. */
 	filePath: string;
-	/** The file name without .md, after any rename for a collision. */
 	title: string;
-	/**
-	 * Why no note is written, or undefined when one is. An already-imported
-	 * record still holds its path and is still something links can point at; an
-	 * empty one has no note at all, so links to it fall back to its title.
-	 */
 	skipped?: 'Empty record' | 'Already imported';
 }
 
-/** One table's records with their paths decided, and where they go. */
 export interface TablePlan {
 	tableData: PreparedTableData;
 	tablePath: string;
@@ -274,10 +232,6 @@ export interface BaseFileContext {
 	primaryFieldId: string;
 	/** field name -> Obsidian formula, from computeTableFormulas */
 	formulas: Map<string, string>;
-	/**
-	 * Views holding every record in the table, which need no filter of their
-	 * own. See BuildBaseFileOptions.
-	 */
 	viewsShowingEveryRecord?: ReadonlySet<string>;
 }
 

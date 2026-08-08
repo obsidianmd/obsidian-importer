@@ -6,13 +6,7 @@ export interface ImporterData {
 			previouslyImportedIDs: string[];
 		};
 	};
-	/**
-	 * Importer id -> the SecretStorage id holding that importer's credential.
-	 */
 	secrets: Record<string, string>;
-	/**
-	 * Importer id -> the folder that importer last wrote to.
-	 */
 	outputLocations: Record<string, string>;
 }
 

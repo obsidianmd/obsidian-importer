@@ -13,7 +13,6 @@ const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
-/** The help page this importer's own guide lives at; see main.ts's registry. */
 const HELP_PERMALINK = 'import/roam';
 
 export class RoamJSONImporter extends FormatImporter {
@@ -28,7 +27,6 @@ export class RoamJSONImporter extends FormatImporter {
 	titleYAML: boolean = false;
 
 	init() {
-		// Above the chooser, because it is where the thing to choose comes from
 		this.addSetting('source')
 			?.setName('Export your data')
 			.setDesc('Export your data in JSON format.')
@@ -75,8 +73,6 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-		// A Roam page is addressed by its title, so the note of that name is the
-		// page - no id needed, and none to write
 		this.addDuplicateHandlingSetting();
 	}
 
@@ -185,10 +181,6 @@ export class RoamJSONImporter extends FormatImporter {
 					const { parent, name } = parseFilePath(filename);
 					const folder = await this.createFolders(parent);
 
-					// A Roam page is addressed by its title, so a page imported
-					// before is the note of that name. Case-insensitively: on
-					// macOS "Page.md" and "page.md" are one file, and the exact
-					// lookup used to miss that and fail the page on create.
 					const existingFile = this.duplicateHandling === DuplicateHandling.CreateCopy
 						? null
 						: vault.getAbstractFileByPathInsensitive(filename);
@@ -236,7 +228,6 @@ export class RoamJSONImporter extends FormatImporter {
 		return dailyPageFormat || 'YYYY-MM-DD';
 	}
 
-	/** The conversion, with this importer's settings and its downloader. */
 	private newConverter(): RoamPageConverter {
 		return new RoamPageConverter({
 			userDNPFormat: this.userDNPFormat,

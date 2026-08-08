@@ -100,13 +100,12 @@ export const logTags = (note: EvernoteNote): string => {
 	return '';
 };
 
-// Optional native module for setting file creation time; absent unless installed
 let btime: { btime(path: string, creationTime: number): void } | undefined;
 try {
 	btime = window.require('btime');
 }
 catch {
-	// Optional native module; creation times are skipped without it
+	// The optional module is not installed.
 }
 
 export const setFileDates = (path: string, note: EvernoteNote): void => {
@@ -122,7 +121,7 @@ export const setFileDates = (path: string, note: EvernoteNote): void => {
 		fs.utimesSync(path, mtime, mtime);
 	}
 	catch {
-		// Timestamps are best effort; the note is already written
+		// The note is already written; timestamps are best effort.
 	}
 };
 

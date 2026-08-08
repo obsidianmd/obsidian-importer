@@ -16,62 +16,38 @@ const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
-/** Frontmatter property holding the Apple Notes id a note was imported from. */
 const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
-/** What the picker says while it has not been let into the notes database. */
 const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
 
-/**
- * A folder, or the account it belongs to, as the picker holds it.
- *
- * The same shape the other importers pick from, so the ticking and the drawing
- * are the shared ones. Only a folder holds notes; an account is a heading with
- * a checkbox, and is only there when there is more than one.
- */
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
 	type: 'account' | 'folder';
-	/** Which account it belongs to, for grouping under one. */
 	owner: number;
-	/**
-	 * How many notes ticking it would write: its own and its subfolders', since
-	 * selecting a folder selects everything under it.
-	 */
 	notes: number;
 	collapsed: boolean;
 	children: AppleNotesTreeNode[];
 }
 
-/**
- * Fold each folder's subfolders into its count, and give back the total.
- *
- * A folder holding two notes above a subfolder of three hundred would read as
- * two otherwise, while ticking it writes three hundred and two.
- */
 function countSubtree(node: AppleNotesTreeNode): number {
 	node.notes = node.children.reduce((total, child) => total + countSubtree(child), node.notes);
 
 	return node.notes;
 }
 
-/** Where macOS keeps the Notes database, which is the only place it is. */
 function notesFolder(): string {
 	return path.join(os.homedir(), NOTE_FOLDER_PATH);
 }
 
-/** One row of the account listing, for the level above the folders. */
 interface ANAccountRow {
 	Z_PK: number;
 	ZNAME: string;
 }
 
-/** One row of the folder listing the picker is built from. */
 interface ANFolderRow {
 	Z_PK: number;
 	ZTITLE2: string;
 	ZPARENT: number | null;
-	/** The column ANFolderType names, so that comparing the two is one type. */
 	ZFOLDERTYPE: ANFolderType;
 	ZOWNER: number;
 }
@@ -98,38 +74,21 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	omitFirstLine = true;
 	includeHandwriting = false;
 
-	/**
-	 * This must remain a getter: the vault is unavailable during construction,
-	 * and field initialisers run after init(). The explicit comparison narrows
-	 * getConfig's `any` return value to boolean.
-	 */
+	// A getter, not a field: the vault is unavailable during construction.
 	get strictLineBreaks(): boolean {
 		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
 	filePrefixFormat: string;
-	/** Every note path this run has written, to tell a copy from an update. */
 	private claimedPaths = new Set<string>();
 
-	/**
-	 * The notes folder, once macOS is letting Obsidian read it.
-	 *
-	 * Without an initialiser: init() runs from the base class constructor,
-	 * before a derived class assigns its fields, so `= null` would throw away
-	 * the access addAccessSetting had just found.
-	 */
+	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
 
-	/** The folder picker, once there is a dialog to draw it in. */
 	private picker: TreePicker<AppleNotesTreeNode>;
 
-	/**
-	 * Which folders the import walks, worked out from the tree the dialog draws.
-	 * An import run without one says which it wants directly.
-	 */
 	selectedFolders: number[] = [];
 
-	/** Nothing to import until some of the folders have been ticked. */
 	get sourceReady(): boolean {
 		return this.selectedFolders.length > 0;
 	}
@@ -149,16 +108,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.addAccessSetting();
 		this.drawFolderPicker();
 
-		// Already allowed in, so the folders can be listed without being asked
 		if (this.dataPath) {
 			void this.loadFolders();
 		}
 
 		this.addOutputLocationSetting('Apple Notes');
 
-		// Retrieve stored file prefix format. Scoped to the vault rather than
-		// shared across all of them, so a prefix set here does not follow the
-		// user into an unrelated vault.
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
 
@@ -201,14 +156,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.addDuplicateHandlingSetting({ idProperty: NOTE_ID_PROPERTY });
 	}
 
-	/**
-	 * Where the notes come from, which macOS only lets Obsidian read once the
-	 * user has pointed at the folder themselves.
-	 *
-	 * That is asked here rather than when the import starts, so that the step
-	 * about where the notes are coming from is the one that asks for them - and
-	 * only when it still has to be asked, since the answer outlasts the session.
-	 */
 	private addAccessSetting(): void {
 		const setting = this.addSetting('source');
 		if (!setting) return;
@@ -221,14 +168,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				return;
 			}
 
-			// The path picked out the way the file chooser picks out what it was
-			// given, and on its own: the row it sits under already says what it is
 			setting.setDesc(createFragment(frag => {
 				frag.createSpan({ cls: 'u-pop', text: this.dataPath! });
 			}));
 		};
 
-		// Already granted, from this import or a previous one
 		this.dataPath = this.readableDataFolder();
 		showAccess();
 
@@ -241,8 +185,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					return;
 				}
 
-				// Re-picking the folder already being read changes nothing, and
-				// re-reading it would throw away whatever was ticked
 				if (dataPath === this.dataPath) return;
 
 				this.dataPath = dataPath;
@@ -251,7 +193,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}));
 	}
 
-	/** The folders to import from, which is the tree and the buttons over it. */
 	private drawFolderPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<AppleNotesTreeNode>(contentEl, {
@@ -263,11 +204,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				failed: 'Could not read your notes. Check that the folder is still where it was.',
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
-					// An account holds nothing of its own; its folders say theirs
 					flair: node => node.type === 'account' ? '' : String(node.notes),
 				},
 				onChange: () => {
-					// What the import walks, kept in step with the tree
 					this.selectedFolders = selectedNodes(this.picker.nodes, node => node.type === 'folder').map(node => node.id);
 					this.sourceChanged();
 				},
@@ -277,7 +216,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}, 'source');
 	}
 
-	/** Read the folders, saying so where they are about to appear. */
 	private async loadFolders(): Promise<void> {
 		if (!this.dataPath) {
 			new Notice(NO_ACCESS_HINT);
@@ -292,13 +230,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 	}
 
-	/**
-	 * The folders in the notes database, as a tree.
-	 *
-	 * The database is read where it lives rather than copied first: these are
-	 * three quick queries, and the copy the import makes is for the long walk
-	 * that comes after it, which wants a snapshot Notes cannot move underneath.
-	 */
 	private async readFolders(): Promise<AppleNotesTreeNode[]> {
 		//@ts-ignore
 		const db = new SQLiteTag(path.join(this.dataPath!, NOTE_DB), { readonly: true, persistent: true }) as SQLiteTagSpawned;
@@ -318,8 +249,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				SELECT z_pk, zname FROM ziccloudsyncingobject WHERE z_ent = ${keys.ICAccount}
 			` as unknown as ANAccountRow[];
 
-			// The notes each folder holds directly, counted the way the import
-			// counts them: a note with no title is not one it would write
 			const counts = await db.all`
 				SELECT zfolder, COUNT(*) AS notes FROM ziccloudsyncingobject
 				WHERE z_ent = ${keys.ICNote} AND ztitle1 IS NOT NULL
@@ -333,12 +262,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 	}
 
-	/**
-	 * The folders as a tree, under their accounts when there is more than one.
-	 *
-	 * A smart folder is left out: it is a saved search rather than somewhere
-	 * notes live, and resolveFolder skips it for the same reason.
-	 */
 	private buildTree(folders: ANFolderRow[], accounts: ANAccountRow[], counts: Map<number, number>): AppleNotesTreeNode[] {
 		const nodes = new Map<number, AppleNotesTreeNode>();
 
@@ -358,7 +281,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			});
 		}
 
-		// Nested under its parent where it has one that survived the filtering
 		const roots: AppleNotesTreeNode[] = [];
 		for (const folder of folders) {
 			const node = nodes.get(folder.Z_PK);
@@ -369,11 +291,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			else roots.push(node);
 		}
 
-		// Counted after nesting, because what a folder brings with it is not
-		// known until its subfolders are under it
 		for (const root of roots) countSubtree(root);
 
-		// One account is the account everything is in, and says nothing
 		if (accounts.length < 2) return roots;
 
 		return accounts
@@ -391,14 +310,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			.filter(account => account.children.length > 0);
 	}
 
-	/**
-	 * The notes folder, if macOS is already letting Obsidian read it.
-	 *
-	 * The access a user grants by picking the folder outlives the session, so
-	 * asking again is asking a question that has been answered. Tried rather
-	 * than remembered: what was granted is the system's to say, not ours, and a
-	 * grant that has since been withdrawn would answer the same either way.
-	 */
 	private readableDataFolder(): string | null {
 		const dataPath = notesFolder();
 
@@ -411,10 +322,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 	}
 
-	/**
-	 * Ask for the notes folder, and give back the path if that is what was
-	 * chosen. Selecting it is what grants the access; nothing else does.
-	 */
 	private askForDataFolder(): string | null {
 		const dataPath = notesFolder();
 
@@ -429,7 +336,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async getNotesDatabase(): Promise<SQLiteTagSpawned | null> {
-		// Asked for here too, for an import run without the dialog that asks
 		const dataPath = this.dataPath ?? this.askForDataFolder();
 
 		if (!dataPath) {
@@ -440,6 +346,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const originalDB = path.join(dataPath, NOTE_DB);
 		const clonedDB = path.join(os.tmpdir(), NOTE_DB);
 
+		// Copy the database and its WAL files so Notes cannot change them mid-import.
 		await fsPromises.copyFile(originalDB, clonedDB);
 		await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
 		await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
@@ -474,7 +381,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const noteAccounts = await this.database.all`
 			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
 		`;
-		// Only the folders that were picked, and only those the notes are in
 		const noteFolders = await this.database.all`
 			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
 			WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
@@ -482,8 +388,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
 
-		// Breaks rather than returns, here and below: the sqlite process this
-		// spawned is closed at the end of the method
+		// Break instead of returning so the database is closed below.
 		for (let f of noteFolders) {
 			if (await ctx.shouldStop()) break;
 
@@ -612,9 +517,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const storedTitle = String(row.ZTITLE1);
 		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
 
-		// Check for duplicate notes based on the selected handling option. An
-		// earlier import named the note after ZTITLE1, so a vault one of those
-		// wrote holds it there rather than under the first line.
 		const existingFile = await this.previouslyImported(
 			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
 		);
@@ -638,8 +540,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 
-		// The note an earlier import wrote is written over; anything else gets a
-		// name of its own, a copy's if the title is taken.
 		const file = existingFile ?? await this.saveAsMarkdownFile(folder, `${title}.md`, '');
 
 		this.ctx.status(`Importing note ${title}`);
@@ -703,9 +603,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				outExt = 'jpg';
 				break;
 
-			// Apple has used three UTIs for a drawing, and the converter hands
-			// over all three. An older one taken for a file attachment finds no
-			// media row at that key and fails the note it was in.
 			case ANAttachment.DrawingLegacy:
 			case ANAttachment.DrawingLegacy2:
 			case ANAttachment.Drawing:
@@ -723,8 +620,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				if (!row) break;
 
-				// Missing render, drawing data, and dimensions means the drawing
-				// exists only in iCloud.
+				// This combination means the drawing still exists only in iCloud.
 				neverDownloaded = !row.ZFALLBACKIMAGEGENERATION && !row.hasdrawing && !row.ZSIZEWIDTH;
 
 				if (row.ZFALLBACKIMAGEGENERATION) {
@@ -759,8 +655,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				break;
 		}
 
-		// A missing attachment row must not abort conversion after the empty note
-		// file has already been created (#218, #391).
+		// A missing row must not abort conversion once the note file exists (#218, #391).
 		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
 			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
 			return null;
@@ -775,13 +670,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		try {
-			// A name with no extension is settled by reading the file, and that
-			// name is what the duplicate check looks for, so the read comes
-			// first (#471). A name that already says what it is skips that:
-			// Apple can take the source back while the copy the vault holds is
-			// still good, and reading first would lose it.
 			let binary;
 
+			// Unknown extensions must be detected before checking for duplicates (#471).
 			if (!outExt) {
 				binary = await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 				outExt = extensionFromBytes(binary) ?? '';
@@ -789,8 +680,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
-			// Check for existing attachment based on the selected handling option
-			// Abuse getAvailablePathForAttachment to get the expected attachment path
+			// First resolve the configured folder, then check the unsuffixed name there.
 			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, []);
 			const { parent } = parseFilePath(uniqueAttachmentPath);
 			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
@@ -801,7 +691,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					return existingAttachment;
 				}
 				else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
-					// Check modification times for attachments
 					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
 					const existingAttachmentModTime = existingAttachment.stat.mtime;
 
@@ -809,9 +698,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
 						return existingAttachment;
 					}
-					// If Apple attachment is newer, continue with import (will overwrite)
 				}
-				// For CreateCopy option, we continue without skipping (will create numbered copy)
 			}
 
 			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
@@ -824,8 +711,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 		}
 		catch (e) {
-			// Suppress an expected failed probe; the caller reports only if its
-			// fallback also fails (#393).
+			// An expected failed probe; the caller reports only if its fallback also fails (#393).
 			if (hasFallback) return null;
 
 			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
@@ -847,7 +733,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return file;
 	}
 
-	/** A link to a file, in whichever form the vault is set to write. See ANContext. */
 	linkTo(file: TFile, sourcePath: string, subpath?: string, display?: string): string {
 		return this.app.fileManager.generateMarkdownLink(file, sourcePath, subpath, display);
 	}
@@ -863,7 +748,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return Math.floor((timestamp + CORETIME_OFFSET) * 1000);
 	}
 
-	/** Identify an attachment in the log by the note the user can locate. */
 	private async describeAttachment(outName: string, notePk: number): Promise<string> {
 		const imported = this.resolvedFiles[notePk];
 		if (imported) return `${outName} in ${imported.basename}`;
@@ -876,10 +760,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
-		// Older attachments predate per-account storage and remain loose in the
-		// Notes container.
 		const candidates = [
 			path.join(account.path, sourcePath),
+			// Older Notes versions stored attachments outside account folders.
 			path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath),
 		];
 
@@ -892,39 +775,20 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			}
 		}
 
-		// Include both attempted paths and phrase the message to follow the
-		// import log's "because".
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
-	/**
-	 * The note an earlier import left at this title, if there is one.
-	 *
-	 * A note this run already wrote is not that. Apple Notes lets two notes
-	 * share a title, and the second is a note of its own - it gets a copy's
-	 * name rather than being treated as an update of the first and collapsing
-	 * into it.
-	 *
-	 * Matching on the title is what makes this approximate: a note renamed in
-	 * Apple Notes reads as a new one. Recognising it properly needs the id the
-	 * source carries, which is not written down yet.
-	 */
 	private async previouslyImported(folder: TFolder, titles: string[], noteId?: string): Promise<TFile | null> {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
 		for (const title of new Set(titles)) {
-			// Normalized, because what it is held against is: the vault's own
-			// paths, and the ones this run has written. At the vault root
-			// path.join leaves a leading slash that neither of those carries.
 			const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
+			// A second same-named note in this run must become a copy, not an update.
 			if (this.claimedPaths.has(fullPath)) return null;
 
 			const existingFile = this.vault.getAbstractFileByPath(fullPath);
 			if (!(existingFile instanceof TFile)) continue;
 
-			// A note that carries an id says which note it is. A different one is
-			// a note of its own however much the titles agree, and one with no id
-			// at all was written before ids were, so the title is all there is.
 			const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
 			if (existingId && noteId && existingId !== noteId) continue;
 
@@ -934,14 +798,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return null;
 	}
 
-	/**
-	 * The id a note was imported from, for the next import to recognise it by.
-	 *
-	 * Only written where it will be read. An Apple Notes import is usually a
-	 * one-time move, and a property in every note of a vault that will never be
-	 * imported into again is clutter that earns nothing. Choosing to skip or to
-	 * update existing notes is what says otherwise.
-	 */
 	private noteIdFrontMatter(noteId: string | undefined): string {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy || !noteId) return '';
 

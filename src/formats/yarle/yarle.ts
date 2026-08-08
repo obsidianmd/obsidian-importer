@@ -20,14 +20,6 @@ import {
 } from './utils/templates/checker-functions';
 import { defaultTemplate } from './utils/templates/default-template';
 
-/**
- * xml-flow, loaded only when an .enex is actually parsed.
- *
- * Its top level calls require('events'). Node builtins are external in this
- * bundle, so evaluating it on mobile throws - a static import would do that at
- * plugin load. import() keeps esbuild's lazy wrapper, so the module is only
- * evaluated on the desktop-only path in parseStream.
- */
 let flow: typeof import('xml-flow') | undefined;
 
 export const defaultYarleOptions: YarleOptions = {
@@ -109,15 +101,8 @@ interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
-/**
- * Put each resource's attributes back as an object.
- *
- * The collected events are in document order, but only resources that carried
- * a resource-attributes element produced one, so the queue is consumed in step
- * with those rather than by position - otherwise a note whose first attachment
- * has no attributes would hand them to the wrong resource.
- */
 function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResourceAttributes[]): void {
+	// xml-flow collapses a single resource-attributes object into its child value.
 	if (collected.length === 0) return;
 
 	const resources = Array.isArray(note.resource) ? note.resource
@@ -136,8 +121,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 
-	// Captured locally: TypeScript cannot narrow the module-level binding
-	// inside the Promise executor below.
+	// Load this optional native module only on the desktop import path.
 	const parseXml = flow ??= (await import('xml-flow')).default;
 
 	ctx.status('Processing ' + enexSource.name);
@@ -158,19 +142,12 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			noteAttributes = na;
 		});
 
-		// Resources have the same problem as note-attributes: when
-		// resource-attributes holds a single child, xml-flow hands back that
-		// child's value instead of an object, so the field name is lost and an
-		// attachment whose only attribute is its file-name imports as
-		// "unknown_filename". The tag event still carries the object, so they
-		// are collected in document order and put back on the note below.
 		let resourceAttributes: EvernoteResourceAttributes[] = [];
 		xml.on('tag:resource-attributes', (ra: EvernoteResourceAttributes) => {
 			resourceAttributes.push(ra);
 		});
 
 		xml.on('tag:note', (note: EvernoteNote) => {
-			// A listener that cannot be awaited, so this stops but cannot pause
 			if (ctx.isCancelled()) {
 				stream.close();
 				return;
@@ -197,8 +174,6 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				}
 			}
 			noteAttributes = null;
-			// Cleared per note, including a skipped one, so the next note's
-			// resources do not pick up attributes belonging to this one.
 			resourceAttributes = [];
 
 			const currentNotePath = runtimeProps.getCurrentNotePath();

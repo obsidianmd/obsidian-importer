@@ -29,8 +29,7 @@ export class ScanConverter extends ANConverter {
 
 			if (!row) return '**Cannot decode scan**';
 
-			// Missing cropped previews are expected. Report a failure only if the
-			// raw image is also unavailable (#393).
+			// Missing cropped previews are expected; fail only if the raw image is gone too (#393).
 			let file = await this.ctx.resolveAttachment(row.Z_PK, ANAttachment.Scan, true);
 			if (!file) file = await this.ctx.resolveAttachment(row.ZMEDIA, row.ZTYPEUTI);
 

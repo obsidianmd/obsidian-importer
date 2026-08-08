@@ -10,15 +10,11 @@ function isCode(node: Node|null): node is HTMLElement {
  * Return true iff node is a paragraph containing only code/line breaks
  */
 export function isParagraphWrappingOnlyCode(node: Node|null): node is HTMLParagraphElement {
+	// nodeName, not instanceof: linkedom does not specialise <p>, so the test
+	// shim would silently return false and the recording would still pass.
 	return (
 		node != null
-		// nodeName rather than instanceOf: linkedom does not specialise <p>, so
-		// the constructor check is false for every paragraph under the test
-		// shim - which would leave this silently returning false there
 		&& node.nodeName === 'P'
-		// every() holds vacuously over no children, which made an empty
-		// paragraph answer yes - and combineCodeBlocksAsNecessary then folded a
-		// blank line into the code block beside it
 		&& node.childNodes.length > 0
 		&& Array.from(node.childNodes)
 			.every(c => isCode(c) || isBRElement(c))
@@ -46,8 +42,6 @@ export function isFenceCodeBlock(node: Node): node is HTMLElement {
 }
 
 export function isBRElement(node: Node | null): node is HTMLBRElement {
-	// nodeName rather than instanceof: linkedom has no HTMLBRElement at all, so
-	// the constructor check throws a ReferenceError under the test shim
 	return node != null && node.nodeName === 'BR';
 }
 

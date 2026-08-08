@@ -1,34 +1,3 @@
-/**
- * Formula converter for Notion to Obsidian Bases
- * 
- * This converter intelligently transforms Notion's function-based syntax
- * to Obsidian Base's syntax.
- * 
- * Key transformations:
- * - prop("Name") -> note["Name"]
- * - length() has two forms in Notion:
- *   1. Method: .length() (everywhere, including in map/filter)
- *      Examples: prop("Title").length() -> note["Title"].length
- *                current.length() -> value.length
- *   2. Function: length(x) -> (x).length
- * - abs(x) -> (x).abs() (method call)
- * - contains(x, y) -> (x).contains(y) (method call)
- * - unique(x) -> (x).unique() (method call)
- * - Global functions stay as-is: if()
- * 
- * Important notes:
- * - length in Obsidian is a PROPERTY, not a method or function
- *   .length() method calls are converted to .length property access
- *   length(x) function calls are converted to (x).length
- * - unique() is a METHOD (x.unique()), not a global function
- * - sum(), mean(), median(), max(), min() are converted to list methods with flat()
- *   to support both multi-arg and array forms (e.g., max(1,2,3) and max([1,2,3]))
- * - Many date/time functions are not supported
- * 
- * Based on:
- * - Notion: https://www.notion.com/help/formula-syntax
- * - Obsidian: https://obsidian.md/help/bases/functions
- */
 
 import { ConversionInfo } from './types';
 import { findMatchingParen, parseArguments } from '../../formula-utils';

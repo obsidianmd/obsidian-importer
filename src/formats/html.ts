@@ -168,8 +168,6 @@ export class HtmlImporter extends FormatImporter {
 		try {
 			const htmlContent = await file.readText();
 
-			// Where the document lives, so its relative references resolve, and
-			// the directory nothing outside of may be read.
 			const baseUrl = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
 			const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
 
@@ -327,9 +325,7 @@ function parseURL(url: URL) {
 }
 
 async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }> {
-	// requestUrl rather than fetch: it is not bound by CORS, so it reaches
-	// assets a cross-origin fetch would be refused. This used to try fetch
-	// first and fall back to here anyway, which only added a failed request.
+	// requestUrl is not blocked by browser CORS rules.
 	const response = await requestUrl(url.href);
 	return {
 		data: response.arrayBuffer,
@@ -337,7 +333,6 @@ async function requestURL(url: URL): Promise<{ data: ArrayBuffer, mime: string }
 	};
 }
 
-/** Header lookup that does not assume how the response cased the name. */
 function headerValue(headers: Record<string, string>, name: string): string | undefined {
 	const wanted = name.toLowerCase();
 	for (const key of Object.keys(headers)) {

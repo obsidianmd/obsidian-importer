@@ -23,36 +23,25 @@ import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndI
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
-/** Frontmatter property holding the Notion page a note was imported from. */
 const NOTION_ID_PROPERTY = 'notion-id';
 
 export class NotionAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
-	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get notionToken(): string {
 		return this.getSecret() ?? '';
 	}
 
-	/** Nothing to import until some of the listed pages have been ticked. */
 	get sourceReady(): boolean {
 		return areAnySelected(this.pickedTree);
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid'; // Default strategy
-	/**
-	 * Whether a relation into a database the user did not select may import it.
-	 *
-	 * Off by default: an import doing more than was asked of it is the thing a
-	 * user cannot undo or predict, and a relation with nowhere to point now
-	 * reads as the page's name rather than as its id.
-	 */
 	importLinkedDatabases: boolean = false;
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
-	/** Whether a note carries notion-id, and an import may skip one it wrote. */
 	get incrementalImport(): boolean {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
@@ -61,16 +50,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private requestCount: number = 0;
 	private totalNodesToImport: number = 0; // Total number of nodes selected for import
 	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
-	/** The page and database picker, once there is a dialog to draw it in. */
 	private picker: TreePicker<NotionTreeNode>;
 
-	/**
-	 * What was picked, or nothing when there was no dialog to pick in.
-	 *
-	 * An import driven from a script has no picker at all, and reaches import()
-	 * all the same - where an empty tree is the answer it can report rather
-	 * than a property it cannot read.
-	 */
 	private get pickedTree(): NotionTreeNode[] {
 		return this.picker?.nodes ?? [];
 	}
@@ -81,7 +62,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private processedDatabases: Map<string, DatabaseInfo> = new Map();
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
-	/** Titles of pages no note is written for, by id; see relatedPageTitle. */
 	private relatedPageTitles: Map<string, string | null> = new Map();
 	// Progress counters: separate tracking for pages and attachments
 	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
@@ -106,13 +86,8 @@ export class NotionAPIImporter extends FormatImporter {
 		// No file chooser needed since we're importing via API
 		this.addOutputLocationSetting('Notion');
 
-		// Notion API token, held in Obsidian's keychain so it is remembered
-		// between sessions
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
-		// List pages and toggle selection buttons
-		// Everything below is the tree the user picks pages from. An import
-		// driven without a dialog sets what it wants directly.
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
@@ -133,7 +108,6 @@ export class NotionAPIImporter extends FormatImporter {
 
 		this.picker.onLoad(() => void this.loadPageTree());
 
-		// Notion skips a page it wrote before, but does not compare times
 		this.addDuplicateHandlingSetting({ idProperty: NOTION_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
 
 		// Formula import strategy
@@ -196,7 +170,6 @@ export class NotionAPIImporter extends FormatImporter {
 					this.databasePropertyName = value.trim() || 'base';
 				}));
 
-		// Whether a relation may pull in a database that was not selected
 		this.addSetting()
 			?.setName('Import linked databases')
 			.setDesc('Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.')
@@ -288,19 +261,9 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Every page and database the connection can see, as a tree.
-	 *
-	 * Two-phase filtering: collect every item and identify the databases that
-	 * are inside blocks, then drop the pages belonging to those databases.
-	 */
 	private async readPages(): Promise<NotionTreeNode[]> {
-		// Re-initialize client to ensure current token is used
 		this.initializeNotionClient();
 
-		// A minimal context for makeNotionRequest. Progress goes where the tree
-		// is about to appear, rather than in the button: these are sentences,
-		// and a button grows to fit whatever it is given.
 		const tempCtx = {
 			status: (msg: string) => this.picker.setStatus(msg),
 			isCancelled: () => false,
@@ -318,8 +281,6 @@ export class NotionAPIImporter extends FormatImporter {
 			pageCount++;
 			tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
 
-			// Use makeNotionRequest for rate limiting and error handling.
-			// Not using filter, to get both pages and databases.
 			const response = await makeNotionRequest(
 				() => this.notionClient!.search({
 					start_cursor: cursor,
@@ -961,8 +922,6 @@ export class NotionAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				// What each related id should say, worked out before any of it is
-				// written so the replacement is one pass over the property
 				const replacements = new Map<string, string>();
 
 				for (const relatedPageId of placeholder.relatedPageIds) {
@@ -984,8 +943,6 @@ export class NotionAPIImporter extends FormatImporter {
 						console.warn(`Could not find related page file: ${relatedPagePath}`);
 					}
 
-					// No note to point at. The page still has a name, and a name
-					// is worth more to a reader than the id was.
 					const title = await this.relatedPageTitle(relatedPageId);
 					if (title) {
 						replacements.set(relatedPageId, title);
@@ -1007,18 +964,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Import the databases the selection's relations point into.
-	 *
-	 * One pass over what is already known, not until nothing new turns up: the
-	 * databases these pull in have relations of their own, and following those
-	 * too walks as much of a workspace as it is connected to. A direct relation
-	 * is the one a user asking for this is thinking of.
-	 *
-	 * Only relations recorded from a database schema carry the id of what they
-	 * point at, so the ones found by re-reading frontmatter cannot be followed
-	 * and fall back to a name, as they did before.
-	 */
 	private async importDatabasesRelationsPointAt(ctx: ImportContext): Promise<void> {
 		const missingDatabaseIds = new Set<string>();
 
@@ -1026,7 +971,6 @@ export class NotionAPIImporter extends FormatImporter {
 			if (!placeholder.targetDatabaseId) continue;
 			if (this.processedDatabases.has(placeholder.targetDatabaseId)) continue;
 
-			// Only where something it points at has no note of its own
 			const anyMissing = placeholder.relatedPageIds.some(id => !this.notionIdToPath.get(id));
 			if (anyMissing) missingDatabaseIds.add(placeholder.targetDatabaseId);
 		}
@@ -1043,17 +987,6 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * The title of a page the import is not writing a note for.
-	 *
-	 * A relation carries page ids and nothing else, so the only way to know
-	 * what one is called is to ask for it. Cached: a popular page is related to
-	 * from many others, and this would otherwise be a request per relation
-	 * rather than per page.
-	 *
-	 * Returns null when it cannot be read - a page in a part of the workspace
-	 * the integration was never shared - which leaves the id, as before.
-	 */
 	private async relatedPageTitle(pageId: string): Promise<string | null> {
 		const cached = this.relatedPageTitles.get(pageId);
 		if (cached !== undefined) return cached;
@@ -1377,32 +1310,23 @@ export class NotionAPIImporter extends FormatImporter {
 			return false; // File doesn't exist, don't skip
 		}
 
-		// Read the note's own text rather than the metadata cache, which is
-		// filled in afterwards and would report no frontmatter for a note this
-		// import wrote moments ago.
 		try {
 			const content = await this.vault.read(file);
 
 			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) === notionId) {
-				// Same notion-id, skip this file
 				const { basename } = parseFilePath(filePath);
 				ctx.reportSkipped(basename, 'already exists with same notion-id');
 
-				// IMPORTANT: Register this skipped file in notionIdToPath mapping
-				// This ensures that relation/mention links can find this page even though it wasn't imported in this session
-				// Without this, we would fail to resolve relations to previously imported pages
+				// Skipped pages still need to be link targets in this run.
 				const filePathWithoutExtension = filePath.replace(/\.md$/, '');
 				this.notionIdToPath.set(notionId, filePathWithoutExtension);
 
-				// IMPORTANT: Scan for unresolved placeholders from previous imports
-				// If the file contains placeholders (relation UUIDs, mentions, synced children) that weren't replaced,
-				// we need to re-collect them so they can be resolved in this import session
+				// Retry placeholders left unresolved by an earlier import.
 				await this.collectUnresolvedPlaceholders(content, notionId, filePath);
 
 				return true;
 			}
 
-			// A different notion-id, or none, is a different page: do not skip it
 			return false;
 		}
 		catch (error) {

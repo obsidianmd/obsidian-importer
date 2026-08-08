@@ -20,42 +20,14 @@ const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
 	[DuplicateHandling.CreateCopy]: 'Create a copy',
 };
 
-/**
- * Which of the dialog's setup screens a setting is drawn on.
- *
- * 'source'  - where the notes are coming from: the files to import, or the
- *             account to sign in to and what to pull from it
- * 'options' - everything else, and the last screen before the import runs
- */
 export type ImporterStep = 'source' | 'options';
 
-/**
- * What an importer needs besides the vault: somewhere to draw its settings,
- * the plugin that stores its credentials, and which importer it is.
- *
- * The dialog is one host. An import driven from a script or a test is another,
- * with no element to draw into - every setting then stays at its default, and
- * the caller sets what it needs directly.
- */
 export interface ImporterHost {
-	/** Where the source step is drawn, or null when there is no dialog. */
 	sourceEl: HTMLElement | null;
-	/** Where the options step is drawn, or null when there is no dialog. */
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
-	/**
-	 * Which importer this is, for scoping the credential it stores.
-	 *
-	 * Not `id`: a host is often something that already has one - the dialog is
-	 * a Modal, and Obsidian sets an id on those.
-	 */
 	importerId: string;
-	/**
-	 * Told that sourceReady may now answer differently. Only the dialog cares:
-	 * it is what waits for the answer before offering the next step.
-	 */
 	sourceChanged?(): void;
-	/** Aborted when the user cancels, for anything that outlives a check. */
 	abortController: AbortController;
 }
 
@@ -67,16 +39,9 @@ export abstract class FormatImporter {
 	files: PickedFile[] = [];
 	outputLocation: string = '';
 	notAvailable: boolean = false;
-	/** See addDuplicateHandlingSetting. Copy unless the importer offers a choice. */
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
 
-	/**
-	 * Which of the dialog's buttons this import honours.
-	 *
-	 * 'none'  - import() never awaits ctx.shouldStop()
-	 * 'stop'  - it does, but too far apart to hold at: Stop only
-	 * 'pause' - between items, near enough that a pause feels immediate
-	 */
+	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
 
 	/** Cached value for getOutputFolder. Do not use directly. */
@@ -85,42 +50,22 @@ export abstract class FormatImporter {
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
 
-	/**
-	 * Settles when init() has finished and everything it started has arrived -
-	 * the linked credential, a session restored from a stored token.
-	 *
-	 * The dialog does not wait for this: it draws what it has and fills the
-	 * rest in as it lands, and a failure is reported to the console. An import
-	 * driven without one has nothing to redraw, so it waits - and rejects, so
-	 * a script hears about a credential that never arrived rather than running
-	 * as nobody.
-	 */
 	readonly ready: Promise<void>;
 
-	/** What ready waits for, beyond init() itself. */
 	private pending: Promise<unknown>[] = [];
 
 	constructor(app: App, host: ImporterHost) {
 		this.app = app;
 		this.vault = app.vault;
 		this.host = host;
-		// OneNote's init is async because it may restore a session before it can
-		// draw its settings. A constructor cannot await, so the failure path is
-		// logged here: the importer still opens, just without a signed-in state.
-		// init() is what fills `pending`, so this is built from it afterwards
+		// init() may queue additional startup work through whenReady().
 		this.ready = Promise.resolve(this.init())
 			.then(() => Promise.all(this.pending))
 			.then(() => undefined);
 
-		// Nothing awaits `ready` when there is a dialog - it draws what it has
-		// and fills the rest in as it lands - so the failure is reported here.
-		// It stays on `ready` for an import that does await it.
 		this.ready.catch(e => console.error('Importer failed to initialise', e));
 	}
 
-	/**
-	 * Something init() started that an import must not run ahead of. See ready.
-	 */
 	protected whenReady(work: Promise<unknown>): void {
 		this.pending.push(work);
 	}
@@ -152,41 +97,23 @@ export abstract class FormatImporter {
 		this.host.plugin.registerAuthCallback(callback);
 	}
 
-	/**
-	 * Whether the source step has been answered, which is what the dialog waits
-	 * for before it offers the one after it.
-	 *
-	 * Files, for the importers that pick some. One that is pointed at its notes
-	 * another way - an account signed in to, a folder it was let into - says
-	 * what it is waiting for instead, and calls sourceChanged() when it lands.
-	 */
 	get sourceReady(): boolean {
 		return this.files.length > 0;
 	}
 
-	/** Say that sourceReady may now answer differently. */
 	protected sourceChanged(): void {
 		this.host.sourceChanged?.();
 	}
 
-	/** Where a step is drawn, or null when there is no dialog. */
 	protected stepEl(step: ImporterStep): HTMLElement | null {
 		return step === 'source' ? this.host.sourceEl : this.host.optionsEl;
 	}
 
-	/**
-	 * A setting for this importer, or null when there is no dialog to draw in.
-	 *
-	 * An import run without one - from a script, or a test - draws nothing, so
-	 * a setting's only lasting effect is the default it was given. Assign that
-	 * default outside the chain, not in the component's callback.
-	 */
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
 		const contentEl = this.stepEl(step);
 		return contentEl ? new Setting(contentEl) : null;
 	}
 
-	/** Draw into the dialog, if there is one. */
 	protected draw<T>(build: (contentEl: HTMLElement) => T, step: ImporterStep = 'options'): T | undefined {
 		const contentEl = this.stepEl(step);
 		return contentEl ? build(contentEl) : undefined;
@@ -202,13 +129,9 @@ export abstract class FormatImporter {
 	 * Read the credential back with getSecret().
 	 */
 	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
-		// Signing in is how this importer is told where the notes come from
 		let setting = this.addSetting('source');
 
 		if (!setting) {
-			// No dialog to fill in, but an import driven from a script still
-			// needs the credential the user linked, so it is read all the same -
-			// and waited for, since the import reads it straight away.
 			this.whenReady(this.loadSecretId()
 				.then(secretId => this.secretId = secretId)
 				.catch(e => console.error('Could not read the linked secret', e)));
@@ -230,10 +153,6 @@ export abstract class FormatImporter {
 					await this.saveSecretId(this.secretId);
 				});
 
-			// Plugin data is only readable asynchronously, and init() is not, so
-			// the previously linked secret is filled in once it arrives. Nothing
-			// can await this, so a failure is logged rather than left unhandled -
-			// the field simply stays empty and the user picks the secret again.
 			this.loadSecretId()
 				.then(secretId => {
 					this.secretId = secretId;
@@ -287,7 +206,6 @@ export abstract class FormatImporter {
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
 		const fileLocationSetting = this.addSetting('source');
-		// Nothing to pick without a dialog: the caller sets this.files itself
 		if (!fileLocationSetting) return;
 
 		fileLocationSetting
@@ -353,9 +271,6 @@ export abstract class FormatImporter {
 		let updateFiles = () => {
 			this.sourceChanged();
 
-			// A folder can be picked that holds nothing this importer reads, and
-			// a row saying nothing beside a button that will not go on says less
-			// than the question it replaced
 			if (this.files.length === 0) {
 				fileLocationSetting.setDesc(`Nothing to import there. Pick ${extensions.map(e => '.' + e).join(', ')} files, or a folder holding some.`);
 				return;
@@ -367,8 +282,6 @@ export abstract class FormatImporter {
 			}
 
 			fileLocationSetting.setDesc(createFragment(frag => {
-				// A single name is its own count, and several importers only
-				// ever have one: the count is for when the names run together
 				if (this.files.length > 1) {
 					frag.createSpan({ text: `${plural(this.files.length, 'file')} will be imported: ` });
 					frag.createEl('br');
@@ -379,21 +292,8 @@ export abstract class FormatImporter {
 		};
 	}
 
-	/**
-	 * Let the user say what to do with a note the vault already holds.
-	 *
-	 * Only for an importer that can recognise a note it wrote before. It says
-	 * which property carries the id, and which modes it can honour: an importer
-	 * that skips but does not compare times leaves ImportUpdated out rather
-	 * than offering a mode that behaves as Skip.
-	 *
-	 * An importer that offers nothing here keeps the default, and every import
-	 * it runs adds notes and writes over none.
-	 */
 	protected addDuplicateHandlingSetting(options: {
-		/** The property that carries the source id, where the importer has one. */
 		idProperty?: string;
-		/** The modes to offer. All three, unless the importer says otherwise. */
 		modes?: DuplicateHandling[];
 	} = {}): void {
 		const setting = this.addSetting();
@@ -417,10 +317,6 @@ export abstract class FormatImporter {
 			});
 	}
 
-	/**
-	 * Where the import writes, remembered between runs. The name passed in is
-	 * the fallback for an importer that has not been run before.
-	 */
 	addOutputLocationSetting(defaultExportFolderName: string) {
 		this.outputLocation = defaultExportFolderName;
 		this.addSetting()
@@ -436,9 +332,6 @@ export abstract class FormatImporter {
 					});
 				new FolderSuggest(this.app, text.inputEl);
 
-				// Plugin data is only readable asynchronously, and init() is not,
-				// so the remembered folder is filled in once it arrives. Nothing
-				// can await it, so a failure leaves the default in place.
 				this.loadOutputLocation()
 					.then(location => {
 						if (location === null) return;
@@ -455,12 +348,10 @@ export abstract class FormatImporter {
 		return data.outputLocations?.[this.host.importerId] ?? null;
 	}
 
-	/** Debounced: onChange runs per keystroke, and each save rewrites the file. */
 	private saveOutputLocation = debounce((location: string) => {
 		void (async () => {
 			try {
 				let data = await this.host.plugin.loadData();
-				// Copy rather than mutate, for the reason saveSecretId gives.
 				data.outputLocations = { ...data.outputLocations, [this.host.importerId]: location };
 				await this.host.plugin.saveData(data);
 			}
@@ -514,8 +405,7 @@ export abstract class FormatImporter {
 	 * @returns Full path for where the attachment should be saved, according to the user's settings
 	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		// XXX: (Ab)use the fact that getAvailablePathForAttachments only looks at
-		// sourceFile.parent, so a stand-in carrying just the folder is enough.
+		// The vault method only reads parent from this stand-in.
 		let sourceFile: { parent: TFolder } | null = null;
 
 		// If sourcePath is provided, use its parent folder for attachment placement
@@ -559,12 +449,6 @@ export abstract class FormatImporter {
 		return normalizePath(outputPath);
 	}
 
-	/**
-	 * Wait, because the far end asked us to, saying so in the status line.
-	 *
-	 * Not ctx.pause(), which is the user holding the import: this one ends on
-	 * its own, so it avoids the word.
-	 */
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
 		const promise = new Promise(resolve => window.setTimeout(resolve, durationSeconds * 1_000));
 
@@ -583,7 +467,6 @@ export abstract class FormatImporter {
 
 	// Utility functions for vault
 
-	/** Make a path out of names that came from the source. See sanitizeFilePath. */
 	sanitizeFilePath(path: string): string {
 		return sanitizeFilePath(path);
 	}
@@ -609,35 +492,12 @@ export abstract class FormatImporter {
 		return folder;
 	}
 
-	/**
-	 * Write a file at a name no existing file occupies.
-	 *
-	 * The one place an importer creates something in the vault, so that what
-	 * happens when a name is taken is answered once. It is answered the way
-	 * Obsidian answers it: getUniqueFilePath defers to Vault.getAvailablePath,
-	 * which appends " 1", " 2" and compares case-insensitively, so nothing an
-	 * import writes lands on a note that is already there.
-	 *
-	 * Two notes wanting one name are two notes. Recognising that an incoming
-	 * note is one an earlier import already wrote is a different question -
-	 * it needs an id from the source, not a file name - and belongs to the
-	 * importers that carry one.
-	 *
-	 * @param fileName - Name with extension, e.g. "Note.md"
-	 */
 	async createFile(folder: TFolder, fileName: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
 
 		return await this.vault.create(path, content, options);
 	}
 
-	/**
-	 * The id an earlier import wrote into a note, if it wrote one.
-	 *
-	 * Read out of the note's own text rather than the metadata cache: the cache
-	 * is filled in afterwards, so a note written moments ago in this same import
-	 * reads as having no frontmatter at all.
-	 */
 	protected sourceIdIn(content: string, idProperty: string): string | null {
 		const parsed = parseFrontMatterBlock(content);
 		const id: unknown = parsed?.frontMatter[idProperty];
@@ -645,7 +505,6 @@ export abstract class FormatImporter {
 		return typeof id === 'string' ? id : null;
 	}
 
-	/** sourceIdIn, for a caller that has the note rather than its text. */
 	protected async sourceIdOf(file: TFile, idProperty: string): Promise<string | null> {
 		try {
 			return this.sourceIdIn(await this.vault.read(file), idProperty);
@@ -656,17 +515,6 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/**
-	 * The note an earlier import wrote for this record, if it is still there.
-	 *
-	 * Confirms rather than searches: the note at the path the record would take
-	 * is the candidate, and the id it carries says whether it is really that
-	 * record. A note that carries a different one is a note of its own.
-	 *
-	 * Case-insensitively, because the filesystem is: a note that differs only in
-	 * spelling is the same file, and an exact lookup would miss it and go on to
-	 * write a second one.
-	 */
 	protected async noteImportedFrom(path: string, idProperty: string, sourceId: string): Promise<TFile | null> {
 		const file = this.vault.getAbstractFileByPathInsensitive(normalizePath(path));
 		if (!(file instanceof TFile)) return null;
@@ -674,28 +522,12 @@ export abstract class FormatImporter {
 		return await this.sourceIdOf(file, idProperty) === sourceId ? file : null;
 	}
 
-	/**
-	 * Write an attachment at a name no existing file occupies.
-	 *
-	 * createFile for the things an import carries alongside its notes. The
-	 * vault throws on a name that is taken rather than picking another, so a
-	 * second attachment of a name fails its note without this.
-	 *
-	 * @param fileName - Name with extension, e.g. "photo.jpg"
-	 */
 	async createBinaryFile(folder: TFolder, fileName: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
 
 		return await this.vault.createBinary(path, data, options);
 	}
 
-	/**
-	 * Write a note, optionally carrying the timestamps it had in the source.
-	 *
-	 * Callers hand the title both with and without the extension, which
-	 * createNewMarkdownFile used to absorb: it treats a trailing ".md" as the
-	 * extension it was about to add, and any other dot as part of the name.
-	 */
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const sanitizedName = sanitizeFileName(title).replace(/\.md$/i, '');
 

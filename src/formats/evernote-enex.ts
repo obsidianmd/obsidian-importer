@@ -1,18 +1,23 @@
 import { FileSystemAdapter, Notice } from 'obsidian';
+import { helpUrl } from '../constants';
 import { path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
 
+const HELP_PERMALINK = 'import/evernote';
+
 export class EvernoteEnexImporter extends FormatImporter {
-	/**
-	 * Stop lands within a note, from the parser's tag:note listener. That
-	 * listener is synchronous, so the only checkpoint that can be awaited is
-	 * between .enex files - too far apart to offer Pause.
-	 */
 	interruption = 'stop' as const;
 
 	init() {
+		this.addSetting('source')
+			?.setName('Export your data')
+			.setDesc('Export your notebooks in ENEX format, you will receive one .enex file per notebook.')
+			.addButton(button => button
+				.setButtonText('Open')
+				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+
 		this.addFileChooserSetting('Evernote', ['enex'], true);
 		this.addOutputLocationSetting('Evernote');
 	}

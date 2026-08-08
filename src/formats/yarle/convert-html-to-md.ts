@@ -89,8 +89,6 @@ export const convertHtml2Md = (yarleOptions: YarleOptions, { htmlContent }: Note
 	const contentNode = new DOMParser().parseFromString(fixSublistsInContent(content), 'text/html')
 		.getElementsByTagName('en-note').item(0);
 
-	// An .enex note with no content element has nothing to convert. It imports
-	// as an empty note rather than failing the whole note.
 	if (!contentNode?.instanceOf(HTMLElement)) {
 		return { content: '' };
 	}

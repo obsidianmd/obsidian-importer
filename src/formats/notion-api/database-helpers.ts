@@ -134,9 +134,6 @@ export async function queryAllDatabasePages(
 			ctx
 		);
 
-		// Filter to get full page objects. A partial page also reports
-		// object === 'page', so the properties check is what separates them -
-		// Notion returns partials for pages the integration cannot read.
 		const fullPages = response.results.filter(
 			(page): page is PageObjectResponse => page.object === 'page' && 'properties' in page
 		);
@@ -434,8 +431,6 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 	if (formulas.length > 0) {
 		baseConfig.formulas = {};
 		for (const item of formulas) {
-			// The list is built from entries that have one, but the field is
-			// optional on the mapping, so it is checked rather than asserted.
 			if (!item.config.formula) continue;
 
 			// Extract the formula name (remove "formula." prefix)
@@ -1000,41 +995,20 @@ export async function processRelationProperties(
 	}
 }
 
-/**
- * A value as YAML would write it in a list, so a name that needs quoting gets
- * the quotes Obsidian would have given it and one that does not stays plain.
- *
- * A wiki link always needs them - "[[" opens a flow sequence - and this is what
- * settles that too, rather than each caller remembering.
- */
 export function yamlScalar(value: string): string {
 	const written = stringifyYaml([value]).trim();
 
-	// A value with a newline in it is written as a block scalar, which cannot
-	// stand in for one item of a list. Nothing here should have one.
 	if (written.includes('\n')) return JSON.stringify(value);
 
 	return written.replace(/^-\s*/, '');
 }
 
-/**
- * Replace a page id with the text a relation should carry, inside the property
- * that holds it and nowhere else.
- *
- * The id is a bare UUID rather than a token of the importer's own, so replacing
- * it across the whole note would also catch one written anywhere else - a page
- * that relates to itself has its own notion-id sitting in the same frontmatter,
- * and a Notion link pasted into the body carries one too.
- *
- * Only the lines under `propertyKey` in the frontmatter block are rewritten. A
- * line that already holds a link is left alone, so running this twice is the
- * same as running it once.
- */
 export function replaceRelationValue(
 	content: string,
 	propertyKey: string,
 	replacements: Map<string, string>
 ): string {
+	// Limit replacement to this property; the same UUID may appear elsewhere.
 	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
 	if (!match) return content;
 
@@ -1043,8 +1017,6 @@ export function replaceRelationValue(
 	let changed = false;
 
 	const rewritten = lines.map(line => {
-		// A property starts at the left margin: "Director:" opens one, and the
-		// next key at that indent closes it again
 		const opensProperty = /^([^\s:][^:]*):/.exec(line);
 		if (opensProperty) {
 			inProperty = opensProperty[1] === propertyKey;
@@ -1167,4 +1139,3 @@ export async function processDatabasePlaceholders(
 
 	return processedContent;
 }
-

@@ -52,8 +52,6 @@ export function stripParentDirectories(relativeURI: string) {
  * @todo Currently cannot ignore #s in multine code/math blocks as this function parses one line at a time.
  */
 export function escapeHashtags(body: string) {
-	// \P{ASCII} rather than [^\x00-\x7F]: the same set, without spelling out a
-	// range of control characters.
 	const tagExp = /#\d*?(?:[-_/a-z]|\P{ASCII})/giu;
 
 	if (!tagExp.test(body)) return body;

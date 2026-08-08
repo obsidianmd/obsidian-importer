@@ -11,13 +11,8 @@ import { getSiblingsInSameCodeBlock, isFenceCodeBlock, isInlineCodeSpan, isBREle
 import { inkmlToSvg } from './onenote/inkml';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 
-// SecretStorage id: lowercase alphanumeric with dashes, per its own validation.
-// Named for the account rather than for what is stored about it, since the
-// keychain lists these to the user beside the ones they named themselves.
 const ACCOUNT_SECRET_ID = 'onenote-importer';
-/** What ACCOUNT_SECRET_ID used to be called. See retrieveRefreshToken. */
 const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
-/** What the picker says while there is no account to list notebooks from. */
 const SIGNED_OUT_HINT = 'Sign in to see your OneNote notebooks.';
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const GRAPH_SCOPES: string[] = ['user.read', 'notes.read'];
@@ -70,13 +65,6 @@ function isHTMLElement(node: Node): node is HTMLElement {
 	return node.instanceOf(HTMLElement);
 }
 
-/**
- * A notebook, section group or section, as the picker holds it.
- *
- * The same shape Airtable and the Notion API pick from, so the selection rules
- * in tree.ts and the markup the app styles are shared rather than rewritten.
- * Only a section carries pages, so only a section's id reaches the import.
- */
 interface OneNoteTreeNode extends ViewableNode<OneNoteTreeNode> {
 	id: string;
 	type: 'notebook' | 'group' | 'section';
@@ -91,10 +79,8 @@ export class OneNoteImporter extends FormatImporter {
 	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
 	// UI
-	/** The account row, which says who is signed in and offers the way in or out. */
 	accountSetting: Setting;
 	private accountButton: ButtonComponent;
-	/** The section picker, once there is a dialog to draw it in. */
 	private picker: TreePicker<OneNoteTreeNode>;
 	// Internal
 	selectedIds: string[] = [];
@@ -107,12 +93,10 @@ export class OneNoteImporter extends FormatImporter {
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
-	/** Whether there is an account to list notebooks from. */
 	private get signedIn(): boolean {
 		return this.graphData.accessToken !== '';
 	}
 
-	/** Nothing to import until some of the loaded sections have been ticked. */
 	get sourceReady(): boolean {
 		return this.selectedIds.length > 0;
 	}
@@ -136,18 +120,12 @@ export class OneNoteImporter extends FormatImporter {
 				.onChange((value) => (this.importPreviouslyImported = !value))
 			);
 
-		// Everything below draws the sign-in flow, which needs a window to send
-		// the user to. An import driven without a dialog gets as far as whatever
-		// the stored refresh token gave it.
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) {
-			// Nothing to draw, so nothing to draw it in the right order for
 			await this.signInWithStoredToken();
 			return;
 		}
 
-		// One row, in whichever state the account is in: two of them would leave
-		// the hidden one's divider above the visible one
 		this.accountSetting = new Setting(contentEl)
 			.setName('Microsoft account')
 			.addButton((button) => {
@@ -160,9 +138,6 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.drawSectionPicker(contentEl);
 
-		// Signed out until the stored token says otherwise, which is a request
-		// to Microsoft: the row is drawn in that state first, rather than the
-		// screen staying empty until the answer comes back.
 		this.showSignedOut();
 
 		if (await this.signInWithStoredToken()) {
@@ -171,12 +146,6 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Take up the account the last import signed in to, if it is still good.
-	 *
-	 * A token that is no longer accepted leaves the sign-in button to do its
-	 * job, which is why nothing is reported here.
-	 */
 	private async signInWithStoredToken(): Promise<boolean> {
 		if (!this.retrieveRefreshToken()) return false;
 
@@ -185,7 +154,6 @@ export class OneNoteImporter extends FormatImporter {
 			return true;
 		}
 		catch {
-			// Failed to auth with refresh token. Proceed with normal sign in flow.
 			return false;
 		}
 	}
@@ -208,28 +176,21 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	/** The account row while nobody is signed in: the way in. */
 	private showSignedOut() {
 		this.accountSetting.setDesc('Sign in to import your OneNote notebooks.');
 		this.accountButton.setButtonText('Sign in').setCta();
 		this.accountButton.buttonEl.removeClass('mod-destructive');
 	}
 
-	/** The account row once somebody is: who, and the way back out. */
 	async showSignedIn() {
 		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
 		this.accountSetting.setDesc(`Signed in as ${userData.displayName} (${userData.mail}).`);
 		this.accountButton.setButtonText('Sign out').removeCta();
 
-		// The way Obsidian marks Log out in Settings > About: tinted rather than
-		// solid, since it is a way out rather than the thing to do here
 		this.accountButton.buttonEl.addClass('mod-destructive');
 	}
 
-	/** Send the user to Microsoft, and wait to be told how it went. */
 	private signIn() {
-		// authenticateUser handles its own errors, but the callback signature
-		// is void so anything escaping it is logged here.
 		this.registerAuthCallback(data => void this.authenticateUser(data)
 			.catch(e => console.error('Could not complete sign in', e)));
 
@@ -244,17 +205,12 @@ export class OneNoteImporter extends FormatImporter {
 		window.open(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${requestBody.toString()}`);
 	}
 
-	/** Forget the account, here and in the keychain. */
 	private signOut() {
 		this.clearStoredRefreshToken();
 
-		// Nobody is signed in until the next one is, which means forgetting the
-		// token held for this session as well as the stored one
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
 
-		// Back to what the picker says before there is an account to fill it,
-		// which empties it and says so - selectedIds follows from onChange
 		this.picker.reset();
 
 		this.showSignedOut();
@@ -304,10 +260,6 @@ export class OneNoteImporter extends FormatImporter {
 		this.sourceChanged();
 	}
 
-	// The refresh token is held in Obsidian's keychain rather than localStorage:
-	// it grants continued access to the user's OneNote account, and the keychain
-	// is where Obsidian keeps credentials that outlive a session. Kept for every
-	// sign-in, so the next import starts signed in; Sign out withdraws it.
 	private storeRefreshToken(refreshToken: string) {
 		this.refreshToken = refreshToken;
 		this.app.secretStorage.setSecret(ACCOUNT_SECRET_ID, refreshToken);
@@ -321,8 +273,6 @@ export class OneNoteImporter extends FormatImporter {
 		const stored = this.app.secretStorage.getSecret(ACCOUNT_SECRET_ID);
 		if (stored) return stored;
 
-		// Signed in before this secret was renamed. Carried over rather than
-		// asked for again, and the old name is withdrawn as it goes.
 		const previous = this.app.secretStorage.getSecret(PREVIOUS_SECRET_ID);
 		if (previous) {
 			this.app.secretStorage.setSecret(ACCOUNT_SECRET_ID, previous);
@@ -335,13 +285,6 @@ export class OneNoteImporter extends FormatImporter {
 	private clearStoredRefreshToken() {
 		this.app.secretStorage.deleteSecret(ACCOUNT_SECRET_ID);
 	}
-	/**
-	 * Fetch the notebooks and what is in them, and draw them.
-	 *
-	 * Run as soon as there is an account to run it against, and again whenever
-	 * Refresh is pressed - a notebook made since signing in is not otherwise
-	 * something this screen would ever hear about.
-	 */
 	async showSectionPickerUI(): Promise<void> {
 		if (!this.signedIn) {
 			new Notice(SIGNED_OUT_HINT);
@@ -356,7 +299,6 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	/** The notebooks, with their section groups and sections, as a tree. */
 	private async readNotebooks(): Promise<OneNoteTreeNode[]> {
 		const baseUrl = 'https://graph.microsoft.com/v1.0/me/onenote/notebooks';
 
@@ -370,7 +312,6 @@ export class OneNoteImporter extends FormatImporter {
 		this.notebooks = (await this.fetchResource<Notebook>(`${baseUrl}?${params.toString()}`, 'json-wrapped')).value;
 
 		for (const notebook of this.notebooks) {
-			// Check if there are any nested section groups, if so, fetch them
 			if (notebook.sectionGroups?.length !== 0) {
 				for (const sectionGroup of notebook.sectionGroups!) {
 					await this.fetchNestedSectionGroups(sectionGroup);
@@ -383,14 +324,6 @@ export class OneNoteImporter extends FormatImporter {
 		));
 	}
 
-	/**
-	 * The picker's own furniture: what it is for, and the tree it fills.
-	 *
-	 * Drawn beside the account row rather than inside something of its own, so
-	 * that the two are siblings and the dividers between settings fall where
-	 * they do everywhere else. There from the start, the way Airtable and the
-	 * Notion API leave theirs there, saying what it is waiting for.
-	 */
 	private drawSectionPicker(contentEl: HTMLElement): void {
 		this.picker = new TreePicker<OneNoteTreeNode>(contentEl, {
 			name: 'Sections to import',
@@ -403,8 +336,6 @@ export class OneNoteImporter extends FormatImporter {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
 			},
 			onChange: () => {
-				// What the import walks, kept in step with what the tree shows. An
-				// import run without the dialog sets it directly and never gets here.
 				this.selectedIds = selectedNodes(this.picker.nodes, node => node.type === 'section').map(node => node.id);
 				this.sourceChanged();
 			},
@@ -413,12 +344,10 @@ export class OneNoteImporter extends FormatImporter {
 		this.picker.onLoad(() => void this.showSectionPickerUI());
 	}
 
-	/** One node of the picker's tree, unselected and open. */
 	private treeNode(id: string, title: string, type: OneNoteTreeNode['type'], children: OneNoteTreeNode[]): OneNoteTreeNode {
 		return { id, title, type, selected: false, disabled: false, collapsed: false, children };
 	}
 
-	/** The section groups and sections directly under a notebook or group. */
 	private childNodes(entity: Notebook | SectionGroup): OneNoteTreeNode[] {
 		const groups = (entity.sectionGroups ?? []).map(group =>
 			this.treeNode(group.id!, group.displayName!, 'group', this.childNodes(group)));
@@ -635,7 +564,6 @@ export class OneNoteImporter extends FormatImporter {
 				mdContent += inkEmbedMarkdown;
 			}
 
-			// Carry the last modified and creation time over from OneNote
 			const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
 			const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
 			const writeOptions: DataWriteOptions = {
@@ -1146,10 +1074,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		try {
-			// any errors that happen in the try block will be retried.
-			// fetch rather than requestUrl: this is the only call that has to be
-			// abortable, and requestUrl takes no AbortSignal, so switching would
-			// leave a cancelled import still downloading.
+			// This request must be abortable; requestUrl has no AbortSignal support.
 			let response = await fetch(
 				url,
 				{

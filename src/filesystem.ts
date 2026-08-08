@@ -2,12 +2,6 @@ import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
 import { Platform } from 'obsidian';
 import { configureWebWorker } from './z-worker-inline';
 
-/*
- * Node's shapes, named through import types rather than import statements.
- * These are desktop-only, and an import statement would say this module needs
- * them to load - it does not. The values come from the guarded requires below,
- * and on mobile nothing here is ever reached.
- */
 type NodeFS = typeof import('node:fs');
 type Dirent = import('node:fs').Dirent;
 type FileHandle = import('node:fs').promises.FileHandle;
@@ -34,7 +28,6 @@ export interface PickedFile {
 	/** Read the file as zip, processing the zip in the callback */
 	readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void>;
 
-	/** The path or name this file came from, for building sibling paths */
 	toString(): string;
 }
 
@@ -45,25 +38,11 @@ export interface PickedFolder {
 	/** List files in this folder */
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 
-	/** The path or name this folder came from, for building child paths */
 	toString(): string;
 }
 
-/**
- * Node's modules, as this plugin reaches them.
- *
- * In Obsidian they come from Electron's require, which is only there on
- * desktop - hence the guard, and hence null on mobile, where every caller is
- * behind a Platform check of its own.
- *
- * They are bindings rather than constants so a host that is not Obsidian can
- * supply its own through provideNodeModules. That is what lets the conversion
- * code run headless: under node the modules are simply the real ones, and a
- * browser could hand over a virtual filesystem the same way. Nothing about the
- * plugin's own path changes - in Obsidian these are still resolved here, once,
- * at load.
- */
-// Named nodeCrypto so it does not shadow the global Web Crypto `crypto`
+// Tests replace these bindings to run conversion code outside Obsidian.
+// Named nodeCrypto so it does not shadow the global Web Crypto `crypto`.
 export let nodeCrypto: typeof import('node:crypto') = Platform.isDesktopApp ? window.require('node:crypto') : null;
 export let fs: NodeFS = Platform.isDesktopApp ? window.require('node:original-fs') : null;
 export let fsPromises: NodeFS['promises'] = Platform.isDesktopApp ? fs.promises : null!;
@@ -72,7 +51,6 @@ export let path: typeof import('node:path') = Platform.isDesktopApp ? window.req
 export let url: typeof import('node:url') = Platform.isDesktopApp ? window.require('node:url') : null;
 export let zlib: typeof import('node:zlib') = Platform.isDesktopApp ? window.require('node:zlib') : null;
 
-/** The modules provideNodeModules accepts. Everything is optional. */
 export interface NodeModules {
 	nodeCrypto?: typeof import('node:crypto');
 	fs?: NodeFS;
@@ -82,13 +60,6 @@ export interface NodeModules {
 	zlib?: typeof import('node:zlib');
 }
 
-/**
- * Point the bindings above at a host other than Obsidian.
- *
- * Call before anything reads a file; the values are captured per call site at
- * use time, not at import time, so ordering only matters relative to the first
- * filesystem operation. fsPromises follows whatever fs is given.
- */
 export function provideNodeModules(modules: NodeModules): void {
 	if (modules.nodeCrypto) nodeCrypto = modules.nodeCrypto;
 	if (modules.fs) {

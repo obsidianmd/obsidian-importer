@@ -158,12 +158,6 @@ export const getNotebookNameAndFolderNames = (basename: string): { notebookName:
 	};
 };
 
-/**
- * The stack a notebook sits in, as folder names a filesystem will take.
- *
- * The notebook name itself is left alone: it is what templates and the
- * runtime metadata show, and only the folder it becomes has to be legal.
- */
 export const getSanitizedNotebookFolderNames = (basename: string): string[] => {
 	const { notebookFolderNames } = getNotebookNameAndFolderNames(basename);
 
@@ -213,8 +207,6 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 
 	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
 	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
-		// Sanitize before truncating: a name that ends in a dot or a space
-		// cannot be a folder on Windows, and truncation can leave one behind.
 		let truncatedBasename = sanitizeFileName(enexFileBasename);
 
 		if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {

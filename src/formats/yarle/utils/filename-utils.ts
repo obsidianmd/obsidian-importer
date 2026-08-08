@@ -18,8 +18,6 @@ export const normalizeTitle = (title: string) => {
 };
 
 export const getFileIndex = (dstPath: string, fileNamePrefix: string): number => {
-	// Pick an unused index case-insensitively so default macOS/Windows
-	// filesystems do not overwrite title variants.
 	return getNextFilenameIndex(fs.readdirSync(dstPath), fileNamePrefix);
 
 };

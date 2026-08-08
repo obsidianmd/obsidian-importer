@@ -2,21 +2,6 @@ import { normalizePath, TAbstractFile, Vault } from 'obsidian';
 import { availableFileName } from '../../util';
 import { NotionResolverInfo } from './notion-types';
 
-/**
- * The paths an import has spoken for.
- *
- * Notion settles every file name before it converts a single page: a link to
- * another page is written as [[title]], so the title has to be the one that
- * note is really saved under. The vault cannot be asked - none of those files
- * exist yet - so what is taken is tracked here, seeded with what the vault
- * already holds, and what a taken name becomes is left to availableFileName,
- * which is the rule createFile follows when the write finally happens.
- *
- * Compared without regard to case, because the filesystem is: on macOS and
- * Windows "MYITEM.md" and "Myitem.md" are one file, and an exact comparison
- * hands the second one back as free, which is a note the import then loses to
- * "File already exists" (#223).
- */
 class ReservedPaths {
 	private taken = new Set<string>();
 
@@ -25,6 +10,7 @@ class ReservedPaths {
 	}
 
 	private add(path: string): void {
+		// Default macOS and Windows filesystems are case-insensitive (#223).
 		this.taken.add(normalizePath(path).toLowerCase());
 	}
 
@@ -32,12 +18,6 @@ class ReservedPaths {
 		return this.taken.has(normalizePath(path).toLowerCase());
 	}
 
-	/**
-	 * Reserve a free name in a folder, and say which name that was.
-	 *
-	 * @param parentPath - Folder to reserve in, ending in "/" as this importer writes them
-	 * @param fileName - Name with extension, e.g. "Note.md"
-	 */
 	take(parentPath: string, fileName: string): string {
 		const name = availableFileName(fileName, candidate => this.has(`${parentPath}${candidate}`));
 
@@ -59,9 +39,7 @@ export function cleanDuplicates({
 }) {
 	const loadedFiles = vault.getAllLoadedFiles();
 	const reserved = new ReservedPaths(loadedFiles);
-	// A name that occurs anywhere in the vault, which is a different question
-	// from a taken path: it is what decides whether a link has to carry a path
-	// to say which of them it means.
+	// Bare wikilinks need a path when a basename appears more than once.
 	const ambiguousNames = new Set<string>(
 		loadedFiles.map((file) => file.name.toLowerCase())
 	);
@@ -152,9 +130,6 @@ function cleanDuplicateAttachments({
 		}
 		if (!parentFolderPath.endsWith('/')) parentFolderPath += '/';
 
-		// From the name it already carries, which parse-info decoded and
-		// sanitized. Rebuilding it from the path in the zip, as this used to,
-		// brings back the percent-encoding that name exists to undo.
 		attachmentInfo.nameWithExtension = reserved.take(parentFolderPath, attachmentInfo.nameWithExtension);
 		attachmentInfo.targetParentFolder = parentFolderPath;
 

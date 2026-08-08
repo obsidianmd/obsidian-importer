@@ -37,8 +37,6 @@ export const taskListRule = {
 					? `${checkboxTodo} `
 					: '* '))
 		;
-		// parentElement rather than parentNode: the OL check below needs an
-		// element, which is what getAttribute and children come from.
 		const parent = node.parentElement;
 		if (parent?.nodeName === 'OL') {
 			const start = parent.getAttribute('start');

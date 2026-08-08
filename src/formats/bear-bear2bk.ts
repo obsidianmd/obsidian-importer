@@ -1,9 +1,12 @@
 import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
+import { helpUrl } from '../constants';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
 import { convertBearNote } from './bear/convert';
+
+const HELP_PERMALINK = 'import/bear';
 
 type Metadata = {
 	id: string;
@@ -27,6 +30,13 @@ export class Bear2bkImporter extends FormatImporter {
 	private storeId: boolean = false;
 
 	init() {
+		this.addSetting('source')
+			?.setName('Export your data')
+			.setDesc('Back up your notes in Bear, you will receive a .bear2bk file.')
+			.addButton(button => button
+				.setButtonText('Open')
+				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.addOutputLocationSetting('Bear');
 

@@ -1,23 +1,14 @@
-/**
- * A Journal entry as markdown, separate from the importer that writes it.
- *
- * Apple's export is one HTML file per entry, most of it presentation. What is
- * kept is the reflection prompt and the body paragraphs, plus the tokens the
- * asset grid carries - who was there, where, what was playing - as frontmatter.
- */
 import { htmlToMarkdown, moment } from 'obsidian';
 import type { FrontMatterCache } from 'obsidian';
 import { parseHTML, serializeFrontMatter } from '../../util';
 
 const DATE_FORMAT = 'dddd, D MMMM YYYY';
 
-// Apple does not document these; check Journal exports to derive the structure.
 const ASSET_TYPE_ALIASES = new Map<string, string>([
 	['generic-map', 'location'],
 	['multi-pin-map', 'location'],
 ]);
 
-// currently resource import is not supported
 const IGNORED_ASSET_TYPES = new Set<string>(['photo', 'live-photo', 'video']);
 const BODY_PARAGRAPH_SELECTOR = '.p2, .p3';
 const OVERLAY_TEXT_SELECTORS = [
@@ -35,7 +26,6 @@ const OVERLAY_TEXT_SELECTORS = [
 ];
 
 export interface JournalConversionOptions {
-	/** Whether the asset grid's tokens are written as frontmatter. */
 	frontMatter: boolean;
 }
 
@@ -66,18 +56,12 @@ function extractEntryDate(source: HTMLElement): string | undefined {
 	const headerText = source.querySelector('.pageHeader')?.textContent?.trim();
 	if (!headerText) return undefined;
 
-	/**
-	 * Journal exports format the date as "Sunday, 3 November 2024".
-	 */
 	const parsed = moment(headerText, DATE_FORMAT);
 	if (!parsed.isValid()) return undefined;
 
 	return parsed.format('YYYY-MM-DD');
 }
 
-/**
- * Builds a clean document that only contains the reflection prompt and entry body paragraphs.
- */
 function buildEntryDocument(source: HTMLElement): HTMLElement {
 	const doc = activeDocument.implementation.createHTMLDocument('');
 	const wrapper = createEl('article');
@@ -134,9 +118,6 @@ function collectFrontMatterTokens(source: HTMLElement): FrontMatterCache | null 
 	return Object.keys(frontMatter).length === 0 ? null : frontMatter;
 }
 
-/**
- * Turns assetType class names into kebab-case frontmatter keys.
- */
 function normalizeAssetType(item: Element): string | undefined {
 	const className = Array.from(item.classList).find(cls => cls.startsWith('assetType_'));
 	if (!className) return undefined;
@@ -152,18 +133,11 @@ function normalizeAssetType(item: Element): string | undefined {
 	return ASSET_TYPE_ALIASES.get(normalized) ?? normalized;
 }
 
-/**
- * Collects overlay strings and splits them into tokens (examples: "Memorial Hospital",
- * "John Smith", "Outdoor Walk, 2.3 km, 35 min", "Taylor Swift, Pop").
- */
 function parseOverlayTokens(item: Element): string[] {
 	const collected = collectOverlayText(item);
 	return splitTokens(collected);
 }
 
-/**
- * Splits overlay strings into tokens while keeping title-like text intact.
- */
 function splitTokens(values: string[]): string[] {
 	const tokens = new Set<string>();
 	for (const value of values) {

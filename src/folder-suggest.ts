@@ -1,8 +1,6 @@
 import { AbstractInputSuggest, App, FuzzyMatch, prepareFuzzySearch, renderMatches, sortSearchResults, TFolder } from 'obsidian';
 
-/** Type-ahead over the folders in the vault, for a setting that takes a path. */
 export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
-	/** AbstractInputSuggest holds this too, but does not declare it. */
 	private readonly inputEl: HTMLInputElement;
 
 	constructor(app: App, inputEl: HTMLInputElement) {
@@ -14,7 +12,6 @@ export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
 		const search = prepareFuzzySearch(query);
 		const matches: FuzzyMatch<TFolder>[] = [];
 
-		// The root included, since writing to it is what an empty path means.
 		for (const folder of this.app.vault.getAllFolders(true)) {
 			const match = search(folder.path);
 			if (match) {
@@ -32,7 +29,7 @@ export class FolderSuggest extends AbstractInputSuggest<FuzzyMatch<TFolder>> {
 
 	selectSuggestion(value: FuzzyMatch<TFolder>, evt: MouseEvent | KeyboardEvent): void {
 		this.setValue(value.item.path);
-		// setValue fires nothing, and the setting is listening for input.
+		// setValue does not fire the event used by the setting.
 		this.inputEl.trigger('input');
 		this.close();
 		super.selectSuggestion(value, evt);

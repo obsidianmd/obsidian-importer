@@ -4,7 +4,6 @@ on:
     branches: ["master"]
   pull_request:
 
-# Nothing here writes to the repository.
 permissions:
   contents: read
 
@@ -22,23 +21,15 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # Fails if package.json and the lockfile disagree, which is what the
-      # release workflow would hit later.
       - name: Install modules
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
         run: pnpm run typecheck
 
-      # The repo's own config. lint:review is the stricter one the community
-      # review runs; it reports findings we have not taken on, so it is a
-      # thing to read rather than a gate.
       - name: Lint
         run: pnpm run lint:check
 
-      # Conversion output is compared against the recordings in tests/*/expected.
-      # A missing recording fails here rather than writing itself, so a golden
-      # can only enter the repo by being reviewed - see tests/helpers.ts.
       - name: Test
         run: pnpm test
 

@@ -1,20 +1,3 @@
-/**
- * Run the fixtures through a real import, inside Obsidian.
- *
- * The test suite converts fixtures headlessly, against a shim of Obsidian's
- * API. This runs the same fixtures through the app itself - its
- * htmlToMarkdown, its vault, its link settings - and compares what lands in
- * the vault with what the suite recorded. It is what would catch the shim
- * drifting from the real thing.
- *
- *   npm run e2e
- *
- * Needs the Obsidian CLI, the plugin installed in the active vault, and a
- * build of the current source deployed to it (`npm run build` does not deploy;
- * `npm run dev` does).
- *
- * Everything it writes goes in one folder in the vault and is deleted after.
- */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import * as fs from 'node:fs';
@@ -22,18 +5,9 @@ import * as path from 'node:path';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Where the import writes, and what is removed afterwards. */
+// Removed after each run.
 const FOLDER = '_e2e-check';
 
-/**
- * One fixture, and the recording to compare against.
- *
- * Only fixtures whose conversion does not depend on the vault: no attachments
- * to download, and nothing linking to another imported note, so what the app
- * writes is what the suite recorded. Anything else differs for good reasons -
- * a vault path, a link in the user's preferred form - and would need the
- * recording to know about them.
- */
 const CASES = [
 	{ importer: 'html', fixture: 'tests/html/links.html', expected: 'tests/html/expected/links.md', note: 'links.md' },
 	{ importer: 'html', fixture: 'tests/html/special filename#.html', expected: 'tests/html/expected/special filename#.md', note: 'special filename.md' },
@@ -57,7 +31,6 @@ const CASES = [
 	},
 ];
 
-/** The vault to run in, from E2E_VAULT or the one OBSIDIAN_PATH deploys to. */
 function vaultName() {
 	if (process.env.E2E_VAULT) return process.env.E2E_VAULT;
 
@@ -80,7 +53,7 @@ function readEnvFile(name) {
 
 function evalInObsidian(code) {
 	const vault = vaultName();
-	// vault= has to come first, before the command
+	// The CLI ignores vault= unless it is the first argument.
 	const args = vault ? [`vault=${vault}`, 'eval', `code=${code}`] : ['eval', `code=${code}`];
 	const result = spawnSync('obsidian', args, {
 		encoding: 'utf8',
@@ -128,7 +101,6 @@ const script = `
 		});
 	}
 
-	/* Everything this wrote, gone again */
 	const written = app.vault.getAbstractFileByPath(folder);
 	if (written) {
 		if (app.fileManager.trashFile) await app.fileManager.trashFile(written);
@@ -139,8 +111,6 @@ const script = `
 })()
 `;
 
-// The CLI takes the code as one argument, so it goes over as a single line.
-// Any comment inside it has to be a block comment to survive that.
 const answer = JSON.parse(evalInObsidian(script.replace(/\n\s*/g, ' ')));
 
 if (answer.error) {

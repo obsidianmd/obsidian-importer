@@ -1,28 +1,15 @@
-/**
- * Turning a Keep note into markdown, separate from the importer that writes it.
- *
- * A parsed Takeout note goes in and the note's body comes out, along with the
- * timestamps the importer stamps onto the file afterwards. Nothing here
- * touches Obsidian or a vault.
- */
 import { FrontMatterCache } from 'obsidian';
 import { serializeFrontMatter } from '../../util';
 import { KeepJson } from './models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './util';
 
-/** A note as the conversion produces it, before anything writes it down. */
 export interface ConvertedKeepNote {
-	/** Frontmatter and body, ready to write. */
 	content: string;
-	/** Keep records microseconds; these are milliseconds, as the vault wants. */
+	// Keep stores microseconds; the vault expects milliseconds.
 	ctime: number;
 	mtime: number;
 }
 
-/**
- * Keep's own state becomes tags, since Obsidian has nowhere else to put it:
- * a colour, whether it was pinned, archived or deleted, and its labels.
- */
 function collectTags(keepJson: KeepJson): string[] {
 	const tags: string[] = [];
 
@@ -41,10 +28,6 @@ function collectTags(keepJson: KeepJson): string[] {
 	return tags;
 }
 
-/**
- * @param filename The name the note will be saved under. A title that matches
- *                 it says nothing extra, so only the rest becomes an alias.
- */
 export function convertKeepNote(keepJson: KeepJson, filename: string): ConvertedKeepNote {
 	const frontMatter: FrontMatterCache = {};
 
@@ -64,7 +47,6 @@ export function convertKeepNote(keepJson: KeepJson, filename: string): Converted
 
 	if (keepJson.listContent) {
 		const items = keepJson.listContent
-			// Don't put in blank checkbox items
 			.filter(item => item.text)
 			.map(item => sanitizeTags(`- [${item.isChecked ? 'X' : ' '}] ${item.text}`));
 

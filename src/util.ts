@@ -2,16 +2,6 @@ import { App, FrontMatterCache, parseYaml, stringifyYaml, Vault, normalizePath }
 
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
-/**
- * Read a note's frontmatter straight from its content.
- *
- * The metadata cache is populated asynchronously, so a file written moments
- * earlier in the same import usually has no cache entry yet. Anything that
- * inspects frontmatter mid-import has to parse the content itself, or it will
- * silently treat freshly written notes as having none.
- *
- * Returns null when there is no parseable frontmatter block.
- */
 export function parseFrontMatterBlock(content: string): { frontMatter: FrontMatterCache, body: string } | null {
 	const match = FRONT_MATTER_PATTERN.exec(content);
 	if (!match) {
@@ -35,25 +25,13 @@ let illegalRe = /[?<>:*|"]/g;
 let reservedRe = /^\.+$/;
 let windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 let windowsTrailingRe = /[. ]+$/;
-// Leading dots, and any spacing between them: a title opening with an ellipsis
-// written as ". . ." leaves one behind if only the first dot goes. Obsidian
-// hides a file whose name starts with a dot, and never indexes it, so a name
-// that keeps one is a file the app cannot see and the next import cannot write.
 let startsWithDotRe = /^[.\s]+/;
 let badLinkRe = /[[\]#|^]/g; // Regular expression to match characters that interferes with links: [ ] # | ^
 
-/**
- * Drop the control characters a file name cannot contain: C0 (U+0000-U+001F)
- * and C1 (U+0080-U+009F).
- *
- * A filter rather than a regex because the equivalent character class has to
- * spell out control characters, which is worth avoiding in source.
- */
 export function stripControlCharacters(name: string): string {
+	// Remove C0 and C1 control characters from filesystem names.
 	let out = '';
 	for (const ch of name) {
-		// Surrogate pairs read as their lead unit here, which is above the C1
-		// range, so astral characters are kept.
 		const code = ch.charCodeAt(0);
 		if (code <= 0x1f || (code >= 0x80 && code <= 0x9f)) continue;
 		out += ch;
@@ -61,11 +39,6 @@ export function stripControlCharacters(name: string): string {
 	return out;
 }
 
-// First remove illegal characters such as spaces and periods, then check for Windows reserved words.
-//
-// A missing name is allowed, and lands on the same "Untitled" every empty name
-// does. Titles arrive optional from most sources, and every caller spelling its
-// own `|| 'Untitled'` is one more place for that default to drift.
 export function sanitizeFileName(name: string | undefined | null) {
 	const sanitized = stripControlCharacters(
 		(name ?? '')
@@ -75,8 +48,6 @@ export function sanitizeFileName(name: string | undefined | null) {
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(badLinkRe, '')
-		// Last, so that a dot a link character was standing in front of is
-		// still a leading dot by the time this looks
 		.replace(startsWithDotRe, '');
 
 	// If the result is empty or only whitespace after sanitization, return a default name
@@ -85,19 +56,8 @@ export function sanitizeFileName(name: string | undefined | null) {
 	return trimmed || 'Untitled';
 }
 
-/**
- * Make a path out of names that came from the source.
- *
- * Each segment becomes a folder, so each has to survive as one: a CSV template
- * like `{{Category}}/{{Name}}` puts a cell value straight into a path, and a
- * value ending in a period is a folder Windows will create and then refuse to
- * open. The same rule note titles go through, applied a segment at a time so
- * the separators survive it.
- *
- * A segment left empty contributes nothing, rather than becoming a folder
- * called "Untitled".
- */
 export function sanitizeFilePath(path: string): string {
+	// Sanitize each segment without flattening the folder structure.
 	return path
 		.split('/')
 		.filter(segment => segment.trim())
@@ -124,20 +84,6 @@ export function getUniqueFilePath(vault: Vault, parentPath: string, fileName: st
 	return vault.getAvailablePath(base, hasExtension ? fileName.slice(lastDotIndex + 1) : undefined);
 }
 
-/**
- * The rule getUniqueFilePath defers to, for a caller that cannot ask the vault.
- *
- * Notion settles every file name before it converts a single page, because a
- * link to another page is written as [[title]] and that title has to be the one
- * the note is really saved under - so it has to know the answer while none of
- * those files exist yet. What is taken is the caller's question; what a taken
- * name becomes is this one, answered the way Vault.getAvailablePath answers it:
- * " 1", then " 2".
- *
- * @param fileName - Name with extension, e.g. "Note.md"
- * @param isTaken - Whether a name is spoken for. Case is the caller's to
- *   handle: on macOS and Windows "Note.md" and "note.md" are one file.
- */
 export function availableFileName(fileName: string, isTaken: (candidate: string) => boolean): string {
 	const lastDotIndex = fileName.lastIndexOf('.');
 	const hasExtension = lastDotIndex > 0;
@@ -165,13 +111,6 @@ export function updatePropertyTypes(app: App, propertyTypes: Record<string, stri
 	}
 }
 
-/**
- * A count and the thing counted, pluralised.
- *
- * The count is always in hand where this is used, so "1 record" and "2
- * records" rather than "record(s)". Only the regular -s rule: every noun it is
- * given takes one.
- */
 export function plural(count: number, noun: string): string {
 	return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
@@ -221,7 +160,6 @@ export function extractErrorMessage(error: unknown): string | undefined {
 	return undefined;
 }
 
-/** Infer a common media extension from a file signature. */
 export function extensionFromBytes(bytes: Uint8Array): string | null {
 	const magic = (offset: number, ...signature: number[]) =>
 		signature.every((byte, i) => bytes[offset + i] === byte);
@@ -243,10 +181,8 @@ export function extensionFromBytes(bytes: Uint8Array): string | null {
 		if (tag(8) === 'WAVE') return 'wav';
 	}
 
-	// ISO base media files identify their format with the brand after "ftyp".
-	// Most of those are not video, and naming an image mp4 leaves Obsidian
-	// treating it as one, which does not embed.
 	if (tag(4) === 'ftyp') {
+		// ISO base media files identify their format with a brand after ftyp.
 		const brand = tag(8);
 		if (brand.startsWith('avi')) return 'avif';
 		if (brand.startsWith('hei') || brand === 'mif1' || brand === 'msf1') return 'heic';
@@ -254,7 +190,6 @@ export function extensionFromBytes(bytes: Uint8Array): string | null {
 		return 'mp4';
 	}
 
-	// Office documents share ZIP's signature, so leave them as ZIP archives.
 	if (magic(0, 0x50, 0x4b, 0x03, 0x04)) return 'zip';
 
 	return null;

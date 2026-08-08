@@ -20,12 +20,6 @@ import { NotionAttachment } from './types';
 
 const MAX_RETRIES = 3;
 
-/**
- * A rejected Notion request.
- *
- * The SDK throws APIResponseError, but a transport failure arrives as a plain
- * Error, so both fields are optional and callers check before using them.
- */
 export interface NotionRequestError {
 	code?: string;
 	status?: number;
@@ -157,7 +151,6 @@ export async function makeNotionRequest<T>(
 			return makeNotionRequest(requestFn, ctx, retryCount + 1);
 		}
 
-		// Re-throw what was caught, not the narrowed view of it
 		throw e;
 	}
 }

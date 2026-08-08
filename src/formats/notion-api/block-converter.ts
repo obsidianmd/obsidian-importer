@@ -481,14 +481,6 @@ export async function convertBlockToMarkdown(
 	return markdown;
 }
 
-/**
- * Convert paragraph block to Markdown
- * Supports has_children: children are indented one level deeper (indentLevel + 1),
- * consistent with how list items handle their children.
- * Paragraphs at indentLevel > 0 get 4-space indentation prefix.
- * Non-nestable child blocks (tables, code, images, etc.) don't apply indentation
- * in their own converters, so they naturally render at the root level.
- */
 export async function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): Promise<string> {
 	if (block.type !== 'paragraph') return '';
 
@@ -807,7 +799,6 @@ export async function convertSyncedBlock(
 	
 	// Determine if this is an original block or a synced copy
 	const isOriginal = syncedBlockData.synced_from === null;
-	// If don't use the ! assertion, TypeScript will throw an error.
 	const originalBlockId = isOriginal ? block.id : syncedBlockData.synced_from!.block_id;
 	
 	// Check if we already have a file for this synced block
@@ -1199,11 +1190,6 @@ export async function convertPdf(block: BlockObjectResponse, context: BlockConve
 	return convertAttachmentBlock(block, context, ATTACHMENT_CONFIGS[AttachmentType.PDF]);
 }
 
-/**
- * Check if URL is embeddable in Obsidian
- * Obsidian supports embedding YouTube and Twitter/X content
- * @see https://obsidian.md/help/embed-web-pages
- */
 function isEmbeddableUrl(url: string): boolean {
 	return url.includes('youtube.com') || 
 	       url.includes('youtu.be') || 

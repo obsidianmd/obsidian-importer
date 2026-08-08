@@ -21,7 +21,7 @@ export const asValue = value => {
 			return '\'' + value.replace(quote, '\'\'') + '\'';
 		case 'number':
 			if (!isFinite(value)) return;
-			// falls through: a finite number is emitted as +value
+			// Fall through to numeric coercion.
 		case 'boolean':
 			return +value;
 		case 'object':
@@ -34,7 +34,7 @@ export const asValue = value => {
 				case value instanceof Buffer:
 				case value instanceof ArrayBuffer:
 					value = new Uint8Array(value);
-					// falls through: now a Uint8Array, hex-encoded below
+					// Fall through to hex encoding.
 				case value instanceof Uint8Array:
 				case value instanceof Uint8ClampedArray:
 					return x(value);

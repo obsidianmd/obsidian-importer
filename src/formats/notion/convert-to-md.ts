@@ -25,13 +25,6 @@ export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFil
 	return convertHtmlToMarkdown(info, await file.readText());
 }
 
-/**
- * Convert one exported Notion page.
- *
- * Split from readToMarkdown so the conversion can be driven from the page's
- * HTML rather than from a zip entry - which is what lets it be tested, and
- * what lets a single page from a user's export be run on its own.
- */
 export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): string {
 	const dom = parseHTML(text);
 	// read the files etc.
@@ -57,7 +50,6 @@ export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): s
 			const property = parseProperty(row);
 			if (property) {
 				if (property.title == 'Tags') {
-					// Not UI text: the frontmatter key Obsidian reads tags from
 					property.title = 'tags';
 					if (typeof property.content === 'string') {
 						property.content = property.content.replace(/ /g, '-');
@@ -454,7 +446,6 @@ function mergeAdjacentTags(body: HTMLElement, tagName: FormatTagName) {
  * Strips leading <br> artificats created by Notion
  * These often occur before strong | em | mark | del tags
  */
-// Takes a selector rather than a tag name: fixEquations passes one.
 function stripLeadingBr(body: HTMLElement, selector: string) {
 	const tags = body.findAll(selector);
 	if (!tags) return;
@@ -490,9 +481,7 @@ function splitBrsInFormatting(body: HTMLElement, tagName: FormatTagName) {
 
 
 function getTOCIndent(tocItem: Element | null): number {
-	// The indent is the last character of the second class. An item with only
-	// one class has no indent to read, and used to throw here rather than fall
-	// back to -1 like a missing item does.
+	// Notion stores the indent level in the final character of the second class.
 	return Number(tocItem?.classList?.[1]?.slice(-1) ?? -1);
 }
 
@@ -645,8 +634,6 @@ function fixMermaidCodeblock(body: HTMLElement) {
 }
 
 function unwrapNotionListWrappers(body: HTMLElement) {
-	// Notion wraps each list item in <div style="display:contents"><ol/ul><li>...</li></ol/ul></div>.
-	// These wrappers prevent fixNotionLists from seeing adjacent <ol>/<ul> as siblings.
 	for (const div of body.findAll('div[style]')) {
 		const style = div.getAttribute('style') ?? '';
 		if (!style.includes('display:contents') && !style.includes('display: contents')) continue;

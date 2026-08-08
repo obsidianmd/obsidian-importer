@@ -36,23 +36,11 @@ declare module 'obsidian' {
 	}
 
 	interface TFolder {
-		/**
-		 * This folder's path as a prefix to join child names onto: "Notes/" for
-		 * a subfolder, and "" for the vault root, so callers do not have to
-		 * special-case the root's "/" path.
-		 */
 		getParentPrefix(): string;
 	}
 
 	interface SecretStorage {
-		/**
-		 * Remove a secret.
-		 *
-		 * setSecret, getSecret and listSecrets are public; this is not, but a
-		 * credential an importer stores on the user's behalf needs a way to be
-		 * withdrawn when they sign out. Writing an empty string in its place
-		 * would leave a dead entry in their keychain settings.
-		 */
+		// Available at runtime but missing from Obsidian's public types.
 		deleteSecret(id: string): void;
 	}
 }

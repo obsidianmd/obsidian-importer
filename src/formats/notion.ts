@@ -11,7 +11,6 @@ import { NotionResolverInfo } from './notion/notion-types';
 import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
-/** The help page this importer's own guide lives at; see main.ts's registry. */
 const HELP_PERMALINK = 'import/notion';
 
 export class NotionImporter extends FormatImporter {
@@ -23,7 +22,6 @@ export class NotionImporter extends FormatImporter {
 	init() {
 		this.parentsInSubfolders = true;
 
-		// Above the chooser, because it is where the thing to choose comes from
 		this.addSetting('source')
 			?.setName('Export your data')
 			.setDesc('Export your workspace in HTML format, you will receive a zip file.')
@@ -140,9 +138,6 @@ export class NotionImporter extends FormatImporter {
 						writeOptions.mtime = fileInfo.mtime.getTime();
 					}
 
-					// The folder is asked for rather than assumed: createFolders
-					// is what made it, and it drops a leading dot from a name,
-					// so the path it returns is the one that really exists.
 					const parent = await this.createFolders(`${targetFolderPath}${info.getPathForFile(fileInfo)}`);
 					await this.createFile(parent, `${fileInfo.title}.md`, markdownBody, writeOptions);
 					ctx.reportNoteSuccess(file.fullpath);

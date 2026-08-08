@@ -1,13 +1,3 @@
-/**
- * Run the tests, optionally for one importer.
- *
- *   npm test              every test
- *   npm test -- notion    just tests/notion
- *   npm test -- notion html
- *
- * A filter is a directory under tests/, which is one importer, so iterating on
- * one does not wait for the rest.
- */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -34,8 +24,7 @@ function availableSuites() {
 }
 
 const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
-// node:sqlite, which a fixture builds a notes database with, is still flagged
-// experimental and says so on every run
+// Silence Node's warning for the sqlite fixture helper.
 const result = spawnSync(tsx, ['--disable-warning=ExperimentalWarning', '--tsconfig', 'tsconfig.test.json', '--test', ...patterns], {
 	cwd: root,
 	stdio: 'inherit',

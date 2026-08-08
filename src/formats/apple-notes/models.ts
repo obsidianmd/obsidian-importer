@@ -1,42 +1,18 @@
 import { Message } from 'protobufjs';
 
-/**
- * A file the vault holds, as far as a converter is concerned: it takes one
- * from the context and hands it back to be linked, never reading it.
- */
 export interface ANFile {
 	path: string;
 }
 
-/**
- * What a converter needs from outside the note it is converting: the database
- * the note came from, the settings the user chose, and the vault - fetching an
- * attachment, importing a linked note, and writing a link the way the vault
- * would.
- *
- * The importer implements this. A test can implement it over a database and a
- * directory, which is what lets the conversion run outside Obsidian.
- */
 export interface ANContext<F extends ANFile = ANFile> {
-	/** Notes repeat their title as the first line; whether that line is dropped. */
 	omitFirstLine: boolean;
-	/** Whether a drawing's transcription is kept as a callout. */
 	includeHandwriting: boolean;
-	/** Whether the vault requires explicit Markdown line breaks. */
 	strictLineBreaks: boolean;
 	database: SQLiteTagSpawned;
 
-	/** Gunzip and decode one of the protobufs a note refers to. */
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T;
-	/**
-	 * Bring an attachment into the vault, or null if it cannot be read.
-	 * Suppress reporting when `hasFallback` is true; the caller reports only if
-	 * the fallback also fails.
-	 */
 	resolveAttachment(id: number, uti: string, hasFallback?: boolean): Promise<F | null>;
-	/** Import a note this one links to, so the link has something to point at. */
 	resolveNote(id: number): Promise<F | null>;
-	/** A link to a file, in whichever form the vault is set to write. */
 	linkTo(file: F, sourcePath: string, subpath?: string, display?: string): string;
 }
 
@@ -184,10 +160,6 @@ export interface ANColor extends Message {
 	alpha: number;
 }
 
-/**
- * The colour of a highlight. Apple's own yellow is the value this is left unset for,
- * so a yellow highlight is indistinguishable from no highlight at all.
- */
 export enum ANEmphasisColor {
 	Purple = 1,
 	Pink = 2,

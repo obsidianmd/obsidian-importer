@@ -53,16 +53,6 @@ const isMonospaceCodeBlock: (node: TurndownNode) => boolean = node => {
 
 	return !!font && reMonospaceFont.test(font);
 };
-/*
-export const monospaceCodeBlockRule = {
-    filter: filterByNodeName('DIV'),
-    replacement: (content: string, node: TurndownNode) => {
-        if (yarleOptions.monospaceIsCodeBlock && isMonospaceCodeBlock(node)) {
-            return replaceMonospaceCodeBlock(content, node);
-        }
-    },
-};
-*/
 export const replaceMonospaceCodeBlock = (content: string, node: TurndownNode): string => {
 	if (isMonospaceCodeBlock(node)) {
 		const previous = asElement(node.previousSibling);

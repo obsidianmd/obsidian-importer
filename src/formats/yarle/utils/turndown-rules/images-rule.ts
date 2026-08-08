@@ -13,8 +13,6 @@ export const imagesRule = {
 			return '';
 		}
 		const value = nodeProxy.src.value;
-		// The filter is IMG, but narrow rather than assert so width and height
-		// come from a type that has them.
 		const image = node.instanceOf(HTMLImageElement) ? node : undefined;
 		const widthParam = image?.width || '';
 		const heightParam = image?.height || '';

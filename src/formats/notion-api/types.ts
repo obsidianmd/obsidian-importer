@@ -1,4 +1,3 @@
-/** The Notion API version the importer pins; every request sends it. */
 export const NOTION_VERSION = '2025-09-03';
 
 /**
@@ -16,38 +15,15 @@ import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import type { FormulaImportStrategy } from '../../base';
 
-/**
- * One property's configuration in a data source's schema.
- *
- * Reached through an indexed access because the SDK does not export the config
- * union by name, only the response type that carries it. Widened with the
- * property types Notion returns that the SDK's union does not list yet: button
- * and place are real and do arrive, and the switches over these handle them.
- * Naming them here keeps those cases compiling without giving up the narrowing
- * the SDK's own members provide.
- */
 export type NotionPropertyConfig =
 	| DataSourceObjectResponse['properties'][string]
 	| { type: 'button' | 'place', id: string, name: string, description: string | null };
 
-/** A data source's property schema. */
 export type NotionProperties = Record<string, NotionPropertyConfig>;
 
-/**
- * One entry of the property map the importer builds for a .base file.
- *
- * Not a Notion type: this is the Obsidian-shaped result of mapping a Notion
- * property, with formula present only when the property became one.
- */
 export interface BasePropertyMapping {
 	displayName: string;
-	/** Present only when the property became a formula in the .base file */
 	formula?: string;
-	/**
-	 * Recorded for relation properties. Nothing reads these yet - only
-	 * displayName and formula reach the .base file - but they are written, so
-	 * they are described rather than quietly dropped.
-	 */
 	isRelation?: boolean;
 	relationConfig?: unknown;
 }
@@ -143,7 +119,8 @@ export interface RollupConfig {
 
 	// Note: Numeric aggregation functions (sum, average, median, min, max, range)
 	// are not yet implemented and will fall through to the default case
-	| (string & {});      // Allow other values without collapsing the union above
+	// Preserve autocomplete for known values while accepting new Notion types.
+	| (string & {});
 }
 
 /**
@@ -225,12 +202,6 @@ export interface FormatAttachmentLinkParams {
  */
 export type ImportPageCallback = (pageId: string, parentPath: string) => Promise<void>;
 
-/**
- * Common type for heading content with rich text and color.
- *
- * Notion gives heading_1, heading_2 and heading_3 the same shape, so naming one
- * of them describes all three; a union of the three collapses to this anyway.
- */
 export type HeaderContentWithRichTextAndColorResponse = Heading1BlockObjectResponse['heading_1'];
 
 /**
@@ -245,14 +216,7 @@ export interface BlockConversionContext {
 	app: App;
 	downloadExternalAttachments: boolean;
 	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
-	incrementalImport?: boolean; // Reuse a note or attachment an earlier import wrote
-	/**
-	 * Whether the server answers a request for a byte range, which is how an
-	 * attachment's size is learned without fetching it.
-	 *
-	 * One that will not costs a wasted request per attachment, so the first
-	 * refusal turns it off for the rest of the import.
-	 */
+	incrementalImport?: boolean;
 	rangeProbe?: { answered: boolean };
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
@@ -263,7 +227,7 @@ export interface BlockConversionContext {
 	syncedChildPagePlaceholders?: Map<string, Set<string>>; // Map file path to synced child page IDs
 	syncedChildDatabasePlaceholders?: Map<string, Set<string>>; // Map file path to synced child database IDs
 	listCounters?: Map<number, number>; // Track list item numbers per indent level
-	onAttachmentDownloaded?: (filename: string) => void; // Callback when an attachment is downloaded
+	onAttachmentDownloaded?: (filename: string) => void;
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
@@ -297,4 +261,3 @@ export interface AttachmentBlockConfig {
 	fallbackText: string;
 	beforeDownload?: (attachment: NotionAttachment, block: any) => string | null;
 }
-

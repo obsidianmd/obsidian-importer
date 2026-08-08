@@ -11,10 +11,6 @@ import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
-/**
- * What a download produced, whichever way it was fetched: over HTTP, or
- * decoded out of the URL itself.
- */
 interface DownloadedAttachment {
 	arrayBuffer: ArrayBuffer;
 	contentType?: string;
@@ -43,8 +39,6 @@ export async function downloadAttachment(
 		};
 	}
 
-	// A data URL carries the file in the URL, so there is no path to take a
-	// name from: what looks like one is the head of the base64 payload.
 	const isDataUrl = attachment.url.toLowerCase().startsWith('data:');
 
 	// Extract filename early for error reporting
@@ -55,10 +49,6 @@ export async function downloadAttachment(
 	try {
 		ctx.status(`Downloading attachment: ${filename}...`);
 
-		// Ask how big it is before fetching it. An attachment an earlier import
-		// already wrote then costs a request for its size rather than the whole
-		// file, which on a workspace of any size is most of what a re-import
-		// spends. A data URL carries its own bytes, so there is nothing to save.
 		const probe = context.rangeProbe ??= { answered: true };
 
 		if (incrementalImport && !isDataUrl && probe.answered) {
@@ -80,7 +70,6 @@ export async function downloadAttachment(
 		let downloaded: DownloadedAttachment;
 
 		if (isDataUrl) {
-			// requestUrl speaks http(s) only, so decoding is the download.
 			downloaded = decodeDataUrl(attachment.url);
 		}
 		else {
@@ -108,8 +97,6 @@ export async function downloadAttachment(
 		filename = withInferredExtension(filename, downloaded.contentType);
 		const targetFilePath = await resolveTargetPath(context, filename);
 
-		// The size was not knowable before the fetch, so the copy already there
-		// is found here instead. Only the download is wasted, not the write.
 		if (incrementalImport) {
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
@@ -145,23 +132,12 @@ export async function downloadAttachment(
 	}
 }
 
-/**
- * How big the attachment is, without fetching it.
- *
- * A ranged GET rather than a HEAD. A Notion attachment URL is a presigned S3
- * one and the signature covers the method, so a HEAD is refused where a GET is
- * allowed. Asking for the first byte is a GET, and the Content-Range that comes
- * back carries the whole length after the slash: "bytes 0-0/12345".
- *
- * Returns null when the size cannot be learned this way, which leaves the
- * caller to fetch the attachment and read the size off what arrives.
- */
 async function probeAttachmentSize(url: string, probe: { answered: boolean }): Promise<{ size: number, contentType?: string } | null> {
+	// Presigned S3 URLs may reject HEAD, so request only the first byte.
 	const response = await requestUrl({ url, method: 'GET', headers: { Range: 'bytes=0-0' }, throw: false });
 
-	// 206 is the range being honoured. A 200 means the whole file came back
-	// instead, which answers nothing and is the download this was avoiding.
 	if (response.status !== 206) {
+		// A 200 response ignored the range and downloaded the whole file.
 		probe.answered = false;
 		return null;
 	}
@@ -179,7 +155,6 @@ async function probeAttachmentSize(url: string, probe: { answered: boolean }): P
 	};
 }
 
-/** The name to write under, once the media type has had its say. */
 function withInferredExtension(filename: string, contentType: string | undefined): string {
 	const [basename, extension] = splitext(filename);
 	if (extension || !contentType) return filename;
@@ -188,17 +163,13 @@ function withInferredExtension(filename: string, contentType: string | undefined
 	return inferred ? `${basename}.${inferred}` : filename;
 }
 
-/** Where the attachment goes, by the vault's rules where it has any. */
 async function resolveTargetPath(context: BlockConversionContext, filename: string): Promise<string> {
-	// The FormatImporter's method, which respects Obsidian's own settings
 	if (context.getAvailableAttachmentPath) return await context.getAvailableAttachmentPath(filename);
 
-	// Fallback: construct the path here (shouldn't happen in normal usage)
 	const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
 	return sourceFilePath ? normalizePath(`${sourceFilePath}/${filename}`) : filename;
 }
 
-/** A link to the copy already in the vault, in place of writing another. */
 function linkToExisting(file: TFile, filename: string): AttachmentResult {
 	const { parent, basename } = parseFilePath(file.path);
 
@@ -209,20 +180,10 @@ function linkToExisting(file: TFile, filename: string): AttachmentResult {
 	};
 }
 
-/**
- * The attachment already in the vault that this one would be a second copy of.
- *
- * An attachment carries no id, so what says two are the same is the name and
- * the size. The name having been taken is what getAvailableAttachmentPath
- * reports, by handing back a different one: asked for "photo.jpg" it returns
- * "photo 1.jpg" only when "photo.jpg" is there.
- */
 function attachmentAlreadyImported(vault: Vault, targetFilePath: string, filename: string, size: number): TFile | null {
 	const { parent, basename } = parseFilePath(targetFilePath);
-	// Read the extension off filename rather than the target: the target's has
-	// been through the Content-Type inference, and filename is what was asked
-	// for. A name that came back unchanged means nothing was in the way.
 	const [, extension] = splitext(filename);
+	// An unchanged target name means there was no collision to inspect.
 	if (basename + (extension ? `.${extension}` : '') === filename) return null;
 
 	const existingFile = vault.getAbstractFileByPathInsensitive(normalizePath(`${parent}/${filename}`));
@@ -230,28 +191,18 @@ function attachmentAlreadyImported(vault: Vault, targetFilePath: string, filenam
 	return existingFile instanceof TFile && existingFile.stat.size === size ? existingFile : null;
 }
 
-/**
- * Decode a `data:` URL into the bytes it carries.
- *
- * Follows the order the URL spec reads one in: percent-decode the body, then
- * base64-decode it if the media type said so.
- */
 function decodeDataUrl(url: string): DownloadedAttachment {
 	const match = /^data:([^,]*),([\s\S]*)$/i.exec(url);
 	if (!match) throw new Error('Malformed data URL');
 
 	const [, mediaType, body] = match;
 	const parameters = mediaType.split(';').map(part => part.trim()).filter(Boolean);
-	// The media type is only there if it looks like one; `data:;base64,…` and
-	// `data:,…` are both legal and leave the extension to be guessed elsewhere.
 	const contentType = parameters[0]?.includes('/') ? parameters[0] : undefined;
 	const isBase64 = parameters.some(parameter => parameter.toLowerCase() === 'base64');
 
 	const percentDecoded = decodePercentEncoding(body);
 	const bytes = isBase64 ? decodeBase64(percentDecoded) : percentDecoded;
 
-	// A fresh buffer, so what reaches createBinary is an ArrayBuffer of exactly
-	// these bytes rather than a view into a larger one.
 	const copy = new Uint8Array(bytes.length);
 	copy.set(bytes);
 	return { arrayBuffer: copy.buffer, contentType };
@@ -277,9 +228,6 @@ function decodePercentEncoding(body: string): Uint8Array {
 }
 
 function decodeBase64(bytes: Uint8Array): Uint8Array {
-	// The base64 alphabet is ASCII, so the percent-decoded bytes read back as
-	// the string atob wants. Whitespace is dropped: a data URL long enough to
-	// have been wrapped across lines still has to decode.
 	let encoded = '';
 	for (const byte of bytes) encoded += String.fromCharCode(byte);
 
@@ -538,4 +486,3 @@ export async function downloadAndFormatAttachment(
 		return `${linkPrefix}[${linkText}](${attachment.url})`;
 	}
 }
-

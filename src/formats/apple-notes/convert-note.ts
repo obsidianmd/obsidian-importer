@@ -18,17 +18,12 @@ import {
 } from './models';
 
 const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
-/** What Shift-Return puts in the text: a line separator, not a paragraph end. */
+// Shift-Return inserts U+2028 instead of ending the paragraph.
 const SOFT_RETURN = '\u2028';
 const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
 const DEFAULT_EMOJI = '.AppleColorEmojiUI';
 
-/**
- * Obsidian takes a highlight's colour from an emoji leading its content, and has no
- * pink or mint of its own, so those go to the nearest it does have. An unmarked
- * highlight is already yellow, which is the colour Apple leaves unset.
- */
 const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 	[ANEmphasisColor.Purple]: '🟣',
 	[ANEmphasisColor.Pink]: '🔴',
@@ -37,16 +32,10 @@ const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 	[ANEmphasisColor.Blue]: '🔵'
 };
 
-/** Keep generated file names within practical filesystem limits. */
 const TITLE_LIMIT = 200;
 
 const URL_LINE = /^https?:\/\/\S+$/;
 
-/**
- * Return the first line with text on it, which Apple displays as the note
- * title. A line holding only attachments is not one, and a soft return within
- * the line is a space rather than a character no file name should carry.
- */
 export function firstLine(noteText: string): string {
 	return noteText
 		.split('\n')
@@ -54,11 +43,8 @@ export function firstLine(noteText: string): string {
 		.find(line => line !== '') ?? '';
 }
 
-/**
- * Derive a title from the note text because Apple truncates ZTITLE1 at roughly
- * 80 characters (#541). Fall back to ZTITLE1 for attachment-only notes.
- */
 export function noteTitle(noteText: string, stored: string): string {
+	// Apple truncates the stored title, so prefer the note's first text line (#541).
 	const line = firstLine(noteText ?? '');
 	if (!line) return stored;
 
@@ -75,7 +61,6 @@ export class NoteConverter extends ANConverter {
 	listNumber = 0;
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
-	/** The alignment of the block being written, if one is open. */
 	alignment: ANAlignment | undefined;
 
 	static protobufType = 'ciofecaforensics.Document';
@@ -124,8 +109,7 @@ export class NoteConverter extends ANConverter {
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
 		let fragments = this.parseTokens();
-		// Keep URL-only titles in the body because sanitising them for a file name
-		// would destroy the working URL (#591).
+		// Keep URL-only titles in the body so the working URL is not lost (#591).
 		let firstLineSkip = !table && this.ctx.omitFirstLine
 			&& this.note.noteText.contains('\n')
 			&& !URL_LINE.test(firstLine(this.note.noteText));
@@ -136,7 +120,6 @@ export class NoteConverter extends ANConverter {
 			let { attr, fragment } = fragments[j];
 
 			if (firstLineSkip) {
-				// Do not treat an attachment as part of the title.
 				if (attr.attachmentInfo) {
 					firstLineSkip = false;
 				}
@@ -144,8 +127,6 @@ export class NoteConverter extends ANConverter {
 					firstLineSkip = false;
 				}
 				else {
-					// Skip through leading blank lines, then stop after the first
-					// non-blank line so the title is not repeated in the body.
 					if (/\S/.test(fragment)) titleStarted = true;
 					if (titleStarted && fragment.contains('\n')) firstLineSkip = false;
 					continue;
@@ -167,8 +148,6 @@ export class NoteConverter extends ANConverter {
 			else if (attr.attachmentInfo) {
 				attr.fragment = await this.formatAttachment(attr, parentNotePath);
 
-				// An inline attachment can be the first content in a list item and
-				// must receive that item's prefix. Block attachments stand alone.
 				converted += attr.atLineStart && !isBlockAttachment(attr)
 					? this.formatParagraph(attr)
 					: attr.fragment;
@@ -184,25 +163,18 @@ export class NoteConverter extends ANConverter {
 		if (this.multiRun != ANMultiRun.None) converted += this.formatMultiRun({} as ANAttributeRun);
 		converted = converted.trim();
 
-		// Inside a table cell, raw newlines end the row and raw pipes start a new
-		// cell. Remove hard-break spaces before replacing the newline.
 		if (table) {
+			// Raw newlines and pipes would split the Markdown table row.
 			converted = converted.replace(/ *\n/g, '<br>').replace(/\|/g, '&#124;');
 		}
 
 		return converted;
 	}
 
-	/**
-	 * Convert a fragment's soft returns to Markdown line breaks.
-	 *
-	 * Strict line breaks require two trailing spaces. List continuations also
-	 * require indentation, except after an empty line where indentation would
-	 * create a code block. Inside one, a newline is already the break.
-	 */
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
 		const style = attr.paragraphStyle;
 		const inCode = this.multiRun == ANMultiRun.Monospaced;
+		// Strict line breaks need two spaces; list continuations also need indentation.
 		let indent = this.ctx.strictLineBreaks && !inCode ? '  \n' : '\n';
 
 		if (!inCode && style?.styleType !== undefined && LIST_STYLES.includes(style.styleType)) {
@@ -226,10 +198,6 @@ export class NoteConverter extends ANConverter {
 		return out;
 	}
 
-	/**
-	 * Whether the fragment at `from` is the parent of a nested list. Removing a
-	 * parent used as the title would orphan its children and leave an empty item.
-	 */
 	leadsNestedList(fragments: ANFragmentPair[], from: number): boolean {
 		const style = fragments[from].attr.paragraphStyle;
 		if (style?.styleType === undefined || !LIST_STYLES.includes(style.styleType)) return false;
@@ -268,9 +236,7 @@ export class NoteConverter extends ANConverter {
 				break;
 
 			case ANMultiRun.Alignment:
-				// A different alignment needs a block of its own. Only checking
-				// for the absence of one left a right-aligned paragraph inside
-				// the centred block before it.
+				// Start a new block when alignment changes.
 				if (attr.paragraphStyle?.alignment !== this.alignment) {
 					this.multiRun = ANMultiRun.None;
 					this.alignment = undefined;
@@ -358,11 +324,7 @@ export class NoteConverter extends ANConverter {
 		// Escape square brackets.
 		attr.fragment = attr.fragment.replace(/([[\]])/g, '\\$1');
 
-		// Apple represents real tags as attachments. Escape tag-shaped hashes that
-		// remain in plain text so Obsidian does not reinterpret them (#471).
-		//
-		// Limit this to a hash at a word boundary followed by at least one
-		// non-digit tag character. This preserves C#, F#, and Markdown headings.
+		// Escape tag-shaped text without changing C#, F#, or headings (#471).
 		attr.fragment = attr.fragment.replace(/(^|\s)#(?=[\w/-]*[A-Za-z_/-])/g, '$1\\#');
 
 		switch (attr.fontWeight) {
@@ -550,7 +512,6 @@ export class NoteConverter extends ANConverter {
 	}
 }
 
-/** Wrap a highlighted run, colouring it by the marker Obsidian reads. */
 function emphasise(attr: ANAttributeRun): string {
 	if (!attr.emphasisColor) return attr.fragment;
 	return `==${EMPHASIS_MARKERS[attr.emphasisColor] ?? ''}${attr.fragment}==`;
