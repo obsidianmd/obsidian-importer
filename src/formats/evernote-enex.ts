@@ -2,7 +2,7 @@ import { FileSystemAdapter, normalizePath, Notice } from 'obsidian';
 import { helpUrl } from '../constants';
 import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { setMarkdownOutput, setMarkdownTracker } from './yarle/options';
 import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
@@ -22,6 +22,11 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Evernote', ['enex'], true);
 		this.defaultOutputFolder = 'Evernote';
+
+		// Yarle writes to disk itself rather than through the vault, so the
+		// duplicate modes have nothing to act on here. Asked and then ignored
+		// is worse than not asked.
+		this.duplicateModes = [DuplicateHandling.CreateCopy];
 	}
 
 	async import(ctx: ImportContext) {

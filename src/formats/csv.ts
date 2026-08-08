@@ -139,8 +139,8 @@ export class CSVImporter extends FormatImporter {
 				ctx.status(`Creating note: ${title}`);
 
 				const targetFolder = await this.getTargetFolder(folder, location);
-				await this.saveAsMarkdownFile(targetFolder, title, content);
-				ctx.reportNoteSuccess(title);
+				const { written } = await this.writeNote(ctx, targetFolder, title, content);
+				if (written) ctx.reportNoteSuccess(title);
 			}
 			catch (e) {
 				ctx.reportFailed(`Row ${i + 1}`, e);

@@ -1,5 +1,5 @@
 import { Notice, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteWritten } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { PickedFile } from '../filesystem';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
@@ -108,8 +108,10 @@ export class TomboyImporter extends FormatImporter {
 			const file = files[i];
 			ctx.status('Processing ' + file.name);
 			try {
-				await this.processFile(ctx, folder, file);
-				ctx.reportNoteSuccess(file.fullpath);
+				// writeNote reports a note it left alone, so only a note this
+				// import actually wrote counts as one imported.
+				const { written } = await this.processFile(ctx, folder, file);
+				if (written) ctx.reportNoteSuccess(file.fullpath);
 			}
 			catch (e) {
 				ctx.reportFailed(file.fullpath, e);
@@ -119,12 +121,12 @@ export class TomboyImporter extends FormatImporter {
 		}
 	}
 
-	private async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<void> {
+	private async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<NoteWritten> {
 		const xmlContent = await file.readText();
 
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
 
-		await this.saveAsMarkdownFile(folder, tomboyNote.title, markdownContent);
+		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent);
 	}
 }

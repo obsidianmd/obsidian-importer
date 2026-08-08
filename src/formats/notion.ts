@@ -139,8 +139,8 @@ export class NotionImporter extends FormatImporter {
 					}
 
 					const parent = await this.createFolders(`${targetFolderPath}${info.getPathForFile(fileInfo)}`);
-					await this.createFile(parent, `${fileInfo.title}.md`, markdownBody, writeOptions);
-					ctx.reportNoteSuccess(file.fullpath);
+					const { written } = await this.writeNote(ctx, parent, fileInfo.title, markdownBody, writeOptions);
+					if (written) ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
 					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];

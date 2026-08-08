@@ -449,9 +449,15 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing synced block child references...');
 			await this.replaceSyncedChildPlaceholders(ctx);
 
-			// The notion-id stays, whichever mode this import ran in. Stripping
-			// it from a one-time import meant a later import had nothing to
+			// Whether the notion-id stays is the "Save note ID" setting's call,
+			// not the duplicate mode's. Tying it to the mode meant importing
+			// once with "Create a copy" left a later import nothing to
 			// recognise these pages by, and Notion lets two pages share a title.
+			if (!this.saveSourceId) {
+				ctx.status('Cleaning up notion-id attributes...');
+				await this.cleanupNotionIds(ctx);
+			}
+
 			ctx.status('Import completed successfully!');
 
 		}
@@ -1335,6 +1341,80 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
 			return false; // On error, don't skip
+		}
+	}
+
+	/**
+	 * Clean up notion-id from all imported files' frontmatter, for an import
+	 * that was asked not to save note IDs.
+	 *
+	 * It is written during the import whatever the setting says, so that an
+	 * import interrupted half way can be resumed, and taken out again here once
+	 * there is nothing left to resume.
+	 * 
+	 * @param ctx - Import context for status updates
+	 */
+	private async cleanupNotionIds(ctx: ImportContext): Promise<void> {
+		if (this.notionIdToPath.size === 0) {
+			return;
+		}
+
+		let failedCount = 0;
+
+		// Iterate through all pages we've tracked (including skipped ones)
+		for (const filePath of this.notionIdToPath.values()) {
+			if (await ctx.shouldStop()) break;
+
+			try {
+				const file = this.vault.getAbstractFileByPath(filePath + '.md');
+				if (!file || !(file instanceof TFile)) {
+					continue;
+				}
+
+				// Read file content
+				const content = await this.vault.read(file);
+
+				// Check if file has frontmatter with notion-id
+				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+				const match = content.match(frontmatterRegex);
+
+				if (!match) {
+					continue; // No frontmatter, skip
+				}
+
+				const frontmatter = match[1];
+				const notionIdRegex = /^notion-id:\s*.+$/m;
+
+				if (!notionIdRegex.test(frontmatter)) {
+					continue; // No notion-id in frontmatter, skip
+				}
+
+				// Remove the notion-id line from frontmatter
+				const newFrontmatter = frontmatter
+					.split('\n')
+					.filter(line => !line.match(/^notion-id:\s*.+$/))
+					.join('\n');
+
+				// Reconstruct the content
+				const newContent = content.replace(
+					frontmatterRegex,
+					`---\n${newFrontmatter}\n---`
+				);
+
+				// Write back to file
+				await this.modifyMarkdown(file, newContent, {
+					mtime: file.stat.mtime,
+					ctime: file.stat.ctime,
+				});
+			}
+			catch (error) {
+				console.error(`Failed to clean notion-id from file: ${filePath}`, error);
+				failedCount++;
+			}
+		}
+
+		if (failedCount > 0) {
+			console.warn(`⚠️ Failed to clean notion-id from ${plural(failedCount, 'file')}`);
 		}
 	}
 

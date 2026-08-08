@@ -572,8 +572,8 @@ export class OneNoteImporter extends FormatImporter {
 				ctime: created ?? lastModified ?? Date.now(),
 				mtime: lastModified ?? created ?? Date.now(),
 			};
-			await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent, writeOptions);
-			progress.reportNoteSuccess(page.title!);
+			const { written } = await this.writeNote(progress, pageFolder, page.title!, mdContent, writeOptions);
+			if (written) progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
 			progress.reportFailed(page.title!, e);

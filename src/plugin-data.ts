@@ -7,6 +7,7 @@ export interface OutputSettings {
 	folder: string;
 	attachments: AttachmentLocation;
 	duplicates: DuplicateHandling;
+	saveSourceId: boolean;
 }
 
 export interface ImporterData {

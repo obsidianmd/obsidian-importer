@@ -118,22 +118,26 @@ export class Bear2bkImporter extends FormatImporter {
 							// Use just the filename without extension
 							const fileName = mdFilename;
 
-							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
+							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent);
 
-							if (this.storeId || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
-								await this.updateNoteFrontmatter(metadata, file, tags);
-							}
-							if (metadata?.ctime && metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file);
+							if (written) {
+								if (this.storeId || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
+									await this.updateNoteFrontmatter(metadata, file, tags);
+								}
+								if (metadata?.ctime && metadata?.mtime) {
+									await this.modifFileTimestamps(metadata, file);
+								}
 							}
 
+							// A note left as it was is still what a Bear link to
+							// it should resolve to.
 							idMapping[metadata?.id] = {
-								filename: fileName,
+								filename: parseFilePath(file.path).basename,
 								metadata: metadata,
 								file: file,
 							};
 
-							ctx.reportNoteSuccess(mdFilename);
+							if (written) ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + entry.name);

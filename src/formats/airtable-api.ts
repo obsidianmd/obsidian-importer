@@ -1167,9 +1167,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,
 			frontMatterFields,
-			// Always: the record id is how a later import recognises this note,
-			// and which mode that import will run in is not knowable now.
-			recordId: true,
+			// The "Save note ID" setting decides this, not the duplicate mode:
+			// which mode a later import will run in is not knowable now.
+			recordId: this.saveSourceId,
 			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,

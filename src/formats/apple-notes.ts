@@ -797,7 +797,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	private noteIdFrontMatter(noteId: string | undefined): string {
-		if (!noteId) return '';
+		if (!noteId || !this.saveSourceId) return '';
 
 		return serializeFrontMatter({ [NOTE_ID_PROPERTY]: noteId });
 	}

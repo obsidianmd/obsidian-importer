@@ -1,11 +1,9 @@
-import { normalizePath, Notice, TFile } from 'obsidian';
+import { Notice } from 'obsidian';
 import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { FormatImporter } from '../format-importer';
 import type { ImportContext } from '../import-context';
-import { standardizedMarkdown } from '../markdown-output';
-import { sanitizeFileName } from '../util';
 import { convertJournalEntry } from './apple-journal/convert';
 
 const DEFAULT_OUTPUT_FOLDER = 'Journal';
@@ -85,37 +83,8 @@ export class AppleJournalImporter extends FormatImporter {
 	private async importEntry(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<boolean> {
 		const mdContent = convertJournalEntry(await file.readText(), { frontMatter: this.frontMatterEnabled });
 
-		const sanitizedName = sanitizeFileName(file.basename);
-		const folderPath = folder.path === '/' ? '' : folder.path;
-		const fullPath = normalizePath(path.join(folderPath, sanitizedName + '.md'));
-		const existingFile = this.vault.getAbstractFileByPath(fullPath)
-			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
-
-		if (this.duplicateHandling === DuplicateHandling.CreateCopy) {
-			await this.saveAsMarkdownFile(folder, file.basename, mdContent);
-			return true;
-		}
-
-		if (existingFile instanceof TFile) {
-			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				ctx.reportSkipped(file.fullpath, 'file already exists');
-				return false;
-			}
-
-			if (this.duplicateHandling === DuplicateHandling.Update) {
-				const existingContent = await this.vault.read(existingFile);
-				if (existingContent === await standardizedMarkdown(this.app, fullPath, mdContent)) {
-					ctx.reportSkipped(file.fullpath, 'journal entry unchanged since last import');
-					return false;
-				}
-			}
-
-			await this.modifyMarkdown(existingFile, mdContent);
-			return true;
-		}
-
-		await this.createMarkdown(fullPath, mdContent);
-		return true;
+		const { written } = await this.writeNote(ctx, folder, file.basename, mdContent);
+		return written;
 	}
 }
 

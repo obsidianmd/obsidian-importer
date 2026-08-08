@@ -59,6 +59,16 @@ export interface NoteImport extends DataWriteOptions {
 	sourceId?: string;
 }
 
+export interface NoteWritten {
+	/**
+	 * The note in the vault, whether this import wrote it or left it as it was.
+	 * A note that was left alone is still what links to it should point at.
+	 */
+	file: TFile;
+	/** False when the note was already there and this import left it alone. */
+	written: boolean;
+}
+
 export type ImporterStep = 'source' | 'output' | 'options';
 
 export interface ImporterHost {
@@ -100,11 +110,17 @@ export abstract class FormatImporter {
 	 * Frontmatter property this importer records the source's own id under, if
 	 * the source has one. It is what lets a later import recognise a note that
 	 * has since been renamed, and tell apart two notes the source allowed to
-	 * share a title. Importers that set it must write it on every import,
-	 * whatever duplicate mode is in force — an import that omits it locks the
-	 * vault out of ever matching those notes again.
+	 * share a title.
+	 *
+	 * Setting it puts the "Save note ID" toggle on the output step. Whether the
+	 * id is written is that toggle's business and not the duplicate mode's: an
+	 * import that leaves it out because of the mode it happened to run in locks
+	 * every later import out of matching those notes.
 	 */
 	idProperty: string | null = null;
+
+	/** Whether to record idProperty in each note. Only asked where there is one. */
+	saveSourceId: boolean = true;
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
@@ -396,6 +412,23 @@ export abstract class FormatImporter {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
+		this.addSaveSourceIdSetting(contentEl);
+	}
+
+	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
+		if (!this.idProperty) return;
+
+		new Setting(contentEl)
+			.setName('Save note ID')
+			.setDesc('Used to update for future imports of the same data.')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.saveSourceId)
+					.onChange(value => {
+						this.saveSourceId = value;
+						this.saveOutputSettings();
+					});
+			});
 	}
 
 	private addOutputFolderSetting(contentEl: HTMLElement): void {
@@ -506,6 +539,7 @@ export abstract class FormatImporter {
 			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
 				this.duplicateHandling = saved.duplicates;
 			}
+			if (saved.saveSourceId !== undefined) this.saveSourceId = saved.saveSourceId;
 			this.outputFolder = null;
 		}
 		catch (e) {
@@ -523,6 +557,7 @@ export abstract class FormatImporter {
 						folder: this.outputLocation,
 						attachments: { ...this.attachmentLocation },
 						duplicates: this.duplicateHandling,
+						saveSourceId: this.saveSourceId,
 					},
 				};
 				await this.host.plugin.saveData(data);
@@ -715,10 +750,11 @@ export abstract class FormatImporter {
 
 	/**
 	 * Write an imported note, doing what the output step said to do about a
-	 * note that is already there. Returns null when the note was left alone,
-	 * which the importer should treat as a note it did not import.
+	 * note that is already there. The note comes back either way, so links to
+	 * it still resolve when this import left it alone; `written` says whether
+	 * the importer should count it as one it imported.
 	 */
-	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<TFile | null> {
+	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
 		const { sourceId, ...writeOptions } = options;
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const parent = folder.path === '/' ? '' : folder.path;
@@ -733,20 +769,21 @@ export abstract class FormatImporter {
 			// import is not allowed to touch is never written over.
 			const file = await this.createFile(folder, name, content, writeOptions);
 			this.claimedPaths.add(file.path);
-			return file;
+			return { file, written: true };
 		}
 
 		if (this.duplicateHandling === DuplicateHandling.Skip) {
 			ctx.reportSkipped(title, 'it is already in the vault');
-			return null;
+			return { file: existing, written: false };
 		}
 
-		const unchanged = await this.unchangedSinceImport(ctx, existing, title, content, writeOptions.mtime);
-		if (unchanged) return null;
+		if (await this.unchangedSinceImport(ctx, existing, title, content, writeOptions.mtime)) {
+			return { file: existing, written: false };
+		}
 
 		await this.modifyMarkdown(existing, content, writeOptions);
 		this.claimedPaths.add(existing.path);
-		return existing;
+		return { file: existing, written: true };
 	}
 
 	/**

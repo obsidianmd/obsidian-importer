@@ -1,9 +1,8 @@
 import { ImportContext } from '../import-context';
-import { Notice, TFile, requestUrl } from 'obsidian';
+import { Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { FormatImporter } from '../format-importer';
 import { helpUrl } from '../constants';
-import { standardizedMarkdown } from '../markdown-output';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
@@ -165,7 +164,6 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			// WRITE-PROCESS: create the actual pages //
-			const { vault } = this;
 			const totalCount = markdownPages.size;
 			let index = 1;
 			for (const [filename, markdownOutput] of markdownPages.entries()) {
@@ -178,29 +176,8 @@ export class RoamJSONImporter extends FormatImporter {
 					const { parent, name } = parseFilePath(filename);
 					const folder = await this.createFolders(parent);
 
-					const existingFile = this.duplicateHandling === DuplicateHandling.CreateCopy
-						? null
-						: vault.getAbstractFileByPathInsensitive(filename);
-
-					if (existingFile instanceof TFile) {
-						if (this.duplicateHandling === DuplicateHandling.Skip) {
-							progress.reportSkipped(filename, 'page already exists');
-							index++;
-							continue;
-						}
-
-						if (await vault.read(existingFile) === await standardizedMarkdown(this.app, filename, markdownOutput)) {
-							progress.reportSkipped(filename, 'page unchanged since last import');
-							index++;
-							continue;
-						}
-
-						await this.modifyMarkdown(existingFile, markdownOutput);
-					}
-					else {
-						await this.createFile(folder, name, markdownOutput);
-					}
-					progress.reportNoteSuccess(filename);
+					const { written } = await this.writeNote(progress, folder, name, markdownOutput);
+					if (written) progress.reportNoteSuccess(filename);
 					progress.reportProgress(index, totalCount);
 				}
 				catch (error) {
