@@ -56,7 +56,7 @@ const DRAWINGS: StoreSpec = {
  * drawings, ready for resolveNote. See duplicates.test.ts: import() would ask
  * for a folder through a dialog, so what it sets up is set up here.
  */
-async function importing(spec: StoreSpec) {
+async function importing(spec: StoreSpec, writeFiles = true) {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), spec);
 
@@ -64,14 +64,17 @@ async function importing(spec: StoreSpec) {
 	// importer reads: no generation directory, since none of these have one
 	const account = nodePath.join(dir, 'Accounts', 'ACCOUNT-1');
 	nodeFs.mkdirSync(nodePath.join(account, 'FallbackImages'), { recursive: true });
-	for (const attachment of spec.attachments ?? []) {
-		nodeFs.writeFileSync(nodePath.join(account, 'FallbackImages', `${attachment.identifier}.jpg`), attachment.identifier);
+	if (writeFiles) {
+		for (const attachment of spec.attachments ?? []) {
+			nodeFs.writeFileSync(nodePath.join(account, 'FallbackImages', `${attachment.identifier}.jpg`), attachment.identifier);
+		}
 	}
 
 	const vault = new MemoryVault();
 	const failed: string[] = [];
 	const subject = new AppleNotesImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
+	const reasons: (string | undefined)[] = [];
 	subject.ctx = {
 		isCancelled: () => false,
 		shouldStop: async () => false,
@@ -80,7 +83,7 @@ async function importing(spec: StoreSpec) {
 		reportNoteSuccess: () => {},
 		reportAttachmentSuccess: () => {},
 		reportSkipped: (name: string) => failed.push(name),
-		reportFailed: (name: string) => failed.push(name),
+		reportFailed: (name: string, reason?: string) => { failed.push(name); reasons.push(reason); },
 	} as never;
 	subject.vault = vault as never;
 	subject.rootFolder = vault.root;
@@ -93,7 +96,7 @@ async function importing(spec: StoreSpec) {
 	subject.owners = { [store.folderPk]: 1 };
 
 	return {
-		vault, failed, notePks: store.notePks,
+		vault, failed, reasons, notePks: store.notePks,
 		resolve: (pk: number) => subject.resolveNote(pk),
 		close: () => {
 			store.close();
@@ -138,6 +141,35 @@ test('a note keeps its text when an attachment it points at is gone', async () =
 		const body = String(run.vault.contents.get(note.path));
 		assert.ok(body.contains('Text that should survive.'), `the note is empty: ${JSON.stringify(body)}`);
 		assert.equal(run.failed.length, 1, 'the attachment is what failed, and it is reported');
+	}
+	finally {
+		run.close();
+	}
+});
+
+/**
+ * A drawing Apple has not rendered a copy of.
+ *
+ * It is read from under the account that owns it, and from the container for
+ * the older ones that predate accounts being kept apart. Reporting only the
+ * second reads as though the first was never tried, which is what the ENOENT
+ * from a failed import looked like.
+ */
+test('an attachment that is at neither path says so', async () => {
+	const run = await importing(DRAWINGS, false);
+
+	try {
+		const note = await run.resolve(run.notePks[0]);
+
+		assert.ok(note, 'the note should be imported');
+
+		// The conversion ran to the end rather than throwing part way through it
+		const body = String(run.vault.contents.get(note.path));
+		assert.equal(body.match(/\*\*\(error reading attachment\)\*\*/g)?.length, 3);
+
+		assert.equal(run.failed.length, 3, 'one failure per drawing');
+		assert.match(String(run.reasons[0]), /not found at .*Accounts.*FallbackImages/);
+		assert.match(String(run.reasons[0]), / or .*group\.com\.apple\.notes\/FallbackImages/);
 	}
 	finally {
 		run.close();

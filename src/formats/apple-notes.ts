@@ -808,10 +808,15 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 		catch (e) {
 			// A caller with a fallback has not lost the attachment yet, so this
-			// is not reported: a scan reads the cropped copy first and the raw
-			// image after it, and only the pair failing costs anything (#393).
-			if (!hasFallback) this.ctx.reportFailed(sourcePath);
-			console.error(e);
+			// is neither reported nor logged: a scan reads the cropped copy
+			// first and the raw image after it, and Apple writes the cropped
+			// one when it feels like it. Only the pair failing costs anything,
+			// and that is what the second call reports (#393).
+			if (!hasFallback) {
+				this.ctx.reportFailed(sourcePath, extractErrorMessage(e));
+				console.error(e);
+			}
+
 			return null;
 		}
 
@@ -837,12 +842,26 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {
-		try {
-			return await fsPromises.readFile(path.join(account.path, sourcePath));
+		// An attachment sits under the account that owns it, except for the
+		// older ones written before Notes kept them apart, which are loose in
+		// the container
+		const candidates = [
+			path.join(account.path, sourcePath),
+			path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath),
+		];
+
+		for (const candidate of candidates) {
+			try {
+				return await fsPromises.readFile(candidate);
+			}
+			catch {
+				continue;
+			}
 		}
-		catch {
-			return await fsPromises.readFile(path.join(os.homedir(), NOTE_FOLDER_PATH, sourcePath));
-		}
+
+		// Naming both, since reporting only the second reads as though the
+		// first was never tried
+		throw new Error(`not found at ${candidates.join(' or ')}`);
 	}
 
 	/**
