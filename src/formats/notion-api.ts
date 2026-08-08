@@ -85,6 +85,7 @@ export class NotionAPIImporter extends FormatImporter {
 	init() {
 		// No file chooser needed since we're importing via API
 		this.defaultOutputFolder = 'Notion';
+		this.idProperty = NOTION_ID_PROPERTY;
 
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 
@@ -448,15 +449,9 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing synced block child references...');
 			await this.replaceSyncedChildPlaceholders(ctx);
 
-			// Clean up notion-id only for full import (not incremental)
-			// Strategy: We always write notion-id during import (for both modes) to handle interruptions gracefully.
-			// - Incremental import: Keep notion-id for future imports to skip duplicates
-			// - Full import: Remove notion-id to avoid cluttering user's frontmatter (one-time import)
-			if (!this.incrementalImport) {
-				ctx.status('Cleaning up notion-id attributes...');
-				await this.cleanupNotionIds(ctx);
-			}
-
+			// The notion-id stays, whichever mode this import ran in. Stripping
+			// it from a one-time import meant a later import had nothing to
+			// recognise these pages by, and Notion lets two pages share a title.
 			ctx.status('Import completed successfully!');
 
 		}
@@ -1310,25 +1305,27 @@ export class NotionAPIImporter extends FormatImporter {
 		notionId: string,
 		ctx: ImportContext
 	): Promise<boolean> {
-		// Check if file exists
-		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
-		if (!file || !(file instanceof TFile)) {
-			return false; // File doesn't exist, don't skip
+		// The notion-id finds the page wherever it has been moved or renamed to
+		// since it was imported; the path is only the fallback.
+		const file = this.previouslyImported(normalizePath(filePath), notionId);
+		if (!file) {
+			return false; // Not imported before, don't skip
 		}
 
 		try {
 			const content = await this.vault.read(file);
 
 			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) === notionId) {
-				const { basename } = parseFilePath(filePath);
+				const { basename } = parseFilePath(file.path);
 				ctx.reportSkipped(basename, 'already exists with same notion-id');
 
-				// Skipped pages still need to be link targets in this run.
-				const filePathWithoutExtension = filePath.replace(/\.md$/, '');
+				// Skipped pages still need to be link targets in this run, at
+				// whatever path the page is actually at now.
+				const filePathWithoutExtension = file.path.replace(/\.md$/, '');
 				this.notionIdToPath.set(notionId, filePathWithoutExtension);
 
 				// Retry placeholders left unresolved by an earlier import.
-				await this.collectUnresolvedPlaceholders(content, notionId, filePath);
+				await this.collectUnresolvedPlaceholders(content, notionId, file.path);
 
 				return true;
 			}
@@ -1490,79 +1487,4 @@ export class NotionAPIImporter extends FormatImporter {
 		});
 	}
 
-	/**
-	 * Clean up notion-id from all imported files' frontmatter
-	 * This is called ONLY at the end of FULL import (not incremental import)
-	 * 
-	 * Strategy: We always write notion-id during import (for both modes)
-	 * to handle interruptions gracefully. If interrupted, next import can read
-	 * notion-id to correctly skip duplicates or resume.
-	 * - Incremental import: Keep notion-id for future imports to skip duplicates
-	 * - Full import: Remove notion-id after completion to avoid cluttering frontmatter
-	 * 
-	 * @param ctx - Import context for status updates
-	 */
-	private async cleanupNotionIds(ctx: ImportContext): Promise<void> {
-		if (this.notionIdToPath.size === 0) {
-			return;
-		}
-
-		let failedCount = 0;
-
-		// Iterate through all pages we've tracked (including skipped ones)
-		for (const filePath of this.notionIdToPath.values()) {
-			if (await ctx.shouldStop()) break;
-
-			try {
-				const file = this.vault.getAbstractFileByPath(filePath + '.md');
-				if (!file || !(file instanceof TFile)) {
-					continue;
-				}
-
-				// Read file content
-				const content = await this.vault.read(file);
-
-				// Check if file has frontmatter with notion-id
-				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-				const match = content.match(frontmatterRegex);
-
-				if (!match) {
-					continue; // No frontmatter, skip
-				}
-
-				const frontmatter = match[1];
-				const notionIdRegex = /^notion-id:\s*.+$/m;
-
-				if (!notionIdRegex.test(frontmatter)) {
-					continue; // No notion-id in frontmatter, skip
-				}
-
-				// Remove the notion-id line from frontmatter
-				const newFrontmatter = frontmatter
-					.split('\n')
-					.filter(line => !line.match(/^notion-id:\s*.+$/))
-					.join('\n');
-
-				// Reconstruct the content
-				const newContent = content.replace(
-					frontmatterRegex,
-					`---\n${newFrontmatter}\n---`
-				);
-
-				// Write back to file
-				await this.modifyMarkdown(file, newContent, {
-					mtime: file.stat.mtime,
-					ctime: file.stat.ctime,
-				});
-			}
-			catch (error) {
-				console.error(`Failed to clean notion-id from file: ${filePath}`, error);
-				failedCount++;
-			}
-		}
-
-		if (failedCount > 0) {
-			console.warn(`⚠️ Failed to clean notion-id from ${plural(failedCount, 'file')}`);
-		}
-	}
 }

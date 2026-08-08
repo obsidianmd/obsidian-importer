@@ -400,6 +400,7 @@ export default class ImporterPlugin extends Plugin {
 
 		const ctx = new ImportContext();
 		try {
+			importer.indexImportedNotes();
 			await importer.import(ctx);
 		}
 		finally {
@@ -689,6 +690,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		this.showProgress(ctx, importer.interruption);
 		try {
+			importer.indexImportedNotes();
 			await importer.import(ctx);
 		}
 		finally {

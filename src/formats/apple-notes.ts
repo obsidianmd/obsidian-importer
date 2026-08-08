@@ -80,7 +80,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	filePrefixFormat: string;
-	private claimedPaths = new Set<string>();
 
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
@@ -113,6 +112,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		this.defaultOutputFolder = 'Apple Notes';
+		this.idProperty = NOTE_ID_PROPERTY;
 
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
@@ -516,7 +516,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const storedTitle = String(row.ZTITLE1);
 		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
 
-		const existingFile = await this.previouslyImported(
+		const existingFile = this.existingNoteFor(
 			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
 		);
 
@@ -778,28 +778,26 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
-	private async previouslyImported(folder: TFolder, titles: string[], noteId?: string): Promise<TFile | null> {
+	/**
+	 * Apple Notes titles a note by its first line, so the name a note was
+	 * imported under depends on settings that may have changed since. The id
+	 * settles it where there is one; the titles are only there for a note
+	 * imported before the id was recorded.
+	 */
+	private existingNoteFor(folder: TFolder, titles: string[], noteId?: string): TFile | null {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
 		for (const title of new Set(titles)) {
 			const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
-			// A second same-named note in this run must become a copy, not an update.
-			if (this.claimedPaths.has(fullPath)) return null;
-
-			const existingFile = this.vault.getAbstractFileByPath(fullPath);
-			if (!(existingFile instanceof TFile)) continue;
-
-			const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
-			if (existingId && noteId && existingId !== noteId) continue;
-
-			return existingFile;
+			const existingFile = this.previouslyImported(fullPath, noteId);
+			if (existingFile) return existingFile;
 		}
 
 		return null;
 	}
 
 	private noteIdFrontMatter(noteId: string | undefined): string {
-		if (this.duplicateHandling === DuplicateHandling.CreateCopy || !noteId) return '';
+		if (!noteId) return '';
 
 		return serializeFrontMatter({ [NOTE_ID_PROPERTY]: noteId });
 	}

@@ -4,7 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
-import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizeMarkdownFile } from './markdown-output';
+import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
@@ -53,6 +53,12 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	return { mode: 'folder', path: normalizePath(value) };
 }
 
+/** What writeNote needs beyond the note itself. */
+export interface NoteImport extends DataWriteOptions {
+	/** The source's own id for this note, where it has one. */
+	sourceId?: string;
+}
+
 export type ImporterStep = 'source' | 'output' | 'options';
 
 export interface ImporterHost {
@@ -90,6 +96,16 @@ export abstract class FormatImporter {
 		DuplicateHandling.Update,
 	];
 
+	/**
+	 * Frontmatter property this importer records the source's own id under, if
+	 * the source has one. It is what lets a later import recognise a note that
+	 * has since been renamed, and tell apart two notes the source allowed to
+	 * share a title. Importers that set it must write it on every import,
+	 * whatever duplicate mode is in force — an import that omits it locks the
+	 * vault out of ever matching those notes again.
+	 */
+	idProperty: string | null = null;
+
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
 
@@ -101,6 +117,12 @@ export abstract class FormatImporter {
 
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
+
+	/** Notes this run has written, so a second one cannot land on the first. */
+	protected claimedPaths = new Set<string>();
+
+	/** Source id to the note carrying it, built once per import. */
+	private importedById: Map<string, TFile> | null = null;
 
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
@@ -691,6 +713,137 @@ export abstract class FormatImporter {
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
 	}
 
+	/**
+	 * Write an imported note, doing what the output step said to do about a
+	 * note that is already there. Returns null when the note was left alone,
+	 * which the importer should treat as a note it did not import.
+	 */
+	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<TFile | null> {
+		const { sourceId, ...writeOptions } = options;
+		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
+		const parent = folder.path === '/' ? '' : folder.path;
+		const fullPath = normalizePath(parent ? `${parent}/${name}` : name);
+
+		const existing = this.duplicateHandling === DuplicateHandling.CreateCopy
+			? null
+			: this.previouslyImported(fullPath, sourceId);
+
+		if (!existing) {
+			// createFile picks another name if this one is taken, so a note this
+			// import is not allowed to touch is never written over.
+			const file = await this.createFile(folder, name, content, writeOptions);
+			this.claimedPaths.add(file.path);
+			return file;
+		}
+
+		if (this.duplicateHandling === DuplicateHandling.Skip) {
+			ctx.reportSkipped(title, 'it is already in the vault');
+			return null;
+		}
+
+		const unchanged = await this.unchangedSinceImport(ctx, existing, title, content, writeOptions.mtime);
+		if (unchanged) return null;
+
+		await this.modifyMarkdown(existing, content, writeOptions);
+		this.claimedPaths.add(existing.path);
+		return existing;
+	}
+
+	/**
+	 * The note an earlier import wrote for this one, if it is still there.
+	 *
+	 * The source id answers this where there is one, so a note that has been
+	 * renamed on either side is still recognised. A note carrying no id may
+	 * predate the id being recorded, so it is matched by path; a note carrying
+	 * a different id belongs to a different source note and is left alone.
+	 */
+	protected previouslyImported(fullPath: string, sourceId?: string): TFile | null {
+		const { idProperty } = this;
+
+		if (idProperty && sourceId) {
+			const known = this.importedById?.get(sourceId);
+			// The index is built once, and the note may have gone since.
+			if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
+		}
+
+		// A second note of the same name in this run has to become a copy.
+		if (this.claimedPaths.has(fullPath)) return null;
+
+		const file = this.vault.getAbstractFileByPath(fullPath)
+			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
+		if (!(file instanceof TFile)) return null;
+
+		if (idProperty && sourceId) {
+			const recorded = this.recordedId(file, idProperty);
+			// A note carrying no id may predate the id being recorded, so it is
+			// still ours; one carrying a different id is a different note.
+			if (recorded && recorded !== sourceId) return null;
+		}
+
+		return file;
+	}
+
+	private recordedId(file: TFile, idProperty: string): string | null {
+		const id: unknown = this.app.metadataCache?.getFileCache(file)?.frontmatter?.[idProperty];
+		return typeof id === 'string' && id ? id : null;
+	}
+
+	/**
+	 * Whether the note is one this import should leave alone: unchanged since
+	 * it was last imported, or changed in Obsidian since.
+	 *
+	 * Where the source tells us when it last changed, the previous import
+	 * stamped that time on the file it wrote — and the Markdown pass afterwards
+	 * preserves it — so the file's own time is what the source said last time.
+	 * Where it does not, all we can do is compare the text, which cannot tell
+	 * an edit in Obsidian from a change at the source.
+	 */
+	private async unchangedSinceImport(ctx: ImportContext, file: TFile, title: string, content: string, sourceMtime?: number): Promise<boolean> {
+		if (sourceMtime !== undefined) {
+			if (file.stat.mtime === sourceMtime) {
+				ctx.reportSkipped(title, 'it has not changed since the last import');
+				return true;
+			}
+
+			if (file.stat.mtime > sourceMtime) {
+				ctx.reportSkipped(title, 'it has been edited in Obsidian since the last import');
+				return true;
+			}
+
+			return false;
+		}
+
+		try {
+			const current = await this.vault.read(file);
+			if (current !== await standardizedMarkdown(this.app, file.path, content)) return false;
+		}
+		catch (error) {
+			console.error(`Could not read the note already at: ${file.path}`, error);
+			return false;
+		}
+
+		ctx.reportSkipped(title, 'it has not changed since the last import');
+		return true;
+	}
+
+	/**
+	 * Index the vault by source id, so a note that has been renamed or moved
+	 * since it was imported is still found. The frontmatter is already parsed
+	 * and in memory, so this costs no reads.
+	 */
+	indexImportedNotes(): void {
+		const { idProperty } = this;
+		this.claimedPaths.clear();
+		this.importedById = new Map();
+
+		if (!idProperty || this.duplicateHandling === DuplicateHandling.CreateCopy) return;
+
+		for (const file of this.vault.getMarkdownFiles()) {
+			const id = this.recordedId(file, idProperty);
+			if (id && !this.importedById.has(id)) this.importedById.set(id, file);
+		}
+	}
+
 	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const file = await createMarkdown(this.vault, path, content, options);
 		this.trackMarkdownFile(file);
@@ -746,23 +899,6 @@ export abstract class FormatImporter {
 		const id: unknown = parsed?.frontMatter[idProperty];
 
 		return typeof id === 'string' ? id : null;
-	}
-
-	protected async sourceIdOf(file: TFile, idProperty: string): Promise<string | null> {
-		try {
-			return this.sourceIdIn(await this.vault.read(file), idProperty);
-		}
-		catch (error) {
-			console.error(`Failed to read frontmatter from: ${file.path}`, error);
-			return null;
-		}
-	}
-
-	protected async noteImportedFrom(path: string, idProperty: string, sourceId: string): Promise<TFile | null> {
-		const file = this.vault.getAbstractFileByPathInsensitive(normalizePath(path));
-		if (!(file instanceof TFile)) return null;
-
-		return await this.sourceIdOf(file, idProperty) === sourceId ? file : null;
 	}
 
 	async createBinaryFile(folder: TFolder, fileName: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {

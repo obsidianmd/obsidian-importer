@@ -16,28 +16,39 @@ import '../shims/runtime';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { FormatImporter } from '../../src/format-importer';
+import { DuplicateHandling, FormatImporter } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { serializeFrontMatter } from '../../src/util';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 /** Exposes the two helpers, which are protected for importers to use. */
 class ReadingImporter extends FormatImporter {
-	init(): void {}
+	init(): void {
+		this.idProperty = 'notion-id';
+	}
+
 	async import(_ctx: ImportContext): Promise<void> {}
 
 	idIn(content: string, property: string) {
 		return this.sourceIdIn(content, property);
 	}
 
-	noteFrom(path: string, property: string, id: string) {
-		return this.noteImportedFrom(path, property, id);
+	noteFrom(path: string, id?: string) {
+		return this.previouslyImported(path, id);
+	}
+
+	claimed(path: string) {
+		this.claimedPaths.add(path);
 	}
 }
 
 function importer() {
 	const vault = new MemoryVault();
-	return { vault, subject: new ReadingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never) };
+	const subject = new ReadingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	// Matching only happens for the modes that write over a note.
+	subject.duplicateHandling = DuplicateHandling.Update;
+
+	return { vault, subject };
 }
 
 const NOTE = serializeFrontMatter({ 'notion-id': 'abc-123' }) + 'The body of the note.\n';
@@ -80,24 +91,25 @@ test('a value that is not text is no id', () => {
 test('the note at a path is returned when its id is the one asked for', async () => {
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', NOTE);
+	subject.indexImportedNotes();
 
-	const found = await subject.noteFrom('Pages/Roadmap.md', 'notion-id', 'abc-123');
-
-	assert.equal(found?.path, 'Pages/Roadmap.md');
+	assert.equal(subject.noteFrom('Pages/Roadmap.md', 'abc-123')?.path, 'Pages/Roadmap.md');
 });
 
 test('a note carrying a different id is a different note', async () => {
 	// It shares the name and nothing else, so the import writes its own.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', NOTE);
+	subject.indexImportedNotes();
 
-	assert.equal(await subject.noteFrom('Pages/Roadmap.md', 'notion-id', 'def-456'), null);
+	assert.equal(subject.noteFrom('Pages/Roadmap.md', 'def-456'), null);
 });
 
-test('nothing at the path is nothing to recognise', async () => {
+test('nothing at the path is nothing to recognise', () => {
 	const { subject } = importer();
+	subject.indexImportedNotes();
 
-	assert.equal(await subject.noteFrom('Pages/Missing.md', 'notion-id', 'abc-123'), null);
+	assert.equal(subject.noteFrom('Pages/Missing.md', 'abc-123'), null);
 });
 
 test('a path differing only in case finds the note', async () => {
@@ -105,8 +117,46 @@ test('a path differing only in case finds the note', async () => {
 	// no note there, and the import would write a second one over it.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', NOTE);
+	subject.indexImportedNotes();
 
-	const found = await subject.noteFrom('pages/roadmap.md', 'notion-id', 'abc-123');
+	assert.equal(subject.noteFrom('pages/roadmap.md', 'abc-123')?.path, 'Pages/Roadmap.md');
+});
 
-	assert.equal(found?.path, 'Pages/Roadmap.md');
+test('the id finds the note wherever it has been renamed or moved to', async () => {
+	// The whole reason the id is written. A path lookup would report no note
+	// there and the import would write a second copy of a note already held.
+	const { vault, subject } = importer();
+	await vault.create('Archive/Old plans.md', NOTE);
+	subject.indexImportedNotes();
+
+	assert.equal(subject.noteFrom('Pages/Roadmap.md', 'abc-123')?.path, 'Archive/Old plans.md');
+});
+
+test('a note carrying no id at all is still matched by its path', async () => {
+	// Notes imported before the id was recorded. Being strict here would make
+	// the first import after the upgrade write a duplicate of every one.
+	const { vault, subject } = importer();
+	await vault.create('Pages/Roadmap.md', 'No frontmatter here.\n');
+	subject.indexImportedNotes();
+
+	assert.equal(subject.noteFrom('Pages/Roadmap.md', 'abc-123')?.path, 'Pages/Roadmap.md');
+});
+
+test('a note this run has already written is never matched again', async () => {
+	// Two source notes of one title. The second has to become its own note
+	// rather than overwriting the first one this run just wrote.
+	const { vault, subject } = importer();
+	await vault.create('Pages/Roadmap.md', 'Written by this run.\n');
+	subject.indexImportedNotes();
+	subject.claimed('Pages/Roadmap.md');
+
+	assert.equal(subject.noteFrom('Pages/Roadmap.md'), null);
+});
+
+test('an id no note in the vault carries is nothing to recognise', async () => {
+	const { vault, subject } = importer();
+	await vault.create('Pages/Roadmap.md', NOTE);
+	subject.indexImportedNotes();
+
+	assert.equal(subject.noteFrom('Pages/Elsewhere.md', 'def-456'), null);
 });

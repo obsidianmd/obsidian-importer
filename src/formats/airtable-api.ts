@@ -142,6 +142,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	init() {
 		this.defaultOutputFolder = 'Airtable';
+		this.idProperty = RECORD_ID_PROPERTY;
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
@@ -812,7 +813,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
 				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
 
-				if (await this.shouldSkipExistingRecord(desiredPath, record.id)) {
+				if (this.shouldSkipExistingRecord(desiredPath, record.id)) {
 					claimed.add(desiredPath.toLowerCase());
 					this.recordIdToPath.set(`${baseId}:${record.id}`, desiredPath.replace(/\.md$/, ''));
 					planned.push({ record, filePath: desiredPath, title, skipped: 'Already imported' });
@@ -1166,7 +1167,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,
 			frontMatterFields,
-			recordId: this.incrementalImport,
+			// Always: the record id is how a later import recognises this note,
+			// and which mode that import will run in is not knowable now.
+			recordId: true,
 			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,
@@ -1203,12 +1206,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * @param recordId - Airtable record ID to compare
 	 * @returns true if same record already exists (should skip), false otherwise
 	 */
-	private async shouldSkipExistingRecord(filePath: string, recordId: string): Promise<boolean> {
+	private shouldSkipExistingRecord(filePath: string, recordId: string): boolean {
 		if (!this.incrementalImport) {
 			return false;
 		}
 
-		return await this.noteImportedFrom(filePath, RECORD_ID_PROPERTY, recordId) !== null;
+		// By record id first, so a note renamed since it was imported is still
+		// the note this record belongs to.
+		return this.previouslyImported(normalizePath(filePath), recordId) !== null;
 	}
 
 	/**
