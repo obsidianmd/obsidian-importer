@@ -94,7 +94,8 @@ export abstract class FormatImporter {
 	defaultOutputFolder: string = 'Import';
 
 	attachmentLocation: AttachmentLocation;
-	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
+	/** Resolved against duplicateModes once the importer has set them up. */
+	duplicateHandling: DuplicateHandling = DuplicateHandling.Update;
 
 	duplicateModes: DuplicateHandling[] = [
 		DuplicateHandling.CreateCopy,
@@ -106,7 +107,7 @@ export abstract class FormatImporter {
 	idProperty: string | null = null;
 	idLabel: string = 'source ID';
 
-	saveSourceId: boolean = false;
+	saveSourceId: boolean = true;
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
@@ -541,8 +542,27 @@ export abstract class FormatImporter {
 		});
 	}
 
+	/**
+	 * Not every importer offers Update, and a default it does not offer is not
+	 * one it can use. Skip is the nearest thing where it is missing: both leave
+	 * a note that is already there alone rather than writing a second copy.
+	 */
+	private defaultDuplicateHandling(): DuplicateHandling {
+		for (const preferred of [DuplicateHandling.Update, DuplicateHandling.Skip]) {
+			if (this.duplicateModes.includes(preferred)) return preferred;
+		}
+
+		return this.duplicateModes[0];
+	}
+
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
+		// duplicateModes are set in init(), so the field default cannot know
+		// whether this importer offers it. Only correct it if it does not,
+		// leaving a mode the caller chose deliberately alone.
+		if (!this.duplicateModes.includes(this.duplicateHandling)) {
+			this.duplicateHandling = this.defaultDuplicateHandling();
+		}
 
 		if (!this.host.plugin) return;
 

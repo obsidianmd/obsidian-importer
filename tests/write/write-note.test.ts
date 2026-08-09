@@ -103,6 +103,7 @@ test('with no time to go on, "Update" compares the text instead', async () => {
 test('the source id is recorded only when the importer has one and it was asked for', async () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
 	subject.idProperty = 'notion-id';
+	subject.saveSourceId = false;
 
 	const bare = await subject.writeNote(ctx, vault.root, 'A', 'body\n', { sourceId: 'abc-123' });
 	assert.equal(vault.contents.get(bare.file.path), 'body\n');
