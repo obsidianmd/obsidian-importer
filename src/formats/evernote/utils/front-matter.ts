@@ -1,4 +1,4 @@
-import { FrontMatterCache, parseYaml } from 'obsidian';
+import { parseYaml } from 'obsidian';
 import { serializeFrontMatter } from '../../../util';
 
 /**
@@ -30,5 +30,5 @@ export const standardizeFrontMatter = (markdown: string): string => {
 	if (properties === null || properties === undefined) return body;
 	if (typeof properties !== 'object' || Array.isArray(properties)) return markdown;
 
-	return serializeFrontMatter(properties as FrontMatterCache) + body;
+	return serializeFrontMatter(properties) + body;
 };
