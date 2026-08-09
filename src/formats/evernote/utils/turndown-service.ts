@@ -2,7 +2,7 @@ import { TurndownNode } from './turndown-rules/turndown-types';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 
 import { EvernoteOptions } from '../options';
-import { divRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
+import { divRule, encryptedContentRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
 import { taskListRule } from './turndown-rules/task-list-rule';
 
 export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
@@ -24,6 +24,7 @@ export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
 	turndownService.addRule('span', spanRule);
 	turndownService.addRule('strikethrough', strikethroughRule);
 	turndownService.addRule('evernote task items', taskItemsRule);
+	turndownService.addRule('evernote encrypted content', encryptedContentRule);
 	turndownService.addRule('wikistyle links', wikiStyleLinksRule);
 	turndownService.addRule('images', imagesRule);
 	turndownService.addRule('list', taskListRule);

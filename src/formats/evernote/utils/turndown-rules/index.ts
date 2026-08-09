@@ -7,4 +7,5 @@ export * from './strikethrough-rule';
 export * from './task-items-rule';
 export * from './newline-rule';
 export * from './div-rule';
+export * from './encrypted-content-rule';
 export * from './italic-rule';
