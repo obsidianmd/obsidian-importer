@@ -147,6 +147,10 @@ export abstract class FormatImporter {
 	/** Source id to the note carrying it, built once per import. */
 	private importedById: Map<string, TFile> | null = null;
 
+	/** Folder this importer's file picker last opened at, and any importer's. */
+	private sourceFolder: string | null = null;
+	private lastSourceFolder: string | null = null;
+
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
 
@@ -314,6 +318,45 @@ export abstract class FormatImporter {
 
 		await this.host.plugin.saveData(data);
 	}
+
+	/**
+	 * Where the file picker opens. Without one Electron picks for itself, which
+	 * is how every import started at Downloads however many times you had
+	 * already pointed it somewhere else.
+	 *
+	 * A folder this importer was pointed at before beats the one it can work
+	 * out for itself, which in turn beats wherever another importer was last
+	 * pointed - a guess at where this export might be, rather than a known
+	 * location for it.
+	 */
+	protected pickerOpensAt(defaultPath?: string): string | undefined {
+		return this.sourceFolder ?? defaultPath ?? this.lastSourceFolder ?? undefined;
+	}
+
+	/** Remember where a pick came from, for this importer and for the next. */
+	protected rememberSourceFolder(filepath: string): void {
+		const { parent } = parseFilePath(filepath);
+		if (!parent) return;
+
+		this.sourceFolder = parent;
+		this.lastSourceFolder = parent;
+		this.saveSourceFolder(parent);
+	}
+
+	private saveSourceFolder = debounce((folder: string) => {
+		void (async () => {
+			if (!this.host.plugin) return;
+			try {
+				const data = await this.host.plugin.loadData();
+				data.sourceFolders = { ...data.sourceFolders, [this.host.importerId]: folder };
+				data.lastSourceFolder = folder;
+				await this.host.plugin.saveData(data);
+			}
+			catch (e) {
+				console.error('Could not remember the folder that was picked', e);
+			}
+		})();
+	}, 1000, true);
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
 		const fileLocationSetting = this.addSetting('source');
@@ -537,6 +580,9 @@ export abstract class FormatImporter {
 			// Folders remembered before the output step existed.
 			const legacyFolder = data.outputLocations?.[this.host.importerId];
 			if (legacyFolder !== undefined) this.outputLocation = legacyFolder;
+
+			this.sourceFolder = data.sourceFolders?.[this.host.importerId] ?? null;
+			this.lastSourceFolder = data.lastSourceFolder || null;
 
 			const saved = data.outputSettings?.[this.host.importerId];
 			if (!saved) return;

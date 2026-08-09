@@ -194,3 +194,48 @@ test('a file that is not markdown is written as it was given', async () => {
 
 	assert.equal(await vault.read(file), 'views:\n    - type: table');
 });
+
+/**
+ * Where the file picker opens.
+ *
+ * It always opened wherever Electron felt like - Downloads, in practice -
+ * because nothing was passed unless the importer could work a path out for
+ * itself, and nothing remembered where the last import came from.
+ */
+class PickingImporter extends WritingImporter {
+	opensAt(defaultPath?: string) {
+		return this.pickerOpensAt(defaultPath);
+	}
+
+	picked(filepath: string) {
+		this.rememberSourceFolder(filepath);
+	}
+}
+
+function picker(): PickingImporter {
+	return new PickingImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+}
+
+test('with nothing to go on the picker is left to open where it likes', () => {
+	assert.equal(picker().opensAt(), undefined);
+});
+
+test('the folder a pick came from is where the next one starts', () => {
+	const subject = picker();
+
+	subject.picked('/Users/someone/Exports/notes.enex');
+
+	assert.equal(subject.opensAt(), '/Users/someone/Exports');
+});
+
+test('a folder this importer was pointed at beats one it worked out itself', () => {
+	// Tomboy and Apple Journal know where their app keeps its notes, which is
+	// the better guess right up until the user says otherwise.
+	const subject = picker();
+
+	assert.equal(subject.opensAt('/Users/someone/Library/Tomboy'), '/Users/someone/Library/Tomboy');
+
+	subject.picked('/Volumes/Backup/tomboy/note.note');
+
+	assert.equal(subject.opensAt('/Users/someone/Library/Tomboy'), '/Volumes/Backup/tomboy');
+});

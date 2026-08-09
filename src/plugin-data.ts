@@ -25,6 +25,10 @@ export interface ImporterData {
 	/** Superseded by outputSettings; still read so a remembered folder survives. */
 	outputLocations: Record<string, string>;
 	outputSettings: Record<string, OutputSettings>;
+	/** Folder the file picker last opened at, per importer. */
+	sourceFolders: Record<string, string>;
+	/** And the last one picked by any importer, for one that has none of its own. */
+	lastSourceFolder: string;
 }
 
 export const DEFAULT_DATA: ImporterData = {
@@ -36,6 +40,8 @@ export const DEFAULT_DATA: ImporterData = {
 	secrets: {},
 	outputLocations: {},
 	outputSettings: {},
+	sourceFolders: {},
+	lastSourceFolder: '',
 };
 
 export interface HostPlugin {
