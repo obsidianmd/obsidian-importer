@@ -8,12 +8,8 @@ export const NOTION_ID_PROPERTY = 'notion-id';
 /**
  * What an import can embed rather than skip.
  *
- * This is what Obsidian itself renders, read from `app.viewRegistry` — audio
- * and video, images, and PDF. It had been missing most of the audio formats,
- * so a OneNote page's recordings were skipped as incompatible even with the
- * incompatible-attachment setting turned on, which is issue #226. `mpg` is
- * kept though Obsidian does not render it, because imports have relied on it
- * being downloaded.
+ * What Obsidian itself renders, read from `app.viewRegistry`. `mpg` is kept
+ * though Obsidian does not render it, because imports rely on it downloading.
  */
 export const ATTACHMENT_EXTS = [
 	'png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'avif',

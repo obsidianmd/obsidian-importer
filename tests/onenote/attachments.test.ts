@@ -31,8 +31,8 @@ test('3gp audio recordings are downloaded and embedded', async () => {
 });
 
 test('the audio formats Obsidian plays are imported, not skipped', async () => {
-	// Issue #226: recordings were skipped as incompatible because the list of
-	// embeddable extensions had most of the audio formats missing.
+	// Most of them counted as incompatible, so an mp3 needed the
+	// incompatible-attachment setting turned on to come across at all.
 	const downloaded: string[] = [];
 	const subject = importer(name => {
 		downloaded.push(name);
@@ -88,6 +88,21 @@ test('a file the user chose not to import is passed over, not reported failed', 
 	);
 
 	assert.deepEqual(progress.failed, []);
+});
+
+test('an attachment with no name is reported, not dropped in silence', async () => {
+	// It has no extension either, so filtering first would fail it against the
+	// embeddable list and skip it without a word.
+	const subject = importer(name => name);
+	const progress = new ImportContext();
+
+	await subject.getAllAttachments(
+		progress,
+		'<html><body><object data="https://example.com/thing"><p>Fallback</p></object></body></html>',
+		'Notebook/Page.md',
+	);
+
+	assert.deepEqual(progress.failed, ['OneNote attachment']);
 });
 
 test('an image without a download URL is reported rather than losing the page', async () => {
