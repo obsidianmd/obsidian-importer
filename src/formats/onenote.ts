@@ -409,6 +409,7 @@ export class OneNoteImporter extends FormatImporter {
 				// Legacy IDs have no note paths, so they can only support Skip.
 				if (this.duplicateHandling === DuplicateHandling.Skip && page.id && this.legacyImportedIds.has(page.id)) {
 					progress.reportSkipped(page.title, 'an earlier version of the importer already brought it in');
+					progress.reportProgress(++progressCurrent, progressTotal);
 					continue;
 				}
 
