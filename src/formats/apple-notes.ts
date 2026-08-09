@@ -22,10 +22,7 @@ const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
 
 export function describeFolderFailure(error: unknown): string {
-	// The vendored sqlite layer puts the cause in the message, sometimes behind
-	// a SQLITE_ERROR label and sometimes as bare stderr; it never sets a
-	// filesystem code. A missing database does not reach here at all —
-	// readableDataFolder checks first and the picker shows the access hint.
+	// SQLite errors arrive either prefixed or as bare stderr.
 	const detail = (requestFailure(error).message ?? '').replace(/^SQLITE_ERROR:\s*/, '').trim();
 
 	if (/\block|locked|busy\b/i.test(detail)) {

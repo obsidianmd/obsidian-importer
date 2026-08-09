@@ -38,18 +38,14 @@ function assertUnreachable(x: never): never {
 }
 
 function worthRetrying(status: number): boolean {
-	// Names what will never change, not what might: OneNote answers page
-	// requests with bare 400s that usually clear on the second attempt.
+	// OneNote sometimes returns transient bare 400s for page requests.
 	return status !== 403 && status !== 404;
 }
 
 /**
- * A page whose own content defeated the conversion.
- *
- * Everything else that fails a page — the API refusing, a full disk, a vault
- * that will not take the write — fails identically for every page after it,
- * which is what the consecutive-failure stop is watching for. One
- * unconvertible page is not that.
+ * A failure caused by one page's content rather than the import environment.
+ * Only these are kept out of the consecutive-failure stop, which exists to
+ * catch whatever is about to fail every remaining page the same way.
  */
 class PageContentError extends Error {
 	constructor(cause: unknown) {
@@ -143,10 +139,6 @@ export class OneNoteImporter extends FormatImporter {
 		return accountType(this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY));
 	}
 
-	/**
-	 * What a sign-in established, as opposed to what to ask for by default.
-	 * Nothing having established it yet is a different thing from personal.
-	 */
 	private get knownAccountType(): MicrosoftAccountType | null {
 		const stored: unknown = this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY);
 		return stored === 'organization' || stored === 'personal' ? stored : null;
@@ -311,8 +303,6 @@ export class OneNoteImporter extends FormatImporter {
 			this.storeRefreshToken(tokenResponse.refresh_token);
 		}
 
-		// Remembering this is what lets the next sign-in ask for the wider
-		// access a work or school account needs, without anyone saying so.
 		const detected = accountTypeFromToken(tokenResponse.id_token ?? tokenResponse.access_token);
 		if (detected) this.microsoftAccountType = detected;
 
@@ -355,11 +345,8 @@ export class OneNoteImporter extends FormatImporter {
 			await this.picker.load(() => this.readNotebooks());
 		}
 		catch (e) {
-			// The other way to learn this, for when the token was unreadable.
-			// 40004 only means the token lacks the scopes, though, and a
-			// personal account cannot hold notes.read.all at all — escalating
-			// one would leave it unable to sign in, so a sign-in that already
-			// said personal wins.
+			// Personal accounts cannot consent to Notes.Read.All, so escalating
+			// one leaves it unable to sign in at all.
 			if (requestFailure(e).code === '40004' && this.knownAccountType !== 'personal') {
 				this.microsoftAccountType = 'organization';
 			}
@@ -514,9 +501,7 @@ export class OneNoteImporter extends FormatImporter {
 				if (!failure) {
 					consecutiveFailureCount = 0;
 				}
-				// A page its own content defeated leaves the count where it
-				// was; anything else is the failure every remaining page is
-				// about to hit.
+				// Page-specific failures do not indicate a broken import environment.
 				else if (!(failure instanceof PageContentError)) {
 					consecutiveFailureCount++;
 
@@ -801,17 +786,12 @@ export class OneNoteImporter extends FormatImporter {
 				object.parentNode?.insertBefore(object.firstChild, next);
 			}
 
-			// Name first: without one there is nothing to filter on, and an
-			// empty extension would fail the check below and be dropped in
-			// silence rather than reported.
 			const originalName = object.getAttribute('data-attachment');
 			if (!originalName) {
 				progress.reportFailed('OneNote attachment', 'the attachment did not say what it was called');
 				continue;
 			}
 
-			// Then the filter, so a file the user opted out of is passed over
-			// quietly rather than reported as a failure they did not ask for.
 			const extension = originalName.split('.').pop()?.toLowerCase() ?? '';
 			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
 				continue;
@@ -838,8 +818,6 @@ export class OneNoteImporter extends FormatImporter {
 
 		for (let i = 0; i < images.length; i++) {
 			const image = images[i];
-			// OneNote does not always send these, and asserting them turns one
-			// odd image into a TypeError that costs the whole page.
 			const contentLocation = image.getAttribute('data-fullres-src');
 			if (!contentLocation) {
 				progress.reportFailed('OneNote image', 'the image did not include a download URL');
@@ -904,8 +882,6 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors.
-	// `refreshed` records that this chain has already spent its one token refresh.
 	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
 	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
@@ -969,9 +945,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			else {
 				let err: PublicError | null = null;
-				// Graph does not always answer with JSON: an empty body, or an
-				// HTML page from a proxy. Throwing here would skip every branch
-				// below, throttling included.
+				// Graph error bodies may be empty or non-JSON.
 				const respJson: unknown = await response.json().catch(() => null);
 				if (respJson && typeof respJson === 'object' && 'error' in respJson) {
 					err = (respJson as { error: PublicError }).error;
@@ -985,8 +959,6 @@ export class OneNoteImporter extends FormatImporter {
 					|| err?.code === 'InvalidAuthenticationToken'
 					|| response.status === 401;
 				if (isNotAuthorized) {
-					// Refreshing is the whole remedy, so a 401 surviving it means
-					// the account may not read this. Say so rather than retry.
 					if (refreshed) throw new GraphRefusal(response.status, err);
 
 					await this.updateAccessToken();
@@ -995,9 +967,7 @@ export class OneNoteImporter extends FormatImporter {
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166' || response.status === 429) {
-					// Waiting is right during an import; the limit lifts. The
-					// picker has nothing on screen that waiting helps, so it
-					// would just sit silent for a minute an attempt.
+					// Imports can wait; picker loads should fail visibly.
 					if (!progress) throw new GraphRefusal(429, err);
 
 					const retryAfter = response.headers.get('Retry-After');
@@ -1028,9 +998,7 @@ export class OneNoteImporter extends FormatImporter {
 					);
 				}
 
-				// 40004 is the sign-in not having been granted these notebooks,
-				// which no number of attempts changes, whatever status it came
-				// with. It is the failure behind issues #440 and #462.
+				// A scope refusal will not change on retry.
 				const settled = !worthRetrying(response.status) || err?.code === '40004';
 				if (settled || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
 					throw new GraphRefusal(response.status, err);

@@ -4,8 +4,6 @@ import assert from 'node:assert/strict';
 import { describeNotebookFailure } from '../../src/formats/onenote/errors';
 
 test('the scope failure says what to do about it', () => {
-	// Signing in again is the whole remedy: the account type was recognised
-	// from the first token, so the second sign-in asks for the wider access.
 	const message = describeNotebookFailure({
 		error: {
 			code: '40004',

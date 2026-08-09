@@ -31,8 +31,6 @@ test('3gp audio recordings are downloaded and embedded', async () => {
 });
 
 test('the audio formats Obsidian plays are imported, not skipped', async () => {
-	// Most of them counted as incompatible, so an mp3 needed the
-	// incompatible-attachment setting turned on to come across at all.
 	const downloaded: string[] = [];
 	const subject = importer(name => {
 		downloaded.push(name);
@@ -75,9 +73,6 @@ test('a failed attachment download does not create an undefined embed', async ()
 });
 
 test('a file the user chose not to import is passed over, not reported failed', async () => {
-	// The missing-URL check has to come after the extension filter. Ahead of
-	// it, every incompatible attachment with no download URL lands in the
-	// failure list of a user who asked not to import incompatible attachments.
 	const subject = importer(name => name);
 	const progress = new ImportContext();
 
@@ -91,8 +86,6 @@ test('a file the user chose not to import is passed over, not reported failed', 
 });
 
 test('an attachment with no name is reported, not dropped in silence', async () => {
-	// It has no extension either, so filtering first would fail it against the
-	// embeddable list and skip it without a word.
 	const subject = importer(name => name);
 	const progress = new ImportContext();
 
@@ -106,8 +99,6 @@ test('an attachment with no name is reported, not dropped in silence', async () 
 });
 
 test('an image without a download URL is reported rather than losing the page', async () => {
-	// OneNote does not always send these attributes, and asserting them turns
-	// one odd image into a TypeError that costs the whole note.
 	const subject = importer(name => name);
 	const progress = new ImportContext();
 

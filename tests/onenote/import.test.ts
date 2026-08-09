@@ -15,15 +15,6 @@ test('a malformed page is not swallowed before the import can report it', async 
 	await assert.rejects(subject.processFile(new ImportContext(), 'not multipart', page), /input string is incorrect/);
 });
 
-/**
- * The consecutive-failure counter is there to notice something failing the
- * same way for every page — the API going out from under the import, a vault
- * that will not take a write. It stops the run and reports the rest skipped.
- *
- * A page its own content defeated is not that, and six of those in a row used
- * to end a working import. Telling the two apart is the whole point, so both
- * directions are checked.
- */
 function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImporter>): OneNoteImporter {
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
 	Object.assign(subject, {
@@ -56,8 +47,6 @@ const eightPages: OnenotePage[] = Array.from({ length: 8 }, (_, i) => ({
 test('pages that will not convert are reported without ending the import', async () => {
 	const { progress, failed, skipped } = watchedContext();
 
-	// Not a stub for processFile: the real one is left to reject the content,
-	// so what is under test is that it classifies it as the page's own problem.
 	const subject = importerOverPages(eightPages, {
 		fetchResource: async (url: string) => url.includes('/pages?')
 			? { value: eightPages }
@@ -73,8 +62,6 @@ test('pages that will not convert are reported without ending the import', async
 test('a vault that will not take the write does stop the import', async () => {
 	const { progress, failed, skipped } = watchedContext();
 
-	// A full disk, or a folder that cannot be created, fails the same way for
-	// every page after it — which is exactly what the counter is watching for.
 	const subject = importerOverPages(eightPages, {
 		fetchResource: async (url: string) => url.includes('/pages?') ? { value: eightPages } : 'content',
 		processFile: async () => { throw new Error('ENOSPC: no space left on device'); },
