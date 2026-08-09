@@ -34,6 +34,18 @@ function assertUnreachable(x: never): never {
 	throw new Error(`Didn't expect to get here`);
 }
 
+function worthRetrying(status: number): boolean {
+	return status === 408 || status === 429 || status >= 500;
+}
+
+/** An error carrying what Graph said, for whoever has to describe it. */
+function graphError(status: number, err: PublicError | null): Error {
+	return Object.assign(
+		new Error(err?.message || `OneNote returned ${status}`),
+		{ status, code: err?.code ?? undefined },
+	);
+}
+
 function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedResponse<T> {
 	if (res == null) {
 		throw new Error(`response is nullish`);
@@ -915,7 +927,10 @@ export class OneNoteImporter extends FormatImporter {
 					);
 				}
 
-				// for all other errors, retry.
+				if (!worthRetrying(response.status) || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
+					throw graphError(response.status, err);
+				}
+
 				return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 			}
 		}
@@ -929,6 +944,8 @@ export class OneNoteImporter extends FormatImporter {
 			// I'm seeing such failures in normal imports where I'm not noticing
 			// any network instability on my end, let's retry those failures as
 			// well.
+			if (retryCount + 1 >= MAX_RETRY_ATTEMPTS) throw e;
+
 			return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 		}
 	}
