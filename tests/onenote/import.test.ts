@@ -22,9 +22,7 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 		notebooks: [],
 		graphData: { accessToken: 'token' },
 		duplicateHandling: DuplicateHandling.CreateCopy,
-		legacyImportedIds: new Set<string>(),
 		host: { plugin: null, abortController: new AbortController() },
-		readLegacyImportedIds: async () => {},
 		getOutputFolder: async () => ({ name: 'OneNote', path: 'OneNote' }),
 		insertPagesToSection: () => {},
 	}, overrides);

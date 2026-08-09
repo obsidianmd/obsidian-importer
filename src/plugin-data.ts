@@ -9,12 +9,6 @@ export interface OutputSettings {
 }
 
 export interface ImporterData {
-	/** Legacy OneNote import data. */
-	importers: {
-		onenote?: {
-			previouslyImportedIDs: string[];
-		};
-	};
 	secrets: Record<string, string>;
 	/** Legacy output folders. */
 	outputLocations: Record<string, string>;
@@ -24,11 +18,6 @@ export interface ImporterData {
 }
 
 export const DEFAULT_DATA: ImporterData = {
-	importers: {
-		onenote: {
-			previouslyImportedIDs: [],
-		},
-	},
 	secrets: {},
 	outputLocations: {},
 	outputSettings: {},

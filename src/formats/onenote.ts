@@ -1,7 +1,7 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
@@ -110,7 +110,6 @@ export class OneNoteImporter extends FormatImporter {
 
 	// Settings
 	importIncompatibleAttachments: boolean = false;
-	reimportLegacyPages: boolean = false;
 	// UI
 	accountSetting: Setting;
 	private accountButton: ButtonComponent;
@@ -123,7 +122,6 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentsSinceBackOff = 0;
-	private legacyImportedIds = new Set<string>();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -160,13 +158,6 @@ export class OneNoteImporter extends FormatImporter {
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
 			);
-
-		this.addSetting()
-			?.setName('Ignore legacy import history')
-			.setDesc('Reimport pages that older importer versions marked as imported. This can recover failed or deleted imports, but may duplicate moved or renamed notes.')
-			.addToggle(toggle => toggle
-				.setValue(false)
-				.onChange(value => this.reimportLegacyPages = value));
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) {
@@ -423,7 +414,6 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 	async import(progress: ImportContext): Promise<void> {
-		await this.readLegacyImportedIds();
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
@@ -475,16 +465,6 @@ export class OneNoteImporter extends FormatImporter {
 
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
-
-				// Legacy IDs have no note paths, so they can only support Skip.
-				if (!this.reimportLegacyPages
-					&& this.duplicateHandling === DuplicateHandling.Skip
-					&& page.id
-					&& this.legacyImportedIds.has(page.id)) {
-					progress.reportSkipped(page.title, 'an earlier version of the importer already brought it in');
-					progress.reportProgress(++progressCurrent, progressTotal);
-					continue;
-				}
 
 				progress.status(`Importing note ${page.title}`);
 
@@ -562,21 +542,6 @@ export class OneNoteImporter extends FormatImporter {
 					section.pages = pages;
 				}
 			}
-		}
-	}
-
-	private async readLegacyImportedIds(): Promise<void> {
-		this.legacyImportedIds.clear();
-		if (!this.host.plugin) return;
-
-		try {
-			const data = await this.host.plugin.loadData();
-			for (const id of data.importers?.onenote?.previouslyImportedIDs ?? []) {
-				this.legacyImportedIds.add(id);
-			}
-		}
-		catch (e) {
-			console.error('Could not read the ids of previously imported pages', e);
 		}
 	}
 
