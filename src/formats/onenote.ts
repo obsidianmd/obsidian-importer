@@ -23,6 +23,10 @@ const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
 // Maximum amount of request retries, before they're marked as failed. Does not include 429 backoff errors.
 const MAX_RETRY_ATTEMPTS = 5;
+// How much each throttled request slows attachment downloads, and how far that
+// can go. One step is given back for every attachment that comes down cleanly.
+const ATTACHMENT_SPACING_STEP_MS = 500;
+const MAX_ATTACHMENT_SPACING_MS = 3_000;
 
 const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
 
@@ -121,7 +125,13 @@ export class OneNoteImporter extends FormatImporter {
 		state: genUid(32),
 		accessToken: '',
 	};
-	attachmentsSinceBackOff = 0;
+	/**
+	 * How long to leave between attachment downloads, which is nothing until
+	 * OneNote actually throttles. A fixed pause every few attachments spent the
+	 * same minutes whether or not anything was rate limiting, and on a notebook
+	 * with hundreds of attachments that was most of the import.
+	 */
+	private throttleSpacingMs = 0;
 	/** Page lists read ahead of the import, by section id. */
 	private readonly sectionPages = new Map<string, OnenotePage[]>();
 	private prefetching: Promise<void> = Promise.resolve();
@@ -895,12 +905,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string, notePath: string): Promise<string | null> {
-		// Every 7 attachments, do a few second break to prevent rate limiting
-		if (this.attachmentsSinceBackOff === 7) {
-			this.attachmentsSinceBackOff = 0;
-			await this.backOff(3, 'staying under OneNote rate limits', progress);
+		if (this.throttleSpacingMs > 0) {
+			await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
 		}
-		this.attachmentsSinceBackOff++;
 
 		progress.status('Downloading attachment ' + filename);
 
@@ -910,6 +917,9 @@ export class OneNoteImporter extends FormatImporter {
 			const data = (await this.fetchResource(contentLocation, 'file', progress));
 			await this.app.vault.createBinary(outputPath, data);
 			progress.reportAttachmentSuccess(filename);
+
+			// Earn the speed back once it stops complaining.
+			this.throttleSpacingMs = Math.max(0, this.throttleSpacingMs - ATTACHMENT_SPACING_STEP_MS);
 			return outputPath;
 		}
 		catch (e) {
@@ -1004,6 +1014,11 @@ export class OneNoteImporter extends FormatImporter {
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166' || response.status === 429) {
+					this.throttleSpacingMs = Math.min(
+						MAX_ATTACHMENT_SPACING_MS,
+						this.throttleSpacingMs + ATTACHMENT_SPACING_STEP_MS,
+					);
+
 					// Imports can wait; picker loads should fail visibly.
 					if (!progress) throw new GraphRefusal(429, err);
 

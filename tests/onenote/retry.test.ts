@@ -118,6 +118,45 @@ test('throttling waits and retries during an import', async () => {
 	assert.equal(error, null);
 });
 
+test('attachments run at full speed until OneNote actually throttles', async () => {
+	// A fixed pause every few attachments spent the same minutes whether or not
+	// anything was rate limiting; on a notebook of hundreds that was most of
+	// the import.
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+	const spacing = () => (subject as unknown as { throttleSpacingMs: number }).throttleSpacingMs;
+
+	Object.assign(subject, {
+		throttleSpacingMs: 0,
+		graphData: { accessToken: 'token' },
+		host: { abortController: new AbortController() },
+		lastSuccessfulFetchTime: performance.now(),
+		backOff: async () => {},
+	});
+
+	assert.equal(spacing(), 0, 'nothing to pay before anything has gone wrong');
+
+	// Throttled once, then let through. Answering 429 forever would never
+	// return: during an import the wait is deliberately unbounded.
+	const realFetch = globalThis.fetch;
+	let calls = 0;
+	globalThis.fetch = (async () => {
+		calls++;
+		return calls === 1
+			? new Response(JSON.stringify(graph('20166')), { status: 429, headers: { 'Content-Type': 'application/json' } })
+			: new Response(JSON.stringify({ value: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+	}) as typeof fetch;
+
+	try {
+		await subject.fetchResource(URL, 'json', new ImportContext());
+	}
+	finally {
+		globalThis.fetch = realFetch;
+	}
+
+	assert.ok(spacing() > 0, 'being throttled should slow the downloads down');
+	assert.ok(spacing() <= 3_000, 'but only so far');
+});
+
 test('a non-JSON error body still reaches the branch that describes it', async () => {
 	const { calls, error } = await fetching({ status: 429, raw: '<html>Too Many Requests</html>' });
 

@@ -70,6 +70,12 @@ function evalInObsidian(code) {
 	return out.slice(2).trim();
 }
 
+// Note: no // comments inside this script. It reaches Obsidian as one argument
+// and a line comment there swallows everything after it.
+//
+// saveSourceId is turned off per import because the recordings come from the
+// conversion seam, which writes no source id; whether the id is written at all
+// is checked in tests/write.
 const script = `
 (async () => {
 	const fs = require('fs');
@@ -85,7 +91,8 @@ const script = `
 		const ctx = await plugin.runImport(
 			testCase.importer,
 			[repo + '/' + testCase.fixture],
-			folder);
+			folder,
+			importer => { importer.saveSourceId = false; });
 
 		const file = app.vault.getAbstractFileByPath(folder + '/' + testCase.note);
 		const produced = file ? await app.vault.read(file) : null;
