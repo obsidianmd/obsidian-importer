@@ -1,9 +1,9 @@
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs, NodePickedFile, path, PickedFile } from '../../../filesystem';
 import { genUid, sanitizeFileName } from '../../../util';
-import { YarleOptions } from '../options';
+import { EvernoteOptions } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
-import { yarleOptions } from '../yarle';
+import { evernoteOptions } from '../convert';
 import { replaceLastOccurrenceInString } from './string-utils';
 
 import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
@@ -109,22 +109,22 @@ const clearDistDir = (dstPath: string): void => {
 };
 
 export const getRelativeResourceDir = (note: EvernoteNote): string => {
-	const enexFolder = `${path.sep}${yarleOptions.resourcesDir}`;
-	if (yarleOptions.haveGlobalResources) {
+	const enexFolder = `${path.sep}${evernoteOptions.resourcesDir}`;
+	if (evernoteOptions.haveGlobalResources) {
 		return `..${enexFolder}`;
 	}
 
-	return yarleOptions.haveEnexLevelResources
+	return evernoteOptions.haveEnexLevelResources
 		? `.${enexFolder}`
 		: `.${enexFolder}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
 export const getAbsoluteResourceDir = (note: EvernoteNote): string => {
-	if (yarleOptions.haveGlobalResources) {
-		return path.resolve(paths.resourcePath, '..', '..', yarleOptions.resourcesDir);
+	if (evernoteOptions.haveGlobalResources) {
+		return path.resolve(paths.resourcePath, '..', '..', evernoteOptions.resourcesDir);
 	}
 
-	return yarleOptions.haveEnexLevelResources
+	return evernoteOptions.haveEnexLevelResources
 		? paths.resourcePath
 		: `${paths.resourcePath}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
 };
@@ -138,7 +138,7 @@ export const clearResourceDir = (note: EvernoteNote): void => {
 
 	const clears = resourceDirClears.get(resPath) || 0;
 	// we're sharing a resource dir, so we can can't clean it more than once
-	if ((yarleOptions.haveEnexLevelResources || yarleOptions.haveGlobalResources) && clears >= 1) {
+	if ((evernoteOptions.haveEnexLevelResources || evernoteOptions.haveGlobalResources) && clears >= 1) {
 		return;
 	}
 
@@ -176,7 +176,7 @@ export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProp
 
 };
 
-export const getNotebookStackOutputDir = (enex: PickedFile, options: YarleOptions): string => {
+export const getNotebookStackOutputDir = (enex: PickedFile, options: EvernoteOptions): string => {
 
 	const notebookFolderNames = getSanitizedNotebookFolderNames(enex.basename);
 
@@ -184,29 +184,29 @@ export const getNotebookStackOutputDir = (enex: PickedFile, options: YarleOption
 	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
 };
 
-export const setSingleNotebookPaths = (enexSource: PickedFile, yarleOptions: YarleOptions): void => {
+export const setSingleNotebookPaths = (enexSource: PickedFile, evernoteOptions: EvernoteOptions): void => {
 	const enexFileBasename = enexSource.basename;
-	setPaths(enexFileBasename, yarleOptions);
+	setPaths(enexFileBasename, evernoteOptions);
 };
 
-export const setNotebookStackPaths = (notebookStackProperties: NotebookStackProps, yarleOptions: YarleOptions): void => {
+export const setNotebookStackPaths = (notebookStackProperties: NotebookStackProps, evernoteOptions: EvernoteOptions): void => {
 	const enexFileBasename = notebookStackProperties.basename;
-	setPaths(enexFileBasename, yarleOptions);
+	setPaths(enexFileBasename, evernoteOptions);
 
 };
 
-export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): void => {
+export const setPaths = (enexFileBasename: string, evernoteOptions: EvernoteOptions): void => {
 
 
-	const outputDir = path.isAbsolute(yarleOptions.outputDir)
-		? yarleOptions.outputDir
-		: `${process.cwd()}${path.sep}${yarleOptions.outputDir}`;
+	const outputDir = path.isAbsolute(evernoteOptions.outputDir)
+		? evernoteOptions.outputDir
+		: `${process.cwd()}${path.sep}${evernoteOptions.outputDir}`;
 
 	paths.mdPath = `${outputDir}${path.sep}`;
-	paths.resourcePath = `${outputDir}${path.sep}${yarleOptions.resourcesDir}`;
+	paths.resourcePath = `${outputDir}${path.sep}${evernoteOptions.resourcesDir}`;
 
-	// console.log(`Skip enex filename from output? ${yarleOptions.skipEnexFileNameFromOutputPath}`);
-	if (!yarleOptions.skipEnexFileNameFromOutputPath) {
+	// console.log(`Skip enex filename from output? ${evernoteOptions.skipEnexFileNameFromOutputPath}`);
+	if (!evernoteOptions.skipEnexFileNameFromOutputPath) {
 		let truncatedBasename = sanitizeFileName(enexFileBasename);
 
 		if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
@@ -219,11 +219,11 @@ export const setPaths = (enexFileBasename: string, yarleOptions: YarleOptions): 
 
 		paths.mdPath = `${paths.mdPath}${truncatedBasename}`;
 		// console.log(`mdPath: ${paths.mdPath}`);
-		paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${yarleOptions.resourcesDir}`;
+		paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${evernoteOptions.resourcesDir}`;
 	}
 
 	fs.mkdirSync(paths.mdPath, { recursive: true });
-	if ((!yarleOptions.haveEnexLevelResources && !yarleOptions.haveGlobalResources)) {
+	if ((!evernoteOptions.haveEnexLevelResources && !evernoteOptions.haveGlobalResources)) {
 		fs.mkdirSync(paths.resourcePath, { recursive: true });
 	}
 	// clearDistDir(paths.simpleMdPath);

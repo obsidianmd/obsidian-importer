@@ -2,7 +2,7 @@ import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 import type { MarkdownOutput } from '../../markdown-output';
 
-/** Set by the importer, because yarle's writes never reach createMarkdown. */
+/** Set by the importer, because these writes never reach createMarkdown. */
 let markdownOutput: MarkdownOutput = { indentUnit: '    ' };
 let markdownTracker: ((absolutePath: string) => void) | null = null;
 
@@ -22,7 +22,7 @@ export function trackMarkdownWrite(absolutePath: string): void {
 	markdownTracker?.(absolutePath);
 }
 
-export interface YarleOptions {
+export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	templateFile?: string;
 	currentTemplate: string;

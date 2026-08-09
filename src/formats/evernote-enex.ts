@@ -4,8 +4,8 @@ import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
-import { setMarkdownOutput, setMarkdownTracker } from './yarle/options';
-import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
+import { setMarkdownOutput, setMarkdownTracker } from './evernote/options';
+import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
 
 const HELP_PERMALINK = 'import/evernote';
 
@@ -23,7 +23,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 		this.addFileChooserSetting('Evernote', ['enex'], true);
 		this.defaultOutputFolder = 'Evernote';
 
-		// Yarle writes to disk itself rather than through the vault, so the
+		// The conversion writes to disk itself rather than through the vault, so the
 		// duplicate modes have nothing to act on here. Asked and then ignored
 		// is worse than not asked.
 		this.duplicateModes = [DuplicateHandling.CreateCopy];
@@ -46,11 +46,11 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
-		// yarle writes its own files rather than through the vault
+		// The Evernote conversion writes its own files rather than through the vault
 		setMarkdownOutput(markdownOutputFor(app.vault));
 
-		let yarleOptions = {
-			...defaultYarleOptions,
+		let evernoteOptions = {
+			...defaultEvernoteOptions,
 			...{
 				enexSources: files,
 				outputDir: path.join(adapter.getBasePath(), folder.path),
@@ -61,7 +61,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
 		});
 		try {
-			await dropTheRope(yarleOptions, ctx);
+			await convertEnexFiles(evernoteOptions, ctx);
 		}
 		finally {
 			setMarkdownTracker(null);

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isNormalMarkdownHref } from '../../src/formats/yarle/utils/link-hrefs';
+import { isNormalMarkdownHref } from '../../src/formats/evernote/utils/link-hrefs';
 
 test('treats app and phone URI schemes as normal Markdown links', () => {
 	assert.equal(isNormalMarkdownHref('tel:205-555-8260'), true);

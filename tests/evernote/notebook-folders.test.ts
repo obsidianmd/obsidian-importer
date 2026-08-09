@@ -24,8 +24,8 @@ import {
 	getSanitizedNotebookFolderNames,
 	paths,
 	setPaths,
-} from '../../src/formats/yarle/utils/folder-utils';
-import { defaultYarleOptions } from '../../src/formats/yarle/yarle';
+} from '../../src/formats/evernote/utils/folder-utils';
+import { defaultEvernoteOptions } from '../../src/formats/evernote/convert';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -45,7 +45,7 @@ test('the notebook name itself is left as the user wrote it', () => {
 test('an enex whose name ends in a dot lands in a folder Windows can open', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		setPaths('Inbox.', { ...defaultYarleOptions, outputDir });
+		setPaths('Inbox.', { ...defaultEvernoteOptions, outputDir });
 
 		assert.equal(nodePath.basename(paths.mdPath), 'Inbox');
 		assert.ok(nodeFs.existsSync(paths.mdPath), 'the folder should have been created');
@@ -58,7 +58,7 @@ test('an enex whose name ends in a dot lands in a folder Windows can open', () =
 test('an enex whose name is only dots still gets a folder', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		setPaths('...', { ...defaultYarleOptions, outputDir });
+		setPaths('...', { ...defaultEvernoteOptions, outputDir });
 
 		assert.equal(nodePath.basename(paths.mdPath), 'Untitled');
 	}
@@ -72,7 +72,7 @@ test('a long name is still legal after being truncated', () => {
 	try {
 		// Truncation cuts at 100 characters, which here lands mid-way through a
 		// run of dots - so sanitising only before the cut would leave one on.
-		setPaths(`${'a'.repeat(98)}${'.'.repeat(20)}`, { ...defaultYarleOptions, outputDir });
+		setPaths(`${'a'.repeat(98)}${'.'.repeat(20)}`, { ...defaultEvernoteOptions, outputDir });
 
 		assert.ok(!nodePath.basename(paths.mdPath).endsWith('.'), `got ${nodePath.basename(paths.mdPath)}`);
 	}

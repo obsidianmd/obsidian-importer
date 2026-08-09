@@ -742,7 +742,7 @@ export abstract class FormatImporter {
 		});
 	}
 
-	/** Register Markdown written outside createFile (for example by Yarle). */
+	/** Register Markdown written outside createFile (for example by the Evernote conversion). */
 	trackMarkdownFile(file: TFile | string): void {
 		const path = typeof file === 'string' ? normalizePath(file) : file.path;
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);

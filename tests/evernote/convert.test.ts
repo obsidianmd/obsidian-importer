@@ -1,7 +1,7 @@
 /**
  * The Evernote conversion, end to end, outside Obsidian.
  *
- * yarle reads .enex and writes markdown through the node modules that
+ * The conversion reads .enex and writes markdown through the node modules that
  * filesystem.ts hands out, and never touches the vault, so the whole pipeline
  * runs here once those modules are supplied.
  *
@@ -32,9 +32,9 @@ import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
-import { defaultYarleOptions, dropTheRope } from '../../src/formats/yarle/yarle';
+import { defaultEvernoteOptions, convertEnexFiles } from '../../src/formats/evernote/convert';
 
-// Before any conversion runs. yarle reads these when it works, not when it
+// Before any conversion runs. These are read when it works, not when it
 // loads, so the static imports above are fine.
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -66,8 +66,8 @@ async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnT
 	const ctx = stubContext();
 
 	try {
-		await dropTheRope({
-			...defaultYarleOptions,
+		await convertEnexFiles({
+			...defaultEvernoteOptions,
 			enexSources: paths.map(path => new NodePickedFile(path)),
 			outputDir,
 		}, ctx as never);

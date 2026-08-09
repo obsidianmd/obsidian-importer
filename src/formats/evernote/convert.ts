@@ -1,9 +1,22 @@
+/**
+ * .enex to Markdown.
+ *
+ * This began as Yarle by Akos Balasko (https://github.com/akosbalasko/yarle,
+ * MIT) and has been adapted since: it reads node through src/filesystem, writes
+ * through this project's Markdown formatting, and reports to an ImportContext.
+ * It is no longer tracking upstream, which is why it is named for what it does
+ * rather than for where it came from.
+ *
+ * Unlike every other conversion here it writes files itself rather than handing
+ * markdown back, because a note's attachments and the links to them are settled
+ * across the whole export rather than one note at a time.
+ */
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { getMarkdownOutput, trackMarkdownWrite, YarleOptions } from './options';
+import { getMarkdownOutput, trackMarkdownWrite, EvernoteOptions } from './options';
 import { processNode } from './process-node';
 import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
@@ -23,7 +36,7 @@ import { defaultTemplate } from './utils/templates/default-template';
 
 let flow: typeof import('xml-flow') | undefined;
 
-export const defaultYarleOptions: YarleOptions = {
+export const defaultEvernoteOptions: EvernoteOptions = {
 	enexSources: [],
 	currentTemplate: '',
 	outputDir: './mdNotes',
@@ -52,7 +65,7 @@ export const defaultYarleOptions: YarleOptions = {
 
 const NOTEBOOKSTACK_SEPARATOR = '@@@';
 
-export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
+export let evernoteOptions: EvernoteOptions = { ...defaultEvernoteOptions };
 
 function deepCopy(obj: any) {
 	if (obj === undefined || obj === null) return obj;
@@ -78,22 +91,22 @@ function merge(original: any, ...objects: any[]) {
 	return original;
 }
 
-const setOptions = (options: YarleOptions): void => {
-	yarleOptions = merge({}, defaultYarleOptions, options);
+const setOptions = (options: EvernoteOptions): void => {
+	evernoteOptions = merge({}, defaultEvernoteOptions, options);
 
-	let template = (yarleOptions.templateFile) ? fs.readFileSync(yarleOptions.templateFile, 'utf-8') : defaultTemplate;
-	template = yarleOptions.currentTemplate ? yarleOptions.currentTemplate : template;
+	let template = (evernoteOptions.templateFile) ? fs.readFileSync(evernoteOptions.templateFile, 'utf-8') : defaultTemplate;
+	template = evernoteOptions.currentTemplate ? evernoteOptions.currentTemplate : template;
 
-	/*if (yarleOptions.templateFile) {*/
+	/*if (evernoteOptions.templateFile) {*/
 	// todo: handle file not exists error
-	yarleOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
-	yarleOptions.skipLocation = !hasLocationInTemplate(template);
-	yarleOptions.skipSourceUrl = !hasSourceURLInTemplate(template);
-	yarleOptions.skipTags = !hasAnyTagsInTemplate(template);
-	yarleOptions.skipUpdateTime = !hasUpdateTimeInTemplate(template);
-	yarleOptions.isNotebookNameNeeded = hasNotebookInTemplate(template);
+	evernoteOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
+	evernoteOptions.skipLocation = !hasLocationInTemplate(template);
+	evernoteOptions.skipSourceUrl = !hasSourceURLInTemplate(template);
+	evernoteOptions.skipTags = !hasAnyTagsInTemplate(template);
+	evernoteOptions.skipUpdateTime = !hasUpdateTimeInTemplate(template);
+	evernoteOptions.isNotebookNameNeeded = hasNotebookInTemplate(template);
 
-	yarleOptions.currentTemplate = template;
+	evernoteOptions.currentTemplate = template;
 
 	/*}*/
 };
@@ -118,7 +131,7 @@ function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResour
 	}
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
+export const parseStream = async (options: EvernoteOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 
@@ -181,7 +194,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
 
-					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`;
+					const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
 					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
 					const sortedTasks = new Map([...tasks[task]].sort());
 
@@ -209,7 +222,7 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	});
 };
 
-export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Promise<void> {
+export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
 	const outputNotebookFolders = [];
 	const orginalOutputDir = options.outputDir;

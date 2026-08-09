@@ -1,7 +1,7 @@
 /**
  * Which name the Evernote importer picks when one is already taken.
  *
- * yarle writes a note with a plain writeFileSync, so getFileIndex is the only
+ * the Evernote conversion writes a note with a plain writeFileSync, so getFileIndex is the only
  * thing standing between two notes and a lost one: the index it returns is
  * used as it comes. #568 fixed two ways it could hand back a name already on
  * disk - a title differing only in case, and a gap in the numbering - and
@@ -23,9 +23,9 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { provideNodeModules } from '../../src/filesystem';
-import { getFileIndex } from '../../src/formats/yarle/utils/filename-utils';
+import { getFileIndex } from '../../src/formats/evernote/utils/filename-utils';
 
-// yarle reads these when it works rather than when it loads, so the static
+// these are read when the conversion works rather than when it loads, so the static
 // import above is fine.
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
 
