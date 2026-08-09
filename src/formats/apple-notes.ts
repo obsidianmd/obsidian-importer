@@ -93,6 +93,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	init(): void {
+		this.defaultOutputFolder = 'Apple Notes';
+		this.idProperty = NOTE_ID_PROPERTY;
+		this.idLabel = 'Apple Notes ID';
+
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.draw(contentEl => contentEl.createEl('p', {
 				text:
@@ -110,10 +114,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		if (this.dataPath) {
 			void this.loadFolders();
 		}
-
-		this.defaultOutputFolder = 'Apple Notes';
-		this.idProperty = NOTE_ID_PROPERTY;
-		this.idLabel = 'Apple Notes ID';
 
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
