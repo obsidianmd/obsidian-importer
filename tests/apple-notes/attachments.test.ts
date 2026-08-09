@@ -227,7 +227,7 @@ test('an extensionless attachment is recognised again on a later import', async 
 
 		// The attachment is already there under the name its bytes gave it, so
 		// no second copy is written
-		await run.reimport(DuplicateHandling.ImportUpdated)(run.notePks[0]);
+		await run.reimport(DuplicateHandling.Update)(run.notePks[0]);
 
 		assert.deepEqual(run.vault.paths(), [
 			'Clipped.md', '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png',
@@ -268,7 +268,7 @@ test('an attachment already in the vault survives its source going away', async 
 		assert.ok(note instanceof TFile);
 		note.stat.mtime = 0;
 
-		await run.reimport(DuplicateHandling.ImportUpdated)(run.notePks[0]);
+		await run.reimport(DuplicateHandling.Update)(run.notePks[0]);
 
 		assert.deepEqual(run.failed, [], 'the vault still has the attachment');
 		assert.ok(

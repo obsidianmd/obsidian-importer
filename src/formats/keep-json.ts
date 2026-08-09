@@ -1,6 +1,6 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteWritten } from '../format-importer';
 import { ATTACHMENT_EXTS, helpUrl } from '../constants';
 import { ImportContext } from '../import-context';
 import { readZip, ZipEntryFile } from '../zip';
@@ -59,7 +59,7 @@ export class KeepImporter extends FormatImporter {
 				});
 			});
 
-		this.addOutputLocationSetting('Google Keep');
+		this.defaultOutputFolder = 'Google Keep';
 
 	}
 
@@ -144,8 +144,8 @@ export class KeepImporter extends FormatImporter {
 			return;
 		}
 
-		await this.convertKeepJson(keepJson, folder, basename);
-		ctx.reportNoteSuccess(fullpath);
+		const { written } = await this.convertKeepJson(ctx, keepJson, folder, basename);
+		if (written) ctx.reportNoteSuccess(fullpath);
 	}
 
 	async importAttachment(file: PickedFile, folder: TFolder, ctx: ImportContext): Promise<void> {
@@ -159,7 +159,7 @@ export class KeepImporter extends FormatImporter {
 		ctx.reportAttachmentSuccess(file.fullpath);
 	}
 
-	async convertKeepJson(keepJson: KeepJson, folder: TFolder, filename: string) {
+	async convertKeepJson(ctx: ImportContext, keepJson: KeepJson, folder: TFolder, filename: string): Promise<NoteWritten> {
 		const strictLineBreaks = this.vault.getConfig('strictLineBreaks') === true;
 		const { content, ctime, mtime } = convertKeepNote(
 			keepJson,
@@ -167,6 +167,6 @@ export class KeepImporter extends FormatImporter {
 			strictLineBreaks,
 			sourcePath => this.attachmentPaths.get(sourcePath) ?? this.attachmentPaths.get(sourcePath.split('/').pop() ?? '') ?? sourcePath
 		);
-		await this.saveAsMarkdownFile(folder, filename, content, { ctime, mtime });
+		return await this.writeNote(ctx, folder, filename, content, { ctime, mtime });
 	}
 }

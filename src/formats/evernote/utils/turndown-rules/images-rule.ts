@@ -1,5 +1,5 @@
 import { TurndownNode } from './turndown-types';
-import { yarleOptions } from '../../yarle';
+import { evernoteOptions } from '../../convert';
 
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
@@ -17,16 +17,16 @@ export const imagesRule = {
 		const widthParam = image?.width || '';
 		const heightParam = image?.height || '';
 		let realValue = value;
-		if (yarleOptions.sanitizeResourceNameSpaces) {
-			realValue = realValue.replace(/ /g, yarleOptions.replacementChar);
+		if (evernoteOptions.sanitizeResourceNameSpaces) {
+			realValue = realValue.replace(/ /g, evernoteOptions.replacementChar);
 		}
-		else if (yarleOptions.urlEncodeFileNamesAndLinks) {
+		else if (evernoteOptions.urlEncodeFileNamesAndLinks) {
 			realValue = encodeURI(realValue);
 		}
 		let sizeString = (widthParam || heightParam) ? ` =${widthParam}x${heightParam}` : '';
 
 		// while this isn't really a standard, it is common enough
-		if (yarleOptions.keepImageSize) {
+		if (evernoteOptions.keepImageSize) {
 			sizeString = (widthParam || heightParam) ? `|${widthParam || 0}x${heightParam || 0}` : '';
 			if (realValue.startsWith('./')) {
 				return `![[${realValue}${sizeString}]]`;

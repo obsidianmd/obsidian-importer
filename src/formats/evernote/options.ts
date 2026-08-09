@@ -2,7 +2,6 @@ import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 import type { MarkdownOutput } from '../../markdown-output';
 
-/** Set by the importer, because yarle's writes never reach createMarkdown. */
 let markdownOutput: MarkdownOutput = { indentUnit: '    ' };
 let markdownTracker: ((absolutePath: string) => void) | null = null;
 
@@ -22,7 +21,44 @@ export function trackMarkdownWrite(absolutePath: string): void {
 	markdownTracker?.(absolutePath);
 }
 
-export interface YarleOptions {
+export interface ExistingNote {
+	absolutePath: string;
+	writtenAt: number;
+	updatedAt: number | null;
+}
+
+export type ExistingNoteDecision = 'write' | 'skip';
+
+let existingNoteHandler: ((existing: ExistingNote) => ExistingNoteDecision) | null = null;
+
+export function setExistingNoteHandler(handler: ((existing: ExistingNote) => ExistingNoteDecision) | null): void {
+	existingNoteHandler = handler;
+}
+
+export function reusesNoteNames(): boolean {
+	return existingNoteHandler !== null;
+}
+
+export function decideExistingNote(existing: ExistingNote): ExistingNoteDecision {
+	return existingNoteHandler?.(existing) ?? 'write';
+}
+
+/** Notes eligible for post-processing in this run. */
+const notesWritten = new Set<string>();
+
+export function noteWasWritten(absolutePath: string): void {
+	notesWritten.add(absolutePath);
+}
+
+export function noteWasWrittenBy(absolutePath: string): boolean {
+	return notesWritten.has(absolutePath);
+}
+
+export function forgetNotesWritten(): void {
+	notesWritten.clear();
+}
+
+export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	templateFile?: string;
 	currentTemplate: string;

@@ -13,6 +13,7 @@
  * regard to case, so "note" does not come back free while "Note" exists.
  */
 import { DataWriteOptions, TAbstractFile, TFile, TFolder, normalizePath } from './obsidian';
+import { parseFrontMatterBlock } from '../../src/util';
 
 export class MemoryVault {
 	/** Every file and folder, keyed by its lower-cased path. */
@@ -44,6 +45,11 @@ export class MemoryVault {
 	/** Every file and folder the vault holds, as Obsidian hands them out. */
 	getAllLoadedFiles(): TAbstractFile[] {
 		return [...this.entries.values()];
+	}
+
+	getMarkdownFiles(): TFile[] {
+		return this.getAllLoadedFiles()
+			.filter((entry): entry is TFile => entry instanceof TFile && entry.path.toLowerCase().endsWith('.md'));
 	}
 
 	getAbstractFileByPath(path: string): TAbstractFile | null {
@@ -163,6 +169,14 @@ export function memoryApp(vault: MemoryVault) {
 		vault,
 		loadLocalStorage: () => null,
 		saveLocalStorage: () => {},
+		metadataCache: {
+			getFileCache: (file: { path: string }) => {
+				const content = vault.contents.get(file.path);
+				if (typeof content !== 'string') return null;
+
+				return { frontmatter: parseFrontMatterBlock(content)?.frontMatter };
+			},
+		},
 		fileManager: {
 			generateMarkdownLink: (file: { path: string }, _sourcePath: string, subpath?: string, display?: string) =>
 				`[[${file.path}${subpath ?? ''}${display ? `|${display}` : ''}]]`,

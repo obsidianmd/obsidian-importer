@@ -91,7 +91,10 @@ Object.defineProperty(nodeProto, 'win', { get() { return window; }, configurable
 
 define(elementProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(elementProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
-define(elementProto, 'appendText', function (this: any, text: string) { this.appendChild(this.doc.createTextNode(text)); });
+// Obsidian adds these methods to Node, including DocumentFragment.
+define(nodeProto, 'appendText', function (this: any, text: string) {
+	this.appendChild((this.ownerDocument ?? this.doc ?? window.document).createTextNode(text));
+});
 define(elementProto, 'empty', function (this: any) { while (this.firstChild) this.removeChild(this.firstChild); });
 /**
  * linkedom exposes innerText read-only; browsers and Obsidian let you assign
@@ -164,7 +167,7 @@ if (!('cells' in elementProto)) {
 define(documentProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(documentProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 
-/** createEl and friends, detached - matching what Obsidian's globals do. */
+/** Detached equivalent of Obsidian's createEl. */
 function createEl(tag: string, options?: { text?: string, cls?: string, attr?: Record<string, unknown> }) {
 	const el = window.document.createElement(tag);
 	if (options?.text) el.textContent = options.text;
@@ -182,13 +185,13 @@ function createEl(tag: string, options?: { text?: string, cls?: string, attr?: R
  * The element methods append; the globals below do not. That difference is
  * Obsidian's, and code here relies on both.
  */
-define(elementProto, 'createEl', function (this: any, tag: string, options?: object) {
+define(nodeProto, 'createEl', function (this: any, tag: string, options?: object) {
 	const child = createEl(tag, options);
 	this.appendChild(child);
 	return child;
 });
-define(elementProto, 'createDiv', function (this: any, options?: object) { return this.createEl('div', options); });
-define(elementProto, 'createSpan', function (this: any, options?: object) { return this.createEl('span', options); });
+define(nodeProto, 'createDiv', function (this: any, options?: object) { return this.createEl('div', options); });
+define(nodeProto, 'createSpan', function (this: any, options?: object) { return this.createEl('span', options); });
 
 globals.createEl = createEl;
 globals.createDiv = (options?: object) => createEl('div', options);

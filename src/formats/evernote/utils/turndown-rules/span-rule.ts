@@ -16,7 +16,7 @@ export const spanRule = {
 			const nodeValue: string = nodeProxy.style.value;
 
 			// this aims to care for bold text generated as <span style="font-weight: bold;">Bold</span>
-			if (content !== '<YARLE_NEWLINE_PLACEHOLDER>') {
+			if (content !== '<ENEX_NEWLINE_PLACEHOLDER>') {
 				const hasBold = nodeValue.includes(BOLD);
 				const hasItalic = nodeValue.includes(ITALIC);
 				if (hasBold && !hasItalic) {

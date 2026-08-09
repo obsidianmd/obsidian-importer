@@ -2,10 +2,10 @@ import { FileSystemAdapter, normalizePath, Notice } from 'obsidian';
 import { helpUrl } from '../constants';
 import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
-import { setMarkdownOutput, setMarkdownTracker } from './yarle/options';
-import { defaultYarleOptions, dropTheRope } from './yarle/yarle';
+import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler, setMarkdownOutput, setMarkdownTracker } from './evernote/options';
+import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
 
 const HELP_PERMALINK = 'import/evernote';
 
@@ -21,7 +21,17 @@ export class EvernoteEnexImporter extends FormatImporter {
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		this.addFileChooserSetting('Evernote', ['enex'], true);
-		this.addOutputLocationSetting('Evernote');
+		this.defaultOutputFolder = 'Evernote';
+	}
+
+	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
+		if (this.duplicateHandling === DuplicateHandling.Skip) return 'skip';
+
+		if (updatedAt === null) return 'write';
+
+		if (Math.floor(writtenAt) === Math.floor(updatedAt)) return 'skip';
+
+		return writtenAt > updatedAt ? 'skip' : 'write';
 	}
 
 	async import(ctx: ImportContext) {
@@ -41,11 +51,10 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
-		// yarle writes its own files rather than through the vault
 		setMarkdownOutput(markdownOutputFor(app.vault));
 
-		let yarleOptions = {
-			...defaultYarleOptions,
+		let evernoteOptions = {
+			...defaultEvernoteOptions,
 			...{
 				enexSources: files,
 				outputDir: path.join(adapter.getBasePath(), folder.path),
@@ -55,11 +64,17 @@ export class EvernoteEnexImporter extends FormatImporter {
 		setMarkdownTracker(absolutePath => {
 			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
 		});
+
+		setExistingNoteHandler(this.duplicateHandling === DuplicateHandling.CreateCopy
+			? null
+			: existing => this.decideExistingNote(existing));
+
 		try {
-			await dropTheRope(yarleOptions, ctx);
+			await convertEnexFiles(evernoteOptions, ctx);
 		}
 		finally {
 			setMarkdownTracker(null);
+			setExistingNoteHandler(null);
 		}
 	}
 }

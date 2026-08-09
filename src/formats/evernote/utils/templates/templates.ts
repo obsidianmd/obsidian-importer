@@ -1,51 +1,51 @@
 import { NoteData } from '../../models/NoteData';
 
-import { YarleOptions } from '../../options';
+import { EvernoteOptions } from '../../options';
 import { applyContentTemplate, applyCreatedAtTemplate, applyLocationTemplate, applyNotebookTemplate, applyReminderDoneTimeTemplate, applyReminderOrderTemplate, applyReminderTimeTemplate, applySourceUrlTemplate,applyTagsYamlListTemplate,  applyTagsTemplate, applyTitleTemplate, applyUpdatedAtTemplate } from './apply-functions';
 
 import * as T from './placeholders/metadata-placeholders';
 import { removeCreatedAtPlaceholder, removeLinkToOriginalTemplate, removeLocationPlaceholder, removeNotebookPlaceholder, removeReminderDoneTimePlaceholder, removeReminderOrderPlaceholder, removeReminderTimePlaceholder, removeSourceUrlPlaceholder, removeUpdatedAtPlaceholder } from './remove-functions';
 
-export const applyTemplate = (noteData: NoteData, yarleOptions: YarleOptions) => {
+export const applyTemplate = (noteData: NoteData, evernoteOptions: EvernoteOptions) => {
 
-	let result = yarleOptions.currentTemplate;
+	let result = evernoteOptions.currentTemplate;
 
 	result = applyTitleTemplate(noteData, result, () => noteData.title);
-	result = applyTagsTemplate(noteData, result, () => !yarleOptions.skipTags);
-	result = applyTagsYamlListTemplate(noteData, result, () => !yarleOptions.skipTags);
+	result = applyTagsTemplate(noteData, result, () => !evernoteOptions.skipTags);
+	result = applyTagsYamlListTemplate(noteData, result, () => !evernoteOptions.skipTags);
 	result = applyContentTemplate(noteData, result, () => noteData.content);
 
 	result = removeLinkToOriginalTemplate(result);
 
-	result = (!yarleOptions.skipCreationTime && noteData.createdAt)
+	result = (!evernoteOptions.skipCreationTime && noteData.createdAt)
 		? applyCreatedAtTemplate(noteData, result)
 		: removeCreatedAtPlaceholder(result);
 
-	result = (!yarleOptions.skipUpdateTime && noteData.updatedAt)
+	result = (!evernoteOptions.skipUpdateTime && noteData.updatedAt)
 		? applyUpdatedAtTemplate(noteData, result)
 		: removeUpdatedAtPlaceholder(result);
 
-	result = (!yarleOptions.skipSourceUrl && noteData.sourceUrl)
+	result = (!evernoteOptions.skipSourceUrl && noteData.sourceUrl)
 		? applySourceUrlTemplate(noteData, result)
 		: removeSourceUrlPlaceholder(result);
 
-	result = (!yarleOptions.skipLocation && noteData.location)
+	result = (!evernoteOptions.skipLocation && noteData.location)
 		? applyLocationTemplate(noteData, result)
 		: removeLocationPlaceholder(result);
 
-	result = (yarleOptions.isNotebookNameNeeded && noteData.notebookName)
+	result = (evernoteOptions.isNotebookNameNeeded && noteData.notebookName)
 		? applyNotebookTemplate(noteData, result)
 		: removeNotebookPlaceholder(result);
 
-	result = (!yarleOptions.skipReminderTime && noteData.reminderTime)
+	result = (!evernoteOptions.skipReminderTime && noteData.reminderTime)
 		? applyReminderTimeTemplate(noteData, result)
 		: removeReminderTimePlaceholder(result);
 
-	result = (!yarleOptions.skipReminderOrder && noteData.reminderOrder)
+	result = (!evernoteOptions.skipReminderOrder && noteData.reminderOrder)
 		? applyReminderOrderTemplate(noteData, result)
 		: removeReminderOrderPlaceholder(result);
 
-	result = (!yarleOptions.skipReminderDoneTime && noteData.reminderDoneTime)
+	result = (!evernoteOptions.skipReminderDoneTime && noteData.reminderDoneTime)
 		? applyReminderDoneTimeTemplate(noteData, result)
 		: removeReminderDoneTimePlaceholder(result);
 

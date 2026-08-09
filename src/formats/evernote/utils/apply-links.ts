@@ -1,13 +1,13 @@
 import { fs, path } from '../../../filesystem';
 
-import { YarleOptions } from '../options';
+import { EvernoteOptions, noteWasWrittenBy } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
-import { trackMarkdownWrite } from '../options';
+import { rewriteFile } from './file-utils';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { truncatFileName } from './folder-utils';
 import { getAllOutputFilesWithExtension } from './get-all-output-files';
 
-export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<string>): void => {
+export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Array<string>): void => {
 	const linkNameMap = RuntimePropertiesSingleton.getInstance();
 	const allLinks = linkNameMap.getAllNoteIdNameMap();
 
@@ -29,6 +29,8 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 
 		for (const targetFile of targetFiles) {
 			let filepath = path.join(notebookFolder, targetFile);
+			if (!noteWasWrittenBy(filepath)) continue;
+
 			const fileContent = fs.readFileSync(filepath, 'utf8');
 			let updatedContent = fileContent;
 
@@ -52,8 +54,7 @@ export const applyLinks = (options: YarleOptions, outputNotebookFolders: Array<s
 			}
 
 			if (fileContent !== updatedContent) {
-				fs.writeFileSync(filepath, updatedContent);
-				trackMarkdownWrite(filepath);
+				rewriteFile(filepath, updatedContent);
 			}
 		}
 	}

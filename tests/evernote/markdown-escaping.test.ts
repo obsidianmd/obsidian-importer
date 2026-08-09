@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { restoreIntraWordEscapedUnderscores } from '../../src/formats/yarle/utils/markdown-escaping';
+import { restoreIntraWordEscapedUnderscores } from '../../src/formats/evernote/utils/markdown-escaping';
 
 test('restores escaped underscores inside words', () => {
 	assert.equal(

@@ -1,30 +1,79 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, path, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
-import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizeMarkdownFile } from './markdown-output';
-import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
+import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
+import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
 export enum DuplicateHandling {
-	Skip = 'skip',
-	ImportUpdated = 'import-updated',
 	CreateCopy = 'create-copy',
+	Skip = 'skip',
+	Update = 'update',
 }
 
 const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
-	[DuplicateHandling.Skip]: 'Skip import',
-	[DuplicateHandling.ImportUpdated]: 'Import only updated',
 	[DuplicateHandling.CreateCopy]: 'Create a copy',
+	[DuplicateHandling.Skip]: 'Skip',
+	[DuplicateHandling.Update]: 'Update',
 };
 
-export type ImporterStep = 'source' | 'options';
+export type AttachmentLocationMode = 'vault' | 'folder' | 'note' | 'subfolder';
+
+export interface AttachmentLocation {
+	mode: AttachmentLocationMode;
+	/** Folder path or subfolder name, depending on mode. */
+	path: string;
+}
+
+const ATTACHMENT_MODE_LABELS: Record<AttachmentLocationMode, string> = {
+	vault: 'Vault folder',
+	folder: 'In the folder specified below',
+	note: 'Same folder as the note',
+	subfolder: 'In subfolder under the note',
+};
+
+export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation): string {
+	switch (mode) {
+		case 'vault':
+			return '/';
+		case 'folder':
+			return path || '/';
+		case 'note':
+			return './';
+		case 'subfolder':
+			return path ? `./${path}` : './';
+	}
+}
+
+export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
+	const configured = vault.getConfig('attachmentFolderPath');
+	const value = typeof configured === 'string' ? configured.trim() : '';
+
+	if (value === '' || value === '/') return { mode: 'vault', path: '' };
+	if (value === '.' || value === './') return { mode: 'note', path: '' };
+	if (value.startsWith('./')) return { mode: 'subfolder', path: value.slice(2) };
+
+	return { mode: 'folder', path: normalizePath(value) };
+}
+
+export interface NoteImport extends DataWriteOptions {
+	sourceId?: string;
+}
+
+export interface NoteWritten {
+	file: TFile;
+	written: boolean;
+}
+
+export type ImporterStep = 'source' | 'output' | 'options';
 
 export interface ImporterHost {
 	sourceEl: HTMLElement | null;
+	outputEl: HTMLElement | null;
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	importerId: string;
@@ -40,7 +89,24 @@ export abstract class FormatImporter {
 	files: PickedFile[] = [];
 	outputLocation: string = '';
 	notAvailable: boolean = false;
+
+	/** Set in init(), not in a subclass field initializer. */
+	defaultOutputFolder: string = 'Import';
+
+	attachmentLocation: AttachmentLocation;
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
+
+	duplicateModes: DuplicateHandling[] = [
+		DuplicateHandling.CreateCopy,
+		DuplicateHandling.Skip,
+		DuplicateHandling.Update,
+	];
+
+	/** Frontmatter property used to identify imported notes. */
+	idProperty: string | null = null;
+	idLabel: string = 'source ID';
+
+	saveSourceId: boolean = false;
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
@@ -48,8 +114,26 @@ export abstract class FormatImporter {
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
 
+	private outputStepDrawn: boolean = false;
+
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
+
+	/** Paths claimed by this run, normalized for case-insensitive vault lookup. */
+	private claimed = new Set<string>();
+
+	protected claimPath(path: string): void {
+		this.claimed.add(normalizePath(path).toLowerCase());
+	}
+
+	protected hasClaimed(path: string): boolean {
+		return this.claimed.has(normalizePath(path).toLowerCase());
+	}
+
+	private importedById: Map<string, TFile> | null = null;
+
+	private sourceFolder: string | null = null;
+	private lastSourceFolder: string | null = null;
 
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
@@ -62,9 +146,11 @@ export abstract class FormatImporter {
 		this.app = app;
 		this.vault = app.vault;
 		this.host = host;
+		this.attachmentLocation = vaultAttachmentLocation(app.vault);
 		// init() may queue additional startup work through whenReady().
 		this.ready = Promise.resolve(this.init())
 			.then(() => Promise.all(this.pending))
+			.then(() => this.loadOutputSettings())
 			.then(() => undefined);
 
 		this.ready.catch(e => console.error('Importer failed to initialise', e));
@@ -110,7 +196,14 @@ export abstract class FormatImporter {
 	}
 
 	protected stepEl(step: ImporterStep): HTMLElement | null {
-		return step === 'source' ? this.host.sourceEl : this.host.optionsEl;
+		switch (step) {
+			case 'source':
+				return this.host.sourceEl;
+			case 'output':
+				return this.host.outputEl;
+			case 'options':
+				return this.host.optionsEl;
+		}
 	}
 
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
@@ -208,6 +301,47 @@ export abstract class FormatImporter {
 		await this.host.plugin.saveData(data);
 	}
 
+	/** Prefer this importer's last folder, then its default, then the global last folder. */
+	protected pickerOpensAt(defaultPath?: string): string | undefined {
+		return this.sourceFolder ?? defaultPath ?? this.lastSourceFolder ?? undefined;
+	}
+
+	protected chooseFrom(options: Record<string, unknown>, defaultPath?: string): string[] {
+		const picked: string[] | undefined = window.electron.remote.dialog.showOpenDialogSync({
+			...options,
+			defaultPath: this.pickerOpensAt(defaultPath),
+		});
+
+		if (!picked || picked.length === 0) return [];
+
+		this.rememberSourceFolder(picked[0]);
+		return picked;
+	}
+
+	protected rememberSourceFolder(filepath: string): void {
+		const { parent } = parseFilePath(filepath);
+		if (!parent) return;
+
+		this.sourceFolder = parent;
+		this.lastSourceFolder = parent;
+		this.saveSourceFolder(parent);
+	}
+
+	private saveSourceFolder = debounce((folder: string) => {
+		void (async () => {
+			if (!this.host.plugin) return;
+			try {
+				const data = await this.host.plugin.loadData();
+				data.sourceFolders = { ...data.sourceFolders, [this.host.importerId]: folder };
+				data.lastSourceFolder = folder;
+				await this.host.plugin.saveData(data);
+			}
+			catch (e) {
+				console.error('Could not remember the folder that was picked', e);
+			}
+		})();
+	}, 1000, true);
+
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
 		const fileLocationSetting = this.addSetting('source');
 		if (!fileLocationSetting) return;
@@ -223,13 +357,12 @@ export abstract class FormatImporter {
 						if (allowMultiple) {
 							properties.push('multiSelections');
 						}
-						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
+						const filePaths = this.chooseFrom({
 							title: 'Pick files to import', properties,
 							filters: [{ name, extensions }],
-							defaultPath: defaultPath || undefined,
-						});
+						}, defaultPath);
 
-						if (filePaths && filePaths.length > 0) {
+						if (filePaths.length > 0) {
 							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
 							updateFiles();
 						}
@@ -256,13 +389,12 @@ export abstract class FormatImporter {
 				.setButtonText('Choose folders')
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
-						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
+						const filePaths = this.chooseFrom({
 							title: 'Folders to import',
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-							defaultPath: defaultPath || undefined,
-						});
+						}, defaultPath);
 
-						if (filePaths && filePaths.length > 0) {
+						if (filePaths.length > 0) {
 							fileLocationSetting.setDesc('Reading folders...');
 							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
@@ -296,71 +428,167 @@ export abstract class FormatImporter {
 		};
 	}
 
-	protected addDuplicateHandlingSetting(options: {
-		idProperty?: string;
-		modes?: DuplicateHandling[];
-	} = {}): void {
-		const setting = this.addSetting();
-		if (!setting) return;
+	drawOutputStep(): void {
+		const contentEl = this.stepEl('output');
+		if (!contentEl || this.outputStepDrawn) return;
+		this.outputStepDrawn = true;
 
-		const { idProperty, modes = [DuplicateHandling.Skip, DuplicateHandling.ImportUpdated, DuplicateHandling.CreateCopy] } = options;
-		const copy = DUPLICATE_HANDLING_LABELS[DuplicateHandling.CreateCopy];
+		this.addOutputFolderSetting(contentEl);
+		this.addAttachmentLocationSetting(contentEl);
+		this.addDuplicateHandlingSetting(contentEl);
+		this.addSaveSourceIdSetting(contentEl);
+	}
 
-		setting
-			.setName('Notes already in the vault')
-			.setDesc(idProperty
-				? `What to do when a note is already there. Every mode but "${copy}" adds a` +
-					` ${idProperty} property to each note, so that a later import knows which note is which.`
-				: `What to do when a note is already there. Every mode but "${copy}" finds that note by its file name.`)
+	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
+		if (!this.idProperty) return;
+
+		new Setting(contentEl)
+			.setName(`Save ${this.idLabel}`)
+			.setDesc(`Add the ${this.idLabel} to note properties so future imports can recognize moved or renamed notes.`)
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.saveSourceId)
+					.onChange(value => {
+						this.saveSourceId = value;
+						this.saveOutputSettings();
+					});
+			});
+	}
+
+	private addOutputFolderSetting(contentEl: HTMLElement): void {
+		new Setting(contentEl)
+			.setName('Output folder')
+			.setDesc('Where imported notes will be saved. Leave blank to use the top level of the vault.')
+			.addText(text => {
+				text
+					.setValue(this.outputLocation)
+					.onChange(value => {
+						this.outputLocation = value;
+						this.outputFolder = null;
+						this.saveOutputSettings();
+					});
+				new FolderSuggest(this.app, text.inputEl);
+			});
+	}
+
+	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
+		const setting = new Setting(contentEl)
+			.setName('Attachment location')
+			.setDesc('Where imported images and files will be saved.');
+
+		const pathSetting = new Setting(contentEl);
+
+		const drawPathSetting = () => {
+			const { mode } = this.attachmentLocation;
+			pathSetting.settingEl.toggle(mode === 'folder' || mode === 'subfolder');
+			pathSetting
+				.setName(mode === 'subfolder' ? 'Subfolder name' : 'Attachment folder')
+				.setDesc(mode === 'subfolder'
+					? 'Folder to use inside each imported note\'s folder.'
+					: 'Folder path from the top level of the vault.');
+		};
+
+		setting.addDropdown(dropdown => {
+			for (const mode of Object.keys(ATTACHMENT_MODE_LABELS) as AttachmentLocationMode[]) {
+				dropdown.addOption(mode, ATTACHMENT_MODE_LABELS[mode]);
+			}
+
+			dropdown
+				.setValue(this.attachmentLocation.mode)
+				.onChange(value => {
+					this.attachmentLocation = { ...this.attachmentLocation, mode: value as AttachmentLocationMode };
+					drawPathSetting();
+					this.saveOutputSettings();
+				});
+		});
+
+		pathSetting.addText(text => {
+			text
+				.setValue(this.attachmentLocation.path)
+				.onChange(value => {
+					this.attachmentLocation = { ...this.attachmentLocation, path: value };
+					this.saveOutputSettings();
+				});
+			new FolderSuggest(this.app, text.inputEl);
+		});
+
+		drawPathSetting();
+	}
+
+	private addDuplicateHandlingSetting(contentEl: HTMLElement): void {
+		const modes = this.duplicateModes;
+		if (modes.length < 2) return;
+
+		new Setting(contentEl)
+			.setName('Existing notes')
+			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {
 				for (const mode of modes) dropdown.addOption(mode, DUPLICATE_HANDLING_LABELS[mode]);
 
 				dropdown
 					.setValue(this.duplicateHandling)
-					.onChange(value => this.duplicateHandling = value as DuplicateHandling);
-			});
-	}
-
-	addOutputLocationSetting(defaultExportFolderName: string) {
-		this.outputLocation = defaultExportFolderName;
-		this.addSetting()
-			?.setName('Output folder')
-			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
-			.addText(text => {
-				text
-					.setValue(defaultExportFolderName)
 					.onChange(value => {
-						this.outputLocation = value;
-						this.outputFolder = null;
-						this.saveOutputLocation(value);
+						this.duplicateHandling = value as DuplicateHandling;
+						this.saveOutputSettings();
 					});
-				new FolderSuggest(this.app, text.inputEl);
-
-				this.loadOutputLocation()
-					.then(location => {
-						if (location === null) return;
-						this.outputLocation = location;
-						this.outputFolder = null;
-						text.setValue(location);
-					})
-					.catch(e => console.error('Could not read the output folder', e));
 			});
 	}
 
-	private async loadOutputLocation(): Promise<string | null> {
-		let data = await this.host.plugin.loadData();
-		return data.outputLocations?.[this.host.importerId] ?? null;
+	private describeDuplicateHandling(): DocumentFragment {
+		return createFragment(frag => {
+			frag.appendText(`Choose what to do when an imported note matches one in your vault. `
+				+ `"${DUPLICATE_HANDLING_LABELS[DuplicateHandling.Update]}" skips unchanged notes and preserves newer local edits when modification dates are available.`);
+		});
 	}
 
-	private saveOutputLocation = debounce((location: string) => {
+	private async loadOutputSettings(): Promise<void> {
+		this.outputLocation = this.defaultOutputFolder;
+
+		if (!this.host.plugin) return;
+
+		try {
+			const data = await this.host.plugin.loadData();
+
+			// Migrate the legacy output folder.
+			const legacyFolder = data.outputLocations?.[this.host.importerId];
+			if (legacyFolder !== undefined) this.outputLocation = legacyFolder;
+
+			this.sourceFolder = data.sourceFolders?.[this.host.importerId] ?? null;
+			this.lastSourceFolder = data.lastSourceFolder || null;
+
+			const saved = data.outputSettings?.[this.host.importerId];
+			if (!saved) return;
+
+			if (saved.folder !== undefined) this.outputLocation = saved.folder;
+			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
+			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
+				this.duplicateHandling = saved.duplicates;
+			}
+			if (saved.saveSourceId !== undefined) this.saveSourceId = saved.saveSourceId;
+			this.outputFolder = null;
+		}
+		catch (e) {
+			console.error('Could not read the output settings', e);
+		}
+	}
+
+	private saveOutputSettings = debounce(() => {
 		void (async () => {
 			try {
-				let data = await this.host.plugin.loadData();
-				data.outputLocations = { ...data.outputLocations, [this.host.importerId]: location };
+				const data = await this.host.plugin.loadData();
+				data.outputSettings = {
+					...data.outputSettings,
+					[this.host.importerId]: {
+						folder: this.outputLocation,
+						attachments: { ...this.attachmentLocation },
+						duplicates: this.duplicateHandling,
+						saveSourceId: this.saveSourceId,
+					},
+				};
 				await this.host.plugin.saveData(data);
 			}
 			catch (e) {
-				console.error('Could not remember the output folder', e);
+				console.error('Could not remember the output settings', e);
 			}
 		})();
 	}, 1000, true);
@@ -393,63 +621,40 @@ export abstract class FormatImporter {
 		return null;
 	}
 
-	/**
-	 * Resolves a unique path for the attachment file being saved.
-	 * Ensures that the parent directory exists and dedupes the
-	 * filename if the destination filename already exists.
-	 *
-	 * NOTE: This is a duplicate of `fileManager.getAvailablePathForAttachment`
-	 * which adds two key adjustments to aid Importer:
-	 *   - Use the provided `sourcePath` even if the file doesn't exist yet.
-	 *   - Avoid duplicating a list of provided filesnames that do not yet exist, but will in the future.
-	 *
-	 * @param filename Name of the attachment being saved
-	 * @param claimedPaths List of filepaths that may not exist yet but will in the future.
-	 * @param sourcePath Optional path of the current file being imported (for "Same folder as current file" setting)
-	 * @returns Full path for where the attachment should be saved, according to the user's settings
-	 */
+	private async attachmentFolderPath(sourcePath?: string): Promise<string> {
+		const { mode, path: configured } = this.attachmentLocation;
+
+		if (mode === 'vault') return '/';
+		if (mode === 'folder') return configured ? normalizePath(configured) : '/';
+
+		// Fall back to the output folder when no note path is available.
+		let noteFolder = sourcePath ? parseFilePath(sourcePath).parent : '';
+		if (!noteFolder) noteFolder = (await this.getOutputFolder())?.path ?? '/';
+
+		if (mode === 'note' || !configured) return normalizePath(noteFolder);
+
+		return normalizePath(`${noteFolder}/${configured}`);
+	}
+
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		// The vault method only reads parent from this stand-in.
-		let sourceFile: { parent: TFolder } | null = null;
-
-		// If sourcePath is provided, use its parent folder for attachment placement
-		// This is important for respecting user's "Same folder as current file" setting
-		if (sourcePath) {
-			const { parent } = parseFilePath(sourcePath);
-			if (parent) {
-				const existing = this.vault.getAbstractFileByPath(normalizePath(parent));
-				const parentFolder = existing instanceof TFolder ? existing : await this.createFolders(parent);
-				sourceFile = { parent: parentFolder };
-			}
-		}
-
-		// Fallback to outputFolder if sourcePath not provided or parent folder not found
-		if (!sourceFile) {
-			const outputFolder = await this.getOutputFolder();
-			sourceFile = outputFolder ? { parent: outputFolder } : null;
-		}
+		const folderPath = await this.attachmentFolderPath(sourcePath);
+		const folder = await this.createFolders(folderPath);
+		const parent = folder.path === '/' ? '' : folder.path;
 
 		const { basename, extension } = parseFilePath(filename);
+		const name = sanitizeFileName(basename);
+		const fullExt = extension ? '.' + extension : '';
 
-		// Use getAvailablePathForAttachments because it can give us the configured output path.
-		//@ts-ignore
-		const prelimOutPath = await this.vault.getAvailablePathForAttachments(basename, extension, sourceFile);
-		const parsedPrelimOutPath = parseFilePath(prelimOutPath);
+		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
+		const taken = (candidate: string) =>
+			claimedPaths.includes(candidate) || !!this.vault.getAbstractFileByPath(candidate);
 
-		const fullExt = parsedPrelimOutPath.extension ?
-			'.' + parsedPrelimOutPath.extension
-			: '.' + extension;
-
-		// Increase number until the path is unique.
-		let i = 1;
-		let outputPath = prelimOutPath;
-		while (claimedPaths.includes(outputPath) || !!this.vault.getAbstractFileByPath(outputPath)) {
-			outputPath = path.join(parsedPrelimOutPath.parent, `${parsedPrelimOutPath.name} ${i}${fullExt}`);
-			i++;
+		let outputPath = at(`${name}${fullExt}`);
+		for (let i = 1; taken(outputPath); i++) {
+			outputPath = at(`${name} ${i}${fullExt}`);
 		}
 
-		// Normalize the final outputPath before returning
-		return normalizePath(outputPath);
+		return outputPath;
 	}
 
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
@@ -537,10 +742,124 @@ export abstract class FormatImporter {
 		});
 	}
 
-	/** Register Markdown written outside createFile (for example by Yarle). */
+	/** Register Markdown written outside createFile. */
 	trackMarkdownFile(file: TFile | string): void {
 		const path = typeof file === 'string' ? normalizePath(file) : file.path;
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
+	}
+
+	protected withSourceId(content: string, sourceId: string | undefined): string {
+		const { idProperty } = this;
+		if (!idProperty || !sourceId || !this.saveSourceId) return content;
+
+		const parsed = parseFrontMatterBlock(content);
+		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
+
+		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
+	}
+
+	/** Write, update, or match an imported note according to the duplicate mode. */
+	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
+		const { sourceId, ...writeOptions } = options;
+		content = this.withSourceId(content, sourceId);
+		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
+		const parent = folder.path === '/' ? '' : folder.path;
+		const fullPath = normalizePath(parent ? `${parent}/${name}` : name);
+
+		const existing = this.duplicateHandling === DuplicateHandling.CreateCopy
+			? null
+			: this.previouslyImported(fullPath, sourceId);
+
+		if (!existing) {
+			const file = await this.createFile(folder, name, content, writeOptions);
+			this.claimPath(file.path);
+			return { file, written: true };
+		}
+
+		if (this.duplicateHandling === DuplicateHandling.Skip) {
+			ctx.reportSkipped(title, 'it is already in the vault');
+			return { file: existing, written: false };
+		}
+
+		if (await this.unchangedSinceImport(ctx, existing, title, content, writeOptions.mtime)) {
+			return { file: existing, written: false };
+		}
+
+		await this.modifyMarkdown(existing, content, writeOptions);
+		this.claimPath(existing.path);
+		return { file: existing, written: true };
+	}
+
+	/** Find a previous import by source ID, falling back to its expected path. */
+	protected previouslyImported(fullPath: string, sourceId?: string): TFile | null {
+		const { idProperty } = this;
+
+		if (idProperty && sourceId) {
+			const known = this.importedById?.get(sourceId);
+			if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
+		}
+
+		// A second source note with this path needs its own file.
+		if (this.hasClaimed(fullPath)) return null;
+
+		const file = this.vault.getAbstractFileByPath(fullPath)
+			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
+		if (!(file instanceof TFile)) return null;
+
+		if (idProperty && sourceId) {
+			const recorded = this.recordedId(file, idProperty);
+			// Notes imported before IDs were recorded still match by path.
+			if (recorded && recorded !== sourceId) return null;
+		}
+
+		return file;
+	}
+
+	private recordedId(file: TFile, idProperty: string): string | null {
+		const id: unknown = this.app.metadataCache?.getFileCache(file)?.frontmatter?.[idProperty];
+		return typeof id === 'string' && id ? id : null;
+	}
+
+	/** Leave notes unchanged or edited since the source update alone. */
+	private async unchangedSinceImport(ctx: ImportContext, file: TFile, title: string, content: string, sourceMtime?: number): Promise<boolean> {
+		if (sourceMtime !== undefined) {
+			if (file.stat.mtime === sourceMtime) {
+				ctx.reportSkipped(title, 'it has not changed since the last import');
+				return true;
+			}
+
+			if (file.stat.mtime > sourceMtime) {
+				ctx.reportSkipped(title, 'it has been edited in Obsidian since the last import');
+				return true;
+			}
+
+			return false;
+		}
+
+		try {
+			const current = await this.vault.read(file);
+			if (current !== await standardizedMarkdown(this.app, file.path, content)) return false;
+		}
+		catch (error) {
+			console.error(`Could not read the note already at: ${file.path}`, error);
+			return false;
+		}
+
+		ctx.reportSkipped(title, 'it has not changed since the last import');
+		return true;
+	}
+
+	indexImportedNotes(): void {
+		const { idProperty } = this;
+		this.claimed.clear();
+		this.importedById = new Map();
+
+		if (!idProperty || this.duplicateHandling === DuplicateHandling.CreateCopy) return;
+
+		for (const file of this.vault.getMarkdownFiles()) {
+			const id = this.recordedId(file, idProperty);
+			if (id && !this.importedById.has(id)) this.importedById.set(id, file);
+		}
 	}
 
 	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
@@ -598,23 +917,6 @@ export abstract class FormatImporter {
 		const id: unknown = parsed?.frontMatter[idProperty];
 
 		return typeof id === 'string' ? id : null;
-	}
-
-	protected async sourceIdOf(file: TFile, idProperty: string): Promise<string | null> {
-		try {
-			return this.sourceIdIn(await this.vault.read(file), idProperty);
-		}
-		catch (error) {
-			console.error(`Failed to read frontmatter from: ${file.path}`, error);
-			return null;
-		}
-	}
-
-	protected async noteImportedFrom(path: string, idProperty: string, sourceId: string): Promise<TFile | null> {
-		const file = this.vault.getAbstractFileByPathInsensitive(normalizePath(path));
-		if (!(file instanceof TFile)) return null;
-
-		return await this.sourceIdOf(file, idProperty) === sourceId ? file : null;
 	}
 
 	async createBinaryFile(folder: TFolder, fileName: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {

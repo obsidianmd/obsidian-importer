@@ -16,3 +16,26 @@ export const writeFile = (absFilePath: string, data: string, note: EvernoteNote)
 		throw e;
 	}
 };
+
+/** Rewrite a note while preserving its source timestamps. */
+export const rewriteFile = (absFilePath: string, data: string): void => {
+	let dates: { atime: Date, mtime: Date } | null = null;
+	try {
+		const stat = fs.statSync(absFilePath);
+		dates = { atime: stat.atime, mtime: stat.mtime };
+	}
+	catch {
+		// Best effort.
+	}
+
+	fs.writeFileSync(absFilePath, data);
+	trackMarkdownWrite(absFilePath);
+
+	if (!dates) return;
+	try {
+		fs.utimesSync(absFilePath, dates.atime, dates.mtime);
+	}
+	catch {
+		// Best effort.
+	}
+};

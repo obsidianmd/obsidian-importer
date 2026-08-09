@@ -141,7 +141,9 @@ export class AirtableAPIImporter extends FormatImporter {
 	private lastBaseFilePath: string | null = null;
 
 	init() {
-		this.addOutputLocationSetting('Airtable');
+		this.defaultOutputFolder = 'Airtable';
+		this.idProperty = RECORD_ID_PROPERTY;
+		this.idLabel = 'Airtable record ID';
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
@@ -206,7 +208,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 				}));
 
-		this.addDuplicateHandlingSetting({ idProperty: RECORD_ID_PROPERTY, modes: [DuplicateHandling.Skip, DuplicateHandling.CreateCopy] });
+		this.duplicateModes = [DuplicateHandling.CreateCopy, DuplicateHandling.Skip];
 	}
 
 	private createTokenDescription(): DocumentFragment {
@@ -812,10 +814,11 @@ export class AirtableAPIImporter extends FormatImporter {
 				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
 				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
 
-				if (await this.shouldSkipExistingRecord(desiredPath, record.id)) {
-					claimed.add(desiredPath.toLowerCase());
-					this.recordIdToPath.set(`${baseId}:${record.id}`, desiredPath.replace(/\.md$/, ''));
-					planned.push({ record, filePath: desiredPath, title, skipped: 'Already imported' });
+				const existing = this.existingRecordNote(desiredPath, record.id);
+				if (existing) {
+					claimed.add(existing.path.toLowerCase());
+					this.recordIdToPath.set(`${baseId}:${record.id}`, existing.path.replace(/\.md$/, ''));
+					planned.push({ record, filePath: existing.path, title, skipped: 'Already imported' });
 					continue;
 				}
 
@@ -1166,7 +1169,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,
 			frontMatterFields,
-			recordId: this.incrementalImport,
+			recordId: false,
 			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,
@@ -1186,7 +1189,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		await this.createMarkdown(filePath, content);
+		await this.createMarkdown(filePath, this.withSourceId(content, record.id));
 
 		ctx.reportNoteSuccess(title);
 
@@ -1203,12 +1206,12 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * @param recordId - Airtable record ID to compare
 	 * @returns true if same record already exists (should skip), false otherwise
 	 */
-	private async shouldSkipExistingRecord(filePath: string, recordId: string): Promise<boolean> {
+	private existingRecordNote(filePath: string, recordId: string): TFile | null {
 		if (!this.incrementalImport) {
-			return false;
+			return null;
 		}
 
-		return await this.noteImportedFrom(filePath, RECORD_ID_PROPERTY, recordId) !== null;
+		return this.previouslyImported(normalizePath(filePath), recordId);
 	}
 
 	/**

@@ -5,7 +5,7 @@ import {
 	getFilenameIndexForPrefix,
 	getFilenamePrefix,
 	getNextFilenameIndex,
-} from '../../src/formats/yarle/utils/filename-dedupe';
+} from '../../src/formats/evernote/utils/filename-dedupe';
 
 test('chooses the next filename index case-insensitively', () => {
 	assert.equal(getNextFilenameIndex([

@@ -1,7 +1,7 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { FormatImporter } from '../format-importer';
-import { helpUrl } from '../constants';
+import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
+import { helpUrl, NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
@@ -31,7 +31,9 @@ export class NotionImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Exported Notion', ['zip'], false,
 			'Pick the zip file Notion sent you.');
-		this.addOutputLocationSetting('Notion');
+		this.defaultOutputFolder = 'Notion';
+		this.idProperty = NOTION_ID_PROPERTY;
+		this.idLabel = 'Notion ID';
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')
 			.setDesc('Places the parent database pages in the same folder as the nested content.')
@@ -67,7 +69,7 @@ export class NotionImporter extends FormatImporter {
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
 
-		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '', this.singleLineBreaks);
+		const info = new NotionResolverInfo(attachmentLocationAsSetting(this.attachmentLocation), this.singleLineBreaks);
 
 		// loads in only path & title information to objects
 		ctx.status('Looking for files to import');
@@ -139,8 +141,8 @@ export class NotionImporter extends FormatImporter {
 					}
 
 					const parent = await this.createFolders(`${targetFolderPath}${info.getPathForFile(fileInfo)}`);
-					await this.createFile(parent, `${fileInfo.title}.md`, markdownBody, writeOptions);
-					ctx.reportNoteSuccess(file.fullpath);
+					const { written } = await this.writeNote(ctx, parent, fileInfo.title, markdownBody, { ...writeOptions, sourceId: id });
+					if (written) ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {
 					const attachmentInfo = info.pathsToAttachmentInfo[file.filepath];

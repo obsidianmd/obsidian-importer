@@ -1,15 +1,15 @@
 import { TurndownNode } from './turndown-rules/turndown-types';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 
-import { YarleOptions } from '../options';
+import { EvernoteOptions } from '../options';
 import { divRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
 import { taskListRule } from './turndown-rules/task-list-rule';
 
-export const getTurndownService = (yarleOptions: YarleOptions) => {
+export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
 	// @ts-ignore
 	const turndownService = new window.TurndownService({
 		br: '',
-		...yarleOptions.turndownOptions,
+		...evernoteOptions.turndownOptions,
 		blankReplacement: (content: string, node: TurndownNode) => {
 			return node.isBlock ? '\n\n' : '';
 		},
@@ -29,13 +29,13 @@ export const getTurndownService = (yarleOptions: YarleOptions) => {
 	turndownService.addRule('list', taskListRule);
 	turndownService.addRule('italic', italicRule);
 
-	if (yarleOptions.keepMDCharactersOfENNotes) {
+	if (evernoteOptions.keepMDCharactersOfENNotes) {
 		turndownService.escape = ((str: string) => str);
 	}
 
 	turndownService.addRule('divBlock', divRule);
 
-	if (yarleOptions.keepOriginalAmountOfNewlines) {
+	if (evernoteOptions.keepOriginalAmountOfNewlines) {
 		turndownService.addRule('newline', newLineRule);
 	}
 

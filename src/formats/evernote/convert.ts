@@ -1,10 +1,12 @@
+/** Evernote converter adapted from Yarle (MIT): https://github.com/akosbalasko/yarle */
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { getMarkdownOutput, trackMarkdownWrite, YarleOptions } from './options';
+import { forgetNotesWritten, getMarkdownOutput, EvernoteOptions } from './options';
 import { processNode } from './process-node';
+import { rewriteFile } from './utils/file-utils';
 import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
 
@@ -23,7 +25,7 @@ import { defaultTemplate } from './utils/templates/default-template';
 
 let flow: typeof import('xml-flow') | undefined;
 
-export const defaultYarleOptions: YarleOptions = {
+export const defaultEvernoteOptions: EvernoteOptions = {
 	enexSources: [],
 	currentTemplate: '',
 	outputDir: './mdNotes',
@@ -52,7 +54,7 @@ export const defaultYarleOptions: YarleOptions = {
 
 const NOTEBOOKSTACK_SEPARATOR = '@@@';
 
-export let yarleOptions: YarleOptions = { ...defaultYarleOptions };
+export let evernoteOptions: EvernoteOptions = { ...defaultEvernoteOptions };
 
 function deepCopy(obj: any) {
 	if (obj === undefined || obj === null) return obj;
@@ -78,24 +80,22 @@ function merge(original: any, ...objects: any[]) {
 	return original;
 }
 
-const setOptions = (options: YarleOptions): void => {
-	yarleOptions = merge({}, defaultYarleOptions, options);
+const setOptions = (options: EvernoteOptions): void => {
+	evernoteOptions = merge({}, defaultEvernoteOptions, options);
 
-	let template = (yarleOptions.templateFile) ? fs.readFileSync(yarleOptions.templateFile, 'utf-8') : defaultTemplate;
-	template = yarleOptions.currentTemplate ? yarleOptions.currentTemplate : template;
+	let template = (evernoteOptions.templateFile) ? fs.readFileSync(evernoteOptions.templateFile, 'utf-8') : defaultTemplate;
+	template = evernoteOptions.currentTemplate ? evernoteOptions.currentTemplate : template;
 
-	/*if (yarleOptions.templateFile) {*/
 	// todo: handle file not exists error
-	yarleOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
-	yarleOptions.skipLocation = !hasLocationInTemplate(template);
-	yarleOptions.skipSourceUrl = !hasSourceURLInTemplate(template);
-	yarleOptions.skipTags = !hasAnyTagsInTemplate(template);
-	yarleOptions.skipUpdateTime = !hasUpdateTimeInTemplate(template);
-	yarleOptions.isNotebookNameNeeded = hasNotebookInTemplate(template);
+	evernoteOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
+	evernoteOptions.skipLocation = !hasLocationInTemplate(template);
+	evernoteOptions.skipSourceUrl = !hasSourceURLInTemplate(template);
+	evernoteOptions.skipTags = !hasAnyTagsInTemplate(template);
+	evernoteOptions.skipUpdateTime = !hasUpdateTimeInTemplate(template);
+	evernoteOptions.isNotebookNameNeeded = hasNotebookInTemplate(template);
 
-	yarleOptions.currentTemplate = template;
+	evernoteOptions.currentTemplate = template;
 
-	/*}*/
 };
 
 interface TaskGroups {
@@ -118,7 +118,7 @@ function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResour
 	}
 }
 
-export const parseStream = async (options: YarleOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
+export const parseStream = async (options: EvernoteOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 
@@ -154,6 +154,8 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				return;
 			}
 
+			let wrote = false;
+
 			if (options.skipWebClips && isWebClip(note)) {
 				ctx.reportSkipped(note.title ?? enexSource.name);
 			}
@@ -166,8 +168,10 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 				restoreResourceAttributes(note, resourceAttributes);
 
 				try {
-					processNode(note, notebookName);
-					ctx.reportNoteSuccess(notebookName + '/' + note.title);
+					const reported = notebookName + '/' + note.title;
+					wrote = processNode(note, notebookName);
+					if (wrote) ctx.reportNoteSuccess(reported);
+					else ctx.reportSkipped(reported, 'it is already in the vault');
 				}
 				catch (e) {
 					ctx.reportFailed(note.title || enexSource.name, e);
@@ -177,18 +181,17 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 			noteAttributes = null;
 			resourceAttributes = [];
 
-			const currentNotePath = runtimeProps.getCurrentNotePath();
+			const currentNotePath = wrote ? runtimeProps.getCurrentNotePath() : '';
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
 
-					const taskPlaceholder = `<YARLE-EN-V10-TASK>${task}</YARLE-EN-V10-TASK>`;
+					const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
 					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
 					const sortedTasks = new Map([...tasks[task]].sort());
 
 					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
 
-					fs.writeFileSync(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
-					trackMarkdownWrite(currentNotePath);
+					rewriteFile(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
 				}
 			}
 		});
@@ -209,8 +212,9 @@ export const parseStream = async (options: YarleOptions, enexSource: PickedFile,
 	});
 };
 
-export async function dropTheRope(options: YarleOptions, ctx: ImportContext): Promise<void> {
+export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
+	forgetNotesWritten();
 	const outputNotebookFolders = [];
 	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {

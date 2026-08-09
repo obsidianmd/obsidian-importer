@@ -1,16 +1,3 @@
-/**
- * What an importer does with a name the vault already holds.
- *
- * Every importer writes through FormatImporter.createFile now, so this is one
- * behaviour rather than nine. It has to match Obsidian's own, because that is
- * what it defers to in the app: a taken name gets " 1", then " 2", and the
- * comparison ignores case, so an import cannot land on a note that differs
- * from it only in spelling.
- *
- * That was measured against the running app before it was written down here -
- * createNewMarkdownFile and getAvailablePath were asked for the same names and
- * gave the same answers - and tests/shims/vault.ts reproduces it.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -18,14 +5,14 @@ import { FormatImporter } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
-/** An importer that imports nothing: only the writing is under test. */
 class WritingImporter extends FormatImporter {
 	init(): void {}
 	async import(_ctx: ImportContext): Promise<void> {}
 }
 
-function importer(): { vault: MemoryVault, subject: WritingImporter } {
+function importer(configure?: (vault: MemoryVault) => void): { vault: MemoryVault, subject: WritingImporter } {
 	const vault = new MemoryVault();
+	configure?.(vault);
 	const subject = new WritingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 
 	return { vault, subject };
@@ -54,8 +41,6 @@ test('a taken name gets a number, and the note there is left alone', async () =>
 });
 
 test('a name that differs only in case is a taken name', async () => {
-	// On macOS and Windows these are one file. An exact comparison would hand
-	// back "note.md" as free and the write would land on "Note.md".
 	const { vault, subject } = importer();
 
 	await subject.createFile(vault.root, 'Note.md', 'first');
@@ -66,8 +51,6 @@ test('a name that differs only in case is a taken name', async () => {
 });
 
 test('an attachment is given a free name too', async () => {
-	// The vault throws on a taken name rather than picking another, so without
-	// this the second attachment fails the note it belongs to.
 	const { vault, subject } = importer();
 	const data = new TextEncoder().encode('bytes').buffer;
 
@@ -79,13 +62,54 @@ test('an attachment is given a free name too', async () => {
 });
 
 test('an attachment follows the vault subfolder setting relative to its note', async () => {
-	const { vault, subject } = importer();
+	const { subject } = importer(vault => vault.config.set('attachmentFolderPath', './media'));
 	await subject.createFolders('Imported/Nested');
-	vault.config.set('attachmentFolderPath', './media');
 
 	assert.equal(
 		await subject.getAvailablePathForAttachment('photo.jpg', [], 'Imported/Nested/Note.md'),
 		'Imported/Nested/media/photo.jpg'
+	);
+});
+
+test('the vault setting is only where the output step starts, not where it ends', async () => {
+	const { vault, subject } = importer(vault => vault.config.set('attachmentFolderPath', './media'));
+	await subject.createFolders('Imported/Nested');
+
+	subject.attachmentLocation = { mode: 'folder', path: 'Files' };
+
+	assert.equal(
+		await subject.getAvailablePathForAttachment('photo.jpg', [], 'Imported/Nested/Note.md'),
+		'Files/photo.jpg'
+	);
+	assert.equal(vault.config.get('attachmentFolderPath'), './media');
+});
+
+test('each attachment location puts the file where it says', async () => {
+	const notePath = 'Imported/Nested/Note.md';
+	const cases: [Parameters<typeof importer>[0], { mode: 'vault' | 'folder' | 'note' | 'subfolder', path: string }, string][] = [
+		[undefined, { mode: 'vault', path: '' }, 'photo.jpg'],
+		[undefined, { mode: 'folder', path: 'Attachments' }, 'Attachments/photo.jpg'],
+		[undefined, { mode: 'note', path: '' }, 'Imported/Nested/photo.jpg'],
+		[undefined, { mode: 'subfolder', path: 'media' }, 'Imported/Nested/media/photo.jpg'],
+	];
+
+	for (const [configure, location, expected] of cases) {
+		const { subject } = importer(configure);
+		await subject.createFolders('Imported/Nested');
+		subject.attachmentLocation = location;
+
+		assert.equal(await subject.getAvailablePathForAttachment('photo.jpg', [], notePath), expected, location.mode);
+	}
+});
+
+test('an attachment with nowhere to be relative to falls back to the output folder', async () => {
+	const { subject } = importer();
+	subject.outputLocation = 'Imported';
+	subject.attachmentLocation = { mode: 'subfolder', path: 'media' };
+
+	assert.equal(
+		await subject.getAvailablePathForAttachment('photo.jpg', []),
+		'Imported/media/photo.jpg'
 	);
 });
 
@@ -107,14 +131,11 @@ test('Markdown finalization reports failures, restores status, and clears its ru
 	assert.deepEqual(ctx.failed, ['Note.md']);
 	assert.equal(ctx.statusMessage, 'Import complete');
 
-	// The failed file belonged to the completed run and is not retried forever.
 	await subject.finalizeMarkdownOutput(ctx);
 	assert.deepEqual(ctx.failed, ['Note.md']);
 });
 
 test('a note keeps the extension it was given, and only that one', async () => {
-	// The title reaches saveAsMarkdownFile both with and without ".md", and a
-	// dotted title is a title rather than a name carrying an extension.
 	const { vault, subject } = importer();
 
 	assert.equal((await subject.saveAsMarkdownFile(vault.root, 'Plain', '')).path, 'Plain.md');
@@ -130,7 +151,6 @@ test('a title a file name cannot hold is sanitized before the name is picked', a
 	assert.equal(file.path, 'Q1-Q2 plan.md');
 });
 
-/** The pass is checked in tests/markdown-output; this is that the write reaches it. */
 test('markdown is written with the indent the vault uses', async () => {
 	const { vault, subject } = importer();
 	vault.config.set('useTab', true);
@@ -147,4 +167,105 @@ test('a file that is not markdown is written as it was given', async () => {
 	const file = await subject.createFile(vault.root, 'View.base', 'views:\n    - type: table');
 
 	assert.equal(await vault.read(file), 'views:\n    - type: table');
+});
+
+class PickingImporter extends WritingImporter {
+	sawDefaultPath: string | undefined;
+	answerWith: string[] = [];
+
+	protected chooseFrom(options: Record<string, unknown>, defaultPath?: string): string[] {
+		this.sawDefaultPath = this.pickerOpensAt(defaultPath);
+		if (this.answerWith.length > 0) this.rememberSourceFolder(this.answerWith[0]);
+		return this.answerWith;
+	}
+
+	opensAt(defaultPath?: string) {
+		return this.pickerOpensAt(defaultPath);
+	}
+
+	picked(filepath: string) {
+		this.rememberSourceFolder(filepath);
+	}
+}
+
+function picker(): PickingImporter {
+	return new PickingImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+}
+
+class DialogImporter extends WritingImporter {
+	choose(options: Record<string, unknown>, defaultPath?: string) {
+		return this.chooseFrom(options, defaultPath);
+	}
+}
+
+function withStubbedDialog<T>(answer: string[], use: (calls: Record<string, unknown>[]) => T): T {
+	const calls: Record<string, unknown>[] = [];
+	const globals = globalThis as unknown as { window?: Record<string, unknown> };
+	const had = globals.window;
+
+	globals.window = {
+		...had,
+		electron: { remote: { dialog: { showOpenDialogSync: (options: Record<string, unknown>) => {
+			calls.push(options);
+			return answer.length > 0 ? answer : undefined;
+		} } } },
+	};
+
+	try {
+		return use(calls);
+	}
+	finally {
+		if (had === undefined) delete globals.window;
+		else globals.window = had;
+	}
+}
+
+test('the folder the picker opens at is the one handed to the dialog', () => {
+	const subject = new DialogImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+
+	withStubbedDialog(['/Users/someone/Exports/notes.enex'], calls => {
+		subject.choose({ title: 'Pick files to import' });
+		assert.equal(calls[0].defaultPath, undefined, 'nothing to go on the first time');
+
+		subject.choose({ title: 'Pick files to import' });
+		assert.equal(calls[1].defaultPath, '/Users/someone/Exports', 'where the last pick came from');
+	});
+});
+
+test('a cancelled dialog changes nothing', () => {
+	const subject = new DialogImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+
+	withStubbedDialog(['/Users/someone/Exports/notes.enex'], () => subject.choose({}));
+
+	withStubbedDialog([], calls => {
+		assert.deepEqual(subject.choose({}), []);
+		assert.equal(calls[0].defaultPath, '/Users/someone/Exports');
+	});
+
+	withStubbedDialog(['/elsewhere/x.enex'], calls => {
+		subject.choose({});
+		assert.equal(calls[0].defaultPath, '/Users/someone/Exports', 'still the last folder actually picked');
+	});
+});
+
+test('with nothing to go on the picker is left to open where it likes', () => {
+	assert.equal(picker().opensAt(), undefined);
+});
+
+test('the folder a pick came from is where the next one starts', () => {
+	const subject = picker();
+
+	subject.picked('/Users/someone/Exports/notes.enex');
+
+	assert.equal(subject.opensAt(), '/Users/someone/Exports');
+});
+
+test('a folder this importer was pointed at beats one it worked out itself', () => {
+	const subject = picker();
+
+	assert.equal(subject.opensAt('/Users/someone/Library/Tomboy'), '/Users/someone/Library/Tomboy');
+
+	subject.picked('/Volumes/Backup/tomboy/note.note');
+
+	assert.equal(subject.opensAt('/Users/someone/Library/Tomboy'), '/Volumes/Backup/tomboy');
 });

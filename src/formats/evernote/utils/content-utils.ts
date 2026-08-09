@@ -2,7 +2,7 @@ import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs } from '../../../filesystem';
 import { MetaData } from '../models/MetaData';
-import { yarleOptions } from '../yarle';
+import { evernoteOptions } from '../convert';
 import { escapeStringRegexp } from './escape-string-regexp';
 
 export const getMetadata = (note: EvernoteNote, notebookName: string): MetaData => {
@@ -19,50 +19,50 @@ export const getMetadata = (note: EvernoteNote, notebookName: string): MetaData 
 };
 
 export const getCreationTime = (note: EvernoteNote): string => {
-	return !yarleOptions.skipCreationTime && note.created
-		? moment(note.created).format(yarleOptions.dateFormat)
+	return !evernoteOptions.skipCreationTime && note.created
+		? moment(note.created).format(evernoteOptions.dateFormat)
 		: '';
 };
 
 export const getUpdateTime = (note: EvernoteNote): string => {
-	return !yarleOptions.skipUpdateTime && note.updated
-		? moment(note.updated).format(yarleOptions.dateFormat)
+	return !evernoteOptions.skipUpdateTime && note.updated
+		? moment(note.updated).format(evernoteOptions.dateFormat)
 		: '';
 };
 
 export const getSourceUrl = (note: EvernoteNote): string => {
-	return !yarleOptions.skipSourceUrl &&
+	return !evernoteOptions.skipSourceUrl &&
 	note['note-attributes']
 		? note['note-attributes']['source-url'] ?? ''
 		: '';
 };
 
 export const getLatLong = (note: EvernoteNote): string => {
-	return !yarleOptions.skipLocation &&
+	return !evernoteOptions.skipLocation &&
 	note['note-attributes'] &&
 	note['note-attributes'].longitude
 		? `${note['note-attributes'].latitude},${note['note-attributes'].longitude}`
 		: '';
 };
 export const getReminderTime = (note: EvernoteNote): string => {
-	return !yarleOptions.skipReminderTime &&
+	return !evernoteOptions.skipReminderTime &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-time']
-		? moment(note['note-attributes']['reminder-time']).format(yarleOptions.dateFormat)
+		? moment(note['note-attributes']['reminder-time']).format(evernoteOptions.dateFormat)
 		: '';
 };
 export const getReminderOrder = (note: EvernoteNote): string => {
-	return !yarleOptions.skipReminderOrder &&
+	return !evernoteOptions.skipReminderOrder &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-order']
 		? note['note-attributes']['reminder-order']
 		: '';
 };
 export const getReminderDoneTime = (note: EvernoteNote): string => {
-	return !yarleOptions.skipReminderDoneTime &&
+	return !evernoteOptions.skipReminderDoneTime &&
 	note['note-attributes'] &&
 	note['note-attributes']['reminder-done-time']
-		? moment(note['note-attributes']['reminder-done-time']).format(yarleOptions.dateFormat)
+		? moment(note['note-attributes']['reminder-done-time']).format(evernoteOptions.dateFormat)
 		: '';
 };
 /*
@@ -75,9 +75,9 @@ export const getTags = (note: EvernoteNote): { tags: string } => {
 };
 
 export const logTags = (note: EvernoteNote): string => {
-	if (!yarleOptions.skipTags && note.tag) {
+	if (!evernoteOptions.skipTags && note.tag) {
 		const tagArray = Array.isArray(note.tag) ? note.tag : [note.tag];
-		const tagOptions = yarleOptions.nestedTags;
+		const tagOptions = evernoteOptions.nestedTags;
 
 		const tags = tagArray.map(tag => {
 			let cleanTag = tag
@@ -91,7 +91,7 @@ export const logTags = (note: EvernoteNote): string => {
 
 			cleanTag = cleanTag.replace(/ /g, replaceSpaceWith);
 
-			return `${yarleOptions.useHashTags ? '#' : ''}${cleanTag}`;
+			return `${evernoteOptions.useHashTags ? '#' : ''}${cleanTag}`;
 		});
 
 		return tags.join(' ');

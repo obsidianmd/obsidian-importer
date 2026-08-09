@@ -1,9 +1,10 @@
+import { reusesNoteNames } from '../options';
 import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 
-import { yarleOptions } from '../yarle';
+import { evernoteOptions } from '../convert';
 
 import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { extensionForMime } from '../../../mime';
@@ -22,7 +23,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number =>
 
 };
 export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
-	const UNKNOWNFILENAME = yarleOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
+	const UNKNOWNFILENAME = evernoteOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
@@ -34,8 +35,8 @@ export const getResourceFileProperties = (workDir: string, resource: EvernoteRes
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
 
-	if (yarleOptions.sanitizeResourceNameSpaces) {
-		fileName = fileName.replace(/ /g, yarleOptions.replacementChar);
+	if (evernoteOptions.sanitizeResourceNameSpaces) {
+		fileName = fileName.replace(/ /g, evernoteOptions.replacementChar);
 	}
 
 	const index = getFileIndex(workDir, fileName);
@@ -89,7 +90,7 @@ export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 	let noteName;
 
 	let filePrefix = getFilePrefix(note);
-	if (yarleOptions.isZettelkastenNeeded || yarleOptions.useZettelIdAsFilename) {
+	if (evernoteOptions.isZettelkastenNeeded || evernoteOptions.useZettelIdAsFilename) {
 		const zettelPrefix = getZettelKastelId(note, dstPath);
 		const nextIndex = getFileIndex(dstPath, zettelPrefix);
 		const separator = ' ';
@@ -97,7 +98,7 @@ export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 			`${zettelPrefix}.${nextIndex}` :
 			zettelPrefix;
 
-		if (!yarleOptions.useZettelIdAsFilename) {
+		if (!evernoteOptions.useZettelIdAsFilename) {
 			if (filePrefix !== 'Untitled') {
 				const availableSpace = MAX_NOTE_NAME_LENGTH - noteName.length - separator.length;
 				const filePrefixPart = filePrefix.substring(0, Math.max(0, availableSpace));
@@ -112,7 +113,7 @@ export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 			console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 		}
 
-		const nextIndex = getFileIndex(dstPath, filePrefix);
+		const nextIndex = reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
 
 		noteName = (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 	}

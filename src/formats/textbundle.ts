@@ -24,7 +24,7 @@ export class TextbundleImporter extends FormatImporter {
 			: ['textpack', 'zip'];
 
 		this.addFileChooserSetting('Textbundle', formats, true);
-		this.addOutputLocationSetting('Textbundle');
+		this.defaultOutputFolder = 'Textbundle';
 	}
 
 	async import(progress: ImportContext): Promise<void> {
@@ -95,8 +95,8 @@ export class TextbundleImporter extends FormatImporter {
 					let filePath = normalizePath(mdFilename);
 					const outputFolder = await this.getOutputFolder();
 					// We already asserted previously that the result from getOutputFolder is not null.
-					await this.saveAsMarkdownFile(outputFolder!, filePath, mdContent);
-					progress.reportNoteSuccess(mdFilename);
+					const { written } = await this.writeNote(progress, outputFolder!, filePath, mdContent);
+					if (written) progress.reportNoteSuccess(mdFilename);
 				}
 				else if (entry.type === 'file' && entry.fullpath.contains('assets/')) {
 					await this.importAsset(progress, entry);

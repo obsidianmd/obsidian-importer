@@ -20,6 +20,7 @@ type IDMappingValue = {
 	filename: string;
 	metadata: Metadata;
 	file: TFile;
+	written: boolean;
 };
 
 export class Bear2bkImporter extends FormatImporter {
@@ -27,7 +28,6 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
-	private storeId: boolean = false;
 
 	init() {
 		this.addSetting('source')
@@ -38,7 +38,9 @@ export class Bear2bkImporter extends FormatImporter {
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
-		this.addOutputLocationSetting('Bear');
+		this.defaultOutputFolder = 'Bear';
+		this.idProperty = 'bear-id';
+		this.idLabel = 'Bear ID';
 
 		this.addSetting()
 			?.setName('Flatten nested tags')
@@ -50,15 +52,6 @@ export class Bear2bkImporter extends FormatImporter {
 				.onChange(async v => this.flattenTags = v)
 			);
 
-		this.addSetting()
-			?.setName('Store note identifiers in front matter')
-			.setDesc(
-				'Links will be automatically updated. Enable this if the note identifier is used outside of linking between notes.'
-			)
-			.addToggle(t => t
-				.setValue(false)
-				.onChange(async v => this.storeId = v)
-			);
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -118,22 +111,30 @@ export class Bear2bkImporter extends FormatImporter {
 							// Use just the filename without extension
 							const fileName = mdFilename;
 
-							const file = await this.saveAsMarkdownFile(targetFolder, fileName, mdContent);
+							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent, {
+								sourceId: metadata?.id,
+								ctime: metadata?.ctime,
+								mtime: metadata?.mtime,
+							});
 
-							if (this.storeId || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
-								await this.updateNoteFrontmatter(metadata, file, tags);
-							}
-							if (metadata?.ctime && metadata?.mtime) {
-								await this.modifFileTimestamps(metadata, file);
+							if (written) {
+								if (metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
+									await this.updateNoteFrontmatter(metadata, file, tags);
+								}
+								if (metadata?.ctime && metadata?.mtime) {
+									await this.modifFileTimestamps(metadata, file);
+								}
 							}
 
+							// Keep skipped notes as link targets without rewriting them.
 							idMapping[metadata?.id] = {
-								filename: fileName,
+								filename: parseFilePath(file.path).basename,
 								metadata: metadata,
 								file: file,
+								written,
 							};
 
-							ctx.reportNoteSuccess(mdFilename);
+							if (written) ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status('Importing asset ' + entry.name);
@@ -189,9 +190,6 @@ export class Bear2bkImporter extends FormatImporter {
 		};
 
 		await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-			if (this.storeId && metaData?.id) {
-				frontmatter['id'] = metaData.id;
-			}
 			if (metaData?.archivedtime) {
 				frontmatter['archived'] = new Date(metaData.archivedtime).toISOString().slice(0, 19);
 			}
@@ -214,7 +212,7 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private updateNotesLinks(idMapping: Record<string, IDMappingValue>): Promise<void> {
-		const updatePromises = Object.values(idMapping).map(async (note) => {
+		const updatePromises = Object.values(idMapping).filter(note => note.written).map(async (note) => {
 			const { metadata, file } = note;
 			const writeOptions: DataWriteOptions = {
 				ctime: metadata?.ctime,

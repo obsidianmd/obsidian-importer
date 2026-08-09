@@ -6,9 +6,9 @@ import { RuntimePropertiesSingleton } from './runtime-properties';
 import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
 import { applyTemplate } from './utils/templates/templates';
-import { yarleOptions } from './yarle';
+import { evernoteOptions } from './convert';
 
-export const processNode = (note: EvernoteNote, notebookName: string): void => {
+export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	const title = note.title ?? '';
@@ -31,14 +31,14 @@ export const processNode = (note: EvernoteNote, notebookName: string): void => {
 		}
 		noteData.htmlContent = extractDataUrlResources(note, noteData.htmlContent);
 
-		noteData = { ...noteData, ...convertHtml2Md(yarleOptions, noteData) };
+		noteData = { ...noteData, ...convertHtml2Md(evernoteOptions, noteData) };
 		noteData = { ...noteData, ...getMetadata(note, notebookName) };
 		noteData = { ...noteData, ...getTags(note) };
 
-		const data = applyTemplate(noteData, yarleOptions);
+		const data = applyTemplate(noteData, evernoteOptions);
 		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
-		saveMdFile(data, note);
+		return saveMdFile(data, note);
 
 		/* if (isTOC(noteData.title)) {
 		  const  noteIdNameMap = RuntimePropertiesSingleton.getInstance();

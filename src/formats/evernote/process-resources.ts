@@ -3,12 +3,12 @@ import { fs, nodeCrypto, path } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';
-import { yarleOptions } from './yarle';
+import { evernoteOptions } from './convert';
 
 const getResourceWorkDirs = (note: EvernoteNote) => {
 	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
-	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, yarleOptions.pathSeparator || '/');
-	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,yarleOptions.pathSeparator)
+	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, evernoteOptions.pathSeparator || '/');
+	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,evernoteOptions.pathSeparator)
 
 	return { absoluteResourceWorkDir, relativeResourceWorkDir };
 };
@@ -42,7 +42,7 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 	const fileName = resourceHashes[hash]?.fileName;
 	if (!fileName) return content;
 
-	const src = `${workDir}${yarleOptions.pathSeparator}${fileName.replace(/ /g, ' ')}`;
+	const src = `${workDir}${evernoteOptions.pathSeparator}${fileName.replace(/ /g, ' ')}`;
 	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
@@ -133,7 +133,7 @@ export const extractDataUrlResources = (
 	// src="data:image/svg+xml;base64,..." --> src="resourceDir/fileName"
 	return content.replace(/src="data:([^;,]*)(;base64)?,([^"]*)"/g, (match, mediatype, encoding, data) => {
 		const fileName = createResourceFromData(mediatype, encoding === ';base64', data, absoluteResourceWorkDir, note);
-		const src = `${relativeResourceWorkDir}${yarleOptions.pathSeparator}${fileName}`;
+		const src = `${relativeResourceWorkDir}${evernoteOptions.pathSeparator}${fileName}`;
 
 		return `src="${src}"`;
 	});

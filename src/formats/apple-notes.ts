@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -80,7 +80,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	filePrefixFormat: string;
-	private claimedPaths = new Set<string>();
 
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
@@ -94,6 +93,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	init(): void {
+		this.defaultOutputFolder = 'Apple Notes';
+		this.idProperty = NOTE_ID_PROPERTY;
+		this.idLabel = 'Apple Notes ID';
+
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.draw(contentEl => contentEl.createEl('p', {
 				text:
@@ -111,8 +114,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		if (this.dataPath) {
 			void this.loadFolders();
 		}
-
-		this.addOutputLocationSetting('Apple Notes');
 
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;
@@ -153,7 +154,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				.onChange(async v => this.includeHandwriting = v)
 			);
 
-		this.addDuplicateHandlingSetting({ idProperty: NOTE_ID_PROPERTY });
 	}
 
 	private addAccessSetting(): void {
@@ -517,7 +517,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const storedTitle = String(row.ZTITLE1);
 		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
 
-		const existingFile = await this.previouslyImported(
+		const existingFile = this.existingNoteFor(
 			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
 		);
 
@@ -526,7 +526,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				this.ctx.reportSkipped(title, 'note is a duplicate');
 				return existingFile;
 			}
-			else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+			else if (this.duplicateHandling === DuplicateHandling.Update) {
 				// Check modification times before skipping
 				const appleNoteModTime = this.decodeTime(row.ZMODIFICATIONDATE1);
 				const existingFileModTime = existingFile.stat.mtime;
@@ -549,7 +549,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
 
-		await this.modifyMarkdown(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
+		await this.modifyMarkdown(file, this.withSourceId(body, row.ZIDENTIFIER), {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
@@ -691,7 +691,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
 					return existingAttachment;
 				}
-				else if (this.duplicateHandling === DuplicateHandling.ImportUpdated) {
+				else if (this.duplicateHandling === DuplicateHandling.Update) {
 					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
 					const existingAttachmentModTime = existingAttachment.stat.mtime;
 
@@ -779,35 +779,23 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
-	private async previouslyImported(folder: TFolder, titles: string[], noteId?: string): Promise<TFile | null> {
+	private existingNoteFor(folder: TFolder, titles: string[], noteId?: string): TFile | null {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 
 		for (const title of new Set(titles)) {
 			const fullPath = normalizePath(path.join(folder.path, `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`));
-			// A second same-named note in this run must become a copy, not an update.
-			if (this.claimedPaths.has(fullPath)) return null;
-
-			const existingFile = this.vault.getAbstractFileByPath(fullPath);
-			if (!(existingFile instanceof TFile)) continue;
-
-			const existingId = await this.sourceIdOf(existingFile, NOTE_ID_PROPERTY);
-			if (existingId && noteId && existingId !== noteId) continue;
-
-			return existingFile;
+			const existingFile = this.previouslyImported(fullPath, noteId);
+			if (existingFile) return existingFile;
 		}
 
 		return null;
 	}
 
-	private noteIdFrontMatter(noteId: string | undefined): string {
-		if (this.duplicateHandling === DuplicateHandling.CreateCopy || !noteId) return '';
 
-		return serializeFrontMatter({ [NOTE_ID_PROPERTY]: noteId });
-	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const file = await super.saveAsMarkdownFile(folder, title, content, options);
-		this.claimedPaths.add(file.path);
+		this.claimPath(file.path);
 
 		return file;
 	}

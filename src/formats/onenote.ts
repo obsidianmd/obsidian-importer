@@ -1,7 +1,7 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
@@ -76,7 +76,6 @@ export class OneNoteImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
 	// Settings
-	importPreviouslyImported: boolean = false;
 	importIncompatibleAttachments: boolean = false;
 	// UI
 	accountSetting: Setting;
@@ -90,6 +89,7 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentsSinceBackOff = 0;
+	private legacyImportedIds = new Set<string>();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -102,7 +102,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async init() {
-		this.addOutputLocationSetting('OneNote');
+		this.defaultOutputFolder = 'OneNote';
+		this.idProperty = 'onenote-id';
+		this.idLabel = 'OneNote ID';
 
 		this.addSetting()
 			?.setName('Import incompatible attachments')
@@ -110,14 +112,6 @@ export class OneNoteImporter extends FormatImporter {
 			.addToggle((toggle) => toggle
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
-			);
-
-		this.addSetting()
-			?.setName('Skip previously imported')
-			.setDesc('If enabled, notes imported previously by this plugin will be skipped.')
-			.addToggle((toggle) => toggle
-				.setValue(true)
-				.onChange((value) => (this.importPreviouslyImported = !value))
 			);
 
 		const contentEl = this.host.sourceEl;
@@ -367,17 +361,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 	async import(progress: ImportContext): Promise<void> {
-		const previouslyImported = new Set<string>();
-		const data = await this.host.plugin.loadData();
-		if (!data.importers.onenote) {
-			data.importers.onenote = {
-				previouslyImportedIDs: [],
-			};
-		}
-		for (const id of data.importers.onenote.previouslyImportedIDs) {
-			previouslyImported.add(id);
-		}
-
+		await this.readLegacyImportedIds();
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
@@ -429,8 +413,9 @@ export class OneNoteImporter extends FormatImporter {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-				if (!this.importPreviouslyImported && page.id && previouslyImported.has(page.id)) {
-					progress.reportSkipped(page.title, 'it was previously imported');
+				// Legacy IDs have no note paths, so they can only support Skip.
+				if (this.duplicateHandling === DuplicateHandling.Skip && page.id && this.legacyImportedIds.has(page.id)) {
+					progress.reportSkipped(page.title, 'an earlier version of the importer already brought it in');
 					continue;
 				}
 
@@ -440,12 +425,6 @@ export class OneNoteImporter extends FormatImporter {
 					await this.processFile(progress,
 						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress),
 						page);
-
-					if (page.id) {
-						previouslyImported.add(page.id);
-						data.importers.onenote.previouslyImportedIDs = Array.from(previouslyImported);
-						await this.host.plugin.saveData(data);
-					}
 
 					consecutiveFailureCount = 0;
 				}
@@ -512,6 +491,21 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
+	private async readLegacyImportedIds(): Promise<void> {
+		this.legacyImportedIds.clear();
+		if (!this.host.plugin) return;
+
+		try {
+			const data = await this.host.plugin.loadData();
+			for (const id of data.importers?.onenote?.previouslyImportedIDs ?? []) {
+				this.legacyImportedIds.add(id);
+			}
+		}
+		catch (e) {
+			console.error('Could not read the ids of previously imported pages', e);
+		}
+	}
+
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		try {
 			const splitContent = this.convertFormat(content);
@@ -572,8 +566,8 @@ export class OneNoteImporter extends FormatImporter {
 				ctime: created ?? lastModified ?? Date.now(),
 				mtime: lastModified ?? created ?? Date.now(),
 			};
-			await this.saveAsMarkdownFile(pageFolder, page.title!, mdContent, writeOptions);
-			progress.reportNoteSuccess(page.title!);
+			const { written } = await this.writeNote(progress, pageFolder, page.title!, mdContent, { ...writeOptions, sourceId: page.id });
+			if (written) progress.reportNoteSuccess(page.title!);
 		}
 		catch (e) {
 			progress.reportFailed(page.title!, e);

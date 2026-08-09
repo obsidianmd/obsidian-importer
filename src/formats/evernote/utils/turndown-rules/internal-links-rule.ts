@@ -1,7 +1,7 @@
 import { TurndownNode } from './turndown-types';
 import { genUid } from '../../../../util';
 import { RuntimePropertiesSingleton } from '../../runtime-properties';
-import { yarleOptions } from '../../yarle';
+import { evernoteOptions } from '../../convert';
 
 import { normalizeTitle } from '../filename-utils';
 import { isNormalMarkdownHref } from '../link-hrefs';
@@ -25,7 +25,7 @@ export const wikiStyleLinksRule = {
 		if (!nodeProxy.href) {
 			return '';
 		}
-		let text = getTurndownService(yarleOptions).turndown(removeBrackets(node.innerHTML));
+		let text = getTurndownService(evernoteOptions).turndown(removeBrackets(node.innerHTML));
 		text = removeDoubleBackSlashes(text);
 		let prefix = '';
 		let match = text.match(/^(#{1,6} )(.*)/);
@@ -36,7 +36,7 @@ export const wikiStyleLinksRule = {
 
 		const value = nodeProxy.href.value;
 		const type = nodeProxy.type ? nodeProxy.type.value : undefined;
-		const realValue = yarleOptions.urlEncodeFileNamesAndLinks ? encodeURI(value) : value;
+		const realValue = evernoteOptions.urlEncodeFileNamesAndLinks ? encodeURI(value) : value;
 
 		if (type === 'file') {
 			return `![[${realValue}]]`;
@@ -81,5 +81,5 @@ function unescape(text: string) {
 }
 
 export const getShortLinkIfPossible = (text: string, value: string): string => {
-	return (!text || unescape(text) === unescape(value)) ? yarleOptions.generateNakedUrls ? value : `<${value}>` : `[${text}](${value})`;
+	return (!text || unescape(text) === unescape(value)) ? evernoteOptions.generateNakedUrls ? value : `<${value}>` : `[${text}](${value})`;
 };

@@ -1,5 +1,5 @@
 import { TurndownNode } from './turndown-types';
-import { yarleOptions } from '../../yarle';
+import { evernoteOptions } from '../../convert';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 import { replaceCodeBlock } from './replace-code-block';
@@ -22,8 +22,8 @@ export const divRule = {
 	filter: filterByNodeName('DIV'),
 	replacement: (content: string, node: TurndownNode) => {
 		return (isTaskBlock(node))
-			? `<YARLE-EN-V10-TASK>${getTaskGroupId(node)}</YARLE-EN-V10-TASK>`
-			: (yarleOptions.monospaceIsCodeBlock)
+			? `<ENEX-EN-V10-TASK>${getTaskGroupId(node)}</ENEX-EN-V10-TASK>`
+			: (evernoteOptions.monospaceIsCodeBlock)
 				? replaceMonospaceCodeBlock(content, node)
 				: replaceCodeBlock(content, node);
 	},
