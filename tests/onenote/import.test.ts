@@ -131,6 +131,37 @@ test('a section missed by the read-ahead is still fetched by the import', async 
 	assert.match(listed[0], /%24top=100/, 'and asks for more than the default 20 a time');
 });
 
+test('unticking a section drops it from the read-ahead queue', async () => {
+	// Sections are read one at a time, so most of a large selection is still
+	// waiting its turn. Changing your mind has to call that work off.
+	const listed: string[] = [];
+	let releaseFirst: () => void = () => {};
+	const firstInFlight = new Promise<void>(resolve => { releaseFirst = resolve; });
+
+	const subject = importerOverPages([], {
+		// signedIn is a getter with no setter; graphData is what it reads.
+		sectionPages: new Map(),
+		selectedSections: [
+			{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }, { id: 'c', title: 'C' },
+		],
+		fetchResource: async (url: string) => {
+			const id = /sections\/([^/]+)\//.exec(url)?.[1] ?? '';
+			listed.push(id);
+			if (id === 'a') await firstInFlight;
+			return { value: [] };
+		},
+	} as unknown as Partial<OneNoteImporter>);
+
+	(subject as unknown as { prefetchSelectedPages(): void }).prefetchSelectedPages();
+
+	// While A is still in flight, B and C are unticked.
+	subject.selectedSections = [{ id: 'a', title: 'A' }] as OneNoteImporter['selectedSections'];
+	releaseFirst();
+	await (subject as unknown as { prefetching: Promise<void> }).prefetching;
+
+	assert.deepEqual(listed, ['a'], 'only the section already being read should have been asked for');
+});
+
 test('a vault that will not take the write does stop the import', async () => {
 	const { progress, failed, skipped } = watchedContext();
 

@@ -560,14 +560,14 @@ export class OneNoteImporter extends FormatImporter {
 		// Anything still being read ahead is about to be needed.
 		await this.prefetching;
 
-		for (const section of this.selectedSections) {
+		const sections = this.selectedSections;
+		for (const [index, section] of sections.entries()) {
 			if (await progress.shouldStop()) break;
 
 			let pages = this.sectionPages.get(section.id);
 			if (!pages) {
-				progress.status(queue.length
-					? `Finding notes in ${section.title} (${queue.length} so far)`
-					: `Finding notes in ${section.title}`);
+				const position = sections.length > 1 ? ` (section ${index + 1} of ${sections.length})` : '';
+				progress.status(`Finding notes in ${section.title}${position}`);
 
 				try {
 					pages = await this.fetchSectionPages(section.id, progress);
