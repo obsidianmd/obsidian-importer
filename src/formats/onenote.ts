@@ -38,11 +38,32 @@ function assertUnreachable(x: never): never {
 }
 
 function worthRetrying(status: number): boolean {
-	// Only a decision is worth failing fast on. OneNote answers a page request
-	// with a bare 400 often enough that PR #388 added a retry for it on
-	// purpose, and it usually succeeds on the second attempt — so the list is
-	// of what will never change, not of what might.
+	// Names what will never change, not what might: OneNote answers page
+	// requests with bare 400s that usually clear on the second attempt.
 	return status !== 403 && status !== 404;
+}
+
+/**
+ * A page whose own content defeated the conversion.
+ *
+ * Everything else that fails a page — the API refusing, a full disk, a vault
+ * that will not take the write — fails identically for every page after it,
+ * which is what the consecutive-failure stop is watching for. One
+ * unconvertible page is not that.
+ */
+class PageContentError extends Error {
+	constructor(cause: unknown) {
+		super(extractErrorMessage(cause) ?? String(cause));
+	}
+
+	static wrapping<T>(convert: () => T): T {
+		try {
+			return convert();
+		}
+		catch (e) {
+			throw new PageContentError(e);
+		}
+	}
 }
 
 class GraphRefusal extends Error {
@@ -213,8 +234,6 @@ export class OneNoteImporter extends FormatImporter {
 
 	private showSignedOut() {
 		this.accountSetting.setDesc(this.microsoftAccountType === 'organization'
-			// Only said once we know, which is after a first sign-in: the extra
-			// access is what a work or school tenant may want approving.
 			? 'Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.'
 			: 'Sign in to import your OneNote notebooks.');
 		this.accountButton.setButtonText('Sign in').setCta();
@@ -292,9 +311,8 @@ export class OneNoteImporter extends FormatImporter {
 			this.storeRefreshToken(tokenResponse.refresh_token);
 		}
 
-		// The token says which kind of account signed in. Remembering it is
-		// what lets the next sign-in ask for the access a work or school
-		// account needs, without anyone having had to say so up front.
+		// Remembering this is what lets the next sign-in ask for the wider
+		// access a work or school account needs, without anyone saying so.
 		const detected = accountTypeFromToken(tokenResponse.id_token ?? tokenResponse.access_token);
 		if (detected) this.microsoftAccountType = detected;
 
@@ -337,13 +355,11 @@ export class OneNoteImporter extends FormatImporter {
 			await this.picker.load(() => this.readNotebooks());
 		}
 		catch (e) {
-			// Being refused the notebooks is the other way to learn this, and
-			// unlike reading the token it does not depend on Microsoft handing
-			// us anything readable. But 40004 is documented only as the token
-			// lacking the scopes, not as something a work account alone is
-			// told, and notes.read.all cannot be granted to a personal account
-			// at all — so escalating one would leave it unable to sign in.
-			// A sign-in that already said personal is therefore believed.
+			// The other way to learn this, for when the token was unreadable.
+			// 40004 only means the token lacks the scopes, though, and a
+			// personal account cannot hold notes.read.all at all — escalating
+			// one would leave it unable to sign in, so a sign-in that already
+			// said personal wins.
 			if (requestFailure(e).code === '40004' && this.knownAccountType !== 'personal') {
 				this.microsoftAccountType = 'organization';
 			}
@@ -485,16 +501,27 @@ export class OneNoteImporter extends FormatImporter {
 
 				progress.status(`Importing note ${page.title}`);
 
-				let content: string;
+				let failure: unknown = null;
 				try {
-					content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
-					consecutiveFailureCount = 0;
+					const content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
+					await this.processFile(progress, content, page);
 				}
 				catch (e) {
-					consecutiveFailureCount++;
+					failure = e;
 					progress.reportFailed(page.title, String(e));
+				}
+
+				if (!failure) {
+					consecutiveFailureCount = 0;
+				}
+				// A page its own content defeated leaves the count where it
+				// was; anything else is the failure every remaining page is
+				// about to hit.
+				else if (!(failure instanceof PageContentError)) {
+					consecutiveFailureCount++;
 
 					if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
+						const e = failure;
 						const status = this.host.abortController.signal.aborted
 							// The import was aborted
 							? extractErrorMessage(e) ?? String(e)
@@ -518,20 +545,6 @@ export class OneNoteImporter extends FormatImporter {
 
 						return;
 					}
-
-					progress.reportProgress(++progressCurrent, progressTotal);
-					continue;
-				}
-
-				// A page that will not convert is one bad page. The counter
-				// above watches for the API going out from under us, and
-				// feeding content errors into it lets six unusual pages end an
-				// import that was otherwise working.
-				try {
-					await this.processFile(progress, content, page);
-				}
-				catch (e) {
-					progress.reportFailed(page.title, String(e));
 				}
 
 				// report progress even if page import fails or is skipped
@@ -583,7 +596,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
-		const splitContent = this.convertFormat(content);
+		const splitContent = PageContentError.wrapping(() => this.convertFormat(content));
 		const outputFolder = await this.getOutputFolder();
 		const outputPath = this.getEntityPathNoParent(page.id!, outputFolder!.name)!;
 
@@ -615,7 +628,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		const html = await this.getAllAttachments(progress, convertPageTags(splitContent.html), notePath);
-		let mdContent = pageToMarkdown(html);
+		let mdContent = PageContentError.wrapping(() => pageToMarkdown(html));
 
 		if (inkEmbedMarkdown) mdContent += inkEmbedMarkdown;
 
@@ -788,20 +801,25 @@ export class OneNoteImporter extends FormatImporter {
 				object.parentNode?.insertBefore(object.firstChild, next);
 			}
 
+			// Name first: without one there is nothing to filter on, and an
+			// empty extension would fail the check below and be dropped in
+			// silence rather than reported.
 			const originalName = object.getAttribute('data-attachment');
-			const extension = originalName?.split('.').pop()?.toLowerCase() ?? '';
+			if (!originalName) {
+				progress.reportFailed('OneNote attachment', 'the attachment did not say what it was called');
+				continue;
+			}
 
-			// If the page contains an incompatible file and user doesn't want to import them, skip.
-			// This comes before the checks below so that a file the user chose
-			// not to import is passed over quietly rather than reported as a
-			// failure they did not ask for.
+			// Then the filter, so a file the user opted out of is passed over
+			// quietly rather than reported as a failure they did not ask for.
+			const extension = originalName.split('.').pop()?.toLowerCase() ?? '';
 			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
 				continue;
 			}
 
 			const contentLocation = object.getAttribute('data');
-			if (!originalName || !contentLocation) {
-				progress.reportFailed(originalName ?? 'OneNote attachment', 'the attachment did not include a download URL');
+			if (!contentLocation) {
+				progress.reportFailed(originalName, 'the attachment did not include a download URL');
 				continue;
 			}
 
@@ -820,9 +838,8 @@ export class OneNoteImporter extends FormatImporter {
 
 		for (let i = 0; i < images.length; i++) {
 			const image = images[i];
-			// Same reasoning as the objects above: OneNote does not always send
-			// these, and asserting they are there turns one odd image into a
-			// TypeError that costs the whole page.
+			// OneNote does not always send these, and asserting them turns one
+			// odd image into a TypeError that costs the whole page.
 			const contentLocation = image.getAttribute('data-fullres-src');
 			if (!contentLocation) {
 				progress.reportFailed('OneNote image', 'the image did not include a download URL');
@@ -952,10 +969,9 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			else {
 				let err: PublicError | null = null;
-				// Graph does not always answer with JSON — an empty body, or an
-				// HTML page from a proxy in front of it, used to reject here and
-				// fall through to the network retry, taking the throttling
-				// branch below with it.
+				// Graph does not always answer with JSON: an empty body, or an
+				// HTML page from a proxy. Throwing here would skip every branch
+				// below, throttling included.
 				const respJson: unknown = await response.json().catch(() => null);
 				if (respJson && typeof respJson === 'object' && 'error' in respJson) {
 					err = (respJson as { error: PublicError }).error;
@@ -969,10 +985,8 @@ export class OneNoteImporter extends FormatImporter {
 					|| err?.code === 'InvalidAuthenticationToken'
 					|| response.status === 401;
 				if (isNotAuthorized) {
-					// Refreshing is the whole remedy, so a 401 that survives it
-					// is the account not being allowed to read this. Retrying
-					// four more times only replaces what Graph said with
-					// 'Exceeded maximum retry attempts'.
+					// Refreshing is the whole remedy, so a 401 surviving it means
+					// the account may not read this. Say so rather than retry.
 					if (refreshed) throw new GraphRefusal(response.status, err);
 
 					await this.updateAccessToken();
@@ -981,12 +995,9 @@ export class OneNoteImporter extends FormatImporter {
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166' || response.status === 429) {
-					// Waiting is right during an import: the user asked for the
-					// whole notebook and the limit lifts. While the picker is
-					// loading there is nothing on screen that waiting helps, so
-					// it just sits silently for a minute an attempt — which is
-					// what issue #390 reports. Say so and let them press
-					// Refresh.
+					// Waiting is right during an import; the limit lifts. The
+					// picker has nothing on screen that waiting helps, so it
+					// would just sit silent for a minute an attempt.
 					if (!progress) throw new GraphRefusal(429, err);
 
 					const retryAfter = response.headers.get('Retry-After');

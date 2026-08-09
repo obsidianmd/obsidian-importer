@@ -16,22 +16,15 @@ test('a malformed page is not swallowed before the import can report it', async 
 });
 
 /**
- * The consecutive-failure counter is there to notice the API going out from
- * under an import — it stops the run and reports every page after it skipped.
- * Pages that simply will not convert must not reach it: they are one bad page
- * each, and six of them in a row used to end a working import.
+ * The consecutive-failure counter is there to notice something failing the
+ * same way for every page — the API going out from under the import, a vault
+ * that will not take a write. It stops the run and reports the rest skipped.
+ *
+ * A page its own content defeated is not that, and six of those in a row used
+ * to end a working import. Telling the two apart is the whole point, so both
+ * directions are checked.
  */
-test('pages that will not convert are reported without ending the import', async () => {
-	const pages: OnenotePage[] = Array.from({ length: 8 }, (_, i) => ({
-		id: `page-${i}`, title: `Page ${i}`, contentUrl: `page-id=page-${i}}`,
-	}));
-
-	const failed: string[] = [];
-	const skipped: string[] = [];
-	const progress = new ImportContext();
-	progress.reportFailed = (name: string) => void failed.push(name);
-	progress.reportSkipped = (name: string) => void skipped.push(name);
-
+function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImporter>): OneNoteImporter {
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
 	Object.assign(subject, {
 		selectedSections: [{ id: 'section', title: 'Section' }],
@@ -43,14 +36,52 @@ test('pages that will not convert are reported without ending the import', async
 		readLegacyImportedIds: async () => {},
 		getOutputFolder: async () => ({ name: 'OneNote', path: 'OneNote' }),
 		insertPagesToSection: () => {},
-		fetchResource: async (url: string) => url.includes('/pages?') ? { value: pages } : 'content',
-		// Every page converts badly, the way a whole section exported from one
-		// source would.
-		processFile: async () => { throw new Error('could not convert'); },
-	});
+	}, overrides);
+	return subject;
+}
+
+function watchedContext(): { progress: ImportContext, failed: string[], skipped: string[] } {
+	const failed: string[] = [];
+	const skipped: string[] = [];
+	const progress = new ImportContext();
+	progress.reportFailed = (name: string) => void failed.push(name);
+	progress.reportSkipped = (name: string) => void skipped.push(name);
+	return { progress, failed, skipped };
+}
+
+const eightPages: OnenotePage[] = Array.from({ length: 8 }, (_, i) => ({
+	id: `page-${i}`, title: `Page ${i}`, contentUrl: `page-id=page-${i}}`,
+}));
+
+test('pages that will not convert are reported without ending the import', async () => {
+	const { progress, failed, skipped } = watchedContext();
+
+	// Not a stub for processFile: the real one is left to reject the content,
+	// so what is under test is that it classifies it as the page's own problem.
+	const subject = importerOverPages(eightPages, {
+		fetchResource: async (url: string) => url.includes('/pages?')
+			? { value: eightPages }
+			: 'not a multipart document',
+	} as Partial<OneNoteImporter>);
 
 	await subject.import(progress);
 
-	assert.deepEqual(failed, pages.map(page => page.title));
+	assert.deepEqual(failed, eightPages.map(page => page.title));
 	assert.deepEqual(skipped, [], 'no page should be abandoned as collateral');
+});
+
+test('a vault that will not take the write does stop the import', async () => {
+	const { progress, failed, skipped } = watchedContext();
+
+	// A full disk, or a folder that cannot be created, fails the same way for
+	// every page after it — which is exactly what the counter is watching for.
+	const subject = importerOverPages(eightPages, {
+		fetchResource: async (url: string) => url.includes('/pages?') ? { value: eightPages } : 'content',
+		processFile: async () => { throw new Error('ENOSPC: no space left on device'); },
+	} as Partial<OneNoteImporter>);
+
+	await subject.import(progress);
+
+	assert.equal(failed.length, 6, 'stops once six in a row have failed the same way');
+	assert.equal(skipped.length, 2, 'and says what it gave up on');
 });
