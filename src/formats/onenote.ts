@@ -38,12 +38,15 @@ function worthRetrying(status: number): boolean {
 	return status === 408 || status === 429 || status >= 500;
 }
 
-/** An error carrying what Graph said, for whoever has to describe it. */
-function graphError(status: number, err: PublicError | null): Error {
-	return Object.assign(
-		new Error(err?.message || `OneNote returned ${status}`),
-		{ status, code: err?.code ?? undefined },
-	);
+class GraphRefusal extends Error {
+	readonly status: number;
+	readonly code?: string;
+
+	constructor(status: number, err: PublicError | null) {
+		super(err?.message || `OneNote returned ${status}`);
+		this.status = status;
+		this.code = err?.code ?? undefined;
+	}
 }
 
 function assertJSONWrappedResponse<T>(res: unknown): asserts res is JSONWrappedResponse<T> {
@@ -928,13 +931,15 @@ export class OneNoteImporter extends FormatImporter {
 				}
 
 				if (!worthRetrying(response.status) || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
-					throw graphError(response.status, err);
+					throw new GraphRefusal(response.status, err);
 				}
 
 				return this.fetchResource(url, returnType as any, progress, retryCount + 1);
 			}
 		}
 		catch (e) {
+			if (e instanceof GraphRefusal) throw e;
+
 			console.error(`An internal error occurred while trying to fetch '${url}'. Error details: `, e);
 
 			// Attachments sometimes just fail to download
