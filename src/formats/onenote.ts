@@ -274,7 +274,7 @@ export class OneNoteImporter extends FormatImporter {
 
 		const tokenResponse: AccessTokenResponse = await requestUrl({
 			method: 'POST',
-			url: tokenUrl(this.microsoftAccountType),
+			url: tokenUrl(),
 			contentType: 'application/x-www-form-urlencoded',
 			body: requestBody.toString(),
 		}).json;
