@@ -75,7 +75,7 @@ export class OneNoteImporter extends FormatImporter {
 	private accountButton: ButtonComponent;
 	private picker: TreePicker<OneNoteTreeNode>;
 	// Internal
-	selectedIds: string[] = [];
+	selectedSections: OneNoteTreeNode[] = [];
 	notebooks: Notebook[] = [];
 	graphData = {
 		state: genUid(32),
@@ -91,7 +91,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	get sourceReady(): boolean {
-		return this.selectedIds.length > 0;
+		return this.selectedSections.length > 0;
 	}
 
 	async init() {
@@ -323,7 +323,7 @@ export class OneNoteImporter extends FormatImporter {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
 			},
 			onChange: () => {
-				this.selectedIds = selectedNodes(this.picker.nodes, node => node.type === 'section').map(node => node.id);
+				this.selectedSections = selectedNodes(this.picker.nodes, node => node.type === 'section');
 				this.sourceChanged();
 			},
 		});
@@ -371,7 +371,8 @@ export class OneNoteImporter extends FormatImporter {
 		let progressCurrent = 0;
 		let consecutiveFailureCount = 0;
 
-		for (let sectionId of this.selectedIds) {
+		for (let section of this.selectedSections) {
+			const sectionId = section.id;
 			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
@@ -387,8 +388,8 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			catch (e) {
 				console.error(`Failed to fetch pages for section ${sectionId}, skipping to next section.`, e);
-				progress.status('Failed to fetch pages for a section, skipping to next section.');
-				return;
+				progress.reportFailed(section.title, e);
+				continue;
 			}
 			if (!pages) {
 				continue;
