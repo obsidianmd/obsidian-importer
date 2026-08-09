@@ -7,8 +7,8 @@ A checklist
 
 A numbered checklist
 
-1. Open task
-2. Done task
+1. [ ] Open task
+2. [x] Done task
 
 A checkbox on a bulleted item
 

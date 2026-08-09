@@ -1,5 +1,5 @@
 import { TurndownNode } from './turndown-types';
-import { checkboxDone, checkboxTodo } from '../../constants';
+import { bullet, checkedBox, uncheckedBox } from '../../constants';
 
 import { getAttributeProxy } from './get-attribute-proxy';
 
@@ -29,19 +29,23 @@ export const taskListRule = {
 			.replace(/\n+$/, '\n') // Replace trailing newlines with just a single one
 			.replace(/\n/gm, `\n${indentCharacter}`); // Indent
 
+		// The checkbox belongs to the item; the marker in front of it belongs to
+		// the list, and is a number where that list is an ordered one
+		const checkbox = isTodoDoneBlock(node)
+			? `${checkedBox} `
+			: (isTodoBlock(node)
+				? `${uncheckedBox} `
+				: '');
+
 		let prefix = indentCount > 0
 			? indentChars
-			: (isTodoDoneBlock(node)
-				? `${checkboxDone} `
-				: (isTodoBlock(node)
-					? `${checkboxTodo} `
-					: '* '))
+			: (checkbox ? `${bullet} ${checkbox}` : '* ')
 		;
 		const parent = node.parentElement;
 		if (parent?.nodeName === 'OL') {
 			const start = parent.getAttribute('start');
 			const index = Array.prototype.indexOf.call(parent.children, node);
-			prefix = `${(start ? Number(start) + index : index + 1)}. `;
+			prefix = `${(start ? Number(start) + index : index + 1)}. ${checkbox}`;
 		}
 
 		let ret;
