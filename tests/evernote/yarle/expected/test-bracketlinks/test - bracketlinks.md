@@ -1,0 +1,3 @@
+---
+---
+The computational theories of Albus [47](http://www.sciencedirect.com/science/article/pii/S0166223607000434#bib47) and Marr [48](http://www.sciencedirect.com/science/article/pii/S0166223607000434#bib48)

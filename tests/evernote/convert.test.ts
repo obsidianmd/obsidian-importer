@@ -58,7 +58,9 @@ function notebookDir(outputDir: string): string {
 	return nodePath.join(outputDir, folders[0].name);
 }
 
-const enexFiles = fixtures(FIXTURES, '.enex');
+// The ones from Yarle sit in their own directory, with their provenance and
+// what was left out written down beside them.
+const enexFiles = [...fixtures(FIXTURES, '.enex'), ...fixtures(nodePath.join(FIXTURES, 'yarle'), '.enex')];
 
 test('there are fixtures to convert', () => {
 	assert.ok(enexFiles.length > 0, 'expected at least one .enex in tests/evernote');
