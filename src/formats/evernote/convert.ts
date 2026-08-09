@@ -29,6 +29,8 @@ export const defaultEvernoteOptions: EvernoteOptions = {
 	enexSources: [],
 	currentTemplate: '',
 	outputDir: './mdNotes',
+	// The form Obsidian reads as a date and time property
+	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
 	isMetadataNeeded: false,
 	isNotebookNameNeeded: false,
 	isZettelkastenNeeded: false,
