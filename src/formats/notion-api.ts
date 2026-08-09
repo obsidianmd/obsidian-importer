@@ -73,6 +73,12 @@ export class NotionAPIImporter extends FormatImporter {
 	// Pages this run actually wrote, without extension. A page it recognised and
 	// left alone is in notionIdToPath so links resolve, but is not one of these.
 	private writtenPaths: Set<string> = new Set();
+	// Pages an unfinished earlier run wrote, which this run is the continuation
+	// of. Not written again, but this run owns them: their notion-id is the
+	// scaffolding that unfinished run left behind, and clearing up after it is
+	// this run's job. Kept apart from a page the user asked to skip, which is
+	// not ours to touch.
+	private recoveredPaths: Set<string> = new Set();
 	// Track mention placeholders for efficient replacement (similar to relationPlaceholders)
 	// Maps source file path to the set of mentioned page/database IDs
 	// Using file path as key allows O(1) file lookup instead of O(n) search
@@ -357,6 +363,9 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
+		this.writtenPaths.clear();
+		this.recoveredPaths.clear();
+
 		// Validate inputs
 		if (!this.notionToken) {
 			new Notice('Please enter your Notion API token.');
@@ -1343,7 +1352,9 @@ export class NotionAPIImporter extends FormatImporter {
 			const { basename } = parseFilePath(file.path);
 			ctx.reportSkipped(basename, 'an earlier import had already written it');
 
-			this.notionIdToPath.set(notionId, file.path.replace(/\.md$/, ''));
+			const pathWithoutExt = file.path.replace(/\.md$/, '');
+			this.notionIdToPath.set(notionId, pathWithoutExt);
+			this.recoveredPaths.add(pathWithoutExt);
 			await this.collectUnresolvedPlaceholders(content, notionId, file.path);
 
 			return true;
@@ -1354,7 +1365,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	private async shouldSkipExistingFile(
+	protected async shouldSkipExistingFile(
 		filePath: string,
 		notionId: string,
 		ctx: ImportContext
@@ -1405,8 +1416,12 @@ export class NotionAPIImporter extends FormatImporter {
 	 * 
 	 * @param ctx - Import context for status updates
 	 */
-	private async cleanupNotionIds(ctx: ImportContext): Promise<void> {
-		if (this.notionIdToPath.size === 0) {
+	protected async cleanupNotionIds(ctx: ImportContext): Promise<void> {
+		// Pages this run wrote, and pages the run it is finishing off wrote.
+		// Leaving the id on a recovered page would have the next import read it
+		// as another unfinished run and skip the page again, for good.
+		const written = new Set([...this.writtenPaths, ...this.recoveredPaths]);
+		if (written.size === 0) {
 			return;
 		}
 
@@ -1416,7 +1431,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// recognised and left alone, so that links to them resolve, and taking
 		// the id out of those would edit a note the user asked to skip - and
 		// leave nothing to recognise it by next time.
-		for (const filePath of this.writtenPaths) {
+		for (const filePath of written) {
 			if (await ctx.shouldStop()) break;
 
 			try {
