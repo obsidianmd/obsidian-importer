@@ -771,19 +771,23 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			const originalName = object.getAttribute('data-attachment');
+			const extension = originalName?.split('.').pop()?.toLowerCase() ?? '';
+
+			// If the page contains an incompatible file and user doesn't want to import them, skip.
+			// This comes before the checks below so that a file the user chose
+			// not to import is passed over quietly rather than reported as a
+			// failure they did not ask for.
+			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
+				continue;
+			}
+
 			const contentLocation = object.getAttribute('data');
 			if (!originalName || !contentLocation) {
 				progress.reportFailed(originalName ?? 'OneNote attachment', 'the attachment did not include a download URL');
 				continue;
 			}
 
-			const extension = originalName.split('.').pop()?.toLowerCase() ?? '';
-
-			// If the page contains an incompatible file and user doesn't want to import them, skip
-			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
-				continue;
-			}
-			else {
+			{
 				const filename = await this.fetchAttachment(progress, originalName, contentLocation, notePath);
 				if (!filename) continue;
 
@@ -798,11 +802,18 @@ export class OneNoteImporter extends FormatImporter {
 
 		for (let i = 0; i < images.length; i++) {
 			const image = images[i];
-			let split: string[] = image.getAttribute('data-fullres-src-type')!.split('/');
-			const extension: string = split[1];
+			// Same reasoning as the objects above: OneNote does not always send
+			// these, and asserting they are there turns one odd image into a
+			// TypeError that costs the whole page.
+			const contentLocation = image.getAttribute('data-fullres-src');
+			if (!contentLocation) {
+				progress.reportFailed('OneNote image', 'the image did not include a download URL');
+				continue;
+			}
+
+			const extension = image.getAttribute('data-fullres-src-type')?.split('/')[1] ?? 'png';
 			const currentDate = moment().format('YYYYMMDDHHmmss');
 			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
-			const contentLocation = image.getAttribute('data-fullres-src')!;
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation, notePath);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
