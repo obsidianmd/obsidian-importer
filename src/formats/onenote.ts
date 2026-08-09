@@ -8,6 +8,7 @@ import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
 import { convertPageTags, pageToMarkdown } from './onenote/convert';
+import { describeNotebookFailure } from './onenote/errors';
 import { inkmlToSvg } from './onenote/inkml';
 
 const ACCOUNT_SECRET_ID = 'onenote-importer';
@@ -318,7 +319,7 @@ export class OneNoteImporter extends FormatImporter {
 			hint: SIGNED_OUT_HINT,
 			loading: 'Loading notebooks...',
 			empty: 'No notebooks found.',
-			failed: 'Could not load your notebooks. OneNote may be limiting how fast they can be read; try again shortly.',
+			failed: error => describeNotebookFailure(error),
 			view: {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
 			},

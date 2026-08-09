@@ -9,6 +9,7 @@ import { ImportContext } from '../import-context';
 import { parseFilePath } from '../filesystem';
 import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
 import { areAnySelected, selectedNodes } from '../tree';
+import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import {
@@ -158,7 +159,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			hint: 'Load your Airtable bases and tables to get started.',
 			loading: 'Fetching bases...',
 			empty: 'No bases found.',
-			failed: 'Could not load your bases. Check your token and try again.',
+			failed: error => describeRequestFailure(error, {
+				name: 'Airtable',
+				subject: 'your bases',
+				credential: 'Check that your personal access token is current and has access to them.',
+			}),
 			view: {
 				icon: node => node.type === 'base' ? 'database' : 'file',
 				isCollapsible: node => node.type === 'base' || !!node.children?.length,

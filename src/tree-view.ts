@@ -30,7 +30,7 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	hint: string;
 	loading: string;
 	empty: string;
-	failed: string;
+	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw'>;
 	onChange?(): void;
 }
@@ -84,7 +84,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
 		}
 		catch (e) {
-			this.setStatus(this.options.failed);
+			this.setStatus(this.options.failed(e));
 			this.options.onChange?.();
 			throw e;
 		}
