@@ -16,8 +16,9 @@ import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { getMarkdownOutput, trackMarkdownWrite, EvernoteOptions } from './options';
+import { getMarkdownOutput, EvernoteOptions } from './options';
 import { processNode } from './process-node';
+import { rewriteFile } from './utils/file-utils';
 import { convertTasktoMd } from './process-tasks';
 import { RuntimePropertiesSingleton } from './runtime-properties';
 
@@ -167,6 +168,8 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 				return;
 			}
 
+			let wrote = false;
+
 			if (options.skipWebClips && isWebClip(note)) {
 				ctx.reportSkipped(note.title ?? enexSource.name);
 			}
@@ -179,8 +182,10 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 				restoreResourceAttributes(note, resourceAttributes);
 
 				try {
-					processNode(note, notebookName);
-					ctx.reportNoteSuccess(notebookName + '/' + note.title);
+					const reported = notebookName + '/' + note.title;
+					wrote = processNode(note, notebookName);
+					if (wrote) ctx.reportNoteSuccess(reported);
+					else ctx.reportSkipped(reported, 'it is already in the vault');
 				}
 				catch (e) {
 					ctx.reportFailed(note.title || enexSource.name, e);
@@ -190,7 +195,9 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 			noteAttributes = null;
 			resourceAttributes = [];
 
-			const currentNotePath = runtimeProps.getCurrentNotePath();
+			// Only the note this pass just wrote. Without the check a note left
+			// alone would be reopened here under the previous note's path.
+			const currentNotePath = wrote ? runtimeProps.getCurrentNotePath() : '';
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {
 
@@ -200,8 +207,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
 
-					fs.writeFileSync(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
-					trackMarkdownWrite(currentNotePath);
+					rewriteFile(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
 				}
 			}
 		});

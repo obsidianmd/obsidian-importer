@@ -4,7 +4,7 @@ import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
-import { setMarkdownOutput, setMarkdownTracker } from './evernote/options';
+import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler, setMarkdownOutput, setMarkdownTracker } from './evernote/options';
 import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
 
 const HELP_PERMALINK = 'import/evernote';
@@ -22,11 +22,26 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Evernote', ['enex'], true);
 		this.defaultOutputFolder = 'Evernote';
+	}
 
-		// The conversion writes to disk itself rather than through the vault, so the
-		// duplicate modes have nothing to act on here. Asked and then ignored
-		// is worse than not asked.
-		this.duplicateModes = [DuplicateHandling.CreateCopy];
+	/**
+	 * The conversion writes to disk itself rather than through the vault, so it
+	 * cannot go through writeNote. It asks this instead, which answers the same
+	 * question the same way.
+	 *
+	 * .enex carries no id for a note, only its <updated> time, so a note is
+	 * recognised by its path - the same as every other importer reading files.
+	 */
+	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
+		if (this.duplicateHandling === DuplicateHandling.Skip) return 'skip';
+
+		// Nothing to compare, so the safe answer is to bring the note across.
+		if (updatedAt === null) return 'write';
+
+		// The last import stamped the file with what the source said then.
+		if (Math.floor(writtenAt) === Math.floor(updatedAt)) return 'skip';
+
+		return writtenAt > updatedAt ? 'skip' : 'write';
 	}
 
 	async import(ctx: ImportContext) {
@@ -60,11 +75,18 @@ export class EvernoteEnexImporter extends FormatImporter {
 		setMarkdownTracker(absolutePath => {
 			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
 		});
+
+		// Unset for "Create a copy", which is what leaves names being indexed.
+		setExistingNoteHandler(this.duplicateHandling === DuplicateHandling.CreateCopy
+			? null
+			: existing => this.decideExistingNote(existing));
+
 		try {
 			await convertEnexFiles(evernoteOptions, ctx);
 		}
 		finally {
 			setMarkdownTracker(null);
+			setExistingNoteHandler(null);
 		}
 	}
 }

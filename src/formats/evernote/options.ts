@@ -22,6 +22,44 @@ export function trackMarkdownWrite(absolutePath: string): void {
 	markdownTracker?.(absolutePath);
 }
 
+/** A note this conversion is about to write over, if one is already there. */
+export interface ExistingNote {
+	absolutePath: string;
+	/** When the file was last written; an earlier import set this from the source. */
+	writtenAt: number;
+	/** When the source says the note last changed, where it says. */
+	updatedAt: number | null;
+}
+
+export type ExistingNoteDecision = 'write' | 'skip';
+
+/**
+ * What to do about a note that is already there, which is the importer's
+ * business rather than the conversion's: it is the half that knows which
+ * duplicate mode the user picked.
+ *
+ * Left unset, every import is a fresh copy and a name already taken becomes
+ * "Title.1", which is what this conversion has always done.
+ */
+let existingNoteHandler: ((existing: ExistingNote) => ExistingNoteDecision) | null = null;
+
+export function setExistingNoteHandler(handler: ((existing: ExistingNote) => ExistingNoteDecision) | null): void {
+	existingNoteHandler = handler;
+}
+
+/**
+ * Whether a note should reuse the name an earlier import gave it rather than
+ * taking the next free one. Without this there is never anything to decide
+ * about: the second import writes "Title.1" and no note is ever recognised.
+ */
+export function reusesNoteNames(): boolean {
+	return existingNoteHandler !== null;
+}
+
+export function decideExistingNote(existing: ExistingNote): ExistingNoteDecision {
+	return existingNoteHandler?.(existing) ?? 'write';
+}
+
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	templateFile?: string;

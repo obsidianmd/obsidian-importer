@@ -1,7 +1,7 @@
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs, NodePickedFile, path, PickedFile } from '../../../filesystem';
 import { genUid, sanitizeFileName } from '../../../util';
-import { EvernoteOptions } from '../options';
+import { EvernoteOptions, reusesNoteNames } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { evernoteOptions } from '../convert';
 import { replaceLastOccurrenceInString } from './string-utils';
@@ -34,6 +34,10 @@ const MAX_ENEX_DIR_LENGTH = 100; // Conservative limit for enex directory name
  * @returns A unique name that doesn't conflict with existing items
  */
 const getUniqueNameForPath = (basePath: string, name: string, suffix: string = ''): string => {
+	// The note keeping its name means its resources keep their folder too,
+	// rather than a "Note (1).resources" piling up beside it on every run.
+	if (reusesNoteNames()) return name;
+
 	const baseName = name;
 	let uniqueName = name;
 	let counter = 1;

@@ -8,7 +8,8 @@ import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 import { applyTemplate } from './utils/templates/templates';
 import { evernoteOptions } from './convert';
 
-export const processNode = (note: EvernoteNote, notebookName: string): void => {
+/** Returns false for a note that was already there and was left alone. */
+export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	const title = note.title ?? '';
@@ -38,7 +39,7 @@ export const processNode = (note: EvernoteNote, notebookName: string): void => {
 		const data = applyTemplate(noteData, evernoteOptions);
 		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
-		saveMdFile(data, note);
+		return saveMdFile(data, note);
 
 		/* if (isTOC(noteData.title)) {
 		  const  noteIdNameMap = RuntimePropertiesSingleton.getInstance();
