@@ -122,6 +122,15 @@ export class OneNoteImporter extends FormatImporter {
 		return accountType(this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY));
 	}
 
+	/**
+	 * What a sign-in established, as opposed to what to ask for by default.
+	 * Nothing having established it yet is a different thing from personal.
+	 */
+	private get knownAccountType(): MicrosoftAccountType | null {
+		const stored: unknown = this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY);
+		return stored === 'organization' || stored === 'personal' ? stored : null;
+	}
+
 	private set microsoftAccountType(value: MicrosoftAccountType) {
 		this.app.saveLocalStorage(ACCOUNT_TYPE_STORAGE_KEY, value);
 	}
@@ -328,12 +337,16 @@ export class OneNoteImporter extends FormatImporter {
 			await this.picker.load(() => this.readNotebooks());
 		}
 		catch (e) {
-			// Being refused the notebooks is itself the answer: only a work or
-			// school account is told 40004, and the remedy is to ask for the
-			// wider access next time. Remembering it here is what makes the
-			// message's 'sign in again' true, and unlike reading the token it
-			// does not depend on Microsoft handing us anything readable.
-			if (requestFailure(e).code === '40004') this.microsoftAccountType = 'organization';
+			// Being refused the notebooks is the other way to learn this, and
+			// unlike reading the token it does not depend on Microsoft handing
+			// us anything readable. But 40004 is documented only as the token
+			// lacking the scopes, not as something a work account alone is
+			// told, and notes.read.all cannot be granted to a personal account
+			// at all — so escalating one would leave it unable to sign in.
+			// A sign-in that already said personal is therefore believed.
+			if (requestFailure(e).code === '40004' && this.knownAccountType !== 'personal') {
+				this.microsoftAccountType = 'organization';
+			}
 
 			console.error('An error occurred while fetching your OneNote data: ', e);
 		}

@@ -78,6 +78,14 @@ test('a token that does not say leaves the choice alone', () => {
 	}
 });
 
+test('notes.read.all is never what a personal account is asked for', () => {
+	// It is not offered to personal accounts at all, so requesting it is not a
+	// wider ask that might fail — it is a sign-in that cannot succeed. Anything
+	// that escalates an account to organization has to be sure first.
+	assert.ok(!graphScopes('personal').includes('notes.read.all'));
+	assert.ok(graphScopes('organization').includes('notes.read.all'));
+});
+
 test('an opaque access token is not mistaken for a readable one', () => {
 	// What Microsoft actually returns for a personal account: one segment,
 	// nothing to decode. Splitting on '.' and taking [1] gives undefined here,
