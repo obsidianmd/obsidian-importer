@@ -29,7 +29,7 @@ export function reporter() {
 	};
 }
 
-export async function importing(notes: NoteSpec[], mode: DuplicateHandling) {
+export async function importing(notes: NoteSpec[], mode: DuplicateHandling, options: { saveSourceId?: boolean } = {}) {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes });
 
@@ -45,6 +45,7 @@ export async function importing(notes: NoteSpec[], mode: DuplicateHandling) {
 	subject.rootFolder = vault.root;
 	subject.protobufRoot = Root.fromJSON(descriptor);
 	subject.duplicateHandling = mode;
+	subject.saveSourceId = options.saveSourceId ?? false;
 	subject.keys = Object.fromEntries(
 		(await store.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
 	);

@@ -9,6 +9,7 @@ import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
 
 // Import helper modules
+import { NOTION_ID_PROPERTY } from '../constants';
 import { createPlaceholder, PlaceholderType } from './notion-api/utils';
 import {
 	makeNotionRequest,
@@ -23,7 +24,7 @@ import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndI
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
-const NOTION_ID_PROPERTY = 'notion-id';
+
 
 export class NotionAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;

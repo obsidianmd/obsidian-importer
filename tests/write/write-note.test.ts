@@ -122,6 +122,47 @@ test('with no time to go on, "Update" compares the text instead', async () => {
 	assert.equal(vault.contents.get('Note.md'), 'different text');
 });
 
+/**
+ * The id is written in one place, so an importer declares idProperty and hands
+ * writeNote a sourceId rather than assembling frontmatter of its own. Five of
+ * them did, and disagreed about when to write it.
+ */
+test('the source id is recorded only when the importer has one and it was asked for', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.idProperty = 'notion-id';
+
+	// Off by default: a one-time import leaves nothing behind.
+	const bare = await subject.writeNote(ctx, vault.root, 'A', 'body\n', { sourceId: 'abc-123' });
+	assert.equal(vault.contents.get(bare.file.path), 'body\n');
+
+	subject.saveSourceId = true;
+	const kept = await subject.writeNote(ctx, vault.root, 'B', 'body\n', { sourceId: 'abc-123' });
+	assert.equal(vault.contents.get(kept.file.path), '---\nnotion-id: abc-123\n---\nbody\n');
+
+	// Nothing to record for an importer whose source has no id.
+	subject.idProperty = null;
+	const none = await subject.writeNote(ctx, vault.root, 'C', 'body\n', { sourceId: 'abc-123' });
+	assert.equal(vault.contents.get(none.file.path), 'body\n');
+});
+
+test('the id joins the properties the note already had rather than replacing them', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.idProperty = 'notion-id';
+	subject.saveSourceId = true;
+
+	const { file } = await subject.writeNote(
+		ctx, vault.root, 'Note',
+		'---\ntitle: Roadmap\ntags:\n  - work\n---\nbody\n',
+		{ sourceId: 'abc-123' }
+	);
+
+	const written = String(vault.contents.get(file.path));
+	assert.match(written, /^---\nnotion-id: abc-123\n/, 'the id reads first, before the source\'s own properties');
+	assert.match(written, /title: Roadmap/);
+	assert.match(written, /- work/);
+	assert.match(written, /\n---\nbody\n$/);
+});
+
 test('two source notes of one name stay two notes', async () => {
 	// Not a duplicate of anything: the first one is a note this run just wrote.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);

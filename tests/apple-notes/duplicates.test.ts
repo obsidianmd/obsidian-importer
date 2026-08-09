@@ -54,17 +54,31 @@ for (const mode of [DuplicateHandling.Update, DuplicateHandling.Skip, DuplicateH
 	});
 }
 
-test('the id a note came from is written whatever this import was asked to do', async () => {
-	// Which mode the *next* import uses is not knowable now, and the id is what
-	// that import needs to recognise a note that has since been renamed. Writing
-	// it only for the modes that read it made the first run decide the third
-	// run's fate: import once with "Create a copy" and there was no id to match
-	// on ever again.
+test('the id a note came from is written when asked for, in any mode', async () => {
+	// Which mode the *next* import uses is not knowable now, so the id is not
+	// the duplicate mode's business. Tying it to the mode meant the first run
+	// decided the third run's fate: import once with "Create a copy" and there
+	// was no id to match on ever again.
 	for (const mode of [DuplicateHandling.Update, DuplicateHandling.Skip, DuplicateHandling.CreateCopy]) {
-		const run = await importing([SAME_TITLE[0]], mode);
+		const run = await importing([SAME_TITLE[0]], mode, { saveSourceId: true });
 		try {
 			const file = await run.resolve(run.notePks[0]);
 			assert.match(String(run.vault.contents.get(file!.path)), /^---\napple-notes-id: NOTE-\d+\n---\n/, mode);
+		}
+		finally {
+			run.close();
+		}
+	}
+});
+
+test('and not written unless it was asked for', async () => {
+	// A property in every note is a real cost to an import that happens once,
+	// so it is off until the user says otherwise.
+	for (const mode of [DuplicateHandling.Update, DuplicateHandling.CreateCopy]) {
+		const run = await importing([SAME_TITLE[0]], mode);
+		try {
+			const file = await run.resolve(run.notePks[0]);
+			assert.doesNotMatch(String(run.vault.contents.get(file!.path)), /apple-notes-id/, mode);
 		}
 		finally {
 			run.close();

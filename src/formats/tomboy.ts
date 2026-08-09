@@ -64,6 +64,7 @@ export class TomboyImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
 		this.defaultOutputFolder = 'Tomboy';
+		this.idProperty = 'tomboy-id';
 
 		this.addSetting()
 			?.setName('Convert TODO lists to checkboxes')
@@ -127,6 +128,8 @@ export class TomboyImporter extends FormatImporter {
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
 
-		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent);
+		// Tomboy names each .note file for the note's own id, and titles are
+		// neither unique nor fixed.
+		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, { sourceId: file.basename });
 	}
 }

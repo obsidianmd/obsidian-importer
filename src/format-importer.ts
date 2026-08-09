@@ -5,7 +5,7 @@ import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
-import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath } from './util';
+import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -119,8 +119,15 @@ export abstract class FormatImporter {
 	 */
 	idProperty: string | null = null;
 
-	/** Whether to record idProperty in each note. Only asked where there is one. */
-	saveSourceId: boolean = true;
+	/**
+	 * Whether to record idProperty in each note. Only asked where there is one,
+	 * and off unless the user asks for it: it is a property in every note they
+	 * import, which is a real cost to anyone importing once and never again.
+	 *
+	 * A note carrying none is still matched by its path, so leaving it off
+	 * costs recognising a note that was renamed rather than recognising nothing.
+	 */
+	saveSourceId: boolean = false;
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
@@ -749,6 +756,25 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * The note, carrying the source's own id if this importer has one to record
+	 * and the user asked for it to be kept.
+	 *
+	 * The one place that decides this. An importer that cannot write through
+	 * writeNote calls it directly rather than working out the answer again.
+	 */
+	protected withSourceId(content: string, sourceId: string | undefined): string {
+		const { idProperty } = this;
+		if (!idProperty || !sourceId || !this.saveSourceId) return content;
+
+		const parsed = parseFrontMatterBlock(content);
+		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
+
+		// First, so it reads as what the note came from rather than as one of
+		// the properties the source itself defined.
+		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
+	}
+
+	/**
 	 * Write an imported note, doing what the output step said to do about a
 	 * note that is already there. The note comes back either way, so links to
 	 * it still resolve when this import left it alone; `written` says whether
@@ -756,6 +782,7 @@ export abstract class FormatImporter {
 	 */
 	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
 		const { sourceId, ...writeOptions } = options;
+		content = this.withSourceId(content, sourceId);
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const parent = folder.path === '/' ? '' : folder.path;
 		const fullPath = normalizePath(parent ? `${parent}/${name}` : name);

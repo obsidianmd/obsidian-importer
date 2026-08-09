@@ -1,7 +1,7 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
-import { helpUrl } from '../constants';
+import { helpUrl, NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
@@ -32,6 +32,9 @@ export class NotionImporter extends FormatImporter {
 		this.addFileChooserSetting('Exported Notion', ['zip'], false,
 			'Pick the zip file Notion sent you.');
 		this.defaultOutputFolder = 'Notion';
+		// The same property the Notion API importer writes, so a workspace
+		// imported by zip and later by API recognises itself.
+		this.idProperty = NOTION_ID_PROPERTY;
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')
 			.setDesc('Places the parent database pages in the same folder as the nested content.')
@@ -139,7 +142,7 @@ export class NotionImporter extends FormatImporter {
 					}
 
 					const parent = await this.createFolders(`${targetFolderPath}${info.getPathForFile(fileInfo)}`);
-					const { written } = await this.writeNote(ctx, parent, fileInfo.title, markdownBody, writeOptions);
+					const { written } = await this.writeNote(ctx, parent, fileInfo.title, markdownBody, { ...writeOptions, sourceId: id });
 					if (written) ctx.reportNoteSuccess(file.fullpath);
 				}
 				else {

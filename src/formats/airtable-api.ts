@@ -1167,9 +1167,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,
 			frontMatterFields,
-			// The "Save note ID" setting decides this, not the duplicate mode:
-			// which mode a later import will run in is not knowable now.
-			recordId: this.saveSourceId,
+			// Written by withSourceId below, which is the one place that decides.
+			recordId: false,
 			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
 			bodyTemplate: this.templateConfig?.bodyTemplate,
@@ -1189,7 +1188,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		await this.createMarkdown(filePath, content);
+		await this.createMarkdown(filePath, this.withSourceId(content, record.id));
 
 		ctx.reportNoteSuccess(title);
 

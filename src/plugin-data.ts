@@ -11,6 +11,11 @@ export interface OutputSettings {
 }
 
 export interface ImporterData {
+	/**
+	 * OneNote kept the ids it had imported here. It records them in each note
+	 * instead now, which survives a note being moved or renamed. Still declared
+	 * so an older data file is not read as malformed.
+	 */
 	importers: {
 		onenote?: {
 			previouslyImportedIDs: string[];

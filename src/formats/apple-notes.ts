@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
-import { extensionFromBytes, extractErrorMessage, sanitizeFileName, serializeFrontMatter } from '../util';
+import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -548,7 +548,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
 
-		await this.modifyMarkdown(file, this.noteIdFrontMatter(row.ZIDENTIFIER) + body, {
+		await this.modifyMarkdown(file, this.withSourceId(body, row.ZIDENTIFIER), {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});
@@ -796,11 +796,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return null;
 	}
 
-	private noteIdFrontMatter(noteId: string | undefined): string {
-		if (!noteId || !this.saveSourceId) return '';
 
-		return serializeFrontMatter({ [NOTE_ID_PROPERTY]: noteId });
-	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const file = await super.saveAsMarkdownFile(folder, title, content, options);

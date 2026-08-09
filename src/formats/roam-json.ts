@@ -37,6 +37,7 @@ export class RoamJSONImporter extends FormatImporter {
 		this.addFileChooserSetting('Roam (.json)', ['json'], false,
 			'Pick the JSON file from your Roam export.');
 		this.defaultOutputFolder = 'Roam';
+		this.idProperty = 'roam-uid';
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()
@@ -104,6 +105,9 @@ export class RoamJSONImporter extends FormatImporter {
 			const [blockLocations, toPostProcess] = this.preprocess(allPages);
 
 			const markdownPages: Map<string, string> = new Map();
+			// Roam gives every page a uid, which its title is not: a page can be
+			// renamed, and a daily note's title is a date that reformats.
+			const pageUids: Map<string, string> = new Map();
 			for (const pageData of allPages) {
 				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.userDNPFormat).trim();
 				if (pageName === '') {
@@ -141,6 +145,7 @@ export class RoamJSONImporter extends FormatImporter {
 				const converter = this.newConverter();
 				const markdownOutput = await converter.jsonToMarkdown(graphFolder, filename, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 				markdownPages.set(filename, markdownOutput);
+				if (pageData.uid) pageUids.set(filename, pageData.uid);
 			}
 
 			// POST-PROCESS: fix block refs //
@@ -176,7 +181,7 @@ export class RoamJSONImporter extends FormatImporter {
 					const { parent, name } = parseFilePath(filename);
 					const folder = await this.createFolders(parent);
 
-					const { written } = await this.writeNote(progress, folder, name, markdownOutput);
+					const { written } = await this.writeNote(progress, folder, name, markdownOutput, { sourceId: pageUids.get(filename) });
 					if (written) progress.reportNoteSuccess(filename);
 					progress.reportProgress(index, totalCount);
 				}

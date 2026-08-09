@@ -27,7 +27,6 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
-	private storeId: boolean = false;
 
 	init() {
 		this.addSetting('source')
@@ -39,6 +38,10 @@ export class Bear2bkImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.defaultOutputFolder = 'Bear';
+		// Was a bare "id", written by a toggle of its own. Named for its source
+		// now, so a vault-wide lookup cannot collide with an unrelated "id", and
+		// asked for by the shared "Save note ID" setting rather than a second one.
+		this.idProperty = 'bear-id';
 
 		this.addSetting()
 			?.setName('Flatten nested tags')
@@ -50,15 +53,6 @@ export class Bear2bkImporter extends FormatImporter {
 				.onChange(async v => this.flattenTags = v)
 			);
 
-		this.addSetting()
-			?.setName('Store note identifiers in front matter')
-			.setDesc(
-				'Links will be automatically updated. Enable this if the note identifier is used outside of linking between notes.'
-			)
-			.addToggle(t => t
-				.setValue(false)
-				.onChange(async v => this.storeId = v)
-			);
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -118,10 +112,10 @@ export class Bear2bkImporter extends FormatImporter {
 							// Use just the filename without extension
 							const fileName = mdFilename;
 
-							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent);
+							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent, { sourceId: metadata?.id });
 
 							if (written) {
-								if (this.storeId || metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
+								if (metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
 									await this.updateNoteFrontmatter(metadata, file, tags);
 								}
 								if (metadata?.ctime && metadata?.mtime) {
@@ -193,9 +187,6 @@ export class Bear2bkImporter extends FormatImporter {
 		};
 
 		await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-			if (this.storeId && metaData?.id) {
-				frontmatter['id'] = metaData.id;
-			}
 			if (metaData?.archivedtime) {
 				frontmatter['archived'] = new Date(metaData.archivedtime).toISOString().slice(0, 19);
 			}
