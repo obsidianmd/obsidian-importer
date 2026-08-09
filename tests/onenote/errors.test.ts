@@ -11,7 +11,7 @@ test('the scope failure names the account type that causes it', () => {
 		},
 	});
 
-	assert.match(message, /work or school account/);
+	assert.match(message, /choose Work or school/);
 	assert.doesNotMatch(message, /limiting how fast/);
 });
 

@@ -10,7 +10,7 @@ export function describeNotebookFailure(error: unknown): string {
 	const failure = requestFailure(error);
 
 	if (failure.code === '40004') {
-		return 'OneNote did not grant this sign-in access to your notebooks. This usually means a work or school account whose notebooks need an administrator to allow access; a personal Microsoft account does not.';
+		return 'OneNote did not grant this sign-in access to your notebooks. If this is a work or school account, sign out, choose Work or school, and sign in again. Your organization may require approval.';
 	}
 
 	// OneNote may report throttling without an HTTP 429 status.
