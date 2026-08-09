@@ -104,6 +104,7 @@ export class OneNoteImporter extends FormatImporter {
 	async init() {
 		this.defaultOutputFolder = 'OneNote';
 		this.idProperty = 'onenote-id';
+		this.idLabel = 'OneNote ID';
 
 		this.addSetting()
 			?.setName('Import incompatible attachments')

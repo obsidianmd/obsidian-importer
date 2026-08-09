@@ -113,6 +113,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		this.defaultOutputFolder = 'Apple Notes';
 		this.idProperty = NOTE_ID_PROPERTY;
+		this.idLabel = 'Apple Notes ID';
 
 		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
 		this.filePrefixFormat = storedPrefix;

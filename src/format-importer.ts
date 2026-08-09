@@ -104,6 +104,7 @@ export abstract class FormatImporter {
 
 	/** Frontmatter property used to identify imported notes. */
 	idProperty: string | null = null;
+	idLabel: string = 'source ID';
 
 	saveSourceId: boolean = false;
 
@@ -442,8 +443,8 @@ export abstract class FormatImporter {
 		if (!this.idProperty) return;
 
 		new Setting(contentEl)
-			.setName('Save note ID')
-			.setDesc('Used to update for future imports of the same data.')
+			.setName(`Save ${this.idLabel}`)
+			.setDesc(`Add the ${this.idLabel} to note properties so future imports can recognize moved or renamed notes.`)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.saveSourceId)
@@ -457,7 +458,7 @@ export abstract class FormatImporter {
 	private addOutputFolderSetting(contentEl: HTMLElement): void {
 		new Setting(contentEl)
 			.setName('Output folder')
-			.setDesc('Choose a folder in the vault to put the imported files. Leave empty to output to vault root.')
+			.setDesc('Where imported notes will be saved. Leave blank to use the top level of the vault.')
 			.addText(text => {
 				text
 					.setValue(this.outputLocation)
@@ -472,8 +473,8 @@ export abstract class FormatImporter {
 
 	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
 		const setting = new Setting(contentEl)
-			.setName('Attachments')
-			.setDesc('Where to put images and other files this import brings with it.');
+			.setName('Attachment location')
+			.setDesc('Where imported images and files will be saved.');
 
 		const pathSetting = new Setting(contentEl)
 			.setClass('importer-sub-setting');
@@ -481,7 +482,11 @@ export abstract class FormatImporter {
 		const drawPathSetting = () => {
 			const { mode } = this.attachmentLocation;
 			pathSetting.settingEl.toggle(mode === 'folder' || mode === 'subfolder');
-			pathSetting.setName(mode === 'subfolder' ? 'Subfolder name' : 'Attachment folder');
+			pathSetting
+				.setName(mode === 'subfolder' ? 'Subfolder name' : 'Attachment folder')
+				.setDesc(mode === 'subfolder'
+					? 'Folder to use inside each imported note\'s folder.'
+					: 'Folder path from the top level of the vault.');
 		};
 
 		setting.addDropdown(dropdown => {
@@ -516,7 +521,7 @@ export abstract class FormatImporter {
 		if (modes.length < 2) return;
 
 		new Setting(contentEl)
-			.setName('Notes already in the vault')
+			.setName('Existing notes')
 			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {
 				for (const mode of modes) dropdown.addOption(mode, DUPLICATE_HANDLING_LABELS[mode]);
@@ -532,10 +537,8 @@ export abstract class FormatImporter {
 
 	private describeDuplicateHandling(): DocumentFragment {
 		return createFragment(frag => {
-			frag.appendText('What to do when a note from this import is already in the vault.');
-			frag.createEl('br');
-			frag.appendText(`"${DUPLICATE_HANDLING_LABELS[DuplicateHandling.Update]}" leaves a note alone when it has not changed, `
-				+ 'or when it has been edited in Obsidian since the last import.');
+			frag.appendText(`Choose what to do when an imported note matches one in your vault. `
+				+ `"${DUPLICATE_HANDLING_LABELS[DuplicateHandling.Update]}" skips unchanged notes and preserves newer local edits when modification dates are available.`);
 		});
 	}
 

@@ -89,6 +89,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// No file chooser needed since we're importing via API
 		this.defaultOutputFolder = 'Notion';
 		this.idProperty = NOTION_ID_PROPERTY;
+		this.idLabel = 'Notion ID';
 
 		this.addSecretSetting('Notion API token', this.createTokenDescription());
 

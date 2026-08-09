@@ -143,6 +143,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	init() {
 		this.defaultOutputFolder = 'Airtable';
 		this.idProperty = RECORD_ID_PROPERTY;
+		this.idLabel = 'Airtable record ID';
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions

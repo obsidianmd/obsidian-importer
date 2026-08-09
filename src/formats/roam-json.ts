@@ -38,6 +38,7 @@ export class RoamJSONImporter extends FormatImporter {
 			'Pick the JSON file from your Roam export.');
 		this.defaultOutputFolder = 'Roam';
 		this.idProperty = 'roam-uid';
+		this.idLabel = 'Roam UID';
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()

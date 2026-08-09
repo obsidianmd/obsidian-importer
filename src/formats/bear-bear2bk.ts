@@ -40,6 +40,7 @@ export class Bear2bkImporter extends FormatImporter {
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.defaultOutputFolder = 'Bear';
 		this.idProperty = 'bear-id';
+		this.idLabel = 'Bear ID';
 
 		this.addSetting()
 			?.setName('Flatten nested tags')
