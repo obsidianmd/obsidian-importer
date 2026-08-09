@@ -636,6 +636,63 @@ export abstract class FormatImporter {
 		return normalizePath(`${noteFolder}/${configured}`);
 	}
 
+	/**
+	 * Where an attachment belongs, and whether one already in the vault is that
+	 * same attachment rather than a different one that reached the name first.
+	 *
+	 * Attachments carry no id, so the only handle is the name in the folder
+	 * they belong to. That is enough to recognise one across imports and not
+	 * enough within a single run, where a second attachment of the same name is
+	 * a different file that needs its own path.
+	 */
+	protected async placeAttachment(
+		filename: string,
+		sourcePath?: string,
+		sourceMtime?: number,
+	): Promise<{ path: string, reuse: TFile | null }> {
+		const unclaimedPath = async () => {
+			const path = await this.getAvailablePathForAttachment(filename, [], sourcePath);
+			this.claimPath(path);
+			return { path, reuse: null };
+		};
+
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return unclaimedPath();
+
+		const folderPath = await this.attachmentFolderPath(sourcePath);
+		const parent = folderPath === '/' ? '' : folderPath;
+		const { basename, extension } = parseFilePath(filename);
+		const name = `${sanitizeFileName(basename)}${extension ? `.${extension}` : ''}`;
+		const candidate = normalizePath(parent ? `${parent}/${name}` : name);
+
+		// Written by this run, so it is a different attachment of one name.
+		if (this.hasClaimed(candidate)) return unclaimedPath();
+
+		const existing = this.vault.getAbstractFileByPath(candidate);
+		if (!(existing instanceof TFile)) return unclaimedPath();
+
+		this.claimPath(candidate);
+
+		if (this.duplicateHandling === DuplicateHandling.Skip) return { path: candidate, reuse: existing };
+
+		// Update leaves alone what the source has not touched since.
+		if (sourceMtime !== undefined && sourceMtime <= existing.stat.mtime) {
+			return { path: candidate, reuse: existing };
+		}
+
+		return { path: candidate, reuse: null };
+	}
+
+	/** Write an attachment, replacing whatever placeAttachment pointed at. */
+	protected async writeAttachment(path: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {
+		const existing = this.vault.getAbstractFileByPath(path);
+		if (existing instanceof TFile) {
+			await this.vault.modifyBinary(existing, data, options);
+			return existing;
+		}
+
+		return this.vault.createBinary(path, data, options);
+	}
+
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
 		const folderPath = await this.attachmentFolderPath(sourcePath);
 		const folder = await this.createFolders(folderPath);

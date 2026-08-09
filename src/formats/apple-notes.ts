@@ -3,7 +3,7 @@ import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
-import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
+import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { requestFailure } from '../request-failure';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
@@ -695,35 +695,22 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
-			// First resolve the configured folder, then check the unsuffixed name there.
 			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
-			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
-			const { parent } = parseFilePath(uniqueAttachmentPath);
-			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
+			const mtime = this.decodeTime(row.ZMODIFICATIONDATE);
+			const { path: attachmentPath, reuse } = await this.placeAttachment(attachmentName, notePath, mtime);
 
-			if (existingAttachment && existingAttachment instanceof TFile) {
-				if (this.duplicateHandling === DuplicateHandling.Skip) {
-					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
-					return existingAttachment;
-				}
-				else if (this.duplicateHandling === DuplicateHandling.Update) {
-					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
-					const existingAttachmentModTime = existingAttachment.stat.mtime;
-
-					if (appleAttachmentModTime <= existingAttachmentModTime) {
-						this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
-						return existingAttachment;
-					}
-				}
+			if (reuse) {
+				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
+					? 'attachment already exists'
+					: 'attachment unchanged since last import');
+				return reuse;
 			}
 
 			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
-			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
-
-			file = await this.vault.createBinary(
+			file = await this.writeAttachment(
 				attachmentPath, nodeBufferToArrayBuffer(binary),
-				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
+				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime }
 			);
 		}
 		catch (e) {

@@ -335,6 +335,23 @@ test('a drawing that was never downloaded is skipped, not failed', async () => {
 	}
 });
 
+test('drawings that share a name stay separate files when updating', async () => {
+	// Three different drawings all want to be called Drawing.png. The check for
+	// one already in the folder is meant to recognise a previous import, but
+	// within a single run it also matches a different attachment that merely
+	// got there first.
+	const run = await importing(DRAWINGS);
+	try {
+		await run.reimport(DuplicateHandling.Update)(run.notePks[0]);
+
+		const drawings = run.vault.paths().filter(path => path.endsWith('.png'));
+		assert.deepEqual(drawings, ['Drawing.png', 'Drawing 1.png', 'Drawing 2.png']);
+	}
+	finally {
+		run.close();
+	}
+});
+
 test('a drawing is imported whichever UTI it carries', async () => {
 	const run = await importing(DRAWINGS);
 	try {
