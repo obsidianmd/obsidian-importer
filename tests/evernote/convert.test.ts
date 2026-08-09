@@ -1,26 +1,3 @@
-/**
- * The Evernote conversion, end to end, outside Obsidian.
- *
- * The conversion reads .enex and writes markdown through the node modules that
- * filesystem.ts hands out, and never touches the vault, so the whole pipeline
- * runs here once those modules are supplied.
- *
- * Every .enex in this directory is converted and the files it produces are
- * compared against expected/<fixture>/ - the real output tree, note for note
- * and attachment for attachment. It is what a user would end up with, so it
- * can be read directly, or opened in Obsidian, rather than decoded from a
- * recording.
- *
- * Adding a fixture is: drop the .enex in, run the tests, review the tree that
- * appears. Changing one on purpose is: delete its expected/ directory, run the
- * tests, read the diff.
- *
- * This is a regression check rather than a fidelity one: Obsidian bundles its
- * own turndown build, so the markdown here can in principle differ from what
- * ships. On these fixtures it does not - the recorded output matches what the
- * app produces byte for byte - but only running inside Obsidian settles that.
- * See tests/shims/dom.ts.
- */
 import '../shims/dom';
 
 import { test } from 'node:test';
@@ -34,14 +11,11 @@ import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
 import { defaultEvernoteOptions, convertEnexFiles } from '../../src/formats/evernote/convert';
 
-// Before any conversion runs. These are read when it works, not when it
-// loads, so the static imports above are fine.
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
 // tsx runs these as CommonJS, so __dirname rather than import.meta.
 const FIXTURES = __dirname;
 
-/** Enough of ImportContext for the conversion path, plus what it recorded. */
 function stubContext() {
 	return {
 		notes: [] as string[],
@@ -60,7 +34,6 @@ function stubContext() {
 	};
 }
 
-/** Convert the named fixtures into a temp directory, and hand it to the caller. */
 async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnType<typeof stubContext>) => T): Promise<T> {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-'));
 	const ctx = stubContext();
@@ -79,11 +52,6 @@ async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnT
 	}
 }
 
-/**
- * One .enex becomes one notebook folder named after it. That folder is what
- * gets recorded, rather than the temp directory around it, so expected/ reads
- * as a vault would rather than repeating the fixture name twice.
- */
 function notebookDir(outputDir: string): string {
 	const folders = nodeFs.readdirSync(outputDir, { withFileTypes: true }).filter(entry => entry.isDirectory());
 	assert.equal(folders.length, 1, `expected one notebook folder, got: ${folders.map(f => f.name).join(', ') || 'none'}`);
@@ -107,10 +75,6 @@ for (const fixture of enexFiles) {
 	});
 }
 
-/**
- * Links across notebooks only resolve when both are imported together, so this
- * one cannot be a per-fixture recording.
- */
 test('resolves a link into another notebook', async () => {
 	await convert(['test-internotebook_links_A.enex', 'test-internotebook_links_B.enex'].map(n => nodePath.join(FIXTURES, n)), outputDir => {
 		const note = readTree(outputDir).get('test-internotebook_links_B/Note in Notebook B.md');

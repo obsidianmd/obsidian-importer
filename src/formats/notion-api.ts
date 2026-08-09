@@ -70,14 +70,7 @@ export class NotionAPIImporter extends FormatImporter {
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
 	private notionIdToPath: Map<string, string> = new Map();
-	// Pages this run actually wrote, without extension. A page it recognised and
-	// left alone is in notionIdToPath so links resolve, but is not one of these.
 	private writtenPaths: Set<string> = new Set();
-	// Pages an unfinished earlier run wrote, which this run is the continuation
-	// of. Not written again, but this run owns them: their notion-id is the
-	// scaffolding that unfinished run left behind, and clearing up after it is
-	// this run's job. Kept apart from a page the user asked to skip, which is
-	// not ours to touch.
 	private recoveredPaths: Set<string> = new Set();
 	// Track mention placeholders for efficient replacement (similar to relationPlaceholders)
 	// Maps source file path to the set of mentioned page/database IDs
@@ -462,10 +455,6 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.status('Processing synced block child references...');
 			await this.replaceSyncedChildPlaceholders(ctx);
 
-			// Whether the notion-id stays is the "Save note ID" setting's call,
-			// not the duplicate mode's. Tying it to the mode meant importing
-			// once with "Create a copy" left a later import nothing to
-			// recognise these pages by, and Notion lets two pages share a title.
 			if (!this.saveSourceId) {
 				ctx.status('Cleaning up notion-id attributes...');
 				await this.cleanupNotionIds(ctx);
@@ -1311,30 +1300,7 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx.status(`Replaced ${replacedCount} synced child references in ${filesModified} files (imported ${importedCount} new items).`);
 	}
 
-	/**
-	 * Check if a file should be skipped during import
-	 * This applies to BOTH incremental and full import modes
-	 * 
-	 * @param filePath - Path to the file to check
-	 * @param notionId - Notion ID of the page being imported
-	 * @param ctx - Import context for reporting
-	 * @returns true if file should be skipped, false otherwise
-	 */
-	/**
-	 * A page a previous import wrote and then died before finishing, which the
-	 * run picking up where it left off must not write a second copy of.
-	 *
-	 * "Create a copy" recognises nothing, so this is the one exception, and the
-	 * notion-id is what marks it: the id is written as each page is imported
-	 * and taken out again once the import finishes, so an id still sitting
-	 * there is one a finished import would have cleaned up.
-	 *
-	 * Unless the user asked to keep the ids, in which case a page written by an
-	 * import that finished perfectly well carries one too, and there is nothing
-	 * to tell the two apart. Copying is the answer that respects what the mode
-	 * says; the cost is that resuming that particular import copies the pages
-	 * it had already written.
-	 */
+	/** Find a page left by an unfinished import. */
 	private async alreadyWrittenByAnUnfinishedImport(
 		filePath: string,
 		notionId: string,
@@ -1374,12 +1340,6 @@ export class NotionAPIImporter extends FormatImporter {
 			return await this.alreadyWrittenByAnUnfinishedImport(filePath, notionId, ctx);
 		}
 
-		// The notion-id finds the page wherever it has been moved or renamed to
-		// since it was imported; the path is the fallback, for a page imported
-		// before the id was recorded - which, with "Save note ID" off, is every
-		// page, because the cleanup at the end of the import takes it out again.
-		// Asking for the id a second time here rejected exactly those pages and
-		// copied them instead, so Skip did nothing at all by default.
 		const file = this.previouslyImported(normalizePath(filePath), notionId);
 		if (!file) {
 			return false; // Not imported before, don't skip
@@ -1390,12 +1350,9 @@ export class NotionAPIImporter extends FormatImporter {
 			const { basename } = parseFilePath(file.path);
 			ctx.reportSkipped(basename, 'it is already in the vault');
 
-			// Skipped pages still need to be link targets in this run, at
-			// whatever path the page is actually at now.
 			const filePathWithoutExtension = file.path.replace(/\.md$/, '');
 			this.notionIdToPath.set(notionId, filePathWithoutExtension);
 
-			// Retry placeholders left unresolved by an earlier import.
 			await this.collectUnresolvedPlaceholders(content, notionId, file.path);
 
 			return true;
@@ -1406,20 +1363,8 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Clean up notion-id from all imported files' frontmatter, for an import
-	 * that was asked not to save note IDs.
-	 *
-	 * It is written during the import whatever the setting says, so that an
-	 * import interrupted half way can be resumed, and taken out again here once
-	 * there is nothing left to resume.
-	 * 
-	 * @param ctx - Import context for status updates
-	 */
+	/** Remove temporary IDs from pages owned by this run. */
 	protected async cleanupNotionIds(ctx: ImportContext): Promise<void> {
-		// Pages this run wrote, and pages the run it is finishing off wrote.
-		// Leaving the id on a recovered page would have the next import read it
-		// as another unfinished run and skip the page again, for good.
 		const written = new Set([...this.writtenPaths, ...this.recoveredPaths]);
 		if (written.size === 0) {
 			return;
@@ -1427,10 +1372,6 @@ export class NotionAPIImporter extends FormatImporter {
 
 		let failedCount = 0;
 
-		// Only pages this run wrote. notionIdToPath also holds the ones it
-		// recognised and left alone, so that links to them resolve, and taking
-		// the id out of those would edit a note the user asked to skip - and
-		// leave nothing to recognise it by next time.
 		for (const filePath of written) {
 			if (await ctx.shouldStop()) break;
 
@@ -1440,10 +1381,8 @@ export class NotionAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				// Read file content
 				const content = await this.vault.read(file);
 
-				// Check if file has frontmatter with notion-id
 				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 				const match = content.match(frontmatterRegex);
 
@@ -1458,19 +1397,16 @@ export class NotionAPIImporter extends FormatImporter {
 					continue; // No notion-id in frontmatter, skip
 				}
 
-				// Remove the notion-id line from frontmatter
 				const newFrontmatter = frontmatter
 					.split('\n')
 					.filter(line => !line.match(/^notion-id:\s*.+$/))
 					.join('\n');
 
-				// Reconstruct the content
 				const newContent = content.replace(
 					frontmatterRegex,
 					`---\n${newFrontmatter}\n---`
 				);
 
-				// Write back to file
 				await this.modifyMarkdown(file, newContent, {
 					mtime: file.stat.mtime,
 					ctime: file.stat.ctime,

@@ -91,9 +91,7 @@ Object.defineProperty(nodeProto, 'win', { get() { return window; }, configurable
 
 define(elementProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(elementProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
-// On Node rather than Element, as Obsidian has it: createFragment(frag =>
-// frag.appendText(...)) is the idiom all over this plugin, and a fragment is
-// not an element.
+// Obsidian adds these methods to Node, including DocumentFragment.
 define(nodeProto, 'appendText', function (this: any, text: string) {
 	this.appendChild((this.ownerDocument ?? this.doc ?? window.document).createTextNode(text));
 });
@@ -169,13 +167,7 @@ if (!('cells' in elementProto)) {
 define(documentProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(documentProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 
-/**
- * createEl and friends, detached - matching what Obsidian's globals do.
- *
- * The methods below go on Node rather than Element, as Obsidian has them: a
- * DocumentFragment is not an element, and createFragment(frag => ...) building
- * a description out of createEl and appendText is the idiom throughout.
- */
+/** Detached equivalent of Obsidian's createEl. */
 function createEl(tag: string, options?: { text?: string, cls?: string, attr?: Record<string, unknown> }) {
 	const el = window.document.createElement(tag);
 	if (options?.text) el.textContent = options.text;

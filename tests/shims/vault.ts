@@ -169,9 +169,6 @@ export function memoryApp(vault: MemoryVault) {
 		vault,
 		loadLocalStorage: () => null,
 		saveLocalStorage: () => {},
-		// Obsidian keeps every note's frontmatter parsed and in memory, which is
-		// what lets an import look up notes by their source id without reading
-		// the vault back. Parsing on demand here is the same answer.
 		metadataCache: {
 			getFileCache: (file: { path: string }) => {
 				const content = vault.contents.get(file.path);

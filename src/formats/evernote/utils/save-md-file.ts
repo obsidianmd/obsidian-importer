@@ -7,11 +7,6 @@ import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { writeFile } from './file-utils';
 import { getMdFilePath } from './folder-utils';
 
-/**
- * Write the note, unless the importer says a note already at that path should
- * be left as it is. Returns false for a note it left alone, which the import
- * counts as skipped rather than imported.
- */
 export const saveMdFile = (data: string, note: EvernoteNote): boolean => {
 	const absMdFilePath = getMdFilePath(note);
 
@@ -32,7 +27,6 @@ function shouldWrite(absMdFilePath: string, note: EvernoteNote): boolean {
 		writtenAt = fs.statSync(absMdFilePath).mtimeMs;
 	}
 	catch {
-		// Nothing readable there to leave alone.
 		return true;
 	}
 

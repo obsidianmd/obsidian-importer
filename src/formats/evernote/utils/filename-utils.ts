@@ -113,8 +113,6 @@ export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 			console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 		}
 
-		// Reusing the name is what gives saveMdFile a note to decide about; the
-		// next free index would write a second copy and recognise nothing.
 		const nextIndex = reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
 
 		noteName = (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;

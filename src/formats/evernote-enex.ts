@@ -24,21 +24,11 @@ export class EvernoteEnexImporter extends FormatImporter {
 		this.defaultOutputFolder = 'Evernote';
 	}
 
-	/**
-	 * The conversion writes to disk itself rather than through the vault, so it
-	 * cannot go through writeNote. It asks this instead, which answers the same
-	 * question the same way.
-	 *
-	 * .enex carries no id for a note, only its <updated> time, so a note is
-	 * recognised by its path - the same as every other importer reading files.
-	 */
 	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
 		if (this.duplicateHandling === DuplicateHandling.Skip) return 'skip';
 
-		// Nothing to compare, so the safe answer is to bring the note across.
 		if (updatedAt === null) return 'write';
 
-		// The last import stamped the file with what the source said then.
 		if (Math.floor(writtenAt) === Math.floor(updatedAt)) return 'skip';
 
 		return writtenAt > updatedAt ? 'skip' : 'write';
@@ -61,7 +51,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
-		// The Evernote conversion writes its own files rather than through the vault
 		setMarkdownOutput(markdownOutputFor(app.vault));
 
 		let evernoteOptions = {
@@ -76,7 +65,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
 		});
 
-		// Unset for "Create a copy", which is what leaves names being indexed.
 		setExistingNoteHandler(this.duplicateHandling === DuplicateHandling.CreateCopy
 			? null
 			: existing => this.decideExistingNote(existing));

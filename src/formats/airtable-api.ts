@@ -815,10 +815,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				const existing = this.existingRecordNote(desiredPath, record.id);
 				if (existing) {
-					// Where the note actually is, not where this import would
-					// have put it: recognising it by id is what lets it have
-					// been renamed or moved, and a link to the path it no
-					// longer occupies resolves to nothing.
 					claimed.add(existing.path.toLowerCase());
 					this.recordIdToPath.set(`${baseId}:${record.id}`, existing.path.replace(/\.md$/, ''));
 					planned.push({ record, filePath: existing.path, title, skipped: 'Already imported' });
@@ -1172,7 +1168,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			viewPropertyName: this.viewPropertyName,
 			formulaFieldNames,
 			frontMatterFields,
-			// Written by withSourceId below, which is the one place that decides.
 			recordId: false,
 			resolveRecordLink: linkedRecordId => this.linkTextForRecord(fileContext.baseId, linkedRecordId),
 			externalRecordTitle: linkedRecordId => this.globalRecordIdToTitle.get(linkedRecordId),
@@ -1215,8 +1210,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			return null;
 		}
 
-		// By record id first, so a note renamed since it was imported is still
-		// the note this record belongs to.
 		return this.previouslyImported(normalizePath(filePath), recordId);
 	}
 

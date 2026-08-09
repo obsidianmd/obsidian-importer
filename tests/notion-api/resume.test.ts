@@ -1,17 +1,3 @@
-/**
- * Picking up a Notion import that did not finish.
- *
- * The notion-id is written into each page as it is imported and taken out
- * again once the import completes, so an id still sitting in a note is one a
- * finished import would have cleaned up - which is what lets a re-run tell a
- * page an interrupted import already wrote from a page it has never seen.
- * "Create a copy" copies everything else.
- *
- * Two bugs have come from the two halves of that disagreeing about which notes
- * the run owns. Skipping a recovered page but leaving its id behind is the
- * worse one: every later import reads it as another unfinished run and skips
- * the page again, so the page is never copied and the id is never cleared.
- */
 import '../shims/dom';
 import '../shims/runtime';
 
@@ -27,7 +13,6 @@ import { MemoryVault, memoryApp } from '../shims/vault';
 const PAGE_ID = 'abc-123';
 const PAGE_PATH = 'Notion/Roadmap.md';
 
-/** Exposes the two halves, which are protected for the importer's own use. */
 class ResumingImporter extends NotionAPIImporter {
 	skips(filePath: string, notionId: string, ctx: ImportContext) {
 		return this.shouldSkipExistingFile(filePath, notionId, ctx);
@@ -58,8 +43,6 @@ test('a page an unfinished import wrote is not written twice', async () => {
 });
 
 test('and its id is cleared, so the next import stops recognising it', async () => {
-	// Left behind, every later "Create a copy" run reads the id as another
-	// unfinished import and skips the page for good.
 	const { vault, subject, ctx } = await importing(DuplicateHandling.CreateCopy, false);
 
 	await subject.skips(PAGE_PATH, PAGE_ID, ctx);
@@ -70,8 +53,6 @@ test('and its id is cleared, so the next import stops recognising it', async () 
 });
 
 test('a page the user asked to skip keeps its id', async () => {
-	// Not this run's to touch: it was not written by an import that failed
-	// half way, and taking the id out would leave nothing to recognise it by.
 	const { vault, subject, ctx } = await importing(DuplicateHandling.Skip, true);
 
 	assert.equal(await subject.skips(PAGE_PATH, PAGE_ID, ctx), true);
@@ -81,9 +62,6 @@ test('a page the user asked to skip keeps its id', async () => {
 });
 
 test('with ids kept, "Create a copy" copies rather than recognising anything', async () => {
-	// A page a perfectly finished import wrote carries an id too, so there is
-	// nothing to tell it from one an unfinished run left. Copying is what the
-	// mode says, so copying is the answer.
 	const { subject, ctx } = await importing(DuplicateHandling.CreateCopy, true);
 
 	assert.equal(await subject.skips(PAGE_PATH, PAGE_ID, ctx), false);

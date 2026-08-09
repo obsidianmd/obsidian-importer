@@ -778,12 +778,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		throw new Error(`there is no file at ${candidates.join(' or ')}`);
 	}
 
-	/**
-	 * Apple Notes titles a note by its first line, so the name a note was
-	 * imported under depends on settings that may have changed since. The id
-	 * settles it where there is one; the titles are only there for a note
-	 * imported before the id was recorded.
-	 */
 	private existingNoteFor(folder: TFolder, titles: string[], noteId?: string): TFile | null {
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
 

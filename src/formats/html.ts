@@ -193,7 +193,6 @@ export class HtmlImporter extends FormatImporter {
 			let mdContent = markdown;
 			let { file: mdFile, written } = await this.writeNote(ctx, folder, file.basename, mdContent);
 
-			// Left as it was, so the link pass below must not rewrite it.
 			if (!written) return mdFile;
 
 			// Because `htmlToMarkdown` always gets us markdown links, we'll want to convert them into wikilinks, or relative links depending on the user's preference.

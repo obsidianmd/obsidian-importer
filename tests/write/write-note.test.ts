@@ -1,17 +1,3 @@
-/**
- * What an import does with a note the vault already holds.
- *
- * Every importer writes through writeNote now, so this is one behaviour rather
- * than fourteen. Five importers had their own version of it and nine had none
- * at all, which is what #142 was about: run an import twice and the second run
- * wrote "Note 1.md" beside everything the first one had already brought in.
- *
- * The interesting case is the third one. Where the source says when a note last
- * changed, the previous import stamped that time on the file it wrote, so the
- * file's own mtime is what the source said last time - which is what separates
- * "changed at the source" from "edited here since". Where it does not, all
- * there is to go on is the text.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -64,7 +50,6 @@ test('"Skip" leaves the note alone and says which note it was', async () => {
 
 	const { file, written } = await subject.writeNote(ctx, vault.root, 'Note', 'second');
 
-	// The note still comes back: a link to it has to resolve to something.
 	assert.equal(file.path, 'Note.md');
 	assert.equal(written, false);
 	assert.equal(vault.contents.get('Note.md'), 'already here');
@@ -83,8 +68,6 @@ test('"Update" writes over a note the source has changed since', async () => {
 });
 
 test('"Update" leaves a note the source has not touched since', async () => {
-	// The point of the mtime comparison: a second run over 10,000 notes is a
-	// stat check each, not a convert and a rewrite each.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 	await vault.create('Note.md', 'the last import', { mtime: 2_000 });
 
@@ -96,8 +79,6 @@ test('"Update" leaves a note the source has not touched since', async () => {
 });
 
 test('"Update" does not write over work done in Obsidian since the import', async () => {
-	// The file is newer than the source says the note is, so the note was
-	// edited here. Overwriting it would throw that away silently.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 	await vault.create('Note.md', 'edited by hand', { mtime: 5_000 });
 
@@ -108,9 +89,6 @@ test('"Update" does not write over work done in Obsidian since the import', asyn
 });
 
 test('with no time to go on, "Update" compares the text instead', async () => {
-	// Roam, CSV, HTML and Textbundle carry no modification time. Identical
-	// output is still recognised as nothing to do; an edit here is not, which
-	// is the cost of the source not saying when it last changed.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 	await vault.create('Note.md', 'same text');
 
@@ -122,16 +100,10 @@ test('with no time to go on, "Update" compares the text instead', async () => {
 	assert.equal(vault.contents.get('Note.md'), 'different text');
 });
 
-/**
- * The id is written in one place, so an importer declares idProperty and hands
- * writeNote a sourceId rather than assembling frontmatter of its own. Five of
- * them did, and disagreed about when to write it.
- */
 test('the source id is recorded only when the importer has one and it was asked for', async () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
 	subject.idProperty = 'notion-id';
 
-	// Off by default: a one-time import leaves nothing behind.
 	const bare = await subject.writeNote(ctx, vault.root, 'A', 'body\n', { sourceId: 'abc-123' });
 	assert.equal(vault.contents.get(bare.file.path), 'body\n');
 
@@ -139,7 +111,6 @@ test('the source id is recorded only when the importer has one and it was asked 
 	const kept = await subject.writeNote(ctx, vault.root, 'B', 'body\n', { sourceId: 'abc-123' });
 	assert.equal(vault.contents.get(kept.file.path), '---\nnotion-id: abc-123\n---\nbody\n');
 
-	// Nothing to record for an importer whose source has no id.
 	subject.idProperty = null;
 	const none = await subject.writeNote(ctx, vault.root, 'C', 'body\n', { sourceId: 'abc-123' });
 	assert.equal(vault.contents.get(none.file.path), 'body\n');
@@ -164,7 +135,6 @@ test('the id joins the properties the note already had rather than replacing the
 });
 
 test('two source notes of one name stay two notes', async () => {
-	// Not a duplicate of anything: the first one is a note this run just wrote.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 
 	const first = await subject.writeNote(ctx, vault.root, 'Note', 'one');
@@ -176,10 +146,6 @@ test('two source notes of one name stay two notes', async () => {
 });
 
 test('two source notes whose names differ only in case stay two notes', async () => {
-	// The vault matches names without case, so "note" lands on "Note". Holding
-	// the names this run has written with their original case missed that: the
-	// note just written read as one already in the vault, and Update wrote the
-	// second note over the first.
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 
 	const first = await subject.writeNote(ctx, vault.root, 'Note', 'one');

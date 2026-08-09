@@ -412,11 +412,7 @@ export class OneNoteImporter extends FormatImporter {
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-				// The older record is a list of ids with no paths, so it can say
-				// a page was imported before but not which note it became.
-				// Skipping is the only thing that can be done with that; a note
-				// this importer wrote itself carries its id and is recognised
-				// wherever it has since been moved to.
+				// Legacy IDs have no note paths, so they can only support Skip.
 				if (this.duplicateHandling === DuplicateHandling.Skip && page.id && this.legacyImportedIds.has(page.id)) {
 					progress.reportSkipped(page.title, 'an earlier version of the importer already brought it in');
 					continue;
@@ -494,12 +490,6 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Page ids an older version recorded in the plugin's data file rather than
-	 * in the notes themselves. It wrote no onenote-id, so without these an
-	 * upgrade cannot recognise anything it imported before, and "Skip" brings
-	 * the whole notebook in again.
-	 */
 	private async readLegacyImportedIds(): Promise<void> {
 		this.legacyImportedIds.clear();
 		if (!this.host.plugin) return;

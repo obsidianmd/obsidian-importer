@@ -109,8 +109,6 @@ export class TomboyImporter extends FormatImporter {
 			const file = files[i];
 			ctx.status('Processing ' + file.name);
 			try {
-				// writeNote reports a note it left alone, so only a note this
-				// import actually wrote counts as one imported.
 				const { written } = await this.processFile(ctx, folder, file);
 				if (written) ctx.reportNoteSuccess(file.fullpath);
 			}
@@ -128,8 +126,6 @@ export class TomboyImporter extends FormatImporter {
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
 
-		// Tomboy names each .note file for the note's own id, and titles are
-		// neither unique nor fixed.
 		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, { sourceId: file.basename });
 	}
 }

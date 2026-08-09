@@ -1,16 +1,3 @@
-/**
- * Recognising a note an earlier import wrote.
- *
- * Three importers carry an id from the source into the note - apple-notes-id,
- * notion-id, airtable-id - so that a later import knows which note is which. A
- * file name cannot tell them that: two records share a title, and a note gets
- * renamed. All three read it back through the same pair of helpers now, which
- * is what this covers.
- *
- * Notion read it with a regex over the whole note until this was shared, so the
- * cases below that concern where the property is found are the ones that
- * changed: a line in the body is not frontmatter.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -21,7 +8,6 @@ import { ImportContext } from '../../src/import-context';
 import { serializeFrontMatter } from '../../src/util';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
-/** Exposes the two helpers, which are protected for importers to use. */
 class ReadingImporter extends FormatImporter {
 	init(): void {
 		this.idProperty = 'notion-id';
@@ -45,7 +31,6 @@ class ReadingImporter extends FormatImporter {
 function importer() {
 	const vault = new MemoryVault();
 	const subject = new ReadingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
-	// Matching only happens for the modes that write over a note.
 	subject.duplicateHandling = DuplicateHandling.Update;
 
 	return { vault, subject };
@@ -67,8 +52,6 @@ test('a note that carries no id, or a different property, reads as none', () => 
 });
 
 test('the property has to be frontmatter, not a line that looks like it', () => {
-	// A regex over the whole note found this and read the note as already
-	// imported, which skipped a page that had never been written.
 	const { subject } = importer();
 	const body = 'How the import works:\n\nnotion-id: abc-123\n';
 
@@ -97,7 +80,6 @@ test('the note at a path is returned when its id is the one asked for', async ()
 });
 
 test('a note carrying a different id is a different note', async () => {
-	// It shares the name and nothing else, so the import writes its own.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', NOTE);
 	subject.indexImportedNotes();
@@ -113,8 +95,6 @@ test('nothing at the path is nothing to recognise', () => {
 });
 
 test('a path differing only in case finds the note', async () => {
-	// On macOS and Windows it is the same file. An exact lookup would report
-	// no note there, and the import would write a second one over it.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', NOTE);
 	subject.indexImportedNotes();
@@ -123,8 +103,6 @@ test('a path differing only in case finds the note', async () => {
 });
 
 test('the id finds the note wherever it has been renamed or moved to', async () => {
-	// The whole reason the id is written. A path lookup would report no note
-	// there and the import would write a second copy of a note already held.
 	const { vault, subject } = importer();
 	await vault.create('Archive/Old plans.md', NOTE);
 	subject.indexImportedNotes();
@@ -133,8 +111,6 @@ test('the id finds the note wherever it has been renamed or moved to', async () 
 });
 
 test('a note carrying no id at all is still matched by its path', async () => {
-	// Notes imported before the id was recorded. Being strict here would make
-	// the first import after the upgrade write a duplicate of every one.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', 'No frontmatter here.\n');
 	subject.indexImportedNotes();
@@ -143,8 +119,6 @@ test('a note carrying no id at all is still matched by its path', async () => {
 });
 
 test('a note this run has already written is never matched again', async () => {
-	// Two source notes of one title. The second has to become its own note
-	// rather than overwriting the first one this run just wrote.
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', 'Written by this run.\n');
 	subject.indexImportedNotes();

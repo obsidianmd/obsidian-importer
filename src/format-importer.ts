@@ -21,16 +21,11 @@ const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
 	[DuplicateHandling.Update]: 'Update',
 };
 
-/**
- * Where attachments land, mirroring Obsidian's "Default location for new
- * attachments". The import starts from whatever the vault is set to, so the
- * choice is visible, and changing it here does not touch the app setting.
- */
 export type AttachmentLocationMode = 'vault' | 'folder' | 'note' | 'subfolder';
 
 export interface AttachmentLocation {
 	mode: AttachmentLocationMode;
-	/** A folder for 'folder', a subfolder name for 'subfolder'; unused otherwise. */
+	/** Folder path or subfolder name, depending on mode. */
 	path: string;
 }
 
@@ -41,11 +36,6 @@ const ATTACHMENT_MODE_LABELS: Record<AttachmentLocationMode, string> = {
 	subfolder: 'In subfolder under the note',
 };
 
-/**
- * The chosen location written back in the form Obsidian's own setting takes,
- * for an importer that resolves attachment paths itself rather than through
- * getAvailablePathForAttachment.
- */
 export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation): string {
 	switch (mode) {
 		case 'vault':
@@ -59,7 +49,6 @@ export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation):
 	}
 }
 
-/** Read the vault's attachment setting as a location this step can show. */
 export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	const configured = vault.getConfig('attachmentFolderPath');
 	const value = typeof configured === 'string' ? configured.trim() : '';
@@ -71,19 +60,12 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	return { mode: 'folder', path: normalizePath(value) };
 }
 
-/** What writeNote needs beyond the note itself. */
 export interface NoteImport extends DataWriteOptions {
-	/** The source's own id for this note, where it has one. */
 	sourceId?: string;
 }
 
 export interface NoteWritten {
-	/**
-	 * The note in the vault, whether this import wrote it or left it as it was.
-	 * A note that was left alone is still what links to it should point at.
-	 */
 	file: TFile;
-	/** False when the note was already there and this import left it alone. */
 	written: boolean;
 }
 
@@ -108,43 +90,21 @@ export abstract class FormatImporter {
 	outputLocation: string = '';
 	notAvailable: boolean = false;
 
-	/**
-	 * Folder the output step offers first. Set it in init(); do not give it a
-	 * field initialiser in a subclass, which would run after init().
-	 */
+	/** Set in init(), not in a subclass field initializer. */
 	defaultOutputFolder: string = 'Import';
 
 	attachmentLocation: AttachmentLocation;
 	duplicateHandling: DuplicateHandling = DuplicateHandling.CreateCopy;
 
-	/** Duplicate modes this importer can honour. */
 	duplicateModes: DuplicateHandling[] = [
 		DuplicateHandling.CreateCopy,
 		DuplicateHandling.Skip,
 		DuplicateHandling.Update,
 	];
 
-	/**
-	 * Frontmatter property this importer records the source's own id under, if
-	 * the source has one. It is what lets a later import recognise a note that
-	 * has since been renamed, and tell apart two notes the source allowed to
-	 * share a title.
-	 *
-	 * Setting it puts the "Save note ID" toggle on the output step. Whether the
-	 * id is written is that toggle's business and not the duplicate mode's: an
-	 * import that leaves it out because of the mode it happened to run in locks
-	 * every later import out of matching those notes.
-	 */
+	/** Frontmatter property used to identify imported notes. */
 	idProperty: string | null = null;
 
-	/**
-	 * Whether to record idProperty in each note. Only asked where there is one,
-	 * and off unless the user asks for it: it is a property in every note they
-	 * import, which is a real cost to anyone importing once and never again.
-	 *
-	 * A note carrying none is still matched by its path, so leaving it off
-	 * costs recognising a note that was renamed rather than recognising nothing.
-	 */
 	saveSourceId: boolean = false;
 
 	// Controls which interruption buttons the importer supports.
@@ -153,20 +113,12 @@ export abstract class FormatImporter {
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
 
-	/** Set once the output step has been built, so it is not built twice. */
 	private outputStepDrawn: boolean = false;
 
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
 
-	/**
-	 * Notes this run has written, so a second one cannot land on the first.
-	 *
-	 * Held without case, because the vault matches names without case: writing
-	 * "Note" and then importing "note" is one file on macOS and Windows, and an
-	 * exact comparison here would read the first note as one that was already
-	 * in the vault and quietly write the second over it.
-	 */
+	/** Paths claimed by this run, normalized for case-insensitive vault lookup. */
 	private claimed = new Set<string>();
 
 	protected claimPath(path: string): void {
@@ -177,10 +129,8 @@ export abstract class FormatImporter {
 		return this.claimed.has(normalizePath(path).toLowerCase());
 	}
 
-	/** Source id to the note carrying it, built once per import. */
 	private importedById: Map<string, TFile> | null = null;
 
-	/** Folder this importer's file picker last opened at, and any importer's. */
 	private sourceFolder: string | null = null;
 	private lastSourceFolder: string | null = null;
 
@@ -195,8 +145,6 @@ export abstract class FormatImporter {
 		this.app = app;
 		this.vault = app.vault;
 		this.host = host;
-		// Start from the vault's own setting, so the output step opens showing
-		// where attachments would have gone anyway.
 		this.attachmentLocation = vaultAttachmentLocation(app.vault);
 		// init() may queue additional startup work through whenReady().
 		this.ready = Promise.resolve(this.init())
@@ -352,28 +300,11 @@ export abstract class FormatImporter {
 		await this.host.plugin.saveData(data);
 	}
 
-	/**
-	 * Where the file picker opens. Without one Electron picks for itself, which
-	 * is how every import started at Downloads however many times you had
-	 * already pointed it somewhere else.
-	 *
-	 * A folder this importer was pointed at before beats the one it can work
-	 * out for itself, which in turn beats wherever another importer was last
-	 * pointed - a guess at where this export might be, rather than a known
-	 * location for it.
-	 */
+	/** Prefer this importer's last folder, then its default, then the global last folder. */
 	protected pickerOpensAt(defaultPath?: string): string | undefined {
 		return this.sourceFolder ?? defaultPath ?? this.lastSourceFolder ?? undefined;
 	}
 
-	/**
-	 * Ask for files or folders, and remember where the answer came from.
-	 *
-	 * The dialog call is here rather than inline so that a test can see what
-	 * this hands it: wiring the remembered folder into the two call sites and
-	 * testing only the helpers left the dialog still being passed the raw
-	 * default, and green tests either way.
-	 */
 	protected chooseFrom(options: Record<string, unknown>, defaultPath?: string): string[] {
 		const picked: string[] | undefined = window.electron.remote.dialog.showOpenDialogSync({
 			...options,
@@ -386,7 +317,6 @@ export abstract class FormatImporter {
 		return picked;
 	}
 
-	/** Remember where a pick came from, for this importer and for the next. */
 	protected rememberSourceFolder(filepath: string): void {
 		const { parent } = parseFilePath(filepath);
 		if (!parent) return;
@@ -497,14 +427,6 @@ export abstract class FormatImporter {
 		};
 	}
 
-	/**
-	 * The output step: where notes go, where attachments go, and what to do
-	 * about notes that are already in the vault. The same for every importer,
-	 * so the base class draws it rather than each importer adding its own.
-	 *
-	 * Called by the host once this.ready has resolved, so the settings the last
-	 * import used are already in hand.
-	 */
 	drawOutputStep(): void {
 		const contentEl = this.stepEl('output');
 		if (!contentEl || this.outputStepDrawn) return;
@@ -553,8 +475,6 @@ export abstract class FormatImporter {
 			.setName('Attachments')
 			.setDesc('Where to put images and other files this import brings with it.');
 
-		// The folder only means something for two of the modes, so it appears
-		// under the dropdown the way Obsidian's own attachment setting does.
 		const pathSetting = new Setting(contentEl)
 			.setClass('importer-sub-setting');
 
@@ -622,13 +542,12 @@ export abstract class FormatImporter {
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
 
-		// A scripted import has no plugin to remember anything for.
 		if (!this.host.plugin) return;
 
 		try {
 			const data = await this.host.plugin.loadData();
 
-			// Folders remembered before the output step existed.
+			// Migrate the legacy output folder.
 			const legacyFolder = data.outputLocations?.[this.host.importerId];
 			if (legacyFolder !== undefined) this.outputLocation = legacyFolder;
 
@@ -700,21 +619,13 @@ export abstract class FormatImporter {
 		return null;
 	}
 
-	/**
-	 * The folder this import puts attachments in, from the location picked on
-	 * the output step. The vault's own setting is only the starting point: it
-	 * was read into attachmentLocation when the importer was constructed, and
-	 * the user may have changed it since.
-	 */
 	private async attachmentFolderPath(sourcePath?: string): Promise<string> {
 		const { mode, path: configured } = this.attachmentLocation;
 
 		if (mode === 'vault') return '/';
 		if (mode === 'folder') return configured ? normalizePath(configured) : '/';
 
-		// Both note-relative modes need a note to be relative to. An importer
-		// that saves an attachment before it knows the note measures from the
-		// output folder instead.
+		// Fall back to the output folder when no note path is available.
 		let noteFolder = sourcePath ? parseFilePath(sourcePath).parent : '';
 		if (!noteFolder) noteFolder = (await this.getOutputFolder())?.path ?? '/';
 
@@ -723,28 +634,11 @@ export abstract class FormatImporter {
 		return normalizePath(`${noteFolder}/${configured}`);
 	}
 
-	/**
-	 * Resolves a unique path for the attachment file being saved.
-	 * Ensures that the parent directory exists and dedupes the
-	 * filename if the destination filename already exists.
-	 *
-	 * This stands in for `fileManager.getAvailablePathForAttachment` with three
-	 * adjustments Importer needs:
-	 *   - Put attachments where the output step says, not where the vault setting does.
-	 *   - Use the provided `sourcePath` even if the file doesn't exist yet.
-	 *   - Avoid duplicating a list of provided filenames that do not yet exist, but will in the future.
-	 *
-	 * @param filename Name of the attachment being saved
-	 * @param claimedPaths List of filepaths that may not exist yet but will in the future.
-	 * @param sourcePath Optional path of the note being imported, for the note-relative modes
-	 * @returns Full path for where the attachment should be saved
-	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
 		const folderPath = await this.attachmentFolderPath(sourcePath);
 		const folder = await this.createFolders(folderPath);
 		const parent = folder.path === '/' ? '' : folder.path;
 
-		// A parent in the name is dropped, the way the vault method drops it.
 		const { basename, extension } = parseFilePath(filename);
 		const name = sanitizeFileName(basename);
 		const fullExt = extension ? '.' + extension : '';
@@ -846,19 +740,12 @@ export abstract class FormatImporter {
 		});
 	}
 
-	/** Register Markdown written outside createFile (for example by the Evernote conversion). */
+	/** Register Markdown written outside createFile. */
 	trackMarkdownFile(file: TFile | string): void {
 		const path = typeof file === 'string' ? normalizePath(file) : file.path;
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
 	}
 
-	/**
-	 * The note, carrying the source's own id if this importer has one to record
-	 * and the user asked for it to be kept.
-	 *
-	 * The one place that decides this. An importer that cannot write through
-	 * writeNote calls it directly rather than working out the answer again.
-	 */
 	protected withSourceId(content: string, sourceId: string | undefined): string {
 		const { idProperty } = this;
 		if (!idProperty || !sourceId || !this.saveSourceId) return content;
@@ -866,17 +753,10 @@ export abstract class FormatImporter {
 		const parsed = parseFrontMatterBlock(content);
 		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
 
-		// First, so it reads as what the note came from rather than as one of
-		// the properties the source itself defined.
 		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
 	}
 
-	/**
-	 * Write an imported note, doing what the output step said to do about a
-	 * note that is already there. The note comes back either way, so links to
-	 * it still resolve when this import left it alone; `written` says whether
-	 * the importer should count it as one it imported.
-	 */
+	/** Write, update, or match an imported note according to the duplicate mode. */
 	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
 		const { sourceId, ...writeOptions } = options;
 		content = this.withSourceId(content, sourceId);
@@ -889,8 +769,6 @@ export abstract class FormatImporter {
 			: this.previouslyImported(fullPath, sourceId);
 
 		if (!existing) {
-			// createFile picks another name if this one is taken, so a note this
-			// import is not allowed to touch is never written over.
 			const file = await this.createFile(folder, name, content, writeOptions);
 			this.claimPath(file.path);
 			return { file, written: true };
@@ -910,24 +788,16 @@ export abstract class FormatImporter {
 		return { file: existing, written: true };
 	}
 
-	/**
-	 * The note an earlier import wrote for this one, if it is still there.
-	 *
-	 * The source id answers this where there is one, so a note that has been
-	 * renamed on either side is still recognised. A note carrying no id may
-	 * predate the id being recorded, so it is matched by path; a note carrying
-	 * a different id belongs to a different source note and is left alone.
-	 */
+	/** Find a previous import by source ID, falling back to its expected path. */
 	protected previouslyImported(fullPath: string, sourceId?: string): TFile | null {
 		const { idProperty } = this;
 
 		if (idProperty && sourceId) {
 			const known = this.importedById?.get(sourceId);
-			// The index is built once, and the note may have gone since.
 			if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
 		}
 
-		// A second note of the same name in this run has to become a copy.
+		// A second source note with this path needs its own file.
 		if (this.hasClaimed(fullPath)) return null;
 
 		const file = this.vault.getAbstractFileByPath(fullPath)
@@ -936,8 +806,7 @@ export abstract class FormatImporter {
 
 		if (idProperty && sourceId) {
 			const recorded = this.recordedId(file, idProperty);
-			// A note carrying no id may predate the id being recorded, so it is
-			// still ours; one carrying a different id is a different note.
+			// Notes imported before IDs were recorded still match by path.
 			if (recorded && recorded !== sourceId) return null;
 		}
 
@@ -949,16 +818,7 @@ export abstract class FormatImporter {
 		return typeof id === 'string' && id ? id : null;
 	}
 
-	/**
-	 * Whether the note is one this import should leave alone: unchanged since
-	 * it was last imported, or changed in Obsidian since.
-	 *
-	 * Where the source tells us when it last changed, the previous import
-	 * stamped that time on the file it wrote — and the Markdown pass afterwards
-	 * preserves it — so the file's own time is what the source said last time.
-	 * Where it does not, all we can do is compare the text, which cannot tell
-	 * an edit in Obsidian from a change at the source.
-	 */
+	/** Leave notes unchanged or edited since the source update alone. */
 	private async unchangedSinceImport(ctx: ImportContext, file: TFile, title: string, content: string, sourceMtime?: number): Promise<boolean> {
 		if (sourceMtime !== undefined) {
 			if (file.stat.mtime === sourceMtime) {
@@ -987,11 +847,6 @@ export abstract class FormatImporter {
 		return true;
 	}
 
-	/**
-	 * Index the vault by source id, so a note that has been renamed or moved
-	 * since it was imported is still found. The frontmatter is already parsed
-	 * and in memory, so this costs no reads.
-	 */
 	indexImportedNotes(): void {
 		const { idProperty } = this;
 		this.claimed.clear();

@@ -20,7 +20,6 @@ type IDMappingValue = {
 	filename: string;
 	metadata: Metadata;
 	file: TFile;
-	/** False for a note this import recognised and left as it was. */
 	written: boolean;
 };
 
@@ -40,9 +39,6 @@ export class Bear2bkImporter extends FormatImporter {
 
 		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
 		this.defaultOutputFolder = 'Bear';
-		// Was a bare "id", written by a toggle of its own. Named for its source
-		// now, so a vault-wide lookup cannot collide with an unrelated "id", and
-		// asked for by the shared "Save note ID" setting rather than a second one.
 		this.idProperty = 'bear-id';
 
 		this.addSetting()
@@ -114,9 +110,6 @@ export class Bear2bkImporter extends FormatImporter {
 							// Use just the filename without extension
 							const fileName = mdFilename;
 
-							// The times go in rather than being stamped on afterwards:
-							// they are what "Update" compares to decide whether the
-							// note changed at the source or was edited in Obsidian.
 							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent, {
 								sourceId: metadata?.id,
 								ctime: metadata?.ctime,
@@ -132,10 +125,7 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// A note left as it was is still what a Bear link to it
-							// should resolve to, so it belongs here - but not among
-							// the files the link pass rewrites, which would edit a
-							// note the duplicate mode said to leave alone.
+							// Keep skipped notes as link targets without rewriting them.
 							idMapping[metadata?.id] = {
 								filename: parseFilePath(file.path).basename,
 								metadata: metadata,

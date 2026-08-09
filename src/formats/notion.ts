@@ -32,8 +32,6 @@ export class NotionImporter extends FormatImporter {
 		this.addFileChooserSetting('Exported Notion', ['zip'], false,
 			'Pick the zip file Notion sent you.');
 		this.defaultOutputFolder = 'Notion';
-		// The same property the Notion API importer writes, so a workspace
-		// imported by zip and later by API recognises itself.
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.addSetting()
 			?.setName('Save parent pages in subfolders')
@@ -70,8 +68,6 @@ export class NotionImporter extends FormatImporter {
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
 
-		// The location picked on the output step, not the app setting: this
-		// importer resolves attachment paths itself, so it has to be told.
 		const info = new NotionResolverInfo(attachmentLocationAsSetting(this.attachmentLocation), this.singleLineBreaks);
 
 		// loads in only path & title information to objects

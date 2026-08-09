@@ -1,16 +1,4 @@
-/**
- * .enex to Markdown.
- *
- * This began as Yarle by Akos Balasko (https://github.com/akosbalasko/yarle,
- * MIT) and has been adapted since: it reads node through src/filesystem, writes
- * through this project's Markdown formatting, and reports to an ImportContext.
- * It is no longer tracking upstream, which is why it is named for what it does
- * rather than for where it came from.
- *
- * Unlike every other conversion here it writes files itself rather than handing
- * markdown back, because a note's attachments and the links to them are settled
- * across the whole export rather than one note at a time.
- */
+/** Evernote converter adapted from Yarle (MIT): https://github.com/akosbalasko/yarle */
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
@@ -98,7 +86,6 @@ const setOptions = (options: EvernoteOptions): void => {
 	let template = (evernoteOptions.templateFile) ? fs.readFileSync(evernoteOptions.templateFile, 'utf-8') : defaultTemplate;
 	template = evernoteOptions.currentTemplate ? evernoteOptions.currentTemplate : template;
 
-	/*if (evernoteOptions.templateFile) {*/
 	// todo: handle file not exists error
 	evernoteOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
 	evernoteOptions.skipLocation = !hasLocationInTemplate(template);
@@ -109,7 +96,6 @@ const setOptions = (options: EvernoteOptions): void => {
 
 	evernoteOptions.currentTemplate = template;
 
-	/*}*/
 };
 
 interface TaskGroups {
@@ -195,8 +181,6 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 			noteAttributes = null;
 			resourceAttributes = [];
 
-			// Only the note this pass just wrote. Without the check a note left
-			// alone would be reopened here under the previous note's path.
 			const currentNotePath = wrote ? runtimeProps.getCurrentNotePath() : '';
 			if (currentNotePath) {
 				for (const task of Object.keys(tasks)) {

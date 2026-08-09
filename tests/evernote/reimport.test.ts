@@ -1,17 +1,3 @@
-/**
- * Importing the same .enex twice.
- *
- * Evernote is the odd one out: it writes files itself rather than through
- * writeNote, so the duplicate modes had nothing to act on and a second import
- * wrote a second copy of everything (#142). The naming was the reason - a note
- * whose name is already taken took the next free index, so there was never a
- * note left to decide about, and the notebook folder and .resources folder did
- * the same one level up.
- *
- * The conversion asks the importer what to do instead. The policy lives there,
- * with the duplicate mode; what is checked here is that the conversion reuses
- * the names and honours the answer.
- */
 import '../shims/dom';
 
 import { test } from 'node:test';
@@ -48,7 +34,6 @@ function stubContext() {
 	};
 }
 
-/** Every file under a directory, as vault-relative paths. */
 function tree(dir: string): string[] {
 	const found: string[] = [];
 	const walk = (at: string, prefix: string) => {
@@ -70,7 +55,6 @@ async function convertInto(outputDir: string, ctx: ReturnType<typeof stubContext
 	}, ctx as never);
 }
 
-/** Two imports into one directory, the second with the given answer. */
 async function importTwice(
 	handler: ((existing: ExistingNote) => ExistingNoteDecision) | null,
 	use: (outputDir: string, first: ReturnType<typeof stubContext>, second: ReturnType<typeof stubContext>) => void
@@ -95,7 +79,6 @@ async function importTwice(
 }
 
 test('with no answer to give, a second import is a second copy', async () => {
-	// "Create a copy", which is what this always did and still does.
 	await importTwice(null, (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.equal(second.notes.length, first.notes.length);
@@ -109,8 +92,6 @@ test('a note that is left alone is reported skipped and not written again', asyn
 		assert.deepEqual(second.notes, [], 'nothing should be imported');
 		assert.equal(second.skips.length, first.notes.length);
 
-		// Same tree as after the first import: no second copy, and no second
-		// notebook folder beside the first one.
 		assert.equal(tree(outputDir).length, first.notes.length);
 	});
 });
@@ -136,8 +117,6 @@ test('the answer is asked with the times both sides give', async () => {
 		for (const existing of asked) {
 			assert.ok(nodePath.isAbsolute(existing.absolutePath), existing.absolutePath);
 			assert.ok(existing.writtenAt > 0, 'the file has a modification time');
-			// This fixture's notes carry <updated>, which is what the first
-			// import stamped the file with.
 			assert.equal(existing.updatedAt, Math.floor(existing.writtenAt), existing.absolutePath);
 		}
 	});

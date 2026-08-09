@@ -29,9 +29,6 @@ export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Arra
 
 		for (const targetFile of targetFiles) {
 			let filepath = path.join(notebookFolder, targetFile);
-			// Every note a previous import left here is in this folder too, and
-			// rewriting one the duplicate mode said to leave alone is not this
-			// pass's business.
 			if (!noteWasWrittenBy(filepath)) continue;
 
 			const fileContent = fs.readFileSync(filepath, 'utf8');

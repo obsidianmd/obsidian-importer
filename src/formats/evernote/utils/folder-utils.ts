@@ -34,8 +34,6 @@ const MAX_ENEX_DIR_LENGTH = 100; // Conservative limit for enex directory name
  * @returns A unique name that doesn't conflict with existing items
  */
 const getUniqueNameForPath = (basePath: string, name: string, suffix: string = ''): string => {
-	// The note keeping its name means its resources keep their folder too,
-	// rather than a "Note (1).resources" piling up beside it on every run.
 	if (reusesNoteNames()) return name;
 
 	const baseName = name;
@@ -209,7 +207,6 @@ export const setPaths = (enexFileBasename: string, evernoteOptions: EvernoteOpti
 	paths.mdPath = `${outputDir}${path.sep}`;
 	paths.resourcePath = `${outputDir}${path.sep}${evernoteOptions.resourcesDir}`;
 
-	// console.log(`Skip enex filename from output? ${evernoteOptions.skipEnexFileNameFromOutputPath}`);
 	if (!evernoteOptions.skipEnexFileNameFromOutputPath) {
 		let truncatedBasename = sanitizeFileName(enexFileBasename);
 

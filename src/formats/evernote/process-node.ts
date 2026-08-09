@@ -8,7 +8,6 @@ import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 import { applyTemplate } from './utils/templates/templates';
 import { evernoteOptions } from './convert';
 
-/** Returns false for a note that was already there and was left alone. */
 export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();

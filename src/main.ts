@@ -575,8 +575,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 	}
 
 	private showFirstStep() {
-		// An importer that cannot run here has already drawn its explanation,
-		// and there is nothing to configure or import.
 		if (this.importer.notAvailable) {
 			this.drawStep(this.optionsEl, () => this.showFormatPicker(), () => {});
 			return;
@@ -585,10 +583,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.showSourceStep();
 	}
 
-	/**
-	 * Formats whose settings all moved to the output step have nothing left of
-	 * their own, so the step is dropped rather than shown empty.
-	 */
 	private hasOptionsStep(): boolean {
 		return (this.optionsEl?.childElementCount ?? 0) > 0;
 	}
@@ -610,7 +604,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 	async showOutputStep() {
 		const { importer } = this;
 
-		// The step opens on the folder and duplicate mode the last import used.
 		await importer.ready;
 		importer.drawOutputStep();
 

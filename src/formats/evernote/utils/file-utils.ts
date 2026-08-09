@@ -17,13 +17,7 @@ export const writeFile = (absFilePath: string, data: string, note: EvernoteNote)
 	}
 };
 
-/**
- * Rewrite a note this import already wrote, keeping the times setFileDates gave
- * it. Links and tasks are settled in later passes, and without this every note
- * touched by one would carry the time of the import rather than the time the
- * source last changed - which a later import reads as a note edited in Obsidian
- * and then refuses to update, for good.
- */
+/** Rewrite a note while preserving its source timestamps. */
 export const rewriteFile = (absFilePath: string, data: string): void => {
 	let dates: { atime: Date, mtime: Date } | null = null;
 	try {
@@ -31,7 +25,7 @@ export const rewriteFile = (absFilePath: string, data: string): void => {
 		dates = { atime: stat.atime, mtime: stat.mtime };
 	}
 	catch {
-		// Nothing there to preserve; the write below reports its own failure.
+		// Best effort.
 	}
 
 	fs.writeFileSync(absFilePath, data);
@@ -42,6 +36,6 @@ export const rewriteFile = (absFilePath: string, data: string): void => {
 		fs.utimesSync(absFilePath, dates.atime, dates.mtime);
 	}
 	catch {
-		// Timestamps are best effort, as they are in setFileDates.
+		// Best effort.
 	}
 };
