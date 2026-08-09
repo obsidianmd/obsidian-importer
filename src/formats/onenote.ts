@@ -461,13 +461,11 @@ export class OneNoteImporter extends FormatImporter {
 					continue;
 				}
 
+				progress.status(`Importing note ${page.title}`);
+
+				let content: string;
 				try {
-					progress.status(`Importing note ${page.title}`);
-
-					await this.processFile(progress,
-						await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress),
-						page);
-
+					content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
 					consecutiveFailureCount = 0;
 				}
 				catch (e) {
@@ -498,6 +496,20 @@ export class OneNoteImporter extends FormatImporter {
 
 						return;
 					}
+
+					progress.reportProgress(++progressCurrent, progressTotal);
+					continue;
+				}
+
+				// A page that will not convert is one bad page. The counter
+				// above watches for the API going out from under us, and
+				// feeding content errors into it lets six unusual pages end an
+				// import that was otherwise working.
+				try {
+					await this.processFile(progress, content, page);
+				}
+				catch (e) {
+					progress.reportFailed(page.title, String(e));
 				}
 
 				// report progress even if page import fails or is skipped
