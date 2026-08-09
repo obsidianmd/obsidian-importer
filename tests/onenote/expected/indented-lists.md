@@ -15,17 +15,17 @@ Indented Unordered List
  
 Indented Numbered Todos
 
-1. - [ ] Outer
-    1. - [x] Inner l1
-        1. - [ ] Inner l2
-2. - [ ] Outer
+1. [ ] Outer
+    1. [x] Inner l1
+        1. [ ] Inner l2
+2. [ ] Outer
  
 Indented Unordered Todos
 
-- - [ ] Outer
-    - - [ ] Inner l1
-        - - [x] Inner l2
-- - [ ] Outer
+- [ ] Outer
+    - [ ] Inner l1
+        - [x] Inner l2
+- [ ] Outer
  
 Flat Todos  
 - [ ] Outer  

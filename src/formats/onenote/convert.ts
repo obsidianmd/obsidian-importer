@@ -35,6 +35,36 @@ export function pageToMarkdown(pageElement: HTMLElement): string {
 	return htmlToMarkdown(pageElement).trim().replace(PARAGRAPH_REGEX, ' ');
 }
 
+/**
+ * Whether a tag is on the list item itself rather than somewhere in its text.
+ *
+ * OneNote marks a to-do on the item, or on the paragraph or span the item
+ * starts with, so anything from the item down to the tag has to be the first
+ * thing there - a tag halfway through the text is part of the text.
+ */
+function startsListItem(element: Element): boolean {
+	if (element.tagName === 'LI') return true;
+
+	let node: Node = element;
+	for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+		if (!startsContent(node, parent)) return false;
+		if (parent.tagName === 'LI') return true;
+		node = parent;
+	}
+
+	return false;
+}
+
+/** Whether a node is the first thing in its parent, whitespace aside. */
+function startsContent(node: Node, parent: Element): boolean {
+	for (const child of Array.from(parent.childNodes)) {
+		if (child === node) return true;
+		if (child.nodeType !== Node.TEXT_NODE || child.textContent?.trim()) return false;
+	}
+
+	return false;
+}
+
 export function convertTags(pageElement: HTMLElement): string {
 	const tagElements = Array.from(pageElement.querySelectorAll('[data-tag]'));
 
@@ -43,8 +73,12 @@ export function convertTags(pageElement: HTMLElement): string {
 		if (element.getAttribute('data-tag')?.contains('to-do')) {
 			const isChecked = element.getAttribute('data-tag') === 'to-do:completed';
 			const check = isChecked ? '[x]' : '[ ]';
+			// A list writes the bullet or the number itself, so a to-do that
+			// starts one of its items brings only the checkbox. Anywhere else
+			// there is no list to belong to, and it brings a bullet of its own.
+			const bullet = startsListItem(element) ? '' : '- ';
 			// Prepend a text node so any nested elements (e.g. an image marked as TO-DO) are preserved
-			element.prepend(`- ${check} `);
+			element.prepend(`${bullet}${check} `);
 		}
 		// All other OneNote tags are already in the Obsidian tag format ;)
 		else {
