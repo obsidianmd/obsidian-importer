@@ -16,7 +16,7 @@ import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { getMarkdownOutput, EvernoteOptions } from './options';
+import { forgetNotesWritten, getMarkdownOutput, EvernoteOptions } from './options';
 import { processNode } from './process-node';
 import { rewriteFile } from './utils/file-utils';
 import { convertTasktoMd } from './process-tasks';
@@ -230,6 +230,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
 	setOptions(options);
+	forgetNotesWritten();
 	const outputNotebookFolders = [];
 	const orginalOutputDir = options.outputDir;
 	for (const enex of options.enexSources) {

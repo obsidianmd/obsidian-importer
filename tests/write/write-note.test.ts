@@ -174,3 +174,30 @@ test('two source notes of one name stay two notes', async () => {
 	assert.equal(second.file.path, 'Note 1.md');
 	assert.equal(second.written, true);
 });
+
+test('two source notes whose names differ only in case stay two notes', async () => {
+	// The vault matches names without case, so "note" lands on "Note". Holding
+	// the names this run has written with their original case missed that: the
+	// note just written read as one already in the vault, and Update wrote the
+	// second note over the first.
+	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
+
+	const first = await subject.writeNote(ctx, vault.root, 'Note', 'one');
+	const second = await subject.writeNote(ctx, vault.root, 'note', 'two');
+
+	assert.equal(first.file.path, 'Note.md');
+	assert.equal(second.file.path, 'note 1.md');
+	assert.equal(vault.contents.get('Note.md'), 'one', 'the first note is untouched');
+	assert.deepEqual(ctx.skipped, []);
+});
+
+test('and Skip does not drop the second of them either', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.Skip);
+
+	await subject.writeNote(ctx, vault.root, 'Note', 'one');
+	const second = await subject.writeNote(ctx, vault.root, 'note', 'two');
+
+	assert.equal(second.written, true);
+	assert.equal(vault.contents.get('note 1.md'), 'two');
+	assert.deepEqual(ctx.skipped, []);
+});

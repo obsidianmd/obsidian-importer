@@ -20,6 +20,8 @@ type IDMappingValue = {
 	filename: string;
 	metadata: Metadata;
 	file: TFile;
+	/** False for a note this import recognised and left as it was. */
+	written: boolean;
 };
 
 export class Bear2bkImporter extends FormatImporter {
@@ -112,7 +114,14 @@ export class Bear2bkImporter extends FormatImporter {
 							// Use just the filename without extension
 							const fileName = mdFilename;
 
-							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent, { sourceId: metadata?.id });
+							// The times go in rather than being stamped on afterwards:
+							// they are what "Update" compares to decide whether the
+							// note changed at the source or was edited in Obsidian.
+							const { file, written } = await this.writeNote(ctx, targetFolder, fileName, mdContent, {
+								sourceId: metadata?.id,
+								ctime: metadata?.ctime,
+								mtime: metadata?.mtime,
+							});
 
 							if (written) {
 								if (metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
@@ -123,12 +132,15 @@ export class Bear2bkImporter extends FormatImporter {
 								}
 							}
 
-							// A note left as it was is still what a Bear link to
-							// it should resolve to.
+							// A note left as it was is still what a Bear link to it
+							// should resolve to, so it belongs here - but not among
+							// the files the link pass rewrites, which would edit a
+							// note the duplicate mode said to leave alone.
 							idMapping[metadata?.id] = {
 								filename: parseFilePath(file.path).basename,
 								metadata: metadata,
 								file: file,
+								written,
 							};
 
 							if (written) ctx.reportNoteSuccess(mdFilename);
@@ -209,7 +221,7 @@ export class Bear2bkImporter extends FormatImporter {
 	}
 
 	private updateNotesLinks(idMapping: Record<string, IDMappingValue>): Promise<void> {
-		const updatePromises = Object.values(idMapping).map(async (note) => {
+		const updatePromises = Object.values(idMapping).filter(note => note.written).map(async (note) => {
 			const { metadata, file } = note;
 			const writeOptions: DataWriteOptions = {
 				ctime: metadata?.ctime,

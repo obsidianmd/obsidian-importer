@@ -203,6 +203,16 @@ test('a file that is not markdown is written as it was given', async () => {
  * itself, and nothing remembered where the last import came from.
  */
 class PickingImporter extends WritingImporter {
+	/** What the dialog was handed, and what it was told to hand back. */
+	sawDefaultPath: string | undefined;
+	answerWith: string[] = [];
+
+	protected chooseFrom(options: Record<string, unknown>, defaultPath?: string): string[] {
+		this.sawDefaultPath = this.pickerOpensAt(defaultPath);
+		if (this.answerWith.length > 0) this.rememberSourceFolder(this.answerWith[0]);
+		return this.answerWith;
+	}
+
 	opensAt(defaultPath?: string) {
 		return this.pickerOpensAt(defaultPath);
 	}
@@ -215,6 +225,66 @@ class PickingImporter extends WritingImporter {
 function picker(): PickingImporter {
 	return new PickingImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
 }
+
+/** Exposes the real dialog call, which is what the two buttons go through. */
+class DialogImporter extends WritingImporter {
+	choose(options: Record<string, unknown>, defaultPath?: string) {
+		return this.chooseFrom(options, defaultPath);
+	}
+}
+
+/** Stands in for Electron's dialog, and records what it was handed. */
+function withStubbedDialog<T>(answer: string[], use: (calls: Record<string, unknown>[]) => T): T {
+	const calls: Record<string, unknown>[] = [];
+	const globals = globalThis as unknown as { window?: Record<string, unknown> };
+	const had = globals.window;
+
+	globals.window = {
+		...had,
+		electron: { remote: { dialog: { showOpenDialogSync: (options: Record<string, unknown>) => {
+			calls.push(options);
+			return answer.length > 0 ? answer : undefined;
+		} } } },
+	};
+
+	try {
+		return use(calls);
+	}
+	finally {
+		if (had === undefined) delete globals.window;
+		else globals.window = had;
+	}
+}
+
+test('the folder the picker opens at is the one handed to the dialog', () => {
+	// The wiring, not the helper. Both buttons passed the raw default and never
+	// remembered anything, while tests calling the helpers directly stayed green.
+	const subject = new DialogImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+
+	withStubbedDialog(['/Users/someone/Exports/notes.enex'], calls => {
+		subject.choose({ title: 'Pick files to import' });
+		assert.equal(calls[0].defaultPath, undefined, 'nothing to go on the first time');
+
+		subject.choose({ title: 'Pick files to import' });
+		assert.equal(calls[1].defaultPath, '/Users/someone/Exports', 'where the last pick came from');
+	});
+});
+
+test('a cancelled dialog changes nothing', () => {
+	const subject = new DialogImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+
+	withStubbedDialog(['/Users/someone/Exports/notes.enex'], () => subject.choose({}));
+
+	withStubbedDialog([], calls => {
+		assert.deepEqual(subject.choose({}), []);
+		assert.equal(calls[0].defaultPath, '/Users/someone/Exports');
+	});
+
+	withStubbedDialog(['/elsewhere/x.enex'], calls => {
+		subject.choose({});
+		assert.equal(calls[0].defaultPath, '/Users/someone/Exports', 'still the last folder actually picked');
+	});
+});
 
 test('with nothing to go on the picker is left to open where it likes', () => {
 	assert.equal(picker().opensAt(), undefined);

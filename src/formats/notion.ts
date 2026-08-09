@@ -1,6 +1,6 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
 import { helpUrl, NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { extractErrorMessage } from '../util';
@@ -70,7 +70,9 @@ export class NotionImporter extends FormatImporter {
 		// As a convention, all parent folders should end with "/" in this importer.
 		if (!targetFolderPath?.endsWith('/')) targetFolderPath += '/';
 
-		const info = new NotionResolverInfo(vault.getConfig('attachmentFolderPath') ?? '', this.singleLineBreaks);
+		// The location picked on the output step, not the app setting: this
+		// importer resolves attachment paths itself, so it has to be told.
+		const info = new NotionResolverInfo(attachmentLocationAsSetting(this.attachmentLocation), this.singleLineBreaks);
 
 		// loads in only path & title information to objects
 		ctx.status('Looking for files to import');

@@ -37,8 +37,8 @@ class ReadingImporter extends FormatImporter {
 		return this.previouslyImported(path, id);
 	}
 
-	claimed(path: string) {
-		this.claimedPaths.add(path);
+	claim(path: string) {
+		this.claimPath(path);
 	}
 }
 
@@ -148,7 +148,7 @@ test('a note this run has already written is never matched again', async () => {
 	const { vault, subject } = importer();
 	await vault.create('Pages/Roadmap.md', 'Written by this run.\n');
 	subject.indexImportedNotes();
-	subject.claimed('Pages/Roadmap.md');
+	subject.claim('Pages/Roadmap.md');
 
 	assert.equal(subject.noteFrom('Pages/Roadmap.md'), null);
 });

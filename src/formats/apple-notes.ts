@@ -800,7 +800,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const file = await super.saveAsMarkdownFile(folder, title, content, options);
-		this.claimedPaths.add(file.path);
+		this.claimPath(file.path);
 
 		return file;
 	}

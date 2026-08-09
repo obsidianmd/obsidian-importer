@@ -70,6 +70,9 @@ export class NotionAPIImporter extends FormatImporter {
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
 	private notionIdToPath: Map<string, string> = new Map();
+	// Pages this run actually wrote, without extension. A page it recognised and
+	// left alone is in notionIdToPath so links resolve, but is not one of these.
+	private writtenPaths: Set<string> = new Set();
 	// Track mention placeholders for efficient replacement (similar to relationPlaceholders)
 	// Maps source file path to the set of mentioned page/database IDs
 	// Using file path as key allows O(1) file lookup instead of O(n) search
@@ -842,6 +845,7 @@ export class NotionAPIImporter extends FormatImporter {
 				// Store path without extension for wiki link generation
 				const pathWithoutExt = finalPath.replace(/\.md$/, '');
 				this.notionIdToPath.set(pageId, pathWithoutExt);
+				this.writtenPaths.add(pathWithoutExt);
 
 				// Record mention placeholders if any mentions were found
 				// Use file path as key for O(1) lookup during replacement
@@ -1307,13 +1311,64 @@ export class NotionAPIImporter extends FormatImporter {
 	 * @param ctx - Import context for reporting
 	 * @returns true if file should be skipped, false otherwise
 	 */
+	/**
+	 * A page a previous import wrote and then died before finishing, which the
+	 * run picking up where it left off must not write a second copy of.
+	 *
+	 * "Create a copy" recognises nothing, so this is the one exception, and the
+	 * notion-id is what marks it: the id is written as each page is imported
+	 * and taken out again once the import finishes, so an id still sitting
+	 * there is one a finished import would have cleaned up.
+	 *
+	 * Unless the user asked to keep the ids, in which case a page written by an
+	 * import that finished perfectly well carries one too, and there is nothing
+	 * to tell the two apart. Copying is the answer that respects what the mode
+	 * says; the cost is that resuming that particular import copies the pages
+	 * it had already written.
+	 */
+	private async alreadyWrittenByAnUnfinishedImport(
+		filePath: string,
+		notionId: string,
+		ctx: ImportContext
+	): Promise<boolean> {
+		if (this.saveSourceId) return false;
+
+		const file = this.vault.getAbstractFileByPath(normalizePath(filePath));
+		if (!(file instanceof TFile)) return false;
+
+		try {
+			const content = await this.vault.read(file);
+			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) !== notionId) return false;
+
+			const { basename } = parseFilePath(file.path);
+			ctx.reportSkipped(basename, 'an earlier import had already written it');
+
+			this.notionIdToPath.set(notionId, file.path.replace(/\.md$/, ''));
+			await this.collectUnresolvedPlaceholders(content, notionId, file.path);
+
+			return true;
+		}
+		catch (error) {
+			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
+			return false;
+		}
+	}
+
 	private async shouldSkipExistingFile(
 		filePath: string,
 		notionId: string,
 		ctx: ImportContext
 	): Promise<boolean> {
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy) {
+			return await this.alreadyWrittenByAnUnfinishedImport(filePath, notionId, ctx);
+		}
+
 		// The notion-id finds the page wherever it has been moved or renamed to
-		// since it was imported; the path is only the fallback.
+		// since it was imported; the path is the fallback, for a page imported
+		// before the id was recorded - which, with "Save note ID" off, is every
+		// page, because the cleanup at the end of the import takes it out again.
+		// Asking for the id a second time here rejected exactly those pages and
+		// copied them instead, so Skip did nothing at all by default.
 		const file = this.previouslyImported(normalizePath(filePath), notionId);
 		if (!file) {
 			return false; // Not imported before, don't skip
@@ -1321,23 +1376,18 @@ export class NotionAPIImporter extends FormatImporter {
 
 		try {
 			const content = await this.vault.read(file);
+			const { basename } = parseFilePath(file.path);
+			ctx.reportSkipped(basename, 'it is already in the vault');
 
-			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) === notionId) {
-				const { basename } = parseFilePath(file.path);
-				ctx.reportSkipped(basename, 'already exists with same notion-id');
+			// Skipped pages still need to be link targets in this run, at
+			// whatever path the page is actually at now.
+			const filePathWithoutExtension = file.path.replace(/\.md$/, '');
+			this.notionIdToPath.set(notionId, filePathWithoutExtension);
 
-				// Skipped pages still need to be link targets in this run, at
-				// whatever path the page is actually at now.
-				const filePathWithoutExtension = file.path.replace(/\.md$/, '');
-				this.notionIdToPath.set(notionId, filePathWithoutExtension);
+			// Retry placeholders left unresolved by an earlier import.
+			await this.collectUnresolvedPlaceholders(content, notionId, file.path);
 
-				// Retry placeholders left unresolved by an earlier import.
-				await this.collectUnresolvedPlaceholders(content, notionId, file.path);
-
-				return true;
-			}
-
-			return false;
+			return true;
 		}
 		catch (error) {
 			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
@@ -1362,8 +1412,11 @@ export class NotionAPIImporter extends FormatImporter {
 
 		let failedCount = 0;
 
-		// Iterate through all pages we've tracked (including skipped ones)
-		for (const filePath of this.notionIdToPath.values()) {
+		// Only pages this run wrote. notionIdToPath also holds the ones it
+		// recognised and left alone, so that links to them resolve, and taking
+		// the id out of those would edit a note the user asked to skip - and
+		// leave nothing to recognise it by next time.
+		for (const filePath of this.writtenPaths) {
 			if (await ctx.shouldStop()) break;
 
 			try {

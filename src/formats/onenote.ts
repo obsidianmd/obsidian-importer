@@ -1,7 +1,7 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, htmlToMarkdown, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
@@ -89,6 +89,7 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentsSinceBackOff = 0;
+	private legacyImportedIds = new Set<string>();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -359,6 +360,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 	async import(progress: ImportContext): Promise<void> {
+		await this.readLegacyImportedIds();
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
 			new Notice('Please select a location to export to.');
@@ -409,6 +411,16 @@ export class OneNoteImporter extends FormatImporter {
 
 				const page = pages[i];
 				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
+
+				// The older record is a list of ids with no paths, so it can say
+				// a page was imported before but not which note it became.
+				// Skipping is the only thing that can be done with that; a note
+				// this importer wrote itself carries its id and is recognised
+				// wherever it has since been moved to.
+				if (this.duplicateHandling === DuplicateHandling.Skip && page.id && this.legacyImportedIds.has(page.id)) {
+					progress.reportSkipped(page.title, 'an earlier version of the importer already brought it in');
+					continue;
+				}
 
 				try {
 					progress.status(`Importing note ${page.title}`);
@@ -479,6 +491,27 @@ export class OneNoteImporter extends FormatImporter {
 					section.pages = pages;
 				}
 			}
+		}
+	}
+
+	/**
+	 * Page ids an older version recorded in the plugin's data file rather than
+	 * in the notes themselves. It wrote no onenote-id, so without these an
+	 * upgrade cannot recognise anything it imported before, and "Skip" brings
+	 * the whole notebook in again.
+	 */
+	private async readLegacyImportedIds(): Promise<void> {
+		this.legacyImportedIds.clear();
+		if (!this.host.plugin) return;
+
+		try {
+			const data = await this.host.plugin.loadData();
+			for (const id of data.importers?.onenote?.previouslyImportedIDs ?? []) {
+				this.legacyImportedIds.add(id);
+			}
+		}
+		catch (e) {
+			console.error('Could not read the ids of previously imported pages', e);
 		}
 	}
 

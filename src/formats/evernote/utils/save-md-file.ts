@@ -2,7 +2,7 @@ import { moment } from 'obsidian';
 
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs } from '../../../filesystem';
-import { decideExistingNote } from '../options';
+import { decideExistingNote, noteWasWritten } from '../options';
 import { RuntimePropertiesSingleton } from '../runtime-properties';
 import { writeFile } from './file-utils';
 import { getMdFilePath } from './folder-utils';
@@ -20,6 +20,7 @@ export const saveMdFile = (data: string, note: EvernoteNote): boolean => {
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	runtimeProps.setCurrentNotePath(absMdFilePath);
 	writeFile(absMdFilePath, data, note);
+	noteWasWritten(absMdFilePath);
 
 	return true;
 };

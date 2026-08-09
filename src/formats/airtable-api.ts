@@ -813,10 +813,15 @@ export class AirtableAPIImporter extends FormatImporter {
 				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
 				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
 
-				if (this.shouldSkipExistingRecord(desiredPath, record.id)) {
-					claimed.add(desiredPath.toLowerCase());
-					this.recordIdToPath.set(`${baseId}:${record.id}`, desiredPath.replace(/\.md$/, ''));
-					planned.push({ record, filePath: desiredPath, title, skipped: 'Already imported' });
+				const existing = this.existingRecordNote(desiredPath, record.id);
+				if (existing) {
+					// Where the note actually is, not where this import would
+					// have put it: recognising it by id is what lets it have
+					// been renamed or moved, and a link to the path it no
+					// longer occupies resolves to nothing.
+					claimed.add(existing.path.toLowerCase());
+					this.recordIdToPath.set(`${baseId}:${record.id}`, existing.path.replace(/\.md$/, ''));
+					planned.push({ record, filePath: existing.path, title, skipped: 'Already imported' });
 					continue;
 				}
 
@@ -1205,14 +1210,14 @@ export class AirtableAPIImporter extends FormatImporter {
 	 * @param recordId - Airtable record ID to compare
 	 * @returns true if same record already exists (should skip), false otherwise
 	 */
-	private shouldSkipExistingRecord(filePath: string, recordId: string): boolean {
+	private existingRecordNote(filePath: string, recordId: string): TFile | null {
 		if (!this.incrementalImport) {
-			return false;
+			return null;
 		}
 
 		// By record id first, so a note renamed since it was imported is still
 		// the note this record belongs to.
-		return this.previouslyImported(normalizePath(filePath), recordId) !== null;
+		return this.previouslyImported(normalizePath(filePath), recordId);
 	}
 
 	/**

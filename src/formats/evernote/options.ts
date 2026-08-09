@@ -60,6 +60,26 @@ export function decideExistingNote(existing: ExistingNote): ExistingNoteDecision
 	return existingNoteHandler?.(existing) ?? 'write';
 }
 
+/**
+ * Notes this conversion wrote, so the passes that settle links and tasks
+ * afterwards can tell them from the ones it recognised and left alone. Those
+ * passes read every Markdown file in the output folder, which is every note a
+ * previous import wrote as well.
+ */
+const notesWritten = new Set<string>();
+
+export function noteWasWritten(absolutePath: string): void {
+	notesWritten.add(absolutePath);
+}
+
+export function noteWasWrittenBy(absolutePath: string): boolean {
+	return notesWritten.has(absolutePath);
+}
+
+export function forgetNotesWritten(): void {
+	notesWritten.clear();
+}
+
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	templateFile?: string;

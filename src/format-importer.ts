@@ -41,6 +41,24 @@ const ATTACHMENT_MODE_LABELS: Record<AttachmentLocationMode, string> = {
 	subfolder: 'In subfolder under the note',
 };
 
+/**
+ * The chosen location written back in the form Obsidian's own setting takes,
+ * for an importer that resolves attachment paths itself rather than through
+ * getAvailablePathForAttachment.
+ */
+export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation): string {
+	switch (mode) {
+		case 'vault':
+			return '/';
+		case 'folder':
+			return path || '/';
+		case 'note':
+			return './';
+		case 'subfolder':
+			return path ? `./${path}` : './';
+	}
+}
+
 /** Read the vault's attachment setting as a location this step can show. */
 export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	const configured = vault.getConfig('attachmentFolderPath');
@@ -141,8 +159,23 @@ export abstract class FormatImporter {
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
 
-	/** Notes this run has written, so a second one cannot land on the first. */
-	protected claimedPaths = new Set<string>();
+	/**
+	 * Notes this run has written, so a second one cannot land on the first.
+	 *
+	 * Held without case, because the vault matches names without case: writing
+	 * "Note" and then importing "note" is one file on macOS and Windows, and an
+	 * exact comparison here would read the first note as one that was already
+	 * in the vault and quietly write the second over it.
+	 */
+	private claimed = new Set<string>();
+
+	protected claimPath(path: string): void {
+		this.claimed.add(normalizePath(path).toLowerCase());
+	}
+
+	protected hasClaimed(path: string): boolean {
+		return this.claimed.has(normalizePath(path).toLowerCase());
+	}
 
 	/** Source id to the note carrying it, built once per import. */
 	private importedById: Map<string, TFile> | null = null;
@@ -333,6 +366,26 @@ export abstract class FormatImporter {
 		return this.sourceFolder ?? defaultPath ?? this.lastSourceFolder ?? undefined;
 	}
 
+	/**
+	 * Ask for files or folders, and remember where the answer came from.
+	 *
+	 * The dialog call is here rather than inline so that a test can see what
+	 * this hands it: wiring the remembered folder into the two call sites and
+	 * testing only the helpers left the dialog still being passed the raw
+	 * default, and green tests either way.
+	 */
+	protected chooseFrom(options: Record<string, unknown>, defaultPath?: string): string[] {
+		const picked: string[] | undefined = window.electron.remote.dialog.showOpenDialogSync({
+			...options,
+			defaultPath: this.pickerOpensAt(defaultPath),
+		});
+
+		if (!picked || picked.length === 0) return [];
+
+		this.rememberSourceFolder(picked[0]);
+		return picked;
+	}
+
 	/** Remember where a pick came from, for this importer and for the next. */
 	protected rememberSourceFolder(filepath: string): void {
 		const { parent } = parseFilePath(filepath);
@@ -373,13 +426,12 @@ export abstract class FormatImporter {
 						if (allowMultiple) {
 							properties.push('multiSelections');
 						}
-						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
+						const filePaths = this.chooseFrom({
 							title: 'Pick files to import', properties,
 							filters: [{ name, extensions }],
-							defaultPath: defaultPath || undefined,
-						});
+						}, defaultPath);
 
-						if (filePaths && filePaths.length > 0) {
+						if (filePaths.length > 0) {
 							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
 							updateFiles();
 						}
@@ -406,13 +458,12 @@ export abstract class FormatImporter {
 				.setButtonText('Choose folders')
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
-						let filePaths: string[] = window.electron.remote.dialog.showOpenDialogSync({
+						const filePaths = this.chooseFrom({
 							title: 'Folders to import',
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-							defaultPath: defaultPath || undefined,
-						});
+						}, defaultPath);
 
-						if (filePaths && filePaths.length > 0) {
+						if (filePaths.length > 0) {
 							fileLocationSetting.setDesc('Reading folders...');
 							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
@@ -841,7 +892,7 @@ export abstract class FormatImporter {
 			// createFile picks another name if this one is taken, so a note this
 			// import is not allowed to touch is never written over.
 			const file = await this.createFile(folder, name, content, writeOptions);
-			this.claimedPaths.add(file.path);
+			this.claimPath(file.path);
 			return { file, written: true };
 		}
 
@@ -855,7 +906,7 @@ export abstract class FormatImporter {
 		}
 
 		await this.modifyMarkdown(existing, content, writeOptions);
-		this.claimedPaths.add(existing.path);
+		this.claimPath(existing.path);
 		return { file: existing, written: true };
 	}
 
@@ -877,7 +928,7 @@ export abstract class FormatImporter {
 		}
 
 		// A second note of the same name in this run has to become a copy.
-		if (this.claimedPaths.has(fullPath)) return null;
+		if (this.hasClaimed(fullPath)) return null;
 
 		const file = this.vault.getAbstractFileByPath(fullPath)
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
@@ -943,7 +994,7 @@ export abstract class FormatImporter {
 	 */
 	indexImportedNotes(): void {
 		const { idProperty } = this;
-		this.claimedPaths.clear();
+		this.claimed.clear();
 		this.importedById = new Map();
 
 		if (!idProperty || this.duplicateHandling === DuplicateHandling.CreateCopy) return;
