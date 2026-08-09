@@ -57,6 +57,37 @@ test('pages that will not convert are reported without ending the import', async
 	assert.deepEqual(skipped, [], 'no page should be abandoned as collateral');
 });
 
+test('the total is the whole import from the first note, not one section at a time', async () => {
+	// Counting as it went meant the bar filled up on the first section and
+	// jumped backwards each time another was opened.
+	const sections = [
+		{ id: 'a', title: 'A', pages: 3 },
+		{ id: 'b', title: 'B', pages: 5 },
+		{ id: 'c', title: 'C', pages: 2 },
+	];
+	const pagesOf = (id: string, n: number): OnenotePage[] => Array.from({ length: n }, (_, i) => ({
+		id: `${id}-${i}`, title: `${id} ${i}`, contentUrl: `page-id=${id}-${i}}`,
+	}));
+
+	const totals: number[] = [];
+	const progress = new ImportContext();
+	progress.reportProgress = (_current: number, total: number) => void totals.push(total);
+
+	const subject = importerOverPages([], {
+		selectedSections: sections.map(s => ({ id: s.id, title: s.title })),
+		fetchResource: async (url: string) => {
+			const section = sections.find(s => url.includes(`/sections/${s.id}/pages`));
+			return section ? { value: pagesOf(section.id, section.pages) } : 'content';
+		},
+		processFile: async () => {},
+	} as unknown as Partial<OneNoteImporter>);
+
+	await subject.import(progress);
+
+	assert.deepEqual([...new Set(totals)], [10], 'one total throughout, and it is every page');
+	assert.equal(totals.length, 11, 'reported once up front and once per page');
+});
+
 test('a vault that will not take the write does stop the import', async () => {
 	const { progress, failed, skipped } = watchedContext();
 

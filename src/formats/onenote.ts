@@ -425,97 +425,116 @@ export class OneNoteImporter extends FormatImporter {
 			return;
 		}
 
-		progress.status('Starting OneNote import');
-		let progressTotal = 0;
+		progress.status('Looking through the sections you chose');
+		const queue = await this.readSelectedPages(progress);
+		if (await progress.shouldStop()) return;
+
+		const progressTotal = queue.length;
 		let progressCurrent = 0;
 		let consecutiveFailureCount = 0;
 
-		for (let section of this.selectedSections) {
-			const sectionId = section.id;
-			const baseUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`;
+		progress.reportProgress(0, progressTotal);
+
+		for (let i = 0; i < queue.length; i++) {
+			if (await progress.shouldStop()) {
+				return;
+			}
+
+			const page = queue[i];
+			if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
+
+			progress.status(`Importing note ${page.title}`);
+
+			let failure: unknown = null;
+			try {
+				const content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
+				await this.processFile(progress, content, page);
+			}
+			catch (e) {
+				failure = e;
+				progress.reportFailed(page.title, String(e));
+			}
+
+			if (!failure) {
+				consecutiveFailureCount = 0;
+			}
+			// Page-specific failures do not indicate a broken import environment.
+			else if (!(failure instanceof PageContentError)) {
+				consecutiveFailureCount++;
+
+				if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
+					const e = failure;
+					const status = this.host.abortController.signal.aborted
+						// The import was aborted
+						? extractErrorMessage(e) ?? String(e)
+						// Hit a string of consecutive failures, so something is
+						// wrong. This is NOT related to rate-limiting, as that
+						// is handled by the retry logic.
+						: 'Microsoft OneNote returned too many consecutive errors.';
+					progress.status(status);
+
+					// Report remaining pages as skipped
+					for (let j = i + 1; j < queue.length; j++) {
+						const remainingPage = queue[j];
+						progress.reportSkipped(
+							remainingPage.title ?? '<unknown>',
+							'import was canceled (after too many pages failed to load)'
+						);
+					}
+
+					// Report progress as complete
+					progress.reportProgress(progressTotal, progressTotal);
+
+					return;
+				}
+			}
+
+			// report progress even if page import fails or is skipped
+			progress.reportProgress(++progressCurrent, progressTotal);
+		}
+	}
+	/**
+	 * Every page in every chosen section, read before any of them is imported.
+	 *
+	 * The same requests either way — one page list per section — but doing them
+	 * first is what lets the progress bar know the real total. Counting as it
+	 * went meant the bar filled up on the first section and then jumped
+	 * backwards each time another one was opened.
+	 */
+	private async readSelectedPages(progress: ImportContext): Promise<OnenotePage[]> {
+		const queue: OnenotePage[] = [];
+
+		for (const section of this.selectedSections) {
+			if (await progress.shouldStop()) break;
+
+			progress.status(`Looking through ${section.title}`);
+
 			const params = new URLSearchParams({
 				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
 				$orderby: 'order',
-				pagelevel: 'true'
+				pagelevel: 'true',
 			});
-
-			const pagesUrl = `${baseUrl}?${params.toString()}`;
+			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?${params.toString()}`;
 
 			let pages: OnenotePage[] | null = null;
 			try {
-				pages = ((await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped', progress)).value);
+				pages = (await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped', progress)).value;
 			}
 			catch (e) {
-				console.error(`Failed to fetch pages for section ${sectionId}, skipping to next section.`, e);
+				console.error(`Failed to fetch pages for section ${section.id}, skipping to next section.`, e);
 				progress.reportFailed(section.title, e);
 				continue;
 			}
-			if (!pages) {
-				continue;
-			}
-			progressTotal += pages.length;
-			this.insertPagesToSection(pages, sectionId);
 
-			progress.reportProgress(progressCurrent, progressTotal);
+			if (!pages?.length) continue;
 
-			for (let i = 0; i < pages.length; i++) {
-				if (await progress.shouldStop()) {
-					return;
-				}
-
-				const page = pages[i];
-				if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
-
-				progress.status(`Importing note ${page.title}`);
-
-				let failure: unknown = null;
-				try {
-					const content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
-					await this.processFile(progress, content, page);
-				}
-				catch (e) {
-					failure = e;
-					progress.reportFailed(page.title, String(e));
-				}
-
-				if (!failure) {
-					consecutiveFailureCount = 0;
-				}
-				// Page-specific failures do not indicate a broken import environment.
-				else if (!(failure instanceof PageContentError)) {
-					consecutiveFailureCount++;
-
-					if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
-						const e = failure;
-						const status = this.host.abortController.signal.aborted
-							// The import was aborted
-							? extractErrorMessage(e) ?? String(e)
-							// Hit a string of consecutive failures, so something is
-							// wrong. This is NOT related to rate-limiting, as that
-							// is handled by the retry logic.
-							: 'Microsoft OneNote returned too many consecutive errors.';
-						progress.status(status);
-
-						// Report remaining pages as skipped
-						for (let j = i + 1; j < pages.length; j++) {
-							const remainingPage = pages[j];
-							progress.reportSkipped(
-								remainingPage.title ?? '<unknown>',
-								'import was canceled (after too many pages failed to load)'
-							);
-						}
-
-						// Report progress as complete
-						progress.reportProgress(progressTotal, progressTotal);
-
-						return;
-					}
-				}
-
-				// report progress even if page import fails or is skipped
-				progress.reportProgress(++progressCurrent, progressTotal);
-			}
+			// Sub-page paths are worked out from the pages either side of one
+			// within its section, so the section needs its whole list.
+			this.insertPagesToSection(pages, section.id);
+			queue.push(...pages);
 		}
+
+		return queue;
 	}
 
 	insertPagesToSection(pages: OnenotePage[], sectionId: string, parentEntity?: Notebook | SectionGroup) {
