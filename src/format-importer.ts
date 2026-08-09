@@ -476,8 +476,7 @@ export abstract class FormatImporter {
 			.setName('Attachment location')
 			.setDesc('Where imported images and files will be saved.');
 
-		const pathSetting = new Setting(contentEl)
-			.setClass('importer-sub-setting');
+		const pathSetting = new Setting(contentEl);
 
 		const drawPathSetting = () => {
 			const { mode } = this.attachmentLocation;

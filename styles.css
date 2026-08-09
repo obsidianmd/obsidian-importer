@@ -34,13 +34,6 @@
 	margin-inline-start: auto;
 }
 
-/* The folder that belongs to the attachment location above it. */
-.importer-sub-setting {
-	border-top: none;
-	padding-top: 0;
-	padding-inline-start: var(--size-4-4);
-}
-
 .importer-app-icon {
 	width: var(--icon-s);
 	height: var(--icon-s);
