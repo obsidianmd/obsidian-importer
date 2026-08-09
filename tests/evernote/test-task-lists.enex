@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20260809T120000Z" application="Evernote" version="10.73.3">
+  <note>
+    <title>Task lists</title>
+    <created>20260809T115900Z</created>
+    <updated>20260809T115900Z</updated>
+    <note-attributes>
+    </note-attributes>
+    <content>
+      <![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>A checklist</div><ul style="--en-todo:true;"><li style="--en-checked:false;">Open task</li><li style="--en-checked:true;">Done task</li></ul><div>A numbered checklist</div><ol style="--en-todo:true;"><li style="--en-checked:false;">Open task</li><li style="--en-checked:true;">Done task</li></ol><div>A checkbox on a bulleted item</div><ul><li><en-todo checked="false"/>Open task</li><li><en-todo checked="true"/>Done task</li></ul><div>A checkbox on a numbered item</div><ol><li><en-todo checked="false"/>Open task</li><li><en-todo checked="true"/>Done task</li></ol><div>An ordinary numbered list</div><ol><li>One</li><li>Two</li></ol></en-note>      ]]>
+    </content>
+  </note>
+</en-export>
