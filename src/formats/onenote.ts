@@ -535,6 +535,7 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			catch (e) {
 				console.error('Failed to convert InkML to SVG in page:', page.title, e);
+				progress.reportFailed(`${page.title} - Ink.svg`, e);
 			}
 
 			let html = await this.getAllAttachments(progress, convertPageTags(splitContent.html), notePath);
