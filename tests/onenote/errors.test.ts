@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 
 import { describeNotebookFailure } from '../../src/formats/onenote/errors';
 
-test('the scope failure names the account type that causes it', () => {
+test('the scope failure says what to do about it', () => {
+	// Signing in again is the whole remedy: the account type was recognised
+	// from the first token, so the second sign-in asks for the wider access.
 	const message = describeNotebookFailure({
 		error: {
 			code: '40004',
@@ -11,7 +13,8 @@ test('the scope failure names the account type that causes it', () => {
 		},
 	});
 
-	assert.match(message, /choose Work or school/);
+	assert.match(message, /Sign out and sign in again/);
+	assert.match(message, /work or school access/);
 	assert.doesNotMatch(message, /limiting how fast/);
 });
 
@@ -21,7 +24,7 @@ test('the scope failure is recognised however it is wrapped', () => {
 		error: { code: '40004' },
 	}));
 
-	assert.match(message, /work or school account/);
+	assert.match(message, /work or school access/);
 });
 
 test('throttling is still reported as throttling', () => {

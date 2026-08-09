@@ -9,7 +9,8 @@ import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
 import { convertPageTags, pageToMarkdown } from './onenote/convert';
 import { describeNotebookFailure } from './onenote/errors';
-import { accountType, authorizationUrl, graphScopes, tokenUrl } from './onenote/auth';
+import { requestFailure } from '../request-failure';
+import { accountType, accountTypeFromToken, authorizationUrl, graphScopes, tokenUrl } from './onenote/auth';
 import type { MicrosoftAccountType } from './onenote/auth';
 import { inkmlToSvg } from './onenote/inkml';
 
@@ -153,18 +154,6 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.accountSetting = new Setting(contentEl)
 			.setName('Microsoft account')
-			.addDropdown(dropdown => dropdown
-				.addOption('personal', 'Personal')
-				.addOption('organization', 'Work or school')
-				.setValue(this.microsoftAccountType)
-				.onChange(value => {
-					const selected = accountType(value);
-					if (selected === this.microsoftAccountType) return;
-
-					if (this.signedIn) this.signOut();
-					this.microsoftAccountType = selected;
-					this.showSignedOut();
-				}))
 			.addButton((button) => {
 				this.accountButton = button;
 				button.onClick(() => {
@@ -214,8 +203,11 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	private showSignedOut() {
-		const account = this.microsoftAccountType === 'organization' ? 'work or school' : 'personal';
-		this.accountSetting.setDesc(`Sign in with a ${account} Microsoft account to import your OneNote notebooks.`);
+		this.accountSetting.setDesc(this.microsoftAccountType === 'organization'
+			// Only said once we know, which is after a first sign-in: the extra
+			// access is what a work or school tenant may want approving.
+			? 'Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.'
+			: 'Sign in to import your OneNote notebooks.');
 		this.accountButton.setButtonText('Sign in').setCta();
 		this.accountButton.buttonEl.removeClass('mod-destructive');
 	}
@@ -291,6 +283,12 @@ export class OneNoteImporter extends FormatImporter {
 			this.storeRefreshToken(tokenResponse.refresh_token);
 		}
 
+		// The token says which kind of account signed in. Remembering it is
+		// what lets the next sign-in ask for the access a work or school
+		// account needs, without anyone having had to say so up front.
+		const detected = accountTypeFromToken(tokenResponse.id_token ?? tokenResponse.access_token);
+		if (detected) this.microsoftAccountType = detected;
+
 		this.graphData.accessToken = tokenResponse.access_token;
 		this.sourceChanged();
 	}
@@ -330,6 +328,13 @@ export class OneNoteImporter extends FormatImporter {
 			await this.picker.load(() => this.readNotebooks());
 		}
 		catch (e) {
+			// Being refused the notebooks is itself the answer: only a work or
+			// school account is told 40004, and the remedy is to ask for the
+			// wider access next time. Remembering it here is what makes the
+			// message's 'sign in again' true, and unlike reading the token it
+			// does not depend on Microsoft handing us anything readable.
+			if (requestFailure(e).code === '40004') this.microsoftAccountType = 'organization';
+
 			console.error('An error occurred while fetching your OneNote data: ', e);
 		}
 	}
