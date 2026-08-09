@@ -21,20 +21,23 @@ const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
 const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
 
-function describeFolderFailure(error: unknown): string {
-	const { code, message } = requestFailure(error);
+export function describeFolderFailure(error: unknown): string {
+	// The vendored sqlite layer labels everything SQLITE_ERROR and puts what
+	// actually happened in the message — either its own 'busy DB or query too
+	// slow' or whatever the sqlite3 binary wrote to stderr. Matching on the
+	// filesystem codes instead reads well and never fires, and a missing or
+	// unreadable database never gets this far anyway: readableDataFolder
+	// checks for it first and the picker shows the access hint.
+	const detail = (requestFailure(error).message ?? '').replace(/^SQLITE_ERROR:\s*/, '').trim();
 
-	if (code === 'ENOENT') {
-		return 'Could not find your Apple Notes database. Check that Notes is still installed and has been opened at least once.';
-	}
-	if (code === 'EACCES' || code === 'EPERM') {
-		return `Obsidian was not allowed to read your Apple Notes database. ${NO_ACCESS_HINT}`;
-	}
-	if (code === 'EBUSY' || code === 'SQLITE_BUSY') {
+	if (/\block|locked|busy\b/i.test(detail)) {
 		return 'Your Apple Notes database is in use. Quit Notes and try again.';
 	}
+	if (/unable to open|no such file|not authorized/i.test(detail)) {
+		return `Could not open your Apple Notes database. ${NO_ACCESS_HINT}`;
+	}
 
-	return message ? `Could not read your notes: ${message}` : 'Could not read your notes.';
+	return detail ? `Could not read your notes: ${detail}` : 'Could not read your notes.';
 }
 
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
