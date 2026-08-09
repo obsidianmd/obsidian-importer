@@ -20,6 +20,9 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 	Object.assign(subject, {
 		selectedSections: [{ id: 'section', title: 'Section' }],
 		notebooks: [],
+		// Object.create skips the field initialisers the constructor would run.
+		sectionPages: new Map(),
+		prefetching: Promise.resolve(),
 		graphData: { accessToken: 'token' },
 		duplicateHandling: DuplicateHandling.CreateCopy,
 		host: { plugin: null, abortController: new AbortController() },
@@ -86,6 +89,46 @@ test('the total is the whole import from the first note, not one section at a ti
 
 	assert.deepEqual([...new Set(totals)], [10], 'one total throughout, and it is every page');
 	assert.equal(totals.length, 11, 'reported once up front and once per page');
+});
+
+test('page lists read ahead of the import are not fetched twice', async () => {
+	// The point of reading ahead while the later steps are filled in is that
+	// the import then starts on what it already has.
+	const listed: string[] = [];
+	const pages = [{ id: 'p', title: 'P', contentUrl: 'page-id=p}' }] as OnenotePage[];
+
+	const subject = importerOverPages([], {
+		sectionPages: new Map([['section', pages]]),
+		fetchResource: async (url: string) => {
+			if (url.includes('/pages?')) listed.push(url);
+			return url.includes('/pages?') ? { value: pages } : 'content';
+		},
+		processFile: async () => {},
+	} as unknown as Partial<OneNoteImporter>);
+
+	await subject.import(new ImportContext());
+
+	assert.deepEqual(listed, [], 'the cached list should be used as it stands');
+});
+
+test('a section missed by the read-ahead is still fetched by the import', async () => {
+	const listed: string[] = [];
+	const pages = [{ id: 'p', title: 'P', contentUrl: 'page-id=p}' }] as OnenotePage[];
+
+	const subject = importerOverPages([], {
+		sectionPages: new Map(),
+		fetchResource: async (url: string) => {
+			if (url.includes('/pages?')) listed.push(url);
+			return url.includes('/pages?') ? { value: pages } : 'content';
+		},
+		processFile: async () => {},
+	} as unknown as Partial<OneNoteImporter>);
+
+	await subject.import(new ImportContext());
+
+	assert.equal(listed.length, 1, 'a read-ahead that failed or never ran must not lose the section');
+	// $ arrives percent-encoded, the way every other parameter here already does.
+	assert.match(listed[0], /%24top=100/, 'and asks for more than the default 20 a time');
 });
 
 test('a vault that will not take the write does stop the import', async () => {

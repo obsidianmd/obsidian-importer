@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
+import { genUid, extractErrorMessage, parseHTML, plural, sanitizeFileName } from '../util';
 import { FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -122,6 +122,9 @@ export class OneNoteImporter extends FormatImporter {
 		accessToken: '',
 	};
 	attachmentsSinceBackOff = 0;
+	/** Page lists read ahead of the import, by section id. */
+	private readonly sectionPages = new Map<string, OnenotePage[]>();
+	private prefetching: Promise<void> = Promise.resolve();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -248,6 +251,9 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
+
+		// Whoever signs in next is not necessarily who these belong to.
+		this.sectionPages.clear();
 
 		this.picker.reset();
 
@@ -384,6 +390,7 @@ export class OneNoteImporter extends FormatImporter {
 			},
 			onChange: () => {
 				this.selectedSections = selectedNodes(this.picker.nodes, node => node.type === 'section');
+				this.prefetchSelectedPages();
 				this.sourceChanged();
 			},
 		});
@@ -425,11 +432,12 @@ export class OneNoteImporter extends FormatImporter {
 			return;
 		}
 
-		progress.status('Looking through the sections you chose');
+		progress.status('Finding notes to import');
 		const queue = await this.readSelectedPages(progress);
 		if (await progress.shouldStop()) return;
 
 		const progressTotal = queue.length;
+		progress.status(`Importing ${plural(progressTotal, 'note')}`);
 		let progressCurrent = 0;
 		let consecutiveFailureCount = 0;
 
@@ -493,40 +501,85 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportProgress(++progressCurrent, progressTotal);
 		}
 	}
+	private async fetchSectionPages(sectionId: string, progress?: ImportContext): Promise<OnenotePage[]> {
+		const params = new URLSearchParams({
+			$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
+			$orderby: 'order',
+			pagelevel: 'true',
+			// OneNote sends 20 pages at a time unless asked otherwise, and caps
+			// this at 100. A section of 500 is 5 requests rather than 25.
+			$top: '100',
+		});
+
+		const url = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages?${params.toString()}`;
+		return (await this.fetchResource<OnenotePage>(url, 'json-wrapped', progress)).value ?? [];
+	}
+
+	/**
+	 * Start reading the page lists for whatever is selected, so that the wait
+	 * happens while the output and options steps are being filled in rather
+	 * than after Import is pressed. The import needs these lists regardless, so
+	 * nothing here is speculative work — only work moved earlier.
+	 *
+	 * One section at a time, because a notebook selected all at once would
+	 * otherwise open dozens of parallel requests at the API most likely to
+	 * throttle them. Failures are left for the import to hit and report.
+	 */
+	private prefetchSelectedPages(): void {
+		if (!this.signedIn) return;
+
+		for (const section of this.selectedSections) {
+			if (this.sectionPages.has(section.id)) continue;
+
+			this.prefetching = this.prefetching.then(async () => {
+				// Both may have changed while this waited its turn.
+				if (this.sectionPages.has(section.id)) return;
+				if (!this.selectedSections.some(selected => selected.id === section.id)) return;
+
+				try {
+					this.sectionPages.set(section.id, await this.fetchSectionPages(section.id));
+				}
+				catch {
+					// Left uncached, so the import asks again and reports it there.
+				}
+			});
+		}
+	}
+
 	/**
 	 * Every page in every chosen section, read before any of them is imported.
 	 *
-	 * The same requests either way — one page list per section — but doing them
-	 * first is what lets the progress bar know the real total. Counting as it
-	 * went meant the bar filled up on the first section and then jumped
+	 * The same requests either way — one page list per section — but having
+	 * them all is what lets the progress bar know the real total. Counting as
+	 * it went meant the bar filled up on the first section and then jumped
 	 * backwards each time another one was opened.
 	 */
 	private async readSelectedPages(progress: ImportContext): Promise<OnenotePage[]> {
 		const queue: OnenotePage[] = [];
 
+		// Anything still being read ahead is about to be needed.
+		await this.prefetching;
+
 		for (const section of this.selectedSections) {
 			if (await progress.shouldStop()) break;
 
-			progress.status(`Looking through ${section.title}`);
+			let pages = this.sectionPages.get(section.id);
+			if (!pages) {
+				progress.status(queue.length
+					? `Finding notes in ${section.title} (${queue.length} so far)`
+					: `Finding notes in ${section.title}`);
 
-			const params = new URLSearchParams({
-				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
-				$orderby: 'order',
-				pagelevel: 'true',
-			});
-			const pagesUrl = `https://graph.microsoft.com/v1.0/me/onenote/sections/${section.id}/pages?${params.toString()}`;
-
-			let pages: OnenotePage[] | null = null;
-			try {
-				pages = (await this.fetchResource<OnenotePage>(pagesUrl, 'json-wrapped', progress)).value;
-			}
-			catch (e) {
-				console.error(`Failed to fetch pages for section ${section.id}, skipping to next section.`, e);
-				progress.reportFailed(section.title, e);
-				continue;
+				try {
+					pages = await this.fetchSectionPages(section.id, progress);
+				}
+				catch (e) {
+					console.error(`Failed to fetch pages for section ${section.id}, skipping to next section.`, e);
+					progress.reportFailed(section.title, e);
+					continue;
+				}
 			}
 
-			if (!pages?.length) continue;
+			if (!pages.length) continue;
 
 			// Sub-page paths are worked out from the pages either side of one
 			// within its section, so the section needs its whole list.
