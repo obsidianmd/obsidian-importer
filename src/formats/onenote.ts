@@ -37,7 +37,11 @@ function assertUnreachable(x: never): never {
 }
 
 function worthRetrying(status: number): boolean {
-	return status === 408 || status === 429 || status >= 500;
+	// Only a decision is worth failing fast on. OneNote answers a page request
+	// with a bare 400 often enough that PR #388 added a retry for it on
+	// purpose, and it usually succeeds on the second attempt — so the list is
+	// of what will never change, not of what might.
+	return status !== 403 && status !== 404;
 }
 
 class GraphRefusal extends Error {
@@ -854,12 +858,13 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors
-	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext, retryCount?: number): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext, retryCount?: number): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext, retryCount?: number): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext, retryCount?: number): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext, retryCount: number = 0): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	// Fetches an Microsoft Graph resource and automatically handles rate-limits/errors.
+	// `refreshed` records that this chain has already spent its one token refresh.
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext, retryCount: number = 0, refreshed: boolean = false): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -918,9 +923,13 @@ export class OneNoteImporter extends FormatImporter {
 			}
 			else {
 				let err: PublicError | null = null;
-				const respJson = await response.json();
-				if (Object.prototype.hasOwnProperty.call(respJson, 'error')) {
-					err = respJson.error;
+				// Graph does not always answer with JSON — an empty body, or an
+				// HTML page from a proxy in front of it, used to reject here and
+				// fall through to the network retry, taking the throttling
+				// branch below with it.
+				const respJson: unknown = await response.json().catch(() => null);
+				if (respJson && typeof respJson === 'object' && 'error' in respJson) {
+					err = (respJson as { error: PublicError }).error;
 				}
 				console.error('An error has occurred while fetching an resource:', err ? err : respJson);
 
@@ -931,12 +940,26 @@ export class OneNoteImporter extends FormatImporter {
 					|| err?.code === 'InvalidAuthenticationToken'
 					|| response.status === 401;
 				if (isNotAuthorized) {
+					// Refreshing is the whole remedy, so a 401 that survives it
+					// is the account not being allowed to read this. Retrying
+					// four more times only replaces what Graph said with
+					// 'Exceeded maximum retry attempts'.
+					if (refreshed) throw new GraphRefusal(response.status, err);
+
 					await this.updateAccessToken();
-					return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+					return this.fetchResource(url, returnType as any, progress, retryCount + 1, true);
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
 				if (err?.code === '20166' || response.status === 429) {
+					// Waiting is right during an import: the user asked for the
+					// whole notebook and the limit lifts. While the picker is
+					// loading there is nothing on screen that waiting helps, so
+					// it just sits silently for a minute an attempt — which is
+					// what issue #390 reports. Say so and let them press
+					// Refresh.
+					if (!progress) throw new GraphRefusal(429, err);
+
 					const retryAfter = response.headers.get('Retry-After');
 					// If we're rate-limited, the soonest we'll be able to make
 					// the request again is the next minute, so wait either as
@@ -960,15 +983,20 @@ export class OneNoteImporter extends FormatImporter {
 						// don't increment the retryCount because we were told
 						// to backoff, and we should infinitely retry on backoff
 						// errors.
-						retryCount
+						retryCount,
+						refreshed
 					);
 				}
 
-				if (!worthRetrying(response.status) || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
+				// 40004 is the sign-in not having been granted these notebooks,
+				// which no number of attempts changes, whatever status it came
+				// with. It is the failure behind issues #440 and #462.
+				const settled = !worthRetrying(response.status) || err?.code === '40004';
+				if (settled || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
 					throw new GraphRefusal(response.status, err);
 				}
 
-				return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+				return this.fetchResource(url, returnType as any, progress, retryCount + 1, refreshed);
 			}
 		}
 		catch (e) {
@@ -985,7 +1013,7 @@ export class OneNoteImporter extends FormatImporter {
 			// well.
 			if (retryCount + 1 >= MAX_RETRY_ATTEMPTS) throw e;
 
-			return this.fetchResource(url, returnType as any, progress, retryCount + 1);
+			return this.fetchResource(url, returnType as any, progress, retryCount + 1, refreshed);
 		}
 	}
 }
