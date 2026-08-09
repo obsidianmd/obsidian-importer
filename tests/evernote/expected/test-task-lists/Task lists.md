@@ -1,5 +1,3 @@
----
----
 A checklist
 
 - [ ] Open task

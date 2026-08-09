@@ -1,5 +1,3 @@
----
----
 Some text before the code block
 
 ```

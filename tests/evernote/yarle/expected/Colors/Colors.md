@@ -1,5 +1,3 @@
----
----
 Normal line
 Red line
 Yellow line

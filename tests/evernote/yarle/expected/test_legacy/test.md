@@ -1,5 +1,3 @@
----
----
 Steps
 
 1. Draft the proposal. I did this right after we concluded our Skype call 8/24/17. 

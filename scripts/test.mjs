@@ -28,6 +28,10 @@ const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
 const result = spawnSync(tsx, ['--disable-warning=ExperimentalWarning', '--tsconfig', 'tsconfig.test.json', '--test', ...patterns], {
 	cwd: root,
 	stdio: 'inherit',
+	// A date a conversion writes is formatted in local time, so a recording made
+	// in one zone would differ by a day when read in another. The zone is fixed
+	// here rather than in each test, since Node reads it once at startup.
+	env: { ...process.env, TZ: 'UTC' },
 });
 
 process.exit(result.status ?? 1);

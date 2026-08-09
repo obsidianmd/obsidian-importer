@@ -1,3 +1,1 @@
----
----
 Normal ~~strikethrough~~ normal

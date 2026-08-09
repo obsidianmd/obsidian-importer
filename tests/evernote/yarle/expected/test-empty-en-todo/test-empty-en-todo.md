@@ -1,9 +1,7 @@
 ---
-
-tags: 
+tags:
   - WorkLog
   - AU/RA
-
 ---
 _**For this week**_
 

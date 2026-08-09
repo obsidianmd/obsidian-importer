@@ -1,5 +1,3 @@
----
----
 # Large
 
 ## Medium

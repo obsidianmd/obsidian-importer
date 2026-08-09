@@ -1,5 +1,3 @@
----
----
 - [ ] Checklist item 1
     - [ ] Nested item 1a
     - [x] Nested checked item

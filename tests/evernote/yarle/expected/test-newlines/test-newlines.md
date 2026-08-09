@@ -1,9 +1,7 @@
 ---
-
-tags: 
+tags:
   - test2
   - test1
-
 ---
 Line 1
 Line 2

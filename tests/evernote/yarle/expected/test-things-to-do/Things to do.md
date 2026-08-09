@@ -1,5 +1,3 @@
----
----
 - [ ] Simple task 🔽
 - [ ] Task with a reminder ⏳ 2022-05-22 🔽
 - [x] Done 🔽

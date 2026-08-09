@@ -6,6 +6,7 @@ import { RuntimePropertiesSingleton } from './runtime-properties';
 import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
 import { applyTemplate } from './utils/templates/templates';
+import { standardizeFrontMatter } from './utils/front-matter';
 import { evernoteOptions } from './convert';
 
 export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
@@ -35,7 +36,7 @@ export const processNode = (note: EvernoteNote, notebookName: string): boolean =
 		noteData = { ...noteData, ...getMetadata(note, notebookName) };
 		noteData = { ...noteData, ...getTags(note) };
 
-		const data = applyTemplate(noteData, evernoteOptions);
+		const data = standardizeFrontMatter(applyTemplate(noteData, evernoteOptions));
 		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
 		return saveMdFile(data, note);
