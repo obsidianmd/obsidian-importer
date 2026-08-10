@@ -839,10 +839,19 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		this.clearHiddenInterval();
 
+		// The notice is all there is to go on while the modal is hidden, so it has
+		// to say which of the three ways the import ended it took.
+		const headline = ctx.isCancelled() ? 'Import stopped.'
+			: ctx.failed.length > 0 ? 'Import finished with errors.'
+				: 'Import complete.';
+
+		const counts = `${plural(ctx.notes, 'note')} imported`
+			+ (ctx.failed.length > 0 ? `, ${plural(ctx.failed.length, 'failure')}` : '');
+
 		notice.setMessage(createFragment(frag => {
-			frag.createSpan({ text: 'Import complete.' });
+			frag.createSpan({ text: headline });
 			frag.createEl('br');
-			frag.createSpan({ cls: 'u-small', text: `${plural(ctx.notes, 'note')} imported. Click to show.` });
+			frag.createSpan({ cls: 'u-small', text: `${counts}. Click to show.` });
 		}));
 	}
 
