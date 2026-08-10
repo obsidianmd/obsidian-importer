@@ -141,14 +141,28 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
  * Nothing here reads the duplicate mode. That setting is about notes, and a
  * .base holding a view of a table whose schema has moved on is no use.
  */
-export function mergedBaseViews(
-	existingViews: BasesConfigFileView[],
-	importedViews: BasesConfigFileView[],
-): BasesConfigFileView[] {
+export function mergedBaseViews(existing: unknown, importedViews: BasesConfigFileView[]): BasesConfigFileView[] {
 	const byName = new Map<string, BasesConfigFileView>();
 
-	for (const view of existingViews) byName.set(view.name, view);
+	for (const view of viewsIn(existing)) byName.set(view.name, view);
 	for (const view of importedViews) byName.set(view.name, view);
 
 	return [...byName.values()];
+}
+
+/**
+ * The views in a .base as it stands, which is a file the user can edit.
+ *
+ * Anything in it that is not a view with a name is not something to carry
+ * over: there would be no name to keep it under, and no way to tell whether
+ * the import means to replace it.
+ */
+function viewsIn(config: unknown): BasesConfigFileView[] {
+	if (typeof config !== 'object' || config === null) return [];
+
+	const views = (config as { views?: unknown }).views;
+	if (!Array.isArray(views)) return [];
+
+	return views.filter((view): view is BasesConfigFileView =>
+		typeof view === 'object' && view !== null && typeof (view as { name?: unknown }).name === 'string');
 }

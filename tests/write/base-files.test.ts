@@ -65,7 +65,7 @@ test('and replaces what is in it with what the schema now says', async () => {
 
 test('a view the import brings replaces the one of that name', () => {
 	const merged = mergedBaseViews(
-		[{ type: 'table', name: 'All books' } as never],
+		{ views: [{ type: 'table', name: 'All books' }] },
 		[{ type: 'cards', name: 'All books' } as never],
 	);
 
@@ -74,7 +74,7 @@ test('a view the import brings replaces the one of that name', () => {
 
 test('a view the user added is kept beside the imported ones', () => {
 	const merged = mergedBaseViews(
-		[{ type: 'table', name: 'My shortlist' } as never],
+		{ views: [{ type: 'table', name: 'My shortlist' }] },
 		[{ type: 'table', name: 'All books' } as never],
 	);
 
@@ -84,7 +84,17 @@ test('a view the user added is kept beside the imported ones', () => {
 test('and a .base with no views yet is simply the imported ones', () => {
 	const imported = [{ type: 'table', name: 'All books' } as never];
 
-	assert.deepEqual(mergedBaseViews([], imported), imported);
+	assert.deepEqual(mergedBaseViews({ views: [] }, imported), imported);
+});
+
+// The file is the user's to edit, so it may be anything by the time an import
+// meets it again. Nothing in it that is not a named view is carried over.
+test('a .base edited into something unreadable is simply regenerated', () => {
+	const imported = [{ type: 'table', name: 'All books' } as never];
+
+	for (const existing of [null, undefined, 'not a config', 42, {}, { views: 'nope' }, { views: [null, { type: 'table' }] }]) {
+		assert.deepEqual(mergedBaseViews(existing, imported), imported, JSON.stringify(existing));
+	}
 });
 
 /** The code, without the prose around it. */

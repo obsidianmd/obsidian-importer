@@ -1303,8 +1303,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				const existingContent = await this.vault.read(existingFile);
 
 				try {
-					const existingConfig = parseYaml(existingContent);
-					baseConfig.views = mergedBaseViews(existingConfig?.views ?? [], baseConfig.views ?? []);
+					baseConfig.views = mergedBaseViews(parseYaml(existingContent), baseConfig.views ?? []);
 
 					await this.vault.modify(existingFile, stringifyYaml(baseConfig));
 				}
