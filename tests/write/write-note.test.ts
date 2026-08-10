@@ -88,6 +88,8 @@ test('"Update" does not write over work done in Obsidian since the import', asyn
 	assert.equal(vault.contents.get('Note.md'), 'edited by hand');
 });
 
+// Once per import, because a name written twice in one import is two source
+// notes sharing a title rather than one note being reconsidered.
 test('with no time to go on, "Update" compares the text instead', async () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 	await vault.create('Note.md', 'same text');
@@ -95,6 +97,7 @@ test('with no time to go on, "Update" compares the text instead', async () => {
 	const unchanged = await subject.writeNote(ctx, vault.root, 'Note', 'same text');
 	assert.equal(unchanged.written, false);
 
+	subject.indexImportedNotes();
 	const changed = await subject.writeNote(ctx, vault.root, 'Note', 'different text');
 	assert.equal(changed.written, true);
 	assert.equal(vault.contents.get('Note.md'), 'different text');

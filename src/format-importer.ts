@@ -83,19 +83,29 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 }
 
 /**
- * What the source calls this note.
+ * What the source calls this note, for an importer whose id has changed shape.
  *
- * A list is for an importer whose id has changed shape: the first is written
- * onto the note, and every one of them is recognised, so notes an earlier
- * version wrote still match rather than being imported a second time.
+ * `id` is written onto the note and recognised wherever the note has moved to.
+ * A `formerly` id is recognised only where the version that wrote it would have
+ * put the note, because an id that has been made more specific is by definition
+ * one that could not tell every note apart - two sources may each claim a note
+ * carrying it. At the expected path there is nothing to be wrong about; away
+ * from it there is no way to tell which source it belonged to, so it is left
+ * alone rather than guessed at.
  */
-export type SourceId = string | string[];
+export interface SourceIdentity {
+	id: string;
+	formerly?: string[];
+}
+
+export type SourceId = string | SourceIdentity;
 
 /** A note whose source has no id for it is matched by its path alone. */
-function idsOf(sourceId: SourceId | undefined): string[] {
-	if (!sourceId) return [];
+function identityOf(sourceId: SourceId | undefined): { id: string | null, formerly: string[] } {
+	if (!sourceId) return { id: null, formerly: [] };
+	if (typeof sourceId === 'string') return { id: sourceId, formerly: [] };
 
-	return (typeof sourceId === 'string' ? [sourceId] : sourceId).filter(Boolean);
+	return { id: sourceId.id || null, formerly: (sourceId.formerly ?? []).filter(Boolean) };
 }
 
 export interface NoteImport extends DataWriteOptions {
@@ -942,8 +952,9 @@ export abstract class FormatImporter {
 
 	protected withSourceId(content: string, sourceId: SourceId | undefined): string {
 		const { idProperty } = this;
-		// The first is the one to write; the rest are only for recognising.
-		const [id] = idsOf(sourceId);
+		// A former id is only ever recognised, never written, so a note being
+		// rewritten is a note whose id stops being the ambiguous one.
+		const { id } = identityOf(sourceId);
 		if (!idProperty || !id || !this.saveSourceId) return content;
 
 		const parsed = parseFrontMatterBlock(content);
@@ -960,11 +971,11 @@ export abstract class FormatImporter {
 	 * that knows the source's modification time skip converting a note it is
 	 * only going to leave alone.
 	 *
-	 * A name chosen for a new note is claimed here rather than at the write, or
-	 * two notes waiting on their markdown are handed the same free one. A note
-	 * that matched an earlier import claims at the write, as it always has: the
-	 * claim is what stops a second source note of the same name adopting it, and
-	 * a match that ends up writing nothing never took the name to begin with.
+	 * The path is claimed here, whether the note is new or one an earlier import
+	 * wrote. An importer that plans every note before writing any - which is the
+	 * point of planning at all - would otherwise hand the same name to two of
+	 * them: a free name to two new notes, or one untitled legacy note to every
+	 * source item that shares its title.
 	 */
 	planNote(folder: TFolder | string, title: string, sourceId?: SourceId): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
@@ -976,9 +987,7 @@ export abstract class FormatImporter {
 			? null
 			: this.previouslyImported(desiredPath, sourceId);
 
-		if (file) return { title, desiredPath, targetPath: file.path, file, sourceId };
-
-		const targetPath = this.freeNotePath(parent, name);
+		const targetPath = file ? file.path : this.freeNotePath(parent, name);
 		this.claimPath(targetPath);
 
 		return { title, desiredPath, targetPath, file, sourceId };
@@ -1093,12 +1102,13 @@ export abstract class FormatImporter {
 	/** Find a previous import by source ID, falling back to its expected path. */
 	protected previouslyImported(fullPath: string, sourceId?: SourceId): TFile | null {
 		const { idProperty } = this;
-		const ids = idsOf(sourceId);
+		const { id, formerly } = identityOf(sourceId);
 
-		if (idProperty && ids.length) {
-			for (const id of ids) {
-				const known = this.importedById?.get(id);
-				if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
+		if (idProperty && id) {
+			const known = this.importedById?.get(id);
+			// A note this run has already taken belongs to whatever took it.
+			if (known && !this.hasClaimed(known.path) && this.vault.getAbstractFileByPath(known.path) === known) {
+				return known;
 			}
 		}
 
@@ -1109,10 +1119,12 @@ export abstract class FormatImporter {
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
 		if (!(file instanceof TFile)) return null;
 
-		if (idProperty && ids.length) {
+		if (idProperty && id) {
 			const recorded = this.recordedId(file, idProperty);
-			// Notes imported before IDs were recorded still match by path.
-			if (recorded && !ids.includes(recorded)) return null;
+			// Notes imported before IDs were recorded still match by path, and
+			// so do notes carrying an id this source used to be known by - here,
+			// where the version that wrote it would have put the note.
+			if (recorded && recorded !== id && !formerly.includes(recorded)) return null;
 		}
 
 		return file;
