@@ -1654,6 +1654,30 @@ translation=
 original=block
 translation=
 
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=
+
+[importer.notion-api.section-summary]
+original=summary
+translation=
+
+[importer.notion-api.section-notes]
+original=notes
+translation=
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=
+
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
 translation=
@@ -1676,6 +1700,10 @@ translation=
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
+translation=
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
 translation=
 
 [importer.notion.name]

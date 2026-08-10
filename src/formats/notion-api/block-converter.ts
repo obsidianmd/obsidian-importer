@@ -302,7 +302,14 @@ export async function convertBlockToMarkdown(
 ): Promise<string> {
 	const type = block.type;
 	let markdown = '';
-	
+
+	// The SDK has never heard of this block, so a switch on its type cannot
+	// narrow to it and the case below would not compile.
+	const meetingNotes = asMeetingNotes(block);
+	if (meetingNotes) {
+		return await convertMeetingNotes(block.id, meetingNotes, context);
+	}
+
 	switch (type) {
 		case 'paragraph':
 			markdown = await convertParagraph(block, context);
@@ -494,6 +501,103 @@ export async function convertBlockToMarkdown(
 	}
 	
 	return markdown;
+}
+
+/**
+ * Notion's AI meeting notes.
+ *
+ * The block sitting on the page is metadata and nothing else: the summary, the
+ * notes and the transcript live under three ids it points at, and each has to
+ * be asked for on its own. None of it arrives with the page's blocks, which is
+ * why a recorded meeting used to import as a title and an empty note.
+ *
+ * The SDK does not know the type yet, so what it returns is read by hand.
+ * https://developers.notion.com/reference/block
+ */
+interface MeetingNotesBlock {
+	title?: RichTextItemResponse[];
+	status?: string;
+	children?: {
+		summary_block_id?: string;
+		notes_block_id?: string;
+		transcript_block_id?: string;
+	};
+}
+
+interface MeetingNotesSection {
+	key: keyof NonNullable<MeetingNotesBlock['children']>;
+	/**
+	 * The heading written into the note. Converted content reads the same
+	 * whoever ran the import, the way the rest of what lands in a note does.
+	 */
+	heading: string;
+	/** What the section is called on screen, where it lands inside a sentence. */
+	label: () => string;
+}
+
+/** The sections, in the order Notion lists them. */
+const MEETING_NOTES_SECTIONS: MeetingNotesSection[] = [
+	{ key: 'summary_block_id', heading: 'Summary', label: () => i18n.importer.notionApi.sectionSummary() },
+	{ key: 'notes_block_id', heading: 'Notes', label: () => i18n.importer.notionApi.sectionNotes() },
+	{ key: 'transcript_block_id', heading: 'Transcript', label: () => i18n.importer.notionApi.sectionTranscript() },
+];
+
+function asMeetingNotes(block: BlockObjectResponse): MeetingNotesBlock | null {
+	if ((block.type as string) !== 'meeting_notes') return null;
+
+	const data = (block as unknown as Record<string, unknown>).meeting_notes;
+	return typeof data === 'object' && data !== null ? data as MeetingNotesBlock : null;
+}
+
+async function convertMeetingNotes(
+	blockId: string,
+	meetingNotes: MeetingNotesBlock,
+	context: BlockConversionContext
+): Promise<string> {
+	const title = convertRichText(meetingNotes.title ?? [], context).trim();
+	const name = title || i18n.importer.notionApi.labelUntitledMeeting({ id: blockId.substring(0, 8) });
+
+	// Any status short of notes_ready means the AI is still writing, and the
+	// ids it will write under have nothing under them yet.
+	if (meetingNotes.status && meetingNotes.status !== 'notes_ready') {
+		context.ctx.reportSkipped(
+			i18n.importer.notionApi.labelMeetingNotes({ name }),
+			i18n.importer.notionApi.reasonMeetingNotesPending({ status: meetingNotes.status })
+		);
+		return title ? `## ${title}` : '';
+	}
+
+	// A page can hold more than one meeting, so the sections sit under the
+	// meeting's own title wherever there is one to sit under.
+	const sectionLevel = title ? '###' : '##';
+	const parts: string[] = title ? [`## ${title}`] : [];
+
+	for (const { key, heading, label } of MEETING_NOTES_SECTIONS) {
+		const sectionId = meetingNotes.children?.[key];
+		if (!sectionId) continue;
+
+		try {
+			const children = await getBlockChildren(sectionId, context.client, context.ctx, context.blocksCache);
+			if (children.length === 0) continue;
+
+			// A fresh set of list counters: the sections number independently
+			// of the page they sit in.
+			const content = await convertBlocksToMarkdown(children, { ...context, listCounters: new Map() });
+			if (!content.trim()) continue;
+
+			parts.push(`${sectionLevel} ${heading}`, content);
+		}
+		catch (error) {
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			console.error(`Failed to read the ${heading.toLowerCase()} of meeting notes ${blockId}:`, error);
+			context.ctx.reportFailed(
+				i18n.importer.notionApi.labelMeetingNotesSection({ name, section: label() }),
+				errorMsg
+			);
+		}
+	}
+
+	return parts.join('\n\n');
 }
 
 export async function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): Promise<string> {
