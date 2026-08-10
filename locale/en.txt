@@ -1526,6 +1526,10 @@ translation=
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
 translation=
 
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=
+
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
 translation=
@@ -1704,6 +1708,14 @@ translation=
 
 [importer.notion-api.reason-meeting-notes-pending]
 original=Notion has not finished generating them ({{status}})
+translation=
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
 translation=
 
 [importer.notion.name]

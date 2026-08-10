@@ -15,6 +15,7 @@ import {
 import { App, FrontMatterCache, Vault } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
+import { extractErrorMessage } from '../../util';
 
 /**
  * What a block is called on screen. These are fixed block kinds, not anything
@@ -48,6 +49,43 @@ export interface NotionRequestError {
 	code?: string;
 	status?: number;
 	headers?: Record<string, string>;
+}
+
+/**
+ * Failures worth asking again about.
+ *
+ * A rate limit says so outright. The rest are Notion having a bad moment - a
+ * gateway timing out, a data source taking longer to render than the API is
+ * willing to wait - and an import large enough to meet them will meet them a
+ * few hundred times. Giving up on the first one loses a page that would have
+ * arrived on the second.
+ *
+ * Everything else (a 404, a permission the token does not have, a malformed
+ * request) means the same thing however many times it is asked.
+ */
+const RETRYABLE_CODES = new Set([
+	'rate_limited',
+	'internal_server_error',
+	'service_unavailable',
+	'gateway_timeout',
+	'notionhq_client_request_timeout',
+	'notionhq_client_response_error',
+]);
+
+function isRetryable(error: NotionRequestError): boolean {
+	if (error.status !== undefined && error.status >= 500) return true;
+	if (error.status === 429 || error.status === 408) return true;
+
+	return error.code !== undefined && RETRYABLE_CODES.has(error.code);
+}
+
+/** How long to wait before asking again, in seconds. */
+function retryDelay(error: NotionRequestError, retryCount: number): number {
+	const retryAfter = error.headers?.['retry-after'] ?? error.headers?.['Retry-After'];
+	const asked = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
+
+	// Exponential backoff otherwise: 1s, 2s, 4s
+	return Number.isFinite(asked) && asked > 0 ? asked : Math.pow(2, retryCount);
 }
 
 /**
@@ -141,8 +179,8 @@ export async function processBlockChildren<T>(
 }
 
 /**
- * Wrapper for Notion API calls with rate limit handling
- * Automatically retries on 429 errors with exponential backoff
+ * Wrapper for Notion API calls that asks again when the failure was Notion's
+ * rather than the request's, backing off between tries.
  */
 export async function makeNotionRequest<T>(
 	requestFn: () => Promise<T>,
@@ -154,38 +192,46 @@ export async function makeNotionRequest<T>(
 	}
 	catch (e) {
 		const error = e as NotionRequestError;
-		// Handle rate limiting (429 error)
-		if (error.code === 'rate_limited' || error.status === 429) {
-			if (retryCount >= MAX_RETRIES) {
-				throw new Error(`Rate limit exceeded after ${MAX_RETRIES} retries`);
-			}
+		if (!isRetryable(error)) throw e;
 
-			// Get retry delay from Retry-After header or use exponential backoff
-			let retryAfter = 1;
-			if (error.headers && error.headers['retry-after']) {
-				retryAfter = parseInt(error.headers['retry-after'], 10);
-			}
-			else {
-				// Exponential backoff: 1s, 2s, 4s
-				retryAfter = Math.pow(2, retryCount);
-			}
+		const rateLimited = error.code === 'rate_limited' || error.status === 429;
 
-			const previousStatus = ctx.statusMessage;
-			ctx.status(i18n.importer.notionApi.statusRateLimited({
-				seconds: retryAfter,
+		if (retryCount >= MAX_RETRIES) {
+			// Say what it kept failing with, not just that it kept failing:
+			// this is the line the import log ends up showing.
+			throw new Error(rateLimited
+				? i18n.importer.notionApi.reasonRateLimitGaveUp({ retries: MAX_RETRIES })
+				: i18n.importer.notionApi.reasonGaveUp({
+					reason: extractErrorMessage(e) ?? String(error.status ?? error.code),
+					retries: MAX_RETRIES,
+				}));
+		}
+
+		const waitFor = retryDelay(error, retryCount);
+		const previousStatus = ctx.statusMessage;
+
+		// Two whole sentences rather than one with the cause dropped into it:
+		// a status naming a number needs its own wording in every language.
+		ctx.status(rateLimited
+			? i18n.importer.notionApi.statusRateLimited({
+				seconds: waitFor,
+				attempt: retryCount + 1,
+				total: MAX_RETRIES,
+			})
+			: i18n.importer.notionApi.statusRetrying({
+				status: String(error.status ?? error.code),
+				seconds: waitFor,
 				attempt: retryCount + 1,
 				total: MAX_RETRIES,
 			}));
 
-			await new Promise(resolve => window.setTimeout(resolve, retryAfter * 1000));
+		await new Promise(resolve => window.setTimeout(resolve, waitFor * 1000));
 
-			ctx.status(previousStatus);
+		if (await ctx.shouldStop()) throw e;
 
-			// Retry the request
-			return makeNotionRequest(requestFn, ctx, retryCount + 1);
-		}
+		ctx.status(previousStatus);
 
-		throw e;
+		return makeNotionRequest(requestFn, ctx, retryCount + 1);
 	}
 }
 
