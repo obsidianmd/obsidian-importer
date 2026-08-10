@@ -23,6 +23,7 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 		sectionPages: new Map(),
 		readingAhead: new Map(),
 		readAheadQueue: Promise.resolve(),
+		pagesGeneration: 0,
 		graphData: { accessToken: 'token' },
 		duplicateHandling: DuplicateHandling.CreateCopy,
 		host: { plugin: null, abortController: new AbortController() },
@@ -155,6 +156,83 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 	await (subject as unknown as { readAheadQueue: Promise<void> }).readAheadQueue;
 
 	assert.deepEqual(listed, ['a'], 'only the section already being read should have been asked for');
+});
+
+test('reloading the notebooks reads the page lists again', async () => {
+	const listed: string[] = [];
+	const pages = [{ id: 'p', title: 'P', contentUrl: 'page-id=p}' }] as OnenotePage[];
+
+	const subject = importerOverPages([], {
+		sectionPages: new Map([['section', pages]]),
+		fetchResource: async (url: string) => {
+			if (url.includes('/pages?')) listed.push(url);
+			return url.includes('/pages?') ? { value: pages } : 'content';
+		},
+		processFile: async () => {},
+		picker: { load: async (read: () => Promise<unknown>) => void await read() },
+		readNotebooks: async () => [],
+	} as unknown as Partial<OneNoteImporter>);
+
+	await subject.showSectionPickerUI();
+	await subject.import(new ImportContext());
+
+	assert.equal(listed.length, 1, 'a list read before the reload no longer describes the section');
+});
+
+test('a read still in flight when the notebooks reload is not taken as the answer', async () => {
+	let releaseFirst: () => void = () => {};
+	const firstInFlight = new Promise<void>(resolve => { releaseFirst = resolve; });
+	const stale = [{ id: 'stale', title: 'Stale', contentUrl: 'page-id=stale}' }] as OnenotePage[];
+
+	const subject = importerOverPages([], {
+		sectionPages: new Map(),
+		fetchResource: async (url: string) => {
+			if (!url.includes('/pages?')) return 'content';
+			await firstInFlight;
+			return { value: stale };
+		},
+		picker: { load: async (read: () => Promise<unknown>) => void await read() },
+		readNotebooks: async () => [],
+	} as unknown as Partial<OneNoteImporter>);
+
+	const inner = subject as unknown as { prefetchSelectedPages(): void, readAheadQueue: Promise<void> };
+
+	inner.prefetchSelectedPages();
+	await subject.showSectionPickerUI();
+	releaseFirst();
+	await inner.readAheadQueue;
+
+	const cached = (subject as unknown as { sectionPages: Map<string, OnenotePage[]> }).sectionPages;
+	assert.equal(cached.size, 0, 'the reload disowned the read that was already running');
+});
+
+test('signing out forgets which kind of account it was', () => {
+	const stored = new Map<string, unknown>([['onenote-importer-account-type', 'organization']]);
+
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+	Object.assign(subject, {
+		app: {
+			loadLocalStorage: (key: string) => stored.get(key) ?? null,
+			saveLocalStorage: (key: string, value: unknown) =>
+				void (value === null ? stored.delete(key) : stored.set(key, value)),
+			secretStorage: { deleteSecret: () => {} },
+		},
+		graphData: { accessToken: 'token' },
+		sectionPages: new Map(),
+		readingAhead: new Map(),
+		pagesGeneration: 0,
+		picker: { reset: () => {} },
+		accountSetting: { setDesc: () => {} },
+		accountButton: {
+			setButtonText: () => ({ setCta: () => {} }),
+			buttonEl: { removeClass: () => {} },
+		},
+	});
+
+	(subject as unknown as { signOut(): void }).signOut();
+
+	assert.equal(stored.has('onenote-importer-account-type'), false,
+		'the next account is asked for the scopes it can actually consent to');
 });
 
 test('counting says which section it is in and how much it has found', () => {

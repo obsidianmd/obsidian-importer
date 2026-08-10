@@ -133,6 +133,8 @@ export class OneNoteImporter extends FormatImporter {
 	private readonly sectionPages = new Map<string, OnenotePage[]>();
 	private readonly readingAhead = new Map<string, Promise<void>>();
 	private readAheadQueue: Promise<void> = Promise.resolve();
+	/** Bumped to disown reads that were started against an earlier listing. */
+	private pagesGeneration = 0;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -148,7 +150,7 @@ export class OneNoteImporter extends FormatImporter {
 		return storedAccountType(this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY));
 	}
 
-	private set microsoftAccountType(value: MicrosoftAccountType) {
+	private set microsoftAccountType(value: MicrosoftAccountType | null) {
 		this.app.saveLocalStorage(ACCOUNT_TYPE_STORAGE_KEY, value);
 	}
 
@@ -255,8 +257,11 @@ export class OneNoteImporter extends FormatImporter {
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
 
-		// Whoever signs in next is not necessarily who these belong to.
-		this.sectionPages.clear();
+		// Whoever signs in next is not necessarily who these belong to, and
+		// asking a personal account for the scopes an organization needs is
+		// refused before a token comes back to say which kind it was.
+		this.microsoftAccountType = null;
+		this.forgetSectionPages();
 
 		this.picker.reset();
 
@@ -335,11 +340,21 @@ export class OneNoteImporter extends FormatImporter {
 	private clearStoredRefreshToken() {
 		this.app.secretStorage.deleteSecret(ACCOUNT_SECRET_ID);
 	}
+	/** Page lists read against an earlier listing no longer describe the source. */
+	private forgetSectionPages(): void {
+		this.pagesGeneration++;
+		this.sectionPages.clear();
+		this.readingAhead.clear();
+	}
+
 	async showSectionPickerUI(): Promise<void> {
 		if (!this.signedIn) {
 			new Notice(SIGNED_OUT_HINT);
 			return;
 		}
+
+		// Reloading the notebooks is the user asking to be told again.
+		this.forgetSectionPages();
 
 		try {
 			await this.picker.load(() => this.readNotebooks());
@@ -507,13 +522,17 @@ export class OneNoteImporter extends FormatImporter {
 		for (const section of this.selectedSections) {
 			if (this.sectionPages.has(section.id) || this.readingAhead.has(section.id)) continue;
 
+			const generation = this.pagesGeneration;
+			const current = () => generation === this.pagesGeneration;
+
 			const reading = this.readAheadQueue.then(async () => {
 				// Recheck after earlier queued reads finish.
-				if (this.sectionPages.has(section.id)) return;
+				if (!current() || this.sectionPages.has(section.id)) return;
 				if (!this.selectedSections.some(selected => selected.id === section.id)) return;
 
 				try {
-					this.sectionPages.set(section.id, await this.fetchSectionPages(section.id));
+					const pages = await this.fetchSectionPages(section.id);
+					if (current()) this.sectionPages.set(section.id, pages);
 				}
 				catch {
 					// Let the import retry and report the failure.
@@ -521,7 +540,10 @@ export class OneNoteImporter extends FormatImporter {
 			});
 
 			this.readAheadQueue = reading;
-			this.readingAhead.set(section.id, reading.finally(() => this.readingAhead.delete(section.id)));
+			// A reload has already emptied the map; deleting would drop its entry.
+			this.readingAhead.set(section.id, reading.finally(() => {
+				if (current()) this.readingAhead.delete(section.id);
+			}));
 		}
 	}
 
