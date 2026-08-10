@@ -42,15 +42,13 @@ function assertUnreachable(x: never): never {
 }
 
 /**
- * What to say while the sections are being counted. Both numbers are dropped
- * when they would say nothing: how far through, and how much has been found.
+ * What to say while the sections are being counted. How many notes have turned
+ * up is left to the remaining count, which climbs alongside this.
  */
-export function findingNotes(title: string, index: number, sections: number, found: number): string {
-	const detail: string[] = [];
-	if (sections > 1) detail.push(`section ${index + 1} of ${sections}`);
-	if (found > 0) detail.push(`${plural(found, 'note')} so far`);
-
-	return `Finding notes in ${title}${detail.length ? ` (${detail.join(', ')})` : ''}`;
+export function findingNotes(title: string, index: number, sections: number): string {
+	return sections > 1
+		? `Finding notes in ${title} (section ${index + 1} of ${sections})`
+		: `Finding notes in ${title}`;
 }
 
 function worthRetrying(status: number): boolean {
@@ -591,7 +589,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			// Said for every section, not only the ones still to be read, so the
 			// count carries on climbing through the ones already read ahead.
-			progress.status(findingNotes(section.title, index, sections.length, queue.length));
+			progress.status(findingNotes(section.title, index, sections.length));
 
 			let pages = this.sectionPages.get(section.id);
 

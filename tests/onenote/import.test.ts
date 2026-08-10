@@ -172,12 +172,11 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 });
 
 test('counting says which section it is in and how much it has found', () => {
-	// Neither number is worth saying before it means anything: one section is
-	// not "1 of 1", and nothing found yet is not "0 notes so far".
-	assert.equal(findingNotes('Recipes', 0, 1, 0), 'Finding notes in Recipes');
-	assert.equal(findingNotes('Recipes', 0, 7, 0), 'Finding notes in Recipes (section 1 of 7)');
-	assert.equal(findingNotes('Recipes', 2, 7, 240), 'Finding notes in Recipes (section 3 of 7, 240 notes so far)');
-	assert.equal(findingNotes('Recipes', 1, 1, 1), 'Finding notes in Recipes (1 note so far)');
+	// One section is not "section 1 of 1"; how many notes have turned up is
+	// the remaining count's job, not this one's.
+	assert.equal(findingNotes('Recipes', 0, 1), 'Finding notes in Recipes');
+	assert.equal(findingNotes('Recipes', 0, 7), 'Finding notes in Recipes (section 1 of 7)');
+	assert.equal(findingNotes('Recipes', 2, 7), 'Finding notes in Recipes (section 3 of 7)');
 });
 
 test('the count carries on climbing through sections read ahead', async () => {
@@ -202,7 +201,7 @@ test('the count carries on climbing through sections read ahead', async () => {
 	await subject.import(progress);
 
 	assert.ok(said.includes('Finding notes in A (section 1 of 2)'), said.join(' | '));
-	assert.ok(said.includes('Finding notes in B (section 2 of 2, 3 notes so far)'), said.join(' | '));
+	assert.ok(said.includes('Finding notes in B (section 2 of 2)'), said.join(' | '));
 });
 
 test('a vault that will not take the write does stop the import', async () => {
