@@ -70,12 +70,8 @@ function evalInObsidian(code) {
 	return out.slice(2).trim();
 }
 
-// Note: no // comments inside this script. It reaches Obsidian as one argument
-// and a line comment there swallows everything after it.
-//
-// saveSourceId is turned off per import because the recordings come from the
-// conversion seam, which writes no source id; whether the id is written at all
-// is checked in tests/write.
+// Obsidian receives this as one argument, so a line comment would hide the rest.
+// Recorded converter output excludes importer metadata such as source IDs.
 const script = `
 (async () => {
 	const fs = require('fs');

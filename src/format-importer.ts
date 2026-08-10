@@ -94,7 +94,6 @@ export abstract class FormatImporter {
 	defaultOutputFolder: string = 'Import';
 
 	attachmentLocation: AttachmentLocation;
-	/** Resolved against duplicateModes once the importer has set them up. */
 	duplicateHandling: DuplicateHandling = DuplicateHandling.Update;
 
 	duplicateModes: DuplicateHandling[] = [
@@ -542,11 +541,6 @@ export abstract class FormatImporter {
 		});
 	}
 
-	/**
-	 * Not every importer offers Update, and a default it does not offer is not
-	 * one it can use. Skip is the nearest thing where it is missing: both leave
-	 * a note that is already there alone rather than writing a second copy.
-	 */
 	private defaultDuplicateHandling(): DuplicateHandling {
 		for (const preferred of [DuplicateHandling.Update, DuplicateHandling.Skip]) {
 			if (this.duplicateModes.includes(preferred)) return preferred;
@@ -557,9 +551,7 @@ export abstract class FormatImporter {
 
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
-		// duplicateModes are set in init(), so the field default cannot know
-		// whether this importer offers it. Only correct it if it does not,
-		// leaving a mode the caller chose deliberately alone.
+		// init() may remove the field default from duplicateModes.
 		if (!this.duplicateModes.includes(this.duplicateHandling)) {
 			this.duplicateHandling = this.defaultDuplicateHandling();
 		}
@@ -656,15 +648,7 @@ export abstract class FormatImporter {
 		return normalizePath(`${noteFolder}/${configured}`);
 	}
 
-	/**
-	 * Where an attachment belongs, and whether one already in the vault is that
-	 * same attachment rather than a different one that reached the name first.
-	 *
-	 * Attachments carry no id, so the only handle is the name in the folder
-	 * they belong to. That is enough to recognise one across imports and not
-	 * enough within a single run, where a second attachment of the same name is
-	 * a different file that needs its own path.
-	 */
+	/** Reuse prior imports, but give same-run name collisions a new path. */
 	protected async placeAttachment(
 		filename: string,
 		sourcePath?: string,
@@ -684,7 +668,6 @@ export abstract class FormatImporter {
 		const name = `${sanitizeFileName(basename)}${extension ? `.${extension}` : ''}`;
 		const candidate = normalizePath(parent ? `${parent}/${name}` : name);
 
-		// Written by this run, so it is a different attachment of one name.
 		if (this.hasClaimed(candidate)) return unclaimedPath();
 
 		const existing = this.vault.getAbstractFileByPath(candidate);
@@ -694,10 +677,7 @@ export abstract class FormatImporter {
 
 		if (this.duplicateHandling === DuplicateHandling.Skip) return { path: candidate, reuse: existing };
 
-		// Update leaves alone what the source has not touched since. Where the
-		// source offers no time to compare, an attachment of that name is taken
-		// to be the same one: fetching a binary again to overwrite it with
-		// itself is all cost and no change.
+		// Without a source time, reuse rather than overwrite indistinguishable data.
 		if (sourceMtime === undefined || sourceMtime <= existing.stat.mtime) {
 			return { path: candidate, reuse: existing };
 		}
@@ -705,7 +685,6 @@ export abstract class FormatImporter {
 		return { path: candidate, reuse: null };
 	}
 
-	/** Write an attachment, replacing whatever placeAttachment pointed at. */
 	protected async writeAttachment(path: string, data: ArrayBuffer | string, options?: DataWriteOptions): Promise<TFile> {
 		const existing = this.vault.getAbstractFileByPath(path);
 

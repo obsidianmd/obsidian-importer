@@ -20,7 +20,6 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 	Object.assign(subject, {
 		selectedSections: [{ id: 'section', title: 'Section' }],
 		notebooks: [],
-		// Object.create skips the field initialisers the constructor would run.
 		sectionPages: new Map(),
 		readingAhead: new Map(),
 		readAheadQueue: Promise.resolve(),
@@ -62,8 +61,6 @@ test('pages that will not convert are reported without ending the import', async
 });
 
 test('the total is the whole import from the first note, not one section at a time', async () => {
-	// Counting as it went meant the bar filled up on the first section and
-	// jumped backwards each time another was opened.
 	const sections = [
 		{ id: 'a', title: 'A', pages: 3 },
 		{ id: 'b', title: 'B', pages: 5 },
@@ -88,21 +85,15 @@ test('the total is the whole import from the first note, not one section at a ti
 
 	await subject.import(progress);
 
-	// Counting reports a total that climbs while nothing has been imported yet,
-	// so the remaining count fills in as the sections come in.
 	const counting = reports.filter(([current]) => current === 0).map(([, total]) => total);
 	assert.deepEqual(counting, [3, 8, 10, 10], 'the total should grow with each section read');
 
-	// Once a note has been imported the total is settled: a total that grew
-	// from there is what made the bar fill up and then jump backwards.
 	const importing = reports.filter(([current]) => current > 0);
 	assert.deepEqual([...new Set(importing.map(([, total]) => total))], [10]);
 	assert.deepEqual(importing.map(([current]) => current), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
 test('page lists read ahead of the import are not fetched twice', async () => {
-	// The point of reading ahead while the later steps are filled in is that
-	// the import then starts on what it already has.
 	const listed: string[] = [];
 	const pages = [{ id: 'p', title: 'P', contentUrl: 'page-id=p}' }] as OnenotePage[];
 
@@ -136,19 +127,15 @@ test('a section missed by the read-ahead is still fetched by the import', async 
 	await subject.import(new ImportContext());
 
 	assert.equal(listed.length, 1, 'a read-ahead that failed or never ran must not lose the section');
-	// $ arrives percent-encoded, the way every other parameter here already does.
 	assert.match(listed[0], /%24top=100/, 'and asks for more than the default 20 a time');
 });
 
 test('unticking a section drops it from the read-ahead queue', async () => {
-	// Sections are read one at a time, so most of a large selection is still
-	// waiting its turn. Changing your mind has to call that work off.
 	const listed: string[] = [];
 	let releaseFirst: () => void = () => {};
 	const firstInFlight = new Promise<void>(resolve => { releaseFirst = resolve; });
 
 	const subject = importerOverPages([], {
-		// signedIn is a getter with no setter; graphData is what it reads.
 		sectionPages: new Map(),
 		selectedSections: [
 			{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }, { id: 'c', title: 'C' },
@@ -163,7 +150,6 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 
 	(subject as unknown as { prefetchSelectedPages(): void }).prefetchSelectedPages();
 
-	// While A is still in flight, B and C are unticked.
 	subject.selectedSections = [{ id: 'a', title: 'A' }] as OneNoteImporter['selectedSections'];
 	releaseFirst();
 	await (subject as unknown as { readAheadQueue: Promise<void> }).readAheadQueue;
@@ -172,16 +158,12 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 });
 
 test('counting says which section it is in and how much it has found', () => {
-	// One section is not "section 1 of 1"; how many notes have turned up is
-	// the remaining count's job, not this one's.
 	assert.equal(findingNotes('Recipes', 0, 1), 'Finding notes in Recipes');
 	assert.equal(findingNotes('Recipes', 0, 7), 'Finding notes in Recipes (section 1 of 7)');
 	assert.equal(findingNotes('Recipes', 2, 7), 'Finding notes in Recipes (section 3 of 7)');
 });
 
 test('the count carries on climbing through sections read ahead', async () => {
-	// Reporting only the sections still to be read left the phase silent
-	// whenever the read-ahead had already done its job.
 	const said: string[] = [];
 	const progress = new ImportContext();
 	progress.status = (message: string) => void said.push(message);
@@ -192,7 +174,6 @@ test('the count carries on climbing through sections read ahead', async () => {
 
 	const subject = importerOverPages([], {
 		selectedSections: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }],
-		// Both already read ahead, so nothing is fetched during the import.
 		sectionPages: new Map([['a', pagesOf('a', 3)], ['b', pagesOf('b', 4)]]),
 		fetchResource: async () => 'content',
 		processFile: async () => {},

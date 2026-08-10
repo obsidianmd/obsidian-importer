@@ -74,8 +74,6 @@ test('a failed attachment download does not create an undefined embed', async ()
 });
 
 test('an attachment already in the vault is not downloaded again', async () => {
-	// Re-importing used to fetch every attachment afresh and write it beside
-	// the one already there, so a second run doubled every image.
 	const downloads: string[] = [];
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
 	const existing = { path: 'Notebook/Document.pdf' };

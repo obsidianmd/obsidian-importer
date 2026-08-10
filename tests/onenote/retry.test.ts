@@ -119,9 +119,6 @@ test('throttling waits and retries during an import', async () => {
 });
 
 test('attachments run at full speed until OneNote actually throttles', async () => {
-	// A fixed pause every few attachments spent the same minutes whether or not
-	// anything was rate limiting; on a notebook of hundreds that was most of
-	// the import.
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
 	const spacing = () => (subject as unknown as { throttleSpacingMs: number }).throttleSpacingMs;
 
@@ -135,8 +132,6 @@ test('attachments run at full speed until OneNote actually throttles', async () 
 
 	assert.equal(spacing(), 0, 'nothing to pay before anything has gone wrong');
 
-	// Throttled once, then let through. Answering 429 forever would never
-	// return: during an import the wait is deliberately unbounded.
 	const realFetch = globalThis.fetch;
 	let calls = 0;
 	globalThis.fetch = (async () => {

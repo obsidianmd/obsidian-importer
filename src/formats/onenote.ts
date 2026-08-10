@@ -23,8 +23,7 @@ const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
 // Maximum amount of request retries, before they're marked as failed. Does not include 429 backoff errors.
 const MAX_RETRY_ATTEMPTS = 5;
-// How much each throttled request slows attachment downloads, and how far that
-// can go. One step is given back for every attachment that comes down cleanly.
+// Increase spacing after throttling and reduce it after successful downloads.
 const ATTACHMENT_SPACING_STEP_MS = 500;
 const MAX_ATTACHMENT_SPACING_MS = 3_000;
 
@@ -41,10 +40,6 @@ function assertUnreachable(x: never): never {
 	throw new Error(`Didn't expect to get here`);
 }
 
-/**
- * What to say while the sections are being counted. How many notes have turned
- * up is left to the remaining count, which climbs alongside this.
- */
 export function findingNotes(title: string, index: number, sections: number): string {
 	return sections > 1
 		? `Finding notes in ${title} (section ${index + 1} of ${sections})`
@@ -135,18 +130,9 @@ export class OneNoteImporter extends FormatImporter {
 		state: genUid(32),
 		accessToken: '',
 	};
-	/**
-	 * How long to leave between attachment downloads, which is nothing until
-	 * OneNote actually throttles. A fixed pause every few attachments spent the
-	 * same minutes whether or not anything was rate limiting, and on a notebook
-	 * with hundreds of attachments that was most of the import.
-	 */
 	private throttleSpacingMs = 0;
-	/** Page lists read ahead of the import, by section id. */
 	private readonly sectionPages = new Map<string, OnenotePage[]>();
-	/** Read-aheads still in flight, so an import can wait on one at a time. */
 	private readonly readingAhead = new Map<string, Promise<void>>();
-	/** Keeps those read-aheads to one request at a time. */
 	private readAheadQueue: Promise<void> = Promise.resolve();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
@@ -496,15 +482,10 @@ export class OneNoteImporter extends FormatImporter {
 				if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
 					const e = failure;
 					const status = this.host.abortController.signal.aborted
-						// The import was aborted
 						? extractErrorMessage(e) ?? String(e)
-						// Hit a string of consecutive failures, so something is
-						// wrong. This is NOT related to rate-limiting, as that
-						// is handled by the retry logic.
 						: 'Microsoft OneNote returned too many consecutive errors.';
 					progress.status(status);
 
-					// Report remaining pages as skipped
 					for (let j = i + 1; j < queue.length; j++) {
 						const remainingPage = queue[j];
 						progress.reportSkipped(
@@ -513,14 +494,12 @@ export class OneNoteImporter extends FormatImporter {
 						);
 					}
 
-					// Report progress as complete
 					progress.reportProgress(progressTotal, progressTotal);
 
 					return;
 				}
 			}
 
-			// report progress even if page import fails or is skipped
 			progress.reportProgress(++progressCurrent, progressTotal);
 		}
 	}
@@ -529,8 +508,7 @@ export class OneNoteImporter extends FormatImporter {
 			$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
 			$orderby: 'order',
 			pagelevel: 'true',
-			// OneNote sends 20 pages at a time unless asked otherwise, and caps
-			// this at 100. A section of 500 is 5 requests rather than 25.
+			// Graph defaults to 20 pages and caps $top at 100.
 			$top: '100',
 		});
 
@@ -538,16 +516,7 @@ export class OneNoteImporter extends FormatImporter {
 		return (await this.fetchResource<OnenotePage>(url, 'json-wrapped', progress)).value ?? [];
 	}
 
-	/**
-	 * Start reading the page lists for whatever is selected, so that the wait
-	 * happens while the output and options steps are being filled in rather
-	 * than after Import is pressed. The import needs these lists regardless, so
-	 * nothing here is speculative work — only work moved earlier.
-	 *
-	 * One section at a time, because a notebook selected all at once would
-	 * otherwise open dozens of parallel requests at the API most likely to
-	 * throttle them. Failures are left for the import to hit and report.
-	 */
+	/** Read selected page lists serially while the remaining settings are completed. */
 	private prefetchSelectedPages(): void {
 		if (!this.signedIn) return;
 
@@ -555,7 +524,7 @@ export class OneNoteImporter extends FormatImporter {
 			if (this.sectionPages.has(section.id) || this.readingAhead.has(section.id)) continue;
 
 			const reading = this.readAheadQueue.then(async () => {
-				// Both may have changed while this waited its turn.
+				// Recheck after earlier queued reads finish.
 				if (this.sectionPages.has(section.id)) return;
 				if (!this.selectedSections.some(selected => selected.id === section.id)) return;
 
@@ -563,7 +532,7 @@ export class OneNoteImporter extends FormatImporter {
 					this.sectionPages.set(section.id, await this.fetchSectionPages(section.id));
 				}
 				catch {
-					// Left uncached, so the import asks again and reports it there.
+					// Let the import retry and report the failure.
 				}
 			});
 
@@ -572,14 +541,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * Every page in every chosen section, read before any of them is imported.
-	 *
-	 * The same requests either way — one page list per section — but having
-	 * them all is what lets the progress bar know the real total. Counting as
-	 * it went meant the bar filled up on the first section and then jumped
-	 * backwards each time another one was opened.
-	 */
+	/** Read every selected page list before importing so the total stays fixed. */
 	private async readSelectedPages(progress: ImportContext): Promise<OnenotePage[]> {
 		const queue: OnenotePage[] = [];
 
@@ -587,14 +549,10 @@ export class OneNoteImporter extends FormatImporter {
 		for (const [index, section] of sections.entries()) {
 			if (await progress.shouldStop()) break;
 
-			// Said for every section, not only the ones still to be read, so the
-			// count carries on climbing through the ones already read ahead.
 			progress.status(findingNotes(section.title, index, sections.length));
 
 			let pages = this.sectionPages.get(section.id);
 
-			// Waiting on this one rather than the whole read-ahead is what
-			// keeps the message above true while it waits.
 			if (!pages) {
 				await this.readingAhead.get(section.id);
 				pages = this.sectionPages.get(section.id);
@@ -613,13 +571,10 @@ export class OneNoteImporter extends FormatImporter {
 
 			if (!pages.length) continue;
 
-			// Sub-page paths are worked out from the pages either side of one
-			// within its section, so the section needs its whole list.
 			this.insertPagesToSection(pages, section.id);
 			queue.push(...pages);
 
-			// Let the remaining count climb as the sections come in, rather
-			// than sitting at nothing until the last one has been read.
+			// Grow the remaining total before importing.
 			progress.reportProgress(0, queue.length);
 		}
 
@@ -946,8 +901,6 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath);
 
-			// Deciding before downloading is the point: an attachment already
-			// brought across costs nothing on a second import.
 			if (reuse) {
 				progress.reportSkipped(filename, 'it is already in the vault');
 				return reuse.path;
@@ -957,7 +910,6 @@ export class OneNoteImporter extends FormatImporter {
 			await this.writeAttachment(outputPath, data);
 			progress.reportAttachmentSuccess(filename);
 
-			// Earn the speed back once it stops complaining.
 			this.throttleSpacingMs = Math.max(0, this.throttleSpacingMs - ATTACHMENT_SPACING_STEP_MS);
 			return outputPath;
 		}
