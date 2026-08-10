@@ -7,7 +7,7 @@ import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
 import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
-import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
+import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -86,9 +86,68 @@ export interface NoteImport extends DataWriteOptions {
 	sourceId?: string;
 }
 
+/**
+ * What became of an imported note, for an importer that has more to do after
+ * writing it. `written` says whether the file changed; `outcome` says why.
+ *
+ * The difference between the three that did not write matters to anything that
+ * rewrites notes after the import. A note left alone because the source has not
+ * moved on can still have its unresolved links repaired; a note left alone
+ * because the user edited it must not be touched at all.
+ */
+export type NoteOutcome = 'created' | 'updated' | 'skipped' | 'unchanged' | 'preserved';
+
 export interface NoteWritten {
 	file: TFile;
 	written: boolean;
+	outcome: NoteOutcome;
+}
+
+/**
+ * Where a note is going and what is already there, decided before its markdown
+ * exists.
+ *
+ * An importer that resolves attachment paths or links against the note's own
+ * location needs to know that location before it converts anything, and one
+ * that can tell from the source whether a note is stale wants to skip the
+ * conversion entirely.
+ */
+export interface PlannedNote {
+	title: string;
+	/** Where this import would place the note, before anything already there. */
+	desiredPath: string;
+	/** Where it will be written: an earlier import's note, or a free name. */
+	targetPath: string;
+	/** The note an earlier import wrote, when this one matches it. */
+	file: TFile | null;
+	sourceId?: string;
+}
+
+/**
+ * What to do with a resolved note. `compare-content` is the answer when the
+ * source offers no modification time: the caller has to produce the markdown
+ * before anything can be decided.
+ */
+export type NoteDisposition =
+	| 'create' | 'copy' | 'skip' | 'unchanged' | 'preserve' | 'update' | 'compare-content';
+
+const OUTCOME_OF: Record<'skip' | 'unchanged' | 'preserve', NoteOutcome> = {
+	skip: 'skipped',
+	unchanged: 'unchanged',
+	preserve: 'preserved',
+};
+
+/**
+ * What the note in the vault is, next to the source's modification time.
+ *
+ * An import writes the source's time onto the file, so an equal time is a note
+ * nothing has touched since, and a later one is a note the user has edited.
+ */
+function comparedToSource(file: TFile, sourceMtime: number): 'unchanged' | 'preserve' | 'update' {
+	if (file.stat.mtime === sourceMtime) return 'unchanged';
+	if (file.stat.mtime > sourceMtime) return 'preserve';
+
+	return 'update';
 }
 
 export type ImporterStep = 'source' | 'output' | 'options';
@@ -875,36 +934,141 @@ export abstract class FormatImporter {
 		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
 	}
 
-	/** Write, update, or match an imported note according to the duplicate mode. */
-	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
-		const { sourceId, ...writeOptions } = options;
-		content = this.withSourceId(content, sourceId);
+	/**
+	 * Where this note is going, and the earlier import it matches.
+	 *
+	 * Answering before the markdown exists is what lets an importer resolve
+	 * attachment paths and links against the note's real location, and lets one
+	 * that knows the source's modification time skip converting a note it is
+	 * only going to leave alone.
+	 *
+	 * A name chosen for a new note is claimed here rather than at the write, or
+	 * two notes waiting on their markdown are handed the same free one. A note
+	 * that matched an earlier import claims at the write, as it always has: the
+	 * claim is what stops a second source note of the same name adopting it, and
+	 * a match that ends up writing nothing never took the name to begin with.
+	 */
+	planNote(folder: TFolder, title: string, sourceId?: string): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const parent = folder.path === '/' ? '' : folder.path;
-		const fullPath = normalizePath(parent ? `${parent}/${name}` : name);
+		const desiredPath = normalizePath(parent ? `${parent}/${name}` : name);
 
-		const existing = this.duplicateHandling === DuplicateHandling.CreateCopy
+		const file = this.duplicateHandling === DuplicateHandling.CreateCopy
 			? null
-			: this.previouslyImported(fullPath, sourceId);
+			: this.previouslyImported(desiredPath, sourceId);
 
-		if (!existing) {
-			const file = await this.createFile(folder, name, content, writeOptions);
-			this.claimPath(file.path);
-			return { file, written: true };
+		if (file) return { title, desiredPath, targetPath: file.path, file, sourceId };
+
+		const targetPath = this.freeNotePath(parent, name);
+		this.claimPath(targetPath);
+
+		return { title, desiredPath, targetPath, file, sourceId };
+	}
+
+	/**
+	 * A name no note holds and this run has not taken.
+	 *
+	 * getUniqueFilePath only knows what the vault holds, which was enough while
+	 * every note was written the moment its name was chosen. Resolving ahead of
+	 * the conversion means two notes can be waiting on their markdown at once.
+	 */
+	private freeNotePath(parent: string, name: string): string {
+		const unique = getUniqueFilePath(this.vault, parent, name);
+		if (!this.hasClaimed(unique)) return unique;
+
+		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
+		const free = availableFileName(name, candidate =>
+			this.hasClaimed(at(candidate)) || this.vault.getAbstractFileByPathInsensitive(at(candidate)) !== null);
+
+		return at(free);
+	}
+
+	/**
+	 * What to do with a resolved note, before its markdown is generated.
+	 *
+	 * Reports the reason for every answer that settles the matter here, so an
+	 * importer can act on it and move on. Without a `sourceMtime` nothing can be
+	 * settled yet and the answer is `compare-content`.
+	 */
+	protected preflightNote(ctx: ImportContext, resolved: PlannedNote, sourceMtime?: number): NoteDisposition {
+		const { file, title, targetPath, desiredPath } = resolved;
+
+		if (!file) {
+			return this.duplicateHandling === DuplicateHandling.CreateCopy && targetPath !== desiredPath
+				? 'copy'
+				: 'create';
 		}
 
 		if (this.duplicateHandling === DuplicateHandling.Skip) {
 			ctx.reportSkipped(title, i18n.reason.alreadyInVault());
-			return { file: existing, written: false };
+			return 'skip';
 		}
 
-		if (await this.unchangedSinceImport(ctx, existing, title, content, writeOptions.mtime)) {
-			return { file: existing, written: false };
+		if (sourceMtime === undefined) return 'compare-content';
+
+		const disposition = comparedToSource(file, sourceMtime);
+		if (disposition !== 'update') this.reportUnwritten(ctx, title, disposition);
+
+		return disposition;
+	}
+
+	/**
+	 * Create, update or leave a planned note, and say which.
+	 *
+	 * Pass the `disposition` an earlier `preflightNote` returned to act on the
+	 * answer it already reported; without one the decision is made here.
+	 */
+	async writePlannedNote(
+		ctx: ImportContext,
+		planned: PlannedNote,
+		content: string,
+		options: NoteImport & { disposition?: NoteDisposition } = {},
+	): Promise<NoteWritten> {
+		const { sourceId = planned.sourceId, disposition, ...writeOptions } = options;
+		const { file, title, targetPath } = planned;
+		content = this.withSourceId(content, sourceId);
+
+		let decided = disposition ?? this.preflightNote(ctx, planned, writeOptions.mtime);
+
+		if (decided === 'compare-content') {
+			decided = !file ? 'create'
+				: await this.unchangedContent(ctx, file, title, content) ? 'unchanged'
+					: 'update';
 		}
 
-		await this.modifyMarkdown(existing, content, writeOptions);
-		this.claimPath(existing.path);
-		return { file: existing, written: true };
+		switch (decided) {
+			case 'skip':
+			case 'unchanged':
+			case 'preserve':
+				// All three answers matched a note, so there is a file here.
+				return { file: file!, written: false, outcome: OUTCOME_OF[decided] };
+
+			case 'update':
+				await this.modifyMarkdown(file!, content, writeOptions);
+				this.claimPath(file!.path);
+				return { file: file!, written: true, outcome: 'updated' };
+
+			default:
+				return {
+					file: await this.createMarkdown(targetPath, content, writeOptions),
+					written: true,
+					outcome: 'created',
+				};
+		}
+	}
+
+	/** Write, update, or match an imported note according to the duplicate mode. */
+	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
+		const { sourceId, ...writeOptions } = options;
+		const resolved = this.planNote(folder, title, sourceId);
+
+		return await this.writePlannedNote(ctx, resolved, content, { ...writeOptions, sourceId });
+	}
+
+	private reportUnwritten(ctx: ImportContext, title: string, disposition: 'unchanged' | 'preserve'): void {
+		ctx.reportSkipped(title, disposition === 'unchanged'
+			? i18n.reason.unchangedSinceImport()
+			: i18n.reason.editedSinceImport());
 	}
 
 	/** Find a previous import by source ID, falling back to its expected path. */
@@ -937,22 +1101,13 @@ export abstract class FormatImporter {
 		return typeof id === 'string' && id ? id : null;
 	}
 
-	/** Leave notes unchanged or edited since the source update alone. */
-	private async unchangedSinceImport(ctx: ImportContext, file: TFile, title: string, content: string, sourceMtime?: number): Promise<boolean> {
-		if (sourceMtime !== undefined) {
-			if (file.stat.mtime === sourceMtime) {
-				ctx.reportSkipped(title, i18n.reason.unchangedSinceImport());
-				return true;
-			}
-
-			if (file.stat.mtime > sourceMtime) {
-				ctx.reportSkipped(title, i18n.reason.editedSinceImport());
-				return true;
-			}
-
-			return false;
-		}
-
+	/**
+	 * Whether writing this content would leave the note as it already is.
+	 *
+	 * What a source with no modification time is left with. It cannot tell an
+	 * edit the user made from a change in the source: both read as different.
+	 */
+	private async unchangedContent(ctx: ImportContext, file: TFile, title: string, content: string): Promise<boolean> {
 		try {
 			const current = await this.vault.read(file);
 			if (current !== await standardizedMarkdown(this.app, file.path, content)) return false;
@@ -962,7 +1117,7 @@ export abstract class FormatImporter {
 			return false;
 		}
 
-		ctx.reportSkipped(title, i18n.reason.unchangedSinceImport());
+		this.reportUnwritten(ctx, title, 'unchanged');
 		return true;
 	}
 
