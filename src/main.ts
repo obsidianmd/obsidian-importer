@@ -43,6 +43,11 @@ function importerOptionText(id: string): string {
 }
 
 
+/** How an import that ran to the end went. */
+function outcomeText(ctx: ImportContext): string {
+	return ctx.failed.length > 0 ? i18n.progress.msgErrors() : i18n.progress.msgComplete();
+}
+
 function statusText(message: string): string {
 	const trimmed = message.trim();
 	if (!trimmed) return '';
@@ -77,6 +82,7 @@ export class ImportProgressUI extends ImportContext {
 	importLogEl: HTMLElement;
 
 	private finished: boolean = false;
+	private scrollQueued: boolean = false;
 
 	constructor(el: HTMLElement) {
 		super();
@@ -123,8 +129,13 @@ export class ImportProgressUI extends ImportContext {
 		if (this.isPaused()) this.onPaused(true);
 		else this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
-		for (const entry of this.log) {
-			this.drawLogEntry(entry);
+		if (this.log.length > 0) {
+			// One measure for the whole log rather than one per entry
+			const drawn = createFragment();
+			for (const entry of this.log) this.drawLogEntry(entry, drawn);
+			this.importLogEl.append(drawn);
+			this.importLogEl.show();
+			this.scrollLogToEnd();
 		}
 		if (this.finished) this.onFinish();
 	}
@@ -148,14 +159,13 @@ export class ImportProgressUI extends ImportContext {
 		this.attachmentCountEl.setText(this.attachments.toString());
 	}
 
-	protected onSkipped(): void {
-		this.skippedCountEl.setText(this.skipped.length.toString());
-		this.drawLogEntry(this.log[this.log.length - 1]);
-	}
+	protected onLogged(entry: ImportLogEntry): void {
+		const countEl = entry.outcome === 'failed' ? this.failedCountEl : this.skippedCountEl;
+		countEl.setText((entry.outcome === 'failed' ? this.failed : this.skipped).length.toString());
 
-	protected onFailed(): void {
-		this.failedCountEl.setText(this.failed.length.toString());
-		this.drawLogEntry(this.log[this.log.length - 1]);
+		this.drawLogEntry(entry);
+		this.importLogEl.show();
+		this.scrollLogToEnd();
 	}
 
 	protected onProgress(current: number, total: number): void {
@@ -170,10 +180,25 @@ export class ImportProgressUI extends ImportContext {
 		if (this.progressTotal <= 0) this.progressBarEl.hide();
 	}
 
-	private drawLogEntry({ outcome, name, reason }: ImportLogEntry): void {
-		const { importLogEl } = this;
+	/**
+	 * Keep the newest entry in view, at most once a frame.
+	 *
+	 * Reading scrollHeight forces a layout, and an import that skips every
+	 * page it already has adds tens of thousands of entries - one forced
+	 * layout each, for a box that shows about ten of them.
+	 */
+	private scrollLogToEnd(): void {
+		if (this.scrollQueued) return;
 
-		importLogEl.createDiv('list-item', el => {
+		this.scrollQueued = true;
+		window.requestAnimationFrame(() => {
+			this.scrollQueued = false;
+			this.importLogEl.scrollTop = this.importLogEl.scrollHeight;
+		});
+	}
+
+	private drawLogEntry({ outcome, name, reason }: ImportLogEntry, into: Node = this.importLogEl): void {
+		into.createDiv('list-item', el => {
 			el.createSpan({
 				cls: 'importer-error',
 				text: outcome === 'failed' ? i18n.progress.labelFailed() : i18n.progress.labelSkipped(),
@@ -184,9 +209,6 @@ export class ImportProgressUI extends ImportContext {
 					: i18n.progress.labelEntry({ name }),
 			});
 		});
-
-		importLogEl.scrollTop = importLogEl.scrollHeight;
-		importLogEl.show();
 	}
 }
 
@@ -675,9 +697,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 				this.current = null;
 			}
 
-			ctx.status(ctx.isCancelled() ? ''
-				: ctx.failed.length > 0 ? i18n.progress.msgErrors()
-					: i18n.progress.msgComplete());
+			ctx.status(ctx.isCancelled() ? '' : outcomeText(ctx));
 			ctx.finish();
 
 			// An import that threw never got as far as its checkpoints, which is
@@ -861,9 +881,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		// The notice is all there is to go on while the modal is hidden, so it has
 		// to say which of the three ways the import ended it took.
-		const headline = ctx.isCancelled() ? i18n.progress.msgStopped()
-			: ctx.failed.length > 0 ? i18n.progress.msgErrors()
-				: i18n.progress.msgComplete();
+		const headline = ctx.isCancelled() ? i18n.progress.msgStopped() : outcomeText(ctx);
 
 		const counts = i18n.progress.msgImportedCount({ count: ctx.notes })
 			+ (ctx.failed.length > 0 ? `, ${i18n.nouns.failureWithCount({ count: ctx.failed.length })}` : '');

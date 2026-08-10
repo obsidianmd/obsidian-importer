@@ -7,9 +7,10 @@ import { App, DataWriteOptions, normalizePath, RequestUrlResponse, requestUrl, T
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { RichTextItemResponse } from '@notionhq/client';
-import { sanitizeFileName } from '../../util';
+import { availableFileName, sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
+import { backOffBeforeRetry } from './api-helpers';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
 interface DownloadedAttachment {
@@ -42,37 +43,41 @@ async function requestAttachment(
 	const notionHosted = attachment.type === 'file';
 
 	for (let attempt = 0; ; attempt++) {
+		const lastTry = attempt >= MAX_ATTACHMENT_RETRIES;
+		let answer: RequestUrlResponse | null = null;
+		let thrown: unknown;
 		let failure: string;
 
 		try {
-			const response = await requestUrl({ url: attachment.url, method: 'GET', throw: false });
-			if (!worthAnotherTry(response.status, notionHosted)) return response;
-			if (attempt >= MAX_ATTACHMENT_RETRIES) return response;
+			answer = await requestUrl({ url: attachment.url, method: 'GET', throw: false });
+			if (lastTry || !worthAnotherTry(answer.status, notionHosted)) return answer;
 
-			failure = `HTTP ${response.status}`;
+			failure = `HTTP ${answer.status}`;
 		}
 		catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			if (!RETRYABLE_NETWORK_ERRORS.test(message) || attempt >= MAX_ATTACHMENT_RETRIES) throw error;
+			if (lastTry || !RETRYABLE_NETWORK_ERRORS.test(message)) throw error;
 
+			thrown = error;
 			failure = message;
 		}
 
+		// Exponential backoff: 1s, 2s, 4s
 		const waitFor = Math.pow(2, attempt);
-		const previousStatus = ctx.statusMessage;
-		ctx.status(i18n.importer.notionApi.statusRetryingAttachment({
+		const waiting = i18n.importer.notionApi.statusRetryingAttachment({
 			name: filename,
 			failure,
 			seconds: waitFor,
 			attempt: attempt + 1,
 			total: MAX_ATTACHMENT_RETRIES,
-		}));
+		});
 
-		await new Promise(resolve => window.setTimeout(resolve, waitFor * 1000));
-
-		if (await ctx.shouldStop()) return { status: 0 } as RequestUrlResponse;
-
-		ctx.status(previousStatus);
+		// Stopped while waiting: give back whatever prompted the retry, rather
+		// than a status nobody sent.
+		if (!await backOffBeforeRetry(ctx, waitFor, waiting)) {
+			if (answer) return answer;
+			throw thrown;
+		}
 	}
 }
 
@@ -85,15 +90,10 @@ function reportUndownloadable(
 ): AttachmentResult {
 	const isLink = attachment.type === 'external' && !attachment.url.toLowerCase().startsWith('data:');
 
-	if (isLink) {
-		ctx.reportSkipped(
-			i18n.importer.notionApi.labelAttachment({ name: filename }),
-			i18n.importer.notionApi.reasonKeptLink({ reason, url: attachment.url })
-		);
-	}
-	else {
-		ctx.reportFailed(i18n.importer.notionApi.labelAttachment({ name: filename }), reason);
-	}
+	const label = i18n.importer.notionApi.labelAttachment({ name: filename });
+
+	if (isLink) ctx.reportSkipped(label, i18n.importer.notionApi.reasonKeptLink({ reason, url: attachment.url }));
+	else ctx.reportFailed(label, reason);
 
 	return {
 		path: attachment.url,
@@ -145,13 +145,7 @@ export async function downloadAttachment(
 					vault, await resolveTargetPath(context, probedName), probedName, probed.size
 				);
 
-				if (existingFile) {
-					ctx.reportSkipped(
-						i18n.importer.notionApi.labelAttachment({ name: probedName }),
-						i18n.importer.notionApi.reasonAttachmentExists({ path: existingFile.path })
-					);
-					return linkToExisting(existingFile, probedName);
-				}
+				if (existingFile) return skipExisting(ctx, existingFile, probedName);
 			}
 		}
 
@@ -185,23 +179,18 @@ export async function downloadAttachment(
 		if (incrementalImport) {
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
-			if (existingFile) {
-				ctx.reportSkipped(
-					i18n.importer.notionApi.labelAttachment({ name: filename }),
-					i18n.importer.notionApi.reasonAttachmentExists({ path: existingFile.path })
-				);
-				return linkToExisting(existingFile, filename);
-			}
+			if (existingFile) return skipExisting(ctx, existingFile, filename);
 		}
 
 		// Save the file to disk
 		const options: DataWriteOptions = {};
 		if (attachment.created_time) options.ctime = new Date(attachment.created_time).getTime();
 		if (attachment.last_edited_time) options.mtime = new Date(attachment.last_edited_time).getTime();
-		const firstTargetFilePath = targetFilePath;
+		const { parent: attachmentFolder, name: firstName } = parseFilePath(targetFilePath);
+		const inFolder = (name: string) => normalizePath(attachmentFolder ? `${attachmentFolder}/${name}` : name);
 		const attemptedPaths = new Set<string>();
-		let collision = 0;
-		for (let attempt = 0; ; attempt++) {
+
+		for (;;) {
 			attemptedPaths.add(targetFilePath);
 
 			try {
@@ -213,23 +202,17 @@ export async function downloadAttachment(
 				const occupied = vault.getAbstractFileByPathInsensitive(targetFilePath);
 				if (!(occupied instanceof TFile) && !isFileExistsError(error)) throw error;
 
-				if (attempt >= MAX_NAME_COLLISIONS || await ctx.shouldStop()) throw error;
+				if (attemptedPaths.size > MAX_NAME_COLLISIONS || await ctx.shouldStop()) throw error;
 
 				if (incrementalImport && occupied instanceof TFile && occupied.stat.size === downloaded.arrayBuffer.byteLength) {
-					ctx.reportSkipped(
-						i18n.importer.notionApi.labelAttachment({ name: filename }),
-						i18n.importer.notionApi.reasonAttachmentExists({ path: occupied.path })
-					);
-					return linkToExisting(occupied, filename);
+					return skipExisting(ctx, occupied, filename);
 				}
 
-				const availablePath = await resolveTargetPath(context, filename);
-				targetFilePath = attemptedPaths.has(availablePath)
-					? collisionPath(firstTargetFilePath, ++collision)
-					: availablePath;
-
-				while (attemptedPaths.has(targetFilePath)) {
-					targetFilePath = collisionPath(firstTargetFilePath, ++collision);
+				targetFilePath = await resolveTargetPath(context, filename);
+				// The vault can offer a name this run has already taken, so the
+				// next free one is worked out against what has been tried.
+				if (attemptedPaths.has(targetFilePath)) {
+					targetFilePath = inFolder(availableFileName(firstName, name => attemptedPaths.has(inFolder(name))));
 				}
 			}
 		}
@@ -253,12 +236,6 @@ export async function downloadAttachment(
 function isFileExistsError(error: unknown): boolean {
 	const message = error instanceof Error ? error.message : String(error);
 	return /\bEEXIST\b|\bFile already exists\b/i.test(message);
-}
-
-function collisionPath(path: string, collision: number): string {
-	const { parent, basename, extension } = parseFilePath(path);
-	const name = `${basename} ${collision}${extension ? `.${extension}` : ''}`;
-	return normalizePath(parent ? `${parent}/${name}` : name);
 }
 
 async function probeAttachmentSize(url: string, probe: { answered: boolean }): Promise<{ size: number, contentType?: string } | null> {
@@ -297,6 +274,16 @@ async function resolveTargetPath(context: BlockConversionContext, filename: stri
 
 	const sourceFilePath = context.currentFilePath || context.currentFolderPath || '';
 	return sourceFilePath ? normalizePath(`${sourceFilePath}/${filename}`) : filename;
+}
+
+/** A copy of this attachment is already where it was going. */
+function skipExisting(ctx: ImportContext, file: TFile, filename: string): AttachmentResult {
+	ctx.reportSkipped(
+		i18n.importer.notionApi.labelAttachment({ name: filename }),
+		i18n.importer.notionApi.reasonAttachmentExists({ path: file.path })
+	);
+
+	return linkToExisting(file, filename);
 }
 
 function linkToExisting(file: TFile, filename: string): AttachmentResult {

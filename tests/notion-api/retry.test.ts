@@ -5,18 +5,7 @@ import assert from 'node:assert/strict';
 
 import { makeNotionRequest } from '../../src/formats/notion-api/api-helpers';
 import { ImportContext } from '../../src/import-context';
-
-async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
-	const slept = window.setTimeout;
-	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void) => (wake(), 0);
-
-	try {
-		return await body();
-	}
-	finally {
-		(window as unknown as { setTimeout: unknown }).setTimeout = slept;
-	}
-}
+import { withoutWaiting } from '../helpers';
 
 function failingWith(...failures: Record<string, unknown>[]) {
 	let calls = 0;
@@ -83,17 +72,10 @@ test('a failure that will say the same thing next time is asked once', async () 
 });
 
 test('a Retry-After is waited for rather than guessed at', async () => {
+	const notion = failingWith({ status: 429, code: 'rate_limited', headers: { 'retry-after': '7' } });
 	const waits: number[] = [];
-	const slept = window.setTimeout;
-	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void, ms: number) => (waits.push(ms), wake(), 0);
 
-	try {
-		const notion = failingWith({ status: 429, code: 'rate_limited', headers: { 'retry-after': '7' } });
-		await makeNotionRequest(notion.request, new ImportContext());
-	}
-	finally {
-		(window as unknown as { setTimeout: unknown }).setTimeout = slept;
-	}
+	await withoutWaiting(() => makeNotionRequest(notion.request, new ImportContext()), waits);
 
 	assert.deepEqual(waits, [7000]);
 });

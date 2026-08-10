@@ -7,6 +7,7 @@ import { downloadAttachment } from '../../src/formats/notion-api/attachment-help
 import type { BlockConversionContext, NotionAttachment } from '../../src/formats/notion-api/types';
 import { answerRequests } from '../shims/obsidian';
 import { MemoryVault } from '../shims/vault';
+import { withoutWaiting } from '../helpers';
 
 interface Written {
 	path: string;
@@ -296,18 +297,6 @@ test('without incremental import nothing is probed', async () => {
 
 	assert.deepEqual(server.asked, ['full']);
 });
-
-async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
-	const slept = window.setTimeout;
-	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void) => (wake(), 0);
-
-	try {
-		return await body();
-	}
-	finally {
-		(window as unknown as { setTimeout: unknown }).setTimeout = slept;
-	}
-}
 
 function answersWith(...statuses: number[]) {
 	const asked: number[] = [];

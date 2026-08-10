@@ -72,6 +72,24 @@ function retryDelay(error: NotionRequestError, retryCount: number): number {
 }
 
 /**
+ * Wait before asking again, saying why while it waits.
+ *
+ * Answers false when the import was stopped in the meantime, which is the
+ * caller's cue to give up rather than try once more.
+ */
+export async function backOffBeforeRetry(ctx: ImportContext, seconds: number, message: string): Promise<boolean> {
+	const previousStatus = ctx.statusMessage;
+	ctx.status(message);
+
+	await new Promise(resolve => window.setTimeout(resolve, seconds * 1000));
+
+	if (await ctx.shouldStop()) return false;
+
+	ctx.status(previousStatus);
+	return true;
+}
+
+/**
  * Get children blocks for a block, using cache if available
  * This is a common pattern used throughout the codebase
  * 
@@ -185,9 +203,7 @@ export async function makeNotionRequest<T>(
 		}
 
 		const waitFor = retryDelay(error, retryCount);
-		const previousStatus = ctx.statusMessage;
-
-		ctx.status(rateLimited
+		const waiting = rateLimited
 			? i18n.importer.notionApi.statusRateLimited({
 				seconds: waitFor,
 				attempt: retryCount + 1,
@@ -198,13 +214,9 @@ export async function makeNotionRequest<T>(
 				seconds: waitFor,
 				attempt: retryCount + 1,
 				total: MAX_RETRIES,
-			}));
+			});
 
-		await new Promise(resolve => window.setTimeout(resolve, waitFor * 1000));
-
-		if (await ctx.shouldStop()) throw e;
-
-		ctx.status(previousStatus);
+		if (!await backOffBeforeRetry(ctx, waitFor, waiting)) throw e;
 
 		return makeNotionRequest(requestFn, ctx, retryCount + 1);
 	}

@@ -813,28 +813,23 @@ export abstract class FormatImporter {
 	async writeImportReport(ctx: ImportContext, importerName: string): Promise<TFile | null> {
 		if (ctx.log.length === 0) return null;
 
-		try {
-			const folder = await this.getOutputFolder();
-			if (!folder) return null;
+		const folder = await this.getOutputFolder();
+		if (!folder) return null;
 
-			const when = new Date();
+		// One clock for the name and the summary, so the two agree even
+		// across midnight.
+		const when = new Date();
 
-			const content = formatImportReport({
-				importer: importerName,
-				when,
-				notes: ctx.notes,
-				attachments: ctx.attachments,
-				cancelled: ctx.isCancelled(),
-				log: ctx.log,
-			});
+		const content = formatImportReport({
+			importer: importerName,
+			when,
+			notes: ctx.notes,
+			attachments: ctx.attachments,
+			cancelled: ctx.isCancelled(),
+			log: ctx.log,
+		});
 
-			const path = getUniqueFilePath(this.vault, folder.path, `${importReportName(importerName, when)}.md`);
-			return await this.vault.create(normalizePath(path), content);
-		}
-		catch (error) {
-			console.error('Could not write the import report', error);
-			return null;
-		}
+		return await this.saveAsMarkdownFile(folder, importReportName(importerName, when), content);
 	}
 
 	/** Direct filesystem writers arrive in Vault through its watcher. */

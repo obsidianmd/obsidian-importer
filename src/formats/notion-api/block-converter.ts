@@ -304,11 +304,6 @@ export async function convertBlockToMarkdown(
 	let markdown = '';
 
 	// The Notion SDK does not yet type meeting_notes blocks.
-	const meetingNotes = asMeetingNotes(block);
-	if (meetingNotes) {
-		return await convertMeetingNotes(block.id, meetingNotes, context);
-	}
-
 	switch (type) {
 		case 'paragraph':
 			markdown = await convertParagraph(block, context);
@@ -493,10 +488,18 @@ export async function convertBlockToMarkdown(
 			break;
 		}
 		
-		default:
-			// Unsupported block type - skip for now
+		default: {
+			// The SDK has never heard of meeting notes, so a case for it would
+			// not compile; every kind it does not know ends up here.
+			const meetingNotes = asMeetingNotes(block);
+			if (meetingNotes) {
+				markdown = await convertMeetingNotes(block.id, meetingNotes, context);
+				break;
+			}
+
 			console.warn(`Unsupported block type: ${type}`);
 			markdown = '';
+		}
 	}
 	
 	return markdown;

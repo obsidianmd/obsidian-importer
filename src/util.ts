@@ -45,7 +45,9 @@ const MAX_NAME_BYTES = 240;
 const encoder = new TextEncoder();
 
 function limitNameLength(name: string): string {
-	if (encoder.encode(name).length <= MAX_NAME_BYTES) return name;
+	// UTF-8 spends at most three bytes per UTF-16 unit, so a short name cannot
+	// overflow and need not be encoded to find that out.
+	if (name.length * 3 <= MAX_NAME_BYTES || encoder.encode(name).length <= MAX_NAME_BYTES) return name;
 
 	// Iteration by code point keeps surrogate pairs intact.
 	let truncated = '';
@@ -79,8 +81,10 @@ export function sanitizeFileName(name: string | undefined | null) {
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, '')));
 
-	// Truncation can expose trailing spaces or Windows-reserved names.
-	const sanitized = tidyName(limitNameLength(cleaned));
+	// Truncation can expose trailing spaces or Windows-reserved names, so the
+	// rules run again over anything it shortened.
+	const limited = limitNameLength(cleaned);
+	const sanitized = limited === cleaned ? cleaned : tidyName(limited);
 
 	// If the result is empty or only whitespace after sanitization, return a default name
 	// This prevents creating files like ".md" (no name) or folders with only spaces
@@ -166,7 +170,7 @@ function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 }
 
 export function stringToUtf8(text: string): ArrayBuffer {
-	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
+	return uint8arrayToArrayBuffer(encoder.encode(text));
 }
 
 export function serializeFrontMatter(frontMatter: FrontMatterCache): string {

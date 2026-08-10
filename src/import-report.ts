@@ -1,3 +1,4 @@
+import { moment } from 'obsidian';
 import { ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
 import { describeReason, sanitizeFileName } from './util';
@@ -11,17 +12,9 @@ export interface ImportReport {
 	log: ImportLogEntry[];
 }
 
-function twoDigits(value: number): string {
-	return String(value).padStart(2, '0');
-}
-
-function isoDate(when: Date): string {
-	return `${when.getFullYear()}-${twoDigits(when.getMonth() + 1)}-${twoDigits(when.getDate())}`;
-}
-
-function timestamp(when: Date): string {
-	return `${isoDate(when)} ${twoDigits(when.getHours())}:${twoDigits(when.getMinutes())}`;
-}
+/** Local, and written the way Obsidian writes a date or a datetime property. */
+const isoDate = (when: Date) => moment(when).format('YYYY-MM-DD');
+const timestamp = (when: Date) => moment(when).format('YYYY-MM-DD HH:mm');
 
 export function importReportName(importer: string, when: Date): string {
 	return sanitizeFileName(i18n.report.fileName({ date: isoDate(when), importer }));
@@ -56,22 +49,19 @@ export function formatImportReport(report: ImportReport): string {
 	const skipped = log.filter(entry => entry.outcome === 'skipped');
 
 	// Some importers do not count successful notes, so omit zero counts.
-	const counts = ([
-		[notes, () => i18n.report.countNotes({ count: notes })],
-		[attachments, () => i18n.report.countAttachments({ count: attachments })],
-		[skipped.length, () => i18n.report.countSkipped({ count: skipped.length })],
-		[failed.length, () => i18n.report.countFailed({ count: failed.length })],
-	] as [number, () => string][])
-		.filter(([count]) => count > 0)
-		.map(([, text]) => text())
-		.join(', ');
+	const counts = [
+		notes > 0 && i18n.report.countNotes({ count: notes }),
+		attachments > 0 && i18n.report.countAttachments({ count: attachments }),
+		skipped.length > 0 && i18n.report.countSkipped({ count: skipped.length }),
+		failed.length > 0 && i18n.report.countFailed({ count: failed.length }),
+	].filter((count): count is string => count !== false).join(', ');
 
-	const when_ = timestamp(when);
+	const at = timestamp(when);
 
 	const lines = [
 		`# ${i18n.report.title({ importer })}`,
 		'',
-		cancelled ? i18n.report.msgStopped({ when: when_, counts }) : i18n.report.msgFinished({ when: when_, counts }),
+		cancelled ? i18n.report.msgStopped({ when: at, counts }) : i18n.report.msgFinished({ when: at, counts }),
 		'',
 		...section(i18n.report.headingFailed({ count: failed.length }), failed),
 		...section(i18n.report.headingSkipped({ count: skipped.length }), skipped),

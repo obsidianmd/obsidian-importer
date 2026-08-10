@@ -4,7 +4,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
-import { areAnySelected } from '../tree';
+import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
@@ -336,22 +336,16 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/** Returns top-level selected items and seeds the initial page total. */
 	private getSelectedNodeIds(): string[] {
-		const topLevelSelected: string[] = [];
+		// A selected node's descendants are selected and disabled, so this is
+		// the selection with nothing counted twice.
+		const picked = selectedNodes(this.pickedTree, node => !node.disabled);
+
 		this.knownPages.clear();
+		// A database is worth however many rows the query turns out to return,
+		// so it joins the total when the import gets to it.
+		for (const node of picked) if (node.type === 'page') this.knownPages.add(node.id);
 
-		const collectNodes = (nodes: NotionTreeNode[]) => {
-			for (const node of nodes) {
-				if (node.selected && !node.disabled) {
-					topLevelSelected.push(node.id);
-
-					if (node.type === 'page') this.knownPages.add(node.id);
-				}
-				collectNodes(node.children);
-			}
-		};
-
-		collectNodes(this.pickedTree);
-		return topLevelSelected;
+		return picked.map(node => node.id);
 	}
 
 	private pageFinished(ctx: ImportContext): void {
