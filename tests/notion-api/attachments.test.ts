@@ -1,15 +1,4 @@
-/**
- * Downloading an attachment, for the one case that reaches a vault without
- * reaching the network.
- *
- * Notion hands back some attachments inline, as a `data:` URL. requestUrl
- * speaks http(s) only, so those used to fail the whole attachment with
- * "ClientRequest only supports http: and https: protocols" - and, because the
- * name was taken off the URL, failed under a name that was the head of the
- * base64 payload. The vault here records what was written rather than writing
- * it, so the bytes can be checked.
- */
-import '../shims/runtime';
+import '../shims/dom';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,16 +7,13 @@ import { downloadAttachment } from '../../src/formats/notion-api/attachment-help
 import type { BlockConversionContext, NotionAttachment } from '../../src/formats/notion-api/types';
 import { answerRequests } from '../shims/obsidian';
 import { MemoryVault } from '../shims/vault';
+import { withoutWaiting } from '../helpers';
 
 interface Written {
 	path: string;
 	data: ArrayBuffer;
 }
 
-/**
- * Enough of a context to download into: a vault that remembers what it was
- * given, and the attachment path the importer would have picked.
- */
 function context(written: Written[], overrides: Partial<BlockConversionContext> = {}): BlockConversionContext {
 	return {
 		ctx: {
@@ -86,8 +72,6 @@ test('the extension comes from the media type when the name has none', async () 
 		context(written)
 	);
 
-	// No name of its own, so it falls back to the page title - not to the
-	// base64 payload, which is what the URL would have yielded.
 	assert.equal(result.filename, 'A page with an inline image.gif');
 	assert.equal(written[0].path, 'Attachments/A page with an inline image.gif');
 });
@@ -126,11 +110,6 @@ test('a malformed data URL fails that attachment and leaves the URL in place', a
 	assert.deepEqual(result, { path: url, isLocal: false });
 });
 
-/**
- * A context whose vault is a real one, for the case that needs a file to
- * already be in it. getAvailableAttachmentPath answers the way the importer's
- * does: the name asked for when it is free, and a numbered one when it is not.
- */
 function contextOverVault(vault: MemoryVault, incrementalImport: boolean): BlockConversionContext {
 	const skipped: string[] = [];
 
@@ -159,7 +138,6 @@ function contextOverVault(vault: MemoryVault, incrementalImport: boolean): Block
 	} as unknown as BlockConversionContext;
 }
 
-/** A data URL of a given size, so the sizes can be made to agree or not. */
 function attachmentOf(bytes: number): NotionAttachment {
 	return {
 		type: 'external',
@@ -203,12 +181,48 @@ test('without incremental import the copy is written even when it matches', asyn
 	assert.deepEqual(vault.paths().sort(), ['Attachments/photo 1.txt', 'Attachments/photo.txt']);
 });
 
-/**
- * A server that honours a byte range, and a record of what was asked of it.
- *
- * The point of the probe is the request it avoids, so what the test looks at
- * is the list of requests rather than only the file that came out.
- */
+test('a file that takes the chosen path is given another name', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const createBinary = vault.createBinary.bind(vault);
+	let firstWrite = true;
+
+	vault.createBinary = async (path, data, options) => {
+		if (firstWrite) {
+			firstWrite = false;
+			throw new Error('File already exists.');
+		}
+
+		return await createBinary(path, data, options);
+	};
+
+	const result = await downloadAttachment(attachmentOf(5), contextOverVault(vault, false));
+
+	assert.equal(result.path, 'Attachments/photo 1');
+	assert.deepEqual(vault.paths(), ['Attachments/photo 1.txt']);
+});
+
+test('a vault that refuses every name is not asked forever', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	let attempts = 0;
+
+	vault.createBinary = async () => {
+		attempts++;
+		throw new Error('File already exists.');
+	};
+
+	const context = contextOverVault(vault, false);
+	const failures: string[] = [];
+	(context as unknown as { ctx: { reportFailed: unknown } }).ctx.reportFailed = (name: string) => failures.push(name);
+
+	const result = await downloadAttachment(attachmentOf(5), context);
+
+	assert.ok(attempts <= 21, `gave up after ${attempts} attempts`);
+	assert.deepEqual(failures, ['Attachment: photo.txt']);
+	assert.equal(result.isLocal, false, 'the attachment is reported rather than silently dropped');
+});
+
 function serving(bytes: number, options: { honoursRange?: boolean } = {}) {
 	const { honoursRange = true } = options;
 	const asked: string[] = [];
@@ -227,7 +241,6 @@ function serving(bytes: number, options: { honoursRange?: boolean } = {}) {
 			return { status: 206, headers, arrayBuffer: new TextEncoder().encode('x').buffer };
 		}
 
-		// A server that ignores the range sends the whole thing back
 		const headers: Record<string, string> = { 'content-type': 'text/plain' };
 
 		return { status: 200, headers, arrayBuffer: body };
@@ -264,8 +277,6 @@ test('an attachment of a different size is fetched after the range says so', asy
 });
 
 test('a server that ignores the range is not asked a second time', async () => {
-	// The whole file comes back for a range it will not honour, so probing
-	// costs a download rather than saving one. One attachment finds that out.
 	const vault = new MemoryVault();
 	await vault.createFolder('Attachments');
 	const server = serving(5, { honoursRange: false });
@@ -285,4 +296,84 @@ test('without incremental import nothing is probed', async () => {
 	await downloadAttachment(REMOTE, contextOverVault(vault, false));
 
 	assert.deepEqual(server.asked, ['full']);
+});
+
+function answersWith(...statuses: number[]) {
+	const asked: number[] = [];
+
+	answerRequests(() => {
+		const status = statuses[asked.length] ?? 200;
+		asked.push(status);
+
+		return {
+			status,
+			headers: { 'content-type': 'text/plain' },
+			arrayBuffer: new TextEncoder().encode('xxxxx').buffer,
+		};
+	});
+
+	return { asked };
+}
+
+test('a status that means "not now" is asked about again', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = answersWith(503, 500);
+
+	const result = await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+
+	assert.deepEqual(server.asked, [503, 500, 200]);
+	assert.equal(result.isLocal, true);
+	assert.deepEqual(vault.paths(), ['Attachments/photo.txt']);
+});
+
+test('202 is worth another try from Notion, and not from anywhere else', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+
+	const external = answersWith(202);
+	await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+	assert.deepEqual(external.asked, [202], 'an external link should be asked once');
+
+	const hosted = answersWith(202);
+	await withoutWaiting(() => downloadAttachment({ ...REMOTE, type: 'file' }, contextOverVault(vault, false)));
+	assert.deepEqual(hosted.asked, [202, 200], 'a Notion-hosted file should be asked again');
+});
+
+test('a status that will say the same thing next time is asked once', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = answersWith(404);
+
+	await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+
+	assert.deepEqual(server.asked, [404]);
+});
+
+test('an external link that will not download is kept rather than lost', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	answersWith(404);
+	const context = contextOverVault(vault, false);
+
+	const result = await withoutWaiting(() => downloadAttachment(REMOTE, context));
+
+	assert.equal(result.isLocal, false);
+	assert.equal(result.path, REMOTE.url);
+	assert.deepEqual((context as never as { skipped: string[] }).skipped, ['Attachment: photo.txt']);
+});
+
+test('a file Notion was hosting failing to download is a failure', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	answersWith(403);
+	const failures: string[] = [];
+	const context = contextOverVault(vault, false);
+	(context as unknown as { ctx: { reportFailed: unknown } }).ctx.reportFailed = (name: string) => failures.push(name);
+
+	const hosted: NotionAttachment = { ...REMOTE, type: 'file' };
+	const result = await withoutWaiting(() => downloadAttachment(hosted, context));
+
+	assert.deepEqual(failures, ['Attachment: photo.txt']);
+	assert.equal(result.isLocal, false);
 });

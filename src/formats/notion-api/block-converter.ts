@@ -302,7 +302,8 @@ export async function convertBlockToMarkdown(
 ): Promise<string> {
 	const type = block.type;
 	let markdown = '';
-	
+
+	// The Notion SDK does not yet type meeting_notes blocks.
 	switch (type) {
 		case 'paragraph':
 			markdown = await convertParagraph(block, context);
@@ -487,13 +488,96 @@ export async function convertBlockToMarkdown(
 			break;
 		}
 		
-		default:
-			// Unsupported block type - skip for now
+		default: {
+			// The SDK does not yet include meeting_notes in its block union.
+			const meetingNotes = asMeetingNotes(block);
+			if (meetingNotes) {
+				markdown = await convertMeetingNotes(block.id, meetingNotes, context);
+				break;
+			}
+
 			console.warn(`Unsupported block type: ${type}`);
 			markdown = '';
+		}
 	}
 	
 	return markdown;
+}
+
+interface MeetingNotesBlock {
+	title?: RichTextItemResponse[];
+	status?: string;
+	children?: {
+		summary_block_id?: string;
+		notes_block_id?: string;
+		transcript_block_id?: string;
+	};
+}
+
+interface MeetingNotesSection {
+	key: keyof NonNullable<MeetingNotesBlock['children']>;
+	heading: string;
+	label: () => string;
+}
+
+const MEETING_NOTES_SECTIONS: MeetingNotesSection[] = [
+	{ key: 'summary_block_id', heading: 'Summary', label: () => i18n.importer.notionApi.sectionSummary() },
+	{ key: 'notes_block_id', heading: 'Notes', label: () => i18n.importer.notionApi.sectionNotes() },
+	{ key: 'transcript_block_id', heading: 'Transcript', label: () => i18n.importer.notionApi.sectionTranscript() },
+];
+
+function asMeetingNotes(block: BlockObjectResponse): MeetingNotesBlock | null {
+	if ((block.type as string) !== 'meeting_notes') return null;
+
+	const data = (block as unknown as Record<string, unknown>).meeting_notes;
+	return typeof data === 'object' && data !== null ? data as MeetingNotesBlock : null;
+}
+
+async function convertMeetingNotes(
+	blockId: string,
+	meetingNotes: MeetingNotesBlock,
+	context: BlockConversionContext
+): Promise<string> {
+	const title = convertRichText(meetingNotes.title ?? [], context).trim();
+	const name = title || i18n.importer.notionApi.labelUntitledMeeting({ id: blockId.substring(0, 8) });
+
+	// Content is unavailable until Notion marks the notes ready.
+	if (meetingNotes.status && meetingNotes.status !== 'notes_ready') {
+		context.ctx.reportSkipped(
+			i18n.importer.notionApi.labelMeetingNotes({ name }),
+			i18n.importer.notionApi.reasonMeetingNotesPending({ status: meetingNotes.status })
+		);
+		return title ? `## ${title}` : '';
+	}
+
+	const sectionLevel = title ? '###' : '##';
+	const parts: string[] = title ? [`## ${title}`] : [];
+
+	for (const { key, heading, label } of MEETING_NOTES_SECTIONS) {
+		const sectionId = meetingNotes.children?.[key];
+		if (!sectionId) continue;
+
+		try {
+			const children = await getBlockChildren(sectionId, context.client, context.ctx, context.blocksCache);
+			if (children.length === 0) continue;
+
+			// Number lists independently in each section.
+			const content = await convertBlocksToMarkdown(children, { ...context, listCounters: new Map() });
+			if (!content.trim()) continue;
+
+			parts.push(`${sectionLevel} ${heading}`, content);
+		}
+		catch (error) {
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			console.error(`Failed to read the ${heading.toLowerCase()} of meeting notes ${blockId}:`, error);
+			context.ctx.reportFailed(
+				i18n.importer.notionApi.labelMeetingNotesSection({ name, section: label() }),
+				errorMsg
+			);
+		}
+	}
+
+	return parts.join('\n\n');
 }
 
 export async function convertParagraph(block: BlockObjectResponse, context?: BlockConversionContext): Promise<string> {

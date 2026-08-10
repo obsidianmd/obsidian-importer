@@ -39,16 +39,50 @@ export function stripControlCharacters(name: string): string {
 	return out;
 }
 
-export function sanitizeFileName(name: string | undefined | null) {
-	const sanitized = stripControlCharacters(
-		(name ?? '')
-			.replace(slashesRe, '-') // Replace slashes with dash
-			.replace(illegalRe, ''))
+// Leave room below common 255-byte/unit limits for extensions and collision suffixes.
+const MAX_NAME_BYTES = 240;
+
+const encoder = new TextEncoder();
+
+function limitNameLength(name: string): string {
+	// UTF-8 needs at most three bytes per UTF-16 unit.
+	if (name.length * 3 <= MAX_NAME_BYTES || encoder.encode(name).length <= MAX_NAME_BYTES) return name;
+
+	// Iteration by code point keeps surrogate pairs intact.
+	let truncated = '';
+	let bytes = 0;
+
+	for (const character of name) {
+		const size = encoder.encode(character).length;
+		if (bytes + size > MAX_NAME_BYTES) break;
+		truncated += character;
+		bytes += size;
+	}
+
+	const lastSpace = truncated.lastIndexOf(' ');
+	if (lastSpace > truncated.length / 2) truncated = truncated.slice(0, lastSpace);
+
+	return truncated;
+}
+
+function tidyName(name: string): string {
+	return name
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(badLinkRe, '')
 		.replace(startsWithDotRe, '');
+}
+
+export function sanitizeFileName(name: string | undefined | null) {
+	const cleaned = tidyName(stripControlCharacters(
+		(name ?? '')
+			.replace(slashesRe, '-') // Replace slashes with dash
+			.replace(illegalRe, '')));
+
+	// Reapply trailing-space and reserved-name rules after truncation.
+	const limited = limitNameLength(cleaned);
+	const sanitized = limited === cleaned ? cleaned : tidyName(limited);
 
 	// If the result is empty or only whitespace after sanitization, return a default name
 	// This prevents creating files like ".md" (no name) or folders with only spaces
@@ -134,7 +168,7 @@ function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 }
 
 export function stringToUtf8(text: string): ArrayBuffer {
-	return uint8arrayToArrayBuffer(new TextEncoder().encode(text));
+	return uint8arrayToArrayBuffer(encoder.encode(text));
 }
 
 export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
@@ -145,12 +179,18 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	return '';
 }
 
-export function truncateText(text: string, limit: number, ellipses: string = '...') {
-	if (text.length < limit) {
-		return text;
-	}
+export function describeReason(reason: unknown): string {
+	if (typeof reason === 'string') return reason;
 
-	return text.substring(0, limit) + ellipses;
+	const message = extractErrorMessage(reason);
+	if (message !== undefined) return message;
+
+	try {
+		return JSON.stringify(reason) ?? String(reason);
+	}
+	catch {
+		return String(reason);
+	}
 }
 
 export function extractErrorMessage(error: unknown): string | undefined {

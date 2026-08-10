@@ -2,6 +2,21 @@
  * Utility functions for Notion API importer
  */
 
+import { ImportContext } from '../../import-context';
+
+/** Waits before retrying and returns false if the import stops. */
+export async function backOffBeforeRetry(ctx: ImportContext, seconds: number, message: string): Promise<boolean> {
+	const previousStatus = ctx.statusMessage;
+	ctx.status(message);
+
+	await new Promise(resolve => window.setTimeout(resolve, seconds * 1000));
+
+	if (await ctx.shouldStop()) return false;
+
+	ctx.status(previousStatus);
+	return true;
+}
+
 /**
  * Placeholder types used during import
  */
@@ -47,4 +62,3 @@ export function extractPlaceholderIds(content: string, type: PlaceholderType): s
 	
 	return ids;
 }
-

@@ -162,6 +162,14 @@ translation=Reprendre
 original=Stop
 translation=Arrêter
 
+[modal.button-save-report]
+original=Save report
+translation=Enregistrer le journal
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=Impossible d'enregistrer le journal d'import.
+
 [modal.button-import-more]
 original=Import more
 translation=Importer autre chose
@@ -238,6 +246,10 @@ translation=En pause - {{count}} restante
 original=Paused - {{count}} remaining
 translation=En pause - {{count}} restantes
 
+[progress.status-stopping]
+original=Stopping...
+translation=Arrêt en cours...
+
 [progress.msg-stopped]
 original=Import stopped.
 translation=Importation arrêtée.
@@ -277,6 +289,62 @@ translation=Normalisation du Markdown ({{current}}/{{total}})
 [progress.label-finalization]
 original=Markdown finalization
 translation=Finalisation du Markdown
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} {{importer}} journal d'import
+
+[report.title]
+original={{importer}} import
+translation=Import {{importer}}
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=Terminé le {{when}}. {{counts}}.
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=Arrêté le {{when}}. {{counts}}.
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=Échecs ({{count}})
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=Ignorés ({{count}})
+
+[report.count-notes]
+original={{count}} note imported
+translation={{count}} note importée
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation={{count}} notes importées
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation={{count}} pièce jointe téléchargée
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation={{count}} pièces jointes téléchargées
+
+[report.count-skipped]
+original={{count}} item skipped
+translation={{count}} élément ignoré
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation={{count}} éléments ignorés
+
+[report.count-failed]
+original={{count}} item failed
+translation={{count}} élément en échec
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation={{count}} éléments en échec
 
 [source.name]
 original=Files to import
@@ -1367,12 +1435,8 @@ original=Download external attachments
 translation=Télécharger les pièces jointes externes
 
 [importer.notion-api.desc-download-external]
-original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. 
-translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés. 
-
-[importer.notion-api.desc-download-external-folder]
-original=Attachments will be saved according to your vault's attachment folder settings.
-translation=Les pièces jointes seront enregistrées selon les réglages du dossier de pièces jointes de votre coffre.
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés.
 
 [importer.notion-api.name-single-line-breaks]
 original=Single line breaks
@@ -1526,6 +1590,14 @@ translation=Téléchargement de la pièce jointe : {{name}}...
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
 translation=Débit limité. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
 
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Notion a renvoyé {{status}}. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation={{name}} : {{failure}}. Nouvelle tentative dans {{seconds}} secondes ({{attempt}}/{{total}})...
+
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
 translation=Traitement de la base de données de la source : {{id}}...
@@ -1555,16 +1627,20 @@ original=Import item {{id}}
 translation=Importer l'élément {{id}}
 
 [importer.notion-api.label-page]
-original=Page {{id}}...
-translation=Page {{id}}...
+original=Page {{id}}
+translation=Page {{id}}
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
+translation=Page : {{title}} ({{id}})
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
 translation=Page de relation {{id}}
 
-[importer.notion-api.label-database]
-original=Database: {{title}}
-translation=Base de données : {{title}}
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
+translation=Base de données : {{title}} ({{id}})
 
 [importer.notion-api.label-mention-file]
 original=Mention file {{path}}
@@ -1654,6 +1730,30 @@ translation=du tableau
 original=block
 translation=du bloc
 
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=Notes de réunion : {{name}}
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=Notes de réunion : {{name}} ({{section}})
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=Notes de réunion {{id}}
+
+[importer.notion-api.section-summary]
+original=summary
+translation=résumé
+
+[importer.notion-api.section-notes]
+original=notes
+translation=notes
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=transcription
+
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
 translation=Récupération des enfants du bloc {{id}}
@@ -1671,12 +1771,28 @@ original=an earlier import had already written it
 translation=un import précédent l'avait déjà écrit
 
 [importer.notion-api.reason-attachment-exists]
-original=already exists with same size (incremental import)
-translation=existe déjà avec la même taille (import incrémental)
+original={{path}} is already in the vault, the same size (incremental import)
+translation={{path}} est déjà dans le coffre, de la même taille (import incrémental)
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
 translation=
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=Notion n'a pas fini de les générer ({{status}})
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=débit limité, abandon après {{retries}} tentatives
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation={{reason}}, abandon après {{retries}} tentatives
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
+translation={{reason}} ; lien conservé vers {{url}}
 
 [importer.notion.name]
 original=Notion

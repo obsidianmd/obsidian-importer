@@ -177,3 +177,49 @@ test('an attachment URL answers a ranged GET', { skip }, async () => {
 
 	console.log(`   ${total} bytes learned from ${received}`);
 });
+
+test('a meeting notes block still points at its summary, notes and transcript', { skip }, async () => {
+	const response = await fetch('https://api.notion.com/v1/blocks/meeting_notes/query', {
+		method: 'POST',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Notion-Version': NOTION_VERSION,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({ limit: 1 }),
+	});
+
+	const text = await response.text();
+
+	if (response.status !== 200) {
+		// A workspace without the feature answers 400 rather than an empty list
+		console.log(`   no AI meeting notes to ask about: ${response.status} ${text.slice(0, 120)}`);
+		return;
+	}
+
+	const { results } = JSON.parse(text);
+	assert.ok(Array.isArray(results), 'the query should return a list');
+
+	if (results.length === 0) {
+		console.log('   the workspace has the feature but no meetings recorded');
+		return;
+	}
+
+	const [block] = results;
+	assertShape(block, { object: 'string', id: 'string', type: 'string' }, 'meeting notes block');
+	assert.equal(block.type, 'meeting_notes', 'the block type the converter switches on');
+
+	const meetingNotes = block.meeting_notes;
+	assertShape(meetingNotes, { status: 'string', children: 'object' }, 'meeting_notes');
+
+	const { summary_block_id, notes_block_id, transcript_block_id } = meetingNotes.children;
+	for (const [name, id] of Object.entries({ summary_block_id, notes_block_id, transcript_block_id })) {
+		if (id === undefined) continue;
+		assert.equal(typeof id, 'string', `${name} should be an id`);
+
+		const children = await api(`/blocks/${id}/children?page_size=100`);
+		assert.ok(Array.isArray(children.results), `${name} should have children to convert`);
+	}
+
+	console.log(`   ${meetingNotes.status}, sections: ${Object.keys(meetingNotes.children).join(', ')}`);
+});

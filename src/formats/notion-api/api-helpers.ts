@@ -15,15 +15,8 @@ import {
 import { App, FrontMatterCache, Vault } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
+import { extractErrorMessage } from '../../util';
 
-/**
- * What a block is called on screen. These are fixed block kinds, not anything
- * the source named, so each gets a string of its own — and because the record
- * is keyed by the union, adding a kind without a label will not compile.
- *
- * A label carries whatever article its language needs, since the sentence it
- * lands in cannot know the gender of the noun coming.
- */
 const BLOCK_CONTEXT_LABELS: Record<BlockContext, () => string> = {
 	'paragraph': () => i18n.importer.notionApi.blockParagraph(),
 	'bulleted list item': () => i18n.importer.notionApi.blockBulletedListItem(),
@@ -41,6 +34,7 @@ const BLOCK_CONTEXT_LABELS: Record<BlockContext, () => string> = {
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
 import { BlockContext, NotionAttachment } from './types';
+import { backOffBeforeRetry } from './utils';
 
 const MAX_RETRIES = 3;
 
@@ -48,6 +42,34 @@ export interface NotionRequestError {
 	code?: string;
 	status?: number;
 	headers?: Record<string, string>;
+}
+
+const RETRYABLE_CODES = new Set([
+	'rate_limited',
+	'service_overload',
+	'internal_server_error',
+	'service_unavailable',
+	'gateway_timeout',
+	'notionhq_client_request_timeout',
+	'notionhq_client_response_error',
+]);
+
+// Some rendering timeouts use status 400 but explicitly request backoff.
+const ASKS_TO_RETRY = /retry with exponential backoff/i;
+
+function isRetryable(error: NotionRequestError): boolean {
+	if (error.status !== undefined && error.status >= 500) return true;
+	if (error.status === 429 || error.status === 408) return true;
+	if (error.code !== undefined && RETRYABLE_CODES.has(error.code)) return true;
+
+	return ASKS_TO_RETRY.test(extractErrorMessage(error) ?? '');
+}
+
+function retryDelay(error: NotionRequestError, retryCount: number): number {
+	const retryAfter = error.headers?.['retry-after'] ?? error.headers?.['Retry-After'];
+	const asked = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
+
+	return Number.isFinite(asked) && asked > 0 ? asked : Math.pow(2, retryCount);
 }
 
 /**
@@ -140,10 +162,6 @@ export async function processBlockChildren<T>(
 	}
 }
 
-/**
- * Wrapper for Notion API calls with rate limit handling
- * Automatically retries on 429 errors with exponential backoff
- */
 export async function makeNotionRequest<T>(
 	requestFn: () => Promise<T>,
 	ctx: ImportContext,
@@ -154,38 +172,36 @@ export async function makeNotionRequest<T>(
 	}
 	catch (e) {
 		const error = e as NotionRequestError;
-		// Handle rate limiting (429 error)
-		if (error.code === 'rate_limited' || error.status === 429) {
-			if (retryCount >= MAX_RETRIES) {
-				throw new Error(`Rate limit exceeded after ${MAX_RETRIES} retries`);
-			}
+		if (!isRetryable(error)) throw e;
 
-			// Get retry delay from Retry-After header or use exponential backoff
-			let retryAfter = 1;
-			if (error.headers && error.headers['retry-after']) {
-				retryAfter = parseInt(error.headers['retry-after'], 10);
-			}
-			else {
-				// Exponential backoff: 1s, 2s, 4s
-				retryAfter = Math.pow(2, retryCount);
-			}
+		const rateLimited = error.code === 'rate_limited' || error.status === 429;
 
-			const previousStatus = ctx.statusMessage;
-			ctx.status(i18n.importer.notionApi.statusRateLimited({
-				seconds: retryAfter,
-				attempt: retryCount + 1,
-				total: MAX_RETRIES,
-			}));
-
-			await new Promise(resolve => window.setTimeout(resolve, retryAfter * 1000));
-
-			ctx.status(previousStatus);
-
-			// Retry the request
-			return makeNotionRequest(requestFn, ctx, retryCount + 1);
+		if (retryCount >= MAX_RETRIES) {
+			throw new Error(rateLimited
+				? i18n.importer.notionApi.reasonRateLimitGaveUp({ retries: MAX_RETRIES })
+				: i18n.importer.notionApi.reasonGaveUp({
+					reason: extractErrorMessage(e) ?? String(error.status ?? error.code),
+					retries: MAX_RETRIES,
+				}));
 		}
 
-		throw e;
+		const waitFor = retryDelay(error, retryCount);
+		const waiting = rateLimited
+			? i18n.importer.notionApi.statusRateLimited({
+				seconds: waitFor,
+				attempt: retryCount + 1,
+				total: MAX_RETRIES,
+			})
+			: i18n.importer.notionApi.statusRetrying({
+				status: String(error.status ?? error.code),
+				seconds: waitFor,
+				attempt: retryCount + 1,
+				total: MAX_RETRIES,
+			});
+
+		if (!await backOffBeforeRetry(ctx, waitFor, waiting)) throw e;
+
+		return makeNotionRequest(requestFn, ctx, retryCount + 1);
 	}
 }
 
@@ -809,4 +825,3 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return String(prop[prop.type] || '');
 	}
 }
-

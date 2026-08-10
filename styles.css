@@ -159,14 +159,22 @@
 }
 
 .importer-log .list-item {
-	display: inline-block;
+	/* Keep the log prefix and entry in normal block flow. */
+	display: block;
 	line-height: var(--line-height-normal);
-	white-space: pre;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 	margin: var(--size-2-1);
 }
 
 .importer-error {
 	color: var(--text-error);
+	white-space: nowrap;
+}
+
+/* Separate the report action from the navigation actions. */
+.modal-button-container .importer-report-button {
+	margin-inline-end: auto;
 }
 
 /* Template configuration styles */

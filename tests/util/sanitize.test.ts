@@ -71,6 +71,39 @@ test('a name cannot start with a dot or end in a dot or space', () => {
 	assert.equal(sanitizeFileName('trailing   '), 'trailing');
 });
 
+test('a name too long for a filesystem is cut down to one that fits', () => {
+	const sentence = 'In a single-tenant setup, a SaaS application is uniquely deployed to a specific environment not shared with other consumer tenants. This involves having a separate application instance, along with a dedicated database and runtime memory exclusively for each SaaS client.';
+
+	const name = sanitizeFileName(sentence);
+	assert.ok(new TextEncoder().encode(name).length <= 240, `${name.length} characters is still too long`);
+	assert.ok(sentence.startsWith(name), 'the name should be a prefix of the title');
+	assert.ok(!name.endsWith(' '), 'a trailing space would be refused on Windows');
+	assert.match(name, /runtime memory$/);
+});
+
+test('the limit is in bytes, and no character is split to reach it', () => {
+	const encoder = new TextEncoder();
+
+	for (const character of ['a', 'é', '漢', '🙂']) {
+		const name = sanitizeFileName(character.repeat(400));
+		const bytes = encoder.encode(name).length;
+
+		assert.ok(bytes <= 240, `${character} gave ${bytes} bytes`);
+		assert.ok(bytes > 240 - 4, `${character} gave ${bytes} bytes, which wastes the budget`);
+		assert.equal([...name].every(c => c === character), true, `${character} came back damaged`);
+	}
+});
+
+test('cutting a name short cannot leave one Windows refuses', () => {
+	assert.equal(sanitizeFileName(`CON${' '.repeat(237)}x`), 'Untitled');
+	assert.equal(sanitizeFileName(`Notes.${' '.repeat(300)}`), 'Notes');
+});
+
+test('a name that already fits is not touched', () => {
+	const name = 'a'.repeat(240);
+	assert.equal(sanitizeFileName(name), name);
+});
+
 test('control characters go, astral characters stay', () => {
 	assert.equal(stripControlCharacters('a\u0000b\u001fc'), 'abc');
 	// C1 as well as C0

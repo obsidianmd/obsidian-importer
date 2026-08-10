@@ -1,0 +1,336 @@
+{
+	"_comment": "Hand-written from Notion's documented meeting_notes shape; IDs and content are synthetic.",
+	"pageId": "30000000-0000-4000-8000-000000000001",
+	"blocks": {
+		"30000000-0000-4000-8000-000000000001": {
+			"object": "list",
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000010",
+					"type": "meeting_notes",
+					"has_children": true,
+					"archived": false,
+					"meeting_notes": {
+						"status": "notes_ready",
+						"title": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Weekly sync",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Weekly sync",
+								"href": null
+							}
+						],
+						"children": {
+							"summary_block_id": "30000000-0000-4000-8000-000000000011",
+							"notes_block_id": "30000000-0000-4000-8000-000000000012",
+							"transcript_block_id": "30000000-0000-4000-8000-000000000013"
+						},
+						"calendar_event": {
+							"start_time": "2026-02-24T10:00:00.000Z",
+							"end_time": "2026-02-24T10:45:00.000Z",
+							"attendees": [
+								"40000000-0000-4000-8000-000000000001"
+							]
+						},
+						"recording": {
+							"start_time": "2026-02-24T10:00:00.000Z",
+							"end_time": "2026-02-24T10:45:00.000Z"
+						}
+					}
+				},
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000020",
+					"type": "meeting_notes",
+					"has_children": true,
+					"archived": false,
+					"meeting_notes": {
+						"status": "notes_ready",
+						"children": {
+							"summary_block_id": "30000000-0000-4000-8000-000000000021"
+						}
+					}
+				},
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000030",
+					"type": "meeting_notes",
+					"has_children": true,
+					"archived": false,
+					"meeting_notes": {
+						"status": "recording",
+						"title": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Design review",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Design review",
+								"href": null
+							}
+						]
+					}
+				}
+			],
+			"has_more": false,
+			"next_cursor": null
+		},
+		"30000000-0000-4000-8000-000000000011": {
+			"object": "list",
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000100",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "The team agreed to ship the importer fix this week.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "The team agreed to ship the importer fix this week.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			],
+			"has_more": false,
+			"next_cursor": null
+		},
+		"30000000-0000-4000-8000-000000000012": {
+			"object": "list",
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000110",
+					"type": "bulleted_list_item",
+					"has_children": false,
+					"archived": false,
+					"bulleted_list_item": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Ship the fix on Thursday",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Ship the fix on Thursday",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				},
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000111",
+					"type": "bulleted_list_item",
+					"has_children": false,
+					"archived": false,
+					"bulleted_list_item": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Write up the migration notes",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Write up the migration notes",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			],
+			"has_more": false,
+			"next_cursor": null
+		},
+		"30000000-0000-4000-8000-000000000013": {
+			"object": "list",
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000120",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Ada:",
+									"link": null
+								},
+								"annotations": {
+									"bold": true,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Ada:",
+								"href": null
+							},
+							{
+								"type": "text",
+								"text": {
+									"content": " Where did we land on the import?",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": " Where did we land on the import?",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				},
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000121",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Grace:",
+									"link": null
+								},
+								"annotations": {
+									"bold": true,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Grace:",
+								"href": null
+							},
+							{
+								"type": "text",
+								"text": {
+									"content": " Thursday, assuming review goes through.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": " Thursday, assuming review goes through.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			],
+			"has_more": false,
+			"next_cursor": null
+		},
+		"30000000-0000-4000-8000-000000000021": {
+			"object": "list",
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000200",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "A short catch-up with no agenda.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "A short catch-up with no agenda.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			],
+			"has_more": false,
+			"next_cursor": null
+		}
+	}
+}

@@ -162,6 +162,14 @@ translation=
 original=Stop
 translation=
 
+[modal.button-save-report]
+original=Save report
+translation=
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=
+
 [modal.button-import-more]
 original=Import more
 translation=
@@ -238,6 +246,10 @@ translation=
 original=Paused - {{count}} remaining
 translation=
 
+[progress.status-stopping]
+original=Stopping...
+translation=
+
 [progress.msg-stopped]
 original=Import stopped.
 translation=
@@ -276,6 +288,62 @@ translation=
 
 [progress.label-finalization]
 original=Markdown finalization
+translation=
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation=
+
+[report.title]
+original={{importer}} import
+translation=
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=
+
+[report.count-notes]
+original={{count}} note imported
+translation=
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation=
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation=
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation=
+
+[report.count-skipped]
+original={{count}} item skipped
+translation=
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation=
+
+[report.count-failed]
+original={{count}} item failed
+translation=
+
+[report.count-failed_plural]
+original={{count}} items failed
 translation=
 
 [source.name]
@@ -1367,11 +1435,7 @@ original=Download external attachments
 translation=
 
 [importer.notion-api.desc-download-external]
-original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. 
-translation=
-
-[importer.notion-api.desc-download-external-folder]
-original=Attachments will be saved according to your vault's attachment folder settings.
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
 translation=
 
 [importer.notion-api.name-single-line-breaks]
@@ -1526,6 +1590,14 @@ translation=
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
 translation=
 
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation=
+
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
 translation=
@@ -1555,15 +1627,19 @@ original=Import item {{id}}
 translation=
 
 [importer.notion-api.label-page]
-original=Page {{id}}...
+original=Page {{id}}
+translation=
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
 translation=
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
 translation=
 
-[importer.notion-api.label-database]
-original=Database: {{title}}
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
 translation=
 
 [importer.notion-api.label-mention-file]
@@ -1654,6 +1730,30 @@ translation=
 original=block
 translation=
 
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=
+
+[importer.notion-api.section-summary]
+original=summary
+translation=
+
+[importer.notion-api.section-notes]
+original=notes
+translation=
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=
+
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
 translation=
@@ -1671,11 +1771,27 @@ original=an earlier import had already written it
 translation=
 
 [importer.notion-api.reason-attachment-exists]
-original=already exists with same size (incremental import)
+original={{path}} is already in the vault, the same size (incremental import)
 translation=
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
+translation=
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation=
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
 translation=
 
 [importer.notion.name]

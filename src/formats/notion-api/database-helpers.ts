@@ -107,7 +107,10 @@ export async function convertChildDatabase(
 
 		// This is a real error, not a linked database
 		console.error(`Failed to convert database "${databaseTitle}":`, error);
-		context.ctx.reportFailed(i18n.importer.notionApi.labelDatabase({ title: databaseTitle }), errorMsg);
+		context.ctx.reportFailed(
+			i18n.importer.notionApi.labelDatabaseWithId({ title: databaseTitle, id: databaseId }),
+			errorMsg
+		);
 		return `<!-- Failed to import database: ${errorMsg} -->`;
 	}
 }
@@ -268,9 +271,8 @@ export async function importDatabaseCore(
 		// Continue even if template fetching fails
 	}
 
-	// Notify about discovered pages (if callback provided)
 	if (onPagesDiscovered) {
-		onPagesDiscovered(databasePages.length);
+		onPagesDiscovered(databasePages.map(page => page.id));
 	}
 
 	// Only create database folder after successfully validating data source and querying pages

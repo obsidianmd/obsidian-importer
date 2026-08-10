@@ -4,7 +4,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
-import { areAnySelected } from '../tree';
+import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
@@ -27,6 +27,18 @@ import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
 
+
+function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>): string[] {
+	const ids: string[] = [];
+
+	for (const blocks of blocksCache.values()) {
+		for (const block of blocks) {
+			if (block.type === 'child_page') ids.push(block.id);
+		}
+	}
+
+	return ids;
+}
 
 export class NotionAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
@@ -51,8 +63,9 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
-	private totalNodesToImport: number = 0; // Total number of nodes selected for import
-	private selectedNodeIds: Set<string> = new Set(); // IDs of nodes selected in tree for progress tracking
+	// The total grows as databases and page blocks reveal more pages.
+	private knownPages: Set<string> = new Set();
+	private finishedPages: number = 0;
 	private picker: TreePicker<NotionTreeNode>;
 
 	private get pickedTree(): NotionTreeNode[] {
@@ -66,8 +79,6 @@ export class NotionAPIImporter extends FormatImporter {
 	// Track all relation placeholders that need to be replaced
 	private relationPlaceholders: RelationPlaceholder[] = [];
 	private relatedPageTitles: Map<string, string | null> = new Map();
-	// Progress counters: separate tracking for pages and attachments
-	private processedPagesCount: number = 0; // Total processed (imported + skipped) for progress tracking
 	// Track Notion ID (page/database) to file path mapping for mention replacement
 	// Stores path relative to vault root without extension: "folder/subfolder/Page Title"
 	// This allows wiki links to work correctly even with duplicate filenames: [[folder/Page Title]]
@@ -138,7 +149,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Download external attachments option
 		this.addSetting()
 			?.setName(i18n.importer.notionApi.nameDownloadExternal())
-			.setDesc(this.createAttachmentDescription())
+			.setDesc(i18n.importer.notionApi.descDownloadExternal())
 			.addToggle(toggle => {
 				toggle
 					.setValue(false)
@@ -204,14 +215,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = createFragment();
 		frag.appendText(i18n.importer.notionApi.descFormulas());
-		return frag;
-	}
-
-	private createAttachmentDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.notionApi.descDownloadExternal());
-		frag.createEl('br');
-		frag.appendText(i18n.importer.notionApi.descDownloadExternalFolder());
 		return frag;
 	}
 
@@ -331,40 +334,26 @@ export class NotionAPIImporter extends FormatImporter {
 		return null;
 	}
 
-	/**
-	 * Get all selected node IDs and populate selectedNodeIds for progress tracking
-	 * Returns only top-level selected nodes (not disabled children) for import loop
-	 * Side effect: Populates this.selectedNodeIds with ALL selected PAGE nodes (excluding databases)
-	 * and sets this.totalNodesToImport
-	 * Note: Databases are not counted because they are containers, not pages to import
-	 */
+	/** Returns top-level selected items and seeds the initial page total. */
 	private getSelectedNodeIds(): string[] {
-		const topLevelSelected: string[] = [];
-		let totalPageCount = 0;
-		this.selectedNodeIds.clear(); // Reset the set
+		const picked = selectedNodes(this.pickedTree, node => !node.disabled);
 
-		const collectNodes = (nodes: NotionTreeNode[]) => {
-			for (const node of nodes) {
-				if (node.selected) {
-					// Only count pages for progress tracking (databases are just containers)
-					if (node.type === 'page') {
-						totalPageCount++;
-						this.selectedNodeIds.add(node.id);
-					}
+		this.knownPages.clear();
+		for (const node of picked) if (node.type === 'page') this.knownPages.add(node.id);
 
-					// Add to return array if it's a top-level selection (not disabled)
-					// This includes both pages and databases for the import loop
-					if (!node.disabled) {
-						topLevelSelected.push(node.id);
-					}
-				}
-				collectNodes(node.children);
-			}
-		};
+		return picked.map(node => node.id);
+	}
 
-		collectNodes(this.pickedTree);
-		this.totalNodesToImport = totalPageCount; // Set total count for progress tracking (pages only)	
-		return topLevelSelected;
+	private pageFinished(ctx: ImportContext): void {
+		this.finishedPages++;
+		ctx.reportProgress(this.finishedPages, this.knownPages.size);
+	}
+
+	private pagesDiscovered(ctx: ImportContext, pageIds: string[]): void {
+		if (pageIds.length === 0) return;
+
+		for (const pageId of pageIds) this.knownPages.add(pageId);
+		ctx.reportProgress(this.finishedPages, this.knownPages.size);
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -403,15 +392,13 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedDatabases.clear();
 			this.relationPlaceholders = [];
 			this.relatedPageTitles.clear();
-			this.processedPagesCount = 0;
+			this.finishedPages = 0;
 
-			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
 			ctx.status(i18n.importer.notionApi.statusPreparing({
-				items: i18n.nouns.itemWithCount({ count: this.totalNodesToImport }),
+				items: i18n.nouns.itemWithCount({ count: this.knownPages.size }),
 			}));
 
-			// Initialize progress display with known total count
-			ctx.reportProgress(0, this.totalNodesToImport);
+			ctx.reportProgress(0, this.knownPages.size);
 
 			// Save output root path for database handling
 			this.outputRootPath = folder.path;
@@ -479,7 +466,7 @@ export class NotionAPIImporter extends FormatImporter {
 				await this.cleanupNotionIds(ctx);
 			}
 
-			ctx.status(i18n.importer.notionApi.statusDone());
+			if (!ctx.isCancelled()) ctx.status(i18n.importer.notionApi.statusDone());
 
 		}
 		catch (error) {
@@ -529,9 +516,7 @@ export class NotionAPIImporter extends FormatImporter {
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 					},
-					onPagesDiscovered: (count: number) => {
-						// Callback provided but not used - progress is reported per page/attachment
-					}
+					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				},
 				isDataSourceId // Pass the flag to indicate if this is a data_source_id
 			);
@@ -557,6 +542,11 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		this.processedPages.add(pageId);
+		// Include pages discovered outside the initial tree selection.
+		this.knownPages.add(pageId);
+
+		// Keep the full ID if fetching the title fails.
+		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
 			// Fetch page metadata with rate limit handling
@@ -569,6 +559,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
+			reportedName = i18n.importer.notionApi.labelPageWithTitle({ title: pageTitle, id: pageId });
 
 			// Update status with page title instead of ID
 			ctx.status(i18n.importer.notionApi.statusImportingTitle({ title: sanitizedTitle }));
@@ -591,6 +582,9 @@ export class NotionAPIImporter extends FormatImporter {
 			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
 			// The blocksCache will be populated during this check
 			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
+
+			// Discover all children first so remaining decreases monotonically.
+			this.pagesDiscovered(ctx, childPageIds(blocksCache));
 
 			// Determine file structure based on whether page has children
 			let pageFolderPath: string; // Folder for child pages/databases
@@ -635,10 +629,7 @@ export class NotionAPIImporter extends FormatImporter {
 				if (!filePathOrNull) {
 					// File skipped due to incremental import (no children, so nothing else to do)
 					// Update progress for skipped page
-					if (this.selectedNodeIds.has(pageId)) {
-						this.processedPagesCount++;
-						ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
-					}
+					this.pageFinished(ctx);
 					return;
 				}
 				mdFilePath = filePathOrNull;
@@ -710,9 +701,7 @@ export class NotionAPIImporter extends FormatImporter {
 					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
 					},
-					onPagesDiscovered: (newPagesCount: number) => {
-						// Callback provided but not used - progress is reported per page/attachment
-					}
+					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				}
 			);
 
@@ -873,32 +862,21 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Update progress: count all processed pages (imported + skipped)
 			// Only count nodes that were selected in the tree (not recursively discovered pages)
-			if (this.selectedNodeIds.has(pageId)) {
-				this.processedPagesCount++;
-				// reportProgress updates the UI: "imported" label shows processedPagesCount (all processed pages)
-				// This ensures remaining = total - processed = 0 when all pages are done
-				ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
-			}
+			this.pageFinished(ctx);
 			// Note: Even if parent file is skipped, child pages have already been processed
 			// by the importPageCallback in convertBlocksToMarkdown
 
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
-			// Try to get page title from the error context or use page ID
-			const pageTitle = i18n.importer.notionApi.labelPage({ id: pageId.substring(0, 8) });
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			// Log more details for debugging
 			console.error(`Error details - Page ID: ${pageId}, Error: ${errorMsg}`);
 			if (error instanceof Error && error.stack) {
 				console.error('Stack trace:', error.stack);
 			}
-			ctx.reportFailed(pageTitle, errorMsg);
-			if (this.selectedNodeIds.has(pageId)) {
-				// Update progress for failed page to ensure remaining reaches 0
-				this.processedPagesCount++;
-				ctx.reportProgress(this.processedPagesCount, this.totalNodesToImport);
-			}
+			ctx.reportFailed(reportedName, errorMsg);
+			this.pageFinished(ctx);
 		}
 	}
 
@@ -1074,7 +1052,7 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			console.error(`Failed to import unimported database "${databaseTitle}":`, error);
-			ctx.reportFailed(i18n.importer.notionApi.labelDatabase({ title: databaseTitle }), errorMsg);
+			ctx.reportFailed(i18n.importer.notionApi.labelDatabaseWithId({ title: databaseTitle, id: databaseId }), errorMsg);
 		}
 	}
 

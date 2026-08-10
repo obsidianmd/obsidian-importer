@@ -1,9 +1,17 @@
+export interface ImportLogEntry {
+	outcome: 'skipped' | 'failed';
+	name: string;
+	reason?: unknown;
+}
+
 export class ImportContext {
 	notes = 0;
 	attachments = 0;
 	skipped: string[] = [];
 	failed: string[] = [];
-	maxFileNameLength: number = 100;
+
+	log: ImportLogEntry[] = [];
+
 	statusMessage: string = '';
 
 	cancelled: boolean = false;
@@ -33,14 +41,18 @@ export class ImportContext {
 	}
 
 	reportSkipped(name: string, reason?: unknown) {
+		const entry: ImportLogEntry = { outcome: 'skipped', name, reason };
 		this.skipped.push(name);
-		this.onSkipped(name, reason);
+		this.log.push(entry);
+		this.onLogged(entry);
 	}
 
 	reportFailed(name: string, reason?: unknown) {
+		const entry: ImportLogEntry = { outcome: 'failed', name, reason };
 		this.failed.push(name);
+		this.log.push(entry);
 		console.error('Import failed', name, reason);
-		this.onFailed(name, reason);
+		this.onLogged(entry);
 	}
 
 	reportProgress(current: number, total: number) {
@@ -54,7 +66,6 @@ export class ImportContext {
 		this.cancelled = true;
 		// Wake a paused import so it can observe cancellation.
 		this.resume();
-		this.hideStatus();
 	}
 
 	pause() {
@@ -78,8 +89,8 @@ export class ImportContext {
 		return this.paused;
 	}
 
-	hideStatus() {
-		this.onHideStatus();
+	finish() {
+		this.onFinish();
 	}
 
 	isCancelled() {
@@ -100,9 +111,8 @@ export class ImportContext {
 	protected onStatus(message: string): void {}
 	protected onNoteSuccess(name: string): void {}
 	protected onAttachmentSuccess(name: string): void {}
-	protected onSkipped(name: string, reason?: unknown): void {}
-	protected onFailed(name: string, reason?: unknown): void {}
+	protected onLogged(entry: ImportLogEntry): void {}
 	protected onProgress(current: number, total: number): void {}
-	protected onHideStatus(): void {}
+	protected onFinish(): void {}
 	protected onPaused(paused: boolean): void {}
 }

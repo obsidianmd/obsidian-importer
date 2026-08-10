@@ -183,3 +183,17 @@ export function env(name: string): string | undefined {
 
 	return undefined;
 }
+
+/** Runs retry tests without delays and optionally records the requested waits. */
+export async function withoutWaiting<T>(body: () => Promise<T>, waits: number[] = []): Promise<T> {
+	const slept = window.setTimeout;
+	(window as unknown as { setTimeout: unknown }).setTimeout =
+		(wake: () => void, ms: number) => (waits.push(ms), wake(), 0);
+
+	try {
+		return await body();
+	}
+	finally {
+		(window as unknown as { setTimeout: unknown }).setTimeout = slept;
+	}
+}

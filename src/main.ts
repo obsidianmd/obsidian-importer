@@ -1,8 +1,8 @@
-import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback, helpUrl } from './constants';
-import { ImportContext } from './import-context';
+import { ImportContext, ImportLogEntry } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
@@ -19,7 +19,7 @@ import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
 import { i18n, setLanguage } from './i18n';
-import { extractErrorMessage, truncateText } from './util';
+import { describeReason } from './util';
 
 declare global {
 	interface Window {
@@ -43,18 +43,8 @@ function importerOptionText(id: string): string {
 }
 
 
-function describeReason(reason: unknown): string {
-	if (typeof reason === 'string') return reason;
-
-	const message = extractErrorMessage(reason);
-	if (message !== undefined) return message;
-
-	try {
-		return JSON.stringify(reason) ?? String(reason);
-	}
-	catch {
-		return String(reason);
-	}
+function outcomeText(ctx: ImportContext): string {
+	return ctx.failed.length > 0 ? i18n.progress.msgErrors() : i18n.progress.msgComplete();
 }
 
 function statusText(message: string): string {
@@ -90,9 +80,8 @@ export class ImportProgressUI extends ImportContext {
 	statusEl: HTMLElement;
 	importLogEl: HTMLElement;
 
-	private logEntries: { prefix: string, name: string, reason?: unknown }[] = [];
-
-	private statusHidden: boolean = false;
+	private finished: boolean = false;
+	private scrollQueued: boolean = false;
 
 	constructor(el: HTMLElement) {
 		super();
@@ -137,16 +126,22 @@ export class ImportProgressUI extends ImportContext {
 		this.importLogEl.hide();
 
 		if (this.isPaused()) this.onPaused(true);
-		else if (this.statusMessage) this.onStatus(this.statusMessage);
+		else this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
-		for (const entry of this.logEntries) {
-			this.drawLogEntry(entry);
+		if (this.log.length > 0) {
+			const drawn = createFragment();
+			for (const entry of this.log) this.drawLogEntry(entry, drawn);
+			this.importLogEl.append(drawn);
+			this.importLogEl.show();
+			this.scrollLogToEnd();
 		}
-		if (this.statusHidden) this.onHideStatus();
+		if (this.finished) this.onFinish();
 	}
 
 	protected onStatus(message: string): void {
-		this.statusEl.setText(this.isPaused() ? pausedText(message) : statusText(message));
+		const text = this.isPaused() ? pausedText(message) : statusText(message);
+		this.statusEl.setText(text);
+		this.statusEl.toggle(text.length > 0);
 	}
 
 	protected onPaused(paused: boolean): void {
@@ -162,14 +157,13 @@ export class ImportProgressUI extends ImportContext {
 		this.attachmentCountEl.setText(this.attachments.toString());
 	}
 
-	protected onSkipped(name: string, reason?: unknown): void {
-		this.skippedCountEl.setText(this.skipped.length.toString());
-		this.log(i18n.progress.labelSkipped(), name, reason);
-	}
+	protected onLogged(entry: ImportLogEntry): void {
+		const countEl = entry.outcome === 'failed' ? this.failedCountEl : this.skippedCountEl;
+		countEl.setText((entry.outcome === 'failed' ? this.failed : this.skipped).length.toString());
 
-	protected onFailed(name: string, reason?: unknown): void {
-		this.failedCountEl.setText(this.failed.length.toString());
-		this.log(i18n.progress.labelFailed(), name, reason);
+		this.drawLogEntry(entry);
+		this.importLogEl.show();
+		this.scrollLogToEnd();
 	}
 
 	protected onProgress(current: number, total: number): void {
@@ -178,36 +172,35 @@ export class ImportProgressUI extends ImportContext {
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
-	protected onHideStatus(): void {
-		this.statusHidden = true;
-		this.progressBarEl.hide();
-		this.statusEl.hide();
+	// Preserve final progress, but hide a bar that never had a total.
+	protected onFinish(): void {
+		this.finished = true;
+		if (this.progressTotal <= 0) this.progressBarEl.hide();
 	}
 
-	private log(prefix: string, name: string, reason?: unknown): void {
-		const entry = { prefix, name, reason };
-		this.logEntries.push(entry);
-		this.drawLogEntry(entry);
+	// Batch scroll measurements to avoid a forced layout per log entry.
+	private scrollLogToEnd(): void {
+		if (this.scrollQueued) return;
+
+		this.scrollQueued = true;
+		window.requestAnimationFrame(() => {
+			this.scrollQueued = false;
+			this.importLogEl.scrollTop = this.importLogEl.scrollHeight;
+		});
 	}
 
-	private drawLogEntry({ prefix, name, reason }: { prefix: string, name: string, reason?: unknown }): void {
-		const { importLogEl } = this;
-
-		importLogEl.createDiv('list-item', el => {
-			const shortName = truncateText(name, this.maxFileNameLength);
-			el.createSpan({ cls: 'importer-error', text: prefix });
+	private drawLogEntry({ outcome, name, reason }: ImportLogEntry, into: Node = this.importLogEl): void {
+		into.createDiv('list-item', el => {
+			el.createSpan({
+				cls: 'importer-error',
+				text: outcome === 'failed' ? i18n.progress.labelFailed() : i18n.progress.labelSkipped(),
+			});
 			el.createSpan({
 				text: reason
-					? i18n.progress.labelEntryWithReason({
-						name: shortName,
-						reason: truncateText(describeReason(reason), this.maxFileNameLength),
-					})
-					: i18n.progress.labelEntry({ name: shortName }),
+					? i18n.progress.labelEntryWithReason({ name, reason: describeReason(reason) })
+					: i18n.progress.labelEntry({ name }),
 			});
 		});
-
-		importLogEl.scrollTop = importLogEl.scrollHeight;
-		importLogEl.show();
 	}
 }
 
@@ -423,6 +416,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private hidden: boolean = false;
 	private hiddenNotice: Notice | null = null;
 	private hiddenInterval: number | null = null;
+
+	private reportFile: TFile | null = null;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
@@ -657,6 +652,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 			this.current.cancel();
 		}
 
+		this.reportFile = null;
+
 		const { contentEl } = this;
 
 		contentEl.empty();
@@ -691,7 +688,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 			if (this.current === ctx) {
 				this.current = null;
 			}
-			ctx.hideStatus();
+
+			ctx.status(ctx.isCancelled() ? '' : outcomeText(ctx));
+			ctx.finish();
 
 			// An import that threw never got as far as its checkpoints, which is
 			// no evidence that the importer neglects them.
@@ -739,10 +738,56 @@ export class ImporterModal extends Modal implements ImporterHost {
 		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: i18n.modal.buttonStop() }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
+				ctx.status(i18n.progress.statusStopping());
 				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
+
+				// Show disabled finish actions while cancellation completes.
+				this.drawFinishButtons(buttonsEl, ctx, false);
 			});
 		});
+	}
+
+	private drawFinishButtons(buttonsEl: HTMLElement, ctx: ImportProgressUI, enabled: boolean): void {
+		if (ctx.log.length > 0) {
+			buttonsEl.createEl('button', { cls: 'importer-report-button', text: i18n.modal.buttonSaveReport() }, el => {
+				el.disabled = !enabled;
+				el.addEventListener('click', () => void this.saveReport(ctx, el));
+			});
+		}
+
+		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
+			el.disabled = !enabled;
+			el.addEventListener('click', () => this.setUpImporter());
+		});
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
+			el.disabled = !enabled;
+			el.addEventListener('click', () => this.close());
+		});
+	}
+
+	private async saveReport(ctx: ImportProgressUI, buttonEl: HTMLButtonElement): Promise<void> {
+		buttonEl.disabled = true;
+
+		try {
+			// Reuse a report already saved from this run.
+			this.reportFile ??= await this.importer.writeImportReport(ctx, importerName(this.selectedId));
+
+			if (!this.reportFile) {
+				new Notice(i18n.modal.msgReportFailed());
+				buttonEl.disabled = false;
+				return;
+			}
+
+			const report = this.reportFile;
+			this.close();
+			await this.app.workspace.getLeaf(true).openFile(report);
+		}
+		catch (error) {
+			console.error('Could not save the import report', error);
+			new Notice(i18n.modal.msgReportFailed());
+			buttonEl.disabled = false;
+		}
 	}
 
 	private showFinished(ctx: ImportProgressUI) {
@@ -750,13 +795,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
-		let buttonsEl = contentEl.createDiv('modal-button-container');
-		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
-			el.addEventListener('click', () => this.setUpImporter());
-		});
-		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
-			el.addEventListener('click', () => this.close());
-		});
+		this.drawFinishButtons(contentEl.createDiv('modal-button-container'), ctx, true);
 	}
 
 	hide() {
@@ -834,9 +873,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		// The notice is all there is to go on while the modal is hidden, so it has
 		// to say which of the three ways the import ended it took.
-		const headline = ctx.isCancelled() ? i18n.progress.msgStopped()
-			: ctx.failed.length > 0 ? i18n.progress.msgErrors()
-				: i18n.progress.msgComplete();
+		const headline = ctx.isCancelled() ? i18n.progress.msgStopped() : outcomeText(ctx);
 
 		const counts = i18n.progress.msgImportedCount({ count: ctx.notes })
 			+ (ctx.failed.length > 0 ? `, ${i18n.nouns.failureWithCount({ count: ctx.failed.length })}` : '');

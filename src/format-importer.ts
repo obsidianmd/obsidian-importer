@@ -4,6 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
+import { formatImportReport, importReportName } from './import-report';
 import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
@@ -807,6 +808,26 @@ export abstract class FormatImporter {
 			this.markdownFiles.clear();
 			if (ctx) ctx.status(previousStatus);
 		}
+	}
+
+	async writeImportReport(ctx: ImportContext, importerName: string): Promise<TFile | null> {
+		if (ctx.log.length === 0) return null;
+
+		const folder = await this.getOutputFolder();
+		if (!folder) return null;
+
+		const when = new Date();
+
+		const content = formatImportReport({
+			importer: importerName,
+			when,
+			notes: ctx.notes,
+			attachments: ctx.attachments,
+			cancelled: ctx.isCancelled(),
+			log: ctx.log,
+		});
+
+		return await this.saveAsMarkdownFile(folder, importReportName(importerName, when), content);
 	}
 
 	/** Direct filesystem writers arrive in Vault through its watcher. */

@@ -73,3 +73,23 @@ test('a page carrying a different id is not one of ours', async () => {
 
 	assert.equal(await subject.skips(PAGE_PATH, 'def-456', ctx), false);
 });
+
+test('a page that fails before its title loads keeps its full Notion id', async () => {
+	const vault = new MemoryVault();
+	const subject = new ResumingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	const ctx = new ImportContext();
+
+	(subject as unknown as { notionClient: unknown }).notionClient = {
+		pages: {
+			retrieve: async () => {
+				throw Object.assign(new Error('Page could not be read'), { status: 404 });
+			},
+		},
+	};
+
+	await (subject as unknown as {
+		fetchAndImportPage(params: { ctx: ImportContext, pageId: string, parentPath: string }): Promise<void>;
+	}).fetchAndImportPage({ ctx, pageId: PAGE_ID, parentPath: 'Notion' });
+
+	assert.deepEqual(ctx.failed, [`Page ${PAGE_ID}`]);
+});
