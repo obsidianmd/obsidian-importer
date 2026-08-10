@@ -648,10 +648,16 @@ export class OneNoteImporter extends FormatImporter {
 			const svgContent = inkmlToSvg(splitContent.inkml);
 			if (svgContent) {
 				const svgFilename = `${page.title} - Ink.svg`;
-				const svgPath = await this.getAvailablePathForAttachment(svgFilename, [], notePath);
-				await this.vault.create(svgPath, svgContent);
-				inkEmbedMarkdown = `\n\n![[${svgPath}]]\n`;
-				progress.reportAttachmentSuccess(svgFilename);
+				const { path: svgPath, reuse } = await this.placeAttachment(svgFilename, notePath);
+
+				if (reuse) {
+					inkEmbedMarkdown = `\n\n![[${reuse.path}]]\n`;
+				}
+				else {
+					await this.writeAttachment(svgPath, svgContent);
+					inkEmbedMarkdown = `\n\n![[${svgPath}]]\n`;
+					progress.reportAttachmentSuccess(svgFilename);
+				}
 			}
 		}
 		catch (e) {
@@ -912,10 +918,17 @@ export class OneNoteImporter extends FormatImporter {
 		progress.status('Downloading attachment ' + filename);
 
 		try {
-			// We don't need to remember claimedPaths because we're writing the attachments immediately.
-			const outputPath = await this.getAvailablePathForAttachment(filename, [], notePath);
+			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath);
+
+			// Deciding before downloading is the point: an attachment already
+			// brought across costs nothing on a second import.
+			if (reuse) {
+				progress.reportSkipped(filename, 'it is already in the vault');
+				return reuse.path;
+			}
+
 			const data = (await this.fetchResource(contentLocation, 'file', progress));
-			await this.app.vault.createBinary(outputPath, data);
+			await this.writeAttachment(outputPath, data);
 			progress.reportAttachmentSuccess(filename);
 
 			// Earn the speed back once it stops complaining.

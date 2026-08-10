@@ -694,8 +694,11 @@ export abstract class FormatImporter {
 
 		if (this.duplicateHandling === DuplicateHandling.Skip) return { path: candidate, reuse: existing };
 
-		// Update leaves alone what the source has not touched since.
-		if (sourceMtime !== undefined && sourceMtime <= existing.stat.mtime) {
+		// Update leaves alone what the source has not touched since. Where the
+		// source offers no time to compare, an attachment of that name is taken
+		// to be the same one: fetching a binary again to overwrite it with
+		// itself is all cost and no change.
+		if (sourceMtime === undefined || sourceMtime <= existing.stat.mtime) {
 			return { path: candidate, reuse: existing };
 		}
 
@@ -703,14 +706,18 @@ export abstract class FormatImporter {
 	}
 
 	/** Write an attachment, replacing whatever placeAttachment pointed at. */
-	protected async writeAttachment(path: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<TFile> {
+	protected async writeAttachment(path: string, data: ArrayBuffer | string, options?: DataWriteOptions): Promise<TFile> {
 		const existing = this.vault.getAbstractFileByPath(path);
+
 		if (existing instanceof TFile) {
-			await this.vault.modifyBinary(existing, data, options);
+			if (typeof data === 'string') await this.vault.modify(existing, data, options);
+			else await this.vault.modifyBinary(existing, data, options);
 			return existing;
 		}
 
-		return this.vault.createBinary(path, data, options);
+		return typeof data === 'string'
+			? this.vault.create(path, data, options)
+			: this.vault.createBinary(path, data, options);
 	}
 
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {

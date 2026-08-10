@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 
 import { OneNoteImporter } from '../../src/formats/onenote';
 import { ImportContext } from '../../src/import-context';
+import { DuplicateHandling } from '../../src/format-importer';
 
 function importer(download: (name: string) => string | null): OneNoteImporter {
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
@@ -70,6 +71,29 @@ test('a failed attachment download does not create an undefined embed', async ()
 	assert.doesNotMatch(page.textContent ?? '', /undefined/);
 	assert.match(page.textContent ?? '', /Before/);
 	assert.match(page.textContent ?? '', /After/);
+});
+
+test('an attachment already in the vault is not downloaded again', async () => {
+	// Re-importing used to fetch every attachment afresh and write it beside
+	// the one already there, so a second run doubled every image.
+	const downloads: string[] = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+	const existing = { path: 'Notebook/Document.pdf' };
+
+	Object.assign(subject, {
+		importIncompatibleAttachments: false,
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		placeAttachment: async () => ({ path: existing.path, reuse: existing }),
+		fetchResource: async () => { downloads.push('fetched'); return new ArrayBuffer(0); },
+	});
+
+	const progress = new ImportContext();
+	const path = await subject.fetchAttachment(progress, 'Document.pdf', 'https://example.com/pdf', 'Notebook/Page.md');
+
+	assert.deepEqual(downloads, [], 'nothing should have been fetched');
+	assert.equal(path, existing.path, 'the note should embed the copy already there');
+	assert.deepEqual(progress.skipped, ['Document.pdf']);
 });
 
 test('a file the user chose not to import is passed over, not reported failed', async () => {
