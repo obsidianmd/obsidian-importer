@@ -332,13 +332,32 @@ function answersWith(...statuses: number[]) {
 test('a status that means "not now" is asked about again', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Attachments');
-	const server = answersWith(503, 202);
+	const server = answersWith(503, 500);
 
 	const result = await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
 
-	assert.deepEqual(server.asked, [503, 202, 200]);
+	assert.deepEqual(server.asked, [503, 500, 200]);
 	assert.equal(result.isLocal, true);
 	assert.deepEqual(vault.paths(), ['Attachments/photo.txt']);
+});
+
+/**
+ * 202 is Notion's storage saying "still preparing", and only Notion's. A file
+ * property holding a link to a site that refuses robots answers a download
+ * with one too, and that one will say the same thing on every try - three
+ * retries and seven seconds of backoff per link, across a whole workspace.
+ */
+test('202 is worth another try from Notion, and not from anywhere else', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+
+	const external = answersWith(202);
+	await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+	assert.deepEqual(external.asked, [202], 'an external link should be asked once');
+
+	const hosted = answersWith(202);
+	await withoutWaiting(() => downloadAttachment({ ...REMOTE, type: 'file' }, contextOverVault(vault, false)));
+	assert.deepEqual(hosted.asked, [202, 200], 'a Notion-hosted file should be asked again');
 });
 
 test('a status that will say the same thing next time is asked once', async () => {

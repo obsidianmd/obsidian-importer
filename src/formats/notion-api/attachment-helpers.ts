@@ -22,12 +22,24 @@ const MAX_ATTACHMENT_RETRIES = 3;
 /**
  * Statuses that mean "not now" rather than "not ever".
  *
- * 202 is Notion's storage saying the file is still being prepared; the 5xxs
- * and 408 are the network or the server having a moment. An import large
- * enough to meet them meets them hundreds of times, and each one that is not
- * asked about again is an attachment the note loses.
+ * The 5xxs and 408 are the network or the server having a moment. An import
+ * large enough to meet them meets them hundreds of times, and each one that is
+ * not asked about again is an attachment the note loses.
  */
-const RETRYABLE_STATUSES = new Set([202, 408, 425, 429, 500, 502, 503, 504]);
+const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+/**
+ * 202 counts too, but only from Notion's own storage, where it means the file
+ * is still being prepared. From anywhere else it is a server declining to hand
+ * the file over and saying so politely - a link in a file property to a site
+ * that refuses robots answers with one - and asking three more times spends
+ * seven seconds learning what the first answer already said.
+ */
+function worthAnotherTry(status: number, notionHosted: boolean): boolean {
+	if (status === 202) return notionHosted;
+
+	return RETRYABLE_STATUSES.has(status);
+}
 
 /**
  * Network failures that are the connection rather than the URL. A name that
@@ -36,13 +48,19 @@ const RETRYABLE_STATUSES = new Set([202, 408, 425, 429, 500, 502, 503, 504]);
  */
 const RETRYABLE_NETWORK_ERRORS = /ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_ABORTED|ERR_NETWORK_CHANGED|ERR_TIMED_OUT|ERR_EMPTY_RESPONSE|ERR_SOCKET_NOT_CONNECTED/;
 
-async function requestAttachment(url: string, filename: string, ctx: ImportContext): Promise<RequestUrlResponse> {
+async function requestAttachment(
+	attachment: NotionAttachment,
+	filename: string,
+	ctx: ImportContext
+): Promise<RequestUrlResponse> {
+	const notionHosted = attachment.type === 'file';
+
 	for (let attempt = 0; ; attempt++) {
 		let failure: string;
 
 		try {
-			const response = await requestUrl({ url, method: 'GET', throw: false });
-			if (!RETRYABLE_STATUSES.has(response.status)) return response;
+			const response = await requestUrl({ url: attachment.url, method: 'GET', throw: false });
+			if (!worthAnotherTry(response.status, notionHosted)) return response;
 			if (attempt >= MAX_ATTACHMENT_RETRIES) return response;
 
 			failure = `HTTP ${response.status}`;
@@ -166,7 +184,7 @@ export async function downloadAttachment(
 			downloaded = decodeDataUrl(attachment.url);
 		}
 		else {
-			const response = await requestAttachment(attachment.url, filename, ctx);
+			const response = await requestAttachment(attachment, filename, ctx);
 
 			if (response.status !== 200) {
 				console.error(`Failed to download attachment "${filename}": ${response.status}`);
