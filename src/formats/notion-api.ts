@@ -702,6 +702,8 @@ export class NotionAPIImporter extends FormatImporter {
 				writeMarkdownFile: async (path: string, content: string) => {
 					return await this.createMarkdown(path, content);
 				},
+				syncedBlockFile: (blockId, folderPath, fileName, convert) =>
+					this.importSyncedBlockFile(ctx, blockId, folderPath, fileName, convert),
 			});
 
 			// Process database placeholders
@@ -1390,6 +1392,34 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Could not read the note already at: ${file.path}`, error);
 		}
+	}
+
+	/**
+	 * Write a synced block's own note, once per synced block rather than once
+	 * per import.
+	 *
+	 * It used to ask for a name nothing was using, so every import wrote
+	 * another one: "Page synced block 1.md", then "Page synced block 2.md". The
+	 * note carries the block's id now, which is what lets a later import find
+	 * the one it wrote before and leave it, or bring it up to date.
+	 *
+	 * Converted whatever is decided, because a synced block can hold child
+	 * pages of its own and they are reached by converting it.
+	 */
+	protected async importSyncedBlockFile(
+		ctx: ImportContext,
+		blockId: string,
+		folderPath: string,
+		fileName: string,
+		convert: (filePath: string) => Promise<string>,
+	): Promise<string> {
+		const planned = this.planNote(folderPath, fileName.replace(/\.md$/i, ''), blockId);
+		const markdown = await convert(planned.targetPath);
+
+		const { file, written } = await this.writePlannedNote(ctx, planned, markdown, { sourceId: blockId });
+		if (written) this.writtenPaths.add(file.path.replace(/\.md$/, ''));
+
+		return file.path;
 	}
 
 	/**

@@ -240,6 +240,21 @@ export interface BlockConversionContext {
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
 	writeMarkdownFile: (path: string, content: string) => Promise<TFile>; // Importer-owned writer, so post-import normalization tracks the file
+	/**
+	 * Place, convert and write a synced block's own note, and say where it went.
+	 *
+	 * The importer owns it because only it knows what the vault already holds -
+	 * a synced block imported before has a note already, and writing a second
+	 * one beside it every time is how "Page synced block 1.md" turned into
+	 * "Page synced block 2.md". Conversion happens inside, because the path
+	 * decided here is the one the block's own links are generated against.
+	 */
+	syncedBlockFile?: (
+		blockId: string,
+		folderPath: string,
+		fileName: string,
+		convert: (filePath: string) => Promise<string>,
+	) => Promise<string>;
 }
 
 /**

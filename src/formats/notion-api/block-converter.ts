@@ -29,7 +29,6 @@ import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, BlockContext, HeaderContentWithRichTextAndColorResponse } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
-import { getUniqueFilePath } from '../../util';
 
 
 /**
@@ -800,10 +799,14 @@ async function createSyncedBlockFile(
 	blockId: string,
 	context: BlockConversionContext
 ): Promise<string> {
-	const { client, ctx, vault, currentFolderPath, currentPageTitle } = context;
-	
+	const { client, ctx, currentFolderPath, currentPageTitle, syncedBlockFile } = context;
+
 	if (!currentFolderPath) {
 		throw new Error('currentFolderPath is required for synced blocks');
+	}
+
+	if (!syncedBlockFile) {
+		throw new Error('syncedBlockFile is required for synced blocks');
 	}
 	
 	// Use page title for synced block filename
@@ -827,47 +830,45 @@ async function createSyncedBlockFile(
 			? await getBlockChildren(blockId, client, ctx, context.blocksCache)
 			: [];
 		
-		// Generate unique file path in the same folder as the page
-		// If multiple synced blocks exist, they will be named: "Page synced block.md", "Page synced block 1.md", etc.
-		const filePath = getUniqueFilePath(vault, currentFolderPath, `${fileName}.md`);
-	
-		// Create a new context for synced block content
-		// Keep currentFolderPath the same so nested synced blocks are also placed correctly
-		// Set isProcessingSyncedBlock flag to indicate we're inside a synced block
-		const syncedBlockContext: BlockConversionContext = {
-			...context,
-			currentFilePath: filePath, // Update current file path for link generation
-			isProcessingSyncedBlock: true // Mark that we're processing synced block content
-		};
-	
-		// Convert children to markdown
-		const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
+		// Where the file goes, and whether it needs writing, are the importer's
+		// to answer: it is the only side that knows what the vault already
+		// holds. The conversion happens inside that answer, because the path it
+		// settles on is the one this block's own links are generated against.
+		return await syncedBlockFile(blockId, currentFolderPath, `${fileName}.md`, async filePath => {
+			// Create a new context for synced block content
+			// Keep currentFolderPath the same so nested synced blocks are also placed correctly
+			// Set isProcessingSyncedBlock flag to indicate we're inside a synced block
+			const syncedBlockContext: BlockConversionContext = {
+				...context,
+				currentFilePath: filePath, // Update current file path for link generation
+				isProcessingSyncedBlock: true // Mark that we're processing synced block content
+			};
 
-		// Extract synced child IDs from the markdown content
-		// This allows us to efficiently replace placeholders later without scanning all files
-		// Separated by type to avoid unnecessary placeholder checks during replacement
+			// Convert children to markdown
+			const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
 
-		// Find SYNCED_CHILD_PAGE placeholders
-		const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
-		if (context.syncedChildPagePlaceholders && pageIds.length > 0) {
-			const existingPageIds = context.syncedChildPagePlaceholders.get(filePath) || new Set<string>();
-			pageIds.forEach(id => existingPageIds.add(id));
-			context.syncedChildPagePlaceholders.set(filePath, existingPageIds);
-		}
+			// Extract synced child IDs from the markdown content
+			// This allows us to efficiently replace placeholders later without scanning all files
+			// Separated by type to avoid unnecessary placeholder checks during replacement
 
-		// Find SYNCED_CHILD_DATABASE placeholders
-		const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
-		if (context.syncedChildDatabasePlaceholders && dbIds.length > 0) {
-			const existingDbIds = context.syncedChildDatabasePlaceholders.get(filePath) || new Set<string>();
-			dbIds.forEach(id => existingDbIds.add(id));
-			context.syncedChildDatabasePlaceholders.set(filePath, existingDbIds);
-		}
-	
-		// Create the file
-		await context.writeMarkdownFile(filePath, markdown);
-		
-		
-		return filePath;
+			// Find SYNCED_CHILD_PAGE placeholders
+			const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
+			if (context.syncedChildPagePlaceholders && pageIds.length > 0) {
+				const existingPageIds = context.syncedChildPagePlaceholders.get(filePath) || new Set<string>();
+				pageIds.forEach(id => existingPageIds.add(id));
+				context.syncedChildPagePlaceholders.set(filePath, existingPageIds);
+			}
+
+			// Find SYNCED_CHILD_DATABASE placeholders
+			const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
+			if (context.syncedChildDatabasePlaceholders && dbIds.length > 0) {
+				const existingDbIds = context.syncedChildDatabasePlaceholders.get(filePath) || new Set<string>();
+				dbIds.forEach(id => existingDbIds.add(id));
+				context.syncedChildDatabasePlaceholders.set(filePath, existingDbIds);
+			}
+
+			return markdown;
+		});
 	}
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
