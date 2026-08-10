@@ -1,0 +1,23 @@
+{
+	"@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('user-id')/onenote/sections('section-id')/pages(id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl)",
+	"value": [
+		{
+			"id": "1-0000000000000000000000000000000a!1-0000000000000000000000000000000b",
+			"title": "Shopping list",
+			"createdDateTime": "2024-03-01T09:12:00Z",
+			"lastModifiedDateTime": "2024-03-04T18:40:00Z",
+			"level": 0,
+			"order": 0,
+			"contentUrl": "https://graph.microsoft.com/v1.0/users/user-id/onenote/pages/1-0000000000000000000000000000000a!1-0000000000000000000000000000000b/content"
+		},
+		{
+			"id": "1-0000000000000000000000000000000a!1-0000000000000000000000000000000c",
+			"title": "Weeknight meals",
+			"createdDateTime": "2024-03-02T11:05:00Z",
+			"lastModifiedDateTime": "2024-03-02T11:31:00Z",
+			"level": 1,
+			"order": 1,
+			"contentUrl": "https://graph.microsoft.com/v1.0/users/user-id/onenote/pages/1-0000000000000000000000000000000a!1-0000000000000000000000000000000c/content"
+		}
+	]
+}

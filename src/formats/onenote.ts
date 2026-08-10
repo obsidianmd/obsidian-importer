@@ -34,6 +34,9 @@ const MAX_ATTACHMENT_SPACING_MS = 3_000;
 
 const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
 
+// Microsoft Graph caps page requests at 100.
+const PAGES_PER_REQUEST = 100;
+
 type JSONWrappedResponse<T> = {
 	value: T[];
 } | {
@@ -593,16 +596,32 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 	private async fetchSectionPages(sectionId: string, progress?: ImportContext): Promise<OnenotePage[]> {
-		const params = new URLSearchParams({
-			$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
-			$orderby: 'order',
-			pagelevel: 'true',
-			// Graph defaults to 20 pages and caps $top at 100.
-			$top: '100',
-		});
+		const pages: OnenotePage[] = [];
+		const seen = new Set<string>();
 
-		const url = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages?${params.toString()}`;
-		return (await this.fetchResource<OnenotePage>(url, 'json-wrapped', progress)).value ?? [];
+		// Setting $top disables @odata.nextLink, so paginate with $skip.
+		for (let skip = 0; ; skip += PAGES_PER_REQUEST) {
+			const params = new URLSearchParams({
+				$select: 'id,title,createdDateTime,lastModifiedDateTime,level,order,contentUrl',
+				$orderby: 'order',
+				pagelevel: 'true',
+				$top: String(PAGES_PER_REQUEST),
+				$skip: String(skip),
+			});
+
+			const url = `https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages?${params.toString()}`;
+			const batch = (await this.fetchResource<OnenotePage>(url, 'json-wrapped', progress)).value ?? [];
+
+			const fresh = batch.filter(page => !page.id || !seen.has(page.id));
+			for (const page of fresh) {
+				if (page.id) seen.add(page.id);
+				pages.push(page);
+			}
+
+			if (batch.length < PAGES_PER_REQUEST) return pages;
+			// Stop if Graph ignored $skip and repeated a full batch.
+			if (fresh.length === 0) return pages;
+		}
 	}
 
 	/** Read selected page lists serially while the remaining settings are completed. */
