@@ -27,7 +27,7 @@ function attachmentTypeLabel(type: AttachmentType): string {
 }
 import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
-import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, HeaderContentWithRichTextAndColorResponse } from './types';
+import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, BlockContext, HeaderContentWithRichTextAndColorResponse } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
 import { getUniqueFilePath } from '../../util';
 
@@ -72,7 +72,7 @@ async function processChildrenToMarkdown(
 	block: BlockObjectResponse,
 	context: BlockConversionContext,
 	indentLevel: number | undefined,
-	errorContext: string
+	errorContext: BlockContext
 ): Promise<string | undefined> {
 	return await processBlockChildren({
 		block,
@@ -113,7 +113,7 @@ async function convertToFoldableCallout(
 	title: string,
 	block: BlockObjectResponse,
 	context: BlockConversionContext,
-	errorContext: string
+	errorContext: BlockContext
 ): Promise<string> {
 	// Default to expanded (+) state
 	const foldState = '+';

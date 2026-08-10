@@ -124,10 +124,14 @@ test('the French strings that sit next to other text still read as sentences', (
 	assert.equal(i18n.progress.labelRemaining({ count: 4 }), '4 restantes...');
 	assert.equal(i18n.progress.labelPausedRemaining({ count: 1 }), 'En pause - 1 restante');
 
-	// A Notion block kind and an attachment kind are French too.
+	// A Notion block kind and an attachment kind are French too, and the label
+	// carries the article the sentence around it cannot know to use.
+	const children = (context: string) => i18n.importer.notionApi.labelFetchChildren({ context, id: 'abc' });
+	assert.equal(children(i18n.importer.notionApi.blockParagraph()), 'Récupération des enfants du paragraphe abc');
+	assert.equal(children(i18n.importer.notionApi.blockColumn()), 'Récupération des enfants de la colonne abc');
 	assert.equal(
-		i18n.importer.notionApi.labelFetchChildren({ context: i18n.importer.notionApi.blockParagraph(), id: 'abc' }),
-		'Récupération des enfants de paragraphe abc'
+		children(i18n.importer.notionApi.blockTodoItem()),
+		'Récupération des enfants de la tâche abc'
 	);
 	assert.equal(i18n.importer.notionApi.labelAttachmentFile(), 'Pièce jointe fichier');
 

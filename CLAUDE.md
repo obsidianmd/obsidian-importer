@@ -136,7 +136,13 @@ A number goes through `toLocaleString` in the chosen language, so a count reads
 `10 000` in French even when the machine underneath is set to English. Two
 strings that meet on screen each need their own key: interpolating an internal
 identifier (a block kind, an enum member) leaves English inside a translated
-sentence.
+sentence. Close that set with a union type and a `Record` keyed by it —
+`BlockContext` in `formats/notion-api/types.ts` — so a new member cannot compile
+until it has a label.
+
+A label dropped into a sentence carries whatever article its language needs:
+French `du paragraphe` / `de la colonne`, because the sentence around it cannot
+know the gender of the noun arriving.
 
 What stays out of the table: console messages, the errors the scripted
 `runImport` throws, and anything written into a note — a title, a folder name,

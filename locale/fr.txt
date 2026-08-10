@@ -1604,43 +1604,55 @@ translation=Pièce jointe PDF
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
-translation=Récupération des enfants de {{context}} {{id}}
+translation=Récupération des enfants {{context}} {{id}}
 
 [importer.notion-api.block-paragraph]
 original=paragraph
-translation=paragraphe
+translation=du paragraphe
 
 [importer.notion-api.block-bulleted-list-item]
 original=bulleted list item
-translation=élément de liste à puces
+translation=de l'élément de liste à puces
 
 [importer.notion-api.block-numbered-list-item]
 original=numbered list item
-translation=élément de liste numérotée
+translation=de l'élément de liste numérotée
+
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=de la tâche
 
 [importer.notion-api.block-quote]
 original=quote block
-translation=bloc de citation
+translation=du bloc de citation
 
 [importer.notion-api.block-callout]
 original=callout block
-translation=bloc d'encadré
+translation=du bloc d'encadré
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=du bloc bascule
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
+translation=du titre bascule
 
 [importer.notion-api.block-column]
 original=column
-translation=colonne
+translation=de la colonne
 
 [importer.notion-api.block-column-list]
 original=column list
-translation=liste de colonnes
+translation=de la liste de colonnes
 
 [importer.notion-api.block-table]
 original=table
-translation=tableau
+translation=du tableau
 
 [importer.notion-api.block-generic]
 original=block
-translation=bloc
+translation=du bloc
 
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}

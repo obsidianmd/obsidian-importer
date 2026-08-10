@@ -246,6 +246,25 @@ export interface ConversionInfo {
 /**
  * Attachment type enum for type safety and consistency
  */
+/**
+ * Which kind of block a nested fetch was for, named so a failure can say. The
+ * set is closed on purpose: every one of these needs a label in the string
+ * table, and a new kind should not compile until it has one.
+ */
+export type BlockContext =
+	| 'paragraph'
+	| 'bulleted list item'
+	| 'numbered list item'
+	| 'to-do item'
+	| 'quote block'
+	| 'callout block'
+	| 'toggle block'
+	| 'toggleable heading'
+	| 'column'
+	| 'column_list'
+	| 'table'
+	| 'block';
+
 export enum AttachmentType {
 	IMAGE = 'image',
 	VIDEO = 'video',

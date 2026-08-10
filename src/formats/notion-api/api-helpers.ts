@@ -17,28 +17,30 @@ import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 
 /**
- * What a block is called on screen. `errorContext` is a fixed set of block
- * kinds, not anything the source named, so each has a string of its own. One
- * this does not know falls back to the identifier, which is at least readable.
+ * What a block is called on screen. These are fixed block kinds, not anything
+ * the source named, so each gets a string of its own — and because the record
+ * is keyed by the union, adding a kind without a label will not compile.
+ *
+ * A label carries whatever article its language needs, since the sentence it
+ * lands in cannot know the gender of the noun coming.
  */
-const BLOCK_CONTEXT_LABELS: Record<string, () => string> = {
+const BLOCK_CONTEXT_LABELS: Record<BlockContext, () => string> = {
 	'paragraph': () => i18n.importer.notionApi.blockParagraph(),
 	'bulleted list item': () => i18n.importer.notionApi.blockBulletedListItem(),
 	'numbered list item': () => i18n.importer.notionApi.blockNumberedListItem(),
+	'to-do item': () => i18n.importer.notionApi.blockTodoItem(),
 	'quote block': () => i18n.importer.notionApi.blockQuote(),
 	'callout block': () => i18n.importer.notionApi.blockCallout(),
+	'toggle block': () => i18n.importer.notionApi.blockToggle(),
+	'toggleable heading': () => i18n.importer.notionApi.blockToggleableHeading(),
 	'column': () => i18n.importer.notionApi.blockColumn(),
 	'column_list': () => i18n.importer.notionApi.blockColumnList(),
 	'table': () => i18n.importer.notionApi.blockTable(),
 	'block': () => i18n.importer.notionApi.blockGeneric(),
 };
-
-function blockContextLabel(context: string): string {
-	return BLOCK_CONTEXT_LABELS[context]?.() ?? context;
-}
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
-import { NotionAttachment } from './types';
+import { BlockContext, NotionAttachment } from './types';
 
 const MAX_RETRIES = 3;
 
@@ -89,7 +91,7 @@ export interface ProcessBlockChildrenParams<T> {
 	ctx: ImportContext;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
 	processor: (children: BlockObjectResponse[]) => Promise<T> | T;
-	errorContext?: string;
+	errorContext?: BlockContext;
 }
 
 /**
@@ -124,11 +126,14 @@ export async function processBlockChildren<T>(
 		return await processor(children);
 	}
 	catch (error) {
-		const context = errorContext || 'block';
+		const context: BlockContext = errorContext || 'block';
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to fetch children for ${context} ${block.id}:`, error);
 		ctx.reportFailed(
-			i18n.importer.notionApi.labelFetchChildren({ context: blockContextLabel(context), id: block.id }),
+			i18n.importer.notionApi.labelFetchChildren({
+				context: BLOCK_CONTEXT_LABELS[context](),
+				id: block.id,
+			}),
 			errorMsg
 		);
 		return undefined;

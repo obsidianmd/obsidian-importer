@@ -1618,12 +1618,24 @@ translation=
 original=numbered list item
 translation=
 
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=
+
 [importer.notion-api.block-quote]
 original=quote block
 translation=
 
 [importer.notion-api.block-callout]
 original=callout block
+translation=
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
 translation=
 
 [importer.notion-api.block-column]
