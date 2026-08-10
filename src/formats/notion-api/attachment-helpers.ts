@@ -112,7 +112,8 @@ export async function downloadAttachment(
 	const { vault, ctx, downloadExternalAttachments, currentPageTitle, incrementalImport } = context;
 
 	// Determine if we should download this attachment
-	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments);
+	const shouldDownload = !context.forChildrenOnly
+		&& (attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments));
 
 	if (!shouldDownload) {
 		// Return original URL for external files when download is disabled

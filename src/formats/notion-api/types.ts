@@ -217,6 +217,14 @@ export interface BlockConversionContext {
 	downloadExternalAttachments: boolean;
 	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
 	incrementalImport?: boolean;
+	/**
+	 * This page is being walked to reach what is under it, not to be written.
+	 *
+	 * Its child pages and databases are still imported - they may have changed
+	 * even where their parent has not - but the markdown is thrown away, so
+	 * nothing it points at is worth fetching.
+	 */
+	forChildrenOnly?: boolean;
 	rangeProbe?: { answered: boolean };
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;

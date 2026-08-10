@@ -25,6 +25,7 @@ import { childFolderOf, NotionAPIImporter } from '../../src/formats/notion-api';
 import { DuplicateHandling, PlannedNote } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { NOTION_ID_PROPERTY } from '../../src/constants';
+import { answerRequests } from '../shims/obsidian';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 interface Workspace {
@@ -83,6 +84,15 @@ class ImportingTwice extends NotionAPIImporter {
 	}
 }
 
+/** Every URL the import asked for, so a second one can be shown not to ask. */
+const fetched: string[] = [];
+
+answerRequests(request => {
+	fetched.push(request.url);
+
+	return { status: 200, arrayBuffer: new Uint8Array([137, 80, 78, 71]).buffer, text: '', headers: {} } as never;
+});
+
 /** One import of the whole fixture, over a vault that may already hold one. */
 async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourceId = true): Promise<ImportContext> {
 	const subject = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
@@ -111,6 +121,8 @@ async function vaultWithOneImport(mode: DuplicateHandling): Promise<MemoryVault>
 	const vault = new MemoryVault();
 	await vault.createFolder(OUTPUT);
 	await importOnce(vault, mode);
+	fetched.length = 0;
+
 	return vault;
 }
 
@@ -162,6 +174,43 @@ test('importing again with "Create a copy" gives the copy its own children', asy
 	]);
 });
 
+test('the first import fetches what the page points at', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder(OUTPUT);
+	fetched.length = 0;
+
+	await importOnce(vault, DuplicateHandling.Skip);
+
+	// Twice: how big it is, then the bytes. The shim answers a range request
+	// with a whole response, which is what turns the probing off after one go.
+	assert.deepEqual([...new Set(fetched)], ['https://example.invalid/roadmap-chart.png']);
+	assert.equal(fetched.length, 2);
+	assert.ok(vault.paths().some(path => path.endsWith('roadmap-chart.png')));
+});
+
+// The page is still walked - a child of it may have changed - but nothing the
+// walk turns up is downloaded, because the markdown around it is thrown away.
+test('a second import fetches nothing for a page it is leaving alone', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+
+	await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.deepEqual(fetched, []);
+});
+
+test('and the walk still reaches a child that is no longer there', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+	vault.remove('Notion/Roadmap/Milestones.md');
+
+	await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.ok(
+		markdown(vault).includes('Notion/Roadmap/Milestones.md'),
+		'the parent was skipped, but its child was reached through it'
+	);
+	assert.deepEqual(fetched, [], 'and the parent still fetched nothing of its own');
+});
+
 test('a page with children keeps them in the folder holding its note', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 
@@ -186,8 +235,8 @@ test('a moved page is where its children are put', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 	await vault.createFolder('Archive');
 	await vault.create('Archive/Roadmap.md', String(vault.contents.get('Notion/Roadmap/Roadmap.md')));
-	vault.contents.delete('Notion/Roadmap/Roadmap.md');
-	vault.contents.delete('Notion/Roadmap/Milestones.md');
+	vault.remove('Notion/Roadmap/Roadmap.md');
+	vault.remove('Notion/Roadmap/Milestones.md');
 
 	await importOnce(vault, DuplicateHandling.Skip);
 
@@ -199,7 +248,7 @@ test('a note the user moved is still recognised, because the id travels with it'
 	const moved = 'Archive/Roadmap.md';
 	await vault.createFolder('Archive');
 	await vault.create(moved, String(vault.contents.get('Notion/Roadmap/Roadmap.md')));
-	vault.contents.delete('Notion/Roadmap/Roadmap.md');
+	vault.remove('Notion/Roadmap/Roadmap.md');
 
 	const second = await importOnce(vault, DuplicateHandling.Skip);
 

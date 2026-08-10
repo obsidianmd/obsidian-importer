@@ -662,6 +662,10 @@ export class NotionAPIImporter extends FormatImporter {
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				singleLineBreaks: this.singleLineBreaks, // Single line breaks mode
 				incrementalImport: this.incrementalImport, // Skip attachments with same path and size
+				// A page being left as it is still has to be walked, because a
+				// child of it may have changed. Nothing the walk turns up is
+				// worth downloading: the markdown around it is thrown away.
+				forChildrenOnly: shouldSkipParentFile,
 				indentLevel: 0,
 				blocksCache, // reuse cached blocks
 				mentionedIds, // collect mentioned IDs
@@ -727,8 +731,10 @@ export class NotionAPIImporter extends FormatImporter {
 				frontMatter[this.databasePropertyName] = `[[${databaseTag}]]`;
 			}
 
-			// Extract all other properties from the page
-			const extractedProps = await extractFrontMatter({
+			// Extract all other properties from the page. Only the note being
+			// written has any use for them, and reading them downloads whatever
+			// its file properties point at.
+			const extractedProps = shouldSkipParentFile ? {} : await extractFrontMatter({
 				page,
 				formulaStrategy: this.formulaStrategy,
 				client: this.notionClient!,

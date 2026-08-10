@@ -1,5 +1,5 @@
 {
-	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). `pages` is keyed by page id, each value as GET /v1/pages/{id} returns it; `blocks` is keyed by block id, each value as GET /v1/blocks/{id}/children returns it. Unlike example-page.json this carries the page envelope too, because reimport.test.ts drives the importer itself rather than the block conversion, and the importer reads created_time and last_edited_time off the page. A parent with one child page is enough to cover both file-structure branches: a page with children becomes a folder, a page without stays a bare note. The ids are made up and so is the content.",
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). `pages` is keyed by page id, each value as GET /v1/pages/{id} returns it; `blocks` is keyed by block id, each value as GET /v1/blocks/{id}/children returns it. Unlike example-page.json this carries the page envelope too, because reimport.test.ts drives the importer itself rather than the block conversion, and the importer reads created_time and last_edited_time off the page. A parent with one child page is enough to cover both file-structure branches: a page with children becomes a folder, a page without stays a bare note. The parent holds a Notion-hosted image, which is what a second import must not fetch again. The ids are made up and so is the content, and example.invalid is reserved by RFC 2606 so nothing resolves it.",
 
 	"pages": {
 		"10000000-0000-4000-8000-000000000101": {
@@ -41,6 +41,10 @@
 				{
 					"object": "block", "id": "20000000-0000-4000-8000-000000000101", "type": "paragraph", "has_children": false, "archived": false,
 					"paragraph": { "rich_text": [{ "type": "text", "text": { "content": "What we are building this year.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "What we are building this year.", "href": null }], "color": "default" }
+				},
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000103", "type": "image", "has_children": false, "archived": false,
+					"image": { "type": "file", "file": { "url": "https://example.invalid/roadmap-chart.png", "expiry_time": "2024-03-01T01:00:00.000Z" }, "caption": [] }
 				},
 				{
 					"object": "block", "id": "10000000-0000-4000-8000-000000000102", "type": "child_page", "has_children": true, "archived": false,

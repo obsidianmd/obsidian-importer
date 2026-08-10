@@ -42,6 +42,18 @@ export class MemoryVault {
 		return [...this.contents.keys()];
 	}
 
+	/**
+	 * Take a file out of the vault, as deleting it in Obsidian would.
+	 *
+	 * Both maps: what a file holds, and the vault's own record that it is
+	 * there. Emptying only the first leaves a file every lookup still finds.
+	 */
+	remove(path: string): void {
+		const normalized = normalizePath(path);
+		this.contents.delete(normalized);
+		this.entries.delete(normalized.toLowerCase());
+	}
+
 	/** Every file and folder the vault holds, as Obsidian hands them out. */
 	getAllLoadedFiles(): TAbstractFile[] {
 		return [...this.entries.values()];
