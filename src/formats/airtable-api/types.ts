@@ -2,6 +2,8 @@
  * Type definitions for Airtable API importer
  */
 
+import type { PlannedNote } from '../../format-importer';
+
 /**
  * Minimal interface for status reporting
  * Used by API helpers that only need to report status messages
@@ -176,9 +178,12 @@ export interface PreparedTableData {
 
 export interface PlannedRecord {
 	record: AirtableRecord;
+	/** Where the note goes, and the earlier import it matches. Empty records have none. */
+	note: PlannedNote | null;
+	/** note.targetPath, or '' for a record with no note to write. */
 	filePath: string;
 	title: string;
-	/** Why this record was passed over, ready to show. */
+	/** Why this record was passed over before it was ever planned, ready to show. */
 	skipped?: string;
 }
 

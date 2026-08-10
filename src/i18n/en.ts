@@ -273,7 +273,6 @@ export const en = {
 			statusDownloadingAttachment: 'Downloading attachment: {{name}}',
 			reasonNoRecordNames: 'Could not read record names',
 			reasonEmptyRecord: 'Empty record',
-			reasonAlreadyImported: 'Already imported',
 		},
 		appleNotes: {
 			name: 'Apple Notes',

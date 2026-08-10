@@ -200,6 +200,17 @@ export function memoryApp(vault: MemoryVault) {
 
 				return { frontmatter: parseFrontMatterBlock(content)?.frontMatter };
 			},
+			// A whole path resolves before a bare name does, which is what makes
+			// a link to "Books/Dune" reach that note rather than another "Dune".
+			getFirstLinkpathDest: (linkpath: string, _sourcePath: string) => {
+				const name = linkpath.toLowerCase().endsWith('.md') ? linkpath : `${linkpath}.md`;
+				const whole = vault.getAbstractFileByPathInsensitive(name);
+				if (whole) return whole;
+
+				const basename = name.slice(name.lastIndexOf('/') + 1).toLowerCase();
+				return vault.getMarkdownFiles()
+					.find(file => file.path.slice(file.path.lastIndexOf('/') + 1).toLowerCase() === basename) ?? null;
+			},
 		},
 		fileManager: {
 			generateMarkdownLink: (file: { path: string }, _sourcePath: string, subpath?: string, display?: string) =>

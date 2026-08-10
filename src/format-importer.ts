@@ -948,9 +948,10 @@ export abstract class FormatImporter {
 	 * claim is what stops a second source note of the same name adopting it, and
 	 * a match that ends up writing nothing never took the name to begin with.
 	 */
-	planNote(folder: TFolder, title: string, sourceId?: string): PlannedNote {
+	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
-		const parent = folder.path === '/' ? '' : folder.path;
+		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
+		const parent = folderPath === '/' ? '' : folderPath;
 		const desiredPath = normalizePath(parent ? `${parent}/${name}` : name);
 
 		const file = this.duplicateHandling === DuplicateHandling.CreateCopy

@@ -8,7 +8,7 @@ import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../util';
+import { extractErrorMessage, sanitizeFileName, updatePropertyTypes } from '../util';
 import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
@@ -128,7 +128,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	private globalRecordIdToTitle: Map<string, string> = new Map();
 
 	// Prepared data cache for two-phase import
-	private preparedData: PreparedTableData[] = [];
+	protected preparedData: PreparedTableData[] = [];
 
 	// Airtable SDK handles, reused for the duration of an import. A table with
 	// many views would otherwise construct a client per view.
@@ -812,12 +812,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 	}
 
-	private async planRecordPaths(ctx: ImportContext, rootPath: string): Promise<TablePlan[]> {
+	protected async planRecordPaths(ctx: ImportContext, rootPath: string): Promise<TablePlan[]> {
 		// Resolve every path first so record links use final, deduplicated names.
 		const plans: TablePlan[] = [];
-
-		// The vault cannot see files that this import has not written yet.
-		const claimed = new Set<string>();
 
 		for (const tableData of this.preparedData) {
 			if (await ctx.shouldStop()) return plans;
@@ -842,6 +839,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (isEmptyRecord(record)) {
 					planned.push({
 						record,
+						note: null,
 						filePath: '',
 						title: 'Untitled Record',
 						skipped: i18n.importer.airtableApi.reasonEmptyRecord(),
@@ -849,29 +847,17 @@ export class AirtableAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				const title = sanitizeFileName(recordTitle(record, primaryFieldName));
-				const desiredPath = normalizePath(`${tablePath}/${title}.md`);
+				// Where the note goes is settled here, before any of them is
+				// written, so a record linking to another can name the file it
+				// will end up in - including one an earlier import already wrote,
+				// wherever the user has since moved it to.
+				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), record.id);
+				const { basename } = parseFilePath(note.targetPath);
 
-				const existing = this.existingRecordNote(desiredPath, record.id);
-				if (existing) {
-					claimed.add(existing.path.toLowerCase());
-					this.recordIdToPath.set(`${baseId}:${record.id}`, existing.path.replace(/\.md$/, ''));
-					planned.push({
-						record,
-						filePath: existing.path,
-						title,
-						skipped: i18n.importer.airtableApi.reasonAlreadyImported(),
-					});
-					continue;
-				}
-
-				const filePath = this.claimRecordPath(tablePath, title, claimed);
-				const { basename } = parseFilePath(filePath);
-
-				this.recordIdToPath.set(`${baseId}:${record.id}`, filePath.replace(/\.md$/, ''));
+				this.recordIdToPath.set(`${baseId}:${record.id}`, note.targetPath.replace(/\.md$/, ''));
 				this.globalRecordIdToTitle.set(record.id, basename);
 
-				planned.push({ record, filePath, title: basename });
+				planned.push({ record, note, filePath: note.targetPath, title: basename });
 			}
 
 			plans.push({ tableData, tablePath, records: planned });
@@ -880,17 +866,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		this.chooseLinkForms();
 
 		return plans;
-	}
-
-	private claimRecordPath(tablePath: string, title: string, claimed: Set<string>): string {
-		let path = getUniqueFilePath(this.vault, tablePath, `${title}.md`);
-
-		for (let suffix = 1; claimed.has(path.toLowerCase()); suffix++) {
-			path = getUniqueFilePath(this.vault, tablePath, `${title} ${suffix}.md`);
-		}
-
-		claimed.add(path.toLowerCase());
-		return path;
 	}
 
 	private chooseLinkForms(): void {
@@ -1210,10 +1185,21 @@ export class AirtableAPIImporter extends FormatImporter {
 		fileContext: RecordFileContext
 	): Promise<void> {
 		const { primaryFieldName, fields, viewReferences, formulaFieldNames, frontMatterFields } = fileContext;
-		const { record, filePath, title } = planned;
+		const { record, note, filePath, title } = planned;
 
-		if (planned.skipped) {
+		if (planned.skipped || !note) {
 			ctx.reportSkipped(title, planned.skipped);
+			this.processedRecordsCount++;
+			this.reportOverallProgress(ctx);
+			return;
+		}
+
+		// Nothing here can be told from the record: Airtable gives no
+		// modification time, so a decision needs the markdown to compare.
+		// Skip is the exception - it needs no comparison, and settling it now
+		// is what keeps an untouched record from downloading its attachments.
+		const disposition = this.preflightNote(ctx, note);
+		if (disposition === 'skip') {
 			this.processedRecordsCount++;
 			this.reportOverallProgress(ctx);
 			return;
@@ -1246,34 +1232,13 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		await this.createMarkdown(filePath, this.withSourceId(content, record.id));
-
-		ctx.reportNoteSuccess(title);
+		const { written } = await this.writePlannedNote(ctx, note, content, { disposition, sourceId: record.id });
+		if (written) ctx.reportNoteSuccess(title);
 
 		this.processedRecordsCount++;
 		this.reportOverallProgress(ctx);
 	}
 
-	/**
-	 * Handle incremental import check for a record
-	 * If file exists with same airtable-id, executes the callback and returns true
-	 * Otherwise returns false to continue with normal import
-	 *
-	 * @param filePath - Path to check
-	 * @param recordId - Airtable record ID to compare
-	 * @returns true if same record already exists (should skip), false otherwise
-	 */
-	private existingRecordNote(filePath: string, recordId: string): TFile | null {
-		if (!this.incrementalImport) {
-			return null;
-		}
-
-		return this.previouslyImported(normalizePath(filePath), recordId);
-	}
-
-	/**
-	 * Create a single .base file for the table with multiple views
-	 */
 	private computeTableFormulas(fields: AirtableFieldSchema[], primaryFieldId: string): Map<string, string> {
 		if (this.formulaStrategy === 'static') {
 			return new Map();

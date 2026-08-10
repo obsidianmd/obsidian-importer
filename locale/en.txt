@@ -854,10 +854,6 @@ translation=
 original=Empty record
 translation=
 
-[importer.airtable-api.reason-already-imported]
-original=Already imported
-translation=
-
 [importer.apple-notes.name]
 original=Apple Notes
 translation=

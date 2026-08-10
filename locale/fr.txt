@@ -854,10 +854,6 @@ translation=Impossible de lire les noms des enregistrements
 original=Empty record
 translation=Enregistrement vide
 
-[importer.airtable-api.reason-already-imported]
-original=Already imported
-translation=Déjà importé
-
 [importer.apple-notes.name]
 original=Apple Notes
 translation=
