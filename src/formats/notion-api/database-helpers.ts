@@ -271,9 +271,9 @@ export async function importDatabaseCore(
 		// Continue even if template fetching fails
 	}
 
-	// Notify about discovered pages (if callback provided)
+	// Say what this database turned out to hold, before importing any of it
 	if (onPagesDiscovered) {
-		onPagesDiscovered(databasePages.length);
+		onPagesDiscovered(databasePages.map(page => page.id));
 	}
 
 	// Only create database folder after successfully validating data source and querying pages
