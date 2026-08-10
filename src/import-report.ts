@@ -12,7 +12,6 @@ export interface ImportReport {
 	log: ImportLogEntry[];
 }
 
-/** Local, and written the way Obsidian writes a date or a datetime property. */
 const isoDate = (when: Date) => moment(when).format('YYYY-MM-DD');
 const timestamp = (when: Date) => moment(when).format('YYYY-MM-DD HH:mm');
 

@@ -43,7 +43,6 @@ function importerOptionText(id: string): string {
 }
 
 
-/** How an import that ran to the end went. */
 function outcomeText(ctx: ImportContext): string {
 	return ctx.failed.length > 0 ? i18n.progress.msgErrors() : i18n.progress.msgComplete();
 }
@@ -130,7 +129,6 @@ export class ImportProgressUI extends ImportContext {
 		else this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
 		if (this.log.length > 0) {
-			// One measure for the whole log rather than one per entry
 			const drawn = createFragment();
 			for (const entry of this.log) this.drawLogEntry(entry, drawn);
 			this.importLogEl.append(drawn);
@@ -180,13 +178,7 @@ export class ImportProgressUI extends ImportContext {
 		if (this.progressTotal <= 0) this.progressBarEl.hide();
 	}
 
-	/**
-	 * Keep the newest entry in view, at most once a frame.
-	 *
-	 * Reading scrollHeight forces a layout, and an import that skips every
-	 * page it already has adds tens of thousands of entries - one forced
-	 * layout each, for a box that shows about ten of them.
-	 */
+	// Batch scroll measurements to avoid a forced layout per log entry.
 	private scrollLogToEnd(): void {
 		if (this.scrollQueued) return;
 

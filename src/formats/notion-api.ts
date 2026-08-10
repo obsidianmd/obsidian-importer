@@ -336,13 +336,9 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/** Returns top-level selected items and seeds the initial page total. */
 	private getSelectedNodeIds(): string[] {
-		// A selected node's descendants are selected and disabled, so this is
-		// the selection with nothing counted twice.
 		const picked = selectedNodes(this.pickedTree, node => !node.disabled);
 
 		this.knownPages.clear();
-		// A database is worth however many rows the query turns out to return,
-		// so it joins the total when the import gets to it.
 		for (const node of picked) if (node.type === 'page') this.knownPages.add(node.id);
 
 		return picked.map(node => node.id);

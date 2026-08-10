@@ -184,14 +184,7 @@ export function env(name: string): string | undefined {
 	return undefined;
 }
 
-/**
- * Run the body with the backoff collapsed, and optionally record how long it
- * asked to wait.
- *
- * Retry code sleeps in real time, which a test that only cares which failures
- * come back for another try should not pay for. Needs the dom shim, since the
- * plugin schedules through window.
- */
+/** Runs retry tests without delays and optionally records the requested waits. */
 export async function withoutWaiting<T>(body: () => Promise<T>, waits: number[] = []): Promise<T> {
 	const slept = window.setTimeout;
 	(window as unknown as { setTimeout: unknown }).setTimeout =

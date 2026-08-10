@@ -489,8 +489,7 @@ export async function convertBlockToMarkdown(
 		}
 		
 		default: {
-			// The SDK has never heard of meeting notes, so a case for it would
-			// not compile; every kind it does not know ends up here.
+			// The SDK does not yet include meeting_notes in its block union.
 			const meetingNotes = asMeetingNotes(block);
 			if (meetingNotes) {
 				markdown = await convertMeetingNotes(block.id, meetingNotes, context);

@@ -111,7 +111,6 @@ export class ImportContext {
 	protected onStatus(message: string): void {}
 	protected onNoteSuccess(name: string): void {}
 	protected onAttachmentSuccess(name: string): void {}
-	/** One thing that did not come through, as it was recorded. */
 	protected onLogged(entry: ImportLogEntry): void {}
 	protected onProgress(current: number, total: number): void {}
 	protected onFinish(): void {}

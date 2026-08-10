@@ -45,8 +45,7 @@ const MAX_NAME_BYTES = 240;
 const encoder = new TextEncoder();
 
 function limitNameLength(name: string): string {
-	// UTF-8 spends at most three bytes per UTF-16 unit, so a short name cannot
-	// overflow and need not be encoded to find that out.
+	// UTF-8 needs at most three bytes per UTF-16 unit.
 	if (name.length * 3 <= MAX_NAME_BYTES || encoder.encode(name).length <= MAX_NAME_BYTES) return name;
 
 	// Iteration by code point keeps surrogate pairs intact.
@@ -81,8 +80,7 @@ export function sanitizeFileName(name: string | undefined | null) {
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, '')));
 
-	// Truncation can expose trailing spaces or Windows-reserved names, so the
-	// rules run again over anything it shortened.
+	// Reapply trailing-space and reserved-name rules after truncation.
 	const limited = limitNameLength(cleaned);
 	const sanitized = limited === cleaned ? cleaned : tidyName(limited);
 

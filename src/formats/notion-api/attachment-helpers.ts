@@ -10,7 +10,7 @@ import { RichTextItemResponse } from '@notionhq/client';
 import { availableFileName, sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
-import { backOffBeforeRetry } from './api-helpers';
+import { backOffBeforeRetry } from './utils';
 import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttachmentLinkParams } from './types';
 
 interface DownloadedAttachment {
@@ -62,7 +62,6 @@ async function requestAttachment(
 			failure = message;
 		}
 
-		// Exponential backoff: 1s, 2s, 4s
 		const waitFor = Math.pow(2, attempt);
 		const waiting = i18n.importer.notionApi.statusRetryingAttachment({
 			name: filename,
@@ -72,8 +71,7 @@ async function requestAttachment(
 			total: MAX_ATTACHMENT_RETRIES,
 		});
 
-		// Stopped while waiting: give back whatever prompted the retry, rather
-		// than a status nobody sent.
+		// Preserve the response or error that prompted the retry.
 		if (!await backOffBeforeRetry(ctx, waitFor, waiting)) {
 			if (answer) return answer;
 			throw thrown;
@@ -209,8 +207,7 @@ export async function downloadAttachment(
 				}
 
 				targetFilePath = await resolveTargetPath(context, filename);
-				// The vault can offer a name this run has already taken, so the
-				// next free one is worked out against what has been tried.
+				// Avoid paths already attempted when the vault returns the same name.
 				if (attemptedPaths.has(targetFilePath)) {
 					targetFilePath = inFolder(availableFileName(firstName, name => attemptedPaths.has(inFolder(name))));
 				}
@@ -276,7 +273,6 @@ async function resolveTargetPath(context: BlockConversionContext, filename: stri
 	return sourceFilePath ? normalizePath(`${sourceFilePath}/${filename}`) : filename;
 }
 
-/** A copy of this attachment is already where it was going. */
 function skipExisting(ctx: ImportContext, file: TFile, filename: string): AttachmentResult {
 	ctx.reportSkipped(
 		i18n.importer.notionApi.labelAttachment({ name: filename }),

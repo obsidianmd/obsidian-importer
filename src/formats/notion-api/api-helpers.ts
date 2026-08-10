@@ -34,6 +34,7 @@ const BLOCK_CONTEXT_LABELS: Record<BlockContext, () => string> = {
 import { canConvertFormula, getNotionFormulaExpression } from './formula-converter';
 import { downloadAndFormatAttachment } from './attachment-helpers';
 import { BlockContext, NotionAttachment } from './types';
+import { backOffBeforeRetry } from './utils';
 
 const MAX_RETRIES = 3;
 
@@ -69,24 +70,6 @@ function retryDelay(error: NotionRequestError, retryCount: number): number {
 	const asked = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
 
 	return Number.isFinite(asked) && asked > 0 ? asked : Math.pow(2, retryCount);
-}
-
-/**
- * Wait before asking again, saying why while it waits.
- *
- * Answers false when the import was stopped in the meantime, which is the
- * caller's cue to give up rather than try once more.
- */
-export async function backOffBeforeRetry(ctx: ImportContext, seconds: number, message: string): Promise<boolean> {
-	const previousStatus = ctx.statusMessage;
-	ctx.status(message);
-
-	await new Promise(resolve => window.setTimeout(resolve, seconds * 1000));
-
-	if (await ctx.shouldStop()) return false;
-
-	ctx.status(previousStatus);
-	return true;
 }
 
 /**

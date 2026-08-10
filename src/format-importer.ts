@@ -816,8 +816,6 @@ export abstract class FormatImporter {
 		const folder = await this.getOutputFolder();
 		if (!folder) return null;
 
-		// One clock for the name and the summary, so the two agree even
-		// across midnight.
 		const when = new Date();
 
 		const content = formatImportReport({
