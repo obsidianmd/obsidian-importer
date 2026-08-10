@@ -6,7 +6,7 @@ import { requestUrl, normalizePath, TFile } from 'obsidian';
 import type { Vault, App } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
-import type { AirtableAttachment, AttachmentResult } from './types';
+import type { AirtableAttachment, AttachmentPlacement, AttachmentResult } from './types';
 import { sanitizeFileName } from '../../util';
 
 /**
@@ -18,10 +18,10 @@ async function downloadAttachment(
 		ctx: ImportContext;
 		vault: Vault;
 		downloadAttachments: boolean;
-		getAvailableAttachmentPath: (filename: string) => Promise<string>;
+		placeAttachment: (filename: string, size: number | undefined) => Promise<AttachmentPlacement>;
 	}
 ): Promise<AttachmentResult> {
-	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath } = context;
+	const { ctx, vault, downloadAttachments, placeAttachment } = context;
 
 	// Every failure path leaves the note pointing at Airtable's own URL, so the
 	// attachment is still reachable even though it is not in the vault
@@ -37,6 +37,18 @@ async function downloadAttachment(
 	}
 
 	try {
+		const sanitized = sanitizeFileName(attachment.filename);
+
+		// Where it goes is settled first, because the answer may be a file the
+		// vault already holds - and then there is nothing to download.
+		const { path, reuse } = await placeAttachment(sanitized, attachment.size);
+		const local: AttachmentResult = { path: normalizePath(path), isLocal: true, filename: sanitized };
+
+		if (reuse) {
+			ctx.reportSkipped(sanitized, i18n.reason.alreadyInVault());
+			return local;
+		}
+
 		ctx.status(i18n.importer.airtableApi.statusDownloadingAttachment({ name: attachment.filename }));
 
 		const response = await requestUrl({
@@ -50,17 +62,9 @@ async function downloadAttachment(
 			return remote;
 		}
 
-		const sanitized = sanitizeFileName(attachment.filename);
+		await vault.createBinary(local.path, response.arrayBuffer);
 
-		// Respects the user's attachment folder settings
-		const normalizedPath = normalizePath(await getAvailableAttachmentPath(sanitized));
-		await vault.createBinary(normalizedPath, response.arrayBuffer);
-
-		return {
-			path: normalizedPath,
-			isLocal: true,
-			filename: sanitized,
-		};
+		return local;
 	}
 	catch (error) {
 		console.error(`Failed to download attachment ${attachment.filename}:`, error);
@@ -131,10 +135,10 @@ export async function downloadAttachmentList(
 		ctx: ImportContext;
 		vault: Vault;
 		downloadAttachments: boolean;
-		getAvailableAttachmentPath: (filename: string) => Promise<string>;
+		placeAttachment: (filename: string, size: number | undefined) => Promise<AttachmentPlacement>;
 	}
 ): Promise<AttachmentResult[]> {
-	const { ctx, vault, downloadAttachments, getAvailableAttachmentPath } = context;
+	const { ctx, vault, downloadAttachments, placeAttachment } = context;
 	const results: AttachmentResult[] = [];
 
 	for (const attachment of attachments) {
@@ -142,7 +146,7 @@ export async function downloadAttachmentList(
 			ctx,
 			vault,
 			downloadAttachments,
-			getAvailableAttachmentPath,
+			placeAttachment,
 		});
 
 		if (result.isLocal) {

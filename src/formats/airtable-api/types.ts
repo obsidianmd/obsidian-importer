@@ -140,7 +140,21 @@ export interface AirtableAttachment {
 	id: string;
 	url: string;
 	filename: string;
+	/** Bytes, as the records endpoint reports them. Absent on an older response. */
+	size?: number;
 	type: string;
+}
+
+/**
+ * Where an attachment belongs, and whether it is already there.
+ *
+ * Answered before anything is downloaded, so a second import of a file it
+ * already holds costs neither the bytes nor a second copy of them.
+ */
+export interface AttachmentPlacement {
+	path: string;
+	/** The file already at that path, when it is this same attachment. */
+	reuse: boolean;
 }
 
 /**

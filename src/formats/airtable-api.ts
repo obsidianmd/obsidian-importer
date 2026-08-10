@@ -39,6 +39,7 @@ import {
 import type {
 	AirtableTreeNode,
 	AirtableViewInfo,
+	AttachmentPlacement,
 	AirtableFieldSchema,
 	AirtableRecord,
 	PreparedTableData,
@@ -1222,9 +1223,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				ctx,
 				vault: this.vault,
 				downloadAttachments: this.downloadAttachments,
-				getAvailableAttachmentPath: async (filename: string) => {
-					return await this.getAvailablePathForAttachment(filename, [], filePath);
-				},
+				placeAttachment: this.attachmentPlacer(filePath),
 			}),
 			formatAttachmentsForBody: results => formatAttachmentsForBody(results, {
 				currentFilePath: filePath,
@@ -1243,6 +1242,29 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		this.processedRecordsCount++;
 		this.reportOverallProgress(ctx);
+	}
+
+	/**
+	 * Where a record's attachments go, and which of them are already there.
+	 *
+	 * A name and a size together are as much identity as Airtable leaves in the
+	 * vault: the attachment id it hands out is not written anywhere a later
+	 * import could read it back from. So the same name holding the same number
+	 * of bytes is taken to be this attachment again and left alone, and any
+	 * other file of that name is somebody else's and passed over for the next
+	 * name along.
+	 *
+	 * Without this, every import found its own file already there, wrote
+	 * "cover 1.png" beside it, and changed the note to say so - which under
+	 * "Update" is a record that has changed every time it is looked at.
+	 */
+	protected attachmentPlacer(notePath: string): (filename: string, size: number | undefined) => Promise<AttachmentPlacement> {
+		return async (filename, size) => {
+			const { path, reuse } = await this.placeAttachment(filename, notePath, existing =>
+				size !== undefined && existing.stat.size === size ? 'same' : 'another');
+
+			return { path, reuse: reuse !== null };
+		};
 	}
 
 	private computeTableFormulas(fields: AirtableFieldSchema[], primaryFieldId: string): Map<string, string> {
