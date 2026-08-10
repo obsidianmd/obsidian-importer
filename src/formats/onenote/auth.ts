@@ -9,8 +9,9 @@ const SCOPES = {
 	organization: ['openid', 'user.read', 'notes.read.all'],
 } satisfies Record<MicrosoftAccountType, string[]>;
 
-export function accountType(value: unknown): MicrosoftAccountType {
-	return value === 'organization' ? value : 'personal';
+/** What was stored for the account, or null when nothing recognisable was. */
+export function storedAccountType(value: unknown): MicrosoftAccountType | null {
+	return value === 'organization' || value === 'personal' ? value : null;
 }
 
 const MICROSOFT_CONSUMER_TENANT_ID = '9188040d-6c67-4c5b-b112-36a304b66dad';
@@ -43,9 +44,7 @@ export function graphScopes(type: MicrosoftAccountType): string[] {
 	return SCOPES[type];
 }
 
-export function tokenUrl(): string {
-	return `${AUTHORITY}/token`;
-}
+export const TOKEN_URL = `${AUTHORITY}/token`;
 
 export function authorizationUrl(
 	type: MicrosoftAccountType,

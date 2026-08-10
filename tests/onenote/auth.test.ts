@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { accountType, accountTypeFromToken, authorizationUrl, graphScopes, tokenUrl } from '../../src/formats/onenote/auth';
+import { accountTypeFromToken, authorizationUrl, graphScopes, storedAccountType, TOKEN_URL } from '../../src/formats/onenote/auth';
 
 const CLIENT_ID = 'client-id';
 const REDIRECT_URI = 'obsidian://importer-auth/';
@@ -33,7 +33,7 @@ test('both account kinds sign in through the common authority', () => {
 		assert.equal(url.pathname, '/common/oauth2/v2.0/authorize', `for ${type}`);
 	}
 
-	assert.equal(tokenUrl(), 'https://login.microsoftonline.com/common/oauth2/v2.0/token');
+	assert.equal(TOKEN_URL, 'https://login.microsoftonline.com/common/oauth2/v2.0/token');
 });
 
 test('sign-in always asks which remembered account to use', () => {
@@ -44,10 +44,11 @@ test('sign-in always asks which remembered account to use', () => {
 	}
 });
 
-test('an unknown stored account type falls back to personal', () => {
-	assert.equal(accountType(undefined), 'personal');
-	assert.equal(accountType('work'), 'personal');
-	assert.equal(accountType('organization'), 'organization');
+test('only a recognised stored account type is read back', () => {
+	assert.equal(storedAccountType(undefined), null);
+	assert.equal(storedAccountType('work'), null);
+	assert.equal(storedAccountType('personal'), 'personal');
+	assert.equal(storedAccountType('organization'), 'organization');
 });
 
 function token(claims: Record<string, unknown>): string {

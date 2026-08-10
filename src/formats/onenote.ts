@@ -8,11 +8,13 @@ import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
 import { AccessTokenResponse } from './onenote/models';
 import { convertPageTags, pageToMarkdown } from './onenote/convert';
-import { describeNotebookFailure } from './onenote/errors';
+import { describeNotebookFailure, SCOPE_REFUSED, THROTTLED } from './onenote/errors';
 import { requestFailure } from '../request-failure';
-import { accountType, accountTypeFromToken, authorizationUrl, graphScopes, tokenUrl } from './onenote/auth';
+import { accountTypeFromToken, authorizationUrl, graphScopes, storedAccountType, TOKEN_URL } from './onenote/auth';
 import type { MicrosoftAccountType } from './onenote/auth';
 import { inkmlToSvg } from './onenote/inkml';
+import { splitext } from '../filesystem';
+import { extensionForMime } from '../mime';
 
 const ACCOUNT_SECRET_ID = 'onenote-importer';
 const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
@@ -36,6 +38,8 @@ type JSONWrappedResponse<T> = {
 	value: T[];
 };
 
+type ResourceType = 'text' | 'file' | 'json' | 'json-wrapped';
+
 function assertUnreachable(x: never): never {
 	throw new Error(`Didn't expect to get here`);
 }
@@ -44,11 +48,6 @@ export function findingNotes(title: string, index: number, sections: number): st
 	return sections > 1
 		? `Finding notes in ${title} (section ${index + 1} of ${sections})`
 		: `Finding notes in ${title}`;
-}
-
-function worthRetrying(status: number): boolean {
-	// OneNote sometimes returns transient bare 400s for page requests.
-	return status !== 403 && status !== 404;
 }
 
 /**
@@ -145,13 +144,8 @@ export class OneNoteImporter extends FormatImporter {
 		return this.selectedSections.length > 0;
 	}
 
-	private get microsoftAccountType(): MicrosoftAccountType {
-		return accountType(this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY));
-	}
-
-	private get knownAccountType(): MicrosoftAccountType | null {
-		const stored: unknown = this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY);
-		return stored === 'organization' || stored === 'personal' ? stored : null;
+	private get microsoftAccountType(): MicrosoftAccountType | null {
+		return storedAccountType(this.app.loadLocalStorage(ACCOUNT_TYPE_STORAGE_KEY));
 	}
 
 	private set microsoftAccountType(value: MicrosoftAccountType) {
@@ -248,7 +242,7 @@ export class OneNoteImporter extends FormatImporter {
 			.catch(e => console.error('Could not complete sign in', e)));
 
 		window.open(authorizationUrl(
-			this.microsoftAccountType,
+			this.microsoftAccountType ?? 'personal',
 			GRAPH_CLIENT_ID,
 			AUTH_REDIRECT_URI,
 			this.graphData.state,
@@ -278,7 +272,7 @@ export class OneNoteImporter extends FormatImporter {
 		// used if this import takes a long time, or for future imports.
 		const requestBody = new URLSearchParams({
 			client_id: GRAPH_CLIENT_ID,
-			scope: 'offline_access ' + graphScopes(this.microsoftAccountType).join(' '),
+			scope: 'offline_access ' + graphScopes(this.microsoftAccountType ?? 'personal').join(' '),
 			redirect_uri: AUTH_REDIRECT_URI,
 		});
 		if (code) {
@@ -296,7 +290,7 @@ export class OneNoteImporter extends FormatImporter {
 
 		const tokenResponse: AccessTokenResponse = await requestUrl({
 			method: 'POST',
-			url: tokenUrl(),
+			url: TOKEN_URL,
 			contentType: 'application/x-www-form-urlencoded',
 			body: requestBody.toString(),
 		}).json;
@@ -353,7 +347,7 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			// Personal accounts cannot consent to Notes.Read.All, so escalating
 			// one leaves it unable to sign in at all.
-			if (requestFailure(e).code === '40004' && this.knownAccountType !== 'personal') {
+			if (requestFailure(e).code === SCOPE_REFUSED && this.microsoftAccountType !== 'personal') {
 				this.microsoftAccountType = 'organization';
 			}
 
@@ -393,7 +387,7 @@ export class OneNoteImporter extends FormatImporter {
 			hint: SIGNED_OUT_HINT,
 			loading: 'Loading notebooks...',
 			empty: 'No notebooks found.',
-			failed: error => describeNotebookFailure(error),
+			failed: describeNotebookFailure,
 			view: {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
 			},
@@ -462,34 +456,24 @@ export class OneNoteImporter extends FormatImporter {
 
 			progress.status(`Importing note ${page.title}`);
 
-			let failure: unknown = null;
 			try {
 				const content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
 				await this.processFile(progress, content, page);
-			}
-			catch (e) {
-				failure = e;
-				progress.reportFailed(page.title, String(e));
-			}
-
-			if (!failure) {
 				consecutiveFailureCount = 0;
 			}
-			// Page-specific failures do not indicate a broken import environment.
-			else if (!(failure instanceof PageContentError)) {
-				consecutiveFailureCount++;
+			catch (e) {
+				progress.reportFailed(page.title, String(e));
 
-				if (consecutiveFailureCount > 5 || this.host.abortController.signal.aborted) {
-					const e = failure;
-					const status = this.host.abortController.signal.aborted
+				// Page-specific failures do not indicate a broken import environment.
+				if (!(e instanceof PageContentError)
+					&& (++consecutiveFailureCount > 5 || this.host.abortController.signal.aborted)) {
+					progress.status(this.host.abortController.signal.aborted
 						? extractErrorMessage(e) ?? String(e)
-						: 'Microsoft OneNote returned too many consecutive errors.';
-					progress.status(status);
+						: 'Microsoft OneNote returned too many consecutive errors.');
 
-					for (let j = i + 1; j < queue.length; j++) {
-						const remainingPage = queue[j];
+					for (const remaining of queue.slice(i + 1)) {
 						progress.reportSkipped(
-							remainingPage.title ?? '<unknown>',
+							remaining.title ?? '<unknown>',
 							'import was canceled (after too many pages failed to load)'
 						);
 					}
@@ -551,12 +535,8 @@ export class OneNoteImporter extends FormatImporter {
 
 			progress.status(findingNotes(section.title, index, sections.length));
 
+			await this.readingAhead.get(section.id);
 			let pages = this.sectionPages.get(section.id);
-
-			if (!pages) {
-				await this.readingAhead.get(section.id);
-				pages = this.sectionPages.get(section.id);
-			}
 
 			if (!pages) {
 				try {
@@ -826,7 +806,7 @@ export class OneNoteImporter extends FormatImporter {
 				continue;
 			}
 
-			const extension = originalName.split('.').pop()?.toLowerCase() ?? '';
+			const [, extension] = splitext(originalName);
 			if (!ATTACHMENT_EXTS.contains(extension) && !this.importIncompatibleAttachments) {
 				continue;
 			}
@@ -837,17 +817,15 @@ export class OneNoteImporter extends FormatImporter {
 				continue;
 			}
 
-			{
-				const filename = await this.fetchAttachment(progress, originalName, contentLocation, notePath);
-				if (!filename) continue;
+			const filename = await this.fetchAttachment(progress, originalName, contentLocation, notePath);
+			if (!filename) continue;
 
-				// Create a new <p> element with the Markdown-style link
-				const markdownLink = createEl('p');
-				markdownLink.innerText = `![[${filename}]]`;
+			// Create a new <p> element with the Markdown-style link
+			const markdownLink = createEl('p');
+			markdownLink.innerText = `![[${filename}]]`;
 
-				// Replace the <object> tag with the new <p> element
-				object.parentNode?.replaceChild(markdownLink, object);
-			}
+			// Replace the <object> tag with the new <p> element
+			object.parentNode?.replaceChild(markdownLink, object);
 		}
 
 		for (let i = 0; i < images.length; i++) {
@@ -858,7 +836,7 @@ export class OneNoteImporter extends FormatImporter {
 				continue;
 			}
 
-			const extension = image.getAttribute('data-fullres-src-type')?.split('/')[1] ?? 'png';
+			const extension = extensionForMime(image.getAttribute('data-fullres-src-type') ?? '') || 'png';
 			const currentDate = moment().format('YYYYMMDDHHmmss');
 			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation, notePath);
@@ -892,12 +870,6 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string, notePath: string): Promise<string | null> {
-		if (this.throttleSpacingMs > 0) {
-			await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
-		}
-
-		progress.status('Downloading attachment ' + filename);
-
 		try {
 			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath);
 
@@ -905,6 +877,13 @@ export class OneNoteImporter extends FormatImporter {
 				progress.reportSkipped(filename, 'it is already in the vault');
 				return reuse.path;
 			}
+
+			// Only downloads are worth spacing out; a reuse never reaches Graph.
+			if (this.throttleSpacingMs > 0) {
+				await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
+			}
+
+			progress.status('Downloading attachment ' + filename);
 
 			const data = (await this.fetchResource(contentLocation, 'file', progress));
 			await this.writeAttachment(outputPath, data);
@@ -920,11 +899,16 @@ export class OneNoteImporter extends FormatImporter {
 		}
 	}
 
-	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
-	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<T>;
-	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext, retryCount?: number, refreshed?: boolean): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: 'text' | 'file' | 'json' | 'json-wrapped', progress?: ImportContext, retryCount: number = 0, refreshed: boolean = false): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource<T = string>(url: string, returnType: 'text', progress?: ImportContext): Promise<T>;
+	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext): Promise<T>;
+	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext): Promise<JSONWrappedResponse<T>>;
+	async fetchResource<T>(url: string, returnType: ResourceType, progress?: ImportContext): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+		return this.fetchWithRetry<T>(url, returnType, progress, 0, false);
+	}
+
+	/** `retryCount` and `refreshed` are what one attempt hands the next. */
+	private async fetchWithRetry<T>(url: string, returnType: ResourceType, progress: ImportContext | undefined, retryCount: number, refreshed: boolean): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -1000,11 +984,11 @@ export class OneNoteImporter extends FormatImporter {
 					if (refreshed) throw new GraphRefusal(response.status, err);
 
 					await this.updateAccessToken();
-					return this.fetchResource(url, returnType as any, progress, retryCount + 1, true);
+					return this.fetchWithRetry<T>(url, returnType, progress, retryCount + 1, true);
 				}
 
 				// We're rate-limited - let's retry after the suggested amount of time
-				if (err?.code === '20166' || response.status === 429) {
+				if (err?.code === THROTTLED || response.status === 429) {
 					this.throttleSpacingMs = Math.min(
 						MAX_ATTACHMENT_SPACING_MS,
 						this.throttleSpacingMs + ATTACHMENT_SPACING_STEP_MS,
@@ -1029,9 +1013,9 @@ export class OneNoteImporter extends FormatImporter {
 						progress,
 					);
 
-					return this.fetchResource(
+					return this.fetchWithRetry<T>(
 						url,
-						returnType as any,
+						returnType,
 						progress,
 						// don't increment the retryCount because we were told
 						// to backoff, and we should infinitely retry on backoff
@@ -1041,13 +1025,15 @@ export class OneNoteImporter extends FormatImporter {
 					);
 				}
 
-				// A scope refusal will not change on retry.
-				const settled = !worthRetrying(response.status) || err?.code === '40004';
+				// A refusal, or a refused scope, will not change on retry — but
+				// OneNote does return transient bare 400s for page requests.
+				const settled = response.status === 403 || response.status === 404
+					|| err?.code === SCOPE_REFUSED;
 				if (settled || retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
 					throw new GraphRefusal(response.status, err);
 				}
 
-				return this.fetchResource(url, returnType as any, progress, retryCount + 1, refreshed);
+				return this.fetchWithRetry<T>(url, returnType, progress, retryCount + 1, refreshed);
 			}
 		}
 		catch (e) {
@@ -1064,7 +1050,7 @@ export class OneNoteImporter extends FormatImporter {
 			// well.
 			if (retryCount + 1 >= MAX_RETRY_ATTEMPTS) throw e;
 
-			return this.fetchResource(url, returnType as any, progress, retryCount + 1, refreshed);
+			return this.fetchWithRetry<T>(url, returnType, progress, retryCount + 1, refreshed);
 		}
 	}
 }
