@@ -541,19 +541,12 @@ export abstract class FormatImporter {
 		});
 	}
 
-	private defaultDuplicateHandling(): DuplicateHandling {
-		for (const preferred of [DuplicateHandling.Update, DuplicateHandling.Skip]) {
-			if (this.duplicateModes.includes(preferred)) return preferred;
-		}
-
-		return this.duplicateModes[0];
-	}
-
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
 		// init() may remove the field default from duplicateModes.
 		if (!this.duplicateModes.includes(this.duplicateHandling)) {
-			this.duplicateHandling = this.defaultDuplicateHandling();
+			this.duplicateHandling = [DuplicateHandling.Update, DuplicateHandling.Skip]
+				.find(mode => this.duplicateModes.includes(mode)) ?? this.duplicateModes[0];
 		}
 
 		if (!this.host.plugin) return;
@@ -648,25 +641,47 @@ export abstract class FormatImporter {
 		return normalizePath(`${noteFolder}/${configured}`);
 	}
 
+	/** How an attachment is named in its folder, and how collisions are numbered. */
+	private async attachmentNaming(filename: string, sourcePath?: string): Promise<{
+		preferred: string;
+		free: (taken: (path: string) => boolean) => string;
+	}> {
+		const folder = await this.createFolders(await this.attachmentFolderPath(sourcePath));
+		const parent = folder.path === '/' ? '' : folder.path;
+
+		const { basename, extension } = parseFilePath(filename);
+		const name = sanitizeFileName(basename);
+		const fullExt = extension ? '.' + extension : '';
+
+		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
+		const preferred = at(`${name}${fullExt}`);
+
+		const free = (taken: (path: string) => boolean) => {
+			let path = preferred;
+			for (let i = 1; taken(path); i++) {
+				path = at(`${name} ${i}${fullExt}`);
+			}
+			return path;
+		};
+
+		return { preferred, free };
+	}
+
 	/** Reuse prior imports, but give same-run name collisions a new path. */
 	protected async placeAttachment(
 		filename: string,
 		sourcePath?: string,
 		sourceMtime?: number,
 	): Promise<{ path: string, reuse: TFile | null }> {
-		const unclaimedPath = async () => {
-			const path = await this.getAvailablePathForAttachment(filename, [], sourcePath);
+		const { preferred: candidate, free } = await this.attachmentNaming(filename, sourcePath);
+
+		const unclaimedPath = () => {
+			const path = free(taken => !!this.vault.getAbstractFileByPath(taken));
 			this.claimPath(path);
 			return { path, reuse: null };
 		};
 
 		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return unclaimedPath();
-
-		const folderPath = await this.attachmentFolderPath(sourcePath);
-		const parent = folderPath === '/' ? '' : folderPath;
-		const { basename, extension } = parseFilePath(filename);
-		const name = `${sanitizeFileName(basename)}${extension ? `.${extension}` : ''}`;
-		const candidate = normalizePath(parent ? `${parent}/${name}` : name);
 
 		if (this.hasClaimed(candidate)) return unclaimedPath();
 
@@ -700,24 +715,10 @@ export abstract class FormatImporter {
 	}
 
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		const folderPath = await this.attachmentFolderPath(sourcePath);
-		const folder = await this.createFolders(folderPath);
-		const parent = folder.path === '/' ? '' : folder.path;
+		const { free } = await this.attachmentNaming(filename, sourcePath);
 
-		const { basename, extension } = parseFilePath(filename);
-		const name = sanitizeFileName(basename);
-		const fullExt = extension ? '.' + extension : '';
-
-		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
-		const taken = (candidate: string) =>
-			claimedPaths.includes(candidate) || !!this.vault.getAbstractFileByPath(candidate);
-
-		let outputPath = at(`${name}${fullExt}`);
-		for (let i = 1; taken(outputPath); i++) {
-			outputPath = at(`${name} ${i}${fullExt}`);
-		}
-
-		return outputPath;
+		return free(candidate =>
+			claimedPaths.includes(candidate) || !!this.vault.getAbstractFileByPath(candidate));
 	}
 
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {
