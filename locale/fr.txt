@@ -1427,12 +1427,8 @@ original=Download external attachments
 translation=Télécharger les pièces jointes externes
 
 [importer.notion-api.desc-download-external]
-original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. 
-translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés. 
-
-[importer.notion-api.desc-download-external-folder]
-original=Attachments will be saved according to your vault's attachment folder settings.
-translation=Les pièces jointes seront enregistrées selon les réglages du dossier de pièces jointes de votre coffre.
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés.
 
 [importer.notion-api.name-single-line-breaks]
 original=Single line breaks

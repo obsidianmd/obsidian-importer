@@ -1427,11 +1427,7 @@ original=Download external attachments
 translation=
 
 [importer.notion-api.desc-download-external]
-original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. 
-translation=
-
-[importer.notion-api.desc-download-external-folder]
-original=Attachments will be saved according to your vault's attachment folder settings.
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
 translation=
 
 [importer.notion-api.name-single-line-breaks]

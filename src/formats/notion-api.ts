@@ -138,7 +138,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// Download external attachments option
 		this.addSetting()
 			?.setName(i18n.importer.notionApi.nameDownloadExternal())
-			.setDesc(this.createAttachmentDescription())
+			.setDesc(i18n.importer.notionApi.descDownloadExternal())
 			.addToggle(toggle => {
 				toggle
 					.setValue(false)
@@ -204,14 +204,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = createFragment();
 		frag.appendText(i18n.importer.notionApi.descFormulas());
-		return frag;
-	}
-
-	private createAttachmentDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.notionApi.descDownloadExternal());
-		frag.createEl('br');
-		frag.appendText(i18n.importer.notionApi.descDownloadExternalFolder());
 		return frag;
 	}
 
