@@ -1,5 +1,5 @@
 import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions } from 'obsidian';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { Client, PageObjectResponse } from '@notionhq/client';
@@ -133,7 +133,8 @@ export class NotionAPIImporter extends FormatImporter {
 	 * is not rewritten to point at them. Keeping the two apart is what lets a
 	 * preserved note keep its children without the note being touched.
 	 */
-	private syncedChildrenToReach: Set<string> = new Set();
+	private syncedChildPagesToReach: Set<string> = new Set();
+	private syncedChildDatabasesToReach: Set<string> = new Set();
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -394,7 +395,8 @@ export class NotionAPIImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		this.writtenPaths.clear();
 		this.recoveredPaths.clear();
-		this.syncedChildrenToReach.clear();
+		this.syncedChildPagesToReach.clear();
+		this.syncedChildDatabasesToReach.clear();
 
 		// Validate inputs
 		if (!this.notionToken) {
@@ -487,6 +489,10 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			}
 
+			// Before the passes that turn placeholders into links, so what they
+			// are asked to link to is in the vault by the time they look.
+			await this.reachSyncedChildren(ctx);
+
 			// After all pages are imported, replace relation placeholders
 			ctx.status(i18n.importer.notionApi.statusRelationLinks());
 			await this.replaceRelationPlaceholders(ctx);
@@ -521,7 +527,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * The fake block only needs the 'id' and 'type' fields, as the rest of the information is fetched
 	 * from the Notion API inside convertChildDatabase().
 	 */
-	private async importTopLevelDatabase(
+	protected async importTopLevelDatabase(
 		ctx: ImportContext,
 		databaseId: string,
 		parentPath: string,
@@ -651,9 +657,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// since, can still have links an interrupted run left unresolved
 			// repaired. A note edited in Obsidian since the import is the
 			// user's, and nothing here may write to it at all.
-			const leavingItAlone = disposition === 'skip'
-				|| disposition === 'unchanged'
-				|| disposition === 'preserve';
+			const leavingItAlone = leavesTheNoteAlone(disposition);
 
 			if (planned?.file && leavingItAlone) {
 				await this.adoptSkippedNote(planned.file, pageId, disposition !== 'preserve');
@@ -1204,8 +1208,6 @@ export class NotionAPIImporter extends FormatImporter {
  * Performance: Only processes files that contain synced child placeholders (O(n) where n = files with placeholders)
  */
 	protected async replaceSyncedChildPlaceholders(ctx: ImportContext): Promise<void> {
-		await this.reachSyncedChildren(ctx);
-
 		if (this.syncedChildPagePlaceholders.size === 0 && this.syncedChildDatabasePlaceholders.size === 0) {
 			return;
 		}
@@ -1429,15 +1431,21 @@ export class NotionAPIImporter extends FormatImporter {
 		const recovered = this.duplicateHandling === DuplicateHandling.CreateCopy
 			? await this.recoverSyncedBlockNote(ctx, folderPath, fileName, blockId)
 			: null;
-		if (recovered) return recovered;
 
-		const planned = this.planNote(folderPath, fileName.replace(/\.md$/i, ''), blockId);
+		// A note this run already wrote is not written again, but the block is
+		// still walked: Notion may have gained a page under it between the run
+		// that stopped and this one. The note's own placeholders were read out
+		// of the file when it was recognised.
+		if (recovered) {
+			this.noteChildrenOf(await convert(recovered, { forChildrenOnly: true, keepPlaceholders: false }));
+			return recovered;
+		}
+
+		const planned = this.planNote(folderPath, this.syncedBlockTitle(folderPath, fileName), blockId);
 		const sourceMtime = lastEditedTime ? new Date(lastEditedTime).getTime() : undefined;
 		const disposition = this.preflightNote(ctx, planned, sourceMtime);
 
-		const leavingItAlone = disposition === 'skip'
-			|| disposition === 'unchanged'
-			|| disposition === 'preserve';
+		const leavingItAlone = leavesTheNoteAlone(disposition);
 
 		// The placeholders of a note being left alone are the ones in the note,
 		// not the ones in what was just converted: an earlier run may have been
@@ -1455,9 +1463,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// Whatever is under it is still fetched, whether or not its note is
 			// ever touched again.
-			for (const type of [PlaceholderType.SYNCED_CHILD_PAGE, PlaceholderType.SYNCED_CHILD_DATABASE]) {
-				for (const id of extractPlaceholderIds(markdown, type)) this.syncedChildrenToReach.add(id);
-			}
+			this.noteChildrenOf(markdown);
 
 			return planned.file?.path ?? planned.targetPath;
 		}
@@ -1476,6 +1482,16 @@ export class NotionAPIImporter extends FormatImporter {
 		return file.path;
 	}
 
+	/** Remember the pages and databases a synced block's markdown points into. */
+	private noteChildrenOf(markdown: string): void {
+		for (const id of extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE)) {
+			this.syncedChildPagesToReach.add(id);
+		}
+		for (const id of extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE)) {
+			this.syncedChildDatabasesToReach.add(id);
+		}
+	}
+
 	/**
 	 * Import what sits under a synced block whose note is not being rewritten.
 	 *
@@ -1483,25 +1499,51 @@ export class NotionAPIImporter extends FormatImporter {
 	 * only looks inside files it is going to rewrite. A note left alone is not
 	 * one of those, and a note the user has edited must never be - so what is
 	 * under it is fetched here instead, where no file is touched.
+	 *
+	 * A page and a database are asked for as what they are. Guessing at one and
+	 * falling back to the other cannot work: fetchAndImportPage reports its own
+	 * failures rather than raising them, so the fallback would never run and
+	 * every database would be reported as a page that could not be read.
 	 */
-	private async reachSyncedChildren(ctx: ImportContext): Promise<void> {
-		for (const id of this.syncedChildrenToReach) {
+	protected async reachSyncedChildren(ctx: ImportContext): Promise<void> {
+		for (const pageId of this.syncedChildPagesToReach) {
 			if (await ctx.shouldStop()) return;
-			if (this.notionIdToPath.has(id) || this.processedDatabases.has(id)) continue;
+			if (this.notionIdToPath.has(pageId)) continue;
+
+			await this.fetchAndImportPage({ ctx, pageId, parentPath: this.outputRootPath });
+		}
+
+		for (const databaseId of this.syncedChildDatabasesToReach) {
+			if (await ctx.shouldStop()) return;
+			if (this.processedDatabases.has(databaseId)) continue;
 
 			try {
-				await this.fetchAndImportPage({ ctx, pageId: id, parentPath: this.outputRootPath });
+				await this.importTopLevelDatabase(ctx, databaseId, this.outputRootPath);
 			}
-			catch {
-				// Not a page, or not one this token can read. A database of that
-				// id is the other thing it can be, and the last thing to try.
-				try {
-					await this.importTopLevelDatabase(ctx, id, this.outputRootPath);
-				}
-				catch (error) {
-					console.warn(`Could not import what a synced block holds: ${id}`, error);
-				}
+			catch (error) {
+				console.warn(`Could not import a database a synced block holds: ${databaseId}`, error);
 			}
+		}
+	}
+
+	/**
+	 * What to call a synced block's note, when the id may not be there to ask.
+	 *
+	 * Two synced blocks on one page are named alike, so the second is "… 1.md".
+	 * With ids kept, which is which is never in doubt - the id finds the note
+	 * wherever it is. With "Save source ID" off there are no ids by the time the
+	 * next import runs, and the name is all that is left: so the second block
+	 * takes the second name, rather than the first name nothing is using, which
+	 * would have been "… 2.md" and then "… 3.md" on the import after that.
+	 */
+	private syncedBlockTitle(folderPath: string, fileName: string): string {
+		const { basename } = parseFilePath(fileName);
+
+		for (let nth = 0; ; nth++) {
+			const title = nth === 0 ? basename : `${basename} ${nth}`;
+			const path = normalizePath(folderPath ? `${folderPath}/${title}.md` : `${title}.md`);
+
+			if (!this.hasClaimed(path)) return title;
 		}
 	}
 
@@ -1519,6 +1561,9 @@ export class NotionAPIImporter extends FormatImporter {
 		fileName: string,
 		blockId: string,
 	): Promise<string | null> {
+		// The ids are only left behind for a run that meant to clear them.
+		if (this.saveSourceId) return null;
+
 		const { basename, extension } = parseFilePath(fileName);
 
 		for (let nth = 0; ; nth++) {

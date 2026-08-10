@@ -19,9 +19,11 @@ async function downloadAttachment(
 		vault: Vault;
 		downloadAttachments: boolean;
 		placeAttachment: (filename: string, size: number | undefined) => Promise<AttachmentPlacement>;
+		/** Give a name back when the download it was chosen for does not arrive. */
+		releasePath: (path: string) => void;
 	}
 ): Promise<AttachmentResult> {
-	const { ctx, vault, downloadAttachments, placeAttachment } = context;
+	const { ctx, vault, downloadAttachments, placeAttachment, releasePath } = context;
 
 	// Every failure path leaves the note pointing at Airtable's own URL, so the
 	// attachment is still reachable even though it is not in the vault
@@ -46,7 +48,7 @@ async function downloadAttachment(
 
 		if (reuse) {
 			ctx.reportSkipped(sanitized, i18n.reason.alreadyInVault());
-			return local;
+			return { ...local, reused: true };
 		}
 
 		ctx.status(i18n.importer.airtableApi.statusDownloadingAttachment({ name: attachment.filename }));
@@ -59,6 +61,7 @@ async function downloadAttachment(
 
 		if (response.status !== 200) {
 			console.warn(`Failed to download attachment: ${attachment.filename}`);
+			releasePath(local.path);
 			return remote;
 		}
 
@@ -136,9 +139,10 @@ export async function downloadAttachmentList(
 		vault: Vault;
 		downloadAttachments: boolean;
 		placeAttachment: (filename: string, size: number | undefined) => Promise<AttachmentPlacement>;
+		releasePath: (path: string) => void;
 	}
 ): Promise<AttachmentResult[]> {
-	const { ctx, vault, downloadAttachments, placeAttachment } = context;
+	const { ctx, vault, downloadAttachments, placeAttachment, releasePath } = context;
 	const results: AttachmentResult[] = [];
 
 	for (const attachment of attachments) {
@@ -147,9 +151,12 @@ export async function downloadAttachmentList(
 			vault,
 			downloadAttachments,
 			placeAttachment,
+			releasePath,
 		});
 
-		if (result.isLocal) {
+		// A file the vault already held was reported as passed over; counting it
+		// as an import as well would count it twice.
+		if (result.isLocal && !result.reused) {
 			ctx.reportAttachmentSuccess(result.filename ?? attachment.filename);
 		}
 

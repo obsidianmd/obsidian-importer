@@ -163,6 +163,8 @@ export interface AttachmentPlacement {
 export interface AttachmentResult {
 	path: string;
 	isLocal: boolean;
+	/** The vault already held it, so it is not one this import brought in. */
+	reused?: boolean;
 	filename?: string;
 	/** MIME type from Airtable, used to decide whether the link should be an embed */
 	mimeType?: string;

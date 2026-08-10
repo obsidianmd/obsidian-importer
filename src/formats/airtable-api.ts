@@ -1221,6 +1221,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				vault: this.vault,
 				downloadAttachments: this.downloadAttachments,
 				placeAttachment: this.attachmentPlacer(filePath),
+				releasePath: path => this.releasePath(path),
 			}),
 			formatAttachmentsForBody: results => formatAttachmentsForBody(results, {
 				currentFilePath: filePath,

@@ -43,6 +43,7 @@ const FIRST_BLOCK = '30000000-0000-4000-8000-000000000201';
 const CHAPTER_ONE = '10000000-0000-4000-8000-000000000202';
 const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null };
 const DIAGRAM = 'handbook-diagram.png';
+const QUESTIONS_DB = '60000000-0000-4000-8000-000000000201';
 
 /** Every URL an import asked for, so it can be shown to ask or not to ask. */
 const fetched: string[] = [];
@@ -85,9 +86,24 @@ class ImportingSyncedBlocks extends NotionAPIImporter {
 		return this.cleanupNotionIds(ctx);
 	}
 
-	/** The pass that resolves what a synced block holds, run as import() runs it. */
-	finishSyncedBlocks(ctx: ImportContext): Promise<void> {
-		return this.replaceSyncedChildPlaceholders(ctx);
+	/** Every database this import asked for as a database. */
+	readonly databasesAsked: string[] = [];
+
+	protected importTopLevelDatabase(ctx: ImportContext, databaseId: string, parentPath: string): Promise<void> {
+		this.databasesAsked.push(databaseId);
+
+		return super.importTopLevelDatabase(ctx, databaseId, parentPath);
+	}
+
+	/** What import() does after the pages, in the order it does it. */
+	async finishSyncedBlocks(ctx: ImportContext): Promise<void> {
+		await this.reachSyncedChildren(ctx);
+		await this.replaceSyncedChildPlaceholders(ctx);
+	}
+
+	/** Only the half that fetches, so the placeholder pass cannot stand in. */
+	reachOnly(ctx: ImportContext): Promise<void> {
+		return this.reachSyncedChildren(ctx);
 	}
 }
 
@@ -147,6 +163,31 @@ test('a synced note being rewritten fetches what it points at, skipped page or n
 	assert.ok(vault.paths().includes(DIAGRAM), 'and what it embeds is there to embed');
 	// Twice: how big it is, then the bytes, as any first fetch of a file is.
 	assert.deepEqual([...new Set(fetched)], ['https://example.invalid/handbook-diagram.png']);
+});
+
+// A database under a synced block is not a page, and asking for it as one
+// cannot be recovered from: fetchAndImportPage reports its own failures rather
+// than raising them, so nothing would ever fall through to the database.
+//
+// The note has to be one this import leaves alone, because that is when what
+// is under it is fetched separately from what its own file says. Only the
+// fetching half runs here: the placeholder pass imports databases too, and
+// would otherwise answer for a dispatch that never happened.
+test('a database under a synced block is asked for as a database', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+
+	const subject = new ImportingSyncedBlocks(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	subject.duplicateHandling = DuplicateHandling.Skip;
+	subject.answerFromFixture();
+	subject.indexImportedNotes();
+
+	const ctx = new ImportContext();
+	await subject.importPage(ctx);
+	await subject.reachOnly(ctx);
+
+	assert.deepEqual(subject.databasesAsked, [QUESTIONS_DB]);
+	assert.deepEqual(ctx.failed.filter(name => name.includes(QUESTIONS_DB)), [],
+		'and is not reported as a page that could not be read');
 });
 
 test('each synced block on a page gets a note of its own', async () => {
@@ -209,6 +250,22 @@ test('with "Save source ID" off, the id is written and then cleared', async () =
 		assert.doesNotMatch(String(vault.contents.get(path)), new RegExp(NOTION_ID_PROPERTY), `${path} after`);
 		assert.match(String(vault.contents.get(path)), /How we work\.|Who to ask\./, `${path} kept its content`);
 	}
+});
+
+// The ids are what a later import recognises these notes by, and with "Save
+// source ID" off they are taken out at the end of every run. What is left is
+// two notes of near-identical names and nothing to tell them apart.
+test('with "Save source ID" off, a second import still writes no more notes', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	const first = await importOnce(vault, DuplicateHandling.Skip, false);
+	await first.subject.cleanUp(first.ctx);
+	const before = markdown(vault);
+
+	const second = await importOnce(vault, DuplicateHandling.Skip, false);
+	await second.subject.cleanUp(second.ctx);
+
+	assert.deepEqual(markdown(vault), before);
 });
 
 // "Create a copy" turns off the index of ids, so the only way to know a note

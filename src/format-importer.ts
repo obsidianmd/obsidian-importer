@@ -131,6 +131,16 @@ export interface PlannedNote {
 export type NoteDisposition =
 	| 'create' | 'copy' | 'skip' | 'unchanged' | 'preserve' | 'update' | 'compare-content';
 
+/**
+ * Whether this answer means the note in the vault stays as it is.
+ *
+ * Three of the seven do. Which of the three matters separately: only
+ * `preserve` is a note the import may not write to at all.
+ */
+export function leavesTheNoteAlone(disposition: NoteDisposition): boolean {
+	return disposition === 'skip' || disposition === 'unchanged' || disposition === 'preserve';
+}
+
 const OUTCOME_OF: Record<'skip' | 'unchanged' | 'preserve', NoteOutcome> = {
 	skip: 'skipped',
 	unchanged: 'unchanged',
@@ -209,6 +219,17 @@ export abstract class FormatImporter {
 
 	protected claimPath(path: string): void {
 		this.claimed.add(normalizePath(path).toLowerCase());
+	}
+
+	/**
+	 * Give a name back, for a file that was never written after all.
+	 *
+	 * A download that does not arrive would otherwise leave its name reserved
+	 * for the rest of the import, and the next file of that name numbered
+	 * around a gap.
+	 */
+	protected releasePath(path: string): void {
+		this.claimed.delete(normalizePath(path).toLowerCase());
 	}
 
 	protected hasClaimed(path: string): boolean {
@@ -810,14 +831,21 @@ export abstract class FormatImporter {
 			: this.vault.createBinary(path, data, options);
 	}
 
+	/**
+	 * A name for an attachment that nothing else in this run is going to want.
+	 *
+	 * Notes are planned before they are written, so a name being free in the
+	 * vault is not the same as being free: an attachment called "notes.md" would
+	 * otherwise be handed a path a note is holding, and the note's own write
+	 * would then fail on a file the import had put in its way.
+	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
 		const at = await this.attachmentNaming(filename, sourcePath);
 
 		for (let nth = 0; ; nth++) {
 			const candidate = at(nth);
-			if (!claimedPaths.includes(candidate) && !this.vault.getAbstractFileByPath(candidate)) {
-				return candidate;
-			}
+			if (claimedPaths.includes(candidate) || this.hasClaimed(candidate)) continue;
+			if (!this.vault.getAbstractFileByPath(candidate)) return candidate;
 		}
 	}
 

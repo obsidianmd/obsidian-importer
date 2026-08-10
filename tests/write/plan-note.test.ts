@@ -84,6 +84,18 @@ test('a note this run has already planned onto is not planned onto twice', async
 	assert.equal(second.targetPath, 'Note 1.md');
 });
 
+// A note is planned before it is written, so the name it is holding is not
+// free even though the vault has nothing at it yet.
+test('an attachment is not given a name a note is waiting to be written under', async () => {
+	const { vault, subject } = importer(DuplicateHandling.Update);
+
+	const planned = subject.planNote(vault.root, 'notes');
+	const attachment = await subject.getAvailablePathForAttachment('notes.md', [], 'Somewhere.md');
+
+	assert.equal(planned.targetPath, 'notes.md');
+	assert.notEqual(attachment, 'notes.md');
+});
+
 test('what preflight makes of a note nothing matches', () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 

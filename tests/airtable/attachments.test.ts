@@ -47,6 +47,10 @@ class PlacingImporter extends AirtableAPIImporter {
 	placer(notePath: string): (filename: string, size: number | undefined) => Promise<AttachmentPlacement> {
 		return this.attachmentPlacer(notePath);
 	}
+
+	release(path: string): void {
+		this.releasePath(path);
+	}
 }
 
 /** One import's worth of attachment handling, over a vault that may hold some. */
@@ -60,6 +64,7 @@ async function resolve(vault: MemoryVault, attachments: AirtableAttachment[]) {
 		vault: vault as never,
 		downloadAttachments: true,
 		placeAttachment: subject.placer(NOTE),
+		releasePath: path => subject.release(path),
 	});
 
 	return { ctx, results };

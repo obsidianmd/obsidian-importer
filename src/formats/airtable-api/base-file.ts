@@ -163,6 +163,10 @@ function viewsIn(config: unknown): BasesConfigFileView[] {
 	const views = (config as { views?: unknown }).views;
 	if (!Array.isArray(views)) return [];
 
-	return views.filter((view): view is BasesConfigFileView =>
-		typeof view === 'object' && view !== null && typeof (view as { name?: unknown }).name === 'string');
+	return views.filter((view): view is BasesConfigFileView => {
+		if (typeof view !== 'object' || view === null) return false;
+		const { name, type } = view as { name?: unknown, type?: unknown };
+
+		return typeof name === 'string' && typeof type === 'string';
+	});
 }

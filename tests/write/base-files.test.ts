@@ -95,7 +95,10 @@ test('and a .base with no views yet is simply the imported ones', () => {
 test('a .base edited into something unreadable is simply regenerated', () => {
 	const imported = [{ type: 'table', name: 'All books' } as never];
 
-	for (const existing of [null, undefined, 'not a config', 42, {}, { views: 'nope' }, { views: [null, { type: 'table' }] }]) {
+	const broken = [null, undefined, 'not a config', 42, {}, { views: 'nope' },
+		{ views: [null, { type: 'table' }, { name: 'No type of its own' }] }];
+
+	for (const existing of broken) {
 		assert.deepEqual(mergedBaseViews(existing, imported), imported, JSON.stringify(existing));
 	}
 });
