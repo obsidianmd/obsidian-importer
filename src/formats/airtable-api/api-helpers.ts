@@ -3,6 +3,7 @@
  */
 
 import { requestUrl } from 'obsidian';
+import { i18n } from '../../i18n';
 import type { AirtableBaseInfo, AirtableTableInfo, AirtableRequestOptions, SelectRecordsOptions, StatusReporter } from './types';
 
 /**
@@ -77,7 +78,11 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions, at
 				? parseInt(response.headers['retry-after']) * 1000
 				: 30000; // Default 30 seconds as per Airtable docs
 
-			ctx.status(`Rate limited, waiting ${retryAfter / 1000}s (attempt ${attempt}/${MAX_RATE_LIMIT_RETRIES})...`);
+			ctx.status(i18n.importer.airtableApi.statusRateLimited({
+				seconds: retryAfter / 1000,
+				attempt,
+				total: MAX_RATE_LIMIT_RETRIES,
+			}));
 			await new Promise(resolve => window.setTimeout(resolve, retryAfter));
 			return makeAirtableRequest(options, attempt + 1);
 		}
@@ -102,7 +107,7 @@ export async function fetchBases(
 	token: string,
 	ctx: StatusReporter
 ): Promise<AirtableBaseInfo[]> {
-	ctx.status('Fetching bases...');
+	ctx.status(i18n.importer.airtableApi.msgFetchingBases());
 
 	const response = await makeAirtableRequest<{ bases: AirtableBaseInfo[] }>({
 		url: `${AIRTABLE_META_API_BASE}/bases`,
@@ -123,7 +128,7 @@ export async function fetchTableSchema(
 ): Promise<AirtableTableInfo[]> {
 	// Caller-supplied reporters usually have a friendlier label (the base's name)
 	// than the ID available here, so this only fills in when nothing else did
-	ctx.status(`Fetching tables for base ${baseId}...`);
+	ctx.status(i18n.importer.airtableApi.statusFetchingTables({ base: baseId }));
 
 	// visibleFieldIds gives each view the fields it shows and their order, which
 	// the schema otherwise omits. Grid views only; anything else leaves it unset.

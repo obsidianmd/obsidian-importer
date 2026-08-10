@@ -21,6 +21,7 @@ We're still experimenting with contributions, if you have any questions, please 
 - Keep it lightweight. The fewer the dependencies, the better. For example, please do not import `lodash` to use two functions from it.
 - Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
 - Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
+- Text the user will read belongs in `src/i18n/en.ts`, not in a string literal at the call site. Reach it with `i18n.<section>.<key>()`, and run `npm run locales` afterwards so the translation files keep up. See `locale/README.md`.
 - Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
 
 ### Bounties

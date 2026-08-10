@@ -3,6 +3,7 @@ import { PickedFile } from '../filesystem';
 import { FormatImporter, NoteWritten } from '../format-importer';
 import { ATTACHMENT_EXTS, helpUrl } from '../constants';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
 import { convertKeepNote } from './keep/convert';
@@ -28,20 +29,20 @@ export class KeepImporter extends FormatImporter {
 
 	init() {
 		this.addSetting('source')
-			?.setName('Export your data')
+			?.setName(i18n.common.nameExport())
 			.setDesc(createFragment(frag => {
-				frag.appendText('Get your Google Keep data from Google Takeout. ');
-				frag.createEl('a', { text: 'Learn more.', href: helpUrl(HELP_PERMALINK) });
+				frag.appendText(i18n.importer.keep.descExport());
+				frag.createEl('a', { text: i18n.common.labelLearnMore(), href: helpUrl(HELP_PERMALINK) });
 			}))
 			.addButton(button => button
-				.setButtonText('Open')
+				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open('https://takeout.google.com/settings/takeout')));
 
-		this.addFileChooserSetting('Notes & attachments', [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
+		this.addFileChooserSetting(i18n.importer.keep.fileType(), [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS], true);
 
 		this.addSetting()
-			?.setName('Import archived notes')
-			.setDesc('If imported, files archived in Google Keep will be tagged as archived.')
+			?.setName(i18n.importer.keep.nameArchived())
+			.setDesc(i18n.importer.keep.descArchived())
 			.addToggle(toggle => {
 				toggle.setValue(this.importArchived);
 				toggle.onChange(async (value) => {
@@ -50,8 +51,8 @@ export class KeepImporter extends FormatImporter {
 			});
 
 		this.addSetting()
-			?.setName('Import deleted notes')
-			.setDesc('If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.')
+			?.setName(i18n.importer.keep.nameDeleted())
+			.setDesc(i18n.importer.keep.descDeleted())
 			.addToggle(toggle => {
 				toggle.setValue(this.importTrashed);
 				toggle.onChange(async (value) => {
@@ -67,13 +68,13 @@ export class KeepImporter extends FormatImporter {
 		let { files } = this;
 
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		let folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to import your files to.');
+			new Notice(i18n.common.msgPickImportLocation());
 			return;
 		}
 		await this.handleFiles(files, folder, ctx);
@@ -100,7 +101,7 @@ export class KeepImporter extends FormatImporter {
 
 	async handleFile(file: PickedFile, folder: TFolder, ctx: ImportContext) {
 		let { fullpath, name, extension } = file;
-		ctx.status('Processing ' + name);
+		ctx.status(i18n.common.statusProcessing({ name }));
 		try {
 			if (extension === 'zip') {
 				await this.readZipEntries(file, folder, ctx);
@@ -126,21 +127,21 @@ export class KeepImporter extends FormatImporter {
 
 	async importKeepNote(file: PickedFile, folder: TFolder, ctx: ImportContext) {
 		let { fullpath, basename } = file;
-		ctx.status('Importing note ' + basename);
+		ctx.status(i18n.common.statusImportingNote({ name: basename }));
 
 		let content = await file.readText();
 
 		const keepJson = JSON.parse(content) as KeepJson;
 		if (!keepJson || !keepJson.userEditedTimestampUsec || !keepJson.createdTimestampUsec) {
-			ctx.reportFailed(fullpath, 'Invalid Google Keep JSON');
+			ctx.reportFailed(fullpath, i18n.importer.keep.reasonInvalidJson());
 			return;
 		}
 		if (keepJson.isArchived && !this.importArchived) {
-			ctx.reportSkipped(fullpath, 'Archived note');
+			ctx.reportSkipped(fullpath, i18n.importer.keep.reasonArchived());
 			return;
 		}
 		if (keepJson.isTrashed && !this.importTrashed) {
-			ctx.reportSkipped(fullpath, 'Deleted note');
+			ctx.reportSkipped(fullpath, i18n.importer.keep.reasonDeleted());
 			return;
 		}
 
@@ -149,7 +150,7 @@ export class KeepImporter extends FormatImporter {
 	}
 
 	async importAttachment(file: PickedFile, folder: TFolder, ctx: ImportContext): Promise<void> {
-		ctx.status('Importing attachment ' + file.name);
+		ctx.status(i18n.common.statusImportingAttachment({ name: file.name }));
 		const notePath = `${folder.path}/Keep.md`;
 		const outputPath = await this.getAvailablePathForAttachment(file.name, this.claimedAttachmentPaths, notePath);
 		this.claimedAttachmentPaths.push(outputPath);

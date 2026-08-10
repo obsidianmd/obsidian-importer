@@ -1,11 +1,12 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFile, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML, plural, sanitizeFileName } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { AccessTokenResponse } from './onenote/models';
 import { convertPageTags, pageToMarkdown } from './onenote/convert';
 import { describeNotebookFailure, SCOPE_REFUSED, THROTTLED } from './onenote/errors';
@@ -19,7 +20,9 @@ import { extensionForMime } from '../mime';
 const ACCOUNT_SECRET_ID = 'onenote-importer';
 const PREVIOUS_SECRET_ID = 'onenote-importer-refresh-token';
 const ACCOUNT_TYPE_STORAGE_KEY = 'onenote-importer-account-type';
-const SIGNED_OUT_HINT = 'Sign in to see your OneNote notebooks.';
+function signedOutHint(): string {
+	return i18n.importer.onenote.msgSignedOut();
+}
 const GRAPH_CLIENT_ID: string = '66553851-08fa-44f2-8bb1-1436f121a73d';
 // Regex for fixing broken HTML returned by the OneNote API
 const SELF_CLOSING_REGEX = /<(object|iframe)([^>]*)\/>/g;
@@ -79,8 +82,8 @@ function assertUnreachable(x: never): never {
 
 export function findingNotes(title: string, index: number, sections: number): string {
 	return sections > 1
-		? `Finding notes in ${title} (section ${index + 1} of ${sections})`
-		: `Finding notes in ${title}`;
+		? i18n.importer.onenote.statusFindingInSection({ section: title, index: index + 1, total: sections })
+		: i18n.importer.onenote.statusFindingIn({ section: title });
 }
 
 /**
@@ -215,11 +218,11 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.defaultOutputFolder = 'OneNote';
 		this.idProperty = 'onenote-id';
-		this.idLabel = 'OneNote ID';
+		this.idLabel = i18n.importer.onenote.labelId();
 
 		this.addSetting()
-			?.setName('Import incompatible attachments')
-			.setDesc('Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.')
+			?.setName(i18n.importer.onenote.nameIncompatible())
+			.setDesc(i18n.importer.onenote.descIncompatible())
 			.addToggle((toggle) => toggle
 				.setValue(false)
 				.onChange((value) => (this.importIncompatibleAttachments = value))
@@ -232,11 +235,11 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		this.accountSetting = new Setting(contentEl)
-			.setName('Microsoft account')
+			.setName(i18n.importer.onenote.nameAccount())
 			.addButton(button => {
 				this.organizationButton = button;
 				button
-					.setButtonText('Use work or school access')
+					.setButtonText(i18n.importer.onenote.buttonWorkAccount())
 					.onClick(() => {
 						this.signOut();
 						this.signIn('organization');
@@ -292,26 +295,29 @@ export class OneNoteImporter extends FormatImporter {
 		catch (e) {
 			this.authenticatingAccountType = null;
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
-			this.host.sourceEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
+			this.host.sourceEl?.createDiv({ text: i18n.importer.onenote.msgSignInFailed() })
 				.createEl('details', { text: String(e) })
-				.createEl('summary', { text: 'Click here to show error details' });
+				.createEl('summary', { text: i18n.importer.onenote.msgSignInDetails() });
 		}
 	}
 
 	private showSignedOut() {
 		this.organizationButton?.buttonEl.hide();
 		this.accountSetting.setDesc(this.microsoftAccountType === 'organization'
-			? 'Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.'
-			: 'Sign in to import your OneNote notebooks.');
-		this.accountButton.setButtonText('Sign in').setCta();
+			? i18n.importer.onenote.descSignInOrganization()
+			: i18n.importer.onenote.descSignIn());
+		this.accountButton.setButtonText(i18n.importer.onenote.buttonSignIn()).setCta();
 		this.accountButton.buttonEl.removeClass('mod-destructive');
 	}
 
 	async showSignedIn() {
 		this.organizationButton?.buttonEl.hide();
 		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
-		this.accountSetting.setDesc(`Signed in as ${userData.displayName} (${userData.mail}).`);
-		this.accountButton.setButtonText('Sign out').removeCta();
+		this.accountSetting.setDesc(i18n.importer.onenote.descSignedIn({
+			name: String(userData.displayName),
+			email: String(userData.mail),
+		}));
+		this.accountButton.setButtonText(i18n.importer.onenote.buttonSignOut()).removeCta();
 
 		this.accountButton.buttonEl.addClass('mod-destructive');
 	}
@@ -431,7 +437,7 @@ export class OneNoteImporter extends FormatImporter {
 
 	async showSectionPickerUI(): Promise<void> {
 		if (!this.signedIn) {
-			new Notice(SIGNED_OUT_HINT);
+			new Notice(signedOutHint());
 			return;
 		}
 
@@ -479,11 +485,11 @@ export class OneNoteImporter extends FormatImporter {
 
 	private drawSectionPicker(contentEl: HTMLElement): void {
 		this.picker = new TreePicker<OneNoteTreeNode>(contentEl, {
-			name: 'Sections to import',
-			desc: 'Select a notebook, or sections within it.',
-			hint: SIGNED_OUT_HINT,
-			loading: 'Loading notebooks...',
-			empty: 'No notebooks found.',
+			name: i18n.importer.onenote.nameSections(),
+			desc: i18n.importer.onenote.descSections(),
+			hint: signedOutHint(),
+			loading: i18n.importer.onenote.msgLoadingNotebooks(),
+			empty: i18n.importer.onenote.msgNoNotebooks(),
 			failed: describeNotebookFailure,
 			view: {
 				icon: node => node.type === 'notebook' ? 'book' : node.type === 'group' ? 'folder' : 'file',
@@ -523,21 +529,23 @@ export class OneNoteImporter extends FormatImporter {
 	async import(progress: ImportContext): Promise<void> {
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
 		if (!this.graphData.accessToken) {
-			new Notice('Please sign in to your Microsoft account.');
+			new Notice(i18n.importer.onenote.msgPleaseSignIn());
 			return;
 		}
 
-		progress.status('Finding notes to import');
+		progress.status(i18n.importer.onenote.statusFinding());
 		const queue = await this.readSelectedPages(progress);
 		if (await progress.shouldStop()) return;
 
 		const progressTotal = queue.length;
-		progress.status(`Importing ${plural(progressTotal, 'note')}`);
+		progress.status(i18n.importer.onenote.statusImportingNotes({
+			notes: i18n.nouns.noteWithCount({ count: progressTotal }),
+		}));
 		let progressCurrent = 0;
 		let consecutiveFailureCount = 0;
 
@@ -551,7 +559,7 @@ export class OneNoteImporter extends FormatImporter {
 			const page = queue[i];
 			if (!page.title) page.title = `Untitled-${moment().format('YYYYMMDDHHmmss')}`;
 
-			progress.status(`Importing note ${page.title}`);
+			progress.status(i18n.common.statusImportingNote({ name: page.title }));
 
 			try {
 				const content = await this.fetchResource(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content?includeInkML=true`, 'text', progress);
@@ -566,12 +574,12 @@ export class OneNoteImporter extends FormatImporter {
 					&& (++consecutiveFailureCount > 5 || this.host.abortController.signal.aborted)) {
 					progress.status(this.host.abortController.signal.aborted
 						? extractErrorMessage(e) ?? String(e)
-						: 'Microsoft OneNote returned too many consecutive errors.');
+						: i18n.importer.onenote.msgTooManyErrors());
 
 					for (const remaining of queue.slice(i + 1)) {
 						progress.reportSkipped(
-							remaining.title ?? '<unknown>',
-							'import was canceled (after too many pages failed to load)'
+							remaining.title ?? i18n.importer.onenote.labelUnknownPage(),
+							i18n.importer.onenote.reasonTooManyFailures()
 						);
 					}
 
@@ -732,7 +740,7 @@ export class OneNoteImporter extends FormatImporter {
 		}
 		catch (e) {
 			console.error('Failed to convert InkML to SVG in page:', page.title, e);
-			progress.reportFailed(`${page.title} - Ink.svg`, e);
+			progress.reportFailed(i18n.importer.onenote.labelInk({ page: String(page.title) }), e);
 		}
 
 		const html = await this.getAllAttachments(
@@ -912,7 +920,10 @@ export class OneNoteImporter extends FormatImporter {
 
 			const originalName = object.getAttribute('data-attachment');
 			if (!originalName) {
-				progress.reportFailed('OneNote attachment', 'the attachment did not say what it was called');
+				progress.reportFailed(
+					i18n.importer.onenote.labelAttachment(),
+					i18n.importer.onenote.reasonNoAttachmentName()
+				);
 				continue;
 			}
 
@@ -923,7 +934,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			const contentLocation = object.getAttribute('data');
 			if (!contentLocation) {
-				progress.reportFailed(originalName, 'the attachment did not include a download URL');
+				progress.reportFailed(originalName, i18n.importer.onenote.reasonNoAttachmentUrl());
 				continue;
 			}
 
@@ -943,7 +954,7 @@ export class OneNoteImporter extends FormatImporter {
 			const image = images[i];
 			const contentLocation = image.getAttribute('data-fullres-src');
 			if (!contentLocation) {
-				progress.reportFailed('OneNote image', 'the image did not include a download URL');
+				progress.reportFailed(i18n.importer.onenote.labelImage(), i18n.importer.onenote.reasonNoImageUrl());
 				continue;
 			}
 
@@ -1000,7 +1011,7 @@ export class OneNoteImporter extends FormatImporter {
 					await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
 				}
 
-				progress.status('Downloading attachment ' + filename);
+				progress.status(i18n.importer.onenote.statusDownloading({ name: filename }));
 				const fetched = await this.fetchResource(contentLocation, 'file', progress);
 				data = fetched;
 				this.throttleSpacingMs = Math.max(0, this.throttleSpacingMs - ATTACHMENT_SPACING_STEP_MS);
@@ -1015,7 +1026,7 @@ export class OneNoteImporter extends FormatImporter {
 						this.claimPath(mapped.path);
 						const stale = sourceMtime !== undefined && sourceMtime > mapped.stat.mtime;
 						if (!stale || this.duplicateHandling === DuplicateHandling.Skip) {
-							progress.reportSkipped(filename, 'it is already in the vault');
+							progress.reportSkipped(filename, i18n.reason.alreadyInVault());
 							return mapped.path;
 						}
 
@@ -1044,7 +1055,7 @@ export class OneNoteImporter extends FormatImporter {
 
 			if (reuse) {
 				this.rememberAttachment(attachmentKey, reuse.path);
-				progress.reportSkipped(filename, 'it is already in the vault');
+				progress.reportSkipped(filename, i18n.reason.alreadyInVault());
 				return reuse.path;
 			}
 

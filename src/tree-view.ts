@@ -1,4 +1,5 @@
 import { ButtonComponent, IconName, setIcon, Setting } from 'obsidian';
+import { i18n } from './i18n';
 import { areAllSelected, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
 
 
@@ -50,7 +51,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 				this.toggleButton = button;
 				button.buttonEl.addClass('importer-tree-button');
 				button.buttonEl.hide();
-				button.setButtonText('Select all').onClick(() => {
+				button.setButtonText(i18n.tree.buttonSelectAll()).onClick(() => {
 					setAllSelection(this.nodes, !areAllSelected(this.nodes));
 					this.render();
 				});
@@ -58,7 +59,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			.addButton(button => {
 				this.loadButton = button;
 				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
-				button.setButtonText('Load');
+				button.setButtonText(i18n.tree.buttonLoad());
 			});
 
 		this.treeEl = containerEl
@@ -75,7 +76,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	async load(load: () => Promise<T[]>): Promise<void> {
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
-		this.loadButton.setDisabled(true).setButtonText('Loading...');
+		this.loadButton.setDisabled(true).setButtonText(i18n.tree.buttonLoading());
 		this.setStatus(this.options.loading);
 
 		try {
@@ -89,7 +90,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			throw e;
 		}
 		finally {
-			this.loadButton.setDisabled(false).setButtonText('Refresh').removeCta();
+			this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh()).removeCta();
 		}
 	}
 
@@ -100,7 +101,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	reset(): void {
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
-		this.loadButton.setButtonText('Load').setCta();
+		this.loadButton.setButtonText(i18n.tree.buttonLoad()).setCta();
 		this.setStatus(this.options.hint);
 		this.options.onChange?.();
 	}
@@ -118,7 +119,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			});
 		});
 
-		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? 'Deselect all' : 'Select all');
+		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? i18n.tree.buttonDeselectAll() : i18n.tree.buttonSelectAll());
 		this.options.onChange?.();
 	}
 }

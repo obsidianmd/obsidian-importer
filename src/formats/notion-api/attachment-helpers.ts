@@ -5,6 +5,7 @@
 
 import { App, DataWriteOptions, normalizePath, requestUrl, TFile, Vault } from 'obsidian';
 import { ImportContext } from '../../import-context';
+import { i18n } from '../../i18n';
 import { RichTextItemResponse } from '@notionhq/client';
 import { sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
@@ -47,7 +48,7 @@ export async function downloadAttachment(
 	filename = sanitizeFileName(filename);
 
 	try {
-		ctx.status(`Downloading attachment: ${filename}...`);
+		ctx.status(i18n.importer.notionApi.statusDownloadingAttachment({ name: filename }));
 
 		const probe = context.rangeProbe ??= { answered: true };
 
@@ -61,7 +62,7 @@ export async function downloadAttachment(
 				);
 
 				if (existingFile) {
-					ctx.reportSkipped(`Attachment: ${probedName}`, 'already exists with same size (incremental import)');
+					ctx.reportSkipped(i18n.importer.notionApi.labelAttachment({ name: probedName }), i18n.importer.notionApi.reasonAttachmentExists());
 					return linkToExisting(existingFile, probedName);
 				}
 			}
@@ -81,7 +82,10 @@ export async function downloadAttachment(
 
 			if (response.status !== 200) {
 				console.error(`Failed to download attachment "${filename}": ${response.status}`);
-				ctx.reportFailed(`Attachment: ${filename}`, `HTTP ${response.status}`);
+				ctx.reportFailed(
+					i18n.importer.notionApi.labelAttachment({ name: filename }),
+					i18n.importer.notionApi.reasonHttpStatus({ status: response.status })
+				);
 				return {
 					path: attachment.url,
 					isLocal: false
@@ -101,7 +105,7 @@ export async function downloadAttachment(
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
 			if (existingFile) {
-				ctx.reportSkipped(`Attachment: ${filename}`, 'already exists with same size (incremental import)');
+				ctx.reportSkipped(i18n.importer.notionApi.labelAttachment({ name: filename }), i18n.importer.notionApi.reasonAttachmentExists());
 				return linkToExisting(existingFile, filename);
 			}
 		}
@@ -124,7 +128,7 @@ export async function downloadAttachment(
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to download attachment "${filename}":`, error);
-		ctx.reportFailed(`Attachment: ${filename}`, errorMsg);
+		ctx.reportFailed(i18n.importer.notionApi.labelAttachment({ name: filename }), errorMsg);
 		return {
 			path: attachment.url,
 			isLocal: false

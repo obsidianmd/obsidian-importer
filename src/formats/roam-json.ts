@@ -2,6 +2,7 @@ import { ImportContext } from '../import-context';
 import { Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
+import { i18n } from '../i18n';
 import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
 import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
@@ -28,22 +29,22 @@ export class RoamJSONImporter extends FormatImporter {
 
 	init() {
 		this.addSetting('source')
-			?.setName('Export your data')
-			.setDesc('Export your data in JSON format.')
+			?.setName(i18n.common.nameExport())
+			.setDesc(i18n.importer.roamJson.descExport())
 			.addButton(button => button
-				.setButtonText('Open')
+				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting('Roam (.json)', ['json'], false,
-			'Pick the JSON file from your Roam export.');
+		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), ['json'], false,
+			i18n.importer.roamJson.descFiles());
 		this.defaultOutputFolder = 'Roam';
 		this.idProperty = 'roam-uid';
-		this.idLabel = 'Roam UID';
+		this.idLabel = i18n.importer.roamJson.labelId();
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()
-			?.setName('Download all attachments')
-			.setDesc('If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.')
+			?.setName(i18n.importer.roamJson.nameDownloadAttachments())
+			.setDesc(i18n.importer.roamJson.descDownloadAttachments())
 			.addToggle(toggle => {
 				toggle.setValue(this.downloadAttachments);
 				toggle.onChange(async (value) => {
@@ -52,8 +53,8 @@ export class RoamJSONImporter extends FormatImporter {
 			});
 
 		this.addSetting()
-			?.setName('Add YAML created/update date')
-			.setDesc('If enabled, notes will have the create-time and edit-time from Roam added as properties.')
+			?.setName(i18n.importer.roamJson.nameDateProperties())
+			.setDesc(i18n.importer.roamJson.descDateProperties())
 			.addToggle(toggle => {
 				toggle.setValue(this.fileDateYAML);
 				toggle.onChange(async (value) => {
@@ -62,8 +63,8 @@ export class RoamJSONImporter extends FormatImporter {
 			});
 
 		this.addSetting()
-			?.setName('Add YAML title')
-			.setDesc('If enabled, notes will have the full title added as a property (regardless of illegal file name characters).')
+			?.setName(i18n.importer.roamJson.nameTitleProperty())
+			.setDesc(i18n.importer.roamJson.descTitleProperty())
 			.addToggle(toggle => {
 				toggle.setValue(this.titleYAML);
 				toggle.onChange(async (value) => {
@@ -77,13 +78,13 @@ export class RoamJSONImporter extends FormatImporter {
 		this.progress = progress;
 		let { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		let outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -110,7 +111,7 @@ export class RoamJSONImporter extends FormatImporter {
 			for (const pageData of allPages) {
 				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.userDNPFormat).trim();
 				if (pageName === '') {
-					progress.reportFailed(pageData.uid, 'Title is empty');
+					progress.reportFailed(pageData.uid, i18n.importer.roamJson.reasonEmptyTitle());
 					console.error('Cannot import data with an empty title', pageData);
 					continue;
 				}
@@ -367,7 +368,7 @@ export class RoamJSONImporter extends FormatImporter {
 					const timestamp = Math.floor(Date.now() / 1000);
 					const extMatch = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
 					if (!extMatch) {
-						progress.reportSkipped(link[1], 'Unexpected file extension');
+						progress.reportSkipped(link[1], i18n.importer.roamJson.reasonUnexpectedExtension());
 						return line;
 					}
 
@@ -378,7 +379,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 				const existingFile = vault.getAbstractFileByPath(newFilePath);
 				if (existingFile) {
-					progress.reportSkipped(link[1], 'File already exists');
+					progress.reportSkipped(link[1], i18n.importer.roamJson.reasonFileExists());
 					return line;
 				}
 

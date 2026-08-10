@@ -3,6 +3,7 @@ import { helpUrl } from '../constants';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
 import { convertBearNote } from './bear/convert';
 
@@ -31,22 +32,20 @@ export class Bear2bkImporter extends FormatImporter {
 
 	init() {
 		this.addSetting('source')
-			?.setName('Export your data')
-			.setDesc('Back up your notes in Bear, you will receive a .bear2bk file.')
+			?.setName(i18n.common.nameExport())
+			.setDesc(i18n.importer.bear.descExport())
 			.addButton(button => button
-				.setButtonText('Open')
+				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting('Bear2bk', ['bear2bk']);
+		this.addFileChooserSetting(i18n.importer.bear.fileType(), ['bear2bk']);
 		this.defaultOutputFolder = 'Bear';
 		this.idProperty = 'bear-id';
-		this.idLabel = 'Bear ID';
+		this.idLabel = i18n.importer.bear.labelId();
 
 		this.addSetting()
-			?.setName('Flatten nested tags')
-			.setDesc(
-				'When enabled, tags will be split on slashes (/) during import.'
-			)
+			?.setName(i18n.importer.bear.nameFlattenTags())
+			.setDesc(i18n.importer.bear.descFlattenTags())
 			.addToggle(t => t
 				.setValue(false)
 				.onChange(async v => this.flattenTags = v)
@@ -61,13 +60,13 @@ export class Bear2bkImporter extends FormatImporter {
 
 		let { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		let folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -78,7 +77,7 @@ export class Bear2bkImporter extends FormatImporter {
 
 		for (let file of files) {
 			if (await ctx.shouldStop()) return;
-			ctx.status('Processing ' + file.name);
+			ctx.status(i18n.common.statusProcessing({ name: file.name }));
 			await readZip(file, async (zip, entries) => {
 				const metadataLookup = await this.collectMetadata(ctx, entries);
 				for (let entry of entries) {
@@ -87,11 +86,11 @@ export class Bear2bkImporter extends FormatImporter {
 					if (name === 'info.json' || name === 'tags.json' || name === 'backup.json') {
 						continue;
 					}
-					ctx.status('Processing ' + name);
+					ctx.status(i18n.common.statusProcessing({ name }));
 					try {
 						if (extension === 'md' || extension === 'markdown') {
 							const mdFilename = parseFilePath(parent).basename;
-							ctx.status('Importing note ' + mdFilename);
+							ctx.status(i18n.common.statusImportingNote({ name: mdFilename }));
 							const metadata = metadataLookup[parent];
 							let targetFolder = outputFolder;
 							if (metadata?.archivedtime !== undefined) {
@@ -137,7 +136,7 @@ export class Bear2bkImporter extends FormatImporter {
 							if (written) ctx.reportNoteSuccess(mdFilename);
 						}
 						else if (filepath.match(/\/assets\//g)) {
-							ctx.status('Importing asset ' + entry.name);
+							ctx.status(i18n.importer.bear.statusImportingAsset({ name: entry.name }));
 							const noteParent = filepath.slice(0, filepath.indexOf('/assets/'));
 							const noteMetadata = metadataLookup[noteParent];
 							const noteFolder = noteMetadata?.archivedtime !== undefined
@@ -166,7 +165,7 @@ export class Bear2bkImporter extends FormatImporter {
 							ctx.reportAttachmentSuccess(entry.fullpath);
 						}
 						else {
-							ctx.reportSkipped(fullpath, 'unknown type of file');
+							ctx.reportSkipped(fullpath, i18n.importer.bear.reasonUnknownType());
 						}
 					}
 					catch (e) {
@@ -176,7 +175,7 @@ export class Bear2bkImporter extends FormatImporter {
 			});
 		}
 
-		ctx.status('Updating internal links…');
+		ctx.status(i18n.importer.bear.statusUpdatingLinks());
 
 		// Second pass to update links based on note IDs
 		await this.updateNotesLinks(idMapping);

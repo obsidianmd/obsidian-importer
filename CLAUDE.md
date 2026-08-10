@@ -100,6 +100,52 @@ When a recording depends on one of them, check it against the real thing rather 
 
 `vault=<name>` targets a vault other than the focused one, but only as the **first** argument: `obsidian vault=Importer eval code="…"`. After the command it is ignored, and you get the focused vault instead — check `app.vault.getName()` if a result looks like it came from somewhere else.
 
+## Localization
+
+Every string the plugin shows comes from `src/i18n/en.ts`, reached through a
+proxy that mirrors the shape of the table:
+
+```ts
+i18n.modal.buttonDone()
+i18n.progress.statusStandardizing({ current, total })
+i18n.nouns.fileWithCount({ count })          // the _plural key when count !== 1
+i18n.importer(`${id}.name`)                  // a key only known at runtime
+```
+
+Keys are camelCase in TypeScript and kebab-case in a translation file, so
+`msgPickFile` is `[common.msg-pick-file]`. `setLanguage()` is called once in
+`onload()` with Obsidian's `getLanguage()`; left alone the lookup answers in
+English, which is what a test wants.
+
+`locale/en.txt` and `locale/*.txt` are in the obsidian-translations block
+format, and `src/i18n/locales.ts` is the bundled result. All three are
+generated:
+
+```bash
+npm run locales          # after adding or changing a string in en.ts
+npm run locales -- check # what the test suite runs
+```
+
+Adding a string means adding it to `en.ts` and regenerating; the tests fail
+otherwise. A translation is checked too: it must carry the same placeholders as
+its English, a plural form if the English has one, and the same whitespace at
+either end — a value ending in a space is what separates it from the link or
+name drawn beside it.
+
+A number goes through `toLocaleString` in the chosen language, so a count reads
+`10 000` in French even when the machine underneath is set to English. Two
+strings that meet on screen each need their own key: interpolating an internal
+identifier (a block kind, an enum member) leaves English inside a translated
+sentence.
+
+What stays out of the table: console messages, the errors the scripted
+`runImport` throws, and anything written into a note — a title, a folder name,
+a property. Those have to read the same whoever ran the import.
+
+`obsidianmd/ui/sentence-case-locale-module` lints `en.ts` the way
+`obsidianmd/ui/sentence-case` lints a `setName()` call. Both read their brands
+and exceptions from one object at the top of `eslint.config.mjs`.
+
 ## Rules
 
 - **Never reach for a node module directly.** Everything goes through `src/filesystem.ts`, which is what lets a conversion run in a test, and one day in a browser. `obsidianmd/no-nodejs-modules` flags it — a warning here, a finding in the community review.
@@ -107,6 +153,7 @@ When a recording depends on one of them, check it against the real thing rather 
 - **Await every vault write.** An unawaited `create` or `modify` races the next read of the same file.
 - **A path built from user data is untrusted.** File names go through `sanitizeFileName`; a resolved `file:` URL is checked against the directory it is allowed to read.
 - **Report, don't throw.** A single bad note should be `ctx.reportFailed(...)`, leaving the rest of the import to finish.
+- **No new string literal on screen.** Text the user reads goes in `src/i18n/en.ts`, including the reason handed to `reportSkipped`/`reportFailed`.
 
 ## Common pitfalls
 

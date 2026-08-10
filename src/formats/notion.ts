@@ -3,6 +3,7 @@ import { PickedFile } from '../filesystem';
 import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
 import { helpUrl, NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { extractErrorMessage } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
@@ -23,27 +24,27 @@ export class NotionImporter extends FormatImporter {
 		this.parentsInSubfolders = true;
 
 		this.addSetting('source')
-			?.setName('Export your data')
-			.setDesc('Export your workspace in HTML format, you will receive a zip file.')
+			?.setName(i18n.common.nameExport())
+			.setDesc(i18n.importer.notion.descExport())
 			.addButton(button => button
-				.setButtonText('Open')
+				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting('Exported Notion', ['zip'], false,
-			'Pick the zip file Notion sent you.');
+		this.addFileChooserSetting(i18n.importer.notion.fileType(), ['zip'], false,
+			i18n.importer.notion.descFiles());
 		this.defaultOutputFolder = 'Notion';
 		this.idProperty = NOTION_ID_PROPERTY;
-		this.idLabel = 'Notion ID';
+		this.idLabel = i18n.importer.notion.labelId();
 		this.addSetting()
-			?.setName('Save parent pages in subfolders')
-			.setDesc('Places the parent database pages in the same folder as the nested content.')
+			?.setName(i18n.importer.notion.nameSubfolders())
+			.setDesc(i18n.importer.notion.descSubfolders())
 			.addToggle((toggle) => toggle
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
 
 		this.addSetting()
-			?.setName('Single line breaks')
-			.setDesc('Separate Notion blocks with only one line break (default is 2).')
+			?.setName(i18n.importer.notion.nameSingleLineBreaks())
+			.setDesc(i18n.importer.notion.descSingleLineBreaks())
 			.addToggle((toggle) => toggle
 				.setValue(this.singleLineBreaks)
 				.onChange((value) => {
@@ -54,13 +55,13 @@ export class NotionImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		const { vault, parentsInSubfolders, files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -72,7 +73,7 @@ export class NotionImporter extends FormatImporter {
 		const info = new NotionResolverInfo(attachmentLocationAsSetting(this.attachmentLocation), this.singleLineBreaks);
 
 		// loads in only path & title information to objects
-		ctx.status('Looking for files to import');
+		ctx.status(i18n.importer.notion.statusLooking());
 		let total = 0;
 		await processZips(ctx, files, async (file) => {
 			try {
@@ -86,7 +87,7 @@ export class NotionImporter extends FormatImporter {
 		});
 		if (await ctx.shouldStop()) return;
 
-		ctx.status('Resolving links and de-duplicating files');
+		ctx.status(i18n.importer.notion.statusResolving());
 
 		cleanDuplicates({
 			vault,
@@ -110,7 +111,7 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		let current = 0;
-		ctx.status('Starting import');
+		ctx.status(i18n.importer.notion.statusStarting());
 		await processZips(ctx, files, async (file) => {
 			current++;
 			ctx.reportProgress(current, total);
@@ -126,7 +127,7 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('file info not found for ' + file.filepath);
 					}
 
-					ctx.status(`Importing note ${fileInfo.title}`);
+					ctx.status(i18n.common.statusImportingNote({ name: fileInfo.title }));
 
 					const markdownBody = await readToMarkdown(info, file);
 					let writeOptions: DataWriteOptions = {};
@@ -150,7 +151,7 @@ export class NotionImporter extends FormatImporter {
 						throw new Error('attachment info not found for ' + file.filepath);
 					}
 
-					ctx.status(`Importing attachment ${file.name}`);
+					ctx.status(i18n.common.statusImportingAttachment({ name: file.name }));
 
 					const data = await file.read();
 					const parent = await this.createFolders(attachmentInfo.targetParentFolder);
@@ -160,7 +161,7 @@ export class NotionImporter extends FormatImporter {
 			}
 			catch (e) {
 				if (extractErrorMessage(e) === 'page body was not found') {
-					ctx.reportSkipped(file.fullpath, 'page body was not found');
+					ctx.reportSkipped(file.fullpath, i18n.importer.notion.reasonNoPageBody());
 					return;
 				}
 
@@ -180,9 +181,9 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 
 					// throw an error for Notion Markdown exports
 					if (entry.extension === 'md' && getNotionId(entry.name)) {
-						new Notice('Notion Markdown export detected. Please export Notion data to HTML instead.');
+						new Notice(i18n.importer.notion.msgMarkdownExport());
 						ctx.cancel();
-						throw new Error('Notion importer uses only HTML exports. Please use the correct format.');
+						throw new Error(i18n.importer.notion.msgHtmlOnly());
 					}
 
 					// Skip databses in CSV format

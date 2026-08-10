@@ -1,3 +1,5 @@
+import { i18n } from './i18n';
+
 export interface RequestFailure {
 	status?: number;
 	code?: string;
@@ -52,33 +54,35 @@ export function describeRequestFailure(error: unknown, service: RequestedService
 	const { name, subject, credential } = service;
 	const { status, code, message } = requestFailure(error);
 
+	const about = { service: name, subject, credential };
+
 	if (status === 401) {
-		return `${name} did not accept the request for ${subject}. ${credential}`;
+		return i18n.request.msgUnauthorized(about);
 	}
 	if (status === 403) {
-		return `${name} would not give access to ${subject}. ${credential}`;
+		return i18n.request.msgForbidden(about);
 	}
 	if (status === 404) {
-		return `${name} could not find ${subject}.`;
+		return i18n.request.msgNotFound(about);
 	}
 	if (status === 429) {
-		return `${name} is limiting how fast ${subject} can be read. Wait a few minutes and try again.`;
+		return i18n.request.msgRateLimited(about);
 	}
 	if (status === 408 || status === 504) {
-		return `${name} took too long to return ${subject}. Try again shortly.`;
+		return i18n.request.msgTimedOut(about);
 	}
 	if (status !== undefined && status >= 500) {
-		return `${name} could not return ${subject} right now. Try again shortly.`;
+		return i18n.request.msgUnavailable(about);
 	}
 
 	if (message) {
 		return code
-			? `Could not read ${subject}: ${message} (${code})`
-			: `Could not read ${subject}: ${message}`;
+			? i18n.request.msgFailedWithCode({ ...about, message, code })
+			: i18n.request.msgFailedWithMessage({ ...about, message });
 	}
 	if (code) {
-		return `Could not read ${subject}. ${name} reported ${code}.`;
+		return i18n.request.msgFailedWithReportedCode({ ...about, code });
 	}
 
-	return `Could not read ${subject}.`;
+	return i18n.request.msgFailed(about);
 }

@@ -1,4 +1,4 @@
-import { App, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback, helpUrl } from './constants';
@@ -18,7 +18,8 @@ import { OneNoteImporter } from './formats/onenote';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
-import { extractErrorMessage, plural, truncateText } from './util';
+import { i18n, setLanguage } from './i18n';
+import { extractErrorMessage, truncateText } from './util';
 
 declare global {
 	interface Window {
@@ -28,10 +29,17 @@ declare global {
 }
 
 interface ImporterDefinition {
-	name: string;
-	optionText: string;
 	helpPermalink?: string;
 	importer: new (app: App, host: ImporterHost) => FormatImporter;
+}
+
+/** The format's own name, and the longer line it is listed under. */
+function importerName(id: string): string {
+	return i18n.importer(`${id}.name`);
+}
+
+function importerOptionText(id: string): string {
+	return i18n.importer(`${id}.option-text`);
 }
 
 
@@ -65,9 +73,9 @@ const FALLBACK_ICONS: Record<string, IconName> = {
 
 function pausedText(message: string): string {
 	const trimmed = message.trim();
-	if (!trimmed) return 'Paused';
+	if (!trimmed) return i18n.progress.labelPaused();
 
-	return `Paused - ${trimmed.replace(/\.+$/, '')}`;
+	return i18n.progress.labelPausedWith({ status: trimmed.replace(/\.+$/, '') });
 }
 
 export class ImportProgressUI extends ImportContext {
@@ -105,23 +113,23 @@ export class ImportProgressUI extends ImportContext {
 		container.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
 				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
-				el.createDiv({ cls: 'importer-stat-name', text: 'imported' });
+				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statImported() });
 			});
 			el.createDiv('importer-stat mod-attachments', el => {
 				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.attachments.toString() });
-				el.createDiv({ cls: 'importer-stat-name', text: 'attachments' });
+				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statAttachments() });
 			});
 			el.createDiv('importer-stat mod-remaining', el => {
 				this.remainingCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
-				el.createDiv({ cls: 'importer-stat-name', text: 'remaining' });
+				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statRemaining() });
 			});
 			el.createDiv('importer-stat mod-skipped', el => {
 				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.skipped.length.toString() });
-				el.createDiv({ cls: 'importer-stat-name', text: 'skipped' });
+				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statSkipped() });
 			});
 			el.createDiv('importer-stat mod-failed', el => {
 				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.failed.length.toString() });
-				el.createDiv({ cls: 'importer-stat-name', text: 'failed' });
+				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statFailed() });
 			});
 		});
 
@@ -156,12 +164,12 @@ export class ImportProgressUI extends ImportContext {
 
 	protected onSkipped(name: string, reason?: unknown): void {
 		this.skippedCountEl.setText(this.skipped.length.toString());
-		this.log('Skipped: ', name, reason);
+		this.log(i18n.progress.labelSkipped(), name, reason);
 	}
 
 	protected onFailed(name: string, reason?: unknown): void {
 		this.failedCountEl.setText(this.failed.length.toString());
-		this.log('Failed: ', name, reason);
+		this.log(i18n.progress.labelFailed(), name, reason);
 	}
 
 	protected onProgress(current: number, total: number): void {
@@ -186,8 +194,16 @@ export class ImportProgressUI extends ImportContext {
 		const { importLogEl } = this;
 
 		importLogEl.createDiv('list-item', el => {
+			const shortName = truncateText(name, this.maxFileNameLength);
 			el.createSpan({ cls: 'importer-error', text: prefix });
-			el.createSpan({ text: `"${truncateText(name, this.maxFileNameLength)}"` + (reason ? ` because ${truncateText(describeReason(reason), this.maxFileNameLength)}` : '') });
+			el.createSpan({
+				text: reason
+					? i18n.progress.labelEntryWithReason({
+						name: shortName,
+						reason: truncateText(describeReason(reason), this.maxFileNameLength),
+					})
+					: i18n.progress.labelEntry({ name: shortName }),
+			});
 		});
 
 		importLogEl.scrollTop = importLogEl.scrollHeight;
@@ -205,98 +221,74 @@ export default class ImporterPlugin extends Plugin {
 	private modal: ImporterModal | null = null;
 
 	async onload() {
+		setLanguage(getLanguage());
+
+		// The name and the picker line for each of these live in the string
+		// table, under the same id.
 		this.importers = {
 			'airtable-api': {
-				name: 'Airtable',
-				optionText: 'Airtable',
 				importer: AirtableAPIImporter,
 				helpPermalink: 'import/airtable',
 			},
 			'apple-notes': {
-				name: 'Apple Notes',
-				optionText: 'Apple Notes',
 				importer: AppleNotesImporter,
 				helpPermalink: 'import/apple-notes'
 			},
 			'apple-journal': {
-				name: 'Apple Journal',
-				optionText: 'Apple Journal (HTML export)',
 				importer: AppleJournalImporter,
 			},
 			'bear': {
-				name: 'Bear',
-				optionText: 'Bear (.bear2bk)',
 				importer: Bear2bkImporter,
 				helpPermalink: 'import/bear',
 			},
 			'csv': {
-				name: 'CSV',
-				optionText: 'CSV (.csv)',
 				importer: CSVImporter,
 				helpPermalink: 'import/csv',
 			},
 			'evernote': {
-				name: 'Evernote',
-				optionText: 'Evernote (.enex)',
 				importer: EvernoteEnexImporter,
 				helpPermalink: 'import/evernote',
 			},
 			'keep': {
-				name: 'Google Keep',
-				optionText: 'Google Keep (.zip/.json)',
 				importer: KeepImporter,
 				helpPermalink: 'import/google-keep',
 			},
 			'html': {
-				name: 'HTML files',
-				optionText: 'HTML (.html)',
 				importer: HtmlImporter,
 				helpPermalink: 'import/html',
 			},
 			'onenote': {
-				name: 'Microsoft OneNote',
-				optionText: 'Microsoft OneNote',
 				importer: OneNoteImporter,
 				helpPermalink: 'import/onenote',
 			},
 			'notion-api': {
-				name: 'Notion (API)',
-				optionText: 'Notion (API)',
 				importer: NotionAPIImporter,
 				helpPermalink: 'import/notion',
 			},
 			'notion': {
-				name: 'Notion',
-				optionText: 'Notion (.zip)',
 				importer: NotionImporter,
 				helpPermalink: 'import/notion',
 			},
 			'roam-json': {
-				name: 'Roam Research',
-				optionText: 'Roam Research (.json)',
 				importer: RoamJSONImporter,
 				helpPermalink: 'import/roam',
 			},
 			'textbundle': {
-				name: 'Textbundle files',
-				optionText: 'Textbundle (.textbundle, .textpack)',
 				importer: TextbundleImporter,
 				helpPermalink: 'import/textbundle',
 			},
 			'tomboy': {
-				name: 'Tomboy/Gnote',
-				optionText: 'Tomboy/Gnote (.note)',
 				importer: TomboyImporter,
 			},
 		};
 
-		this.addRibbonIcon('lucide-import', 'Import notes', () => {
+		this.addRibbonIcon('lucide-import', i18n.command.importNotes(), () => {
 			this.openImporter();
 		});
 
 		this.addCommand({
 			id: 'open-modal',
-			name: 'Import notes',
+			name: i18n.command.importNotes(),
 			callback: () => {
 				this.openImporter();
 			},
@@ -314,7 +306,7 @@ export default class ImporterPlugin extends Plugin {
 				// Browsers may open the same callback URI twice.
 				if (data['state'] && data['state'] === this.handledAuthState) return;
 
-				new Notice('Unexpected auth event. Please restart the auth process.');
+				new Notice(i18n.modal.msgUnexpectedAuth());
 			});
 	}
 
@@ -387,11 +379,11 @@ export default class ImporterPlugin extends Plugin {
 		await importer.ready;
 
 		if (importer.notAvailable) {
-			throw new Error(`The ${definition.name} importer is not available here.`);
+			throw new Error(`The ${importerName(importerId)} importer is not available here.`);
 		}
 
 		if (importer.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration) {
-			throw new Error(`The ${definition.name} importer is configured on a second screen, which an import without the dialog cannot show yet.`);
+			throw new Error(`The ${importerName(importerId)} importer is configured on a second screen, which an import without the dialog cannot show yet.`);
 		}
 
 		importer.files = filepaths.map(filepath => new NodePickedFile(filepath));
@@ -446,7 +438,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const { contentEl, modalEl } = this;
 		contentEl.empty();
 		modalEl.addClass('is-picking-format');
-		this.titleEl.setText('Import data into Obsidian');
+		this.titleEl.setText(i18n.modal.titlePickFormat());
 
 		const groupEl = contentEl.createDiv('setting-group mod-list');
 		const searchEl = groupEl.createDiv('setting-group-search');
@@ -464,13 +456,13 @@ export class ImporterModal extends Modal implements ImporterHost {
 			rows = [];
 
 			for (const [id, match] of this.searchFormats(query)) {
-				const definition = this.plugin.importers[id];
+				const optionText = importerOptionText(id);
 
 				const setting = new Setting(itemsEl)
 					.setClass('mod-navigable')
 					.setName(createFragment(frag => {
-						if (match) renderMatches(frag, definition.optionText, match.matches);
-						else frag.appendText(definition.optionText);
+						if (match) renderMatches(frag, optionText, match.matches);
+						else frag.appendText(optionText);
 					}));
 
 				const iconEl = createDiv(`setting-item-icon importer-app-icon mod-${id}`);
@@ -506,12 +498,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 			}
 
 			if (rows.length === 0) {
-				new Setting(itemsEl).setClass('mod-empty-state').setName('No formats found.');
+				new Setting(itemsEl).setClass('mod-empty-state').setName(i18n.modal.msgNoFormats());
 			}
 		};
 
 		const search = new SearchComponent(searchEl)
-			.setPlaceholder('Filter...')
+			.setPlaceholder(i18n.modal.searchPlaceholder())
 			.onChange(value => draw(value));
 
 		search.inputEl.addEventListener('keydown', evt => {
@@ -536,9 +528,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const results: { id: string, match: SearchResult | null, score: number }[] = [];
 
 		for (const id of ids) {
-			const definition = importers[id];
-			const match = search(definition.optionText);
-			const byName = search(definition.name);
+			const match = search(importerOptionText(id));
+			const byName = search(importerName(id));
 
 			const best = Math.max(match?.score ?? -Infinity, byName?.score ?? -Infinity);
 			if (best === -Infinity) continue;
@@ -589,7 +580,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	showSourceStep() {
 		this.drawStep(this.sourceEl, () => this.showFormatPicker(), el => {
-			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
+			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 				el.addEventListener('click', () => void this.showOutputStep());
 			});
 
@@ -609,7 +600,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		this.drawStep(this.outputEl, () => this.showSourceStep(), el => {
 			if (this.hasOptionsStep()) {
-				el.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
+				el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 					el.addEventListener('click', () => this.showOptionsStep());
 				});
 				return;
@@ -628,7 +619,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	}
 
 	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter) {
-		buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Import' }, el => {
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
 			el.addEventListener('click', () => void this.startImport(importer)
 				.catch(e => console.error('Import failed', e)));
 		});
@@ -641,18 +632,18 @@ export class ImporterModal extends Modal implements ImporterHost {
 		contentEl.empty();
 		this.nextButtonEl = null;
 		modalEl.removeClass('is-picking-format');
-		this.titleEl.setText(`Import from ${definition.name}`);
+		this.titleEl.setText(i18n.modal.titleImportFrom({ format: importerName(this.selectedId) }));
 
 		if (stepEl) contentEl.append(stepEl);
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			el.createEl('button', { text: 'Back' }, el => {
+			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
 				el.addEventListener('click', onBack);
 			});
 
 			if (definition.helpPermalink) {
 				const permalink = definition.helpPermalink;
-				el.createEl('button', { text: 'Help' }, el => {
+				el.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
 					el.addEventListener('click', () => window.open(helpUrl(permalink)));
 				});
 			}
@@ -682,7 +673,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 
 		this.showProgress(ctx, importer.interruption);
-		const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
+		const name = importerName(this.selectedId);
 		let threw = false;
 		try {
 			importer.indexImportedNotes();
@@ -733,18 +724,19 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		let pauseButtonEl: HTMLElement | null = null;
 		if (interruption === 'pause') {
-			let button = buttonsEl.createEl('button', { text: ctx.isPaused() ? 'Resume' : 'Pause' }, el => {
+			const pauseText = () => ctx.isPaused() ? i18n.modal.buttonResume() : i18n.modal.buttonPause();
+			let button = buttonsEl.createEl('button', { text: pauseText() }, el => {
 				el.addEventListener('click', () => {
 					if (ctx.isPaused()) ctx.resume();
 					else ctx.pause();
 
-					button.setText(ctx.isPaused() ? 'Resume' : 'Pause');
+					button.setText(pauseText());
 				});
 			});
 			pauseButtonEl = button;
 		}
 
-		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: 'Stop' }, el => {
+		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: i18n.modal.buttonStop() }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
 				pauseButtonEl?.detach();
@@ -759,10 +751,10 @@ export class ImporterModal extends Modal implements ImporterHost {
 		ctx.createProgressUI(contentEl.createDiv());
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
-		buttonsEl.createEl('button', { text: 'Import more' }, el => {
+		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
 			el.addEventListener('click', () => this.setUpImporter());
 		});
-		buttonsEl.createEl('button', { cls: 'mod-cta', text: 'Done' }, el => {
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
 			el.addEventListener('click', () => this.close());
 		});
 	}
@@ -796,7 +788,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		progressEl.max = 1;
 		progressEl.value = 0;
 		const notice = this.hiddenNotice = new Notice(createFragment(frag => {
-			frag.createSpan({ text: 'Importing' });
+			frag.createSpan({ text: i18n.progress.labelImporting() });
 			frag.createEl('br');
 			frag.append(remainingEl);
 			frag.append(progressEl);
@@ -816,9 +808,10 @@ export class ImporterModal extends Modal implements ImporterHost {
 			progressEl.max = ctx.progressTotal;
 			progressEl.value = ctx.progressCurrent;
 
+			const remaining = { count: ctx.progressTotal - ctx.progressCurrent };
 			remainingEl.setText(ctx.isPaused()
-				? `Paused - ${ctx.progressTotal - ctx.progressCurrent} remaining`
-				: `${ctx.progressTotal - ctx.progressCurrent} remaining...`);
+				? i18n.progress.labelPausedRemaining(remaining)
+				: i18n.progress.labelRemaining(remaining));
 		};
 
 		drawProgress();
@@ -841,17 +834,17 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		// The notice is all there is to go on while the modal is hidden, so it has
 		// to say which of the three ways the import ended it took.
-		const headline = ctx.isCancelled() ? 'Import stopped.'
-			: ctx.failed.length > 0 ? 'Import finished with errors.'
-				: 'Import complete.';
+		const headline = ctx.isCancelled() ? i18n.progress.msgStopped()
+			: ctx.failed.length > 0 ? i18n.progress.msgErrors()
+				: i18n.progress.msgComplete();
 
-		const counts = `${plural(ctx.notes, 'note')} imported`
-			+ (ctx.failed.length > 0 ? `, ${plural(ctx.failed.length, 'failure')}` : '');
+		const counts = i18n.progress.msgImportedCount({ count: ctx.notes })
+			+ (ctx.failed.length > 0 ? `, ${i18n.nouns.failureWithCount({ count: ctx.failed.length })}` : '');
 
 		notice.setMessage(createFragment(frag => {
 			frag.createSpan({ text: headline });
 			frag.createEl('br');
-			frag.createSpan({ cls: 'u-small', text: `${counts}. Click to show.` });
+			frag.createSpan({ cls: 'u-small', text: i18n.progress.msgClickToShow({ counts }) });
 		}));
 	}
 

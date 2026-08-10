@@ -1,4 +1,5 @@
 import { Notice, Setting, setIcon } from 'obsidian';
+import { i18n } from './i18n';
 
 /**
  * Represents a field that can be used in templates.
@@ -112,14 +113,14 @@ export class TemplateConfigurator {
 			container.empty();
 
 			container.createEl('p', {
-				text: `Configure how your data should be imported. Use ${this.placeholderSyntax} syntax to reference field values.`,
+				text: i18n.template.msgIntro({ syntax: this.placeholderSyntax }),
 			});
 
 			// Note title template (optional, based on configuration)
 			if (this.showTitleTemplate) {
 				new Setting(container)
-					.setName('Note title')
-					.setDesc('Template for the note title. Use {{field_name}} to insert values.')
+					.setName(i18n.template.nameTitle())
+					.setDesc(i18n.template.descTitle())
 					.addText(text => text
 						.setPlaceholder('{{Title}}')
 						.setValue(this.config.titleTemplate)
@@ -131,8 +132,8 @@ export class TemplateConfigurator {
 			// Note location template (optional, based on configuration)
 			if (this.showLocationTemplate) {
 				new Setting(container)
-					.setName('Note location')
-					.setDesc('Template for note location/path. Use {{field_name}} to organize notes.')
+					.setName(i18n.template.nameLocation())
+					.setDesc(i18n.template.descLocation())
 					.addText(text => text
 						.setPlaceholder('{{Category}}/{{Subcategory}}')
 						.setValue(this.config.locationTemplate)
@@ -143,15 +144,15 @@ export class TemplateConfigurator {
 
 			// Column selection for frontmatter
 			const headerContainer = container.createDiv({ cls: 'importer-frontmatter-header' });
-			headerContainer.createEl('h4', { text: 'Properties' });
+			headerContainer.createEl('h4', { text: i18n.template.headingProperties() });
 
 			const columnContainer = container.createDiv('importer-column-list');
 
 			// Add header row
 			const headerRow = columnContainer.createDiv('importer-column-header-row');
-			headerRow.createDiv('importer-column-name-col').setText('Property name');
-			headerRow.createDiv('importer-column-value-col').setText('Property value');
-			headerRow.createDiv('importer-column-example-col').setText('Example');
+			headerRow.createDiv('importer-column-name-col').setText(i18n.template.columnPropertyName());
+			headerRow.createDiv('importer-column-value-col').setText(i18n.template.columnPropertyValue());
+			headerRow.createDiv('importer-column-example-col').setText(i18n.template.columnExample());
 			headerRow.createDiv('importer-column-delete-col'); // Empty space for delete button
 
 			for (const field of this.fields) {
@@ -191,7 +192,7 @@ export class TemplateConfigurator {
 				const deleteCol = rowEl.createDiv('importer-column-delete-col');
 				const deleteButton = deleteCol.createEl('button', {
 					cls: 'clickable-icon',
-					attr: { 'aria-label': 'Delete property' }
+					attr: { 'aria-label': i18n.template.actionDeleteProperty() }
 				});
 				setIcon(deleteButton, 'trash-2');
 				deleteButton.addEventListener('click', () => {
@@ -205,8 +206,8 @@ export class TemplateConfigurator {
 
 			// Note content template
 			new Setting(container)
-				.setName('Note content')
-				.setDesc('Template for the note content. Use {{field_name}} to insert values.')
+				.setName(i18n.template.nameContent())
+				.setDesc(i18n.template.descContent())
 				.addTextArea(text => {
 					text
 						.setPlaceholder('{{Content}}')
@@ -219,11 +220,11 @@ export class TemplateConfigurator {
 
 			// Buttons
 			const buttonContainer = container.createDiv('modal-button-container');
-			buttonContainer.createEl('button', { cls: 'mod-cta', text: 'Continue' }, el => {
+			buttonContainer.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 				el.addEventListener('click', () => {
 					// Validate configuration (only if title template is shown)
 					if (this.showTitleTemplate && !this.config.titleTemplate.trim()) {
-						new Notice('Please provide a note title template.');
+						new Notice(i18n.template.msgTitleRequired());
 						return;
 					}
 
@@ -231,7 +232,7 @@ export class TemplateConfigurator {
 				});
 			});
 
-			buttonContainer.createEl('button', { text: 'Cancel' }, el => {
+			buttonContainer.createEl('button', { text: i18n.modal.buttonCancel() }, el => {
 				el.addEventListener('click', () => {
 					resolve(null);
 				});
