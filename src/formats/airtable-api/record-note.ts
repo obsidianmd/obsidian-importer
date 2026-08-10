@@ -7,6 +7,22 @@ import type { AirtableAttachment, AirtableFieldSchema, AirtableRecord, Attachmen
 
 export const RECORD_ID_PROPERTY = 'airtable-id';
 
+/**
+ * The times to write onto a record's note: ctime only.
+ *
+ * Airtable reports when a record was created and nothing about when it last
+ * changed - a "Last modified time" field exists only if the base was built
+ * with one, is named whatever its author called it, and can be scoped to a few
+ * fields rather than all of them. A modification time that is wrong about a
+ * record having changed is worse than none, so an import writes none and
+ * compares the note's text instead.
+ */
+export function recordTimestamps(record: AirtableRecord): { ctime?: number } {
+	const created = Date.parse(record.createdTime ?? '');
+
+	return Number.isNaN(created) ? {} : { ctime: created };
+}
+
 export function extractStringValue(value: any): string {
 	if (value === null || value === undefined) return '';
 	if (typeof value === 'object' && !Array.isArray(value) && value.text !== undefined) {

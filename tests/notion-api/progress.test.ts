@@ -10,7 +10,7 @@ import { MemoryVault, memoryApp } from '../shims/vault';
 
 class CountingImporter extends NotionAPIImporter {
 	useStubClient(children: Record<string, string[]> = {}): void {
-		(this as unknown as { notionClient: unknown }).notionClient = {
+		this.notionClient = {
 			pages: { retrieve: async ({ page_id }: { page_id: string }) => ({ id: page_id, properties: {} }) },
 			blocks: {
 				children: {
@@ -24,13 +24,17 @@ class CountingImporter extends NotionAPIImporter {
 					}),
 				},
 			},
-		};
+		} as never;
+	}
+
+	useFailingClient(): void {
+		this.notionClient = {
+			pages: { retrieve: async () => { throw new Error('Page could not be read'); } },
+		} as never;
 	}
 
 	importPage(ctx: ImportContext, pageId: string) {
-		return (this as unknown as {
-			fetchAndImportPage(params: { ctx: ImportContext, pageId: string, parentPath: string }): Promise<void>;
-		}).fetchAndImportPage({ ctx, pageId, parentPath: 'Notion' });
+		return this.fetchAndImportPage({ ctx, pageId, parentPath: 'Notion' });
 	}
 
 	discover(ctx: ImportContext, pageIds: string[]) {
@@ -86,9 +90,7 @@ test('a page reached twice is counted once', async () => {
 
 test('a page that fails counts too, so remaining still reaches zero', async () => {
 	const { subject, ctx } = await importer();
-	(subject as unknown as { notionClient: unknown }).notionClient = {
-		pages: { retrieve: async () => { throw new Error('Page could not be read'); } },
-	};
+	subject.useFailingClient();
 
 	await subject.importPage(ctx, 'page-1');
 

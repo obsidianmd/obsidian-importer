@@ -214,7 +214,6 @@ export const locales: Record<string, Bundle> = {
 		'importer.airtable-api.status-downloading-attachment': 'Téléchargement de la pièce jointe : {{name}}',
 		'importer.airtable-api.reason-no-record-names': 'Impossible de lire les noms des enregistrements',
 		'importer.airtable-api.reason-empty-record': 'Enregistrement vide',
-		'importer.airtable-api.reason-already-imported': 'Déjà importé',
 		'importer.apple-notes.label-id': 'l\'identifiant Apple Notes',
 		'importer.apple-notes.msg-platform': 'En raison de limitations de la plateforme, Apple Notes ne peut pas être exporté depuis cet appareil. Ouvrez votre coffre sur un Mac pour exporter depuis Apple Notes.',
 		'importer.apple-notes.name-prefix-format': 'Format du préfixe de fichier',

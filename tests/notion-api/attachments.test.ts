@@ -110,7 +110,7 @@ test('a malformed data URL fails that attachment and leaves the URL in place', a
 	assert.deepEqual(result, { path: url, isLocal: false });
 });
 
-function contextOverVault(vault: MemoryVault, incrementalImport: boolean): BlockConversionContext {
+function contextOverVault(vault: MemoryVault, reuseExistingAttachments: boolean): BlockConversionContext {
 	const skipped: string[] = [];
 
 	return {
@@ -127,7 +127,7 @@ function contextOverVault(vault: MemoryVault, incrementalImport: boolean): Block
 		vault,
 		app: {},
 		downloadExternalAttachments: true,
-		incrementalImport,
+		reuseExistingAttachments,
 		getAvailableAttachmentPath: async (filename: string) => {
 			const dot = filename.lastIndexOf('.');
 			const base = dot > 0 ? filename.slice(0, dot) : filename;

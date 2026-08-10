@@ -42,6 +42,28 @@ export class MemoryVault {
 		return [...this.contents.keys()];
 	}
 
+	/**
+	 * Only what the importers reach for below the file cache: whether a path is
+	 * taken, and writing to one the cache has no TFile for.
+	 */
+	readonly adapter = {
+		exists: async (path: string): Promise<boolean> =>
+			this.contents.has(normalizePath(path)),
+		write: async (path: string, data: string): Promise<void> => {
+			this.contents.set(normalizePath(path), data);
+		},
+	};
+
+	/**
+	 * Take a file out of the vault, as deleting it in Obsidian would. Both
+	 * maps: emptying only the contents leaves a file every lookup still finds.
+	 */
+	remove(path: string): void {
+		const normalized = normalizePath(path);
+		this.contents.delete(normalized);
+		this.entries.delete(normalized.toLowerCase());
+	}
+
 	/** Every file and folder the vault holds, as Obsidian hands them out. */
 	getAllLoadedFiles(): TAbstractFile[] {
 		return [...this.entries.values()];
@@ -199,6 +221,17 @@ export function memoryApp(vault: MemoryVault) {
 				if (typeof content !== 'string') return null;
 
 				return { frontmatter: parseFrontMatterBlock(content)?.frontMatter };
+			},
+			// A whole path resolves before a bare name does, which is what makes
+			// a link to "Books/Dune" reach that note rather than another "Dune".
+			getFirstLinkpathDest: (linkpath: string, _sourcePath: string) => {
+				const name = linkpath.toLowerCase().endsWith('.md') ? linkpath : `${linkpath}.md`;
+				const whole = vault.getAbstractFileByPathInsensitive(name);
+				if (whole) return whole;
+
+				const basename = name.slice(name.lastIndexOf('/') + 1).toLowerCase();
+				return vault.getMarkdownFiles()
+					.find(file => file.path.slice(file.path.lastIndexOf('/') + 1).toLowerCase() === basename) ?? null;
 			},
 		},
 		fileManager: {

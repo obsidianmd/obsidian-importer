@@ -109,10 +109,11 @@ export async function downloadAttachment(
 	attachment: NotionAttachment,
 	context: BlockConversionContext
 ): Promise<AttachmentResult> {
-	const { vault, ctx, downloadExternalAttachments, currentPageTitle, incrementalImport } = context;
+	const { vault, ctx, downloadExternalAttachments, currentPageTitle, reuseExistingAttachments } = context;
 
 	// Determine if we should download this attachment
-	const shouldDownload = attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments);
+	const shouldDownload = !context.forChildrenOnly
+		&& (attachment.type === 'file' || (attachment.type === 'external' && downloadExternalAttachments));
 
 	if (!shouldDownload) {
 		// Return original URL for external files when download is disabled
@@ -134,7 +135,7 @@ export async function downloadAttachment(
 
 		const probe = context.rangeProbe ??= { answered: true };
 
-		if (incrementalImport && !isDataUrl && probe.answered) {
+		if (reuseExistingAttachments && !isDataUrl && probe.answered) {
 			const probed = await probeAttachmentSize(attachment.url, probe);
 
 			if (probed) {
@@ -174,7 +175,7 @@ export async function downloadAttachment(
 		filename = withInferredExtension(filename, downloaded.contentType);
 		let targetFilePath = await resolveTargetPath(context, filename);
 
-		if (incrementalImport) {
+		if (reuseExistingAttachments) {
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
 			if (existingFile) return skipExisting(ctx, existingFile, filename);
@@ -202,7 +203,7 @@ export async function downloadAttachment(
 
 				if (attemptedPaths.size > MAX_NAME_COLLISIONS || await ctx.shouldStop()) throw error;
 
-				if (incrementalImport && occupied instanceof TFile && occupied.stat.size === downloaded.arrayBuffer.byteLength) {
+				if (reuseExistingAttachments && occupied instanceof TFile && occupied.stat.size === downloaded.arrayBuffer.byteLength) {
 					return skipExisting(ctx, occupied, filename);
 				}
 
@@ -555,7 +556,7 @@ export async function downloadAndFormatAttachment(
 		currentFilePath?: string;
 		currentFolderPath?: string;
 		downloadExternalAttachments?: boolean;
-		incrementalImport?: boolean;
+		reuseExistingAttachments?: boolean;
 		onAttachmentDownloaded?: (filename: string) => void;
 		getAvailableAttachmentPath?: (filename: string) => Promise<string>;
 	},

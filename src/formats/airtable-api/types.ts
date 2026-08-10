@@ -2,6 +2,8 @@
  * Type definitions for Airtable API importer
  */
 
+import type { PlannedNote } from '../../format-importer';
+
 /**
  * Minimal interface for status reporting
  * Used by API helpers that only need to report status messages
@@ -138,7 +140,20 @@ export interface AirtableAttachment {
 	id: string;
 	url: string;
 	filename: string;
+	/** Bytes, as the records endpoint reports them. Absent on an older response. */
+	size?: number;
 	type: string;
+}
+
+/**
+ * Where an attachment belongs, answered before anything is downloaded, so a
+ * second import of a file the vault already holds costs neither the bytes nor
+ * a second copy of them.
+ */
+export interface AttachmentPlacement {
+	path: string;
+	/** The file already at that path is this same attachment. */
+	reuse: boolean;
 }
 
 /**
@@ -147,6 +162,8 @@ export interface AirtableAttachment {
 export interface AttachmentResult {
 	path: string;
 	isLocal: boolean;
+	/** The vault already held it, so it is not one this import brought in. */
+	reused?: boolean;
 	filename?: string;
 	/** MIME type from Airtable, used to decide whether the link should be an embed */
 	mimeType?: string;
@@ -176,9 +193,12 @@ export interface PreparedTableData {
 
 export interface PlannedRecord {
 	record: AirtableRecord;
+	/** Where the note goes, and the earlier import it matches. Empty records have none. */
+	note: PlannedNote | null;
+	/** note.targetPath, or '' for a record with no note to write. */
 	filePath: string;
 	title: string;
-	/** Why this record was passed over, ready to show. */
+	/** Why this record was passed over before it was ever planned, ready to show. */
 	skipped?: string;
 }
 

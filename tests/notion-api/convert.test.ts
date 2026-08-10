@@ -112,7 +112,7 @@ test('writes one line between blocks when asked to', async () => {
 	assert.doesNotMatch(tight, /\n\n\n/);
 });
 
-test('creates synced-block notes through the importer-owned Markdown writer', async () => {
+test('hands a synced block\'s own note to the importer to place and write', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Notion');
 	const block = {
@@ -121,7 +121,7 @@ test('creates synced-block notes through the importer-owned Markdown writer', as
 		has_children: false,
 		synced_block: { synced_from: null },
 	};
-	let writtenPath = '';
+	const asked: { blockId: string, folder: string, name: string }[] = [];
 	const syncedContext = {
 		ctx: REPORTER,
 		client: { blocks: { retrieve: async () => block } },
@@ -132,14 +132,22 @@ test('creates synced-block notes through the importer-owned Markdown writer', as
 		syncedBlocksMap: new Map(),
 		vault,
 		app: memoryApp(vault),
-		writeMarkdownFile: async (path: string, content: string) => {
-			writtenPath = path;
-			return await vault.create(path, content) as never;
+		syncedBlockFile: async ({ blockId, folderPath, fileName, convert }: {
+			blockId: string,
+			folderPath: string,
+			fileName: string,
+			convert: (path: string, options: { forChildrenOnly: boolean, keepPlaceholders: boolean }) => Promise<string>,
+		}) => {
+			asked.push({ blockId, folder: folderPath, name: fileName });
+			const path = `${folderPath}/${fileName}`;
+			await vault.create(path, await convert(path, { forChildrenOnly: false, keepPlaceholders: true }));
+
+			return path;
 		},
 	} as unknown as BlockConversionContext;
 
 	const link = await convertSyncedBlock(block as never, syncedContext);
 
-	assert.equal(writtenPath, 'Notion/Example synced block.md');
+	assert.deepEqual(asked, [{ blockId: 'synced-id', folder: 'Notion', name: 'Example synced block.md' }]);
 	assert.equal(link, '![[Notion/Example synced block.md]]');
 });

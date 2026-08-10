@@ -1,0 +1,327 @@
+{
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). One page holding two synced blocks, which is what it takes to show both things a second import has to get right: the note a synced block already has is not written again, and two synced blocks of one page do not collapse into one note. `pages` is keyed by page id as GET /v1/pages/{id} returns it; `blocks` is keyed by block id as GET /v1/blocks/{id}/children returns it. Every block object carries created_time and last_edited_time, which is what decides whether a synced block has changed since the last import. One synced block holds a child page, which inside a synced block is not imported where it stands but noted and fetched afterwards. The second synced block holds an image, because a synced block whose note has to be written needs what it points at whether or not the page around it is being left alone. It also holds a child database, which is a different thing to fetch than a page and has to be asked for as one. The ids are made up and so is the content.",
+	"pages": {
+		"10000000-0000-4000-8000-000000000202": {
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000202",
+			"created_time": "2024-01-02T00:00:00.000Z",
+			"last_edited_time": "2024-03-02T00:00:00.000Z",
+			"archived": false,
+			"properties": {
+				"title": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": {
+								"content": "Chapter one",
+								"link": null
+							},
+							"annotations": {
+								"bold": false,
+								"italic": false,
+								"strikethrough": false,
+								"underline": false,
+								"code": false,
+								"color": "default"
+							},
+							"plain_text": "Chapter one",
+							"href": null
+						}
+					]
+				}
+			}
+		},
+		"10000000-0000-4000-8000-000000000201": {
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000201",
+			"created_time": "2024-01-01T00:00:00.000Z",
+			"last_edited_time": "2024-03-01T00:00:00.000Z",
+			"archived": false,
+			"properties": {
+				"title": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": {
+								"content": "Handbook",
+								"link": null
+							},
+							"annotations": {
+								"bold": false,
+								"italic": false,
+								"strikethrough": false,
+								"underline": false,
+								"code": false,
+								"color": "default"
+							},
+							"plain_text": "Handbook",
+							"href": null
+						}
+					]
+				}
+			}
+		},
+		"10000000-0000-4000-8000-000000000203": {
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000203",
+			"created_time": "2024-01-03T00:00:00.000Z",
+			"last_edited_time": "2024-03-03T00:00:00.000Z",
+			"archived": false,
+			"properties": {
+				"title": {
+					"id": "title",
+					"type": "title",
+					"title": [
+						{
+							"type": "text",
+							"text": {
+								"content": "Nested in a synced block",
+								"link": null
+							},
+							"annotations": {
+								"bold": false,
+								"italic": false,
+								"strikethrough": false,
+								"underline": false,
+								"code": false,
+								"color": "default"
+							},
+							"plain_text": "Nested in a synced block",
+							"href": null
+						}
+					]
+				}
+			}
+		}
+	},
+	"blocks": {
+		"10000000-0000-4000-8000-000000000201": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000201",
+					"type": "synced_block",
+					"has_children": true,
+					"archived": false,
+					"created_time": "2024-01-01T00:00:00.000Z",
+					"last_edited_time": "2024-03-01T00:00:00.000Z",
+					"synced_block": {
+						"synced_from": null
+					}
+				},
+				{
+					"object": "block",
+					"id": "30000000-0000-4000-8000-000000000202",
+					"type": "synced_block",
+					"has_children": true,
+					"archived": false,
+					"created_time": "2024-01-01T00:00:00.000Z",
+					"last_edited_time": "2024-03-01T00:00:00.000Z",
+					"synced_block": {
+						"synced_from": null
+					}
+				},
+				{
+					"object": "block",
+					"id": "10000000-0000-4000-8000-000000000202",
+					"type": "child_page",
+					"has_children": false,
+					"archived": false,
+					"child_page": {
+						"title": "Chapter one"
+					}
+				}
+			]
+		},
+		"10000000-0000-4000-8000-000000000202": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block",
+					"id": "40000000-0000-4000-8000-000000000203",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "The first chapter.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "The first chapter.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			]
+		},
+		"30000000-0000-4000-8000-000000000201": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block",
+					"id": "40000000-0000-4000-8000-000000000201",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "How we work.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "How we work.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				},
+				{
+					"object": "block",
+					"id": "10000000-0000-4000-8000-000000000203",
+					"type": "child_page",
+					"has_children": false,
+					"archived": false,
+					"child_page": {
+						"title": "Nested in a synced block"
+					}
+				}
+			]
+		},
+		"30000000-0000-4000-8000-000000000202": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block",
+					"id": "40000000-0000-4000-8000-000000000202",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Who to ask.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Who to ask.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				},
+				{
+					"object": "block",
+					"id": "50000000-0000-4000-8000-000000000201",
+					"type": "image",
+					"has_children": false,
+					"archived": false,
+					"created_time": "2024-01-01T00:00:00.000Z",
+					"last_edited_time": "2024-03-01T00:00:00.000Z",
+					"image": {
+						"type": "file",
+						"file": {
+							"url": "https://example.invalid/handbook-diagram.png",
+							"expiry_time": "2024-03-01T01:00:00.000Z"
+						},
+						"caption": []
+					}
+				},
+				{
+					"object": "block",
+					"id": "60000000-0000-4000-8000-000000000201",
+					"type": "child_database",
+					"has_children": false,
+					"archived": false,
+					"created_time": "2024-01-01T00:00:00.000Z",
+					"last_edited_time": "2024-03-01T00:00:00.000Z",
+					"child_database": {
+						"title": "Questions"
+					}
+				}
+			]
+		},
+		"10000000-0000-4000-8000-000000000203": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block",
+					"id": "40000000-0000-4000-8000-000000000204",
+					"type": "paragraph",
+					"has_children": false,
+					"archived": false,
+					"paragraph": {
+						"rich_text": [
+							{
+								"type": "text",
+								"text": {
+									"content": "Reached through the synced block.",
+									"link": null
+								},
+								"annotations": {
+									"bold": false,
+									"italic": false,
+									"strikethrough": false,
+									"underline": false,
+									"code": false,
+									"color": "default"
+								},
+								"plain_text": "Reached through the synced block.",
+								"href": null
+							}
+						],
+						"color": "default"
+					}
+				}
+			]
+		}
+	}
+}

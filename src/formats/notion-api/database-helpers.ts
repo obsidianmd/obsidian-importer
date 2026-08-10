@@ -378,7 +378,9 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 	// Create or update .base file in the database folder (same level as database pages)
 	const baseFilePath = normalizePath(`${databaseFolderPath}/${databaseName}.base`);
 
-	// For incremental import: update existing .base file if it exists
+	// Nothing here reads duplicateHandling, deliberately: "Skip" is about not
+	// writing over notes, and a .base is generated from the schema, which a
+	// stale view of is no use to anyone.
 	// Use adapter.exists for reliable check
 	if (await vault.adapter.exists(baseFilePath)) {
 		// Update existing .base file with latest database properties

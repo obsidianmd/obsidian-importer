@@ -11,7 +11,7 @@ import {
 	PageObjectResponse,
 	Heading1BlockObjectResponse
 } from '@notionhq/client';
-import { Vault, App, TFile } from 'obsidian';
+import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import type { FormulaImportStrategy } from '../../base';
 
@@ -47,6 +47,27 @@ export interface DatabaseProcessingContext {
 	onPagesDiscovered?: (pageIds: string[]) => void;
 	databasePropertyName?: string; // Property name for linking pages to their database .base file
 	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search
+}
+
+/** What the converter has to say about a synced block's own note. */
+export interface SyncedBlockRequest {
+	blockId: string;
+	folderPath: string;
+	fileName: string;
+	/** When Notion made and last changed the block, for deciding staleness. */
+	createdTime?: string;
+	lastEditedTime?: string;
+	convert: (filePath: string, options: SyncedBlockConversion) => Promise<string>;
+}
+
+export interface SyncedBlockConversion {
+	/** Walking it for what is under it, so nothing it points at is fetched. */
+	forChildrenOnly: boolean;
+	/**
+	 * Recording unresolved placeholders is what has the file rewritten once the
+	 * import is done, which a note the user has edited must not be.
+	 */
+	keepPlaceholders: boolean;
 }
 
 /**
@@ -216,7 +237,13 @@ export interface BlockConversionContext {
 	app: App;
 	downloadExternalAttachments: boolean;
 	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
-	incrementalImport?: boolean;
+	reuseExistingAttachments?: boolean;
+	/**
+	 * This page is being walked to reach what is under it, not to be written.
+	 * Its child pages and databases are still imported, but the markdown is
+	 * thrown away, so nothing it points at is worth fetching.
+	 */
+	forChildrenOnly?: boolean;
 	rangeProbe?: { answered: boolean };
 	indentLevel?: number;
 	blocksCache?: Map<string, BlockObjectResponse[]>;
@@ -231,7 +258,14 @@ export interface BlockConversionContext {
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
-	writeMarkdownFile: (path: string, content: string) => Promise<TFile>; // Importer-owned writer, so post-import normalization tracks the file
+	/**
+	 * Place, convert and write a synced block's own note, and say where it went.
+	 *
+	 * The importer owns it because only it knows what the vault already holds.
+	 * Conversion happens inside, because the path it settles on is the one the
+	 * block's own links are generated against.
+	 */
+	syncedBlockFile?: (request: SyncedBlockRequest) => Promise<string>;
 }
 
 /**

@@ -273,7 +273,7 @@ export const en = {
 			statusDownloadingAttachment: 'Downloading attachment: {{name}}',
 			reasonNoRecordNames: 'Could not read record names',
 			reasonEmptyRecord: 'Empty record',
-			reasonAlreadyImported: 'Already imported',
+			descNoModifiedTime: 'Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.',
 		},
 		appleNotes: {
 			name: 'Apple Notes',
