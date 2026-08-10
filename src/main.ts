@@ -723,7 +723,37 @@ export class ImporterModal extends Modal implements ImporterHost {
 				ctx.cancel();
 				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
+
+				// A stopped import still has to finish whatever it was in the
+				// middle of, which is long enough to notice. Draw the row it
+				// will end on rather than leaving an empty space where the
+				// buttons were.
+				this.drawFinishButtons(buttonsEl, ctx, false);
 			});
+		});
+	}
+
+	/**
+	 * The buttons a finished import offers, enabled once it has finished.
+	 */
+	private drawFinishButtons(buttonsEl: HTMLElement, ctx: ImportProgressUI, enabled: boolean): void {
+		// An import that lost nothing has nothing to write down, and one that
+		// only skipped what it already had is not news worth a file until it
+		// is asked for.
+		if (ctx.log.length > 0) {
+			buttonsEl.createEl('button', { cls: 'importer-report-button', text: i18n.modal.buttonSaveReport() }, el => {
+				el.disabled = !enabled;
+				el.addEventListener('click', () => void this.saveReport(ctx, el));
+			});
+		}
+
+		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
+			el.disabled = !enabled;
+			el.addEventListener('click', () => this.setUpImporter());
+		});
+		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
+			el.disabled = !enabled;
+			el.addEventListener('click', () => this.close());
 		});
 	}
 
@@ -758,23 +788,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
-		let buttonsEl = contentEl.createDiv('modal-button-container');
-
-		// An import that lost nothing has nothing to write down, and one that
-		// only skipped what it already had is not news worth a file either
-		// until it is asked for.
-		if (ctx.log.length > 0) {
-			buttonsEl.createEl('button', { text: i18n.modal.buttonSaveReport() }, el => {
-				el.addEventListener('click', () => void this.saveReport(ctx, el));
-			});
-		}
-
-		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
-			el.addEventListener('click', () => this.setUpImporter());
-		});
-		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
-			el.addEventListener('click', () => this.close());
-		});
+		this.drawFinishButtons(contentEl.createDiv('modal-button-container'), ctx, true);
 	}
 
 	hide() {
