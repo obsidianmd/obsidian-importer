@@ -5,7 +5,8 @@ import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
-import { describeFolderFailure, NO_ACCESS_HINT } from './apple-notes/errors';
+import { describeFolderFailure, noAccessHint } from './apple-notes/errors';
+import { i18n } from '../i18n';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -95,13 +96,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	init(): void {
 		this.defaultOutputFolder = 'Apple Notes';
 		this.idProperty = NOTE_ID_PROPERTY;
-		this.idLabel = 'Apple Notes ID';
+		this.idLabel = i18n.importer.appleNotes.labelId();
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.draw(contentEl => contentEl.createEl('p', {
-				text:
-					'Due to platform limitations, Apple Notes cannot be exported from this device.' +
-					' Open your vault on a Mac to export from Apple Notes.'
+				text: i18n.importer.appleNotes.msgPlatform(),
 			}));
 
 			this.notAvailable = true;
@@ -119,11 +118,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.filePrefixFormat = storedPrefix;
 
 		this.addSetting()
-			?.setName('File prefix format')
-			.setDesc(
-				'Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day.' +
-				' Leave blank for no prefix.'
-			)
+			?.setName(i18n.importer.appleNotes.namePrefixFormat())
+			.setDesc(i18n.importer.appleNotes.descPrefixFormat())
 			.addText(t => t
 				.setValue(storedPrefix)
 				.setPlaceholder('YYYY-MM-DD')
@@ -134,21 +130,16 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			);
 
 		this.addSetting()
-			?.setName('Omit first line')
-			.setDesc(
-				'Don\'t include the first line in the text, since Apple Notes uses it' +
-				' as the title. It will still be used as the note name.'
-			)
+			?.setName(i18n.importer.appleNotes.nameOmitFirstLine())
+			.setDesc(i18n.importer.appleNotes.descOmitFirstLine())
 			.addToggle(t => t
 				.setValue(true)
 				.onChange(async v => this.omitFirstLine = v)
 			);
 
 		this.addSetting()
-			?.setName('Include handwriting text')
-			.setDesc(
-				'When Apple Notes has detected handwriting in drawings, include it as text before the drawing.'
-			)
+			?.setName(i18n.importer.appleNotes.nameHandwriting())
+			.setDesc(i18n.importer.appleNotes.descHandwriting())
 			.addToggle(t => t
 				.setValue(false)
 				.onChange(async v => this.includeHandwriting = v)
@@ -160,11 +151,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const setting = this.addSetting('source');
 		if (!setting) return;
 
-		setting.setName('Apple Notes data folder');
+		setting.setName(i18n.importer.appleNotes.nameDataFolder());
 
 		const showAccess = () => {
 			if (!this.dataPath) {
-				setting.setDesc('macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.');
+				setting.setDesc(i18n.importer.appleNotes.descDataFolder());
 				return;
 			}
 
@@ -177,11 +168,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		showAccess();
 
 		setting.addButton(button => button
-			.setButtonText('Select folder')
+			.setButtonText(i18n.importer.appleNotes.buttonSelectFolder())
 			.onClick(() => {
 				const dataPath = this.askForDataFolder();
 				if (!dataPath) {
-					new Notice('Ensure you have selected the correct Apple Notes data folder.');
+					new Notice(i18n.importer.appleNotes.msgWrongFolder());
 					return;
 				}
 
@@ -196,11 +187,11 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	private drawFolderPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<AppleNotesTreeNode>(contentEl, {
-				name: 'Folders to import',
-				desc: 'Pick the folders whose notes to bring across.',
-				hint: NO_ACCESS_HINT,
-				loading: 'Reading folders...',
-				empty: 'No folders found.',
+				name: i18n.importer.appleNotes.nameFolders(),
+				desc: i18n.importer.appleNotes.descFolders(),
+				hint: noAccessHint(),
+				loading: i18n.source.msgReadingFolders(),
+				empty: i18n.importer.appleNotes.msgNoFolders(),
 				failed: describeFolderFailure,
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
@@ -218,7 +209,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	private async loadFolders(): Promise<void> {
 		if (!this.dataPath) {
-			new Notice(NO_ACCESS_HINT);
+			new Notice(noAccessHint());
 			return;
 		}
 
@@ -329,7 +320,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			defaultPath: dataPath,
 			properties: ['openDirectory'],
 			//see https://developer.apple.com/videos/play/wwdc2019/701/
-			message: 'Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.'
+			message: i18n.importer.appleNotes.msgDialogFolder(),
 		});
 
 		return names?.includes(dataPath) ? dataPath : null;
@@ -339,7 +330,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const dataPath = this.dataPath ?? this.askForDataFolder();
 
 		if (!dataPath) {
-			new Notice('Data import failed. Ensure you have selected the correct Apple Notes data folder.');
+			new Notice(i18n.importer.appleNotes.msgImportFailed());
 			return null;
 		}
 
@@ -361,13 +352,13 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const rootFolder = await this.getOutputFolder();
 
 		if (!rootFolder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 		this.rootFolder = rootFolder;
 
 		if (this.selectedFolders.length === 0) {
-			new Notice('Please select at least one folder to import.');
+			new Notice(i18n.importer.appleNotes.msgPickFolders());
 			return;
 		}
 
@@ -499,7 +490,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		`;
 
 		if (row.ZISPASSWORDPROTECTED) {
-			this.ctx.reportSkipped(row.ZTITLE1, 'note is password protected');
+			this.ctx.reportSkipped(row.ZTITLE1, i18n.importer.appleNotes.reasonPasswordProtected());
 			return null;
 		}
 
@@ -523,7 +514,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		if (existingFile) {
 			if (this.duplicateHandling === DuplicateHandling.Skip) {
-				this.ctx.reportSkipped(title, 'note is a duplicate');
+				this.ctx.reportSkipped(title, i18n.importer.appleNotes.reasonDuplicate());
 				return existingFile;
 			}
 			else if (this.duplicateHandling === DuplicateHandling.Update) {
@@ -533,7 +524,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 				// Only skip if the Apple Note hasn't been modified since the existing file
 				if (appleNoteModTime <= existingFileModTime) {
-					this.ctx.reportSkipped(title, 'note unchanged since last import');
+					this.ctx.reportSkipped(title, i18n.importer.appleNotes.reasonUnchanged());
 					return existingFile;
 				}
 				// If Apple Note is newer, continue with import (will overwrite)
@@ -542,7 +533,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const file = existingFile ?? await this.saveAsMarkdownFile(folder, `${title}.md`, '');
 
-		this.ctx.status(`Importing note ${title}`);
+		this.ctx.status(i18n.common.statusImportingNote({ name: title }));
 		this.resolvedFiles[id] = file;
 		this.owners[id] = this.owners[row.ZFOLDER];
 
@@ -657,7 +648,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		// A missing row must not abort conversion once the note file exists (#218, #391).
 		if (!row || sourcePath === undefined || outName === undefined || outExt === undefined) {
-			if (!hasFallback) this.ctx.reportFailed(`Attachment ${id}`, `no ${uti} row to read it from`);
+			if (!hasFallback) {
+				this.ctx.reportFailed(
+					i18n.importer.appleNotes.labelAttachment({ id }),
+					i18n.importer.appleNotes.reasonNoAttachmentRow({ uti })
+				);
+			}
 			return null;
 		}
 
@@ -699,8 +695,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 			if (reuse) {
 				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
-					? 'attachment already exists'
-					: 'attachment unchanged since last import');
+					? i18n.importer.appleNotes.reasonAttachmentExists()
+					: i18n.importer.appleNotes.reasonAttachmentUnchanged());
 				return reuse;
 			}
 
@@ -717,9 +713,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			const label = await this.describeAttachment(outName, Number(row.ZNOTE));
 
 			if (neverDownloaded) {
-				this.ctx.reportSkipped(
-					label, 'it has not been downloaded from iCloud - open the note in Apple Notes to fetch it'
-				);
+				this.ctx.reportSkipped(label, i18n.importer.appleNotes.reasonNotDownloaded());
 				return null;
 			}
 
@@ -750,13 +744,15 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	private async describeAttachment(outName: string, notePk: number): Promise<string> {
 		const imported = this.resolvedFiles[notePk];
-		if (imported) return `${outName} in ${imported.basename}`;
+		if (imported) return i18n.importer.appleNotes.labelAttachmentInNote({ name: outName, note: imported.basename });
 
 		const note = await this.database.get`
 			SELECT ztitle1 FROM ziccloudsyncingobject WHERE z_pk = ${notePk}
 		`;
 
-		return note?.ZTITLE1 ? `${outName} in ${String(note.ZTITLE1)}` : outName;
+		return note?.ZTITLE1
+			? i18n.importer.appleNotes.labelAttachmentInNote({ name: outName, note: String(note.ZTITLE1) })
+			: outName;
 	}
 
 	async getAttachmentSource(account: ANAccount, sourcePath: string): Promise<Buffer<ArrayBuffer>> {

@@ -550,6 +550,134 @@ translation=
 original=Apple Notes
 translation=
 
+[importer.apple-notes.label-id]
+original=Apple Notes ID
+translation=
+
+[importer.apple-notes.msg-platform]
+original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
+translation=
+
+[importer.apple-notes.name-prefix-format]
+original=File prefix format
+translation=
+
+[importer.apple-notes.desc-prefix-format]
+original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
+translation=
+
+[importer.apple-notes.name-omit-first-line]
+original=Omit first line
+translation=
+
+[importer.apple-notes.desc-omit-first-line]
+original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
+translation=
+
+[importer.apple-notes.name-handwriting]
+original=Include handwriting text
+translation=
+
+[importer.apple-notes.desc-handwriting]
+original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
+translation=
+
+[importer.apple-notes.name-data-folder]
+original=Apple Notes data folder
+translation=
+
+[importer.apple-notes.desc-data-folder]
+original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
+translation=
+
+[importer.apple-notes.button-select-folder]
+original=Select folder
+translation=
+
+[importer.apple-notes.msg-wrong-folder]
+original=Ensure you have selected the correct Apple Notes data folder.
+translation=
+
+[importer.apple-notes.msg-dialog-folder]
+original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
+translation=
+
+[importer.apple-notes.msg-import-failed]
+original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
+translation=
+
+[importer.apple-notes.msg-pick-folders]
+original=Please select at least one folder to import.
+translation=
+
+[importer.apple-notes.name-folders]
+original=Folders to import
+translation=
+
+[importer.apple-notes.desc-folders]
+original=Pick the folders whose notes to bring across.
+translation=
+
+[importer.apple-notes.msg-no-access]
+original=Allow access to your notes to see the folders in them.
+translation=
+
+[importer.apple-notes.msg-no-folders]
+original=No folders found.
+translation=
+
+[importer.apple-notes.msg-database-busy]
+original=Your Apple Notes database is in use. Quit Notes and try again.
+translation=
+
+[importer.apple-notes.msg-database-unreadable]
+original=Could not open your Apple Notes database. {{hint}}
+translation=
+
+[importer.apple-notes.msg-read-failed-with-detail]
+original=Could not read your notes: {{detail}}
+translation=
+
+[importer.apple-notes.msg-read-failed]
+original=Could not read your notes.
+translation=
+
+[importer.apple-notes.reason-password-protected]
+original=note is password protected
+translation=
+
+[importer.apple-notes.reason-duplicate]
+original=note is a duplicate
+translation=
+
+[importer.apple-notes.reason-unchanged]
+original=note unchanged since last import
+translation=
+
+[importer.apple-notes.reason-attachment-exists]
+original=attachment already exists
+translation=
+
+[importer.apple-notes.reason-attachment-unchanged]
+original=attachment unchanged since last import
+translation=
+
+[importer.apple-notes.reason-not-downloaded]
+original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
+translation=
+
+[importer.apple-notes.label-attachment]
+original=Attachment {{id}}
+translation=
+
+[importer.apple-notes.reason-no-attachment-row]
+original=no {{uti}} row to read it from
+translation=
+
+[importer.apple-notes.label-attachment-in-note]
+original={{name}} in {{note}}
+translation=
+
 [importer.apple-journal.name]
 original=Apple Journal
 translation=
@@ -768,6 +896,150 @@ translation=
 
 [importer.onenote.option-text]
 original=Microsoft OneNote
+translation=
+
+[importer.onenote.label-id]
+original=OneNote ID
+translation=
+
+[importer.onenote.name-incompatible]
+original=Import incompatible attachments
+translation=
+
+[importer.onenote.desc-incompatible]
+original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+translation=
+
+[importer.onenote.name-account]
+original=Microsoft account
+translation=
+
+[importer.onenote.desc-sign-in]
+original=Sign in to import your OneNote notebooks.
+translation=
+
+[importer.onenote.desc-sign-in-organization]
+original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
+translation=
+
+[importer.onenote.desc-signed-in]
+original=Signed in as {{name}} ({{email}}).
+translation=
+
+[importer.onenote.button-sign-in]
+original=Sign in
+translation=
+
+[importer.onenote.button-sign-out]
+original=Sign out
+translation=
+
+[importer.onenote.button-work-account]
+original=Use work or school access
+translation=
+
+[importer.onenote.msg-sign-in-failed]
+original=An error occurred while trying to sign you in.
+translation=
+
+[importer.onenote.msg-sign-in-details]
+original=Click here to show error details
+translation=
+
+[importer.onenote.msg-signed-out]
+original=Sign in to see your OneNote notebooks.
+translation=
+
+[importer.onenote.msg-please-sign-in]
+original=Please sign in to your Microsoft account.
+translation=
+
+[importer.onenote.name-sections]
+original=Sections to import
+translation=
+
+[importer.onenote.desc-sections]
+original=Select a notebook, or sections within it.
+translation=
+
+[importer.onenote.msg-loading-notebooks]
+original=Loading notebooks...
+translation=
+
+[importer.onenote.msg-no-notebooks]
+original=No notebooks found.
+translation=
+
+[importer.onenote.msg-scope-refused]
+original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
+translation=
+
+[importer.onenote.label-service]
+original=OneNote
+translation=
+
+[importer.onenote.label-subject]
+original=your notebooks
+translation=
+
+[importer.onenote.label-credential]
+original=Sign out and back in to try again.
+translation=
+
+[importer.onenote.status-finding]
+original=Finding notes to import
+translation=
+
+[importer.onenote.status-finding-in]
+original=Finding notes in {{section}}
+translation=
+
+[importer.onenote.status-finding-in-section]
+original=Finding notes in {{section}} (section {{index}} of {{total}})
+translation=
+
+[importer.onenote.status-importing-notes]
+original=Importing {{notes}}
+translation=
+
+[importer.onenote.status-downloading]
+original=Downloading attachment {{name}}
+translation=
+
+[importer.onenote.msg-too-many-errors]
+original=Microsoft OneNote returned too many consecutive errors.
+translation=
+
+[importer.onenote.label-unknown-page]
+original=<unknown>
+translation=
+
+[importer.onenote.reason-too-many-failures]
+original=import was canceled (after too many pages failed to load)
+translation=
+
+[importer.onenote.label-ink]
+original={{page}} - Ink.svg
+translation=
+
+[importer.onenote.label-attachment]
+original=OneNote attachment
+translation=
+
+[importer.onenote.label-image]
+original=OneNote image
+translation=
+
+[importer.onenote.reason-no-attachment-name]
+original=the attachment did not say what it was called
+translation=
+
+[importer.onenote.reason-no-attachment-url]
+original=the attachment did not include a download URL
+translation=
+
+[importer.onenote.reason-no-image-url]
+original=the image did not include a download URL
 translation=
 
 [importer.notion-api.name]
