@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { AirtableAPIImporter } from '../../src/formats/airtable-api';
 import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
-import { RECORD_ID_PROPERTY } from '../../src/formats/airtable-api/record-note';
+import { RECORD_ID_PROPERTY, recordTimestamps } from '../../src/formats/airtable-api/record-note';
 import type { AirtableRecord, PreparedTableData, TablePlan } from '../../src/formats/airtable-api/types';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
@@ -118,6 +118,15 @@ test('"Create a copy" plans beside the note rather than onto it', async () => {
 
 	assert.deepEqual(paths(plans), ['Airtable/Books/Dune 1.md']);
 	assert.equal(plans[0].records[0].note?.file, null);
+});
+
+test('a record note is stamped with when Airtable says the record was made', () => {
+	assert.deepEqual(recordTimestamps(record('rec1', 'Dune')), { ctime: Date.parse('2024-01-01T00:00:00.000Z') });
+});
+
+test('and with nothing at all when there is no time to read', () => {
+	assert.deepEqual(recordTimestamps({ id: 'rec1', fields: {} } as never), {});
+	assert.deepEqual(recordTimestamps({ id: 'rec1', createdTime: 'not a date', fields: {} }), {});
 });
 
 test('an empty record is passed over before it is ever planned', async () => {

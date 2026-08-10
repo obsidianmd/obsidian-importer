@@ -32,6 +32,7 @@ import {
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	RECORD_ID_PROPERTY,
+	recordTimestamps,
 	recordTitle,
 } from './airtable-api/record-note';
 import type {
@@ -1232,7 +1233,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			formatAttachmentsForYAML,
 		});
 
-		const { written } = await this.writePlannedNote(ctx, note, content, { disposition, sourceId: record.id });
+		const { written } = await this.writePlannedNote(ctx, note, content, {
+			disposition,
+			sourceId: record.id,
+			...recordTimestamps(record),
+		});
 		if (written) ctx.reportNoteSuccess(title);
 
 		this.processedRecordsCount++;
