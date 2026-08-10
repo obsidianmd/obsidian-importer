@@ -529,7 +529,7 @@ function asMeetingNotes(block: BlockObjectResponse): MeetingNotesBlock | null {
 	if ((block.type as string) !== 'meeting_notes') return null;
 
 	const data = (block as unknown as Record<string, unknown>).meeting_notes;
-	return typeof data === 'object' && data !== null ? data as MeetingNotesBlock : null;
+	return typeof data === 'object' && data !== null ? data : null;
 }
 
 async function convertMeetingNotes(
