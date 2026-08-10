@@ -146,7 +146,10 @@ export class OneNoteImporter extends FormatImporter {
 	private throttleSpacingMs = 0;
 	/** Page lists read ahead of the import, by section id. */
 	private readonly sectionPages = new Map<string, OnenotePage[]>();
-	private prefetching: Promise<void> = Promise.resolve();
+	/** Read-aheads still in flight, so an import can wait on one at a time. */
+	private readonly readingAhead = new Map<string, Promise<void>>();
+	/** Keeps those read-aheads to one request at a time. */
+	private readAheadQueue: Promise<void> = Promise.resolve();
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -551,9 +554,9 @@ export class OneNoteImporter extends FormatImporter {
 		if (!this.signedIn) return;
 
 		for (const section of this.selectedSections) {
-			if (this.sectionPages.has(section.id)) continue;
+			if (this.sectionPages.has(section.id) || this.readingAhead.has(section.id)) continue;
 
-			this.prefetching = this.prefetching.then(async () => {
+			const reading = this.readAheadQueue.then(async () => {
 				// Both may have changed while this waited its turn.
 				if (this.sectionPages.has(section.id)) return;
 				if (!this.selectedSections.some(selected => selected.id === section.id)) return;
@@ -565,6 +568,9 @@ export class OneNoteImporter extends FormatImporter {
 					// Left uncached, so the import asks again and reports it there.
 				}
 			});
+
+			this.readAheadQueue = reading;
+			this.readingAhead.set(section.id, reading.finally(() => this.readingAhead.delete(section.id)));
 		}
 	}
 
@@ -579,9 +585,6 @@ export class OneNoteImporter extends FormatImporter {
 	private async readSelectedPages(progress: ImportContext): Promise<OnenotePage[]> {
 		const queue: OnenotePage[] = [];
 
-		// Anything still being read ahead is about to be needed.
-		await this.prefetching;
-
 		const sections = this.selectedSections;
 		for (const [index, section] of sections.entries()) {
 			if (await progress.shouldStop()) break;
@@ -591,6 +594,14 @@ export class OneNoteImporter extends FormatImporter {
 			progress.status(findingNotes(section.title, index, sections.length, queue.length));
 
 			let pages = this.sectionPages.get(section.id);
+
+			// Waiting on this one rather than the whole read-ahead is what
+			// keeps the message above true while it waits.
+			if (!pages) {
+				await this.readingAhead.get(section.id);
+				pages = this.sectionPages.get(section.id);
+			}
+
 			if (!pages) {
 				try {
 					pages = await this.fetchSectionPages(section.id, progress);
@@ -608,6 +619,10 @@ export class OneNoteImporter extends FormatImporter {
 			// within its section, so the section needs its whole list.
 			this.insertPagesToSection(pages, section.id);
 			queue.push(...pages);
+
+			// Let the remaining count climb as the sections come in, rather
+			// than sitting at nothing until the last one has been read.
+			progress.reportProgress(0, queue.length);
 		}
 
 		return queue;

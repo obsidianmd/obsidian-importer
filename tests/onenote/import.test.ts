@@ -22,7 +22,8 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 		notebooks: [],
 		// Object.create skips the field initialisers the constructor would run.
 		sectionPages: new Map(),
-		prefetching: Promise.resolve(),
+		readingAhead: new Map(),
+		readAheadQueue: Promise.resolve(),
 		graphData: { accessToken: 'token' },
 		duplicateHandling: DuplicateHandling.CreateCopy,
 		host: { plugin: null, abortController: new AbortController() },
@@ -72,9 +73,9 @@ test('the total is the whole import from the first note, not one section at a ti
 		id: `${id}-${i}`, title: `${id} ${i}`, contentUrl: `page-id=${id}-${i}}`,
 	}));
 
-	const totals: number[] = [];
+	const reports: Array<[number, number]> = [];
 	const progress = new ImportContext();
-	progress.reportProgress = (_current: number, total: number) => void totals.push(total);
+	progress.reportProgress = (current: number, total: number) => void reports.push([current, total]);
 
 	const subject = importerOverPages([], {
 		selectedSections: sections.map(s => ({ id: s.id, title: s.title })),
@@ -87,8 +88,16 @@ test('the total is the whole import from the first note, not one section at a ti
 
 	await subject.import(progress);
 
-	assert.deepEqual([...new Set(totals)], [10], 'one total throughout, and it is every page');
-	assert.equal(totals.length, 11, 'reported once up front and once per page');
+	// Counting reports a total that climbs while nothing has been imported yet,
+	// so the remaining count fills in as the sections come in.
+	const counting = reports.filter(([current]) => current === 0).map(([, total]) => total);
+	assert.deepEqual(counting, [3, 8, 10, 10], 'the total should grow with each section read');
+
+	// Once a note has been imported the total is settled: a total that grew
+	// from there is what made the bar fill up and then jump backwards.
+	const importing = reports.filter(([current]) => current > 0);
+	assert.deepEqual([...new Set(importing.map(([, total]) => total))], [10]);
+	assert.deepEqual(importing.map(([current]) => current), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
 test('page lists read ahead of the import are not fetched twice', async () => {
@@ -157,7 +166,7 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 	// While A is still in flight, B and C are unticked.
 	subject.selectedSections = [{ id: 'a', title: 'A' }] as OneNoteImporter['selectedSections'];
 	releaseFirst();
-	await (subject as unknown as { prefetching: Promise<void> }).prefetching;
+	await (subject as unknown as { readAheadQueue: Promise<void> }).readAheadQueue;
 
 	assert.deepEqual(listed, ['a'], 'only the section already being read should have been asked for');
 });
