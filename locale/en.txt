@@ -162,6 +162,10 @@ translation=
 original=Stop
 translation=
 
+[modal.button-open-report]
+original=Open report
+translation=
+
 [modal.button-import-more]
 original=Import more
 translation=
@@ -276,6 +280,62 @@ translation=
 
 [progress.label-finalization]
 original=Markdown finalization
+translation=
+
+[report.title]
+original={{importer}} import
+translation=
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=
+
+[report.count-notes]
+original={{count}} note imported
+translation=
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation=
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation=
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation=
+
+[report.count-skipped]
+original={{count}} item skipped
+translation=
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation=
+
+[report.count-failed]
+original={{count}} item failed
+translation=
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation=
+
+[report.msg-more-not-listed]
+original={{count}} more not listed. The console has all of them.
 translation=
 
 [source.name]

@@ -4,6 +4,7 @@ import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
+import { formatImportReport } from './import-report';
 import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
@@ -806,6 +807,42 @@ export abstract class FormatImporter {
 		finally {
 			this.markdownFiles.clear();
 			if (ctx) ctx.status(previousStatus);
+		}
+	}
+
+	/**
+	 * Write down what did not come through, in the folder the import went to.
+	 *
+	 * Only when there is something to write down: an import that lost nothing
+	 * leaves no note behind. The report is the only record that outlives the
+	 * dialog, so a failure to write it is reported rather than thrown - the
+	 * import itself has already finished by this point.
+	 */
+	async writeImportReport(ctx: ImportContext, importerName: string): Promise<TFile | null> {
+		if (ctx.log.length === 0) return null;
+
+		try {
+			const folder = await this.getOutputFolder();
+			if (!folder) return null;
+
+			const content = formatImportReport({
+				importer: importerName,
+				when: new Date(),
+				notes: ctx.notes,
+				attachments: ctx.attachments,
+				cancelled: ctx.isCancelled(),
+				log: ctx.log,
+			});
+
+			// The note's text is translated; its name is not. A file name is a
+			// path, and a second import run in another language should land on
+			// "Import report 1" rather than start a parallel set.
+			const path = getUniqueFilePath(this.vault, folder.path, 'Import report.md');
+			return await this.vault.create(normalizePath(path), content);
+		}
+		catch (error) {
+			console.error('Could not write the import report', error);
+			return null;
 		}
 	}
 

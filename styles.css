@@ -159,9 +159,9 @@
 }
 
 .importer-log .list-item {
-	display: inline-block;
 	line-height: var(--line-height-normal);
-	white-space: pre;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 	margin: var(--size-2-1);
 }
 

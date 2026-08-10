@@ -64,6 +64,7 @@ export const en = {
 		buttonPause: 'Pause',
 		buttonResume: 'Resume',
 		buttonStop: 'Stop',
+		buttonOpenReport: 'Open report',
 		buttonImportMore: 'Import more',
 		buttonDone: 'Done',
 		msgUnexpectedAuth: 'Unexpected auth event. Please restart the auth process.',
@@ -96,6 +97,23 @@ export const en = {
 		statusWaitingForMarkdown: 'Waiting for imported Markdown…',
 		statusStandardizing: 'Standardizing Markdown ({{current}}/{{total}})',
 		labelFinalization: 'Markdown finalization',
+	},
+
+	report: {
+		title: '{{importer}} import',
+		msgFinished: 'Finished {{when}}. {{counts}}.',
+		msgStopped: 'Stopped {{when}}. {{counts}}.',
+		headingFailed: 'Failed ({{count}})',
+		headingSkipped: 'Skipped ({{count}})',
+		countNotes: '{{count}} note imported',
+		countNotes_plural: '{{count}} notes imported',
+		countAttachments: '{{count}} attachment downloaded',
+		countAttachments_plural: '{{count}} attachments downloaded',
+		countSkipped: '{{count}} item skipped',
+		countSkipped_plural: '{{count}} items skipped',
+		countFailed: '{{count}} item failed',
+		countFailed_plural: '{{count}} items failed',
+		msgMoreNotListed: '{{count}} more not listed. The console has all of them.',
 	},
 
 	source: {

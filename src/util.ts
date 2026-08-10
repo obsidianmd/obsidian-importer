@@ -186,12 +186,19 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	return '';
 }
 
-export function truncateText(text: string, limit: number, ellipses: string = '...') {
-	if (text.length < limit) {
-		return text;
-	}
+/** Whatever an importer passed as a reason, as something a person can read. */
+export function describeReason(reason: unknown): string {
+	if (typeof reason === 'string') return reason;
 
-	return text.substring(0, limit) + ellipses;
+	const message = extractErrorMessage(reason);
+	if (message !== undefined) return message;
+
+	try {
+		return JSON.stringify(reason) ?? String(reason);
+	}
+	catch {
+		return String(reason);
+	}
 }
 
 export function extractErrorMessage(error: unknown): string | undefined {

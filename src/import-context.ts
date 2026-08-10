@@ -1,9 +1,24 @@
+/** One thing that did not import, and why. */
+export interface ImportLogEntry {
+	outcome: 'skipped' | 'failed';
+	name: string;
+	reason?: unknown;
+}
+
 export class ImportContext {
 	notes = 0;
 	attachments = 0;
 	skipped: string[] = [];
 	failed: string[] = [];
-	maxFileNameLength: number = 100;
+
+	/**
+	 * Everything skipped or failed, in the order it happened, with the reason
+	 * kept rather than only counted. This is what the progress log draws and
+	 * what the import report is written from - an import of ten thousand pages
+	 * ends on numbers nobody can act on otherwise.
+	 */
+	log: ImportLogEntry[] = [];
+
 	statusMessage: string = '';
 
 	cancelled: boolean = false;
@@ -34,11 +49,13 @@ export class ImportContext {
 
 	reportSkipped(name: string, reason?: unknown) {
 		this.skipped.push(name);
+		this.log.push({ outcome: 'skipped', name, reason });
 		this.onSkipped(name, reason);
 	}
 
 	reportFailed(name: string, reason?: unknown) {
 		this.failed.push(name);
+		this.log.push({ outcome: 'failed', name, reason });
 		console.error('Import failed', name, reason);
 		this.onFailed(name, reason);
 	}

@@ -1,8 +1,8 @@
-import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon } from 'obsidian';
+import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { NodePickedFile } from './filesystem';
 import { AuthCallback, helpUrl } from './constants';
-import { ImportContext } from './import-context';
+import { ImportContext, ImportLogEntry } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
 import { AirtableAPIImporter } from './formats/airtable-api';
 import { AppleNotesImporter } from './formats/apple-notes';
@@ -19,7 +19,7 @@ import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
 import { i18n, setLanguage } from './i18n';
-import { extractErrorMessage, truncateText } from './util';
+import { describeReason } from './util';
 
 declare global {
 	interface Window {
@@ -42,20 +42,6 @@ function importerOptionText(id: string): string {
 	return i18n.importer(`${id}.option-text`);
 }
 
-
-function describeReason(reason: unknown): string {
-	if (typeof reason === 'string') return reason;
-
-	const message = extractErrorMessage(reason);
-	if (message !== undefined) return message;
-
-	try {
-		return JSON.stringify(reason) ?? String(reason);
-	}
-	catch {
-		return String(reason);
-	}
-}
 
 function statusText(message: string): string {
 	const trimmed = message.trim();
@@ -89,8 +75,6 @@ export class ImportProgressUI extends ImportContext {
 	failedCountEl: HTMLElement;
 	statusEl: HTMLElement;
 	importLogEl: HTMLElement;
-
-	private logEntries: { prefix: string, name: string, reason?: unknown }[] = [];
 
 	private statusHidden: boolean = false;
 
@@ -139,7 +123,7 @@ export class ImportProgressUI extends ImportContext {
 		if (this.isPaused()) this.onPaused(true);
 		else if (this.statusMessage) this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
-		for (const entry of this.logEntries) {
+		for (const entry of this.log) {
 			this.drawLogEntry(entry);
 		}
 		if (this.statusHidden) this.onHideStatus();
@@ -162,14 +146,14 @@ export class ImportProgressUI extends ImportContext {
 		this.attachmentCountEl.setText(this.attachments.toString());
 	}
 
-	protected onSkipped(name: string, reason?: unknown): void {
+	protected onSkipped(): void {
 		this.skippedCountEl.setText(this.skipped.length.toString());
-		this.log(i18n.progress.labelSkipped(), name, reason);
+		this.drawLogEntry(this.log[this.log.length - 1]);
 	}
 
-	protected onFailed(name: string, reason?: unknown): void {
+	protected onFailed(): void {
 		this.failedCountEl.setText(this.failed.length.toString());
-		this.log(i18n.progress.labelFailed(), name, reason);
+		this.drawLogEntry(this.log[this.log.length - 1]);
 	}
 
 	protected onProgress(current: number, total: number): void {
@@ -184,25 +168,25 @@ export class ImportProgressUI extends ImportContext {
 		this.statusEl.hide();
 	}
 
-	private log(prefix: string, name: string, reason?: unknown): void {
-		const entry = { prefix, name, reason };
-		this.logEntries.push(entry);
-		this.drawLogEntry(entry);
-	}
-
-	private drawLogEntry({ prefix, name, reason }: { prefix: string, name: string, reason?: unknown }): void {
+	/**
+	 * The whole name and the whole reason, cut off at neither end.
+	 *
+	 * Both used to stop at a hundred characters, which is exactly where the
+	 * useful part of a path or a Notion error begins - leaving a log that says
+	 * something went wrong and no way to find out what.
+	 */
+	private drawLogEntry({ outcome, name, reason }: ImportLogEntry): void {
 		const { importLogEl } = this;
 
 		importLogEl.createDiv('list-item', el => {
-			const shortName = truncateText(name, this.maxFileNameLength);
-			el.createSpan({ cls: 'importer-error', text: prefix });
+			el.createSpan({
+				cls: 'importer-error',
+				text: outcome === 'failed' ? i18n.progress.labelFailed() : i18n.progress.labelSkipped(),
+			});
 			el.createSpan({
 				text: reason
-					? i18n.progress.labelEntryWithReason({
-						name: shortName,
-						reason: truncateText(describeReason(reason), this.maxFileNameLength),
-					})
-					: i18n.progress.labelEntry({ name: shortName }),
+					? i18n.progress.labelEntryWithReason({ name, reason: describeReason(reason) })
+					: i18n.progress.labelEntry({ name }),
 			});
 		});
 
@@ -397,6 +381,7 @@ export default class ImporterPlugin extends Plugin {
 		}
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
+			await importer.writeImportReport(ctx, importerName(importerId));
 		}
 		return ctx;
 	}
@@ -423,6 +408,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private hidden: boolean = false;
 	private hiddenNotice: Notice | null = null;
 	private hiddenInterval: number | null = null;
+
+	/** The note the last import wrote about what it could not bring over. */
+	private reportFile: TFile | null = null;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app);
@@ -657,6 +645,8 @@ export class ImporterModal extends Modal implements ImporterHost {
 			this.current.cancel();
 		}
 
+		this.reportFile = null;
+
 		const { contentEl } = this;
 
 		contentEl.empty();
@@ -688,6 +678,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
+			this.reportFile = await importer.writeImportReport(ctx, name);
 			if (this.current === ctx) {
 				this.current = null;
 			}
@@ -751,6 +742,19 @@ export class ImporterModal extends Modal implements ImporterHost {
 		ctx.createProgressUI(contentEl.createDiv());
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
+
+		// The log above is gone as soon as this dialog is, so an import that
+		// lost something says where the record of it went.
+		const report = this.reportFile;
+		if (report) {
+			buttonsEl.createEl('button', { text: i18n.modal.buttonOpenReport() }, el => {
+				el.addEventListener('click', () => {
+					this.close();
+					void this.app.workspace.getLeaf(true).openFile(report);
+				});
+			});
+		}
+
 		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
 			el.addEventListener('click', () => this.setUpImporter());
 		});
