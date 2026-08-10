@@ -747,7 +747,7 @@ export abstract class FormatImporter {
 		const parent = folder.path === '/' ? '' : folder.path;
 
 		const { basename, extension } = parseFilePath(filename);
-		const name = sanitizeFileName(basename);
+		const name = sanitizeFileName(basename, parent);
 		const fullExt = extension ? '.' + extension : '';
 
 		return nth => normalizePath(
@@ -958,9 +958,9 @@ export abstract class FormatImporter {
 	 * every note before writing any does not hand the same name to two of them.
 	 */
 	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
-		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
 		const parent = folderPath === '/' ? '' : folderPath;
+		const name = `${sanitizeFileName(title, parent).replace(/\.md$/i, '')}.md`;
 		const desiredPath = normalizePath(parent ? `${parent}/${name}` : name);
 
 		const file = this.duplicateHandling === DuplicateHandling.CreateCopy
@@ -1202,7 +1202,7 @@ export abstract class FormatImporter {
 	}
 
 	async saveAsMarkdownFile(folder: TFolder, title: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		const sanitizedName = sanitizeFileName(title).replace(/\.md$/i, '');
+		const sanitizedName = sanitizeFileName(title, folder.path === '/' ? '' : folder.path).replace(/\.md$/i, '');
 
 		return await this.createFile(folder, `${sanitizedName}.md`, content, options);
 	}

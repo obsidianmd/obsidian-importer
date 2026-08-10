@@ -9,7 +9,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { Platform } from 'obsidian';
+
 import { sanitizeFileName, sanitizeFilePath, stripControlCharacters } from '../../src/util';
+
+function withPlatform(platform: 'windows' | 'elsewhere', check: () => void): void {
+	const was = Platform.isWin;
+	Platform.isWin = platform === 'windows';
+	try {
+		check();
+	}
+	finally {
+		Platform.isWin = was;
+	}
+}
 
 test('a name with nothing usable in it falls back to Untitled', () => {
 	// A source that has no title at all hands over undefined or null rather
@@ -71,7 +84,7 @@ test('a name cannot start with a dot or end in a dot or space', () => {
 	assert.equal(sanitizeFileName('trailing   '), 'trailing');
 });
 
-test('a name too long for a filesystem is cut down to one that fits', () => {
+test('a name too long for a filesystem is cut down to one that fits', () => withPlatform('elsewhere', () => {
 	const sentence = 'In a single-tenant setup, a SaaS application is uniquely deployed to a specific environment not shared with other consumer tenants. This involves having a separate application instance, along with a dedicated database and runtime memory exclusively for each SaaS client.';
 
 	const name = sanitizeFileName(sentence);
@@ -79,9 +92,9 @@ test('a name too long for a filesystem is cut down to one that fits', () => {
 	assert.ok(sentence.startsWith(name), 'the name should be a prefix of the title');
 	assert.ok(!name.endsWith(' '), 'a trailing space would be refused on Windows');
 	assert.match(name, /runtime memory$/);
-});
+}));
 
-test('the limit is in bytes, and no character is split to reach it', () => {
+test('the limit is in bytes, and no character is split to reach it', () => withPlatform('elsewhere', () => {
 	const encoder = new TextEncoder();
 
 	for (const character of ['a', 'é', '漢', '🙂']) {
@@ -92,17 +105,66 @@ test('the limit is in bytes, and no character is split to reach it', () => {
 		assert.ok(bytes > 240 - 4, `${character} gave ${bytes} bytes, which wastes the budget`);
 		assert.equal([...name].every(c => c === character), true, `${character} came back damaged`);
 	}
-});
+}));
 
-test('cutting a name short cannot leave one Windows refuses', () => {
+test('cutting a name short cannot leave one Windows refuses', () => withPlatform('elsewhere', () => {
 	assert.equal(sanitizeFileName(`CON${' '.repeat(237)}x`), 'Untitled');
 	assert.equal(sanitizeFileName(`Notes.${' '.repeat(300)}`), 'Notes');
-});
+}));
 
-test('a name that already fits is not touched', () => {
+test('a name that already fits is not touched', () => withPlatform('elsewhere', () => {
 	const name = 'a'.repeat(240);
 	assert.equal(sanitizeFileName(name), name);
-});
+}));
+
+// Regression cases for obsidianmd/obsidian-importer#617 and #618.
+const minifiedCss = 'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}.header{color:#333;background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 24px}.header .nav{display:flex;gap:16px}';
+
+test('on Windows a name is measured against the folder it goes in', () => withPlatform('windows', () => {
+	const folder = 'OneNote/Work notebook/Reference/Snippets';
+	const name = sanitizeFileName(minifiedCss, folder);
+
+	assert.ok(`${folder}/${name}.md`.length <= 160,
+		`${folder}/${name}.md is ${`${folder}/${name}.md`.length} characters`);
+	assert.ok(minifiedCss.replace(/[?<>:*|"]/g, '').startsWith(name), 'what is kept is still the start of the title');
+}));
+
+test('the deeper the folder, the less of the title survives', () => withPlatform('windows', () => {
+	const shallow = sanitizeFileName(minifiedCss, 'OneNote');
+	const deep = sanitizeFileName(minifiedCss, 'OneNote/Work notebook/Archive/2019/Reference/Snippets');
+
+	assert.ok(deep.length < shallow.length, `${deep.length} should be under ${shallow.length}`);
+}));
+
+test('a folder with no room left still leaves a name worth reading', () => withPlatform('windows', () => {
+	const name = sanitizeFileName(minifiedCss, 'a/'.repeat(90) + 'a');
+
+	assert.equal(name.length, 24, 'the path is lost either way; the name need not be');
+}));
+
+test('elsewhere the folder above a name costs it nothing', () => withPlatform('elsewhere', () => {
+	const deep = sanitizeFileName(minifiedCss, 'OneNote/Work notebook/Archive/2019/Reference/Snippets');
+
+	assert.equal(deep, sanitizeFileName(minifiedCss), 'only Windows counts the path as a whole');
+	assert.ok(deep.length > 200, 'and this one is inside the byte limit anyway');
+}));
+
+test('on Windows every segment of a path is measured against the ones before it', () => withPlatform('windows', () => {
+	const path = sanitizeFilePath(`Work notebook/${minifiedCss}`);
+	const [notebook, snippet] = path.split('/');
+
+	assert.ok(path.length <= 152, `${path.length} characters leaves nothing for a name`);
+	assert.equal(notebook, 'Work notebook', 'a folder that fits is left as it is');
+	assert.ok(snippet.length < 140, `the one that does not is cut, and ${snippet.length} is not`);
+}));
+
+test('a path with no fitting arrangement still names its levels', () => withPlatform('windows', () => {
+	const path = sanitizeFilePath(`${minifiedCss}/${minifiedCss}/${minifiedCss}`);
+
+	assert.equal(path.split('/').length, 3, 'every level the source named is still a level');
+	assert.ok(path.split('/').every(segment => segment.length >= 24), 'and none of them is a stub');
+	assert.ok(path.length < minifiedCss.length, 'what can be given back is');
+}));
 
 test('control characters go, astral characters stay', () => {
 	assert.equal(stripControlCharacters('a\u0000b\u001fc'), 'abc');

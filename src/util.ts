@@ -1,4 +1,4 @@
-import { App, FrontMatterCache, parseYaml, stringifyYaml, Vault, normalizePath } from 'obsidian';
+import { App, FrontMatterCache, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -42,11 +42,28 @@ export function stripControlCharacters(name: string): string {
 // Leave room below common 255-byte/unit limits for extensions and collision suffixes.
 const MAX_NAME_BYTES = 240;
 
+// Reserve 100 characters of Windows' path limit for the vault's location.
+const WINDOWS_PATH_CHARS = 160;
+
+// Leave room for `.md` and collision suffixes such as ` 99`.
+const NAME_TAIL_CHARS = 8;
+
+// Keep names readable when the parent path already exceeds the budget.
+const MIN_NAME_CHARS = 24;
+
 const encoder = new TextEncoder();
 
-function limitNameLength(name: string): string {
+function charsAvailable(parentPath: string | undefined): number {
+	if (!Platform.isWin) return Infinity;
+
+	const used = parentPath ? parentPath.length + 1 : 0;
+	return Math.max(MIN_NAME_CHARS, WINDOWS_PATH_CHARS - used - NAME_TAIL_CHARS);
+}
+
+function limitNameLength(name: string, maxChars: number): string {
 	// UTF-8 needs at most three bytes per UTF-16 unit.
-	if (name.length * 3 <= MAX_NAME_BYTES || encoder.encode(name).length <= MAX_NAME_BYTES) return name;
+	if (name.length <= maxChars
+		&& (name.length * 3 <= MAX_NAME_BYTES || encoder.encode(name).length <= MAX_NAME_BYTES)) return name;
 
 	// Iteration by code point keeps surrogate pairs intact.
 	let truncated = '';
@@ -55,6 +72,7 @@ function limitNameLength(name: string): string {
 	for (const character of name) {
 		const size = encoder.encode(character).length;
 		if (bytes + size > MAX_NAME_BYTES) break;
+		if (truncated.length + character.length > maxChars) break;
 		truncated += character;
 		bytes += size;
 	}
@@ -74,14 +92,15 @@ function tidyName(name: string): string {
 		.replace(startsWithDotRe, '');
 }
 
-export function sanitizeFileName(name: string | undefined | null) {
+/** @param parentPath Vault-relative parent folder. */
+export function sanitizeFileName(name: string | undefined | null, parentPath?: string) {
 	const cleaned = tidyName(stripControlCharacters(
 		(name ?? '')
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, '')));
 
 	// Reapply trailing-space and reserved-name rules after truncation.
-	const limited = limitNameLength(cleaned);
+	const limited = limitNameLength(cleaned, charsAvailable(parentPath));
 	const sanitized = limited === cleaned ? cleaned : tidyName(limited);
 
 	// If the result is empty or only whitespace after sanitization, return a default name
@@ -91,12 +110,16 @@ export function sanitizeFileName(name: string | undefined | null) {
 }
 
 export function sanitizeFilePath(path: string): string {
-	// Sanitize each segment without flattening the folder structure.
-	return path
-		.split('/')
-		.filter(segment => segment.trim())
-		.map(segment => sanitizeFileName(segment))
-		.join('/');
+	// Apply Windows' whole-path budget cumulatively.
+	let built = '';
+
+	for (const segment of path.split('/')) {
+		if (!segment.trim()) continue;
+		const name = sanitizeFileName(segment, built);
+		built = built ? `${built}/${name}` : name;
+	}
+
+	return built;
 }
 
 /**
