@@ -11,6 +11,7 @@
  * keeps any view the user added beside the imported ones, because a view is
  * something a person makes rather than something the schema says.
  */
+import '../shims/dom';
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -18,11 +19,13 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
-import { parseYaml } from 'obsidian';
+import { parseYaml, stringifyYaml } from 'obsidian';
 
 import { createBaseFile } from '../../src/formats/notion-api/database-helpers';
 import { mergedBaseViews } from '../../src/formats/airtable-api/base-file';
-import { MemoryVault } from '../shims/vault';
+import { AirtableAPIImporter } from '../../src/formats/airtable-api';
+import { DuplicateHandling } from '../../src/format-importer';
+import { MemoryVault, memoryApp } from '../shims/vault';
 
 const SCHEMA = {
 	Name: { id: 'title', name: 'Name', type: 'title' },
@@ -94,6 +97,73 @@ test('a .base edited into something unreadable is simply regenerated', () => {
 
 	for (const existing of [null, undefined, 'not a config', 42, {}, { views: 'nope' }, { views: [null, { type: 'table' }] }]) {
 		assert.deepEqual(mergedBaseViews(existing, imported), imported, JSON.stringify(existing));
+	}
+});
+
+/** The Airtable writer itself, rather than the merge it delegates to. */
+class WritingBases extends AirtableAPIImporter {
+	write(viewNames = ['All books']): Promise<Map<string, string>> {
+		return this.createBaseFile({
+			tableFolderPath: 'Airtable/Books',
+			tableName: 'Books',
+			views: viewNames.map((name, nth) => ({ id: `viw00000000000000${nth}`, name, type: 'grid' })) as never,
+			fields: [{ id: 'fldName0000000001', name: 'Name', type: 'singleLineText' } as never],
+			primaryFieldId: 'fldName0000000001',
+			formulas: new Map(),
+		});
+	}
+}
+
+async function airtableBase(vault: MemoryVault, mode: DuplicateHandling): Promise<WritingBases> {
+	const subject = new WritingBases(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	subject.duplicateHandling = mode;
+	subject.indexImportedNotes();
+
+	return subject;
+}
+
+// Beside the table's folder, not inside it, which is where buildBaseFile puts it.
+const BASE_PATH = 'Airtable/Books.base';
+
+test('Airtable writes one .base for a table, in every mode', async () => {
+	for (const mode of [DuplicateHandling.CreateCopy, DuplicateHandling.Skip, DuplicateHandling.Update]) {
+		const vault = new MemoryVault();
+		await vault.createFolder('Airtable');
+		await vault.createFolder('Airtable/Books');
+
+		const subject = await airtableBase(vault, mode);
+		await subject.write();
+		await subject.write();
+
+		assert.deepEqual(vault.paths().filter(path => path.endsWith('.base')), [BASE_PATH], mode);
+	}
+});
+
+// The setting is about notes. Whichever the user picked, the .base is brought
+// up to date and the view they added themselves survives it.
+test('and keeps the user\'s own view in every mode, including "Skip"', async () => {
+	for (const mode of [DuplicateHandling.CreateCopy, DuplicateHandling.Skip, DuplicateHandling.Update]) {
+		const vault = new MemoryVault();
+		await vault.createFolder('Airtable');
+		await vault.createFolder('Airtable/Books');
+
+		const subject = await airtableBase(vault, mode);
+		await subject.write();
+
+		const mine = parseYaml(String(vault.contents.get(BASE_PATH)));
+		mine.views.push({ type: 'table', name: 'My shortlist' });
+		await vault.adapter.write(BASE_PATH, stringifyYaml(mine));
+
+		// The table has gained a view since. The .base has to show it, which is
+		// what says the file was regenerated rather than simply left alone.
+		await subject.write(['All books', 'By author']);
+
+		const after = parseYaml(String(vault.contents.get(BASE_PATH)));
+		assert.deepEqual(
+			(after.views as { name: string }[]).map(view => view.name).sort(),
+			['All books', 'By author', 'My shortlist'],
+			mode
+		);
 	}
 });
 

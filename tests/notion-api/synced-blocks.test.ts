@@ -23,6 +23,7 @@ import { NotionAPIImporter } from '../../src/formats/notion-api';
 import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { NOTION_ID_PROPERTY } from '../../src/constants';
+import { createPlaceholder, PlaceholderType } from '../../src/formats/notion-api/utils';
 import type { TFile } from 'obsidian';
 
 import { MemoryVault, memoryApp } from '../shims/vault';
@@ -38,6 +39,7 @@ const workspace = JSON.parse(
 
 const PAGE = '10000000-0000-4000-8000-000000000201';
 const FIRST_BLOCK = '30000000-0000-4000-8000-000000000201';
+const CHAPTER_ONE = '10000000-0000-4000-8000-000000000202';
 const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null };
 
 class ImportingSyncedBlocks extends NotionAPIImporter {
@@ -71,6 +73,11 @@ class ImportingSyncedBlocks extends NotionAPIImporter {
 	cleanUp(ctx: ImportContext): Promise<void> {
 		return this.cleanupNotionIds(ctx);
 	}
+
+	/** The pass that resolves what a synced block holds, run as import() runs it. */
+	finishSyncedBlocks(ctx: ImportContext): Promise<void> {
+		return this.replaceSyncedChildPlaceholders(ctx);
+	}
 }
 
 async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourceId = true, editedAt?: string) {
@@ -82,6 +89,7 @@ async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourc
 
 	const ctx = new ImportContext();
 	await subject.importPage(ctx);
+	await subject.finishSyncedBlocks(ctx);
 
 	return { ctx, subject };
 }
@@ -106,11 +114,15 @@ const SYNCED = [
 ];
 const PAGE_NOTE = 'Notion/Handbook/Handbook.md';
 const CHILD_NOTE = 'Notion/Handbook/Chapter one.md';
+// A page inside a synced block is not imported where it stands: it is noted
+// and fetched afterwards, into the import's root folder.
+const NESTED = 'Nested in a synced block.md';
+const EVERYTHING = [NESTED, CHILD_NOTE, ...SYNCED, PAGE_NOTE];
 
 test('each synced block on a page gets a note of its own', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 
-	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE]);
+	assert.deepEqual(markdown(vault), EVERYTHING);
 });
 
 test('and carries the id of the block it holds', async () => {
@@ -125,7 +137,7 @@ test('a second import leaves them alone rather than writing more', async () => {
 
 		await importOnce(vault, mode);
 
-		assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE], mode);
+		assert.deepEqual(markdown(vault), EVERYTHING, mode);
 	}
 });
 
@@ -146,7 +158,7 @@ test('a third import adds nothing either', async () => {
 	await importOnce(vault, DuplicateHandling.Skip);
 	await importOnce(vault, DuplicateHandling.Skip);
 
-	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE]);
+	assert.deepEqual(markdown(vault), EVERYTHING);
 });
 
 // The id goes in whether or not it is being kept, so that an import which is
@@ -167,6 +179,40 @@ test('with "Save source ID" off, the id is written and then cleared', async () =
 		assert.doesNotMatch(String(vault.contents.get(path)), new RegExp(NOTION_ID_PROPERTY), `${path} after`);
 		assert.match(String(vault.contents.get(path)), /How we work\.|Who to ask\./, `${path} kept its content`);
 	}
+});
+
+// "Create a copy" turns off the index of ids, so the only way to know a note
+// is one this run wrote is to read it. Without that, resuming a run that was
+// interrupted before its ids were cleared writes the whole lot again.
+test('resuming an interrupted "Create a copy" writes no second set', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	await importOnce(vault, DuplicateHandling.CreateCopy, false);
+	const before = markdown(vault);
+
+	// The run ended here, before cleanupNotionIds could take the ids out.
+	const { ctx, subject } = await importOnce(vault, DuplicateHandling.CreateCopy, false);
+
+	assert.deepEqual(markdown(vault), before);
+	await subject.cleanUp(ctx);
+
+	for (const path of SYNCED) {
+		assert.doesNotMatch(String(vault.contents.get(path)), new RegExp(NOTION_ID_PROPERTY), path);
+	}
+});
+
+test('and each note is recognised as the block it holds, not merely as taken', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	await importOnce(vault, DuplicateHandling.CreateCopy, false);
+
+	// Both blocks want the same name, so the second is under "… 1.md". A
+	// resumed run has to look past the first name to find it.
+	const second = String(vault.contents.get(SYNCED[0]));
+	await importOnce(vault, DuplicateHandling.CreateCopy, false);
+
+	assert.equal(vault.contents.get(SYNCED[0]), second);
+	assert.deepEqual(markdown(vault).filter(path => SYNCED.includes(path)), SYNCED);
 });
 
 const NOTION_EDITED = '2024-03-01T00:00:00.000Z';
@@ -201,7 +247,51 @@ test('"Update" writes over a synced block Notion has changed', async () => {
 	await importOnce(vault, DuplicateHandling.Update, true, LATER);
 
 	assert.match(String(vault.contents.get(SYNCED[1])), /How we work\./);
-	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE], 'and does not write a second one');
+	assert.deepEqual(markdown(vault), EVERYTHING, 'and does not write a second one');
+});
+
+// An earlier run may have stopped before it could turn a placeholder into a
+// link, and what it left behind is in the note rather than in what the source
+// converts to now. Repair has to read the note, or a placeholder for something
+// the source has since stopped mentioning stays in the file forever.
+test('a placeholder an interrupted run left behind is repaired from the note', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const stale = createPlaceholder(PlaceholderType.SYNCED_CHILD_PAGE, CHAPTER_ONE);
+	await editInObsidian(vault, SYNCED[1],
+		`---\n${NOTION_ID_PROPERTY}: ${FIRST_BLOCK}\n---\nHow we work.\n\n${stale}\n`,
+		NOTION_EDITED);
+
+	await importOnce(vault, DuplicateHandling.Update);
+
+	const repaired = String(vault.contents.get(SYNCED[1]));
+	assert.ok(!repaired.includes(stale), 'the placeholder should be gone');
+	assert.match(repaired, /Chapter one/, 'replaced with a link to the page it named');
+});
+
+// What is under a synced block and what its note says are two questions. The
+// note the user edited is theirs and is never rewritten; the page beneath it
+// is still theirs to have, and is fetched whether or not the note mentions it.
+test('a page under a synced block arrives even when the note is left alone', async () => {
+	for (const mode of [DuplicateHandling.Skip, DuplicateHandling.Update]) {
+		const vault = await vaultWithOneImport(mode);
+		vault.remove(NESTED);
+
+		await importOnce(vault, mode);
+
+		assert.ok(markdown(vault).includes(NESTED), mode);
+	}
+});
+
+test('and even when the note is one the user has edited', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const mine = 'My own notes on how we work.\n';
+	await editInObsidian(vault, SYNCED[1], mine, '2024-12-01T00:00:00.000Z');
+	vault.remove(NESTED);
+
+	await importOnce(vault, DuplicateHandling.Update, true, LATER);
+
+	assert.ok(markdown(vault).includes(NESTED), 'the page under it is still fetched');
+	assert.equal(vault.contents.get(SYNCED[1]), mine, 'and the note is untouched');
 });
 
 test('"Update" does not write over a synced block note edited in Obsidian', async () => {
@@ -212,5 +302,5 @@ test('"Update" does not write over a synced block note edited in Obsidian', asyn
 	await importOnce(vault, DuplicateHandling.Update, true, LATER);
 
 	assert.equal(vault.contents.get(SYNCED[1]), mine);
-	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE], 'and does not write a second one');
+	assert.deepEqual(markdown(vault), EVERYTHING, 'and does not write a second one');
 });

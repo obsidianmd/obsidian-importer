@@ -1281,7 +1281,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Create a single .base file for the table with multiple views
 	 */
-	private async createBaseFile(ctx: BaseFileContext): Promise<Map<string, string>> {
+	protected async createBaseFile(ctx: BaseFileContext): Promise<Map<string, string>> {
 		const { tableName } = ctx;
 
 		const { path: baseFilePath, config: baseConfig, membershipTokens } = buildBaseFile({

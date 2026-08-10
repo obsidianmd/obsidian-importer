@@ -12,7 +12,7 @@ import { parseFilePath } from '../filesystem';
 
 // Import helper modules
 import { NOTION_ID_PROPERTY } from '../constants';
-import { createPlaceholder, PlaceholderType } from './notion-api/utils';
+import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './notion-api/utils';
 import {
 	makeNotionRequest,
 	fetchAllBlocks,
@@ -124,6 +124,16 @@ export class NotionAPIImporter extends FormatImporter {
 	// Separated by type to avoid unnecessary placeholder checks
 	private syncedChildPagePlaceholders: Map<string, Set<string>> = new Map();
 	private syncedChildDatabasePlaceholders: Map<string, Set<string>> = new Map();
+	/**
+	 * Pages and databases under a synced block whose note is not being written.
+	 *
+	 * What is under a synced block and what is written into its note are two
+	 * questions. A note left alone still has its children fetched - they may
+	 * have changed, or be gone from the vault - but a note the user has edited
+	 * is not rewritten to point at them. Keeping the two apart is what lets a
+	 * preserved note keep its children without the note being touched.
+	 */
+	private syncedChildrenToReach: Set<string> = new Set();
 
 	init() {
 		// No file chooser needed since we're importing via API
@@ -384,6 +394,7 @@ export class NotionAPIImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		this.writtenPaths.clear();
 		this.recoveredPaths.clear();
+		this.syncedChildrenToReach.clear();
 
 		// Validate inputs
 		if (!this.notionToken) {
@@ -1192,7 +1203,9 @@ export class NotionAPIImporter extends FormatImporter {
  * 
  * Performance: Only processes files that contain synced child placeholders (O(n) where n = files with placeholders)
  */
-	private async replaceSyncedChildPlaceholders(ctx: ImportContext): Promise<void> {
+	protected async replaceSyncedChildPlaceholders(ctx: ImportContext): Promise<void> {
+		await this.reachSyncedChildren(ctx);
+
 		if (this.syncedChildPagePlaceholders.size === 0 && this.syncedChildDatabasePlaceholders.size === 0) {
 			return;
 		}
@@ -1409,24 +1422,45 @@ export class NotionAPIImporter extends FormatImporter {
 	protected async importSyncedBlockFile(ctx: ImportContext, request: SyncedBlockRequest): Promise<string> {
 		const { blockId, folderPath, fileName, createdTime, lastEditedTime, convert } = request;
 
+		// "Create a copy" is not looking for a note to reuse, but one this run
+		// wrote before it was interrupted is still its own - and with the ids
+		// index turned off in that mode, the file itself is the only place left
+		// to recognise it from.
+		const recovered = this.duplicateHandling === DuplicateHandling.CreateCopy
+			? await this.recoverSyncedBlockNote(ctx, folderPath, fileName, blockId)
+			: null;
+		if (recovered) return recovered;
+
 		const planned = this.planNote(folderPath, fileName.replace(/\.md$/i, ''), blockId);
 		const sourceMtime = lastEditedTime ? new Date(lastEditedTime).getTime() : undefined;
 		const disposition = this.preflightNote(ctx, planned, sourceMtime);
 
-		// A note the user has edited since the import is theirs: its placeholders
-		// stay unrecorded, because recording them is what would have it rewritten
-		// once the import is done. Which means a page nested inside a synced
-		// block they have edited stops arriving - the note wins over the nesting.
 		const leavingItAlone = disposition === 'skip'
 			|| disposition === 'unchanged'
 			|| disposition === 'preserve';
 
+		// The placeholders of a note being left alone are the ones in the note,
+		// not the ones in what was just converted: an earlier run may have been
+		// interrupted before it could resolve them, and what it left behind is
+		// what needs repairing. Reading them out of the file is adoptSkippedNote,
+		// the same as a page's - unless the user has edited it, when the note is
+		// theirs and nothing may rewrite it.
 		const markdown = await convert(planned.targetPath, {
 			forChildrenOnly: leavingItAlone,
-			keepPlaceholders: disposition !== 'preserve',
+			keepPlaceholders: !leavingItAlone,
 		});
 
-		if (leavingItAlone) return planned.file?.path ?? planned.targetPath;
+		if (leavingItAlone) {
+			if (planned.file) await this.adoptSkippedNote(planned.file, blockId, disposition !== 'preserve');
+
+			// Whatever is under it is still fetched, whether or not its note is
+			// ever touched again.
+			for (const type of [PlaceholderType.SYNCED_CHILD_PAGE, PlaceholderType.SYNCED_CHILD_DATABASE]) {
+				for (const id of extractPlaceholderIds(markdown, type)) this.syncedChildrenToReach.add(id);
+			}
+
+			return planned.file?.path ?? planned.targetPath;
+		}
 
 		// The id goes in whether or not the user asked to keep it, as a page's
 		// does: an import that is interrupted leaves notes it can recognise as
@@ -1440,6 +1474,60 @@ export class NotionAPIImporter extends FormatImporter {
 		this.writtenPaths.add(file.path.replace(/\.md$/, ''));
 
 		return file.path;
+	}
+
+	/**
+	 * Import what sits under a synced block whose note is not being rewritten.
+	 *
+	 * The pass that resolves placeholders imports what it finds missing, but it
+	 * only looks inside files it is going to rewrite. A note left alone is not
+	 * one of those, and a note the user has edited must never be - so what is
+	 * under it is fetched here instead, where no file is touched.
+	 */
+	private async reachSyncedChildren(ctx: ImportContext): Promise<void> {
+		for (const id of this.syncedChildrenToReach) {
+			if (await ctx.shouldStop()) return;
+			if (this.notionIdToPath.has(id) || this.processedDatabases.has(id)) continue;
+
+			try {
+				await this.fetchAndImportPage({ ctx, pageId: id, parentPath: this.outputRootPath });
+			}
+			catch {
+				// Not a page, or not one this token can read. A database of that
+				// id is the other thing it can be, and the last thing to try.
+				try {
+					await this.importTopLevelDatabase(ctx, id, this.outputRootPath);
+				}
+				catch (error) {
+					console.warn(`Could not import what a synced block holds: ${id}`, error);
+				}
+			}
+		}
+	}
+
+	/**
+	 * A synced block's note left behind by a run that did not finish.
+	 *
+	 * Two synced blocks on one page are named alike, so which numbered name a
+	 * given block ended up under is not something a path can be guessed from -
+	 * the names have to be tried in turn until one of them holds this block's
+	 * id. Stopping at the first name nothing holds is what bounds the search.
+	 */
+	private async recoverSyncedBlockNote(
+		ctx: ImportContext,
+		folderPath: string,
+		fileName: string,
+		blockId: string,
+	): Promise<string | null> {
+		const { basename, extension } = parseFilePath(fileName);
+
+		for (let nth = 0; ; nth++) {
+			const candidate = nth === 0 ? fileName : `${basename} ${nth}.${extension}`;
+			const path = normalizePath(folderPath ? `${folderPath}/${candidate}` : candidate);
+
+			if (!(this.vault.getAbstractFileByPath(path) instanceof TFile)) return null;
+			if (await this.alreadyWrittenByAnUnfinishedImport(path, blockId, ctx)) return path;
+		}
 	}
 
 	/**
