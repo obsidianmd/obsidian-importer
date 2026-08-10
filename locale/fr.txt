@@ -136,7 +136,7 @@ translation=Importer autre chose
 
 [modal.button-done]
 original=Done
-translation=Terminé
+translation=Terminer
 
 [modal.msg-unexpected-auth]
 original=Unexpected auth event. Please restart the auth process.
@@ -344,11 +344,11 @@ translation=Mettre à jour
 
 [output.option-attachments-vault]
 original=Vault folder
-translation=Dossier du coffre
+translation=Racine du coffre
 
 [output.option-attachments-folder]
 original=In the folder specified below
-translation=Dans le dossier indiqué ci-dessous
+translation=Dans le dossier spécifié ci-dessous
 
 [output.option-attachments-note]
 original=Same folder as the note
@@ -356,7 +356,7 @@ translation=Même dossier que la note
 
 [output.option-attachments-subfolder]
 original=In subfolder under the note
-translation=Dans un sous-dossier sous la note
+translation=Dans le sous-dossier, sous la note
 
 [common.msg-pick-file]
 original=Please pick at least one file to import.
@@ -908,7 +908,7 @@ translation=Métadonnées du journal
 
 [importer.apple-journal.name-front-matter]
 original=Add metadata as frontmatter
-translation=Ajouter les métadonnées en frontmatter
+translation=Ajouter les métadonnées dans l'en-tête
 
 [importer.apple-journal.desc-front-matter]
 original=Capture state-of-mind, contact, and similar tokens in YAML when available.
@@ -940,11 +940,11 @@ translation=Sauvegardez vos notes dans Bear, vous obtiendrez un fichier .bear2bk
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
-translation=Aplatir les étiquettes imbriquées
+translation=Aplatir les mots-clés imbriqués
 
 [importer.bear.desc-flatten-tags]
 original=When enabled, tags will be split on slashes (/) during import.
-translation=Lorsque cette option est activée, les étiquettes sont découpées sur les barres obliques (/) pendant l'import.
+translation=Lorsque cette option est activée, les mots-clés sont découpés sur les barres obliques (/) pendant l'import.
 
 [importer.bear.status-importing-asset]
 original=Importing asset {{name}}
@@ -1048,7 +1048,7 @@ translation=Importer les notes archivées
 
 [importer.keep.desc-archived]
 original=If imported, files archived in Google Keep will be tagged as archived.
-translation=Si elles sont importées, les notes archivées dans Google Keep seront étiquetées comme archivées.
+translation=Si elles sont importées, les notes archivées dans Google Keep recevront un mot-clé indiquant qu'elles sont archivées.
 
 [importer.keep.name-deleted]
 original=Import deleted notes
@@ -1056,7 +1056,7 @@ translation=Importer les notes supprimées
 
 [importer.keep.desc-deleted]
 original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
-translation=Si elles sont importées, les notes supprimées dans Google Keep seront étiquetées comme supprimées. Les notes supprimées ne figurent dans votre export Google que si elles l'ont été récemment.
+translation=Si elles sont importées, les notes supprimées dans Google Keep recevront un mot-clé indiquant qu'elles sont supprimées. Les notes supprimées ne figurent dans votre export Google que si elles l'ont été récemment.
 
 [importer.keep.reason-invalid-json]
 original=Invalid Google Keep JSON
@@ -1348,7 +1348,7 @@ translation=Nom de la propriété de couverture
 
 [importer.notion-api.desc-cover-property]
 original=Property name for page cover image in YAML frontmatter. 
-translation=Nom de la propriété de l'image de couverture de la page dans le frontmatter YAML.
+translation=Nom de la propriété de l'image de couverture de la page dans l'en-tête YAML.
 
 [importer.notion-api.desc-cover-property-conflicts]
 original=Leave as "cover" if you don't have conflicts with existing properties.
@@ -1360,7 +1360,7 @@ translation=Nom de la propriété de base de données
 
 [importer.notion-api.desc-database-property]
 original=Property name in page frontmatter to link pages to their database .base file (default: "base")
-translation=Nom de la propriété, dans le frontmatter de la page, reliant les pages au fichier .base de leur base de données (par défaut : « base »)
+translation=Nom de la propriété, dans l'en-tête de la page, reliant les pages au fichier .base de leur base de données (par défaut : « base »)
 
 [importer.notion-api.name-linked-databases]
 original=Import linked databases
