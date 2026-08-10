@@ -159,6 +159,9 @@
 }
 
 .importer-log .list-item {
+	/* Obsidian's own .list-item is a flex row, which would lay the prefix out
+	   as a column of its own, narrow enough to break "Skipped:" in half. */
+	display: block;
 	line-height: var(--line-height-normal);
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
@@ -167,6 +170,8 @@
 
 .importer-error {
 	color: var(--text-error);
+	/* A path may be broken anywhere it has to be; this is one word. */
+	white-space: nowrap;
 }
 
 /* Template configuration styles */
