@@ -374,8 +374,8 @@ export default class ImporterPlugin extends Plugin {
 		}
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
-			await importer.writeImportReport(ctx, importerName(importerId));
 		}
+		// The caller has the context, and writeImportReport if it wants the note.
 		return ctx;
 	}
 }
@@ -670,7 +670,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
-			this.reportFile = await importer.writeImportReport(ctx, name);
 			if (this.current === ctx) {
 				this.current = null;
 			}
@@ -728,6 +727,32 @@ export class ImporterModal extends Modal implements ImporterHost {
 		});
 	}
 
+	/** Write down what the import could not bring over, and open what was written. */
+	private async saveReport(ctx: ImportProgressUI, buttonEl: HTMLButtonElement): Promise<void> {
+		buttonEl.disabled = true;
+
+		try {
+			// Asked twice, the second ask opens the note rather than writing a
+			// second copy of it.
+			this.reportFile ??= await this.importer.writeImportReport(ctx, importerName(this.selectedId));
+
+			if (!this.reportFile) {
+				new Notice(i18n.modal.msgReportFailed());
+				buttonEl.disabled = false;
+				return;
+			}
+
+			const report = this.reportFile;
+			this.close();
+			await this.app.workspace.getLeaf(true).openFile(report);
+		}
+		catch (error) {
+			console.error('Could not save the import report', error);
+			new Notice(i18n.modal.msgReportFailed());
+			buttonEl.disabled = false;
+		}
+	}
+
 	private showFinished(ctx: ImportProgressUI) {
 		const { contentEl } = this;
 		contentEl.empty();
@@ -735,13 +760,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
 
-		const report = this.reportFile;
-		if (report) {
-			buttonsEl.createEl('button', { text: i18n.modal.buttonOpenReport() }, el => {
-				el.addEventListener('click', () => {
-					this.close();
-					void this.app.workspace.getLeaf(true).openFile(report);
-				});
+		// An import that lost nothing has nothing to write down, and one that
+		// only skipped what it already had is not news worth a file either
+		// until it is asked for.
+		if (ctx.log.length > 0) {
+			buttonsEl.createEl('button', { text: i18n.modal.buttonSaveReport() }, el => {
+				el.addEventListener('click', () => void this.saveReport(ctx, el));
 			});
 		}
 

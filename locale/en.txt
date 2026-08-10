@@ -162,8 +162,12 @@ translation=
 original=Stop
 translation=
 
-[modal.button-open-report]
-original=Open report
+[modal.button-save-report]
+original=Save report
+translation=
+
+[modal.msg-report-failed]
+original=Could not save the import report.
 translation=
 
 [modal.button-import-more]

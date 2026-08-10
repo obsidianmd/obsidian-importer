@@ -162,9 +162,13 @@ translation=Reprendre
 original=Stop
 translation=Arrêter
 
-[modal.button-open-report]
-original=Open report
-translation=Ouvrir le journal
+[modal.button-save-report]
+original=Save report
+translation=Enregistrer le journal
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=Impossible d'enregistrer le journal d'import.
 
 [modal.button-import-more]
 original=Import more
