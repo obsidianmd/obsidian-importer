@@ -284,59 +284,59 @@ translation=Finalisation du Markdown
 
 [report.title]
 original={{importer}} import
-translation=
+translation=Import {{importer}}
 
 [report.msg-finished]
 original=Finished {{when}}. {{counts}}.
-translation=
+translation=Terminé le {{when}}. {{counts}}.
 
 [report.msg-stopped]
 original=Stopped {{when}}. {{counts}}.
-translation=
+translation=Arrêté le {{when}}. {{counts}}.
 
 [report.heading-failed]
 original=Failed ({{count}})
-translation=
+translation=Échecs ({{count}})
 
 [report.heading-skipped]
 original=Skipped ({{count}})
-translation=
+translation=Ignorés ({{count}})
 
 [report.count-notes]
 original={{count}} note imported
-translation=
+translation={{count}} note importée
 
 [report.count-notes_plural]
 original={{count}} notes imported
-translation=
+translation={{count}} notes importées
 
 [report.count-attachments]
 original={{count}} attachment downloaded
-translation=
+translation={{count}} pièce jointe téléchargée
 
 [report.count-attachments_plural]
 original={{count}} attachments downloaded
-translation=
+translation={{count}} pièces jointes téléchargées
 
 [report.count-skipped]
 original={{count}} item skipped
-translation=
+translation={{count}} élément ignoré
 
 [report.count-skipped_plural]
 original={{count}} items skipped
-translation=
+translation={{count}} éléments ignorés
 
 [report.count-failed]
 original={{count}} item failed
-translation=
+translation={{count}} élément en échec
 
 [report.count-failed_plural]
 original={{count}} items failed
-translation=
+translation={{count}} éléments en échec
 
 [report.msg-more-not-listed]
 original={{count}} more not listed. The console has all of them.
-translation=
+translation={{count}} de plus non listés. La console les a tous.
 
 [source.name]
 original=Files to import

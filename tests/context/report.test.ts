@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 
 import { ImportContext } from '../../src/import-context';
 import { formatImportReport } from '../../src/import-report';
+import { setLanguage } from '../../src/i18n';
 
 const WHEN = new Date(2026, 7, 9, 14, 32);
 
@@ -129,4 +130,28 @@ test('the context keeps the reason alongside the name', () => {
 	assert.equal(ctx.log.length, 1);
 	assert.equal(ctx.log[0].outcome, 'failed');
 	assert.equal((ctx.log[0].reason as Error).message, 'HTTP 502');
+});
+
+/**
+ * The report is a message from the plugin, not imported content, so it reads
+ * in the language the rest of the dialog does — and it reuses the log's own
+ * wording, guillemets and all, so the note and the screen agree.
+ *
+ * Its file name stays English on purpose: that is a path, and a second import
+ * run in another language should land beside the first rather than start a
+ * parallel set.
+ */
+test('the report reads in the language the import ran in', () => {
+	const ctx = new ImportContext();
+	ctx.notes = 1;
+	ctx.reportSkipped('Aftersun', 'it is already in the vault');
+
+	setLanguage('fr');
+	const report = reportOf(ctx);
+	setLanguage('en');
+
+	assert.match(report, /^# Import Notion \(API\)$/m);
+	assert.match(report, /^Terminé le 2026-08-09 14:32\. 1 note importée, 1 élément ignoré\.$/m);
+	assert.match(report, /^## Ignorés \(1\)$/m);
+	assert.match(report, /^- « Aftersun » car it is already in the vault$/m);
 });
