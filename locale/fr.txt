@@ -164,7 +164,7 @@ translation=Arrêter
 
 [modal.button-open-report]
 original=Open report
-translation=
+translation=Ouvrir le journal
 
 [modal.button-import-more]
 original=Import more
@@ -1584,11 +1584,11 @@ translation=Débit limité. Attente de {{seconds}} secondes avant de réessayer 
 
 [importer.notion-api.status-retrying]
 original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=
+translation=Notion a renvoyé {{status}}. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-retrying-attachment]
 original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
-translation=
+translation={{name}} : {{failure}}. Nouvelle tentative dans {{seconds}} secondes ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
@@ -1724,27 +1724,27 @@ translation=du bloc
 
 [importer.notion-api.label-meeting-notes]
 original=Meeting notes: {{name}}
-translation=
+translation=Notes de réunion : {{name}}
 
 [importer.notion-api.label-meeting-notes-section]
 original=Meeting notes: {{name}} ({{section}})
-translation=
+translation=Notes de réunion : {{name}} ({{section}})
 
 [importer.notion-api.label-untitled-meeting]
 original=Meeting notes {{id}}
-translation=
+translation=Notes de réunion {{id}}
 
 [importer.notion-api.section-summary]
 original=summary
-translation=
+translation=résumé
 
 [importer.notion-api.section-notes]
 original=notes
-translation=
+translation=notes
 
 [importer.notion-api.section-transcript]
 original=transcript
-translation=
+translation=transcription
 
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
@@ -1772,19 +1772,19 @@ translation=
 
 [importer.notion-api.reason-meeting-notes-pending]
 original=Notion has not finished generating them ({{status}})
-translation=
+translation=Notion n'a pas fini de les générer ({{status}})
 
 [importer.notion-api.reason-rate-limit-gave-up]
 original=rate limited, and gave up after {{retries}} retries
-translation=
+translation=débit limité, abandon après {{retries}} tentatives
 
 [importer.notion-api.reason-gave-up]
 original={{reason}}, and gave up after {{retries}} retries
-translation=
+translation={{reason}}, abandon après {{retries}} tentatives
 
 [importer.notion-api.reason-kept-link]
 original={{reason}}; kept the link to {{url}}
-translation=
+translation={{reason}} ; lien conservé vers {{url}}
 
 [importer.notion.name]
 original=Notion
