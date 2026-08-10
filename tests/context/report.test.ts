@@ -74,6 +74,21 @@ test('the counts say what the import did as well as what it did not', () => {
 	);
 });
 
+/**
+ * Not every importer reports a note success - the Notion API one counts
+ * progress through the pages it was given instead - so a count of zero is as
+ * likely to mean "not counted" as "none", and claiming it over a folder full
+ * of imported notes is worse than saying nothing.
+ */
+test('a count the import never kept is left out rather than written as zero', () => {
+	const ctx = new ImportContext();
+	ctx.reportSkipped('Aftersun', 'it is already in the vault');
+
+	const summary = reportOf(ctx).split('\n')[2];
+
+	assert.equal(summary, 'Finished 2026-08-09 14:32. 1 item skipped.');
+});
+
 test('an import that was stopped says so rather than claiming to have finished', () => {
 	const ctx = new ImportContext();
 	ctx.reportFailed('Parasite', 'HTTP 502');

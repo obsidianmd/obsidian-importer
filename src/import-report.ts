@@ -70,12 +70,19 @@ export function formatImportReport(report: ImportReport): string {
 	const failed = log.filter(entry => entry.outcome === 'failed');
 	const skipped = log.filter(entry => entry.outcome === 'skipped');
 
-	const counts = [
-		i18n.report.countNotes({ count: notes }),
-		i18n.report.countAttachments({ count: attachments }),
-		i18n.report.countSkipped({ count: skipped.length }),
-		i18n.report.countFailed({ count: failed.length }),
-	].join(', ');
+	// Only what the import actually counted. Not every importer reports a note
+	// success - the Notion API one tracks progress instead - and a report that
+	// opens on "0 notes imported" over a folder full of them is worse than one
+	// that does not mention notes at all.
+	const counts = ([
+		[notes, () => i18n.report.countNotes({ count: notes })],
+		[attachments, () => i18n.report.countAttachments({ count: attachments })],
+		[skipped.length, () => i18n.report.countSkipped({ count: skipped.length })],
+		[failed.length, () => i18n.report.countFailed({ count: failed.length })],
+	] as [number, () => string][])
+		.filter(([count]) => count > 0)
+		.map(([, text]) => text())
+		.join(', ');
 
 	const when_ = timestamp(when);
 
