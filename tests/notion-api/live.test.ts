@@ -177,3 +177,64 @@ test('an attachment URL answers a ranged GET', { skip }, async () => {
 
 	console.log(`   ${total} bytes learned from ${received}`);
 });
+
+/**
+ * Does a meeting_notes block still point at its content the way the fixture
+ * says it does?
+ *
+ * The block on the page carries no content at all - the summary, the notes and
+ * the transcript are the children of three ids under `children`, and the
+ * converter fetches each one separately. tests/notion-api/meeting-notes-page.json
+ * is written to what Notion documents rather than to a capture, because AI
+ * meeting notes need a plan that has them.
+ *
+ * So this skips twice over: without a token, and without that plan. When it
+ * does run it is the only thing that would notice Notion moving the ids.
+ */
+test('a meeting notes block still points at its summary, notes and transcript', { skip }, async () => {
+	const response = await fetch('https://api.notion.com/v1/blocks/meeting_notes/query', {
+		method: 'POST',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Notion-Version': NOTION_VERSION,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({ limit: 1 }),
+	});
+
+	const text = await response.text();
+
+	if (response.status !== 200) {
+		// A workspace without the feature answers 400 rather than an empty list
+		console.log(`   no AI meeting notes to ask about: ${response.status} ${text.slice(0, 120)}`);
+		return;
+	}
+
+	const { results } = JSON.parse(text);
+	assert.ok(Array.isArray(results), 'the query should return a list');
+
+	if (results.length === 0) {
+		console.log('   the workspace has the feature but no meetings recorded');
+		return;
+	}
+
+	const [block] = results;
+	assertShape(block, { object: 'string', id: 'string', type: 'string' }, 'meeting notes block');
+	assert.equal(block.type, 'meeting_notes', 'the block type the converter switches on');
+
+	const meetingNotes = block.meeting_notes;
+	assertShape(meetingNotes, { status: 'string', children: 'object' }, 'meeting_notes');
+
+	// The three ids are what the converter fetches; any one of them may be
+	// absent, but nothing else stands in for them.
+	const { summary_block_id, notes_block_id, transcript_block_id } = meetingNotes.children;
+	for (const [name, id] of Object.entries({ summary_block_id, notes_block_id, transcript_block_id })) {
+		if (id === undefined) continue;
+		assert.equal(typeof id, 'string', `${name} should be an id`);
+
+		const children = await api(`/blocks/${id}/children?page_size=100`);
+		assert.ok(Array.isArray(children.results), `${name} should have children to convert`);
+	}
+
+	console.log(`   ${meetingNotes.status}, sections: ${Object.keys(meetingNotes.children).join(', ')}`);
+});
