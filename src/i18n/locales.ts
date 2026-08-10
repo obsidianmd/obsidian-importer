@@ -395,7 +395,7 @@ export const locales: Record<string, Bundle> = {
 		'importer.notion-api.reason-not-in-tree': 'Élément introuvable dans l\'arborescence',
 		'importer.notion-api.reason-unknown-type': 'Type inconnu : {{type}}',
 		'importer.notion-api.reason-earlier-import': 'un import précédent l\'avait déjà écrit',
-		'importer.notion-api.reason-attachment-exists': 'existe déjà avec la même taille (import incrémental)',
+		'importer.notion-api.reason-attachment-exists': '{{path}} est déjà dans le coffre, de la même taille (import incrémental)',
 		'importer.notion.file-type': 'Export Notion',
 		'importer.notion.label-id': 'l\'identifiant Notion',
 		'importer.notion.desc-export': 'Exportez votre espace de travail au format HTML, vous obtiendrez un fichier zip.',

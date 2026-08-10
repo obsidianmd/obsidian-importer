@@ -1763,7 +1763,7 @@ original=an earlier import had already written it
 translation=
 
 [importer.notion-api.reason-attachment-exists]
-original=already exists with same size (incremental import)
+original={{path}} is already in the vault, the same size (incremental import)
 translation=
 
 [importer.notion-api.reason-http-status]

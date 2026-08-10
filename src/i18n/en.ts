@@ -518,7 +518,7 @@ export const en = {
 			reasonNotInTree: 'Item not found in tree',
 			reasonUnknownType: 'Unknown type: {{type}}',
 			reasonEarlierImport: 'an earlier import had already written it',
-			reasonAttachmentExists: 'already exists with same size (incremental import)',
+			reasonAttachmentExists: '{{path}} is already in the vault, the same size (incremental import)',
 			reasonHttpStatus: 'HTTP {{status}}',
 			reasonMeetingNotesPending: 'Notion has not finished generating them ({{status}})',
 			reasonRateLimitGaveUp: 'rate limited, and gave up after {{retries}} retries',

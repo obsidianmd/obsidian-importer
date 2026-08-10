@@ -151,7 +151,10 @@ export async function downloadAttachment(
 				);
 
 				if (existingFile) {
-					ctx.reportSkipped(i18n.importer.notionApi.labelAttachment({ name: probedName }), i18n.importer.notionApi.reasonAttachmentExists());
+					ctx.reportSkipped(
+						i18n.importer.notionApi.labelAttachment({ name: probedName }),
+						i18n.importer.notionApi.reasonAttachmentExists({ path: existingFile.path })
+					);
 					return linkToExisting(existingFile, probedName);
 				}
 			}
@@ -188,7 +191,10 @@ export async function downloadAttachment(
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
 
 			if (existingFile) {
-				ctx.reportSkipped(i18n.importer.notionApi.labelAttachment({ name: filename }), i18n.importer.notionApi.reasonAttachmentExists());
+				ctx.reportSkipped(
+					i18n.importer.notionApi.labelAttachment({ name: filename }),
+					i18n.importer.notionApi.reasonAttachmentExists({ path: existingFile.path })
+				);
 				return linkToExisting(existingFile, filename);
 			}
 		}

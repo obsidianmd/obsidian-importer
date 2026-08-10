@@ -65,6 +65,7 @@ export interface NotionRequestError {
  */
 const RETRYABLE_CODES = new Set([
 	'rate_limited',
+	'service_overload',
 	'internal_server_error',
 	'service_unavailable',
 	'gateway_timeout',
@@ -72,11 +73,19 @@ const RETRYABLE_CODES = new Set([
 	'notionhq_client_response_error',
 ]);
 
+/**
+ * Notion sometimes says outright that a failure is worth another try - a
+ * database large enough to run past what the API will spend rendering it comes
+ * back with "Retry with exponential backoff" and a status that says nothing.
+ */
+const ASKS_TO_RETRY = /retry with exponential backoff/i;
+
 function isRetryable(error: NotionRequestError): boolean {
 	if (error.status !== undefined && error.status >= 500) return true;
 	if (error.status === 429 || error.status === 408) return true;
+	if (error.code !== undefined && RETRYABLE_CODES.has(error.code)) return true;
 
-	return error.code !== undefined && RETRYABLE_CODES.has(error.code);
+	return ASKS_TO_RETRY.test(extractErrorMessage(error) ?? '');
 }
 
 /** How long to wait before asking again, in seconds. */

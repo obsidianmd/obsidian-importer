@@ -1763,8 +1763,8 @@ original=an earlier import had already written it
 translation=un import précédent l'avait déjà écrit
 
 [importer.notion-api.reason-attachment-exists]
-original=already exists with same size (incremental import)
-translation=existe déjà avec la même taille (import incrémental)
+original={{path}} is already in the vault, the same size (incremental import)
+translation={{path}} est déjà dans le coffre, de la même taille (import incrémental)
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}

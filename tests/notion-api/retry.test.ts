@@ -70,6 +70,22 @@ test('so is a rate limit, a timeout, and a response the client could not read', 
 	}
 });
 
+/**
+ * A database large enough to run past what the API will spend rendering it
+ * comes back saying so, with a status that gives nothing away. The message is
+ * the only thing that says this one is worth another try.
+ */
+test('a failure that asks to be retried is retried', async () => {
+	const notion = failingWith({
+		status: 400,
+		message: 'Public API object rendering exceeded the response time budget. Retry with exponential backoff; if the issue persists, reduce the size of the request.',
+	});
+
+	await withoutWaiting(() => makeNotionRequest(notion.request, new ImportContext()));
+
+	assert.equal(notion.calls, 2);
+});
+
 test('a failure that will say the same thing next time is asked once', async () => {
 	// Nothing about a second try changes a page that is not there, a token
 	// without access to it, or a request Notion will not accept.
