@@ -8,6 +8,20 @@ import type { AirtableAttachment, AirtableFieldSchema, AirtableRecord, Attachmen
 export const RECORD_ID_PROPERTY = 'airtable-id';
 
 /**
+ * What a record's note is known by, newest first.
+ *
+ * A record id is only unique within its base, which is why the importer's own
+ * map is keyed by both. The note is keyed by both now too, so two bases that
+ * happen to share a record id do not import onto one another's notes.
+ *
+ * The bare id follows it because that is what earlier versions wrote, and a
+ * note carrying one still belongs to its record.
+ */
+export function recordSourceIds(baseId: string, recordId: string): string[] {
+	return [`${baseId}:${recordId}`, recordId];
+}
+
+/**
  * The times to write onto a record's note.
  *
  * Only ctime. Airtable reports when a record was created and nothing about

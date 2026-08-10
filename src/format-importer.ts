@@ -82,8 +82,24 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	return { mode: 'folder', path: normalizePath(value) };
 }
 
+/**
+ * What the source calls this note.
+ *
+ * A list is for an importer whose id has changed shape: the first is written
+ * onto the note, and every one of them is recognised, so notes an earlier
+ * version wrote still match rather than being imported a second time.
+ */
+export type SourceId = string | string[];
+
+/** A note whose source has no id for it is matched by its path alone. */
+function idsOf(sourceId: SourceId | undefined): string[] {
+	if (!sourceId) return [];
+
+	return (typeof sourceId === 'string' ? [sourceId] : sourceId).filter(Boolean);
+}
+
 export interface NoteImport extends DataWriteOptions {
-	sourceId?: string;
+	sourceId?: SourceId;
 }
 
 /**
@@ -120,7 +136,7 @@ export interface PlannedNote {
 	targetPath: string;
 	/** The note an earlier import wrote, when this one matches it. */
 	file: TFile | null;
-	sourceId?: string;
+	sourceId?: SourceId;
 }
 
 /**
@@ -924,14 +940,16 @@ export abstract class FormatImporter {
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
 	}
 
-	protected withSourceId(content: string, sourceId: string | undefined): string {
+	protected withSourceId(content: string, sourceId: SourceId | undefined): string {
 		const { idProperty } = this;
-		if (!idProperty || !sourceId || !this.saveSourceId) return content;
+		// The first is the one to write; the rest are only for recognising.
+		const [id] = idsOf(sourceId);
+		if (!idProperty || !id || !this.saveSourceId) return content;
 
 		const parsed = parseFrontMatterBlock(content);
-		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
+		if (!parsed) return serializeFrontMatter({ [idProperty]: id }) + content;
 
-		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
+		return serializeFrontMatter({ [idProperty]: id, ...parsed.frontMatter }) + parsed.body;
 	}
 
 	/**
@@ -948,7 +966,7 @@ export abstract class FormatImporter {
 	 * claim is what stops a second source note of the same name adopting it, and
 	 * a match that ends up writing nothing never took the name to begin with.
 	 */
-	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
+	planNote(folder: TFolder | string, title: string, sourceId?: SourceId): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
 		const parent = folderPath === '/' ? '' : folderPath;
@@ -1073,12 +1091,15 @@ export abstract class FormatImporter {
 	}
 
 	/** Find a previous import by source ID, falling back to its expected path. */
-	protected previouslyImported(fullPath: string, sourceId?: string): TFile | null {
+	protected previouslyImported(fullPath: string, sourceId?: SourceId): TFile | null {
 		const { idProperty } = this;
+		const ids = idsOf(sourceId);
 
-		if (idProperty && sourceId) {
-			const known = this.importedById?.get(sourceId);
-			if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
+		if (idProperty && ids.length) {
+			for (const id of ids) {
+				const known = this.importedById?.get(id);
+				if (known && this.vault.getAbstractFileByPath(known.path) === known) return known;
+			}
 		}
 
 		// A second source note with this path needs its own file.
@@ -1088,10 +1109,10 @@ export abstract class FormatImporter {
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
 		if (!(file instanceof TFile)) return null;
 
-		if (idProperty && sourceId) {
+		if (idProperty && ids.length) {
 			const recorded = this.recordedId(file, idProperty);
 			// Notes imported before IDs were recorded still match by path.
-			if (recorded && recorded !== sourceId) return null;
+			if (recorded && !ids.includes(recorded)) return null;
 		}
 
 		return file;

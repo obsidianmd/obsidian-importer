@@ -71,6 +71,26 @@ test('a note the user moved is planned where it now is, not where it would have 
 	assert.equal(planned.file?.path, 'Archive/Note.md');
 });
 
+test('the first of several ids is the one written onto the note', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.Update, 'airtable-id');
+
+	const planned = subject.planNote(vault.root, 'Note', ['appBase:rec1', 'rec1']);
+	await subject.writePlannedNote(ctx, planned, 'body');
+
+	assert.match(String(vault.contents.get('Note.md')), /airtable-id: appBase:rec1/);
+});
+
+test('but a note carrying any of them is recognised as the same note', async () => {
+	const { vault, subject } = importer(DuplicateHandling.Update, 'airtable-id');
+	await vault.createFolder('Elsewhere');
+	await vault.create('Elsewhere/Note.md', '---\nairtable-id: rec1\n---\nwritten by an older version\n');
+	subject.indexImportedNotes();
+
+	const planned = subject.planNote(vault.root, 'Note', ['appBase:rec1', 'rec1']);
+
+	assert.equal(planned.file?.path, 'Elsewhere/Note.md');
+});
+
 test('what preflight makes of a note nothing matches', () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.Update);
 

@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { AirtableAPIImporter } from '../../src/formats/airtable-api';
 import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
-import { RECORD_ID_PROPERTY, recordTimestamps } from '../../src/formats/airtable-api/record-note';
+import { RECORD_ID_PROPERTY, recordSourceIds, recordTimestamps } from '../../src/formats/airtable-api/record-note';
 import type { AirtableRecord, PreparedTableData, TablePlan } from '../../src/formats/airtable-api/types';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
@@ -118,6 +118,21 @@ test('"Create a copy" plans beside the note rather than onto it', async () => {
 
 	assert.deepEqual(paths(plans), ['Airtable/Books/Dune 1.md']);
 	assert.equal(plans[0].records[0].note?.file, null);
+});
+
+test('a record note carrying only the bare id is still that record', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Reading');
+	await vault.create('Reading/Dune.md', `---\n${RECORD_ID_PROPERTY}: rec1\n---\nwritten before ids carried a base\n`);
+
+	const subject = await planning(vault, DuplicateHandling.Skip);
+	const plans = await subject.plan(new ImportContext(), 'Airtable', [table([record('rec1', 'Dune')])]);
+
+	assert.equal(plans[0].records[0].note?.file?.path, 'Reading/Dune.md');
+});
+
+test('a record note is written with the base its record belongs to', () => {
+	assert.deepEqual(recordSourceIds(BASE_ID, 'rec1'), [`${BASE_ID}:rec1`, 'rec1']);
 });
 
 test('a record note is stamped with when Airtable says the record was made', () => {
