@@ -243,7 +243,10 @@ export async function importDatabaseCore(
 	// Query database to get all pages - if this fails, don't create folder
 	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 
-	ctx.status(i18n.importer.notionApi.statusFoundPages({ count: databasePages.length, title: sanitizedTitle }));
+	ctx.status(i18n.importer.notionApi.statusFoundPages({
+		pages: i18n.nouns.pageWithCount({ count: databasePages.length }),
+		title: sanitizedTitle,
+	}));
 
 	// Query database templates (these appear in search but not in database pages)
 	let templatePages: Array<{ id: string, name: string }> = [];

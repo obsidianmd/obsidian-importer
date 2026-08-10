@@ -292,7 +292,10 @@ export class NotionAPIImporter extends FormatImporter {
 
 		do {
 			pageCount++;
-			tempCtx.status(i18n.importer.notionApi.statusLoadingItems({ items: allRawItems.length, page: pageCount }));
+			tempCtx.status(i18n.importer.notionApi.statusLoadingItems({
+				items: i18n.nouns.itemWithCount({ count: allRawItems.length }),
+				page: pageCount,
+			}));
 
 			const response = await makeNotionRequest(
 				() => this.notionClient!.search({
@@ -1166,7 +1169,10 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 		}
 
-		ctx.status(i18n.importer.notionApi.statusReplacedMentions({ links: replacedCount, files: filesModified }));
+		ctx.status(i18n.importer.notionApi.statusReplacedMentions({
+			links: i18n.nouns.mentionLinkWithCount({ count: replacedCount }),
+			files: i18n.nouns.fileWithCount({ count: filesModified }),
+		}));
 	}
 
 	/**
@@ -1318,9 +1324,9 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		ctx.status(i18n.importer.notionApi.statusReplacedSynced({
-			references: replacedCount,
-			files: filesModified,
-			imported: importedCount,
+			references: i18n.nouns.syncedReferenceWithCount({ count: replacedCount }),
+			files: i18n.nouns.fileWithCount({ count: filesModified }),
+			imported: i18n.nouns.newItemWithCount({ count: importedCount }),
 		}));
 	}
 

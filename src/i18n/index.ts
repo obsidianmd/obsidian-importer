@@ -10,6 +10,7 @@ export type Strings = typeof en;
 const ENGLISH: Bundle = flatten(en);
 
 let current: Bundle = ENGLISH;
+let currentLanguage: string = 'en';
 
 /**
  * Point the lookup at an app language, falling back to the base language of a
@@ -22,6 +23,7 @@ export function setLanguage(language: string): void {
 	current = locales[language]
 		?? locales[language.split('-')[0]]
 		?? ENGLISH;
+	currentLanguage = language;
 }
 
 /** Which languages this build carries, English included. */
@@ -55,7 +57,7 @@ function translate(key: string, vars?: Vars): string {
 
 	if (text === undefined) return key;
 
-	return interpolate(text, vars);
+	return interpolate(text, vars, currentLanguage);
 }
 
 export type Getter = (vars?: Vars) => string;

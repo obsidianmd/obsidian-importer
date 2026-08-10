@@ -37,6 +37,22 @@ test('a newline survives the round trip through a translation file', () => {
 	assert.equal(decodeNewlines(encodeNewlines(text)), text);
 });
 
+test('a separator at the end of a value survives being read back', () => {
+	const bundle = parseLocale([
+		'[progress.label-skipped]',
+		'original=Skipped: ',
+		'translation=Ignoré : ',
+	].join('\n'));
+
+	assert.equal(bundle['progress.label-skipped'], 'Ignoré : ');
+});
+
+test('a number is grouped the way the chosen language groups it', () => {
+	assert.equal(interpolate('{{count}} files', { count: 10000 }, 'en'), '10,000 files');
+	// French groups with a narrow no-break space rather than a comma.
+	assert.equal(interpolate('{{count}} fichiers', { count: 10000 }, 'fr').replace(/[\s\u202f\u00a0]/g, ' '), '10 000 fichiers');
+});
+
 test('an untranslated block contributes nothing, so English still shows', () => {
 	const bundle = parseLocale([
 		'[modal.button-done]',
@@ -89,6 +105,35 @@ test('a key no language has resolves to itself rather than to nothing', () => {
 	assert.equal(i18n.modal('no-such-key'), 'modal.no-such-key');
 });
 
+test('the French strings that sit next to other text still read as sentences', () => {
+	setLanguage('fr');
+
+	// The progress log writes the prefix and the entry as two adjacent spans.
+	assert.equal(
+		i18n.progress.labelSkipped() + i18n.progress.labelEntry({ name: 'note' }),
+		'Ignoré : « note »'
+	);
+
+	// A description runs straight into the link that follows it.
+	assert.match(i18n.importer.airtableApi.descToken(), /Airtable\. $/);
+	assert.match(i18n.importer.notionApi.descToken(), /travail\. $/);
+	assert.match(i18n.importer.keep.descExport(), /Takeout\. $/);
+
+	// One of something is singular.
+	assert.equal(i18n.progress.labelRemaining({ count: 1 }), '1 restante...');
+	assert.equal(i18n.progress.labelRemaining({ count: 4 }), '4 restantes...');
+	assert.equal(i18n.progress.labelPausedRemaining({ count: 1 }), 'En pause - 1 restante');
+
+	// A Notion block kind and an attachment kind are French too.
+	assert.equal(
+		i18n.importer.notionApi.labelFetchChildren({ context: i18n.importer.notionApi.blockParagraph(), id: 'abc' }),
+		'Récupération des enfants de paragraphe abc'
+	);
+	assert.equal(i18n.importer.notionApi.labelAttachmentFile(), 'Pièce jointe fichier');
+
+	setLanguage('en');
+});
+
 test('every translation is for a key the English table still has', () => {
 	const keys = new Set(Object.keys(flatten(en)));
 
@@ -109,6 +154,21 @@ test('a translation carries the same placeholders as its English', () => {
 				placeholders(translated),
 				placeholders(english[key]),
 				`${language} changed the placeholders in ${key}`
+			);
+		}
+	}
+});
+
+test('a translation keeps the spacing its English carries at either end', () => {
+	const english = flatten(en);
+	const edges = (text: string) => [/^\s*/.exec(text)![0], /\s*$/.exec(text)![0]];
+
+	for (const [language, bundle] of Object.entries(locales)) {
+		for (const [key, translated] of Object.entries(bundle)) {
+			assert.deepEqual(
+				edges(translated),
+				edges(english[key]),
+				`${language} changed the spacing around ${key}, which is what separates it from the text beside it`
 			);
 		}
 	}

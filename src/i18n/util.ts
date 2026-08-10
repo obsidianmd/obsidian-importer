@@ -44,14 +44,16 @@ const PLACEHOLDER = /\{\{(\w+)\}\}/g;
  * rather than blanked, so a translation that invents a placeholder shows what
  * it asked for instead of a hole.
  */
-export function interpolate(text: string, vars?: Vars): string {
+export function interpolate(text: string, vars?: Vars, language?: string): string {
 	if (!vars) return text;
 
 	return text.replace(PLACEHOLDER, (marker, name: string) => {
 		const value = vars[name];
 		if (value === undefined) return marker;
 
-		return typeof value === 'number' ? value.toLocaleString() : value;
+		// The reader chose this language in Obsidian; the machine underneath may
+		// be set to another, and it is the chosen one that should group digits.
+		return typeof value === 'number' ? value.toLocaleString(language) : value;
 	});
 }
 
@@ -91,6 +93,10 @@ export function stringifyLocale(english: Bundle, translations: Bundle): string {
 /**
  * Read a translation file back. An untranslated block contributes nothing, so
  * the key falls through to English at runtime rather than resolving to ''.
+ *
+ * Whitespace at either end is kept: a string that runs into a link or a name
+ * after it carries the space between them, and trimming would close the gap.
+ * Only the carriage return of a CRLF file is dropped.
  */
 export function parseLocale(text: string): Bundle {
 	const bundle: Bundle = {};
@@ -105,8 +111,8 @@ export function parseLocale(text: string): Bundle {
 		}
 
 		if (key && line.startsWith('translation=')) {
-			const value = decodeNewlines(line.slice('translation='.length).trimEnd());
-			if (value) bundle[key] = value;
+			const value = decodeNewlines(line.slice('translation='.length).replace(/\r$/, ''));
+			if (value.trim()) bundle[key] = value;
 			key = null;
 		}
 	}

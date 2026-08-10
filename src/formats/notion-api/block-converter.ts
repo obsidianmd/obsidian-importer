@@ -11,6 +11,20 @@ import { normalizePath, TFile } from 'obsidian';
 import { parseFilePath } from '../../filesystem';
 import { sanitizeFileName } from '../../util';
 import { i18n } from '../../i18n';
+
+/** What each kind of attachment is called on screen. */
+function attachmentTypeLabel(type: AttachmentType): string {
+	switch (type) {
+		case AttachmentType.IMAGE:
+			return i18n.importer.notionApi.labelAttachmentImage();
+		case AttachmentType.VIDEO:
+			return i18n.importer.notionApi.labelAttachmentVideo();
+		case AttachmentType.FILE:
+			return i18n.importer.notionApi.labelAttachmentFile();
+		case AttachmentType.PDF:
+			return i18n.importer.notionApi.labelAttachmentPdf();
+	}
+}
 import { getBlockChildren, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, HeaderContentWithRichTextAndColorResponse } from './types';
@@ -1132,10 +1146,7 @@ async function convertAttachmentBlock(
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to convert ${type} block:`, error);
-		context.ctx.reportFailed(
-			i18n.importer.notionApi.labelTypedAttachment({ type: type.charAt(0).toUpperCase() + type.slice(1) }),
-			errorMsg
-		);
+		context.ctx.reportFailed(attachmentTypeLabel(type), errorMsg);
 		
 		// If download failed, return a fallback markdown link with the original URL
 		const linkText = caption || attachment.name || fallbackText;

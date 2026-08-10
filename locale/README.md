@@ -78,6 +78,14 @@ Translate both or neither. A singular with no plural beside it means a count in
 your language and a count in English can appear in the same sentence, which the
 test suite will refuse.
 
+### Spacing at the ends
+
+Some strings end with a space because something else follows them on screen — a
+link, or a file name. Keep whatever spacing the `original=` line has at either
+end; if your editor trims trailing whitespace on save, turn that off for these
+files. The test suite compares the two, so a lost space is caught rather than
+shipped.
+
 ### Newlines
 
 A string that spans lines carries `\n` inside it, because a block is read line

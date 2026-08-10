@@ -128,7 +128,15 @@ npm run locales -- check # what the test suite runs
 
 Adding a string means adding it to `en.ts` and regenerating; the tests fail
 otherwise. A translation is checked too: it must carry the same placeholders as
-its English, and a plural form if the English has one.
+its English, a plural form if the English has one, and the same whitespace at
+either end — a value ending in a space is what separates it from the link or
+name drawn beside it.
+
+A number goes through `toLocaleString` in the chosen language, so a count reads
+`10 000` in French even when the machine underneath is set to English. Two
+strings that meet on screen each need their own key: interpolating an internal
+identifier (a block kind, an enum member) leaves English inside a translated
+sentence.
 
 What stays out of the table: console messages, the errors the scripted
 `runImport` throws, and anything written into a note — a title, a folder name,

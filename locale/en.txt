@@ -82,6 +82,38 @@ translation=
 original={{count}} linked databases
 translation=
 
+[nouns.mention-link-with-count]
+original={{count}} mention link
+translation=
+
+[nouns.mention-link-with-count_plural]
+original={{count}} mention links
+translation=
+
+[nouns.synced-reference-with-count]
+original={{count}} synced child reference
+translation=
+
+[nouns.synced-reference-with-count_plural]
+original={{count}} synced child references
+translation=
+
+[nouns.new-item-with-count]
+original={{count}} new item
+translation=
+
+[nouns.new-item-with-count_plural]
+original={{count}} new items
+translation=
+
+[nouns.page-with-count]
+original={{count}} page
+translation=
+
+[nouns.page-with-count_plural]
+original={{count}} pages
+translation=
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=
@@ -194,7 +226,15 @@ translation=
 original={{count}} remaining...
 translation=
 
+[progress.label-remaining_plural]
+original={{count}} remaining...
+translation=
+
 [progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=
+
+[progress.label-paused-remaining_plural]
 original=Paused - {{count}} remaining
 translation=
 
@@ -1383,6 +1423,10 @@ original=Failed to load pages: {{error}}
 translation=
 
 [importer.notion-api.msg-found]
+original=Found {{count}} page or database.
+translation=
+
+[importer.notion-api.msg-found_plural]
 original=Found {{count}} pages and databases.
 translation=
 
@@ -1395,7 +1439,7 @@ original=Import failed: {{error}}
 translation=
 
 [importer.notion-api.status-loading-items]
-original=Loading... ({{items}} items, page {{page}})
+original=Loading... ({{items}}, page {{page}})
 translation=
 
 [importer.notion-api.status-connecting]
@@ -1463,7 +1507,7 @@ original=Replacing mention placeholders...
 translation=
 
 [importer.notion-api.status-replaced-mentions]
-original=Replaced {{links}} mention links in {{files}} files.
+original=Replaced {{links}} in {{files}}.
 translation=
 
 [importer.notion-api.status-replacing-synced]
@@ -1471,7 +1515,7 @@ original=Replacing synced block child references...
 translation=
 
 [importer.notion-api.status-replaced-synced]
-original=Replaced {{references}} synced child references in {{files}} files (imported {{imported}} new items).
+original=Replaced {{references}} in {{files}} (imported {{imported}}).
 translation=
 
 [importer.notion-api.status-downloading-attachment]
@@ -1491,7 +1535,7 @@ original=Processing database: {{title}}...
 translation=
 
 [importer.notion-api.status-found-pages]
-original=Found {{count}} pages in database {{title}}
+original=Found {{pages}} in database {{title}}
 translation=
 
 [importer.notion-api.status-found-templates]
@@ -1542,12 +1586,60 @@ translation=
 original=Synced block: {{name}}
 translation=
 
-[importer.notion-api.label-typed-attachment]
-original={{type}} attachment
+[importer.notion-api.label-attachment-image]
+original=Image attachment
+translation=
+
+[importer.notion-api.label-attachment-video]
+original=Video attachment
+translation=
+
+[importer.notion-api.label-attachment-file]
+original=File attachment
+translation=
+
+[importer.notion-api.label-attachment-pdf]
+original=PDF attachment
 translation=
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
+translation=
+
+[importer.notion-api.block-paragraph]
+original=paragraph
+translation=
+
+[importer.notion-api.block-bulleted-list-item]
+original=bulleted list item
+translation=
+
+[importer.notion-api.block-numbered-list-item]
+original=numbered list item
+translation=
+
+[importer.notion-api.block-quote]
+original=quote block
+translation=
+
+[importer.notion-api.block-callout]
+original=callout block
+translation=
+
+[importer.notion-api.block-column]
+original=column
+translation=
+
+[importer.notion-api.block-column-list]
+original=column list
+translation=
+
+[importer.notion-api.block-table]
+original=table
+translation=
+
+[importer.notion-api.block-generic]
+original=block
 translation=
 
 [importer.notion-api.label-fetch-children-block]
