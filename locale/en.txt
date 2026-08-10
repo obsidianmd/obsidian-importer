@@ -1,0 +1,603 @@
+[command.import-notes]
+original=Import notes
+translation=
+
+[nouns.file-with-count]
+original={{count}} file
+translation=
+
+[nouns.file-with-count_plural]
+original={{count}} files
+translation=
+
+[nouns.note-with-count]
+original={{count}} note
+translation=
+
+[nouns.note-with-count_plural]
+original={{count}} notes
+translation=
+
+[nouns.item-with-count]
+original={{count}} item
+translation=
+
+[nouns.item-with-count_plural]
+original={{count}} items
+translation=
+
+[nouns.record-with-count]
+original={{count}} record
+translation=
+
+[nouns.record-with-count_plural]
+original={{count}} records
+translation=
+
+[nouns.base-with-count]
+original={{count}} base
+translation=
+
+[nouns.base-with-count_plural]
+original={{count}} bases
+translation=
+
+[nouns.template-with-count]
+original={{count}} template
+translation=
+
+[nouns.template-with-count_plural]
+original={{count}} templates
+translation=
+
+[nouns.failure-with-count]
+original={{count}} failure
+translation=
+
+[nouns.failure-with-count_plural]
+original={{count}} failures
+translation=
+
+[nouns.second-with-count]
+original={{count}} second
+translation=
+
+[nouns.second-with-count_plural]
+original={{count}} seconds
+translation=
+
+[nouns.relation-placeholder-with-count]
+original={{count}} relation placeholder
+translation=
+
+[nouns.relation-placeholder-with-count_plural]
+original={{count}} relation placeholders
+translation=
+
+[nouns.linked-database-with-count]
+original={{count}} linked database
+translation=
+
+[nouns.linked-database-with-count_plural]
+original={{count}} linked databases
+translation=
+
+[modal.title-pick-format]
+original=Import data into Obsidian
+translation=
+
+[modal.title-import-from]
+original=Import from {{format}}
+translation=
+
+[modal.search-placeholder]
+original=Filter...
+translation=
+
+[modal.msg-no-formats]
+original=No formats found.
+translation=
+
+[modal.button-continue]
+original=Continue
+translation=
+
+[modal.button-import]
+original=Import
+translation=
+
+[modal.button-back]
+original=Back
+translation=
+
+[modal.button-help]
+original=Help
+translation=
+
+[modal.button-cancel]
+original=Cancel
+translation=
+
+[modal.button-pause]
+original=Pause
+translation=
+
+[modal.button-resume]
+original=Resume
+translation=
+
+[modal.button-stop]
+original=Stop
+translation=
+
+[modal.button-import-more]
+original=Import more
+translation=
+
+[modal.button-done]
+original=Done
+translation=
+
+[modal.msg-unexpected-auth]
+original=Unexpected auth event. Please restart the auth process.
+translation=
+
+[progress.stat-imported]
+original=imported
+translation=
+
+[progress.stat-attachments]
+original=attachments
+translation=
+
+[progress.stat-remaining]
+original=remaining
+translation=
+
+[progress.stat-skipped]
+original=skipped
+translation=
+
+[progress.stat-failed]
+original=failed
+translation=
+
+[progress.label-skipped]
+original=Skipped: 
+translation=
+
+[progress.label-failed]
+original=Failed: 
+translation=
+
+[progress.label-entry]
+original="{{name}}"
+translation=
+
+[progress.label-entry-with-reason]
+original="{{name}}" because {{reason}}
+translation=
+
+[progress.label-paused]
+original=Paused
+translation=
+
+[progress.label-paused-with]
+original=Paused - {{status}}
+translation=
+
+[progress.label-importing]
+original=Importing
+translation=
+
+[progress.label-remaining]
+original={{count}} remaining...
+translation=
+
+[progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=
+
+[progress.msg-stopped]
+original=Import stopped.
+translation=
+
+[progress.msg-errors]
+original=Import finished with errors.
+translation=
+
+[progress.msg-complete]
+original=Import complete.
+translation=
+
+[progress.msg-imported-count]
+original={{count}} note imported
+translation=
+
+[progress.msg-imported-count_plural]
+original={{count}} notes imported
+translation=
+
+[progress.msg-click-to-show]
+original={{counts}}. Click to show.
+translation=
+
+[progress.status-waiting]
+original=Waiting {{duration}} ({{reason}})
+translation=
+
+[progress.status-waiting-for-markdown]
+original=Waiting for imported Markdown…
+translation=
+
+[progress.status-standardizing]
+original=Standardizing Markdown ({{current}}/{{total}})
+translation=
+
+[progress.label-finalization]
+original=Markdown finalization
+translation=
+
+[source.name]
+original=Files to import
+translation=
+
+[source.desc]
+original=Pick the files that you want to import.
+translation=
+
+[source.button-choose-file]
+original=Choose file
+translation=
+
+[source.button-choose-files]
+original=Choose files
+translation=
+
+[source.button-choose-folders]
+original=Choose folders
+translation=
+
+[source.dialog-pick-files]
+original=Pick files to import
+translation=
+
+[source.dialog-pick-folders]
+original=Folders to import
+translation=
+
+[source.msg-reading-folders]
+original=Reading folders...
+translation=
+
+[source.msg-nothing-to-import]
+original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
+translation=
+
+[source.msg-will-import]
+original={{files}} will be imported: 
+translation=
+
+[output.label-source-id]
+original=source ID
+translation=
+
+[output.name-save-source-id]
+original=Save {{label}}
+translation=
+
+[output.desc-save-source-id]
+original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
+translation=
+
+[output.name-folder]
+original=Output folder
+translation=
+
+[output.desc-folder]
+original=Where imported notes will be saved. Leave blank to use the top level of the vault.
+translation=
+
+[output.name-attachments]
+original=Attachment location
+translation=
+
+[output.desc-attachments]
+original=Where imported images and files will be saved.
+translation=
+
+[output.name-subfolder]
+original=Subfolder name
+translation=
+
+[output.desc-subfolder]
+original=Folder to use inside each imported note's folder.
+translation=
+
+[output.name-attachment-folder]
+original=Attachment folder
+translation=
+
+[output.desc-attachment-folder]
+original=Folder path from the top level of the vault.
+translation=
+
+[output.name-duplicates]
+original=Existing notes
+translation=
+
+[output.desc-duplicates]
+original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
+translation=
+
+[output.option-create-copy]
+original=Create a copy
+translation=
+
+[output.option-skip]
+original=Skip
+translation=
+
+[output.option-update]
+original=Update
+translation=
+
+[output.option-attachments-vault]
+original=Vault folder
+translation=
+
+[output.option-attachments-folder]
+original=In the folder specified below
+translation=
+
+[output.option-attachments-note]
+original=Same folder as the note
+translation=
+
+[output.option-attachments-subfolder]
+original=In subfolder under the note
+translation=
+
+[reason.already-in-vault]
+original=it is already in the vault
+translation=
+
+[reason.unchanged-since-import]
+original=it has not changed since the last import
+translation=
+
+[reason.edited-since-import]
+original=it has been edited in Obsidian since the last import
+translation=
+
+[reason.file-not-in-vault]
+original=The imported file did not appear in the vault.
+translation=
+
+[reason.folder-not-created]
+original=Failed to create folder at "{{path}}"
+translation=
+
+[tree.button-select-all]
+original=Select all
+translation=
+
+[tree.button-deselect-all]
+original=Deselect all
+translation=
+
+[tree.button-load]
+original=Load
+translation=
+
+[tree.button-loading]
+original=Loading...
+translation=
+
+[tree.button-refresh]
+original=Refresh
+translation=
+
+[request.msg-unauthorized]
+original={{service}} did not accept the request for {{subject}}. {{credential}}
+translation=
+
+[request.msg-forbidden]
+original={{service}} would not give access to {{subject}}. {{credential}}
+translation=
+
+[request.msg-not-found]
+original={{service}} could not find {{subject}}.
+translation=
+
+[request.msg-rate-limited]
+original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
+translation=
+
+[request.msg-timed-out]
+original={{service}} took too long to return {{subject}}. Try again shortly.
+translation=
+
+[request.msg-unavailable]
+original={{service}} could not return {{subject}} right now. Try again shortly.
+translation=
+
+[request.msg-failed-with-code]
+original=Could not read {{subject}}: {{message}} ({{code}})
+translation=
+
+[request.msg-failed-with-message]
+original=Could not read {{subject}}: {{message}}
+translation=
+
+[request.msg-failed-with-reported-code]
+original=Could not read {{subject}}. {{service}} reported {{code}}.
+translation=
+
+[request.msg-failed]
+original=Could not read {{subject}}.
+translation=
+
+[template.msg-intro]
+original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
+translation=
+
+[template.name-title]
+original=Note title
+translation=
+
+[template.desc-title]
+original=Template for the note title. Use {{field_name}} to insert values.
+translation=
+
+[template.name-location]
+original=Note location
+translation=
+
+[template.desc-location]
+original=Template for note location/path. Use {{field_name}} to organize notes.
+translation=
+
+[template.name-content]
+original=Note content
+translation=
+
+[template.desc-content]
+original=Template for the note content. Use {{field_name}} to insert values.
+translation=
+
+[template.heading-properties]
+original=Properties
+translation=
+
+[template.column-property-name]
+original=Property name
+translation=
+
+[template.column-property-value]
+original=Property value
+translation=
+
+[template.column-example]
+original=Example
+translation=
+
+[template.action-delete-property]
+original=Delete property
+translation=
+
+[template.msg-title-required]
+original=Please provide a note title template.
+translation=
+
+[importer.airtable-api.name]
+original=Airtable
+translation=
+
+[importer.airtable-api.option-text]
+original=Airtable
+translation=
+
+[importer.apple-notes.name]
+original=Apple Notes
+translation=
+
+[importer.apple-notes.option-text]
+original=Apple Notes
+translation=
+
+[importer.apple-journal.name]
+original=Apple Journal
+translation=
+
+[importer.apple-journal.option-text]
+original=Apple Journal (HTML export)
+translation=
+
+[importer.bear.name]
+original=Bear
+translation=
+
+[importer.bear.option-text]
+original=Bear (.bear2bk)
+translation=
+
+[importer.csv.name]
+original=CSV
+translation=
+
+[importer.csv.option-text]
+original=CSV (.csv)
+translation=
+
+[importer.evernote.name]
+original=Evernote
+translation=
+
+[importer.evernote.option-text]
+original=Evernote (.enex)
+translation=
+
+[importer.keep.name]
+original=Google Keep
+translation=
+
+[importer.keep.option-text]
+original=Google Keep (.zip/.json)
+translation=
+
+[importer.html.name]
+original=HTML files
+translation=
+
+[importer.html.option-text]
+original=HTML (.html)
+translation=
+
+[importer.onenote.name]
+original=Microsoft OneNote
+translation=
+
+[importer.onenote.option-text]
+original=Microsoft OneNote
+translation=
+
+[importer.notion-api.name]
+original=Notion (API)
+translation=
+
+[importer.notion-api.option-text]
+original=Notion (API)
+translation=
+
+[importer.notion.name]
+original=Notion
+translation=
+
+[importer.notion.option-text]
+original=Notion (.zip)
+translation=
+
+[importer.roam-json.name]
+original=Roam Research
+translation=
+
+[importer.roam-json.option-text]
+original=Roam Research (.json)
+translation=
+
+[importer.textbundle.name]
+original=Textbundle files
+translation=
+
+[importer.textbundle.option-text]
+original=Textbundle (.textbundle, .textpack)
+translation=
+
+[importer.tomboy.name]
+original=Tomboy/Gnote
+translation=
+
+[importer.tomboy.option-text]
+original=Tomboy/Gnote (.note)
+translation=

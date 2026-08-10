@@ -5,7 +5,8 @@ import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
-import { getUniqueFilePath, parseFrontMatterBlock, plural, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
+import { i18n } from './i18n';
+import { getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_PATH_DESCRIPTION_LENGTH = 300;
 
@@ -15,11 +16,16 @@ export enum DuplicateHandling {
 	Update = 'update',
 }
 
-const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
-	[DuplicateHandling.CreateCopy]: 'Create a copy',
-	[DuplicateHandling.Skip]: 'Skip',
-	[DuplicateHandling.Update]: 'Update',
-};
+function duplicateHandlingLabel(mode: DuplicateHandling): string {
+	switch (mode) {
+		case DuplicateHandling.CreateCopy:
+			return i18n.output.optionCreateCopy();
+		case DuplicateHandling.Skip:
+			return i18n.output.optionSkip();
+		case DuplicateHandling.Update:
+			return i18n.output.optionUpdate();
+	}
+}
 
 /**
  * What a file already occupying an attachment's name turned out to be:
@@ -36,12 +42,20 @@ export interface AttachmentLocation {
 	path: string;
 }
 
-const ATTACHMENT_MODE_LABELS: Record<AttachmentLocationMode, string> = {
-	vault: 'Vault folder',
-	folder: 'In the folder specified below',
-	note: 'Same folder as the note',
-	subfolder: 'In subfolder under the note',
-};
+const ATTACHMENT_MODES: AttachmentLocationMode[] = ['vault', 'folder', 'note', 'subfolder'];
+
+function attachmentModeLabel(mode: AttachmentLocationMode): string {
+	switch (mode) {
+		case 'vault':
+			return i18n.output.optionAttachmentsVault();
+		case 'folder':
+			return i18n.output.optionAttachmentsFolder();
+		case 'note':
+			return i18n.output.optionAttachmentsNote();
+		case 'subfolder':
+			return i18n.output.optionAttachmentsSubfolder();
+	}
+}
 
 export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation): string {
 	switch (mode) {
@@ -111,7 +125,8 @@ export abstract class FormatImporter {
 
 	/** Frontmatter property used to identify imported notes. */
 	idProperty: string | null = null;
-	idLabel: string = 'source ID';
+	/** Set in init() when an importer names its ID something more specific. */
+	idLabel: string = i18n.output.labelSourceId();
 
 	saveSourceId: boolean = true;
 
@@ -354,10 +369,10 @@ export abstract class FormatImporter {
 		if (!fileLocationSetting) return;
 
 		fileLocationSetting
-			.setName('Files to import')
-			.setDesc(description || 'Pick the files that you want to import.')
+			.setName(i18n.source.name())
+			.setDesc(description || i18n.source.desc())
 			.addButton(button => button
-				.setButtonText(allowMultiple ? 'Choose files' : 'Choose file')
+				.setButtonText(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile())
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
 						let properties = ['openFile', 'dontAddToRecent'];
@@ -365,7 +380,7 @@ export abstract class FormatImporter {
 							properties.push('multiSelections');
 						}
 						const filePaths = this.chooseFrom({
-							title: 'Pick files to import', properties,
+							title: i18n.source.dialogPickFiles(), properties,
 							filters: [{ name, extensions }],
 						}, defaultPath);
 
@@ -393,16 +408,16 @@ export abstract class FormatImporter {
 
 		if (allowMultiple && Platform.isDesktopApp) {
 			fileLocationSetting.addButton(button => button
-				.setButtonText('Choose folders')
+				.setButtonText(i18n.source.buttonChooseFolders())
 				.onClick(async () => {
 					if (Platform.isDesktopApp) {
 						const filePaths = this.chooseFrom({
-							title: 'Folders to import',
+							title: i18n.source.dialogPickFolders(),
 							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
 						}, defaultPath);
 
 						if (filePaths.length > 0) {
-							fileLocationSetting.setDesc('Reading folders...');
+							fileLocationSetting.setDesc(i18n.source.msgReadingFolders());
 							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
 							updateFiles();
@@ -415,7 +430,9 @@ export abstract class FormatImporter {
 			this.sourceChanged();
 
 			if (this.files.length === 0) {
-				fileLocationSetting.setDesc(`Nothing to import there. Pick ${extensions.map(e => '.' + e).join(', ')} files, or a folder holding some.`);
+				fileLocationSetting.setDesc(i18n.source.msgNothingToImport({
+					extensions: extensions.map(e => '.' + e).join(', '),
+				}));
 				return;
 			}
 
@@ -426,7 +443,11 @@ export abstract class FormatImporter {
 
 			fileLocationSetting.setDesc(createFragment(frag => {
 				if (this.files.length > 1) {
-					frag.createSpan({ text: `${plural(this.files.length, 'file')} will be imported: ` });
+					frag.createSpan({
+						text: i18n.source.msgWillImport({
+							files: i18n.nouns.fileWithCount({ count: this.files.length }),
+						}),
+					});
 					frag.createEl('br');
 				}
 
@@ -450,8 +471,8 @@ export abstract class FormatImporter {
 		if (!this.idProperty) return;
 
 		new Setting(contentEl)
-			.setName(`Save ${this.idLabel}`)
-			.setDesc(`Add the ${this.idLabel} to note properties so future imports can recognize moved or renamed notes.`)
+			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
+			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.saveSourceId)
@@ -464,8 +485,8 @@ export abstract class FormatImporter {
 
 	private addOutputFolderSetting(contentEl: HTMLElement): void {
 		new Setting(contentEl)
-			.setName('Output folder')
-			.setDesc('Where imported notes will be saved. Leave blank to use the top level of the vault.')
+			.setName(i18n.output.nameFolder())
+			.setDesc(i18n.output.descFolder())
 			.addText(text => {
 				text
 					.setValue(this.outputLocation)
@@ -480,8 +501,8 @@ export abstract class FormatImporter {
 
 	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
 		const setting = new Setting(contentEl)
-			.setName('Attachment location')
-			.setDesc('Where imported images and files will be saved.');
+			.setName(i18n.output.nameAttachments())
+			.setDesc(i18n.output.descAttachments());
 
 		const pathSetting = new Setting(contentEl);
 
@@ -489,15 +510,13 @@ export abstract class FormatImporter {
 			const { mode } = this.attachmentLocation;
 			pathSetting.settingEl.toggle(mode === 'folder' || mode === 'subfolder');
 			pathSetting
-				.setName(mode === 'subfolder' ? 'Subfolder name' : 'Attachment folder')
-				.setDesc(mode === 'subfolder'
-					? 'Folder to use inside each imported note\'s folder.'
-					: 'Folder path from the top level of the vault.');
+				.setName(mode === 'subfolder' ? i18n.output.nameSubfolder() : i18n.output.nameAttachmentFolder())
+				.setDesc(mode === 'subfolder' ? i18n.output.descSubfolder() : i18n.output.descAttachmentFolder());
 		};
 
 		setting.addDropdown(dropdown => {
-			for (const mode of Object.keys(ATTACHMENT_MODE_LABELS) as AttachmentLocationMode[]) {
-				dropdown.addOption(mode, ATTACHMENT_MODE_LABELS[mode]);
+			for (const mode of ATTACHMENT_MODES) {
+				dropdown.addOption(mode, attachmentModeLabel(mode));
 			}
 
 			dropdown
@@ -527,10 +546,10 @@ export abstract class FormatImporter {
 		if (modes.length < 2) return;
 
 		new Setting(contentEl)
-			.setName('Existing notes')
+			.setName(i18n.output.nameDuplicates())
 			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {
-				for (const mode of modes) dropdown.addOption(mode, DUPLICATE_HANDLING_LABELS[mode]);
+				for (const mode of modes) dropdown.addOption(mode, duplicateHandlingLabel(mode));
 
 				dropdown
 					.setValue(this.duplicateHandling)
@@ -543,8 +562,9 @@ export abstract class FormatImporter {
 
 	private describeDuplicateHandling(): DocumentFragment {
 		return createFragment(frag => {
-			frag.appendText(`Choose what to do when an imported note matches one in your vault. `
-				+ `"${DUPLICATE_HANDLING_LABELS[DuplicateHandling.Update]}" skips unchanged notes and preserves newer local edits when modification dates are available.`);
+			frag.appendText(i18n.output.descDuplicates({
+				update: duplicateHandlingLabel(DuplicateHandling.Update),
+			}));
 		});
 	}
 
@@ -735,7 +755,10 @@ export abstract class FormatImporter {
 
 		if (ctx) {
 			const previousStatusMessage = ctx.statusMessage;
-			ctx.status(`Waiting ${plural(durationSeconds, 'second')} (${reason})`);
+			ctx.status(i18n.progress.statusWaiting({
+				duration: i18n.nouns.secondWithCount({ count: durationSeconds }),
+				reason,
+			}));
 			await promise;
 			ctx.status(previousStatusMessage);
 		}
@@ -753,16 +776,16 @@ export abstract class FormatImporter {
 	async finalizeMarkdownOutput(ctx?: ImportContext): Promise<void> {
 		const previousStatus = ctx?.statusMessage ?? '';
 		try {
-			if (this.markdownFiles.size > 0) ctx?.status('Waiting for imported Markdown…');
+			if (this.markdownFiles.size > 0) ctx?.status(i18n.progress.statusWaitingForMarkdown());
 			await this.waitForExternalMarkdownWrites();
 
 			const total = this.markdownFiles.size;
 			let current = 0;
 			for (const path of this.markdownFiles) {
-				ctx?.status(`Standardizing Markdown (${++current}/${total})`);
+				ctx?.status(i18n.progress.statusStandardizing({ current: ++current, total }));
 				const file = this.vault.getAbstractFileByPath(path);
 				if (!(file instanceof TFile)) {
-					const error = new Error('The imported file did not appear in the vault.');
+					const error = new Error(i18n.reason.fileNotInVault());
 					if (ctx) ctx.reportFailed(path, error);
 					else console.error(`Failed to standardize Markdown links in: ${path}`, error);
 					continue;
@@ -777,7 +800,7 @@ export abstract class FormatImporter {
 			}
 		}
 		catch (error) {
-			if (ctx) ctx.reportFailed('Markdown finalization', error);
+			if (ctx) ctx.reportFailed(i18n.progress.labelFinalization(), error);
 			else console.error('Failed to finalize imported Markdown', error);
 		}
 		finally {
@@ -850,7 +873,7 @@ export abstract class FormatImporter {
 		}
 
 		if (this.duplicateHandling === DuplicateHandling.Skip) {
-			ctx.reportSkipped(title, 'it is already in the vault');
+			ctx.reportSkipped(title, i18n.reason.alreadyInVault());
 			return { file: existing, written: false };
 		}
 
@@ -897,12 +920,12 @@ export abstract class FormatImporter {
 	private async unchangedSinceImport(ctx: ImportContext, file: TFile, title: string, content: string, sourceMtime?: number): Promise<boolean> {
 		if (sourceMtime !== undefined) {
 			if (file.stat.mtime === sourceMtime) {
-				ctx.reportSkipped(title, 'it has not changed since the last import');
+				ctx.reportSkipped(title, i18n.reason.unchangedSinceImport());
 				return true;
 			}
 
 			if (file.stat.mtime > sourceMtime) {
-				ctx.reportSkipped(title, 'it has been edited in Obsidian since the last import');
+				ctx.reportSkipped(title, i18n.reason.editedSinceImport());
 				return true;
 			}
 
@@ -918,7 +941,7 @@ export abstract class FormatImporter {
 			return false;
 		}
 
-		ctx.reportSkipped(title, 'it has not changed since the last import');
+		ctx.reportSkipped(title, i18n.reason.unchangedSinceImport());
 		return true;
 	}
 
@@ -967,7 +990,7 @@ export abstract class FormatImporter {
 		await this.vault.createFolder(normalizedPath);
 		folder = this.vault.getAbstractFileByPathInsensitive(normalizedPath);
 		if (!(folder instanceof TFolder)) {
-			throw new Error(`Failed to create folder at "${path}"`);
+			throw new Error(i18n.reason.folderNotCreated({ path }));
 		}
 
 		return folder;

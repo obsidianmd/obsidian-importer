@@ -9,6 +9,26 @@ const obsidianRules = Object.fromEntries(
 	Object.keys(obsidianmd.rules).map(name => [`obsidianmd/${name}`, 'warn'])
 );
 
+// Shared by the call-site rule and the one that reads the English string table.
+const sentenceCase = {
+	brands: [
+		'Airtable', 'Apple', 'Apple Journal', 'Apple Notes', 'Bear', 'Evernote', 'Gnote',
+		'Google', 'Google Keep', 'Markdown', 'Microsoft', 'Notion', 'Obsidian', 'OneNote',
+		'Roam', 'Roam Research', 'Textbundle', 'Tomboy', 'iCloud',
+	],
+	acronyms: ['API', 'CSV', 'HTML', 'ID', 'JSON', 'MB', 'PDF', 'URL', 'YAML'],
+	ignoreRegex: [
+		'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
+		'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
+		// Fragments spliced into a longer sentence, which start lower case on purpose.
+		'^(imported|attachments|remaining|skipped|failed)$',
+		'^it (is|has) ', '^source ID$',
+		// A format listed with the extensions it comes in: "Bear (.bear2bk)".
+		'\\(\\.[a-z0-9., /]+\\)$',
+	],
+	ignoreWords: ['MB', '(MB)', 'TODO'],
+};
+
 export default defineConfig(
 	// A top-level entry keeps this file out of every config below.
 	{ ignores: ['src/z-worker-inline.js'] },
@@ -35,18 +55,9 @@ export default defineConfig(
 		plugins: { obsidianmd },
 		rules: {
 			...obsidianRules,
-			'obsidianmd/ui/sentence-case': ['warn', {
-				brands: [
-					'Airtable', 'Apple', 'Apple Notes', 'Bear', 'Evernote', 'Google', 'Google Keep',
-					'Markdown', 'Microsoft', 'Notion', 'Obsidian', 'OneNote', 'Roam',
-					'Tomboy', 'iCloud',
-				],
-				ignoreRegex: [
-					'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
-					'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
-				],
-				ignoreWords: ['MB', '(MB)', 'TODO'],
-			}],
+			'obsidianmd/ui/sentence-case': ['warn', sentenceCase],
+			// Same rule, applied to src/i18n/en.ts now that the UI text lives there.
+			'obsidianmd/ui/sentence-case-locale-module': ['warn', sentenceCase],
 		},
 	},
 	{
