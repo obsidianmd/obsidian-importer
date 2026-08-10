@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { AirtableAPIImporter } from '../../src/formats/airtable-api';
 import { DuplicateHandling, NoteDisposition } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
-import { RECORD_ID_PROPERTY, recordSourceIds, recordTimestamps } from '../../src/formats/airtable-api/record-note';
+import { RECORD_ID_PROPERTY, recordTimestamps } from '../../src/formats/airtable-api/record-note';
 import type { AirtableRecord, PreparedTableData, TablePlan } from '../../src/formats/airtable-api/types';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
@@ -103,7 +103,7 @@ test('a record an earlier import wrote is planned onto that note', async () => {
 test('and is still planned onto it after the user moved it', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Reading');
-	await vault.create('Reading/Dune.md', `---\nairtable-id: ${BASE_ID}:rec1\n---\nold\n`);
+	await vault.create('Reading/Dune.md', '---\nairtable-id: rec1\n---\nold\n');
 
 	const subject = await planning(vault, DuplicateHandling.Skip);
 	const plans = await subject.plan(new ImportContext(), 'Airtable', [table([record('rec1', 'Dune')])]);
@@ -144,33 +144,6 @@ test('"Create a copy" plans beside the note rather than onto it', async () => {
 	assert.equal(plans[0].records[0].note?.file, null);
 });
 
-test('a note carrying only the bare id is still that record, where it was left', async () => {
-	const vault = new MemoryVault();
-	await vault.createFolder('Airtable');
-	await vault.createFolder('Airtable/Books');
-	await vault.create('Airtable/Books/Dune.md', '---\nairtable-id: rec1\n---\nwritten before ids carried a base\n');
-
-	const subject = await planning(vault, DuplicateHandling.Skip);
-	const plans = await subject.plan(new ImportContext(), 'Airtable', [table([record('rec1', 'Dune')])]);
-
-	assert.equal(plans[0].records[0].note?.file?.path, 'Airtable/Books/Dune.md');
-});
-
-// A bare id cannot say which base it came from, so a note that has moved away
-// from where the version that wrote it would have put it could belong to any
-// base's rec1. It gets a new note rather than the wrong record's contents.
-test('but not once it has moved, where no base can claim it', async () => {
-	const vault = new MemoryVault();
-	await vault.createFolder('Reading');
-	await vault.create('Reading/Dune.md', '---\nairtable-id: rec1\n---\nwritten before ids carried a base\n');
-
-	const subject = await planning(vault, DuplicateHandling.Skip);
-	const plans = await subject.plan(new ImportContext(), 'Airtable', [table([record('rec1', 'Dune')])]);
-
-	assert.equal(plans[0].records[0].note?.file, null);
-	assert.deepEqual(paths(plans), ['Airtable/Books/Dune.md']);
-});
-
 test('the importer offers all three ways of meeting a note it already wrote', async () => {
 	const subject = await planning(new MemoryVault(), DuplicateHandling.Update);
 
@@ -186,7 +159,7 @@ async function planOver(mode: DuplicateHandling) {
 	const vault = new MemoryVault();
 	await vault.createFolder('Airtable');
 	await vault.createFolder('Airtable/Books');
-	await vault.create('Airtable/Books/Dune.md', `---\nairtable-id: ${BASE_ID}:rec1\n---\nold\n`);
+	await vault.create('Airtable/Books/Dune.md', '---\nairtable-id: rec1\n---\nold\n');
 
 	const subject = await planning(vault, mode);
 	const ctx = new ImportContext();
@@ -212,10 +185,6 @@ test('"Update" cannot settle it, because Airtable will not say when the record c
 
 test('the property a record note is recognised by is airtable-id', () => {
 	assert.equal(RECORD_ID_PROPERTY, 'airtable-id');
-});
-
-test('a record note is written with the base its record belongs to', () => {
-	assert.deepEqual(recordSourceIds(BASE_ID, 'rec1'), { id: `${BASE_ID}:rec1`, formerly: ['rec1'] });
 });
 
 test('a record note is stamped with when Airtable says the record was made', () => {

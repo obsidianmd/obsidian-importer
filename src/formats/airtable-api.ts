@@ -32,7 +32,6 @@ import {
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	RECORD_ID_PROPERTY,
-	recordSourceIds,
 	recordTimestamps,
 	recordTitle,
 } from './airtable-api/record-note';
@@ -852,7 +851,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				// written, so a record linking to another can name the file it
 				// will end up in - including one an earlier import already wrote,
 				// wherever the user has since moved it to.
-				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), recordSourceIds(baseId, record.id));
+				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), record.id);
 				const { basename } = parseFilePath(note.targetPath);
 
 				this.recordIdToPath.set(`${baseId}:${record.id}`, note.targetPath.replace(/\.md$/, ''));

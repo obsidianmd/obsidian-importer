@@ -1,5 +1,4 @@
 import { FrontMatterCache } from 'obsidian';
-import type { SourceIdentity } from '../../format-importer';
 import { sanitizeFileName, serializeFrontMatter } from '../../util';
 import { applyTemplate } from '../../template';
 import { convertFieldValue } from './field-converter';
@@ -7,22 +6,6 @@ import { sanitizePropertyName } from './base-file';
 import type { AirtableAttachment, AirtableFieldSchema, AirtableRecord, AttachmentResult } from './types';
 
 export const RECORD_ID_PROPERTY = 'airtable-id';
-
-/**
- * What a record's note is known by.
- *
- * A record id is only unique within its base, which is why the importer's own
- * map is keyed by both. The note is keyed by both now too, so two bases that
- * happen to share a record id do not import onto one another's notes.
- *
- * The bare id is what earlier versions wrote, and is recognised only where such
- * a version would have put the note. Recognising it anywhere would undo the
- * point of the change: every base's record rec1 would match the one note
- * carrying "rec1", which is the collision the base id is here to prevent.
- */
-export function recordSourceIds(baseId: string, recordId: string): SourceIdentity {
-	return { id: `${baseId}:${recordId}`, formerly: [recordId] };
-}
 
 /**
  * The times to write onto a record's note.

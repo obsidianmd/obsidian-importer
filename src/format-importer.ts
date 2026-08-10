@@ -82,34 +82,8 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 	return { mode: 'folder', path: normalizePath(value) };
 }
 
-/**
- * What the source calls this note, for an importer whose id has changed shape.
- *
- * `id` is written onto the note and recognised wherever the note has moved to.
- * A `formerly` id is recognised only where the version that wrote it would have
- * put the note, because an id that has been made more specific is by definition
- * one that could not tell every note apart - two sources may each claim a note
- * carrying it. At the expected path there is nothing to be wrong about; away
- * from it there is no way to tell which source it belonged to, so it is left
- * alone rather than guessed at.
- */
-export interface SourceIdentity {
-	id: string;
-	formerly?: string[];
-}
-
-export type SourceId = string | SourceIdentity;
-
-/** A note whose source has no id for it is matched by its path alone. */
-function identityOf(sourceId: SourceId | undefined): { id: string | null, formerly: string[] } {
-	if (!sourceId) return { id: null, formerly: [] };
-	if (typeof sourceId === 'string') return { id: sourceId, formerly: [] };
-
-	return { id: sourceId.id || null, formerly: (sourceId.formerly ?? []).filter(Boolean) };
-}
-
 export interface NoteImport extends DataWriteOptions {
-	sourceId?: SourceId;
+	sourceId?: string;
 }
 
 /**
@@ -146,7 +120,7 @@ export interface PlannedNote {
 	targetPath: string;
 	/** The note an earlier import wrote, when this one matches it. */
 	file: TFile | null;
-	sourceId?: SourceId;
+	sourceId?: string;
 }
 
 /**
@@ -961,17 +935,14 @@ export abstract class FormatImporter {
 		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
 	}
 
-	protected withSourceId(content: string, sourceId: SourceId | undefined): string {
+	protected withSourceId(content: string, sourceId: string | undefined): string {
 		const { idProperty } = this;
-		// A former id is only ever recognised, never written, so a note being
-		// rewritten is a note whose id stops being the ambiguous one.
-		const { id } = identityOf(sourceId);
-		if (!idProperty || !id || !this.saveSourceId) return content;
+		if (!idProperty || !sourceId || !this.saveSourceId) return content;
 
 		const parsed = parseFrontMatterBlock(content);
-		if (!parsed) return serializeFrontMatter({ [idProperty]: id }) + content;
+		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
 
-		return serializeFrontMatter({ [idProperty]: id, ...parsed.frontMatter }) + parsed.body;
+		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
 	}
 
 	/**
@@ -988,7 +959,7 @@ export abstract class FormatImporter {
 	 * them: a free name to two new notes, or one untitled legacy note to every
 	 * source item that shares its title.
 	 */
-	planNote(folder: TFolder | string, title: string, sourceId?: SourceId): PlannedNote {
+	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
 		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
 		const parent = folderPath === '/' ? '' : folderPath;
@@ -1111,12 +1082,11 @@ export abstract class FormatImporter {
 	}
 
 	/** Find a previous import by source ID, falling back to its expected path. */
-	protected previouslyImported(fullPath: string, sourceId?: SourceId): TFile | null {
+	protected previouslyImported(fullPath: string, sourceId?: string): TFile | null {
 		const { idProperty } = this;
-		const { id, formerly } = identityOf(sourceId);
 
-		if (idProperty && id) {
-			const known = this.importedById?.get(id);
+		if (idProperty && sourceId) {
+			const known = this.importedById?.get(sourceId);
 			// A note this run has already taken belongs to whatever took it.
 			if (known && !this.hasClaimed(known.path) && this.vault.getAbstractFileByPath(known.path) === known) {
 				return known;
@@ -1130,12 +1100,10 @@ export abstract class FormatImporter {
 			?? this.vault.getAbstractFileByPathInsensitive(fullPath);
 		if (!(file instanceof TFile)) return null;
 
-		if (idProperty && id) {
+		if (idProperty && sourceId) {
 			const recorded = this.recordedId(file, idProperty);
-			// Notes imported before IDs were recorded still match by path, and
-			// so do notes carrying an id this source used to be known by - here,
-			// where the version that wrote it would have put the note.
-			if (recorded && recorded !== id && !formerly.includes(recorded)) return null;
+			// Notes imported before IDs were recorded still match by path.
+			if (recorded && recorded !== sourceId) return null;
 		}
 
 		return file;

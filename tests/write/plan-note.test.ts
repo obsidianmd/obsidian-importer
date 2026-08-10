@@ -71,69 +71,13 @@ test('a note the user moved is planned where it now is, not where it would have 
 	assert.equal(planned.file?.path, 'Archive/Note.md');
 });
 
-const KNOWN_AS = { id: 'appBase:rec1', formerly: ['rec1'] };
-
-test('the id written onto a note is the one it is known by now', async () => {
-	const { vault, subject, ctx } = importer(DuplicateHandling.Update, 'airtable-id');
-
-	const planned = subject.planNote(vault.root, 'Note', KNOWN_AS);
-	await subject.writePlannedNote(ctx, planned, 'body');
-
-	assert.match(String(vault.contents.get('Note.md')), /airtable-id: appBase:rec1/);
-});
-
-test('a note carrying the id it used to be known by is recognised where it was left', async () => {
-	const { vault, subject } = importer(DuplicateHandling.Update, 'airtable-id');
-	await vault.create('Note.md', '---\nairtable-id: rec1\n---\nwritten by an older version\n');
-	subject.indexImportedNotes();
-
-	const planned = subject.planNote(vault.root, 'Note', KNOWN_AS);
-
-	assert.equal(planned.file?.path, 'Note.md');
-});
-
-test('and rewriting it is what stops it being known by the ambiguous one', async () => {
-	const { vault, subject, ctx } = importer(DuplicateHandling.Update, 'airtable-id');
-	await vault.create('Note.md', '---\nairtable-id: rec1\n---\nwritten by an older version\n');
-	subject.indexImportedNotes();
-
-	const planned = subject.planNote(vault.root, 'Note', KNOWN_AS);
-	await subject.writePlannedNote(ctx, planned, 'brought up to date');
-
-	assert.match(String(vault.contents.get('Note.md')), /airtable-id: appBase:rec1/);
-});
-
-// Two sources may each claim it: the id that was written is the one that
-// could not tell them apart. At the expected path there is nothing to be
-// wrong about, but a note that has moved could have come from either.
-test('but the same note moved away is left alone rather than guessed at', async () => {
-	const { vault, subject } = importer(DuplicateHandling.Update, 'airtable-id');
-	await vault.createFolder('Elsewhere');
-	await vault.create('Elsewhere/Note.md', '---\nairtable-id: rec1\n---\nwritten by an older version\n');
-	subject.indexImportedNotes();
-
-	const planned = subject.planNote(vault.root, 'Note', KNOWN_AS);
-
-	assert.equal(planned.file, null);
-	assert.equal(planned.targetPath, 'Note.md');
-});
-
-test('a note carrying the id in use is recognised wherever it went', async () => {
-	const { vault, subject } = importer(DuplicateHandling.Update, 'airtable-id');
-	await vault.createFolder('Elsewhere');
-	await vault.create('Elsewhere/Note.md', '---\nairtable-id: appBase:rec1\n---\nmoved\n');
-	subject.indexImportedNotes();
-
-	assert.equal(subject.planNote(vault.root, 'Note', KNOWN_AS).file?.path, 'Elsewhere/Note.md');
-});
-
 test('a note this run has already planned onto is not planned onto twice', async () => {
 	const { vault, subject } = importer(DuplicateHandling.Update, 'airtable-id');
 	await vault.create('Note.md', 'a note from before ids were recorded\n');
 	subject.indexImportedNotes();
 
-	const first = subject.planNote(vault.root, 'Note', { id: 'appBase:rec1' });
-	const second = subject.planNote(vault.root, 'Note', { id: 'appBase:rec2' });
+	const first = subject.planNote(vault.root, 'Note', 'rec1');
+	const second = subject.planNote(vault.root, 'Note', 'rec2');
 
 	assert.equal(first.file?.path, 'Note.md');
 	assert.equal(second.file, null, 'the second record cannot have the note the first took');
