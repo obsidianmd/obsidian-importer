@@ -13,18 +13,23 @@ const obsidianRules = Object.fromEntries(
 const sentenceCase = {
 	brands: [
 		'Airtable', 'Apple', 'Apple Journal', 'Apple Notes', 'Bear', 'Evernote', 'Gnote',
-		'Google', 'Google Keep', 'Markdown', 'Microsoft', 'Notion', 'Obsidian', 'OneNote',
-		'Roam', 'Roam Research', 'Textbundle', 'Tomboy', 'iCloud',
+		'GNote', 'Google', 'Google Keep', 'Google Takeout', 'Journal', 'Mac', 'Markdown',
+		'Microsoft', 'Notion', 'Obsidian', 'OneNote', 'Roam', 'Roam Research', 'Textbundle',
+		'Tomboy', 'iCloud', 'iCloud Drive',
 	],
-	acronyms: ['API', 'CSV', 'HTML', 'ID', 'JSON', 'MB', 'PDF', 'URL', 'YAML'],
+	acronyms: ['API', 'CSV', 'DD', 'HTML', 'ID', 'JSON', 'MB', 'MM', 'PDF', 'UID', 'URL', 'YAML', 'YYYY'],
 	ignoreRegex: [
 		'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
 		'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
-		// Fragments spliced into a longer sentence, which start lower case on purpose.
-		'^(imported|attachments|remaining|skipped|failed)$',
-		'^it (is|has) ', '^source ID$',
+		// A fragment spliced into a longer sentence starts lower case on purpose.
+		'^[a-z]',
 		// A format listed with the extensions it comes in: "Bear (.bear2bk)".
 		'\\(\\.[a-z0-9., /]+\\)$',
+		// Names of things outside Obsidian, quoted as they are spelled there.
+		'"group\\.com\\.apple\\.notes"', 'Application Support', 'Quit Notes',
+		// A format or a path written in its own lower-case spelling.
+		'does not contain markdown', 'only textpack and zip files',
+		'import textbundle files', '~/\\.local/share/gnote',
 	],
 	ignoreWords: ['MB', '(MB)', 'TODO'],
 };

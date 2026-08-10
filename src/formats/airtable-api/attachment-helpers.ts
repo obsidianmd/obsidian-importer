@@ -5,6 +5,7 @@
 import { requestUrl, normalizePath, TFile } from 'obsidian';
 import type { Vault, App } from 'obsidian';
 import { ImportContext } from '../../import-context';
+import { i18n } from '../../i18n';
 import type { AirtableAttachment, AttachmentResult } from './types';
 import { sanitizeFileName } from '../../util';
 
@@ -36,7 +37,7 @@ async function downloadAttachment(
 	}
 
 	try {
-		ctx.status(`Downloading attachment: ${attachment.filename}`);
+		ctx.status(i18n.importer.airtableApi.statusDownloadingAttachment({ name: attachment.filename }));
 
 		const response = await requestUrl({
 			url: attachment.url,

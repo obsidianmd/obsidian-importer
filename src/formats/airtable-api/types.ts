@@ -178,7 +178,8 @@ export interface PlannedRecord {
 	record: AirtableRecord;
 	filePath: string;
 	title: string;
-	skipped?: 'Empty record' | 'Already imported';
+	/** Why this record was passed over, ready to show. */
+	skipped?: string;
 }
 
 export interface TablePlan {

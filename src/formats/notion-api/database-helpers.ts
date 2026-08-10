@@ -12,7 +12,8 @@ import {
 } from '@notionhq/client';
 import { normalizePath, stringifyYaml, BasesConfigFile, TFile } from 'obsidian';
 import { ImportContext } from '../../import-context';
-import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../../util';
+import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../../util';
+import { i18n } from '../../i18n';
 import { parseFilePath } from '../../filesystem';
 import { makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
@@ -106,7 +107,7 @@ export async function convertChildDatabase(
 
 		// This is a real error, not a linked database
 		console.error(`Failed to convert database "${databaseTitle}":`, error);
-		context.ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
+		context.ctx.reportFailed(i18n.importer.notionApi.labelDatabase({ title: databaseTitle }), errorMsg);
 		return `<!-- Failed to import database: ${errorMsg} -->`;
 	}
 }
@@ -187,7 +188,7 @@ export async function importDatabaseCore(
 		dataSourceId = databaseId;
 
 		// We'll get the title from dataSources.retrieve() below
-		ctx.status(`Processing database from data source: ${dataSourceId}...`);
+		ctx.status(i18n.importer.notionApi.statusProcessingDataSource({ id: dataSourceId }));
 	}
 	else {
 		// Traditional flow: get database first, then extract data_source_id
@@ -200,7 +201,7 @@ export async function importDatabaseCore(
 		const databaseTitle = extractDatabaseTitle(database);
 		sanitizedTitle = sanitizeFileName(databaseTitle || 'Untitled Database');
 
-		ctx.status(`Processing database: ${sanitizedTitle}...`);
+		ctx.status(i18n.importer.notionApi.statusProcessingDatabase({ title: sanitizedTitle }));
 
 		// Check if this is a linked database (no data sources)
 		// According to Notion's official documentation, linked databases are not supported by the API
@@ -236,13 +237,13 @@ export async function importDatabaseCore(
 				: null) ||
 			'Untitled Database';
 		sanitizedTitle = sanitizeFileName(dataSourceTitle);
-		ctx.status(`Processing database: ${sanitizedTitle}...`);
+		ctx.status(i18n.importer.notionApi.statusProcessingDatabase({ title: sanitizedTitle }));
 	}
 
 	// Query database to get all pages - if this fails, don't create folder
 	const databasePages = await queryAllDatabasePages(client, dataSourceId, ctx);
 
-	ctx.status(`Found ${databasePages.length} pages in database ${sanitizedTitle}`);
+	ctx.status(i18n.importer.notionApi.statusFoundPages({ count: databasePages.length, title: sanitizedTitle }));
 
 	// Query database templates (these appear in search but not in database pages)
 	let templatePages: Array<{ id: string, name: string }> = [];
@@ -253,7 +254,10 @@ export async function importDatabaseCore(
 		);
 		templatePages = templatesResponse.templates || [];
 		if (templatePages.length > 0) {
-			ctx.status(`Found ${plural(templatePages.length, 'template')} in database ${sanitizedTitle}`);
+			ctx.status(i18n.importer.notionApi.statusFoundTemplates({
+				templates: i18n.nouns.templateWithCount({ count: templatePages.length }),
+				title: sanitizedTitle,
+			}));
 		}
 	}
 	catch (error) {
@@ -310,7 +314,7 @@ export async function importDatabaseCore(
 		// Import each template page to the database folder
 		for (const template of templatePages) {
 			if (await ctx.shouldStop()) break;
-			ctx.status(`Importing template: ${template.name}...`);
+			ctx.status(i18n.importer.notionApi.statusImportingTemplate({ name: template.name }));
 			// Template pages should not have database tag (they are templates, not database entries)
 			// Use custom file name format: {Database name} {Template name}
 			const templateFileName = `${sanitizedTitle} ${template.name}`;

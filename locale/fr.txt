@@ -542,6 +542,214 @@ translation=
 original=Airtable
 translation=
 
+[importer.airtable-api.label-id]
+original=Airtable record ID
+translation=
+
+[importer.airtable-api.name-token]
+original=Airtable personal access token
+translation=
+
+[importer.airtable-api.desc-token]
+original=Create a personal access token in your Airtable account settings. 
+translation=
+
+[importer.airtable-api.link-get-token]
+original=Get token
+translation=
+
+[importer.airtable-api.name-tables]
+original=Tables to import
+translation=
+
+[importer.airtable-api.desc-tables]
+original=Load your Airtable bases and tables, then choose what to import.
+translation=
+
+[importer.airtable-api.hint-tables]
+original=Load your Airtable bases and tables to get started.
+translation=
+
+[importer.airtable-api.msg-fetching-bases]
+original=Fetching bases...
+translation=
+
+[importer.airtable-api.msg-no-bases]
+original=No bases found.
+translation=
+
+[importer.airtable-api.label-service]
+original=Airtable
+translation=
+
+[importer.airtable-api.label-subject]
+original=your bases
+translation=
+
+[importer.airtable-api.label-credential]
+original=Check that your personal access token is current and has access to them.
+translation=
+
+[importer.airtable-api.name-formulas]
+original=Convert formulas
+translation=
+
+[importer.airtable-api.desc-formulas]
+original=Try to convert formulas to Obsidian syntax, or import as static values.
+translation=
+
+[importer.airtable-api.option-formula-hybrid]
+original=Obsidian syntax (with fallback)
+translation=
+
+[importer.airtable-api.option-formula-static]
+original=Static values only
+translation=
+
+[importer.airtable-api.name-download-attachments]
+original=Download attachments
+translation=
+
+[importer.airtable-api.desc-download-attachments]
+original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
+translation=
+
+[importer.airtable-api.name-view-property]
+original=View property name
+translation=
+
+[importer.airtable-api.desc-view-property]
+original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
+translation=
+
+[importer.airtable-api.msg-token-first]
+original=Please enter your Airtable personal access token first.
+translation=
+
+[importer.airtable-api.msg-token-missing]
+original=Please enter your Airtable personal access token.
+translation=
+
+[importer.airtable-api.msg-load-bases-failed]
+original=Failed to load bases: {{error}}
+translation=
+
+[importer.airtable-api.msg-load-tables-failed]
+original=Failed to load tables for "{{base}}": {{error}}
+translation=
+
+[importer.airtable-api.msg-pick-table]
+original=Please select at least one table to import.
+translation=
+
+[importer.airtable-api.msg-loading-fields]
+original=Loading fields...
+translation=
+
+[importer.airtable-api.msg-no-fields]
+original=No fields found in selected tables. Please check your selection.
+translation=
+
+[importer.airtable-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=
+
+[importer.airtable-api.label-base-position]
+original= (base {{index}} of {{total}})
+translation=
+
+[importer.airtable-api.label-base]
+original=Base: {{name}}
+translation=
+
+[importer.airtable-api.label-linked-table]
+original=Linked table: {{name}}
+translation=
+
+[importer.airtable-api.label-table-view]
+original={{table}} > {{view}}
+translation=
+
+[importer.airtable-api.label-import]
+original=Airtable API import
+translation=
+
+[importer.airtable-api.status-connecting]
+original=Connecting to Airtable API
+translation=
+
+[importer.airtable-api.status-loading-tables]
+original=Loading tables for {{base}}
+translation=
+
+[importer.airtable-api.status-fetching-tables]
+original=Fetching tables for base {{base}}...
+translation=
+
+[importer.airtable-api.status-found-bases]
+original=Found {{bases}} to import
+translation=
+
+[importer.airtable-api.status-fetching-base]
+original=Fetching data from {{base}}{{position}}
+translation=
+
+[importer.airtable-api.status-preparing-records]
+original=Preparing records from {{base}}{{position}}
+translation=
+
+[importer.airtable-api.status-reading-names]
+original=Reading names from {{table}}{{position}}
+translation=
+
+[importer.airtable-api.status-planning]
+original=Working out where {{table}}{{position}} goes
+translation=
+
+[importer.airtable-api.status-fetching-records]
+original=Fetching records from {{table}}{{position}}
+translation=
+
+[importer.airtable-api.status-fetched-records]
+original=Fetched {{records}} from {{table}}{{position}}
+translation=
+
+[importer.airtable-api.status-fetching-view]
+original=Fetching view {{view}} from {{table}}{{position}}
+translation=
+
+[importer.airtable-api.status-creating-notes]
+original=Creating notes in {{table}}{{position}}
+translation=
+
+[importer.airtable-api.status-updating-types]
+original=Updating property types
+translation=
+
+[importer.airtable-api.status-complete]
+original=Import complete
+translation=
+
+[importer.airtable-api.status-rate-limited]
+original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
+translation=
+
+[importer.airtable-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}
+translation=
+
+[importer.airtable-api.reason-no-record-names]
+original=Could not read record names
+translation=
+
+[importer.airtable-api.reason-empty-record]
+original=Empty record
+translation=
+
+[importer.airtable-api.reason-already-imported]
+original=Already imported
+translation=
+
 [importer.apple-notes.name]
 original=Apple Notes
 translation=
@@ -1048,6 +1256,322 @@ translation=
 
 [importer.notion-api.option-text]
 original=Notion (API)
+translation=
+
+[importer.notion-api.label-id]
+original=Notion ID
+translation=
+
+[importer.notion-api.name-token]
+original=Notion API token
+translation=
+
+[importer.notion-api.desc-token]
+original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+translation=
+
+[importer.notion-api.link-get-token]
+original=Get API token.
+translation=
+
+[importer.notion-api.name-pages]
+original=Pages to import
+translation=
+
+[importer.notion-api.desc-pages]
+original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+translation=
+
+[importer.notion-api.hint-pages]
+original=Click "Load" to load your Notion pages and databases.
+translation=
+
+[importer.notion-api.msg-loading-pages]
+original=Loading pages and databases...
+translation=
+
+[importer.notion-api.msg-no-pages]
+original=No pages or databases found. Make sure your connection has access to the pages you want to import.
+translation=
+
+[importer.notion-api.label-service]
+original=Notion
+translation=
+
+[importer.notion-api.label-subject]
+original=your pages
+translation=
+
+[importer.notion-api.label-credential]
+original=Check that your token is current and that the connection has access to them.
+translation=
+
+[importer.notion-api.name-formulas]
+original=Convert formulas
+translation=
+
+[importer.notion-api.desc-formulas]
+original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
+translation=
+
+[importer.notion-api.option-formula-hybrid]
+original=Obsidian syntax
+translation=
+
+[importer.notion-api.option-formula-static]
+original=Static values
+translation=
+
+[importer.notion-api.name-download-external]
+original=Download external attachments
+translation=
+
+[importer.notion-api.desc-download-external]
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. 
+translation=
+
+[importer.notion-api.desc-download-external-folder]
+original=Attachments will be saved according to your vault's attachment folder settings.
+translation=
+
+[importer.notion-api.name-single-line-breaks]
+original=Single line breaks
+translation=
+
+[importer.notion-api.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
+translation=
+
+[importer.notion-api.name-cover-property]
+original=Cover property name
+translation=
+
+[importer.notion-api.desc-cover-property]
+original=Property name for page cover image in YAML frontmatter. 
+translation=
+
+[importer.notion-api.desc-cover-property-conflicts]
+original=Leave as "cover" if you don't have conflicts with existing properties.
+translation=
+
+[importer.notion-api.name-database-property]
+original=Database property name
+translation=
+
+[importer.notion-api.desc-database-property]
+original=Property name in page frontmatter to link pages to their database .base file (default: "base")
+translation=
+
+[importer.notion-api.name-linked-databases]
+original=Import linked databases
+translation=
+
+[importer.notion-api.desc-linked-databases]
+original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
+translation=
+
+[importer.notion-api.msg-token-first]
+original=Please enter your Notion API token first.
+translation=
+
+[importer.notion-api.msg-token-missing]
+original=Please enter your Notion API token.
+translation=
+
+[importer.notion-api.msg-load-pages-failed]
+original=Failed to load pages: {{error}}
+translation=
+
+[importer.notion-api.msg-found]
+original=Found {{count}} pages and databases.
+translation=
+
+[importer.notion-api.msg-pick-page]
+original=Please select at least one page or database to import.
+translation=
+
+[importer.notion-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=
+
+[importer.notion-api.status-loading-items]
+original=Loading... ({{items}} items, page {{page}})
+translation=
+
+[importer.notion-api.status-connecting]
+original=Connecting to Notion API...
+translation=
+
+[importer.notion-api.status-fetching]
+original=Fetching page content from Notion...
+translation=
+
+[importer.notion-api.status-preparing]
+original=Preparing to import {{items}}...
+translation=
+
+[importer.notion-api.status-importing-items]
+original=Importing {{items}}...
+translation=
+
+[importer.notion-api.status-importing-item]
+original=Importing item {{index}}/{{total}}...
+translation=
+
+[importer.notion-api.status-importing-title]
+original=Importing: {{title}}
+translation=
+
+[importer.notion-api.status-relation-links]
+original=Processing relation links...
+translation=
+
+[importer.notion-api.status-mention-links]
+original=Processing mention links...
+translation=
+
+[importer.notion-api.status-synced-blocks]
+original=Processing synced block child references...
+translation=
+
+[importer.notion-api.status-cleaning-ids]
+original=Cleaning up notion-id attributes...
+translation=
+
+[importer.notion-api.status-done]
+original=Import completed successfully!
+translation=
+
+[importer.notion-api.status-replacing-relations]
+original=Replacing {{placeholders}}...
+translation=
+
+[importer.notion-api.status-replacing-relation-links]
+original=Replacing relation placeholders with wiki links...
+translation=
+
+[importer.notion-api.status-importing-linked-databases]
+original=Importing {{databases}}...
+translation=
+
+[importer.notion-api.status-importing-unimported]
+original=Importing unimported database {{id}}...
+translation=
+
+[importer.notion-api.status-replacing-mentions]
+original=Replacing mention placeholders...
+translation=
+
+[importer.notion-api.status-replaced-mentions]
+original=Replaced {{links}} mention links in {{files}} files.
+translation=
+
+[importer.notion-api.status-replacing-synced]
+original=Replacing synced block child references...
+translation=
+
+[importer.notion-api.status-replaced-synced]
+original=Replaced {{references}} synced child references in {{files}} files (imported {{imported}} new items).
+translation=
+
+[importer.notion-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}...
+translation=
+
+[importer.notion-api.status-rate-limited]
+original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=
+
+[importer.notion-api.status-processing-data-source]
+original=Processing database from data source: {{id}}...
+translation=
+
+[importer.notion-api.status-processing-database]
+original=Processing database: {{title}}...
+translation=
+
+[importer.notion-api.status-found-pages]
+original=Found {{count}} pages in database {{title}}
+translation=
+
+[importer.notion-api.status-found-templates]
+original=Found {{templates}} in database {{title}}
+translation=
+
+[importer.notion-api.status-importing-template]
+original=Importing template: {{name}}...
+translation=
+
+[importer.notion-api.label-import]
+original=Notion API import
+translation=
+
+[importer.notion-api.label-item]
+original=Import item {{id}}
+translation=
+
+[importer.notion-api.label-page]
+original=Page {{id}}...
+translation=
+
+[importer.notion-api.label-relation-page]
+original=Relation page {{id}}
+translation=
+
+[importer.notion-api.label-database]
+original=Database: {{title}}
+translation=
+
+[importer.notion-api.label-mention-file]
+original=Mention file {{path}}
+translation=
+
+[importer.notion-api.label-synced-block-file]
+original=Synced block file {{path}}
+translation=
+
+[importer.notion-api.label-attachment]
+original=Attachment: {{name}}
+translation=
+
+[importer.notion-api.label-child-page]
+original=Child page: {{title}}
+translation=
+
+[importer.notion-api.label-synced-block]
+original=Synced block: {{name}}
+translation=
+
+[importer.notion-api.label-typed-attachment]
+original={{type}} attachment
+translation=
+
+[importer.notion-api.label-fetch-children]
+original=Fetch children for {{context}} {{id}}
+translation=
+
+[importer.notion-api.label-fetch-children-block]
+original=Fetch children for block {{id}}
+translation=
+
+[importer.notion-api.reason-not-in-tree]
+original=Item not found in tree
+translation=
+
+[importer.notion-api.reason-unknown-type]
+original=Unknown type: {{type}}
+translation=
+
+[importer.notion-api.reason-earlier-import]
+original=an earlier import had already written it
+translation=
+
+[importer.notion-api.reason-attachment-exists]
+original=already exists with same size (incremental import)
+translation=
+
+[importer.notion-api.reason-http-status]
+original=HTTP {{status}}
 translation=
 
 [importer.notion.name]

@@ -6,8 +6,9 @@
 import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { parseFilePath } from '../filesystem';
-import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes, plural } from '../util';
+import { extractErrorMessage, sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../util';
 import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
@@ -144,25 +145,25 @@ export class AirtableAPIImporter extends FormatImporter {
 	init() {
 		this.defaultOutputFolder = 'Airtable';
 		this.idProperty = RECORD_ID_PROPERTY;
-		this.idLabel = 'Airtable record ID';
+		this.idLabel = i18n.importer.airtableApi.labelId();
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
-		this.addSecretSetting('Airtable personal access token', this.createTokenDescription());
+		this.addSecretSetting(i18n.importer.airtableApi.nameToken(), this.createTokenDescription());
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<AirtableTreeNode>(contentEl, {
-			name: 'Tables to import',
-			desc: 'Load your Airtable bases and tables, then choose what to import.',
-			hint: 'Load your Airtable bases and tables to get started.',
-			loading: 'Fetching bases...',
-			empty: 'No bases found.',
+			name: i18n.importer.airtableApi.nameTables(),
+			desc: i18n.importer.airtableApi.descTables(),
+			hint: i18n.importer.airtableApi.hintTables(),
+			loading: i18n.importer.airtableApi.msgFetchingBases(),
+			empty: i18n.importer.airtableApi.msgNoBases(),
 			failed: error => describeRequestFailure(error, {
-				name: 'Airtable',
-				subject: 'your bases',
-				credential: 'Check that your personal access token is current and has access to them.',
+				name: i18n.importer.airtableApi.labelService(),
+				subject: i18n.importer.airtableApi.labelSubject(),
+				credential: i18n.importer.airtableApi.labelCredential(),
 			}),
 			view: {
 				icon: node => node.type === 'base' ? 'database' : 'file',
@@ -176,12 +177,12 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Formula import strategy
 		this.addSetting()
-			?.setName('Convert formulas')
-			.setDesc('Try to convert formulas to Obsidian syntax, or import as static values.')
+			?.setName(i18n.importer.airtableApi.nameFormulas())
+			.setDesc(i18n.importer.airtableApi.descFormulas())
 			.addDropdown(dropdown => {
 				dropdown
-					.addOption('hybrid', 'Obsidian syntax (with fallback)')
-					.addOption('static', 'Static values only')
+					.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
+					.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
 					.setValue('hybrid')
 					.onChange(value => {
 						this.formulaStrategy = value as FormulaImportStrategy;
@@ -190,8 +191,8 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Download attachments option
 		this.addSetting()
-			?.setName('Download attachments')
-			.setDesc('Download attachment files to local vault. If disabled or download fails, external URLs will be used.')
+			?.setName(i18n.importer.airtableApi.nameDownloadAttachments())
+			.setDesc(i18n.importer.airtableApi.descDownloadAttachments())
 			.addToggle(toggle => {
 				toggle
 					.setValue(true)
@@ -202,8 +203,8 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// View property name
 		this.addSetting()
-			?.setName('View property name')
-			.setDesc('Property name to track which views a record belongs to. Each record will have a list of view names it appears in.')
+			?.setName(i18n.importer.airtableApi.nameViewProperty())
+			.setDesc(i18n.importer.airtableApi.descViewProperty())
 			.addText(text => text
 				.setPlaceholder('Views')
 				.setValue('Views')
@@ -218,9 +219,9 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('Create a personal access token in your Airtable account settings. ');
+		frag.appendText(i18n.importer.airtableApi.descToken());
 		frag.createEl('a', {
-			text: 'Get token',
+			text: i18n.importer.airtableApi.linkGetToken(),
 			href: 'https://airtable.com/create/tokens',
 		});
 		return frag;
@@ -231,7 +232,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private async loadTree(): Promise<void> {
 		if (!this.airtableToken) {
-			new Notice('Please enter your Airtable personal access token first.');
+			new Notice(i18n.importer.airtableApi.msgTokenFirst());
 			return;
 		}
 
@@ -240,7 +241,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error('[Airtable Importer] Failed to load bases:', error);
-			new Notice(`Failed to load bases: ${extractErrorMessage(error) ?? 'Unknown error'}`);
+			new Notice(i18n.importer.airtableApi.msgLoadBasesFailed({
+				error: extractErrorMessage(error) ?? i18n.common.msgUnknownError(),
+			}));
 		}
 	}
 
@@ -297,7 +300,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const statusReporter = {
 			// fetchTableSchema reports raw base IDs, which say nothing to the user;
 			// keep the base's name on screen instead
-			status: () => reportTo?.(`Loading tables for ${baseNode.title}`),
+			status: () => reportTo?.(i18n.importer.airtableApi.statusLoadingTables({ base: baseNode.title })),
 		};
 
 		try {
@@ -327,7 +330,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error(`[Airtable Importer] Failed to load tables for "${baseNode.title}":`, error);
-			new Notice(`Failed to load tables for "${baseNode.title}": ${extractErrorMessage(error) ?? 'Unknown error'}`);
+			new Notice(i18n.importer.airtableApi.msgLoadTablesFailed({
+				base: baseNode.title,
+				error: extractErrorMessage(error) ?? i18n.common.msgUnknownError(),
+			}));
 			return false;
 		}
 	}
@@ -356,7 +362,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement): Promise<boolean> {
 		if (this.getSelectedNodes().length === 0) {
-			new Notice('Please select at least one table to import.');
+			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return false;
 		}
 
@@ -369,7 +375,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const loadingEl = container.createDiv('importer-loading');
 		setIcon(loadingEl.createDiv('loader-spinner'), 'loader-2');
 		const loadingTextEl = loadingEl.createDiv();
-		loadingTextEl.setText('Loading fields...');
+		loadingTextEl.setText(i18n.importer.airtableApi.msgLoadingFields());
 
 		await this.ensureSelectedTablesLoaded(msg => loadingTextEl.setText(msg));
 
@@ -406,7 +412,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		collectFields(picked);
 
 		if (allFieldsMap.size === 0) {
-			new Notice('No fields found in selected tables. Please check your selection.');
+			new Notice(i18n.importer.airtableApi.msgNoFields());
 			return false;
 		}
 
@@ -494,13 +500,13 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	async import(ctx: ImportContext): Promise<void> {
 		if (!this.airtableToken) {
-			new Notice('Please enter your Airtable personal access token.');
+			new Notice(i18n.importer.airtableApi.msgTokenMissing());
 			return;
 		}
 
 		// Set before the first await: the progress UI is already on screen by now,
 		// and without this its status line sits blank above a row of zeros
-		ctx.status('Connecting to Airtable API');
+		ctx.status(i18n.importer.airtableApi.statusConnecting());
 
 		// Normally already done by showTemplateConfiguration; repeated here because
 		// a base selected but never expanded has no tables to import otherwise
@@ -508,13 +514,13 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		const picked = this.getSelectedNodes();
 		if (picked.length === 0) {
-			new Notice('Please select at least one table to import.');
+			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -537,23 +543,30 @@ export class AirtableAPIImporter extends FormatImporter {
 			const totalBases = baseGroups.size;
 			this.totalBasesToImport = totalBases;
 
-			ctx.status(`Found ${plural(totalBases, 'base')} to import`);
+			ctx.status(i18n.importer.airtableApi.statusFoundBases({
+				bases: i18n.nouns.baseWithCount({ count: totalBases }),
+			}));
 
 			// Process each base sequentially to minimize memory usage
 			let baseIndex = 0;
 			for (const [, baseInfo] of baseGroups.entries()) {
 				if (await ctx.shouldStop()) {
-					ctx.status('Import cancelled');
+					ctx.status(i18n.common.statusCancelled());
 					return;
 				}
 
 				baseIndex++;
-				this.basePosition = totalBases > 1 ? ` (base ${baseIndex} of ${totalBases})` : '';
+				this.basePosition = totalBases > 1
+					? i18n.importer.airtableApi.labelBasePosition({ index: baseIndex, total: totalBases })
+					: '';
 
 				// Clear data from previous base to free memory
 				this.clearBaseData();
 
-				ctx.status(`Fetching data from ${baseInfo.baseName}${this.basePosition}`);
+				ctx.status(i18n.importer.airtableApi.statusFetchingBase({
+					base: baseInfo.baseName,
+					position: this.basePosition,
+				}));
 
 				// ============================================================
 				// PHASE 1: Fetch data for this base
@@ -563,13 +576,13 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 				catch (error) {
 					console.error(`Failed to fetch data from base "${baseInfo.baseName}":`, error);
-					ctx.reportFailed(`Base: ${baseInfo.baseName}`, error);
+					ctx.reportFailed(i18n.importer.airtableApi.labelBase({ name: baseInfo.baseName }), error);
 					// Continue with next base instead of stopping entirely
 					continue;
 				}
 
 				if (await ctx.shouldStop()) {
-					ctx.status('Import cancelled');
+					ctx.status(i18n.common.statusCancelled());
 					return;
 				}
 
@@ -578,17 +591,17 @@ export class AirtableAPIImporter extends FormatImporter {
 				}
 				catch (error) {
 					console.error(`Failed to create files for base "${baseInfo.baseName}":`, error);
-					ctx.reportFailed(`Base: ${baseInfo.baseName}`, error);
+					ctx.reportFailed(i18n.importer.airtableApi.labelBase({ name: baseInfo.baseName }), error);
 					// Continue with next base
 					continue;
 				}
 			}
 
 			// Update property types in Obsidian's types.json
-			ctx.status('Updating property types');
+			ctx.status(i18n.importer.airtableApi.statusUpdatingTypes());
 			this.updatePropertyTypes();
 
-			ctx.status('Import complete');
+			ctx.status(i18n.importer.airtableApi.statusComplete());
 
 			// Leave the user looking at what they imported. Opens behind the
 			// modal, so it is waiting for them once they dismiss it.
@@ -596,8 +609,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error('Airtable API import error:', error);
-			ctx.reportFailed('Airtable API import', error);
-			new Notice(`Import failed: ${extractErrorMessage(error)}`);
+			ctx.reportFailed(i18n.importer.airtableApi.labelImport(), error);
+			new Notice(i18n.importer.airtableApi.msgImportFailed({ error: extractErrorMessage(error) ?? '' }));
 		}
 	}
 
@@ -687,7 +700,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 
 			// Update status context
-			ctx.status(`Fetching records from ${table.tableName}${this.basePosition}`);
+			ctx.status(i18n.importer.airtableApi.statusFetchingRecords({
+				table: table.tableName,
+				position: this.basePosition,
+			}));
 
 			await this.fetchTableData(ctx, {
 				baseId,
@@ -703,7 +719,10 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// This base's records are now counted, so the estimate tightens
 		this.basesFetched++;
-		ctx.status(`Preparing records from ${baseName}${this.basePosition}`);
+		ctx.status(i18n.importer.airtableApi.statusPreparingRecords({
+			base: baseName,
+			position: this.basePosition,
+		}));
 		this.reportOverallProgress(ctx);
 	}
 
@@ -734,7 +753,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (!primaryFieldName) continue;
 
 			const tableName = table?.metadata?.tableName ?? tableId;
-			ctx.status(`Reading names from ${tableName}${this.basePosition}`);
+			ctx.status(i18n.importer.airtableApi.statusReadingNames({
+				table: tableName,
+				position: this.basePosition,
+			}));
 
 			try {
 				const records = await selectRecords(this.getAirtableBase(baseId), tableId, {
@@ -747,7 +769,10 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 			catch (error) {
 				console.error(`Failed to read record names from linked table "${tableName}":`, error);
-				ctx.reportSkipped(`Linked table: ${tableName}`, 'Could not read record names');
+				ctx.reportSkipped(
+					i18n.importer.airtableApi.labelLinkedTable({ name: tableName }),
+					i18n.importer.airtableApi.reasonNoRecordNames()
+				);
 			}
 		}
 	}
@@ -804,7 +829,10 @@ export class AirtableAPIImporter extends FormatImporter {
 				? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
 				: normalizePath(`${rootPath}/${sanitizeFileName(tableName)}`);
 
-			ctx.status(`Working out where ${tableName}${this.basePosition} goes`);
+			ctx.status(i18n.importer.airtableApi.statusPlanning({
+				table: tableName,
+				position: this.basePosition,
+			}));
 
 			const planned: PlannedRecord[] = [];
 
@@ -812,7 +840,12 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (await ctx.shouldStop()) return plans;
 
 				if (isEmptyRecord(record)) {
-					planned.push({ record, filePath: '', title: 'Untitled Record', skipped: 'Empty record' });
+					planned.push({
+						record,
+						filePath: '',
+						title: 'Untitled Record',
+						skipped: i18n.importer.airtableApi.reasonEmptyRecord(),
+					});
 					continue;
 				}
 
@@ -823,7 +856,12 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (existing) {
 					claimed.add(existing.path.toLowerCase());
 					this.recordIdToPath.set(`${baseId}:${record.id}`, existing.path.replace(/\.md$/, ''));
-					planned.push({ record, filePath: existing.path, title, skipped: 'Already imported' });
+					planned.push({
+						record,
+						filePath: existing.path,
+						title,
+						skipped: i18n.importer.airtableApi.reasonAlreadyImported(),
+					});
 					continue;
 				}
 
@@ -925,12 +963,19 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Step 1: Fetch ALL records from the table
 		// Update status - fetching records
-		ctx.status(`Fetching records from ${tableName}${this.basePosition}`);
+		ctx.status(i18n.importer.airtableApi.statusFetchingRecords({
+			table: tableName,
+			position: this.basePosition,
+		}));
 
 		const allRecords = await selectRecords(this.getAirtableBase(baseId), tableName, {
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
-				ctx.status(`Fetched ${plural(fetched, 'record')} from ${tableName}${this.basePosition}`);
+				ctx.status(i18n.importer.airtableApi.statusFetchedRecords({
+					records: i18n.nouns.recordWithCount({ count: fetched }),
+					table: tableName,
+					position: this.basePosition,
+				}));
 			},
 		});
 
@@ -956,7 +1001,11 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 
 			// Update status - fetching view
-			ctx.status(`Fetching view ${view.name} from ${tableName}${this.basePosition}`);
+			ctx.status(i18n.importer.airtableApi.statusFetchingView({
+				view: view.name,
+				table: tableName,
+				position: this.basePosition,
+			}));
 
 			// Fetch only record IDs from this view
 			const viewRecordIds = await this.fetchViewRecordIds(baseId, tableName, view, ctx);
@@ -1012,7 +1061,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		await this.createFolders(tablePath);
 
 		// Update status context for writing
-		ctx.status(`Creating notes in ${tableName}${this.basePosition}`);
+		ctx.status(i18n.importer.airtableApi.statusCreatingNotes({
+			table: tableName,
+			position: this.basePosition,
+		}));
 
 		// Derived once and shared by the .base file and every record in the table
 		const formulas = this.computeTableFormulas(fields, primaryFieldId);
@@ -1147,7 +1199,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return records.map(r => r.id);
 		}
 		catch (error) {
-			ctx.reportFailed(`${tableName} > ${view.name}`, error);
+			ctx.reportFailed(i18n.importer.airtableApi.labelTableView({ table: tableName, view: view.name }), error);
 			return [];
 		}
 	}

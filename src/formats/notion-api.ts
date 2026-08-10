@@ -1,6 +1,7 @@
 import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions } from 'obsidian';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
 import { areAnySelected } from '../tree';
@@ -90,23 +91,23 @@ export class NotionAPIImporter extends FormatImporter {
 		// No file chooser needed since we're importing via API
 		this.defaultOutputFolder = 'Notion';
 		this.idProperty = NOTION_ID_PROPERTY;
-		this.idLabel = 'Notion ID';
+		this.idLabel = i18n.importer.notionApi.labelId();
 
-		this.addSecretSetting('Notion API token', this.createTokenDescription());
+		this.addSecretSetting(i18n.importer.notionApi.nameToken(), this.createTokenDescription());
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<NotionTreeNode>(contentEl, {
-			name: 'Pages to import',
-			desc: 'Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.',
-			hint: 'Click "Load" to load your Notion pages and databases.',
-			loading: 'Loading pages and databases...',
-			empty: 'No pages or databases found. Make sure your connection has access to the pages you want to import.',
+			name: i18n.importer.notionApi.namePages(),
+			desc: i18n.importer.notionApi.descPages(),
+			hint: i18n.importer.notionApi.hintPages(),
+			loading: i18n.importer.notionApi.msgLoadingPages(),
+			empty: i18n.importer.notionApi.msgNoPages(),
 			failed: error => describeRequestFailure(error, {
-				name: 'Notion',
-				subject: 'your pages',
-				credential: 'Check that your token is current and that the connection has access to them.',
+				name: i18n.importer.notionApi.labelService(),
+				subject: i18n.importer.notionApi.labelSubject(),
+				credential: i18n.importer.notionApi.labelCredential(),
 			}),
 			view: {
 				icon: node => node.type === 'database' ? 'database'
@@ -122,12 +123,12 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Formula import strategy
 		this.addSetting()
-			?.setName('Convert formulas')
+			?.setName(i18n.importer.notionApi.nameFormulas())
 			.setDesc(this.createFormulaStrategyDescription())
 			.addDropdown(dropdown => {
 				dropdown
-					.addOption('hybrid', 'Obsidian syntax')
-					.addOption('static', 'Static values')
+					.addOption('hybrid', i18n.importer.notionApi.optionFormulaHybrid())
+					.addOption('static', i18n.importer.notionApi.optionFormulaStatic())
 					.setValue('hybrid') // Set default to 'hybrid'
 					.onChange(value => {
 						this.formulaStrategy = value as FormulaImportStrategy;
@@ -136,7 +137,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Download external attachments option
 		this.addSetting()
-			?.setName('Download external attachments')
+			?.setName(i18n.importer.notionApi.nameDownloadExternal())
 			.setDesc(this.createAttachmentDescription())
 			.addToggle(toggle => {
 				toggle
@@ -148,8 +149,8 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Single line breaks option
 		this.addSetting()
-			?.setName('Single line breaks')
-			.setDesc('Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.')
+			?.setName(i18n.importer.notionApi.nameSingleLineBreaks())
+			.setDesc(i18n.importer.notionApi.descSingleLineBreaks())
 			.addToggle(toggle => {
 				toggle
 					.setValue(false)
@@ -160,7 +161,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Cover property name
 		this.addSetting()
-			?.setName('Cover property name')
+			?.setName(i18n.importer.notionApi.nameCoverProperty())
 			.setDesc(this.createCoverPropertyDescription())
 			.addText(text => text
 				.setPlaceholder('cover')
@@ -171,8 +172,8 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Database property name
 		this.addSetting()
-			?.setName('Database property name')
-			.setDesc('Property name in page frontmatter to link pages to their database .base file (default: "base")')
+			?.setName(i18n.importer.notionApi.nameDatabaseProperty())
+			.setDesc(i18n.importer.notionApi.descDatabaseProperty())
 			.addText(text => text
 				.setPlaceholder('base')
 				.setValue('base')
@@ -181,8 +182,8 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 
 		this.addSetting()
-			?.setName('Import linked databases')
-			.setDesc('Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.')
+			?.setName(i18n.importer.notionApi.nameLinkedDatabases())
+			.setDesc(i18n.importer.notionApi.descLinkedDatabases())
 			.addToggle(toggle => toggle
 				.setValue(this.importLinkedDatabases)
 				.onChange(value => {
@@ -192,9 +193,9 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createTokenDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('To get an API token create a connection in Notion and give it access to pages in your workspace. ');
+		frag.appendText(i18n.importer.notionApi.descToken());
 		frag.createEl('a', {
-			text: 'Get API token.',
+			text: i18n.importer.notionApi.linkGetToken(),
 			href: 'https://app.notion.com/developers/connections',
 		});
 		return frag;
@@ -202,23 +203,23 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.');
+		frag.appendText(i18n.importer.notionApi.descFormulas());
 		return frag;
 	}
 
 	private createAttachmentDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded. ');
+		frag.appendText(i18n.importer.notionApi.descDownloadExternal());
 		frag.createEl('br');
-		frag.appendText('Attachments will be saved according to your vault\'s attachment folder settings.');
+		frag.appendText(i18n.importer.notionApi.descDownloadExternalFolder());
 		return frag;
 	}
 
 	private createCoverPropertyDescription(): DocumentFragment {
 		const frag = createFragment();
-		frag.appendText('Property name for page cover image in YAML frontmatter. ');
+		frag.appendText(i18n.importer.notionApi.descCoverProperty());
 		frag.createEl('br');
-		frag.appendText('Leave as "cover" if you don\'t have conflicts with existing properties.');
+		frag.appendText(i18n.importer.notionApi.descCoverPropertyConflicts());
 		return frag;
 	}
 
@@ -258,7 +259,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	private async loadPageTree(): Promise<void> {
 		if (!this.notionToken) {
-			new Notice('Please enter your Notion API token first.');
+			new Notice(i18n.importer.notionApi.msgTokenFirst());
 			return;
 		}
 
@@ -267,7 +268,9 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error('[Notion Importer] Failed to load pages:', error);
-			new Notice(`Failed to load pages: ${extractErrorMessage(error) ?? 'Unknown error'}`);
+			new Notice(i18n.importer.notionApi.msgLoadPagesFailed({
+				error: extractErrorMessage(error) ?? i18n.common.msgUnknownError(),
+			}));
 		}
 	}
 
@@ -289,7 +292,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		do {
 			pageCount++;
-			tempCtx.status(`Loading... (${allRawItems.length} items, page ${pageCount})`);
+			tempCtx.status(i18n.importer.notionApi.statusLoadingItems({ items: allRawItems.length, page: pageCount }));
 
 			const response = await makeNotionRequest(
 				() => this.notionClient!.search({
@@ -304,7 +307,7 @@ export class NotionAPIImporter extends FormatImporter {
 		} while (cursor);
 
 		const allItems = collectItems(allRawItems);
-		new Notice(`Found ${allItems.length} pages and databases.`);
+		new Notice(i18n.importer.notionApi.msgFound({ count: allItems.length }));
 
 		return buildTree(allItems);
 	}
@@ -367,30 +370,30 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Validate inputs
 		if (!this.notionToken) {
-			new Notice('Please enter your Notion API token.');
+			new Notice(i18n.importer.notionApi.msgTokenMissing());
 			return;
 		}
 
 		// Get selected pages/databases
 		const selectedIds = this.getSelectedNodeIds();
 		if (selectedIds.length === 0) {
-			new Notice('Please select at least one page or database to import.');
+			new Notice(i18n.importer.notionApi.msgPickPage());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
-		ctx.status('Connecting to Notion API...');
+		ctx.status(i18n.importer.notionApi.statusConnecting());
 
 		try {
 			// Re-initialize client to ensure current token is used
 			this.initializeNotionClient();
 
-			ctx.status('Fetching page content from Notion...');
+			ctx.status(i18n.importer.notionApi.statusFetching());
 
 			// Reset processed pages tracker
 			this.processedPages.clear();
@@ -400,7 +403,9 @@ export class NotionAPIImporter extends FormatImporter {
 			this.processedPagesCount = 0;
 
 			// Note: getSelectedNodeIds() already populated this.selectedNodeIds and this.totalNodesToImport
-			ctx.status(`Preparing to import ${plural(this.totalNodesToImport, 'item')}...`);
+			ctx.status(i18n.importer.notionApi.statusPreparing({
+				items: i18n.nouns.itemWithCount({ count: this.totalNodesToImport }),
+			}));
 
 			// Initialize progress display with known total count
 			ctx.reportProgress(0, this.totalNodesToImport);
@@ -409,13 +414,15 @@ export class NotionAPIImporter extends FormatImporter {
 			this.outputRootPath = folder.path;
 
 			// Import all selected pages/databases
-			ctx.status(`Importing ${plural(selectedIds.length, 'item')}...`);
+			ctx.status(i18n.importer.notionApi.statusImportingItems({
+				items: i18n.nouns.itemWithCount({ count: selectedIds.length }),
+			}));
 
 			for (let i = 0; i < selectedIds.length; i++) {
 				if (await ctx.shouldStop()) break;
 
 				const itemId = selectedIds[i];
-				ctx.status(`Importing item ${i + 1}/${selectedIds.length}...`);
+				ctx.status(i18n.importer.notionApi.statusImportingItem({ index: i + 1, total: selectedIds.length }));
 
 				try {
 					// Find the node in the tree to determine its type
@@ -423,7 +430,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 					if (!node) {
 						console.warn(`Could not find node with ID: ${itemId}`);
-						ctx.reportFailed(`Import item ${itemId}`, 'Item not found in tree');
+						ctx.reportFailed(i18n.importer.notionApi.labelItem({ id: itemId }), i18n.importer.notionApi.reasonNotInTree());
 						continue;
 					}
 
@@ -441,38 +448,41 @@ export class NotionAPIImporter extends FormatImporter {
 					}
 					else {
 						console.warn(`Unknown node type: ${String(node.type)} (ID: ${itemId})`);
-						ctx.reportFailed(`Import item ${itemId}`, `Unknown type: ${String(node.type)}`);
+						ctx.reportFailed(
+							i18n.importer.notionApi.labelItem({ id: itemId }),
+							i18n.importer.notionApi.reasonUnknownType({ type: String(node.type) })
+						);
 					}
 				}
 				catch (error) {
 					console.error(`Failed to import item ${itemId}:`, error);
-					ctx.reportFailed(`Import item ${itemId}`, error);
+					ctx.reportFailed(i18n.importer.notionApi.labelItem({ id: itemId }), error);
 					// Continue with next item
 				}
 			}
 
 			// After all pages are imported, replace relation placeholders
-			ctx.status('Processing relation links...');
+			ctx.status(i18n.importer.notionApi.statusRelationLinks());
 			await this.replaceRelationPlaceholders(ctx);
 
-			ctx.status('Processing mention links...');
+			ctx.status(i18n.importer.notionApi.statusMentionLinks());
 			await this.replaceMentionPlaceholdersInAllFiles(ctx);
 
-			ctx.status('Processing synced block child references...');
+			ctx.status(i18n.importer.notionApi.statusSyncedBlocks());
 			await this.replaceSyncedChildPlaceholders(ctx);
 
 			if (!this.saveSourceId) {
-				ctx.status('Cleaning up notion-id attributes...');
+				ctx.status(i18n.importer.notionApi.statusCleaningIds());
 				await this.cleanupNotionIds(ctx);
 			}
 
-			ctx.status('Import completed successfully!');
+			ctx.status(i18n.importer.notionApi.statusDone());
 
 		}
 		catch (error) {
 			console.error('Notion API import error:', error);
-			ctx.reportFailed('Notion API import', error);
-			new Notice(`Import failed: ${extractErrorMessage(error)}`);
+			ctx.reportFailed(i18n.importer.notionApi.labelImport(), error);
+			new Notice(i18n.importer.notionApi.msgImportFailed({ error: extractErrorMessage(error) ?? '' }));
 		}
 	}
 
@@ -558,7 +568,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
 
 			// Update status with page title instead of ID
-			ctx.status(`Importing: ${sanitizedTitle}`);
+			ctx.status(i18n.importer.notionApi.statusImportingTitle({ title: sanitizedTitle }));
 
 			// Create a cache to store fetched blocks and avoid duplicate API calls
 			// This cache will be used both for checking if page has children and for converting blocks
@@ -873,7 +883,7 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
 			// Try to get page title from the error context or use page ID
-			const pageTitle = `Page ${pageId.substring(0, 8)}...`;
+			const pageTitle = i18n.importer.notionApi.labelPage({ id: pageId.substring(0, 8) });
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			// Log more details for debugging
 			console.error(`Error details - Page ID: ${pageId}, Error: ${errorMsg}`);
@@ -899,7 +909,9 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		ctx.status(`Replacing ${plural(this.relationPlaceholders.length, 'relation placeholder')}...`);
+		ctx.status(i18n.importer.notionApi.statusReplacingRelations({
+			placeholders: i18n.nouns.relationPlaceholderWithCount({ count: this.relationPlaceholders.length }),
+		}));
 
 		if (this.importLinkedDatabases) {
 			await this.importDatabasesRelationsPointAt(ctx);
@@ -907,7 +919,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		// Final pass: replace all placeholders with links
 		// This happens after all rounds of database imports are complete
-		ctx.status(`Replacing relation placeholders with wiki links...`);
+		ctx.status(i18n.importer.notionApi.statusReplacingRelationLinks());
 		for (const placeholder of this.relationPlaceholders) {
 			if (await ctx.shouldStop()) break;
 
@@ -975,7 +987,7 @@ export class NotionAPIImporter extends FormatImporter {
 			catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to replace relation placeholder for page ${placeholder.pageId}:`, error);
-				ctx.reportFailed(`Relation page ${placeholder.pageId}`, errorMessage);
+				ctx.reportFailed(i18n.importer.notionApi.labelRelationPage({ id: placeholder.pageId }), errorMessage);
 			}
 		}
 	}
@@ -993,7 +1005,9 @@ export class NotionAPIImporter extends FormatImporter {
 
 		if (missingDatabaseIds.size === 0) return;
 
-		ctx.status(`Importing ${plural(missingDatabaseIds.size, 'linked database')}...`);
+		ctx.status(i18n.importer.notionApi.statusImportingLinkedDatabases({
+			databases: i18n.nouns.linkedDatabaseWithCount({ count: missingDatabaseIds.size }),
+		}));
 
 		for (const databaseId of missingDatabaseIds) {
 			if (await ctx.shouldStop()) return;
@@ -1029,7 +1043,7 @@ export class NotionAPIImporter extends FormatImporter {
 		let databaseTitle = 'Untitled Database'; // Default title for error reporting
 
 		try {
-			ctx.status(`Importing unimported database ${databaseId}...`);
+			ctx.status(i18n.importer.notionApi.statusImportingUnimported({ id: databaseId }));
 
 			// Build context for the core import logic
 			const context: DatabaseProcessingContext = {
@@ -1057,7 +1071,7 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			console.error(`Failed to import unimported database "${databaseTitle}":`, error);
-			ctx.reportFailed(`Database: ${databaseTitle}`, errorMsg);
+			ctx.reportFailed(i18n.importer.notionApi.labelDatabase({ title: databaseTitle }), errorMsg);
 		}
 	}
 
@@ -1071,7 +1085,7 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		ctx.status(`Replacing mention placeholders...`);
+		ctx.status(i18n.importer.notionApi.statusReplacingMentions());
 
 		let replacedCount = 0;
 		let filesModified = 0;
@@ -1148,11 +1162,11 @@ export class NotionAPIImporter extends FormatImporter {
 			catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process mentions in file ${sourceFilePath}:`, error);
-				ctx.reportFailed(`Mention file ${sourceFilePath}`, errorMessage);
+				ctx.reportFailed(i18n.importer.notionApi.labelMentionFile({ path: sourceFilePath }), errorMessage);
 			}
 		}
 
-		ctx.status(`Replaced ${replacedCount} mention links in ${filesModified} files.`);
+		ctx.status(i18n.importer.notionApi.statusReplacedMentions({ links: replacedCount, files: filesModified }));
 	}
 
 	/**
@@ -1169,7 +1183,7 @@ export class NotionAPIImporter extends FormatImporter {
 			return;
 		}
 
-		ctx.status('Replacing synced block child references...');
+		ctx.status(i18n.importer.notionApi.statusReplacingSynced());
 
 		let replacedCount = 0;
 		let filesModified = 0;
@@ -1235,7 +1249,7 @@ export class NotionAPIImporter extends FormatImporter {
 			catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process synced child page placeholders in file ${filePath}:`, error);
-				ctx.reportFailed(`Synced block file ${filePath}`, errorMessage);
+				ctx.reportFailed(i18n.importer.notionApi.labelSyncedBlockFile({ path: filePath }), errorMessage);
 			}
 		}
 
@@ -1299,11 +1313,15 @@ export class NotionAPIImporter extends FormatImporter {
 			catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				console.error(`Failed to process synced child database placeholders in file ${filePath}:`, error);
-				ctx.reportFailed(`Synced block file ${filePath}`, errorMessage);
+				ctx.reportFailed(i18n.importer.notionApi.labelSyncedBlockFile({ path: filePath }), errorMessage);
 			}
 		}
 
-		ctx.status(`Replaced ${replacedCount} synced child references in ${filesModified} files (imported ${importedCount} new items).`);
+		ctx.status(i18n.importer.notionApi.statusReplacedSynced({
+			references: replacedCount,
+			files: filesModified,
+			imported: importedCount,
+		}));
 	}
 
 	/** Find a page left by an unfinished import. */
@@ -1322,7 +1340,7 @@ export class NotionAPIImporter extends FormatImporter {
 			if (this.sourceIdIn(content, NOTION_ID_PROPERTY) !== notionId) return false;
 
 			const { basename } = parseFilePath(file.path);
-			ctx.reportSkipped(basename, 'an earlier import had already written it');
+			ctx.reportSkipped(basename, i18n.importer.notionApi.reasonEarlierImport());
 
 			const pathWithoutExt = file.path.replace(/\.md$/, '');
 			this.notionIdToPath.set(notionId, pathWithoutExt);
@@ -1354,7 +1372,7 @@ export class NotionAPIImporter extends FormatImporter {
 		try {
 			const content = await this.vault.read(file);
 			const { basename } = parseFilePath(file.path);
-			ctx.reportSkipped(basename, 'it is already in the vault');
+			ctx.reportSkipped(basename, i18n.reason.alreadyInVault());
 
 			const filePathWithoutExtension = file.path.replace(/\.md$/, '');
 			this.notionIdToPath.set(notionId, filePathWithoutExtension);
