@@ -133,13 +133,9 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
 /**
  * The views a rewritten .base should hold.
  *
- * A .base is generated from the table's schema, so an import replaces what it
- * generated. Its views are the exception: the user may have added their own
- * beside the imported ones, and those are theirs to keep. A view the import
- * brings replaces the one of that name; anything else in the file stays.
- *
- * Nothing here reads the duplicate mode. That setting is about notes, and a
- * .base holding a view of a table whose schema has moved on is no use.
+ * An import replaces what it generated, except the views: the user may have
+ * added their own beside the imported ones, and those are theirs to keep. A
+ * view the import brings replaces the one of that name.
  */
 export function mergedBaseViews(existing: unknown, importedViews: BasesConfigFileView[]): BasesConfigFileView[] {
 	const byName = new Map<string, BasesConfigFileView>();
@@ -151,11 +147,9 @@ export function mergedBaseViews(existing: unknown, importedViews: BasesConfigFil
 }
 
 /**
- * The views in a .base as it stands, which is a file the user can edit.
- *
- * Anything in it that is not a view with a name is not something to carry
- * over: there would be no name to keep it under, and no way to tell whether
- * the import means to replace it.
+ * The views in a .base as it stands, which is a file the user can edit. What
+ * is not a named view cannot be carried over: there is no name to keep it
+ * under, and no way to tell whether the import means to replace it.
  */
 function viewsIn(config: unknown): BasesConfigFileView[] {
 	if (typeof config !== 'object' || config === null) return [];

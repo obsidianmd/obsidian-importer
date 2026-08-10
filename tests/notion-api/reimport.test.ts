@@ -5,11 +5,6 @@
  * responses: the page envelope GET /v1/pages/{id} returns, and the children of
  * every block that has them. The client here answers out of that rather than
  * over the network, which is what lets the same workspace be imported twice.
- *
- * This is the baseline the shared duplicate-handling work is measured against:
- * it records what Skip and "Create a copy" do today, before either importer
- * moves onto the shared resolve/write primitives. A refactor that changes what
- * is recorded here has changed behaviour.
  */
 import '../shims/dom';
 import '../shims/runtime';
@@ -122,10 +117,9 @@ async function importOnce(
 	const before = new Set(vault.paths());
 	await subject.importPage(ctx, ROOT_PAGE);
 
-	// The conversion resolves attachments and links against the path the note
-	// was planned at, so a note that lands anywhere else leaves all of it
-	// pointing at a file that is not there. Choosing the path a second time
-	// after converting is exactly how that used to happen.
+	// The conversion resolves attachments and links against the planned path,
+	// so a note that lands anywhere else leaves all of it pointing at a file
+	// that is not there.
 	for (const path of vault.paths()) {
 		if (before.has(path) || !path.endsWith('.md')) continue;
 		assert.ok(subject.planned.includes(path), `${path} was written but never planned`);

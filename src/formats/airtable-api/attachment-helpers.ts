@@ -41,7 +41,7 @@ async function downloadAttachment(
 	try {
 		const sanitized = sanitizeFileName(attachment.filename);
 
-		// Where it goes is settled first, because the answer may be a file the
+		// Settled before the download, because the answer may be a file the
 		// vault already holds - and then there is nothing to download.
 		const { path, reuse } = await placeAttachment(sanitized, attachment.size);
 		const local: AttachmentResult = { path: normalizePath(path), isLocal: true, filename: sanitized };
@@ -154,8 +154,8 @@ export async function downloadAttachmentList(
 			releasePath,
 		});
 
-		// A file the vault already held was reported as passed over; counting it
-		// as an import as well would count it twice.
+		// A reused file was reported as passed over; counting it as an import
+		// as well would count it twice.
 		if (result.isLocal && !result.reused) {
 			ctx.reportAttachmentSuccess(result.filename ?? attachment.filename);
 		}

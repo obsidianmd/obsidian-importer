@@ -830,10 +830,6 @@ async function createSyncedBlockFile(
 			? await getBlockChildren(blockId, client, ctx, context.blocksCache)
 			: [];
 		
-		// Where the file goes, and whether it needs writing, are the importer's
-		// to answer: it is the only side that knows what the vault already
-		// holds. The conversion happens inside that answer, because the path it
-		// settles on is the one this block's own links are generated against.
 		return await syncedBlockFile({
 			blockId,
 			folderPath: currentFolderPath,
@@ -848,10 +844,9 @@ async function createSyncedBlockFile(
 					...context,
 					currentFilePath: filePath, // Update current file path for link generation
 					isProcessingSyncedBlock: true, // Mark that we're processing synced block content
-					// The block's own answer, not the page's. A synced block has
-					// a note of its own, and one that has to be written needs
-					// what it points at whether or not the page holding it is
-					// being left alone.
+					// The block's own answer, not the page's: a note that has to
+					// be written needs what it points at whether or not the page
+					// holding it is being left alone.
 					forChildrenOnly,
 				};
 

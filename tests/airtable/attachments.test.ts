@@ -6,10 +6,9 @@
  * A name and a size together are what it has: the same name holding the same
  * number of bytes is this attachment again.
  *
- * Getting that wrong is not just a wasted download. Every import found its own
- * file already there, wrote "cover 1.png" beside it and changed the note to
- * point at the new one - so under "Update" the record had changed every time
- * it was looked at, forever.
+ * Getting that wrong is not just a wasted download: every import found its own
+ * file already there, wrote "cover 1.png" beside it and pointed the note at
+ * the new one, so under "Update" the record changed every time it was seen.
  */
 import '../shims/dom';
 import '../shims/runtime';

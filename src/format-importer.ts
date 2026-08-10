@@ -87,13 +87,10 @@ export interface NoteImport extends DataWriteOptions {
 }
 
 /**
- * What became of an imported note, for an importer that has more to do after
- * writing it. `written` says whether the file changed; `outcome` says why.
- *
- * The difference between the three that did not write matters to anything that
- * rewrites notes after the import. A note left alone because the source has not
- * moved on can still have its unresolved links repaired; a note left alone
- * because the user edited it must not be touched at all.
+ * What became of an imported note. The three that wrote nothing are kept
+ * apart because a note left alone by a source that has not moved on can still
+ * have its unresolved links repaired, while one the user has edited must not
+ * be touched at all.
  */
 export type NoteOutcome = 'created' | 'updated' | 'skipped' | 'unchanged' | 'preserved';
 
@@ -103,15 +100,7 @@ export interface NoteWritten {
 	outcome: NoteOutcome;
 }
 
-/**
- * Where a note is going and what is already there, decided before its markdown
- * exists.
- *
- * An importer that resolves attachment paths or links against the note's own
- * location needs to know that location before it converts anything, and one
- * that can tell from the source whether a note is stale wants to skip the
- * conversion entirely.
- */
+/** Where a note is going and what is already there, decided before its markdown exists. */
 export interface PlannedNote {
 	title: string;
 	/** Where this import would place the note, before anything already there. */
@@ -131,12 +120,7 @@ export interface PlannedNote {
 export type NoteDisposition =
 	| 'create' | 'copy' | 'skip' | 'unchanged' | 'preserve' | 'update' | 'compare-content';
 
-/**
- * Whether this answer means the note in the vault stays as it is.
- *
- * Three of the seven do. Which of the three matters separately: only
- * `preserve` is a note the import may not write to at all.
- */
+/** Whether the note in the vault stays as it is. Which of the three it is still matters: only `preserve` may not be written to at all. */
 export function leavesTheNoteAlone(disposition: NoteDisposition): boolean {
 	return disposition === 'skip' || disposition === 'unchanged' || disposition === 'preserve';
 }
@@ -148,8 +132,6 @@ const OUTCOME_OF: Record<'skip' | 'unchanged' | 'preserve', NoteOutcome> = {
 };
 
 /**
- * What the note in the vault is, next to the source's modification time.
- *
  * An import writes the source's time onto the file, so an equal time is a note
  * nothing has touched since, and a later one is a note the user has edited.
  */
@@ -222,11 +204,9 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * Give a name back, for a file that was never written after all.
-	 *
-	 * A download that does not arrive would otherwise leave its name reserved
-	 * for the rest of the import, and the next file of that name numbered
-	 * around a gap.
+	 * Give a name back, for a file that was never written after all: a download
+	 * that does not arrive would otherwise leave the next file of that name
+	 * numbered around a gap.
 	 */
 	protected releasePath(path: string): void {
 		this.claimed.delete(normalizePath(path).toLowerCase());
@@ -650,9 +630,6 @@ export abstract class FormatImporter {
 				update: duplicateHandlingLabel(DuplicateHandling.Update),
 			}));
 
-			// What the shared description promises rests on the source saying
-			// when it last changed something. An importer whose source does not
-			// says so here rather than letting the promise stand.
 			if (this.duplicateCaveat) {
 				frag.createEl('br');
 				frag.appendText(this.duplicateCaveat);
@@ -832,12 +809,9 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * A name for an attachment that nothing else in this run is going to want.
-	 *
-	 * Notes are planned before they are written, so a name being free in the
-	 * vault is not the same as being free: an attachment called "notes.md" would
-	 * otherwise be handed a path a note is holding, and the note's own write
-	 * would then fail on a file the import had put in its way.
+	 * A name nothing else in this run is going to want. Notes are planned before
+	 * they are written, so a name free in the vault may still be one a note is
+	 * holding, and that note's own write would then fail.
 	 */
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
 		const at = await this.attachmentNaming(filename, sourcePath);
@@ -976,16 +950,12 @@ export abstract class FormatImporter {
 	/**
 	 * Where this note is going, and the earlier import it matches.
 	 *
-	 * Answering before the markdown exists is what lets an importer resolve
-	 * attachment paths and links against the note's real location, and lets one
-	 * that knows the source's modification time skip converting a note it is
-	 * only going to leave alone.
+	 * Answering before the markdown exists lets an importer resolve attachment
+	 * paths and links against the note's real location, and lets one that knows
+	 * the source's modification time skip converting a note it will leave alone.
 	 *
-	 * The path is claimed here, whether the note is new or one an earlier import
-	 * wrote. An importer that plans every note before writing any - which is the
-	 * point of planning at all - would otherwise hand the same name to two of
-	 * them: a free name to two new notes, or one untitled legacy note to every
-	 * source item that shares its title.
+	 * The path is claimed here, new note or matched one alike, so that planning
+	 * every note before writing any does not hand the same name to two of them.
 	 */
 	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
 		const name = `${sanitizeFileName(title).replace(/\.md$/i, '')}.md`;
@@ -1004,11 +974,9 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * A name no note holds and this run has not taken.
-	 *
-	 * getUniqueFilePath only knows what the vault holds, which was enough while
-	 * every note was written the moment its name was chosen. Resolving ahead of
-	 * the conversion means two notes can be waiting on their markdown at once.
+	 * A name no note holds and this run has not taken. getUniqueFilePath knows
+	 * only what the vault holds, which was enough while every note was written
+	 * the moment its name was chosen.
 	 */
 	private freeNotePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
@@ -1022,11 +990,9 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * What to do with a resolved note, before its markdown is generated.
-	 *
-	 * Reports the reason for every answer that settles the matter here, so an
-	 * importer can act on it and move on. Without a `sourceMtime` nothing can be
-	 * settled yet and the answer is `compare-content`.
+	 * What to do with a resolved note, before its markdown is generated. Reports
+	 * the reason for every answer that settles the matter here, so an importer
+	 * can act on it and move on.
 	 */
 	protected preflightNote(ctx: ImportContext, resolved: PlannedNote, sourceMtime?: number): NoteDisposition {
 		const { file, title, targetPath, desiredPath } = resolved;
@@ -1051,10 +1017,9 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * Create, update or leave a planned note, and say which.
-	 *
-	 * Pass the `disposition` an earlier `preflightNote` returned to act on the
-	 * answer it already reported; without one the decision is made here.
+	 * Create, update or leave a planned note, and say which. Pass the
+	 * `disposition` an earlier `preflightNote` returned to act on the answer it
+	 * already reported; without one the decision is made here.
 	 */
 	async writePlannedNote(
 		ctx: ImportContext,
@@ -1143,8 +1108,6 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * Whether writing this content would leave the note as it already is.
-	 *
 	 * What a source with no modification time is left with. It cannot tell an
 	 * edit the user made from a change in the source: both read as different.
 	 */

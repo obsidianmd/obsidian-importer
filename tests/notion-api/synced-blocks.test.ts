@@ -3,13 +3,10 @@
  *
  * A synced block is content Notion shows in several places at once, so the
  * importer gives it a note of its own and embeds that note wherever the block
- * appears. It used to ask for a name nothing was using, which meant every
- * import wrote another one: "Handbook synced block 1.md", then
- * "Handbook synced block 2.md", and so on for as long as the user kept
- * importing.
- *
- * The note carries the block's id now, so a later import finds the one it
- * wrote before.
+ * appears. It used to ask for a name nothing was using, so every import wrote
+ * another one: "Handbook synced block 1.md", then "Handbook synced block 2.md",
+ * for as long as the user kept importing. The note carries the block's id now,
+ * so a later import finds the one it wrote before.
  */
 import '../shims/dom';
 import '../shims/runtime';
@@ -131,10 +128,10 @@ async function vaultWithOneImport(mode: DuplicateHandling, saveSourceId = true):
 
 const markdown = (vault: MemoryVault) => vault.paths().filter(path => path.endsWith('.md')).sort();
 
-// The page has a child page, so it is a folder, and its synced blocks go in
-// there beside its note. That it has children is what keeps the page being
-// converted on a later import even when its note is left alone - which is
-// exactly when another synced block note used to appear.
+// The page has a child page, so it is a folder and its synced blocks go in
+// there beside its note. Having children is also what keeps it being converted
+// on a later import even when its note is left alone - which is exactly when
+// another synced block note used to appear.
 const SYNCED = [
 	'Notion/Handbook/Handbook synced block 1.md',
 	'Notion/Handbook/Handbook synced block.md',
@@ -165,14 +162,10 @@ test('a synced note being rewritten fetches what it points at, skipped page or n
 	assert.deepEqual([...new Set(fetched)], ['https://example.invalid/handbook-diagram.png']);
 });
 
-// A database under a synced block is not a page, and asking for it as one
-// cannot be recovered from: fetchAndImportPage reports its own failures rather
-// than raising them, so nothing would ever fall through to the database.
-//
-// The note has to be one this import leaves alone, because that is when what
-// is under it is fetched separately from what its own file says. Only the
-// fetching half runs here: the placeholder pass imports databases too, and
-// would otherwise answer for a dispatch that never happened.
+// Asking for it as a page cannot be recovered from: fetchAndImportPage reports
+// its own failures rather than raising them, so nothing would fall through to
+// the database. Only the fetching half runs here, because the placeholder pass
+// imports databases too and would answer for a dispatch that never happened.
 test('a database under a synced block is asked for as a database', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 

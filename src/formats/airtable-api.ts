@@ -847,10 +847,8 @@ export class AirtableAPIImporter extends FormatImporter {
 					continue;
 				}
 
-				// Where the note goes is settled here, before any of them is
-				// written, so a record linking to another can name the file it
-				// will end up in - including one an earlier import already wrote,
-				// wherever the user has since moved it to.
+				// Including the note an earlier import wrote, wherever the user
+				// has since moved it to.
 				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), record.id);
 				const { basename } = parseFilePath(note.targetPath);
 
@@ -1194,10 +1192,9 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		// Nothing here can be told from the record: Airtable gives no
-		// modification time, so a decision needs the markdown to compare.
-		// Skip is the exception - it needs no comparison, and settling it now
-		// is what keeps an untouched record from downloading its attachments.
+		// Airtable gives no modification time, so every other answer needs the
+		// markdown to compare. Skip needs no comparison, and settling it now is
+		// what keeps an untouched record from downloading its attachments.
 		const disposition = this.preflightNote(ctx, note);
 		if (disposition === 'skip') {
 			this.processedRecordsCount++;
@@ -1247,14 +1244,10 @@ export class AirtableAPIImporter extends FormatImporter {
 	 *
 	 * A name and a size together are as much identity as Airtable leaves in the
 	 * vault: the attachment id it hands out is not written anywhere a later
-	 * import could read it back from. So the same name holding the same number
-	 * of bytes is taken to be this attachment again and left alone, and any
-	 * other file of that name is somebody else's and passed over for the next
-	 * name along.
-	 *
-	 * Without this, every import found its own file already there, wrote
-	 * "cover 1.png" beside it, and changed the note to say so - which under
-	 * "Update" is a record that has changed every time it is looked at.
+	 * import could read it back from. Without them, every import found its own
+	 * file already there, wrote "cover 1.png" beside it, and changed the note to
+	 * say so - which under "Update" is a record that changes every time it is
+	 * looked at.
 	 */
 	protected attachmentPlacer(notePath: string): (filename: string, size: number | undefined) => Promise<AttachmentPlacement> {
 		return async (filename, size) => {
@@ -1298,8 +1291,6 @@ export class AirtableAPIImporter extends FormatImporter {
 			const existingFile = this.vault.getAbstractFileByPathInsensitive(baseFilePath);
 
 			if (existingFile && existingFile instanceof TFile) {
-				// Regenerated from the schema, but a view the user added beside
-				// the imported ones is theirs and is kept.
 				const existingContent = await this.vault.read(existingFile);
 
 				try {

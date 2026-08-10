@@ -146,14 +146,13 @@ export interface AirtableAttachment {
 }
 
 /**
- * Where an attachment belongs, and whether it is already there.
- *
- * Answered before anything is downloaded, so a second import of a file it
- * already holds costs neither the bytes nor a second copy of them.
+ * Where an attachment belongs, answered before anything is downloaded, so a
+ * second import of a file the vault already holds costs neither the bytes nor
+ * a second copy of them.
  */
 export interface AttachmentPlacement {
 	path: string;
-	/** The file already at that path, when it is this same attachment. */
+	/** The file already at that path is this same attachment. */
 	reuse: boolean;
 }
 

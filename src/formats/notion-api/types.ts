@@ -64,10 +64,8 @@ export interface SyncedBlockConversion {
 	/** Walking it for what is under it, so nothing it points at is fetched. */
 	forChildrenOnly: boolean;
 	/**
-	 * Whether its unresolved placeholders may be recorded.
-	 *
-	 * Recording them is what has the file rewritten once the import is done,
-	 * which a note the user has edited since the import must not be.
+	 * Recording unresolved placeholders is what has the file rewritten once the
+	 * import is done, which a note the user has edited must not be.
 	 */
 	keepPlaceholders: boolean;
 }
@@ -242,10 +240,8 @@ export interface BlockConversionContext {
 	reuseExistingAttachments?: boolean;
 	/**
 	 * This page is being walked to reach what is under it, not to be written.
-	 *
-	 * Its child pages and databases are still imported - they may have changed
-	 * even where their parent has not - but the markdown is thrown away, so
-	 * nothing it points at is worth fetching.
+	 * Its child pages and databases are still imported, but the markdown is
+	 * thrown away, so nothing it points at is worth fetching.
 	 */
 	forChildrenOnly?: boolean;
 	rangeProbe?: { answered: boolean };
@@ -265,11 +261,9 @@ export interface BlockConversionContext {
 	/**
 	 * Place, convert and write a synced block's own note, and say where it went.
 	 *
-	 * The importer owns it because only it knows what the vault already holds -
-	 * a synced block imported before has a note already, and writing a second
-	 * one beside it every time is how "Page synced block 1.md" turned into
-	 * "Page synced block 2.md". Conversion happens inside, because the path
-	 * decided here is the one the block's own links are generated against.
+	 * The importer owns it because only it knows what the vault already holds.
+	 * Conversion happens inside, because the path it settles on is the one the
+	 * block's own links are generated against.
 	 */
 	syncedBlockFile?: (request: SyncedBlockRequest) => Promise<string>;
 }

@@ -1,11 +1,9 @@
 /**
  * What a second import does to a .base file.
  *
- * A .base is generated from a table or database schema rather than imported
- * from a note, so it is not something the "Existing notes" setting has an
- * opinion about: a stale view of a schema that has moved on is no use to
- * anyone, whatever the user chose for their notes. Both importers regenerate
- * it, and neither reads duplicateHandling to decide.
+ * A .base is generated from a schema rather than imported from a note, so it
+ * is not something the "Existing notes" setting has an opinion about: both
+ * importers regenerate it, and neither reads duplicateHandling to decide.
  *
  * Where they differ is what they keep. Notion replaces the file. Airtable
  * keeps any view the user added beside the imported ones, because a view is
@@ -170,14 +168,13 @@ test('and keeps the user\'s own view in every mode, including "Skip"', async () 
 	}
 });
 
-/** The code, without the prose around it. */
+/** The code, without the comments that talk about the mode. */
 function withoutComments(source: string): string {
 	return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 }
 
 // The policy in one assertion: no code path that writes a .base asks what the
-// user chose for their notes. Said here rather than left to be noticed, so
-// wiring the setting in has to be a decision rather than an accident.
+// user chose for their notes.
 test('neither importer decides a .base by the duplicate mode', () => {
 	const sources = [
 		'src/formats/notion-api/database-helpers.ts',
