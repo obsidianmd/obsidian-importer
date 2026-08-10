@@ -132,15 +132,15 @@ test('hands a synced block\'s own note to the importer to place and write', asyn
 		syncedBlocksMap: new Map(),
 		vault,
 		app: memoryApp(vault),
-		syncedBlockFile: async (
+		syncedBlockFile: async ({ blockId, folderPath, fileName, convert }: {
 			blockId: string,
-			folder: string,
-			name: string,
-			convert: (path: string) => Promise<string>,
-		) => {
-			asked.push({ blockId, folder, name });
-			const path = `${folder}/${name}`;
-			await vault.create(path, await convert(path));
+			folderPath: string,
+			fileName: string,
+			convert: (path: string, options: { forChildrenOnly: boolean, keepPlaceholders: boolean }) => Promise<string>,
+		}) => {
+			asked.push({ blockId, folder: folderPath, name: fileName });
+			const path = `${folderPath}/${fileName}`;
+			await vault.create(path, await convert(path, { forChildrenOnly: false, keepPlaceholders: true }));
 
 			return path;
 		},

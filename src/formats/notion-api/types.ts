@@ -52,6 +52,29 @@ export interface DatabaseProcessingContext {
 /**
  * Information about a processed database
  */
+/** What the converter has to say about a synced block's own note. */
+export interface SyncedBlockRequest {
+	blockId: string;
+	folderPath: string;
+	fileName: string;
+	/** When Notion made and last changed the block, for deciding staleness. */
+	createdTime?: string;
+	lastEditedTime?: string;
+	convert: (filePath: string, options: SyncedBlockConversion) => Promise<string>;
+}
+
+export interface SyncedBlockConversion {
+	/** Walking it for what is under it, so nothing it points at is fetched. */
+	forChildrenOnly: boolean;
+	/**
+	 * Whether its unresolved placeholders may be recorded.
+	 *
+	 * Recording them is what has the file rewritten once the import is done,
+	 * which a note the user has edited since the import must not be.
+	 */
+	keepPlaceholders: boolean;
+}
+
 export interface DatabaseInfo {
 	id: string;
 	title: string;
@@ -249,12 +272,7 @@ export interface BlockConversionContext {
 	 * "Page synced block 2.md". Conversion happens inside, because the path
 	 * decided here is the one the block's own links are generated against.
 	 */
-	syncedBlockFile?: (
-		blockId: string,
-		folderPath: string,
-		fileName: string,
-		convert: (filePath: string) => Promise<string>,
-	) => Promise<string>;
+	syncedBlockFile?: (request: SyncedBlockRequest) => Promise<string>;
 }
 
 /**

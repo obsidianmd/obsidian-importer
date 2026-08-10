@@ -22,7 +22,7 @@ import {
 } from './notion-api/api-helpers';
 import { convertBlocksToMarkdown } from './notion-api/block-converter';
 import { processDatabasePlaceholders, importDatabaseCore, replaceRelationValue } from './notion-api/database-helpers';
-import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION } from './notion-api/types';
+import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndImportPageParams, NOTION_VERSION, SyncedBlockRequest } from './notion-api/types';
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
@@ -702,8 +702,7 @@ export class NotionAPIImporter extends FormatImporter {
 				writeMarkdownFile: async (path: string, content: string) => {
 					return await this.createMarkdown(path, content);
 				},
-				syncedBlockFile: (blockId, folderPath, fileName, convert) =>
-					this.importSyncedBlockFile(ctx, blockId, folderPath, fileName, convert),
+				syncedBlockFile: request => this.importSyncedBlockFile(ctx, request),
 			});
 
 			// Process database placeholders
@@ -1406,18 +1405,38 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Converted whatever is decided, because a synced block can hold child
 	 * pages of its own and they are reached by converting it.
 	 */
-	protected async importSyncedBlockFile(
-		ctx: ImportContext,
-		blockId: string,
-		folderPath: string,
-		fileName: string,
-		convert: (filePath: string) => Promise<string>,
-	): Promise<string> {
-		const planned = this.planNote(folderPath, fileName.replace(/\.md$/i, ''), blockId);
-		const markdown = await convert(planned.targetPath);
+	protected async importSyncedBlockFile(ctx: ImportContext, request: SyncedBlockRequest): Promise<string> {
+		const { blockId, folderPath, fileName, createdTime, lastEditedTime, convert } = request;
 
-		const { file, written } = await this.writePlannedNote(ctx, planned, markdown, { sourceId: blockId });
-		if (written) this.writtenPaths.add(file.path.replace(/\.md$/, ''));
+		const planned = this.planNote(folderPath, fileName.replace(/\.md$/i, ''), blockId);
+		const sourceMtime = lastEditedTime ? new Date(lastEditedTime).getTime() : undefined;
+		const disposition = this.preflightNote(ctx, planned, sourceMtime);
+
+		// A note the user has edited since the import is theirs: its placeholders
+		// stay unrecorded, because recording them is what would have it rewritten
+		// once the import is done. Which means a page nested inside a synced
+		// block they have edited stops arriving - the note wins over the nesting.
+		const leavingItAlone = disposition === 'skip'
+			|| disposition === 'unchanged'
+			|| disposition === 'preserve';
+
+		const markdown = await convert(planned.targetPath, {
+			forChildrenOnly: leavingItAlone,
+			keepPlaceholders: disposition !== 'preserve',
+		});
+
+		if (leavingItAlone) return planned.file?.path ?? planned.targetPath;
+
+		// The id goes in whether or not the user asked to keep it, as a page's
+		// does: an import that is interrupted leaves notes it can recognise as
+		// its own, and cleanupNotionIds takes the ids back out at the end.
+		const content = serializeFrontMatter({ [NOTION_ID_PROPERTY]: blockId }) + markdown;
+		const options: DataWriteOptions = {};
+		if (createdTime) options.ctime = new Date(createdTime).getTime();
+		if (sourceMtime !== undefined) options.mtime = sourceMtime;
+
+		const { file } = await this.writePlannedNote(ctx, planned, content, { ...options, disposition, sourceId: blockId });
+		this.writtenPaths.add(file.path.replace(/\.md$/, ''));
 
 		return file.path;
 	}

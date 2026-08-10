@@ -834,40 +834,49 @@ async function createSyncedBlockFile(
 		// to answer: it is the only side that knows what the vault already
 		// holds. The conversion happens inside that answer, because the path it
 		// settles on is the one this block's own links are generated against.
-		return await syncedBlockFile(blockId, currentFolderPath, `${fileName}.md`, async filePath => {
-			// Create a new context for synced block content
-			// Keep currentFolderPath the same so nested synced blocks are also placed correctly
-			// Set isProcessingSyncedBlock flag to indicate we're inside a synced block
-			const syncedBlockContext: BlockConversionContext = {
-				...context,
-				currentFilePath: filePath, // Update current file path for link generation
-				isProcessingSyncedBlock: true // Mark that we're processing synced block content
-			};
+		return await syncedBlockFile({
+			blockId,
+			folderPath: currentFolderPath,
+			fileName: `${fileName}.md`,
+			createdTime: 'created_time' in block ? block.created_time : undefined,
+			lastEditedTime: 'last_edited_time' in block ? block.last_edited_time : undefined,
+			convert: async (filePath, { forChildrenOnly, keepPlaceholders }) => {
+				// Create a new context for synced block content
+				// Keep currentFolderPath the same so nested synced blocks are also placed correctly
+				// Set isProcessingSyncedBlock flag to indicate we're inside a synced block
+				const syncedBlockContext: BlockConversionContext = {
+					...context,
+					currentFilePath: filePath, // Update current file path for link generation
+					isProcessingSyncedBlock: true, // Mark that we're processing synced block content
+					forChildrenOnly: forChildrenOnly || context.forChildrenOnly,
+				};
 
-			// Convert children to markdown
-			const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
+				// Convert children to markdown
+				const markdown = await convertBlocksToMarkdown(children, syncedBlockContext);
+				if (!keepPlaceholders) return markdown;
 
-			// Extract synced child IDs from the markdown content
-			// This allows us to efficiently replace placeholders later without scanning all files
-			// Separated by type to avoid unnecessary placeholder checks during replacement
+				// Extract synced child IDs from the markdown content
+				// This allows us to efficiently replace placeholders later without scanning all files
+				// Separated by type to avoid unnecessary placeholder checks during replacement
 
-			// Find SYNCED_CHILD_PAGE placeholders
-			const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
-			if (context.syncedChildPagePlaceholders && pageIds.length > 0) {
-				const existingPageIds = context.syncedChildPagePlaceholders.get(filePath) || new Set<string>();
-				pageIds.forEach(id => existingPageIds.add(id));
-				context.syncedChildPagePlaceholders.set(filePath, existingPageIds);
-			}
+				// Find SYNCED_CHILD_PAGE placeholders
+				const pageIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_PAGE);
+				if (context.syncedChildPagePlaceholders && pageIds.length > 0) {
+					const existingPageIds = context.syncedChildPagePlaceholders.get(filePath) || new Set<string>();
+					pageIds.forEach(id => existingPageIds.add(id));
+					context.syncedChildPagePlaceholders.set(filePath, existingPageIds);
+				}
 
-			// Find SYNCED_CHILD_DATABASE placeholders
-			const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
-			if (context.syncedChildDatabasePlaceholders && dbIds.length > 0) {
-				const existingDbIds = context.syncedChildDatabasePlaceholders.get(filePath) || new Set<string>();
-				dbIds.forEach(id => existingDbIds.add(id));
-				context.syncedChildDatabasePlaceholders.set(filePath, existingDbIds);
-			}
+				// Find SYNCED_CHILD_DATABASE placeholders
+				const dbIds = extractPlaceholderIds(markdown, PlaceholderType.SYNCED_CHILD_DATABASE);
+				if (context.syncedChildDatabasePlaceholders && dbIds.length > 0) {
+					const existingDbIds = context.syncedChildDatabasePlaceholders.get(filePath) || new Set<string>();
+					dbIds.forEach(id => existingDbIds.add(id));
+					context.syncedChildDatabasePlaceholders.set(filePath, existingDbIds);
+				}
 
-			return markdown;
+				return markdown;
+			},
 		});
 	}
 	catch (error) {

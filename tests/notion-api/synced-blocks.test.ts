@@ -23,6 +23,8 @@ import { NotionAPIImporter } from '../../src/formats/notion-api';
 import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { NOTION_ID_PROPERTY } from '../../src/constants';
+import type { TFile } from 'obsidian';
+
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 interface Workspace {
@@ -39,10 +41,13 @@ const FIRST_BLOCK = '30000000-0000-4000-8000-000000000201';
 const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null };
 
 class ImportingSyncedBlocks extends NotionAPIImporter {
-	answerFromFixture(): void {
+	answerFromFixture(editedAt?: string): void {
+		const edited = <T>(value: T): T =>
+			editedAt ? { ...(value as object), last_edited_time: editedAt } as T : value;
+
 		this.notionClient = {
 			pages: {
-				retrieve: async ({ page_id }: { page_id: string }) => workspace.pages[page_id],
+				retrieve: async ({ page_id }: { page_id: string }) => edited(workspace.pages[page_id]),
 			},
 			blocks: {
 				children: {
@@ -51,7 +56,7 @@ class ImportingSyncedBlocks extends NotionAPIImporter {
 				retrieve: async ({ block_id }: { block_id: string }) => {
 					for (const { results } of Object.values(workspace.blocks)) {
 						const block = (results as { id: string }[]).find(candidate => candidate.id === block_id);
-						if (block) return block;
+						if (block) return edited(block);
 					}
 					throw new Error(`no block ${block_id} in the fixture`);
 				},
@@ -68,11 +73,11 @@ class ImportingSyncedBlocks extends NotionAPIImporter {
 	}
 }
 
-async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourceId = true) {
+async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourceId = true, editedAt?: string) {
 	const subject = new ImportingSyncedBlocks(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 	subject.duplicateHandling = mode;
 	subject.saveSourceId = saveSourceId;
-	subject.answerFromFixture();
+	subject.answerFromFixture(editedAt);
 	subject.indexImportedNotes();
 
 	const ctx = new ImportContext();
@@ -144,15 +149,68 @@ test('a third import adds nothing either', async () => {
 	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE]);
 });
 
-// With the id turned off there is nothing to recognise them by, so a second
-// import writes its own. Worth knowing rather than worth pretending otherwise.
-test('with "Save source ID" off, the id is cleared once the import is done', async () => {
+// The id goes in whether or not it is being kept, so that an import which is
+// interrupted leaves notes the next one can recognise as its own. Only at the
+// end is it taken back out.
+test('with "Save source ID" off, the id is written and then cleared', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Notion');
 	const { ctx, subject } = await importOnce(vault, DuplicateHandling.Skip, false);
+
+	for (const path of SYNCED) {
+		assert.match(String(vault.contents.get(path)), new RegExp(`${NOTION_ID_PROPERTY}: `), `${path} before`);
+	}
+
 	await subject.cleanUp(ctx);
 
 	for (const path of SYNCED) {
-		assert.doesNotMatch(String(vault.contents.get(path)), new RegExp(NOTION_ID_PROPERTY), path);
+		assert.doesNotMatch(String(vault.contents.get(path)), new RegExp(NOTION_ID_PROPERTY), `${path} after`);
+		assert.match(String(vault.contents.get(path)), /How we work\.|Who to ask\./, `${path} kept its content`);
 	}
+});
+
+const NOTION_EDITED = '2024-03-01T00:00:00.000Z';
+const LATER = '2024-09-01T00:00:00.000Z';
+
+/** Stand in for the user editing a synced block's note in Obsidian. */
+async function editInObsidian(vault: MemoryVault, path: string, body: string, at: string): Promise<void> {
+	const file = vault.getAbstractFileByPath(path) as unknown as TFile;
+	await vault.modify(file, body, { mtime: Date.parse(at), ctime: file.stat.ctime });
+}
+
+test('a synced block note is stamped with when Notion last changed the block', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const file = vault.getAbstractFileByPath(SYNCED[1]) as unknown as TFile;
+
+	assert.equal(file.stat.mtime, Date.parse(NOTION_EDITED));
+});
+
+test('"Update" leaves a synced block Notion has not changed since', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const before = vault.contents.get(SYNCED[1]);
+
+	await importOnce(vault, DuplicateHandling.Update);
+
+	assert.equal(vault.contents.get(SYNCED[1]), before);
+});
+
+test('"Update" writes over a synced block Notion has changed', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	await editInObsidian(vault, SYNCED[1], 'Something else entirely.\n', '2024-04-01T00:00:00.000Z');
+
+	await importOnce(vault, DuplicateHandling.Update, true, LATER);
+
+	assert.match(String(vault.contents.get(SYNCED[1])), /How we work\./);
+	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE], 'and does not write a second one');
+});
+
+test('"Update" does not write over a synced block note edited in Obsidian', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const mine = 'My own notes on how we work.\n';
+	await editInObsidian(vault, SYNCED[1], mine, '2024-12-01T00:00:00.000Z');
+
+	await importOnce(vault, DuplicateHandling.Update, true, LATER);
+
+	assert.equal(vault.contents.get(SYNCED[1]), mine);
+	assert.deepEqual(markdown(vault), [CHILD_NOTE, ...SYNCED, PAGE_NOTE], 'and does not write a second one');
 });
