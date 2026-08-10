@@ -41,6 +41,18 @@ function assertUnreachable(x: never): never {
 	throw new Error(`Didn't expect to get here`);
 }
 
+/**
+ * What to say while the sections are being counted. Both numbers are dropped
+ * when they would say nothing: how far through, and how much has been found.
+ */
+export function findingNotes(title: string, index: number, sections: number, found: number): string {
+	const detail: string[] = [];
+	if (sections > 1) detail.push(`section ${index + 1} of ${sections}`);
+	if (found > 0) detail.push(`${plural(found, 'note')} so far`);
+
+	return `Finding notes in ${title}${detail.length ? ` (${detail.join(', ')})` : ''}`;
+}
+
 function worthRetrying(status: number): boolean {
 	// OneNote sometimes returns transient bare 400s for page requests.
 	return status !== 403 && status !== 404;
@@ -574,11 +586,12 @@ export class OneNoteImporter extends FormatImporter {
 		for (const [index, section] of sections.entries()) {
 			if (await progress.shouldStop()) break;
 
+			// Said for every section, not only the ones still to be read, so the
+			// count carries on climbing through the ones already read ahead.
+			progress.status(findingNotes(section.title, index, sections.length, queue.length));
+
 			let pages = this.sectionPages.get(section.id);
 			if (!pages) {
-				const position = sections.length > 1 ? ` (section ${index + 1} of ${sections.length})` : '';
-				progress.status(`Finding notes in ${section.title}${position}`);
-
 				try {
 					pages = await this.fetchSectionPages(section.id, progress);
 				}

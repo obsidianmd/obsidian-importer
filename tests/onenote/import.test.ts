@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { OnenotePage } from '@microsoft/microsoft-graph-types';
 
-import { OneNoteImporter } from '../../src/formats/onenote';
+import { findingNotes, OneNoteImporter } from '../../src/formats/onenote';
 import { ImportContext } from '../../src/import-context';
 import { DuplicateHandling } from '../../src/format-importer';
 
@@ -160,6 +160,40 @@ test('unticking a section drops it from the read-ahead queue', async () => {
 	await (subject as unknown as { prefetching: Promise<void> }).prefetching;
 
 	assert.deepEqual(listed, ['a'], 'only the section already being read should have been asked for');
+});
+
+test('counting says which section it is in and how much it has found', () => {
+	// Neither number is worth saying before it means anything: one section is
+	// not "1 of 1", and nothing found yet is not "0 notes so far".
+	assert.equal(findingNotes('Recipes', 0, 1, 0), 'Finding notes in Recipes');
+	assert.equal(findingNotes('Recipes', 0, 7, 0), 'Finding notes in Recipes (section 1 of 7)');
+	assert.equal(findingNotes('Recipes', 2, 7, 240), 'Finding notes in Recipes (section 3 of 7, 240 notes so far)');
+	assert.equal(findingNotes('Recipes', 1, 1, 1), 'Finding notes in Recipes (1 note so far)');
+});
+
+test('the count carries on climbing through sections read ahead', async () => {
+	// Reporting only the sections still to be read left the phase silent
+	// whenever the read-ahead had already done its job.
+	const said: string[] = [];
+	const progress = new ImportContext();
+	progress.status = (message: string) => void said.push(message);
+
+	const pagesOf = (id: string, n: number): OnenotePage[] => Array.from({ length: n }, (_, i) => ({
+		id: `${id}-${i}`, title: `${id} ${i}`, contentUrl: `page-id=${id}-${i}}`,
+	}));
+
+	const subject = importerOverPages([], {
+		selectedSections: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }],
+		// Both already read ahead, so nothing is fetched during the import.
+		sectionPages: new Map([['a', pagesOf('a', 3)], ['b', pagesOf('b', 4)]]),
+		fetchResource: async () => 'content',
+		processFile: async () => {},
+	} as unknown as Partial<OneNoteImporter>);
+
+	await subject.import(progress);
+
+	assert.ok(said.includes('Finding notes in A (section 1 of 2)'), said.join(' | '));
+	assert.ok(said.includes('Finding notes in B (section 2 of 2, 3 notes so far)'), said.join(' | '));
 });
 
 test('a vault that will not take the write does stop the import', async () => {
