@@ -682,10 +682,11 @@ export abstract class FormatImporter {
 			if (this.hasClaimed(candidate)) continue;
 
 			const existing = this.vault.getAbstractFileByPath(candidate);
-			if (!(existing instanceof TFile)) {
+			if (existing === null) {
 				this.claimPath(candidate);
 				return { path: candidate, reuse: null };
 			}
+			if (!(existing instanceof TFile)) continue;
 
 			if (!reusing) continue;
 

@@ -123,3 +123,13 @@ test('two attachments of one name in a single run get a path each', async () => 
 	assert.equal(first.path, 'Photo.png');
 	assert.equal(second.path, 'Photo 1.png');
 });
+
+test('a folder with the requested attachment name is passed over', async () => {
+	const { vault, subject } = importer();
+	await vault.createFolder('Photo.png');
+
+	const { path, reuse } = await subject.place('Photo.png', sized(1));
+
+	assert.equal(path, 'Photo 1.png');
+	assert.equal(reuse, null);
+});

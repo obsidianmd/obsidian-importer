@@ -235,6 +235,57 @@ test('signing out forgets which kind of account it was', () => {
 		'the next account is asked for the scopes it can actually consent to');
 });
 
+test('a rejected stored token also forgets the previous account', async () => {
+	const stored = new Map<string, unknown>([['onenote-importer-account-type', 'organization']]);
+	const secrets = new Map([['onenote-importer', 'expired-token']]);
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		app: {
+			loadLocalStorage: (key: string) => stored.get(key) ?? null,
+			saveLocalStorage: (key: string, value: unknown) =>
+				void (value === null ? stored.delete(key) : stored.set(key, value)),
+			secretStorage: {
+				getSecret: (key: string) => secrets.get(key) ?? null,
+				deleteSecret: (key: string) => void secrets.delete(key),
+			},
+		},
+		updateAccessToken: async () => { throw { status: 400 }; },
+	});
+
+	const signedIn = await (subject as unknown as { signInWithStoredToken(): Promise<boolean> })
+		.signInWithStoredToken();
+
+	assert.equal(signedIn, false);
+	assert.equal(secrets.has('onenote-importer'), false);
+	assert.equal(stored.has('onenote-importer-account-type'), false);
+});
+
+test('a temporary stored-token failure keeps the account available for retry', async () => {
+	const stored = new Map<string, unknown>([['onenote-importer-account-type', 'organization']]);
+	const secrets = new Map([['onenote-importer', 'refresh-token']]);
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		app: {
+			loadLocalStorage: (key: string) => stored.get(key) ?? null,
+			saveLocalStorage: (key: string, value: unknown) => void stored.set(key, value),
+			secretStorage: {
+				getSecret: (key: string) => secrets.get(key) ?? null,
+				deleteSecret: (key: string) => void secrets.delete(key),
+			},
+		},
+		updateAccessToken: async () => { throw { status: 503 }; },
+	});
+
+	const signedIn = await (subject as unknown as { signInWithStoredToken(): Promise<boolean> })
+		.signInWithStoredToken();
+
+	assert.equal(signedIn, false);
+	assert.equal(secrets.get('onenote-importer'), 'refresh-token');
+	assert.equal(stored.get('onenote-importer-account-type'), 'organization');
+});
+
 test('counting says which section it is in and how much it has found', () => {
 	assert.equal(findingNotes('Recipes', 0, 1), 'Finding notes in Recipes');
 	assert.equal(findingNotes('Recipes', 0, 7), 'Finding notes in Recipes (section 1 of 7)');

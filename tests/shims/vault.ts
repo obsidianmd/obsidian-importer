@@ -125,11 +125,27 @@ export class MemoryVault {
 		return String(this.contents.get(file.path) ?? '');
 	}
 
+	async readBinary(file: { path: string }): Promise<ArrayBuffer> {
+		const content = this.contents.get(file.path);
+		if (!(content instanceof ArrayBuffer)) throw new Error(`${file.path} is not binary`);
+		return content;
+	}
+
 	async modify(file: { path: string }, data: string, options?: DataWriteOptions): Promise<void> {
 		this.contents.set(file.path, data);
 
 		const entry = this.entries.get(normalizePath(file.path).toLowerCase());
 		if (entry instanceof TFile && options) Object.assign(entry.stat, options);
+	}
+
+	async modifyBinary(file: { path: string }, data: ArrayBuffer, options?: DataWriteOptions): Promise<void> {
+		this.contents.set(file.path, data);
+
+		const entry = this.entries.get(normalizePath(file.path).toLowerCase());
+		if (entry instanceof TFile) {
+			entry.stat.size = data.byteLength;
+			if (options) Object.assign(entry.stat, options);
+		}
 	}
 
 	/** The vault refuses a name that is taken rather than picking another. */

@@ -6,12 +6,38 @@ import assert from 'node:assert/strict';
 import { OneNoteImporter } from '../../src/formats/onenote';
 import { ImportContext } from '../../src/import-context';
 import { DuplicateHandling } from '../../src/format-importer';
+import { MemoryVault, memoryApp } from '../shims/vault';
 
 function importer(download: (name: string) => string | null): OneNoteImporter {
 	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
 	subject.importIncompatibleAttachments = false;
 	subject.fetchAttachment = async (_progress, name) => download(name);
 	return subject;
+}
+
+function binaryImporter(resources: Map<string, ArrayBuffer>) {
+	const vault = new MemoryVault();
+	const downloads: string[] = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		app: memoryApp(vault),
+		vault,
+		host: { abortController: new AbortController() },
+		attachmentLocation: { mode: 'vault', path: '' },
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		claimed: new Set<string>(),
+		fetchResource: async (url: string, returnType: string) => {
+			assert.equal(returnType, 'file');
+			downloads.push(url);
+			const data = resources.get(url);
+			if (!data) throw new Error(`No resource at ${url}`);
+			return data;
+		},
+	});
+
+	return { downloads, subject, vault };
 }
 
 test('3gp audio recordings are downloaded and embedded', async () => {
@@ -152,119 +178,88 @@ test('an image with no declared type still downloads', async () => {
 	assert.match(downloaded[0], /\.png$/);
 });
 
-test('an image is named after its note, so a later import can recognise it', async () => {
-	const downloaded: string[] = [];
-	const subject = importer(name => {
-		downloaded.push(name);
-		return name;
+test('images use their resource ids rather than note names or positions', async () => {
+	const names: string[] = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		importIncompatibleAttachments: false,
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		placeAttachment: async (
+			name: string,
+			_notePath: string,
+		) => {
+			names.push(name);
+			return { path: name, reuse: { path: name } };
+		},
 	});
 
 	const page = '<html><body>'
-		+ '<img data-fullres-src="https://example.com/a" data-fullres-src-type="image/png">'
-		+ '<img data-fullres-src="https://example.com/b" data-fullres-src-type="image/jpeg">'
+		+ '<img data-fullres-src="https://graph.microsoft.com/v1.0/me/onenote/resources/a/$value" data-fullres-src-type="image/png">'
+		+ '<img data-fullres-src="https://graph.microsoft.com/v1.0/me/onenote/resources/b/$value" data-fullres-src-type="image/png">'
 		+ '</body></html>';
 
-	await subject.getAllAttachments(new ImportContext(), page, 'Notebook/Recipes.md');
-	await subject.getAllAttachments(new ImportContext(), page, 'Notebook/Recipes.md');
+	await subject.getAllAttachments(new ImportContext(), page, 'One/Recipes.md', 1_000);
+	await subject.getAllAttachments(new ImportContext(), page, 'Two/Recipes.md', 1_000);
 
-	assert.deepEqual(downloaded, [
-		'Recipes image 1.png', 'Recipes image 2.jpeg',
-		'Recipes image 1.png', 'Recipes image 2.jpeg',
-	], 'the same image asks for the same name every import');
+	assert.match(names[0], /^Recipes image [0-9a-f]{16}\.png$/);
+	assert.notEqual(names[0], names[1]);
+	assert.deepEqual(names.slice(0, 2), names.slice(2), 'the same resources keep their names in another note');
 });
 
-test('the size is asked for before the attachment is fetched', async () => {
-	const asked: Array<[string, string]> = [];
-	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+test('equal-sized attachments from different resources never share a file', async () => {
+	const firstUrl = 'https://graph.microsoft.com/v1.0/me/onenote/resources/first/$value';
+	const secondUrl = 'https://graph.microsoft.com/v1.0/me/onenote/resources/second/$value';
+	const resources = new Map([
+		[firstUrl, Uint8Array.from([1, 2]).buffer],
+		[secondUrl, Uint8Array.from([3, 4]).buffer],
+	]);
+	const { downloads, subject, vault } = binaryImporter(resources);
 
-	Object.assign(subject, {
-		duplicateHandling: DuplicateHandling.Update,
-		throttleSpacingMs: 0,
-		sizeProbeAnswered: true,
-		placeAttachment: async (
-			_name: string,
-			_notePath: string,
-			recognise: (existing: { stat: { size: number } }) => Promise<string>,
-		) => {
-			const verdict = await recognise({ stat: { size: 4096 } });
-			return verdict === 'same'
-				? { path: 'Notebook/Document.pdf', reuse: { path: 'Notebook/Document.pdf' } }
-				: { path: 'Notebook/Document 1.pdf', reuse: null };
-		},
-		fetchResource: async (url: string, returnType: string) => {
-			asked.push([returnType, url]);
-			return returnType === 'range' ? 4096 : new ArrayBuffer(0);
-		},
-	});
+	const first = await subject.fetchAttachment(
+		new ImportContext(), 'Document.pdf', firstUrl, 'First.md', 1_000);
+	subject.indexImportedNotes();
+	const second = await subject.fetchAttachment(
+		new ImportContext(), 'Document.pdf', secondUrl, 'Second.md', 1_000);
 
-	const progress = new ImportContext();
-	const path = await subject.fetchAttachment(progress, 'Document.pdf', 'https://example.com/pdf', 'Notebook/Page.md');
+	assert.notEqual(first, second);
+	assert.deepEqual(new Uint8Array(vault.contents.get(first!) as ArrayBuffer), Uint8Array.from([1, 2]));
+	assert.deepEqual(new Uint8Array(vault.contents.get(second!) as ArrayBuffer), Uint8Array.from([3, 4]));
 
-	assert.deepEqual(asked, [['range', 'https://example.com/pdf']], 'the bytes were never fetched');
-	assert.equal(path, 'Notebook/Document.pdf');
-	assert.deepEqual(progress.skipped, ['Document.pdf']);
+	subject.indexImportedNotes();
+	assert.equal(await subject.fetchAttachment(
+		new ImportContext(), 'Document.pdf', secondUrl, 'Second.md', 1_000), second);
+	assert.deepEqual(downloads, [firstUrl, secondUrl], 'an unchanged resource is not downloaded again');
 });
 
-test('a size that does not match is downloaded rather than taken for this one', async () => {
-	const asked: string[] = [];
-	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
-
-	Object.assign(subject, {
-		duplicateHandling: DuplicateHandling.Update,
-		throttleSpacingMs: 0,
-		sizeProbeAnswered: true,
-		placeAttachment: async (
-			_name: string,
-			_notePath: string,
-			recognise: (existing: { stat: { size: number } }) => Promise<string>,
-		) => {
-			// A file of another size is sitting on the name this one wants.
-			await recognise({ stat: { size: 11 } });
-			return { path: 'Notebook/Document 1.pdf', reuse: null };
-		},
-		fetchResource: async (url: string, returnType: string) => {
-			asked.push(returnType);
-			return returnType === 'range' ? 4096 : new ArrayBuffer(4096);
-		},
-		writeAttachment: async () => {},
-	});
+test('an updated attachment replaces its old bytes even when its size is unchanged', async () => {
+	const url = 'https://graph.microsoft.com/v1.0/me/onenote/resources/document/$value';
+	const resources = new Map([[url, Uint8Array.from([1, 2]).buffer]]);
+	const { subject, vault } = binaryImporter(resources);
 
 	const path = await subject.fetchAttachment(
-		new ImportContext(), 'Document.pdf', 'https://example.com/pdf', 'Notebook/Page.md');
+		new ImportContext(), 'Document.pdf', url, 'Page.md', 1_000);
+	resources.set(url, Uint8Array.from([3, 4]).buffer);
+	subject.indexImportedNotes();
 
-	assert.deepEqual(asked, ['range', 'file']);
-	assert.equal(path, 'Notebook/Document 1.pdf', 'the other file is left as it stands');
+	assert.equal(await subject.fetchAttachment(
+		new ImportContext(), 'Document.pdf', url, 'Page.md', 2_000), path);
+	assert.deepEqual(new Uint8Array(vault.contents.get(path!) as ArrayBuffer), Uint8Array.from([3, 4]));
+	assert.equal(vault.paths().length, 1);
 });
 
-test('a service that ignores the range is only asked the once', async () => {
-	const asked: string[] = [];
-	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+test('attachments without a source time compare their bytes before reuse', async () => {
+	const url = 'https://graph.microsoft.com/v1.0/me/onenote/resources/document/$value';
+	const resources = new Map([[url, Uint8Array.from([1, 2]).buffer]]);
+	const { downloads, subject, vault } = binaryImporter(resources);
 
-	Object.assign(subject, {
-		duplicateHandling: DuplicateHandling.Update,
-		throttleSpacingMs: 0,
-		sizeProbeAnswered: true,
-		placeAttachment: async (
-			_name: string,
-			_notePath: string,
-			recognise: (existing: { stat: { size: number } }) => Promise<string>,
-		) => {
-			await recognise({ stat: { size: 11 } });
-			return { path: 'Notebook/Document.pdf', reuse: null };
-		},
-		fetchResource: async (_url: string, returnType: string) => {
-			asked.push(returnType);
-			// null is what a response that sent the whole file reports.
-			return returnType === 'range' ? null : new ArrayBuffer(11);
-		},
-		writeAttachment: async () => {},
-	});
+	const path = await subject.fetchAttachment(new ImportContext(), 'Document.pdf', url, 'Page.md');
+	subject.indexImportedNotes();
 
-	const progress = new ImportContext();
-	await subject.fetchAttachment(progress, 'A.pdf', 'https://example.com/a', 'Notebook/Page.md');
-	await subject.fetchAttachment(progress, 'B.pdf', 'https://example.com/b', 'Notebook/Page.md');
-
-	assert.deepEqual(asked, ['range', 'file', 'file'], 'the probe stops after the first refusal');
+	assert.equal(await subject.fetchAttachment(new ImportContext(), 'Document.pdf', url, 'Page.md'), path);
+	assert.deepEqual(downloads, [url, url]);
+	assert.equal(vault.paths().length, 1);
 });
 
 test('an attachment without a download URL is reported and keeps its fallback content', async () => {

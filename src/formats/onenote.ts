@@ -38,20 +38,39 @@ type JSONWrappedResponse<T> = {
 	value: T[];
 };
 
-type ResourceType = 'text' | 'file' | 'json' | 'json-wrapped' | 'range';
+type ResourceType = 'text' | 'file' | 'json' | 'json-wrapped';
 
-type FetchedResource<T> = string | ArrayBuffer | object | JSONWrappedResponse<T> | number | null;
+type FetchedResource<T> = string | ArrayBuffer | object | JSONWrappedResponse<T>;
 
-/**
- * The length a partial response reports, which the whole attachment has. A
- * response that is not partial ignored the range and sent everything, and says
- * so by answering with nothing.
- */
-function totalFromContentRange(response: Response): number | null {
-	if (response.status !== 206) return null;
+function resourceId(contentLocation: string): string {
+	try {
+		const parts = new URL(contentLocation).pathname.split('/');
+		const resources = parts.lastIndexOf('resources');
+		return resources >= 0 && parts[resources + 1]
+			? decodeURIComponent(parts[resources + 1])
+			: contentLocation;
+	}
+	catch {
+		return contentLocation;
+	}
+}
 
-	const total = /\/(\d+)\s*$/.exec(response.headers.get('Content-Range') ?? '')?.[1];
-	return total ? Number(total) : null;
+async function resourceKey(contentLocation: string): Promise<string> {
+	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(resourceId(contentLocation)));
+	return Array.from(new Uint8Array(digest).slice(0, 8), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function resourceFilename(filename: string, contentLocation: string): Promise<string> {
+	const { basename, extension } = parseFilePath(filename);
+	return `${basename} ${await resourceKey(contentLocation)}${extension ? `.${extension}` : ''}`;
+}
+
+function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
+	if (left.byteLength !== right.byteLength) return false;
+
+	const a = new Uint8Array(left);
+	const b = new Uint8Array(right);
+	return a.every((byte, index) => byte === b[index]);
 }
 
 function assertUnreachable(x: never): never {
@@ -149,8 +168,9 @@ export class OneNoteImporter extends FormatImporter {
 	private readAheadQueue: Promise<void> = Promise.resolve();
 	/** Bumped to disown reads that were started against an earlier listing. */
 	private pagesGeneration = 0;
-	/** Cleared by the first response that ignores a range, so the rest go straight to the download. */
-	private sizeProbeAnswered = true;
+	private nextAccountType: MicrosoftAccountType | null = null;
+	private authenticatingAccountType: MicrosoftAccountType | null = null;
+	private storedTokenFailed = false;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -216,7 +236,14 @@ export class OneNoteImporter extends FormatImporter {
 			await this.updateAccessToken();
 			return true;
 		}
-		catch {
+		catch (error) {
+			this.storedTokenFailed = true;
+			const { status, code } = requestFailure(error);
+			if (status === 400 || status === 401 || code === 'invalid_grant') {
+				this.clearStoredRefreshToken();
+				this.refreshToken = undefined;
+				this.microsoftAccountType = null;
+			}
 			return false;
 		}
 	}
@@ -232,6 +259,7 @@ export class OneNoteImporter extends FormatImporter {
 			await this.showSectionPickerUI();
 		}
 		catch (e) {
+			this.authenticatingAccountType = null;
 			console.error('An error occurred while we were trying to sign you in. Error details: ', e);
 			this.host.sourceEl?.createDiv({ text: 'An error occurred while trying to sign you in.' })
 				.createEl('details', { text: String(e) })
@@ -258,9 +286,14 @@ export class OneNoteImporter extends FormatImporter {
 	private signIn() {
 		this.registerAuthCallback(data => void this.authenticateUser(data)
 			.catch(e => console.error('Could not complete sign in', e)));
+		this.authenticatingAccountType = this.nextAccountType
+			?? (this.storedTokenFailed ? 'personal' : this.microsoftAccountType)
+			?? 'personal';
+		this.nextAccountType = null;
+		this.storedTokenFailed = false;
 
 		window.open(authorizationUrl(
-			this.microsoftAccountType ?? 'personal',
+			this.authenticatingAccountType,
 			GRAPH_CLIENT_ID,
 			AUTH_REDIRECT_URI,
 			this.graphData.state,
@@ -272,6 +305,8 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
+		this.authenticatingAccountType = null;
+		this.storedTokenFailed = false;
 
 		// Whoever signs in next is not necessarily who these belong to, and
 		// asking a personal account for the scopes an organization needs is
@@ -293,7 +328,9 @@ export class OneNoteImporter extends FormatImporter {
 		// used if this import takes a long time, or for future imports.
 		const requestBody = new URLSearchParams({
 			client_id: GRAPH_CLIENT_ID,
-			scope: 'offline_access ' + graphScopes(this.microsoftAccountType ?? 'personal').join(' '),
+			scope: 'offline_access ' + graphScopes(
+				code ? this.authenticatingAccountType ?? 'personal' : this.microsoftAccountType ?? 'personal'
+			).join(' '),
 			redirect_uri: AUTH_REDIRECT_URI,
 		});
 		if (code) {
@@ -326,6 +363,7 @@ export class OneNoteImporter extends FormatImporter {
 
 		const detected = accountTypeFromToken(tokenResponse.id_token ?? tokenResponse.access_token);
 		if (detected) this.microsoftAccountType = detected;
+		this.authenticatingAccountType = null;
 
 		this.graphData.accessToken = tokenResponse.access_token;
 		this.sourceChanged();
@@ -379,7 +417,7 @@ export class OneNoteImporter extends FormatImporter {
 			// Personal accounts cannot consent to Notes.Read.All, so escalating
 			// one leaves it unable to sign in at all.
 			if (requestFailure(e).code === SCOPE_REFUSED && this.microsoftAccountType !== 'personal') {
-				this.microsoftAccountType = 'organization';
+				this.nextAccountType = 'organization';
 			}
 
 			console.error('An error occurred while fetching your OneNote data: ', e);
@@ -628,6 +666,8 @@ export class OneNoteImporter extends FormatImporter {
 
 	async processFile(progress: ImportContext, content: string, page: OnenotePage) {
 		const splitContent = PageContentError.wrapping(() => this.convertFormat(content));
+		const lastModified = page.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
+		const created = page.createdDateTime ? Date.parse(page.createdDateTime) : null;
 		const outputFolder = await this.getOutputFolder();
 		const outputPath = this.getEntityPathNoParent(page.id!, outputFolder!.name)!;
 
@@ -667,13 +707,12 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportFailed(`${page.title} - Ink.svg`, e);
 		}
 
-		const html = await this.getAllAttachments(progress, convertPageTags(splitContent.html), notePath);
+		const html = await this.getAllAttachments(
+			progress, convertPageTags(splitContent.html), notePath, lastModified ?? undefined);
 		let mdContent = PageContentError.wrapping(() => pageToMarkdown(html));
 
 		if (inkEmbedMarkdown) mdContent += inkEmbedMarkdown;
 
-		const lastModified = page?.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : null;
-		const created = page?.createdDateTime ? Date.parse(page.createdDateTime) : null;
 		const writeOptions: DataWriteOptions = {
 			ctime: created ?? lastModified ?? Date.now(),
 			mtime: lastModified ?? created ?? Date.now(),
@@ -827,7 +866,9 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	// Download all attachments and add embedding syntax for supported file formats.
-	async getAllAttachments(progress: ImportContext, pageHTML: string, notePath: string): Promise<HTMLElement> {
+	async getAllAttachments(
+		progress: ImportContext, pageHTML: string, notePath: string, sourceMtime?: number
+	): Promise<HTMLElement> {
 		const pageElement = parseHTML(pageHTML.replace(SELF_CLOSING_REGEX, '<$1$2></$1>'));
 
 		const objects: HTMLElement[] = pageElement.findAll('object');
@@ -858,7 +899,8 @@ export class OneNoteImporter extends FormatImporter {
 				continue;
 			}
 
-			const filename = await this.fetchAttachment(progress, originalName, contentLocation, notePath);
+			const filename = await this.fetchAttachment(
+				progress, originalName, contentLocation, notePath, sourceMtime);
 			if (!filename) continue;
 
 			// Create a new <p> element with the Markdown-style link
@@ -878,10 +920,9 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			const extension = extensionForMime(image.getAttribute('data-fullres-src-type') ?? '') || 'png';
-			// Named after the note rather than the moment of import: a name that
-			// changes every second can never match what the last import wrote.
-			const fileName = `${parseFilePath(notePath).basename} image ${i + 1}.${extension}`;
-			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation, notePath);
+			const fileName = `${parseFilePath(notePath).basename} image.${extension}`;
+			const outputPath = await this.fetchAttachment(
+				progress, fileName, contentLocation, notePath, sourceMtime);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
 				if (!image.alt || BASE64_REGEX.test(image.alt)) {
@@ -911,40 +952,36 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 
-	/**
-	 * How big the attachment is, without fetching it. OneNote gives no size in
-	 * the page HTML, and a name alone cannot say whether the file already at it
-	 * is this attachment, so the size is asked for and compared.
-	 */
-	private async attachmentSize(contentLocation: string, progress: ImportContext): Promise<number | null> {
-		if (!this.sizeProbeAnswered) return null;
-
+	async fetchAttachment(
+		progress: ImportContext,
+		filename: string,
+		contentLocation: string,
+		notePath: string,
+		sourceMtime?: number,
+	): Promise<string | null> {
 		try {
-			const range = await this.fetchResource(contentLocation, 'range', progress);
-			// A response that ignored the range downloaded the whole attachment,
-			// which is what asking first set out to avoid. One is enough to learn.
-			if (range === null) this.sizeProbeAnswered = false;
-			return range;
-		}
-		catch {
-			// Nothing is known about the attachment; treat it as unrecognised.
-			return null;
-		}
-	}
+			const identifiedName = await resourceFilename(filename, contentLocation);
+			let data: ArrayBuffer | null = null;
+			const download = async (): Promise<ArrayBuffer> => {
+				if (data !== null) return data;
 
-	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string, notePath: string): Promise<string | null> {
-		try {
-			// However many names it has to pass over, the size is asked for once.
-			let size: number | null;
-			let asked = false;
-
-			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath, async existing => {
-				if (!asked) {
-					size = await this.attachmentSize(contentLocation, progress);
-					asked = true;
+				if (this.throttleSpacingMs > 0) {
+					await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
 				}
 
-				return size !== null && size === existing.stat.size ? 'same' : 'another';
+				progress.status('Downloading attachment ' + filename);
+				const fetched = await this.fetchResource(contentLocation, 'file', progress);
+				data = fetched;
+				this.throttleSpacingMs = Math.max(0, this.throttleSpacingMs - ATTACHMENT_SPACING_STEP_MS);
+				return fetched;
+			};
+
+			const { path: outputPath, reuse } = await this.placeAttachment(identifiedName, notePath, async existing => {
+				if (sourceMtime !== undefined) {
+					return sourceMtime > existing.stat.mtime ? 'stale' : 'same';
+				}
+
+				return sameBytes(await this.vault.readBinary(existing), await download()) ? 'same' : 'stale';
 			});
 
 			if (reuse) {
@@ -952,18 +989,9 @@ export class OneNoteImporter extends FormatImporter {
 				return reuse.path;
 			}
 
-			// Only downloads are worth spacing out; a reuse never reaches Graph.
-			if (this.throttleSpacingMs > 0) {
-				await new Promise(resolve => window.setTimeout(resolve, this.throttleSpacingMs));
-			}
-
-			progress.status('Downloading attachment ' + filename);
-
-			const data = (await this.fetchResource(contentLocation, 'file', progress));
-			await this.writeAttachment(outputPath, data);
+			await this.writeAttachment(
+				outputPath, await download(), sourceMtime === undefined ? undefined : { mtime: sourceMtime });
 			progress.reportAttachmentSuccess(filename);
-
-			this.throttleSpacingMs = Math.max(0, this.throttleSpacingMs - ATTACHMENT_SPACING_STEP_MS);
 			return outputPath;
 		}
 		catch (e) {
@@ -977,7 +1005,6 @@ export class OneNoteImporter extends FormatImporter {
 	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext): Promise<JSONWrappedResponse<T>>;
-	async fetchResource(url: string, returnType: 'range', progress?: ImportContext): Promise<number | null>;
 	async fetchResource<T>(url: string, returnType: ResourceType, progress?: ImportContext): Promise<FetchedResource<T>> {
 		return this.fetchWithRetry<T>(url, returnType, progress, 0, false);
 	}
@@ -1010,9 +1037,6 @@ export class OneNoteImporter extends FormatImporter {
 				{
 					headers: {
 						Authorization: `Bearer ${this.graphData.accessToken}`,
-						// Asking for the first byte is a GET, which a resource
-						// URL allows where it may refuse a HEAD.
-						...(returnType === 'range' ? { Range: 'bytes=0-0' } : {}),
 					},
 					signal: this.host.abortController.signal,
 				}
@@ -1022,9 +1046,6 @@ export class OneNoteImporter extends FormatImporter {
 				let result: FetchedResource<T>;
 
 				switch (returnType) {
-					case 'range':
-						result = totalFromContentRange(response);
-						break;
 					case 'text':
 						result = await response.text();
 						break;
