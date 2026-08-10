@@ -107,6 +107,16 @@ test('the limit is in bytes, and no character is split to reach it', () => {
 	}
 });
 
+/**
+ * Every rule about what a name may be has to run again after it is cut short,
+ * not just the one about trailing dots: a title Windows would have accepted
+ * whole can truncate back to one of the names it reserves.
+ */
+test('cutting a name short cannot leave one Windows refuses', () => {
+	assert.equal(sanitizeFileName(`CON${' '.repeat(237)}x`), 'Untitled');
+	assert.equal(sanitizeFileName(`Notes.${' '.repeat(300)}`), 'Notes');
+});
+
 test('a name that already fits is not touched', () => {
 	const name = 'a'.repeat(240);
 	assert.equal(sanitizeFileName(name), name);

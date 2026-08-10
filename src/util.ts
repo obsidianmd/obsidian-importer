@@ -78,18 +78,26 @@ function limitNameLength(name: string): string {
 	return truncated;
 }
 
-export function sanitizeFileName(name: string | undefined | null) {
-	const sanitized = limitNameLength(stripControlCharacters(
-		(name ?? '')
-			.replace(slashesRe, '-') // Replace slashes with dash
-			.replace(illegalRe, ''))
+/** The rules about what a name may be, as opposed to which characters it may contain. */
+function tidyName(name: string): string {
+	return name
 		.replace(reservedRe, '')
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(badLinkRe, '')
-		.replace(startsWithDotRe, ''))
-		// Truncating can uncover a trailing dot or space, which Windows refuses
-		.replace(windowsTrailingRe, '');
+		.replace(startsWithDotRe, '');
+}
+
+export function sanitizeFileName(name: string | undefined | null) {
+	const cleaned = tidyName(stripControlCharacters(
+		(name ?? '')
+			.replace(slashesRe, '-') // Replace slashes with dash
+			.replace(illegalRe, '')));
+
+	// Cutting a name short can uncover a trailing dot or space, and can leave
+	// behind a name Windows reserves that the full one was only the start of:
+	// "CON" followed by spaces and a word truncates back to "CON".
+	const sanitized = tidyName(limitNameLength(cleaned));
 
 	// If the result is empty or only whitespace after sanitization, return a default name
 	// This prevents creating files like ".md" (no name) or folders with only spaces
