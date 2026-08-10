@@ -30,7 +30,7 @@ function stubContext() {
 		isCancelled() { return false; },
 		async shouldStop() { return false; },
 		cancel() { },
-		hideStatus() { },
+		finish() { },
 	};
 }
 

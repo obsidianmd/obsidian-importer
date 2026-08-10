@@ -88,6 +88,7 @@ export const en = {
 		labelRemaining_plural: '{{count}} remaining...',
 		labelPausedRemaining: 'Paused - {{count}} remaining',
 		labelPausedRemaining_plural: 'Paused - {{count}} remaining',
+		statusStopping: 'Stopping...',
 		msgStopped: 'Import stopped.',
 		msgErrors: 'Import finished with errors.',
 		msgComplete: 'Import complete.',

@@ -246,6 +246,10 @@ translation=
 original=Paused - {{count}} remaining
 translation=
 
+[progress.status-stopping]
+original=Stopping...
+translation=
+
 [progress.msg-stopped]
 original=Import stopped.
 translation=

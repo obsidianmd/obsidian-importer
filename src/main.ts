@@ -76,7 +76,7 @@ export class ImportProgressUI extends ImportContext {
 	statusEl: HTMLElement;
 	importLogEl: HTMLElement;
 
-	private statusHidden: boolean = false;
+	private finished: boolean = false;
 
 	constructor(el: HTMLElement) {
 		super();
@@ -126,7 +126,7 @@ export class ImportProgressUI extends ImportContext {
 		for (const entry of this.log) {
 			this.drawLogEntry(entry);
 		}
-		if (this.statusHidden) this.onHideStatus();
+		if (this.finished) this.onFinish();
 	}
 
 	protected onStatus(message: string): void {
@@ -162,10 +162,16 @@ export class ImportProgressUI extends ImportContext {
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
-	protected onHideStatus(): void {
-		this.statusHidden = true;
-		this.progressBarEl.hide();
-		this.statusEl.hide();
+	/**
+	 * The progress stays on screen after the import: the counts and the last
+	 * status are what the user reads to see how it went, and a bar left where
+	 * it stopped says how far a stopped import got.
+	 *
+	 * A bar is only worth keeping when there was a total to measure against.
+	 */
+	protected onFinish(): void {
+		this.finished = true;
+		if (this.progressTotal <= 0) this.progressBarEl.hide();
 	}
 
 	private drawLogEntry({ outcome, name, reason }: ImportLogEntry): void {
@@ -673,7 +679,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 			if (this.current === ctx) {
 				this.current = null;
 			}
-			ctx.hideStatus();
+
+			ctx.status(ctx.isCancelled() ? i18n.progress.msgStopped()
+				: ctx.failed.length > 0 ? i18n.progress.msgErrors()
+					: i18n.progress.msgComplete());
+			ctx.finish();
 
 			// An import that threw never got as far as its checkpoints, which is
 			// no evidence that the importer neglects them.
@@ -721,6 +731,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: i18n.modal.buttonStop() }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
+				ctx.status(i18n.progress.statusStopping());
 				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
 

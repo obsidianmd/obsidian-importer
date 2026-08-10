@@ -471,7 +471,7 @@ export class NotionAPIImporter extends FormatImporter {
 				await this.cleanupNotionIds(ctx);
 			}
 
-			ctx.status(i18n.importer.notionApi.statusDone());
+			if (!ctx.isCancelled()) ctx.status(i18n.importer.notionApi.statusDone());
 
 		}
 		catch (error) {

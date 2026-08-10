@@ -64,7 +64,6 @@ export class ImportContext {
 		this.cancelled = true;
 		// Wake a paused import so it can observe cancellation.
 		this.resume();
-		this.hideStatus();
 	}
 
 	pause() {
@@ -88,8 +87,9 @@ export class ImportContext {
 		return this.paused;
 	}
 
-	hideStatus() {
-		this.onHideStatus();
+	/** The import is over, however it ended. */
+	finish() {
+		this.onFinish();
 	}
 
 	isCancelled() {
@@ -113,6 +113,6 @@ export class ImportContext {
 	protected onSkipped(name: string, reason?: unknown): void {}
 	protected onFailed(name: string, reason?: unknown): void {}
 	protected onProgress(current: number, total: number): void {}
-	protected onHideStatus(): void {}
+	protected onFinish(): void {}
 	protected onPaused(paused: boolean): void {}
 }

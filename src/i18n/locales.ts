@@ -66,6 +66,7 @@ export const locales: Record<string, Bundle> = {
 		'progress.label-remaining_plural': '{{count}} restantes...',
 		'progress.label-paused-remaining': 'En pause - {{count}} restante',
 		'progress.label-paused-remaining_plural': 'En pause - {{count}} restantes',
+		'progress.status-stopping': 'Arrêt en cours...',
 		'progress.msg-stopped': 'Importation arrêtée.',
 		'progress.msg-errors': 'Importation terminée avec des erreurs.',
 		'progress.msg-complete': 'Importation terminée.',
