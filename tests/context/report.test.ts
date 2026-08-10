@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ImportContext } from '../../src/import-context';
-import { formatImportReport } from '../../src/import-report';
+import { formatImportReport, importReportName } from '../../src/import-report';
 import { setLanguage } from '../../src/i18n';
 
 const WHEN = new Date(2026, 7, 9, 14, 32);
@@ -154,4 +154,32 @@ test('the report reads in the language the import ran in', () => {
 	assert.match(report, /^Terminé le 2026-08-09 14:32\. 1 note importée, 1 élément ignoré\.$/m);
 	assert.match(report, /^## Ignorés \(1\)$/m);
 	assert.match(report, /^- « Aftersun » car it is already in the vault$/m);
+});
+
+/**
+ * The name carries the date and the format that ran, so a folder imported into
+ * more than once keeps every log rather than one, and two importers pointed at
+ * the same folder do not collide.
+ */
+test('the log is named for the day and the format that wrote it', () => {
+	assert.equal(importReportName('Notion (API)', WHEN), '2026-08-09 Notion (API) import log');
+	assert.equal(importReportName('Apple Notes', WHEN), '2026-08-09 Apple Notes import log');
+});
+
+/**
+ * Because each run writes its own file there is no name to keep stable between
+ * runs, which is what lets this one read in the language the import ran in.
+ */
+test('the name reads in the language the import ran in', () => {
+	setLanguage('fr');
+	const name = importReportName('Fichiers HTML', WHEN);
+	setLanguage('en');
+
+	assert.equal(name, "2026-08-09 Fichiers HTML journal d'import");
+});
+
+test('a format name that would not survive as a file name is sanitized', () => {
+	// A format name is ours rather than the source's, but the name goes
+	// straight into a path and nothing else checks it on the way.
+	assert.equal(importReportName('Notion: the "API"', WHEN), '2026-08-09 Notion the API import log');
 });

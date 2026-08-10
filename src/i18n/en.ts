@@ -100,6 +100,7 @@ export const en = {
 	},
 
 	report: {
+		fileName: '{{date}} {{importer}} import log',
 		title: '{{importer}} import',
 		msgFinished: 'Finished {{when}}. {{counts}}.',
 		msgStopped: 'Stopped {{when}}. {{counts}}.',

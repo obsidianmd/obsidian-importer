@@ -11,7 +11,7 @@
  */
 import { ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
-import { describeReason } from './util';
+import { describeReason, sanitizeFileName } from './util';
 
 export interface ImportReport {
 	/** The importer's display name, for the heading. */
@@ -34,10 +34,27 @@ function twoDigits(value: number): string {
 	return String(value).padStart(2, '0');
 }
 
+/** The local date, written the way Obsidian writes a date property. */
+function isoDate(when: Date): string {
+	return `${when.getFullYear()}-${twoDigits(when.getMonth() + 1)}-${twoDigits(when.getDate())}`;
+}
+
 /** The local time, written the way Obsidian writes a datetime property. */
 function timestamp(when: Date): string {
-	return `${when.getFullYear()}-${twoDigits(when.getMonth() + 1)}-${twoDigits(when.getDate())}`
-		+ ` ${twoDigits(when.getHours())}:${twoDigits(when.getMinutes())}`;
+	return `${isoDate(when)} ${twoDigits(when.getHours())}:${twoDigits(when.getMinutes())}`;
+}
+
+/**
+ * What the note is called, without its extension.
+ *
+ * Dated, and named for the format that ran: a second import leaves a second
+ * log beside the first rather than replacing it, and two importers pointed at
+ * one folder do not land on the same name. Because every run writes its own
+ * file there is no name to keep stable between runs, which is what lets this
+ * one read in the language the import ran in like the rest of the note.
+ */
+export function importReportName(importer: string, when: Date): string {
+	return sanitizeFileName(i18n.report.fileName({ date: isoDate(when), importer }));
 }
 
 /** One line each, the same wording the progress log used while it was on screen. */

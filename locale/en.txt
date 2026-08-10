@@ -282,6 +282,10 @@ translation=
 original=Markdown finalization
 translation=
 
+[report.file-name]
+original={{date}} {{importer}} import log
+translation=
+
 [report.title]
 original={{importer}} import
 translation=

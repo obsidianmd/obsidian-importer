@@ -282,6 +282,10 @@ translation=Normalisation du Markdown ({{current}}/{{total}})
 original=Markdown finalization
 translation=Finalisation du Markdown
 
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} {{importer}} journal d'import
+
 [report.title]
 original={{importer}} import
 translation=Import {{importer}}

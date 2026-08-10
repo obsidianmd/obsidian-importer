@@ -74,6 +74,7 @@ export const locales: Record<string, Bundle> = {
 		'progress.status-waiting-for-markdown': 'En attente du Markdown importé…',
 		'progress.status-standardizing': 'Normalisation du Markdown ({{current}}/{{total}})',
 		'progress.label-finalization': 'Finalisation du Markdown',
+		'report.file-name': '{{date}} {{importer}} journal d\'import',
 		'report.title': 'Import {{importer}}',
 		'report.msg-finished': 'Terminé le {{when}}. {{counts}}.',
 		'report.msg-stopped': 'Arrêté le {{when}}. {{counts}}.',
