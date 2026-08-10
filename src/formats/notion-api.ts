@@ -558,6 +558,11 @@ export class NotionAPIImporter extends FormatImporter {
 
 		this.processedPages.add(pageId);
 
+		// What a failure will call this page. Until its title has been read
+		// there is only the id to go on, which is what the import log used to
+		// show for every failure - leaving no way to find the page it meant.
+		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId.substring(0, 8) });
+
 		try {
 			// Fetch page metadata with rate limit handling
 			const page = await makeNotionRequest(
@@ -569,6 +574,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
+			reportedName = pageTitle;
 
 			// Update status with page title instead of ID
 			ctx.status(i18n.importer.notionApi.statusImportingTitle({ title: sanitizedTitle }));
@@ -885,15 +891,13 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 		catch (error) {
 			console.error(`Failed to import page ${pageId}:`, error);
-			// Try to get page title from the error context or use page ID
-			const pageTitle = i18n.importer.notionApi.labelPage({ id: pageId.substring(0, 8) });
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			// Log more details for debugging
 			console.error(`Error details - Page ID: ${pageId}, Error: ${errorMsg}`);
 			if (error instanceof Error && error.stack) {
 				console.error('Stack trace:', error.stack);
 			}
-			ctx.reportFailed(pageTitle, errorMsg);
+			ctx.reportFailed(reportedName, errorMsg);
 			if (this.selectedNodeIds.has(pageId)) {
 				// Update progress for failed page to ensure remaining reaches 0
 				this.processedPagesCount++;
