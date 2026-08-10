@@ -4,7 +4,7 @@
  */
 
 import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { parseFilePath } from '../filesystem';
@@ -23,7 +23,7 @@ import {
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { buildBaseFile, sanitizePropertyName } from './airtable-api/base-file';
+import { buildBaseFile, mergedBaseViews, sanitizePropertyName } from './airtable-api/base-file';
 import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
 import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
@@ -100,10 +100,6 @@ export class AirtableAPIImporter extends FormatImporter {
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'Views';
-	get incrementalImport(): boolean {
-		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
-	}
-
 	private picker: TreePicker<AirtableTreeNode>;
 
 	// Tracking data
@@ -1302,32 +1298,18 @@ export class AirtableAPIImporter extends FormatImporter {
 			const existingFile = this.vault.getAbstractFileByPathInsensitive(baseFilePath);
 
 			if (existingFile && existingFile instanceof TFile) {
-				// File exists - update it by merging views
+				// Regenerated from the schema, but a view the user added beside
+				// the imported ones is theirs and is kept.
 				const existingContent = await this.vault.read(existingFile);
 
-				// Parse existing YAML to extract existing views (Obsidian Bases internal format)
 				try {
 					const existingConfig = parseYaml(existingContent);
-					const existingViews = existingConfig.views || [];
+					baseConfig.views = mergedBaseViews(existingConfig?.views ?? [], baseConfig.views ?? []);
 
-					// Merge new views with existing ones (avoid duplicates by view name)
-					const viewMap = new Map();
-					for (const view of existingViews) {
-						viewMap.set(view.name, view);
-					}
-					for (const view of baseConfig.views ?? []) {
-						viewMap.set(view.name, view); // Override if exists
-					}
-
-					// Update config with merged views
-					baseConfig.views = Array.from(viewMap.values());
-
-					// Write updated content
-					const updatedContent = stringifyYaml(baseConfig);
-					await this.vault.modify(existingFile, updatedContent);
+					await this.vault.modify(existingFile, stringifyYaml(baseConfig));
 				}
 				catch {
-					// If parsing fails, just overwrite
+					// Nothing readable to keep, so what the schema says stands.
 					await this.vault.modify(existingFile, content);
 				}
 			}

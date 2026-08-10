@@ -129,3 +129,26 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
 
 	return { path: baseFilePath, membershipTokens, config };
 }
+
+/**
+ * The views a rewritten .base should hold.
+ *
+ * A .base is generated from the table's schema, so an import replaces what it
+ * generated. Its views are the exception: the user may have added their own
+ * beside the imported ones, and those are theirs to keep. A view the import
+ * brings replaces the one of that name; anything else in the file stays.
+ *
+ * Nothing here reads the duplicate mode. That setting is about notes, and a
+ * .base holding a view of a table whose schema has moved on is no use.
+ */
+export function mergedBaseViews(
+	existingViews: BasesConfigFileView[],
+	importedViews: BasesConfigFileView[],
+): BasesConfigFileView[] {
+	const byName = new Map<string, BasesConfigFileView>();
+
+	for (const view of existingViews) byName.set(view.name, view);
+	for (const view of importedViews) byName.set(view.name, view);
+
+	return [...byName.values()];
+}

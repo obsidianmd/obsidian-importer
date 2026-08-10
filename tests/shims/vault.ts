@@ -43,6 +43,20 @@ export class MemoryVault {
 	}
 
 	/**
+	 * The vault's own view of the files under it, below the file cache.
+	 *
+	 * Only what the importers reach for: whether a path is taken, and writing
+	 * to one the cache has no TFile for.
+	 */
+	readonly adapter = {
+		exists: async (path: string): Promise<boolean> =>
+			this.contents.has(normalizePath(path)),
+		write: async (path: string, data: string): Promise<void> => {
+			this.contents.set(normalizePath(path), data);
+		},
+	};
+
+	/**
 	 * Take a file out of the vault, as deleting it in Obsidian would.
 	 *
 	 * Both maps: what a file holds, and the vault's own record that it is

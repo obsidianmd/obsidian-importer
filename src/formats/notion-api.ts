@@ -75,7 +75,14 @@ export class NotionAPIImporter extends FormatImporter {
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
-	get incrementalImport(): boolean {
+	/**
+	 * Whether a file already in the vault may stand in for one being imported.
+	 *
+	 * Every mode but "Create a copy": the point of making a copy is to leave
+	 * what is there alone and write your own, and that goes for the attachments
+	 * as much as the notes.
+	 */
+	get reuseExistingAttachments(): boolean {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
 	protected notionClient: Client | null = null;
@@ -675,7 +682,7 @@ export class NotionAPIImporter extends FormatImporter {
 				app: this.app,
 				downloadExternalAttachments: this.downloadExternalAttachments,
 				singleLineBreaks: this.singleLineBreaks, // Single line breaks mode
-				incrementalImport: this.incrementalImport, // Skip attachments with same path and size
+				reuseExistingAttachments: this.reuseExistingAttachments,
 				// A page being left as it is still has to be walked, because a
 				// child of it may have changed. Nothing the walk turns up is
 				// worth downloading: the markdown around it is thrown away.
@@ -698,9 +705,6 @@ export class NotionAPIImporter extends FormatImporter {
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
 					return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
-				},
-				writeMarkdownFile: async (path: string, content: string) => {
-					return await this.createMarkdown(path, content);
 				},
 				syncedBlockFile: request => this.importSyncedBlockFile(ctx, request),
 			});
@@ -760,7 +764,7 @@ export class NotionAPIImporter extends FormatImporter {
 				currentFilePath: mdFilePath,
 				currentFolderPath: pageFolderPath,
 				downloadExternalAttachments: this.downloadExternalAttachments,
-				incrementalImport: this.incrementalImport,
+				reuseExistingAttachments: this.reuseExistingAttachments,
 				onAttachmentDownloaded: (filename: string) => ctx.reportAttachmentSuccess(filename),
 				// Pass mdFilePath so attachments are placed relative to the actual page file
 				getAvailableAttachmentPath: async (filename: string) => {
@@ -798,14 +802,11 @@ export class NotionAPIImporter extends FormatImporter {
 							vault: this.vault,
 							app: this.app,
 							downloadExternalAttachments: true, // Always download cover images
-							incrementalImport: this.incrementalImport,
+							reuseExistingAttachments: this.reuseExistingAttachments,
 							currentPageTitle: sanitizedTitle,
 							// Pass mdFilePath so attachments are placed relative to the actual page file
 							getAvailableAttachmentPath: async (filename: string) => {
 								return await this.getAvailablePathForAttachment(filename, [], mdFilePath);
-							},
-							writeMarkdownFile: async (path: string, content: string) => {
-								return await this.createMarkdown(path, content);
 							},
 						}
 					);

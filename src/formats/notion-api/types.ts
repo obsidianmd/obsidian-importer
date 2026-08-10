@@ -11,7 +11,7 @@ import {
 	PageObjectResponse,
 	Heading1BlockObjectResponse
 } from '@notionhq/client';
-import { Vault, App, TFile } from 'obsidian';
+import { Vault, App } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import type { FormulaImportStrategy } from '../../base';
 
@@ -49,9 +49,6 @@ export interface DatabaseProcessingContext {
 	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search
 }
 
-/**
- * Information about a processed database
- */
 /** What the converter has to say about a synced block's own note. */
 export interface SyncedBlockRequest {
 	blockId: string;
@@ -75,6 +72,9 @@ export interface SyncedBlockConversion {
 	keepPlaceholders: boolean;
 }
 
+/**
+ * Information about a processed database
+ */
 export interface DatabaseInfo {
 	id: string;
 	title: string;
@@ -239,7 +239,7 @@ export interface BlockConversionContext {
 	app: App;
 	downloadExternalAttachments: boolean;
 	singleLineBreaks?: boolean; // Single line breaks between blocks (default: false)
-	incrementalImport?: boolean;
+	reuseExistingAttachments?: boolean;
 	/**
 	 * This page is being walked to reach what is under it, not to be written.
 	 *
@@ -262,7 +262,6 @@ export interface BlockConversionContext {
 	currentPageTitle?: string; // Current page title for attachment naming fallback
 	isProcessingSyncedBlock?: boolean; // Flag to indicate we're processing synced block content
 	getAvailableAttachmentPath?: (filename: string) => Promise<string>; // Function to get available attachment path
-	writeMarkdownFile: (path: string, content: string) => Promise<TFile>; // Importer-owned writer, so post-import normalization tracks the file
 	/**
 	 * Place, convert and write a synced block's own note, and say where it went.
 	 *
