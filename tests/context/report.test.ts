@@ -98,6 +98,24 @@ test('an import that was stopped says so rather than claiming to have finished',
 	assert.match(reportOf(ctx), /^Stopped 2026-08-09 14:32\./m);
 });
 
+/**
+ * The log wrote a name into a span, where it is text whatever is in it. A note
+ * is read as Markdown, so the same name has to be escaped on the way in.
+ */
+test('Markdown in a name is written as text rather than markup', () => {
+	const ctx = new ImportContext();
+	ctx.reportFailed('![[Ledger]]', 'HTTP 502');
+	ctx.reportFailed('![](https://example.com/pixel.png)', '*not* `found`');
+
+	const lines = reportOf(ctx).split('\n').filter(line => line.startsWith('- '));
+
+	// Nothing left that would embed a note, fetch an image, or set a style
+	assert.deepEqual(lines, [
+		'- "!\\[\\[Ledger\\]\\]" because HTTP 502',
+		'- "!\\[\\](https://example.com/pixel.png)" because \\*not\\* \\`found\\`',
+	]);
+});
+
 test('a section too long to read says how much of it is missing', () => {
 	const ctx = new ImportContext();
 	for (let i = 0; i < 5003; i++) ctx.reportSkipped(`Page ${i}`, 'it is already in the vault');
@@ -106,7 +124,10 @@ test('a section too long to read says how much of it is missing', () => {
 
 	assert.match(report, /^## Skipped \(5,003\)$/m, 'the count should be the real one');
 	assert.equal(report.split('\n').filter(line => line.startsWith('- ')).length, 5000);
-	assert.match(report, /_3 more not listed/);
+	// Only a failure is echoed to the console, so a skipped entry left out
+	// here is left out everywhere: the note must not say otherwise.
+	assert.match(report, /_3 more, not listed here\._/);
+	assert.doesNotMatch(report, /console/i);
 });
 
 test('a reason nobody passed is left off rather than written as undefined', () => {

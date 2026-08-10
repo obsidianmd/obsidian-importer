@@ -88,7 +88,7 @@ export const locales: Record<string, Bundle> = {
 		'report.count-skipped_plural': '{{count}} éléments ignorés',
 		'report.count-failed': '{{count}} élément en échec',
 		'report.count-failed_plural': '{{count}} éléments en échec',
-		'report.msg-more-not-listed': '{{count}} de plus non listés. La console les a tous.',
+		'report.msg-more-not-listed': '{{count}} de plus, non listés ici.',
 		'source.name': 'Fichiers à importer',
 		'source.desc': 'Choisissez les fichiers que vous voulez importer.',
 		'source.button-choose-file': 'Choisir un fichier',

@@ -114,7 +114,7 @@ export const en = {
 		countSkipped_plural: '{{count}} items skipped',
 		countFailed: '{{count}} item failed',
 		countFailed_plural: '{{count}} items failed',
-		msgMoreNotListed: '{{count}} more not listed. The console has all of them.',
+		msgMoreNotListed: '{{count}} more, not listed here.',
 	},
 
 	source: {

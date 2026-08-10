@@ -339,7 +339,7 @@ original={{count}} items failed
 translation=
 
 [report.msg-more-not-listed]
-original={{count}} more not listed. The console has all of them.
+original={{count}} more, not listed here.
 translation=
 
 [source.name]

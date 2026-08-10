@@ -57,6 +57,18 @@ export function importReportName(importer: string, when: Date): string {
 	return sanitizeFileName(i18n.report.fileName({ date: isoDate(when), importer }));
 }
 
+/**
+ * A name or a reason as the log showed it: text, not markup.
+ *
+ * The progress log wrote these into a span, where a note titled `![[Ledger]]`
+ * is just a title. Written into a note they are read as Markdown, and that one
+ * would embed a note from the vault into the report - or, with an image URL in
+ * it, fetch that image the moment the report is opened.
+ */
+function asText(value: string): string {
+	return value.replace(/\s+/g, ' ').replace(/[\\`*_[\]<>]/g, '\\$&');
+}
+
 /** One line each, the same wording the progress log used while it was on screen. */
 function section(heading: string, entries: ImportLogEntry[]): string[] {
 	if (entries.length === 0) return [];
@@ -64,13 +76,11 @@ function section(heading: string, entries: ImportLogEntry[]): string[] {
 	const lines = [`## ${heading}`, ''];
 
 	for (const { name, reason } of entries.slice(0, MAX_ENTRIES)) {
-		// No Markdown around the name: these come from note titles and URLs,
-		// which carry brackets and asterisks of their own.
 		const line = reason === undefined || reason === null || reason === ''
-			? i18n.progress.labelEntry({ name })
-			: i18n.progress.labelEntryWithReason({ name, reason: describeReason(reason) });
+			? i18n.progress.labelEntry({ name: asText(name) })
+			: i18n.progress.labelEntryWithReason({ name: asText(name), reason: asText(describeReason(reason)) });
 
-		lines.push(`- ${line.replace(/\s+/g, ' ')}`);
+		lines.push(`- ${line}`);
 	}
 
 	if (entries.length > MAX_ENTRIES) {
