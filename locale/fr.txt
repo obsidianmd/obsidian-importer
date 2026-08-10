@@ -854,6 +854,10 @@ translation=Impossible de lire les noms des enregistrements
 original=Empty record
 translation=Enregistrement vide
 
+[importer.airtable-api.desc-no-modified-time]
+original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
+translation=
+
 [importer.apple-notes.name]
 original=Apple Notes
 translation=

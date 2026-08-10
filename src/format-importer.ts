@@ -209,6 +209,9 @@ export abstract class FormatImporter {
 		DuplicateHandling.Update,
 	];
 
+	/** What this importer's source cannot tell it, shown under the setting. */
+	duplicateCaveat: string | null = null;
+
 	/** Frontmatter property used to identify imported notes. */
 	idProperty: string | null = null;
 	/** Set in init() when an importer names its ID something more specific. */
@@ -651,6 +654,14 @@ export abstract class FormatImporter {
 			frag.appendText(i18n.output.descDuplicates({
 				update: duplicateHandlingLabel(DuplicateHandling.Update),
 			}));
+
+			// What the shared description promises rests on the source saying
+			// when it last changed something. An importer whose source does not
+			// says so here rather than letting the promise stand.
+			if (this.duplicateCaveat) {
+				frag.createEl('br');
+				frag.appendText(this.duplicateCaveat);
+			}
 		});
 	}
 

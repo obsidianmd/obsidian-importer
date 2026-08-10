@@ -217,7 +217,9 @@ export class AirtableAPIImporter extends FormatImporter {
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 				}));
 
-		this.duplicateModes = [DuplicateHandling.CreateCopy, DuplicateHandling.Skip];
+		this.duplicateCaveat = i18n.importer.airtableApi.descNoModifiedTime({
+			update: i18n.output.optionUpdate(),
+		});
 	}
 
 	private createTokenDescription(): DocumentFragment {

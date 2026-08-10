@@ -16,7 +16,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { AirtableAPIImporter } from '../../src/formats/airtable-api';
-import { DuplicateHandling } from '../../src/format-importer';
+import { DuplicateHandling, NoteDisposition } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { RECORD_ID_PROPERTY, recordSourceIds, recordTimestamps } from '../../src/formats/airtable-api/record-note';
 import type { AirtableRecord, PreparedTableData, TablePlan } from '../../src/formats/airtable-api/types';
@@ -28,6 +28,11 @@ class PlanningImporter extends AirtableAPIImporter {
 	plan(ctx: ImportContext, rootPath: string, tables: PreparedTableData[]): Promise<TablePlan[]> {
 		this.preparedData = tables;
 		return this.planRecordPaths(ctx, rootPath);
+	}
+
+	/** What the importer decides about a planned record before rendering it. */
+	preflight(ctx: ImportContext, planned: TablePlan): NoteDisposition {
+		return this.preflightNote(ctx, planned.records[0].note!);
 	}
 }
 
@@ -164,6 +169,45 @@ test('but not once it has moved, where no base can claim it', async () => {
 
 	assert.equal(plans[0].records[0].note?.file, null);
 	assert.deepEqual(paths(plans), ['Airtable/Books/Dune.md']);
+});
+
+test('the importer offers all three ways of meeting a note it already wrote', async () => {
+	const subject = await planning(new MemoryVault(), DuplicateHandling.Update);
+
+	assert.deepEqual(subject.duplicateModes, [
+		DuplicateHandling.CreateCopy,
+		DuplicateHandling.Skip,
+		DuplicateHandling.Update,
+	]);
+});
+
+/** A vault holding one note for rec1, and the plan that finds it. */
+async function planOver(mode: DuplicateHandling) {
+	const vault = new MemoryVault();
+	await vault.createFolder('Airtable');
+	await vault.createFolder('Airtable/Books');
+	await vault.create('Airtable/Books/Dune.md', `---\nairtable-id: ${BASE_ID}:rec1\n---\nold\n`);
+
+	const subject = await planning(vault, mode);
+	const ctx = new ImportContext();
+	const plans = await subject.plan(ctx, 'Airtable', [table([record('rec1', 'Dune')])]);
+
+	return { subject, ctx, plans };
+}
+
+// Which matters for more than the writing: rendering a record downloads its
+// attachments, so a decision made after it is a decision made too late.
+test('"Skip" is settled before the record is rendered', async () => {
+	const { subject, ctx, plans } = await planOver(DuplicateHandling.Skip);
+
+	assert.equal(subject.preflight(ctx, plans[0]), 'skip');
+});
+
+test('"Update" cannot settle it, because Airtable will not say when the record changed', async () => {
+	const { subject, ctx, plans } = await planOver(DuplicateHandling.Update);
+
+	assert.equal(subject.preflight(ctx, plans[0]), 'compare-content');
+	assert.deepEqual(ctx.skipped, [], 'nothing is decided yet, so nothing is reported');
 });
 
 test('the property a record note is recognised by is airtable-id', () => {
