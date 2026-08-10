@@ -17,14 +17,6 @@ import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { extractErrorMessage } from '../../util';
 
-/**
- * What a block is called on screen. These are fixed block kinds, not anything
- * the source named, so each gets a string of its own — and because the record
- * is keyed by the union, adding a kind without a label will not compile.
- *
- * A label carries whatever article its language needs, since the sentence it
- * lands in cannot know the gender of the noun coming.
- */
 const BLOCK_CONTEXT_LABELS: Record<BlockContext, () => string> = {
 	'paragraph': () => i18n.importer.notionApi.blockParagraph(),
 	'bulleted list item': () => i18n.importer.notionApi.blockBulletedListItem(),
@@ -51,18 +43,6 @@ export interface NotionRequestError {
 	headers?: Record<string, string>;
 }
 
-/**
- * Failures worth asking again about.
- *
- * A rate limit says so outright. The rest are Notion having a bad moment - a
- * gateway timing out, a data source taking longer to render than the API is
- * willing to wait - and an import large enough to meet them will meet them a
- * few hundred times. Giving up on the first one loses a page that would have
- * arrived on the second.
- *
- * Everything else (a 404, a permission the token does not have, a malformed
- * request) means the same thing however many times it is asked.
- */
 const RETRYABLE_CODES = new Set([
 	'rate_limited',
 	'service_overload',
@@ -73,11 +53,7 @@ const RETRYABLE_CODES = new Set([
 	'notionhq_client_response_error',
 ]);
 
-/**
- * Notion sometimes says outright that a failure is worth another try - a
- * database large enough to run past what the API will spend rendering it comes
- * back with "Retry with exponential backoff" and a status that says nothing.
- */
+// Some rendering timeouts use status 400 but explicitly request backoff.
 const ASKS_TO_RETRY = /retry with exponential backoff/i;
 
 function isRetryable(error: NotionRequestError): boolean {
@@ -88,12 +64,10 @@ function isRetryable(error: NotionRequestError): boolean {
 	return ASKS_TO_RETRY.test(extractErrorMessage(error) ?? '');
 }
 
-/** How long to wait before asking again, in seconds. */
 function retryDelay(error: NotionRequestError, retryCount: number): number {
 	const retryAfter = error.headers?.['retry-after'] ?? error.headers?.['Retry-After'];
 	const asked = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
 
-	// Exponential backoff otherwise: 1s, 2s, 4s
 	return Number.isFinite(asked) && asked > 0 ? asked : Math.pow(2, retryCount);
 }
 
@@ -187,10 +161,6 @@ export async function processBlockChildren<T>(
 	}
 }
 
-/**
- * Wrapper for Notion API calls that asks again when the failure was Notion's
- * rather than the request's, backing off between tries.
- */
 export async function makeNotionRequest<T>(
 	requestFn: () => Promise<T>,
 	ctx: ImportContext,
@@ -206,8 +176,6 @@ export async function makeNotionRequest<T>(
 		const rateLimited = error.code === 'rate_limited' || error.status === 429;
 
 		if (retryCount >= MAX_RETRIES) {
-			// Say what it kept failing with, not just that it kept failing:
-			// this is the line the import log ends up showing.
 			throw new Error(rateLimited
 				? i18n.importer.notionApi.reasonRateLimitGaveUp({ retries: MAX_RETRIES })
 				: i18n.importer.notionApi.reasonGaveUp({
@@ -219,8 +187,6 @@ export async function makeNotionRequest<T>(
 		const waitFor = retryDelay(error, retryCount);
 		const previousStatus = ctx.statusMessage;
 
-		// Two whole sentences rather than one with the cause dropped into it:
-		// a status naming a number needs its own wording in every language.
 		ctx.status(rateLimited
 			? i18n.importer.notionApi.statusRateLimited({
 				seconds: waitFor,
@@ -864,4 +830,3 @@ function mapNotionPropertyToFrontmatter(prop: any): any {
 			return String(prop[prop.type] || '');
 	}
 }
-

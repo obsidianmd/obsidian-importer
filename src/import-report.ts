@@ -1,20 +1,8 @@
-/**
- * The note an import leaves behind when something did not come through.
- *
- * The progress log says what happened while it is on screen and then it is
- * gone. An import of ten thousand pages ends on five numbers and no way to act
- * on them: which pages failed, why, and whether the ones that were skipped
- * were the ones already in the vault. This writes that down.
- *
- * Building the text takes no vault, so what the report says can be checked
- * without one; FormatImporter.writeImportReport puts it in the output folder.
- */
 import { ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
 import { describeReason, sanitizeFileName } from './util';
 
 export interface ImportReport {
-	/** The importer's display name, for the heading. */
 	importer: string;
 	when: Date;
 	notes: number;
@@ -27,42 +15,23 @@ function twoDigits(value: number): string {
 	return String(value).padStart(2, '0');
 }
 
-/** The local date, written the way Obsidian writes a date property. */
 function isoDate(when: Date): string {
 	return `${when.getFullYear()}-${twoDigits(when.getMonth() + 1)}-${twoDigits(when.getDate())}`;
 }
 
-/** The local time, written the way Obsidian writes a datetime property. */
 function timestamp(when: Date): string {
 	return `${isoDate(when)} ${twoDigits(when.getHours())}:${twoDigits(when.getMinutes())}`;
 }
 
-/**
- * What the note is called, without its extension.
- *
- * Dated, and named for the format that ran: a second import leaves a second
- * log beside the first rather than replacing it, and two importers pointed at
- * one folder do not land on the same name. Because every run writes its own
- * file there is no name to keep stable between runs, which is what lets this
- * one read in the language the import ran in like the rest of the note.
- */
 export function importReportName(importer: string, when: Date): string {
 	return sanitizeFileName(i18n.report.fileName({ date: isoDate(when), importer }));
 }
 
-/**
- * A name or a reason as the log showed it: text, not markup.
- *
- * The progress log wrote these into a span, where a note titled `![[Ledger]]`
- * is just a title. Written into a note they are read as Markdown, and that one
- * would embed a note from the vault into the report - or, with an image URL in
- * it, fetch that image the moment the report is opened.
- */
+// Escape source-controlled text before placing it in Markdown.
 function asText(value: string): string {
 	return value.replace(/\s+/g, ' ').replace(/[\\`*_[\]<>]/g, '\\$&');
 }
 
-/** One line each, the same wording the progress log used while it was on screen. */
 function section(heading: string, entries: ImportLogEntry[]): string[] {
 	if (entries.length === 0) return [];
 
@@ -86,10 +55,7 @@ export function formatImportReport(report: ImportReport): string {
 	const failed = log.filter(entry => entry.outcome === 'failed');
 	const skipped = log.filter(entry => entry.outcome === 'skipped');
 
-	// Only what the import actually counted. Not every importer reports a note
-	// success - the Notion API one tracks progress instead - and a report that
-	// opens on "0 notes imported" over a folder full of them is worse than one
-	// that does not mention notes at all.
+	// Some importers do not count successful notes, so omit zero counts.
 	const counts = ([
 		[notes, () => i18n.report.countNotes({ count: notes })],
 		[attachments, () => i18n.report.countAttachments({ count: attachments })],
@@ -107,7 +73,6 @@ export function formatImportReport(report: ImportReport): string {
 		'',
 		cancelled ? i18n.report.msgStopped({ when: when_, counts }) : i18n.report.msgFinished({ when: when_, counts }),
 		'',
-		// Failures first: they are the ones with something still to do about them
 		...section(i18n.report.headingFailed({ count: failed.length }), failed),
 		...section(i18n.report.headingSkipped({ count: skipped.length }), skipped),
 	];

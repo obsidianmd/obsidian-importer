@@ -1,4 +1,3 @@
-/** One thing that did not import, and why. */
 export interface ImportLogEntry {
 	outcome: 'skipped' | 'failed';
 	name: string;
@@ -11,12 +10,6 @@ export class ImportContext {
 	skipped: string[] = [];
 	failed: string[] = [];
 
-	/**
-	 * Everything skipped or failed, in the order it happened, with the reason
-	 * kept rather than only counted. This is what the progress log draws and
-	 * what the import report is written from - an import of ten thousand pages
-	 * ends on numbers nobody can act on otherwise.
-	 */
 	log: ImportLogEntry[] = [];
 
 	statusMessage: string = '';

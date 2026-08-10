@@ -550,9 +550,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 		this.processedPages.add(pageId);
 
-		// What a failure will call this page. Until its title has been read
-		// there is only the id to go on, which is what the import log used to
-		// show for every failure - leaving no way to find the page it meant.
+		// Keep the full ID if fetching the title fails.
 		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {

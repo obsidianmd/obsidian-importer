@@ -178,19 +178,6 @@ test('an attachment URL answers a ranged GET', { skip }, async () => {
 	console.log(`   ${total} bytes learned from ${received}`);
 });
 
-/**
- * Does a meeting_notes block still point at its content the way the fixture
- * says it does?
- *
- * The block on the page carries no content at all - the summary, the notes and
- * the transcript are the children of three ids under `children`, and the
- * converter fetches each one separately. tests/notion-api/meeting-notes-page.json
- * is written to what Notion documents rather than to a capture, because AI
- * meeting notes need a plan that has them.
- *
- * So this skips twice over: without a token, and without that plan. When it
- * does run it is the only thing that would notice Notion moving the ids.
- */
 test('a meeting notes block still points at its summary, notes and transcript', { skip }, async () => {
 	const response = await fetch('https://api.notion.com/v1/blocks/meeting_notes/query', {
 		method: 'POST',
@@ -225,8 +212,6 @@ test('a meeting notes block still points at its summary, notes and transcript', 
 	const meetingNotes = block.meeting_notes;
 	assertShape(meetingNotes, { status: 'string', children: 'object' }, 'meeting_notes');
 
-	// The three ids are what the converter fetches; any one of them may be
-	// absent, but nothing else stands in for them.
 	const { summary_block_id, notes_block_id, transcript_block_id } = meetingNotes.children;
 	for (const [name, id] of Object.entries({ summary_block_id, notes_block_id, transcript_block_id })) {
 		if (id === undefined) continue;

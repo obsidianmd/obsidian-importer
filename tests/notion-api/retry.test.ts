@@ -1,14 +1,3 @@
-/**
- * Which Notion failures are worth asking about again.
- *
- * A workspace of ten thousand pages will meet a 502, a 504, or a data source
- * that takes longer to render than the API waits for - not once, but hundreds
- * of times. Only a rate limit used to be retried, so every one of those was a
- * page the import dropped and offered no way to go back for.
- *
- * The backoff is real time, so these collapse it: what is being checked is
- * which failures come back for another try, not how long they wait.
- */
 import '../shims/dom';
 
 import { test } from 'node:test';
@@ -17,7 +6,6 @@ import assert from 'node:assert/strict';
 import { makeNotionRequest } from '../../src/formats/notion-api/api-helpers';
 import { ImportContext } from '../../src/import-context';
 
-/** Runs the body with the backoff collapsed, so a retry costs no wall clock. */
 async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
 	const slept = window.setTimeout;
 	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void) => (wake(), 0);
@@ -30,7 +18,6 @@ async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
 	}
 }
 
-/** Fails with each of these in turn, then answers. */
 function failingWith(...failures: Record<string, unknown>[]) {
 	let calls = 0;
 
@@ -70,11 +57,6 @@ test('so is a rate limit, a timeout, and a response the client could not read', 
 	}
 });
 
-/**
- * A database large enough to run past what the API will spend rendering it
- * comes back saying so, with a status that gives nothing away. The message is
- * the only thing that says this one is worth another try.
- */
 test('a failure that asks to be retried is retried', async () => {
 	const notion = failingWith({
 		status: 400,
@@ -87,8 +69,6 @@ test('a failure that asks to be retried is retried', async () => {
 });
 
 test('a failure that will say the same thing next time is asked once', async () => {
-	// Nothing about a second try changes a page that is not there, a token
-	// without access to it, or a request Notion will not accept.
 	for (const failure of [
 		{ code: 'object_not_found', status: 404 },
 		{ code: 'unauthorized', status: 401 },
@@ -118,10 +98,6 @@ test('a Retry-After is waited for rather than guessed at', async () => {
 	assert.deepEqual(waits, [7000]);
 });
 
-/**
- * The import log shows the message this throws, and "Rate limit exceeded" was
- * the only thing it ever said - whatever had actually gone wrong.
- */
 test('giving up says what kept failing', async () => {
 	const notion = failingWith(...Array(5).fill({ status: 502, message: 'Request to Notion API failed with status: 502' }));
 

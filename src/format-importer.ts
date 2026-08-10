@@ -810,14 +810,6 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/**
-	 * Write down what did not come through, in the folder the import went to.
-	 *
-	 * Only when there is something to write down: an import that lost nothing
-	 * leaves no note behind. The report is the only record that outlives the
-	 * dialog, so a failure to write it is reported rather than thrown - the
-	 * import itself has already finished by this point.
-	 */
 	async writeImportReport(ctx: ImportContext, importerName: string): Promise<TFile | null> {
 		if (ctx.log.length === 0) return null;
 
@@ -825,8 +817,6 @@ export abstract class FormatImporter {
 			const folder = await this.getOutputFolder();
 			if (!folder) return null;
 
-			// One clock for the name and the summary, so the two agree even
-			// across midnight.
 			const when = new Date();
 
 			const content = formatImportReport({

@@ -1,16 +1,3 @@
-/**
- * Downloading an attachment, for the one case that reaches a vault without
- * reaching the network.
- *
- * Notion hands back some attachments inline, as a `data:` URL. requestUrl
- * speaks http(s) only, so those used to fail the whole attachment with
- * "ClientRequest only supports http: and https: protocols" - and, because the
- * name was taken off the URL, failed under a name that was the head of the
- * base64 payload. The vault here records what was written rather than writing
- * it, so the bytes can be checked.
- */
-// The dom shim rather than the runtime one: a retry backs off with
-// window.setTimeout, the way the rest of the plugin schedules anything.
 import '../shims/dom';
 
 import { test } from 'node:test';
@@ -26,10 +13,6 @@ interface Written {
 	data: ArrayBuffer;
 }
 
-/**
- * Enough of a context to download into: a vault that remembers what it was
- * given, and the attachment path the importer would have picked.
- */
 function context(written: Written[], overrides: Partial<BlockConversionContext> = {}): BlockConversionContext {
 	return {
 		ctx: {
@@ -88,8 +71,6 @@ test('the extension comes from the media type when the name has none', async () 
 		context(written)
 	);
 
-	// No name of its own, so it falls back to the page title - not to the
-	// base64 payload, which is what the URL would have yielded.
 	assert.equal(result.filename, 'A page with an inline image.gif');
 	assert.equal(written[0].path, 'Attachments/A page with an inline image.gif');
 });
@@ -128,11 +109,6 @@ test('a malformed data URL fails that attachment and leaves the URL in place', a
 	assert.deepEqual(result, { path: url, isLocal: false });
 });
 
-/**
- * A context whose vault is a real one, for the case that needs a file to
- * already be in it. getAvailableAttachmentPath answers the way the importer's
- * does: the name asked for when it is free, and a numbered one when it is not.
- */
 function contextOverVault(vault: MemoryVault, incrementalImport: boolean): BlockConversionContext {
 	const skipped: string[] = [];
 
@@ -161,7 +137,6 @@ function contextOverVault(vault: MemoryVault, incrementalImport: boolean): Block
 	} as unknown as BlockConversionContext;
 }
 
-/** A data URL of a given size, so the sizes can be made to agree or not. */
 function attachmentOf(bytes: number): NotionAttachment {
 	return {
 		type: 'external',
@@ -226,11 +201,6 @@ test('a file that takes the chosen path is given another name', async () => {
 	assert.deepEqual(vault.paths(), ['Attachments/photo 1.txt']);
 });
 
-/**
- * A vault that answers "already exists" for every name it is offered - an index
- * and a disk that disagree across a whole family of them - used to be asked
- * forever, in a loop with no cancellation checkpoint for a button to reach.
- */
 test('a vault that refuses every name is not asked forever', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Attachments');
@@ -252,12 +222,6 @@ test('a vault that refuses every name is not asked forever', async () => {
 	assert.equal(result.isLocal, false, 'the attachment is reported rather than silently dropped');
 });
 
-/**
- * A server that honours a byte range, and a record of what was asked of it.
- *
- * The point of the probe is the request it avoids, so what the test looks at
- * is the list of requests rather than only the file that came out.
- */
 function serving(bytes: number, options: { honoursRange?: boolean } = {}) {
 	const { honoursRange = true } = options;
 	const asked: string[] = [];
@@ -276,7 +240,6 @@ function serving(bytes: number, options: { honoursRange?: boolean } = {}) {
 			return { status: 206, headers, arrayBuffer: new TextEncoder().encode('x').buffer };
 		}
 
-		// A server that ignores the range sends the whole thing back
 		const headers: Record<string, string> = { 'content-type': 'text/plain' };
 
 		return { status: 200, headers, arrayBuffer: body };
@@ -313,8 +276,6 @@ test('an attachment of a different size is fetched after the range says so', asy
 });
 
 test('a server that ignores the range is not asked a second time', async () => {
-	// The whole file comes back for a range it will not honour, so probing
-	// costs a download rather than saving one. One attachment finds that out.
 	const vault = new MemoryVault();
 	await vault.createFolder('Attachments');
 	const server = serving(5, { honoursRange: false });
@@ -336,16 +297,6 @@ test('without incremental import nothing is probed', async () => {
 	assert.deepEqual(server.asked, ['full']);
 });
 
-/**
- * What a large import does with an attachment that will not come down.
- *
- * A ten-thousand page workspace meets every kind of transient failure there
- * is - a gateway that is busy, a file Notion has not finished preparing, a
- * connection that drops - hundreds of times over. Every one of those used to
- * end the attachment on the first try.
- */
-
-/** Runs the body with the backoff collapsed, so a retry costs no wall clock. */
 async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
 	const slept = window.setTimeout;
 	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void) => (wake(), 0);
@@ -358,7 +309,6 @@ async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
 	}
 }
 
-/** Answers with each status in turn, then 200. */
 function answersWith(...statuses: number[]) {
 	const asked: number[] = [];
 
@@ -388,12 +338,6 @@ test('a status that means "not now" is asked about again', async () => {
 	assert.deepEqual(vault.paths(), ['Attachments/photo.txt']);
 });
 
-/**
- * 202 is Notion's storage saying "still preparing", and only Notion's. A file
- * property holding a link to a site that refuses robots answers a download
- * with one too, and that one will say the same thing on every try - three
- * retries and seven seconds of backoff per link, across a whole workspace.
- */
 test('202 is worth another try from Notion, and not from anywhere else', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder('Attachments');
@@ -425,9 +369,6 @@ test('an external link that will not download is kept rather than lost', async (
 
 	const result = await withoutWaiting(() => downloadAttachment(REMOTE, context));
 
-	// The note points where Notion pointed. A link that was already broken is
-	// not something this import broke, so it is not counted as a failure -
-	// reportFailed in contextOverVault fails the test outright.
 	assert.equal(result.isLocal, false);
 	assert.equal(result.path, REMOTE.url);
 	assert.deepEqual((context as never as { skipped: string[] }).skipped, ['Attachment: photo.txt']);
@@ -444,8 +385,6 @@ test('a file Notion was hosting failing to download is a failure', async () => {
 	const hosted: NotionAttachment = { ...REMOTE, type: 'file' };
 	const result = await withoutWaiting(() => downloadAttachment(hosted, context));
 
-	// Nothing is left pointing at the content: a presigned URL expires, so
-	// keeping it would be keeping a link that stops working.
 	assert.deepEqual(failures, ['Attachment: photo.txt']);
 	assert.equal(result.isLocal, false);
 });

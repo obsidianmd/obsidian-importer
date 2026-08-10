@@ -1,5 +1,5 @@
 {
-	"_comment": "Hand-written to the shape Notion documents for the meeting_notes block (https://developers.notion.com/reference/block). The block on the page carries only metadata: its summary, notes and transcript are the children of the three ids under `children`, each fetched with GET /v1/blocks/{id}/children like any other block. The ids and the content are made up. Covers a finished meeting, one with no title of its own, and one Notion is still transcribing.",
+	"_comment": "Hand-written from Notion's documented meeting_notes shape; IDs and content are synthetic.",
 	"pageId": "30000000-0000-4000-8000-000000000001",
 	"blocks": {
 		"30000000-0000-4000-8000-000000000001": {

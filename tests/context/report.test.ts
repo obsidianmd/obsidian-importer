@@ -1,11 +1,3 @@
-/**
- * What an import writes down about the notes it could not bring over.
- *
- * The progress log is gone the moment the dialog closes, which for a ten
- * thousand page workspace leaves five numbers and nothing to act on: not which
- * pages failed, not why, not whether the skipped ones were the ones already in
- * the vault. Building the text needs no vault, so this checks what it says.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -34,8 +26,6 @@ test('a failure keeps the whole reason, however long it is', () => {
 
 	const report = reportOf(ctx);
 
-	// The path is the whole point of the entry: the log used to stop at a
-	// hundred characters, which is a few short of where it starts.
 	assert.ok(report.includes(path), report);
 	assert.match(report, /^## Failed \(1\)$/m);
 });
@@ -69,18 +59,10 @@ test('the counts say what the import did as well as what it did not', () => {
 
 	assert.match(
 		reportOf(ctx),
-		// A count goes through toLocaleString in the chosen language, so the
-		// separator is the language's rather than the machine's
 		/Finished 2026-08-09 14:32\. 10,544 notes imported, 6,823 attachments downloaded, 2 items skipped, 1 item failed\./
 	);
 });
 
-/**
- * Not every importer reports a note success - the Notion API one counts
- * progress through the pages it was given instead - so a count of zero is as
- * likely to mean "not counted" as "none", and claiming it over a folder full
- * of imported notes is worse than saying nothing.
- */
 test('a count the import never kept is left out rather than written as zero', () => {
 	const ctx = new ImportContext();
 	ctx.reportSkipped('Aftersun', 'it is already in the vault');
@@ -98,10 +80,6 @@ test('an import that was stopped says so rather than claiming to have finished',
 	assert.match(reportOf(ctx), /^Stopped 2026-08-09 14:32\./m);
 });
 
-/**
- * The log wrote a name into a span, where it is text whatever is in it. A note
- * is read as Markdown, so the same name has to be escaped on the way in.
- */
 test('Markdown in a name is written as text rather than markup', () => {
 	const ctx = new ImportContext();
 	ctx.reportFailed('![[Ledger]]', 'HTTP 502');
@@ -109,7 +87,6 @@ test('Markdown in a name is written as text rather than markup', () => {
 
 	const lines = reportOf(ctx).split('\n').filter(line => line.startsWith('- '));
 
-	// Nothing left that would embed a note, fetch an image, or set a style
 	assert.deepEqual(lines, [
 		'- "!\\[\\[Ledger\\]\\]" because HTTP 502',
 		'- "!\\[\\](https://example.com/pixel.png)" because \\*not\\* \\`found\\`',
@@ -136,10 +113,6 @@ test('a reason nobody passed is left off rather than written as undefined', () =
 	assert.deepEqual(lines, ['- "Aftersun"']);
 });
 
-/**
- * reportSkipped and reportFailed used to count and then forget, which is why
- * nothing outlived the dialog.
- */
 test('the context keeps the reason alongside the name', () => {
 	const ctx = new ImportContext();
 	ctx.reportFailed('Parasite', new Error('HTTP 502'));
@@ -150,15 +123,6 @@ test('the context keeps the reason alongside the name', () => {
 	assert.equal((ctx.log[0].reason as Error).message, 'HTTP 502');
 });
 
-/**
- * The report is a message from the plugin, not imported content, so it reads
- * in the language the rest of the dialog does — and it reuses the log's own
- * wording, guillemets and all, so the note and the screen agree.
- *
- * Its file name stays English on purpose: that is a path, and a second import
- * run in another language should land beside the first rather than start a
- * parallel set.
- */
 test('the report reads in the language the import ran in', () => {
 	const ctx = new ImportContext();
 	ctx.notes = 1;
@@ -174,20 +138,11 @@ test('the report reads in the language the import ran in', () => {
 	assert.match(report, /^- « Aftersun » car it is already in the vault$/m);
 });
 
-/**
- * The name carries the date and the format that ran, so a folder imported into
- * more than once keeps every log rather than one, and two importers pointed at
- * the same folder do not collide.
- */
 test('the log is named for the day and the format that wrote it', () => {
 	assert.equal(importReportName('Notion (API)', WHEN), '2026-08-09 Notion (API) import log');
 	assert.equal(importReportName('Apple Notes', WHEN), '2026-08-09 Apple Notes import log');
 });
 
-/**
- * Because each run writes its own file there is no name to keep stable between
- * runs, which is what lets this one read in the language the import ran in.
- */
 test('the name reads in the language the import ran in', () => {
 	setLanguage('fr');
 	const name = importReportName('Fichiers HTML', WHEN);
@@ -197,7 +152,5 @@ test('the name reads in the language the import ran in', () => {
 });
 
 test('a format name that would not survive as a file name is sanitized', () => {
-	// A format name is ours rather than the source's, but the name goes
-	// straight into a path and nothing else checks it on the way.
 	assert.equal(importReportName('Notion: the "API"', WHEN), '2026-08-09 Notion the API import log');
 });

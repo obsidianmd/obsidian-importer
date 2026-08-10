@@ -168,13 +168,6 @@ export class ImportProgressUI extends ImportContext {
 		this.statusEl.hide();
 	}
 
-	/**
-	 * The whole name and the whole reason, cut off at neither end.
-	 *
-	 * Both used to stop at a hundred characters, which is exactly where the
-	 * useful part of a path or a Notion error begins - leaving a log that says
-	 * something went wrong and no way to find out what.
-	 */
 	private drawLogEntry({ outcome, name, reason }: ImportLogEntry): void {
 		const { importLogEl } = this;
 
@@ -409,7 +402,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private hiddenNotice: Notice | null = null;
 	private hiddenInterval: number | null = null;
 
-	/** The note the last import wrote about what it could not bring over. */
 	private reportFile: TFile | null = null;
 
 	constructor(app: App, plugin: ImporterPlugin) {
@@ -743,8 +735,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		let buttonsEl = contentEl.createDiv('modal-button-container');
 
-		// The log above is gone as soon as this dialog is, so an import that
-		// lost something says where the record of it went.
 		const report = this.reportFile;
 		if (report) {
 			buttonsEl.createEl('button', { text: i18n.modal.buttonOpenReport() }, el => {

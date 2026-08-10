@@ -39,17 +39,7 @@ export function stripControlCharacters(name: string): string {
 	return out;
 }
 
-/**
- * The longest a single file or folder name may be, in UTF-8 bytes.
- *
- * macOS and Linux cap a path component at 255 bytes, Windows at 255 UTF-16
- * units - and 240 UTF-8 bytes is at most 240 UTF-16 units, so one budget
- * covers all three. The 15 left over are for what gets added after a name is
- * sanitized: an extension, and the ` 1` a collision appends.
- *
- * A source that has no title of its own gives the first line of the note
- * instead, which is how a paragraph ends up being asked for as a file name.
- */
+// Leave room below common 255-byte/unit limits for extensions and collision suffixes.
 const MAX_NAME_BYTES = 240;
 
 const encoder = new TextEncoder();
@@ -57,9 +47,7 @@ const encoder = new TextEncoder();
 function limitNameLength(name: string): string {
 	if (encoder.encode(name).length <= MAX_NAME_BYTES) return name;
 
-	// Iterating a string yields code points, so a surrogate pair is never cut
-	// in half - and counting each one's own encoding keeps the byte budget
-	// exact for scripts that spend more than one byte per character.
+	// Iteration by code point keeps surrogate pairs intact.
 	let truncated = '';
 	let bytes = 0;
 
@@ -70,15 +58,12 @@ function limitNameLength(name: string): string {
 		bytes += size;
 	}
 
-	// End on a word rather than mid-word, but not at the cost of most of the
-	// name: a title with no spaces near the cut keeps the hard truncation.
 	const lastSpace = truncated.lastIndexOf(' ');
 	if (lastSpace > truncated.length / 2) truncated = truncated.slice(0, lastSpace);
 
 	return truncated;
 }
 
-/** The rules about what a name may be, as opposed to which characters it may contain. */
 function tidyName(name: string): string {
 	return name
 		.replace(reservedRe, '')
@@ -94,9 +79,7 @@ export function sanitizeFileName(name: string | undefined | null) {
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, '')));
 
-	// Cutting a name short can uncover a trailing dot or space, and can leave
-	// behind a name Windows reserves that the full one was only the start of:
-	// "CON" followed by spaces and a word truncates back to "CON".
+	// Truncation can expose trailing spaces or Windows-reserved names.
 	const sanitized = tidyName(limitNameLength(cleaned));
 
 	// If the result is empty or only whitespace after sanitization, return a default name
@@ -194,7 +177,6 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	return '';
 }
 
-/** Whatever an importer passed as a reason, as something a person can read. */
 export function describeReason(reason: unknown): string {
 	if (typeof reason === 'string') return reason;
 

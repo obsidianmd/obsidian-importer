@@ -19,44 +19,19 @@ interface DownloadedAttachment {
 
 const MAX_ATTACHMENT_RETRIES = 3;
 
-/**
- * How many names to try before giving up on writing an attachment at all.
- *
- * A name already taken is answered by picking another, which needs no limit
- * while the vault keeps agreeing that the new one is free. One that says every
- * name is taken - an index and a disk that disagree across a whole family of
- * names - would be asked forever otherwise, and the loop does a write each
- * time round.
- */
+// Bound recovery when the vault index and filesystem keep disagreeing.
 const MAX_NAME_COLLISIONS = 20;
 
-/**
- * Statuses that mean "not now" rather than "not ever".
- *
- * The 5xxs and 408 are the network or the server having a moment. An import
- * large enough to meet them meets them hundreds of times, and each one that is
- * not asked about again is an attachment the note loses.
- */
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
-/**
- * 202 counts too, but only from Notion's own storage, where it means the file
- * is still being prepared. From anywhere else it is a server declining to hand
- * the file over and saying so politely - a link in a file property to a site
- * that refuses robots answers with one - and asking three more times spends
- * seven seconds learning what the first answer already said.
- */
+// Notion storage uses 202 while preparing a file; external servers may use it as a refusal.
 function worthAnotherTry(status: number, notionHosted: boolean): boolean {
 	if (status === 202) return notionHosted;
 
 	return RETRYABLE_STATUSES.has(status);
 }
 
-/**
- * Network failures that are the connection rather than the URL. A name that
- * does not resolve or a certificate that expired will say the same thing on
- * every try, so those are left to fail once.
- */
+// Retry connection failures, not persistent DNS or certificate errors.
 const RETRYABLE_NETWORK_ERRORS = /ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_ABORTED|ERR_NETWORK_CHANGED|ERR_TIMED_OUT|ERR_EMPTY_RESPONSE|ERR_SOCKET_NOT_CONNECTED/;
 
 async function requestAttachment(
@@ -83,7 +58,6 @@ async function requestAttachment(
 			failure = message;
 		}
 
-		// Exponential backoff: 1s, 2s, 4s
 		const waitFor = Math.pow(2, attempt);
 		const previousStatus = ctx.statusMessage;
 		ctx.status(i18n.importer.notionApi.statusRetryingAttachment({
@@ -102,15 +76,7 @@ async function requestAttachment(
 	}
 }
 
-/**
- * An attachment that could not be downloaded, reported and left as a link.
- *
- * A URL Notion was only ever pointing at is not the import's to lose: the note
- * keeps the link, exactly as Notion had it, and a link that was already broken
- * stays broken rather than being counted as an import failure. A file Notion
- * was hosting is different - that content is gone if it is not fetched - so
- * that one is a failure, and so is a `data:` URL, whose content was the URL.
- */
+/** Preserves external links; failed Notion-hosted files remain import failures. */
 function reportUndownloadable(
 	attachment: NotionAttachment,
 	filename: string,
@@ -243,14 +209,10 @@ export async function downloadAttachment(
 				break;
 			}
 			catch (error) {
-				// The path can be claimed after it was chosen, or exist on disk
-				// before the vault's index notices it. Pick another name instead
-				// of losing the attachment to "File already exists".
+				// The path can be claimed between selection and write.
 				const occupied = vault.getAbstractFileByPathInsensitive(targetFilePath);
 				if (!(occupied instanceof TFile) && !isFileExistsError(error)) throw error;
 
-				// A vault that says every name is taken would otherwise be asked
-				// forever, in a loop no button can interrupt.
 				if (attempt >= MAX_NAME_COLLISIONS || await ctx.shouldStop()) throw error;
 
 				if (incrementalImport && occupied instanceof TFile && occupied.stat.size === downloaded.arrayBuffer.byteLength) {
