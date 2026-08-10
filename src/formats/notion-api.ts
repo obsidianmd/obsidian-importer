@@ -40,6 +40,24 @@ function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>):
 	return ids;
 }
 
+/**
+ * The folder holding what belongs to a page: the one named after its note.
+ *
+ * A page importing for the first time is written inside that folder, so the
+ * folder is the one already holding it. A note the user has moved, or one
+ * written when the page had no children to keep, is not - and its children go
+ * into a folder of the note's name beside it rather than into whatever folder
+ * the note happens to be sharing.
+ */
+export function childFolderOf(notePath: string): string {
+	const { parent, basename } = parseFilePath(notePath);
+	const holding = parent.slice(parent.lastIndexOf('/') + 1);
+
+	if (holding.toLowerCase() === basename.toLowerCase()) return parent;
+
+	return normalizePath(parent ? `${parent}/${basename}` : basename);
+}
+
 export class NotionAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -586,58 +604,48 @@ export class NotionAPIImporter extends FormatImporter {
 			// Discover all children first so remaining decreases monotonically.
 			this.pagesDiscovered(ctx, childPageIds(blocksCache));
 
-			// Determine file structure based on whether page has children
-			let pageFolderPath: string; // Folder for child pages/databases
-			let mdFilePath: string;
-			let shouldSkipParentFile = false; // Flag to track if parent file should be skipped
+			// A page with children keeps them in a folder of its own name; one
+			// without is a file where it stands. The folder is chosen before the
+			// note so a page importing for the first time lands inside it, as
+			// it always has.
+			const homeFolder = hasChildren ? this.pageFolder(parentPath, sanitizedTitle) : parentPath;
 
-			if (hasChildren) {
-				// Create folder structure for pages with children
-				// The folder will contain the page content file and child pages/databases
-				// For incremental import: reuse existing folder if it exists, otherwise create a unique one
-				const baseFolderPath = normalizePath(parentPath ? `${parentPath}/${sanitizedTitle}` : sanitizedTitle);
-				const existingFolder = this.vault.getAbstractFileByPath(baseFolderPath);
+			// "Create a copy" is not looking for a note to write over, but one
+			// this run wrote before it was interrupted is still its own.
+			const desiredPath = normalizePath(homeFolder ? `${homeFolder}/${sanitizedTitle}.md` : `${sanitizedTitle}.md`);
+			const recovered = this.duplicateHandling === DuplicateHandling.CreateCopy
+				&& await this.alreadyWrittenByAnUnfinishedImport(desiredPath, pageId, ctx);
 
-				if (existingFolder instanceof TFolder) {
-					// Reuse existing folder for incremental import
-					pageFolderPath = baseFolderPath;
-				}
-				else {
-					// Create new folder with unique name if needed
-					pageFolderPath = getUniqueFilePath(this.vault, parentPath, sanitizedTitle);
-					await this.createFolders(pageFolderPath);
-				}
+			// Where the note goes, settled before a block is converted: its
+			// attachments, its links and its child pages are all placed
+			// relative to it, and a page the user moved keeps the note it has.
+			const planned = recovered ? null : this.planNote(homeFolder, sanitizedTitle, pageId);
+			const disposition = planned ? this.preflightNote(ctx, planned) : 'skip';
+			const mdFilePath = planned ? planned.targetPath : desiredPath;
 
-				// Check if file already exists with same notion-id
-				const fileName = `${sanitizedTitle}.md`;
-				const potentialFilePath = normalizePath(`${pageFolderPath}/${fileName}`);
-				shouldSkipParentFile = await this.shouldSkipExistingFile(potentialFilePath, pageId, ctx);
-
-				mdFilePath = potentialFilePath;
-			}
-			else {
-				// Create file directly for pages without children
-				// No folder needed since there are no child pages or databases
-				pageFolderPath = parentPath;
-				// Check for incremental import before creating file
-				const filePathOrNull = await this.getUniqueFilePathWithIncrementalCheck(
-					parentPath,
-					`${sanitizedTitle}.md`,
-					pageId,
-					ctx
-				);
-				if (!filePathOrNull) {
-					// File skipped due to incremental import (no children, so nothing else to do)
-					// Update progress for skipped page
-					this.pageFinished(ctx);
-					return;
-				}
-				mdFilePath = filePathOrNull;
+			if (planned?.file && disposition === 'skip') {
+				await this.adoptSkippedNote(planned.file, pageId);
 			}
 
-			// Extract the folder path from the markdown file path for attachments
-			// This ensures attachments are placed relative to where the file actually is
-			const { parent: currentFileFolderPath } = parseFilePath(mdFilePath);
+			// A skipped page still has its children to reach, and they are
+			// reached by converting it. One with none has nothing left to do.
+			const shouldSkipParentFile = disposition === 'skip';
+			if (shouldSkipParentFile && !hasChildren) {
+				this.pageFinished(ctx);
+				return;
+			}
+
+			// Where everything belonging to this page goes. Children go in the
+			// folder named after the note: the one holding it when the note is
+			// where this import would have put it, and a folder beside it when
+			// the user has moved the note or a leaf has grown children. A page
+			// without children keeps its synced blocks wherever the note is.
+			const pageFolderPath = hasChildren
+				? childFolderOf(mdFilePath)
+				: parseFilePath(mdFilePath).parent;
+			if (hasChildren) await this.createFolders(pageFolderPath);
+
+			const currentFileFolderPath = pageFolderPath;
 
 			// Convert blocks to markdown with nested children support
 			// Pass the blocksCache to reuse already fetched blocks
@@ -825,23 +833,23 @@ export class NotionAPIImporter extends FormatImporter {
 			}
 
 			// Create the markdown file (only if not skipped)
-			if (!shouldSkipParentFile) {
+			if (!shouldSkipParentFile && planned) {
 				const fullContent = serializeFrontMatter(frontMatter) + markdownContent;
 
+				// The path was settled before the conversion, and everything the
+				// conversion resolved - attachments, links, the folder the child
+				// pages went into - was resolved against it. Choosing another one
+				// here would leave all of that pointing at a note that is not here.
+				const options: DataWriteOptions = {};
+				if (page.created_time) options.ctime = new Date(page.created_time).getTime();
+				if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
 
-				// Get unique file path (will append " 1", " 2", etc. if file exists)
-				const { parent: parentPath, name: fileName } = parseFilePath(mdFilePath);
-				const finalPath = getUniqueFilePath(this.vault, parentPath, fileName);
-
-
+				let written: TFile;
 				try {
-					const options: DataWriteOptions = {};
-					if (page.created_time) options.ctime = new Date(page.created_time).getTime();
-					if (page.last_edited_time) options.mtime = new Date(page.last_edited_time).getTime();
-					await this.createMarkdown(normalizePath(finalPath), fullContent, options);
+					({ file: written } = await this.writePlannedNote(ctx, planned, fullContent, { ...options, disposition }));
 				}
 				catch (error) {
-					console.error(`[CREATE FILE] Failed to create file: ${finalPath}`);
+					console.error(`[CREATE FILE] Failed to create file: ${mdFilePath}`);
 					console.error(`[CREATE FILE] Page ID: ${pageId}, Page Title: ${sanitizedTitle}`);
 					console.error(`[CREATE FILE] Error:`, error);
 					throw error;
@@ -849,14 +857,14 @@ export class NotionAPIImporter extends FormatImporter {
 
 				// Record page ID to path mapping for mention replacement
 				// Store path without extension for wiki link generation
-				const pathWithoutExt = finalPath.replace(/\.md$/, '');
+				const pathWithoutExt = written.path.replace(/\.md$/, '');
 				this.notionIdToPath.set(pageId, pathWithoutExt);
 				this.writtenPaths.add(pathWithoutExt);
 
 				// Record mention placeholders if any mentions were found
 				// Use file path as key for O(1) lookup during replacement
 				if (mentionedIds.size > 0) {
-					this.mentionPlaceholders.set(finalPath, mentionedIds);
+					this.mentionPlaceholders.set(written.path, mentionedIds);
 				}
 			}
 
@@ -1309,7 +1317,7 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	/** Find a page left by an unfinished import. */
-	private async alreadyWrittenByAnUnfinishedImport(
+	protected async alreadyWrittenByAnUnfinishedImport(
 		filePath: string,
 		notionId: string,
 		ctx: ImportContext
@@ -1339,36 +1347,36 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	protected async shouldSkipExistingFile(
-		filePath: string,
-		notionId: string,
-		ctx: ImportContext
-	): Promise<boolean> {
-		if (this.duplicateHandling === DuplicateHandling.CreateCopy) {
-			return await this.alreadyWrittenByAnUnfinishedImport(filePath, notionId, ctx);
-		}
-
-		const file = this.previouslyImported(normalizePath(filePath), notionId);
-		if (!file) {
-			return false; // Not imported before, don't skip
-		}
+	/**
+	 * Take on a note this import is leaving as it stands.
+	 *
+	 * Being left alone is not being left out. Pages link to one another, and an
+	 * earlier run may have been interrupted before it could turn its
+	 * placeholders into links, so what is still waiting in the file is read back
+	 * out of it here and resolved with everything else once the import is done.
+	 */
+	protected async adoptSkippedNote(file: TFile, notionId: string): Promise<void> {
+		this.notionIdToPath.set(notionId, file.path.replace(/\.md$/, ''));
 
 		try {
-			const content = await this.vault.read(file);
-			const { basename } = parseFilePath(file.path);
-			ctx.reportSkipped(basename, i18n.reason.alreadyInVault());
-
-			const filePathWithoutExtension = file.path.replace(/\.md$/, '');
-			this.notionIdToPath.set(notionId, filePathWithoutExtension);
-
-			await this.collectUnresolvedPlaceholders(content, notionId, file.path);
-
-			return true;
+			await this.collectUnresolvedPlaceholders(await this.vault.read(file), notionId, file.path);
 		}
 		catch (error) {
-			console.error(`Failed to read file ${filePath} for duplicate check:`, error);
-			return false; // On error, don't skip
+			console.error(`Could not read the note already at: ${file.path}`, error);
 		}
+	}
+
+	/**
+	 * The folder a page with children keeps them in.
+	 *
+	 * Reused when it is already there, so a second import adds to the folder it
+	 * made rather than making another one beside it.
+	 */
+	private pageFolder(parentPath: string, title: string): string {
+		const base = normalizePath(parentPath ? `${parentPath}/${title}` : title);
+		if (this.vault.getAbstractFileByPath(base) instanceof TFolder) return base;
+
+		return getUniqueFilePath(this.vault, parentPath, title);
 	}
 
 	/** Remove temporary IDs from pages owned by this run. */
@@ -1538,39 +1546,6 @@ export class NotionAPIImporter extends FormatImporter {
 		if (syncedDbIds.size > 0) {
 			this.syncedChildDatabasePlaceholders.set(filePath, syncedDbIds);
 		}
-	}
-
-	/**
-	 * Get unique file path with incremental import check
-	 * @param parentPath - Parent folder path
-	 * @param fileName - File name
-	 * @param notionId - Notion ID of the page being imported
-	 * @param ctx - Import context for reporting
-	 * @returns File path or null if should be skipped
-	 */
-	private async getUniqueFilePathWithIncrementalCheck(
-		parentPath: string,
-		fileName: string,
-		notionId: string,
-		ctx: ImportContext
-	): Promise<string | null> {
-		const basePath = parentPath ? `${parentPath}/${fileName}` : fileName;
-
-		// Check if file already exists with same notion-id
-		const shouldSkip = await this.shouldSkipExistingFile(basePath, notionId, ctx);
-		if (shouldSkip) {
-			return null;
-		}
-
-		// If file doesn't exist, return base path
-		const file = this.vault.getAbstractFileByPath(normalizePath(basePath));
-		if (!file) {
-			return basePath;
-		}
-
-		// File exists but has different notion-id (or no notion-id)
-		// Use standard unique path logic
-		return getUniqueFilePath(this.vault, parentPath, fileName);
 	}
 
 	private async modifyPreservingTimestamps(file: TFile, content: string): Promise<void> {

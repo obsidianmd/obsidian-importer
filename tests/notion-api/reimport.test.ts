@@ -19,8 +19,10 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
-import { NotionAPIImporter } from '../../src/formats/notion-api';
-import { DuplicateHandling } from '../../src/format-importer';
+import type { TFolder } from 'obsidian';
+
+import { childFolderOf, NotionAPIImporter } from '../../src/formats/notion-api';
+import { DuplicateHandling, PlannedNote } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { NOTION_ID_PROPERTY } from '../../src/constants';
 import { MemoryVault, memoryApp } from '../shims/vault';
@@ -42,6 +44,16 @@ const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null 
 
 /** The seam the harness needs: a stubbed client, and one page to start from. */
 class ImportingTwice extends NotionAPIImporter {
+	/** Every path this import settled on, before it wrote anything. */
+	readonly planned: string[] = [];
+
+	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
+		const note = super.planNote(folder, title, sourceId);
+		this.planned.push(note.targetPath);
+
+		return note;
+	}
+
 	answerFromFixture(): void {
 		this.notionClient = {
 			pages: {
@@ -80,7 +92,18 @@ async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourc
 	subject.indexImportedNotes();
 
 	const ctx = new ImportContext();
+	const before = new Set(vault.paths());
 	await subject.importPage(ctx, ROOT_PAGE);
+
+	// The conversion resolves attachments and links against the path the note
+	// was planned at, so a note that lands anywhere else leaves all of it
+	// pointing at a file that is not there. Choosing the path a second time
+	// after converting is exactly how that used to happen.
+	for (const path of vault.paths()) {
+		if (before.has(path) || !path.endsWith('.md')) continue;
+		assert.ok(subject.planned.includes(path), `${path} was written but never planned`);
+	}
+
 	return ctx;
 }
 
@@ -123,19 +146,52 @@ test('importing again with "Skip" leaves the vault as it was', async () => {
 	assert.equal(second.skipped.length, 2, 'both notes should be reported as skipped');
 });
 
-// The page folder is reused whatever the mode, so the copies are numbered
-// inside it rather than landing in a second "Roadmap 1" folder.
-test('importing again with "Create a copy" numbers the notes inside the same folder', async () => {
+// The copy is a page in its own right, so it keeps its children in a folder
+// of its own name. They used to be numbered alongside the first import's,
+// which left no way to tell which copy a child belonged to.
+test('importing again with "Create a copy" gives the copy its own children', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.CreateCopy);
 
 	await importOnce(vault, DuplicateHandling.CreateCopy);
 
 	assert.deepEqual(markdown(vault), [
-		'Notion/Roadmap/Milestones 1.md',
 		'Notion/Roadmap/Milestones.md',
 		'Notion/Roadmap/Roadmap 1.md',
+		'Notion/Roadmap/Roadmap 1/Milestones.md',
 		'Notion/Roadmap/Roadmap.md',
 	]);
+});
+
+test('a page with children keeps them in the folder holding its note', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+
+	assert.equal(childFolderOf('Notion/Roadmap/Roadmap.md'), 'Notion/Roadmap');
+	assert.ok(markdown(vault).includes('Notion/Roadmap/Milestones.md'));
+});
+
+// The note was written when the page had nothing under it, so it is not in a
+// folder of its own. It stays where it is and the children arrive beside it.
+test('a page that has grown children leaves its note where it is', async () => {
+	assert.equal(childFolderOf('Notion/Roadmap.md'), 'Notion/Roadmap');
+});
+
+test('and a note the user moved takes its children with it', async () => {
+	assert.equal(childFolderOf('Archive/Roadmap.md'), 'Archive/Roadmap');
+});
+
+// The parent is recognised where the user put it and skipped, but its child
+// is gone and imported again - into the folder belonging to the note that
+// actually exists, not the one this import would have made.
+test('a moved page is where its children are put', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+	await vault.createFolder('Archive');
+	await vault.create('Archive/Roadmap.md', String(vault.contents.get('Notion/Roadmap/Roadmap.md')));
+	vault.contents.delete('Notion/Roadmap/Roadmap.md');
+	vault.contents.delete('Notion/Roadmap/Milestones.md');
+
+	await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.deepEqual(markdown(vault), ['Archive/Roadmap.md', 'Archive/Roadmap/Milestones.md']);
 });
 
 test('a note the user moved is still recognised, because the id travels with it', async () => {
