@@ -116,18 +116,15 @@ test('Markdown in a name is written as text rather than markup', () => {
 	]);
 });
 
-test('a section too long to read says how much of it is missing', () => {
+test('a large report keeps every entry', () => {
 	const ctx = new ImportContext();
 	for (let i = 0; i < 5003; i++) ctx.reportSkipped(`Page ${i}`, 'it is already in the vault');
 
 	const report = reportOf(ctx);
 
 	assert.match(report, /^## Skipped \(5,003\)$/m, 'the count should be the real one');
-	assert.equal(report.split('\n').filter(line => line.startsWith('- ')).length, 5000);
-	// Only a failure is echoed to the console, so a skipped entry left out
-	// here is left out everywhere: the note must not say otherwise.
-	assert.match(report, /_3 more, not listed here\._/);
-	assert.doesNotMatch(report, /console/i);
+	assert.equal(report.split('\n').filter(line => line.startsWith('- ')).length, 5003);
+	assert.match(report, /^- "Page 5002" because it is already in the vault$/m);
 });
 
 test('a reason nobody passed is left off rather than written as undefined', () => {

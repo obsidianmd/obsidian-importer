@@ -553,7 +553,7 @@ export class NotionAPIImporter extends FormatImporter {
 		// What a failure will call this page. Until its title has been read
 		// there is only the id to go on, which is what the import log used to
 		// show for every failure - leaving no way to find the page it meant.
-		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId.substring(0, 8) });
+		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
 			// Fetch page metadata with rate limit handling
@@ -566,7 +566,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const pageTitle = extractPageTitle(page);
 			// Use custom file name if provided, otherwise use page title
 			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
-			reportedName = pageTitle;
+			reportedName = i18n.importer.notionApi.labelPageWithTitle({ title: pageTitle, id: pageId });
 
 			// Update status with page title instead of ID
 			ctx.status(i18n.importer.notionApi.statusImportingTitle({ title: sanitizedTitle }));
@@ -1070,7 +1070,7 @@ export class NotionAPIImporter extends FormatImporter {
 		catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			console.error(`Failed to import unimported database "${databaseTitle}":`, error);
-			ctx.reportFailed(i18n.importer.notionApi.labelDatabase({ title: databaseTitle }), errorMsg);
+			ctx.reportFailed(i18n.importer.notionApi.labelDatabaseWithId({ title: databaseTitle, id: databaseId }), errorMsg);
 		}
 	}
 

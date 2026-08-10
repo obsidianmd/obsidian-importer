@@ -20,6 +20,17 @@ interface DownloadedAttachment {
 const MAX_ATTACHMENT_RETRIES = 3;
 
 /**
+ * How many names to try before giving up on writing an attachment at all.
+ *
+ * A name already taken is answered by picking another, which needs no limit
+ * while the vault keeps agreeing that the new one is free. One that says every
+ * name is taken - an index and a disk that disagree across a whole family of
+ * names - would be asked forever otherwise, and the loop does a write each
+ * time round.
+ */
+const MAX_NAME_COLLISIONS = 20;
+
+/**
  * Statuses that mean "not now" rather than "not ever".
  *
  * The 5xxs and 408 are the network or the server having a moment. An import
@@ -203,7 +214,7 @@ export async function downloadAttachment(
 		}
 
 		filename = withInferredExtension(filename, downloaded.contentType);
-		const targetFilePath = await resolveTargetPath(context, filename);
+		let targetFilePath = await resolveTargetPath(context, filename);
 
 		if (incrementalImport) {
 			const existingFile = attachmentAlreadyImported(vault, targetFilePath, filename, downloaded.arrayBuffer.byteLength);
@@ -221,7 +232,45 @@ export async function downloadAttachment(
 		const options: DataWriteOptions = {};
 		if (attachment.created_time) options.ctime = new Date(attachment.created_time).getTime();
 		if (attachment.last_edited_time) options.mtime = new Date(attachment.last_edited_time).getTime();
-		await vault.createBinary(targetFilePath, downloaded.arrayBuffer, options);
+		const firstTargetFilePath = targetFilePath;
+		const attemptedPaths = new Set<string>();
+		let collision = 0;
+		for (let attempt = 0; ; attempt++) {
+			attemptedPaths.add(targetFilePath);
+
+			try {
+				await vault.createBinary(targetFilePath, downloaded.arrayBuffer, options);
+				break;
+			}
+			catch (error) {
+				// The path can be claimed after it was chosen, or exist on disk
+				// before the vault's index notices it. Pick another name instead
+				// of losing the attachment to "File already exists".
+				const occupied = vault.getAbstractFileByPathInsensitive(targetFilePath);
+				if (!(occupied instanceof TFile) && !isFileExistsError(error)) throw error;
+
+				// A vault that says every name is taken would otherwise be asked
+				// forever, in a loop no button can interrupt.
+				if (attempt >= MAX_NAME_COLLISIONS || await ctx.shouldStop()) throw error;
+
+				if (incrementalImport && occupied instanceof TFile && occupied.stat.size === downloaded.arrayBuffer.byteLength) {
+					ctx.reportSkipped(
+						i18n.importer.notionApi.labelAttachment({ name: filename }),
+						i18n.importer.notionApi.reasonAttachmentExists({ path: occupied.path })
+					);
+					return linkToExisting(occupied, filename);
+				}
+
+				const availablePath = await resolveTargetPath(context, filename);
+				targetFilePath = attemptedPaths.has(availablePath)
+					? collisionPath(firstTargetFilePath, ++collision)
+					: availablePath;
+
+				while (attemptedPaths.has(targetFilePath)) {
+					targetFilePath = collisionPath(firstTargetFilePath, ++collision);
+				}
+			}
+		}
 
 		// Return the file path without extension (for wiki links) and with extension (for markdown links)
 		const { parent, basename: fileBasename } = parseFilePath(targetFilePath);
@@ -237,6 +286,17 @@ export async function downloadAttachment(
 		console.error(`Failed to download attachment "${filename}":`, error);
 		return reportUndownloadable(attachment, filename, errorMsg, ctx);
 	}
+}
+
+function isFileExistsError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return /\bEEXIST\b|\bFile already exists\b/i.test(message);
+}
+
+function collisionPath(path: string, collision: number): string {
+	const { parent, basename, extension } = parseFilePath(path);
+	const name = `${basename} ${collision}${extension ? `.${extension}` : ''}`;
+	return normalizePath(parent ? `${parent}/${name}` : name);
 }
 
 async function probeAttachmentSize(url: string, probe: { answered: boolean }): Promise<{ size: number, contentType?: string } | null> {

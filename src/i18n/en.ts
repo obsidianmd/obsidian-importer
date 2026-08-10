@@ -114,7 +114,6 @@ export const en = {
 		countSkipped_plural: '{{count}} items skipped',
 		countFailed: '{{count}} item failed',
 		countFailed_plural: '{{count}} items failed',
-		msgMoreNotListed: '{{count}} more, not listed here.',
 	},
 
 	source: {
@@ -483,9 +482,10 @@ export const en = {
 			statusImportingTemplate: 'Importing template: {{name}}...',
 			labelImport: 'Notion API import',
 			labelItem: 'Import item {{id}}',
-			labelPage: 'Page {{id}}...',
+			labelPage: 'Page {{id}}',
+			labelPageWithTitle: 'Page: {{title}} ({{id}})',
 			labelRelationPage: 'Relation page {{id}}',
-			labelDatabase: 'Database: {{title}}',
+			labelDatabaseWithId: 'Database: {{title}} ({{id}})',
 			labelMentionFile: 'Mention file {{path}}',
 			labelSyncedBlockFile: 'Synced block file {{path}}',
 			labelAttachment: 'Attachment: {{name}}',

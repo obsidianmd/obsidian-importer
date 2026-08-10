@@ -23,13 +23,6 @@ export interface ImportReport {
 	log: ImportLogEntry[];
 }
 
-/**
- * As many entries as a section will list. A re-run of a large import can skip
- * every page it already has, and a note of a hundred thousand bullets is one
- * nobody can open. What is left out is said rather than quietly dropped.
- */
-const MAX_ENTRIES = 5000;
-
 function twoDigits(value: number): string {
 	return String(value).padStart(2, '0');
 }
@@ -75,16 +68,12 @@ function section(heading: string, entries: ImportLogEntry[]): string[] {
 
 	const lines = [`## ${heading}`, ''];
 
-	for (const { name, reason } of entries.slice(0, MAX_ENTRIES)) {
+	for (const { name, reason } of entries) {
 		const line = reason === undefined || reason === null || reason === ''
 			? i18n.progress.labelEntry({ name: asText(name) })
 			: i18n.progress.labelEntryWithReason({ name: asText(name), reason: asText(describeReason(reason)) });
 
 		lines.push(`- ${line}`);
-	}
-
-	if (entries.length > MAX_ENTRIES) {
-		lines.push('', `_${i18n.report.msgMoreNotListed({ count: entries.length - MAX_ENTRIES })}_`);
 	}
 
 	lines.push('');

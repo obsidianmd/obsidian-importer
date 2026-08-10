@@ -338,10 +338,6 @@ translation=
 original={{count}} items failed
 translation=
 
-[report.msg-more-not-listed]
-original={{count}} more, not listed here.
-translation=
-
 [source.name]
 original=Files to import
 translation=
@@ -1623,15 +1619,19 @@ original=Import item {{id}}
 translation=
 
 [importer.notion-api.label-page]
-original=Page {{id}}...
+original=Page {{id}}
+translation=
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
 translation=
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
 translation=
 
-[importer.notion-api.label-database]
-original=Database: {{title}}
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
 translation=
 
 [importer.notion-api.label-mention-file]

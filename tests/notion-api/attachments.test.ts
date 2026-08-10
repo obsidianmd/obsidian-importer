@@ -205,6 +205,53 @@ test('without incremental import the copy is written even when it matches', asyn
 	assert.deepEqual(vault.paths().sort(), ['Attachments/photo 1.txt', 'Attachments/photo.txt']);
 });
 
+test('a file that takes the chosen path is given another name', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const createBinary = vault.createBinary.bind(vault);
+	let firstWrite = true;
+
+	vault.createBinary = async (path, data, options) => {
+		if (firstWrite) {
+			firstWrite = false;
+			throw new Error('File already exists.');
+		}
+
+		return await createBinary(path, data, options);
+	};
+
+	const result = await downloadAttachment(attachmentOf(5), contextOverVault(vault, false));
+
+	assert.equal(result.path, 'Attachments/photo 1');
+	assert.deepEqual(vault.paths(), ['Attachments/photo 1.txt']);
+});
+
+/**
+ * A vault that answers "already exists" for every name it is offered - an index
+ * and a disk that disagree across a whole family of them - used to be asked
+ * forever, in a loop with no cancellation checkpoint for a button to reach.
+ */
+test('a vault that refuses every name is not asked forever', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	let attempts = 0;
+
+	vault.createBinary = async () => {
+		attempts++;
+		throw new Error('File already exists.');
+	};
+
+	const context = contextOverVault(vault, false);
+	const failures: string[] = [];
+	(context as unknown as { ctx: { reportFailed: unknown } }).ctx.reportFailed = (name: string) => failures.push(name);
+
+	const result = await downloadAttachment(attachmentOf(5), context);
+
+	assert.ok(attempts <= 21, `gave up after ${attempts} attempts`);
+	assert.deepEqual(failures, ['Attachment: photo.txt']);
+	assert.equal(result.isLocal, false, 'the attachment is reported rather than silently dropped');
+});
+
 /**
  * A server that honours a byte range, and a record of what was asked of it.
  *
