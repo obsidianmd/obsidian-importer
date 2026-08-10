@@ -121,7 +121,8 @@ export class ImportProgressUI extends ImportContext {
 		this.importLogEl.hide();
 
 		if (this.isPaused()) this.onPaused(true);
-		else if (this.statusMessage) this.onStatus(this.statusMessage);
+		// Always, so that an empty status is hidden rather than left as a gap
+		else this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
 		for (const entry of this.log) {
 			this.drawLogEntry(entry);
@@ -130,7 +131,10 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onStatus(message: string): void {
-		this.statusEl.setText(this.isPaused() ? pausedText(message) : statusText(message));
+		const text = this.isPaused() ? pausedText(message) : statusText(message);
+		this.statusEl.setText(text);
+		// An empty status would otherwise keep its padding and leave a gap.
+		this.statusEl.toggle(text.length > 0);
 	}
 
 	protected onPaused(paused: boolean): void {
@@ -680,7 +684,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 				this.current = null;
 			}
 
-			ctx.status(ctx.isCancelled() ? i18n.progress.msgStopped()
+			// Nothing for an import that was stopped: the user stopped it, and
+			// the counts and the bar left where it got to say the rest.
+			ctx.status(ctx.isCancelled() ? ''
 				: ctx.failed.length > 0 ? i18n.progress.msgErrors()
 					: i18n.progress.msgComplete());
 			ctx.finish();
