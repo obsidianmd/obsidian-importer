@@ -30,7 +30,7 @@ export function accountTypeFromToken(token: string | undefined): MicrosoftAccoun
 		const claims = decodeSegment(payload);
 		if (typeof claims !== 'object' || claims === null || !('tid' in claims)) return null;
 
-		const tenant = (claims as { tid: unknown }).tid;
+		const tenant = claims.tid;
 		if (typeof tenant !== 'string') return null;
 
 		return tenant === MICROSOFT_CONSUMER_TENANT_ID ? 'personal' : 'organization';
