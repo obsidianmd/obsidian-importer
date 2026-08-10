@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
-import type { TFolder } from 'obsidian';
+import type { TFile, TFolder } from 'obsidian';
 
 import { childFolderOf, NotionAPIImporter } from '../../src/formats/notion-api';
 import { DuplicateHandling, PlannedNote } from '../../src/format-importer';
@@ -55,13 +55,20 @@ class ImportingTwice extends NotionAPIImporter {
 		return note;
 	}
 
-	answerFromFixture(): void {
+	/** Whether the passes after the import will rewrite this note. */
+	queuedForRewriting(path: string): boolean {
+		return this.mentionPlaceholders.has(path);
+	}
+
+	answerFromFixture(editedAt?: string): void {
 		this.notionClient = {
 			pages: {
 				retrieve: async ({ page_id }: { page_id: string }) => {
 					const page = workspace.pages[page_id];
 					if (!page) throw new Error(`no page ${page_id} in the fixture`);
-					return page;
+
+					// Standing in for someone editing the page in Notion.
+					return editedAt ? { ...(page as object), last_edited_time: editedAt } : page;
 				},
 			},
 			blocks: {
@@ -93,12 +100,22 @@ answerRequests(request => {
 	return { status: 200, arrayBuffer: new Uint8Array([137, 80, 78, 71]).buffer, text: '', headers: {} } as never;
 });
 
+interface Run {
+	saveSourceId?: boolean;
+	/** When Notion last changed every page, for a run that follows an edit. */
+	editedAt?: string;
+}
+
 /** One import of the whole fixture, over a vault that may already hold one. */
-async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourceId = true): Promise<ImportContext> {
+async function importOnce(
+	vault: MemoryVault,
+	mode: DuplicateHandling,
+	{ saveSourceId = true, editedAt }: Run = {},
+): Promise<{ ctx: ImportContext, subject: ImportingTwice }> {
 	const subject = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 	subject.duplicateHandling = mode;
 	subject.saveSourceId = saveSourceId;
-	subject.answerFromFixture();
+	subject.answerFromFixture(editedAt);
 	subject.indexImportedNotes();
 
 	const ctx = new ImportContext();
@@ -114,7 +131,7 @@ async function importOnce(vault: MemoryVault, mode: DuplicateHandling, saveSourc
 		assert.ok(subject.planned.includes(path), `${path} was written but never planned`);
 	}
 
-	return ctx;
+	return { ctx, subject };
 }
 
 async function vaultWithOneImport(mode: DuplicateHandling): Promise<MemoryVault> {
@@ -149,7 +166,7 @@ test('importing again with "Skip" leaves the vault as it was', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 	const before = markdown(vault).map(path => [path, vault.contents.get(path)] as const);
 
-	const second = await importOnce(vault, DuplicateHandling.Skip);
+	const { ctx: second } = await importOnce(vault, DuplicateHandling.Skip);
 
 	assert.deepEqual(markdown(vault), before.map(([path]) => path), 'no note should have been added');
 	for (const [path, content] of before) {
@@ -211,6 +228,92 @@ test('and the walk still reaches a child that is no longer there', async () => {
 	assert.deepEqual(fetched, [], 'and the parent still fetched nothing of its own');
 });
 
+const ROADMAP = 'Notion/Roadmap/Roadmap.md';
+/** What the fixture says Notion last changed the page. */
+const NOTION_EDITED = '2024-03-01T00:00:00.000Z';
+const LATER = '2024-09-01T00:00:00.000Z';
+
+/** Stand in for the user editing a note in Obsidian after the import. */
+async function editInObsidian(vault: MemoryVault, path: string, body: string, at: string): Promise<void> {
+	const file = vault.getAbstractFileByPath(path) as unknown as TFile;
+	await vault.modify(file, body, { mtime: Date.parse(at), ctime: file.stat.ctime });
+}
+
+const modifiedAt = (vault: MemoryVault, path: string) =>
+	(vault.getAbstractFileByPath(path) as unknown as TFile).stat.mtime;
+
+test('the importer offers all three ways of meeting a note it already wrote', () => {
+	const subject = new ImportingTwice(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+
+	assert.deepEqual(subject.duplicateModes, [
+		DuplicateHandling.CreateCopy,
+		DuplicateHandling.Skip,
+		DuplicateHandling.Update,
+	]);
+});
+
+test('"Update" leaves a page Notion has not changed since the import', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const before = vault.contents.get(ROADMAP);
+
+	const { ctx } = await importOnce(vault, DuplicateHandling.Update);
+
+	assert.equal(vault.contents.get(ROADMAP), before);
+	assert.equal(ctx.skipped.length, 2);
+	assert.deepEqual(fetched, [], 'and it is known to be unchanged without reading a word of it');
+});
+
+// The body the user replaced comes back, in the note they replaced it in,
+// because Notion changed the page after they did.
+test('"Update" writes over a page Notion has changed, in place', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	await editInObsidian(vault, ROADMAP, 'Something else entirely.\n', '2024-04-01T00:00:00.000Z');
+
+	const { ctx } = await importOnce(vault, DuplicateHandling.Update, { editedAt: LATER });
+
+	assert.deepEqual(markdown(vault), ['Notion/Roadmap/Milestones.md', ROADMAP], 'no second copy');
+	assert.match(String(vault.contents.get(ROADMAP)), /What we are building this year\./);
+	assert.ok(!ctx.skipped.includes('Roadmap'), 'the note was written, not passed over');
+	assert.equal(modifiedAt(vault, ROADMAP), Date.parse(LATER), 'stamped with when Notion changed it');
+});
+
+test('"Update" does not write over work done in Obsidian since the import', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	const mine = `---\n${NOTION_ID_PROPERTY}: ${ROOT_PAGE}\n---\nMy own notes.\n`;
+	await editInObsidian(vault, ROADMAP, mine, '2024-12-01T00:00:00.000Z');
+
+	await importOnce(vault, DuplicateHandling.Update, { editedAt: LATER });
+
+	assert.equal(vault.contents.get(ROADMAP), mine, 'the note is the user\'s now');
+});
+
+// The three ways of leaving a note alone are not the same. Two of them let the
+// passes after the import repair links an interrupted run left unresolved; the
+// third is a note the user owns, which nothing here may write to.
+test('a note left alone can still have its unresolved links repaired', async () => {
+	for (const mode of [DuplicateHandling.Skip, DuplicateHandling.Update]) {
+		const vault = await vaultWithOneImport(mode);
+		await editInObsidian(vault, ROADMAP,
+			`---\n${NOTION_ID_PROPERTY}: ${ROOT_PAGE}\n---\n[[NOTION_PAGE:${CHILD_PAGE}]]\n`,
+			NOTION_EDITED);
+
+		const { subject } = await importOnce(vault, mode);
+
+		assert.equal(subject.queuedForRewriting(ROADMAP), true, mode);
+	}
+});
+
+test('but a note the user has edited is not queued for rewriting at all', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Update);
+	await editInObsidian(vault, ROADMAP,
+		`---\n${NOTION_ID_PROPERTY}: ${ROOT_PAGE}\n---\n[[NOTION_PAGE:${CHILD_PAGE}]] and my own notes.\n`,
+		'2024-12-01T00:00:00.000Z');
+
+	const { subject } = await importOnce(vault, DuplicateHandling.Update, { editedAt: LATER });
+
+	assert.equal(subject.queuedForRewriting(ROADMAP), false);
+});
+
 test('a page with children keeps them in the folder holding its note', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 
@@ -250,7 +353,7 @@ test('a note the user moved is still recognised, because the id travels with it'
 	await vault.create(moved, String(vault.contents.get('Notion/Roadmap/Roadmap.md')));
 	vault.remove('Notion/Roadmap/Roadmap.md');
 
-	const second = await importOnce(vault, DuplicateHandling.Skip);
+	const { ctx: second } = await importOnce(vault, DuplicateHandling.Skip);
 
 	assert.ok(markdown(vault).includes(moved), 'the moved note should still be there');
 	assert.ok(

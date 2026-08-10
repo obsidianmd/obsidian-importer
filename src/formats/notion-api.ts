@@ -106,7 +106,9 @@ export class NotionAPIImporter extends FormatImporter {
 	// Track mention placeholders for efficient replacement (similar to relationPlaceholders)
 	// Maps source file path to the set of mentioned page/database IDs
 	// Using file path as key allows O(1) file lookup instead of O(n) search
-	private mentionPlaceholders: Map<string, Set<string>> = new Map();
+	// Protected because it is the record of which files the passes after the
+	// import will rewrite, and what belongs in it is worth a test.
+	protected mentionPlaceholders: Map<string, Set<string>> = new Map();
 	// Track synced blocks mapping (original block ID -> file path)
 	// Used to reference synced block content across the vault
 	private syncedBlocksMap: Map<string, string> = new Map();
@@ -147,8 +149,6 @@ export class NotionAPIImporter extends FormatImporter {
 		});
 
 		this.picker.onLoad(() => void this.loadPageTree());
-
-		this.duplicateModes = [DuplicateHandling.CreateCopy, DuplicateHandling.Skip];
 
 		// Formula import strategy
 		this.addSetting()
@@ -619,17 +619,31 @@ export class NotionAPIImporter extends FormatImporter {
 			// Where the note goes, settled before a block is converted: its
 			// attachments, its links and its child pages are all placed
 			// relative to it, and a page the user moved keeps the note it has.
+			//
+			// Notion says when it last changed the page, and an import writes
+			// that onto the note, so a page nobody has touched at either end is
+			// known to be unchanged without reading a word of it.
+			const sourceMtime = page.last_edited_time ? new Date(page.last_edited_time).getTime() : undefined;
 			const planned = recovered ? null : this.planNote(homeFolder, sanitizedTitle, pageId);
-			const disposition = planned ? this.preflightNote(ctx, planned) : 'skip';
+			const disposition = planned ? this.preflightNote(ctx, planned, sourceMtime) : 'skip';
 			const mdFilePath = planned ? planned.targetPath : desiredPath;
 
-			if (planned?.file && disposition === 'skip') {
-				await this.adoptSkippedNote(planned.file, pageId);
+			// Three ways of leaving a note alone, and they are not the same. A
+			// note the user asked to skip, and one the source has not changed
+			// since, can still have links an interrupted run left unresolved
+			// repaired. A note edited in Obsidian since the import is the
+			// user's, and nothing here may write to it at all.
+			const leavingItAlone = disposition === 'skip'
+				|| disposition === 'unchanged'
+				|| disposition === 'preserve';
+
+			if (planned?.file && leavingItAlone) {
+				await this.adoptSkippedNote(planned.file, pageId, disposition !== 'preserve');
 			}
 
-			// A skipped page still has its children to reach, and they are
+			// A page left alone still has its children to reach, and they are
 			// reached by converting it. One with none has nothing left to do.
-			const shouldSkipParentFile = disposition === 'skip';
+			const shouldSkipParentFile = leavingItAlone;
 			if (shouldSkipParentFile && !hasChildren) {
 				this.pageFinished(ctx);
 				return;
@@ -1360,9 +1374,15 @@ export class NotionAPIImporter extends FormatImporter {
 	 * earlier run may have been interrupted before it could turn its
 	 * placeholders into links, so what is still waiting in the file is read back
 	 * out of it here and resolved with everything else once the import is done.
+	 *
+	 * Unless the note has been edited in Obsidian since it was imported. Then it
+	 * is the user's, and the most this import may do is remember where it is.
 	 */
-	protected async adoptSkippedNote(file: TFile, notionId: string): Promise<void> {
+	protected async adoptSkippedNote(file: TFile, notionId: string, mayRewrite = true): Promise<void> {
+		// Other pages link to it whatever this import does with it, so where it
+		// is has to be known even when nothing may be written to it.
 		this.notionIdToPath.set(notionId, file.path.replace(/\.md$/, ''));
+		if (!mayRewrite) return;
 
 		try {
 			await this.collectUnresolvedPlaceholders(await this.vault.read(file), notionId, file.path);
