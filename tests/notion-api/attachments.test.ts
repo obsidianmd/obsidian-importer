@@ -9,7 +9,9 @@
  * base64 payload. The vault here records what was written rather than writing
  * it, so the bytes can be checked.
  */
-import '../shims/runtime';
+// The dom shim rather than the runtime one: a retry backs off with
+// window.setTimeout, the way the rest of the plugin schedules anything.
+import '../shims/dom';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -285,4 +287,99 @@ test('without incremental import nothing is probed', async () => {
 	await downloadAttachment(REMOTE, contextOverVault(vault, false));
 
 	assert.deepEqual(server.asked, ['full']);
+});
+
+/**
+ * What a large import does with an attachment that will not come down.
+ *
+ * A ten-thousand page workspace meets every kind of transient failure there
+ * is - a gateway that is busy, a file Notion has not finished preparing, a
+ * connection that drops - hundreds of times over. Every one of those used to
+ * end the attachment on the first try.
+ */
+
+/** Runs the body with the backoff collapsed, so a retry costs no wall clock. */
+async function withoutWaiting<T>(body: () => Promise<T>): Promise<T> {
+	const slept = window.setTimeout;
+	(window as unknown as { setTimeout: unknown }).setTimeout = (wake: () => void) => (wake(), 0);
+
+	try {
+		return await body();
+	}
+	finally {
+		(window as unknown as { setTimeout: unknown }).setTimeout = slept;
+	}
+}
+
+/** Answers with each status in turn, then 200. */
+function answersWith(...statuses: number[]) {
+	const asked: number[] = [];
+
+	answerRequests(() => {
+		const status = statuses[asked.length] ?? 200;
+		asked.push(status);
+
+		return {
+			status,
+			headers: { 'content-type': 'text/plain' },
+			arrayBuffer: new TextEncoder().encode('xxxxx').buffer,
+		};
+	});
+
+	return { asked };
+}
+
+test('a status that means "not now" is asked about again', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = answersWith(503, 202);
+
+	const result = await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+
+	assert.deepEqual(server.asked, [503, 202, 200]);
+	assert.equal(result.isLocal, true);
+	assert.deepEqual(vault.paths(), ['Attachments/photo.txt']);
+});
+
+test('a status that will say the same thing next time is asked once', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const server = answersWith(404);
+
+	await withoutWaiting(() => downloadAttachment(REMOTE, contextOverVault(vault, false)));
+
+	assert.deepEqual(server.asked, [404]);
+});
+
+test('an external link that will not download is kept rather than lost', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	answersWith(404);
+	const context = contextOverVault(vault, false);
+
+	const result = await withoutWaiting(() => downloadAttachment(REMOTE, context));
+
+	// The note points where Notion pointed. A link that was already broken is
+	// not something this import broke, so it is not counted as a failure -
+	// reportFailed in contextOverVault fails the test outright.
+	assert.equal(result.isLocal, false);
+	assert.equal(result.path, REMOTE.url);
+	assert.deepEqual((context as never as { skipped: string[] }).skipped, ['Attachment: photo.txt']);
+});
+
+test('a file Notion was hosting failing to download is a failure', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	answersWith(403);
+	const failures: string[] = [];
+	const context = contextOverVault(vault, false);
+	(context as unknown as { ctx: { reportFailed: unknown } }).ctx.reportFailed = (name: string) => failures.push(name);
+
+	const hosted: NotionAttachment = { ...REMOTE, type: 'file' };
+	const result = await withoutWaiting(() => downloadAttachment(hosted, context));
+
+	// Nothing is left pointing at the content: a presigned URL expires, so
+	// keeping it would be keeping a link that stops working.
+	assert.deepEqual(failures, ['Attachment: photo.txt']);
+	assert.equal(result.isLocal, false);
 });

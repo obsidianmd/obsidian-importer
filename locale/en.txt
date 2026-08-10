@@ -1530,6 +1530,10 @@ translation=
 original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
 translation=
 
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation=
+
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
 translation=
@@ -1716,6 +1720,10 @@ translation=
 
 [importer.notion-api.reason-gave-up]
 original={{reason}}, and gave up after {{retries}} retries
+translation=
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
 translation=
 
 [importer.notion.name]

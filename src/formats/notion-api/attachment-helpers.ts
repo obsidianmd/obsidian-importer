@@ -3,7 +3,7 @@
  * Handles downloading and processing attachments (images, files, videos, PDFs)
  */
 
-import { App, DataWriteOptions, normalizePath, requestUrl, TFile, Vault } from 'obsidian';
+import { App, DataWriteOptions, normalizePath, RequestUrlResponse, requestUrl, TFile, Vault } from 'obsidian';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { RichTextItemResponse } from '@notionhq/client';
@@ -15,6 +15,95 @@ import { NotionAttachment, AttachmentResult, BlockConversionContext, FormatAttac
 interface DownloadedAttachment {
 	arrayBuffer: ArrayBuffer;
 	contentType?: string;
+}
+
+const MAX_ATTACHMENT_RETRIES = 3;
+
+/**
+ * Statuses that mean "not now" rather than "not ever".
+ *
+ * 202 is Notion's storage saying the file is still being prepared; the 5xxs
+ * and 408 are the network or the server having a moment. An import large
+ * enough to meet them meets them hundreds of times, and each one that is not
+ * asked about again is an attachment the note loses.
+ */
+const RETRYABLE_STATUSES = new Set([202, 408, 425, 429, 500, 502, 503, 504]);
+
+/**
+ * Network failures that are the connection rather than the URL. A name that
+ * does not resolve or a certificate that expired will say the same thing on
+ * every try, so those are left to fail once.
+ */
+const RETRYABLE_NETWORK_ERRORS = /ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_ABORTED|ERR_NETWORK_CHANGED|ERR_TIMED_OUT|ERR_EMPTY_RESPONSE|ERR_SOCKET_NOT_CONNECTED/;
+
+async function requestAttachment(url: string, filename: string, ctx: ImportContext): Promise<RequestUrlResponse> {
+	for (let attempt = 0; ; attempt++) {
+		let failure: string;
+
+		try {
+			const response = await requestUrl({ url, method: 'GET', throw: false });
+			if (!RETRYABLE_STATUSES.has(response.status)) return response;
+			if (attempt >= MAX_ATTACHMENT_RETRIES) return response;
+
+			failure = `HTTP ${response.status}`;
+		}
+		catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (!RETRYABLE_NETWORK_ERRORS.test(message) || attempt >= MAX_ATTACHMENT_RETRIES) throw error;
+
+			failure = message;
+		}
+
+		// Exponential backoff: 1s, 2s, 4s
+		const waitFor = Math.pow(2, attempt);
+		const previousStatus = ctx.statusMessage;
+		ctx.status(i18n.importer.notionApi.statusRetryingAttachment({
+			name: filename,
+			failure,
+			seconds: waitFor,
+			attempt: attempt + 1,
+			total: MAX_ATTACHMENT_RETRIES,
+		}));
+
+		await new Promise(resolve => window.setTimeout(resolve, waitFor * 1000));
+
+		if (await ctx.shouldStop()) return { status: 0 } as RequestUrlResponse;
+
+		ctx.status(previousStatus);
+	}
+}
+
+/**
+ * An attachment that could not be downloaded, reported and left as a link.
+ *
+ * A URL Notion was only ever pointing at is not the import's to lose: the note
+ * keeps the link, exactly as Notion had it, and a link that was already broken
+ * stays broken rather than being counted as an import failure. A file Notion
+ * was hosting is different - that content is gone if it is not fetched - so
+ * that one is a failure, and so is a `data:` URL, whose content was the URL.
+ */
+function reportUndownloadable(
+	attachment: NotionAttachment,
+	filename: string,
+	reason: string,
+	ctx: ImportContext
+): AttachmentResult {
+	const isLink = attachment.type === 'external' && !attachment.url.toLowerCase().startsWith('data:');
+
+	if (isLink) {
+		ctx.reportSkipped(
+			i18n.importer.notionApi.labelAttachment({ name: filename }),
+			i18n.importer.notionApi.reasonKeptLink({ reason, url: attachment.url })
+		);
+	}
+	else {
+		ctx.reportFailed(i18n.importer.notionApi.labelAttachment({ name: filename }), reason);
+	}
+
+	return {
+		path: attachment.url,
+		isLocal: false
+	};
 }
 
 /**
@@ -74,22 +163,16 @@ export async function downloadAttachment(
 			downloaded = decodeDataUrl(attachment.url);
 		}
 		else {
-			const response = await requestUrl({
-				url: attachment.url,
-				method: 'GET',
-				throw: false,
-			});
+			const response = await requestAttachment(attachment.url, filename, ctx);
 
 			if (response.status !== 200) {
 				console.error(`Failed to download attachment "${filename}": ${response.status}`);
-				ctx.reportFailed(
-					i18n.importer.notionApi.labelAttachment({ name: filename }),
-					i18n.importer.notionApi.reasonHttpStatus({ status: response.status })
+				return reportUndownloadable(
+					attachment,
+					filename,
+					i18n.importer.notionApi.reasonHttpStatus({ status: response.status }),
+					ctx
 				);
-				return {
-					path: attachment.url,
-					isLocal: false
-				};
 			}
 
 			downloaded = {
@@ -128,11 +211,7 @@ export async function downloadAttachment(
 	catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to download attachment "${filename}":`, error);
-		ctx.reportFailed(i18n.importer.notionApi.labelAttachment({ name: filename }), errorMsg);
-		return {
-			path: attachment.url,
-			isLocal: false
-		};
+		return reportUndownloadable(attachment, filename, errorMsg, ctx);
 	}
 }
 

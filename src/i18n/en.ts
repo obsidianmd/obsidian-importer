@@ -457,6 +457,7 @@ export const en = {
 			statusDownloadingAttachment: 'Downloading attachment: {{name}}...',
 			statusRateLimited: 'Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...',
 			statusRetrying: 'Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...',
+			statusRetryingAttachment: '{{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...',
 			statusProcessingDataSource: 'Processing database from data source: {{id}}...',
 			statusProcessingDatabase: 'Processing database: {{title}}...',
 			statusFoundPages: 'Found {{pages}} in database {{title}}',
@@ -504,6 +505,7 @@ export const en = {
 			reasonMeetingNotesPending: 'Notion has not finished generating them ({{status}})',
 			reasonRateLimitGaveUp: 'rate limited, and gave up after {{retries}} retries',
 			reasonGaveUp: '{{reason}}, and gave up after {{retries}} retries',
+			reasonKeptLink: '{{reason}}; kept the link to {{url}}',
 		},
 		notion: {
 			name: 'Notion',
