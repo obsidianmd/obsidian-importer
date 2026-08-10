@@ -152,6 +152,121 @@ test('an image with no declared type still downloads', async () => {
 	assert.match(downloaded[0], /\.png$/);
 });
 
+test('an image is named after its note, so a later import can recognise it', async () => {
+	const downloaded: string[] = [];
+	const subject = importer(name => {
+		downloaded.push(name);
+		return name;
+	});
+
+	const page = '<html><body>'
+		+ '<img data-fullres-src="https://example.com/a" data-fullres-src-type="image/png">'
+		+ '<img data-fullres-src="https://example.com/b" data-fullres-src-type="image/jpeg">'
+		+ '</body></html>';
+
+	await subject.getAllAttachments(new ImportContext(), page, 'Notebook/Recipes.md');
+	await subject.getAllAttachments(new ImportContext(), page, 'Notebook/Recipes.md');
+
+	assert.deepEqual(downloaded, [
+		'Recipes image 1.png', 'Recipes image 2.jpeg',
+		'Recipes image 1.png', 'Recipes image 2.jpeg',
+	], 'the same image asks for the same name every import');
+});
+
+test('the size is asked for before the attachment is fetched', async () => {
+	const asked: Array<[string, string]> = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		sizeProbeAnswered: true,
+		placeAttachment: async (
+			_name: string,
+			_notePath: string,
+			recognise: (existing: { stat: { size: number } }) => Promise<string>,
+		) => {
+			const verdict = await recognise({ stat: { size: 4096 } });
+			return verdict === 'same'
+				? { path: 'Notebook/Document.pdf', reuse: { path: 'Notebook/Document.pdf' } }
+				: { path: 'Notebook/Document 1.pdf', reuse: null };
+		},
+		fetchResource: async (url: string, returnType: string) => {
+			asked.push([returnType, url]);
+			return returnType === 'range' ? 4096 : new ArrayBuffer(0);
+		},
+	});
+
+	const progress = new ImportContext();
+	const path = await subject.fetchAttachment(progress, 'Document.pdf', 'https://example.com/pdf', 'Notebook/Page.md');
+
+	assert.deepEqual(asked, [['range', 'https://example.com/pdf']], 'the bytes were never fetched');
+	assert.equal(path, 'Notebook/Document.pdf');
+	assert.deepEqual(progress.skipped, ['Document.pdf']);
+});
+
+test('a size that does not match is downloaded rather than taken for this one', async () => {
+	const asked: string[] = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		sizeProbeAnswered: true,
+		placeAttachment: async (
+			_name: string,
+			_notePath: string,
+			recognise: (existing: { stat: { size: number } }) => Promise<string>,
+		) => {
+			// A file of another size is sitting on the name this one wants.
+			await recognise({ stat: { size: 11 } });
+			return { path: 'Notebook/Document 1.pdf', reuse: null };
+		},
+		fetchResource: async (url: string, returnType: string) => {
+			asked.push(returnType);
+			return returnType === 'range' ? 4096 : new ArrayBuffer(4096);
+		},
+		writeAttachment: async () => {},
+	});
+
+	const path = await subject.fetchAttachment(
+		new ImportContext(), 'Document.pdf', 'https://example.com/pdf', 'Notebook/Page.md');
+
+	assert.deepEqual(asked, ['range', 'file']);
+	assert.equal(path, 'Notebook/Document 1.pdf', 'the other file is left as it stands');
+});
+
+test('a service that ignores the range is only asked the once', async () => {
+	const asked: string[] = [];
+	const subject = Object.create(OneNoteImporter.prototype) as OneNoteImporter;
+
+	Object.assign(subject, {
+		duplicateHandling: DuplicateHandling.Update,
+		throttleSpacingMs: 0,
+		sizeProbeAnswered: true,
+		placeAttachment: async (
+			_name: string,
+			_notePath: string,
+			recognise: (existing: { stat: { size: number } }) => Promise<string>,
+		) => {
+			await recognise({ stat: { size: 11 } });
+			return { path: 'Notebook/Document.pdf', reuse: null };
+		},
+		fetchResource: async (_url: string, returnType: string) => {
+			asked.push(returnType);
+			// null is what a response that sent the whole file reports.
+			return returnType === 'range' ? null : new ArrayBuffer(11);
+		},
+		writeAttachment: async () => {},
+	});
+
+	const progress = new ImportContext();
+	await subject.fetchAttachment(progress, 'A.pdf', 'https://example.com/a', 'Notebook/Page.md');
+	await subject.fetchAttachment(progress, 'B.pdf', 'https://example.com/b', 'Notebook/Page.md');
+
+	assert.deepEqual(asked, ['range', 'file', 'file'], 'the probe stops after the first refusal');
+});
+
 test('an attachment without a download URL is reported and keeps its fallback content', async () => {
 	const subject = importer(name => name);
 	const progress = new ImportContext();

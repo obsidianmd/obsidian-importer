@@ -348,6 +348,34 @@ test('drawings that share a name stay separate files when updating', async () =>
 	}
 });
 
+test('drawings that share a name are not multiplied by a later import', async () => {
+	const run = await importing(DRAWINGS);
+	try {
+		await run.resolve(run.notePks[0]);
+		const first = run.vault.paths().filter(path => path.endsWith('.png'));
+		assert.deepEqual(first, ['Drawing.png', 'Drawing 1.png', 'Drawing 2.png']);
+
+		// Age the note so the second run reimports it rather than skipping it.
+		const note = run.vault.getAbstractFileByPath('Sketches.md');
+		assert.ok(note instanceof TFile);
+		note.stat.mtime = 0;
+
+		await run.reimport(DuplicateHandling.Update)(run.notePks[0]);
+
+		assert.deepEqual(
+			run.vault.paths().filter(path => path.endsWith('.png')), first,
+			'each drawing should have found the copy it wrote last time',
+		);
+
+		const held = (path: string) => Buffer.from(run.vault.contents.get(path) as ArrayBuffer).toString();
+		assert.equal(held('Drawing.png'), 'DRAWING-PAPER', 'and kept hold of its own bytes');
+		assert.equal(held('Drawing 2.png'), 'DRAWING-LEGACY-2');
+	}
+	finally {
+		run.close();
+	}
+});
+
 test('a drawing is imported whichever UTI it carries', async () => {
 	const run = await importing(DRAWINGS);
 	try {

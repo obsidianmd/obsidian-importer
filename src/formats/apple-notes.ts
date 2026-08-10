@@ -681,8 +681,21 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
 			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
+			const ctime = this.decodeTime(row.ZCREATIONDATE);
 			const mtime = this.decodeTime(row.ZMODIFICATIONDATE);
-			const { path: attachmentPath, reuse } = await this.placeAttachment(attachmentName, notePath, mtime);
+
+			// An attachment is written with the times Apple Notes gave it, and
+			// editing one does not change when it was created. So a file created
+			// at another moment is another attachment that happens to share the
+			// name, not an earlier version of this one. Without a creation date
+			// there is nothing to tell them apart, and decodeTime says "now",
+			// which would match nothing and write another copy every import.
+			const created = Number(row.ZCREATIONDATE) > 0;
+
+			const { path: attachmentPath, reuse } = await this.placeAttachment(attachmentName, notePath,
+				existing => created && existing.stat.ctime !== ctime ? 'another'
+					: mtime > existing.stat.mtime ? 'stale'
+						: 'same');
 
 			if (reuse) {
 				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
@@ -694,8 +707,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
 			file = await this.writeAttachment(
-				attachmentPath, nodeBufferToArrayBuffer(binary),
-				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime }
+				attachmentPath, nodeBufferToArrayBuffer(binary), { ctime, mtime }
 			);
 		}
 		catch (e) {

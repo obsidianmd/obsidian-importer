@@ -21,6 +21,13 @@ const DUPLICATE_HANDLING_LABELS: Record<DuplicateHandling, string> = {
 	[DuplicateHandling.Update]: 'Update',
 };
 
+/**
+ * What a file already occupying an attachment's name turned out to be:
+ * this attachment as the source still has it, this attachment as it used to
+ * be, or an attachment belonging to something else entirely.
+ */
+export type AttachmentVerdict = 'same' | 'stale' | 'another';
+
 export type AttachmentLocationMode = 'vault' | 'folder' | 'note' | 'subfolder';
 
 export interface AttachmentLocation {
@@ -642,10 +649,7 @@ export abstract class FormatImporter {
 	}
 
 	/** How an attachment is named in its folder, and how collisions are numbered. */
-	private async attachmentNaming(filename: string, sourcePath?: string): Promise<{
-		preferred: string;
-		free: (taken: (path: string) => boolean) => string;
-	}> {
+	private async attachmentNaming(filename: string, sourcePath?: string): Promise<(nth: number) => string> {
 		const folder = await this.createFolders(await this.attachmentFolderPath(sourcePath));
 		const parent = folder.path === '/' ? '' : folder.path;
 
@@ -653,51 +657,47 @@ export abstract class FormatImporter {
 		const name = sanitizeFileName(basename);
 		const fullExt = extension ? '.' + extension : '';
 
-		const at = (candidate: string) => normalizePath(parent ? `${parent}/${candidate}` : candidate);
-		const preferred = at(`${name}${fullExt}`);
-
-		const free = (taken: (path: string) => boolean) => {
-			let path = preferred;
-			for (let i = 1; taken(path); i++) {
-				path = at(`${name} ${i}${fullExt}`);
-			}
-			return path;
-		};
-
-		return { preferred, free };
+		return nth => normalizePath(
+			parent ? `${parent}/${name}${nth ? ` ${nth}` : ''}${fullExt}`
+				: `${name}${nth ? ` ${nth}` : ''}${fullExt}`);
 	}
 
-	/** Reuse prior imports, but give same-run name collisions a new path. */
+	/**
+	 * Where this attachment belongs, and the copy already there if it is this
+	 * one. A name is not an identity — two sources can offer the same one — so
+	 * the importer is asked what a file occupying the name actually is. A name
+	 * it does not recognise is passed over rather than taken, which is what
+	 * keeps one page's attachment out of another page's note.
+	 */
 	protected async placeAttachment(
 		filename: string,
-		sourcePath?: string,
-		sourceMtime?: number,
+		sourcePath: string | undefined,
+		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,
 	): Promise<{ path: string, reuse: TFile | null }> {
-		const { preferred: candidate, free } = await this.attachmentNaming(filename, sourcePath);
+		const at = await this.attachmentNaming(filename, sourcePath);
+		const reusing = this.duplicateHandling !== DuplicateHandling.CreateCopy;
 
-		const unclaimedPath = () => {
-			const path = free(taken => !!this.vault.getAbstractFileByPath(taken));
-			this.claimPath(path);
-			return { path, reuse: null };
-		};
+		for (let nth = 0; ; nth++) {
+			const candidate = at(nth);
+			if (this.hasClaimed(candidate)) continue;
 
-		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return unclaimedPath();
+			const existing = this.vault.getAbstractFileByPath(candidate);
+			if (!(existing instanceof TFile)) {
+				this.claimPath(candidate);
+				return { path: candidate, reuse: null };
+			}
 
-		if (this.hasClaimed(candidate)) return unclaimedPath();
+			if (!reusing) continue;
 
-		const existing = this.vault.getAbstractFileByPath(candidate);
-		if (!(existing instanceof TFile)) return unclaimedPath();
+			const verdict = await recognise(existing);
+			if (verdict === 'another') continue;
 
-		this.claimPath(candidate);
+			this.claimPath(candidate);
 
-		if (this.duplicateHandling === DuplicateHandling.Skip) return { path: candidate, reuse: existing };
-
-		// Without a source time, reuse rather than overwrite indistinguishable data.
-		if (sourceMtime === undefined || sourceMtime <= existing.stat.mtime) {
-			return { path: candidate, reuse: existing };
+			// Skip leaves what is there even when the source has moved on.
+			const stale = verdict === 'stale' && this.duplicateHandling !== DuplicateHandling.Skip;
+			return { path: candidate, reuse: stale ? null : existing };
 		}
-
-		return { path: candidate, reuse: null };
 	}
 
 	protected async writeAttachment(path: string, data: ArrayBuffer | string, options?: DataWriteOptions): Promise<TFile> {
@@ -715,10 +715,14 @@ export abstract class FormatImporter {
 	}
 
 	async getAvailablePathForAttachment(filename: string, claimedPaths: string[], sourcePath?: string): Promise<string> {
-		const { free } = await this.attachmentNaming(filename, sourcePath);
+		const at = await this.attachmentNaming(filename, sourcePath);
 
-		return free(candidate =>
-			claimedPaths.includes(candidate) || !!this.vault.getAbstractFileByPath(candidate));
+		for (let nth = 0; ; nth++) {
+			const candidate = at(nth);
+			if (!claimedPaths.includes(candidate) && !this.vault.getAbstractFileByPath(candidate)) {
+				return candidate;
+			}
+		}
 	}
 
 	async backOff(durationSeconds: number, reason: string, ctx: ImportContext | undefined): Promise<void> {

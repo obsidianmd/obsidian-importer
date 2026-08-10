@@ -13,7 +13,7 @@ import { requestFailure } from '../request-failure';
 import { accountTypeFromToken, authorizationUrl, graphScopes, storedAccountType, TOKEN_URL } from './onenote/auth';
 import type { MicrosoftAccountType } from './onenote/auth';
 import { inkmlToSvg } from './onenote/inkml';
-import { splitext } from '../filesystem';
+import { parseFilePath, splitext } from '../filesystem';
 import { extensionForMime } from '../mime';
 
 const ACCOUNT_SECRET_ID = 'onenote-importer';
@@ -38,7 +38,21 @@ type JSONWrappedResponse<T> = {
 	value: T[];
 };
 
-type ResourceType = 'text' | 'file' | 'json' | 'json-wrapped';
+type ResourceType = 'text' | 'file' | 'json' | 'json-wrapped' | 'range';
+
+type FetchedResource<T> = string | ArrayBuffer | object | JSONWrappedResponse<T> | number | null;
+
+/**
+ * The length a partial response reports, which the whole attachment has. A
+ * response that is not partial ignored the range and sent everything, and says
+ * so by answering with nothing.
+ */
+function totalFromContentRange(response: Response): number | null {
+	if (response.status !== 206) return null;
+
+	const total = /\/(\d+)\s*$/.exec(response.headers.get('Content-Range') ?? '')?.[1];
+	return total ? Number(total) : null;
+}
 
 function assertUnreachable(x: never): never {
 	throw new Error(`Didn't expect to get here`);
@@ -135,6 +149,8 @@ export class OneNoteImporter extends FormatImporter {
 	private readAheadQueue: Promise<void> = Promise.resolve();
 	/** Bumped to disown reads that were started against an earlier listing. */
 	private pagesGeneration = 0;
+	/** Cleared by the first response that ignores a range, so the rest go straight to the download. */
+	private sizeProbeAnswered = true;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -631,7 +647,10 @@ export class OneNoteImporter extends FormatImporter {
 			const svgContent = inkmlToSvg(splitContent.inkml);
 			if (svgContent) {
 				const svgFilename = `${page.title} - Ink.svg`;
-				const { path: svgPath, reuse } = await this.placeAttachment(svgFilename, notePath);
+				// The drawing was built here, so what is on disk can be compared
+				// against it outright rather than guessed at from its name.
+				const { path: svgPath, reuse } = await this.placeAttachment(svgFilename, notePath,
+					async existing => await this.vault.read(existing) === svgContent ? 'same' : 'another');
 
 				if (reuse) {
 					inkEmbedMarkdown = `\n\n![[${reuse.path}]]\n`;
@@ -859,8 +878,9 @@ export class OneNoteImporter extends FormatImporter {
 			}
 
 			const extension = extensionForMime(image.getAttribute('data-fullres-src-type') ?? '') || 'png';
-			const currentDate = moment().format('YYYYMMDDHHmmss');
-			const fileName: string = `Exported image ${currentDate}-${i}.${extension}`;
+			// Named after the note rather than the moment of import: a name that
+			// changes every second can never match what the last import wrote.
+			const fileName = `${parseFilePath(notePath).basename} image ${i + 1}.${extension}`;
 			const outputPath = await this.fetchAttachment(progress, fileName, contentLocation, notePath);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
@@ -891,9 +911,41 @@ export class OneNoteImporter extends FormatImporter {
 		return pageElement;
 	}
 
+	/**
+	 * How big the attachment is, without fetching it. OneNote gives no size in
+	 * the page HTML, and a name alone cannot say whether the file already at it
+	 * is this attachment, so the size is asked for and compared.
+	 */
+	private async attachmentSize(contentLocation: string, progress: ImportContext): Promise<number | null> {
+		if (!this.sizeProbeAnswered) return null;
+
+		try {
+			const range = await this.fetchResource(contentLocation, 'range', progress);
+			// A response that ignored the range downloaded the whole attachment,
+			// which is what asking first set out to avoid. One is enough to learn.
+			if (range === null) this.sizeProbeAnswered = false;
+			return range;
+		}
+		catch {
+			// Nothing is known about the attachment; treat it as unrecognised.
+			return null;
+		}
+	}
+
 	async fetchAttachment(progress: ImportContext, filename: string, contentLocation: string, notePath: string): Promise<string | null> {
 		try {
-			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath);
+			// However many names it has to pass over, the size is asked for once.
+			let size: number | null;
+			let asked = false;
+
+			const { path: outputPath, reuse } = await this.placeAttachment(filename, notePath, async existing => {
+				if (!asked) {
+					size = await this.attachmentSize(contentLocation, progress);
+					asked = true;
+				}
+
+				return size !== null && size === existing.stat.size ? 'same' : 'another';
+			});
 
 			if (reuse) {
 				progress.reportSkipped(filename, 'it is already in the vault');
@@ -925,12 +977,13 @@ export class OneNoteImporter extends FormatImporter {
 	async fetchResource<T = ArrayBuffer>(url: string, returnType: 'file', progress?: ImportContext): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json', progress?: ImportContext): Promise<T>;
 	async fetchResource<T>(url: string, returnType: 'json-wrapped', progress?: ImportContext): Promise<JSONWrappedResponse<T>>;
-	async fetchResource<T>(url: string, returnType: ResourceType, progress?: ImportContext): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	async fetchResource(url: string, returnType: 'range', progress?: ImportContext): Promise<number | null>;
+	async fetchResource<T>(url: string, returnType: ResourceType, progress?: ImportContext): Promise<FetchedResource<T>> {
 		return this.fetchWithRetry<T>(url, returnType, progress, 0, false);
 	}
 
 	/** `retryCount` and `refreshed` are what one attempt hands the next. */
-	private async fetchWithRetry<T>(url: string, returnType: ResourceType, progress: ImportContext | undefined, retryCount: number, refreshed: boolean): Promise<string | ArrayBuffer | object | JSONWrappedResponse<T>> {
+	private async fetchWithRetry<T>(url: string, returnType: ResourceType, progress: ImportContext | undefined, retryCount: number, refreshed: boolean): Promise<FetchedResource<T>> {
 		// Check if we need to reject early WITHOUT retrying, outside the
 		// try/catch block
 		if (retryCount >= MAX_RETRY_ATTEMPTS) {
@@ -955,15 +1008,23 @@ export class OneNoteImporter extends FormatImporter {
 			let response = await fetch(
 				url,
 				{
-					headers: { Authorization: `Bearer ${this.graphData.accessToken}` },
+					headers: {
+						Authorization: `Bearer ${this.graphData.accessToken}`,
+						// Asking for the first byte is a GET, which a resource
+						// URL allows where it may refuse a HEAD.
+						...(returnType === 'range' ? { Range: 'bytes=0-0' } : {}),
+					},
 					signal: this.host.abortController.signal,
 				}
 			);
 
 			if (response.ok) {
-				let result: string | ArrayBuffer | object | JSONWrappedResponse<T>;
+				let result: FetchedResource<T>;
 
 				switch (returnType) {
+					case 'range':
+						result = totalFromContentRange(response);
+						break;
 					case 'text':
 						result = await response.text();
 						break;

@@ -53,7 +53,7 @@ test('pages that will not convert are reported without ending the import', async
 		fetchResource: async (url: string) => url.includes('/pages?')
 			? { value: eightPages }
 			: 'not a multipart document',
-	} as Partial<OneNoteImporter>);
+	} as unknown as Partial<OneNoteImporter>);
 
 	await subject.import(progress);
 
@@ -269,7 +269,7 @@ test('a vault that will not take the write does stop the import', async () => {
 	const subject = importerOverPages(eightPages, {
 		fetchResource: async (url: string) => url.includes('/pages?') ? { value: eightPages } : 'content',
 		processFile: async () => { throw new Error('ENOSPC: no space left on device'); },
-	} as Partial<OneNoteImporter>);
+	} as unknown as Partial<OneNoteImporter>);
 
 	await subject.import(progress);
 
