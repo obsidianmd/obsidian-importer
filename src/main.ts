@@ -682,9 +682,18 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 
 		this.showProgress(ctx, importer.interruption);
+		const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
+		let threw = false;
 		try {
 			importer.indexImportedNotes();
 			await importer.import(ctx);
+		}
+		catch (e) {
+			// An importer is meant to report a bad note and carry on, but one that
+			// throws instead would otherwise finish on a summary of all zeros, with
+			// the reason only in the console.
+			threw = true;
+			ctx.reportFailed(name, e);
 		}
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
@@ -693,9 +702,10 @@ export class ImporterModal extends Modal implements ImporterHost {
 			}
 			ctx.hideStatus();
 
+			// An import that threw never got as far as its checkpoints, which is
+			// no evidence that the importer neglects them.
 			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length;
-			if (importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
-				const name = this.plugin.importers[this.selectedId]?.name ?? this.selectedId;
+			if (!threw && importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
 				console.warn(
 					`The ${name} importer offers ${importer.interruption} but never awaited ` +
 					`ctx.shouldStop(), so neither button could have done anything`

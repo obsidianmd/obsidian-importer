@@ -618,7 +618,11 @@ export abstract class FormatImporter {
 		}
 		folderPath = normalizePath(folderPath);
 
-		let folder = vault.getAbstractFileByPath(folderPath);
+		// Match the folder the way createFolder will: it throws for a name that
+		// differs from an existing one only in case, so an exact lookup alone
+		// would try to create a folder that is already there.
+		let folder = vault.getAbstractFileByPath(folderPath)
+			?? vault.getAbstractFileByPathInsensitive(folderPath);
 
 		if (folder === null || !(folder instanceof TFolder)) {
 			await vault.createFolder(folderPath);

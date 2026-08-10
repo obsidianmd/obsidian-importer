@@ -102,6 +102,14 @@ export class MemoryVault {
 
 	async createFolder(path: string): Promise<TFolder> {
 		const normalized = normalizePath(path);
+
+		// The app throws rather than handing back what is already there, and it
+		// compares without regard to case: asked for "keep" while "Keep" exists,
+		// it throws too. Measured against Obsidian, whose message this is.
+		if (this.entries.has(normalized.toLowerCase())) {
+			throw new Error('Folder already exists.');
+		}
+
 		const folder = new TFolder();
 		folder.path = normalized;
 		folder.name = normalized.split('/').pop() ?? '';
