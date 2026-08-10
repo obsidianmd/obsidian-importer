@@ -22,11 +22,25 @@ import { ImportContext } from '../../src/import-context';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 class CountingImporter extends NotionAPIImporter {
-	/** A client that answers for any page, with no blocks and no title. */
-	useStubClient(): void {
+	/**
+	 * A client that answers for any page. `children` maps a page id to the
+	 * child pages it holds, so a page can be given children to import.
+	 */
+	useStubClient(children: Record<string, string[]> = {}): void {
 		(this as unknown as { notionClient: unknown }).notionClient = {
 			pages: { retrieve: async ({ page_id }: { page_id: string }) => ({ id: page_id, properties: {} }) },
-			blocks: { children: { list: async () => ({ results: [], has_more: false, next_cursor: null }) } },
+			blocks: {
+				children: {
+					list: async ({ block_id }: { block_id: string }) => ({
+						results: (children[block_id] ?? []).map(id => ({
+							object: 'block', id, type: 'child_page', has_children: false,
+							child_page: { title: id },
+						})),
+						has_more: false,
+						next_cursor: null,
+					}),
+				},
+			},
 		};
 	}
 
@@ -101,4 +115,28 @@ test('a page that fails counts too, so remaining still reaches zero', async () =
 
 	assert.deepEqual(ctx.failed.length, 1);
 	assert.equal(remaining(ctx), 0);
+});
+
+/**
+ * A total that rises by one and falls by one for every child never settles
+ * into a number worth reading. A page's children are counted when its blocks
+ * are read, so the number steps up once and then only comes down.
+ */
+test('a page with children raises the total once, then counts down', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	const subject = new CountingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	subject.useStubClient({ parent: ['child-1', 'child-2', 'child-3'] });
+
+	const seen: number[] = [];
+	const ctx = new ImportContext();
+	const reportProgress = ctx.reportProgress.bind(ctx);
+	ctx.reportProgress = (current, total) => {
+		reportProgress(current, total);
+		seen.push(total - current);
+	};
+
+	await subject.importPage(ctx, 'parent');
+
+	assert.deepEqual(seen, [4, 3, 2, 1, 0], `remaining went ${seen.join(' ')}`);
 });

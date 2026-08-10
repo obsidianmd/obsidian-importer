@@ -28,6 +28,19 @@ import { buildTree, collectItems, type NotionTreeNode } from './notion-api/disco
 
 
 
+/** The child pages among a page's blocks, as far as they have been read. */
+function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>): string[] {
+	const ids: string[] = [];
+
+	for (const blocks of blocksCache.values()) {
+		for (const block of blocks) {
+			if (block.type === 'child_page') ids.push(block.id);
+		}
+	}
+
+	return ids;
+}
+
 export class NotionAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -372,6 +385,8 @@ export class NotionAPIImporter extends FormatImporter {
 
 	/** Pages the import has just learned it has to write. */
 	private pagesDiscovered(ctx: ImportContext, pageIds: string[]): void {
+		if (pageIds.length === 0) return;
+
 		for (const pageId of pageIds) this.knownPages.add(pageId);
 		ctx.reportProgress(this.finishedPages, this.knownPages.size);
 	}
@@ -605,6 +620,12 @@ export class NotionAPIImporter extends FormatImporter {
 			// This will check not only top-level blocks, but also blocks nested in lists, toggles, etc.
 			// The blocksCache will be populated during this check
 			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
+
+			// Count this page's children now that its blocks have been read,
+			// rather than one at a time as each is imported: a total that
+			// rises by one and falls by one for every child never settles into
+			// a number worth reading.
+			this.pagesDiscovered(ctx, childPageIds(blocksCache));
 
 			// Determine file structure based on whether page has children
 			let pageFolderPath: string; // Folder for child pages/databases
