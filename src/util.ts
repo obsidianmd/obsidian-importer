@@ -39,8 +39,47 @@ export function stripControlCharacters(name: string): string {
 	return out;
 }
 
+/**
+ * The longest a single file or folder name may be, in UTF-8 bytes.
+ *
+ * macOS and Linux cap a path component at 255 bytes, Windows at 255 UTF-16
+ * units - and 240 UTF-8 bytes is at most 240 UTF-16 units, so one budget
+ * covers all three. The 15 left over are for what gets added after a name is
+ * sanitized: an extension, and the ` 1` a collision appends.
+ *
+ * A source that has no title of its own gives the first line of the note
+ * instead, which is how a paragraph ends up being asked for as a file name.
+ */
+const MAX_NAME_BYTES = 240;
+
+const encoder = new TextEncoder();
+
+function limitNameLength(name: string): string {
+	if (encoder.encode(name).length <= MAX_NAME_BYTES) return name;
+
+	// Iterating a string yields code points, so a surrogate pair is never cut
+	// in half - and counting each one's own encoding keeps the byte budget
+	// exact for scripts that spend more than one byte per character.
+	let truncated = '';
+	let bytes = 0;
+
+	for (const character of name) {
+		const size = encoder.encode(character).length;
+		if (bytes + size > MAX_NAME_BYTES) break;
+		truncated += character;
+		bytes += size;
+	}
+
+	// End on a word rather than mid-word, but not at the cost of most of the
+	// name: a title with no spaces near the cut keeps the hard truncation.
+	const lastSpace = truncated.lastIndexOf(' ');
+	if (lastSpace > truncated.length / 2) truncated = truncated.slice(0, lastSpace);
+
+	return truncated;
+}
+
 export function sanitizeFileName(name: string | undefined | null) {
-	const sanitized = stripControlCharacters(
+	const sanitized = limitNameLength(stripControlCharacters(
 		(name ?? '')
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, ''))
@@ -48,7 +87,9 @@ export function sanitizeFileName(name: string | undefined | null) {
 		.replace(windowsTrailingRe, '')
 		.replace(windowsReservedRe, '')
 		.replace(badLinkRe, '')
-		.replace(startsWithDotRe, '');
+		.replace(startsWithDotRe, ''))
+		// Truncating can uncover a trailing dot or space, which Windows refuses
+		.replace(windowsTrailingRe, '');
 
 	// If the result is empty or only whitespace after sanitization, return a default name
 	// This prevents creating files like ".md" (no name) or folders with only spaces

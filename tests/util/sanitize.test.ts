@@ -71,6 +71,47 @@ test('a name cannot start with a dot or end in a dot or space', () => {
 	assert.equal(sanitizeFileName('trailing   '), 'trailing');
 });
 
+/**
+ * A note whose title is a whole paragraph is not unusual - Notion gives a page
+ * with no title the first line of its body - and the file it asks for is one
+ * no filesystem will open. macOS reports ENAMETOOLONG and the note is lost,
+ * which is what the Notion API importer was doing to hundreds of pages at a
+ * time.
+ */
+test('a name too long for a filesystem is cut down to one that fits', () => {
+	const sentence = 'In a single-tenant setup, a SaaS application is uniquely deployed to a specific environment not shared with other consumer tenants. This involves having a separate application instance, along with a dedicated database and runtime memory exclusively for each SaaS client.';
+
+	const name = sanitizeFileName(sentence);
+	assert.ok(new TextEncoder().encode(name).length <= 240, `${name.length} characters is still too long`);
+	// Cut back to a word, so the name still reads as the start of the title
+	assert.ok(sentence.startsWith(name), 'the name should be a prefix of the title');
+	assert.ok(!name.endsWith(' '), 'a trailing space would be refused on Windows');
+	assert.match(name, /runtime memory$/);
+});
+
+/**
+ * The budget is in bytes because that is what the filesystem counts. A title
+ * in a script that spends three bytes a character gets fewer characters, and a
+ * character is never cut in half to reach the limit.
+ */
+test('the limit is in bytes, and no character is split to reach it', () => {
+	const encoder = new TextEncoder();
+
+	for (const character of ['a', 'é', '漢', '🙂']) {
+		const name = sanitizeFileName(character.repeat(400));
+		const bytes = encoder.encode(name).length;
+
+		assert.ok(bytes <= 240, `${character} gave ${bytes} bytes`);
+		assert.ok(bytes > 240 - 4, `${character} gave ${bytes} bytes, which wastes the budget`);
+		assert.equal([...name].every(c => c === character), true, `${character} came back damaged`);
+	}
+});
+
+test('a name that already fits is not touched', () => {
+	const name = 'a'.repeat(240);
+	assert.equal(sanitizeFileName(name), name);
+});
+
 test('control characters go, astral characters stay', () => {
 	assert.equal(stripControlCharacters('a\u0000b\u001fc'), 'abc');
 	// C1 as well as C0
