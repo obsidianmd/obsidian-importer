@@ -4,6 +4,7 @@ import { ImportContext } from '../import-context';
 import { Client, PageObjectResponse } from '@notionhq/client';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
 import { areAnySelected } from '../tree';
+import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
 import type { FormulaImportStrategy } from '../base';
 import { parseFilePath } from '../filesystem';
@@ -102,7 +103,11 @@ export class NotionAPIImporter extends FormatImporter {
 			hint: 'Click "Load" to load your Notion pages and databases.',
 			loading: 'Loading pages and databases...',
 			empty: 'No pages or databases found. Make sure your connection has access to the pages you want to import.',
-			failed: 'Could not load your pages. Check your token and try again.',
+			failed: error => describeRequestFailure(error, {
+				name: 'Notion',
+				subject: 'your pages',
+				credential: 'Check that your token is current and that the connection has access to them.',
+			}),
 			view: {
 				icon: node => node.type === 'database' ? 'database'
 					: node.children.length === 0 ? 'file'

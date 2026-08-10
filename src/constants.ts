@@ -5,7 +5,12 @@ export const AUTH_REDIRECT_URI: string = 'obsidian://importer-auth/';
 
 export const NOTION_ID_PROPERTY = 'notion-id';
 
-export const ATTACHMENT_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'mpg', 'm4a', 'webm', 'wav', 'ogv', '3gp', 'mov', 'mp4', 'mkv', 'pdf'];
+export const ATTACHMENT_EXTS = [
+	'png', 'webp', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'avif',
+	'mp3', 'wav', 'm4a', '3gp', 'flac', 'ogg', 'oga', 'opus',
+	'mp4', 'webm', 'ogv', 'mov', 'mkv', 'mpg',
+	'pdf',
+];
 
 export type AuthCallback = (data: ObsidianProtocolData) => void;
 

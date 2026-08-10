@@ -67,7 +67,10 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions, at
 			// Rate limited - Airtable requires 30 second wait per official docs
 			// https://airtable.com/developers/web/api/rate-limits
 			if (attempt >= MAX_RATE_LIMIT_RETRIES) {
-				throw new Error(`Airtable API error: still rate limited after ${MAX_RATE_LIMIT_RETRIES} attempts`);
+				throw Object.assign(
+					new Error(`Airtable API error: still rate limited after ${MAX_RATE_LIMIT_RETRIES} attempts`),
+					{ status: 429 },
+				);
 			}
 
 			const retryAfter = response.headers?.['retry-after']
@@ -81,7 +84,7 @@ export async function makeAirtableRequest<T>(options: AirtableRequestOptions, at
 
 		if (response.status >= 400) {
 			const errorText = response.text || `HTTP ${response.status}`;
-			throw new Error(`Airtable API error: ${errorText}`);
+			throw Object.assign(new Error(`Airtable API error: ${errorText}`), { status: response.status });
 		}
 
 		return response.json as T;

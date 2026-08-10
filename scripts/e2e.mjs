@@ -70,6 +70,8 @@ function evalInObsidian(code) {
 	return out.slice(2).trim();
 }
 
+// Obsidian receives this as one argument, so a line comment would hide the rest.
+// Recorded converter output excludes importer metadata such as source IDs.
 const script = `
 (async () => {
 	const fs = require('fs');
@@ -85,7 +87,8 @@ const script = `
 		const ctx = await plugin.runImport(
 			testCase.importer,
 			[repo + '/' + testCase.fixture],
-			folder);
+			folder,
+			importer => { importer.saveSourceId = false; });
 
 		const file = app.vault.getAbstractFileByPath(folder + '/' + testCase.note);
 		const produced = file ? await app.vault.read(file) : null;

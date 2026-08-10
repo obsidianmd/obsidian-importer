@@ -3,8 +3,9 @@ import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
-import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
+import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
+import { describeFolderFailure, NO_ACCESS_HINT } from './apple-notes/errors';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -18,7 +19,6 @@ const NOTE_DB = 'NoteStore.sqlite';
 const CORETIME_OFFSET = 978307200;
 const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
-const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
 
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
@@ -201,7 +201,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				hint: NO_ACCESS_HINT,
 				loading: 'Reading folders...',
 				empty: 'No folders found.',
-				failed: 'Could not read your notes. Check that the folder is still where it was.',
+				failed: describeFolderFailure,
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
 					flair: node => node.type === 'account' ? '' : String(node.notes),
@@ -680,35 +680,34 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
 
-			// First resolve the configured folder, then check the unsuffixed name there.
 			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
-			const uniqueAttachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
-			const { parent } = parseFilePath(uniqueAttachmentPath);
-			const existingAttachment = this.vault.getAbstractFileByPath(path.join(parent, attachmentName));
+			const ctime = this.decodeTime(row.ZCREATIONDATE);
+			const mtime = this.decodeTime(row.ZMODIFICATIONDATE);
 
-			if (existingAttachment && existingAttachment instanceof TFile) {
-				if (this.duplicateHandling === DuplicateHandling.Skip) {
-					this.ctx.reportSkipped(finalAttachmentName, 'attachment already exists');
-					return existingAttachment;
-				}
-				else if (this.duplicateHandling === DuplicateHandling.Update) {
-					const appleAttachmentModTime = this.decodeTime(row.ZMODIFICATIONDATE);
-					const existingAttachmentModTime = existingAttachment.stat.mtime;
+			// An attachment is written with the times Apple Notes gave it, and
+			// editing one does not change when it was created. So a file created
+			// at another moment is another attachment that happens to share the
+			// name, not an earlier version of this one. Without a creation date
+			// there is nothing to tell them apart, and decodeTime says "now",
+			// which would match nothing and write another copy every import.
+			const created = Number(row.ZCREATIONDATE) > 0;
 
-					if (appleAttachmentModTime <= existingAttachmentModTime) {
-						this.ctx.reportSkipped(finalAttachmentName, 'attachment unchanged since last import');
-						return existingAttachment;
-					}
-				}
+			const { path: attachmentPath, reuse } = await this.placeAttachment(attachmentName, notePath,
+				existing => created && existing.stat.ctime !== ctime ? 'another'
+					: mtime > existing.stat.mtime ? 'stale'
+						: 'same');
+
+			if (reuse) {
+				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
+					? 'attachment already exists'
+					: 'attachment unchanged since last import');
+				return reuse;
 			}
 
 			binary ??= await this.getAttachmentSource(this.resolvedAccounts[this.owners[row.ZNOTE]], sourcePath);
 
-			const attachmentPath = await this.getAvailablePathForAttachment(attachmentName, [], notePath);
-
-			file = await this.vault.createBinary(
-				attachmentPath, nodeBufferToArrayBuffer(binary),
-				{ ctime: this.decodeTime(row.ZCREATIONDATE), mtime: this.decodeTime(row.ZMODIFICATIONDATE) }
+			file = await this.writeAttachment(
+				attachmentPath, nodeBufferToArrayBuffer(binary), { ctime, mtime }
 			);
 		}
 		catch (e) {
