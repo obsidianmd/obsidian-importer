@@ -848,7 +848,11 @@ async function createSyncedBlockFile(
 					...context,
 					currentFilePath: filePath, // Update current file path for link generation
 					isProcessingSyncedBlock: true, // Mark that we're processing synced block content
-					forChildrenOnly: forChildrenOnly || context.forChildrenOnly,
+					// The block's own answer, not the page's. A synced block has
+					// a note of its own, and one that has to be written needs
+					// what it points at whether or not the page holding it is
+					// being left alone.
+					forChildrenOnly,
 				};
 
 				// Convert children to markdown

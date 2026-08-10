@@ -26,6 +26,7 @@ import { NOTION_ID_PROPERTY } from '../../src/constants';
 import { createPlaceholder, PlaceholderType } from '../../src/formats/notion-api/utils';
 import type { TFile } from 'obsidian';
 
+import { answerRequests } from '../shims/obsidian';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 interface Workspace {
@@ -41,6 +42,16 @@ const PAGE = '10000000-0000-4000-8000-000000000201';
 const FIRST_BLOCK = '30000000-0000-4000-8000-000000000201';
 const CHAPTER_ONE = '10000000-0000-4000-8000-000000000202';
 const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null };
+const DIAGRAM = 'handbook-diagram.png';
+
+/** Every URL an import asked for, so it can be shown to ask or not to ask. */
+const fetched: string[] = [];
+
+answerRequests(request => {
+	fetched.push(request.url);
+
+	return { status: 200, arrayBuffer: new Uint8Array([137, 80, 78, 71]).buffer, text: '', headers: {} } as never;
+});
 
 class ImportingSyncedBlocks extends NotionAPIImporter {
 	answerFromFixture(editedAt?: string): void {
@@ -118,6 +129,25 @@ const CHILD_NOTE = 'Notion/Handbook/Chapter one.md';
 // and fetched afterwards, into the import's root folder.
 const NESTED = 'Nested in a synced block.md';
 const EVERYTHING = [NESTED, CHILD_NOTE, ...SYNCED, PAGE_NOTE];
+
+// A synced block whose note has to be written needs what that note points at,
+// and whether the page around it is being left alone has no bearing on that.
+test('a synced note being rewritten fetches what it points at, skipped page or not', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+	assert.ok(vault.paths().includes(DIAGRAM), 'the first import fetched it');
+
+	// The user deleted the note and its image; the page itself has not changed.
+	vault.remove(SYNCED[0]);
+	vault.remove(DIAGRAM);
+	fetched.length = 0;
+
+	await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.ok(markdown(vault).includes(SYNCED[0]), 'the note is written again');
+	assert.ok(vault.paths().includes(DIAGRAM), 'and what it embeds is there to embed');
+	// Twice: how big it is, then the bytes, as any first fetch of a file is.
+	assert.deepEqual([...new Set(fetched)], ['https://example.invalid/handbook-diagram.png']);
+});
 
 test('each synced block on a page gets a note of its own', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);

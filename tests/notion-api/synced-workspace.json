@@ -1,5 +1,5 @@
 {
-	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). One page holding two synced blocks, which is what it takes to show both things a second import has to get right: the note a synced block already has is not written again, and two synced blocks of one page do not collapse into one note. `pages` is keyed by page id as GET /v1/pages/{id} returns it; `blocks` is keyed by block id as GET /v1/blocks/{id}/children returns it. Every block object carries created_time and last_edited_time, which is what decides whether a synced block has changed since the last import. One synced block holds a child page, which inside a synced block is not imported where it stands but noted and fetched afterwards. The ids are made up and so is the content.",
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). One page holding two synced blocks, which is what it takes to show both things a second import has to get right: the note a synced block already has is not written again, and two synced blocks of one page do not collapse into one note. `pages` is keyed by page id as GET /v1/pages/{id} returns it; `blocks` is keyed by block id as GET /v1/blocks/{id}/children returns it. Every block object carries created_time and last_edited_time, which is what decides whether a synced block has changed since the last import. One synced block holds a child page, which inside a synced block is not imported where it stands but noted and fetched afterwards. The second synced block holds an image, because a synced block whose note has to be written needs what it points at whether or not the page around it is being left alone. The ids are made up and so is the content.",
 	"pages": {
 		"10000000-0000-4000-8000-000000000202": {
 			"object": "page",
@@ -254,6 +254,23 @@
 							}
 						],
 						"color": "default"
+					}
+				},
+				{
+					"object": "block",
+					"id": "50000000-0000-4000-8000-000000000201",
+					"type": "image",
+					"has_children": false,
+					"archived": false,
+					"created_time": "2024-01-01T00:00:00.000Z",
+					"last_edited_time": "2024-03-01T00:00:00.000Z",
+					"image": {
+						"type": "file",
+						"file": {
+							"url": "https://example.invalid/handbook-diagram.png",
+							"expiry_time": "2024-03-01T01:00:00.000Z"
+						},
+						"caption": []
 					}
 				}
 			]
