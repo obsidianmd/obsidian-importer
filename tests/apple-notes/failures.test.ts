@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { describeFolderFailure } from '../../src/formats/apple-notes';
+import { describeFolderFailure } from '../../src/formats/apple-notes/errors';
 
 function sqliteError(reason: string): Error {
 	return Object.assign(new Error(`SQLITE_ERROR: ${reason}`), { code: 'SQLITE_ERROR' });

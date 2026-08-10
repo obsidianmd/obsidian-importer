@@ -5,7 +5,7 @@ import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
-import { requestFailure } from '../request-failure';
+import { describeFolderFailure, NO_ACCESS_HINT } from './apple-notes/errors';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -19,21 +19,6 @@ const NOTE_DB = 'NoteStore.sqlite';
 const CORETIME_OFFSET = 978307200;
 const NOTE_ID_PROPERTY = 'apple-notes-id';
 const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
-const NO_ACCESS_HINT = 'Allow access to your notes to see the folders in them.';
-
-export function describeFolderFailure(error: unknown): string {
-	// SQLite errors arrive either prefixed or as bare stderr.
-	const detail = (requestFailure(error).message ?? '').replace(/^SQLITE_ERROR:\s*/, '').trim();
-
-	if (/\block|locked|busy\b/i.test(detail)) {
-		return 'Your Apple Notes database is in use. Quit Notes and try again.';
-	}
-	if (/unable to open|no such file|not authorized/i.test(detail)) {
-		return `Could not open your Apple Notes database. ${NO_ACCESS_HINT}`;
-	}
-
-	return detail ? `Could not read your notes: ${detail}` : 'Could not read your notes.';
-}
 
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
@@ -216,7 +201,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				hint: NO_ACCESS_HINT,
 				loading: 'Reading folders...',
 				empty: 'No folders found.',
-				failed: error => describeFolderFailure(error),
+				failed: describeFolderFailure,
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
 					flair: node => node.type === 'account' ? '' : String(node.notes),
