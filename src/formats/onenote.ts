@@ -1,7 +1,7 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { ButtonComponent, DataWriteOptions, Notice, Setting, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { ButtonComponent, DataWriteOptions, Notice, Setting, TFile, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, plural, sanitizeFileName } from '../util';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
@@ -154,6 +154,7 @@ export class OneNoteImporter extends FormatImporter {
 	// UI
 	accountSetting: Setting;
 	private accountButton: ButtonComponent;
+	private organizationButton?: ButtonComponent;
 	private picker: TreePicker<OneNoteTreeNode>;
 	// Internal
 	selectedSections: OneNoteTreeNode[] = [];
@@ -168,9 +169,10 @@ export class OneNoteImporter extends FormatImporter {
 	private readAheadQueue: Promise<void> = Promise.resolve();
 	/** Bumped to disown reads that were started against an earlier listing. */
 	private pagesGeneration = 0;
-	private nextAccountType: MicrosoftAccountType | null = null;
 	private authenticatingAccountType: MicrosoftAccountType | null = null;
-	private storedTokenFailed = false;
+	private attachmentPaths!: Map<string, string>;
+	private attachmentOwners!: Map<string, string>;
+	private attachmentPathsChanged!: boolean;
 	refreshToken?: string;
 	lastSuccessfulFetchTime: number = performance.now();
 
@@ -191,6 +193,26 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async init() {
+		this.attachmentPaths = new Map();
+		this.attachmentOwners = new Map();
+		this.attachmentPathsChanged = false;
+
+		if (this.host.plugin) {
+			const data = await this.host.plugin.loadData();
+			for (const [key, path] of Object.entries(data.onenoteAttachments ?? {})) {
+				const file = this.vault.getAbstractFileByPath(path);
+				const resource = this.attachmentResource(key);
+				const owner = file instanceof TFile ? this.attachmentOwner(file.path) : null;
+				if (!(file instanceof TFile) || (owner !== null && owner !== resource)) {
+					this.attachmentPathsChanged = true;
+					continue;
+				}
+
+				this.attachmentPaths.set(key, file.path);
+				this.attachmentOwners.set(this.attachmentPathKey(file.path), resource);
+			}
+		}
+
 		this.defaultOutputFolder = 'OneNote';
 		this.idProperty = 'onenote-id';
 		this.idLabel = 'OneNote ID';
@@ -211,6 +233,16 @@ export class OneNoteImporter extends FormatImporter {
 
 		this.accountSetting = new Setting(contentEl)
 			.setName('Microsoft account')
+			.addButton(button => {
+				this.organizationButton = button;
+				button
+					.setButtonText('Use work or school access')
+					.onClick(() => {
+						this.signOut();
+						this.signIn('organization');
+					});
+				button.buttonEl.hide();
+			})
 			.addButton((button) => {
 				this.accountButton = button;
 				button.onClick(() => {
@@ -237,7 +269,6 @@ export class OneNoteImporter extends FormatImporter {
 			return true;
 		}
 		catch (error) {
-			this.storedTokenFailed = true;
 			const { status, code } = requestFailure(error);
 			if (status === 400 || status === 401 || code === 'invalid_grant') {
 				this.clearStoredRefreshToken();
@@ -268,6 +299,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	private showSignedOut() {
+		this.organizationButton?.buttonEl.hide();
 		this.accountSetting.setDesc(this.microsoftAccountType === 'organization'
 			? 'Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.'
 			: 'Sign in to import your OneNote notebooks.');
@@ -276,6 +308,7 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	async showSignedIn() {
+		this.organizationButton?.buttonEl.hide();
 		const userData = await this.fetchResource<User>('https://graph.microsoft.com/v1.0/me', 'json');
 		this.accountSetting.setDesc(`Signed in as ${userData.displayName} (${userData.mail}).`);
 		this.accountButton.setButtonText('Sign out').removeCta();
@@ -283,14 +316,10 @@ export class OneNoteImporter extends FormatImporter {
 		this.accountButton.buttonEl.addClass('mod-destructive');
 	}
 
-	private signIn() {
+	private signIn(accountType: MicrosoftAccountType = this.microsoftAccountType ?? 'personal') {
 		this.registerAuthCallback(data => void this.authenticateUser(data)
 			.catch(e => console.error('Could not complete sign in', e)));
-		this.authenticatingAccountType = this.nextAccountType
-			?? (this.storedTokenFailed ? 'personal' : this.microsoftAccountType)
-			?? 'personal';
-		this.nextAccountType = null;
-		this.storedTokenFailed = false;
+		this.authenticatingAccountType = accountType;
 
 		window.open(authorizationUrl(
 			this.authenticatingAccountType,
@@ -306,7 +335,6 @@ export class OneNoteImporter extends FormatImporter {
 		this.graphData.accessToken = '';
 		this.refreshToken = undefined;
 		this.authenticatingAccountType = null;
-		this.storedTokenFailed = false;
 
 		// Whoever signs in next is not necessarily who these belong to, and
 		// asking a personal account for the scopes an organization needs is
@@ -417,7 +445,7 @@ export class OneNoteImporter extends FormatImporter {
 			// Personal accounts cannot consent to Notes.Read.All, so escalating
 			// one leaves it unable to sign in at all.
 			if (requestFailure(e).code === SCOPE_REFUSED && this.microsoftAccountType !== 'personal') {
-				this.nextAccountType = 'organization';
+				this.organizationButton?.buttonEl.show();
 			}
 
 			console.error('An error occurred while fetching your OneNote data: ', e);
@@ -922,7 +950,7 @@ export class OneNoteImporter extends FormatImporter {
 			const extension = extensionForMime(image.getAttribute('data-fullres-src-type') ?? '') || 'png';
 			const fileName = `${parseFilePath(notePath).basename} image.${extension}`;
 			const outputPath = await this.fetchAttachment(
-				progress, fileName, contentLocation, notePath, sourceMtime);
+				progress, fileName, contentLocation, notePath, sourceMtime, true);
 			if (outputPath) {
 				image.src = encodeURI(outputPath);
 				if (!image.alt || BASE64_REGEX.test(image.alt)) {
@@ -958,9 +986,12 @@ export class OneNoteImporter extends FormatImporter {
 		contentLocation: string,
 		notePath: string,
 		sourceMtime?: number,
+		stableName = false,
 	): Promise<string | null> {
 		try {
-			const identifiedName = await resourceFilename(filename, contentLocation);
+			const outputName = stableName ? await resourceFilename(filename, contentLocation) : filename;
+			const attachmentKey = this.attachmentKey(contentLocation, notePath);
+			const attachmentResource = resourceId(contentLocation);
 			let data: ArrayBuffer | null = null;
 			const download = async (): Promise<ArrayBuffer> => {
 				if (data !== null) return data;
@@ -976,21 +1007,50 @@ export class OneNoteImporter extends FormatImporter {
 				return fetched;
 			};
 
-			const { path: outputPath, reuse } = await this.placeAttachment(identifiedName, notePath, async existing => {
-				if (sourceMtime !== undefined) {
+			if (this.duplicateHandling !== DuplicateHandling.CreateCopy) {
+				const mappedPath = this.attachmentPaths.get(attachmentKey);
+				if (mappedPath) {
+					const mapped = this.vault.getAbstractFileByPath(mappedPath);
+					if (mapped instanceof TFile && this.attachmentOwner(mapped.path) === attachmentResource) {
+						this.claimPath(mapped.path);
+						const stale = sourceMtime !== undefined && sourceMtime > mapped.stat.mtime;
+						if (!stale || this.duplicateHandling === DuplicateHandling.Skip) {
+							progress.reportSkipped(filename, 'it is already in the vault');
+							return mapped.path;
+						}
+
+						await this.writeAttachment(mapped.path, await download(), { mtime: sourceMtime });
+						progress.reportAttachmentSuccess(filename);
+						return mapped.path;
+					}
+
+					this.forgetAttachment(attachmentKey);
+				}
+			}
+
+			const { path: outputPath, reuse } = await this.placeAttachment(outputName, notePath, async existing => {
+				const owner = this.attachmentOwner(existing.path);
+				if (owner && owner !== attachmentResource) return 'another';
+
+				if (stableName && sourceMtime !== undefined) {
 					return sourceMtime > existing.stat.mtime ? 'stale' : 'same';
 				}
 
-				return sameBytes(await this.vault.readBinary(existing), await download()) ? 'same' : 'stale';
+				const downloaded = await download();
+				if (downloaded.byteLength !== existing.stat.size) return stableName ? 'stale' : 'another';
+				if (sameBytes(await this.vault.readBinary(existing), downloaded)) return 'same';
+				return stableName ? 'stale' : 'another';
 			});
 
 			if (reuse) {
+				this.rememberAttachment(attachmentKey, reuse.path);
 				progress.reportSkipped(filename, 'it is already in the vault');
 				return reuse.path;
 			}
 
 			await this.writeAttachment(
 				outputPath, await download(), sourceMtime === undefined ? undefined : { mtime: sourceMtime });
+			this.rememberAttachment(attachmentKey, outputPath);
 			progress.reportAttachmentSuccess(filename);
 			return outputPath;
 		}
@@ -998,6 +1058,66 @@ export class OneNoteImporter extends FormatImporter {
 			progress.reportFailed(filename, e);
 			console.error(e);
 			return null;
+		}
+	}
+
+	private attachmentKey(contentLocation: string, notePath: string): string {
+		const { mode, path } = this.attachmentLocation;
+		const note = mode === 'note' || mode === 'subfolder' ? notePath : '';
+		return [resourceId(contentLocation), mode, path, note].join('\n');
+	}
+
+	private attachmentResource(key: string): string {
+		const separator = key.indexOf('\n');
+		return separator < 0 ? key : key.slice(0, separator);
+	}
+
+	private attachmentPathKey(path: string): string {
+		return path.toLowerCase();
+	}
+
+	private attachmentOwner(path: string): string | null {
+		return this.attachmentOwners.get(this.attachmentPathKey(path)) ?? null;
+	}
+
+	private forgetAttachment(key: string): void {
+		const path = this.attachmentPaths.get(key);
+		if (!path) return;
+
+		this.attachmentPaths.delete(key);
+		const pathKey = this.attachmentPathKey(path);
+		if (![...this.attachmentPaths.values()].some(other => this.attachmentPathKey(other) === pathKey)) {
+			this.attachmentOwners.delete(pathKey);
+		}
+		this.attachmentPathsChanged = true;
+	}
+
+	private rememberAttachment(key: string, path: string): void {
+		const resource = this.attachmentResource(key);
+		const owner = this.attachmentOwner(path);
+		if (this.attachmentPaths.get(key) === path && owner === resource) return;
+		if (owner && owner !== resource) {
+			throw new Error(`Attachment path is already owned by another OneNote resource: ${path}`);
+		}
+
+		this.forgetAttachment(key);
+		this.attachmentPaths.set(key, path);
+		this.attachmentOwners.set(this.attachmentPathKey(path), resource);
+		this.attachmentPathsChanged = true;
+	}
+
+	async finalizeMarkdownOutput(ctx?: ImportContext): Promise<void> {
+		await super.finalizeMarkdownOutput(ctx);
+		if (!this.attachmentPathsChanged || !this.host.plugin) return;
+
+		try {
+			const data = await this.host.plugin.loadData();
+			data.onenoteAttachments = Object.fromEntries(this.attachmentPaths);
+			await this.host.plugin.saveData(data);
+			this.attachmentPathsChanged = false;
+		}
+		catch (error) {
+			console.error('Could not save OneNote attachment identities', error);
 		}
 	}
 

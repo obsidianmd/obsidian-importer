@@ -13,6 +13,7 @@ export interface ImporterData {
 	/** Legacy output folders. */
 	outputLocations: Record<string, string>;
 	outputSettings: Record<string, OutputSettings>;
+	onenoteAttachments: Record<string, string>;
 	sourceFolders: Record<string, string>;
 	lastSourceFolder: string;
 }
@@ -21,6 +22,7 @@ export const DEFAULT_DATA: ImporterData = {
 	secrets: {},
 	outputLocations: {},
 	outputSettings: {},
+	onenoteAttachments: {},
 	sourceFolders: {},
 	lastSourceFolder: '',
 };
