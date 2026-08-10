@@ -3,6 +3,7 @@ import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
 import { FormatImporter } from '../format-importer';
+import { i18n } from '../i18n';
 import type { ImportContext } from '../import-context';
 import { convertJournalEntry } from './apple-journal/convert';
 
@@ -17,20 +18,20 @@ export class AppleJournalImporter extends FormatImporter {
 	init(): void {
 		const defaultImportPath = detectDefaultEntriesPath();
 		this.addFileChooserSetting(
-			'Journal entries',
+			i18n.importer.appleJournal.fileType(),
 			['htm', 'html'],
 			true,
-			'Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.',
+			i18n.importer.appleJournal.descFiles(),
 			defaultImportPath
 		);
 
 		this.addSetting()
-			?.setName('Journal metadata')
+			?.setName(i18n.importer.appleJournal.headingMetadata())
 			.setHeading();
 
 		this.addSetting()
-			?.setName('Add metadata as frontmatter')
-			.setDesc('Capture state-of-mind, contact, and similar tokens in YAML when available.')
+			?.setName(i18n.importer.appleJournal.nameFrontMatter())
+			.setDesc(i18n.importer.appleJournal.descFrontMatter())
 			.addToggle(toggle => {
 				toggle.setValue(this.frontMatterEnabled);
 				toggle.onChange(value => {
@@ -44,13 +45,13 @@ export class AppleJournalImporter extends FormatImporter {
 
 	async import(ctx: ImportContext): Promise<void> {
 		if (this.files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -60,13 +61,13 @@ export class AppleJournalImporter extends FormatImporter {
 
 			const file = this.files[index];
 			if (file.name === 'index.html') {
-				ctx.reportSkipped(file.fullpath, 'index file is not a journal entry');
+				ctx.reportSkipped(file.fullpath, i18n.importer.appleJournal.reasonIndexFile());
 				ctx.reportProgress(index + 1, this.files.length);
 				continue;
 			}
 
 			try {
-				ctx.status(`Importing note ${file.basename}`);
+				ctx.status(i18n.common.statusImportingNote({ name: file.basename }));
 				const imported = await this.importEntry(ctx, folder, file);
 				if (imported) {
 					ctx.reportNoteSuccess(file.fullpath);

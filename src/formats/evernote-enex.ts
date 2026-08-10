@@ -4,6 +4,7 @@ import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler, setMarkdownOutput, setMarkdownTracker } from './evernote/options';
 import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
 
@@ -14,13 +15,13 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 	init() {
 		this.addSetting('source')
-			?.setName('Export your data')
-			.setDesc('Export your notebooks in ENEX format, you will receive one .enex file per notebook.')
+			?.setName(i18n.common.nameExport())
+			.setDesc(i18n.importer.evernote.descExport())
 			.addButton(button => button
-				.setButtonText('Open')
+				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting('Evernote', ['enex'], true);
+		this.addFileChooserSetting(i18n.importer.evernote.fileType(), ['enex'], true);
 		this.defaultOutputFolder = 'Evernote';
 	}
 
@@ -37,13 +38,13 @@ export class EvernoteEnexImporter extends FormatImporter {
 	async import(ctx: ImportContext) {
 		let { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		let folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 

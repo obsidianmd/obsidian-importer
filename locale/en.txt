@@ -358,6 +358,50 @@ translation=
 original=In subfolder under the note
 translation=
 
+[common.msg-pick-file]
+original=Please pick at least one file to import.
+translation=
+
+[common.msg-pick-output]
+original=Please select a location to export to.
+translation=
+
+[common.msg-pick-import-location]
+original=Please select a location to import your files to.
+translation=
+
+[common.msg-unknown-error]
+original=Unknown error
+translation=
+
+[common.name-export]
+original=Export your data
+translation=
+
+[common.label-learn-more]
+original=Learn more.
+translation=
+
+[common.button-open]
+original=Open
+translation=
+
+[common.status-processing]
+original=Processing {{name}}
+translation=
+
+[common.status-importing-note]
+original=Importing note {{name}}
+translation=
+
+[common.status-importing-attachment]
+original=Importing attachment {{name}}
+translation=
+
+[common.status-cancelled]
+original=Import cancelled
+translation=
+
 [reason.already-in-vault]
 original=it is already in the vault
 translation=
@@ -514,12 +558,68 @@ translation=
 original=Apple Journal (HTML export)
 translation=
 
+[importer.apple-journal.file-type]
+original=Journal entries
+translation=
+
+[importer.apple-journal.desc-files]
+original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
+translation=
+
+[importer.apple-journal.heading-metadata]
+original=Journal metadata
+translation=
+
+[importer.apple-journal.name-front-matter]
+original=Add metadata as frontmatter
+translation=
+
+[importer.apple-journal.desc-front-matter]
+original=Capture state-of-mind, contact, and similar tokens in YAML when available.
+translation=
+
+[importer.apple-journal.reason-index-file]
+original=index file is not a journal entry
+translation=
+
 [importer.bear.name]
 original=Bear
 translation=
 
 [importer.bear.option-text]
 original=Bear (.bear2bk)
+translation=
+
+[importer.bear.file-type]
+original=Bear2bk
+translation=
+
+[importer.bear.label-id]
+original=Bear ID
+translation=
+
+[importer.bear.desc-export]
+original=Back up your notes in Bear, you will receive a .bear2bk file.
+translation=
+
+[importer.bear.name-flatten-tags]
+original=Flatten nested tags
+translation=
+
+[importer.bear.desc-flatten-tags]
+original=When enabled, tags will be split on slashes (/) during import.
+translation=
+
+[importer.bear.status-importing-asset]
+original=Importing asset {{name}}
+translation=
+
+[importer.bear.status-updating-links]
+original=Updating internal links…
+translation=
+
+[importer.bear.reason-unknown-type]
+original=unknown type of file
 translation=
 
 [importer.csv.name]
@@ -530,12 +630,64 @@ translation=
 original=CSV (.csv)
 translation=
 
+[importer.csv.file-type]
+original=CSV
+translation=
+
+[importer.csv.name-header-row]
+original=CSV has header row
+translation=
+
+[importer.csv.desc-header-row]
+original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=
+
+[importer.csv.msg-pick-file]
+original=Please pick at least one CSV file to import.
+translation=
+
+[importer.csv.msg-one-at-a-time]
+original=CSV files must be imported one at a time.
+translation=
+
+[importer.csv.msg-no-data]
+original=No data found in {{name}}.
+translation=
+
+[importer.csv.msg-no-configuration]
+original=Configuration is missing.
+translation=
+
+[importer.csv.status-parsing]
+original=Parsing {{name}}
+translation=
+
+[importer.csv.status-creating-note]
+original=Creating note: {{title}}
+translation=
+
+[importer.csv.label-row]
+original=Row {{number}}
+translation=
+
+[importer.csv.reason-empty-title]
+original=Empty title
+translation=
+
 [importer.evernote.name]
 original=Evernote
 translation=
 
 [importer.evernote.option-text]
 original=Evernote (.enex)
+translation=
+
+[importer.evernote.file-type]
+original=Evernote
+translation=
+
+[importer.evernote.desc-export]
+original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
 translation=
 
 [importer.keep.name]
@@ -546,12 +698,68 @@ translation=
 original=Google Keep (.zip/.json)
 translation=
 
+[importer.keep.file-type]
+original=Notes & attachments
+translation=
+
+[importer.keep.desc-export]
+original=Get your Google Keep data from Google Takeout. 
+translation=
+
+[importer.keep.name-archived]
+original=Import archived notes
+translation=
+
+[importer.keep.desc-archived]
+original=If imported, files archived in Google Keep will be tagged as archived.
+translation=
+
+[importer.keep.name-deleted]
+original=Import deleted notes
+translation=
+
+[importer.keep.desc-deleted]
+original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
+translation=
+
+[importer.keep.reason-invalid-json]
+original=Invalid Google Keep JSON
+translation=
+
+[importer.keep.reason-archived]
+original=Archived note
+translation=
+
+[importer.keep.reason-deleted]
+original=Deleted note
+translation=
+
 [importer.html.name]
 original=HTML files
 translation=
 
 [importer.html.option-text]
 original=HTML (.html)
+translation=
+
+[importer.html.file-type]
+original=HTML
+translation=
+
+[importer.html.name-size-limit]
+original=Attachment size limit (MB)
+translation=
+
+[importer.html.name-minimum-image-size]
+original=Minimum image size (px)
+translation=
+
+[importer.html.desc-set-zero-to-disable]
+original=Set 0 to disable.
+translation=
+
+[importer.html.status-downloading]
+original=Downloading attachment for {{name}}
 translation=
 
 [importer.onenote.name]
@@ -578,12 +786,120 @@ translation=
 original=Notion (.zip)
 translation=
 
+[importer.notion.file-type]
+original=Exported Notion
+translation=
+
+[importer.notion.label-id]
+original=Notion ID
+translation=
+
+[importer.notion.desc-export]
+original=Export your workspace in HTML format, you will receive a zip file.
+translation=
+
+[importer.notion.desc-files]
+original=Pick the zip file Notion sent you.
+translation=
+
+[importer.notion.name-subfolders]
+original=Save parent pages in subfolders
+translation=
+
+[importer.notion.desc-subfolders]
+original=Places the parent database pages in the same folder as the nested content.
+translation=
+
+[importer.notion.name-single-line-breaks]
+original=Single line breaks
+translation=
+
+[importer.notion.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break (default is 2).
+translation=
+
+[importer.notion.status-looking]
+original=Looking for files to import
+translation=
+
+[importer.notion.status-resolving]
+original=Resolving links and de-duplicating files
+translation=
+
+[importer.notion.status-starting]
+original=Starting import
+translation=
+
+[importer.notion.msg-markdown-export]
+original=Notion Markdown export detected. Please export Notion data to HTML instead.
+translation=
+
+[importer.notion.msg-html-only]
+original=Notion importer uses only HTML exports. Please use the correct format.
+translation=
+
+[importer.notion.reason-no-page-body]
+original=page body was not found
+translation=
+
 [importer.roam-json.name]
 original=Roam Research
 translation=
 
 [importer.roam-json.option-text]
 original=Roam Research (.json)
+translation=
+
+[importer.roam-json.file-type]
+original=Roam (.json)
+translation=
+
+[importer.roam-json.label-id]
+original=Roam UID
+translation=
+
+[importer.roam-json.desc-export]
+original=Export your data in JSON format.
+translation=
+
+[importer.roam-json.desc-files]
+original=Pick the JSON file from your Roam export.
+translation=
+
+[importer.roam-json.name-download-attachments]
+original=Download all attachments
+translation=
+
+[importer.roam-json.desc-download-attachments]
+original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
+translation=
+
+[importer.roam-json.name-date-properties]
+original=Add YAML created/update date
+translation=
+
+[importer.roam-json.desc-date-properties]
+original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
+translation=
+
+[importer.roam-json.name-title-property]
+original=Add YAML title
+translation=
+
+[importer.roam-json.desc-title-property]
+original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
+translation=
+
+[importer.roam-json.reason-empty-title]
+original=Title is empty
+translation=
+
+[importer.roam-json.reason-unexpected-extension]
+original=Unexpected file extension
+translation=
+
+[importer.roam-json.reason-file-exists]
+original=File already exists
 translation=
 
 [importer.textbundle.name]
@@ -594,10 +910,78 @@ translation=
 original=Textbundle (.textbundle, .textpack)
 translation=
 
+[importer.textbundle.file-type]
+original=Textbundle
+translation=
+
+[importer.textbundle.msg-platform]
+original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
+translation=
+
+[importer.textbundle.reason-no-markdown]
+original=The textbundle does not contain markdown
+translation=
+
+[importer.textbundle.reason-not-media]
+original=the file is not a media or markdown file.
+translation=
+
+[importer.textbundle.reason-already-exists]
+original=the file already exists.
+translation=
+
 [importer.tomboy.name]
 original=Tomboy/Gnote
 translation=
 
 [importer.tomboy.option-text]
 original=Tomboy/Gnote (.note)
+translation=
+
+[importer.tomboy.file-type]
+original=Tomboy/Gnote
+translation=
+
+[importer.tomboy.label-id]
+original=Tomboy ID
+translation=
+
+[importer.tomboy.desc-files-mac]
+original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
+translation=
+
+[importer.tomboy.desc-files-windows]
+original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
+translation=
+
+[importer.tomboy.desc-files-linux]
+original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
+translation=
+
+[importer.tomboy.name-todo]
+original=Convert TODO lists to checkboxes
+translation=
+
+[importer.tomboy.desc-todo]
+original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
+translation=
+
+[importer.tomboy.name-keep-title]
+original=Keep title in Markdown
+translation=
+
+[importer.tomboy.desc-keep-title]
+original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
+translation=
+
+[importer.tomboy.option-automatic]
+original=Automatic
+translation=
+
+[importer.tomboy.option-keep-titles]
+original=Keep titles
+translation=
+
+[importer.tomboy.option-filename-only]
+original=Filename only
 translation=

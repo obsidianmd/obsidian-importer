@@ -1,6 +1,7 @@
 import { BasesConfigFile, Notice, TFolder } from 'obsidian';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { CSVRow, parseCSV } from './csv/parse';
 import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
 import {
@@ -19,13 +20,13 @@ export class CSVImporter extends FormatImporter {
 	private hasHeaderRow: boolean;
 
 	init() {
-		this.addFileChooserSetting('CSV', ['csv']);
+		this.addFileChooserSetting(i18n.importer.csv.fileType(), ['csv']);
 		this.defaultOutputFolder = 'CSV import';
 
 		this.hasHeaderRow = true;
 		this.addSetting()
-			?.setName('CSV has header row')
-			.setDesc('If enabled, the first row of the CSV file will be treated as column headers.')
+			?.setName(i18n.importer.csv.nameHeaderRow())
+			.setDesc(i18n.importer.csv.descHeaderRow())
 			.addToggle(toggle => {
 				toggle.setValue(this.hasHeaderRow);
 				toggle.onChange(async (value) => {
@@ -37,13 +38,13 @@ export class CSVImporter extends FormatImporter {
 	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
 		const { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one CSV file to import.');
+			new Notice(i18n.importer.csv.msgPickFile());
 			return false;
 		}
 
 		if (files.length > 1) {
 			// NOTE: This shouldn't be possible due to the file chooser settings.
-			new Notice('CSV files must be imported one at a time.');
+			new Notice(i18n.importer.csv.msgOneAtATime());
 			return false;
 		}
 
@@ -51,7 +52,7 @@ export class CSVImporter extends FormatImporter {
 		const file = files[0];
 		if (await ctx.shouldStop()) return false;
 
-		ctx.status('Parsing ' + file.name);
+		ctx.status(i18n.importer.csv.statusParsing({ name: file.name }));
 		const csvContent = await file.readText();
 		const parsedData = parseCSV(csvContent, this.hasHeaderRow);
 
@@ -62,7 +63,7 @@ export class CSVImporter extends FormatImporter {
 		this.csvRows.push(...parsedData.rows);
 
 		if (this.csvHeaders.length === 0 || this.csvRows.length === 0) {
-			new Notice(`No data found in ${file.name}.`);
+			new Notice(i18n.importer.csv.msgNoData({ name: file.name }));
 			return false;
 		}
 
@@ -89,7 +90,7 @@ export class CSVImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		// Config was already set by showTemplateConfiguration.
 		if (!this.config) {
-			new Notice('Configuration is missing.');
+			new Notice(i18n.importer.csv.msgNoConfiguration());
 			return;
 		}
 
@@ -112,13 +113,13 @@ export class CSVImporter extends FormatImporter {
 
 	private async processRows(ctx: ImportContext): Promise<void> {
 		if (!this.config) {
-			new Notice('Configuration is missing.');
+			new Notice(i18n.importer.csv.msgNoConfiguration());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -132,18 +133,18 @@ export class CSVImporter extends FormatImporter {
 			try {
 				const { title, location, content } = convertRow(row, this.config);
 				if (!title.trim()) {
-					ctx.reportSkipped(`Row ${i + 1}`, 'Empty title');
+					ctx.reportSkipped(i18n.importer.csv.labelRow({ number: i + 1 }), i18n.importer.csv.reasonEmptyTitle());
 					continue;
 				}
 
-				ctx.status(`Creating note: ${title}`);
+				ctx.status(i18n.importer.csv.statusCreatingNote({ title }));
 
 				const targetFolder = await this.getTargetFolder(folder, location);
 				const { written } = await this.writeNote(ctx, targetFolder, title, content);
 				if (written) ctx.reportNoteSuccess(title);
 			}
 			catch (e) {
-				ctx.reportFailed(`Row ${i + 1}`, e);
+				ctx.reportFailed(i18n.importer.csv.labelRow({ number: i + 1 }), e);
 			}
 
 			ctx.reportProgress(i + 1, this.csvRows.length);

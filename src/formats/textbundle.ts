@@ -2,6 +2,7 @@ import { normalizePath, Notice, TFolder, Platform } from 'obsidian';
 import { parseFilePath, NodePickedFolder, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
 import { bundleNoteName, convertTextbundleNote, groupFilesByTextbundle, isMarkdownBundle } from './textbundle/convert';
 
@@ -13,9 +14,7 @@ export class TextbundleImporter extends FormatImporter {
 	init() {
 		if (!Platform.isMacOS) {
 			this.draw(contentEl => contentEl.createEl('p', {
-				text:
-					'Due to platform limitations, only textpack and zip files can be imported from this device.' +
-					' Open your vault on a Mac to import textbundle files.'
+				text: i18n.importer.textbundle.msgPlatform(),
 			}), 'source');
 		}
 
@@ -23,20 +22,20 @@ export class TextbundleImporter extends FormatImporter {
 			? ['textbundle', 'textpack', 'zip']
 			: ['textpack', 'zip'];
 
-		this.addFileChooserSetting('Textbundle', formats, true);
+		this.addFileChooserSetting(i18n.importer.textbundle.fileType(), formats, true);
 		this.defaultOutputFolder = 'Textbundle';
 	}
 
 	async import(progress: ImportContext): Promise<void> {
 		let { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		let folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -72,7 +71,7 @@ export class TextbundleImporter extends FormatImporter {
 		// First look for the info.json and check that the file type is Markdown
 		const infojson = entries.find((entry) => entry.name === 'info.json');
 		if (infojson && !isMarkdownBundle(await (infojson as NodePickedFile).readText())) {
-			progress.reportSkipped(bundleName, 'The textbundle does not contain markdown');
+			progress.reportSkipped(bundleName, i18n.importer.textbundle.reasonNoMarkdown());
 			return;
 		}
 
@@ -114,7 +113,7 @@ export class TextbundleImporter extends FormatImporter {
 					}
 				}
 				else if (entry.name !== 'info.json') {
-					progress.reportSkipped(entry.name, 'the file is not a media or markdown file.');
+					progress.reportSkipped(entry.name, i18n.importer.textbundle.reasonNotMedia());
 				}
 			}
 			catch (e) {
@@ -132,7 +131,7 @@ export class TextbundleImporter extends FormatImporter {
 		let assetFileVaultPath = normalizePath(`${this.attachmentsFolderPath.path}/${entry.name}`);
 		let existingFile = this.vault.getAbstractFileByPath(assetFileVaultPath);
 		if (existingFile) {
-			progress.reportSkipped(entry.name, 'the file already exists.');
+			progress.reportSkipped(entry.name, i18n.importer.textbundle.reasonAlreadyExists());
 			return;
 		}
 

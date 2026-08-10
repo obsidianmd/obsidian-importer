@@ -1,6 +1,7 @@
 import { Notice, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
 import { FormatImporter, NoteWritten } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { PickedFile } from '../filesystem';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
@@ -46,15 +47,15 @@ export class TomboyImporter extends FormatImporter {
 	 */
 	private getOSSpecificDescription(): string {
 		if (Platform.isMacOS) {
-			return 'Tomboy notes are typically found in: ~/Library/Application Support/Tomboy';
+			return i18n.importer.tomboy.descFilesMac();
 		}
 		else if (Platform.isWin) {
-			return 'Tomboy notes are typically found in: %APPDATA%\\Tomboy';
+			return i18n.importer.tomboy.descFilesWindows();
 		}
 		else if (Platform.isLinux) {
-			return 'Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote';
+			return i18n.importer.tomboy.descFilesLinux();
 		}
-		return 'Pick the files that you want to import.';
+		return i18n.source.desc();
 	}
 
 	init() {
@@ -62,26 +63,26 @@ export class TomboyImporter extends FormatImporter {
 		this.coreConverter = new TomboyCoreConverter();
 		this.keepTitleMode = 'automatic';
 
-		this.addFileChooserSetting('Tomboy/Gnote', ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
+		this.addFileChooserSetting(i18n.importer.tomboy.fileType(), ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
 		this.defaultOutputFolder = 'Tomboy';
 		this.idProperty = 'tomboy-id';
-		this.idLabel = 'Tomboy ID';
+		this.idLabel = i18n.importer.tomboy.labelId();
 
 		this.addSetting()
-			?.setName('Convert TODO lists to checkboxes')
-			.setDesc('When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.')
+			?.setName(i18n.importer.tomboy.nameTodo())
+			.setDesc(i18n.importer.tomboy.descTodo())
 			.addToggle((toggle: ToggleComponent) => {
 				toggle.setValue(this.todoEnabled)
 					.onChange((value: boolean) => this.todoEnabled = value);
 			});
 
 		this.addSetting()
-			?.setName('Keep title in Markdown')
-			.setDesc('Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.')
+			?.setName(i18n.importer.tomboy.nameKeepTitle())
+			.setDesc(i18n.importer.tomboy.descKeepTitle())
 			.addDropdown((dropdown: DropdownComponent) => {
-				dropdown.addOption('automatic', 'Automatic')
-					.addOption('yes', 'Keep titles')
-					.addOption('no', 'Filename only')
+				dropdown.addOption('automatic', i18n.importer.tomboy.optionAutomatic())
+					.addOption('yes', i18n.importer.tomboy.optionKeepTitles())
+					.addOption('no', i18n.importer.tomboy.optionFilenameOnly())
 					.setValue(this.keepTitleMode)
 					.onChange((value: string) => this.keepTitleMode = value as KeepTitleMode);
 			});
@@ -90,13 +91,13 @@ export class TomboyImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		const { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -108,7 +109,7 @@ export class TomboyImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 
 			const file = files[i];
-			ctx.status('Processing ' + file.name);
+			ctx.status(i18n.common.statusProcessing({ name: file.name }));
 			try {
 				const { written } = await this.processFile(ctx, folder, file);
 				if (written) ctx.reportNoteSuccess(file.fullpath);

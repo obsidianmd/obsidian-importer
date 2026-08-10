@@ -10,6 +10,7 @@ import {
 import { FormatImporter } from '../format-importer';
 import { convertHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
 import { extensionForMime } from '../mime';
 import { stringToUtf8 } from '../util';
 
@@ -20,7 +21,7 @@ export class HtmlImporter extends FormatImporter {
 	minimumImageSize: number;
 
 	init() {
-		this.addFileChooserSetting('HTML', ['htm', 'html'], true);
+		this.addFileChooserSetting(i18n.importer.html.fileType(), ['htm', 'html'], true);
 		this.addAttachmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.defaultOutputFolder = 'HTML import';
@@ -29,8 +30,8 @@ export class HtmlImporter extends FormatImporter {
 	addAttachmentSizeLimit(defaultInMB: number) {
 		this.attachmentSizeLimit = defaultInMB * 10 ** 6;
 		this.addSetting()
-			?.setName('Attachment size limit (MB)')
-			.setDesc('Set 0 to disable.')
+			?.setName(i18n.importer.html.nameSizeLimit())
+			.setDesc(i18n.importer.html.descSetZeroToDisable())
 			.addText(text => text
 				.then(({ inputEl }) => {
 					inputEl.type = 'number';
@@ -50,8 +51,8 @@ export class HtmlImporter extends FormatImporter {
 	addMinimumImageSize(defaultInPx: number) {
 		this.minimumImageSize = defaultInPx;
 		this.addSetting()
-			?.setName('Minimum image size (px)')
-			.setDesc('Set 0 to disable.')
+			?.setName(i18n.importer.html.nameMinimumImageSize())
+			.setDesc(i18n.importer.html.descSetZeroToDisable())
 			.addText(text => text
 				.then(({ inputEl }) => inputEl.type = 'number')
 				.setValue(defaultInPx.toString())
@@ -68,13 +69,13 @@ export class HtmlImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		const { files } = this;
 		if (files.length === 0) {
-			new Notice('Please pick at least one file to import.');
+			new Notice(i18n.common.msgPickFile());
 			return;
 		}
 
 		const folder = await this.getOutputFolder();
 		if (!folder) {
-			new Notice('Please select a location to export to.');
+			new Notice(i18n.common.msgPickOutput());
 			return;
 		}
 
@@ -164,7 +165,7 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
-		ctx.status('Processing ' + file.name);
+		ctx.status(i18n.common.statusProcessing({ name: file.name }));
 		try {
 			const htmlContent = await file.readText();
 
@@ -178,7 +179,7 @@ export class HtmlImporter extends FormatImporter {
 				baseUrl,
 				isCancelled: () => ctx.isCancelled(),
 				resolveAttachment: async (url, el) => {
-					ctx.status('Downloading attachment for ' + file.name);
+					ctx.status(i18n.importer.html.statusDownloading({ name: file.name }));
 					const attachmentFile = await this.downloadAttachment(el, url, notePath, allowedBaseDirUrl);
 					if (!attachmentFile) return null;
 

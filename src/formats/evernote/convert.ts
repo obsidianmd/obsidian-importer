@@ -2,6 +2,7 @@
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
 import { fs, NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
+import { i18n } from '../../i18n';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
 import { forgetNotesWritten, getMarkdownOutput, EvernoteOptions } from './options';
@@ -127,7 +128,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 	// Load this optional native module only on the desktop import path.
 	const parseXml = flow ??= (await import('xml-flow')).default;
 
-	ctx.status('Processing ' + enexSource.name);
+	ctx.status(i18n.common.statusProcessing({ name: enexSource.name }));
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = runtimeProps.getCurrentNotebookName();
@@ -162,7 +163,8 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 				ctx.reportSkipped(note.title ?? enexSource.name);
 			}
 			else {
-				ctx.status('Importing note ' + note.title);
+				// String(), because concatenation was what showed a missing title before.
+				ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
 				if (noteAttributes) {
 					// make sure single attributes are not collapsed
 					note['note-attributes'] = noteAttributes;
@@ -173,7 +175,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 					const reported = notebookName + '/' + note.title;
 					wrote = processNode(note, notebookName);
 					if (wrote) ctx.reportNoteSuccess(reported);
-					else ctx.reportSkipped(reported, 'it is already in the vault');
+					else ctx.reportSkipped(reported, i18n.reason.alreadyInVault());
 				}
 				catch (e) {
 					ctx.reportFailed(note.title || enexSource.name, e);
