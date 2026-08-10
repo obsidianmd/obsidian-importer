@@ -1,0 +1,63 @@
+{
+	"_comment": "Hand-written to the shape of Notion's API responses (https://developers.notion.com/reference). `pages` is keyed by page id, each value as GET /v1/pages/{id} returns it; `blocks` is keyed by block id, each value as GET /v1/blocks/{id}/children returns it. Unlike example-page.json this carries the page envelope too, because reimport.test.ts drives the importer itself rather than the block conversion, and the importer reads created_time and last_edited_time off the page. A parent with one child page is enough to cover both file-structure branches: a page with children becomes a folder, a page without stays a bare note. The ids are made up and so is the content.",
+
+	"pages": {
+		"10000000-0000-4000-8000-000000000101": {
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000101",
+			"created_time": "2024-01-01T00:00:00.000Z",
+			"last_edited_time": "2024-03-01T00:00:00.000Z",
+			"archived": false,
+			"properties": {
+				"title": {
+					"id": "title",
+					"type": "title",
+					"title": [{ "type": "text", "text": { "content": "Roadmap", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Roadmap", "href": null }]
+				}
+			}
+		},
+		"10000000-0000-4000-8000-000000000102": {
+			"object": "page",
+			"id": "10000000-0000-4000-8000-000000000102",
+			"created_time": "2024-01-02T00:00:00.000Z",
+			"last_edited_time": "2024-03-02T00:00:00.000Z",
+			"archived": false,
+			"properties": {
+				"title": {
+					"id": "title",
+					"type": "title",
+					"title": [{ "type": "text", "text": { "content": "Milestones", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Milestones", "href": null }]
+				}
+			}
+		}
+	},
+
+	"blocks": {
+		"10000000-0000-4000-8000-000000000101": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000101", "type": "paragraph", "has_children": false, "archived": false,
+					"paragraph": { "rich_text": [{ "type": "text", "text": { "content": "What we are building this year.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "What we are building this year.", "href": null }], "color": "default" }
+				},
+				{
+					"object": "block", "id": "10000000-0000-4000-8000-000000000102", "type": "child_page", "has_children": true, "archived": false,
+					"child_page": { "title": "Milestones" }
+				}
+			]
+		},
+		"10000000-0000-4000-8000-000000000102": {
+			"object": "list",
+			"has_more": false,
+			"next_cursor": null,
+			"results": [
+				{
+					"object": "block", "id": "20000000-0000-4000-8000-000000000102", "type": "paragraph", "has_children": false, "archived": false,
+					"paragraph": { "rich_text": [{ "type": "text", "text": { "content": "First release in spring.", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "First release in spring.", "href": null }], "color": "default" }
+				}
+			]
+		}
+	}
+}

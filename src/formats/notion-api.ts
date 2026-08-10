@@ -60,7 +60,7 @@ export class NotionAPIImporter extends FormatImporter {
 	get incrementalImport(): boolean {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
-	private notionClient: Client | null = null;
+	protected notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
 	// The total grows as databases and page blocks reveal more pages.
@@ -531,7 +531,7 @@ export class NotionAPIImporter extends FormatImporter {
 	/**
 	 * Fetch and import a Notion page recursively
 	 */
-	private async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
+	protected async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
 		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
 
 		if (await ctx.shouldStop()) return;

@@ -21,6 +21,20 @@ class ResumingImporter extends NotionAPIImporter {
 	cleanUp(ctx: ImportContext) {
 		return this.cleanupNotionIds(ctx);
 	}
+
+	useUnreadableClient(): void {
+		this.notionClient = {
+			pages: {
+				retrieve: async () => {
+					throw Object.assign(new Error('Page could not be read'), { status: 404 });
+				},
+			},
+		} as never;
+	}
+
+	importPage(ctx: ImportContext, pageId: string) {
+		return this.fetchAndImportPage({ ctx, pageId, parentPath: 'Notion' });
+	}
 }
 
 async function importing(mode: DuplicateHandling, saveSourceId: boolean) {
@@ -79,17 +93,8 @@ test('a page that fails before its title loads keeps its full Notion id', async 
 	const subject = new ResumingImporter(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
 	const ctx = new ImportContext();
 
-	(subject as unknown as { notionClient: unknown }).notionClient = {
-		pages: {
-			retrieve: async () => {
-				throw Object.assign(new Error('Page could not be read'), { status: 404 });
-			},
-		},
-	};
-
-	await (subject as unknown as {
-		fetchAndImportPage(params: { ctx: ImportContext, pageId: string, parentPath: string }): Promise<void>;
-	}).fetchAndImportPage({ ctx, pageId: PAGE_ID, parentPath: 'Notion' });
+	subject.useUnreadableClient();
+	await subject.importPage(ctx, PAGE_ID);
 
 	assert.deepEqual(ctx.failed, [`Page ${PAGE_ID}`]);
 });
