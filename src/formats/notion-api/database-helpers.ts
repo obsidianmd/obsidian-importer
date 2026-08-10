@@ -271,7 +271,6 @@ export async function importDatabaseCore(
 		// Continue even if template fetching fails
 	}
 
-	// Say what this database turned out to hold, before importing any of it
 	if (onPagesDiscovered) {
 		onPagesDiscovered(databasePages.map(page => page.id));
 	}

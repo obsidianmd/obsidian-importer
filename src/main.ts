@@ -121,7 +121,6 @@ export class ImportProgressUI extends ImportContext {
 		this.importLogEl.hide();
 
 		if (this.isPaused()) this.onPaused(true);
-		// Always, so that an empty status is hidden rather than left as a gap
 		else this.onStatus(this.statusMessage);
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
 		for (const entry of this.log) {
@@ -133,7 +132,6 @@ export class ImportProgressUI extends ImportContext {
 	protected onStatus(message: string): void {
 		const text = this.isPaused() ? pausedText(message) : statusText(message);
 		this.statusEl.setText(text);
-		// An empty status would otherwise keep its padding and leave a gap.
 		this.statusEl.toggle(text.length > 0);
 	}
 
@@ -166,13 +164,7 @@ export class ImportProgressUI extends ImportContext {
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
-	/**
-	 * The progress stays on screen after the import: the counts and the last
-	 * status are what the user reads to see how it went, and a bar left where
-	 * it stopped says how far a stopped import got.
-	 *
-	 * A bar is only worth keeping when there was a total to measure against.
-	 */
+	// Preserve final progress, but hide a bar that never had a total.
 	protected onFinish(): void {
 		this.finished = true;
 		if (this.progressTotal <= 0) this.progressBarEl.hide();
@@ -385,7 +377,6 @@ export default class ImporterPlugin extends Plugin {
 		finally {
 			await importer.finalizeMarkdownOutput(ctx);
 		}
-		// The caller has the context, and writeImportReport if it wants the note.
 		return ctx;
 	}
 }
@@ -684,8 +675,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 				this.current = null;
 			}
 
-			// Nothing for an import that was stopped: the user stopped it, and
-			// the counts and the bar left where it got to say the rest.
 			ctx.status(ctx.isCancelled() ? ''
 				: ctx.failed.length > 0 ? i18n.progress.msgErrors()
 					: i18n.progress.msgComplete());
@@ -741,22 +730,13 @@ export class ImporterModal extends Modal implements ImporterHost {
 				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
 
-				// A stopped import still has to finish whatever it was in the
-				// middle of, which is long enough to notice. Draw the row it
-				// will end on rather than leaving an empty space where the
-				// buttons were.
+				// Show disabled finish actions while cancellation completes.
 				this.drawFinishButtons(buttonsEl, ctx, false);
 			});
 		});
 	}
 
-	/**
-	 * The buttons a finished import offers, enabled once it has finished.
-	 */
 	private drawFinishButtons(buttonsEl: HTMLElement, ctx: ImportProgressUI, enabled: boolean): void {
-		// An import that lost nothing has nothing to write down, and one that
-		// only skipped what it already had is not news worth a file until it
-		// is asked for.
 		if (ctx.log.length > 0) {
 			buttonsEl.createEl('button', { cls: 'importer-report-button', text: i18n.modal.buttonSaveReport() }, el => {
 				el.disabled = !enabled;
@@ -774,13 +754,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		});
 	}
 
-	/** Write down what the import could not bring over, and open what was written. */
 	private async saveReport(ctx: ImportProgressUI, buttonEl: HTMLButtonElement): Promise<void> {
 		buttonEl.disabled = true;
 
 		try {
-			// Asked twice, the second ask opens the note rather than writing a
-			// second copy of it.
+			// Reuse a report already saved from this run.
 			this.reportFile ??= await this.importer.writeImportReport(ctx, importerName(this.selectedId));
 
 			if (!this.reportFile) {

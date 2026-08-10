@@ -87,7 +87,6 @@ export class ImportContext {
 		return this.paused;
 	}
 
-	/** The import is over, however it ended. */
 	finish() {
 		this.onFinish();
 	}

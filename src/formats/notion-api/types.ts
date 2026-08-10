@@ -44,7 +44,6 @@ export interface DatabaseProcessingContext {
 	processedDatabases: Map<string, DatabaseInfo>;
 	relationPlaceholders: RelationPlaceholder[];
 	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => Promise<void>;
-	/** The pages a database turned out to hold, for the progress total. */
 	onPagesDiscovered?: (pageIds: string[]) => void;
 	databasePropertyName?: string; // Property name for linking pages to their database .base file
 	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search

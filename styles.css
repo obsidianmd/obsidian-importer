@@ -159,8 +159,7 @@
 }
 
 .importer-log .list-item {
-	/* Obsidian's own .list-item is a flex row, which would lay the prefix out
-	   as a column of its own, narrow enough to break "Skipped:" in half. */
+	/* Keep the log prefix and entry in normal block flow. */
 	display: block;
 	line-height: var(--line-height-normal);
 	white-space: pre-wrap;
@@ -170,12 +169,10 @@
 
 .importer-error {
 	color: var(--text-error);
-	/* A path may be broken anywhere it has to be; this is one word. */
 	white-space: nowrap;
 }
 
-/* The report is about the import that just ran, where the buttons beside it
-   are about what to do next, so it sits apart at the start of the row. */
+/* Separate the report action from the navigation actions. */
 .modal-button-container .importer-report-button {
 	margin-inline-end: auto;
 }

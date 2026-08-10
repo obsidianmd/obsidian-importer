@@ -28,7 +28,6 @@ import { buildTree, collectItems, type NotionTreeNode } from './notion-api/disco
 
 
 
-/** The child pages among a page's blocks, as far as they have been read. */
 function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>): string[] {
 	const ids: string[] = [];
 
@@ -64,18 +63,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private notionClient: Client | null = null;
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
-	/**
-	 * Every page this import has decided to write, and how many of them are
-	 * done. A Notion import cannot know its size up front - a database says
-	 * how many rows it holds only once queried, and a page says what child
-	 * pages it has only once read - so the total grows as it finds out, the
-	 * way the OneNote importer grows its queue section by section.
-	 *
-	 * Counting what is actually imported rather than what was ticked in the
-	 * tree is what makes "remaining" land on zero: a database counted for
-	 * nothing while its rows counted for nothing either, and a selected page
-	 * that was never reached left the number stuck above zero for good.
-	 */
+	// The total grows as databases and page blocks reveal more pages.
 	private knownPages: Set<string> = new Set();
 	private finishedPages: number = 0;
 	private picker: TreePicker<NotionTreeNode>;
@@ -346,13 +334,7 @@ export class NotionAPIImporter extends FormatImporter {
 		return null;
 	}
 
-	/**
-	 * The items the import loop will walk: everything selected that is not
-	 * already covered by a selected ancestor.
-	 *
-	 * Side effect: seeds knownPages with the pages among them, which is where
-	 * the progress total starts.
-	 */
+	/** Returns top-level selected items and seeds the initial page total. */
 	private getSelectedNodeIds(): string[] {
 		const topLevelSelected: string[] = [];
 		this.knownPages.clear();
@@ -360,13 +342,8 @@ export class NotionAPIImporter extends FormatImporter {
 		const collectNodes = (nodes: NotionTreeNode[]) => {
 			for (const node of nodes) {
 				if (node.selected && !node.disabled) {
-					// Both pages and databases, for the import loop
 					topLevelSelected.push(node.id);
 
-					// Only the pages start the total. A nested selection is
-					// reached through its parent, and a database is worth
-					// however many rows the query turns out to return, so
-					// both are counted when the import gets to them.
 					if (node.type === 'page') this.knownPages.add(node.id);
 				}
 				collectNodes(node.children);
@@ -377,13 +354,11 @@ export class NotionAPIImporter extends FormatImporter {
 		return topLevelSelected;
 	}
 
-	/** One more page written, skipped or failed. */
 	private pageFinished(ctx: ImportContext): void {
 		this.finishedPages++;
 		ctx.reportProgress(this.finishedPages, this.knownPages.size);
 	}
 
-	/** Pages the import has just learned it has to write. */
 	private pagesDiscovered(ctx: ImportContext, pageIds: string[]): void {
 		if (pageIds.length === 0) return;
 
@@ -429,8 +404,6 @@ export class NotionAPIImporter extends FormatImporter {
 			this.relatedPageTitles.clear();
 			this.finishedPages = 0;
 
-			// getSelectedNodeIds() has already seeded knownPages, which grows
-			// as databases and child pages turn up.
 			ctx.status(i18n.importer.notionApi.statusPreparing({
 				items: i18n.nouns.itemWithCount({ count: this.knownPages.size }),
 			}));
@@ -579,8 +552,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		this.processedPages.add(pageId);
-		// A page reached through a database row or a child block is work this
-		// import did not know about when it started.
+		// Include pages discovered outside the initial tree selection.
 		this.knownPages.add(pageId);
 
 		// Keep the full ID if fetching the title fails.
@@ -621,10 +593,7 @@ export class NotionAPIImporter extends FormatImporter {
 			// The blocksCache will be populated during this check
 			const hasChildren = await hasChildPagesOrDatabases(this.notionClient!, blocks, ctx, blocksCache);
 
-			// Count this page's children now that its blocks have been read,
-			// rather than one at a time as each is imported: a total that
-			// rises by one and falls by one for every child never settles into
-			// a number worth reading.
+			// Discover all children first so remaining decreases monotonically.
 			this.pagesDiscovered(ctx, childPageIds(blocksCache));
 
 			// Determine file structure based on whether page has children
