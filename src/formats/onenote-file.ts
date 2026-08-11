@@ -197,9 +197,17 @@ export class OneNoteFileImporter extends FormatImporter {
 	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
 		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${sanitizeFileName(section.name || fallbackName)}`));
 
-		// Nest subpages under the preceding page at the parent level.
-		const parents: TFolder[] = [sectionFolder];
+		// Nest subpages under the preceding page at the parent level. A page's
+		// folder is named after it and only made when a subpage arrives to go
+		// in it, so a page without any leaves no empty folder behind.
+		const levels: { folder?: TFolder, path?: string }[] = [{ folder: sectionFolder }];
 		let done = 0;
+
+		const folderFor = async (depth: number): Promise<TFolder> => {
+			const level = levels[depth];
+			level.folder ??= await this.createFolders(normalizePath(level.path!));
+			return level.folder;
+		};
 
 		for (const page of section.pages) {
 			if (await ctx.shouldStop()) return;
@@ -207,14 +215,13 @@ export class OneNoteFileImporter extends FormatImporter {
 
 			ctx.reportProgress(++done, section.pages.length);
 
-			const depth = Math.min(page.level, parents.length - 1);
-			const target = parents[depth];
+			const depth = Math.min(page.level, levels.length - 1);
+			levels.length = depth + 1;
+
+			const target = await folderFor(depth);
 			const written = await this.importPage(ctx, page, target);
 
-			parents.length = depth + 1;
-			parents.push(written
-				? await this.createFolders(normalizePath(`${target.path}/${written}`))
-				: target);
+			levels.push(written ? { path: `${target.path}/${written}` } : { folder: target });
 		}
 	}
 
