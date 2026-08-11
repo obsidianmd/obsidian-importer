@@ -2,14 +2,6 @@ import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 import type { MarkdownOutput } from '../../markdown-output';
 
-export interface ExistingNote {
-	absolutePath: string;
-	writtenAt: number;
-	updatedAt: number | null;
-}
-
-export type ExistingNoteDecision = 'write' | 'skip';
-
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	outputDir: string;
@@ -21,11 +13,6 @@ export interface EvernoteOptions {
 	obsidianTaskTag?: string;
 	/** How the vault being written into indents; left out, a test's default. */
 	markdownOutput?: MarkdownOutput;
-	/**
-	 * What to do about a note an earlier import left. Left out, a note takes a
-	 * name nothing is using, which is what "Create a copy" wants.
-	 */
-	decideExistingNote?: (existing: ExistingNote) => ExistingNoteDecision;
 }
 
 export const defaultEvernoteOptions: EvernoteOptions = {

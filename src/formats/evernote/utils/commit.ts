@@ -17,7 +17,7 @@ export const commit = async (run: EvernoteRun): Promise<void> => {
 
 		for (const resource of draft.resources) {
 			const placed = await run.output.placeAttachment(resource.fileName, draft.path, resource.data.byteLength);
-			if (placed.write) await run.output.write(placed.path, resource.data, resource.times);
+			if (placed.write) await run.output.writeAttachment(placed.path, resource.data, resource.times);
 
 			links.push([resource.token, run.output.linkTo(placed.path, draft.path)]);
 		}
@@ -29,7 +29,7 @@ export const commit = async (run: EvernoteRun): Promise<void> => {
 			markdown = markdown.split(token).join(link);
 		}
 
-		await run.output.write(draft.path, formatMarkdown(markdown, run.markdownOutput), {
+		await run.output.writeNote(draft.path, formatMarkdown(markdown, run.markdownOutput), {
 			ctime: moment(draft.note.created).valueOf() || undefined,
 			mtime: moment(draft.note.updated).valueOf() || undefined,
 		});

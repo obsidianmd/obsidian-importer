@@ -1,36 +1,32 @@
-import { EvernoteNote } from '../models/EvernoteNote';
 import { NodePickedFile, PickedFile } from '../../../filesystem';
-import { genUid, sanitizeFileName } from '../../../util';
+import { sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
-
-import { getNoteFileName, normalizeTitle } from './filename-utils';
 
 export interface NotebookStackProps {
 	fullpath: string;
 	basename: string;
 }
 
-// Path length constants
-const MAX_PATH = 249; // Maximum path length for compatibility
-const MAX_ENEX_DIR_LENGTH = 100; // Conservative limit for enex directory name
+// Conservative limit for enex directory name
+const MAX_ENEX_DIR_LENGTH = 100;
 
 /**
- * Check if a path is taken and add (1), (2), etc. suffix if needed to avoid conflicts
- * @param basePath - The directory path where the item will be created
- * @param name - The desired name (without path)
- * @param suffix - Optional suffix to append (e.g., '.resources')
- * @returns A unique name that doesn't conflict with existing items
+ * A folder name nothing is using, numbered "(1)", "(2)" if it is.
+ *
+ * An import bringing a notebook up to date wants the folder the last one made;
+ * one making a copy wants its own. There is no shared equivalent - planNote
+ * settles a note's name, and nothing settles a folder's - so this is the one
+ * piece of Yarle's naming the importer still does for itself.
  */
-const getUniqueNameForPath = (run: EvernoteRun, basePath: string, name: string, suffix: string = ''): string => {
-	if (run.reusesNoteNames()) return name;
+const freeFolderName = (run: EvernoteRun, basePath: string, name: string): string => {
+	if (!run.output.makesCopies()) return name;
 
-	const baseName = name;
 	let uniqueName = name;
 	let counter = 1;
 
-	while (run.taken(`${basePath}/${uniqueName}${suffix}`)) {
-		uniqueName = `${baseName} (${counter})`;
+	while (run.taken(`${basePath}/${uniqueName}`)) {
+		uniqueName = `${name} (${counter})`;
 		counter++;
 
 		// Safety check to prevent infinite loop
@@ -40,37 +36,6 @@ const getUniqueNameForPath = (run: EvernoteRun, basePath: string, name: string, 
 	}
 
 	return uniqueName;
-};
-
-export const truncatFileName = (run: EvernoteRun, fileName: string, uniqueId: string): string => {
-
-	if (fileName.length <= 11) {
-		throw Error('FATAL: note folder directory path exceeds the OS limitation. Please pick a destination closer to the root folder.');
-	}
-
-	const fullPath = `${run.paths.mdPath}/${fileName}`;
-
-	return fullPath.length < MAX_PATH ? fileName : `${fileName.slice(0, MAX_PATH - 11)}_${uniqueId}.md`;
-};
-
-const truncateFilePath = (run: EvernoteRun, note: EvernoteNote, fileName: string, fullFilePath: string): string => {
-	const noteIdMap = run.properties.getNoteIdNameMapByNoteTitle(normalizeTitle(note.title ?? ''))[0] || { uniqueEnd: genUid(6) };
-
-
-	if (fileName.length <= 11) {
-		throw Error('FATAL: note folder directory path exceeds the OS limitation. Please pick a destination closer to the root folder.');
-	}
-
-	return `${fullFilePath.slice(0, MAX_PATH - 11)}_${noteIdMap.uniqueEnd}.md`;
-	// -11 is the nanoid 5 char +_+ the max possible extension of the note (.md vs .html)
-};
-
-export const getMdFilePath = (run: EvernoteRun, note: EvernoteNote): string => {
-	const dstPath = run.paths.mdPath;
-	const fileName = getNoteFileName(run, dstPath, note, 'md');
-	const fullFilePath = `${dstPath}/${normalizeTitle(fileName)}`;
-
-	return fullFilePath.length < MAX_PATH ? fullFilePath : truncateFilePath(run, note, fileName, fullFilePath);
 };
 
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
@@ -116,9 +81,6 @@ export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: 
 		console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
 	}
 
-	// Check for duplicate directory names and add (1), (2), etc. if needed
-	truncatedBasename = getUniqueNameForPath(run, outputDir, truncatedBasename);
-
-	run.paths.mdPath = `${outputDir}/${truncatedBasename}`;
+	run.paths.mdPath = `${outputDir}/${freeFolderName(run, outputDir, truncatedBasename)}`;
 	run.claim(run.paths.mdPath);
 };

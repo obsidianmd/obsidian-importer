@@ -2,7 +2,6 @@ import { path } from '../../../filesystem';
 
 import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { truncatFileName } from './folder-utils';
 
 /**
  * Turn every evernote:// link into the note it points at.
@@ -20,21 +19,13 @@ export const applyLinks = (run: EvernoteRun): void => {
 		let updatedContent = draft.markdown;
 
 		for (const [linkName, linkProps] of entries) {
-			const uniqueId = linkProps.uniqueEnd;
-			let fileName = linkProps.title;
-			if (run.drafts.some(other => other.path.includes(uniqueId))) {
-				fileName = truncatFileName(run, fileName, uniqueId);
-			}
+			const { title, notebookName } = linkProps;
 
-			const notebookName = linkProps.notebookName;
+			const replacement = notebookName && !notebookFolder.endsWith(notebookName)
+				? `${notebookName}/${title}`
+				: title;
 
-			let replacement = fileName;
-			if (notebookName && !notebookFolder.endsWith(notebookName)) {
-				replacement = `${notebookName}/${fileName}`;
-			}
-
-			const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
-			updatedContent = updatedContent.replace(regexp, replacement);
+			updatedContent = updatedContent.replace(new RegExp(escapeStringRegexp(linkName), 'g'), replacement);
 		}
 
 		draft.markdown = updatedContent;

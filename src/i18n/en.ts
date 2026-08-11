@@ -96,7 +96,6 @@ export const en = {
 		msgImportedCount_plural: '{{count}} notes imported',
 		msgClickToShow: '{{counts}}. Click to show.',
 		statusWaiting: 'Waiting {{duration}} ({{reason}})',
-		statusWaitingForMarkdown: 'Waiting for imported Markdown…',
 		statusStandardizing: 'Standardizing Markdown ({{current}}/{{total}})',
 		labelFinalization: 'Markdown finalization',
 	},

@@ -1,16 +1,23 @@
+import { moment } from 'obsidian';
+
 import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
-import { getMdFilePath } from './utils/folder-utils';
-import { willImport } from './utils/preflight';
 import { getMetadata, getTags, isComplex } from './utils';
 
 import { renderNote } from './utils/render-note';
 import { standardizeFrontMatter } from './utils/front-matter';
 
-export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
+/** When the export says the note last changed, if it says at all. */
+const sourceMtime = (note: EvernoteNote): number | undefined => {
+	const updated = note.updated ? moment(note.updated).valueOf() : NaN;
+
+	return Number.isNaN(updated) ? undefined : updated;
+};
+
+export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: string): boolean => {
 
 	const title = note.title ?? '';
 	run.properties.setCurrentNoteName(title);
@@ -18,8 +25,8 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 	// Where the note goes, and whether it is going at all, both settled before
 	// anything is converted: a note being left alone leaves its attachments
 	// alone too, which it could not do while its resources were written first.
-	const notePath = getMdFilePath(run, note);
-	if (!willImport(run, notePath, note)) return false;
+	const notePath = run.output.planNote(run.paths.mdPath, title || 'Untitled', reportAs);
+	if (!run.output.willImport(notePath, sourceMtime(note))) return false;
 
 	const content = joinNoteContent(note.content);
 	note.content = content;

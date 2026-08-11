@@ -1,15 +1,22 @@
 import { Notice } from 'obsidian';
 import { helpUrl } from '../constants';
 import { markdownOutputFor } from '../markdown-output';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
-import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from './evernote/options';
+import { defaultEvernoteOptions } from './evernote/options';
 import { convertEnexFiles } from './evernote/convert';
-import { PlacedAttachment } from './evernote/output';
-import { VaultOutput } from './evernote/output-vault';
+import { EvernoteOutput, PlacedAttachment } from './evernote/output';
 
 const HELP_PERMALINK = 'import/evernote';
+
+/** A note the conversion has planned, kept until the commit writes it. */
+interface EnexPlan {
+	planned: PlannedNote;
+	/** How the note is named in what the import reports. */
+	reportAs: string;
+	disposition: NoteDisposition;
+}
 
 export class EvernoteEnexImporter extends FormatImporter {
 	interruption = 'stop' as const;
@@ -27,29 +34,65 @@ export class EvernoteEnexImporter extends FormatImporter {
 	}
 
 	/**
-	 * Where an attachment goes, and whether it has to be written.
+	 * The vault, answering for the conversion.
 	 *
-	 * An enex says nothing about an attachment that a later export would say
-	 * again, so the file itself is all a second import has to go on: the same
-	 * name holding the same number of bytes is taken to be this attachment
-	 * again, and any other file of that name belongs to something else and is
-	 * passed over. This is what Airtable's attachments do, for the same reason.
+	 * Everything here needs something the conversion has no business holding -
+	 * the vault, the duplicate setting, the shared planning - which is why it
+	 * is built on this side of the seam rather than handed in.
 	 */
-	private async placeEnexAttachment(fileName: string, notePath: string, size: number): Promise<PlacedAttachment> {
-		const { path, reuse } = await this.placeAttachment(fileName, notePath,
-			existing => existing.stat.size === size ? 'same' : 'another');
+	private outputInto(ctx: ImportContext): EvernoteOutput {
+		const { vault } = this;
+		const plans = new Map<string, EnexPlan>();
 
-		return { path, write: reuse === null };
-	}
+		return {
+			exists: path => vault.getAbstractFileByPathInsensitive(path) !== null,
 
-	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
-		if (this.duplicateHandling === DuplicateHandling.Skip) return 'skip';
+			makesCopies: () => this.duplicateHandling === DuplicateHandling.CreateCopy,
 
-		if (updatedAt === null) return 'write';
+			planNote: (folder, title, reportAs) => {
+				const planned = this.planNote(folder, title);
+				plans.set(planned.targetPath, { planned, reportAs, disposition: 'create' });
 
-		if (Math.floor(writtenAt) === Math.floor(updatedAt)) return 'skip';
+				return planned.targetPath;
+			},
 
-		return writtenAt > updatedAt ? 'skip' : 'write';
+			willImport: (path, sourceMtime) => {
+				const plan = plans.get(path)!;
+				// The reported name carries the notebook, which the file name
+				// cannot; preflightNote only ever reads the title to report it.
+				plan.disposition = this.preflightNote(ctx, { ...plan.planned, title: plan.reportAs }, sourceMtime);
+
+				return !leavesTheNoteAlone(plan.disposition);
+			},
+
+			writeNote: async (path, markdown, times) => {
+				const { planned, disposition } = plans.get(path)!;
+				await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
+			},
+
+			/**
+			 * An enex says nothing about an attachment that a later export would
+			 * say again, so the file itself is all a second import has to go on:
+			 * the same name holding the same number of bytes is taken to be this
+			 * attachment again, and any other file of that name belongs to
+			 * something else and is passed over. Airtable's do the same.
+			 */
+			placeAttachment: async (fileName, notePath, size): Promise<PlacedAttachment> => {
+				const { path, reuse } = await this.placeAttachment(fileName, notePath,
+					existing => existing.stat.size === size ? 'same' : 'another');
+
+				return { path, write: reuse === null };
+			},
+
+			// The whole path, which resolves from anywhere. finalizeMarkdownOutput
+			// shortens it afterwards, to whatever form the user set.
+			linkTo: path => path,
+
+			writeAttachment: async (path, data, times) => {
+				await this.createFolders(parentOf(path));
+				await this.writeAttachment(path, data, times);
+			},
+		};
 	}
 
 	async import(ctx: ImportContext) {
@@ -65,21 +108,15 @@ export class EvernoteEnexImporter extends FormatImporter {
 			return;
 		}
 
-		let { app } = this;
-		const output = new VaultOutput(
-			app,
-			file => this.trackMarkdownFile(file),
-			(fileName, notePath, size) => this.placeEnexAttachment(fileName, notePath, size),
-		);
-
 		await convertEnexFiles({
 			...defaultEvernoteOptions,
 			enexSources: files,
 			outputDir: folder.path,
-			markdownOutput: markdownOutputFor(app.vault),
-			decideExistingNote: this.duplicateHandling === DuplicateHandling.CreateCopy
-				? undefined
-				: existing => this.decideExistingNote(existing),
-		}, output, ctx);
+			markdownOutput: markdownOutputFor(this.app.vault),
+		}, this.outputInto(ctx), ctx);
 	}
+}
+
+function parentOf(path: string): string {
+	return path.slice(0, path.lastIndexOf('/')) || '/';
 }

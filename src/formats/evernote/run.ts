@@ -1,6 +1,6 @@
 import type { MarkdownOutput } from '../../markdown-output';
 import { EvernoteNote } from './models/EvernoteNote';
-import { defaultEvernoteOptions, EvernoteOptions, ExistingNote, ExistingNoteDecision } from './options';
+import { defaultEvernoteOptions, EvernoteOptions } from './options';
 import { EvernoteOutput, FileTimes } from './output';
 import { RuntimeProperties } from './runtime-properties';
 
@@ -56,8 +56,8 @@ export class EvernoteRun {
 	/** The attachments of the note being converted, until it has one to go on. */
 	private pending: ResourceDraft[] = [];
 
-	/** When each path was taken, which is what something arriving at it later asks. */
-	private readonly claimedPaths = new Map<string, number>();
+	/** The paths this run has taken, so nothing else in it is given one twice. */
+	private readonly claimedPaths = new Set<string>();
 
 	constructor(options: EvernoteOptions, output: EvernoteOutput) {
 		this.options = { ...defaultEvernoteOptions, ...options };
@@ -67,7 +67,7 @@ export class EvernoteRun {
 
 	/** Hold a path, so nothing else in this run is given it. */
 	claim(path: string): void {
-		this.claimedPaths.set(path, Date.now());
+		this.claimedPaths.add(path);
 	}
 
 	draftNote(path: string, markdown: string, note: EvernoteNote): void {
@@ -89,32 +89,9 @@ export class EvernoteRun {
 		this.pending = [];
 	}
 
-	/** When this run took the path, or null if it has not. */
-	claimedAt(path: string): number | null {
-		return this.claimedPaths.get(path) ?? null;
-	}
-
 	/** Whether anything - this run or an earlier import - is at this path. */
 	taken(path: string): boolean {
 		return this.claimedPaths.has(path) || this.output.exists(path);
 	}
 
-	/** What is directly inside a folder, counting what this run has taken there. */
-	namesIn(folder: string): string[] {
-		const prefix = `${folder}/`;
-		const claimed = [...this.claimedPaths.keys()]
-			.filter(claimed => claimed.startsWith(prefix) && !claimed.slice(prefix.length).includes('/'))
-			.map(claimed => claimed.slice(prefix.length));
-
-		return [...this.output.list(folder), ...claimed];
-	}
-
-	/** Whether a note may take the name an earlier import gave it. */
-	reusesNoteNames(): boolean {
-		return this.options.decideExistingNote !== undefined;
-	}
-
-	decideExistingNote(existing: ExistingNote): ExistingNoteDecision {
-		return this.options.decideExistingNote?.(existing) ?? 'write';
-	}
 }

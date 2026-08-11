@@ -1,21 +1,28 @@
 /**
  * A directory standing in for the vault, so a conversion can be recorded.
  *
- * The plugin writes an Evernote import through Vault; what these tests want is
- * a tree they can read back and compare with what is committed beside them.
- * Both are the same interface, which is what keeps the conversion itself free
- * of either.
+ * The plugin answers the conversion with FormatImporter and the vault; what
+ * these tests want is a tree they can read back and compare with what is
+ * committed beside them. Both are the same interface, which is what keeps the
+ * conversion itself free of either.
+ *
+ * The policies are the vault's, reimplemented rather than reached for: a note
+ * name already taken is numbered " 1", " 2" the way availableFileName does,
+ * and a note matched by an earlier import is left, updated or preserved by
+ * comparing its modification time with the source's, the way comparedToSource
+ * does. Where they disagree with FormatImporter, this is wrong.
  *
  * Attachments go where the vault's "default location for new attachments"
  * setting would put them. The recordings are made with a subfolder called
- * _resources beside the note, which is what an Evernote import used to do
- * whatever the vault said, so the trees stay readable next to what they
+ * _resources beside the note, so the trees stay readable next to the ones they
  * replaced. What the plugin does is whatever the user has set.
  */
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
 import { EvernoteOutput, FileTimes, PlacedAttachment } from '../../src/formats/evernote/output';
+import { i18n } from '../../src/i18n';
+import { availableFileName, sanitizeFileName } from '../../src/util';
 
 /** The four shapes Obsidian's attachmentFolderPath setting takes. */
 export type AttachmentLocation =
@@ -24,36 +31,94 @@ export type AttachmentLocation =
 	| { mode: 'note' }
 	| { mode: 'subfolder', path: string };
 
+/** Stands in for the importer's "Existing notes" setting. */
+export type Duplicates = 'copy' | 'skip' | 'update';
+
+/** What the import is told when a note is left alone, as preflightNote tells it. */
+export interface Reporter {
+	reportSkipped(name: string, reason?: string): void;
+}
+
+export interface FsOutputOptions {
+	duplicates?: Duplicates;
+	attachments?: AttachmentLocation;
+	/** Where the reason a note was left alone goes, as it does in the plugin. */
+	ctx?: Reporter;
+}
+
 export class FsOutput implements EvernoteOutput {
-	/** Attachment paths this import has given out. */
+	private readonly duplicates: Duplicates;
+	private readonly attachments: AttachmentLocation;
+
+	/** Paths this import has given out, note and attachment alike. */
 	private readonly claimed = new Set<string>();
+
+	/** The note an earlier import left at each planned path, if it did. */
+	private readonly matched = new Map<string, string>();
+
+	/** How each planned note is named in what the import reports. */
+	private readonly reportAs = new Map<string, string>();
+
+	private readonly ctx: Reporter | undefined;
 
 	constructor(
 		/** Where the output folder is, which is what a vault path is relative to. */
 		private readonly root: string,
-		private readonly attachments: AttachmentLocation = { mode: 'subfolder', path: '_resources' },
-	) { }
+		{ duplicates = 'copy', attachments = { mode: 'subfolder', path: '_resources' }, ctx }: FsOutputOptions = {},
+	) {
+		this.duplicates = duplicates;
+		this.attachments = attachments;
+		this.ctx = ctx;
+	}
 
 	exists(path: string): boolean {
 		return nodeFs.existsSync(path);
 	}
 
-	list(folder: string): string[] {
-		try {
-			return nodeFs.readdirSync(folder);
-		}
-		catch {
-			return [];
-		}
+	makesCopies(): boolean {
+		return this.duplicates === 'copy';
 	}
 
-	writtenAt(path: string): number | null {
-		try {
-			return nodeFs.statSync(path).mtimeMs;
+	planNote(folder: string, title: string, reportAs: string): string {
+		const name = `${sanitizeFileName(title, folder).replace(/\.md$/i, '')}.md`;
+		const desired = `${folder}/${name}`;
+
+		// An earlier import's note is written to again rather than beside.
+		if (this.duplicates !== 'copy' && !this.claimed.has(desired) && nodeFs.existsSync(desired)) {
+			this.claimed.add(desired);
+			this.matched.set(desired, desired);
+			this.reportAs.set(desired, reportAs);
+
+			return desired;
 		}
-		catch {
-			return null;
-		}
+
+		const free = `${folder}/${availableFileName(name, candidate =>
+			this.claimed.has(`${folder}/${candidate}`) || nodeFs.existsSync(`${folder}/${candidate}`))}`;
+		this.claimed.add(free);
+		this.reportAs.set(free, reportAs);
+
+		return free;
+	}
+
+	willImport(path: string, sourceMtime?: number): boolean {
+		const file = this.matched.get(path);
+		if (!file) return true;
+
+		if (this.duplicates === 'skip') return this.leave(path, i18n.reason.alreadyInVault());
+
+		// Without a time from the source nothing can be decided until the
+		// markdown exists, and the vault compares the text. Here it is written.
+		if (sourceMtime === undefined) return true;
+
+		const writtenAt = Math.round(nodeFs.statSync(file).mtimeMs);
+		if (writtenAt === sourceMtime) return this.leave(path, i18n.reason.unchangedSinceImport());
+		if (writtenAt > sourceMtime) return this.leave(path, i18n.reason.editedSinceImport());
+
+		return true;
+	}
+
+	async writeNote(path: string, markdown: string, times: FileTimes): Promise<void> {
+		await this.write(path, markdown, times);
 	}
 
 	async placeAttachment(fileName: string, notePath: string, size: number): Promise<PlacedAttachment> {
@@ -62,8 +127,8 @@ export class FsOutput implements EvernoteOutput {
 
 		for (let nth = 0; ; nth++) {
 			const candidate = `${folder}/${name}${nth ? ` ${nth}` : ''}${extension}`;
-			// A path this import has already given out belongs to that attachment,
-			// however alike the two look. Vault.placeAttachment does the same.
+			// A path this import has already given out belongs to whatever took
+			// it, however alike the two look. placeAttachment does the same.
 			if (this.claimed.has(candidate)) continue;
 
 			let existing: nodeFs.Stats;
@@ -87,7 +152,11 @@ export class FsOutput implements EvernoteOutput {
 		return nodePath.relative(this.root, path).split(nodePath.sep).join('/');
 	}
 
-	async write(path: string, data: string | ArrayBuffer, times: FileTimes): Promise<void> {
+	async writeAttachment(path: string, data: ArrayBuffer, times: FileTimes): Promise<void> {
+		await this.write(path, data, times);
+	}
+
+	private async write(path: string, data: string | ArrayBuffer, times: FileTimes): Promise<void> {
 		nodeFs.mkdirSync(nodePath.dirname(path), { recursive: true });
 		nodeFs.writeFileSync(path, typeof data === 'string' ? data : Buffer.from(data));
 
@@ -99,6 +168,12 @@ export class FsOutput implements EvernoteOutput {
 		catch {
 			// The file is written; its timestamps are best effort.
 		}
+	}
+
+	private leave(path: string, reason: string): false {
+		this.ctx?.reportSkipped(this.reportAs.get(path) ?? path, reason);
+
+		return false;
 	}
 
 	private attachmentFolder(notePath: string): string {

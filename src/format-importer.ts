@@ -849,9 +849,6 @@ export abstract class FormatImporter {
 	async finalizeMarkdownOutput(ctx?: ImportContext): Promise<void> {
 		const previousStatus = ctx?.statusMessage ?? '';
 		try {
-			if (this.markdownFiles.size > 0) ctx?.status(i18n.progress.statusWaitingForMarkdown());
-			await this.waitForExternalMarkdownWrites();
-
 			const total = this.markdownFiles.size;
 			let current = 0;
 			for (const path of this.markdownFiles) {
@@ -902,39 +899,9 @@ export abstract class FormatImporter {
 		return await this.saveAsMarkdownFile(folder, importReportName(importerName, when), content);
 	}
 
-	/** Direct filesystem writers arrive in Vault through its watcher. */
-	private async waitForExternalMarkdownWrites(): Promise<void> {
-		const missing = new Set([...this.markdownFiles]
-			.filter(path => !(this.vault.getAbstractFileByPath(path) instanceof TFile)));
-		if (missing.size === 0) return;
-
-		await new Promise<void>(resolve => {
-			let settled = false;
-			const finish = () => {
-				if (settled) return;
-				settled = true;
-				this.vault.offref(ref);
-				window.clearTimeout(timeout);
-				resolve();
-			};
-			const ref = this.vault.on('create', file => {
-				missing.delete(file.path);
-				if (missing.size === 0) finish();
-			});
-			const timeout = window.setTimeout(finish, 2_000);
-
-			// Close the race between the first check and registering the listener.
-			for (const path of missing) {
-				if (this.vault.getAbstractFileByPath(path) instanceof TFile) missing.delete(path);
-			}
-			if (missing.size === 0) finish();
-		});
-	}
-
 	/** Register Markdown written outside createFile. */
-	trackMarkdownFile(file: TFile | string): void {
-		const path = typeof file === 'string' ? normalizePath(file) : file.path;
-		if (path.toLowerCase().endsWith('.md')) this.markdownFiles.add(path);
+	trackMarkdownFile(file: TFile): void {
+		if (file.path.toLowerCase().endsWith('.md')) this.markdownFiles.add(file.path);
 	}
 
 	protected withSourceId(content: string, sourceId: string | undefined): string {

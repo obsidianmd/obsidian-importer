@@ -9,8 +9,8 @@ import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { convertEnexFiles } from '../../src/formats/evernote/convert';
-import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from '../../src/formats/evernote/options';
-import { FsOutput } from './fs-output';
+import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
+import { Duplicates, FsOutput } from './fs-output';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -51,19 +51,19 @@ function tree(dir: string): string[] {
 async function convertInto(
 	outputDir: string,
 	ctx: ReturnType<typeof stubContext>,
-	decideExistingNote?: (existing: ExistingNote) => ExistingNoteDecision
+	duplicates: Duplicates = 'copy'
 ): Promise<void> {
 	await convertEnexFiles({
 		...defaultEvernoteOptions,
 		enexSources: [new NodePickedFile(FIXTURE)],
 		outputDir,
-		decideExistingNote,
-	}, new FsOutput(outputDir), ctx as never);
+	}, new FsOutput(outputDir, { duplicates, ctx }), ctx as never);
 }
 
 async function importTwice(
-	decideExistingNote: ((existing: ExistingNote) => ExistingNoteDecision) | undefined,
-	use: (outputDir: string, first: ReturnType<typeof stubContext>, second: ReturnType<typeof stubContext>) => void
+	duplicates: Duplicates,
+	use: (outputDir: string, first: ReturnType<typeof stubContext>, second: ReturnType<typeof stubContext>) => void,
+	between?: (outputDir: string) => void
 ): Promise<void> {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-again-'));
 	const first = stubContext();
@@ -71,7 +71,8 @@ async function importTwice(
 
 	try {
 		await convertInto(outputDir, first);
-		await convertInto(outputDir, second, decideExistingNote);
+		between?.(outputDir);
+		await convertInto(outputDir, second, duplicates);
 
 		use(outputDir, first, second);
 	}
@@ -81,7 +82,7 @@ async function importTwice(
 }
 
 test('with no answer to give, a second import is a second copy', async () => {
-	await importTwice(undefined, (outputDir, first, second) => {
+	await importTwice('copy', (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.equal(second.notes.length, first.notes.length);
 		assert.equal(tree(outputDir).length, first.notes.length * 2);
@@ -89,7 +90,7 @@ test('with no answer to give, a second import is a second copy', async () => {
 });
 
 test('a note that is left alone is reported skipped and not written again', async () => {
-	await importTwice(() => 'skip', (outputDir, first, second) => {
+	await importTwice('skip', (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.deepEqual(second.notes, [], 'nothing should be imported');
 		assert.equal(second.skips.length, first.notes.length);
@@ -98,28 +99,28 @@ test('a note that is left alone is reported skipped and not written again', asyn
 	});
 });
 
-test('a note to be written over keeps the name and the folder it already had', async () => {
-	await importTwice(() => 'write', (outputDir, first, second) => {
+test('a note the source has moved on from keeps the name and folder it had', async () => {
+	// Backdating the notes is what an export carrying newer ones amounts to:
+	// the import writes each one again, in place, taking no new name.
+	await importTwice('update', (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.deepEqual(second.notes, first.notes);
-		assert.deepEqual(tree(outputDir), tree(outputDir), 'stable');
 		assert.equal(tree(outputDir).length, first.notes.length);
+	}, outputDir => {
+		for (const file of tree(outputDir)) {
+			const at = nodePath.join(outputDir, file);
+			const earlier = new Date(nodeFs.statSync(at).mtimeMs - 60_000);
+			nodeFs.utimesSync(at, earlier, earlier);
+		}
 	});
 });
 
-test('the answer is asked with the times both sides give', async () => {
-	const asked: ExistingNote[] = [];
-
-	await importTwice(existing => {
-		asked.push(existing);
-		return 'skip';
-	}, (_outputDir, first) => {
-		assert.equal(asked.length, first.notes.length);
-
-		for (const existing of asked) {
-			assert.ok(nodePath.isAbsolute(existing.absolutePath), existing.absolutePath);
-			assert.ok(existing.writtenAt > 0, 'the file has a modification time');
-			assert.equal(existing.updatedAt, Math.floor(existing.writtenAt), existing.absolutePath);
-		}
+test('a note nobody has touched at either end is left as unchanged', async () => {
+	// The import writes the export's own modification time onto the note, so a
+	// second import of the same export finds the two equal and leaves it.
+	await importTwice('update', (outputDir, first, second) => {
+		assert.deepEqual(second.notes, [], 'nothing is written a second time');
+		assert.equal(second.skips.length, first.notes.length);
+		assert.equal(tree(outputDir).length, first.notes.length);
 	});
 });

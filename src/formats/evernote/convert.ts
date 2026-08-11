@@ -115,10 +115,11 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 				restoreResourceAttributes(note, resourceAttributes);
 
 				try {
+					// A note left alone is reported by the preflight, which is
+					// what knows whether it was skipped, unchanged or preserved.
 					const reported = notebookName + '/' + note.title;
-					wrote = processNode(run, note);
+					wrote = processNode(run, note, reported);
 					if (wrote) ctx.reportNoteSuccess(reported);
-					else ctx.reportSkipped(reported, i18n.reason.alreadyInVault());
 				}
 				catch (e) {
 					ctx.reportFailed(note.title || enexSource.name, e);
