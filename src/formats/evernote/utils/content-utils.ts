@@ -5,77 +5,39 @@ import { MetaData } from '../models/MetaData';
 import { evernoteOptions } from '../convert';
 import { escapeStringRegexp } from './escape-string-regexp';
 
-export const getMetadata = (note: EvernoteNote, notebookName: string): MetaData => {
+export const getMetadata = (note: EvernoteNote): MetaData => {
 	return {
-		createdAt: getCreationTime(note),
-		updatedAt: getUpdateTime(note),
 		sourceUrl: getSourceUrl(note),
-		location: getLatLong(note),
 		reminderTime: getReminderTime(note),
-		reminderOrder: getReminderOrder(note),
 		reminderDoneTime: getReminderDoneTime(note),
-		notebookName,
 	};
 };
 
-export const getCreationTime = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipCreationTime && note.created
-		? moment(note.created).format(evernoteOptions.dateFormat)
-		: '';
-};
-
-export const getUpdateTime = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipUpdateTime && note.updated
-		? moment(note.updated).format(evernoteOptions.dateFormat)
-		: '';
-};
-
 export const getSourceUrl = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipSourceUrl &&
-	note['note-attributes']
+	return note['note-attributes']
 		? note['note-attributes']['source-url'] ?? ''
 		: '';
 };
 
-export const getLatLong = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipLocation &&
-	note['note-attributes'] &&
-	note['note-attributes'].longitude
-		? `${note['note-attributes'].latitude},${note['note-attributes'].longitude}`
-		: '';
-};
 export const getReminderTime = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipReminderTime &&
-	note['note-attributes'] &&
+	return note['note-attributes'] &&
 	note['note-attributes']['reminder-time']
 		? moment(note['note-attributes']['reminder-time']).format(evernoteOptions.dateFormat)
 		: '';
 };
-export const getReminderOrder = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipReminderOrder &&
-	note['note-attributes'] &&
-	note['note-attributes']['reminder-order']
-		? note['note-attributes']['reminder-order']
-		: '';
-};
 export const getReminderDoneTime = (note: EvernoteNote): string => {
-	return !evernoteOptions.skipReminderDoneTime &&
-	note['note-attributes'] &&
+	return note['note-attributes'] &&
 	note['note-attributes']['reminder-done-time']
 		? moment(note['note-attributes']['reminder-done-time']).format(evernoteOptions.dateFormat)
 		: '';
 };
-/*
-<reminder-order>
-<reminder-time>
-<reminder-done-time> */
 export const getTags = (note: EvernoteNote): { tags: string } => {
 	return { tags: logTags(note) };
 
 };
 
 export const logTags = (note: EvernoteNote): string => {
-	if (!evernoteOptions.skipTags && note.tag) {
+	if (note.tag) {
 		const tagArray = Array.isArray(note.tag) ? note.tag : [note.tag];
 		const tagOptions = evernoteOptions.nestedTags;
 

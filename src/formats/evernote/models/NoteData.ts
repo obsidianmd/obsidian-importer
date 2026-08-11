@@ -6,13 +6,8 @@ export interface NoteData {
 	content: string;
 	originalContent?: string;
 	htmlContent: string;
-	createdAt?: string;
-	updatedAt?: string;
 	sourceUrl?: string;
-	location?: string;
-	notebookName?: string;
 	internalLinks?: Array<InternalLink>;
 	reminderTime?: string;
 	reminderDoneTime?: string;
-	reminderOrder?: string;
 }

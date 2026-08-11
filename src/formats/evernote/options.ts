@@ -60,23 +60,12 @@ export function forgetNotesWritten(): void {
 
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
-	templateFile?: string;
-	currentTemplate: string;
 	outputDir: string;
 	isMetadataNeeded?: boolean;
-	isNotebookNameNeeded?: boolean;
 	isZettelkastenNeeded?: boolean;
 	useZettelIdAsFilename?: boolean;
 	plainTextNotesOnly?: boolean;
-	skipLocation?: boolean;
-	skipCreationTime?: boolean;
-	skipUpdateTime?: boolean;
-	skipSourceUrl?: boolean;
 	skipWebClips?: boolean;
-	skipReminderTime?: boolean;
-	skipReminderOrder?: boolean;
-	skipReminderDoneTime?: boolean;
-	skipTags?: boolean;
 	useHashTags?: boolean;
 	replaceWhitespacesInTagsByUnderscore?: boolean;
 	skipEnexFileNameFromOutputPath?: boolean;

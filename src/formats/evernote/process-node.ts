@@ -5,11 +5,11 @@ import { extractDataUrlResources, processResources } from './process-resources';
 import { RuntimePropertiesSingleton } from './runtime-properties';
 import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
-import { applyTemplate } from './utils/templates/templates';
+import { renderNote } from './utils/render-note';
 import { standardizeFrontMatter } from './utils/front-matter';
 import { evernoteOptions } from './convert';
 
-export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
+export const processNode = (note: EvernoteNote): boolean => {
 
 	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	const title = note.title ?? '';
@@ -33,10 +33,10 @@ export const processNode = (note: EvernoteNote, notebookName: string): boolean =
 		noteData.htmlContent = extractDataUrlResources(note, noteData.htmlContent);
 
 		noteData = { ...noteData, ...convertHtml2Md(evernoteOptions, noteData) };
-		noteData = { ...noteData, ...getMetadata(note, notebookName) };
+		noteData = { ...noteData, ...getMetadata(note) };
 		noteData = { ...noteData, ...getTags(note) };
 
-		const data = standardizeFrontMatter(applyTemplate(noteData, evernoteOptions));
+		const data = standardizeFrontMatter(renderNote(noteData));
 		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
 		return saveMdFile(data, note);

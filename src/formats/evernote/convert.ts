@@ -14,26 +14,15 @@ import { RuntimePropertiesSingleton } from './runtime-properties';
 import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
-import {
-	hasAnyTagsInTemplate,
-	hasCreationTimeInTemplate,
-	hasLocationInTemplate,
-	hasNotebookInTemplate,
-	hasSourceURLInTemplate,
-	hasUpdateTimeInTemplate,
-} from './utils/templates/checker-functions';
-import { defaultTemplate } from './utils/templates/default-template';
 
 let flow: typeof import('xml-flow') | undefined;
 
 export const defaultEvernoteOptions: EvernoteOptions = {
 	enexSources: [],
-	currentTemplate: '',
 	outputDir: './mdNotes',
 	// The form Obsidian reads as a date and time property
 	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
 	isMetadataNeeded: false,
-	isNotebookNameNeeded: false,
 	isZettelkastenNeeded: false,
 	useZettelIdAsFilename: false,
 	plainTextNotesOnly: false,
@@ -85,20 +74,6 @@ function merge(original: any, ...objects: any[]) {
 
 const setOptions = (options: EvernoteOptions): void => {
 	evernoteOptions = merge({}, defaultEvernoteOptions, options);
-
-	let template = (evernoteOptions.templateFile) ? fs.readFileSync(evernoteOptions.templateFile, 'utf-8') : defaultTemplate;
-	template = evernoteOptions.currentTemplate ? evernoteOptions.currentTemplate : template;
-
-	// todo: handle file not exists error
-	evernoteOptions.skipCreationTime = !hasCreationTimeInTemplate(template);
-	evernoteOptions.skipLocation = !hasLocationInTemplate(template);
-	evernoteOptions.skipSourceUrl = !hasSourceURLInTemplate(template);
-	evernoteOptions.skipTags = !hasAnyTagsInTemplate(template);
-	evernoteOptions.skipUpdateTime = !hasUpdateTimeInTemplate(template);
-	evernoteOptions.isNotebookNameNeeded = hasNotebookInTemplate(template);
-
-	evernoteOptions.currentTemplate = template;
-
 };
 
 interface TaskGroups {
@@ -173,7 +148,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 				try {
 					const reported = notebookName + '/' + note.title;
-					wrote = processNode(note, notebookName);
+					wrote = processNode(note);
 					if (wrote) ctx.reportNoteSuccess(reported);
 					else ctx.reportSkipped(reported, i18n.reason.alreadyInVault());
 				}
