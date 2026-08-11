@@ -23,7 +23,7 @@ export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 		if (!nodeProxy.href) {
 			return '';
 		}
-		let text = getTurndownService(run).turndown(removeBrackets(node.innerHTML));
+		let text: string = getTurndownService(run).turndown(removeBrackets(node.innerHTML));
 		text = removeDoubleBackSlashes(text);
 		let prefix = '';
 		let match = text.match(/^(#{1,6} )(.*)/);
@@ -38,6 +38,13 @@ export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 			return `![[${value}]]`;
 		}
 		if (value.startsWith('evernote://')) {
+			// A link resolves by the title it shows, so an anchor showing the URL or
+			// nothing at all would be sanitized into an invented one.
+			const shown = text.trim();
+			if (!shown || shown.startsWith('evernote://')) {
+				return prefix + `<${value}>`;
+			}
+
 			const fileName = normalizeTitle(text);
 			const noteIdNameMap = run.properties;
 			if (isTOC(noteIdNameMap.getCurrentNoteName())) {
