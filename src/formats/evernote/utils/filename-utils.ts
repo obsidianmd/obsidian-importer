@@ -1,5 +1,5 @@
 import { EvernoteResource } from '../models/EvernoteNote';
-import { parseFilePath, path } from '../../../filesystem';
+import { parseFilePath } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 
 import { extensionForMime } from '../../../mime';
@@ -55,7 +55,3 @@ export const getExtension = (resource: EvernoteResource): string => {
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
 
-
-export const getNotebookName = (enexFile: string): string => {
-	return path.basename(enexFile, '.enex');
-};

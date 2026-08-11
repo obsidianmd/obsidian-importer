@@ -1,4 +1,4 @@
-import { NodePickedFile, PickedFile } from '../../../filesystem';
+import { PickedFile } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
@@ -58,8 +58,6 @@ export const getSanitizedNotebookFolderNames = (basename: string): string[] => {
 };
 
 export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProps => {
-	if (!(baseEnex instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
-
 	const { notebookName } = getNotebookNameAndFolderNames(baseEnex.basename);
 
 	return {

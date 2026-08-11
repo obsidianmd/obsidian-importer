@@ -1,10 +1,10 @@
 import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/EvernoteNote';
-import { nodeCrypto } from '../../filesystem';
 import { base64ToArrayBuffer, moment } from 'obsidian';
 import { stringToUtf8 } from '../../util';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import { EvernoteRun } from './run';
+import { md5 } from './utils/md5';
 import * as utils from './utils';
 
 /** When the note says it was made and last changed, for what came out of it. */
@@ -95,10 +95,7 @@ const processResource = (run: EvernoteRun, resource: EvernoteResource): Record<s
 		resourceHash[recognisedHash] = { fileName, src, alreadyUsed: false };
 	}
 	else {
-		let hash = nodeCrypto.createHash('md5');
-		hash.update(new Uint8Array(bytes));
-		const md5Hash = hash.digest('hex');
-		resourceHash[md5Hash] = { fileName, src, alreadyUsed: false };
+		resourceHash[md5(new Uint8Array(bytes))] = { fileName, src, alreadyUsed: false };
 	}
 
 	return resourceHash;

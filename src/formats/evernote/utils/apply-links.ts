@@ -1,5 +1,3 @@
-import { path } from '../../../filesystem';
-
 import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
 
@@ -15,7 +13,7 @@ export const applyLinks = (run: EvernoteRun): void => {
 	if (entries.length === 0) return;
 
 	for (const draft of run.drafts) {
-		const notebookFolder = path.dirname(draft.path);
+		const notebookFolder = draft.path.slice(0, draft.path.lastIndexOf('/'));
 		let updatedContent = draft.markdown;
 
 		for (const [linkName, linkProps] of entries) {
