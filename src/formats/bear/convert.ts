@@ -1,8 +1,11 @@
 import { path } from '../../filesystem';
+import { ILLEGAL_TAG_CHARS, sanitizeTag } from '../../util';
+
+// Separators are allowed only inside tags.
+const TAG_BODY = `[^${ILLEGAL_TAG_CHARS}\\s]`;
+const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
 
 const ASSET_LINK = /\[[^\]]*\]\((assets\/[^)]+)\)/gm;
-
-const LETTER = 'A-Za-zÀ-ÖØ-öø-įĴ-őŔ-žǍ-ǰǴ-ǵǸ-țȞ-ȟȤ-ȳɃɆ-ɏḀ-ẞƀ-ƓƗ-ƚƝ-ơƤ-ƥƫ-ưƲ-ƶẠ-ỿ';
 
 export interface BearConversionOptions {
 	basename: string;
@@ -39,7 +42,7 @@ export function removeMarkdownHeader(mdFilename: string, mdContent: string): str
 export function extractTagsFromContent(content: string, flattenTags: boolean): string[] {
 	const tags = new Set<string>();
 
-	const simpleTagRegex = new RegExp(`(?<!\\S)#([${LETTER}0-9_][${LETTER}0-9_/-]*[${LETTER}0-9_]|[${LETTER}0-9_]+)(?![#\\w/])`, 'g');
+	const simpleTagRegex = new RegExp(`(?<!\\S)#(${TAG_EDGE}${TAG_BODY}*${TAG_EDGE}|${TAG_EDGE}+)(?!${TAG_BODY})`, 'gu');
 	let matchSimple;
 	while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
 		const rawSimpleTag = matchSimple[1].trim();
@@ -77,13 +80,12 @@ export async function convertBearNote(
 	}
 
 	// Require content before the closing # so the next tag is not consumed.
-	content = content.replace(/#([^\n#]+?[^\s])#/g, (_match, tag) => {
+	content = content.replace(/#([^\n#]+?[^\s])#/g, (_match, tag: string) => {
 		return '#' + tag.replace(/\s+/g, '_');
 	});
 
-	content = content.replace(/#([^0-9\s#]+)/g, (_match, tag) => {
-		let cleanTag = tag.replace(new RegExp(`[^${LETTER}0-9_/-]`, 'g'), '_');
-		cleanTag = cleanTag.replace(/_+/g, '_');
+	content = content.replace(/#([^0-9\s#]+)/gu, (_match, tag: string) => {
+		const cleanTag = sanitizeTag(tag, '_').replace(/_+/g, '_');
 		return '#' + cleanTag;
 	});
 

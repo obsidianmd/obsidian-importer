@@ -173,6 +173,15 @@ export function updatePropertyTypes(app: App, propertyTypes: Record<string, stri
 	}
 }
 
+// Obsidian rejects these punctuation ranges; tags may use any script.
+export const ILLEGAL_TAG_CHARS = '\\u2000-\\u206f\\u2e00-\\u2e7f\'!"#$%&()*+,.:;<=>?@^`{|}~[\\]\\\\';
+
+const illegalTagRe = new RegExp(`[${ILLEGAL_TAG_CHARS}]`, 'gu');
+
+export function sanitizeTag(name: string, replacement = ''): string {
+	return name.replace(/^#/, '').replace(illegalTagRe, replacement);
+}
+
 export function plural(count: number, noun: string): string {
 	return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }

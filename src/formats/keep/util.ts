@@ -1,5 +1,6 @@
+import { sanitizeTag as stripIllegalTagChars } from '../../util';
+
 let potentialTagsRe = /(#[^ ^#]*)/g; // Finds any non-whitespace sections starting with #
-let illegalTagCharsRe = /[\\:*?<>"|!@#$%^&()+=`'~;,.]/g;
 
 /**
  * Searches a string for characters unsupported by Obsidian in the tag body and returns a sanitized string.
@@ -8,9 +9,8 @@ let illegalTagCharsRe = /[\\:*?<>"|!@#$%^&()+=`'~;,.]/g;
 
 export function sanitizeTag(name: string): string {
 	// Remove problem characters
-	let tagName = name
-		.replace(illegalTagCharsRe, '');
-	// Convert spaces to hyphens	
+	let tagName = stripIllegalTagChars(name);
+	// Convert spaces to hyphens
 	tagName = tagName.split(' ').join('-');
 	// Prevent tags starting with a number
 	if (!isNaN(Number(tagName[0]))) {
