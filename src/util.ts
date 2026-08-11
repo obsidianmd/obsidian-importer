@@ -109,17 +109,24 @@ export function sanitizeFileName(name: string | undefined | null, parentPath?: s
 	return trimmed || 'Untitled';
 }
 
-export function sanitizeFilePath(path: string): string {
+/**
+ * @param parentPath Vault-relative folder the path is built under. It is spent
+ * against Windows' budget but is not itself sanitized or returned, so an
+ * existing folder keeps the name the vault knows it by.
+ */
+export function sanitizeFilePath(path: string, parentPath = ''): string {
 	// Apply Windows' whole-path budget cumulatively.
-	let built = '';
+	let built = parentPath;
+	let sanitized = '';
 
 	for (const segment of path.split('/')) {
 		if (!segment.trim()) continue;
 		const name = sanitizeFileName(segment, built);
 		built = built ? `${built}/${name}` : name;
+		sanitized = sanitized ? `${sanitized}/${name}` : name;
 	}
 
-	return built;
+	return sanitized;
 }
 
 /**

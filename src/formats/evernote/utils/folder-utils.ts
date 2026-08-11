@@ -1,5 +1,5 @@
 import { PickedFile } from '../../../filesystem';
-import { sanitizeFileName } from '../../../util';
+import { sanitizeFileName, sanitizeFilePath } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
 
@@ -21,10 +21,11 @@ export const getNotebookNameAndFolderNames = (basename: string): { notebookName:
 	};
 };
 
-export const getSanitizedNotebookFolderNames = (basename: string): string[] => {
+export const getSanitizedNotebookFolderNames = (basename: string, parentPath = ''): string[] => {
 	const { notebookFolderNames } = getNotebookNameAndFolderNames(basename);
+	const stack = sanitizeFilePath(notebookFolderNames.join('/'), parentPath);
 
-	return notebookFolderNames.map(name => sanitizeFileName(name));
+	return stack ? stack.split('/') : [];
 };
 
 export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProps => {
@@ -38,7 +39,7 @@ export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProp
 };
 
 export const getNotebookStackOutputDir = (enex: PickedFile, outputDir: string): string => {
-	return [outputDir, ...getSanitizedNotebookFolderNames(enex.basename)].join('/');
+	return [outputDir, ...getSanitizedNotebookFolderNames(enex.basename, outputDir)].join('/');
 };
 
 export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: string): void => {

@@ -166,6 +166,18 @@ test('a path with no fitting arrangement still names its levels', () => withPlat
 	assert.ok(path.length < minifiedCss.length, 'what can be given back is');
 }));
 
+test('on Windows the folder a path is built under is spent from its budget', () => withPlatform('windows', () => {
+	const alone = sanitizeFilePath(minifiedCss);
+	const under = sanitizeFilePath(minifiedCss, 'Evernote/Imported/Work notebook');
+
+	assert.ok(under.length < alone.length, `${under.length} should leave less than ${alone.length}`);
+}));
+
+test('the folder a path is built under is not sanitized or returned', () => {
+	// It is a folder the vault already holds, so cutting it would point somewhere else.
+	assert.equal(sanitizeFilePath('Inbox', 'Evernote/A folder named after a note.'), 'Inbox');
+});
+
 test('control characters go, astral characters stay', () => {
 	assert.equal(stripControlCharacters('a\u0000b\u001fc'), 'abc');
 	// C1 as well as C0

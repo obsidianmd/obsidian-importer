@@ -23,6 +23,21 @@ test('a notebook stack becomes folders a filesystem will take', () => {
 	assert.deepEqual(getSanitizedNotebookFolderNames('Stack.@@@Inbox.'), ['Stack']);
 });
 
+test('on Windows a stack folder is measured against the folder it goes in', () => {
+	const was = Platform.isWin;
+	Platform.isWin = true;
+	try {
+		const stack = 'A stack named at length because Evernote let it be'.repeat(4);
+		const [alone] = getSanitizedNotebookFolderNames(`${stack}@@@Inbox`);
+		const [nested] = getSanitizedNotebookFolderNames(`${stack}@@@Inbox`, 'Evernote/Imported from Evernote');
+
+		assert.ok(nested.length < alone.length, `${nested.length} should leave less than ${alone.length}`);
+	}
+	finally {
+		Platform.isWin = was;
+	}
+});
+
 test('the notebook name itself is left as the user wrote it', () => {
 	const { notebookName, notebookFolderNames } = getNotebookNameAndFolderNames('Stack.@@@Inbox.');
 
