@@ -1,6 +1,6 @@
 import { App, TAbstractFile, TFile, TFolder, Vault } from 'obsidian';
 
-import { EvernoteOutput, FileTimes } from './output';
+import { EvernoteOutput, FileTimes, PlacedAttachment } from './output';
 
 /**
  * The vault, answering for an Evernote import.
@@ -18,8 +18,26 @@ export class VaultOutput implements EvernoteOutput {
 		private readonly app: App,
 		/** Told about every note written, so the importer can finish with it. */
 		private readonly wrote: (file: TFile) => void,
+		/**
+		 * FormatImporter.placeAttachment, which is protected, so the importer
+		 * hands it over rather than this reaching for it. It is what applies the
+		 * vault's attachment setting and what decides about a name already taken.
+		 */
+		private readonly place: (fileName: string, notePath: string, size: number) => Promise<PlacedAttachment>,
 	) {
 		this.vault = app.vault;
+	}
+
+	async placeAttachment(fileName: string, notePath: string, size: number): Promise<PlacedAttachment> {
+		return await this.place(fileName, notePath, size);
+	}
+
+	/**
+	 * The whole path, which is a link Obsidian resolves from anywhere.
+	 * finalizeMarkdownOutput shortens it afterwards, to whatever the user set.
+	 */
+	linkTo(path: string): string {
+		return path;
 	}
 
 	exists(path: string): boolean {

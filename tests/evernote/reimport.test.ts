@@ -58,7 +58,7 @@ async function convertInto(
 		enexSources: [new NodePickedFile(FIXTURE)],
 		outputDir,
 		decideExistingNote,
-	}, new FsOutput(), ctx as never);
+	}, new FsOutput(outputDir), ctx as never);
 }
 
 async function importTwice(

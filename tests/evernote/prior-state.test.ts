@@ -35,7 +35,7 @@ const ONE_ATTACHMENT = nodePath.join(FIXTURES, 'second', 'report.enex');
 /** Where report.enex puts its note, and what it puts beside it. */
 const NOTEBOOK = 'report';
 const NOTE = `${NOTEBOOK}/Quarterly Report.md`;
-const RESOURCES = `${NOTEBOOK}/_resources/Quarterly_Report.resources`;
+const RESOURCES = `${NOTEBOOK}/_resources`;
 
 function stubContext() {
 	return {
@@ -69,7 +69,7 @@ async function importInto(
 		enexSources: [new NodePickedFile(fixture)],
 		outputDir,
 		decideExistingNote,
-	}, new FsOutput(), ctx as never);
+	}, new FsOutput(outputDir), ctx as never);
 
 	assert.deepEqual(ctx.failures, [], 'no note should fail to convert');
 
@@ -114,8 +114,8 @@ test('with no answer to give, a second import copies the note and its attachment
 			`${RESOURCES}/chart.png`,
 			`${RESOURCES}/logo.png`,
 			'report (1)/Quarterly Report.md',
-			'report (1)/_resources/Quarterly_Report.resources/chart.png',
-			'report (1)/_resources/Quarterly_Report.resources/logo.png',
+			'report (1)/_resources/chart.png',
+			'report (1)/_resources/logo.png',
 		].sort());
 	});
 });
@@ -156,26 +156,31 @@ test('a skipped note leaves its attachments, and anything beside them, alone', a
 	});
 });
 
-test('BUG: an attachment dropped from the export is deleted on the next import', async () => {
-	// The whole folder goes, so an attachment the export has stopped carrying
-	// goes with it. Retiring the cleanup leaves it where it is: this is an
-	// import, not a sync, and the vault is the user's.
+test('an attachment dropped from the export is left where it is', async () => {
+	// Nothing deletes an attachment any more. An export that has stopped
+	// carrying one says nothing about the copy in the vault: this is an import,
+	// not a sync, and what is in the vault is the user's.
 	await inTempDir(async outputDir => {
 		await importInto(outputDir, TWO_ATTACHMENTS);
-		assert.ok(nodeFs.existsSync(nodePath.join(outputDir, RESOURCES, 'logo.png')));
 
 		await importInto(outputDir, ONE_ATTACHMENT, write);
 
 		assert.deepEqual(tree(outputDir), [
 			NOTE,
 			`${RESOURCES}/chart.png`,
-		], 'logo.png is gone, though nothing asked for it to be');
+			`${RESOURCES}/logo.png`,
+		]);
 	});
 });
 
-test('an attachment kept by the export is written again at the same name', async () => {
+test('an attachment the vault already holds is recognised rather than copied', async () => {
+	// The same name holding the same bytes is this attachment again, so the
+	// note keeps saying what it said and nothing is written a second time.
+	// Without that, every import would leave "chart 1.png" beside the last.
 	await inTempDir(async outputDir => {
 		await importInto(outputDir, TWO_ATTACHMENTS);
+		const before = nodeFs.readFileSync(nodePath.join(outputDir, NOTE), 'utf8');
+
 		await importInto(outputDir, TWO_ATTACHMENTS, write);
 
 		assert.deepEqual(tree(outputDir), [
@@ -183,6 +188,7 @@ test('an attachment kept by the export is written again at the same name', async
 			`${RESOURCES}/chart.png`,
 			`${RESOURCES}/logo.png`,
 		]);
+		assert.equal(nodeFs.readFileSync(nodePath.join(outputDir, NOTE), 'utf8'), before);
 	});
 });
 
@@ -196,8 +202,8 @@ test('a notebook folder someone else made is not imported into', async () => {
 		assert.deepEqual(tree(outputDir), [
 			`${NOTEBOOK}/unrelated.md`,
 			'report (1)/Quarterly Report.md',
-			'report (1)/_resources/Quarterly_Report.resources/chart.png',
-			'report (1)/_resources/Quarterly_Report.resources/logo.png',
+			'report (1)/_resources/chart.png',
+			'report (1)/_resources/logo.png',
 		].sort());
 	});
 });

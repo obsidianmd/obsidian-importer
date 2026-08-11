@@ -5,8 +5,6 @@ import { stringToUtf8 } from '../../util';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import { EvernoteRun } from './run';
-import { ResourceDirs } from './utils/folder-utils';
-import { getNextFilenameIndex } from './utils/filename-dedupe';
 import * as utils from './utils';
 
 /** When the note says it was made and last changed, for what came out of it. */
@@ -15,33 +13,32 @@ const noteTimes = (note: EvernoteNote) => ({
 	mtime: moment(note.updated).valueOf() || undefined,
 });
 
-export const processResources = (run: EvernoteRun, dirs: ResourceDirs, note: EvernoteNote): string => {
+export const processResources = (run: EvernoteRun, note: EvernoteNote): string => {
 	let resourceHashes: Record<string, ResourceHashItem> = {};
 	let updatedContent = joinNoteContent(note.content);
 
-	run.emptyBeforeWriting(dirs.absolute);
 	const resources = Array.isArray(note.resource) ? note.resource
 		: note.resource ? [note.resource]
 			: [];
 	for (const resource of resources) {
 		resourceHashes = {
 			...resourceHashes,
-			...processResource(run, dirs.absolute, resource),
+			...processResource(run, resource),
 		};
 	}
 
 	for (const hash of Object.keys(resourceHashes)) {
-		updatedContent = addMediaReference(updatedContent, resourceHashes, hash, dirs.relative);
+		updatedContent = addMediaReference(updatedContent, resourceHashes, hash);
 	}
 
 	return updatedContent;
 };
 
-const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string, workDir: string): string => {
-	const fileName = resourceHashes[hash]?.fileName;
-	if (!fileName) return content;
+const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string): string => {
+	const entry = resourceHashes[hash];
+	if (!entry) return content;
 
-	const src = `${workDir}/${fileName.replace(/ /g, ' ')}`;
+	const { fileName, src } = entry;
 	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
@@ -64,7 +61,7 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 	return updatedContent;
 };
 
-const processResource = (run: EvernoteRun, workDir: string, resource: EvernoteResource): Record<string, ResourceHashItem> => {
+const processResource = (run: EvernoteRun, resource: EvernoteResource): Record<string, ResourceHashItem> => {
 	const resourceHash: Record<string, ResourceHashItem> = {};
 
 	// Check if resource data exists
@@ -87,22 +84,21 @@ const processResource = (run: EvernoteRun, workDir: string, resource: EvernoteRe
 	}*/
 
 	const accessTime = utils.getTimeStampMoment(resource);
-	const resourceFileProps = utils.getResourceFileProperties(run, workDir, resource);
-	let fileName = resourceFileProps.fileName;
+	const fileName = utils.getResourceFileName(resource);
 
 	const bytes = base64ToArrayBuffer(data);
-	run.draftResource(`${workDir}/${fileName}`, bytes, { mtime: accessTime.valueOf() });
+	const src = run.draftResource(fileName, bytes, { mtime: accessTime.valueOf() });
 
 	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
 
 	if (recognisedHash && fileName) {
-		resourceHash[recognisedHash] = { fileName, alreadyUsed: false };
+		resourceHash[recognisedHash] = { fileName, src, alreadyUsed: false };
 	}
 	else {
 		let hash = nodeCrypto.createHash('md5');
 		hash.update(new Uint8Array(bytes));
 		const md5Hash = hash.digest('hex');
-		resourceHash[md5Hash] = { fileName, alreadyUsed: false };
+		resourceHash[md5Hash] = { fileName, src, alreadyUsed: false };
 	}
 
 	return resourceHash;
@@ -110,7 +106,6 @@ const processResource = (run: EvernoteRun, workDir: string, resource: EvernoteRe
 
 export const extractDataUrlResources = (
 	run: EvernoteRun,
-	dirsFor: () => ResourceDirs,
 	note: EvernoteNote,
 	content: string,
 ): string => {
@@ -118,34 +113,26 @@ export const extractDataUrlResources = (
 		return content; // no data urls
 	}
 
-	const dirs = dirsFor();
-
-	// src="data:image/svg+xml;base64,..." --> src="resourceDir/fileName"
+	// src="data:image/svg+xml;base64,..." --> src="<the attachment it becomes>"
 	return content.replace(/src="data:([^;,]*)(;base64)?,([^"]*)"/g, (match, mediatype, encoding, data) => {
-		const fileName = createResourceFromData(run, mediatype, encoding === ';base64', data, dirs.absolute, note);
-
-		return `src="${dirs.relative}/${fileName}"`;
+		return `src="${createResourceFromData(run, mediatype, encoding === ';base64', data, note)}"`;
 	});
 };
 
-// returns filename of new resource
+/** Returns what the markdown should say where the data url was. */
 const createResourceFromData = (
 	run: EvernoteRun,
 	mediatype: string,
 	base64: boolean,
 	data: string,
-	absoluteResourceWorkDir: string,
 	note: EvernoteNote,
 ): string => {
 	const baseName = 'embedded'; // data doesn't seem to include useful base filename
 	const extension = extensionForMimeType(mediatype) || '.dat';
-	const index = getNextFilenameIndex(run.namesIn(absoluteResourceWorkDir), baseName);
-	const fileName = index < 1 ? `${baseName}.${extension}` : `${baseName}.${index}.${extension}`;
 
 	const bytes = base64 ? base64ToArrayBuffer(data) : stringToUtf8(decodeURIComponent(data));
-	run.draftResource(`${absoluteResourceWorkDir}/${fileName}`, bytes, noteTimes(note));
 
-	return fileName;
+	return run.draftResource(`${baseName}.${extension}`, bytes, noteTimes(note));
 };
 
 const extensionForMimeType = (mediatype: string): string => {

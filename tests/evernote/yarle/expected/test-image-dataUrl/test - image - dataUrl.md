@@ -1,11 +1,11 @@
 ---
 source: https://unsplash.com/photos/3ym6i13Y9LU
 ---
-![[./_resources/test_-_image_-_dataUrl.resources/embedded.png]]
-![[./_resources/test_-_image_-_dataUrl.resources/embedded.1.svg]] Photo by [A Photographer](https://unsplash.com/@photographer)
-![[./_resources/test_-_image_-_dataUrl.resources/embedded.2.svg]]
+![[test-image-dataUrl/_resources/embedded.png]]
+![[test-image-dataUrl/_resources/embedded.svg]] Photo by [A Photographer](https://unsplash.com/@photographer)
+![[test-image-dataUrl/_resources/embedded 1.svg]]
 [Free to use under the Unsplash License](https://unsplash.com/license)
 
-![[./_resources/test_-_image_-_dataUrl.resources/photo.png]]
+![[test-image-dataUrl/_resources/photo.png]]
 
-![[./_resources/test_-_image_-_dataUrl.resources/embedded.3.svg]]
+![[test-image-dataUrl/_resources/embedded 2.svg]]

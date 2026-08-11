@@ -6,6 +6,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from './evernote/options';
 import { convertEnexFiles } from './evernote/convert';
+import { PlacedAttachment } from './evernote/output';
 import { VaultOutput } from './evernote/output-vault';
 
 const HELP_PERMALINK = 'import/evernote';
@@ -23,6 +24,22 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 		this.addFileChooserSetting(i18n.importer.evernote.fileType(), ['enex'], true);
 		this.defaultOutputFolder = 'Evernote';
+	}
+
+	/**
+	 * Where an attachment goes, and whether it has to be written.
+	 *
+	 * An enex says nothing about an attachment that a later export would say
+	 * again, so the file itself is all a second import has to go on: the same
+	 * name holding the same number of bytes is taken to be this attachment
+	 * again, and any other file of that name belongs to something else and is
+	 * passed over. This is what Airtable's attachments do, for the same reason.
+	 */
+	private async placeEnexAttachment(fileName: string, notePath: string, size: number): Promise<PlacedAttachment> {
+		const { path, reuse } = await this.placeAttachment(fileName, notePath,
+			existing => existing.stat.size === size ? 'same' : 'another');
+
+		return { path, write: reuse === null };
 	}
 
 	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
@@ -49,7 +66,11 @@ export class EvernoteEnexImporter extends FormatImporter {
 		}
 
 		let { app } = this;
-		const output = new VaultOutput(app, file => this.trackMarkdownFile(file));
+		const output = new VaultOutput(
+			app,
+			file => this.trackMarkdownFile(file),
+			(fileName, notePath, size) => this.placeEnexAttachment(fileName, notePath, size),
+		);
 
 		await convertEnexFiles({
 			...defaultEvernoteOptions,

@@ -1,3 +1,3 @@
 Note with PDF attachment
 
-![[./_resources/pdfAttachment.resources/sample.pdf]]
+![[test-pdfAttachment/_resources/sample.pdf]]

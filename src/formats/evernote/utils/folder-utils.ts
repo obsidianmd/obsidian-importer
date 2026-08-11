@@ -4,19 +4,11 @@ import { genUid, sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
 
-import { getNoteFileName, getNoteName, normalizeTitle } from './filename-utils';
+import { getNoteFileName, normalizeTitle } from './filename-utils';
 
 export interface NotebookStackProps {
 	fullpath: string;
 	basename: string;
-}
-
-/** Where a note's attachments go, said both ways the conversion needs. */
-export interface ResourceDirs {
-	/** Below the output folder, which is what writes them. */
-	absolute: string;
-	/** From the note, which is what the markdown says. */
-	relative: string;
 }
 
 // Path length constants
@@ -48,26 +40,6 @@ const getUniqueNameForPath = (run: EvernoteRun, basePath: string, name: string, 
 	}
 
 	return uniqueName;
-};
-
-/**
- * The folder this note's attachments go in, taken as this is answered.
- *
- * Call it once a note: asked twice, the second answer is numbered past the
- * first. A note with nothing to attach must not call it at all, or it takes a
- * name the next note of that title would have had.
- */
-export const resourceDirsFor = (run: EvernoteRun, note: EvernoteNote): ResourceDirs => {
-	// Note name is already limited by MAX_NOTE_NAME_LENGTH in getNoteName()
-	const dirName = getNoteName(run, run.paths.mdPath, note).replace(/\s/g, '_');
-	const folder = `${getUniqueNameForPath(run, run.paths.resourcePath, dirName, '.resources')}.resources`;
-
-	run.claim(`${run.paths.resourcePath}/${folder}`);
-
-	return {
-		absolute: `${run.paths.resourcePath}/${folder}`,
-		relative: `./${run.options.resourcesDir}/${folder}`,
-	};
 };
 
 export const truncatFileName = (run: EvernoteRun, fileName: string, uniqueId: string): string => {
@@ -148,7 +120,5 @@ export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: 
 	truncatedBasename = getUniqueNameForPath(run, outputDir, truncatedBasename);
 
 	run.paths.mdPath = `${outputDir}/${truncatedBasename}`;
-	run.paths.resourcePath = `${run.paths.mdPath}/${run.options.resourcesDir}`;
-
 	run.claim(run.paths.mdPath);
 };

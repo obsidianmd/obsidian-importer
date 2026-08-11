@@ -17,7 +17,6 @@ export interface EvernoteOptions {
 	useHashTags?: boolean;
 	dateFormat?: string;
 	nestedTags?: TagSeparatorReplaceOptions;
-	resourcesDir: string;
 	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;
 	/** How the vault being written into indents; left out, a test's default. */
@@ -42,7 +41,6 @@ export const defaultEvernoteOptions: EvernoteOptions = {
 		replaceSpaceWith: '-',
 	},
 	obsidianTaskTag: '',
-	resourcesDir: '_resources',
 	turndownOptions: {
 		headingStyle: 'atx',
 	},

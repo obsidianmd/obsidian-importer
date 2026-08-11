@@ -45,7 +45,7 @@ async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnT
 			...defaultEvernoteOptions,
 			enexSources: paths.map(path => new NodePickedFile(path)),
 			outputDir,
-		}, new FsOutput(), ctx as never);
+		}, new FsOutput(outputDir), ctx as never);
 
 		return use(outputDir, ctx);
 	}
@@ -100,7 +100,9 @@ test('keeps a resource file name that is its only attribute', async () => {
 
 		assert.equal(attachments.length, 2);
 		for (const path of attachments) {
-			assert.ok(path.endsWith('/dot.png'), `expected dot.png, got ${path}`);
+			// Both notes call theirs dot.png, and they now share a folder, so
+			// the second is numbered - but neither falls back to unknown_filename.
+			assert.match(path, /\/dot( \d+)?\.png$/, `expected dot.png, got ${path}`);
 		}
 	});
 });

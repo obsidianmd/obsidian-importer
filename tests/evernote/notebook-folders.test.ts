@@ -48,7 +48,7 @@ test('the notebook name itself is left as the user wrote it', () => {
 test('an enex whose name ends in a dot lands in a folder Windows can open', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, 'Inbox.', outputDir);
 
 		assert.equal(nodePath.basename(run.paths.mdPath), 'Inbox');
@@ -61,7 +61,7 @@ test('an enex whose name ends in a dot lands in a folder Windows can open', () =
 test('an enex whose name is only dots still gets a folder', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, '...', outputDir);
 
 		assert.equal(nodePath.basename(run.paths.mdPath), 'Untitled');
@@ -76,7 +76,7 @@ test('a long name is still legal after being truncated', () => {
 	try {
 		// Truncation cuts at 100 characters, which here lands mid-way through a
 		// run of dots - so sanitising only before the cut would leave one on.
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, `${'a'.repeat(98)}${'.'.repeat(20)}`, outputDir);
 
 		assert.ok(!nodePath.basename(run.paths.mdPath).endsWith('.'), `got ${nodePath.basename(run.paths.mdPath)}`);

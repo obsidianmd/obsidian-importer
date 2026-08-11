@@ -3,7 +3,6 @@ import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 
-import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { extensionForMime } from '../../../mime';
 import { getNextFilenameIndex } from './filename-dedupe';
 
@@ -15,7 +14,8 @@ export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
 
-export const getResourceFileProperties = (run: EvernoteRun, workDir: string, resource: EvernoteResource): ResourceFileProperties => {
+/** What the export calls this attachment, made safe to be a file name. */
+export const getResourceFileName = (resource: EvernoteResource): string => {
 	const UNKNOWNFILENAME = 'unknown_filename';
 
 	const extension = getExtension(resource);
@@ -28,14 +28,7 @@ export const getResourceFileProperties = (run: EvernoteRun, workDir: string, res
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
 
-	const index = getNextFilenameIndex(run.namesIn(workDir), fileName);
-	const fileNameWithIndex = index > 0 ? `${fileName}.${index}` : fileName;
-
-	return {
-		fileName: `${fileNameWithIndex}.${extension}`,
-		extension,
-		index,
-	};
+	return `${fileName}.${extension}`;
 };
 
 export const getFilePrefix = (note: EvernoteNote): string => {
