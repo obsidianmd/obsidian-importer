@@ -57,7 +57,7 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 				if (typeof element === 'string') return;
 
 				if (name === 'note') {
-					importNote(element as EvernoteNote);
+					importNote(element);
 					return;
 				}
 

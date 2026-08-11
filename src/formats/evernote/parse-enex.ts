@@ -14,10 +14,10 @@ interface Building {
 
 export interface EnexHandlers {
 	wanted: Set<string>;
-	onElement(name: string, element: EnexElement): void;
-	isCancelled?(): boolean;
+	onElement: (name: string, element: EnexElement) => void;
+	isCancelled?: () => boolean;
 	/** Awaited between chunks; true stops parsing. */
-	checkpoint?(): Promise<boolean>;
+	checkpoint?: () => Promise<boolean>;
 }
 
 export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promise<void> {
@@ -32,6 +32,12 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 	parser.onerror = error => {
 		failure ??= error;
 		parser.resume();
+	};
+
+	// A closure, because the flow that assigns `failure` is one TypeScript does
+	// not follow: read from the loop below, it is still the `null` it started as.
+	const throwIfFailed = () => {
+		if (failure) throw failure;
 	};
 
 	parser.onopentag = node => {
@@ -78,9 +84,9 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 		if (await checkpoint?.()) return;
 
 		parser.write(piece);
-		if (failure) throw failure;
+		throwIfFailed();
 	}
 
 	parser.close();
-	if (failure) throw failure;
+	throwIfFailed();
 }
