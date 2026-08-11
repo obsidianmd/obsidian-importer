@@ -247,6 +247,7 @@ export class OneNoteFileImporter extends FormatImporter {
 			const notePath = planned.targetPath;
 			const converted = await convertPage(page, {
 				isCancelled: () => ctx.isCancelled(),
+				resolveInternalLink: pageTitle => sanitizeFileName(pageTitle),
 				onSkipped: (name, reason) => ctx.reportSkipped(name, reason === 'no-data'
 					? i18n.importer.onenoteFile.reasonNoAttachmentData()
 					: i18n.importer.onenoteFile.reasonNotRepresentable()),

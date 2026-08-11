@@ -57,6 +57,21 @@ test('a link wraps whatever emphasis the run already had', async () => {
 		'[**site**](https://example.com/a%20b)');
 });
 
+test('a OneNote page link becomes a link Obsidian can resolve after import', async () => {
+	assert.equal(
+		await render(para([{
+			text: 'the other page',
+			hyperlinkUrl: 'onenote:///C:/Notebook/Section.one#Other%20page&section-id={section}&page-id={page}&end',
+		}])),
+		'[the other page](Other%20page)');
+});
+
+test('a malformed OneNote page title is kept rather than failing its page', async () => {
+	assert.equal(
+		await render(para([{ text: 'page', hyperlinkUrl: 'onenote:///Section.one#Bad%escape&section-id={section}' }])),
+		'[page](Bad%25escape)');
+});
+
 test('a run of only whitespace contributes no emphasis markers', async () => {
 	assert.equal(await render(para([{ text: '   ', bold: true }])), '');
 });
@@ -384,4 +399,42 @@ test('an escaped line keeps the formatting the importer added', async () => {
 	assert.equal(
 		await render(para('# text', { list: { level: 0, ordered: false } })),
 		'- \\# text');
+});
+
+test('a link out of the notebook is left exactly as it was', async () => {
+	// Only the onenote: scheme names a page; everything else is a real URL.
+	assert.equal(
+		await render(para([{ text: 'a site', hyperlinkUrl: 'https://example.com/a b' }])),
+		'[a site](https://example.com/a%20b)');
+	assert.equal(
+		await render(para([{ text: 'a file', hyperlinkUrl: 'file:///C:/notes.txt' }])),
+		'[a file](file:///C:/notes.txt)');
+});
+
+test('a OneNote link with no page in it stays a link to OneNote', async () => {
+	// Without a fragment there is no page name to resolve against.
+	const url = 'onenote:///C:/Notebook/Section.one';
+	assert.equal(await render(para([{ text: 'the section', hyperlinkUrl: url }])), `[the section](${url})`);
+});
+
+test('the page name is taken from the fragment, not the identifiers after it', async () => {
+	assert.equal(
+		await render(para([{
+			text: 'page',
+			hyperlinkUrl: 'onenote:https://d.docs.live.net/x/Nb/S.one#Q4%20review&section-id={a}&page-id={b}&end',
+		}])),
+		'[page](Q4%20review)');
+});
+
+test('the importer decides what an internal link points at', async () => {
+	// The conversion knows the page title; only the importer knows the note.
+	const converted = await convertPage(page(para([{
+		text: 'link',
+		hyperlinkUrl: 'onenote:///S.one#Notes: Q4/Q1&section-id={a}',
+	}])), {
+		saveAttachment: async () => null,
+		resolveInternalLink: title => title.replace(/[:/]/g, '-'),
+	});
+
+	assert.equal(converted.markdown, '[link](Notes-%20Q4-Q1)');
 });

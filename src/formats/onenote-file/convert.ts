@@ -30,6 +30,8 @@ export type SkipReason =
 export interface OneNoteConversionOptions {
 	/** Writes one asset and answers with the link target, or null to leave it out. */
 	saveAttachment: (data: Uint8Array, suggestedName: string) => Promise<ResolvedAttachment | null>;
+	/** Turns an internal OneNote page title into the note name written by the importer. */
+	resolveInternalLink?: (pageTitle: string) => string;
 	onSkipped?: (name: string, reason: SkipReason) => void;
 	isCancelled?: () => boolean;
 }
@@ -98,8 +100,35 @@ function escapeLineStart(line: string): string {
 	return line.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|\d+[.)](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
 }
 
+/**
+ * The page name embedded in a OneNote client link.
+ *
+ * A link looks like `onenote:.../Section.one#Page%20title&section-id=...`.
+ * The identifiers after the ampersand let OneNote find it; the fragment is
+ * what an Obsidian link can resolve once every imported page exists.
+ */
+function internalPageTitle(url: string): string | undefined {
+	if (!url.toLowerCase().startsWith('onenote:')) return undefined;
+
+	const hash = url.indexOf('#');
+	if (hash < 0) return undefined;
+
+	const tail = url.slice(hash + 1);
+	const separator = tail.indexOf('&');
+	const encoded = tail.slice(0, separator < 0 ? tail.length : separator);
+	if (encoded === '') return undefined;
+
+	try {
+		return decodeURIComponent(encoded);
+	}
+	catch {
+		// A malformed escape should not make the page around the link fail.
+		return encoded;
+	}
+}
+
 /** A run carries formatting markdown cannot say; those parts pass through as text. */
-function renderRun(run: TextRun): string {
+function renderRun(run: TextRun, options: OneNoteConversionOptions): string {
 	let text = run.text;
 	if (text === '') return '';
 
@@ -125,14 +154,20 @@ function renderRun(run: TextRun): string {
 		if (run.bold) core = `**${core}**`;
 		if (run.italic) core = `*${core}*`;
 		if (run.strikethrough) core = `~~${core}~~`;
-		if (run.hyperlinkUrl) core = `[${core}](${encodeURI(run.hyperlinkUrl)})`;
+		if (run.hyperlinkUrl) {
+			const pageTitle = internalPageTitle(run.hyperlinkUrl);
+			const target = pageTitle
+				? options.resolveInternalLink?.(pageTitle) ?? pageTitle
+				: run.hyperlinkUrl;
+			core = `[${core}](${encodeURI(target)})`;
+		}
 	}
 
 	return leading + core + trailing;
 }
 
-function renderRuns(runs: TextRun[]): string {
-	return runs.map(renderRun).join('').replace(/\r\n?/g, '\n').trim();
+function renderRuns(runs: TextRun[], options: OneNoteConversionOptions): string {
+	return runs.map(run => renderRun(run, options)).join('').replace(/\r\n?/g, '\n').trim();
 }
 
 /**
@@ -323,7 +358,7 @@ class PageWriter {
 	}
 
 	private async writeParagraph(paragraph: Paragraph): Promise<void> {
-		const text = renderRuns(paragraph.runs);
+		const text = renderRuns(paragraph.runs, this.options);
 
 		if (text !== '') {
 			const task = taskPrefix(paragraph.tags, paragraph.list);
@@ -440,7 +475,7 @@ class PageWriter {
 		for (const child of children) {
 			switch (child.kind) {
 				case 'paragraph':
-					parts.push(renderRuns(child.runs));
+					parts.push(renderRuns(child.runs, this.options));
 					parts.push(await this.renderCell(child.children));
 					break;
 				case 'outline':
