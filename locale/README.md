@@ -6,15 +6,44 @@ so if you have translated Obsidian itself, this will look familiar.
 
 ## Adding a language
 
-1. Copy `en.txt` to `<language code>.txt`, using the
-   [ISO 639-1 code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) for
-   your language — `de.txt`, `pt-BR.txt`, and so on.
+Importer targets every language published by
+[obsidian-help](https://github.com/obsidianmd/obsidian-help). The localization
+workflow discovers that list, so a new Help language is picked up on its next
+run. To add or edit one by hand:
+
+1. Copy `en.txt` to `<language code>.txt` — `de.txt`, `pt-BR.txt`, and so on.
 2. Fill in the `translation=` lines.
 3. Run `npm run locales`. That folds your file into the plugin's bundled string
    data and refreshes the `original=` lines. Commit what it writes.
 
 A regional code falls back to its base language, so `pt-BR` is used for a reader
 set to `pt-BR`, and `pt` covers the rest.
+
+## Automated updates
+
+When English strings change on `master`, the `Localize` GitHub Action updates a
+single `automation/importer-locales` pull request. It runs once per language in
+parallel, preserves translations whose English source did not change, and then
+validates and bundles the results.
+
+The Action follows the same sources as Obsidian Help:
+
+- `obsidian-help/scripts/locales.json` is the list of supported languages.
+- `obsidian-translations/terms.txt` supplies important product terms.
+- `obsidian-translations/translations/<language>.txt` supplies exact wording
+  already used in the Obsidian app.
+
+Set the repository secret `ANTHROPIC_API_KEY` before running the workflow. The
+repository must also allow GitHub Actions to create pull requests. A manual run
+bootstraps newly added locales; its optional `from_ref` input can force every
+English string changed since that ref to be translated again.
+
+For a local preview, keep `obsidian-help` and `obsidian-translations` beside this
+repository and run:
+
+```
+pnpm translate-locales de --dry-run
+```
 
 ## Translating
 
