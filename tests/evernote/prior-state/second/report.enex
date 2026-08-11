@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20240101T000000Z" application="Evernote" version="10.0">
+<note>
+<title>Quarterly Report</title>
+<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note><div>Figures for the quarter.</div>
+<en-media hash="ee76702403cd15dbc71587365494cbe5" type="image/png"/>
+</en-note>]]></content>
+<created>20240101T000000Z</created>
+<updated>20240102T000000Z</updated>
+<resource><data encoding="base64">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC</data><mime>image/png</mime>
+<resource-attributes><file-name>chart.png</file-name></resource-attributes></resource>
+</note>
+</en-export>
