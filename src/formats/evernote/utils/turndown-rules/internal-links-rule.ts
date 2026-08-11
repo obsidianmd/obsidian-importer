@@ -2,7 +2,7 @@ import { TurndownNode } from './turndown-types';
 import { EvernoteRun } from '../../run';
 
 import { normalizeTitle } from '../filename-utils';
-import { isNormalMarkdownHref } from '../link-hrefs';
+import { isEvernoteNoteHref, isNormalMarkdownHref } from '../link-hrefs';
 import { getTurndownService } from '../turndown-service';
 import { isTOC } from '../is-toc';
 
@@ -37,11 +37,11 @@ export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 		if (type === 'file') {
 			return `![[${value}]]`;
 		}
-		if (value.startsWith('evernote://')) {
+		if (isEvernoteNoteHref(value)) {
 			// A link resolves by the title it shows, so an anchor showing the URL or
 			// nothing at all would be sanitized into an invented one.
 			const shown = text.trim();
-			if (!shown || shown.startsWith('evernote://')) {
+			if (!shown || isEvernoteNoteHref(shown)) {
 				return prefix + `<${value}>`;
 			}
 
