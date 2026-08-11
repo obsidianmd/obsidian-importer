@@ -285,13 +285,15 @@ class GraphReader {
 			referenceCount = node.id === FileNodeId.objectDeclarationWithRefCount
 				? readByte(node.data, countOffset)
 				: readUInt32(node.data, countOffset);
-		} else if (isRevision) {
+		}
+		else if (isRevision) {
 			jcid = this.knownJcids.get(keyOf(id)) ?? 0;
 			const flagsOffset = bodyOffset + 4;
 			referenceCount = node.id === FileNodeId.objectRevisionWithRefCount
 				? readByte(node.data, flagsOffset) >> 2
 				: readUInt32(node.data, flagsOffset + 4);
-		} else {
+		}
+		else {
 			jcid = readUInt32(node.data, bodyOffset + 4);
 			const countOffset = bodyOffset + 9;
 			const large = node.id === FileNodeId.objectDeclaration2LargeRefCount ||

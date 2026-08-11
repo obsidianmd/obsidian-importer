@@ -206,7 +206,8 @@ function readNodes(
 			if (!chunkReference.isNil && (chunkReference.offset !== 0 || chunkReference.length !== 0)) {
 				validateBounds(chunkReference.offset, chunkReference.length, declaredFileLength, 'file-node chunk reference');
 			}
-		} else if (cbFormat !== 0) {
+		}
+		else if (cbFormat !== 0) {
 			throw new OneNoteFormatError('ONENOTE_INLINE_CB_FORMAT', 'An inline file node has a nonzero byte-count format.', fragmentOffset + offset);
 		}
 

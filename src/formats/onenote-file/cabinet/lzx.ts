@@ -381,7 +381,8 @@ class LzxDecoder {
 		if (this.blockType === ALIGNED_OFFSET_BLOCK && footerBits >= 3) {
 			const high = footerBits === 3 ? 0 : reader.readBits(footerBits - 3) << 3;
 			footer = high | this.alignedTree.decode(reader);
-		} else {
+		}
+		else {
 			footer = reader.readBits(footerBits);
 		}
 
@@ -429,15 +430,18 @@ function readPathLengths(reader: BitReader, lengths: Uint8Array, start: number, 
 		if (code === 17) {
 			repeat = reader.readBits(4) + 4;
 			value = 0;
-		} else if (code === 18) {
+		}
+		else if (code === 18) {
 			repeat = reader.readBits(5) + 20;
 			value = 0;
-		} else if (code === 19) {
+		}
+		else if (code === 19) {
 			repeat = reader.readBits(1) + 4;
 			const delta = pretree.decode(reader);
 			if (delta > MAXIMUM_PATH_LENGTH) throw corrupt('The LZX path-length repeat contains an invalid delta.');
 			value = (lengths[cursor] - delta + 17) % 17;
-		} else {
+		}
+		else {
 			throw corrupt('The LZX pretree contains an invalid symbol.');
 		}
 

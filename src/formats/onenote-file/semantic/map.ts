@@ -183,7 +183,8 @@ function buildElement(
 			default:
 				return undefined;
 		}
-	} finally {
+	}
+	finally {
 		path.delete(pathKey);
 	}
 }
@@ -245,6 +246,8 @@ function buildParagraph(space: MaterializedObjectSpace, item: RevisionStoreObjec
 		start = end;
 	}
 
+	liftHyperlinkFields(runs);
+
 	const paragraph: Paragraph = { kind: 'paragraph', runs, children: [] };
 
 	for (const styleId of readReferences(item, Property.paragraphStyle)) {
@@ -255,6 +258,34 @@ function buildParagraph(space: MaterializedObjectSpace, item: RevisionStoreObjec
 	}
 
 	return paragraph;
+}
+
+/**
+ * A link OneNote wrote inline rather than as a run style.
+ *
+ * It arrives as a Word field inside the text itself — U+FDDF, then
+ * `HYPERLINK "target"`, then the words the reader actually sees. Left alone
+ * the field code reads as content, so it becomes the run's target instead.
+ */
+const HYPERLINK_FIELD = /﷟\s*HYPERLINK\s+"([^"]*)"\s*/;
+
+function liftHyperlinkFields(runs: TextRun[]): void {
+	let pending: string | undefined;
+
+	for (const run of runs) {
+		const field = run.text.match(HYPERLINK_FIELD);
+
+		if (field) {
+			run.text = run.text.replace(HYPERLINK_FIELD, '');
+			pending = field[1];
+		}
+
+		if (pending === undefined || run.text === '') continue;
+
+		// The words after the field are the ones the link is on.
+		run.hyperlinkUrl ??= pending;
+		pending = undefined;
+	}
 }
 
 function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): void {
@@ -273,22 +304,39 @@ function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): v
 	}
 }
 
+/**
+ * Only an outline element carrying a list node is a list item — every element
+ * has an indent level, so the level alone would bullet the whole page.
+ */
 function buildListInfo(space: MaterializedObjectSpace, item: RevisionStoreObject): ListInfo | undefined {
-	const level = readUInt32Property(item, Property.outlineElementChildLevel);
-
-	let format: string | undefined;
-	let ordered = false;
+	let listNode: RevisionStoreObject | undefined;
 	for (const listId of readReferences(item, Property.listNodes)) {
-		const listNode = space.getObject(listId);
-		if (listNode?.jcid !== Jcid.numberListNode) continue;
-
-		format = readString(listNode, Property.numberListFormat);
-		ordered = true;
-		break;
+		const candidate = space.getObject(listId);
+		if (candidate?.jcid === Jcid.numberListNode) listNode = candidate;
 	}
+	if (!listNode) return undefined;
 
-	if (level === undefined && format === undefined) return undefined;
-	return { level: Math.max(0, (level ?? 1) - 1), ordered, format };
+	const format = readNumberListFormat(listNode);
+
+	// The glyph OneNote substitutes the number into; without it the list is bulleted.
+	const marker = format.indexOf('�');
+
+	return {
+		level: Math.max(0, (readUInt32Property(item, Property.outlineElementChildLevel) ?? 1) - 1),
+		ordered: marker >= 0,
+		format: format === '' ? undefined : format,
+	};
+}
+
+/** The format is a counted string: its first character says how long the rest is. */
+function readNumberListFormat(listNode: RevisionStoreObject): string {
+	const data = readData(listNode, Property.numberListFormat);
+	if (!data || data.length < 2) return '';
+
+	const value = new TextDecoder('utf-16le').decode(data.subarray(0, data.length - (data.length % 2)));
+	if (value.length === 0) return '';
+
+	return value.slice(1, 1 + Math.min(value.charCodeAt(0), value.length - 1));
 }
 
 function buildTable(
