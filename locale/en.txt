@@ -1422,6 +1422,10 @@ translation=
 original=the attachment held no data
 translation=
 
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=
+
 [importer.notion-api.name]
 original=Notion (API)
 translation=

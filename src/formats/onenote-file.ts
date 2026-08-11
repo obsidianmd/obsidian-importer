@@ -1,7 +1,7 @@
 import { Notice, TFile, TFolder, normalizePath } from 'obsidian';
 import { helpUrl } from '../constants';
 import { PickedFile } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { selectedNodes } from '../tree';
@@ -42,6 +42,8 @@ export class OneNoteFileImporter extends FormatImporter {
 	private picker: TreePicker<SectionNode>;
 	/** The files the picker's rows were built from, so a change is noticeable. */
 	private loadedFrom = '';
+	/** Which load is the current one; an older one that finishes late is dropped. */
+	private loadGeneration = 0;
 
 	init(): void {
 		this.addSetting('source')
@@ -97,11 +99,19 @@ export class OneNoteFileImporter extends FormatImporter {
 			return;
 		}
 
+		const generation = ++this.loadGeneration;
+
 		await this.picker.load(async () => {
 			const nodes: SectionNode[] = [];
 
 			for (const file of this.files) {
 				const data = new Uint8Array(await file.read());
+
+				// Reading a large package takes long enough for the chosen
+				// files to have changed underneath. Checked after the read,
+				// because that is what the newer load overtakes us during.
+				if (generation !== this.loadGeneration) return this.picker.nodes;
+
 				const sections = listSections(data, file.name);
 
 				// A file that is one section is its own row, not a group of one.
@@ -125,7 +135,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				});
 			}
 
-			return nodes;
+			return generation === this.loadGeneration ? nodes : this.picker.nodes;
 		});
 	}
 
@@ -198,6 +208,10 @@ export class OneNoteFileImporter extends FormatImporter {
 
 	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
 		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${sanitizeFileName(section.name || fallbackName)}`));
+
+		// A subpage belongs under the page above it, as it does in OneNote —
+		// which also keeps two subpages of the same name from colliding.
+		const parents: TFolder[] = [sectionFolder];
 		let done = 0;
 
 		for (const page of section.pages) {
@@ -205,31 +219,53 @@ export class OneNoteFileImporter extends FormatImporter {
 			if (page.isDeleted) continue;
 
 			ctx.reportProgress(++done, section.pages.length);
-			await this.importPage(ctx, page, sectionFolder);
+
+			const depth = Math.min(page.level, parents.length - 1);
+			const target = parents[depth];
+			const written = await this.importPage(ctx, page, target);
+
+			// The folder this page's own subpages go in, named after it.
+			parents.length = depth + 1;
+			parents.push(written
+				? await this.createFolders(normalizePath(`${target.path}/${written}`))
+				: target);
 		}
 	}
 
-	private async importPage(ctx: ImportContext, page: Page, sectionFolder: TFolder): Promise<void> {
+	/** The note's base name, so its subpages can be filed beneath it. */
+	private async importPage(ctx: ImportContext, page: Page, sectionFolder: TFolder): Promise<string | undefined> {
 		const title = sanitizeFileName(page.title);
-		const notePath = normalizePath(`${sectionFolder.path}/${title}.md`);
 
 		try {
+			// Decided before the page is converted: converting writes its
+			// attachments, and a note that is left alone should leave none
+			// behind. preflightNote has already reported why.
+			const planned = this.planNote(sectionFolder, title, page.id);
+			const disposition = this.preflightNote(ctx, planned, page.lastModifiedUtc?.getTime());
+			if (leavesTheNoteAlone(disposition)) return title;
+
+			const notePath = planned.targetPath;
 			const converted = await convertPage(page, {
 				isCancelled: () => ctx.isCancelled(),
-				onSkipped: name => ctx.reportSkipped(name, i18n.importer.onenoteFile.reasonNoAttachmentData()),
+				onSkipped: (name, reason) => ctx.reportSkipped(name, reason === 'no-data'
+					? i18n.importer.onenoteFile.reasonNoAttachmentData()
+					: i18n.importer.onenoteFile.reasonNotRepresentable()),
 				saveAttachment: (bytes, suggested) => this.saveAttachment(ctx, bytes, suggested, notePath),
 			});
 
-			const { written } = await this.writeNote(ctx, sectionFolder, title, converted.markdown, {
+			const { written } = await this.writePlannedNote(ctx, planned, converted.markdown, {
 				sourceId: page.id,
 				ctime: page.createdUtc?.getTime(),
 				mtime: page.lastModifiedUtc?.getTime(),
+				disposition,
 			});
 
 			if (written) ctx.reportNoteSuccess(title);
+			return title;
 		}
 		catch (error) {
 			ctx.reportFailed(title, error);
+			return undefined;
 		}
 	}
 

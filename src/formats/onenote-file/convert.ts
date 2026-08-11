@@ -20,10 +20,17 @@ export interface ResolvedAttachment {
 	name: string;
 }
 
+/** Why something in the page did not make it into the markdown. */
+export type SkipReason =
+	/** OneNote recorded the attachment but kept no bytes for it. */
+	| 'no-data'
+	/** Markdown has nowhere to put it: a table inside a table cell. */
+	| 'not-representable';
+
 export interface OneNoteConversionOptions {
 	/** Writes one asset and answers with the link target, or null to leave it out. */
 	saveAttachment: (data: Uint8Array, suggestedName: string) => Promise<ResolvedAttachment | null>;
-	onSkipped?: (name: string) => void;
+	onSkipped?: (name: string, reason: SkipReason) => void;
 	isCancelled?: () => boolean;
 }
 
@@ -71,6 +78,26 @@ function toLatex(text: string): string {
 	return scripted.normalize('NFKC').replace(INVISIBLE_MATH, '').trim();
 }
 
+/**
+ * Text typed in OneNote is not markdown, and must not be read as it.
+ *
+ * Only what genuinely changes the document is escaped: the block markers that
+ * turn a line into a heading, list, quote, rule or fence, and the inline
+ * syntax that would silently become a link, code span or HTML tag. Emphasis
+ * markers are left alone — `*` and `_` only pair in ways prose rarely writes,
+ * and escaping every one of them litters the note for no gain. Obsidian's own
+ * `htmlToMarkdown` escapes nothing at all, so this stays as close to that as
+ * safety allows.
+ */
+function escapeInline(text: string): string {
+	return text.replace(/[[\]`<]/g, '\\$&');
+}
+
+/** The markers that only mean something as the first thing on a line. */
+function escapeLineStart(line: string): string {
+	return line.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|\d+[.)](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
+}
+
 /** A run carries formatting markdown cannot say; those parts pass through as text. */
 function renderRun(run: TextRun): string {
 	let text = run.text;
@@ -88,6 +115,8 @@ function renderRun(run: TextRun): string {
 			const latex = toLatex(core);
 			return latex === '' ? '' : `${leading}$${latex}$${trailing}`;
 		}
+
+		core = escapeInline(core);
 
 		if (run.highlight) core = highlighted(core, run.highlight);
 		if (run.superscript) core = `<sup>${core}</sup>`;
@@ -301,8 +330,10 @@ class PageWriter {
 			const prefix = task ?? listPrefix(paragraph.list) ?? '';
 			const indent = '\t'.repeat(paragraph.list?.level ?? 0);
 
-			// A hard break inside one paragraph stays inside it.
-			const body = (prefix || headingPrefix(paragraph.styleId)) + text.split('\n').join('  \n' + indent);
+			// A hard break inside one paragraph stays inside it. Each line is
+			// escaped on its own, because each is a line markdown will read.
+			const escaped = text.split('\n').map(escapeLineStart);
+			const body = (prefix || headingPrefix(paragraph.styleId)) + escaped.join('  \n' + indent);
 			const callout = calloutFor(paragraph.tags);
 
 			// A callout around one item of a list would lift it out and split
@@ -319,15 +350,16 @@ class PageWriter {
 
 		const columns = Math.max(...table.rows.map(row => row.cells.length));
 
-		const rendered = table.rows.map(row => {
+		const rendered: string[][] = [];
+		for (const row of table.rows) {
 			const cells: string[] = [];
 			for (let index = 0; index < columns; index++) {
-				const parts: string[] = [];
-				for (const child of row.cells[index]?.children ?? []) collectCellText(child, parts);
-				cells.push(parts.join(' ').replace(/\s+/g, ' ').replace(/\|/g, '\\|').trim());
+				const text = await this.renderCell(row.cells[index]?.children ?? []);
+				// A newline would end the row, and a pipe would end the cell.
+				cells.push(text.replace(/\s+/g, ' ').replace(/\|/g, '\\|').trim());
 			}
-			return cells;
-		});
+			rendered.push(cells);
+		}
 
 		// GFM has no table without a header, so the first row becomes one.
 		const lines = [
@@ -373,20 +405,67 @@ class PageWriter {
 	}
 
 	private async writeAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<void> {
+		const link = await this.renderAsset(data, name, label, embed);
+		if (link) this.push(link);
+	}
+
+	/** The link to an asset once it is saved, or nothing if it never was. */
+	private async renderAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<string | undefined> {
 		if (!data || data.length === 0) {
-			this.options.onSkipped?.(name);
-			return;
+			this.options.onSkipped?.(name, 'no-data');
+			return undefined;
 		}
 
 		const attachment = await this.options.saveAttachment(data, name);
 		if (!attachment) {
-			this.options.onSkipped?.(name);
-			return;
+			this.options.onSkipped?.(name, 'no-data');
+			return undefined;
 		}
 
 		this.attachments.push(attachment);
 		const target = encodeURI(attachment.path);
-		this.push(embed ? `![${label}](${target})` : `[${label}](${target})`);
+		return embed ? `![${label}](${target})` : `[${label}](${target})`;
+	}
+
+	/**
+	 * A cell's content on one line.
+	 *
+	 * A table cell is a single line in GFM, so everything in it has to be
+	 * inline — which images and embedded files can be, and a nested table
+	 * cannot. Anything that cannot is reported rather than dropped quietly.
+	 */
+	private async renderCell(children: Element[]): Promise<string> {
+		const parts: string[] = [];
+
+		for (const child of children) {
+			switch (child.kind) {
+				case 'paragraph':
+					parts.push(renderRuns(child.runs));
+					parts.push(await this.renderCell(child.children));
+					break;
+				case 'outline':
+					parts.push(await this.renderCell(child.children));
+					break;
+				case 'image':
+					parts.push(await this.renderAsset(
+						child.data, assetName(child.fileName, child.extension, 'image'), child.altText ?? '', true) ?? '');
+					break;
+				case 'embedded-file': {
+					const name = assetName(child.fileName, child.extension, 'attachment');
+					parts.push(await this.renderAsset(child.data, name, name, false) ?? '');
+					break;
+				}
+				case 'ink':
+					// The strokes join the page's drawing, where they can be seen.
+					this.collectInk(child);
+					break;
+				case 'table':
+					this.options.onSkipped?.(this.pageTitle, 'not-representable');
+					break;
+			}
+		}
+
+		return parts.filter(part => part !== '').join(' ');
 	}
 }
 
@@ -400,20 +479,6 @@ function assetName(fileName: string | undefined, extension: string | undefined, 
 
 	const suffix = extension ? (extension.startsWith('.') ? extension : `.${extension}`) : '';
 	return (fileName ?? fallback) + suffix;
-}
-
-function collectCellText(element: Element, into: string[]): void {
-	switch (element.kind) {
-		case 'paragraph':
-			into.push(renderRuns(element.runs));
-			element.children.forEach(child => collectCellText(child, into));
-			break;
-		case 'outline':
-			element.children.forEach(child => collectCellText(child, into));
-			break;
-		default:
-			break;
-	}
 }
 
 export async function convertPage(page: Page, options: OneNoteConversionOptions): Promise<ConvertedPage> {

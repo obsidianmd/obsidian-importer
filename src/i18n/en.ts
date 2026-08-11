@@ -433,6 +433,7 @@ export const en = {
 			reasonMalformed: 'the file does not describe the OneNote structures it claims to',
 			reasonTooLarge: 'the file is larger than this importer is willing to expand',
 			reasonNoAttachmentData: 'the attachment held no data',
+			reasonNotRepresentable: 'a table inside a table cell has no Markdown equivalent',
 		},
 		notionApi: {
 			name: 'Notion (API)',

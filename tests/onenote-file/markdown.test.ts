@@ -331,3 +331,57 @@ test('the emphases markdown has no syntax for fall back to HTML', async () => {
 	assert.equal(await render(para([{ text: 'y', subscript: true }])), '<sub>y</sub>');
 	assert.equal(await render(para([{ text: 'z', underline: true }])), '<u>z</u>');
 });
+
+test('a table cell keeps the picture in it', async () => {
+	const saved: string[] = [];
+
+	const converted = await convertPage(page({
+		kind: 'table',
+		rows: [{ cells: [
+			{ children: [{ kind: 'image', fileName: 'in-cell.png', data: new Uint8Array([1, 2, 3]) }] },
+			{ children: [para('beside it')] },
+		] }],
+	}), { saveAttachment: async (_bytes, name) => {
+		saved.push(name); return { path: name, name }; 
+	} });
+
+	assert.equal(converted.markdown.split('\n')[0], '| ![](in-cell.png) | beside it |');
+	assert.deepEqual(saved, ['in-cell.png']);
+});
+
+test('a table markdown cannot nest is reported rather than dropped', async () => {
+	const skipped: [string, string][] = [];
+
+	await convertPage(page({
+		kind: 'table',
+		rows: [{ cells: [{ children: [{ kind: 'table', rows: [{ cells: [{ children: [para('inner')] }] }] }] }] }],
+	}), {
+		saveAttachment: async () => null,
+		onSkipped: (name, reason) => skipped.push([name, reason]),
+	});
+
+	assert.deepEqual(skipped, [['Test', 'not-representable']]);
+});
+
+test('text that looks like markdown is not read as markdown', async () => {
+	assert.equal(await render(para('# ordinary text')), '\\# ordinary text');
+	assert.equal(await render(para('- not a list')), '\\- not a list');
+	assert.equal(await render(para('> not a quote')), '\\> not a quote');
+	assert.equal(await render(para('1. not numbered')), '\\1. not numbered');
+	assert.equal(await render(para('see [1](x)')), 'see \\[1\\](x)');
+	assert.equal(await render(para('use `code`')), 'use \\`code\\`');
+	assert.equal(await render(para('a <b> tag')), 'a \\<b> tag');
+});
+
+test('ordinary prose is left unmarked', async () => {
+	// Escaping every emphasis character would litter the note for no gain.
+	assert.equal(await render(para('a * b * c')), 'a * b * c');
+	assert.equal(await render(para('file_name_here')), 'file_name_here');
+	assert.equal(await render(para('2 - 1 = 1')), '2 - 1 = 1');
+});
+
+test('an escaped line keeps the formatting the importer added', async () => {
+	assert.equal(
+		await render(para('# text', { list: { level: 0, ordered: false } })),
+		'- \\# text');
+});
