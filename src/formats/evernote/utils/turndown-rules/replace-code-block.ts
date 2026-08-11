@@ -10,6 +10,24 @@ const isCodeBlock = (node: TurndownNode) => {
 	return nodeProxy.style && nodeProxy.style.value.indexOf(codeBlockFlag) >= 0;
 };
 
+const languageName = /^[a-z0-9+#._-]+$/;
+
+const unhighlighted = new Set(['plaintext', 'text', 'none']);
+
+/** Evernote names a language the way Prism does, which is what Obsidian highlights with. */
+const getCodeBlockLanguage = (node: TurndownNode): string => {
+	const languageFlag = '-en-codeblockLanguage:';
+	const style = getAttributeProxy(node).style?.value;
+	if (!style) return '';
+
+	const at = style.indexOf(languageFlag);
+	if (at < 0) return '';
+
+	const language = style.slice(at + languageFlag.length).split(';')[0].trim().toLowerCase();
+
+	return languageName.test(language) && !unhighlighted.has(language) ? language : '';
+};
+
 const getIntendNumber = (node: TurndownNode): number => {
 	const nodeProxy = getAttributeProxy(node);
 	const paddingAttr = 'padding-left:';
@@ -31,7 +49,7 @@ export const replaceCodeBlock = (content: string, node: TurndownNode): string =>
 		// turndown has already escaped markdown chars (and all '\') in content;
 		// reverse that to avoid extraneous backslashes in code block.
 		content = unescapeMarkdown(content);
-		return `${markdownBlock}${content}${markdownBlock}`;
+		return `\n\`\`\`${getCodeBlockLanguage(node)}\n${content}${markdownBlock}`;
 	}
 
 	if (node.parentElement && isCodeBlock(node.parentElement) && node.parentElement.firstElementChild === node) {
