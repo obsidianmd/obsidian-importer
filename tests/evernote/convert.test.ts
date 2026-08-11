@@ -89,10 +89,10 @@ test('resolves a link into another notebook', async () => {
 });
 
 /**
- * xml-flow hands back the child's value rather than an object when
- * resource-attributes holds a single child, which used to lose the name and
- * write the attachment as "unknown_filename". The tree above covers it too,
- * but named here so a regression says what broke.
+ * resource-attributes holding a single child used to arrive as that child's
+ * value rather than an object, which lost the name and wrote the attachment
+ * as "unknown_filename". Nothing collapses an element now, but the case is
+ * named here so a regression says what broke.
  */
 test('keeps a resource file name that is its only attribute', async () => {
 	await convert([nodePath.join(FIXTURES, 'test-resource-attributes-single-child.enex')], outputDir => {

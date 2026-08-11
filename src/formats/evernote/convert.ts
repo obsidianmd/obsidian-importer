@@ -1,6 +1,6 @@
 /** Evernote converter adapted from Yarle (MIT): https://github.com/akosbalasko/yarle */
-import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
-import { NodePickedFile, PickedFile } from '../../filesystem';
+import { EvernoteNote } from './models/EvernoteNote';
+import { PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { mapEvernoteTask } from './models/EvernoteTask';
@@ -11,140 +11,80 @@ import { processNode } from './process-node';
 import { commit } from './utils/commit';
 import { convertTasktoMd } from './process-tasks';
 
+import { parseEnex } from './parse-enex';
 import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
 
-let flow: typeof import('xml-flow') | undefined;
-
 const NOTEBOOKSTACK_SEPARATOR = '@@@';
+
+/** The elements a conversion is called back about, and nothing else. */
+const WANTED = new Set(['note', 'task']);
 
 interface TaskGroups {
 	[key: string]: Map<string, string>;
 }
 
-function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResourceAttributes[]): void {
-	// xml-flow collapses a single resource-attributes object into its child value.
-	if (collected.length === 0) return;
-
-	const resources = Array.isArray(note.resource) ? note.resource
-		: note.resource ? [note.resource]
-			: [];
-
-	let next = 0;
-	for (const resource of resources) {
-		if (resource['resource-attributes'] === undefined) continue;
-		const attributes = collected[next++];
-		if (attributes) resource['resource-attributes'] = attributes;
-	}
-}
-
 export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
-	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
 	const runtimeProps = run.properties;
 
-	// Load this optional native module only on the desktop import path.
-	const parseXml = flow ??= (await import('xml-flow')).default;
-
 	ctx.status(i18n.common.statusProcessing({ name: enexSource.name }));
-	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = runtimeProps.getCurrentNotebookName();
 	const firstDraft = run.drafts.length;
 
-	/** The task groups a note carries are only known once its enex has been read. */
-	const spliceTasks = () => {
-		for (const draft of run.drafts.slice(firstDraft)) {
-			for (const task of Object.keys(tasks)) {
-				const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
-				const sortedTasks = new Map([...tasks[task]].sort());
+	const importNote = (note: EvernoteNote) => {
+		if (run.options.skipWebClips && isWebClip(note)) {
+			ctx.reportSkipped(note.title ?? enexSource.name);
+			return;
+		}
 
-				draft.markdown = draft.markdown.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
-			}
+		// String(), because concatenation was what showed a missing title before.
+		ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
+
+		try {
+			// A note left alone is reported by the preflight, which is what knows
+			// whether it was skipped, unchanged or preserved.
+			const reported = notebookName + '/' + note.title;
+			if (processNode(run, note, reported)) ctx.reportNoteSuccess(reported);
+		}
+		catch (e) {
+			ctx.reportFailed(note.title || enexSource.name, e);
 		}
 	};
 
-	return new Promise((resolve, reject) => {
-		// A cancelled read closes the stream, which ends it without ever ending
-		// the parser - so 'end' does not arrive and this would wait forever.
-		// 'close' follows 'end' on a stream that was read to the finish, so the
-		// notes are spliced either way and only once.
-		let settled = false;
-		const finish = () => {
-			if (settled) return;
-			settled = true;
-			spliceTasks();
-			resolve();
-		};
+	try {
+		await parseEnex(enexSource, {
+			wanted: WANTED,
+			isCancelled: () => ctx.isCancelled(),
+			onElement: (name, element) => {
+				if (typeof element === 'string') return;
 
-		const logAndReject = (e: Error) => {
-			ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
-			return reject(e);
-		};
-
-		const xml = parseXml(stream);
-
-		let noteAttributes: EvernoteNoteAttributes | null = null;
-		xml.on('tag:note-attributes', (na: EvernoteNoteAttributes) => {
-			noteAttributes = na;
-		});
-
-		let resourceAttributes: EvernoteResourceAttributes[] = [];
-		xml.on('tag:resource-attributes', (ra: EvernoteResourceAttributes) => {
-			resourceAttributes.push(ra);
-		});
-
-		xml.on('tag:note', (note: EvernoteNote) => {
-			if (ctx.isCancelled()) {
-				stream.close();
-				return;
-			}
-
-			let wrote = false;
-
-			if (run.options.skipWebClips && isWebClip(note)) {
-				ctx.reportSkipped(note.title ?? enexSource.name);
-			}
-			else {
-				// String(), because concatenation was what showed a missing title before.
-				ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
-				if (noteAttributes) {
-					// make sure single attributes are not collapsed
-					note['note-attributes'] = noteAttributes;
+				if (name === 'note') {
+					importNote(element as EvernoteNote);
+					return;
 				}
-				restoreResourceAttributes(note, resourceAttributes);
 
-				try {
-					// A note left alone is reported by the preflight, which is
-					// what knows whether it was skipped, unchanged or preserved.
-					const reported = notebookName + '/' + note.title;
-					wrote = processNode(run, note, reported);
-					if (wrote) ctx.reportNoteSuccess(reported);
-				}
-				catch (e) {
-					ctx.reportFailed(note.title || enexSource.name, e);
-					return resolve();
-				}
-			}
-			noteAttributes = null;
-			resourceAttributes = [];
+				const task = mapEvernoteTask(element);
+				tasks[task.taskgroupnotelevelid] ??= new Map();
+				tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(run, task));
+			},
 		});
+	}
+	catch (e) {
+		ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
+		throw e;
+	}
 
-		xml.on('tag:task', (pureTask: any) => {
-			const task = mapEvernoteTask(pureTask);
-			if (!tasks[task.taskgroupnotelevelid]) {
-				tasks[task.taskgroupnotelevelid] = new Map();
-			}
+	// The task groups a note carries are only known once its enex has been read.
+	for (const draft of run.drafts.slice(firstDraft)) {
+		for (const task of Object.keys(tasks)) {
+			const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
+			const sortedTasks = new Map([...tasks[task]].sort());
 
-			tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(run, task));
-
-		});
-
-		xml.on('end', finish);
-		stream.on('close', finish);
-		xml.on('error', logAndReject);
-		stream.on('error', logAndReject);
-	});
+			draft.markdown = draft.markdown.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
+		}
+	}
 };
 
 export async function convertEnexFiles(options: EvernoteOptions, output: EvernoteOutput, ctx: ImportContext): Promise<void> {

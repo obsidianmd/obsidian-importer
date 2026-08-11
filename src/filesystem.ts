@@ -22,6 +22,16 @@ export interface PickedFile {
 	/** Read the file as utf8 text */
 	readText(): Promise<string>;
 
+	/**
+	 * Read the file as utf8 text, a piece at a time.
+	 *
+	 * For a source too big to hold at once - an ENEX carrying a decade of
+	 * attachments is gigabytes - where the reader can work through it as it
+	 * arrives. A multi-byte character split across two reads is put back
+	 * together; a piece is never half a character.
+	 */
+	readChunks(): AsyncIterable<string>;
+
 	/** Read the file as binary */
 	read(): Promise<ArrayBuffer>;
 
@@ -72,6 +82,9 @@ export function provideNodeModules(modules: NodeModules): void {
 	if (modules.zlib) zlib = modules.zlib;
 }
 
+/** How much of a file is read at a time, in bytes. */
+const READ_CHUNK = 1 << 16;
+
 export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
 }
@@ -104,6 +117,28 @@ export class NodePickedFile implements PickedFile {
 	async read(): Promise<ArrayBuffer> {
 		let buffer = await fsPromises.readFile(this.filepath);
 		return nodeBufferToArrayBuffer(buffer);
+	}
+
+	async *readChunks(): AsyncIterable<string> {
+		const handle = await fsPromises.open(this.filepath, 'r');
+		try {
+			const decoder = new TextDecoder('utf-8');
+			const buffer = Buffer.alloc(READ_CHUNK);
+
+			for (;;) {
+				const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+				if (bytesRead === 0) break;
+
+				const piece = decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
+				if (piece) yield piece;
+			}
+
+			const tail = decoder.decode();
+			if (tail) yield tail;
+		}
+		finally {
+			await handle.close();
+		}
 	}
 
 	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
@@ -191,6 +226,20 @@ export class WebPickedFile implements PickedFile {
 			reader.addEventListener('error', reject);
 			reader.readAsText(this.file);
 		});
+	}
+
+	async *readChunks(): AsyncIterable<string> {
+		const decoder = new TextDecoder('utf-8');
+
+		for (let at = 0; at < this.file.size; at += READ_CHUNK) {
+			const slice = await this.file.slice(at, at + READ_CHUNK).arrayBuffer();
+
+			const piece = decoder.decode(new Uint8Array(slice), { stream: true });
+			if (piece) yield piece;
+		}
+
+		const tail = decoder.decode();
+		if (tail) yield tail;
 	}
 
 	async read(): Promise<ArrayBuffer> {

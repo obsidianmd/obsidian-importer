@@ -33,6 +33,11 @@ export class ZipEntryFile implements PickedFile {
 		return (await this.entry.getData(new BlobWriter())).arrayBuffer();
 	}
 
+	async *readChunks(): AsyncIterable<string> {
+		// An entry is inflated whole either way, so there is nothing to stream.
+		yield await this.readText();
+	}
+
 	get filepath() {
 		return this.entry.filename;
 	}
