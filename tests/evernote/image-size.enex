@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20260101T000000Z" application="Evernote" version="10.0">
+<note>
+<title>One image placed at several sizes</title>
+<content><![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Original size:</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" style="--en-naturalWidth:128; --en-naturalHeight:128;" /></div><div>Resized:</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" style="--en-naturalWidth:128; --en-naturalHeight:128;" width="50px" /></div><div>Resized to a fraction of a pixel:</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" width="40.5px" /></div><div>Given both measurements:</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" width="300" height="60" /></div><div>Sized by the clipped page's own style, which overrides the attribute beside it:</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" style="display:block;width:auto;max-width:100%;height:auto;" width="1" /></div></en-note>]]></content>
+<created>20250310T101500Z</created>
+<updated>20250311T081200Z</updated>
+<resource><data encoding="base64">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8//8/AwAFAAEKLrTnAAAAAElFTkSuQmCC</data><mime>image/png</mime>
+<resource-attributes><file-name>dot.png</file-name></resource-attributes></resource>
+</note>
+</en-export>

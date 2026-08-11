@@ -41,19 +41,32 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 
 	const mediaType = matchedElements && matchedElements.length > 0 && matchedElements[0].split('type=');
 	if (mediaType && mediaType.length > 1 && mediaType[1].startsWith('"image')) {
-		const width = matchedElements[0].match(/width="(\w+)"/);
-		const widthParam = width ? ` width="${width[1]}"` : '';
-
-		const height = matchedElements[0].match(/height="(\w+)"/);
-		const heightParam = height ? ` height="${height[1]}"` : '';
-
-		updatedContent = content.replace(re, `<img src="${src}"${widthParam}${heightParam} alt="${fileName}">`);
+		// One image can be placed several times at several sizes, so each
+		// reference is measured on its own rather than from the first of them.
+		updatedContent = content.replace(re, media =>
+			`<img src="${src}"${sizeAttribute(media, 'width')}${sizeAttribute(media, 'height')} alt="${fileName}">`);
 	}
 	else {
 		updatedContent = content.replace(re, `<a href="${src}" type="file">${fileName}</a>`);
 	}
 
 	return updatedContent;
+};
+
+/**
+ * The size Evernote drew the image at, which it writes in fractional pixels:
+ * width="61.8812255859375px".
+ *
+ * A style sizing the image is what the note was drawn from, and it wins over
+ * the attribute the way it does in a browser. A web clip carries a meaningless
+ * `width="1"` beside `width:auto`, and honouring that shrinks the image to a dot.
+ */
+const sizeAttribute = (media: string, dimension: 'width' | 'height'): string => {
+	if (new RegExp(`style="[^"]*[;"\\s]${dimension}\\s*:\\s*auto`, 'i').test(media)) return '';
+
+	const size = media.match(new RegExp(`\\s${dimension}="([^"]+)"`));
+
+	return size ? ` ${dimension}="${size[1]}"` : '';
 };
 
 const processResource = (run: EvernoteRun, resource: EvernoteResource): Record<string, ResourceHashItem> => {
