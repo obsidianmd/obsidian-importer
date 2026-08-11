@@ -1,10 +1,4 @@
-/**
- * Walking the file-node graph into revisions, objects and file-data blobs.
- *
- * The traversal is iterative rather than recursive: a notebook's object groups
- * nest deeply enough that a call stack is not a safe place to keep the state.
- * Ported from OfficeIMO's OneNoteRevisionStoreObjectReader (MIT).
- */
+/** Iteratively reads the object graph. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { EMPTY_GUID, readGuid, readUInt16, readUInt32, readUInt64 } from './binary';
@@ -365,7 +359,6 @@ class GraphReader {
 		this.result.fileDataObjects.push({ referenceId, payload });
 	}
 
-	/** A view into the file, bounds-checked against both the chunk and the declared length. */
 	private referencedRange(reference: FileNodeChunkReference, relativeOffset: number, length: number, name: string): Uint8Array {
 		if (reference.offset > this.declaredFileLength || reference.length > this.declaredFileLength - reference.offset) {
 			throw new OneNoteFormatError('ONENOTE_CHUNK_REFERENCE_BOUNDS', `The ${name} lies outside the declared file length.`, reference.offset);

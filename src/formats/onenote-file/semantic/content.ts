@@ -1,5 +1,3 @@
-/** Format-independent content consumed by the Markdown converter. */
-
 export interface TextRun {
 	text: string;
 	bold?: boolean;

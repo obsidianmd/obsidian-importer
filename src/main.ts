@@ -34,19 +34,11 @@ interface ImporterDefinition {
 	importer: new (app: App, host: ImporterHost) => FormatImporter;
 }
 
-/**
- * Apps that offer more than one way in.
- *
- * The first screen lists the app once, rather than a row per way, and the
- * choice between them is made on a screen that can explain the difference.
- * Keyed by the group's own name, which is also the icon it borrows.
- */
 const IMPORTER_GROUPS: Record<string, string[]> = {
 	'onenote': ['onenote-file', 'onenote'],
 	'notion': ['notion-api', 'notion'],
 };
 
-/** The help page for a group, which its members share. */
 function groupHelpPermalink(plugin: ImporterPlugin, group: string): string | undefined {
 	for (const member of IMPORTER_GROUPS[group]) {
 		const permalink = plugin.importers[member]?.helpPermalink;
@@ -56,7 +48,6 @@ function groupHelpPermalink(plugin: ImporterPlugin, group: string): string | und
 	return undefined;
 }
 
-/** The group an importer belongs to, if any. */
 function groupOf(id: string): string | undefined {
 	for (const [group, members] of Object.entries(IMPORTER_GROUPS)) {
 		if (members.includes(id)) return group;
@@ -553,7 +544,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		search.inputEl.focus();
 	}
 
-	/** What the first screen offers: every ungrouped importer, and each group once. */
 	private pickableIds(): string[] {
 		const offered: string[] = [];
 
@@ -566,7 +556,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		return offered;
 	}
 
-	/** What a row is called: a group by its own name, an importer by its option text. */
 	private rowText(id: string): string {
 		return id in IMPORTER_GROUPS ? groupName(id) : importerOptionText(id);
 	}
@@ -582,8 +571,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		for (const id of ids) {
 			const match = search(this.rowText(id));
 
-			// A group is found by what its members are called too, so searching
-			// for "onepkg" or "API" still reaches the app that offers it.
+			// Match group rows against each import method too.
 			const searchable = id in IMPORTER_GROUPS
 				? IMPORTER_GROUPS[id].flatMap(member => [importerName(member), importerOptionText(member)])
 				: [importerName(id)];
@@ -598,23 +586,16 @@ export class ImporterModal extends Modal implements ImporterHost {
 		return results.map(({ id, match }) => [id, match]);
 	}
 
-	/** A row is either an app that offers a choice, or an importer outright. */
 	private chooseRow(id: string): void {
 		if (id in IMPORTER_GROUPS) this.showMethodPicker(id);
 		else this.selectFormat(id);
 	}
 
-	/**
-	 * The screen between the list and the importer, for an app with more than
-	 * one way in. It exists to say what the difference is, which a row in a
-	 * list has no room for.
-	 */
 	private showMethodPicker(group: string): void {
 		const { contentEl, modalEl } = this;
 
 		contentEl.empty();
 		this.nextButtonEl = null;
-		// This screen has a Back button, so the content has to clear the footer.
 		modalEl.removeClass('is-picking-format');
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
@@ -685,7 +666,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.setUpImporter();
 	}
 
-	/** Back from the first step: to the app's choice of ways in, or to the list. */
 	private showPreviousScreen(): void {
 		const group = groupOf(this.selectedId);
 		if (group) this.showMethodPicker(group);
@@ -771,8 +751,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		contentEl.empty();
 		this.nextButtonEl = null;
 		modalEl.removeClass('is-picking-format');
-		// An app that offers a choice is named once, the way the list named it;
-		// which of its ways in was chosen was settled on the screen before.
+		// Keep grouped importers under the app name.
 		const group = groupOf(this.selectedId);
 		this.titleEl.setText(i18n.modal.titleImportFrom({
 			format: group ? groupName(group) : importerName(this.selectedId),

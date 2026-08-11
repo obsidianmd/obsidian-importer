@@ -1,13 +1,4 @@
-/**
- * Little-endian reads over a revision store, and the two chunk references
- * MS-ONESTORE builds everything else out of.
- *
- * Offsets in the format are 64-bit. JavaScript numbers hold them exactly up to
- * 2^53, which is far past any real file, so they are read as numbers and
- * anything wider is refused rather than silently rounded. The one 64-bit value
- * that legitimately exceeds that range is the all-bits-set nil sentinel, which
- * is recognised from the bytes before any arithmetic happens.
- */
+/** Little-endian MS-ONESTORE reads; unsafe 64-bit integers are rejected. */
 
 import { OneNoteFormatError } from '../errors';
 
@@ -30,7 +21,6 @@ export function readUInt32(data: Uint8Array, offset: number): number {
 	return (data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24)) >>> 0;
 }
 
-/** A 64-bit field narrowed to a number, refusing anything a double cannot hold exactly. */
 export function readUInt64(data: Uint8Array, offset: number): number {
 	const low = readUInt32(data, offset);
 	const high = readUInt32(data, offset + 4);
@@ -50,7 +40,6 @@ export function isAllOnes(data: Uint8Array, offset: number, length: number): boo
 	return true;
 }
 
-/** Reads `length` bytes as an unsigned little-endian integer, refusing anything past 2^53. */
 export function readUnsigned(data: Uint8Array, offset: number, length: number): number {
 	ensureRange(data, offset, length);
 
@@ -73,11 +62,7 @@ export function bytesEqual(data: Uint8Array, offset: number, expected: readonly 
 	return true;
 }
 
-/**
- * A GUID in the byte order .NET reads one in: the first three fields
- * little-endian, the last eight bytes in sequence. The constants in
- * constants.ts are written the same way round, so they compare as strings.
- */
+/** Reads the mixed-endian GUID layout used by .NET. */
 export function readGuid(data: Uint8Array, offset: number): string {
 	ensureRange(data, offset, 16);
 
@@ -93,7 +78,6 @@ export function readGuid(data: Uint8Array, offset: number): string {
 
 export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
-/** A FileChunkReference64x32: an eight-byte offset and a four-byte length. */
 export interface FileChunkReference {
 	offset: number;
 	length: number;

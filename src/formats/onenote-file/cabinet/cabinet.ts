@@ -1,9 +1,4 @@
-/**
- * The Microsoft Cabinet archive a .onepkg is: CFHEADER, CFFOLDER, CFFILE, then
- * folders of CFDATA blocks holding the .onetoc2 and .one files.
- *
- * Ported from OfficeIMO's OneNoteCabinetArchiveReader (MIT).
- */
+/** Reads .onepkg Cabinet archives. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { lzxDecompress } from './lzx';
@@ -22,20 +17,12 @@ export interface CabinetEntry {
 	data: Uint8Array;
 }
 
-/**
- * What the archive says it holds, read from the uncompressed header alone.
- *
- * Names and sizes cost nothing to reach, which is what lets a section picker
- * appear before any of a 19 MB package has been expanded.
- */
 export interface CabinetIndex {
 	entries: { name: string, length: number, folderIndex: number, folderOffset: number }[];
 }
 
 export interface CabinetLimits {
-	/** Ceiling on everything the archive expands to, together. */
 	maxExpandedBytes: number;
-	/** Ceiling on any one entry. */
 	maxEntryBytes: number;
 	maxEntries: number;
 }
@@ -59,7 +46,6 @@ interface FileHeader {
 	name: string;
 }
 
-/** The four-byte longitudinal parity checksum defined by MS-CAB. */
 function cabinetChecksum(data: Uint8Array, offset: number, count: number): number {
 	let checksum = 0;
 	const end = offset + count;
@@ -123,7 +109,7 @@ function decompressFolder(
 		const dataOffset = offset + 8 + dataReserve;
 		ensure(cabinet, dataOffset, compressedLength, 'CFDATA payload');
 
-		// Blocks past the stop are never decoded, so they are not checked either.
+		// Undecoded blocks cannot be checksummed.
 		if (declaredChecksum !== 0 && total < requiredBytes) {
 			const actual = cabinetChecksum(cabinet, offset + 4, 4 + dataReserve + compressedLength);
 			if (actual !== declaredChecksum) {
@@ -236,7 +222,6 @@ function readLayout(data: Uint8Array, limits: CabinetLimits): CabinetLayout {
 	return { folders, files, dataReserve };
 }
 
-/** What the archive holds, without expanding any of it. */
 export function readCabinetIndex(data: Uint8Array, limits: CabinetLimits = DEFAULT_CABINET_LIMITS): CabinetIndex {
 	const { files } = readLayout(data, limits);
 
@@ -250,13 +235,7 @@ export function readCabinetIndex(data: Uint8Array, limits: CabinetLimits = DEFAU
 	};
 }
 
-/**
- * Expands the archive, optionally only the entries `wanted` accepts.
- *
- * Filtering cannot skip a folder's earlier bytes — LZX is one stream — but it
- * does stop the decode at the last entry asked for, and the entries nobody
- * asked for are never copied out.
- */
+/** Expands selected entries, stopping after the last needed LZX byte. */
 export function readCabinet(
 	data: Uint8Array,
 	limits: CabinetLimits = DEFAULT_CABINET_LIMITS,

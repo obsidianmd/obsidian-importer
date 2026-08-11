@@ -1,5 +1,3 @@
-/** Classifies OLE-based .onex files without decoding their payloads. */
-
 import { OneNoteFormatError } from './errors';
 import { readUInt16, readUInt32 } from './onestore/binary';
 
@@ -25,7 +23,6 @@ export function inspectOnex(data: Uint8Array): OnexKind {
 	const fatSectorCount = readUInt32(data, 44);
 	const firstDirectorySector = readUInt32(data, 48);
 
-	// Larger FAT chains require DIFAT support.
 	const fat: number[] = [];
 	for (let index = 0; index < Math.min(fatSectorCount, 109); index++) {
 		const sector = readUInt32(data, 76 + index * 4);

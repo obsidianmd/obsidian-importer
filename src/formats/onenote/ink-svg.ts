@@ -1,16 +1,3 @@
-/**
- * Drawing OneNote ink as SVG.
- *
- * Both OneNote importers end up here. The Graph API hands out InkML, which
- * `inkml.ts` parses into strokes; an export file holds native binary strokes,
- * which `onenote-file/semantic/ink.ts` decodes. Only the shapes differ, so the
- * drawing itself is shared and the two importers produce the same picture.
- *
- * Coordinates arrive in whatever unit the caller drew in; only their relative
- * values matter, because the viewBox is fitted around them.
- */
-
-/** Padding around the SVG content. */
 const PADDING = 10;
 
 export interface SvgStrokePoint {

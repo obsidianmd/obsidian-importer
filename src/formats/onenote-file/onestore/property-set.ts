@@ -1,13 +1,4 @@
-/**
- * MS-ONESTORE property sets: the key/value form every object's contents arrive
- * in, from a page's title down to a paragraph's run of text.
- *
- * A property declares its representation in five bits of its identifier, and
- * reference-valued properties draw their identifiers from streams that were
- * read once at the front of the object — so the streams are consumed in order
- * as the properties are walked, not looked up. Ported from OfficeIMO's
- * OneNotePropertySetReader (MIT).
- */
+/** Reads ordered property-reference streams. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { readUInt16, readUInt32 } from './binary';
@@ -171,7 +162,6 @@ class Cursor {
 		return { properties, encodedLength: this.position - start };
 	}
 
-	/** Keeps the bytes either way: an eight-byte scalar can exceed what a number holds exactly. */
 	private setScalar(property: PropertyValue, byteCount: number): void {
 		const bytes = this.readBytes(byteCount);
 
@@ -235,7 +225,6 @@ class Cursor {
 	}
 }
 
-/** The three identifier streams, handed out in the order the properties ask for them. */
 class ReferenceCounters {
 	private oidIndex = 0;
 	private osidIndex = 0;

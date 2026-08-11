@@ -1,8 +1,4 @@
-/**
- * The values here are not recordings of this code. Each one is asserted by
- * OfficeIMO's own tests against the same bytes (see fixtures/SOURCE.md), so a
- * disagreement means the port is wrong rather than that the output moved.
- */
+/** Expected values come from OfficeIMO's tests for these fixtures. */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

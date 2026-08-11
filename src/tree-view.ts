@@ -34,10 +34,7 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw'>;
 	onChange?(): void;
-	/**
-	 * Whether the caller loads the tree itself, as a local source can the
-	 * moment it is picked. A source that has to be fetched keeps the button.
-	 */
+	/** Hides the load button when selection loads the tree. */
 	loadsItself?: boolean;
 }
 

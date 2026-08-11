@@ -28,7 +28,6 @@ export function isPackage(data: Uint8Array): boolean {
 	return data.length >= 4 && data[0] === 0x4d && data[1] === 0x53 && data[2] === 0x43 && data[3] === 0x46;
 }
 
-/** Lists package sections without expanding them. */
 export function listSections(data: Uint8Array, fallbackName: string, limits: CabinetLimits = DEFAULT_CABINET_LIMITS): SectionEntry[] {
 	if (!isPackage(data)) return [{ name: fallbackName, title: titleOf(fallbackName) }];
 
@@ -37,7 +36,6 @@ export function listSections(data: Uint8Array, fallbackName: string, limits: Cab
 		.map(entry => ({ name: entry.name, title: titleOf(entry.name) }));
 }
 
-/** Reads selected sections, or all sections when `wanted` is omitted. */
 export function readSections(
 	data: Uint8Array,
 	fallbackName: string,

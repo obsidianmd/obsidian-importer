@@ -1,11 +1,4 @@
-/**
- * File-node lists: the chain of fragments a revision store is navigated by.
- *
- * Each fragment holds nodes back to back, then points at the next; the count
- * the transaction log committed decides where reading stops, because a
- * fragment can carry more nodes on disk than the last good write covered.
- * Ported from OfficeIMO's OneNoteFileNodeListReader (MIT).
- */
+/** Reads committed file-node fragments. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import {
@@ -41,7 +34,6 @@ export interface FileNode {
 	baseType: FileNodeBaseType;
 	fileOffset: number;
 	chunkReference?: FileNodeChunkReference;
-	/** The fnd payload, including any leading chunk reference. A view, not a copy. */
 	data: Uint8Array;
 	referencedList?: FileNodeList;
 }
@@ -179,7 +171,6 @@ function readNodes(
 		const header = readUInt32(data, offset);
 		const id = header & 0x3ff;
 
-		// A final fragment runs into zero padding; identifier zero is not assigned.
 		if (id === 0) break;
 
 		const size = (header >>> 10) & 0x1fff;
@@ -229,7 +220,6 @@ function readNodes(
 	return nodes;
 }
 
-/** The width of both fields is chosen by the node header, and small ones count in eights. */
 function readChunkReference(data: Uint8Array, stpFormat: number, cbFormat: number, absoluteOffset: number): FileNodeChunkReference {
 	const stpBytes = stpFormat === 0 ? 8 : stpFormat === 2 ? 2 : 4;
 	const cbBytes = cbFormat === 0 ? 4 : cbFormat === 1 ? 8 : cbFormat === 2 ? 1 : 2;

@@ -1,13 +1,4 @@
-/**
- * The transaction log, which is what says how much of each file-node list is
- * committed.
- *
- * A revision store is append-only: a list on disk can carry nodes from a write
- * that never completed, and only the log knows where the last good transaction
- * ended. Reading it first is what keeps a half-written notebook from being
- * read as a corrupt one. Ported from OfficeIMO's OneNoteTransactionLogReader
- * (MIT).
- */
+/** Finds committed nodes in the append-only log. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { FileChunkReference, readFileChunkReference64x32, readUInt32 } from './binary';
@@ -21,7 +12,6 @@ const NEXT_FRAGMENT_LENGTH = 12;
 const ONE_POLYNOMIAL = 0xedb88320;
 const MSO_POLYNOMIAL = 0x000000af;
 
-/** A section and a table of contents checksum their transactions differently. */
 function continueCrc(crc: number, data: Uint8Array, offset: number, count: number, fileKind: FileKind): number {
 	const end = offset + count;
 
@@ -42,7 +32,6 @@ function continueCrc(crc: number, data: Uint8Array, offset: number, count: numbe
 	return state;
 }
 
-/** How many nodes of each file-node list the last complete transaction committed. */
 export function readTransactionLog(file: Uint8Array, header: FileHeader, options: ReaderOptions): Map<number, number> {
 	if (!header.transactionLog || header.transactionCount === undefined || header.expectedFileLength === undefined) {
 		throw new OneNoteFormatError('ONENOTE_TRANSACTION_LOG_HEADER', 'The revision-store header does not expose a complete transaction log reference.');

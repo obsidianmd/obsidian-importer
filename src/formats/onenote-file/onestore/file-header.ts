@@ -1,12 +1,4 @@
-/**
- * The 1 KB header that opens a .one or .onetoc2, in either of the two
- * packagings OneNote writes: the desktop revision store, and the MS-FSSHTTPB
- * package the modern apps and OneDrive produce.
- *
- * Which one a file uses is decided by the format GUID at offset 48, and it is
- * the fork that determines everything downstream. Ported from OfficeIMO's
- * OneNoteFileHeaderReader (MIT).
- */
+/** Reads OneNote file headers. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import {
@@ -63,7 +55,6 @@ export interface FileHeader {
 	diagnostics: Diagnostic[];
 }
 
-/** An MS-FSSHTTPB extended GUID, whose width is announced by its first bits. */
 export function readExtendedGuid(data: Uint8Array, offset: number): ExtendedGuid {
 	ensureRange(data, offset, 1);
 	const first = data[offset];

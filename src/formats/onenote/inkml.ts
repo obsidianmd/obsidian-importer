@@ -1,9 +1,4 @@
-/**
- * Converts InkML (Ink Markup Language) files to SVG format.
- *
- * The drawing itself lives in ink-svg.ts, which the export-file importer draws
- * its native strokes with too.
- */
+/** Converts InkML (Ink Markup Language) files to SVG. */
 
 import { strokesToSvg } from './ink-svg';
 

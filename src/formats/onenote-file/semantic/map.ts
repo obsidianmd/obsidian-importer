@@ -285,7 +285,7 @@ function buildParagraph(space: MaterializedObjectSpace, item: RevisionStoreObjec
 	return paragraph;
 }
 
-/** Extracts Word-style `HYPERLINK "target"` fields embedded in text. */
+/** Finds Word HYPERLINK fields embedded in text. */
 const HYPERLINK_FIELD = /﷟\s*HYPERLINK\s+"([^"]*)"\s*/;
 
 function liftHyperlinkFields(runs: TextRun[]): void {
@@ -325,7 +325,7 @@ function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): v
 	}
 }
 
-/** Converts 0x00BBGGRR to #rrggbb, excluding unset and white values. */
+/** OneNote stores colors as 0x00BBGGRR. */
 function highlightColor(color: number | undefined): string | undefined {
 	if (color === undefined || (color & 0xff000000) !== 0) return undefined;
 	if ((color & 0xffffff) === 0xffffff) return undefined;
@@ -512,7 +512,6 @@ function decodeStroke(
 	};
 }
 
-/** Indexes recognized words by stroke identity. */
 function collectRecognition(space: MaterializedObjectSpace, pageNode: RevisionStoreObject): Map<string, string> {
 	const recognition = new Map<string, string>();
 	const rootId = readReferences(pageNode, Property.pageRecognizedTextContainer)[0];

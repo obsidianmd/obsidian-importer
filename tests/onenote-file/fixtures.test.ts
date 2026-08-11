@@ -1,8 +1,3 @@
-/**
- * The fixtures are only anchors if they are the bytes upstream wrote its
- * assertions against, so their hashes are checked before anything reads them.
- */
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import nodeFs from 'node:fs';
@@ -11,7 +6,6 @@ import { createHash } from 'node:crypto';
 
 const FIXTURES = nodePath.join(__dirname, 'fixtures');
 
-/** From tests/onenote-file/fixtures/SOURCE.md, which records where each came from. */
 const HASHES: Record<string, string> = {
 	'testOneNote.one': 'b614dc94b890b53db7cb2d3053382cb398c59385533c256e2509850cc3247270',
 	'testOneNote2016.one': 'fcfc3c2e65482dc6f70f6a613b058e908f67db2ebb16a343bc2367e02bbb471c',

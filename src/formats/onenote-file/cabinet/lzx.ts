@@ -1,11 +1,4 @@
-/**
- * LZX decompression for the Cabinet folders a .onepkg is made of.
- *
- * The block, tree, match and E8-translation structures are the ones published
- * in MS-PATCH and MS-CAB. Ported from OfficeIMO's OneNoteLzxDecoder (MIT);
- * tests/onenote-file/cabinet.test.ts checks it against archives produced by
- * Windows makecab rather than against a recording of this code.
- */
+/** LZX decompression for .onepkg archives. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 
@@ -24,7 +17,6 @@ function corrupt(message: string): OneNoteFormatError {
 	return new OneNoteFormatError('ONENOTE_CAB_LZX_CORRUPT', message);
 }
 
-/** Reads LZX fields from little-endian 16-bit words, with a byte-aligned mode for uncompressed blocks. */
 class BitReader {
 	private nextWordOffset = 0;
 	private word = 0;
@@ -55,7 +47,6 @@ class BitReader {
 		return value;
 	}
 
-	/** Huffman decoding asks for one bit at a time, often enough to be worth its own path. */
 	readBit(): number {
 		if (this.bitsRemaining === 0) this.loadWord();
 		this.bitsRemaining--;
@@ -112,7 +103,6 @@ class BitReader {
 	}
 }
 
-/** Canonical Huffman decoder rebuilt from the path lengths carried in the stream. */
 class HuffmanTree {
 	private constructor(
 		private readonly counts: Int32Array,
@@ -362,8 +352,7 @@ class LzxDecoder {
 
 			const source = this.outputOffset - matchOffset;
 
-			// An overlapping match is how LZX repeats a run, so it has to be
-			// copied a byte at a time; anything else is one move.
+			// Overlapping matches require bytewise copying.
 			if (matchOffset >= matchLength && matchLength >= 16) {
 				this.decoded.copyWithin(this.outputOffset, source, source + matchLength);
 				this.outputOffset += matchLength;
@@ -466,12 +455,7 @@ function readPathLengths(reader: BitReader, lengths: Uint8Array, start: number, 
 	}
 }
 
-/**
- * Undo the x86 call-target rewriting LZX applies before compressing.
- *
- * The encoder turns each 0xE8 relative call into an absolute offset because
- * that compresses better; every frame it touched has to be put back.
- */
+/** Reverses LZX x86 call-target translation. */
 function reverseE8Translation(data: Uint8Array, frameOffset: number, frameLength: number, fileSize: number): void {
 	if (frameOffset >= 0x40000000 || frameLength <= 10) return;
 
@@ -491,12 +475,7 @@ function reverseE8Translation(data: Uint8Array, frameOffset: number, frameLength
 	}
 }
 
-/**
- * `requiredBytes` stops the decode once that much output exists. LZX is one
- * stream across a whole Cabinet folder, so a later entry still costs every
- * frame before it — but an earlier one need not pay for the rest of a package.
- * The returned buffer is full length; bytes past the stop are zero.
- */
+/** Decodes through `requiredBytes`; the returned buffer remains full length. */
 export function lzxDecompress(
 	chunks: Uint8Array[],
 	sizes: number[],

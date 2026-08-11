@@ -1,5 +1,3 @@
-/** The identifiers MS-ONESTORE files are recognised and navigated by. */
-
 export const REVISION_STORE_HEADER_LENGTH = 1024;
 export const PACKAGE_STORE_FIXED_PREFIX_LENGTH = 72;
 
@@ -13,10 +11,6 @@ export const TABLE_OF_CONTENTS_CELL_SCHEMA = 'e4dbfd38-e5c7-408b-a8a1-0e7b421e1f
 export type FileKind = 'unknown' | 'section' | 'table-of-contents' | 'notebook-package';
 export type StorageFormat = 'unknown' | 'revision-store' | 'file-synchronization-package' | 'notebook-package';
 
-/**
- * File-node identifiers. A value absent here is kept as its raw number rather
- * than discarded, because an unrecognised node still has to be stepped over.
- */
 export const FileNodeId = {
 	objectSpaceManifestRoot: 0x004,
 	objectSpaceManifestListReference: 0x008,

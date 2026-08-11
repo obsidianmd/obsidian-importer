@@ -1,5 +1,3 @@
-/** Typed property reads; the last duplicate is the live revision. */
-
 import { readUInt32 } from '../onestore/binary';
 import { ExtendedGuid } from '../onestore/file-header';
 import { PropertySet, PropertyValue } from '../onestore/property-set';

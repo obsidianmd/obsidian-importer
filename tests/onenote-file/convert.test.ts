@@ -1,11 +1,3 @@
-/**
- * Converting each fixture and comparing against the recording beside it.
- *
- * Anything dropped in local/ is converted the same way, and records into
- * local/expected/ - which is gitignored, so a real notebook can be checked
- * here without any of it being committed.
- */
-
 import { test } from 'node:test';
 import nodeFs from 'node:fs';
 import nodeOs from 'node:os';
@@ -66,7 +58,6 @@ const inputs = [
 ];
 
 for (const fixture of inputs) {
-	// The two Office365 fixtures use the packaging the reader does not open yet.
 	if (fixture.name.startsWith('testOneNoteFromOffice365')) continue;
 
 	test(`converts ${fixture.name}`, async () => {

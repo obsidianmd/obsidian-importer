@@ -1,11 +1,4 @@
-/**
- * A desktop .one or .onetoc2, read into the graph the semantic layer maps.
- *
- * The whole file is already in memory, so every structure below is a view into
- * it rather than a copy — the format is dense with back-references and copying
- * each one is what would make a 20 MB notebook expensive. Ported from
- * OfficeIMO's OneNoteRevisionStoreReader (MIT).
- */
+/** Reads revision-store views without copying. Ported from OfficeIMO (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { FileChunkReference } from './binary';
@@ -44,10 +37,6 @@ export function readRevisionStore(file: Uint8Array, options: ReaderOptions = DEF
 	return { header, root, lists, graph };
 }
 
-/**
- * Resolves every file-node-list reference to the list it names, sharing one
- * decoded list between the several nodes that point at it.
- */
 function linkReachableLists(
 	file: Uint8Array,
 	root: FileNodeList,

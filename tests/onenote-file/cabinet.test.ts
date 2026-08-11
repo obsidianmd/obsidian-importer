@@ -1,11 +1,3 @@
-/**
- * The Cabinet/LZX port, checked against archives Windows makecab produced.
- *
- * These are the only tests here that do not compare against a recording: a
- * makecab archive expanding to the exact bytes it was built from is agreement
- * with Microsoft's compressor, which is what makes them worth having.
- */
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import nodeFs from 'node:fs';
@@ -22,7 +14,6 @@ function fixture(name: string): Uint8Array {
 
 const LIMITS = { maxExpandedBytes: 1024 * 1024, maxEntryBytes: 1024 * 1024, maxEntries: 10 };
 
-/** The payload OfficeIMO built the e8 archives from, rebuilt rather than stored. */
 function e8OraclePayload(): Uint8Array {
 	const pattern = new TextEncoder().encode('OfficeIMO-LZX-E8-independent-oracle-');
 	const payload = new Uint8Array(4096);

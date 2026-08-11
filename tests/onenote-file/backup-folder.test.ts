@@ -1,11 +1,3 @@
-/**
- * Finding OneNote's backup folder, driven by a made-up directory tree.
- *
- * The real thing only exists on Windows, and its backup folder is named in the
- * user's language — so the search is written against a listing callback and
- * checked here rather than on a machine none of us has to hand.
- */
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -13,7 +5,6 @@ import { findBackupFolder } from '../../src/formats/onenote-file/backup-folder';
 
 const ROOT = 'C:\\Users\\a\\AppData\\Local\\Microsoft\\OneNote';
 
-/** A tree of directory to entries, listed the way Windows would. */
 function probeOf(tree: Record<string, string[]>) {
 	return {
 		root: ROOT,
@@ -92,8 +83,6 @@ test('an unreadable directory is stepped over rather than thrown on', () => {
 	const found = findBackupFolder(probeOf({
 		[ROOT]: ['16.0'],
 		[`${ROOT}\\16.0`]: ['Locked', 'Backup'],
-		// "Locked" is absent from the tree, standing for a directory that
-		// cannot be listed at all.
 		[`${ROOT}\\16.0\\Backup`]: ['Section.one'],
 	}));
 
