@@ -150,7 +150,116 @@ export function htmlToMarkdown(html: string | Document | HTMLElement | DocumentF
 		},
 	});
 
+	// turndown leaves a table as the text of its cells, one block each, and
+	// Obsidian writes a markdown table. Every rule below was read off the app.
+	service.addRule('table', {
+		filter: 'table',
+		replacement: (_content: string, node: any) => `\n\n${tableMarkdown(node, service)}\n\n`,
+	});
+
 	return service.turndown(source);
+}
+
+/** The rows of a table in the order they were written, sections opened up. */
+function tableRows(table: any): any[] {
+	const rows: any[] = [];
+
+	for (const child of Array.from(table.children) as any[]) {
+		if (child.tagName === 'TR') rows.push(child);
+		else if (child.tagName === 'THEAD' || child.tagName === 'TBODY' || child.tagName === 'TFOOT') {
+			rows.push(...(Array.from(child.children) as any[]).filter(row => row.tagName === 'TR'));
+		}
+	}
+
+	return rows;
+}
+
+function tableCells(row: any): any[] {
+	return (Array.from(row.children) as any[]).filter(cell => cell.tagName === 'TD' || cell.tagName === 'TH');
+}
+
+/**
+ * A table, the way Obsidian writes one.
+ *
+ * Read off the app rather than taken from turndown's GFM plugin, which this is
+ * not: GFM pads a cell to `| a |` and squares off a short row, and Obsidian
+ * does neither. What it does, measured:
+ *
+ * - `|a|b|`, no padding, and `|---|---|` under the header
+ * - the header is a `<thead>`'s first row wherever the thead sits, or else a
+ *   first row of nothing but `<th>` - but only when a row or a `<tbody>` opens
+ *   the table. A `<caption>` or `<colgroup>` in front suppresses it, which
+ *   reads like an implementation detail rather than an intention, and is
+ *   reproduced here because a recording has to match the app either way.
+ * - with no header, an empty one of `|   |` cells is written above the
+ *   separator, three spaces to a cell, and every row becomes a body row
+ * - the separator is as wide as the widest row, and the header row is padded
+ *   out to it. A short body row is left short, ragged, as the app leaves it
+ * - a cell is converted on its own, its newlines become `<br>`, and its pipes
+ *   are escaped - so a nested table arrives as escaped pipes joined by `<br>`
+ * - a colspan is not expanded; the cell counts once
+ * - a row with no cells is skipped, and a `<caption>` is written as a bare
+ *   line where it stood
+ *
+ * The one deliberate difference: the app throws on a table with no rows at all
+ * (`Cannot read properties of undefined (reading 'cells')`), which fails the
+ * note being imported. Returning nothing is not what the app does, and
+ * reproducing a crash to be faithful to it would be the wrong kind of loyal.
+ */
+function tableMarkdown(table: any, service: any): string {
+	const rows = tableRows(table).filter(row => tableCells(row).length > 0);
+	if (rows.length === 0) return '';
+
+	const columns = Math.max(...rows.map(row => tableCells(row).length));
+
+	const cellText = (cell: any): string => service
+		.turndown(cell.innerHTML)
+		.replace(/\n/g, '<br>')
+		.replace(/\|/g, '\\|');
+
+	const writeRow = (row: any, pad: boolean): string => {
+		const cells = tableCells(row).map(cellText);
+		while (pad && cells.length < columns) cells.push('   ');
+		return `|${cells.join('|')}|`;
+	};
+
+	const separator = `|${Array(columns).fill('---').join('|')}|`;
+
+	// A thead's row is the header from wherever it stands, so a tfoot written
+	// above it is written above it here too.
+	const thead = (Array.from(table.children) as any[]).find(child => child.tagName === 'THEAD');
+	const opener = table.firstElementChild?.tagName;
+	const headerRow = thead
+		? tableRows(thead)[0]
+		: (opener === 'TBODY' || opener === 'TR') && tableCells(rows[0]).every(cell => cell.tagName === 'TH')
+			? rows[0]
+			: null;
+
+	const lines: string[] = [];
+
+	// Without a header the empty one and its separator open the table, ahead of
+	// anything - a caption included - that stood before the first row.
+	if (!headerRow) {
+		lines.push(`|${Array(columns).fill('   ').join('|')}|`);
+		lines.push(separator);
+	}
+
+	for (const child of Array.from(table.children) as any[]) {
+		if (child.tagName === 'CAPTION') {
+			lines.push(service.turndown(child.innerHTML));
+			continue;
+		}
+
+		const section = child.tagName === 'TR' ? [child] : tableRows(child);
+		for (const row of section) {
+			if (tableCells(row).length === 0) continue;
+
+			lines.push(writeRow(row, row === headerRow));
+			if (row === headerRow) lines.push(separator);
+		}
+	}
+
+	return lines.join('\n');
 }
 
 /**
