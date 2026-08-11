@@ -50,7 +50,7 @@ Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod 
 | A | B |
 | --- | --- |
 
-*𝑎=𝑏*
+$a=b$
 
 ![example images from TESTIMAGES archive](attachments/testimages_screenshot.jpg)
 

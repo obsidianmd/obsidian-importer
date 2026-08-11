@@ -185,3 +185,36 @@ test('cancelling stops the conversion where it stands', async () => {
 
 	assert.equal(converted.markdown, 'first');
 });
+
+test('an equation becomes LaTeX rather than the glyphs OneNote stored', async () => {
+	// OneNote writes "a=b" in the Mathematical Alphanumeric Symbols block.
+	assert.equal(await render(para([{ text: '\u{1D44E}=\u{1D44F}', math: true }])), '$a=b$');
+	assert.equal(await render(para([{ text: '\u{1D6FC}+\u{1D6FD}', math: true }])), '$α+β$');
+	assert.equal(await render(para([{ text: '\u{1D400}\u{1D401}', math: true }])), '$AB$');
+});
+
+test('an equation keeps raised and lowered digits as LaTeX scripts', async () => {
+	assert.equal(await render(para([{ text: 'x²', math: true }])), '$x^{2}$');
+	assert.equal(await render(para([{ text: 'x₁₂', math: true }])), '$x_{12}$');
+	assert.equal(await render(para([{ text: 'e⁻ⁿ', math: true }])), '$e^{-n}$');
+});
+
+test('the invisible operators a layout engine needs are dropped', async () => {
+	assert.equal(await render(para([{ text: 'f⁡(x)', math: true }])), '$f(x)$');
+	assert.equal(await render(para([{ text: '2⁢x', math: true }])), '$2x$');
+});
+
+test('emphasis is not wrapped around an equation', async () => {
+	// OneNote marks its math italic; a `*` inside `$…$` stops it rendering.
+	assert.equal(await render(para([{ text: '\u{1D44E}', math: true, italic: true, bold: true }])), '$a$');
+});
+
+test('an equation keeps the spacing around it', async () => {
+	assert.equal(
+		await render(para([{ text: 'where ' }, { text: '\u{1D465}', math: true }, { text: ' is odd' }])),
+		'where $x$ is odd');
+});
+
+test('a math run holding nothing but spaces produces no delimiters', async () => {
+	assert.equal(await render(para([{ text: '   ', math: true }])), '');
+});

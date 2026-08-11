@@ -323,6 +323,7 @@ function liftHyperlinkFields(runs: TextRun[]): void {
 function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): void {
 	if (!style) return;
 
+	if (readBoolean(style, Property.mathFormatting)) run.math = true;
 	if (readBoolean(style, Property.bold)) run.bold = true;
 	if (readBoolean(style, Property.italic)) run.italic = true;
 	if (readBoolean(style, Property.underline)) run.underline = true;

@@ -51,6 +51,7 @@ export const Property = {
 	textRunFormatting: 0x24001e13,
 	hyperlink: 0x08001e14,
 	hyperlinkUrl: 0x1c001e20,
+	mathFormatting: 0x08003401,
 	bold: 0x08001c04,
 	italic: 0x08001c05,
 	underline: 0x08001c06,

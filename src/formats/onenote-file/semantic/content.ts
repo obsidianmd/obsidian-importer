@@ -15,6 +15,8 @@ export interface TextRun {
 	superscript?: boolean;
 	subscript?: boolean;
 	hyperlinkUrl?: string;
+	/** OneNote marked this run as an equation rather than prose. */
+	math?: boolean;
 }
 
 export interface ListInfo {

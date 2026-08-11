@@ -32,6 +32,45 @@ export interface ConvertedPage {
 	attachments: ResolvedAttachment[];
 }
 
+/**
+ * OneNote writes an equation as ordinary text in the Mathematical Alphanumeric
+ * Symbols block — `a=b` is stored as U+1D44E, `=`, U+1D44F — and marks the run
+ * as math rather than storing LaTeX. NFKC folds those glyphs back to the
+ * letters they stand for, which is the same normalization Defuddle applies to
+ * MathML before converting it.
+ *
+ * The invisible operators (function application, invisible times and
+ * separator) mean something to a layout engine and nothing to LaTeX.
+ */
+const INVISIBLE_MATH = /[\u2061-\u2064]/g;
+
+/**
+ * Raised and lowered digits have to be read before NFKC gets to them: it folds
+ * `x²` to `x2`, which is a different expression. They become LaTeX scripts
+ * instead, and everything after that is safe to normalize.
+ */
+const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ¹²³';
+const SUPERSCRIPT_PLAIN = '0123456789+-=()ni123';
+const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎';
+const SUBSCRIPT_PLAIN = '0123456789+-=()';
+
+function scriptRuns(text: string, glyphs: string, plain: string, marker: string): string {
+	const pattern = new RegExp(`[${glyphs}]+`, 'g');
+
+	return text.replace(pattern, match => {
+		const decoded = [...match].map(character => plain[glyphs.indexOf(character)]).join('');
+		return `${marker}{${decoded}}`;
+	});
+}
+
+function toLatex(text: string): string {
+	const scripted = scriptRuns(
+		scriptRuns(text, SUPERSCRIPTS, SUPERSCRIPT_PLAIN, '^'),
+		SUBSCRIPTS, SUBSCRIPT_PLAIN, '_');
+
+	return scripted.normalize('NFKC').replace(INVISIBLE_MATH, '').trim();
+}
+
 /** A run carries formatting markdown cannot say; those parts pass through as text. */
 function renderRun(run: TextRun): string {
 	let text = run.text;
@@ -43,6 +82,13 @@ function renderRun(run: TextRun): string {
 	let core = text.slice(leading.length, text.length - trailing.length);
 
 	if (core !== '') {
+		// An equation is already italic in OneNote; emphasis around it would
+		// end up inside the delimiters and stop it rendering.
+		if (run.math) {
+			const latex = toLatex(core);
+			return latex === '' ? '' : `${leading}$${latex}$${trailing}`;
+		}
+
 		if (run.bold) core = `**${core}**`;
 		if (run.italic) core = `*${core}*`;
 		if (run.strikethrough) core = `~~${core}~~`;
