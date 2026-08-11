@@ -2,7 +2,7 @@ import { TurndownNode } from './turndown-rules/turndown-types';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 
 import { EvernoteOptions } from '../options';
-import { divRule, encryptedContentRule, imagesRule, italicRule, newLineRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
+import { divRule, encryptedContentRule, imagesRule, italicRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
 import { taskListRule } from './turndown-rules/task-list-rule';
 
 export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
@@ -30,15 +30,7 @@ export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
 	turndownService.addRule('list', taskListRule);
 	turndownService.addRule('italic', italicRule);
 
-	if (evernoteOptions.keepMDCharactersOfENNotes) {
-		turndownService.escape = ((str: string) => str);
-	}
-
 	turndownService.addRule('divBlock', divRule);
-
-	if (evernoteOptions.keepOriginalAmountOfNewlines) {
-		turndownService.addRule('newline', newLineRule);
-	}
 
 	return turndownService;
 };

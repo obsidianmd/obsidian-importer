@@ -42,11 +42,10 @@ export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Arra
 				}
 
 				const notebookName = linkProps.notebookName;
-				const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName) : fileName;
 
-				let replacement = encodedFileName;
+				let replacement = fileName;
 				if (notebookName && !notebookFolder.endsWith(notebookName)) {
-					replacement = `${notebookName}/${encodedFileName}`;
+					replacement = `${notebookName}/${fileName}`;
 				}
 
 				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');

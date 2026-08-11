@@ -36,10 +36,8 @@ export const wikiStyleLinksRule = {
 
 		const value = nodeProxy.href.value;
 		const type = nodeProxy.type ? nodeProxy.type.value : undefined;
-		const realValue = evernoteOptions.urlEncodeFileNamesAndLinks ? encodeURI(value) : value;
-
 		if (type === 'file') {
-			return `![[${realValue}]]`;
+			return `![[${value}]]`;
 		}
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(text);
@@ -58,7 +56,7 @@ export const wikiStyleLinksRule = {
 			return prefix + getShortLinkIfPossible(text, value);
 		}
 
-		return prefix + `[[${realValue}${text === realValue ? '' : `|${text}`}]]`;
+		return prefix + `[[${value}${text === value ? '' : `|${text}`}]]`;
 	},
 };
 
@@ -81,5 +79,5 @@ function unescape(text: string) {
 }
 
 export const getShortLinkIfPossible = (text: string, value: string): string => {
-	return (!text || unescape(text) === unescape(value)) ? evernoteOptions.generateNakedUrls ? value : `<${value}>` : `[${text}](${value})`;
+	return (!text || unescape(text) === unescape(value)) ? `<${value}>` : `[${text}](${value})`;
 };

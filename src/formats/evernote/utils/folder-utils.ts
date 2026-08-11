@@ -112,40 +112,16 @@ const clearDistDir = (dstPath: string): void => {
 
 export const getRelativeResourceDir = (note: EvernoteNote): string => {
 	const enexFolder = `${path.sep}${evernoteOptions.resourcesDir}`;
-	if (evernoteOptions.haveGlobalResources) {
-		return `..${enexFolder}`;
-	}
 
-	return evernoteOptions.haveEnexLevelResources
-		? `.${enexFolder}`
-		: `.${enexFolder}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
+	return `.${enexFolder}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
 export const getAbsoluteResourceDir = (note: EvernoteNote): string => {
-	if (evernoteOptions.haveGlobalResources) {
-		return path.resolve(paths.resourcePath, '..', '..', evernoteOptions.resourcesDir);
-	}
-
-	return evernoteOptions.haveEnexLevelResources
-		? paths.resourcePath
-		: `${paths.resourcePath}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
+	return `${paths.resourcePath}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
-const resourceDirClears = new Map<string, number>();
 export const clearResourceDir = (note: EvernoteNote): void => {
-	const resPath = getAbsoluteResourceDir(note);
-	if (!resourceDirClears.has(resPath)) {
-		resourceDirClears.set(resPath, 0);
-	}
-
-	const clears = resourceDirClears.get(resPath) || 0;
-	// we're sharing a resource dir, so we can can't clean it more than once
-	if ((evernoteOptions.haveEnexLevelResources || evernoteOptions.haveGlobalResources) && clears >= 1) {
-		return;
-	}
-
-	clearDistDir(resPath);
-	resourceDirClears.set(resPath, clears + 1);
+	clearDistDir(getAbsoluteResourceDir(note));
 };
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
 	const notebookFolderNames = basename.split('@@@');
@@ -204,31 +180,21 @@ export const setPaths = (enexFileBasename: string, evernoteOptions: EvernoteOpti
 		? evernoteOptions.outputDir
 		: `${process.cwd()}${path.sep}${evernoteOptions.outputDir}`;
 
-	paths.mdPath = `${outputDir}${path.sep}`;
-	paths.resourcePath = `${outputDir}${path.sep}${evernoteOptions.resourcesDir}`;
+	let truncatedBasename = sanitizeFileName(enexFileBasename);
 
-	if (!evernoteOptions.skipEnexFileNameFromOutputPath) {
-		let truncatedBasename = sanitizeFileName(enexFileBasename);
-
-		if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
-			truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH));
-			console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
-		}
-
-		// Check for duplicate directory names and add (1), (2), etc. if needed
-		truncatedBasename = getUniqueNameForPath(outputDir, truncatedBasename);
-
-		paths.mdPath = `${paths.mdPath}${truncatedBasename}`;
-		// console.log(`mdPath: ${paths.mdPath}`);
-		paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${evernoteOptions.resourcesDir}`;
+	if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
+		truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH));
+		console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
 	}
+
+	// Check for duplicate directory names and add (1), (2), etc. if needed
+	truncatedBasename = getUniqueNameForPath(outputDir, truncatedBasename);
+
+	paths.mdPath = `${outputDir}${path.sep}${truncatedBasename}`;
+	paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${evernoteOptions.resourcesDir}`;
 
 	fs.mkdirSync(paths.mdPath, { recursive: true });
-	if ((!evernoteOptions.haveEnexLevelResources && !evernoteOptions.haveGlobalResources)) {
-		fs.mkdirSync(paths.resourcePath, { recursive: true });
-	}
-	// clearDistDir(paths.simpleMdPath);
-	// clearDistDir(paths.complexMdPath);
+	fs.mkdirSync(paths.resourcePath, { recursive: true });
 };
 
 export const getNotesPath = (): string => {

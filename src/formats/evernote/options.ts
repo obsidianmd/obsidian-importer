@@ -61,30 +61,12 @@ export function forgetNotesWritten(): void {
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
 	outputDir: string;
-	isMetadataNeeded?: boolean;
-	isZettelkastenNeeded?: boolean;
-	useZettelIdAsFilename?: boolean;
-	plainTextNotesOnly?: boolean;
 	skipWebClips?: boolean;
 	useHashTags?: boolean;
-	replaceWhitespacesInTagsByUnderscore?: boolean;
-	skipEnexFileNameFromOutputPath?: boolean;
-	haveEnexLevelResources?: boolean;
-	haveGlobalResources?: boolean;
-	keepMDCharactersOfENNotes?: boolean;
-	urlEncodeFileNamesAndLinks?: boolean;
-	sanitizeResourceNameSpaces?: boolean;
-	replacementChar: string;
-	monospaceIsCodeBlock?: boolean;
 	dateFormat?: string;
 	nestedTags?: TagSeparatorReplaceOptions;
-	keepImageSize?: boolean;
-	keepOriginalAmountOfNewlines?: boolean;
-	generateNakedUrls?: boolean;
-	addExtensionToInternalLinks?: boolean;
 	pathSeparator?: string;
 	resourcesDir: string;
 	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;
-	useUniqueUnknownFileNames?: boolean;
 }

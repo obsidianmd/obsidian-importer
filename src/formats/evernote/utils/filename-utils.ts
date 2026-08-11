@@ -1,10 +1,7 @@
 import { reusesNoteNames } from '../options';
 import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
-import { moment } from 'obsidian';
 import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
-
-import { evernoteOptions } from '../convert';
 
 import { ResourceFileProperties } from '../models/ResourceFileProperties';
 import { extensionForMime } from '../../../mime';
@@ -23,7 +20,7 @@ export const getFileIndex = (dstPath: string, fileNamePrefix: string): number =>
 
 };
 export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
-	const UNKNOWNFILENAME = evernoteOptions.useUniqueUnknownFileNames ? 'unknown_filename' + (Math.random().toString(16) + '0000000').slice(2, 10) : 'unknown_filename';
+	const UNKNOWNFILENAME = 'unknown_filename';
 
 	const extension = getExtension(resource);
 	let fileName = UNKNOWNFILENAME;
@@ -34,10 +31,6 @@ export const getResourceFileProperties = (workDir: string, resource: EvernoteRes
 
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
-
-	if (evernoteOptions.sanitizeResourceNameSpaces) {
-		fileName = fileName.replace(/ /g, evernoteOptions.replacementChar);
-	}
 
 	const index = getFileIndex(workDir, fileName);
 	const fileNameWithIndex = index > 0 ? `${fileName}.${index}` : fileName;
@@ -82,44 +75,18 @@ export const getExtension = (resource: EvernoteResource): string => {
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
 
-export const getZettelKastelId = (note: EvernoteNote, dstPath: string): string => {
-	return moment(note['created']).format('YYYYMMDDHHmm');
-};
-
 export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
-	let noteName;
-
 	let filePrefix = getFilePrefix(note);
-	if (evernoteOptions.isZettelkastenNeeded || evernoteOptions.useZettelIdAsFilename) {
-		const zettelPrefix = getZettelKastelId(note, dstPath);
-		const nextIndex = getFileIndex(dstPath, zettelPrefix);
-		const separator = ' ';
-		noteName = (nextIndex !== 0) ?
-			`${zettelPrefix}.${nextIndex}` :
-			zettelPrefix;
 
-		if (!evernoteOptions.useZettelIdAsFilename) {
-			if (filePrefix !== 'Untitled') {
-				const availableSpace = MAX_NOTE_NAME_LENGTH - noteName.length - separator.length;
-				const filePrefixPart = filePrefix.substring(0, Math.max(0, availableSpace));
-				noteName = `${noteName}${separator}${filePrefixPart}`;
-			}
-		}
-	}
-	else {
-		// Truncate file name prefix if it's too long
-		if (filePrefix.length > MAX_NOTE_NAME_LENGTH) {
-			filePrefix = filePrefix.substring(0, MAX_NOTE_NAME_LENGTH);
-			console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
-		}
-
-		const nextIndex = reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
-
-		noteName = (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
+	// Truncate file name prefix if it's too long
+	if (filePrefix.length > MAX_NOTE_NAME_LENGTH) {
+		filePrefix = filePrefix.substring(0, MAX_NOTE_NAME_LENGTH);
+		console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 	}
 
-	return noteName;
+	const nextIndex = reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
 
+	return (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 };
 
 export const getNotebookName = (enexFile: string): string => {

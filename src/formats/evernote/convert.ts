@@ -22,10 +22,6 @@ export const defaultEvernoteOptions: EvernoteOptions = {
 	outputDir: './mdNotes',
 	// The form Obsidian reads as a date and time property
 	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
-	isMetadataNeeded: false,
-	isZettelkastenNeeded: false,
-	useZettelIdAsFilename: false,
-	plainTextNotesOnly: false,
 	skipWebClips: false,
 	useHashTags: true,
 	nestedTags: {
@@ -34,9 +30,6 @@ export const defaultEvernoteOptions: EvernoteOptions = {
 		replaceSpaceWith: '-',
 	},
 	obsidianTaskTag: '',
-	urlEncodeFileNamesAndLinks: false,
-	sanitizeResourceNameSpaces: false,
-	replacementChar: '_',
 	pathSeparator: '/',
 	resourcesDir: '_resources',
 	turndownOptions: {
