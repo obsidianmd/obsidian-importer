@@ -1,7 +1,6 @@
 import { TurndownNode } from './turndown-types';
 import { genUid } from '../../../../util';
-import { RuntimePropertiesSingleton } from '../../runtime-properties';
-import { evernoteOptions } from '../../convert';
+import { EvernoteRun } from '../../run';
 
 import { normalizeTitle } from '../filename-utils';
 import { isNormalMarkdownHref } from '../link-hrefs';
@@ -17,7 +16,7 @@ export const removeBrackets = (str: string): string => {
 export const removeDoubleBackSlashes = (str: string): string => {
 	return str.replace(/\\/g, '');
 };
-export const wikiStyleLinksRule = {
+export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 	filter: filterByNodeName('A'),
 	replacement: (content: string, node: TurndownNode) => {
 		const nodeProxy = getAttributeProxy(node);
@@ -25,7 +24,7 @@ export const wikiStyleLinksRule = {
 		if (!nodeProxy.href) {
 			return '';
 		}
-		let text = getTurndownService(evernoteOptions).turndown(removeBrackets(node.innerHTML));
+		let text = getTurndownService(run).turndown(removeBrackets(node.innerHTML));
 		text = removeDoubleBackSlashes(text);
 		let prefix = '';
 		let match = text.match(/^(#{1,6} )(.*)/);
@@ -41,7 +40,7 @@ export const wikiStyleLinksRule = {
 		}
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(text);
-			const noteIdNameMap = RuntimePropertiesSingleton.getInstance();
+			const noteIdNameMap = run.properties;
 			const uniqueId = genUid(6);
 			if (isTOC(noteIdNameMap.getCurrentNoteName())) {
 				noteIdNameMap.addItemToTOCMap({ url: value, title: fileName, uniqueEnd: uniqueId });
@@ -58,7 +57,7 @@ export const wikiStyleLinksRule = {
 
 		return prefix + `[[${value}${text === value ? '' : `|${text}`}]]`;
 	},
-};
+});
 
 
 let htmlUnescapes: Record<string, string> = {

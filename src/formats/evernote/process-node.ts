@@ -2,18 +2,16 @@ import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
-import { RuntimePropertiesSingleton } from './runtime-properties';
+import { EvernoteRun } from './run';
 import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
 
 import { renderNote } from './utils/render-note';
 import { standardizeFrontMatter } from './utils/front-matter';
-import { evernoteOptions } from './convert';
 
-export const processNode = (note: EvernoteNote): boolean => {
+export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 
-	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	const title = note.title ?? '';
-	runtimeProps.setCurrentNoteName(title);
+	run.properties.setCurrentNoteName(title);
 
 	const content = joinNoteContent(note.content);
 	note.content = content;
@@ -28,24 +26,17 @@ export const processNode = (note: EvernoteNote): boolean => {
 
 	try {
 		if (isComplex(note)) {
-			noteData.htmlContent = processResources(note);
+			noteData.htmlContent = processResources(run, note);
 		}
-		noteData.htmlContent = extractDataUrlResources(note, noteData.htmlContent);
+		noteData.htmlContent = extractDataUrlResources(run, note, noteData.htmlContent);
 
-		noteData = { ...noteData, ...convertHtml2Md(evernoteOptions, noteData) };
-		noteData = { ...noteData, ...getMetadata(note) };
-		noteData = { ...noteData, ...getTags(note) };
+		noteData = { ...noteData, ...convertHtml2Md(run, noteData) };
+		noteData = { ...noteData, ...getMetadata(run, note) };
+		noteData = { ...noteData, ...getTags(run, note) };
 
 		const data = standardizeFrontMatter(renderNote(noteData));
-		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
 
-		return saveMdFile(data, note);
-
-		/* if (isTOC(noteData.title)) {
-		  const  noteIdNameMap = RuntimePropertiesSingleton.getInstance();
-		  noteIdNameMap.extendNoteIdNameMap(noteData);
-		}*/
-
+		return saveMdFile(run, data, note);
 	}
 	catch (e) {
 		console.error(`Failed to convert note: ${noteData.title}`, e);

@@ -5,11 +5,11 @@ import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { formatMarkdown } from '../../markdown-output';
-import { forgetNotesWritten, getMarkdownOutput, EvernoteOptions } from './options';
+import { EvernoteOptions } from './options';
+import { EvernoteRun } from './run';
 import { processNode } from './process-node';
 import { rewriteFile } from './utils/file-utils';
 import { convertTasktoMd } from './process-tasks';
-import { RuntimePropertiesSingleton } from './runtime-properties';
 
 import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
@@ -17,56 +17,7 @@ import { isWebClip } from './utils/note-utils';
 
 let flow: typeof import('xml-flow') | undefined;
 
-export const defaultEvernoteOptions: EvernoteOptions = {
-	enexSources: [],
-	outputDir: './mdNotes',
-	// The form Obsidian reads as a date and time property
-	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
-	skipWebClips: false,
-	useHashTags: true,
-	nestedTags: {
-		separatorInEN: '_',
-		replaceSeparatorWith: '/',
-		replaceSpaceWith: '-',
-	},
-	obsidianTaskTag: '',
-	resourcesDir: '_resources',
-	turndownOptions: {
-		headingStyle: 'atx',
-	},
-};
-
 const NOTEBOOKSTACK_SEPARATOR = '@@@';
-
-export let evernoteOptions: EvernoteOptions = { ...defaultEvernoteOptions };
-
-function deepCopy(obj: any) {
-	if (obj === undefined || obj === null) return obj;
-	return JSON.parse(JSON.stringify(obj));
-}
-
-function merge(original: any, ...objects: any[]) {
-	for (let object of objects) {
-		for (let key of Object.keys(object)) {
-			let value = object[key];
-			let originalValue = original[key];
-
-			if (!Array.isArray(value) && typeof value === 'object' &&
-				!Array.isArray(originalValue) && typeof originalValue === 'object') {
-				original[key] = merge({}, originalValue, value);
-			}
-			else {
-				original[key] = deepCopy(value);
-			}
-		}
-	}
-
-	return original;
-}
-
-const setOptions = (options: EvernoteOptions): void => {
-	evernoteOptions = merge({}, defaultEvernoteOptions, options);
-};
 
 interface TaskGroups {
 	[key: string]: Map<string, string>;
@@ -88,9 +39,9 @@ function restoreResourceAttributes(note: EvernoteNote, collected: EvernoteResour
 	}
 }
 
-export const parseStream = async (options: EvernoteOptions, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
+export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	if (!(enexSource instanceof NodePickedFile)) throw new Error('Evernote import currently only works on desktop');
-	const runtimeProps = RuntimePropertiesSingleton.getInstance();
+	const runtimeProps = run.properties;
 
 	// Load this optional native module only on the desktop import path.
 	const parseXml = flow ??= (await import('xml-flow')).default;
@@ -126,7 +77,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 			let wrote = false;
 
-			if (options.skipWebClips && isWebClip(note)) {
+			if (run.options.skipWebClips && isWebClip(note)) {
 				ctx.reportSkipped(note.title ?? enexSource.name);
 			}
 			else {
@@ -140,7 +91,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 				try {
 					const reported = notebookName + '/' + note.title;
-					wrote = processNode(note);
+					wrote = processNode(run, note);
 					if (wrote) ctx.reportNoteSuccess(reported);
 					else ctx.reportSkipped(reported, i18n.reason.alreadyInVault());
 				}
@@ -162,7 +113,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 
 					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
 
-					rewriteFile(currentNotePath, formatMarkdown(updatedContent, getMarkdownOutput()));
+					rewriteFile(run, currentNotePath, formatMarkdown(updatedContent, run.markdownOutput));
 				}
 			}
 		});
@@ -173,7 +124,7 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 				tasks[task.taskgroupnotelevelid] = new Map();
 			}
 
-			tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(task, notebookName));
+			tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(run, task));
 
 		});
 
@@ -184,37 +135,29 @@ export const parseStream = async (options: EvernoteOptions, enexSource: PickedFi
 };
 
 export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
-	setOptions(options);
-	forgetNotesWritten();
+	const run = new EvernoteRun(options);
 	const outputNotebookFolders = [];
-	const orginalOutputDir = options.outputDir;
-	for (const enex of options.enexSources) {
+
+	for (const enex of run.options.enexSources) {
 		if (await ctx.shouldStop()) return;
 
-		
-		let notebookStackProperties;
-		const runtimeProps = RuntimePropertiesSingleton.getInstance();
-
 		if (enex.basename.includes(NOTEBOOKSTACK_SEPARATOR)) {
-			options.outputDir = utils.getNotebookStackOutputDir(enex, options);
-			notebookStackProperties = utils.getNotebookStackedProps(enex);
+			const notebookStackProperties = utils.getNotebookStackedProps(enex);
 
-			utils.setNotebookStackPaths(notebookStackProperties, options);
-			runtimeProps.setCurrentNotebookName(notebookStackProperties.basename);
-			runtimeProps.setCurrentNotebookFullpath(notebookStackProperties.fullpath);
-		}	
+			utils.setPaths(run, notebookStackProperties.basename, utils.getNotebookStackOutputDir(enex, run.options.outputDir));
+			run.properties.setCurrentNotebookName(notebookStackProperties.basename);
+			run.properties.setCurrentNotebookFullpath(notebookStackProperties.fullpath);
+		}
 		else {
-			utils.setSingleNotebookPaths(enex, options);
-			runtimeProps.setCurrentNotebookName(enex.basename);
-			runtimeProps.setCurrentNotebookFullpath(enex.fullpath);
+			utils.setPaths(run, enex.basename, run.options.outputDir);
+			run.properties.setCurrentNotebookName(enex.basename);
+			run.properties.setCurrentNotebookFullpath(enex.fullpath);
 		}
 
-		
-		await parseStream(options, enex, ctx);
-		outputNotebookFolders.push(utils.getNotesPath());
-		options.outputDir = orginalOutputDir;
+		await parseStream(run, enex, ctx);
+		outputNotebookFolders.push(run.paths.mdPath);
 	}
 
 	if (await ctx.shouldStop()) return;
-	applyLinks(options, outputNotebookFolders);
+	applyLinks(run, outputNotebookFolders);
 }

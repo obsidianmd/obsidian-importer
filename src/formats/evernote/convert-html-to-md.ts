@@ -1,5 +1,5 @@
 import { NoteData } from './models/NoteData';
-import { EvernoteOptions } from './options';
+import { EvernoteRun } from './run';
 
 import { getTurndownService } from './utils/turndown-service';
 import { restoreIntraWordEscapedUnderscores } from './utils/markdown-escaping';
@@ -82,7 +82,7 @@ const fixSublists = (node: HTMLElement) => {
 	return node;
 };
 
-export const convertHtml2Md = (evernoteOptions: EvernoteOptions, { htmlContent }: NoteData): { content: string } => {
+export const convertHtml2Md = (run: EvernoteRun, { htmlContent }: NoteData): { content: string } => {
 	const content = htmlContent.replace(/<!DOCTYPE en-note [^>]*>/, '<!DOCTYPE html>')
 		.replace(/(<a [^>]*)\/>/, '$1></a>').replace(/<div[^/<]*\/>/g, '');
 
@@ -93,7 +93,7 @@ export const convertHtml2Md = (evernoteOptions: EvernoteOptions, { htmlContent }
 		return { content: '' };
 	}
 
-	let contentInMd = getTurndownService(evernoteOptions)
+	let contentInMd = getTurndownService(run)
 		.turndown(fixTasks(fixSublists(contentNode)));
 
 	const newLinePlaceholder = new RegExp('<ENEX_NEWLINE_PLACEHOLDER>', 'g');

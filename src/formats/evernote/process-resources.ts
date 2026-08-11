@@ -2,23 +2,24 @@ import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/Everno
 import { fs, nodeCrypto } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
+import { EvernoteRun } from './run';
 import * as utils from './utils';
 
-const getResourceWorkDirs = (note: EvernoteNote) => {
+const getResourceWorkDirs = (run: EvernoteRun, note: EvernoteNote) => {
 	return {
-		absoluteResourceWorkDir: utils.getAbsoluteResourceDir(note),
-		relativeResourceWorkDir: utils.getRelativeResourceDir(note),
+		absoluteResourceWorkDir: utils.getAbsoluteResourceDir(run, note),
+		relativeResourceWorkDir: utils.getRelativeResourceDir(run, note),
 	};
 };
 
-export const processResources = (note: EvernoteNote): string => {
+export const processResources = (run: EvernoteRun, note: EvernoteNote): string => {
 	let resourceHashes: Record<string, ResourceHashItem> = {};
 	let updatedContent = joinNoteContent(note.content);
-	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
+	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(run, note);
 
 
 
-	utils.clearResourceDir(note);
+	utils.clearResourceDir(run, note);
 	const resources = Array.isArray(note.resource) ? note.resource
 		: note.resource ? [note.resource]
 			: [];
@@ -118,6 +119,7 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 };
 
 export const extractDataUrlResources = (
+	run: EvernoteRun,
 	note: EvernoteNote,
 	content: string,
 ): string => {
@@ -125,7 +127,7 @@ export const extractDataUrlResources = (
 		return content; // no data urls
 	}
 
-	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
+	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(run, note);
 	fs.mkdirSync(absoluteResourceWorkDir, { recursive: true });
 
 	// src="data:image/svg+xml;base64,..." --> src="resourceDir/fileName"

@@ -5,8 +5,8 @@ import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
-import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler, setMarkdownOutput, setMarkdownTracker } from './evernote/options';
-import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
+import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from './evernote/options';
+import { convertEnexFiles } from './evernote/convert';
 
 const HELP_PERMALINK = 'import/evernote';
 
@@ -52,30 +52,17 @@ export class EvernoteEnexImporter extends FormatImporter {
 		let adapter = app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) return;
 
-		setMarkdownOutput(markdownOutputFor(app.vault));
-
-		let evernoteOptions = {
+		await convertEnexFiles({
 			...defaultEvernoteOptions,
-			...{
-				enexSources: files,
-				outputDir: path.join(adapter.getBasePath(), folder.path),
+			enexSources: files,
+			outputDir: path.join(adapter.getBasePath(), folder.path),
+			markdownOutput: markdownOutputFor(app.vault),
+			trackMarkdown: absolutePath => {
+				this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
 			},
-		};
-
-		setMarkdownTracker(absolutePath => {
-			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
-		});
-
-		setExistingNoteHandler(this.duplicateHandling === DuplicateHandling.CreateCopy
-			? null
-			: existing => this.decideExistingNote(existing));
-
-		try {
-			await convertEnexFiles(evernoteOptions, ctx);
-		}
-		finally {
-			setMarkdownTracker(null);
-			setExistingNoteHandler(null);
-		}
+			decideExistingNote: this.duplicateHandling === DuplicateHandling.CreateCopy
+				? undefined
+				: existing => this.decideExistingNote(existing),
+		}, ctx);
 	}
 }

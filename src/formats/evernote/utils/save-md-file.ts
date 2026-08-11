@@ -2,25 +2,23 @@ import { moment } from 'obsidian';
 
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs } from '../../../filesystem';
-import { decideExistingNote, noteWasWritten } from '../options';
-import { RuntimePropertiesSingleton } from '../runtime-properties';
+import { EvernoteRun } from '../run';
 import { writeFile } from './file-utils';
 import { getMdFilePath } from './folder-utils';
 
-export const saveMdFile = (data: string, note: EvernoteNote): boolean => {
-	const absMdFilePath = getMdFilePath(note);
+export const saveMdFile = (run: EvernoteRun, data: string, note: EvernoteNote): boolean => {
+	const absMdFilePath = getMdFilePath(run, note);
 
-	if (!shouldWrite(absMdFilePath, note)) return false;
+	if (!shouldWrite(run, absMdFilePath, note)) return false;
 
-	const runtimeProps = RuntimePropertiesSingleton.getInstance();
-	runtimeProps.setCurrentNotePath(absMdFilePath);
-	writeFile(absMdFilePath, data, note);
-	noteWasWritten(absMdFilePath);
+	run.properties.setCurrentNotePath(absMdFilePath);
+	writeFile(run, absMdFilePath, data, note);
+	run.noteWasWritten(absMdFilePath);
 
 	return true;
 };
 
-function shouldWrite(absMdFilePath: string, note: EvernoteNote): boolean {
+function shouldWrite(run: EvernoteRun, absMdFilePath: string, note: EvernoteNote): boolean {
 	let writtenAt: number;
 	try {
 		if (!fs.existsSync(absMdFilePath)) return true;
@@ -32,7 +30,7 @@ function shouldWrite(absMdFilePath: string, note: EvernoteNote): boolean {
 
 	const updated = note.updated ? moment(note.updated).valueOf() : NaN;
 
-	return decideExistingNote({
+	return run.decideExistingNote({
 		absolutePath: absMdFilePath,
 		writtenAt,
 		updatedAt: Number.isNaN(updated) ? null : updated,

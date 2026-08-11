@@ -2,25 +2,6 @@ import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
 import type { MarkdownOutput } from '../../markdown-output';
 
-let markdownOutput: MarkdownOutput = { indentUnit: '    ' };
-let markdownTracker: ((absolutePath: string) => void) | null = null;
-
-export function setMarkdownOutput(output: MarkdownOutput): void {
-	markdownOutput = output;
-}
-
-export function getMarkdownOutput(): MarkdownOutput {
-	return markdownOutput;
-}
-
-export function setMarkdownTracker(tracker: ((absolutePath: string) => void) | null): void {
-	markdownTracker = tracker;
-}
-
-export function trackMarkdownWrite(absolutePath: string): void {
-	markdownTracker?.(absolutePath);
-}
-
 export interface ExistingNote {
 	absolutePath: string;
 	writtenAt: number;
@@ -28,35 +9,6 @@ export interface ExistingNote {
 }
 
 export type ExistingNoteDecision = 'write' | 'skip';
-
-let existingNoteHandler: ((existing: ExistingNote) => ExistingNoteDecision) | null = null;
-
-export function setExistingNoteHandler(handler: ((existing: ExistingNote) => ExistingNoteDecision) | null): void {
-	existingNoteHandler = handler;
-}
-
-export function reusesNoteNames(): boolean {
-	return existingNoteHandler !== null;
-}
-
-export function decideExistingNote(existing: ExistingNote): ExistingNoteDecision {
-	return existingNoteHandler?.(existing) ?? 'write';
-}
-
-/** Notes eligible for post-processing in this run. */
-const notesWritten = new Set<string>();
-
-export function noteWasWritten(absolutePath: string): void {
-	notesWritten.add(absolutePath);
-}
-
-export function noteWasWrittenBy(absolutePath: string): boolean {
-	return notesWritten.has(absolutePath);
-}
-
-export function forgetNotesWritten(): void {
-	notesWritten.clear();
-}
 
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
@@ -68,4 +20,32 @@ export interface EvernoteOptions {
 	resourcesDir: string;
 	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;
+	/** How the vault being written into indents; left out, a test's default. */
+	markdownOutput?: MarkdownOutput;
+	/** Told about every note file written, so the importer can wait for it. */
+	trackMarkdown?: (absolutePath: string) => void;
+	/**
+	 * What to do about a note an earlier import left. Left out, a note takes a
+	 * name nothing is using, which is what "Create a copy" wants.
+	 */
+	decideExistingNote?: (existing: ExistingNote) => ExistingNoteDecision;
 }
+
+export const defaultEvernoteOptions: EvernoteOptions = {
+	enexSources: [],
+	outputDir: './mdNotes',
+	// The form Obsidian reads as a date and time property
+	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
+	skipWebClips: false,
+	useHashTags: true,
+	nestedTags: {
+		separatorInEN: '_',
+		replaceSeparatorWith: '/',
+		replaceSpaceWith: '-',
+	},
+	obsidianTaskTag: '',
+	resourcesDir: '_resources',
+	turndownOptions: {
+		headingStyle: 'atx',
+	},
+};

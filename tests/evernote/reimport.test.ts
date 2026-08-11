@@ -8,8 +8,8 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
-import { defaultEvernoteOptions, convertEnexFiles } from '../../src/formats/evernote/convert';
-import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler } from '../../src/formats/evernote/options';
+import { convertEnexFiles } from '../../src/formats/evernote/convert';
+import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from '../../src/formats/evernote/options';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -47,16 +47,21 @@ function tree(dir: string): string[] {
 	return found.sort();
 }
 
-async function convertInto(outputDir: string, ctx: ReturnType<typeof stubContext>): Promise<void> {
+async function convertInto(
+	outputDir: string,
+	ctx: ReturnType<typeof stubContext>,
+	decideExistingNote?: (existing: ExistingNote) => ExistingNoteDecision
+): Promise<void> {
 	await convertEnexFiles({
 		...defaultEvernoteOptions,
 		enexSources: [new NodePickedFile(FIXTURE)],
 		outputDir,
+		decideExistingNote,
 	}, ctx as never);
 }
 
 async function importTwice(
-	handler: ((existing: ExistingNote) => ExistingNoteDecision) | null,
+	decideExistingNote: ((existing: ExistingNote) => ExistingNoteDecision) | undefined,
 	use: (outputDir: string, first: ReturnType<typeof stubContext>, second: ReturnType<typeof stubContext>) => void
 ): Promise<void> {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-again-'));
@@ -64,22 +69,18 @@ async function importTwice(
 	const second = stubContext();
 
 	try {
-		setExistingNoteHandler(null);
 		await convertInto(outputDir, first);
-
-		setExistingNoteHandler(handler);
-		await convertInto(outputDir, second);
+		await convertInto(outputDir, second, decideExistingNote);
 
 		use(outputDir, first, second);
 	}
 	finally {
-		setExistingNoteHandler(null);
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
 	}
 }
 
 test('with no answer to give, a second import is a second copy', async () => {
-	await importTwice(null, (outputDir, first, second) => {
+	await importTwice(undefined, (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.equal(second.notes.length, first.notes.length);
 		assert.equal(tree(outputDir).length, first.notes.length * 2);

@@ -1,14 +1,14 @@
 import { EvernoteNote } from '../models/EvernoteNote';
 import { fs } from '../../../filesystem';
 import { formatMarkdown } from '../../../markdown-output';
-import { getMarkdownOutput, trackMarkdownWrite } from '../options';
+import { EvernoteRun } from '../run';
 
 import { setFileDates } from './content-utils';
 
-export const writeFile = (absFilePath: string, data: string, note: EvernoteNote): void => {
+export const writeFile = (run: EvernoteRun, absFilePath: string, data: string, note: EvernoteNote): void => {
 	try {
-		fs.writeFileSync(absFilePath, formatMarkdown(data, getMarkdownOutput()));
-		trackMarkdownWrite(absFilePath);
+		fs.writeFileSync(absFilePath, formatMarkdown(data, run.markdownOutput));
+		run.trackMarkdownWrite(absFilePath);
 		setFileDates(absFilePath, note);
 	}
 	catch (e) {
@@ -18,7 +18,7 @@ export const writeFile = (absFilePath: string, data: string, note: EvernoteNote)
 };
 
 /** Rewrite a note while preserving its source timestamps. */
-export const rewriteFile = (absFilePath: string, data: string): void => {
+export const rewriteFile = (run: EvernoteRun, absFilePath: string, data: string): void => {
 	let dates: { atime: Date, mtime: Date } | null = null;
 	try {
 		const stat = fs.statSync(absFilePath);
@@ -29,7 +29,7 @@ export const rewriteFile = (absFilePath: string, data: string): void => {
 	}
 
 	fs.writeFileSync(absFilePath, data);
-	trackMarkdownWrite(absFilePath);
+	run.trackMarkdownWrite(absFilePath);
 
 	if (!dates) return;
 	try {

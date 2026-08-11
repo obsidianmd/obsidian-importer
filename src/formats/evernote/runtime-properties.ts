@@ -11,29 +11,14 @@ export interface NoteIdNames {
 	[key: string]: NoteIdNameEntry;
 }
 
-export class RuntimePropertiesSingleton {
+export class RuntimeProperties {
 
-	static instance: RuntimePropertiesSingleton;
-
-	noteIdNameMap: NoteIdNames;
-	noteIdNameTOCMap: NoteIdNames; // Table of Contents map - the trusted source
+	noteIdNameMap: NoteIdNames = {};
+	noteIdNameTOCMap: NoteIdNames = {}; // Table of Contents map - the trusted source
 	currentNoteName: string;
 	currentNotebookName: string;
 	currentNotebookFullpath: string;
 	currentNotePath: string;
-
-	private constructor() {
-		this.noteIdNameMap = {};
-		this.noteIdNameTOCMap = {};
-	}
-
-	static getInstance(): RuntimePropertiesSingleton {
-		if (!RuntimePropertiesSingleton.instance) {
-			RuntimePropertiesSingleton.instance = new RuntimePropertiesSingleton();
-		}
-
-		return RuntimePropertiesSingleton.instance;
-	}
 
 	addItemToMap(linkItem: InternalLink): void {
 		this.noteIdNameMap[linkItem.url] = {

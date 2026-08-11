@@ -2,14 +2,14 @@ import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
 import { fs } from '../../../filesystem';
 import { MetaData } from '../models/MetaData';
-import { evernoteOptions } from '../convert';
+import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
 
-export const getMetadata = (note: EvernoteNote): MetaData => {
+export const getMetadata = (run: EvernoteRun, note: EvernoteNote): MetaData => {
 	return {
 		sourceUrl: getSourceUrl(note),
-		reminderTime: getReminderTime(note),
-		reminderDoneTime: getReminderDoneTime(note),
+		reminderTime: getReminderTime(run, note),
+		reminderDoneTime: getReminderDoneTime(run, note),
 	};
 };
 
@@ -19,27 +19,27 @@ export const getSourceUrl = (note: EvernoteNote): string => {
 		: '';
 };
 
-export const getReminderTime = (note: EvernoteNote): string => {
+export const getReminderTime = (run: EvernoteRun, note: EvernoteNote): string => {
 	return note['note-attributes'] &&
 	note['note-attributes']['reminder-time']
-		? moment(note['note-attributes']['reminder-time']).format(evernoteOptions.dateFormat)
+		? moment(note['note-attributes']['reminder-time']).format(run.options.dateFormat)
 		: '';
 };
-export const getReminderDoneTime = (note: EvernoteNote): string => {
+export const getReminderDoneTime = (run: EvernoteRun, note: EvernoteNote): string => {
 	return note['note-attributes'] &&
 	note['note-attributes']['reminder-done-time']
-		? moment(note['note-attributes']['reminder-done-time']).format(evernoteOptions.dateFormat)
+		? moment(note['note-attributes']['reminder-done-time']).format(run.options.dateFormat)
 		: '';
 };
-export const getTags = (note: EvernoteNote): { tags: string } => {
-	return { tags: logTags(note) };
+export const getTags = (run: EvernoteRun, note: EvernoteNote): { tags: string } => {
+	return { tags: logTags(run, note) };
 
 };
 
-export const logTags = (note: EvernoteNote): string => {
+export const logTags = (run: EvernoteRun, note: EvernoteNote): string => {
 	if (note.tag) {
 		const tagArray = Array.isArray(note.tag) ? note.tag : [note.tag];
-		const tagOptions = evernoteOptions.nestedTags;
+		const tagOptions = run.options.nestedTags;
 
 		const tags = tagArray.map(tag => {
 			let cleanTag = tag
@@ -53,7 +53,7 @@ export const logTags = (note: EvernoteNote): string => {
 
 			cleanTag = cleanTag.replace(/ /g, replaceSpaceWith);
 
-			return `${evernoteOptions.useHashTags ? '#' : ''}${cleanTag}`;
+			return `${run.options.useHashTags ? '#' : ''}${cleanTag}`;
 		});
 
 		return tags.join(' ');

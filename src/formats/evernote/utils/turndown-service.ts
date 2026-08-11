@@ -1,15 +1,15 @@
 import { TurndownNode } from './turndown-rules/turndown-types';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 
-import { EvernoteOptions } from '../options';
+import { EvernoteRun } from '../run';
 import { divRule, encryptedContentRule, imagesRule, italicRule, spanRule, strikethroughRule, taskItemsRule, wikiStyleLinksRule } from './turndown-rules';
 import { taskListRule } from './turndown-rules/task-list-rule';
 
-export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
+export const getTurndownService = (run: EvernoteRun) => {
 	// @ts-ignore
 	const turndownService = new window.TurndownService({
 		br: '',
-		...evernoteOptions.turndownOptions,
+		...run.options.turndownOptions,
 		blankReplacement: (content: string, node: TurndownNode) => {
 			return node.isBlock ? '\n\n' : '';
 		},
@@ -25,7 +25,7 @@ export const getTurndownService = (evernoteOptions: EvernoteOptions) => {
 	turndownService.addRule('strikethrough', strikethroughRule);
 	turndownService.addRule('evernote task items', taskItemsRule);
 	turndownService.addRule('evernote encrypted content', encryptedContentRule);
-	turndownService.addRule('wikistyle links', wikiStyleLinksRule);
+	turndownService.addRule('wikistyle links', wikiStyleLinksRule(run));
 	turndownService.addRule('images', imagesRule);
 	turndownService.addRule('list', taskListRule);
 	turndownService.addRule('italic', italicRule);

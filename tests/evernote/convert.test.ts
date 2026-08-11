@@ -9,7 +9,8 @@ import * as nodePath from 'node:path';
 
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
-import { defaultEvernoteOptions, convertEnexFiles } from '../../src/formats/evernote/convert';
+import { convertEnexFiles } from '../../src/formats/evernote/convert';
+import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 

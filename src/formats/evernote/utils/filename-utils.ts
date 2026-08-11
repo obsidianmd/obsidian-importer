@@ -1,4 +1,4 @@
-import { reusesNoteNames } from '../options';
+import { EvernoteRun } from '../run';
 import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { fs, parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
@@ -46,8 +46,8 @@ export const getFilePrefix = (note: EvernoteNote): string => {
 	return normalizeTitle(note['title'] ? `${note['title'].toString()}` : 'Untitled');
 };
 
-export const getNoteFileName = (dstPath: string, note: EvernoteNote, extension: string = 'md'): string => {
-	return `${getNoteName(dstPath, note)}.${extension}`;
+export const getNoteFileName = (run: EvernoteRun, dstPath: string, note: EvernoteNote, extension: string = 'md'): string => {
+	return `${getNoteName(run, dstPath, note)}.${extension}`;
 };
 export const getExtensionFromResourceFileName = (resource: EvernoteResource): string | undefined => {
 	if (!(resource['resource-attributes'] &&
@@ -75,7 +75,7 @@ export const getExtension = (resource: EvernoteResource): string => {
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
 
-export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
+export const getNoteName = (run: EvernoteRun, dstPath: string, note: EvernoteNote): string => {
 	let filePrefix = getFilePrefix(note);
 
 	// Truncate file name prefix if it's too long
@@ -84,7 +84,7 @@ export const getNoteName = (dstPath: string, note: EvernoteNote): string => {
 		console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 	}
 
-	const nextIndex = reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
+	const nextIndex = run.reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
 
 	return (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 };

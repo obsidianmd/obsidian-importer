@@ -1,15 +1,13 @@
 import { fs, path } from '../../../filesystem';
 
-import { EvernoteOptions, noteWasWrittenBy } from '../options';
-import { RuntimePropertiesSingleton } from '../runtime-properties';
+import { EvernoteRun } from '../run';
 import { rewriteFile } from './file-utils';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { truncatFileName } from './folder-utils';
 import { getAllOutputFilesWithExtension } from './get-all-output-files';
 
-export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Array<string>): void => {
-	const linkNameMap = RuntimePropertiesSingleton.getInstance();
-	const allLinks = linkNameMap.getAllNoteIdNameMap();
+export const applyLinks = (run: EvernoteRun, outputNotebookFolders: Array<string>): void => {
+	const allLinks = run.properties.getAllNoteIdNameMap();
 
 	let entries = Object.entries(allLinks);
 	if (entries.length === 0) return;
@@ -29,7 +27,7 @@ export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Arra
 
 		for (const targetFile of targetFiles) {
 			let filepath = path.join(notebookFolder, targetFile);
-			if (!noteWasWrittenBy(filepath)) continue;
+			if (!run.noteWasWrittenBy(filepath)) continue;
 
 			const fileContent = fs.readFileSync(filepath, 'utf8');
 			let updatedContent = fileContent;
@@ -38,7 +36,7 @@ export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Arra
 				const uniqueId = linkProps.uniqueEnd;
 				let fileName = linkProps.title;
 				if (allconvertedFiles.find(fn => fn.includes(uniqueId))) {
-					fileName = truncatFileName(fileName, uniqueId);
+					fileName = truncatFileName(run, fileName, uniqueId);
 				}
 
 				const notebookName = linkProps.notebookName;
@@ -53,7 +51,7 @@ export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Arra
 			}
 
 			if (fileContent !== updatedContent) {
-				rewriteFile(filepath, updatedContent);
+				rewriteFile(run, filepath, updatedContent);
 			}
 		}
 	}
