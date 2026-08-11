@@ -22,6 +22,16 @@ export interface CabinetEntry {
 	data: Uint8Array;
 }
 
+/**
+ * What the archive says it holds, read from the uncompressed header alone.
+ *
+ * Names and sizes cost nothing to reach, which is what lets a section picker
+ * appear before any of a 19 MB package has been expanded.
+ */
+export interface CabinetIndex {
+	entries: { name: string, length: number, folderIndex: number, folderOffset: number }[];
+}
+
 export interface CabinetLimits {
 	/** Ceiling on everything the archive expands to, together. */
 	maxExpandedBytes: number;
@@ -93,7 +103,13 @@ function readCString(data: Uint8Array, offset: number, utf8: boolean): { value: 
 	return { value, nextOffset: end + 1 };
 }
 
-function decompressFolder(cabinet: Uint8Array, folder: FolderHeader, dataReserve: number, maxExpandedBytes: number): Uint8Array {
+function decompressFolder(
+	cabinet: Uint8Array,
+	folder: FolderHeader,
+	dataReserve: number,
+	maxExpandedBytes: number,
+	requiredBytes: number,
+): Uint8Array {
 	let offset = folder.dataOffset;
 	const blocks: Uint8Array[] = [];
 	const sizes: number[] = [];
@@ -107,14 +123,15 @@ function decompressFolder(cabinet: Uint8Array, folder: FolderHeader, dataReserve
 		const dataOffset = offset + 8 + dataReserve;
 		ensure(cabinet, dataOffset, compressedLength, 'CFDATA payload');
 
-		if (declaredChecksum !== 0) {
+		// Blocks past the stop are never decoded, so they are not checked either.
+		if (declaredChecksum !== 0 && total < requiredBytes) {
 			const actual = cabinetChecksum(cabinet, offset + 4, 4 + dataReserve + compressedLength);
 			if (actual !== declaredChecksum) {
 				throw new OneNoteFormatError('ONENOTE_CAB_CHECKSUM', 'A CAB data block has an invalid checksum.', offset);
 			}
 		}
 
-		blocks.push(cabinet.slice(dataOffset, dataOffset + compressedLength));
+		blocks.push(cabinet.subarray(dataOffset, dataOffset + compressedLength));
 		sizes.push(expandedLength);
 		total += expandedLength;
 		if (total > maxExpandedBytes) {
@@ -137,7 +154,7 @@ function decompressFolder(cabinet: Uint8Array, folder: FolderHeader, dataReserve
 			return output;
 		}
 		case COMPRESSION_LZX:
-			return lzxDecompress(blocks, sizes, (folder.compression >> 8) & 0x1f, maxExpandedBytes);
+			return lzxDecompress(blocks, sizes, (folder.compression >> 8) & 0x1f, maxExpandedBytes, requiredBytes);
 		case COMPRESSION_MSZIP:
 			throw new OneNoteFormatError('ONENOTE_CAB_MSZIP', 'MSZIP-compressed .onepkg archives are not supported yet.');
 		default:
@@ -145,7 +162,13 @@ function decompressFolder(cabinet: Uint8Array, folder: FolderHeader, dataReserve
 	}
 }
 
-export function readCabinet(data: Uint8Array, limits: CabinetLimits = DEFAULT_CABINET_LIMITS): CabinetEntry[] {
+interface CabinetLayout {
+	folders: FolderHeader[];
+	files: FileHeader[];
+	dataReserve: number;
+}
+
+function readLayout(data: Uint8Array, limits: CabinetLimits): CabinetLayout {
 	if (data.length < 36 || data[0] !== 0x4d || data[1] !== 0x53 || data[2] !== 0x43 || data[3] !== 0x46) {
 		throw new OneNoteFormatError('ONENOTE_CAB_SIGNATURE', 'The .onepkg file is not a Microsoft Cabinet archive.');
 	}
@@ -210,10 +233,55 @@ export function readCabinet(data: Uint8Array, limits: CabinetLimits = DEFAULT_CA
 		offset = nextOffset;
 	}
 
-	const folderData: Uint8Array[] = [];
+	return { folders, files, dataReserve };
+}
+
+/** What the archive holds, without expanding any of it. */
+export function readCabinetIndex(data: Uint8Array, limits: CabinetLimits = DEFAULT_CABINET_LIMITS): CabinetIndex {
+	const { files } = readLayout(data, limits);
+
+	return {
+		entries: files.map(file => ({
+			name: file.name,
+			length: file.length,
+			folderIndex: file.folderIndex,
+			folderOffset: file.folderOffset,
+		})),
+	};
+}
+
+/**
+ * Expands the archive, optionally only the entries `wanted` accepts.
+ *
+ * Filtering cannot skip a folder's earlier bytes — LZX is one stream — but it
+ * does stop the decode at the last entry asked for, and the entries nobody
+ * asked for are never copied out.
+ */
+export function readCabinet(
+	data: Uint8Array,
+	limits: CabinetLimits = DEFAULT_CABINET_LIMITS,
+	wanted?: (name: string) => boolean,
+): CabinetEntry[] {
+	const { folders, files, dataReserve } = readLayout(data, limits);
+	const selected = wanted ? files.filter(file => wanted(file.name)) : files;
+
+	const requiredBytes = new Array<number>(folders.length).fill(0);
+	for (const file of selected) {
+		if (file.folderIndex >= folders.length) {
+			throw new OneNoteFormatError('ONENOTE_CAB_FOLDER', 'A .onepkg entry references a missing or continued CAB folder.');
+		}
+		requiredBytes[file.folderIndex] = Math.max(requiredBytes[file.folderIndex], file.folderOffset + file.length);
+	}
+
+	const folderData: (Uint8Array | undefined)[] = [];
 	let totalExpanded = 0;
-	for (const folder of folders) {
-		const expanded = decompressFolder(data, folder, dataReserve, limits.maxExpandedBytes - totalExpanded);
+	for (let index = 0; index < folders.length; index++) {
+		if (requiredBytes[index] === 0) {
+			folderData.push(undefined);
+			continue;
+		}
+
+		const expanded = decompressFolder(data, folders[index], dataReserve, limits.maxExpandedBytes - totalExpanded, requiredBytes[index]);
 		totalExpanded += expanded.length;
 		if (totalExpanded > limits.maxExpandedBytes) {
 			throw new OneNoteFormatError('ONENOTE_CAB_EXPANDED_LIMIT', 'The expanded .onepkg archive exceeds the configured size limit.');
@@ -223,13 +291,9 @@ export function readCabinet(data: Uint8Array, limits: CabinetLimits = DEFAULT_CA
 
 	const entries: CabinetEntry[] = [];
 	let totalExtractedBytes = 0;
-	for (const file of files) {
-		if (file.folderIndex >= folderData.length) {
-			throw new OneNoteFormatError('ONENOTE_CAB_FOLDER', 'A .onepkg entry references a missing or continued CAB folder.');
-		}
-
+	for (const file of selected) {
 		const source = folderData[file.folderIndex];
-		if (file.folderOffset > source.length || file.folderOffset + file.length > source.length) {
+		if (!source || file.folderOffset > source.length || file.folderOffset + file.length > source.length) {
 			throw new OneNoteFormatError('ONENOTE_CAB_ENTRY_RANGE', 'A .onepkg entry extends past its CAB folder.');
 		}
 		if (file.length > limits.maxExpandedBytes - totalExtractedBytes) {
@@ -237,7 +301,7 @@ export function readCabinet(data: Uint8Array, limits: CabinetLimits = DEFAULT_CA
 		}
 
 		totalExtractedBytes += file.length;
-		entries.push({ name: file.name, data: source.slice(file.folderOffset, file.folderOffset + file.length) });
+		entries.push({ name: file.name, data: source.subarray(file.folderOffset, file.folderOffset + file.length) });
 	}
 
 	return entries;

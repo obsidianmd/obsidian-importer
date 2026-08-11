@@ -220,20 +220,23 @@ class LzxDecoder {
 		this.decoded = new Uint8Array(outputLength);
 	}
 
-	decode(chunks: Uint8Array[], sizes: number[]): Uint8Array {
+	decode(chunks: Uint8Array[], sizes: number[], requiredBytes: number): Uint8Array {
 		const frameStarts = new Int32Array(sizes.length);
+		let frames = 0;
 
-		for (let frame = 0; frame < chunks.length; frame++) {
-			frameStarts[frame] = this.outputOffset;
-			this.decodeFrame(chunks[frame], sizes[frame]);
+		while (frames < chunks.length && this.outputOffset < requiredBytes) {
+			frameStarts[frames] = this.outputOffset;
+			this.decodeFrame(chunks[frames], sizes[frames]);
+			frames++;
 		}
 
-		if (this.outputOffset !== this.decoded.length || this.blockBytesRemaining !== 0) {
+		const complete = frames === chunks.length;
+		if (complete && (this.outputOffset !== this.decoded.length || this.blockBytesRemaining !== 0)) {
 			throw corrupt('The LZX stream does not describe the expected expanded size.');
 		}
 
 		if (this.translationFileSize > 0) {
-			for (let frame = 0; frame < sizes.length && frame < MAXIMUM_TRANSLATED_FRAMES; frame++) {
+			for (let frame = 0; frame < frames && frame < MAXIMUM_TRANSLATED_FRAMES; frame++) {
 				reverseE8Translation(this.decoded, frameStarts[frame], sizes[frame], this.translationFileSize);
 			}
 		}
@@ -468,7 +471,19 @@ function reverseE8Translation(data: Uint8Array, frameOffset: number, frameLength
 	}
 }
 
-export function lzxDecompress(chunks: Uint8Array[], sizes: number[], windowBits: number, maxOutputBytes: number): Uint8Array {
+/**
+ * `requiredBytes` stops the decode once that much output exists. LZX is one
+ * stream across a whole Cabinet folder, so a later entry still costs every
+ * frame before it — but an earlier one need not pay for the rest of a package.
+ * The returned buffer is full length; bytes past the stop are zero.
+ */
+export function lzxDecompress(
+	chunks: Uint8Array[],
+	sizes: number[],
+	windowBits: number,
+	maxOutputBytes: number,
+	requiredBytes?: number,
+): Uint8Array {
 	if (chunks.length !== sizes.length) {
 		throw new OneNoteFormatError('ONENOTE_CAB_LZX_BLOCKS', 'CAB LZX block metadata is inconsistent.');
 	}
@@ -481,5 +496,5 @@ export function lzxDecompress(chunks: Uint8Array[], sizes: number[], windowBits:
 		outputLength += sizes[index];
 	}
 
-	return new LzxDecoder(outputLength, windowBits).decode(chunks, sizes);
+	return new LzxDecoder(outputLength, windowBits).decode(chunks, sizes, requiredBytes ?? outputLength);
 }

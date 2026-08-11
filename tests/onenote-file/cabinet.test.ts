@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import nodeFs from 'node:fs';
 import nodePath from 'node:path';
 
-import { readCabinet } from '../../src/formats/onenote-file/cabinet/cabinet';
+import { readCabinet, readCabinetIndex } from '../../src/formats/onenote-file/cabinet/cabinet';
 import { OneNoteFormatError } from '../../src/formats/onenote-file/errors';
 
 const FIXTURES = nodePath.join(__dirname, 'fixtures');
@@ -80,4 +80,30 @@ test('a file that is not a cabinet is refused by signature', () => {
 	assert.throws(
 		() => readCabinet(new Uint8Array(64), LIMITS),
 		(error: unknown) => error instanceof OneNoteFormatError && error.code === 'ONENOTE_CAB_SIGNATURE');
+});
+
+test('the index names every entry without expanding any of them', () => {
+	const index = readCabinetIndex(fixture('makecab-lzx-notebook.onepkg'), LIMITS);
+	const entries = readCabinet(fixture('makecab-lzx-notebook.onepkg'), LIMITS);
+
+	assert.deepEqual(index.entries.map(entry => entry.name), entries.map(entry => entry.name));
+	assert.deepEqual(index.entries.map(entry => entry.length), entries.map(entry => entry.data.length));
+});
+
+test('stopping the decode early does not change the bytes it did produce', () => {
+	const archive = fixture('makecab-lzx-notebook.onepkg');
+	const everything = readCabinet(archive, LIMITS);
+
+	for (const entry of everything) {
+		const [alone] = readCabinet(archive, LIMITS, name => name === entry.name);
+
+		assert.equal(alone.name, entry.name);
+		assert.deepEqual(alone.data, entry.data, `${entry.name} differs when expanded on its own`);
+	}
+});
+
+test('an entry nobody asked for is not returned', () => {
+	const archive = fixture('makecab-lzx-notebook.onepkg');
+
+	assert.deepEqual(readCabinet(archive, LIMITS, () => false), []);
 });
