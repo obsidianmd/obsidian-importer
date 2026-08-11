@@ -6,7 +6,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
-import { describeReason, sanitizeFileName, uint8arrayToArrayBuffer } from '../util';
+import { describeReason, extensionFromBytes, sanitizeFileName, uint8arrayToArrayBuffer } from '../util';
 import { convertPage } from './onenote-file/convert';
 import { OneNoteErrorKind, OneNoteFormatError } from './onenote-file/errors';
 import { isPackage, listSections, readSections } from './onenote-file/package';
@@ -40,6 +40,8 @@ export class OneNoteFileImporter extends FormatImporter {
 
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private picker: TreePicker<SectionNode>;
+	/** The files the picker's rows were built from, so a change is noticeable. */
+	private loadedFrom = '';
 
 	init(): void {
 		this.addSetting('source')
@@ -57,10 +59,19 @@ export class OneNoteFileImporter extends FormatImporter {
 		this.drawSectionPicker();
 	}
 
-	/** A different file means the sections on screen are no longer this file's. */
+	/**
+	 * The sections come from the picked files themselves, and cost nothing to
+	 * read, so they are listed as soon as the files are chosen rather than
+	 * behind a button.
+	 */
 	protected sourceChanged(): void {
-		this.picker?.reset();
 		super.sourceChanged();
+
+		const key = this.files.map(file => file.fullpath).join('\n');
+		if (key === this.loadedFrom) return;
+
+		this.loadedFrom = key;
+		if (this.picker) void this.loadSections();
 	}
 
 	private drawSectionPicker(): void {
@@ -75,16 +86,14 @@ export class OneNoteFileImporter extends FormatImporter {
 				view: {
 					icon: node => node.children?.length ? 'book' : 'file-text',
 				},
-				onChange: () => this.sourceChanged(),
+				loadsItself: true,
 			});
-
-			this.picker.onLoad(() => void this.loadSections());
 		}, 'source');
 	}
 
 	private async loadSections(): Promise<void> {
 		if (this.files.length === 0) {
-			new Notice(i18n.importer.onenoteFile.msgPickFileFirst());
+			this.picker.reset();
 			return;
 		}
 
@@ -132,9 +141,12 @@ export class OneNoteFileImporter extends FormatImporter {
 			return;
 		}
 
-		// Nothing loaded means every section; loaded and cleared means none.
-		const loaded = this.picker.nodes.length > 0;
-		const chosen = selectedNodes(this.picker.nodes, node => !node.children?.length);
+		// An import driven by a script has no picker at all, and wants everything.
+		const nodes = this.picker?.nodes ?? [];
+
+		// Nothing listed means every section; listed and cleared means none.
+		const loaded = nodes.length > 0;
+		const chosen = selectedNodes(nodes, node => !node.children?.length);
 
 		for (const file of this.files) {
 			if (await ctx.shouldStop()) return;
@@ -150,7 +162,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				await this.importFile(ctx, file, folder, wanted);
 			}
 			catch (error) {
-				ctx.reportFailed(file.name, describeFailure(error));
+				report(ctx, file.name, error);
 			}
 		}
 	}
@@ -176,7 +188,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				section = entry.read();
 			}
 			catch (error) {
-				ctx.reportFailed(entry.title, describeFailure(error));
+				report(ctx, entry.title, error);
 				continue;
 			}
 
@@ -229,6 +241,12 @@ export class OneNoteFileImporter extends FormatImporter {
 	private async saveAttachment(ctx: ImportContext, bytes: Uint8Array, suggested: string, notePath: string) {
 		const data = uint8arrayToArrayBuffer(bytes as Uint8Array<ArrayBuffer>);
 
+		// Neither a name nor a recorded extension: the bytes are the last word.
+		if (!/\.[^.\\/]+$/.test(suggested)) {
+			const sniffed = extensionFromBytes(bytes);
+			if (sniffed) suggested = `${suggested}.${sniffed}`;
+		}
+
 		const { path, reuse } = await this.placeAttachment(suggested, notePath, async (existing: TFile) => {
 			if (existing.stat.size !== data.byteLength) return 'another';
 			const onDisk = new Uint8Array(await this.vault.readBinary(existing));
@@ -247,4 +265,17 @@ export class OneNoteFileImporter extends FormatImporter {
 /** A format error is answered by kind; anything else is described as it came. */
 function describeFailure(error: unknown): string {
 	return error instanceof OneNoteFormatError ? REASONS[error.kind]() : describeReason(error);
+}
+
+/**
+ * A file this importer cannot open is skipped, not failed: nothing went wrong
+ * with the import, and a rights-protected notebook is not something a retry
+ * would fix. Only a file that claims to be OneNote and is not gets reported as
+ * a failure.
+ */
+function report(ctx: ImportContext, name: string, error: unknown): void {
+	const expected = error instanceof OneNoteFormatError && (error.kind === 'protected' || error.kind === 'unsupported');
+
+	if (expected) ctx.reportSkipped(name, describeFailure(error));
+	else ctx.reportFailed(name, describeFailure(error));
 }

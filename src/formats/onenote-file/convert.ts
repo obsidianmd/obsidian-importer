@@ -106,11 +106,13 @@ class PageWriter {
 				await this.writeTable(element);
 				break;
 			case 'image':
-				await this.writeAsset(element.data, element.fileName ?? 'image', element.altText ?? '', true);
+				await this.writeAsset(element.data, assetName(element.fileName, element.extension, 'image'), element.altText ?? '', true);
 				break;
-			case 'embedded-file':
-				await this.writeAsset(element.data, element.fileName ?? 'attachment', element.fileName ?? 'attachment', false);
+			case 'embedded-file': {
+				const name = assetName(element.fileName, element.extension, 'attachment');
+				await this.writeAsset(element.data, name, name, false);
 				break;
+			}
 			case 'ink':
 				this.collectInk(element);
 				break;
@@ -205,6 +207,18 @@ class PageWriter {
 		this.push(embed ? `![${label}](${target})` : `[${label}](${target})`);
 		this.push('');
 	}
+}
+
+/**
+ * OneNote does not always record a filename, but it does record the extension
+ * on the data object — and an attachment saved without one is a file the vault
+ * cannot render or open.
+ */
+function assetName(fileName: string | undefined, extension: string | undefined, fallback: string): string {
+	if (fileName && /\.[^.\\/]+$/.test(fileName)) return fileName;
+
+	const suffix = extension ? (extension.startsWith('.') ? extension : `.${extension}`) : '';
+	return (fileName ?? fallback) + suffix;
 }
 
 function collectCellText(element: Element, into: string[]): void {

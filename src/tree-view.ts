@@ -34,6 +34,11 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw'>;
 	onChange?(): void;
+	/**
+	 * Whether the caller loads the tree itself, as a local source can the
+	 * moment it is picked. A source that has to be fetched keeps the button.
+	 */
+	loadsItself?: boolean;
 }
 
 export class TreePicker<T extends ViewableNode<T>> {
@@ -60,6 +65,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 				this.loadButton = button;
 				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
 				button.setButtonText(i18n.tree.buttonLoad());
+				if (options.loadsItself) button.buttonEl.hide();
 			});
 
 		this.treeEl = containerEl
