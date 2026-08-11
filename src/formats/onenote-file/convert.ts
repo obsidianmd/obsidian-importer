@@ -171,20 +171,47 @@ function taskPrefix(tags: Tag[] | undefined, list: ListInfo | undefined): string
 }
 
 /**
- * A tag that is not a tick box is a label OneNote drew beside the paragraph -
- * "Important", "Question" - which is what an Obsidian callout says too.
+ * The OneNote tags that mean "pay attention to this", and the callout each
+ * one becomes.
  *
- * The label is written in the author's language, so it becomes the callout's
- * title rather than being matched against a list of English names.
+ * A callout is an admonition, so only the tags that are one belong here. Most
+ * of OneNote's icons categorise instead - a phone number, a book to read, a
+ * musical note - and turning those into alerts would shout about nothing. They
+ * keep their paragraph as it was.
+ *
+ * Keyed by NoteTagShape (MS-ONE 2.3.86) rather than by label, because a label
+ * is written in whatever language the notebook's author used.
  */
-function calloutTitle(tags: Tag[] | undefined): string | undefined {
-	return tags?.find(tag => !tag.checkable && tag.label)?.label;
+const CALLOUT_SHAPES: Record<number, string> = {
+	13: 'important',  // Yellow star
+	15: 'question',   // Question mark
+	17: 'danger',     // High priority (red exclamation mark)
+	21: 'tip',        // Light bulb
+	111: 'question',  // Question balloon
+};
+
+interface Callout {
+	type: string;
+	title?: string;
+}
+
+function calloutFor(tags: Tag[] | undefined): Callout | undefined {
+	for (const tag of tags ?? []) {
+		if (tag.checkable || tag.shape === undefined) continue;
+
+		const type = CALLOUT_SHAPES[tag.shape];
+		if (type) return { type, title: tag.label };
+	}
+
+	return undefined;
 }
 
 /** One thing written to the page, and whether it was an item in a list. */
 interface Block {
 	text: string;
 	listItem: boolean;
+	/** The opening line, when this block is a callout that a later one can join. */
+	callout?: string;
 }
 
 class PageWriter {
@@ -215,6 +242,23 @@ class PageWriter {
 
 	private push(text: string, listItem = false): void {
 		this.blocks.push({ text, listItem });
+	}
+
+	/**
+	 * Paragraphs tagged the same way in a row are one admonition, not a stack
+	 * of identical boxes — which is how OneNote shows them too.
+	 */
+	private pushCallout(callout: Callout, body: string): void {
+		const quoted = body.split('\n').map(line => `> ${line}`).join('\n');
+		const previous = this.blocks[this.blocks.length - 1];
+		const opening = `> [!${callout.type}]${callout.title ? ` ${callout.title}` : ''}`;
+
+		if (previous?.callout === opening) {
+			previous.text += `\n>\n${quoted}`;
+			return;
+		}
+
+		this.blocks.push({ text: `${opening}\n${quoted}`, listItem: false, callout: opening });
 	}
 
 	async writeElements(elements: Element[]): Promise<void> {
@@ -259,9 +303,11 @@ class PageWriter {
 
 			// A hard break inside one paragraph stays inside it.
 			const body = (prefix || headingPrefix(paragraph.styleId)) + text.split('\n').join('  \n' + indent);
-			const callout = calloutTitle(paragraph.tags);
+			const callout = calloutFor(paragraph.tags);
 
-			if (callout) this.push(`> [!note] ${callout}\n${body.split('\n').map(line => `> ${line}`).join('\n')}`);
+			// A callout around one item of a list would lift it out and split
+			// the list in two, so a tagged list item keeps its place instead.
+			if (callout && !paragraph.list && !task) this.pushCallout(callout, body);
 			else this.push(body, task !== undefined || paragraph.list !== undefined);
 		}
 

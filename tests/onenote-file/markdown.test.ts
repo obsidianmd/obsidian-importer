@@ -268,16 +268,49 @@ test('consecutive tasks stay together like any other list', async () => {
 	assert.equal(markdown, '- [ ] one\n- [x] two');
 });
 
-test('a labelled tag becomes a callout titled with the label', async () => {
-	assert.equal(
-		await render(para('remember this', { tags: [{ checkable: false, completed: false, label: 'Important' }] })),
-		'> [!note] Important\n> remember this');
+const tag = (shape: number, label?: string) => [{ checkable: false, completed: false, shape, label }];
+
+test('a tag that means "pay attention" becomes the matching admonition', async () => {
+	assert.equal(await render(para('look', { tags: tag(13, 'Important') })), '> [!important] Important\n> look');
+	assert.equal(await render(para('why?', { tags: tag(15, 'Question') })), '> [!question] Question\n> why?');
+	assert.equal(await render(para('run', { tags: tag(17, 'Critical') })), '> [!danger] Critical\n> run');
+	assert.equal(await render(para('idea', { tags: tag(21, 'Idea') })), '> [!tip] Idea\n> idea');
 });
 
-test('a tag label is used as written, whatever language it is in', async () => {
-	assert.equal(
-		await render(para('merk dir das', { tags: [{ checkable: false, completed: false, label: 'Wichtig' }] })),
-		'> [!note] Wichtig\n> merk dir das');
+test('a tag that merely categorises leaves its paragraph alone', async () => {
+	// A phone number, a book to read, a musical note: not admonitions.
+	assert.equal(await render(para('0800 1234', { tags: tag(109, 'Phone number') })), '0800 1234');
+	assert.equal(await render(para('Dune', { tags: tag(132, 'Book to read') })), 'Dune');
+	assert.equal(await render(para('a song', { tags: tag(121, 'Music to listen to') })), 'a song');
+});
+
+test('the title is the label as written, whatever language it is in', async () => {
+	assert.equal(await render(para('merk dir das', { tags: tag(13, 'Wichtig') })), '> [!important] Wichtig\n> merk dir das');
+});
+
+test('paragraphs tagged the same way in a row become one admonition', async () => {
+	const markdown = await render(
+		para('first', { tags: tag(13, 'Important') }),
+		para('second', { tags: tag(13, 'Important') }));
+
+	assert.equal(markdown, '> [!important] Important\n> first\n>\n> second');
+});
+
+test('differently tagged paragraphs stay separate', async () => {
+	const markdown = await render(
+		para('first', { tags: tag(13, 'Important') }),
+		para('second', { tags: tag(15, 'Question') }));
+
+	assert.equal(markdown, '> [!important] Important\n> first\n\n> [!question] Question\n> second');
+});
+
+test('a tagged list item keeps its place in the list', async () => {
+	const markdown = await render(
+		para('one', { list: { level: 0, ordered: false } }),
+		para('two', { list: { level: 0, ordered: false }, tags: tag(13, 'Important') }),
+		para('three', { list: { level: 0, ordered: false } }));
+
+	assert.equal(markdown, '- one\n- two\n- three');
 });
 
 test('a highlight carries the circle for its colour', async () => {

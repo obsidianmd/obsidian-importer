@@ -31,6 +31,8 @@ export interface Tag {
 	label?: string;
 	checkable: boolean;
 	completed: boolean;
+	/** The icon OneNote drew, as the NoteTagShape value in MS-ONE 2.3.86. */
+	shape?: number;
 }
 
 export interface ListInfo {

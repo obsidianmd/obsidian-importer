@@ -392,6 +392,7 @@ function buildTags(space: MaterializedObjectSpace, item: RevisionStoreObject): T
 			checkable,
 			completed: (status & 0x01) !== 0,
 			label: checkable ? undefined : readString(definition, Property.noteTagLabel),
+			shape,
 		});
 	}
 
