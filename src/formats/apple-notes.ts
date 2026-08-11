@@ -661,7 +661,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		let finalAttachmentName = outName;
 		if (this.filePrefixFormat && row.ZCREATIONDATE) {
 			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE);
-			const datePrefix = moment(creationTimestamp).format(this.filePrefixFormat);
+			// The format is typed by hand and may hold characters a file name
+			// cannot; a slash would otherwise cut the name short.
+			const datePrefix = sanitizeFileName(moment(creationTimestamp).format(this.filePrefixFormat));
 			finalAttachmentName = `${datePrefix} ${outName}`;
 		}
 
