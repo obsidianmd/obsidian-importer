@@ -7,7 +7,7 @@
  */
 
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
-import { Element, Ink, ListInfo, Page, Paragraph, Table, TextRun } from './semantic/content';
+import { Element, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
 /**
  * Native ink is measured in half inches; SVG wants something screen-sized.
@@ -89,6 +89,10 @@ function renderRun(run: TextRun): string {
 			return latex === '' ? '' : `${leading}$${latex}$${trailing}`;
 		}
 
+		if (run.highlight) core = highlighted(core, run.highlight);
+		if (run.superscript) core = `<sup>${core}</sup>`;
+		if (run.subscript) core = `<sub>${core}</sub>`;
+		if (run.underline) core = `<u>${core}</u>`;
 		if (run.bold) core = `**${core}**`;
 		if (run.italic) core = `*${core}*`;
 		if (run.strikethrough) core = `~~${core}~~`;
@@ -102,6 +106,48 @@ function renderRuns(runs: TextRun[]): string {
 	return runs.map(renderRun).join('').replace(/\r\n?/g, '\n').trim();
 }
 
+/**
+ * The six highlight colours Obsidian understands, named by the coloured circle
+ * that selects them. Apple Notes writes its highlights the same way, in
+ * `src/formats/apple-notes/convert-note.ts`.
+ */
+const HIGHLIGHT_MARKERS: { marker: string, inks: number[][] }[] = [
+	{ marker: '🔴', inks: [[0xff, 0x00, 0x00], [0xff, 0x69, 0xb4]] },
+	{ marker: '🟠', inks: [[0xff, 0xa5, 0x00]] },
+	{ marker: '🟡', inks: [[0xff, 0xff, 0x00]] },
+	{ marker: '🟢', inks: [[0x00, 0xff, 0x00], [0x00, 0x80, 0x00]] },
+	// A highlighter's blue is cyan, which is otherwise as near green as blue.
+	{ marker: '🔵', inks: [[0x00, 0x00, 0xff], [0x00, 0xff, 0xff]] },
+	{ marker: '🟣', inks: [[0x80, 0x00, 0x80], [0xff, 0x00, 0xff]] },
+];
+
+/**
+ * OneNote's highlighter offers colours that are not exactly any of those, so
+ * the nearest one is used — the reader's point was which colour it was, not
+ * its precise ink.
+ */
+function highlighted(text: string, color: string): string {
+	const match = color.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+	if (!match) return `==${text}==`;
+
+	const [red, green, blue] = match.slice(1).map(part => parseInt(part, 16));
+
+	let nearest = HIGHLIGHT_MARKERS[0].marker;
+	let best = Infinity;
+
+	for (const { marker, inks } of HIGHLIGHT_MARKERS) {
+		for (const [inkRed, inkGreen, inkBlue] of inks) {
+			const distance = (inkRed - red) ** 2 + (inkGreen - green) ** 2 + (inkBlue - blue) ** 2;
+			if (distance < best) {
+				best = distance;
+				nearest = marker;
+			}
+		}
+	}
+
+	return `==${nearest}${text}==`;
+}
+
 /** OneNote records its built-in styles by name, and h1..h6 are the ones markdown has. */
 function headingPrefix(styleId: string | undefined): string {
 	const level = styleId?.match(/^h([1-6])$/i);
@@ -111,6 +157,28 @@ function headingPrefix(styleId: string | undefined): string {
 function listPrefix(list: ListInfo | undefined): string {
 	if (!list) return '';
 	return '\t'.repeat(list.level) + (list.ordered ? '1. ' : '- ');
+}
+
+/**
+ * A OneNote to-do becomes a task, whatever list it was already in: the tick
+ * box is the thing worth keeping, and markdown has nowhere else to put it.
+ */
+function taskPrefix(tags: Tag[] | undefined, list: ListInfo | undefined): string | undefined {
+	const task = tags?.find(tag => tag.checkable);
+	if (!task) return undefined;
+
+	return '\t'.repeat(list?.level ?? 0) + (task.completed ? '- [x] ' : '- [ ] ');
+}
+
+/**
+ * A tag that is not a tick box is a label OneNote drew beside the paragraph -
+ * "Important", "Question" - which is what an Obsidian callout says too.
+ *
+ * The label is written in the author's language, so it becomes the callout's
+ * title rather than being matched against a list of English names.
+ */
+function calloutTitle(tags: Tag[] | undefined): string | undefined {
+	return tags?.find(tag => !tag.checkable && tag.label)?.label;
 }
 
 /** One thing written to the page, and whether it was an item in a list. */
@@ -185,11 +253,16 @@ class PageWriter {
 		const text = renderRuns(paragraph.runs);
 
 		if (text !== '') {
-			const prefix = listPrefix(paragraph.list) || headingPrefix(paragraph.styleId);
+			const task = taskPrefix(paragraph.tags, paragraph.list);
+			const prefix = task ?? listPrefix(paragraph.list) ?? '';
+			const indent = '\t'.repeat(paragraph.list?.level ?? 0);
+
 			// A hard break inside one paragraph stays inside it.
-			this.push(
-				prefix + text.split('\n').join('  \n' + '\t'.repeat(paragraph.list?.level ?? 0)),
-				paragraph.list !== undefined);
+			const body = (prefix || headingPrefix(paragraph.styleId)) + text.split('\n').join('  \n' + indent);
+			const callout = calloutTitle(paragraph.tags);
+
+			if (callout) this.push(`> [!note] ${callout}\n${body.split('\n').map(line => `> ${line}`).join('\n')}`);
+			else this.push(body, task !== undefined || paragraph.list !== undefined);
 		}
 
 		await this.writeElements(paragraph.children);

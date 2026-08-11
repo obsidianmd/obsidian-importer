@@ -238,3 +238,63 @@ test('an equation keeps the spacing around it', async () => {
 test('a math run holding nothing but spaces produces no delimiters', async () => {
 	assert.equal(await render(para([{ text: '   ', math: true }])), '');
 });
+
+test('a OneNote to-do becomes a task, ticked or not', async () => {
+	assert.equal(
+		await render(para('buy milk', { tags: [{ checkable: true, completed: false }] })),
+		'- [ ] buy milk');
+	assert.equal(
+		await render(para('done', { tags: [{ checkable: true, completed: true }] })),
+		'- [x] done');
+});
+
+test('a to-do inside a list keeps its indent and loses the bullet', async () => {
+	// Rendered after a line, because the page as a whole is trimmed.
+	const markdown = await render(
+		para('heading'),
+		para('nested task', {
+			list: { level: 2, ordered: false },
+			tags: [{ checkable: true, completed: false }],
+		}));
+
+	assert.equal(markdown, 'heading\n\n\t\t- [ ] nested task');
+});
+
+test('consecutive tasks stay together like any other list', async () => {
+	const markdown = await render(
+		para('one', { tags: [{ checkable: true, completed: false }] }),
+		para('two', { tags: [{ checkable: true, completed: true }] }));
+
+	assert.equal(markdown, '- [ ] one\n- [x] two');
+});
+
+test('a labelled tag becomes a callout titled with the label', async () => {
+	assert.equal(
+		await render(para('remember this', { tags: [{ checkable: false, completed: false, label: 'Important' }] })),
+		'> [!note] Important\n> remember this');
+});
+
+test('a tag label is used as written, whatever language it is in', async () => {
+	assert.equal(
+		await render(para('merk dir das', { tags: [{ checkable: false, completed: false, label: 'Wichtig' }] })),
+		'> [!note] Wichtig\n> merk dir das');
+});
+
+test('a highlight carries the circle for its colour', async () => {
+	assert.equal(await render(para([{ text: 'lit', highlight: '#ffff00' }])), '==🟡lit==');
+	assert.equal(await render(para([{ text: 'both', highlight: '#ffff00', bold: true }])), '**==🟡both==**');
+});
+
+test('a colour between two of them takes the nearer', async () => {
+	// OneNote's amber sits between orange and yellow, closer to orange.
+	assert.equal(await render(para([{ text: 'amber', highlight: '#ffc000' }])), '==🟠amber==');
+	assert.equal(await render(para([{ text: 'lime', highlight: '#00ff00' }])), '==🟢lime==');
+	assert.equal(await render(para([{ text: 'cyan', highlight: '#00ffff' }])), '==🔵cyan==');
+	assert.equal(await render(para([{ text: 'magenta', highlight: '#ff00ff' }])), '==🟣magenta==');
+});
+
+test('the emphases markdown has no syntax for fall back to HTML', async () => {
+	assert.equal(await render(para([{ text: 'x', superscript: true }])), '<sup>x</sup>');
+	assert.equal(await render(para([{ text: 'y', subscript: true }])), '<sub>y</sub>');
+	assert.equal(await render(para([{ text: 'z', underline: true }])), '<u>z</u>');
+});

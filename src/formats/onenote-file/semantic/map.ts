@@ -11,6 +11,7 @@ import { OneNoteFormatError } from '../errors';
 import { readUInt32 } from '../onestore/binary';
 import { ExtendedGuid } from '../onestore/file-header';
 import { RevisionStoreObject, keyOf } from '../onestore/objects';
+import { PropertySet } from '../onestore/property-set';
 import { RevisionStore } from '../onestore/revision-store';
 import { DEFAULT_READER_OPTIONS, ReaderOptions } from '../onestore/options';
 import {
@@ -26,6 +27,7 @@ import {
 	Section,
 	Table,
 	TableRow,
+	Tag,
 	TextRun,
 } from './content';
 import {
@@ -40,6 +42,7 @@ import {
 } from './ink';
 import { MaterializedObjectSpace, ObjectSpaceMaterializer, spaceKey } from './object-space';
 import {
+	findProperty,
 	readBoolean,
 	readData,
 	readFileTime,
@@ -246,8 +249,11 @@ function buildOutlineElement(
 		if (child) children.push(child);
 	}
 
+	const tags = buildTags(space, item);
+
 	if (primary && primary.kind === 'paragraph') {
 		primary.list = list;
+		primary.tags ??= tags;
 		primary.children.push(...children);
 		return primary;
 	}
@@ -280,7 +286,7 @@ function buildParagraph(space: MaterializedObjectSpace, item: RevisionStoreObjec
 
 	liftHyperlinkFields(runs);
 
-	const paragraph: Paragraph = { kind: 'paragraph', runs, children: [] };
+	const paragraph: Paragraph = { kind: 'paragraph', runs, children: [], tags: buildTags(space, item) };
 
 	for (const styleId of readReferences(item, Property.paragraphStyle)) {
 		const style = space.getObject(styleId);
@@ -324,6 +330,8 @@ function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): v
 	if (!style) return;
 
 	if (readBoolean(style, Property.mathFormatting)) run.math = true;
+	const highlight = highlightColor(readUInt32Property(style, Property.highlight));
+	if (highlight) run.highlight = highlight;
 	if (readBoolean(style, Property.bold)) run.bold = true;
 	if (readBoolean(style, Property.italic)) run.italic = true;
 	if (readBoolean(style, Property.underline)) run.underline = true;
@@ -341,6 +349,70 @@ function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): v
  * Only an outline element carrying a list node is a list item — every element
  * has an indent level, so the level alone would bullet the whole page.
  */
+/**
+ * A highlight as `#rrggbb`, or nothing when none was applied.
+ *
+ * OneNote stores the colour as 0x00BBGGRR and uses a high byte for "no
+ * colour"; white is the page showing through, which nobody chose either.
+ */
+function highlightColor(color: number | undefined): string | undefined {
+	if (color === undefined || (color & 0xff000000) !== 0) return undefined;
+	if ((color & 0xffffff) === 0xffffff) return undefined;
+
+	const channel = (shift: number) => ((color >> shift) & 0xff).toString(16).padStart(2, '0');
+	return `#${channel(0)}${channel(8)}${channel(16)}`;
+}
+
+/**
+ * The tags beside a paragraph: a checkbox becomes a task, and anything else
+ * keeps the label OneNote showed for it.
+ *
+ * Only the shape says whether a tag can be ticked; the label is written in
+ * whatever language the notebook's author used, so it is never matched on.
+ */
+function buildTags(space: MaterializedObjectSpace, item: RevisionStoreObject): Tag[] | undefined {
+	const states = findProperty(item.propertySet, Property.noteTagStates)?.childPropertySets;
+	if (!states || states.length === 0) return undefined;
+
+	const tags: Tag[] = [];
+	for (const state of states.slice(0, MAX_TAGS_PER_PARAGRAPH)) {
+		const status = readSetUInt32(state, Property.actionItemStatus) ?? 0;
+
+		// A removed tag is still recorded, and is not shown.
+		if ((status & 0x10) !== 0) continue;
+
+		const definitionId = findProperty(state, Property.noteTagDefinitionOid)?.referencedIds?.[0];
+		const definition = definitionId ? space.getObject(definitionId) : undefined;
+		const shape = readSetUInt32(state, Property.noteTagShape) ??
+			(definition?.jcid === Jcid.noteTagSharedDefinition ? readUInt32Property(definition, Property.noteTagShape) : undefined);
+
+		const checkable = shape !== undefined && isCheckableShape(shape);
+
+		tags.push({
+			checkable,
+			completed: (status & 0x01) !== 0,
+			label: checkable ? undefined : readString(definition, Property.noteTagLabel),
+		});
+	}
+
+	return tags.length > 0 ? tags : undefined;
+}
+
+/** The shapes OneNote draws as a tick box. */
+function isCheckableShape(shape: number): boolean {
+	if (shape >= 1 && shape <= 12) return true;
+	if (shape === 28 || shape === 30 || shape === 32) return true;
+	if (shape === 48 || shape === 50 || shape === 52) return true;
+	if (shape === 69 || shape === 71 || shape === 73) return true;
+	return shape >= 89 && shape <= 99;
+}
+
+function readSetUInt32(set: PropertySet, propertyId: number): number | undefined {
+	return findProperty(set, propertyId)?.scalarValue;
+}
+
+const MAX_TAGS_PER_PARAGRAPH = 9;
+
 function buildListInfo(space: MaterializedObjectSpace, item: RevisionStoreObject): ListInfo | undefined {
 	let listNode: RevisionStoreObject | undefined;
 	for (const listId of readReferences(item, Property.listNodes)) {

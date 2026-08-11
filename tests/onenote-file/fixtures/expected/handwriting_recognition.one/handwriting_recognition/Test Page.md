@@ -7,13 +7,13 @@ ABCDEF
 
 # ABCDEF
 
-ABCDEF
+- [ ] ABCDEF
+- [x] ABCDEFG
 
-ABCDEFG
+> [!note] Important
+> ABCDEFGH
 
-ABCDEFGH
-
-**Lorem** ipsum *dolor* sit amet, consetetur ~~sadipscing~~ elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore [magna](https://example.com) aliquyam erat, sed diam voluptua.
+**Lorem** ipsum *dolor* sit <u>amet</u>, consetetur ~~sadipscing~~ elitr, <sub>sed</sub> diam <sup>nonumy</sup> eirmod tempor ==🟠invidunt== ut labore et dolore [magna](https://example.com) aliquyam erat, sed diam voluptua.
 
 Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
 

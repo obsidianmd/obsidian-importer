@@ -17,6 +17,20 @@ export interface TextRun {
 	hyperlinkUrl?: string;
 	/** OneNote marked this run as an equation rather than prose. */
 	math?: boolean;
+	/** The colour behind the text as `#rrggbb`, when OneNote recorded one. */
+	highlight?: string;
+}
+
+/**
+ * A OneNote tag: the checkbox, star or flag put beside a paragraph.
+ *
+ * A checkable tag is a to-do; anything else carries a label, which is written
+ * in the language the notebook's author used.
+ */
+export interface Tag {
+	label?: string;
+	checkable: boolean;
+	completed: boolean;
 }
 
 export interface ListInfo {
@@ -33,6 +47,7 @@ export interface Paragraph {
 	children: Element[];
 	list?: ListInfo;
 	styleId?: string;
+	tags?: Tag[];
 }
 
 export interface Outline {

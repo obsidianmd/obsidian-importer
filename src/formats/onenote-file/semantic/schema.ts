@@ -25,6 +25,7 @@ export const Jcid = {
 	inkStrokeNode: 0x00020047,
 	strokePropertiesNode: 0x00120048,
 	recognizedTextWord: 0x00020057,
+	noteTagSharedDefinition: 0x00120043,
 } as const;
 
 export const Property = {
@@ -52,6 +53,14 @@ export const Property = {
 	hyperlink: 0x08001e14,
 	hyperlinkUrl: 0x1c001e20,
 	mathFormatting: 0x08003401,
+	highlight: 0x14001c0d,
+
+	actionItemType: 0x10003463,
+	noteTagShape: 0x10003464,
+	noteTagLabel: 0x1c003468,
+	actionItemStatus: 0x10003470,
+	noteTagDefinitionOid: 0x20003488,
+	noteTagStates: 0x40003489,
 	bold: 0x08001c04,
 	italic: 0x08001c05,
 	underline: 0x08001c06,
