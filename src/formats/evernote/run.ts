@@ -1,5 +1,3 @@
-import type { MarkdownOutput } from '../../markdown-output';
-import { EvernoteNote } from './models/EvernoteNote';
 import { defaultEvernoteOptions, EvernoteOptions } from './options';
 import { EvernoteOutput, FileTimes } from './output';
 import { RuntimeProperties } from './runtime-properties';
@@ -14,8 +12,9 @@ import { RuntimeProperties } from './runtime-properties';
 export interface NoteDraft {
 	path: string;
 	markdown: string;
-	/** What the note's timestamps are set from when it is written. */
-	note: EvernoteNote;
+	/** What a link to this note is matched by, since an ENEX gives no id. */
+	title: string;
+	times: FileTimes;
 	/** The attachments it carries, in the order they were decoded. */
 	resources: ResourceDraft[];
 }
@@ -44,11 +43,10 @@ export interface ResourceDraft {
 export class EvernoteRun {
 	readonly options: EvernoteOptions;
 	readonly output: EvernoteOutput;
-	readonly markdownOutput: MarkdownOutput;
 	readonly properties = new RuntimeProperties();
 
-	/** Where the notebook being converted right now is going. */
-	readonly paths = { mdPath: '' };
+	/** The folder the notebook being converted right now is going into. */
+	mdPath = '';
 
 	/** Every note this run will write, in the order they were converted. */
 	readonly drafts: NoteDraft[] = [];
@@ -56,23 +54,15 @@ export class EvernoteRun {
 	/** The attachments of the note being converted, until it has one to go on. */
 	private pending: ResourceDraft[] = [];
 
-	/** The paths this run has taken, so nothing else in it is given one twice. */
-	private readonly claimedPaths = new Set<string>();
 
 	constructor(options: EvernoteOptions, output: EvernoteOutput) {
 		this.options = { ...defaultEvernoteOptions, ...options };
 		this.output = output;
-		this.markdownOutput = this.options.markdownOutput ?? { indentUnit: '    ' };
 	}
 
-	/** Hold a path, so nothing else in this run is given it. */
-	claim(path: string): void {
-		this.claimedPaths.add(path);
-	}
 
-	draftNote(path: string, markdown: string, note: EvernoteNote): void {
-		this.claim(path);
-		this.drafts.push({ path, markdown, note, resources: this.pending });
+	draftNote(draft: Omit<NoteDraft, 'resources'>): void {
+		this.drafts.push({ ...draft, resources: this.pending });
 		this.pending = [];
 	}
 
@@ -89,9 +79,5 @@ export class EvernoteRun {
 		this.pending = [];
 	}
 
-	/** Whether anything - this run or an earlier import - is at this path. */
-	taken(path: string): boolean {
-		return this.claimedPaths.has(path) || this.output.exists(path);
-	}
 
 }

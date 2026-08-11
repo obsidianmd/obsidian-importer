@@ -30,11 +30,6 @@ export const getReminderDoneTime = (run: EvernoteRun, note: EvernoteNote): strin
 		? moment(note['note-attributes']['reminder-done-time']).format(run.options.dateFormat)
 		: '';
 };
-export const getTags = (run: EvernoteRun, note: EvernoteNote): { tags: string } => {
-	return { tags: logTags(run, note) };
-
-};
-
 export const logTags = (run: EvernoteRun, note: EvernoteNote): string => {
 	if (note.tag) {
 		const tagArray = Array.isArray(note.tag) ? note.tag : [note.tag];

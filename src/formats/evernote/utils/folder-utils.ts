@@ -1,5 +1,5 @@
 import { PickedFile } from '../../../filesystem';
-import { availableFileName, sanitizeFileName } from '../../../util';
+import { sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
 
@@ -10,21 +10,6 @@ export interface NotebookStackProps {
 
 // Conservative limit for enex directory name
 const MAX_ENEX_DIR_LENGTH = 100;
-
-/**
- * A folder name nothing is using, numbered "1", "2" if it is.
- *
- * An import bringing a notebook up to date wants the folder the last one made;
- * one making a copy wants its own. There is no shared equivalent - planNote
- * settles a note's name, and nothing settles a folder's - so this is the one
- * piece of naming the importer still does for itself, and it numbers the way
- * availableFileName does so a folder reads like everything beside it.
- */
-const freeFolderName = (run: EvernoteRun, basePath: string, name: string): string => {
-	if (!run.output.makesCopies()) return name;
-
-	return availableFileName(name, candidate => run.taken(`${basePath}/${candidate}`));
-};
 
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
 	const notebookFolderNames = basename.split('@@@');
@@ -60,13 +45,17 @@ export const getNotebookStackOutputDir = (enex: PickedFile, outputDir: string): 
 };
 
 export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: string): void => {
-	let truncatedBasename = sanitizeFileName(enexFileBasename);
+	// Against the folder it is going in, so the notebook's name is budgeted for
+	// the whole path the way planNote budgets a note's. The 100 characters on
+	// top of that are Evernote's own: every note in the notebook has to fit
+	// inside this name as well, and the shared limit only knows about the name
+	// it is given.
+	let truncatedBasename = sanitizeFileName(enexFileBasename, outputDir);
 
 	if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
-		truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH));
+		truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH), outputDir);
 		console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
 	}
 
-	run.paths.mdPath = `${outputDir}/${freeFolderName(run, outputDir, truncatedBasename)}`;
-	run.claim(run.paths.mdPath);
+	run.mdPath = run.output.planFolder(outputDir, truncatedBasename);
 };

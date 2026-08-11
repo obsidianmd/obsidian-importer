@@ -1,37 +1,39 @@
-import { moment } from 'obsidian';
-
-import { formatMarkdown } from '../../../markdown-output';
 import { EvernoteRun } from '../run';
 
 /**
- * Put everything the import converted where it decided it goes.
+ * Write the attachments of every note drafted since `from`, and put their
+ * links into the markdown where the tokens are.
  *
- * The attachments are placed here rather than as they are decoded, because
- * where one goes is the output's business and depends on the note it belongs
- * to. Until then the markdown carries a token, which is what is swapped for
- * the link once the file has a path.
+ * Called as each enex finishes rather than at the end of the import, so an
+ * export's attachments are not all held decoded at once - the bytes of a
+ * notebook are let go as soon as they are on disk. Where an attachment goes
+ * depends only on the note it belongs to, and that was settled when the note
+ * was planned, so writing them early settles nothing early.
  */
-export const commit = async (run: EvernoteRun): Promise<void> => {
-	for (const draft of run.drafts) {
-		const links: [token: string, link: string][] = [];
-
+export const commitResources = async (run: EvernoteRun, from: number): Promise<void> => {
+	for (const draft of run.drafts.slice(from)) {
 		for (const resource of draft.resources) {
 			const placed = await run.output.placeAttachment(resource.fileName, draft.path, resource.data.byteLength);
 			if (placed.write) await run.output.writeAttachment(placed.path, resource.data, resource.times);
 
-			links.push([resource.token, run.output.linkTo(placed.path, draft.path)]);
+			// A token ends in the '-' its number is followed by, so no token is
+			// part of another and the order they are put back in does not matter.
+			draft.markdown = draft.markdown.split(resource.token).join(run.output.linkTo(placed.path, draft.path));
 		}
 
-		let markdown = draft.markdown;
-		// Longest first: ENEX-ATTACHMENT-1- is a prefix of nothing, but a token
-		// substituted early must not leave a shorter one matching inside a link.
-		for (const [token, link] of links.sort(([a], [b]) => b.length - a.length)) {
-			markdown = markdown.split(token).join(link);
-		}
+		draft.resources.length = 0;
+	}
+};
 
-		await run.output.writeNote(draft.path, formatMarkdown(markdown, run.markdownOutput), {
-			ctime: moment(draft.note.created).valueOf() || undefined,
-			mtime: moment(draft.note.updated).valueOf() || undefined,
-		});
+/**
+ * Write every note the import converted.
+ *
+ * Last, because a note can link to one in a notebook that had not been read
+ * when it was converted, and applyLinks only knows where they all landed once
+ * every enex has been.
+ */
+export const commitNotes = async (run: EvernoteRun): Promise<void> => {
+	for (const draft of run.drafts) {
+		await run.output.writeNote(draft.path, draft.markdown, draft.times);
 	}
 };

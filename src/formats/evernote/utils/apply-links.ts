@@ -1,3 +1,4 @@
+import { parseFilePath } from '../../../filesystem';
 import { EvernoteRun, NoteDraft } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
 import { normalizeTitle } from './filename-utils';
@@ -18,20 +19,33 @@ import { normalizeTitle } from './filename-utils';
  * to. A title no note in the import has, or one that two of them share, is
  * left as the text it was, because nothing here can tell which was meant.
  */
+/** What internal-links-rule matched on to record a link in the first place. */
+const EVERNOTE_URL = 'evernote://';
+
 export const applyLinks = (run: EvernoteRun): void => {
 	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
 	if (entries.length === 0) return;
 
 	const byTitle = notesByTitle(run.drafts);
 
+	// Compiled once rather than once per note: the pattern is the url, and the
+	// note it is being applied to has nothing to do with it.
+	const links = entries.map(([url, { title, notebookName }]) => ({
+		url: new RegExp(escapeStringRegexp(url), 'g'),
+		target: byTitle.get(title),
+		title,
+		notebookName,
+	}));
+
 	for (const draft of run.drafts) {
-		const from = folderOf(draft.path);
+		// Most notes link to nothing. Every key in the map came from an href
+		// that starts this way, so a note without one cannot match any of them.
+		if (!draft.markdown.includes(EVERNOTE_URL)) continue;
+
+		const from = parseFilePath(draft.path).parent;
 		let updatedContent = draft.markdown;
 
-		for (const [linkName, linkProps] of entries) {
-			const { title, notebookName } = linkProps;
-			const target = byTitle.get(title);
-
+		for (const { url, target, title, notebookName } of links) {
 			const to = target
 				? linkToNote(target.path, from)
 				: notebookName && !from.endsWith(notebookName) ? `${notebookName}/${title}` : title;
@@ -39,9 +53,7 @@ export const applyLinks = (run: EvernoteRun): void => {
 			// A link that has to name a folder says what to call it as well, or
 			// the standardizing pass takes the whole path for the display text
 			// and the note reads "Notebook/Note" where it meant "Note".
-			const replacement = to === title ? title : `${to}|${title}`;
-
-			updatedContent = updatedContent.replace(new RegExp(escapeStringRegexp(linkName), 'g'), replacement);
+			updatedContent = updatedContent.replace(url, to === title ? title : `${to}|${title}`);
 		}
 
 		draft.markdown = updatedContent;
@@ -53,7 +65,7 @@ function notesByTitle(drafts: NoteDraft[]): Map<string, NoteDraft> {
 	const found = new Map<string, NoteDraft | null>();
 
 	for (const draft of drafts) {
-		const title = normalizeTitle(draft.note.title ?? '');
+		const title = normalizeTitle(draft.title);
 		found.set(title, found.has(title) ? null : draft);
 	}
 
@@ -69,12 +81,8 @@ function notesByTitle(drafts: NoteDraft[]): Map<string, NoteDraft> {
  * the same ones on the way in, so a title carrying them links as it always has.
  */
 function linkToNote(path: string, from: string): string {
-	const folder = folderOf(path);
-	const name = path.slice(folder.length + 1).replace(/\.md$/i, '').replace(/[[\]#^|]/g, '');
+	const { parent, basename } = parseFilePath(path);
+	const name = basename.replace(/[[\]#^|]/g, '');
 
-	return folder === from ? name : `${folder.slice(folder.lastIndexOf('/') + 1)}/${name}`;
-}
-
-function folderOf(path: string): string {
-	return path.slice(0, path.lastIndexOf('/'));
+	return parent === from ? name : `${parseFilePath(parent).name}/${name}`;
 }

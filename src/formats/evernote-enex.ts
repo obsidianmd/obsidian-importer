@@ -1,11 +1,12 @@
 import { Notice, TFile } from 'obsidian';
 import { helpUrl } from '../constants';
-import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { defaultEvernoteOptions } from './evernote/options';
 import { convertEnexFiles } from './evernote/convert';
+import { parseFilePath } from '../filesystem';
+import { availableFileName } from '../util';
 import { EvernoteOutput, PlacedAttachment } from './evernote/output';
 
 const HELP_PERMALINK = 'import/evernote';
@@ -45,9 +46,17 @@ export class EvernoteEnexImporter extends FormatImporter {
 		const plans = new Map<string, EnexPlan>();
 
 		return {
-			exists: path => vault.getAbstractFileByPathInsensitive(path) !== null,
+			planFolder: (parent, name) => {
+				const taken = (candidate: string) => this.hasClaimed(`${parent}/${candidate}`)
+					|| vault.getAbstractFileByPathInsensitive(`${parent}/${candidate}`) !== null;
 
-			makesCopies: () => this.duplicateHandling === DuplicateHandling.CreateCopy,
+				const folder = `${parent}/${this.duplicateHandling === DuplicateHandling.CreateCopy
+					? availableFileName(name, taken)
+					: name}`;
+				this.claimPath(folder);
+
+				return folder;
+			},
 
 			planNote: (folder, title, reportAs) => {
 				const planned = this.planNote(folder, title);
@@ -70,7 +79,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 				// Vault will not create a file inside a folder that is not there,
 				// and nothing has made the notebook's folder: planNote settles a
 				// path without creating anything on the way to it.
-				await this.createFolders(parentOf(path));
+				await this.createFolders(parseFilePath(path).parent || '/');
 
 				const { written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
 				if (written) ctx.reportNoteSuccess(reportAs);
@@ -106,7 +115,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 			},
 
 			writeAttachment: async (path, data, times) => {
-				await this.createFolders(parentOf(path));
+				await this.createFolders(parseFilePath(path).parent || '/');
 				const file = await this.writeAttachment(path, data, times);
 				ctx.reportAttachmentSuccess(file.name);
 			},
@@ -130,11 +139,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 			...defaultEvernoteOptions,
 			enexSources: files,
 			outputDir: folder.path,
-			markdownOutput: markdownOutputFor(this.app.vault),
 		}, this.outputInto(ctx), ctx);
 	}
-}
-
-function parentOf(path: string): string {
-	return path.slice(0, path.lastIndexOf('/')) || '/';
 }

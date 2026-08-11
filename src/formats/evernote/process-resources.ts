@@ -1,17 +1,12 @@
 import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/EvernoteNote';
-import { base64ToArrayBuffer, moment } from 'obsidian';
+import { base64ToArrayBuffer } from 'obsidian';
 import { stringToUtf8 } from '../../util';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import { EvernoteRun } from './run';
 import { md5 } from './utils/md5';
+import { noteTimes } from './utils/note-times';
 import * as utils from './utils';
-
-/** When the note says it was made and last changed, for what came out of it. */
-const noteTimes = (note: EvernoteNote) => ({
-	ctime: moment(note.created).valueOf() || undefined,
-	mtime: moment(note.updated).valueOf() || undefined,
-});
 
 export const processResources = (run: EvernoteRun, note: EvernoteNote): string => {
 	let resourceHashes: Record<string, ResourceHashItem> = {};
@@ -92,10 +87,10 @@ const processResource = (run: EvernoteRun, resource: EvernoteResource): Record<s
 	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
 
 	if (recognisedHash && fileName) {
-		resourceHash[recognisedHash] = { fileName, src, alreadyUsed: false };
+		resourceHash[recognisedHash] = { fileName, src };
 	}
 	else {
-		resourceHash[md5(new Uint8Array(bytes))] = { fileName, src, alreadyUsed: false };
+		resourceHash[md5(new Uint8Array(bytes))] = { fileName, src };
 	}
 
 	return resourceHash;

@@ -2,62 +2,22 @@ import '../shims/dom';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeCryptoModule from 'node:crypto';
-import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
-import { convertEnexFiles } from '../../src/formats/evernote/convert';
-import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
-import { FsOutput } from './fs-output';
-
-provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
+import { Context, importEnex, inTempDir, notebookDir } from './harness';
 
 // tsx runs these as CommonJS, so __dirname rather than import.meta.
 const FIXTURES = __dirname;
 
-function stubContext() {
-	return {
-		notes: [] as string[],
-		failures: [] as string[],
-		skips: [] as string[],
-		status() { },
-		reportNoteSuccess(name: string) { this.notes.push(name); },
-		reportAttachmentSuccess() { },
-		reportSkipped(name: string) { this.skips.push(String(name)); },
-		reportFailed(name: string, reason?: unknown) { this.failures.push(`${String(name)}: ${String(reason)}`); },
-		reportProgress() { },
-		isCancelled() { return false; },
-		async shouldStop() { return false; },
-		cancel() { },
-		finish() { },
-	};
-}
+async function convert<T>(paths: string[], use: (outputDir: string, ctx: Context) => T): Promise<T> {
+	let answer!: T;
 
-async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnType<typeof stubContext>) => T): Promise<T> {
-	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-'));
-	const ctx = stubContext();
+	await inTempDir(async outputDir => {
+		answer = use(outputDir, await importEnex(outputDir, paths));
+	});
 
-	try {
-		await convertEnexFiles({
-			...defaultEvernoteOptions,
-			enexSources: paths.map(path => new NodePickedFile(path)),
-			outputDir,
-		}, new FsOutput(outputDir), ctx as never);
-
-		return use(outputDir, ctx);
-	}
-	finally {
-		nodeFs.rmSync(outputDir, { recursive: true, force: true });
-	}
-}
-
-function notebookDir(outputDir: string): string {
-	const folders = nodeFs.readdirSync(outputDir, { withFileTypes: true }).filter(entry => entry.isDirectory());
-	assert.equal(folders.length, 1, `expected one notebook folder, got: ${folders.map(f => f.name).join(', ') || 'none'}`);
-	return nodePath.join(outputDir, folders[0].name);
+	return answer;
 }
 
 // The ones from Yarle sit in their own directory, with their provenance and

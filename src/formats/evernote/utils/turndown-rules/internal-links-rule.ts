@@ -1,5 +1,4 @@
 import { TurndownNode } from './turndown-types';
-import { genUid } from '../../../../util';
 import { EvernoteRun } from '../../run';
 
 import { normalizeTitle } from '../filename-utils';
@@ -41,12 +40,11 @@ export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 		if (value.startsWith('evernote://')) {
 			const fileName = normalizeTitle(text);
 			const noteIdNameMap = run.properties;
-			const uniqueId = genUid(6);
 			if (isTOC(noteIdNameMap.getCurrentNoteName())) {
-				noteIdNameMap.addItemToTOCMap({ url: value, title: fileName, uniqueEnd: uniqueId });
+				noteIdNameMap.addItemToTOCMap({ url: value, title: fileName });
 			}
 			else {
-				noteIdNameMap.addItemToMap({ url: value, title: fileName, uniqueEnd: uniqueId });
+				noteIdNameMap.addItemToMap({ url: value, title: fileName });
 			}
 
 			return prefix + `[[${value}]]`;

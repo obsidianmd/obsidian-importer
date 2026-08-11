@@ -2,9 +2,7 @@ import { InternalLink } from './models';
 
 export interface NoteIdNameEntry {
 	title: string;
-	noteName: string;
 	notebookName: string;
-	uniqueEnd: string;
 }
 
 export interface NoteIdNames {
@@ -23,9 +21,7 @@ export class RuntimeProperties {
 		this.noteIdNameMap[linkItem.url] = {
 			...this.noteIdNameMap[linkItem.url],
 			title: linkItem.title,
-			noteName: this.currentNoteName,
 			notebookName: this.currentNotebookName,
-			uniqueEnd: linkItem.uniqueEnd,
 		};
 	}
 
@@ -33,9 +29,7 @@ export class RuntimeProperties {
 		this.noteIdNameTOCMap[linkItem.url] = {
 			...this.noteIdNameMap[linkItem.url],
 			title: linkItem.title,
-			noteName: this.currentNoteName,
 			notebookName: this.currentNotebookName,
-			uniqueEnd: linkItem.uniqueEnd,
 		};
 	}
 
@@ -46,9 +40,6 @@ export class RuntimeProperties {
 		};
 	}
 
-	getNoteIdNameMapByNoteTitle(noteTitle: string): NoteIdNameEntry[] {
-		return Object.values(this.getAllNoteIdNameMap()).filter(noteIdName => noteIdName.title === noteTitle);
-	}
 
 	setCurrentNotebookName(currentNotebookName: string): void {
 		this.currentNotebookName = currentNotebookName;

@@ -29,15 +29,15 @@ export interface PlacedAttachment {
 }
 
 export interface EvernoteOutput {
-	/** Whether a file or a folder is at this path already. */
-	exists(path: string): boolean;
-
 	/**
-	 * Whether this import is making a copy of what it finds rather than
-	 * bringing it up to date. It is what decides between importing a notebook
-	 * into the folder an earlier import made and putting a new one beside it.
+	 * Where a notebook of this name goes inside this folder, and take the path.
+	 *
+	 * An import bringing a notebook up to date wants the folder the last one
+	 * made; one making a copy wants its own beside it. Which of those it is, and
+	 * how a name already taken is numbered, is the same question planNote
+	 * answers for a note - so it is answered in the same place.
 	 */
-	makesCopies(): boolean;
+	planFolder(parent: string, name: string): string;
 
 	/**
 	 * Where a note of this title goes in this folder, and take the path.

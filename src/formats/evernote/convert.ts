@@ -8,7 +8,7 @@ import { EvernoteOptions } from './options';
 import { EvernoteOutput } from './output';
 import { EvernoteRun } from './run';
 import { processNode } from './process-node';
-import { commit } from './utils/commit';
+import { commitNotes, commitResources } from './utils/commit';
 import { convertTasktoMd } from './process-tasks';
 
 import { parseEnex } from './parse-enex';
@@ -16,10 +16,11 @@ import * as utils from './utils';
 import { applyLinks } from './utils/apply-links';
 import { isWebClip } from './utils/note-utils';
 
-const NOTEBOOKSTACK_SEPARATOR = '@@@';
-
 /** The elements a conversion is called back about, and nothing else. */
 const WANTED = new Set(['note', 'task']);
+
+/** What div-rule leaves where a note's task group belongs. */
+const TASK_PLACEHOLDER = '<ENEX-EN-V10-TASK>';
 
 interface TaskGroups {
 	[key: string]: Map<string, string>;
@@ -82,12 +83,19 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 	}
 
 	// The task groups a note carries are only known once its enex has been read.
-	for (const draft of run.drafts.slice(firstDraft)) {
-		for (const task of Object.keys(tasks)) {
-			const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
-			const sortedTasks = new Map([...tasks[task]].sort());
+	// Each group is sorted once here rather than once per note: the group is
+	// what its order depends on, and the note it lands in is not part of that.
+	const groups = Object.entries(tasks).map(([id, group]) => ({
+		placeholder: `<ENEX-EN-V10-TASK>${id}</ENEX-EN-V10-TASK>`,
+		text: [...new Map([...group].sort()).values()].join('\n'),
+	}));
 
-			draft.markdown = draft.markdown.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
+	for (const draft of run.drafts.slice(firstDraft)) {
+		// A note with no task carries no placeholder for any of them.
+		if (!draft.markdown.includes(TASK_PLACEHOLDER)) continue;
+
+		for (const { placeholder, text } of groups) {
+			draft.markdown = draft.markdown.replace(placeholder, text);
 		}
 	}
 };
@@ -102,20 +110,18 @@ export async function convertEnexFiles(options: EvernoteOptions, output: Evernot
 			break;
 		}
 
-		if (enex.basename.includes(NOTEBOOKSTACK_SEPARATOR)) {
-			const notebookStackProperties = utils.getNotebookStackedProps(enex);
+		// A notebook stack is written into the file name as "Stack@@@Notebook",
+		// and a name with no separator in it is a stack of one - which is why
+		// there is no second case here.
+		const notebook = utils.getNotebookStackedProps(enex);
 
-			utils.setPaths(run, notebookStackProperties.basename, utils.getNotebookStackOutputDir(enex, run.options.outputDir));
-			run.properties.setCurrentNotebookName(notebookStackProperties.basename);
-			run.properties.setCurrentNotebookFullpath(notebookStackProperties.fullpath);
-		}
-		else {
-			utils.setPaths(run, enex.basename, run.options.outputDir);
-			run.properties.setCurrentNotebookName(enex.basename);
-			run.properties.setCurrentNotebookFullpath(enex.fullpath);
-		}
+		utils.setPaths(run, notebook.basename, utils.getNotebookStackOutputDir(enex, run.options.outputDir));
+		run.properties.setCurrentNotebookName(notebook.basename);
+		run.properties.setCurrentNotebookFullpath(notebook.fullpath);
 
+		const firstDraft = run.drafts.length;
 		await parseStream(run, enex, ctx);
+		await commitResources(run, firstDraft);
 	}
 
 	// A link can point into a notebook read later, so this waits for all of them.
@@ -123,5 +129,5 @@ export async function convertEnexFiles(options: EvernoteOptions, output: Evernot
 
 	// What has been converted is written whether or not the rest of it was: an
 	// import the user stopped still leaves the notes it had already read.
-	await commit(run);
+	await commitNotes(run);
 }

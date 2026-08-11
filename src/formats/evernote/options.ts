@@ -1,6 +1,5 @@
 import { PickedFile } from '../../filesystem';
 import { TagSeparatorReplaceOptions } from './models';
-import type { MarkdownOutput } from '../../markdown-output';
 
 export interface EvernoteOptions {
 	enexSources: PickedFile[];
@@ -11,8 +10,6 @@ export interface EvernoteOptions {
 	nestedTags?: TagSeparatorReplaceOptions;
 	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;
-	/** How the vault being written into indents; left out, a test's default. */
-	markdownOutput?: MarkdownOutput;
 }
 
 export const defaultEvernoteOptions: EvernoteOptions = {

@@ -14,17 +14,11 @@ import '../shims/dom';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeCryptoModule from 'node:crypto';
 import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
-import { convertEnexFiles } from '../../src/formats/evernote/convert';
-import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
-import { Duplicates, FsOutput } from './fs-output';
-
-provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
+import { Duplicates } from './fs-output';
+import { Context, importEnex, inTempDir, tree } from './harness';
 
 // The same enex name in two directories: a second export of one notebook, one
 // of whose attachments has since been removed. Same name, so the second import
@@ -40,67 +34,11 @@ const NOTEBOOK = 'report';
 const NOTE = `${NOTEBOOK}/Quarterly Report.md`;
 const RESOURCES = `${NOTEBOOK}/_resources`;
 
-function stubContext() {
-	return {
-		notes: [] as string[],
-		skips: [] as string[],
-		failures: [] as string[],
-		status() { },
-		reportNoteSuccess(name: string) { this.notes.push(name); },
-		reportAttachmentSuccess() { },
-		reportSkipped(name: string) { this.skips.push(String(name)); },
-		reportFailed(name: string, reason?: unknown) { this.failures.push(`${String(name)}: ${String(reason)}`); },
-		reportProgress() { },
-		isCancelled() { return false; },
-		async shouldStop() { return false; },
-		cancel() { },
-		finish() { },
-	};
-}
-
-type Context = ReturnType<typeof stubContext>;
-
-async function importInto(
-	outputDir: string,
-	fixture: string,
-	duplicates: Duplicates = 'copy',
-): Promise<Context> {
-	const ctx = stubContext();
-
-	await convertEnexFiles({
-		...defaultEvernoteOptions,
-		enexSources: [new NodePickedFile(fixture)],
-		outputDir,
-	}, new FsOutput(outputDir, { duplicates, ctx }), ctx as never);
-
+async function importInto(outputDir: string, fixture: string, duplicates: Duplicates = 'copy'): Promise<Context> {
+	const ctx = await importEnex(outputDir, [fixture], { duplicates });
 	assert.deepEqual(ctx.failures, [], 'no note should fail to convert');
 
 	return ctx;
-}
-
-/** Every file in the output, as vault-style relative paths. */
-function tree(dir: string): string[] {
-	const found: string[] = [];
-	const walk = (at: string, prefix: string) => {
-		for (const entry of nodeFs.readdirSync(at, { withFileTypes: true })) {
-			const next = prefix ? `${prefix}/${entry.name}` : entry.name;
-			if (entry.isDirectory()) walk(nodePath.join(at, entry.name), next);
-			else found.push(next);
-		}
-	};
-	walk(dir, '');
-
-	return found.sort();
-}
-
-async function inTempDir(use: (outputDir: string) => Promise<void>): Promise<void> {
-	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-prior-'));
-	try {
-		await use(outputDir);
-	}
-	finally {
-		nodeFs.rmSync(outputDir, { recursive: true, force: true });
-	}
 }
 
 const skip = 'skip' as const;

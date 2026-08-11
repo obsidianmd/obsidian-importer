@@ -1,21 +1,12 @@
-import { moment } from 'obsidian';
-
 import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
-import { getMetadata, getTags, isComplex } from './utils';
+import { getMetadata, isComplex, logTags } from './utils';
+import { noteTimes } from './utils/note-times';
 
 import { renderNote } from './utils/render-note';
-import { standardizeFrontMatter } from './utils/front-matter';
-
-/** When the export says the note last changed, if it says at all. */
-const sourceMtime = (note: EvernoteNote): number | undefined => {
-	const updated = note.updated ? moment(note.updated).valueOf() : NaN;
-
-	return Number.isNaN(updated) ? undefined : updated;
-};
 
 export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: string): boolean => {
 
@@ -25,8 +16,9 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: stri
 	// Where the note goes, and whether it is going at all, both settled before
 	// anything is converted: a note being left alone leaves its attachments
 	// alone too, which it could not do while its resources were written first.
-	const notePath = run.output.planNote(run.paths.mdPath, title || 'Untitled', reportAs);
-	if (!run.output.willImport(notePath, sourceMtime(note))) return false;
+	const times = noteTimes(note);
+	const notePath = run.output.planNote(run.mdPath, title || 'Untitled', reportAs);
+	if (!run.output.willImport(notePath, times.mtime)) return false;
 
 	const content = joinNoteContent(note.content);
 	note.content = content;
@@ -35,7 +27,6 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: stri
 		title,
 		content,
 		htmlContent: content,
-		originalContent: content,
 	};
 
 
@@ -47,9 +38,14 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: stri
 
 		noteData = { ...noteData, ...convertHtml2Md(run, noteData) };
 		noteData = { ...noteData, ...getMetadata(run, note) };
-		noteData = { ...noteData, ...getTags(run, note) };
+		noteData.tags = logTags(run, note);
 
-		run.draftNote(notePath, standardizeFrontMatter(renderNote(noteData)), note);
+		run.draftNote({
+			path: notePath,
+			markdown: renderNote(noteData),
+			title,
+			times,
+		});
 
 		return true;
 	}

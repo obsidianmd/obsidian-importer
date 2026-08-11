@@ -21,6 +21,7 @@ import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
 import { EvernoteOutput, FileTimes, PlacedAttachment } from '../../src/formats/evernote/output';
+import { formatMarkdown } from '../../src/markdown-output';
 import { i18n } from '../../src/i18n';
 import { availableFileName, sanitizeFileName } from '../../src/util';
 
@@ -54,8 +55,8 @@ export class FsOutput implements EvernoteOutput {
 	/** Paths this import has given out, note and attachment alike. */
 	private readonly claimed = new Set<string>();
 
-	/** The note an earlier import left at each planned path, if it did. */
-	private readonly matched = new Map<string, string>();
+	/** Planned paths where an earlier import's note is already sitting. */
+	private readonly matched = new Set<string>();
 
 	/** How each planned note is named in what the import reports. */
 	private readonly reportAs = new Map<string, string>();
@@ -79,12 +80,14 @@ export class FsOutput implements EvernoteOutput {
 		this.ctx = ctx;
 	}
 
-	exists(path: string): boolean {
-		return nodeFs.existsSync(path);
-	}
+	planFolder(parent: string, name: string): string {
+		const taken = (candidate: string) => this.claimed.has(`${parent}/${candidate}`)
+			|| nodeFs.existsSync(`${parent}/${candidate}`);
 
-	makesCopies(): boolean {
-		return this.duplicates === 'copy';
+		const folder = `${parent}/${this.duplicates === 'copy' ? availableFileName(name, taken) : name}`;
+		this.claimed.add(folder);
+
+		return folder;
 	}
 
 	planNote(folder: string, title: string, reportAs: string): string {
@@ -94,7 +97,7 @@ export class FsOutput implements EvernoteOutput {
 		// An earlier import's note is written to again rather than beside.
 		if (this.duplicates !== 'copy' && !this.claimed.has(desired) && nodeFs.existsSync(desired)) {
 			this.claimed.add(desired);
-			this.matched.set(desired, desired);
+			this.matched.add(desired);
 			this.reportAs.set(desired, reportAs);
 
 			return desired;
@@ -109,8 +112,7 @@ export class FsOutput implements EvernoteOutput {
 	}
 
 	willImport(path: string, sourceMtime?: number): boolean {
-		const file = this.matched.get(path);
-		if (!file) return true;
+		if (!this.matched.has(path)) return true;
 
 		if (this.duplicates === 'skip') return this.leave(path, i18n.reason.alreadyInVault());
 
@@ -121,7 +123,7 @@ export class FsOutput implements EvernoteOutput {
 			return true;
 		}
 
-		const writtenAt = Math.round(nodeFs.statSync(file).mtimeMs);
+		const writtenAt = Math.round(nodeFs.statSync(path).mtimeMs);
 		if (writtenAt === sourceMtime) return this.leave(path, i18n.reason.unchangedSinceImport());
 		if (writtenAt > sourceMtime) return this.leave(path, i18n.reason.editedSinceImport());
 
@@ -129,14 +131,17 @@ export class FsOutput implements EvernoteOutput {
 	}
 
 	async writeNote(path: string, markdown: string, times: FileTimes): Promise<void> {
-		const file = this.matched.get(path);
+		// The vault formats a note as it writes it, in createMarkdown - so this
+		// is what the recordings are of, and what an unchanged note has to be
+		// compared against. unchangedContent compares the formatted form too.
+		const content = formatMarkdown(markdown, { indentUnit: '    ' });
 
-		if (file && this.compareContent.has(path) && nodeFs.readFileSync(file, 'utf8') === markdown) {
+		if (this.compareContent.has(path) && nodeFs.readFileSync(path, 'utf8') === content) {
 			this.leave(path, i18n.reason.unchangedSinceImport());
 			return;
 		}
 
-		await this.write(path, markdown, times);
+		await this.write(path, content, times);
 		this.ctx?.reportNoteSuccess(this.reportAs.get(path) ?? path);
 	}
 

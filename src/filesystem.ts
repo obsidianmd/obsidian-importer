@@ -27,8 +27,12 @@ export interface PickedFile {
 	 *
 	 * For a source too big to hold at once - an ENEX carrying a decade of
 	 * attachments is gigabytes - where the reader can work through it as it
-	 * arrives. A multi-byte character split across two reads is put back
+	 * arrives. A multi-byte character split across two pieces is put back
 	 * together; a piece is never half a character.
+	 *
+	 * How many pieces there are is the file's business, not the caller's: a
+	 * source that has to be decompressed whole, like a zip entry, hands its
+	 * text over in one. Only the boundaries are guaranteed, not the bounding.
 	 */
 	readChunks(): AsyncIterable<string>;
 
@@ -85,6 +89,25 @@ export function provideNodeModules(modules: NodeModules): void {
 /** How much of a file is read at a time, in bytes. */
 const READ_CHUNK = 1 << 16;
 
+/**
+ * Text from bytes, a piece at a time, without ever splitting a character.
+ *
+ * A utf8 character is up to four bytes and a read ends wherever it ends, so a
+ * decoder that is told the stream is not finished holds the trailing bytes of
+ * a split character back until the next piece completes it.
+ */
+async function* decodeUtf8(chunks: AsyncIterable<Uint8Array>): AsyncIterable<string> {
+	const decoder = new TextDecoder('utf-8');
+
+	for await (const chunk of chunks) {
+		const piece = decoder.decode(chunk, { stream: true });
+		if (piece) yield piece;
+	}
+
+	const tail = decoder.decode();
+	if (tail) yield tail;
+}
+
 export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
 }
@@ -122,19 +145,16 @@ export class NodePickedFile implements PickedFile {
 	async *readChunks(): AsyncIterable<string> {
 		const handle = await fsPromises.open(this.filepath, 'r');
 		try {
-			const decoder = new TextDecoder('utf-8');
-			const buffer = Buffer.alloc(READ_CHUNK);
+			yield* decodeUtf8(async function* () {
+				const buffer = Buffer.alloc(READ_CHUNK);
 
-			for (;;) {
-				const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
-				if (bytesRead === 0) break;
+				for (;;) {
+					const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+					if (bytesRead === 0) return;
 
-				const piece = decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
-				if (piece) yield piece;
-			}
-
-			const tail = decoder.decode();
-			if (tail) yield tail;
+					yield buffer.subarray(0, bytesRead);
+				}
+			}());
 		}
 		finally {
 			await handle.close();
@@ -229,17 +249,13 @@ export class WebPickedFile implements PickedFile {
 	}
 
 	async *readChunks(): AsyncIterable<string> {
-		const decoder = new TextDecoder('utf-8');
+		const { file } = this;
 
-		for (let at = 0; at < this.file.size; at += READ_CHUNK) {
-			const slice = await this.file.slice(at, at + READ_CHUNK).arrayBuffer();
-
-			const piece = decoder.decode(new Uint8Array(slice), { stream: true });
-			if (piece) yield piece;
-		}
-
-		const tail = decoder.decode();
-		if (tail) yield tail;
+		yield* decodeUtf8(async function* () {
+			for (let at = 0; at < file.size; at += READ_CHUNK) {
+				yield new Uint8Array(await file.slice(at, at + READ_CHUNK).arrayBuffer());
+			}
+		}());
 	}
 
 	async read(): Promise<ArrayBuffer> {

@@ -2,83 +2,26 @@ import '../shims/dom';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeCryptoModule from 'node:crypto';
 import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
-import { convertEnexFiles } from '../../src/formats/evernote/convert';
-import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
-import { Duplicates, FsOutput } from './fs-output';
+import { Duplicates } from './fs-output';
+import { Context, importEnex, inTempDir, tree } from './harness';
 
-provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
-
-const FIXTURES = __dirname;
-const FIXTURE = nodePath.join(FIXTURES, 'test-internotebook_links_A.enex');
-
-function stubContext() {
-	return {
-		notes: [] as string[],
-		skips: [] as string[],
-		failures: [] as string[],
-		status() { },
-		reportNoteSuccess(name: string) { this.notes.push(name); },
-		reportAttachmentSuccess() { },
-		reportSkipped(name: string) { this.skips.push(String(name)); },
-		reportFailed(name: string, reason?: unknown) { this.failures.push(`${String(name)}: ${String(reason)}`); },
-		reportProgress() { },
-		isCancelled() { return false; },
-		async shouldStop() { return false; },
-		cancel() { },
-		finish() { },
-	};
-}
-
-function tree(dir: string): string[] {
-	const found: string[] = [];
-	const walk = (at: string, prefix: string) => {
-		for (const entry of nodeFs.readdirSync(at, { withFileTypes: true })) {
-			const next = prefix ? `${prefix}/${entry.name}` : entry.name;
-			if (entry.isDirectory()) walk(nodePath.join(at, entry.name), next);
-			else found.push(next);
-		}
-	};
-	walk(dir, '');
-	return found.sort();
-}
-
-async function convertInto(
-	outputDir: string,
-	ctx: ReturnType<typeof stubContext>,
-	duplicates: Duplicates = 'copy'
-): Promise<void> {
-	await convertEnexFiles({
-		...defaultEvernoteOptions,
-		enexSources: [new NodePickedFile(FIXTURE)],
-		outputDir,
-	}, new FsOutput(outputDir, { duplicates, ctx }), ctx as never);
-}
+const FIXTURE = nodePath.join(__dirname, 'test-internotebook_links_A.enex');
 
 async function importTwice(
 	duplicates: Duplicates,
-	use: (outputDir: string, first: ReturnType<typeof stubContext>, second: ReturnType<typeof stubContext>) => void,
+	use: (outputDir: string, first: Context, second: Context) => void,
 	between?: (outputDir: string) => void
 ): Promise<void> {
-	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-again-'));
-	const first = stubContext();
-	const second = stubContext();
-
-	try {
-		await convertInto(outputDir, first);
+	await inTempDir(async outputDir => {
+		const first = await importEnex(outputDir, [FIXTURE]);
 		between?.(outputDir);
-		await convertInto(outputDir, second, duplicates);
+		const second = await importEnex(outputDir, [FIXTURE], { duplicates });
 
 		use(outputDir, first, second);
-	}
-	finally {
-		nodeFs.rmSync(outputDir, { recursive: true, force: true });
-	}
+	});
 }
 
 test('with no answer to give, a second import is a second copy', async () => {

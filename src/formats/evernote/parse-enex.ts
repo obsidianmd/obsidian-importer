@@ -90,9 +90,18 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 
 		const value: EnexElement = closed.children ?? (closed.attributes ? { $text: closed.text } : closed.text);
 
-		// Asked per element as well as per piece, because a file small enough to
-		// arrive in one piece would otherwise be read to the end regardless.
-		if (wanted.has(name) && !isCancelled?.()) onElement(name, value);
+		if (wanted.has(name)) {
+			// Asked per element as well as per piece, because a file small enough
+			// to arrive in one piece would otherwise be read to the end anyway.
+			if (!isCancelled?.()) onElement(name, value);
+
+			// An element handed over is not kept. Hanging it on its parent as
+			// well would leave every note of the file, and every attachment
+			// decoded into one, reachable from the root until the read finished
+			// - which is the whole file in memory, and the reason it is read a
+			// piece at a time is that the whole file does not fit.
+			return;
+		}
 
 		const parent = stack[stack.length - 1];
 		if (!parent) return;

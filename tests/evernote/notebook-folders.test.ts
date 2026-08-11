@@ -51,7 +51,7 @@ test('an enex whose name ends in a dot lands in a folder Windows can open', () =
 		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, 'Inbox.', outputDir);
 
-		assert.equal(nodePath.basename(run.paths.mdPath), 'Inbox');
+		assert.equal(nodePath.basename(run.mdPath), 'Inbox');
 	}
 	finally {
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
@@ -64,7 +64,7 @@ test('an enex whose name is only dots still gets a folder', () => {
 		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, '...', outputDir);
 
-		assert.equal(nodePath.basename(run.paths.mdPath), 'Untitled');
+		assert.equal(nodePath.basename(run.mdPath), 'Untitled');
 	}
 	finally {
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
@@ -79,7 +79,7 @@ test('a long name is still legal after being truncated', () => {
 		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, `${'a'.repeat(98)}${'.'.repeat(20)}`, outputDir);
 
-		assert.ok(!nodePath.basename(run.paths.mdPath).endsWith('.'), `got ${nodePath.basename(run.paths.mdPath)}`);
+		assert.ok(!nodePath.basename(run.mdPath).endsWith('.'), `got ${nodePath.basename(run.mdPath)}`);
 	}
 	finally {
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
