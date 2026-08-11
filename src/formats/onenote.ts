@@ -871,16 +871,28 @@ export class OneNoteImporter extends FormatImporter {
 					else returnPath = currentPath;
 				}
 				else {
-					returnPath = currentPath;
+					// Every page above this one owns a folder, so a page two
+					// levels down sits under both. Stopping at the nearest
+					// parent left it a level up, beside a folder it is not in.
+					const ancestors: string[] = [];
+					let wanted = page.level! - 1;
 
-					// Iterate backward to find the parent page
-					for (let i = section.pages!.indexOf(page) - 1; i >= 0; i--) {
-						if (section.pages![i].level === page.level! - 1) {
-							const sanitizedName = sanitizeFileName(section.pages![i].title);
-							returnPath += '/' + sanitizedName;
-							break;
-						}
+					for (let i = section.pages!.indexOf(page) - 1; i >= 0 && wanted >= 0; i--) {
+						const above = section.pages![i];
+
+						// Deeper than what is being looked for: another page's
+						// subtree, which this page is not in.
+						if (above.level! > wanted) continue;
+
+						ancestors.unshift(sanitizeFileName(above.title));
+
+						// Carry on from the level this page is actually at, so a
+						// subpage whose own parent is missing still lands inside
+						// the page it follows rather than an earlier one.
+						wanted = above.level! - 1;
 					}
+
+					returnPath = [currentPath, ...ancestors].join('/');
 				}
 				break;
 			}
