@@ -12,8 +12,6 @@ import { RuntimeProperties } from './runtime-properties';
 export interface NoteDraft {
 	path: string;
 	markdown: string;
-	/** What a link to this note is matched by, since an ENEX gives no id. */
-	title: string;
 	times: FileTimes;
 	/** The attachments it carries, in the order they were decoded. */
 	resources: ResourceDraft[];
@@ -51,6 +49,14 @@ export class EvernoteRun {
 	/** Every note this run will write, in the order they were converted. */
 	readonly drafts: NoteDraft[] = [];
 
+	/**
+	 * Where each note of a given title landed, whether or not it is being
+	 * written. A link resolves against this rather than against the drafts: a
+	 * note the import is leaving alone is still a note a link can point at, and
+	 * still one that makes a title ambiguous when two notes share it.
+	 */
+	private readonly plannedByTitle = new Map<string, string | null>();
+
 	/** The attachments of the note being converted, until it has one to go on. */
 	private pending: ResourceDraft[] = [];
 
@@ -60,6 +66,16 @@ export class EvernoteRun {
 		this.output = output;
 	}
 
+
+	/** Remember where a note of this title goes, written or not. */
+	notePlanned(title: string, path: string): void {
+		this.plannedByTitle.set(title, this.plannedByTitle.has(title) ? null : path);
+	}
+
+	/** Where the one note of this title is, or nothing if it is not the one. */
+	plannedNote(title: string): string | null {
+		return this.plannedByTitle.get(title) ?? null;
+	}
 
 	draftNote(draft: Omit<NoteDraft, 'resources'>): void {
 		this.drafts.push({ ...draft, resources: this.pending });

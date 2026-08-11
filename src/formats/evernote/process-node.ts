@@ -4,6 +4,7 @@ import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
 import { getMetadata, isComplex, logTags } from './utils';
+import { normalizeTitle } from './utils/filename-utils';
 import { noteTimes } from './utils/note-times';
 
 import { renderNote } from './utils/render-note';
@@ -18,6 +19,8 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: stri
 	// alone too, which it could not do while its resources were written first.
 	const times = noteTimes(note);
 	const notePath = run.output.planNote(run.mdPath, title || 'Untitled', reportAs);
+	run.notePlanned(normalizeTitle(title), notePath);
+
 	if (!run.output.willImport(notePath, times.mtime)) return false;
 
 	const content = joinNoteContent(note.content);
@@ -40,12 +43,7 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: stri
 		noteData = { ...noteData, ...getMetadata(run, note) };
 		noteData.tags = logTags(run, note);
 
-		run.draftNote({
-			path: notePath,
-			markdown: renderNote(noteData),
-			title,
-			times,
-		});
+		run.draftNote({ path: notePath, markdown: renderNote(noteData), times });
 
 		return true;
 	}

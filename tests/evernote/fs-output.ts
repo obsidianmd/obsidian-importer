@@ -12,10 +12,11 @@
  * comparing its modification time with the source's, the way comparedToSource
  * does. Where they disagree with FormatImporter, this is wrong.
  *
- * Attachments go where the vault's "default location for new attachments"
- * setting would put them. The recordings are made with a subfolder called
- * _resources beside the note, so the trees stay readable next to the ones they
- * replaced. What the plugin does is whatever the user has set.
+ * Attachments go where the vault's "Default location for new attachments"
+ * setting would put them, and the recordings are made with one real answer to
+ * it: a subfolder called "attachments" beside the note. That keeps them inside
+ * the notebook folder the recordings compare, which the vault-root answer
+ * would not. What the plugin does is whatever the user has actually set.
  */
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
@@ -73,7 +74,7 @@ export class FsOutput implements EvernoteOutput {
 	constructor(
 		/** Where the output folder is, which is what a vault path is relative to. */
 		private readonly root: string,
-		{ duplicates = 'copy', attachments = { mode: 'subfolder', path: '_resources' }, ctx }: FsOutputOptions = {},
+		{ duplicates = 'copy', attachments = { mode: 'subfolder', path: 'attachments' }, ctx }: FsOutputOptions = {},
 	) {
 		this.duplicates = duplicates;
 		this.attachments = attachments;

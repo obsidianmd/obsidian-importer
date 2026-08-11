@@ -2,4 +2,4 @@
 tags:
   - Tipps
 ---
-![[test-file-with-many-dots/_resources/test.file.with.many.dots.txt]]
+![[test-file-with-many-dots/attachments/test.file.with.many.dots.txt]]

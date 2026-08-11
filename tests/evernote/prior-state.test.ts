@@ -32,7 +32,7 @@ const NO_UPDATED_TIME = nodePath.join(FIXTURES, 'no-updated-time.enex');
 /** Where report.enex puts its note, and what it puts beside it. */
 const NOTEBOOK = 'report';
 const NOTE = `${NOTEBOOK}/Quarterly Report.md`;
-const RESOURCES = `${NOTEBOOK}/_resources`;
+const RESOURCES = `${NOTEBOOK}/attachments`;
 
 async function importInto(outputDir: string, fixture: string, duplicates: Duplicates = 'copy'): Promise<Context> {
 	const ctx = await importEnex(outputDir, [fixture], { duplicates });
@@ -54,8 +54,8 @@ test('with no answer to give, a second import copies the note and its attachment
 			`${RESOURCES}/chart.png`,
 			`${RESOURCES}/logo.png`,
 			'report 1/Quarterly Report.md',
-			'report 1/_resources/chart.png',
-			'report 1/_resources/logo.png',
+			'report 1/attachments/chart.png',
+			'report 1/attachments/logo.png',
 		].sort());
 	});
 });
@@ -142,8 +142,8 @@ test('a notebook folder someone else made is not imported into', async () => {
 		assert.deepEqual(tree(outputDir), [
 			`${NOTEBOOK}/unrelated.md`,
 			'report 1/Quarterly Report.md',
-			'report 1/_resources/chart.png',
-			'report 1/_resources/logo.png',
+			'report 1/attachments/chart.png',
+			'report 1/attachments/logo.png',
 		].sort());
 	});
 });

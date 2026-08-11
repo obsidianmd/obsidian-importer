@@ -1,7 +1,6 @@
 import { parseFilePath } from '../../../filesystem';
-import { EvernoteRun, NoteDraft } from '../run';
+import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { normalizeTitle } from './filename-utils';
 
 /**
  * Turn every evernote:// link into the note it points at.
@@ -26,13 +25,11 @@ export const applyLinks = (run: EvernoteRun): void => {
 	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
 	if (entries.length === 0) return;
 
-	const byTitle = notesByTitle(run.drafts);
-
 	// Compiled once rather than once per note: the pattern is the url, and the
 	// note it is being applied to has nothing to do with it.
 	const links = entries.map(([url, { title, notebookName }]) => ({
 		url: new RegExp(escapeStringRegexp(url), 'g'),
-		target: byTitle.get(title),
+		target: run.plannedNote(title),
 		title,
 		notebookName,
 	}));
@@ -47,7 +44,7 @@ export const applyLinks = (run: EvernoteRun): void => {
 
 		for (const { url, target, title, notebookName } of links) {
 			const to = target
-				? linkToNote(target.path, from)
+				? linkToNote(target, from)
 				: notebookName && !from.endsWith(notebookName) ? `${notebookName}/${title}` : title;
 
 			// A link that has to name a folder says what to call it as well, or
@@ -59,18 +56,6 @@ export const applyLinks = (run: EvernoteRun): void => {
 		draft.markdown = updatedContent;
 	}
 };
-
-/** The one note of each title, leaving out any title more than one note has. */
-function notesByTitle(drafts: NoteDraft[]): Map<string, NoteDraft> {
-	const found = new Map<string, NoteDraft | null>();
-
-	for (const draft of drafts) {
-		const title = normalizeTitle(draft.title);
-		found.set(title, found.has(title) ? null : draft);
-	}
-
-	return new Map([...found].filter((entry): entry is [string, NoteDraft] => entry[1] !== null));
-}
 
 /**
  * The note's own name, with its folder in front when that is a different one.

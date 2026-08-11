@@ -1,4 +1,4 @@
-import { Notice, TFile } from 'obsidian';
+import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { helpUrl } from '../constants';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
@@ -47,12 +47,18 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 		return {
 			planFolder: (parent, name) => {
-				const taken = (candidate: string) => this.hasClaimed(`${parent}/${candidate}`)
-					|| vault.getAbstractFileByPathInsensitive(`${parent}/${candidate}`) !== null;
+				// Normalized, or a notebook going into the vault root asks about
+				// "//Notebook" - which Vault answers for nothing, so an import
+				// making a copy would not see the folder the last one left.
+				const at = (candidate: string) => normalizePath(`${parent}/${candidate}`);
 
-				const folder = `${parent}/${this.duplicateHandling === DuplicateHandling.CreateCopy
-					? availableFileName(name, taken)
-					: name}`;
+				const folder = this.duplicateHandling === DuplicateHandling.CreateCopy
+					? at(availableFileName(name, candidate => this.hasClaimed(at(candidate))
+						|| vault.getAbstractFileByPathInsensitive(at(candidate)) !== null))
+					// The folder an earlier import made, spelled the way it spelled
+					// it: the lookup ignores case, and the answer is a real path.
+					: folderPath(vault.getAbstractFileByPathInsensitive(at(name))) ?? at(name);
+
 				this.claimPath(folder);
 
 				return folder;
@@ -141,4 +147,8 @@ export class EvernoteEnexImporter extends FormatImporter {
 			outputDir: folder.path,
 		}, this.outputInto(ctx), ctx);
 	}
+}
+
+function folderPath(found: unknown): string | null {
+	return found instanceof TFolder ? found.path : null;
 }
