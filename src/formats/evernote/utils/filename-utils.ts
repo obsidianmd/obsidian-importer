@@ -4,8 +4,12 @@ import { sanitizeFileName } from '../../../util';
 
 import { extensionForMime } from '../../../mime';
 
+/**
+ * The key a note is planned under and looked up by. Both sides go through
+ * here so a title that sanitization changed still finds its note.
+ */
 export const normalizeTitle = (title: string) => {
-	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
+	return sanitizeFileName(title);
 };
 
 export const getResourceFileName = (resource: EvernoteResource): string => {
