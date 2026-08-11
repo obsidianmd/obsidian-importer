@@ -3,7 +3,7 @@ import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
-import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
+import { draftMdFile, getMetadata, getTags, isComplex } from './utils';
 
 import { renderNote } from './utils/render-note';
 import { standardizeFrontMatter } from './utils/front-matter';
@@ -36,7 +36,7 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 
 		const data = standardizeFrontMatter(renderNote(noteData));
 
-		return saveMdFile(run, data, note);
+		return draftMdFile(run, data, note);
 	}
 	catch (e) {
 		console.error(`Failed to convert note: ${noteData.title}`, e);

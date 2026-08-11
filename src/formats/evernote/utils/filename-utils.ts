@@ -15,8 +15,8 @@ export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
 
-export const getFileIndex = (dstPath: string, fileNamePrefix: string): number => {
-	return getNextFilenameIndex(fs.readdirSync(dstPath), fileNamePrefix);
+export const getFileIndex = (dstPath: string, fileNamePrefix: string, claimed: string[] = []): number => {
+	return getNextFilenameIndex([...fs.readdirSync(dstPath), ...claimed], fileNamePrefix);
 
 };
 export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
@@ -84,7 +84,7 @@ export const getNoteName = (run: EvernoteRun, dstPath: string, note: EvernoteNot
 		console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 	}
 
-	const nextIndex = run.reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix);
+	const nextIndex = run.reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix, run.claimedIn(dstPath));
 
 	return (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 };

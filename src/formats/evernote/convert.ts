@@ -1,14 +1,13 @@
 /** Evernote converter adapted from Yarle (MIT): https://github.com/akosbalasko/yarle */
 import { EvernoteNote, EvernoteNoteAttributes, EvernoteResourceAttributes } from './models/EvernoteNote';
-import { fs, NodePickedFile, PickedFile } from '../../filesystem';
+import { NodePickedFile, PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { mapEvernoteTask } from './models/EvernoteTask';
-import { formatMarkdown } from '../../markdown-output';
 import { EvernoteOptions } from './options';
 import { EvernoteRun } from './run';
 import { processNode } from './process-node';
-import { rewriteFile } from './utils/file-utils';
+import { writeDraft } from './utils/file-utils';
 import { convertTasktoMd } from './process-tasks';
 
 import * as utils from './utils';
@@ -50,6 +49,19 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 	const stream = enexSource.createReadStream();
 	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = runtimeProps.getCurrentNotebookName();
+	const firstDraft = run.drafts.length;
+
+	/** The task groups a note carries are only known once its enex has been read. */
+	const spliceTasks = () => {
+		for (const draft of run.drafts.slice(firstDraft)) {
+			for (const task of Object.keys(tasks)) {
+				const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
+				const sortedTasks = new Map([...tasks[task]].sort());
+
+				draft.markdown = draft.markdown.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
+			}
+		}
+	};
 
 	return new Promise((resolve, reject) => {
 		const logAndReject = (e: Error) => {
@@ -102,20 +114,6 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 			}
 			noteAttributes = null;
 			resourceAttributes = [];
-
-			const currentNotePath = wrote ? runtimeProps.getCurrentNotePath() : '';
-			if (currentNotePath) {
-				for (const task of Object.keys(tasks)) {
-
-					const taskPlaceholder = `<ENEX-EN-V10-TASK>${task}</ENEX-EN-V10-TASK>`;
-					const fileContent = fs.readFileSync(currentNotePath, 'utf8');
-					const sortedTasks = new Map([...tasks[task]].sort());
-
-					let updatedContent = fileContent.replace(taskPlaceholder, [...sortedTasks.values()].join('\n'));
-
-					rewriteFile(run, currentNotePath, formatMarkdown(updatedContent, run.markdownOutput));
-				}
-			}
 		});
 
 		xml.on('tag:task', (pureTask: any) => {
@@ -128,7 +126,10 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 
 		});
 
-		xml.on('end', resolve);
+		xml.on('end', () => {
+			spliceTasks();
+			resolve();
+		});
 		xml.on('error', logAndReject);
 		stream.on('error', logAndReject);
 	});
@@ -136,10 +137,13 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 
 export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
 	const run = new EvernoteRun(options);
-	const outputNotebookFolders = [];
+	let stopped = false;
 
 	for (const enex of run.options.enexSources) {
-		if (await ctx.shouldStop()) return;
+		if (await ctx.shouldStop()) {
+			stopped = true;
+			break;
+		}
 
 		if (enex.basename.includes(NOTEBOOKSTACK_SEPARATOR)) {
 			const notebookStackProperties = utils.getNotebookStackedProps(enex);
@@ -155,9 +159,14 @@ export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportCont
 		}
 
 		await parseStream(run, enex, ctx);
-		outputNotebookFolders.push(run.paths.mdPath);
 	}
 
-	if (await ctx.shouldStop()) return;
-	applyLinks(run, outputNotebookFolders);
+	// A link can point into a notebook read later, so this waits for all of them.
+	if (!stopped && !(await ctx.shouldStop())) applyLinks(run);
+
+	// What has been converted is written whether or not the rest of it was: an
+	// import the user stopped still leaves the notes it had already read.
+	for (const draft of run.drafts) {
+		writeDraft(run, draft);
+	}
 }

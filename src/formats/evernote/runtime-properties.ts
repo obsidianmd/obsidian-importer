@@ -18,7 +18,6 @@ export class RuntimeProperties {
 	currentNoteName: string;
 	currentNotebookName: string;
 	currentNotebookFullpath: string;
-	currentNotePath: string;
 
 	addItemToMap(linkItem: InternalLink): void {
 		this.noteIdNameMap[linkItem.url] = {
@@ -38,14 +37,6 @@ export class RuntimeProperties {
 			notebookName: this.currentNotebookName,
 			uniqueEnd: linkItem.uniqueEnd,
 		};
-	}
-
-	getNoteIdNameMap(): NoteIdNames {
-		return this.noteIdNameMap;
-	}
-
-	getNoteIdNameTOCMap(): NoteIdNames {
-		return this.noteIdNameTOCMap;
 	}
 
 	getAllNoteIdNameMap(): NoteIdNames {
@@ -77,13 +68,6 @@ export class RuntimeProperties {
 		return this.currentNoteName;
 	}
 
-	getCurrentNotePath(): string {
-		return this.currentNotePath;
-	}
-
-	setCurrentNotePath(value: string): void {
-		this.currentNotePath = value;
-	}
 	getCurrentNotebookFullpath(): string {
 		return this.currentNotebookFullpath;
 	}
