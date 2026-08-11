@@ -26,44 +26,34 @@ We're still experimenting with contributions, if you have any questions, please 
 
 ### Localization
 
-The importer is translated into every language Obsidian Help publishes. Both halves live in this repository: `src/i18n/en.ts` holds the English each string is written in, and `locale/*.txt` hold the translations.
+The importer supports every language published by Obsidian Help. English UI strings live in `src/i18n/en.ts`, and translations live in `locale/*.txt`. Locale files use the same block format as [Obsidian translations](https://github.com/obsidianmd/obsidian-translations).
 
 #### Adding or changing a string
 
-Text the reader sees goes in `src/i18n/en.ts` and is reached by the path it has there:
+Add user-visible UI text to `src/i18n/en.ts`, then reference its key through `i18n`:
 
 ```ts
 new Setting(contentEl).setName(i18n.output.nameDuplicates());
 ctx.status(i18n.progress.statusStandardizing({ current, total }));
 ```
 
-Then run `npm run locales`, which folds the new string into `locale/*.txt` and `src/i18n/locales.ts`. Commit what it writes — the test suite fails otherwise, so a string cannot ship with nowhere to translate it.
+Give separately displayed strings separate keys, and avoid joining translated fragments. Word order and grammar vary between languages. Do not localize console messages or text written into imported notes.
 
-Some text stays in English on purpose: console messages, and anything written into a note, such as a title, a folder name or a property. A note has to read the same whoever imported it.
-
-Two strings that meet on screen each need their own key. Interpolating an identifier into a sentence leaves English inside a translated one, and a name dropped into a sentence carries whatever article its language needs — French writes *du paragraphe* but *de la colonne*, and the sentence around it cannot know the gender of the noun arriving.
-
-`locale/README.md` covers the rest: placeholders, plural forms, and why some strings end in a space.
+Run `npm run locales`, then commit the resulting changes to `locale/*.txt` and `src/i18n/locales.ts`. See the [localization guide](locale/README.md) for placeholders, plurals, and whitespace.
 
 #### Correcting a translation
 
-The translations are machine-generated, so a correction from someone who speaks the language is the most valuable thing you can send — including a one-line fix.
-
-`locale/<language>.txt` is plain text, one block per string:
+Translations are machine-generated, and corrections from fluent speakers are welcome. Edit the relevant block in `locale/<language>.txt`:
 
 ```
 [modal.button-done]
 original=Done
-translation=Terminer
+translation=Terminé
 ```
 
-Edit the `translation=` line and leave `original=` alone. It records the English the translation was made from, so when the English changes you see it move in the diff, which is your signal that the line below it needs another look.
+The block header identifies the string. Change only `translation=`; leave `original=` and placeholders such as `{{name}}` unchanged.
 
-Run `npm run locales` before opening the pull request and commit what it writes, including `src/i18n/locales.ts` — that generated file is what the plugin actually ships, and the tests check the two agree. Never edit it by hand, or `locale/en.txt`, which is generated too.
-
-Your correction stays put. When the English changes, an action asks a model only for strings that are missing, whose English moved, or that fail a check; a line you have corrected is left alone.
-
-A blank `translation=` falls back to English, so a partial translation is perfectly usable — and is the right thing for a string with nothing to translate, such as a product name.
+Run `npm run locales`, then commit the locale file and the updated `src/i18n/locales.ts`. Do not edit `src/i18n/locales.ts` or `locale/en.txt` directly. A blank translation falls back to English, and automated updates preserve corrections unless the English source changes.
 
 ### Bounties
 

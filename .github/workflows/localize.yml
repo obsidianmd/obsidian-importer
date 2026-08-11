@@ -27,7 +27,25 @@ jobs:
     outputs:
       locales: ${{ steps.locales.outputs.locales }}
       from_ref: ${{ steps.from-ref.outputs.from_ref }}
+      base_sha: ${{ steps.base.outputs.base_sha }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Pin the master revision for every job
+        id: base
+        env:
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            base_sha="$PUSH_SHA"
+          else
+            git fetch origin master:refs/remotes/origin/master
+            base_sha=$(git rev-parse origin/master)
+          fi
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+
       - name: Clone obsidian-help
         run: git clone --depth 1 https://github.com/obsidianmd/obsidian-help.git "$RUNNER_TEMP/obsidian-help"
 
@@ -67,19 +85,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ needs.setup.outputs.base_sha }}
           fetch-depth: 0
 
       - name: Start from the existing translation PR
+        env:
+          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin master:refs/remotes/origin/master
-          base_sha=$(git rev-parse origin/master)
           if git fetch origin "$TRANSLATION_BRANCH"; then
             git switch --detach FETCH_HEAD
-            git merge --no-edit "$base_sha"
+            git merge --no-edit "$BASE_SHA"
           else
-            git switch --detach "$base_sha"
+            git switch --detach "$BASE_SHA"
           fi
 
       - name: Install pnpm
@@ -109,17 +128,20 @@ jobs:
       # Staged, because a locale being translated for the first time is a new
       # file and `git diff` alone does not see one.
       - name: Make locale patch
+        if: ${{ always() }}
         run: |
           git add -A -- "locale/${{ matrix.locale }}.txt"
           git diff --staged --binary -- "locale/${{ matrix.locale }}.txt" > "$RUNNER_TEMP/${{ matrix.locale }}.patch"
 
       - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: locale-${{ matrix.locale }}
           path: ${{ runner.temp }}/${{ matrix.locale }}.patch
 
   propose:
     needs: [setup, translate]
+    if: ${{ always() && needs.setup.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -129,19 +151,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ needs.setup.outputs.base_sha }}
           fetch-depth: 0
 
       - name: Start from the existing translation PR
+        env:
+          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin master:refs/remotes/origin/master
-          base_sha=$(git rev-parse origin/master)
           if git fetch origin "$TRANSLATION_BRANCH"; then
             git switch --detach FETCH_HEAD
-            git merge --no-edit "$base_sha"
+            git merge --no-edit "$BASE_SHA"
           else
-            git switch --detach "$base_sha"
+            git switch --detach "$BASE_SHA"
           fi
 
       - name: Install pnpm

@@ -445,6 +445,10 @@ ${terms ? `\nObsidian itself is already translated into ${definition.english}, a
 		}
 	}
 
+	// A transport or API failure produces no usable part of the batch. Splitting
+	// that into individual keys would turn three failed calls into as many as 123.
+	if (best.size === 0) throw lastError;
+
 	for (const [key, value] of best) translated[key] = value;
 	const missing = keys.filter(key => !best.has(key));
 	if (missing.length === 0) return;
@@ -530,7 +534,13 @@ async function main(): Promise<void> {
 	}
 
 	write();
-	console.log(`Wrote ${path.relative(root, localePath)}${failed ? `, ${remaining.length - gained} strings short` : ''}`);
+
+	const short = remaining.length - gained;
+	if (failed > 0) {
+		throw new Error(`${locale}: wrote partial progress with ${short} strings still untranslated`);
+	}
+
+	console.log(`Wrote ${path.relative(root, localePath)}`);
 }
 
 void main().catch(error => {
