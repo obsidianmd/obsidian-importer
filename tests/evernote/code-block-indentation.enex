@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20260101T000000Z" application="Evernote" version="10.91.1">
+<note><title>Indented with spaces</title><content><![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div style="--en-codeblock:true;--en-syntaxLanguage:python;padding: 8px;"><div>def f(x):</div><div>    if x:</div><div><br /></div><div>        return 1</div><div>    return 0    # aligned</div></div></en-note>]]></content><created>20250310T101500Z</created><updated>20250311T081200Z</updated></note>
+<note><title>Indented with non-breaking spaces</title><content><![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div style="--en-codeblock:true;--en-syntaxLanguage:python;padding: 8px;"><div>def f(x):</div><div>&nbsp;&nbsp;&nbsp;&nbsp;if x:</div><div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1</div></div></en-note>]]></content><created>20250310T101500Z</created><updated>20250311T081200Z</updated></note>
+<note><title>Backslashes and markdown in code</title><content><![CDATA[<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div style="--en-codeblock:true;--en-syntaxLanguage:bash;padding: 8px;"><div>grep -o 'a\\*b' file \\</div><div>  | sed 's/_x_/*y*/'</div></div></en-note>]]></content><created>20250310T101500Z</created><updated>20250311T081200Z</updated></note>
+</en-export>

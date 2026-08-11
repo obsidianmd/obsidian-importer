@@ -8,5 +8,5 @@
 - [x] CheckedCheckbox2
 
 ```
-Inline Code 
+Inline Code 
 ```

@@ -2,6 +2,7 @@ import { NoteData } from './models/NoteData';
 import { EvernoteRun } from './run';
 
 import { getTurndownService } from './utils/turndown-service';
+import { captureCodeBlocks } from './utils/turndown-rules/replace-code-block';
 import { restoreIntraWordEscapedUnderscores } from './utils/markdown-escaping';
 
 const unwrapElement = (node: Element) => {
@@ -94,7 +95,7 @@ export const convertHtml2Md = (run: EvernoteRun, { htmlContent }: NoteData): { c
 	}
 
 	let contentInMd = getTurndownService(run)
-		.turndown(fixTasks(fixSublists(contentNode)));
+		.turndown(captureCodeBlocks(fixTasks(fixSublists(contentNode))));
 
 	const newLinePlaceholder = new RegExp('<ENEX_NEWLINE_PLACEHOLDER>', 'g');
 	contentInMd = contentInMd.replace(newLinePlaceholder, '');
