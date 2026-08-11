@@ -39,11 +39,11 @@ const getUniqueNameForPath = (basePath: string, name: string, suffix: string = '
 	const baseName = name;
 	let uniqueName = name;
 	let counter = 1;
-	let fullPath = `${basePath}${path.sep}${uniqueName}${suffix}`;
+	let fullPath = `${basePath}/${uniqueName}${suffix}`;
 
 	while (fs.existsSync(fullPath)) {
 		uniqueName = `${baseName} (${counter})`;
-		fullPath = `${basePath}${path.sep}${uniqueName}${suffix}`;
+		fullPath = `${basePath}/${uniqueName}${suffix}`;
 		counter++;
 
 		// Safety check to prevent infinite loop
@@ -67,7 +67,7 @@ export const truncatFileName = (fileName: string, uniqueId: string): string => {
 		throw Error('FATAL: note folder directory path exceeds the OS limitation. Please pick a destination closer to the root folder.');
 	}
 
-	const fullPath = `${getNotesPath()}${path.sep}${fileName}`;
+	const fullPath = `${getNotesPath()}/${fileName}`;
 
 	return fullPath.length < MAX_PATH ? fileName : `${fileName.slice(0, MAX_PATH - 11)}_${uniqueId}.md`;
 };
@@ -88,7 +88,7 @@ const truncateFilePath = (note: EvernoteNote, fileName: string, fullFilePath: st
 
 const getFilePath = (dstPath: string, note: EvernoteNote, extension: string): string => {
 	const fileName = getNoteFileName(dstPath, note, extension);
-	const fullFilePath = `${dstPath}${path.sep}${normalizeTitle(fileName)}`;
+	const fullFilePath = `${dstPath}/${normalizeTitle(fileName)}`;
 
 	return fullFilePath.length < MAX_PATH ? fullFilePath : truncateFilePath(note, fileName, fullFilePath);
 };
@@ -111,13 +111,13 @@ const clearDistDir = (dstPath: string): void => {
 };
 
 export const getRelativeResourceDir = (note: EvernoteNote): string => {
-	const enexFolder = `${path.sep}${evernoteOptions.resourcesDir}`;
+	const enexFolder = `/${evernoteOptions.resourcesDir}`;
 
-	return `.${enexFolder}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
+	return `.${enexFolder}/${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
 export const getAbsoluteResourceDir = (note: EvernoteNote): string => {
-	return `${paths.resourcePath}${path.sep}${getResourceDir(paths.mdPath, note)}.resources`;
+	return `${paths.resourcePath}/${getResourceDir(paths.mdPath, note)}.resources`;
 };
 
 export const clearResourceDir = (note: EvernoteNote): void => {
@@ -159,7 +159,7 @@ export const getNotebookStackOutputDir = (enex: PickedFile, options: EvernoteOpt
 	const notebookFolderNames = getSanitizedNotebookFolderNames(enex.basename);
 
 	fs.mkdirSync(path.join(options.outputDir, ...notebookFolderNames), { recursive: true });
-	return [options.outputDir, ...notebookFolderNames].join(options.pathSeparator);
+	return [options.outputDir, ...notebookFolderNames].join('/');
 };
 
 export const setSingleNotebookPaths = (enexSource: PickedFile, evernoteOptions: EvernoteOptions): void => {
@@ -178,7 +178,7 @@ export const setPaths = (enexFileBasename: string, evernoteOptions: EvernoteOpti
 
 	const outputDir = path.isAbsolute(evernoteOptions.outputDir)
 		? evernoteOptions.outputDir
-		: `${process.cwd()}${path.sep}${evernoteOptions.outputDir}`;
+		: `${process.cwd()}/${evernoteOptions.outputDir}`;
 
 	let truncatedBasename = sanitizeFileName(enexFileBasename);
 
@@ -190,8 +190,8 @@ export const setPaths = (enexFileBasename: string, evernoteOptions: EvernoteOpti
 	// Check for duplicate directory names and add (1), (2), etc. if needed
 	truncatedBasename = getUniqueNameForPath(outputDir, truncatedBasename);
 
-	paths.mdPath = `${outputDir}${path.sep}${truncatedBasename}`;
-	paths.resourcePath = `${outputDir}${path.sep}${truncatedBasename}${path.sep}${evernoteOptions.resourcesDir}`;
+	paths.mdPath = `${outputDir}/${truncatedBasename}`;
+	paths.resourcePath = `${outputDir}/${truncatedBasename}/${evernoteOptions.resourcesDir}`;
 
 	fs.mkdirSync(paths.mdPath, { recursive: true });
 	fs.mkdirSync(paths.resourcePath, { recursive: true });

@@ -5,8 +5,8 @@ export const getAllOutputFilesWithExtension = (dirPath: string, arrayOfFiles: st
 
 	arrayOfFiles = arrayOfFiles || [];
 	files.forEach(file => {
-		if (fs.statSync(`${dirPath}${path.sep}${file}`).isDirectory()) {
-			arrayOfFiles = getAllOutputFilesWithExtension(`${dirPath}${path.sep}${file}`, arrayOfFiles, extension);
+		if (fs.statSync(`${dirPath}/${file}`).isDirectory()) {
+			arrayOfFiles = getAllOutputFilesWithExtension(`${dirPath}/${file}`, arrayOfFiles, extension);
 		}
 		else {
 			if ((extension && path.extname(file) == `.${extension}`) || !extension) {

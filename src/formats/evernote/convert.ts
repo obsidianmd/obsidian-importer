@@ -30,7 +30,6 @@ export const defaultEvernoteOptions: EvernoteOptions = {
 		replaceSpaceWith: '-',
 	},
 	obsidianTaskTag: '',
-	pathSeparator: '/',
 	resourcesDir: '_resources',
 	turndownOptions: {
 		headingStyle: 'atx',

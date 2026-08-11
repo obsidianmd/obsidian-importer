@@ -65,7 +65,6 @@ export interface EvernoteOptions {
 	useHashTags?: boolean;
 	dateFormat?: string;
 	nestedTags?: TagSeparatorReplaceOptions;
-	pathSeparator?: string;
 	resourcesDir: string;
 	turndownOptions?: Record<string, string | boolean>;
 	obsidianTaskTag?: string;

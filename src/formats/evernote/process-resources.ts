@@ -1,16 +1,14 @@
 import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/EvernoteNote';
-import { fs, nodeCrypto, path } from '../../filesystem';
+import { fs, nodeCrypto } from '../../filesystem';
 
 import { ResourceHashItem } from './models/ResourceHash';
 import * as utils from './utils';
-import { evernoteOptions } from './convert';
 
 const getResourceWorkDirs = (note: EvernoteNote) => {
-	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
-	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, evernoteOptions.pathSeparator || '/');
-	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,evernoteOptions.pathSeparator)
-
-	return { absoluteResourceWorkDir, relativeResourceWorkDir };
+	return {
+		absoluteResourceWorkDir: utils.getAbsoluteResourceDir(note),
+		relativeResourceWorkDir: utils.getRelativeResourceDir(note),
+	};
 };
 
 export const processResources = (note: EvernoteNote): string => {
@@ -42,7 +40,7 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 	const fileName = resourceHashes[hash]?.fileName;
 	if (!fileName) return content;
 
-	const src = `${workDir}${evernoteOptions.pathSeparator}${fileName.replace(/ /g, ' ')}`;
+	const src = `${workDir}/${fileName.replace(/ /g, ' ')}`;
 	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
@@ -91,7 +89,7 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 	const resourceFileProps = utils.getResourceFileProperties(workDir, resource);
 	let fileName = resourceFileProps.fileName;
 
-	const absFilePath = `${workDir}${path.sep}${fileName}`;
+	const absFilePath = `${workDir}/${fileName}`;
 
 	let buffer = Buffer.from(data, 'base64');
 	fs.writeFileSync(absFilePath, buffer);
@@ -133,7 +131,7 @@ export const extractDataUrlResources = (
 	// src="data:image/svg+xml;base64,..." --> src="resourceDir/fileName"
 	return content.replace(/src="data:([^;,]*)(;base64)?,([^"]*)"/g, (match, mediatype, encoding, data) => {
 		const fileName = createResourceFromData(mediatype, encoding === ';base64', data, absoluteResourceWorkDir, note);
-		const src = `${relativeResourceWorkDir}${evernoteOptions.pathSeparator}${fileName}`;
+		const src = `${relativeResourceWorkDir}/${fileName}`;
 
 		return `src="${src}"`;
 	});
@@ -151,7 +149,7 @@ const createResourceFromData = (
 	const extension = extensionForMimeType(mediatype) || '.dat';
 	const index = utils.getFileIndex(absoluteResourceWorkDir, baseName);
 	const fileName = index < 1 ? `${baseName}.${extension}` : `${baseName}.${index}.${extension}`;
-	const absFilePath = `${absoluteResourceWorkDir}${path.sep}${fileName}`;
+	const absFilePath = `${absoluteResourceWorkDir}/${fileName}`;
 
 	if (!base64) {
 		data = decodeURIComponent(data);
