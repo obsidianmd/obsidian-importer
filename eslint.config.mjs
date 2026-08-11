@@ -15,7 +15,7 @@ const sentenceCase = {
 		'Airtable', 'Apple', 'Apple Journal', 'Apple Notes', 'Bear', 'Evernote', 'Gnote',
 		'GNote', 'Google', 'Google Keep', 'Google Takeout', 'Journal', 'Mac', 'Markdown',
 		'Microsoft', 'Notion', 'Obsidian', 'OneNote', 'Roam', 'Roam Research', 'Textbundle',
-		'Tomboy', 'iCloud', 'iCloud Drive',
+		'Tomboy', 'Windows', 'iCloud', 'iCloud Drive',
 	],
 	acronyms: ['API', 'CSV', 'DD', 'HTML', 'ID', 'JSON', 'MB', 'MM', 'PDF', 'UID', 'URL', 'YAML', 'YYYY'],
 	ignoreRegex: [

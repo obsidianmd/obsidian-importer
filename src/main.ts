@@ -15,6 +15,7 @@ import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
+import { OneNoteFileImporter } from './formats/onenote-file';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
@@ -252,6 +253,10 @@ export default class ImporterPlugin extends Plugin {
 			},
 			'onenote': {
 				importer: OneNoteImporter,
+				helpPermalink: 'import/onenote',
+			},
+			'onenote-file': {
+				importer: OneNoteFileImporter,
 				helpPermalink: 'import/onenote',
 			},
 			'notion-api': {
