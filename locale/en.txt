@@ -323,7 +323,7 @@ original=Skipped ({{count}})
 translation=
 
 [report.heading-messages]
-original=Worth knowing
+original=Messages
 translation=
 
 [report.count-notes]

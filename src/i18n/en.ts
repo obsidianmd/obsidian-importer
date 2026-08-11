@@ -121,7 +121,7 @@ export const en = {
 		msgStopped: 'Stopped {{when}}. {{counts}}.',
 		headingFailed: 'Failed ({{count}})',
 		headingSkipped: 'Skipped ({{count}})',
-		headingMessages: 'Worth knowing',
+		headingMessages: 'Messages',
 		countNotes: '{{count}} note imported',
 		countNotes_plural: '{{count}} notes imported',
 		countAttachments: '{{count}} attachment downloaded',

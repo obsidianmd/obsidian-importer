@@ -55,7 +55,7 @@ test('a message is listed as it was written, with nothing named or blamed', () =
 
 	const report = reportOf(ctx);
 
-	assert.match(report, /^## Worth knowing$/m);
+	assert.match(report, /^## Messages$/m);
 	assert.match(report, /^- 12 links could not be matched to a note\.$/m);
 	assert.doesNotMatch(report, /## Skipped|## Failed|"/);
 });
