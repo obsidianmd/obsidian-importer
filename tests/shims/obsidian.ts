@@ -174,12 +174,13 @@ export const Platform = {
 	isLinux: process.platform === 'linux',
 };
 
-/** Matches Obsidian's own: forward slashes, no duplicate or trailing ones. */
+/** Matches Obsidian's slash, space, and Unicode normalization. */
 export function normalizePath(path: string): string {
 	const normalized = path
 		.replace(/([\\/])+/g, '/')
-		.replace(/(^\/+|\/+$)/g, '');
-	return normalized === '' ? '/' : normalized;
+		.replace(/(^\/+|\/+$)/g, '')
+		.replace(/[\u00a0\u202f]/g, ' ');
+	return (normalized === '' ? '/' : normalized).normalize('NFC');
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {

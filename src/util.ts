@@ -94,8 +94,10 @@ function tidyName(name: string): string {
 
 /** @param parentPath Vault-relative parent folder. */
 export function sanitizeFileName(name: string | undefined | null, parentPath?: string) {
+	// Match the vault's NFC form before measuring or comparing the name.
 	const cleaned = tidyName(stripControlCharacters(
 		(name ?? '')
+			.normalize('NFC')
 			.replace(slashesRe, '-') // Replace slashes with dash
 			.replace(illegalRe, '')));
 

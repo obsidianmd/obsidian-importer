@@ -37,6 +37,18 @@ test('a usable name is left alone', () => {
 	assert.equal(sanitizeFileName('Ünïcödé — em dash'), 'Ünïcödé — em dash');
 });
 
+test('a decomposed name is composed, so it measures and compares as the vault sees it', () => {
+	const composed = '한글 노트';
+	assert.equal(sanitizeFileName(composed.normalize('NFD')), composed);
+	assert.equal(sanitizeFileName('café'), 'café');
+});
+
+test('the length that survives does not depend on the form it arrived in', () => withPlatform('elsewhere', () => {
+	const title = '가'.repeat(200);
+
+	assert.equal(sanitizeFileName(title.normalize('NFD')), sanitizeFileName(title));
+}));
+
 test('separators cannot escape the folder they were meant for', () => {
 	assert.equal(sanitizeFileName('a/b'), 'a-b');
 	assert.equal(sanitizeFileName('a\\b'), 'a-b');
