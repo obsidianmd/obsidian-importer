@@ -21,8 +21,49 @@ We're still experimenting with contributions, if you have any questions, please 
 - Keep it lightweight. The fewer the dependencies, the better. For example, please do not import `lodash` to use two functions from it.
 - Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
 - Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
-- Text the user will read belongs in `src/i18n/en.ts`, not in a string literal at the call site. Reach it with `i18n.<section>.<key>()`, and run `npm run locales` afterwards so the translation files keep up. See `locale/README.md`.
+- Text the user will read belongs in `src/i18n/en.ts`, not in a string literal at the call site. See [Localization](#localization).
 - Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
+
+### Localization
+
+The importer is translated into every language Obsidian Help publishes. Both halves live in this repository: `src/i18n/en.ts` holds the English each string is written in, and `locale/*.txt` hold the translations.
+
+#### Adding or changing a string
+
+Text the reader sees goes in `src/i18n/en.ts` and is reached by the path it has there:
+
+```ts
+new Setting(contentEl).setName(i18n.output.nameDuplicates());
+ctx.status(i18n.progress.statusStandardizing({ current, total }));
+```
+
+Then run `npm run locales`, which folds the new string into `locale/*.txt` and `src/i18n/locales.ts`. Commit what it writes — the test suite fails otherwise, so a string cannot ship with nowhere to translate it.
+
+Some text stays in English on purpose: console messages, and anything written into a note, such as a title, a folder name or a property. A note has to read the same whoever imported it.
+
+Two strings that meet on screen each need their own key. Interpolating an identifier into a sentence leaves English inside a translated one, and a name dropped into a sentence carries whatever article its language needs — French writes *du paragraphe* but *de la colonne*, and the sentence around it cannot know the gender of the noun arriving.
+
+`locale/README.md` covers the rest: placeholders, plural forms, and why some strings end in a space.
+
+#### Correcting a translation
+
+The translations are machine-generated, so a correction from someone who speaks the language is the most valuable thing you can send — including a one-line fix.
+
+`locale/<language>.txt` is plain text, one block per string:
+
+```
+[modal.button-done]
+original=Done
+translation=Terminer
+```
+
+Edit the `translation=` line and leave `original=` alone. It records the English the translation was made from, so when the English changes you see it move in the diff, which is your signal that the line below it needs another look.
+
+Run `npm run locales` before opening the pull request and commit what it writes, including `src/i18n/locales.ts` — that generated file is what the plugin actually ships, and the tests check the two agree. Never edit it by hand, or `locale/en.txt`, which is generated too.
+
+Your correction stays put. When the English changes, an action asks a model only for strings that are missing, whose English moved, or that fail a check; a line you have corrected is left alone.
+
+A blank `translation=` falls back to English, so a partial translation is perfectly usable — and is the right thing for a string with nothing to translate, such as a product name.
 
 ### Bounties
 

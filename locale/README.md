@@ -60,7 +60,7 @@ Write your translation after `translation=`:
 ```
 [modal.button-done]
 original=Done
-translation=Terminé
+translation=Terminer
 ```
 
 The key in brackets says where the text appears. `original=` is the English it
