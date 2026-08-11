@@ -1,12 +1,3 @@
-/**
- * The markdown half, driven by content trees built here rather than by a file.
- *
- * The seam is what makes this possible: convertPage takes a page, not bytes,
- * so a case a real notebook happens not to contain can still be checked -
- * ragged tables, a pipe inside a cell, emphasis that would swallow its own
- * spaces. Anything a fixture does cover is checked in convert.test.ts instead.
- */
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -88,7 +79,6 @@ test('lists carry their bullet and their indent', async () => {
 		para('nested', { list: { level: 1, ordered: false } }),
 		para('numbered', { list: { level: 0, ordered: true } }));
 
-	// No blank lines between items: a gap makes it a loose list.
 	assert.equal(markdown, ['- one', '\t- nested', '1. numbered'].join('\n'));
 });
 
@@ -152,12 +142,16 @@ test('a table with no rows produces nothing at all', async () => {
 	assert.equal(await render({ kind: 'table', rows: [] }), '');
 });
 
-test('an image embeds and an embedded file links', async () => {
+test('an image is named after its page, and an embedded file keeps its own name', async () => {
 	const data = new Uint8Array([1, 2, 3]);
 
 	assert.equal(
-		await render({ kind: 'image', fileName: 'shot.png', altText: 'a shot', data }),
-		'![a shot](files/shot.png)');
+		await render({ kind: 'image', fileName: 'Untitled picture.png', altText: 'a shot', data }),
+		'![a shot](files/Test%20image.png)');
+	assert.equal(
+		await render({ kind: 'image', extension: '.jpg', data }),
+		'![](files/Test%20image.jpg)');
+
 	assert.equal(
 		await render({ kind: 'embedded-file', fileName: 'notes.docx', data }),
 		'[notes.docx](files/notes.docx)');
@@ -172,7 +166,7 @@ test('an asset with no bytes is reported rather than linked', async () => {
 	});
 
 	assert.equal(converted.markdown, '');
-	assert.deepEqual(skipped, ['gone.png']);
+	assert.deepEqual(skipped, ['Test image.png']);
 	assert.deepEqual(converted.attachments, []);
 });
 
@@ -192,7 +186,7 @@ test('every saved attachment is reported back to the caller', async () => {
 		page({ kind: 'image', fileName: 'a.png', data }, { kind: 'image', fileName: 'b.png', data }),
 		{ saveAttachment: async (_bytes, name) => ({ path: `files/${name}`, name }) });
 
-	assert.deepEqual(converted.attachments.map(attachment => attachment.name), ['a.png', 'b.png']);
+	assert.deepEqual(converted.attachments.map(attachment => attachment.name), ['Test image.png', 'Test image.png']);
 });
 
 test('a line break inside a paragraph stays inside it', async () => {
@@ -210,7 +204,6 @@ test('children of a paragraph follow it', async () => {
 });
 
 test('cancelling stops the conversion where it stands', async () => {
-	// Checked once for the enclosing outline, then once per paragraph inside it.
 	let checksBeforeCancelling = 2;
 
 	const converted = await convertPage(page(para('first'), para('second')), {
@@ -222,7 +215,6 @@ test('cancelling stops the conversion where it stands', async () => {
 });
 
 test('an equation becomes LaTeX rather than the glyphs OneNote stored', async () => {
-	// OneNote writes "a=b" in the Mathematical Alphanumeric Symbols block.
 	assert.equal(await render(para([{ text: '\u{1D44E}=\u{1D44F}', math: true }])), '$a=b$');
 	assert.equal(await render(para([{ text: '\u{1D6FC}+\u{1D6FD}', math: true }])), '$α+β$');
 	assert.equal(await render(para([{ text: '\u{1D400}\u{1D401}', math: true }])), '$AB$');
@@ -240,7 +232,6 @@ test('the invisible operators a layout engine needs are dropped', async () => {
 });
 
 test('emphasis is not wrapped around an equation', async () => {
-	// OneNote marks its math italic; a `*` inside `$…$` stops it rendering.
 	assert.equal(await render(para([{ text: '\u{1D44E}', math: true, italic: true, bold: true }])), '$a$');
 });
 
@@ -264,7 +255,6 @@ test('a OneNote to-do becomes a task, ticked or not', async () => {
 });
 
 test('a to-do inside a list keeps its indent and loses the bullet', async () => {
-	// Rendered after a line, because the page as a whole is trimmed.
 	const markdown = await render(
 		para('heading'),
 		para('nested task', {
@@ -293,7 +283,6 @@ test('a tag that means "pay attention" becomes the matching admonition', async (
 });
 
 test('a tag that merely categorises leaves its paragraph alone', async () => {
-	// A phone number, a book to read, a musical note: not admonitions.
 	assert.equal(await render(para('0800 1234', { tags: tag(109, 'Phone number') })), '0800 1234');
 	assert.equal(await render(para('Dune', { tags: tag(132, 'Book to read') })), 'Dune');
 	assert.equal(await render(para('a song', { tags: tag(121, 'Music to listen to') })), 'a song');
@@ -334,7 +323,6 @@ test('a highlight carries the circle for its colour', async () => {
 });
 
 test('a colour between two of them takes the nearer', async () => {
-	// OneNote's amber sits between orange and yellow, closer to orange.
 	assert.equal(await render(para([{ text: 'amber', highlight: '#ffc000' }])), '==🟠amber==');
 	assert.equal(await render(para([{ text: 'lime', highlight: '#00ff00' }])), '==🟢lime==');
 	assert.equal(await render(para([{ text: 'cyan', highlight: '#00ffff' }])), '==🔵cyan==');
@@ -360,8 +348,8 @@ test('a table cell keeps the picture in it', async () => {
 		saved.push(name); return { path: name, name }; 
 	} });
 
-	assert.equal(converted.markdown.split('\n')[0], '| ![](in-cell.png) | beside it |');
-	assert.deepEqual(saved, ['in-cell.png']);
+	assert.equal(converted.markdown.split('\n')[0], '| ![](Test%20image.png) | beside it |');
+	assert.deepEqual(saved, ['Test image.png']);
 });
 
 test('a table markdown cannot nest is reported rather than dropped', async () => {
@@ -389,7 +377,6 @@ test('text that looks like markdown is not read as markdown', async () => {
 });
 
 test('ordinary prose is left unmarked', async () => {
-	// Escaping every emphasis character would litter the note for no gain.
 	assert.equal(await render(para('a * b * c')), 'a * b * c');
 	assert.equal(await render(para('file_name_here')), 'file_name_here');
 	assert.equal(await render(para('2 - 1 = 1')), '2 - 1 = 1');
@@ -402,7 +389,6 @@ test('an escaped line keeps the formatting the importer added', async () => {
 });
 
 test('a link out of the notebook is left exactly as it was', async () => {
-	// Only the onenote: scheme names a page; everything else is a real URL.
 	assert.equal(
 		await render(para([{ text: 'a site', hyperlinkUrl: 'https://example.com/a b' }])),
 		'[a site](https://example.com/a%20b)');
@@ -412,7 +398,6 @@ test('a link out of the notebook is left exactly as it was', async () => {
 });
 
 test('a OneNote link with no page in it stays a link to OneNote', async () => {
-	// Without a fragment there is no page name to resolve against.
 	const url = 'onenote:///C:/Notebook/Section.one';
 	assert.equal(await render(para([{ text: 'the section', hyperlinkUrl: url }])), `[the section](${url})`);
 });
@@ -427,7 +412,6 @@ test('the page name is taken from the fragment, not the identifiers after it', a
 });
 
 test('the importer decides what an internal link points at', async () => {
-	// The conversion knows the page title; only the importer knows the note.
 	const converted = await convertPage(page(para([{
 		text: 'link',
 		hyperlinkUrl: 'onenote:///S.one#Notes: Q4/Q1&section-id={a}',
@@ -437,4 +421,15 @@ test('the importer decides what an internal link points at', async () => {
 	});
 
 	assert.equal(converted.markdown, '[link](Notes-%20Q4-Q1)');
+});
+
+test('an attachment is named for the note, not the page title it came from', async () => {
+	// "10/18" is a legal page title and an illegal file name; the importer
+	// says what the note ended up called.
+	const converted = await convertPage(page({ kind: 'image', extension: '.png', data: new Uint8Array([1]) }), {
+		noteName: '10-18',
+		saveAttachment: async (_bytes, name) => ({ path: name, name }),
+	});
+
+	assert.equal(converted.attachments[0].name, '10-18 image.png');
 });

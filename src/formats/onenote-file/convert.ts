@@ -1,5 +1,5 @@
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
-import { Element, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
+import { Element, Image, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
 /** Converts half-inch ink units to CSS pixels at 96 DPI. */
 const PIXELS_PER_INK_UNIT = 48;
@@ -19,6 +19,11 @@ export interface OneNoteConversionOptions {
 	/** Turns an internal OneNote page title into the note name written by the importer. */
 	resolveInternalLink?: (pageTitle: string) => string;
 	onSkipped?: (name: string, reason: SkipReason) => void;
+	/**
+	 * What the note is called, for the attachments named after it. A page title
+	 * can hold characters a file name cannot, so only the importer knows.
+	 */
+	noteName?: string;
 	isCancelled?: () => boolean;
 }
 
@@ -27,7 +32,6 @@ export interface ConvertedPage {
 	attachments: ResolvedAttachment[];
 }
 
-/** Invisible math operators that have no LaTeX representation. */
 const INVISIBLE_MATH = /[\u2061-\u2064]/g;
 
 // Preserve scripts before NFKC folds their glyphs to ordinary characters.
@@ -122,7 +126,6 @@ function renderRuns(runs: TextRun[], options: OneNoteConversionOptions): string 
 	return runs.map(run => renderRun(run, options)).join('').replace(/\r\n?/g, '\n').trim();
 }
 
-/** The six highlight markers Obsidian supports. */
 const HIGHLIGHT_MARKERS: { marker: string, inks: number[][] }[] = [
 	{ marker: '🔴', inks: [[0xff, 0x00, 0x00], [0xff, 0x69, 0xb4]] },
 	{ marker: '🟠', inks: [[0xff, 0xa5, 0x00]] },
@@ -202,6 +205,17 @@ interface Block {
 	callout?: string;
 }
 
+function extensionOf(fileName: string | undefined): string | undefined {
+	return fileName?.match(/\.[^.\\/]+$/)?.[0];
+}
+
+/** An attachment without an extension is one the vault cannot open. */
+function withExtension(base: string, extension: string | undefined): string {
+	if (!extension) return base;
+	if (extensionOf(base)) return base;
+	return base + (extension.startsWith('.') ? extension : `.${extension}`);
+}
+
 class PageWriter {
 	private readonly blocks: Block[] = [];
 	private readonly inkStrokes: SvgStroke[] = [];
@@ -211,7 +225,6 @@ class PageWriter {
 	constructor(private readonly options: OneNoteConversionOptions, private readonly pageTitle: string) {
 	}
 
-	/** Keeps consecutive list items in a tight list. */
 	get markdown(): string {
 		const lines: string[] = [];
 
@@ -228,7 +241,6 @@ class PageWriter {
 		this.blocks.push({ text, listItem });
 	}
 
-	/** Joins adjacent paragraphs with the same callout. */
 	private pushCallout(callout: Callout, body: string): void {
 		const quoted = body.split('\n').map(line => `> ${line}`).join('\n');
 		const previous = this.blocks[this.blocks.length - 1];
@@ -261,10 +273,10 @@ class PageWriter {
 				await this.writeTable(element);
 				break;
 			case 'image':
-				await this.writeAsset(element.data, assetName(element.fileName, element.extension, 'image'), element.altText ?? '', true);
+				await this.writeAsset(element.data, this.imageName(element), element.altText ?? '', true);
 				break;
 			case 'embedded-file': {
-				const name = assetName(element.fileName, element.extension, 'attachment');
+				const name = withExtension(element.fileName ?? 'attachment', element.extension);
 				await this.writeAsset(element.data, name, name, false);
 				break;
 			}
@@ -286,7 +298,6 @@ class PageWriter {
 			const body = (prefix || headingPrefix(paragraph.styleId)) + escaped.join('  \n' + indent);
 			const callout = calloutFor(paragraph.tags);
 
-			// Do not split a list by lifting one item into a callout.
 			if (callout && !paragraph.list && !task) this.pushCallout(callout, body);
 			else this.push(body, task !== undefined || paragraph.list !== undefined);
 		}
@@ -319,7 +330,6 @@ class PageWriter {
 		this.push(lines.join('\n'));
 	}
 
-	/** Collects all ink containers into one page drawing. */
 	private collectInk(ink: Ink): void {
 		for (const stroke of ink.strokes) {
 			this.inkStrokes.push({
@@ -346,6 +356,10 @@ class PageWriter {
 		if (recognized !== '') this.push(recognized);
 	}
 
+	private imageName(image: Image): string {
+		return withExtension(`${this.pageTitle} image`, image.extension ?? extensionOf(image.fileName));
+	}
+
 	private async writeAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<void> {
 		const link = await this.renderAsset(data, name, label, embed);
 		if (link) this.push(link);
@@ -368,7 +382,6 @@ class PageWriter {
 		return embed ? `![${label}](${target})` : `[${label}](${target})`;
 	}
 
-	/** Renders cell content inline; nested tables are reported as unsupported. */
 	private async renderCell(children: Element[]): Promise<string> {
 		const parts: string[] = [];
 
@@ -382,11 +395,10 @@ class PageWriter {
 					parts.push(await this.renderCell(child.children));
 					break;
 				case 'image':
-					parts.push(await this.renderAsset(
-						child.data, assetName(child.fileName, child.extension, 'image'), child.altText ?? '', true) ?? '');
+					parts.push(await this.renderAsset(child.data, this.imageName(child), child.altText ?? '', true) ?? '');
 					break;
 				case 'embedded-file': {
-					const name = assetName(child.fileName, child.extension, 'attachment');
+					const name = withExtension(child.fileName ?? 'attachment', child.extension);
 					parts.push(await this.renderAsset(child.data, name, name, false) ?? '');
 					break;
 				}
@@ -403,16 +415,8 @@ class PageWriter {
 	}
 }
 
-/** Adds a recorded extension when the filename has none. */
-function assetName(fileName: string | undefined, extension: string | undefined, fallback: string): string {
-	if (fileName && /\.[^.\\/]+$/.test(fileName)) return fileName;
-
-	const suffix = extension ? (extension.startsWith('.') ? extension : `.${extension}`) : '';
-	return (fileName ?? fallback) + suffix;
-}
-
 export async function convertPage(page: Page, options: OneNoteConversionOptions): Promise<ConvertedPage> {
-	const writer = new PageWriter(options, page.title);
+	const writer = new PageWriter(options, options.noteName ?? page.title);
 
 	await writer.writeElements(page.outlines);
 	await writer.writeElements(page.directContent);

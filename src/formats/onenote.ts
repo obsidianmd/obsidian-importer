@@ -741,7 +741,8 @@ export class OneNoteImporter extends FormatImporter {
 		try {
 			const svgContent = inkmlToSvg(splitContent.inkml);
 			if (svgContent) {
-				const svgFilename = `${page.title} - Ink.svg`;
+				// A page title may hold characters a file name cannot.
+				const svgFilename = `${sanitizeFileName(page.title)} - Ink.svg`;
 				// The drawing was built here, so what is on disk can be compared
 				// against it outright rather than guessed at from its name.
 				const { path: svgPath, reuse } = await this.placeAttachment(svgFilename, notePath,

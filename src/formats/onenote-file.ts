@@ -27,11 +27,10 @@ const REASONS: Record<OneNoteErrorKind, () => string> = {
 	limit: () => i18n.importer.onenoteFile.reasonTooLarge(),
 };
 
-/** Imports local OneNote export files without a Microsoft account. */
 export class OneNoteFileImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
-	// Do not initialize fields set by init(); the base constructor calls it first.
+	// Field initializers would overwrite values set by base-constructor init().
 	private picker: TreePicker<SectionNode>;
 	private loadedFrom = '';
 	private loadGeneration = 0;
@@ -197,9 +196,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
 		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${sanitizeFileName(section.name || fallbackName)}`));
 
-		// Nest subpages under the preceding page at the parent level. A page's
-		// folder is named after it and only made when a subpage arrives to go
-		// in it, so a page without any leaves no empty folder behind.
+		// Create a page folder only when its first subpage arrives.
 		const levels: { folder?: TFolder, path?: string }[] = [{ folder: sectionFolder }];
 		let done = 0;
 
@@ -236,6 +233,7 @@ export class OneNoteFileImporter extends FormatImporter {
 
 			const notePath = planned.targetPath;
 			const converted = await convertPage(page, {
+				noteName: title,
 				isCancelled: () => ctx.isCancelled(),
 				resolveInternalLink: pageTitle => sanitizeFileName(pageTitle),
 				onSkipped: (name, reason) => ctx.reportSkipped(name, reason === 'no-data'
@@ -283,11 +281,6 @@ export class OneNoteFileImporter extends FormatImporter {
 	}
 }
 
-/**
- * OneNote for Windows backs its notebooks up as `.one` files of its own accord,
- * so the picker opens there when it can: most people have something to import
- * without exporting anything first.
- */
 function windowsBackupFolder(): string | undefined {
 	if (!Platform.isWin || !Platform.isDesktopApp || !fs || !nodePath || !os) return undefined;
 
@@ -299,19 +292,16 @@ function windowsBackupFolder(): string | undefined {
 				return fs.readdirSync(directory);
 			}
 			catch {
-				// A folder that cannot be read is not the one this is looking for.
 				return undefined;
 			}
 		},
 	});
 }
 
-/** A format error is answered by kind; anything else is described as it came. */
 function describeFailure(error: unknown): string {
 	return error instanceof OneNoteFormatError ? REASONS[error.kind]() : describeReason(error);
 }
 
-/** Unsupported and protected files are expected skips; malformed files fail. */
 function report(ctx: ImportContext, name: string, error: unknown): void {
 	const expected = error instanceof OneNoteFormatError && (error.kind === 'protected' || error.kind === 'unsupported');
 
