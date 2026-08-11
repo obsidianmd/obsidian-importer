@@ -34,6 +34,8 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw'>;
 	onChange?(): void;
+	/** Hides the load button when selection loads the tree. */
+	loadsItself?: boolean;
 }
 
 export class TreePicker<T extends ViewableNode<T>> {
@@ -60,6 +62,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 				this.loadButton = button;
 				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
 				button.setButtonText(i18n.tree.buttonLoad());
+				if (options.loadsItself) button.buttonEl.hide();
 			});
 
 		this.treeEl = containerEl

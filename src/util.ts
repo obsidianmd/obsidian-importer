@@ -184,7 +184,7 @@ export function parseHTML(html: string): HTMLElement {
 	return new DOMParser().parseFromString(html, 'text/html').documentElement;
 }
 
-function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
+export function uint8arrayToArrayBuffer(input: Uint8Array<ArrayBuffer>): ArrayBuffer {
 	// Slice to ensure we only return the portion of the buffer that corresponds to this view
 	// Use slice which creates a new ArrayBuffer (not SharedArrayBuffer)
 	return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);

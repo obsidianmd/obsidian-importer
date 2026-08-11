@@ -47,7 +47,7 @@ const DRAWINGS: StoreSpec = {
 };
 
 /** Build an importer with a fixture database and attachment directory. */
-async function importing(spec: StoreSpec, writeFiles = true) {
+async function importing(spec: StoreSpec, writeFiles = true, prefixFormat = '') {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), spec);
 
@@ -94,6 +94,7 @@ async function importing(spec: StoreSpec, writeFiles = true) {
 		subject.protobufRoot = Root.fromJSON(descriptor);
 		subject.keys = keys;
 		subject.duplicateHandling = mode;
+		subject.filePrefixFormat = prefixFormat;
 		subject.database = store.database;
 		subject.resolvedAccounts = { 1: { name: 'Test account', uuid: 'ACCOUNT-1', path: account } };
 		subject.owners = { [store.folderPk]: 1 };
@@ -393,6 +394,24 @@ test('a drawing is imported whichever UTI it carries', async () => {
 		assert.equal(held('Drawing.png'), 'DRAWING-PAPER');
 		assert.equal(held('Drawing 1.png'), 'DRAWING-LEGACY');
 		assert.equal(held('Drawing 2.png'), 'DRAWING-LEGACY-2');
+	}
+	finally {
+		run.close();
+	}
+});
+
+test('a date prefix holding slashes does not cut the attachment name short', async () => {
+	// The format is typed by hand, and "YYYY/MM/DD" is a natural thing to type.
+	// Attachment naming reads a slash as a folder, so an unsanitized prefix
+	// would leave only the day: "05 CLIP-1.png".
+	const run = await importing(NO_EXTENSION, true, 'YYYY/MM/DD');
+
+	try {
+		await run.resolve(run.notePks[0]);
+
+		const attachment = run.vault.paths().find(path => path.endsWith('.png'));
+		assert.ok(attachment, `no attachment was written: ${JSON.stringify(run.vault.paths())}`);
+		assert.match(attachment, /^\d{4}-\d{2}-\d{2} /, `the date prefix was cut short: ${attachment}`);
 	}
 	finally {
 		run.close();

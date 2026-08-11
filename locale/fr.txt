@@ -114,9 +114,21 @@ translation={{count}} page
 original={{count}} pages
 translation={{count}} pages
 
+[group.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[group.notion.name]
+original=Notion
+translation=Notion
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Importer des données dans Obsidian
+
+[modal.title-choose-method]
+original=Choose how to import
+translation=Choisir le mode d'import
 
 [modal.title-import-from]
 original=Import from {{format}}
@@ -1210,6 +1222,14 @@ translation=
 original=Microsoft OneNote
 translation=
 
+[importer.onenote.method-name]
+original=Microsoft account
+translation=Compte Microsoft
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=Connectez-vous à votre compte Microsoft et importez les blocs-notes synchronisés avec OneDrive. Nécessite une connexion Internet.
+
 [importer.onenote.label-id]
 original=OneNote ID
 translation=l'identifiant OneNote
@@ -1354,6 +1374,90 @@ translation=la pièce jointe ne comportait pas d'URL de téléchargement
 original=the image did not include a download URL
 translation=l'image ne comportait pas d'URL de téléchargement
 
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=Microsoft OneNote (fichier d'export)
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=Microsoft OneNote (.one, .onepkg)
+
+[importer.onenote-file.method-name]
+original=File import
+translation=Import de fichiers
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=Importez à partir des fichiers d'export OneNote (.one, .onepkg) de votre ordinateur. Ne nécessite ni compte ni connexion Internet, et fonctionne pour les blocs-notes qui n'ont jamais été synchronisés.
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=Export OneNote
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=ID OneNote
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=OneNote pour Windows conserve ses propres sauvegardes ; la sélection s'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=Sections à importer
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=Choisissez les sections à importer.
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=Lecture des sections…
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=Aucune section trouvée dans ce fichier.
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=Choisissez d'abord un fichier OneNote.
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation=Lecture de {{name}}
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation=Import de {{name}} ({{index}} sur {{total}})
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=le fichier est protégé par des droits et ne peut être ouvert que par un compte qui y est autorisé
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=le fichier utilise un format OneNote que l'importateur ne sait pas encore lire
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=le fichier ne décrit pas les structures OneNote qu'il annonce
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=le fichier est plus volumineux que ce que l'importateur accepte de décompresser
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=la pièce jointe ne contenait aucune donnée
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=un tableau à l'intérieur d'une cellule de tableau n'a pas d'équivalent en Markdown
+
 [importer.notion-api.name]
 original=Notion (API)
 translation=
@@ -1361,6 +1465,14 @@ translation=
 [importer.notion-api.option-text]
 original=Notion (API)
 translation=
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=Compte Notion (recommandé)
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
+translation=Importe l'intégralité de votre espace de travail, y compris les bases de données et les formules qui sont converties en bases. Nécessite un jeton d'intégration Notion et une connexion Internet.
 
 [importer.notion-api.label-id]
 original=Notion ID
@@ -1797,6 +1909,14 @@ translation=
 [importer.notion.option-text]
 original=Notion (.zip)
 translation=
+
+[importer.notion.method-name]
+original=File import
+translation=Import de fichiers
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
+translation=Importe à partir d'un fichier d'export Notion (.zip). Ne nécessite ni jeton d'API ni connexion Internet, mais ne préserve pas les bases de données.
 
 [importer.notion.file-type]
 original=Exported Notion

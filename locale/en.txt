@@ -114,8 +114,20 @@ translation=
 original={{count}} pages
 translation=
 
+[group.onenote.name]
+original=Microsoft OneNote
+translation=
+
+[group.notion.name]
+original=Notion
+translation=
+
 [modal.title-pick-format]
 original=Import data into Obsidian
+translation=
+
+[modal.title-choose-method]
+original=Choose how to import
 translation=
 
 [modal.title-import-from]
@@ -1210,6 +1222,14 @@ translation=
 original=Microsoft OneNote
 translation=
 
+[importer.onenote.method-name]
+original=Microsoft account
+translation=
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=
+
 [importer.onenote.label-id]
 original=OneNote ID
 translation=
@@ -1354,12 +1374,104 @@ translation=
 original=the image did not include a download URL
 translation=
 
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=
+
+[importer.onenote-file.method-name]
+original=File import
+translation=
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation=
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation=
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=
+
 [importer.notion-api.name]
 original=Notion (API)
 translation=
 
 [importer.notion-api.option-text]
 original=Notion (API)
+translation=
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
 translation=
 
 [importer.notion-api.label-id]
@@ -1796,6 +1908,14 @@ translation=
 
 [importer.notion.option-text]
 original=Notion (.zip)
+translation=
+
+[importer.notion.method-name]
+original=File import
+translation=
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
 translation=
 
 [importer.notion.file-type]
