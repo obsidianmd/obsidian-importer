@@ -27,6 +27,7 @@ interface LocaleDefinition {
 
 interface MessageResponse {
 	content?: Array<{ text?: string }>;
+	stop_reason?: string;
 }
 
 interface TranslationResult {
@@ -117,10 +118,35 @@ function englishAtRef(ref: string): Bundle | undefined {
 }
 
 const previousEnglish = fromRef ? englishAtRef(fromRef) : undefined;
+
+/**
+ * Two names on the list cannot be required verbatim. `Journal` is also an
+ * ordinary word, so Czech keeps "Apple Journal" while writing "Journal entries"
+ * as "Záznamy z deníku". `Markdown` is one Obsidian itself localizes — its
+ * Korean writes 마크다운 — so the glossary asks for the transliteration at the
+ * same moment the rule would forbid it.
+ */
+const LOCALIZED_BRANDS = new Set(['Journal', 'Markdown']);
+const VERBATIM_BRANDS = sentenceCase.brands.filter(brand => !LOCALIZED_BRANDS.has(brand));
+
+/**
+ * A name the English carries that the translation dropped. Worth checking on
+ * its own — a value can lose the end of its sentence while keeping every
+ * placeholder, and nothing else here would notice.
+ */
+function droppedBrand(source: string, translated: string): string | undefined {
+	return VERBATIM_BRANDS.find(brand =>
+		new RegExp(`(?<![A-Za-z])${brand}(?![A-Za-z])`).test(source) && !translated.includes(brand)
+	);
+}
+
 const needsTranslation = Object.keys(english).filter(key =>
 	existing[key] === undefined
 	|| recordedOriginals[key] !== english[key]
 	|| (previousEnglish !== undefined && previousEnglish[key] !== english[key])
+	// A value already in the file that would not pass validation now. Asking
+	// again is what repairs a bad translation an earlier run let through.
+	|| droppedBrand(english[key], existing[key]) !== undefined
 );
 
 /** Help uses km, while obsidian-translations still names the Khmer table kh. */
@@ -168,10 +194,9 @@ function loadGlossary(): Glossary {
 		exact.set(key, translation);
 	}
 
-	// Obsidian's own string table, in this language. A whole string that matches
-	// one is already answered; a short one is the app's word for something the
-	// importer talks about too, and reads better than a fresh invention of it.
-	// A long one is a sentence, and matches nothing worth borrowing.
+	// Obsidian's own string table. A whole string that matches one is already
+	// answered; a short one is the app's word for something the importer talks
+	// about too. A long one is a sentence, and matches nothing worth borrowing.
 	const appTranslationPath = path.join(translationsRoot, 'translations', `${glossaryLocale}.txt`);
 	if (existsSync(appTranslationPath)) {
 		let source = '';
@@ -217,6 +242,8 @@ function validateTranslation(key: string, translated: string): string {
 	if (JSON.stringify(placeholders(value)) !== JSON.stringify(placeholders(english[key]))) {
 		throw new Error(`${key} changed its placeholders`);
 	}
+	const dropped = droppedBrand(english[key], value);
+	if (dropped) throw new Error(`${key} lost ${dropped}`);
 	return value;
 }
 
@@ -285,13 +312,39 @@ function relevantTerms(keys: string[]): string {
 		.join('\n');
 }
 
+/**
+ * Valid JSON by construction, which asking for it in the prompt was not: a
+ * value carrying a quote cost whole batches to one missed escape.
+ *
+ * It does not make the answer complete. A raw " is where a JSON string ends, so
+ * a model reaching for a closing quote it has not escaped truncates the value in
+ * silence — which is what the quoting rules below and `droppedBrand` are for.
+ */
+const RESPONSE_SCHEMA = {
+	type: 'object',
+	properties: {
+		translations: {
+			type: 'array',
+			items: {
+				type: 'object',
+				properties: {
+					key: { type: 'string' },
+					translation: { type: 'string' },
+				},
+				required: ['key', 'translation'],
+				additionalProperties: false,
+			},
+		},
+	},
+	required: ['translations'],
+	additionalProperties: false,
+};
+
 function parseResponse(text: string): TranslationResult[] {
-	const start = text.indexOf('[');
-	const end = text.lastIndexOf(']');
-	if (start === -1 || end === -1) throw new Error('The language model did not return a JSON array');
-	const value: unknown = JSON.parse(text.slice(start, end + 1));
-	if (!Array.isArray(value)) throw new Error('The language model response was not an array');
-	return value as TranslationResult[];
+	const value: unknown = JSON.parse(text);
+	const translations = (value as { translations?: unknown })?.translations;
+	if (!Array.isArray(translations)) throw new Error('The language model did not return a translations array');
+	return translations as TranslationResult[];
 }
 
 const languageNote: Record<string, string> = {
@@ -302,22 +355,36 @@ const languageNote: Record<string, string> = {
 async function translateBatch(keys: string[]): Promise<void> {
 	const request = keys.map(key => ({ key, source: english[key] }));
 	const terms = relevantTerms(keys);
-	const system = `You are a professional translator for the Obsidian Importer plugin. Translate UI strings into ${definition.english}.
+	const systemPrompt = (quoteRule: string): string => `You are a professional translator for the Obsidian Importer plugin. Translate UI strings into ${definition.english}.
 
 Rules:
-1. Return only a JSON array of objects with exactly the input keys and a "translation" string.
+1. Answer with one entry per input key, carrying that key and its translation.
 2. Preserve every {{placeholder}} exactly, including its spelling. You may move it.
 3. Preserve leading and trailing whitespace, escaped newlines, and punctuation that is part of a value.
-4. Write these names exactly as they appear, whatever the surrounding language: ${sentenceCase.brands.join(', ')}.
+4. Write these names exactly as they appear, whatever the surrounding language: ${VERBATIM_BRANDS.join(', ')}. ${[...LOCALIZED_BRANDS].join(' and ')} may take the spelling Obsidian itself uses in this language.
 5. Leave these unchanged as well; they are units, date parts, or format names: ${sentenceCase.acronyms.join(', ')}.
-6. A name in quotes is a property written into the reader's notes, not text on screen. Leave what is inside the quotes exactly as it is.
-7. Translate singular and plural entries appropriately. The _plural key is the general form for every count other than one.
-8. Prefer concise, natural product UI language.
+6. ${quoteRule}
+7. A name that carries quotes is a property written into the reader's notes, not text on screen. Leave the name itself exactly as it is.
+8. Translate singular and plural entries appropriately. The _plural key is the general form for every count other than one.
+9. Prefer concise, natural product UI language.
 ${languageNote[locale] ?? ''}
 ${terms ? `\nObsidian itself is already translated into ${definition.english}, and the importer opens inside it. Where one of these words appears, use the app's wording rather than a synonym:\n${terms}` : ''}`;
 
+	// French closes with » and Japanese with 」, so the first attempt leaves the
+	// choice open. What breaks is a pair closed with an unescaped ": Czech does it
+	// after „, Chinese after 点击. Each retry moves further from the choice, and
+	// the last drops quotation marks altogether, which is the only thing Chinese
+	// answers. It has to replace rule 6, not follow it, or the two contradict.
+	const quoting = [
+		'Quotation marks come in pairs. Open with your language\'s mark and close with its partner; open with a straight quote (") and close with a straight quote. Never mix the two styles in one pair.',
+		'Write every quotation mark as a straight quote ("), never as „ “ « » 「 or 」.',
+		'Do not put quotation marks around a name; write the name on its own, with no quotes of any kind.',
+	];
+
 	let lastError: unknown;
+	let best = new Map<string, string>();
 	for (let attempt = 1; attempt <= 3; attempt++) {
+		const system = systemPrompt(quoting[attempt - 1]);
 		try {
 			const response = await fetch(endpoint, {
 				method: 'POST',
@@ -328,21 +395,46 @@ ${terms ? `\nObsidian itself is already translated into ${definition.english}, a
 				},
 				body: JSON.stringify({
 					model,
-					max_tokens: 8192,
+					max_tokens: 16000,
 					system,
+					output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA } },
 					messages: [{ role: 'user', content: JSON.stringify(request) }],
 				}),
 			});
 
 			if (!response.ok) throw new Error(`LLM API error ${response.status}: ${await response.text()}`);
 			const body = await response.json() as MessageResponse;
+			// Otherwise a cut-off answer surfaces as a parse error partway through
+			// a value, which reads like bad JSON rather than a batch that is too big.
+			if (body.stop_reason === 'max_tokens') throw new Error('The answer was cut off at max_tokens');
 			const results = parseResponse((body.content ?? []).map(block => block.text ?? '').join(''));
 			const byKey = new Map(results.map(result => [result.key, result.translation]));
 
+			const accepted = new Map<string, string>();
+			const refused: string[] = [];
+
 			for (const key of keys) {
 				const value = byKey.get(key);
-				if (typeof value !== 'string') throw new Error(`The language model omitted ${key}`);
-				translated[key] = validateTranslation(key, value);
+				try {
+					if (typeof value !== 'string') throw new Error(`the model omitted ${key}`);
+					accepted.set(key, validateTranslation(key, value));
+				}
+				catch (error) {
+					refused.push(key);
+					lastError = error;
+				}
+			}
+
+			if (refused.length > 0) {
+				// Later attempts trade typography for a plainer answer, which can come
+				// back worse than the one before it. Keeping the fullest of the three
+				// is what stops one string the model will not get right costing forty.
+				if (accepted.size > best.size) best = accepted;
+				throw lastError;
+			}
+
+			for (const [key, value] of accepted) {
+				translated[key] = value;
 			}
 			return;
 		}
@@ -353,15 +445,18 @@ ${terms ? `\nObsidian itself is already translated into ${definition.english}, a
 		}
 	}
 
-	throw lastError;
+	if (best.size === 0) throw lastError;
+
+	for (const [key, value] of best) translated[key] = value;
+	const missing = keys.filter(key => !best.has(key));
+	throw new Error(`${missing.length} of ${keys.length} left untranslated: ${missing.join(', ')}`);
 }
 
 /**
- * A singular with no plural beside it means a count in this language and a
- * count in English can meet in one sentence, which the test suite refuses. A
- * batch that fails can leave half a pair behind, so hold back whichever half
- * arrived — the key it came from is still waiting in `translated`, and the
- * other half landing later completes the pair.
+ * A singular with no plural beside it lets a count in this language and a count
+ * in English meet in one sentence, which the test suite refuses. A failed batch
+ * can leave half a pair behind, so hold back whichever half arrived; it stays in
+ * `translated`, and the other half landing later completes the pair.
  */
 function paired(bundle: Bundle): Bundle {
 	const result: Bundle = { ...bundle };
@@ -384,6 +479,7 @@ function write(): void {
 
 async function main(): Promise<void> {
 	const work = batches(remaining);
+	const before = Object.keys(translated).length;
 	let failed = 0;
 
 	for (let index = 0; index < work.length; index++) {
@@ -404,12 +500,17 @@ async function main(): Promise<void> {
 		write();
 	}
 
-	if (failed > 0 && failed === work.length) {
-		throw new Error(`${locale}: every batch failed`);
+	const gained = Object.keys(translated).length - before;
+
+	// Nothing at all came back — a key that is not working, an endpoint that is
+	// not answering. A batch that gave up having kept most of its strings is a
+	// different thing, and its work is worth writing.
+	if (work.length > 0 && gained === 0) {
+		throw new Error(`${locale}: nothing was translated`);
 	}
 
 	write();
-	console.log(`Wrote ${path.relative(root, localePath)}${failed ? `, ${failed} batches short` : ''}`);
+	console.log(`Wrote ${path.relative(root, localePath)}${failed ? `, ${remaining.length - gained} strings short` : ''}`);
 }
 
 void main().catch(error => {
