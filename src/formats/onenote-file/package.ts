@@ -8,6 +8,8 @@ import { mapSection } from './semantic/map';
 export interface SectionEntry {
 	name: string;
 	title: string;
+	/** The section groups this section sits in, outermost first. */
+	groups: string[];
 }
 
 export interface ReadSection extends SectionEntry {
@@ -20,6 +22,17 @@ function titleOf(name: string): string {
 	return name.replace(/^.*[\\/]/, '').replace(SECTION_EXTENSION, '');
 }
 
+/**
+ * A packaged section may sit inside section groups, which the archive records
+ * as a path on its entry. Keeping them is what stops a grouped notebook
+ * arriving flat.
+ */
+export function groupsOf(name: string): string[] {
+	const parts = name.split(/[\\/]/);
+	parts.pop();
+	return parts.filter(part => part !== '' && part !== '.');
+}
+
 function isSection(name: string): boolean {
 	return SECTION_EXTENSION.test(name);
 }
@@ -29,11 +42,11 @@ export function isPackage(data: Uint8Array): boolean {
 }
 
 export function listSections(data: Uint8Array, fallbackName: string, limits: CabinetLimits = DEFAULT_CABINET_LIMITS): SectionEntry[] {
-	if (!isPackage(data)) return [{ name: fallbackName, title: titleOf(fallbackName) }];
+	if (!isPackage(data)) return [{ name: fallbackName, title: titleOf(fallbackName), groups: [] }];
 
 	return readCabinetIndex(data, limits).entries
 		.filter(entry => isSection(entry.name))
-		.map(entry => ({ name: entry.name, title: titleOf(entry.name) }));
+		.map(entry => ({ name: entry.name, title: titleOf(entry.name), groups: groupsOf(entry.name) }));
 }
 
 export function readSections(
@@ -41,7 +54,7 @@ export function readSections(
 	fallbackName: string,
 	wanted?: ReadonlySet<string>,
 	limits: CabinetLimits = DEFAULT_CABINET_LIMITS,
-): { name: string, title: string, read: () => Section }[] {
+): { name: string, title: string, groups: string[], read: () => Section }[] {
 	if (isCompoundFile(data)) {
 		const kind = inspectOnex(data);
 		throw new OneNoteFormatError(
@@ -52,13 +65,14 @@ export function readSections(
 	}
 
 	if (!isPackage(data)) {
-		return [{ name: fallbackName, title: titleOf(fallbackName), read: () => mapSection(readRevisionStore(data)) }];
+		return [{ name: fallbackName, title: titleOf(fallbackName), groups: [], read: () => mapSection(readRevisionStore(data)) }];
 	}
 
 	return readCabinet(data, limits, name => isSection(name) && (!wanted || wanted.has(name)))
 		.map(entry => ({
 			name: entry.name,
 			title: titleOf(entry.name),
+			groups: groupsOf(entry.name),
 			read: () => mapSection(readRevisionStore(entry.data)),
 		}));
 }

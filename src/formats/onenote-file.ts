@@ -189,12 +189,15 @@ export class OneNoteFileImporter extends FormatImporter {
 				continue;
 			}
 
-			await this.importSection(ctx, section, entry.title, folder);
+			await this.importSection(ctx, section, entry.title, folder, entry.groups);
 		}
 	}
 
-	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
-		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${sanitizeFileName(section.name || fallbackName)}`));
+	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder, groups: string[] = []): Promise<void> {
+		// A section inside section groups keeps them, as OneNote shows them.
+		const within = groups.map(group => sanitizeFileName(group)).join('/');
+		const parent = within ? `${folder.path}/${within}` : folder.path;
+		const sectionFolder = await this.createFolders(normalizePath(`${parent}/${sanitizeFileName(section.name || fallbackName)}`));
 
 		// Create a page folder only when its first subpage arrives.
 		const levels: { folder?: TFolder, path?: string }[] = [{ folder: sectionFolder }];
