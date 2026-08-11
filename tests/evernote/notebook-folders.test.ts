@@ -5,6 +5,8 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
+import { Platform } from 'obsidian';
+
 import { provideNodeModules } from '../../src/filesystem';
 import {
 	getNotebookNameAndFolderNames,
@@ -54,7 +56,7 @@ test('an enex whose name is only dots still gets a folder', () => {
 	}
 });
 
-test('a long name is still legal after being truncated', () => {
+test('a long name is still legal once it has been cut down', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
 		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
@@ -63,6 +65,23 @@ test('a long name is still legal after being truncated', () => {
 		assert.ok(!nodePath.basename(run.mdPath).endsWith('.'), `got ${nodePath.basename(run.mdPath)}`);
 	}
 	finally {
+		nodeFs.rmSync(outputDir, { recursive: true, force: true });
+	}
+});
+
+test('off Windows a long notebook name is kept whole', () => {
+	const was = Platform.isWin;
+	Platform.isWin = false;
+	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
+	try {
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
+		const basename = 'Notes from the quarterly planning meeting, including every action item we agreed to follow up on next week';
+		setPaths(run, basename, outputDir);
+
+		assert.equal(nodePath.basename(run.mdPath), basename);
+	}
+	finally {
+		Platform.isWin = was;
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
 	}
 });

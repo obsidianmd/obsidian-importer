@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20240101T000000Z" application="Evernote" version="10.0">
+<note>
+<title>Long Attachment Name</title>
+<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note><div>body</div><div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png"/></div></en-note>]]></content>
+<created>20240101T000000Z</created>
+<resource><data encoding="base64">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8//8/AwAFAAEKLrTnAAAAAElFTkSuQmCC</data><mime>image/png</mime>
+<resource-attributes><file-name>Scan of the signed agreement with Contoso, June 2024 edition.png</file-name></resource-attributes></resource>
+</note>
+</en-export>

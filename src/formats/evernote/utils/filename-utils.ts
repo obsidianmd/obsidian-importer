@@ -4,8 +4,6 @@ import { sanitizeFileName } from '../../../util';
 
 import { extensionForMime } from '../../../mime';
 
-const MAX_RESOURCE_FILENAME_PREFIX_LENGTH = 50;
-
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
@@ -17,9 +15,7 @@ export const getResourceFileName = (resource: EvernoteResource): string => {
 	let fileName = UNKNOWNFILENAME;
 
 	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
-		const fileNamePrefix = resource['resource-attributes']['file-name'].slice(0, MAX_RESOURCE_FILENAME_PREFIX_LENGTH);
-		fileName = parseFilePath(fileNamePrefix).basename;
-
+		fileName = parseFilePath(resource['resource-attributes']['file-name']).basename;
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
 

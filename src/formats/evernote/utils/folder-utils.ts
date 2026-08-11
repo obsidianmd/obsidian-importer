@@ -8,8 +8,6 @@ export interface NotebookStackProps {
 	basename: string;
 }
 
-const MAX_ENEX_DIR_LENGTH = 100;
-
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
 	const notebookFolderNames = basename.split('@@@');
 
@@ -44,12 +42,5 @@ export const getNotebookStackOutputDir = (enex: PickedFile, outputDir: string): 
 };
 
 export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: string): void => {
-	let truncatedBasename = sanitizeFileName(enexFileBasename, outputDir);
-
-	if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
-		truncatedBasename = sanitizeFileName(truncatedBasename.substring(0, MAX_ENEX_DIR_LENGTH), outputDir);
-		console.warn(`ENEX filename too long (${enexFileBasename.length} chars), truncated to ${MAX_ENEX_DIR_LENGTH} chars: ${truncatedBasename}`);
-	}
-
-	run.mdPath = run.output.planFolder(outputDir, truncatedBasename);
+	run.mdPath = run.output.planFolder(outputDir, sanitizeFileName(enexFileBasename, outputDir));
 };
