@@ -1,0 +1,158 @@
+:root {
+	--bg: #fff;
+	--fg: #1a1a1a;
+	--muted: #6b7280;
+	--line: #e5e7eb;
+	--accent: #7c5cff;
+	--failed: #b91c1c;
+	--skipped: #a16207;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #1b1b1f;
+		--fg: #e8e8ea;
+		--muted: #9ca3af;
+		--line: #33333a;
+		--accent: #a68bff;
+		--failed: #f87171;
+		--skipped: #fbbf24;
+	}
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	padding: 2rem 1rem calc(2rem + env(safe-area-inset-bottom));
+	background: var(--bg);
+	color: var(--fg);
+	font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+	max-width: 34rem;
+	margin: 0 auto;
+}
+
+h1 {
+	margin: 0 0 .25rem;
+	font-size: 1.5rem;
+}
+
+.lede {
+	margin: 0 0 2rem;
+	color: var(--muted);
+}
+
+label {
+	display: block;
+	margin: 1.25rem 0 .375rem;
+	font-size: .875rem;
+	font-weight: 600;
+}
+
+select,
+input[type="file"] {
+	width: 100%;
+	padding: .625rem;
+	border: 1px solid var(--line);
+	border-radius: .5rem;
+	background: var(--bg);
+	color: var(--fg);
+	font: inherit;
+}
+
+button {
+	margin-top: 1.5rem;
+	padding: .75rem 1.25rem;
+	border: 0;
+	border-radius: .5rem;
+	background: var(--accent);
+	color: #fff;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+button:disabled {
+	opacity: .5;
+	cursor: default;
+}
+
+.progress {
+	height: 4px;
+	margin-top: 1.5rem;
+	border-radius: 2px;
+	background: var(--line);
+	overflow: hidden;
+}
+
+#bar {
+	width: 0;
+	height: 100%;
+	background: var(--accent);
+	transition: width .2s;
+}
+
+#status {
+	min-height: 1.5rem;
+	margin: .75rem 0 0;
+	color: var(--muted);
+	font-size: .875rem;
+}
+
+#log {
+	margin: 1rem 0 0;
+	padding: 0 0 0 1.25rem;
+	max-height: 40vh;
+	overflow-y: auto;
+	color: var(--muted);
+	font-size: .8125rem;
+}
+
+#log .failed { color: var(--failed); }
+#log .skipped { color: var(--skipped); }
+
+.files {
+	margin-top: 1.25rem;
+	border-top: 1px solid var(--line);
+}
+
+.files details {
+	border-bottom: 1px solid var(--line);
+}
+
+.files summary {
+	padding: .625rem .25rem;
+	font-size: .875rem;
+	cursor: pointer;
+	overflow-wrap: anywhere;
+}
+
+.files pre {
+	margin: 0 0 .75rem;
+	padding: .75rem;
+	border-radius: .5rem;
+	background: var(--line);
+	font-size: .75rem;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+#notices {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: .5rem;
+}
+
+.notice {
+	padding: .75rem 1rem;
+	border-radius: .5rem;
+	background: var(--fg);
+	color: var(--bg);
+	font-size: .875rem;
+}

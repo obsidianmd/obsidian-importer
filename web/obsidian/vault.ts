@@ -155,6 +155,14 @@ export class MemoryVault {
 		return String(this.contents.get(file.path) ?? '');
 	}
 
+	/**
+	 * Obsidian's read-through cache, which here is just the read: everything is
+	 * already in memory, so there is nothing for a cache to save.
+	 */
+	async cachedRead(file: { path: string }): Promise<string> {
+		return this.read(file);
+	}
+
 	async readBinary(file: { path: string }): Promise<ArrayBuffer> {
 		const content = this.contents.get(file.path);
 		if (!(content instanceof ArrayBuffer)) throw new Error(`${file.path} is not binary`);
