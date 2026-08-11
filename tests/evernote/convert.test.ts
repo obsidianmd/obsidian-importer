@@ -84,7 +84,7 @@ test('resolves a link into another notebook', async () => {
 		const note = readTree(outputDir).get('test-internotebook_links_B/Note in Notebook B.md');
 
 		assert.ok(note, 'note should exist');
-		assert.match(note.toString('utf8'), /\[\[test-internotebook_links_A\/Note in Notebook A\]\]/);
+		assert.match(note.toString('utf8'), /\[\[test-internotebook_links_A\/Note in Notebook A\|Note in Notebook A\]\]/);
 	});
 });
 
@@ -94,6 +94,30 @@ test('resolves a link into another notebook', async () => {
  * as "unknown_filename". Nothing collapses an element now, but the case is
  * named here so a regression says what broke.
  */
+/**
+ * A table of contents in one notebook listing a note in another.
+ *
+ * An ENEX gives nothing a link can be resolved by: the href carries the target
+ * note's Evernote guid, and no note in an export says what its own guid is. So
+ * a link is matched to a note by the text Evernote wrote it with, which is the
+ * target's title - and the note it finds is what says which folder the link
+ * has to point into. Reading the notebook off the note the link was *in*, as
+ * this used to, names the wrong one whenever the two differ.
+ */
+test('a link into another notebook names the notebook the note is in', async () => {
+	await convert([
+		nodePath.join(FIXTURES, 'toc-pointing-elsewhere_A.enex'),
+		nodePath.join(FIXTURES, 'toc-pointing-elsewhere_B.enex'),
+	], outputDir => {
+		const toc = readTree(outputDir).get('toc-pointing-elsewhere_A/Table of Contents.md');
+
+		assert.ok(toc, 'the table of contents should exist');
+		// Named as well as pointed at, so the note reads "Shared Note" rather
+		// than the folder it had to go through to find it.
+		assert.equal(toc.toString('utf8').trim(), '[[toc-pointing-elsewhere_B/Shared Note|Shared Note]]');
+	});
+});
+
 test('keeps a resource file name that is its only attribute', async () => {
 	await convert([nodePath.join(FIXTURES, 'test-resource-attributes-single-child.enex')], outputDir => {
 		const attachments = [...readTree(outputDir).keys()].filter(path => path.endsWith('.png'));

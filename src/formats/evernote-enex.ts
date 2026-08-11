@@ -66,12 +66,14 @@ export class EvernoteEnexImporter extends FormatImporter {
 			},
 
 			writeNote: async (path, markdown, times) => {
-				const { planned, disposition } = plans.get(path)!;
+				const { planned, reportAs, disposition } = plans.get(path)!;
 				// Vault will not create a file inside a folder that is not there,
 				// and nothing has made the notebook's folder: planNote settles a
 				// path without creating anything on the way to it.
 				await this.createFolders(parentOf(path));
-				await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
+
+				const { written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
+				if (written) ctx.reportNoteSuccess(reportAs);
 			},
 
 			/**

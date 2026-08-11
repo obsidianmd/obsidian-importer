@@ -34,8 +34,9 @@ export type AttachmentLocation =
 /** Stands in for the importer's "Existing notes" setting. */
 export type Duplicates = 'copy' | 'skip' | 'update';
 
-/** What the import is told when a note is left alone, as preflightNote tells it. */
+/** What the import is told about each note, as FormatImporter tells it. */
 export interface Reporter {
+	reportNoteSuccess(name: string): void;
 	reportSkipped(name: string, reason?: string): void;
 }
 
@@ -58,6 +59,13 @@ export class FsOutput implements EvernoteOutput {
 
 	/** How each planned note is named in what the import reports. */
 	private readonly reportAs = new Map<string, string>();
+
+	/**
+	 * Notes whose fate cannot be settled until their markdown exists, because
+	 * the export gave no modification time to compare. writePlannedNote does
+	 * the same: it is the answer preflightNote calls "compare-content".
+	 */
+	private readonly compareContent = new Set<string>();
 
 	private readonly ctx: Reporter | undefined;
 
@@ -106,9 +114,12 @@ export class FsOutput implements EvernoteOutput {
 
 		if (this.duplicates === 'skip') return this.leave(path, i18n.reason.alreadyInVault());
 
-		// Without a time from the source nothing can be decided until the
-		// markdown exists, and the vault compares the text. Here it is written.
-		if (sourceMtime === undefined) return true;
+		// Nothing can be decided until the markdown exists, so the note is
+		// converted and the text compared at the write.
+		if (sourceMtime === undefined) {
+			this.compareContent.add(path);
+			return true;
+		}
 
 		const writtenAt = Math.round(nodeFs.statSync(file).mtimeMs);
 		if (writtenAt === sourceMtime) return this.leave(path, i18n.reason.unchangedSinceImport());
@@ -118,7 +129,15 @@ export class FsOutput implements EvernoteOutput {
 	}
 
 	async writeNote(path: string, markdown: string, times: FileTimes): Promise<void> {
+		const file = this.matched.get(path);
+
+		if (file && this.compareContent.has(path) && nodeFs.readFileSync(file, 'utf8') === markdown) {
+			this.leave(path, i18n.reason.unchangedSinceImport());
+			return;
+		}
+
 		await this.write(path, markdown, times);
+		this.ctx?.reportNoteSuccess(this.reportAs.get(path) ?? path);
 	}
 
 	async placeAttachment(fileName: string, notePath: string, size: number): Promise<PlacedAttachment> {

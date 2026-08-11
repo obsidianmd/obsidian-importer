@@ -25,11 +25,19 @@ provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: node
 // Two notes, so there is one to reach and one to stop before.
 const FIXTURE = nodePath.join(__dirname, 'test-resource-attributes-single-child.enex');
 
-/** Reports itself cancelled once `after` notes have been imported. */
-function cancelAfter(after: number) {
+/**
+ * Reports itself cancelled once the import has announced a note.
+ *
+ * status() is called once for the enex being read and then once per note, so
+ * the second message is the first note: that one converts, and the read stops
+ * before the one after it. The note count cannot drive this - a note is not
+ * reported until it is written, which is after the whole file has been read.
+ */
+function cancelAfterFirstNote() {
 	return {
 		notes: [] as string[],
-		status() { },
+		announcements: 0,
+		status() { this.announcements++; },
 		reportNoteSuccess(name: string) { this.notes.push(name); },
 		reportAttachmentSuccess() { },
 		reportSkipped() { },
@@ -37,7 +45,7 @@ function cancelAfter(after: number) {
 			throw new Error(`unexpected failure: ${String(name)}: ${String(reason)}`);
 		},
 		reportProgress() { },
-		isCancelled() { return this.notes.length >= after; },
+		isCancelled() { return this.announcements >= 2; },
 		async shouldStop() { return this.isCancelled(); },
 		cancel() { },
 		finish() { },
@@ -46,14 +54,14 @@ function cancelAfter(after: number) {
 
 test('a cancelled import finishes, and keeps the notes it had already read', async () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-cancel-'));
-	const ctx = cancelAfter(1);
+	const ctx = cancelAfterFirstNote();
 
 	try {
 		await convertEnexFiles({
 			...defaultEvernoteOptions,
 			enexSources: [new NodePickedFile(FIXTURE)],
 			outputDir,
-		}, new FsOutput(outputDir), ctx as never);
+		}, new FsOutput(outputDir, { ctx }), ctx as never);
 
 		assert.deepEqual(ctx.notes, ['test-resource-attributes-single-child/Only File Name']);
 

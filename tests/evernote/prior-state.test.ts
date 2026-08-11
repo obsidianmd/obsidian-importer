@@ -32,6 +32,8 @@ provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: node
 const FIXTURES = nodePath.join(__dirname, 'prior-state');
 const TWO_ATTACHMENTS = nodePath.join(FIXTURES, 'first', 'report.enex');
 const ONE_ATTACHMENT = nodePath.join(FIXTURES, 'second', 'report.enex');
+/** An export that says when the note was made but not when it last changed. */
+const NO_UPDATED_TIME = nodePath.join(FIXTURES, 'no-updated-time.enex');
 
 /** Where report.enex puts its note, and what it puts beside it. */
 const NOTEBOOK = 'report';
@@ -240,6 +242,20 @@ test('with no answer to give, a taken note name is left where it is', async () =
 		// The whole notebook folder is numbered past, so the name never meets it.
 		assert.equal(nodeFs.readFileSync(nodePath.join(outputDir, NOTE), 'utf8'), 'not ours');
 		assert.ok(tree(outputDir).includes('report 1/Quarterly Report.md'));
+	});
+});
+
+test('a note whose export gives no time is counted once, not imported and skipped', async () => {
+	// With no <updated> to compare, nothing can be decided until the markdown
+	// exists - so the note is converted, and only the write knows it matched
+	// what was already there. Reporting the success at the conversion counted
+	// that note as imported and skipped both.
+	await inTempDir(async outputDir => {
+		await importInto(outputDir, NO_UPDATED_TIME);
+		const second = await importInto(outputDir, NO_UPDATED_TIME, write);
+
+		assert.deepEqual(second.notes, [], 'nothing is written the second time');
+		assert.equal(second.skips.length, 1, 'and it is reported once, as left alone');
 	});
 });
 

@@ -43,10 +43,12 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 		ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
 
 		try {
-			// A note left alone is reported by the preflight, which is what knows
-			// whether it was skipped, unchanged or preserved.
-			const reported = notebookName + '/' + note.title;
-			if (processNode(run, note, reported)) ctx.reportNoteSuccess(reported);
+			// Neither outcome is reported here. A note left alone is reported by
+			// the preflight, and one being written is reported by the write - a
+			// note whose export carries no <updated> is not settled until its
+			// markdown can be compared with what is already in the vault, which
+			// is at the commit. Reporting a success here counted that note twice.
+			processNode(run, note, notebookName + '/' + note.title);
 		}
 		catch (e) {
 			ctx.reportFailed(note.title || enexSource.name, e);
