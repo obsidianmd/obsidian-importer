@@ -1,9 +1,3 @@
-/**
- * What every Evernote test needs to run an import and look at the result.
- *
- * The four test files each had their own copy of the context stub, the
- * temporary directory dance and the list of files written; this is that, once.
- */
 import assert from 'node:assert/strict';
 import * as nodeCryptoModule from 'node:crypto';
 import * as nodeFs from 'node:fs';
@@ -18,7 +12,6 @@ import { FsOutput, FsOutputOptions } from './fs-output';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
-/** Stands in for ImportContext, remembering what it was told. */
 export function stubContext() {
 	return {
 		notes: [] as string[],
@@ -41,7 +34,6 @@ export function stubContext() {
 
 export type Context = ReturnType<typeof stubContext>;
 
-/** Run an import of these enex files into this directory. */
 export async function importEnex(
 	outputDir: string,
 	fixtures: string[],
@@ -56,7 +48,6 @@ export async function importEnex(
 	return ctx;
 }
 
-/** A temporary output folder, taken down whether or not the test passes. */
 export async function inTempDir(use: (outputDir: string) => Promise<void> | void): Promise<void> {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-enex-'));
 
@@ -68,17 +59,10 @@ export async function inTempDir(use: (outputDir: string) => Promise<void> | void
 	}
 }
 
-/**
- * Every file written, as the vault-style relative paths a test asserts on.
- *
- * Sorted by code point rather than readTree's locale order, so an expected
- * list can be written down and `.sort()`ed the way any other array would be.
- */
 export function tree(dir: string): string[] {
 	return [...readTree(dir).keys()].sort();
 }
 
-/** The one folder an import of a single notebook writes into. */
 export function notebookDir(outputDir: string): string {
 	const folders = nodeFs.readdirSync(outputDir, { withFileTypes: true }).filter(entry => entry.isDirectory());
 

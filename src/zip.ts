@@ -34,7 +34,6 @@ export class ZipEntryFile implements PickedFile {
 	}
 
 	async *readChunks(): AsyncIterable<string> {
-		// An entry is inflated whole either way, so there is one piece of it.
 		yield await this.readText();
 	}
 

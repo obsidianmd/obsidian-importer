@@ -15,7 +15,6 @@ export interface EvernoteOptions {
 export const defaultEvernoteOptions: EvernoteOptions = {
 	enexSources: [],
 	outputDir: './mdNotes',
-	// The form Obsidian reads as a date and time property
 	dateFormat: 'YYYY-MM-DDTHH:mm:ss',
 	skipWebClips: false,
 	useHashTags: true,

@@ -1,23 +1,3 @@
-/**
- * A directory standing in for the vault, so a conversion can be recorded.
- *
- * The plugin answers the conversion with FormatImporter and the vault; what
- * these tests want is a tree they can read back and compare with what is
- * committed beside them. Both are the same interface, which is what keeps the
- * conversion itself free of either.
- *
- * The policies are the vault's, reimplemented rather than reached for: a note
- * name already taken is numbered " 1", " 2" the way availableFileName does,
- * and a note matched by an earlier import is left, updated or preserved by
- * comparing its modification time with the source's, the way comparedToSource
- * does. Where they disagree with FormatImporter, this is wrong.
- *
- * Attachments go where the vault's "Default location for new attachments"
- * setting would put them, and the recordings are made with one real answer to
- * it: a subfolder called "attachments" beside the note. That keeps them inside
- * the notebook folder the recordings compare, which the vault-root answer
- * would not. What the plugin does is whatever the user has actually set.
- */
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
@@ -26,17 +6,14 @@ import { formatMarkdown } from '../../src/markdown-output';
 import { i18n } from '../../src/i18n';
 import { availableFileName, sanitizeFileName } from '../../src/util';
 
-/** The four shapes Obsidian's attachmentFolderPath setting takes. */
 export type AttachmentLocation =
 	| { mode: 'vault' }
 	| { mode: 'folder', path: string }
 	| { mode: 'note' }
 	| { mode: 'subfolder', path: string };
 
-/** Stands in for the importer's "Existing notes" setting. */
 export type Duplicates = 'copy' | 'skip' | 'update';
 
-/** What the import is told about each note, as FormatImporter tells it. */
 export interface Reporter {
 	reportNoteSuccess(name: string): void;
 	reportSkipped(name: string, reason?: string): void;
@@ -45,7 +22,6 @@ export interface Reporter {
 export interface FsOutputOptions {
 	duplicates?: Duplicates;
 	attachments?: AttachmentLocation;
-	/** Where the reason a note was left alone goes, as it does in the plugin. */
 	ctx?: Reporter;
 }
 
@@ -53,26 +29,17 @@ export class FsOutput implements EvernoteOutput {
 	private readonly duplicates: Duplicates;
 	private readonly attachments: AttachmentLocation;
 
-	/** Paths this import has given out, note and attachment alike. */
 	private readonly claimed = new Set<string>();
 
-	/** Planned paths where an earlier import's note is already sitting. */
 	private readonly matched = new Set<string>();
 
-	/** How each planned note is named in what the import reports. */
 	private readonly reportAs = new Map<string, string>();
 
-	/**
-	 * Notes whose fate cannot be settled until their markdown exists, because
-	 * the export gave no modification time to compare. writePlannedNote does
-	 * the same: it is the answer preflightNote calls "compare-content".
-	 */
 	private readonly compareContent = new Set<string>();
 
 	private readonly ctx: Reporter | undefined;
 
 	constructor(
-		/** Where the output folder is, which is what a vault path is relative to. */
 		private readonly root: string,
 		{ duplicates = 'copy', attachments = { mode: 'subfolder', path: 'attachments' }, ctx }: FsOutputOptions = {},
 	) {
@@ -95,7 +62,6 @@ export class FsOutput implements EvernoteOutput {
 		const name = `${sanitizeFileName(title, folder).replace(/\.md$/i, '')}.md`;
 		const desired = `${folder}/${name}`;
 
-		// An earlier import's note is written to again rather than beside.
 		if (this.duplicates !== 'copy' && !this.claimed.has(desired) && nodeFs.existsSync(desired)) {
 			this.claimed.add(desired);
 			this.matched.add(desired);
@@ -117,8 +83,6 @@ export class FsOutput implements EvernoteOutput {
 
 		if (this.duplicates === 'skip') return this.leave(path, i18n.reason.alreadyInVault());
 
-		// Nothing can be decided until the markdown exists, so the note is
-		// converted and the text compared at the write.
 		if (sourceMtime === undefined) {
 			this.compareContent.add(path);
 			return true;
@@ -132,9 +96,6 @@ export class FsOutput implements EvernoteOutput {
 	}
 
 	async writeNote(path: string, markdown: string, times: FileTimes): Promise<void> {
-		// The vault formats a note as it writes it, in createMarkdown - so this
-		// is what the recordings are of, and what an unchanged note has to be
-		// compared against. unchangedContent compares the formatted form too.
 		const content = formatMarkdown(markdown, { indentUnit: '    ' });
 
 		if (this.compareContent.has(path) && nodeFs.readFileSync(path, 'utf8') === content) {
@@ -152,8 +113,6 @@ export class FsOutput implements EvernoteOutput {
 
 		for (let nth = 0; ; nth++) {
 			const candidate = `${folder}/${name}${nth ? ` ${nth}` : ''}${extension}`;
-			// A path this import has already given out belongs to whatever took
-			// it, however alike the two look. placeAttachment does the same.
 			if (this.claimed.has(candidate)) continue;
 
 			let existing: nodeFs.Stats;
@@ -165,7 +124,6 @@ export class FsOutput implements EvernoteOutput {
 				return { path: candidate, write: true };
 			}
 
-			// The same name holding the same bytes is taken to be this one again.
 			if (existing.size !== size) continue;
 
 			this.claimed.add(candidate);
@@ -191,7 +149,6 @@ export class FsOutput implements EvernoteOutput {
 			nodeFs.utimesSync(path, seconds, seconds);
 		}
 		catch {
-			// The file is written; its timestamps are best effort.
 		}
 	}
 

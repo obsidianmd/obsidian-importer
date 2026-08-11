@@ -43,8 +43,6 @@ test('a note that is left alone is reported skipped and not written again', asyn
 });
 
 test('a note the source has moved on from keeps the name and folder it had', async () => {
-	// Backdating the notes is what an export carrying newer ones amounts to:
-	// the import writes each one again, in place, taking no new name.
 	await importTwice('update', (outputDir, first, second) => {
 		assert.deepEqual(second.failures, []);
 		assert.deepEqual(second.notes, first.notes);
@@ -59,8 +57,6 @@ test('a note the source has moved on from keeps the name and folder it had', asy
 });
 
 test('a note nobody has touched at either end is left as unchanged', async () => {
-	// The import writes the export's own modification time onto the note, so a
-	// second import of the same export finds the two equal and leaves it.
 	await importTwice('update', (outputDir, first, second) => {
 		assert.deepEqual(second.notes, [], 'nothing is written a second time');
 		assert.equal(second.skips.length, first.notes.length);

@@ -2,28 +2,7 @@ import { SAXParser } from 'sax';
 
 import { PickedFile } from '../../filesystem';
 
-/**
- * Read an ENEX, calling back with each element of interest as it closes.
- *
- * This used to be xml-flow, which builds the same objects but only over a Node
- * stream: it pipes into sax's stream half, which needs `stream` and `events`,
- * and neither is there off the desktop. sax's parser half needs nothing, and
- * the file arrives a piece at a time through PickedFile - so an import can be
- * driven with `await` between elements rather than from inside a synchronous
- * event handler.
- *
- * What an element becomes:
- *
- *   <mime>image/png</mime>                  'image/png'
- *   <data encoding="base64">AA==</data>     { $text: 'AA==' }
- *   <resource-attributes><file-name>x…      { 'file-name': 'x' }
- *   two <tag> elements                      ['one', 'two']
- *
- * An element carrying attributes keeps its text under `$text` because that is
- * the only shape that can hold both. xml-flow collapsed an element with one
- * child into that child, which is why note-attributes and resource-attributes
- * had to be collected separately and put back; nothing collapses here.
- */
+/** Text with attributes uses `$text`; repeated children become arrays. */
 export type EnexElement = Record<string, unknown> | string;
 
 interface Building {
@@ -34,26 +13,17 @@ interface Building {
 }
 
 export interface EnexHandlers {
-	/** Which element names to be called back about. */
 	wanted: Set<string>;
 	onElement(name: string, element: EnexElement): void;
-	/** Asked before each element; true stops anything more being given back. */
 	isCancelled?(): boolean;
-
-	/**
-	 * Awaited between pieces of the file, which is where an import can be held
-	 * while the user has it paused. True stops the read where it is.
-	 */
+	/** Awaited between chunks; true stops parsing. */
 	checkpoint?(): Promise<boolean>;
 }
 
 export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promise<void> {
 	const { wanted, onElement, isCancelled, checkpoint } = handlers;
 
-	// Not strict: an ENEX is html-ish in places, and this is what xml-flow used.
-	// trim and normalize are what keep the indentation between elements out of
-	// the text, which is why a note's title arrives without its surrounding
-	// newlines.
+	// Match xml-flow's permissive, whitespace-normalizing behavior.
 	const parser = new SAXParser(false, { lowercase: true, trim: true, normalize: true });
 
 	const stack: Building[] = [];
@@ -61,9 +31,6 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 
 	parser.onerror = error => {
 		failure ??= error;
-		// The parser refuses everything after a complaint until it is resumed,
-		// and the piece it is part-way through still has to run out. The first
-		// complaint is what the import is told about, once it has.
 		parser.resume();
 	};
 
@@ -91,15 +58,8 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 		const value: EnexElement = closed.children ?? (closed.attributes ? { $text: closed.text } : closed.text);
 
 		if (wanted.has(name)) {
-			// Asked per element as well as per piece, because a file small enough
-			// to arrive in one piece would otherwise be read to the end anyway.
 			if (!isCancelled?.()) onElement(name, value);
-
-			// An element handed over is not kept. Hanging it on its parent as
-			// well would leave every note of the file, and every attachment
-			// decoded into one, reachable from the root until the read finished
-			// - which is the whole file in memory, and the reason it is read a
-			// piece at a time is that the whole file does not fit.
+			// Do not retain emitted notes and tasks in the parent tree.
 			return;
 		}
 

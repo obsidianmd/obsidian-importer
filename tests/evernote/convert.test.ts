@@ -20,8 +20,6 @@ async function convert<T>(paths: string[], use: (outputDir: string, ctx: Context
 	return answer;
 }
 
-// The ones from Yarle sit in their own directory, with their provenance and
-// what was left out written down beside them.
 const enexFiles = [...fixtures(FIXTURES, '.enex'), ...fixtures(nodePath.join(FIXTURES, 'yarle'), '.enex')];
 
 test('there are fixtures to convert', () => {
@@ -48,22 +46,6 @@ test('resolves a link into another notebook', async () => {
 	});
 });
 
-/**
- * resource-attributes holding a single child used to arrive as that child's
- * value rather than an object, which lost the name and wrote the attachment
- * as "unknown_filename". Nothing collapses an element now, but the case is
- * named here so a regression says what broke.
- */
-/**
- * A table of contents in one notebook listing a note in another.
- *
- * An ENEX gives nothing a link can be resolved by: the href carries the target
- * note's Evernote guid, and no note in an export says what its own guid is. So
- * a link is matched to a note by the text Evernote wrote it with, which is the
- * target's title - and the note it finds is what says which folder the link
- * has to point into. Reading the notebook off the note the link was *in*, as
- * this used to, names the wrong one whenever the two differ.
- */
 test('a link into another notebook names the notebook the note is in', async () => {
 	await convert([
 		nodePath.join(FIXTURES, 'toc-pointing-elsewhere_A.enex'),
@@ -72,8 +54,6 @@ test('a link into another notebook names the notebook the note is in', async () 
 		const toc = readTree(outputDir).get('toc-pointing-elsewhere_A/Table of Contents.md');
 
 		assert.ok(toc, 'the table of contents should exist');
-		// Named as well as pointed at, so the note reads "Shared Note" rather
-		// than the folder it had to go through to find it.
 		assert.equal(toc.toString('utf8').trim(), '[[toc-pointing-elsewhere_B/Shared Note|Shared Note]]');
 	});
 });
@@ -84,8 +64,6 @@ test('keeps a resource file name that is its only attribute', async () => {
 
 		assert.equal(attachments.length, 2);
 		for (const path of attachments) {
-			// Both notes call theirs dot.png, and they now share a folder, so
-			// the second is numbered - but neither falls back to unknown_filename.
 			assert.match(path, /\/dot( \d+)?\.png$/, `expected dot.png, got ${path}`);
 		}
 	});

@@ -11,10 +11,8 @@ import { EvernoteOutput, PlacedAttachment } from './evernote/output';
 
 const HELP_PERMALINK = 'import/evernote';
 
-/** A note the conversion has planned, kept until the commit writes it. */
 interface EnexPlan {
 	planned: PlannedNote;
-	/** How the note is named in what the import reports. */
 	reportAs: string;
 	disposition: NoteDisposition;
 }
@@ -34,29 +32,17 @@ export class EvernoteEnexImporter extends FormatImporter {
 		this.defaultOutputFolder = 'Evernote';
 	}
 
-	/**
-	 * The vault, answering for the conversion.
-	 *
-	 * Everything here needs something the conversion has no business holding -
-	 * the vault, the duplicate setting, the shared planning - which is why it
-	 * is built on this side of the seam rather than handed in.
-	 */
 	private outputInto(ctx: ImportContext): EvernoteOutput {
 		const { vault } = this;
 		const plans = new Map<string, EnexPlan>();
 
 		return {
 			planFolder: (parent, name) => {
-				// Normalized, or a notebook going into the vault root asks about
-				// "//Notebook" - which Vault answers for nothing, so an import
-				// making a copy would not see the folder the last one left.
 				const at = (candidate: string) => normalizePath(`${parent}/${candidate}`);
 
 				const folder = this.duplicateHandling === DuplicateHandling.CreateCopy
 					? at(availableFileName(name, candidate => this.hasClaimed(at(candidate))
 						|| vault.getAbstractFileByPathInsensitive(at(candidate)) !== null))
-					// The folder an earlier import made, spelled the way it spelled
-					// it: the lookup ignores case, and the answer is a real path.
 					: folderPath(vault.getAbstractFileByPathInsensitive(at(name))) ?? at(name);
 
 				this.claimPath(folder);
@@ -73,8 +59,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 			willImport: (path, sourceMtime) => {
 				const plan = plans.get(path)!;
-				// The reported name carries the notebook, which the file name
-				// cannot; preflightNote only ever reads the title to report it.
 				plan.disposition = this.preflightNote(ctx, { ...plan.planned, title: plan.reportAs }, sourceMtime);
 
 				return !leavesTheNoteAlone(plan.disposition);
@@ -82,22 +66,12 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 			writeNote: async (path, markdown, times) => {
 				const { planned, reportAs, disposition } = plans.get(path)!;
-				// Vault will not create a file inside a folder that is not there,
-				// and nothing has made the notebook's folder: planNote settles a
-				// path without creating anything on the way to it.
 				await this.createFolders(parseFilePath(path).parent || '/');
 
 				const { written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
 				if (written) ctx.reportNoteSuccess(reportAs);
 			},
 
-			/**
-			 * An enex says nothing about an attachment that a later export would
-			 * say again, so the file itself is all a second import has to go on:
-			 * the same name holding the same number of bytes is taken to be this
-			 * attachment again, and any other file of that name belongs to
-			 * something else and is passed over. Airtable's do the same.
-			 */
 			placeAttachment: async (fileName, notePath, size): Promise<PlacedAttachment> => {
 				const { path, reuse } = await this.placeAttachment(fileName, notePath,
 					existing => existing.stat.size === size ? 'same' : 'another');
@@ -105,13 +79,6 @@ export class EvernoteEnexImporter extends FormatImporter {
 				return { path, write: reuse === null };
 			},
 
-			/**
-			 * The link Obsidian would write itself, in whatever form the user
-			 * has set. Writing the whole path instead would resolve, but the
-			 * standardizing pass carries a wikilink's text over as its display
-			 * text - so the note would end up reading "embedded.png|Attachments/
-			 * embedded.png". The file is written by the time this is asked.
-			 */
 			linkTo: (path, fromNote) => {
 				const file = vault.getAbstractFileByPath(path);
 

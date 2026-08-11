@@ -4,14 +4,12 @@ import { sanitizeFileName } from '../../../util';
 
 import { extensionForMime } from '../../../mime';
 
-/** Maximum length for resource filename prefix */
 const MAX_RESOURCE_FILENAME_PREFIX_LENGTH = 50;
 
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
 
-/** What the export calls this attachment, made safe to be a file name. */
 export const getResourceFileName = (resource: EvernoteResource): string => {
 	const UNKNOWNFILENAME = 'unknown_filename';
 
@@ -54,4 +52,3 @@ export const getExtension = (resource: EvernoteResource): string => {
 
 	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
 };
-

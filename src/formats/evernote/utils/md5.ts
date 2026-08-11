@@ -1,16 +1,5 @@
-/**
- * MD5, because an ENEX references its attachments by one.
- *
- * `<en-media hash="...">` is the MD5 of the resource's bytes, and matching the
- * two is the only way to tell which attachment a note is pointing at. Nothing
- * here is a security claim - the digest is Evernote's index, not a signature -
- * and the alternative was node:crypto, which is not there off the desktop.
- *
- * RFC 1321. Checked against node:crypto over the fixtures and over random
- * lengths around every padding boundary; see md5.test.ts.
- */
+/** RFC 1321 MD5 for matching ENEX media hashes without Node crypto. */
 
-/** Per-round left-rotation amounts. */
 const SHIFTS = [
 	7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
 	5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
@@ -27,8 +16,7 @@ for (let i = 0; i < 64; i++) {
 export function md5(bytes: Uint8Array): string {
 	const length = bytes.length;
 
-	// The message, a 1 bit, zeroes, and the bit length in the last eight bytes,
-	// rounded up to whole 64-byte blocks.
+	// Reserve the final eight bytes for the bit length.
 	const padded = new Uint8Array((((length + 8) >> 6) + 1) << 6);
 	padded.set(bytes);
 	padded[length] = 0x80;

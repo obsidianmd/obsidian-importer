@@ -1,15 +1,3 @@
-/**
- * Reading an ENEX that arrives in pieces.
- *
- * Every fixture is smaller than the 64k a file is read in, so converting them
- * only ever exercises one piece. What a split can land in the middle of is a
- * tag, an attribute, a CDATA block, an entity, or a single character made of
- * several bytes - and each of those has its own way of going wrong.
- *
- * The document below is parsed once whole and then again split at every
- * position in it, and the two have to agree. That is exhaustive rather than
- * representative: there is no boundary left to think of.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -37,12 +25,9 @@ const ENEX = `<?xml version="1.0" encoding="UTF-8"?>
 </en-export>
 `;
 
-/** A file that hands its text over in pieces of exactly this size. */
 function inPieces(text: string, size: number): PickedFile {
 	return {
 		async *readChunks(): AsyncIterable<string> {
-			// Sliced by code point, as a utf8 decoder hands text back: a piece
-			// never ends half way through a character.
 			const characters = [...text];
 			for (let at = 0; at < characters.length; at += size) {
 				yield characters.slice(at, at + size).join('');
@@ -62,11 +47,7 @@ test('the whole document, read at once, is what the rest is compared with', asyn
 	const [note] = await notesFrom(inPieces(ENEX, ENEX.length));
 
 	assert.deepEqual(note, {
-		// Entities in an element's own text are decoded: &#233; and &amp; are
-		// gone from the title.
 		title: 'Café & Bar — naïve “quotes”',
-		// Inside CDATA they are not, and must not be - the content is ENML, and
-		// what is left here is parsed as HTML later, which decodes them then.
 		content: '<en-note><div>a &lt; b &amp;&amp; c &gt; d</div><div>日本語のテキスト</div></en-note>',
 		created: '20240101T000000Z',
 		tag: ['café', 'ünïcode'],
@@ -87,11 +68,6 @@ test('a split at every position in the document reads the same note', async () =
 });
 
 test('a character split across two reads is put back together', async () => {
-	// The pieces above are sliced by code point, which is what a utf8 decoder
-	// hands back - so nothing there proves the decoder does it. This reads a
-	// real file, and puts a three-byte character across the 64k a read is
-	// made in: its first byte is the last of one read, its other two the
-	// first of the next.
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-chunks-'));
 
 	try {

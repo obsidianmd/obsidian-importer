@@ -1,19 +1,4 @@
-/**
- * The folders an Evernote import puts notebooks in.
- *
- * An enex file name becomes a folder name directly, and a notebook stack -
- * which Evernote writes into the file name as `Stack@@@Notebook` - becomes a
- * folder per segment. Neither went through a sanitiser, so a notebook whose
- * name ends in a dot produced a folder Windows creates but cannot open (#523).
- *
- * The name itself is left alone: it is what a link into another notebook is
- * resolved against. Only the folder it becomes has to be legal.
- *
- * What sanitizeFileName does to a given string is tests/util/sanitize.test.ts;
- * what is checked here is that the notebook path goes through it at all. The
- * folder is not made here - nothing creates one until a file goes into it - so
- * the name is all there is to look at.
- */
+/** Regression coverage for notebook folder sanitization (#523). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
@@ -37,8 +22,6 @@ test('a notebook stack becomes folders a filesystem will take', () => {
 });
 
 test('the notebook name itself is left as the user wrote it', () => {
-	// getNotebookStackedProps hands this on as the display name, so the dot
-	// belongs in it even though it cannot survive in the folder.
 	const { notebookName, notebookFolderNames } = getNotebookNameAndFolderNames('Stack.@@@Inbox.');
 
 	assert.equal(notebookName, 'Inbox.');
@@ -74,8 +57,6 @@ test('an enex whose name is only dots still gets a folder', () => {
 test('a long name is still legal after being truncated', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		// Truncation cuts at 100 characters, which here lands mid-way through a
-		// run of dots - so sanitising only before the cut would leave one on.
 		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput(outputDir));
 		setPaths(run, `${'a'.repeat(98)}${'.'.repeat(20)}`, outputDir);
 

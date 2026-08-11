@@ -22,18 +22,7 @@ export interface PickedFile {
 	/** Read the file as utf8 text */
 	readText(): Promise<string>;
 
-	/**
-	 * Read the file as utf8 text, a piece at a time.
-	 *
-	 * For a source too big to hold at once - an ENEX carrying a decade of
-	 * attachments is gigabytes - where the reader can work through it as it
-	 * arrives. A multi-byte character split across two pieces is put back
-	 * together; a piece is never half a character.
-	 *
-	 * How many pieces there are is the file's business, not the caller's: a
-	 * source that has to be decompressed whole, like a zip entry, hands its
-	 * text over in one. Only the boundaries are guaranteed, not the bounding.
-	 */
+	/** Read UTF-8 text incrementally without splitting a character. */
 	readChunks(): AsyncIterable<string>;
 
 	/** Read the file as binary */
@@ -86,16 +75,8 @@ export function provideNodeModules(modules: NodeModules): void {
 	if (modules.zlib) zlib = modules.zlib;
 }
 
-/** How much of a file is read at a time, in bytes. */
 const READ_CHUNK = 1 << 16;
 
-/**
- * Text from bytes, a piece at a time, without ever splitting a character.
- *
- * A utf8 character is up to four bytes and a read ends wherever it ends, so a
- * decoder that is told the stream is not finished holds the trailing bytes of
- * a split character back until the next piece completes it.
- */
 async function* decodeUtf8(chunks: AsyncIterable<Uint8Array>): AsyncIterable<string> {
 	const decoder = new TextDecoder('utf-8');
 

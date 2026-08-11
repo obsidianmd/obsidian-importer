@@ -2,31 +2,13 @@ import { parseFilePath } from '../../../filesystem';
 import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
 
-/**
- * Turn every evernote:// link into the note it points at.
- *
- * A note can link to one in a notebook that has not been read yet, so this
- * runs once the whole import has been converted - over the drafts, which is
- * every note the import is writing and nothing else.
- *
- * An ENEX gives no id a link could be resolved by: the href carries the note's
- * Evernote guid, and no note in the export says what its own guid is. What
- * there is to go on is the text of the link, which Evernote writes as the
- * title of the note it points at. So a link is matched to a note by title, and
- * the note's own path - the one planNote settled, which may be numbered past a
- * name already taken or cut to fit its folder - is what the link is written
- * to. A title no note in the import has, or one that two of them share, is
- * left as the text it was, because nothing here can tell which was meant.
- */
-/** What internal-links-rule matched on to record a link in the first place. */
+/** Resolve Evernote links by title; ENEX does not expose target IDs on notes. */
 const EVERNOTE_URL = 'evernote://';
 
 export const applyLinks = (run: EvernoteRun): void => {
 	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
 	if (entries.length === 0) return;
 
-	// Compiled once rather than once per note: the pattern is the url, and the
-	// note it is being applied to has nothing to do with it.
 	const links = entries.map(([url, { title, notebookName }]) => ({
 		url: new RegExp(escapeStringRegexp(url), 'g'),
 		target: run.plannedNote(title),
@@ -35,8 +17,6 @@ export const applyLinks = (run: EvernoteRun): void => {
 	}));
 
 	for (const draft of run.drafts) {
-		// Most notes link to nothing. Every key in the map came from an href
-		// that starts this way, so a note without one cannot match any of them.
 		if (!draft.markdown.includes(EVERNOTE_URL)) continue;
 
 		const from = parseFilePath(draft.path).parent;
@@ -47,9 +27,7 @@ export const applyLinks = (run: EvernoteRun): void => {
 				? linkToNote(target, from)
 				: notebookName && !from.endsWith(notebookName) ? `${notebookName}/${title}` : title;
 
-			// A link that has to name a folder says what to call it as well, or
-			// the standardizing pass takes the whole path for the display text
-			// and the note reads "Notebook/Note" where it meant "Note".
+			// Preserve the display title when the target includes a folder.
 			updatedContent = updatedContent.replace(url, to === title ? title : `${to}|${title}`);
 		}
 
@@ -57,14 +35,6 @@ export const applyLinks = (run: EvernoteRun): void => {
 	}
 };
 
-/**
- * The note's own name, with its folder in front when that is a different one.
- *
- * The brackets, hash and caret a file name may carry are taken back out: they
- * are what a wikilink is made of, so a target holding one cannot be addressed
- * by a plain link whether or not the file is named that. normalizeTitle drops
- * the same ones on the way in, so a title carrying them links as it always has.
- */
 function linkToNote(path: string, from: string): string {
 	const { parent, basename } = parseFilePath(path);
 	const name = basename.replace(/[[\]#^|]/g, '');

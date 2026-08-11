@@ -102,16 +102,14 @@ export const extractDataUrlResources = (
 	content: string,
 ): string => {
 	if (content.indexOf('src="data:') < 0) {
-		return content; // no data urls
+		return content;
 	}
 
-	// src="data:image/svg+xml;base64,..." --> src="<the attachment it becomes>"
 	return content.replace(/src="data:([^;,]*)(;base64)?,([^"]*)"/g, (match, mediatype, encoding, data) => {
 		return `src="${createResourceFromData(run, mediatype, encoding === ';base64', data, note)}"`;
 	});
 };
 
-/** Returns what the markdown should say where the data url was. */
 const createResourceFromData = (
 	run: EvernoteRun,
 	mediatype: string,

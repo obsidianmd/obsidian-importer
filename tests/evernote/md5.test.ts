@@ -1,12 +1,3 @@
-/**
- * The MD5 an ENEX references its attachments by.
- *
- * node:crypto is the reference, and it is here rather than in the plugin
- * because it is not there off the desktop. Checked over every padding boundary
- * - a block ends at 64 bytes, and the length that goes in the last eight of
- * them leaves only 55 for the message - since that is where a hand-written
- * implementation goes wrong.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -31,8 +22,6 @@ test('the digests RFC 1321 prints', () => {
 });
 
 test('every length across the padding boundaries agrees with node', () => {
-	// 0..130 covers a message that just fits beside its length, one that does
-	// not and needs a block of its own, and two whole blocks.
 	for (let length = 0; length <= 130; length++) {
 		const bytes = new Uint8Array(length);
 		for (let i = 0; i < length; i++) bytes[i] = (i * 37 + length) & 0xff;
@@ -49,8 +38,6 @@ test('a byte value of every kind hashes the same as node', () => {
 });
 
 test('a message long enough to carry its length in the high word', () => {
-	// The bit length is written as two 32-bit words; anything under 512MB only
-	// ever fills the low one, so the high word is checked for being zero.
 	const bytes = new Uint8Array(70_000);
 	for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 11) & 0xff;
 

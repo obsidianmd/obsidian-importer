@@ -8,7 +8,6 @@ export interface NotebookStackProps {
 	basename: string;
 }
 
-// Conservative limit for enex directory name
 const MAX_ENEX_DIR_LENGTH = 100;
 
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
@@ -45,11 +44,6 @@ export const getNotebookStackOutputDir = (enex: PickedFile, outputDir: string): 
 };
 
 export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: string): void => {
-	// Against the folder it is going in, so the notebook's name is budgeted for
-	// the whole path the way planNote budgets a note's. The 100 characters on
-	// top of that are Evernote's own: every note in the notebook has to fit
-	// inside this name as well, and the shared limit only knows about the name
-	// it is given.
 	let truncatedBasename = sanitizeFileName(enexFileBasename, outputDir);
 
 	if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
