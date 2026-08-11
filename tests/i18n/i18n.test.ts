@@ -6,11 +6,20 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { en } from '../../src/i18n/en';
-import { locales } from '../../src/i18n/locales';
-import { camelToKebab, decodeNewlines, encodeNewlines, flatten, interpolate, parseLocale, stringifyLocale } from '../../src/i18n/util';
-import { i18n, setLanguage } from '../../src/i18n';
+import { Bundle, camelToKebab, decodeNewlines, encodeNewlines, flatten, interpolate, parseLocale, stringifyLocale } from '../../src/i18n/util';
+import { availableLanguages, bundleFor, i18n, setLanguage } from '../../src/i18n';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/**
+ * Every translated language, read the way the plugin reads it, so these checks
+ * cover the reconstruction from the shared key order as well as the strings.
+ */
+function bundles(): Array<[string, Bundle]> {
+	return availableLanguages()
+		.filter(language => language !== 'en')
+		.map(language => [language, bundleFor(language)!]);
+}
 
 test('a nested key flattens to the path a translation file uses', () => {
 	const flat = flatten({ output: { nameSaveSourceId: 'Save {{label}}' } });
@@ -84,7 +93,7 @@ test('a language the build does not carry falls back to English', () => {
 });
 
 test('a regional code falls back to its base language', () => {
-	const [key, translated] = Object.entries(locales['fr'])[0];
+	const [key, translated] = Object.entries(bundleFor('fr')!)[0];
 
 	setLanguage('fr-CA');
 	assert.equal(i18n(key), translated);
@@ -141,7 +150,7 @@ test('the French strings that sit next to other text still read as sentences', (
 test('every translation is for a key the English table still has', () => {
 	const keys = new Set(Object.keys(flatten(en)));
 
-	for (const [language, bundle] of Object.entries(locales)) {
+	for (const [language, bundle] of bundles()) {
 		for (const key of Object.keys(bundle)) {
 			assert.ok(keys.has(key), `${language} translates ${key}, which no longer exists`);
 		}
@@ -152,7 +161,7 @@ test('a translation carries the same placeholders as its English', () => {
 	const english = flatten(en);
 	const placeholders = (text: string) => (text.match(/\{\{\w+\}\}/g) ?? []).sort();
 
-	for (const [language, bundle] of Object.entries(locales)) {
+	for (const [language, bundle] of bundles()) {
 		for (const [key, translated] of Object.entries(bundle)) {
 			assert.deepEqual(
 				placeholders(translated),
@@ -167,7 +176,7 @@ test('a translation keeps the spacing its English carries at either end', () => 
 	const english = flatten(en);
 	const edges = (text: string) => [/^\s*/.exec(text)![0], /\s*$/.exec(text)![0]];
 
-	for (const [language, bundle] of Object.entries(locales)) {
+	for (const [language, bundle] of bundles()) {
 		for (const [key, translated] of Object.entries(bundle)) {
 			assert.deepEqual(
 				edges(translated),
@@ -181,7 +190,7 @@ test('a translation keeps the spacing its English carries at either end', () => 
 test('a string with a plural form has one in every language that translates it', () => {
 	const english = flatten(en);
 
-	for (const [language, bundle] of Object.entries(locales)) {
+	for (const [language, bundle] of bundles()) {
 		for (const key of Object.keys(bundle)) {
 			if (key.endsWith('_plural') || english[key + '_plural'] === undefined) continue;
 
