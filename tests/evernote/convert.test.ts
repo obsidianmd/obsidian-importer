@@ -11,6 +11,7 @@ import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { expectedFor, expectTree, fixtures, readTree } from '../helpers';
 import { convertEnexFiles } from '../../src/formats/evernote/convert';
 import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
+import { FsOutput } from './fs-output';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -44,7 +45,7 @@ async function convert<T>(paths: string[], use: (outputDir: string, ctx: ReturnT
 			...defaultEvernoteOptions,
 			enexSources: paths.map(path => new NodePickedFile(path)),
 			outputDir,
-		}, ctx as never);
+		}, new FsOutput(), ctx as never);
 
 		return use(outputDir, ctx);
 	}

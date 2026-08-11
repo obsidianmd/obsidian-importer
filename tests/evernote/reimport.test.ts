@@ -10,6 +10,7 @@ import * as nodePath from 'node:path';
 import { NodePickedFile, provideNodeModules } from '../../src/filesystem';
 import { convertEnexFiles } from '../../src/formats/evernote/convert';
 import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from '../../src/formats/evernote/options';
+import { FsOutput } from './fs-output';
 
 provideNodeModules({ nodeCrypto: nodeCryptoModule, fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -57,7 +58,7 @@ async function convertInto(
 		enexSources: [new NodePickedFile(FIXTURE)],
 		outputDir,
 		decideExistingNote,
-	}, ctx as never);
+	}, new FsOutput(), ctx as never);
 }
 
 async function importTwice(

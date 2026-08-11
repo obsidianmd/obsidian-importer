@@ -1,5 +1,5 @@
 import { EvernoteNote } from '../models/EvernoteNote';
-import { fs, NodePickedFile, path, PickedFile } from '../../../filesystem';
+import { NodePickedFile, PickedFile } from '../../../filesystem';
 import { genUid, sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
@@ -11,12 +11,20 @@ export interface NotebookStackProps {
 	basename: string;
 }
 
+/** Where a note's attachments go, said both ways the conversion needs. */
+export interface ResourceDirs {
+	/** Below the output folder, which is what writes them. */
+	absolute: string;
+	/** From the note, which is what the markdown says. */
+	relative: string;
+}
+
 // Path length constants
 const MAX_PATH = 249; // Maximum path length for compatibility
 const MAX_ENEX_DIR_LENGTH = 100; // Conservative limit for enex directory name
 
 /**
- * Check if a path exists and add (1), (2), etc. suffix if needed to avoid conflicts
+ * Check if a path is taken and add (1), (2), etc. suffix if needed to avoid conflicts
  * @param basePath - The directory path where the item will be created
  * @param name - The desired name (without path)
  * @param suffix - Optional suffix to append (e.g., '.resources')
@@ -28,11 +36,9 @@ const getUniqueNameForPath = (run: EvernoteRun, basePath: string, name: string, 
 	const baseName = name;
 	let uniqueName = name;
 	let counter = 1;
-	let fullPath = `${basePath}/${uniqueName}${suffix}`;
 
-	while (fs.existsSync(fullPath)) {
+	while (run.taken(`${basePath}/${uniqueName}${suffix}`)) {
 		uniqueName = `${baseName} (${counter})`;
-		fullPath = `${basePath}/${uniqueName}${suffix}`;
 		counter++;
 
 		// Safety check to prevent infinite loop
@@ -44,10 +50,24 @@ const getUniqueNameForPath = (run: EvernoteRun, basePath: string, name: string, 
 	return uniqueName;
 };
 
-export const getResourceDir = (run: EvernoteRun, note: EvernoteNote): string => {
+/**
+ * The folder this note's attachments go in, taken as this is answered.
+ *
+ * Call it once a note: asked twice, the second answer is numbered past the
+ * first. A note with nothing to attach must not call it at all, or it takes a
+ * name the next note of that title would have had.
+ */
+export const resourceDirsFor = (run: EvernoteRun, note: EvernoteNote): ResourceDirs => {
 	// Note name is already limited by MAX_NOTE_NAME_LENGTH in getNoteName()
 	const dirName = getNoteName(run, run.paths.mdPath, note).replace(/\s/g, '_');
-	return getUniqueNameForPath(run, run.paths.resourcePath, dirName, '.resources');
+	const folder = `${getUniqueNameForPath(run, run.paths.resourcePath, dirName, '.resources')}.resources`;
+
+	run.claim(`${run.paths.resourcePath}/${folder}`);
+
+	return {
+		absolute: `${run.paths.resourcePath}/${folder}`,
+		relative: `./${run.options.resourcesDir}/${folder}`,
+	};
 };
 
 export const truncatFileName = (run: EvernoteRun, fileName: string, uniqueId: string): string => {
@@ -81,30 +101,6 @@ export const getMdFilePath = (run: EvernoteRun, note: EvernoteNote): string => {
 	return fullFilePath.length < MAX_PATH ? fullFilePath : truncateFilePath(run, note, fileName, fullFilePath);
 };
 
-
-const clearDistDir = (dstPath: string): void => {
-	if (fs.existsSync(dstPath)) {
-		if (fs.rmSync) {
-			fs.rmSync(dstPath, { recursive: true, force: true });
-		}
-		else {
-			fs.rmdirSync(dstPath, { recursive: true });
-		}
-	}
-	fs.mkdirSync(dstPath);
-};
-
-export const getRelativeResourceDir = (run: EvernoteRun, note: EvernoteNote): string => {
-	return `./${run.options.resourcesDir}/${getResourceDir(run, note)}.resources`;
-};
-
-export const getAbsoluteResourceDir = (run: EvernoteRun, note: EvernoteNote): string => {
-	return `${run.paths.resourcePath}/${getResourceDir(run, note)}.resources`;
-};
-
-export const clearResourceDir = (run: EvernoteRun, note: EvernoteNote): void => {
-	clearDistDir(getAbsoluteResourceDir(run, note));
-};
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {
 	const notebookFolderNames = basename.split('@@@');
 
@@ -137,18 +133,10 @@ export const getNotebookStackedProps = (baseEnex: PickedFile): NotebookStackProp
 };
 
 export const getNotebookStackOutputDir = (enex: PickedFile, outputDir: string): string => {
-
-	const notebookFolderNames = getSanitizedNotebookFolderNames(enex.basename);
-
-	fs.mkdirSync(path.join(outputDir, ...notebookFolderNames), { recursive: true });
-	return [outputDir, ...notebookFolderNames].join('/');
+	return [outputDir, ...getSanitizedNotebookFolderNames(enex.basename)].join('/');
 };
 
 export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: string): void => {
-	const base = path.isAbsolute(outputDir)
-		? outputDir
-		: `${process.cwd()}/${outputDir}`;
-
 	let truncatedBasename = sanitizeFileName(enexFileBasename);
 
 	if (truncatedBasename.length > MAX_ENEX_DIR_LENGTH) {
@@ -157,11 +145,10 @@ export const setPaths = (run: EvernoteRun, enexFileBasename: string, outputDir: 
 	}
 
 	// Check for duplicate directory names and add (1), (2), etc. if needed
-	truncatedBasename = getUniqueNameForPath(run, base, truncatedBasename);
+	truncatedBasename = getUniqueNameForPath(run, outputDir, truncatedBasename);
 
-	run.paths.mdPath = `${base}/${truncatedBasename}`;
-	run.paths.resourcePath = `${base}/${truncatedBasename}/${run.options.resourcesDir}`;
+	run.paths.mdPath = `${outputDir}/${truncatedBasename}`;
+	run.paths.resourcePath = `${run.paths.mdPath}/${run.options.resourcesDir}`;
 
-	fs.mkdirSync(run.paths.mdPath, { recursive: true });
-	fs.mkdirSync(run.paths.resourcePath, { recursive: true });
+	run.claim(run.paths.mdPath);
 };

@@ -22,8 +22,6 @@ export interface EvernoteOptions {
 	obsidianTaskTag?: string;
 	/** How the vault being written into indents; left out, a test's default. */
 	markdownOutput?: MarkdownOutput;
-	/** Told about every note file written, so the importer can wait for it. */
-	trackMarkdown?: (absolutePath: string) => void;
 	/**
 	 * What to do about a note an earlier import left. Left out, a note takes a
 	 * name nothing is using, which is what "Create a copy" wants.

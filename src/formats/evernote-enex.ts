@@ -1,12 +1,12 @@
-import { FileSystemAdapter, normalizePath, Notice } from 'obsidian';
+import { Notice } from 'obsidian';
 import { helpUrl } from '../constants';
-import { path } from '../filesystem';
 import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { defaultEvernoteOptions, ExistingNote, ExistingNoteDecision } from './evernote/options';
 import { convertEnexFiles } from './evernote/convert';
+import { VaultOutput } from './evernote/output-vault';
 
 const HELP_PERMALINK = 'import/evernote';
 
@@ -49,20 +49,16 @@ export class EvernoteEnexImporter extends FormatImporter {
 		}
 
 		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
+		const output = new VaultOutput(app, file => this.trackMarkdownFile(file));
 
 		await convertEnexFiles({
 			...defaultEvernoteOptions,
 			enexSources: files,
-			outputDir: path.join(adapter.getBasePath(), folder.path),
+			outputDir: folder.path,
 			markdownOutput: markdownOutputFor(app.vault),
-			trackMarkdown: absolutePath => {
-				this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
-			},
 			decideExistingNote: this.duplicateHandling === DuplicateHandling.CreateCopy
 				? undefined
 				: existing => this.decideExistingNote(existing),
-		}, ctx);
+		}, output, ctx);
 	}
 }

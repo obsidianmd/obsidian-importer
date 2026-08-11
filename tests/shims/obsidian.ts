@@ -182,6 +182,14 @@ export function normalizePath(path: string): string {
 	return normalized === '' ? '/' : normalized;
 }
 
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+	const binary = atob(base64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+	return bytes.buffer;
+}
+
 export function parseLinktext(linktext: string): { path: string, subpath: string } {
 	const hash = linktext.indexOf('#');
 	return hash === -1

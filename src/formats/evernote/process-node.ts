@@ -3,6 +3,7 @@ import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
+import { ResourceDirs, resourceDirsFor } from './utils/folder-utils';
 import { draftMdFile, getMetadata, getTags, isComplex } from './utils';
 
 import { renderNote } from './utils/render-note';
@@ -24,11 +25,16 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 	};
 
 
+	// Asked for once a note, and only by a note with something to put in it:
+	// naming the folder is what takes the name.
+	let dirs: ResourceDirs | null = null;
+	const resourceDirs = () => dirs ??= resourceDirsFor(run, note);
+
 	try {
 		if (isComplex(note)) {
-			noteData.htmlContent = processResources(run, note);
+			noteData.htmlContent = processResources(run, resourceDirs(), note);
 		}
-		noteData.htmlContent = extractDataUrlResources(run, note, noteData.htmlContent);
+		noteData.htmlContent = extractDataUrlResources(run, resourceDirs, note, noteData.htmlContent);
 
 		noteData = { ...noteData, ...convertHtml2Md(run, noteData) };
 		noteData = { ...noteData, ...getMetadata(run, note) };

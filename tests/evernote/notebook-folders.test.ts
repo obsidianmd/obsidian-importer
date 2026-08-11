@@ -10,7 +10,9 @@
  * resolved against. Only the folder it becomes has to be legal.
  *
  * What sanitizeFileName does to a given string is tests/util/sanitize.test.ts;
- * what is checked here is that the notebook path goes through it at all.
+ * what is checked here is that the notebook path goes through it at all. The
+ * folder is not made here - nothing creates one until a file goes into it - so
+ * the name is all there is to look at.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,6 +28,7 @@ import {
 } from '../../src/formats/evernote/utils/folder-utils';
 import { defaultEvernoteOptions } from '../../src/formats/evernote/options';
 import { EvernoteRun } from '../../src/formats/evernote/run';
+import { FsOutput } from './fs-output';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
 
@@ -45,11 +48,10 @@ test('the notebook name itself is left as the user wrote it', () => {
 test('an enex whose name ends in a dot lands in a folder Windows can open', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir });
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
 		setPaths(run, 'Inbox.', outputDir);
 
 		assert.equal(nodePath.basename(run.paths.mdPath), 'Inbox');
-		assert.ok(nodeFs.existsSync(run.paths.mdPath), 'the folder should have been created');
 	}
 	finally {
 		nodeFs.rmSync(outputDir, { recursive: true, force: true });
@@ -59,7 +61,7 @@ test('an enex whose name ends in a dot lands in a folder Windows can open', () =
 test('an enex whose name is only dots still gets a folder', () => {
 	const outputDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
 	try {
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir });
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
 		setPaths(run, '...', outputDir);
 
 		assert.equal(nodePath.basename(run.paths.mdPath), 'Untitled');
@@ -74,7 +76,7 @@ test('a long name is still legal after being truncated', () => {
 	try {
 		// Truncation cuts at 100 characters, which here lands mid-way through a
 		// run of dots - so sanitising only before the cut would leave one on.
-		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir });
+		const run = new EvernoteRun({ ...defaultEvernoteOptions, outputDir }, new FsOutput());
 		setPaths(run, `${'a'.repeat(98)}${'.'.repeat(20)}`, outputDir);
 
 		assert.ok(!nodePath.basename(run.paths.mdPath).endsWith('.'), `got ${nodePath.basename(run.paths.mdPath)}`);

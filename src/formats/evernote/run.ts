@@ -1,6 +1,7 @@
 import type { MarkdownOutput } from '../../markdown-output';
 import { EvernoteNote } from './models/EvernoteNote';
 import { defaultEvernoteOptions, EvernoteOptions, ExistingNote, ExistingNoteDecision } from './options';
+import { EvernoteOutput, FileTimes } from './output';
 import { RuntimeProperties } from './runtime-properties';
 
 export interface NotebookPaths {
@@ -22,6 +23,13 @@ export interface NoteDraft {
 	note: EvernoteNote;
 }
 
+/** An attachment decoded out of a note, waiting for the enex to finish. */
+export interface ResourceDraft {
+	path: string;
+	data: ArrayBuffer;
+	times: FileTimes;
+}
+
 /**
  * What one import has to remember, and nothing that outlives it.
  *
@@ -31,6 +39,7 @@ export interface NoteDraft {
  */
 export class EvernoteRun {
 	readonly options: EvernoteOptions;
+	readonly output: EvernoteOutput;
 	readonly markdownOutput: MarkdownOutput;
 	readonly properties = new RuntimeProperties();
 
@@ -40,35 +49,70 @@ export class EvernoteRun {
 	/** Every note this run will write, in the order they were converted. */
 	readonly drafts: NoteDraft[] = [];
 
-	/** When each path was taken, which is what a note arriving at it later asks. */
+	/** Attachments waiting to be written, emptied once each enex has been read. */
+	readonly resources: ResourceDraft[] = [];
+
+	/** Resource folders to be taken down before anything is written into them. */
+	readonly foldersToEmpty = new Set<string>();
+
+	/** When each path was taken, which is what something arriving at it later asks. */
 	private readonly claimedPaths = new Map<string, number>();
 
-	constructor(options: EvernoteOptions) {
+	constructor(options: EvernoteOptions, output: EvernoteOutput) {
 		this.options = { ...defaultEvernoteOptions, ...options };
+		this.output = output;
 		this.markdownOutput = this.options.markdownOutput ?? { indentUnit: '    ' };
 	}
 
-	draftNote(path: string, markdown: string, note: EvernoteNote): void {
+	/** Hold a path, so nothing else in this run is given it. */
+	claim(path: string): void {
 		this.claimedPaths.set(path, Date.now());
+	}
+
+	draftNote(path: string, markdown: string, note: EvernoteNote): void {
+		this.claim(path);
 		this.drafts.push({ path, markdown, note });
 	}
 
+	draftResource(path: string, data: ArrayBuffer, times: FileTimes): void {
+		this.claim(path);
+		this.resources.push({ path, data, times });
+	}
+
+	/** Empty this folder before the import writes into it. */
+	emptyBeforeWriting(folder: string): void {
+		this.foldersToEmpty.add(folder);
+	}
+
 	/** When this run took the path, or null if it has not. */
-	draftedAt(path: string): number | null {
+	claimedAt(path: string): number | null {
 		return this.claimedPaths.get(path) ?? null;
 	}
 
-	/** The names this run has taken directly inside a folder. */
-	claimedIn(folder: string): string[] {
-		const prefix = `${folder}/`;
+	/** Whether anything - this run or an earlier import - is at this path. */
+	taken(path: string): boolean {
+		if (this.claimedPaths.has(path)) return true;
 
-		return [...this.claimedPaths.keys()]
-			.filter(claimed => claimed.startsWith(prefix) && !claimed.slice(prefix.length).includes('/'))
-			.map(claimed => claimed.slice(prefix.length));
+		return !this.emptied(parentOf(path)) && this.output.exists(path);
 	}
 
-	trackMarkdownWrite(absolutePath: string): void {
-		this.options.trackMarkdown?.(absolutePath);
+	/**
+	 * What is directly inside a folder, counting what this run has taken there.
+	 *
+	 * A folder this import is about to empty answers with its claims alone: what
+	 * was in it is on its way out, and a name in it is free to be used again.
+	 */
+	namesIn(folder: string): string[] {
+		const prefix = `${folder}/`;
+		const claimed = [...this.claimedPaths.keys()]
+			.filter(claimed => claimed.startsWith(prefix) && !claimed.slice(prefix.length).includes('/'))
+			.map(claimed => claimed.slice(prefix.length));
+
+		return this.emptied(folder) ? claimed : [...this.output.list(folder), ...claimed];
+	}
+
+	private emptied(folder: string): boolean {
+		return this.foldersToEmpty.has(folder);
 	}
 
 	/** Whether a note may take the name an earlier import gave it. */
@@ -79,4 +123,8 @@ export class EvernoteRun {
 	decideExistingNote(existing: ExistingNote): ExistingNoteDecision {
 		return this.options.decideExistingNote?.(existing) ?? 'write';
 	}
+}
+
+function parentOf(path: string): string {
+	return path.slice(0, path.lastIndexOf('/'));
 }

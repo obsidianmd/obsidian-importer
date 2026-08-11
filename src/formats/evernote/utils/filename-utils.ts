@@ -1,6 +1,6 @@
 import { EvernoteRun } from '../run';
 import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
-import { fs, parseFilePath, path } from '../../../filesystem';
+import { parseFilePath, path } from '../../../filesystem';
 import { sanitizeFileName } from '../../../util';
 
 import { ResourceFileProperties } from '../models/ResourceFileProperties';
@@ -15,11 +15,7 @@ export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title).replace(/[[\]#^]/g, '');
 };
 
-export const getFileIndex = (dstPath: string, fileNamePrefix: string, claimed: string[] = []): number => {
-	return getNextFilenameIndex([...fs.readdirSync(dstPath), ...claimed], fileNamePrefix);
-
-};
-export const getResourceFileProperties = (workDir: string, resource: EvernoteResource): ResourceFileProperties => {
+export const getResourceFileProperties = (run: EvernoteRun, workDir: string, resource: EvernoteResource): ResourceFileProperties => {
 	const UNKNOWNFILENAME = 'unknown_filename';
 
 	const extension = getExtension(resource);
@@ -32,7 +28,7 @@ export const getResourceFileProperties = (workDir: string, resource: EvernoteRes
 	}
 	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
 
-	const index = getFileIndex(workDir, fileName);
+	const index = getNextFilenameIndex(run.namesIn(workDir), fileName);
 	const fileNameWithIndex = index > 0 ? `${fileName}.${index}` : fileName;
 
 	return {
@@ -84,7 +80,7 @@ export const getNoteName = (run: EvernoteRun, dstPath: string, note: EvernoteNot
 		console.warn(`Note title too long (${getFilePrefix(note).length} chars), truncated to ${MAX_NOTE_NAME_LENGTH} chars`);
 	}
 
-	const nextIndex = run.reusesNoteNames() ? 0 : getFileIndex(dstPath, filePrefix, run.claimedIn(dstPath));
+	const nextIndex = run.reusesNoteNames() ? 0 : getNextFilenameIndex(run.namesIn(dstPath), filePrefix);
 
 	return (nextIndex === 0) ? filePrefix : `${filePrefix}.${nextIndex}`;
 };

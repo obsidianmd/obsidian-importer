@@ -1,7 +1,6 @@
 import { moment } from 'obsidian';
 
 import { EvernoteNote } from '../models/EvernoteNote';
-import { fs } from '../../../filesystem';
 import { EvernoteRun } from '../run';
 import { getMdFilePath } from './folder-utils';
 
@@ -37,14 +36,5 @@ function shouldWrite(run: EvernoteRun, absMdFilePath: string, note: EvernoteNote
 
 /** When the note at this path was last written, by this run or an earlier one. */
 function whenWritten(run: EvernoteRun, absMdFilePath: string): number | null {
-	const drafted = run.draftedAt(absMdFilePath);
-	if (drafted !== null) return drafted;
-
-	try {
-		if (!fs.existsSync(absMdFilePath)) return null;
-		return fs.statSync(absMdFilePath).mtimeMs;
-	}
-	catch {
-		return null;
-	}
+	return run.claimedAt(absMdFilePath) ?? run.output.writtenAt(absMdFilePath);
 }

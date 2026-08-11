@@ -5,9 +5,10 @@ import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { mapEvernoteTask } from './models/EvernoteTask';
 import { EvernoteOptions } from './options';
+import { EvernoteOutput } from './output';
 import { EvernoteRun } from './run';
 import { processNode } from './process-node';
-import { writeDraft } from './utils/file-utils';
+import { commit } from './utils/commit';
 import { convertTasktoMd } from './process-tasks';
 
 import * as utils from './utils';
@@ -135,8 +136,8 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 	});
 };
 
-export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportContext): Promise<void> {
-	const run = new EvernoteRun(options);
+export async function convertEnexFiles(options: EvernoteOptions, output: EvernoteOutput, ctx: ImportContext): Promise<void> {
+	const run = new EvernoteRun(options, output);
 	let stopped = false;
 
 	for (const enex of run.options.enexSources) {
@@ -166,7 +167,5 @@ export async function convertEnexFiles(options: EvernoteOptions, ctx: ImportCont
 
 	// What has been converted is written whether or not the rest of it was: an
 	// import the user stopped still leaves the notes it had already read.
-	for (const draft of run.drafts) {
-		writeDraft(run, draft);
-	}
+	await commit(run);
 }

@@ -1,6 +1,5 @@
 import { EvernoteNote, EvernoteResource } from '../models/EvernoteNote';
 import { moment } from 'obsidian';
-import { fs } from '../../../filesystem';
 import { MetaData } from '../models/MetaData';
 import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
@@ -60,31 +59,6 @@ export const logTags = (run: EvernoteRun, note: EvernoteNote): string => {
 	}
 
 	return '';
-};
-
-let btime: { btime(path: string, creationTime: number): void } | undefined;
-try {
-	btime = window.require('btime');
-}
-catch {
-	// The optional module is not installed.
-}
-
-export const setFileDates = (path: string, note: EvernoteNote): void => {
-	// also set creation time if supported
-	const creationTime = moment(note.created).valueOf();
-	if (creationTime > 0 && btime) {
-		btime.btime(path, creationTime);
-	}
-
-	const updated = moment(note.updated).valueOf();
-	const mtime = updated / 1000;
-	try{
-		fs.utimesSync(path, mtime, mtime);
-	}
-	catch {
-		// The note is already written; timestamps are best effort.
-	}
 };
 
 export const getTimeStampMoment = (resource: EvernoteResource): moment.Moment => {
