@@ -9,7 +9,8 @@ Imports notes from other apps into an Obsidian vault.
 - `src/formats/<name>.ts` — One importer per format; the vault-facing half
 - `src/formats/<name>/` — The conversion, extracted so it runs without a vault (see below)
 - `src/filesystem.ts` — The only place node modules are reached, and the seam tests inject through
-- `src/util.ts` — `parseHTML`, `sanitizeFileName`, `serializeFrontMatter`, `getUniqueFilePath`
+- `src/encoding.ts` — What encoding a file is read in; every `readText` goes through it
+- `src/util.ts` — `parseHTML`, `sanitizeFileName`, `sanitizeTag`, `serializeFrontMatter`, `getUniqueFilePath`
 - `tests/shims/` — What a test needs to run importer code outside Obsidian: `obsidian.ts` (API), `dom.ts` (linkedom), `runtime.ts` (Obsidian's prototype extensions)
 - `tests/<importer>/` — Fixtures, with recorded output in `expected/`
 

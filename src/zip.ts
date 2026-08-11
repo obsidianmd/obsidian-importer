@@ -1,4 +1,5 @@
-import { BlobReader, BlobWriter, Entry, TextWriter, ZipReader } from '@zip.js/zip.js';
+import { BlobReader, BlobWriter, Entry, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
+import { decodeText } from './encoding';
 import { parseFilePath, PickedFile } from './filesystem';
 
 interface FileEntry extends Entry {
@@ -26,7 +27,8 @@ export class ZipEntryFile implements PickedFile {
 	}
 
 	async readText(): Promise<string> {
-		return this.entry.getData(new TextWriter());
+		// TextWriter decodes as UTF-8 before detection can run.
+		return decodeText(await this.entry.getData(new Uint8ArrayWriter()));
 	}
 
 	async read(): Promise<ArrayBuffer> {

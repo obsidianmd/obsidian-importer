@@ -1,5 +1,6 @@
 import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
 import { Platform } from 'obsidian';
+import { decodeChunks, decodeText } from './encoding';
 import { configureWebWorker } from './z-worker-inline';
 
 type NodeFS = typeof import('node:fs');
@@ -19,10 +20,10 @@ export interface PickedFile {
 	/** Lowercase extension */
 	readonly extension: string;
 
-	/** Read the file as utf8 text */
+	/** Read the file as text, in whatever encoding it declares. */
 	readText(): Promise<string>;
 
-	/** Read UTF-8 text incrementally without splitting a character. */
+	/** Read that text incrementally, without splitting a character. */
 	readChunks(): AsyncIterable<string>;
 
 	/** Read the file as binary */
@@ -75,19 +76,8 @@ export function provideNodeModules(modules: NodeModules): void {
 	if (modules.zlib) zlib = modules.zlib;
 }
 
+// Wide enough to hold any charset declaration the first chunk is read for.
 const READ_CHUNK = 1 << 16;
-
-async function* decodeUtf8(chunks: AsyncIterable<Uint8Array>): AsyncIterable<string> {
-	const decoder = new TextDecoder('utf-8');
-
-	for await (const chunk of chunks) {
-		const piece = decoder.decode(chunk, { stream: true });
-		if (piece) yield piece;
-	}
-
-	const tail = decoder.decode();
-	if (tail) yield tail;
-}
 
 export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
@@ -115,7 +105,7 @@ export class NodePickedFile implements PickedFile {
 	}
 
 	async readText(): Promise<string> {
-		return fsPromises.readFile(this.filepath, 'utf8');
+		return decodeText(await fsPromises.readFile(this.filepath));
 	}
 
 	async read(): Promise<ArrayBuffer> {
@@ -126,7 +116,7 @@ export class NodePickedFile implements PickedFile {
 	async *readChunks(): AsyncIterable<string> {
 		const handle = await fsPromises.open(this.filepath, 'r');
 		try {
-			yield* decodeUtf8(async function* () {
+			yield* decodeChunks(async function* () {
 				const buffer = Buffer.alloc(READ_CHUNK);
 
 				for (;;) {
@@ -216,23 +206,15 @@ export class WebPickedFile implements PickedFile {
 		this.extension = extension;
 	}
 
-	readText(): Promise<string> {
-		let { file } = this;
-		if (file.text) {
-			return file.text();
-		}
-		return new Promise((resolve, reject) => {
-			let reader = new FileReader();
-			reader.addEventListener('load', () => resolve(reader.result as string));
-			reader.addEventListener('error', reject);
-			reader.readAsText(this.file);
-		});
+	async readText(): Promise<string> {
+		// File.text and readAsText decode as UTF-8 before detection can run.
+		return decodeText(new Uint8Array(await this.read()));
 	}
 
 	async *readChunks(): AsyncIterable<string> {
 		const { file } = this;
 
-		yield* decodeUtf8(async function* () {
+		yield* decodeChunks(async function* () {
 			for (let at = 0; at < file.size; at += READ_CHUNK) {
 				yield new Uint8Array(await file.slice(at, at + READ_CHUNK).arrayBuffer());
 			}
