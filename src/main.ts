@@ -195,11 +195,7 @@ export class ImportProgressUI extends ImportContext {
 		this.scrollLogToEnd();
 	}
 
-	/**
-	 * How far along the import is, which is not how much of it landed: an item
-	 * that was skipped or failed is behind us too. Only reportNoteSuccess says
-	 * what was imported, or the count reads as though nothing went wrong.
-	 */
+	// Progress includes skipped and failed items; onNoteSuccess updates imported count.
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
 		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';

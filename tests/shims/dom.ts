@@ -49,7 +49,6 @@ if (globals.NodeFilter === undefined) {
 	};
 }
 
-/** linkedom draws nothing, so a frame is only ever the next turn of the loop. */
 if ((window as unknown as Record<string, unknown>).requestAnimationFrame === undefined) {
 	define(window as any, 'requestAnimationFrame', (callback: (time: number) => void) => setTimeout(() => callback(0), 0));
 }
@@ -121,7 +120,6 @@ define(elementProto, 'setText', function (this: any, text: unknown) {
 	}
 	else this.textContent = String(text);
 });
-// Obsidian shows and hides an element by its own display style.
 define(elementProto, 'hide', function (this: any) { this.style.display = 'none'; });
 define(elementProto, 'show', function (this: any) { this.style.removeProperty('display'); });
 define(elementProto, 'toggle', function (this: any, shown: boolean) {
@@ -185,7 +183,6 @@ define(documentProto, 'findAll', function (this: any, selector: string) { return
 
 type ElementInfo = { text?: string, cls?: string, attr?: Record<string, unknown> };
 
-/** Obsidian takes a lone string as the class to give the element. */
 function elementInfo(options?: ElementInfo | string): ElementInfo | undefined {
 	return typeof options === 'string' ? { cls: options } : options;
 }
@@ -202,7 +199,6 @@ function createEl(tag: string, info?: ElementInfo | string, build?: (el: any) =>
 		if (value === null) continue;
 		el.setAttribute(name, String(value));
 	}
-	// Obsidian hands the finished element to the callback before returning it.
 	build?.(el);
 	return el;
 }

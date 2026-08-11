@@ -255,11 +255,6 @@ export class Setting {
 	}
 }
 
-/**
- * The plugin and its dialogs, which a test reaches only to read the progress
- * screen. Constructing one needs an Obsidian window, so these stand in for the
- * bindings that main.ts imports rather than for the classes themselves.
- */
 export class Plugin {
 	constructor(_app: unknown, _manifest: unknown) {
 		throw new Error('Plugin cannot be loaded outside Obsidian');

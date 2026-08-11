@@ -3,7 +3,6 @@ import { getAttributeProxy } from './get-attribute-proxy';
 
 const markdownBlock = '\n```\n';
 
-/** Where the code waits between being read and being fenced. */
 const CODE_ATTRIBUTE = 'data-en-code';
 
 const isCodeBlock = (node: TurndownNode) => {
@@ -17,10 +16,9 @@ const languageName = /^[a-z0-9+#._-]+$/;
 
 const unhighlighted = new Set(['plaintext', 'text', 'none']);
 
-/** Evernote has written the language under both names. */
+// Evernote has used both style properties.
 const languageFlags = ['-en-syntaxLanguage:', '-en-codeblockLanguage:'];
 
-/** Evernote names a language the way Prism does, which is what Obsidian highlights with. */
 const getCodeBlockLanguage = (node: TurndownNode): string => {
 	const style = getAttributeProxy(node).style?.value;
 	if (!style) return '';
@@ -38,18 +36,9 @@ const getCodeBlockLanguage = (node: TurndownNode): string => {
 
 const TEXT_NODE = 3;
 
-/** Evernote writes each line of a block as a div, and a blank one as a br. */
+// Evernote represents code lines with block elements and blank lines with <br>.
 const linesAt = new Set(['DIV', 'P', 'LI', 'TR']);
 
-/**
- * The code as it was written.
- *
- * Turndown collapses runs of whitespace, which is every indent a code block
- * has, and escapes what it reads as Markdown. Reading the nodes instead keeps
- * the text intact — including the non-breaking spaces Evernote indents with,
- * which are turned back into the spaces they stand for so the code still runs
- * when it is copied out.
- */
 const readCode = (node: Node): string => {
 	let code = '';
 	const breakBefore = () => {
@@ -80,7 +69,7 @@ const readCode = (node: Node): string => {
 const getCodeText = (node: TurndownNode): string =>
 	readCode(node).replace(/\u00a0/g, ' ').replace(/^\n+/, '').replace(/\n+$/, '');
 
-/** What Evernote adds to the padding for each level a line is indented by. */
+// Evernote uses 40px per indent level.
 const PIXELS_PER_INDENT = 40;
 
 const getIntendNumber = (node: TurndownNode): number => {
@@ -95,13 +84,7 @@ const getIntendNumber = (node: TurndownNode): number => {
 	return intendNumber;
 };
 
-/**
- * Take down the text of every code block, before turndown runs.
- *
- * Turndown collapses runs of whitespace, which is every indent a code block
- * has, and it does so across the whole tree before a single rule is asked
- * anything. Reading the code here is what keeps it as it was written.
- */
+// Capture raw code before Turndown collapses whitespace across the tree.
 export const captureCodeBlocks = (root: HTMLElement): HTMLElement => {
 	for (const div of Array.from(root.querySelectorAll('div'))) {
 		if (isCodeBlock(div)) div.setAttribute(CODE_ATTRIBUTE, getCodeText(div));

@@ -4,10 +4,7 @@ import { sanitizeFileName } from '../../../util';
 
 import { extensionForMime } from '../../../mime';
 
-/**
- * The key a note is planned under and looked up by. Both sides go through
- * here so a title that sanitization changed still finds its note.
- */
+// Planning and link lookup must use the same sanitized title.
 export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title);
 };

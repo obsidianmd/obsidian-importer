@@ -5,20 +5,17 @@ import { escapeStringRegexp } from './escape-string-regexp';
 /** Resolve Evernote links by title; ENEX does not expose target IDs on notes. */
 interface NoteLink {
 	href: string;
-	/** The link as the rule left it, and the bare address wherever else it appears. */
 	occurrence: RegExp;
 	target: string | null;
 	title: string;
 	notebookName: string;
 }
 
-/** @returns how many links no note in the import answered to. */
 export const applyLinks = (run: EvernoteRun): number => {
 	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
 	if (entries.length === 0) return 0;
 
-	// Longest first: one note's address can be another's with a trailing slash,
-	// and replacing the shorter inside the longer would break the link it is part of.
+	// Prevent a shorter address from replacing part of a longer one.
 	entries.sort(([a], [b]) => b.length - a.length);
 
 	const links: NoteLink[] = entries.map(([href, { title, notebookName }]) => ({
@@ -39,7 +36,6 @@ export const applyLinks = (run: EvernoteRun): number => {
 			if (!updatedContent.includes(link.href)) continue;
 
 			const to = linkTo(link, from);
-			// One pass, so an address written back into the note is not read again.
 			updatedContent = updatedContent.replace(link.occurrence, () => {
 				if (!link.target) unresolved++;
 
@@ -54,14 +50,12 @@ export const applyLinks = (run: EvernoteRun): number => {
 };
 
 function linkTo({ href, target, title, notebookName }: NoteLink, from: string): string {
-	// Nothing here answers to the title, but a web address still reaches the note.
 	if (!target && /^https?:/i.test(href)) return `[${title}](${href})`;
 
 	const to = target
 		? linkToNote(target, from)
 		: notebookName && !from.endsWith(notebookName) ? `${notebookName}/${title}` : title;
 
-	// Preserve the display title when the target includes a folder.
 	return to === title ? `[[${title}]]` : `[[${to}|${title}]]`;
 }
 

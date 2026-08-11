@@ -1,6 +1,6 @@
 export interface ImportLogEntry {
 	outcome: 'skipped' | 'failed' | 'message';
-	/** The note or file, or the message itself when there is no outcome to label. */
+	/** Affected item or standalone message. */
 	name: string;
 	reason?: unknown;
 }
@@ -41,10 +41,6 @@ export class ImportContext {
 		this.onAttachmentSuccess(name);
 	}
 
-	/**
-	 * Something the user should know that no single note is answerable for, and
-	 * that leaves nothing skipped or failed to count.
-	 */
 	reportMessage(message: string) {
 		const entry: ImportLogEntry = { outcome: 'message', name: message };
 		this.log.push(entry);

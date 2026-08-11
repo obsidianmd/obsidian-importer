@@ -41,8 +41,6 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 
 	const mediaType = matchedElements && matchedElements.length > 0 && matchedElements[0].split('type=');
 	if (mediaType && mediaType.length > 1 && mediaType[1].startsWith('"image')) {
-		// One image can be placed several times at several sizes, so each
-		// reference is measured on its own rather than from the first of them.
 		updatedContent = content.replace(re, media =>
 			`<img src="${src}"${sizeAttribute(media, 'width')}${sizeAttribute(media, 'height')} alt="${fileName}">`);
 	}
@@ -53,15 +51,8 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 	return updatedContent;
 };
 
-/**
- * The size Evernote drew the image at, which it writes in fractional pixels:
- * width="61.8812255859375px".
- *
- * A style sizing the image is what the note was drawn from, and it wins over
- * the attribute the way it does in a browser. A web clip carries a meaningless
- * `width="1"` beside `width:auto`, and honouring that shrinks the image to a dot.
- */
 const sizeAttribute = (media: string, dimension: 'width' | 'height'): string => {
+	// Ignore dimensions overridden by CSS.
 	if (new RegExp(`style="[^"]*[;"\\s]${dimension}\\s*:\\s*auto`, 'i').test(media)) return '';
 
 	const size = media.match(new RegExp(`\\s${dimension}="([^"]+)"`));

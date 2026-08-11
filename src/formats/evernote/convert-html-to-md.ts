@@ -87,9 +87,7 @@ export const convertHtml2Md = (run: EvernoteRun, { htmlContent }: NoteData): { c
 	const content = htmlContent.replace(/<!DOCTYPE en-note [^>]*>/, '<!DOCTYPE html>')
 		.replace(/(<a [^>]*)\/>/, '$1></a>').replace(/<div[^/<]*\/>/g, '');
 
-	// Not parseHTML: it hands back documentElement, which linkedom leaves as the
-	// en-note itself rather than wrapping it in an html the way a browser does.
-	// Searching the document finds the note either way.
+	// DOMParser reliably wraps linkedom's <en-note> in a document.
 	const contentNode = new DOMParser().parseFromString(fixSublistsInContent(content), 'text/html')
 		.getElementsByTagName('en-note').item(0);
 

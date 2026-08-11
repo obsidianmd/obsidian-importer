@@ -109,8 +109,6 @@ export async function convertEnexFiles(options: EvernoteOptions, output: Evernot
 
 	// Resolve links after every notebook has been planned.
 	if (!stopped && !(await ctx.shouldStop())) {
-		// One message for the lot: a note renamed since a link was made to it
-		// leaves a link nothing answers to, and there can be thousands.
 		const unresolved = applyLinks(run);
 		if (unresolved > 0) ctx.reportMessage(i18n.importer.evernote.msgUnresolvedLinks({ count: unresolved }));
 	}

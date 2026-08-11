@@ -38,8 +38,7 @@ export const wikiStyleLinksRule = (run: EvernoteRun) => ({
 			return `![[${value}]]`;
 		}
 		if (isEvernoteNoteHref(value)) {
-			// A link resolves by the title it shows, so an anchor showing the URL or
-			// nothing at all would be sanitized into an invented one.
+			// Without a title, preserve the original Evernote link.
 			const shown = text.trim();
 			if (!shown || isEvernoteNoteHref(shown)) {
 				return prefix + `<${value}>`;

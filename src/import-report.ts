@@ -41,7 +41,6 @@ function section(heading: string, entries: ImportLogEntry[]): string[] {
 	return lines;
 }
 
-/** A message stands on its own, so it is listed rather than named and explained. */
 function messages(heading: string, entries: ImportLogEntry[]): string[] {
 	if (entries.length === 0) return [];
 

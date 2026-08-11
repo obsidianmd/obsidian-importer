@@ -176,9 +176,7 @@ export const en = {
 		msgUnknownError: 'Unknown error',
 		nameExport: 'Export your data',
 		labelLearnMore: 'Learn more.',
-		/** Opens the help page describing how to export from this app. */
 		buttonInstructions: 'Instructions',
-		/** Opens the app's own export tool. */
 		buttonOpen: 'Open',
 		statusProcessing: 'Processing {{name}}',
 		statusImportingNote: 'Importing note {{name}}',

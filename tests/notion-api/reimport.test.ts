@@ -148,11 +148,6 @@ test('a first import writes the page and its child', async () => {
 	]);
 });
 
-/**
- * The imported count is what landed, not how far the import got: the progress
- * an importer reports counts a skipped page too, and the two were once the
- * same number on screen.
- */
 test('a note it wrote is counted as imported', async () => {
 	const vault = new MemoryVault();
 	await vault.createFolder(OUTPUT);

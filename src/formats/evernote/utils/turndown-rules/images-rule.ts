@@ -3,7 +3,6 @@ import { TurndownNode } from './turndown-types';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 
-/** The width Evernote drew the image at, as Obsidian writes one. */
 const getImageSize = (nodeProxy: Record<string, { value: string } | undefined>): string => {
 	const width = pixels(nodeProxy.width?.value);
 	if (!width) return '';

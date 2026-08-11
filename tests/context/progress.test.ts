@@ -1,12 +1,3 @@
-/**
- * What the numbers on the progress screen mean.
- *
- * "Imported" and "remaining" answer different questions, and were once written
- * from the same number: an importer reports how far it has got, counting the
- * items it skipped and the ones that failed, and that count was being drawn as
- * the number of notes imported. An import where nothing landed read as though
- * everything had.
- */
 import '../shims/dom';
 import '../shims/runtime';
 

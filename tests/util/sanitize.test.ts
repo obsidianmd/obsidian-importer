@@ -174,7 +174,6 @@ test('on Windows the folder a path is built under is spent from its budget', () 
 }));
 
 test('the folder a path is built under is not sanitized or returned', () => {
-	// It is a folder the vault already holds, so cutting it would point somewhere else.
 	assert.equal(sanitizeFilePath('Inbox', 'Evernote/A folder named after a note.'), 'Inbox');
 });
 

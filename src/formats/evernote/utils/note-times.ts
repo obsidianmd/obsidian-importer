@@ -6,7 +6,6 @@ import { FileTimes } from '../output';
 export const noteTimes = (note: EvernoteNote): FileTimes => {
 	const ctime = at(note.created);
 
-	// Evernote leaves out <updated> for a note that was never edited.
 	return { ctime, mtime: at(note.updated) ?? ctime };
 };
 
