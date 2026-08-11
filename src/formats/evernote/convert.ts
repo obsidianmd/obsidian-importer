@@ -57,6 +57,9 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 		await parseEnex(enexSource, {
 			wanted: WANTED,
 			isCancelled: () => ctx.isCancelled(),
+			// A checkpoint between pieces of the file, so an import can be
+			// paused part-way through a notebook rather than only between them.
+			checkpoint: () => ctx.shouldStop(),
 			onElement: (name, element) => {
 				if (typeof element === 'string') return;
 

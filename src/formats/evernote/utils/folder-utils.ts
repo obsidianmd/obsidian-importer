@@ -1,5 +1,5 @@
 import { PickedFile } from '../../../filesystem';
-import { sanitizeFileName } from '../../../util';
+import { availableFileName, sanitizeFileName } from '../../../util';
 import { EvernoteRun } from '../run';
 import { replaceLastOccurrenceInString } from './string-utils';
 
@@ -12,30 +12,18 @@ export interface NotebookStackProps {
 const MAX_ENEX_DIR_LENGTH = 100;
 
 /**
- * A folder name nothing is using, numbered "(1)", "(2)" if it is.
+ * A folder name nothing is using, numbered "1", "2" if it is.
  *
  * An import bringing a notebook up to date wants the folder the last one made;
  * one making a copy wants its own. There is no shared equivalent - planNote
  * settles a note's name, and nothing settles a folder's - so this is the one
- * piece of Yarle's naming the importer still does for itself.
+ * piece of naming the importer still does for itself, and it numbers the way
+ * availableFileName does so a folder reads like everything beside it.
  */
 const freeFolderName = (run: EvernoteRun, basePath: string, name: string): string => {
 	if (!run.output.makesCopies()) return name;
 
-	let uniqueName = name;
-	let counter = 1;
-
-	while (run.taken(`${basePath}/${uniqueName}`)) {
-		uniqueName = `${name} (${counter})`;
-		counter++;
-
-		// Safety check to prevent infinite loop
-		if (counter > 9999) {
-			throw new Error(`Too many duplicate items with name: ${name}`);
-		}
-	}
-
-	return uniqueName;
+	return availableFileName(name, candidate => run.taken(`${basePath}/${candidate}`));
 };
 
 export const getNotebookNameAndFolderNames = (basename: string): { notebookName: string, notebookFolderNames: string[] } => {

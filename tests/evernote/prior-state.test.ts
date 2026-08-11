@@ -113,9 +113,9 @@ test('with no answer to give, a second import copies the note and its attachment
 			`${NOTE}`,
 			`${RESOURCES}/chart.png`,
 			`${RESOURCES}/logo.png`,
-			'report (1)/Quarterly Report.md',
-			'report (1)/_resources/chart.png',
-			'report (1)/_resources/logo.png',
+			'report 1/Quarterly Report.md',
+			'report 1/_resources/chart.png',
+			'report 1/_resources/logo.png',
 		].sort());
 	});
 });
@@ -201,9 +201,9 @@ test('a notebook folder someone else made is not imported into', async () => {
 
 		assert.deepEqual(tree(outputDir), [
 			`${NOTEBOOK}/unrelated.md`,
-			'report (1)/Quarterly Report.md',
-			'report (1)/_resources/chart.png',
-			'report (1)/_resources/logo.png',
+			'report 1/Quarterly Report.md',
+			'report 1/_resources/chart.png',
+			'report 1/_resources/logo.png',
 		].sort());
 	});
 });
@@ -239,7 +239,7 @@ test('with no answer to give, a taken note name is left where it is', async () =
 
 		// The whole notebook folder is numbered past, so the name never meets it.
 		assert.equal(nodeFs.readFileSync(nodePath.join(outputDir, NOTE), 'utf8'), 'not ours');
-		assert.ok(tree(outputDir).includes('report (1)/Quarterly Report.md'));
+		assert.ok(tree(outputDir).includes('report 1/Quarterly Report.md'));
 	});
 });
 

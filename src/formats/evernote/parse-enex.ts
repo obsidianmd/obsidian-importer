@@ -37,12 +37,18 @@ export interface EnexHandlers {
 	/** Which element names to be called back about. */
 	wanted: Set<string>;
 	onElement(name: string, element: EnexElement): void;
-	/** Asked as the read goes; true stops it giving anything more back. */
+	/** Asked before each element; true stops anything more being given back. */
 	isCancelled?(): boolean;
+
+	/**
+	 * Awaited between pieces of the file, which is where an import can be held
+	 * while the user has it paused. True stops the read where it is.
+	 */
+	checkpoint?(): Promise<boolean>;
 }
 
 export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promise<void> {
-	const { wanted, onElement, isCancelled } = handlers;
+	const { wanted, onElement, isCancelled, checkpoint } = handlers;
 
 	// Not strict: an ENEX is html-ish in places, and this is what xml-flow used.
 	// trim and normalize are what keep the indentation between elements out of
@@ -100,7 +106,7 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 	};
 
 	for await (const piece of file.readChunks()) {
-		if (isCancelled?.()) return;
+		if (await checkpoint?.()) return;
 
 		parser.write(piece);
 		if (failure) throw failure;

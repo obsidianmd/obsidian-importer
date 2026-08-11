@@ -19,7 +19,7 @@ interface EnexPlan {
 }
 
 export class EvernoteEnexImporter extends FormatImporter {
-	interruption = 'stop' as const;
+	interruption = 'pause' as const;
 
 	init() {
 		this.addSetting('source')
