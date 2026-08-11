@@ -80,13 +80,16 @@ const readCode = (node: Node): string => {
 const getCodeText = (node: TurndownNode): string =>
 	readCode(node).replace(/\u00a0/g, ' ').replace(/^\n+/, '').replace(/\n+$/, '');
 
+/** What Evernote adds to the padding for each level a line is indented by. */
+const PIXELS_PER_INDENT = 40;
+
 const getIntendNumber = (node: TurndownNode): number => {
 	const nodeProxy = getAttributeProxy(node);
 	const paddingAttr = 'padding-left:';
 	let intendNumber = 0;
 	if (nodeProxy.style && nodeProxy.style.value.indexOf(paddingAttr) >= 0) {
 		const padding = Number(nodeProxy.style.value.split(paddingAttr)[1].split('px')[0]);
-		intendNumber = Number.isNaN(padding) ? 0 : Math.floor(padding / 20);
+		intendNumber = Number.isNaN(padding) ? 0 : Math.floor(padding / PIXELS_PER_INDENT);
 	}
 
 	return intendNumber;
