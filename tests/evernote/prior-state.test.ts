@@ -133,12 +133,11 @@ test('a note the user asked to leave alone is reported skipped and not written',
 	});
 });
 
-test('BUG: a skipped note has its attachment folder emptied anyway', async () => {
-	// processResources runs before the note's disposition is decided, so the
-	// folder is cleared and refilled for a note the import then leaves alone.
-	// Anything else in there - a file the user put beside the attachments -
-	// goes with it. Reverse this expectation when preflight moves ahead of the
-	// resource work: a skipped note should touch nothing at all.
+test('a skipped note leaves its attachments, and anything beside them, alone', async () => {
+	// The disposition is decided before a single attachment is decoded, so a
+	// note the import is leaving alone costs nothing and touches nothing. It
+	// used to clear and refill the folder first, taking any file the user had
+	// put in there with it.
 	await inTempDir(async outputDir => {
 		await importInto(outputDir, TWO_ATTACHMENTS);
 
@@ -147,7 +146,13 @@ test('BUG: a skipped note has its attachment folder emptied anyway', async () =>
 
 		await importInto(outputDir, TWO_ATTACHMENTS, skip);
 
-		assert.ok(!nodeFs.existsSync(beside), 'today the file the user left is deleted');
+		assert.equal(nodeFs.readFileSync(beside, 'utf8'), 'mine');
+		assert.deepEqual(tree(outputDir), [
+			NOTE,
+			`${RESOURCES}/chart.png`,
+			`${RESOURCES}/logo.png`,
+			`${RESOURCES}/my own notes.txt`,
+		].sort());
 	});
 });
 

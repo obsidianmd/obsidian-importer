@@ -3,8 +3,9 @@ import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
 import { EvernoteRun } from './run';
-import { ResourceDirs, resourceDirsFor } from './utils/folder-utils';
-import { draftMdFile, getMetadata, getTags, isComplex } from './utils';
+import { getMdFilePath, ResourceDirs, resourceDirsFor } from './utils/folder-utils';
+import { willImport } from './utils/preflight';
+import { getMetadata, getTags, isComplex } from './utils';
 
 import { renderNote } from './utils/render-note';
 import { standardizeFrontMatter } from './utils/front-matter';
@@ -13,6 +14,12 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 
 	const title = note.title ?? '';
 	run.properties.setCurrentNoteName(title);
+
+	// Where the note goes, and whether it is going at all, both settled before
+	// anything is converted: a note being left alone leaves its attachments
+	// alone too, which it could not do while its resources were written first.
+	const notePath = getMdFilePath(run, note);
+	if (!willImport(run, notePath, note)) return false;
 
 	const content = joinNoteContent(note.content);
 	note.content = content;
@@ -40,9 +47,9 @@ export const processNode = (run: EvernoteRun, note: EvernoteNote): boolean => {
 		noteData = { ...noteData, ...getMetadata(run, note) };
 		noteData = { ...noteData, ...getTags(run, note) };
 
-		const data = standardizeFrontMatter(renderNote(noteData));
+		run.draftNote(notePath, standardizeFrontMatter(renderNote(noteData)), note);
 
-		return draftMdFile(run, data, note);
+		return true;
 	}
 	catch (e) {
 		console.error(`Failed to convert note: ${noteData.title}`, e);
