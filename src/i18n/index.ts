@@ -1,5 +1,5 @@
 import { en } from './en';
-import { locales } from './locales';
+import { keys as localeKeys, values } from './locales';
 import { Bundle, camelToKebab, flatten, interpolate, Vars } from './util';
 
 export type { Vars } from './util';
@@ -13,6 +13,24 @@ let current: Bundle = ENGLISH;
 let currentLanguage: string = 'en';
 
 /**
+ * The strings for one language, read back from the shared key order.
+ *
+ * Only the language being read is spread into a lookup; the rest stay as rows.
+ */
+export function bundleFor(language: string): Bundle | undefined {
+	const row = values[language];
+	if (row === undefined) return undefined;
+
+	const bundle: Bundle = {};
+	for (let index = 0; index < row.length; index++) {
+		const value = row[index];
+		if (value !== 0) bundle[localeKeys[index]] = value;
+	}
+
+	return bundle;
+}
+
+/**
  * Point the lookup at an app language, falling back to the base language of a
  * regional code and then to English.
  *
@@ -20,15 +38,15 @@ let currentLanguage: string = 'en';
  * plugin stays in English, which is what a conversion running under test wants.
  */
 export function setLanguage(language: string): void {
-	current = locales[language]
-		?? locales[language.split('-')[0]]
+	current = bundleFor(language)
+		?? bundleFor(language.split('-')[0])
 		?? ENGLISH;
 	currentLanguage = language;
 }
 
 /** Which languages this build carries, English included. */
 export function availableLanguages(): string[] {
-	return ['en', ...Object.keys(locales)];
+	return ['en', ...Object.keys(values)];
 }
 
 /**

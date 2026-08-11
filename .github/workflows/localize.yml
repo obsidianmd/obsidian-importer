@@ -1,0 +1,223 @@
+name: Localize
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_ref:
+        description: Optional git ref whose English strings should be compared with the current version
+        required: false
+  push:
+    branches: ["master"]
+    paths:
+      - "src/i18n/en.ts"
+
+concurrency:
+  group: importer-localization
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TRANSLATION_BRANCH: automation/importer-locales
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      locales: ${{ steps.locales.outputs.locales }}
+      from_ref: ${{ steps.from-ref.outputs.from_ref }}
+      base_sha: ${{ steps.base.outputs.base_sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Pin the master revision for every job
+        id: base
+        env:
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            base_sha="$PUSH_SHA"
+          else
+            git fetch origin master:refs/remotes/origin/master
+            base_sha=$(git rev-parse origin/master)
+          fi
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Clone obsidian-help
+        run: git clone --depth 1 https://github.com/obsidianmd/obsidian-help.git "$RUNNER_TEMP/obsidian-help"
+
+      - name: Discover Help locales
+        id: locales
+        run: |
+          locales=$(node -e "const fs=require('fs'); const xs=JSON.parse(fs.readFileSync(process.argv[1])); process.stdout.write(JSON.stringify(xs.map(x => x.code).filter(x => x !== 'en')))" "$RUNNER_TEMP/obsidian-help/scripts/locales.json")
+          echo "locales=$locales" >> "$GITHUB_OUTPUT"
+
+      - name: Choose the previous English ref
+        id: from-ref
+        env:
+          DISPATCH_REF: ${{ inputs.from_ref }}
+          PUSH_REF: ${{ github.event.before }}
+        run: |
+          if [ -n "$DISPATCH_REF" ]; then
+            echo "from_ref=$DISPATCH_REF" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "from_ref=$PUSH_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "from_ref=" >> "$GITHUB_OUTPUT"
+          fi
+
+  translate:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        locale: ${{ fromJson(needs.setup.outputs.locales) }}
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OBSIDIAN_HELP_PATH: ${{ runner.temp }}/obsidian-help
+      OBSIDIAN_TRANSLATIONS_PATH: ${{ runner.temp }}/obsidian-translations
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.setup.outputs.base_sha }}
+          fetch-depth: 0
+
+      - name: Start from the existing translation PR
+        env:
+          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch origin "$TRANSLATION_BRANCH"; then
+            git switch --detach FETCH_HEAD
+            git merge --no-edit "$BASE_SHA"
+          else
+            git switch --detach "$BASE_SHA"
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install modules
+        run: pnpm install --frozen-lockfile
+
+      - name: Clone terminology sources
+        run: |
+          git clone --depth 1 https://github.com/obsidianmd/obsidian-help.git "$OBSIDIAN_HELP_PATH"
+          git clone --depth 1 https://github.com/obsidianmd/obsidian-translations.git "$OBSIDIAN_TRANSLATIONS_PATH"
+
+      - name: Translate ${{ matrix.locale }}
+        env:
+          FROM_REF: ${{ needs.setup.outputs.from_ref }}
+        run: |
+          args=("${{ matrix.locale }}")
+          if [ -n "$FROM_REF" ]; then args+=(--from "$FROM_REF"); fi
+          pnpm translate-locales "${args[@]}"
+
+      # Staged, because a locale being translated for the first time is a new
+      # file and `git diff` alone does not see one.
+      - name: Make locale patch
+        if: ${{ always() }}
+        run: |
+          git add -A -- "locale/${{ matrix.locale }}.txt"
+          git diff --staged --binary -- "locale/${{ matrix.locale }}.txt" > "$RUNNER_TEMP/${{ matrix.locale }}.patch"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: locale-${{ matrix.locale }}
+          path: ${{ runner.temp }}/${{ matrix.locale }}.patch
+
+  propose:
+    needs: [setup, translate]
+    if: ${{ always() && needs.setup.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.setup.outputs.base_sha }}
+          fetch-depth: 0
+
+      - name: Start from the existing translation PR
+        env:
+          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch origin "$TRANSLATION_BRANCH"; then
+            git switch --detach FETCH_HEAD
+            git merge --no-edit "$BASE_SHA"
+          else
+            git switch --detach "$BASE_SHA"
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install modules
+        run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: locale-*
+          path: ${{ runner.temp }}/locale-patches
+
+      - name: Apply locale patches
+        run: |
+          for patch in "$RUNNER_TEMP"/locale-patches/locale-*/*.patch; do
+            [ -s "$patch" ] || continue
+            git apply "$patch"
+          done
+
+      - name: Generate bundled locales
+        run: pnpm locales
+
+      - name: Test localization
+        run: pnpm test i18n
+
+      - name: Build plugin
+        run: pnpm build
+
+      - name: Update translation PR
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Translations are already current"
+            exit 0
+          fi
+
+          git switch -C "$TRANSLATION_BRANCH"
+          git add locale src/i18n/locales.ts
+          git commit -m "Update translations"
+          git push origin "HEAD:$TRANSLATION_BRANCH"
+
+          url=$(gh pr list --head "$TRANSLATION_BRANCH" --state open --json url --jq '.[0].url')
+          if [ -n "$url" ]; then
+            echo "$url"
+          else
+            gh pr create \
+              --base master \
+              --head "$TRANSLATION_BRANCH" \
+              --title "Update translations" \
+              --body "Updates Importer UI translations for every locale published by obsidian-help. The translations use obsidian-translations as their terminology reference and fall back to English for any omitted value."
+          fi

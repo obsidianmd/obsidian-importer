@@ -1,0 +1,2131 @@
+[command.import-notes]
+original=Import notes
+translation=นำเข้าโน้ต
+
+[nouns.file-with-count]
+original={{count}} file
+translation={{count}} ไฟล์
+
+[nouns.file-with-count_plural]
+original={{count}} files
+translation={{count}} ไฟล์
+
+[nouns.note-with-count]
+original={{count}} note
+translation={{count}} โน้ต
+
+[nouns.note-with-count_plural]
+original={{count}} notes
+translation={{count}} โน้ต
+
+[nouns.item-with-count]
+original={{count}} item
+translation={{count}} รายการ
+
+[nouns.item-with-count_plural]
+original={{count}} items
+translation={{count}} รายการ
+
+[nouns.record-with-count]
+original={{count}} record
+translation={{count}} ระเบียน
+
+[nouns.record-with-count_plural]
+original={{count}} records
+translation={{count}} ระเบียน
+
+[nouns.base-with-count]
+original={{count}} base
+translation={{count}} เบส
+
+[nouns.base-with-count_plural]
+original={{count}} bases
+translation={{count}} เบส
+
+[nouns.template-with-count]
+original={{count}} template
+translation={{count}} เทมเพลต
+
+[nouns.template-with-count_plural]
+original={{count}} templates
+translation={{count}} เทมเพลต
+
+[nouns.failure-with-count]
+original={{count}} failure
+translation={{count}} ข้อผิดพลาด
+
+[nouns.failure-with-count_plural]
+original={{count}} failures
+translation={{count}} ข้อผิดพลาด
+
+[nouns.second-with-count]
+original={{count}} second
+translation={{count}} วินาที
+
+[nouns.second-with-count_plural]
+original={{count}} seconds
+translation={{count}} วินาที
+
+[nouns.relation-placeholder-with-count]
+original={{count}} relation placeholder
+translation={{count}} ตัวยึดตำแหน่งความสัมพันธ์
+
+[nouns.relation-placeholder-with-count_plural]
+original={{count}} relation placeholders
+translation={{count}} ตัวยึดตำแหน่งความสัมพันธ์
+
+[nouns.linked-database-with-count]
+original={{count}} linked database
+translation={{count}} ฐานข้อมูลที่ลิงก์
+
+[nouns.linked-database-with-count_plural]
+original={{count}} linked databases
+translation={{count}} ฐานข้อมูลที่ลิงก์
+
+[nouns.mention-link-with-count]
+original={{count}} mention link
+translation={{count}} ลิงก์การกล่าวถึง
+
+[nouns.mention-link-with-count_plural]
+original={{count}} mention links
+translation={{count}} ลิงก์การกล่าวถึง
+
+[nouns.synced-reference-with-count]
+original={{count}} synced child reference
+translation={{count}} การอ้างอิงลูกที่ซิงค์แล้ว
+
+[nouns.synced-reference-with-count_plural]
+original={{count}} synced child references
+translation={{count}} การอ้างอิงลูกที่ซิงค์แล้ว
+
+[nouns.new-item-with-count]
+original={{count}} new item
+translation={{count}} รายการใหม่
+
+[nouns.new-item-with-count_plural]
+original={{count}} new items
+translation={{count}} รายการใหม่
+
+[nouns.page-with-count]
+original={{count}} page
+translation={{count}} หน้า
+
+[nouns.page-with-count_plural]
+original={{count}} pages
+translation={{count}} หน้า
+
+[group.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[group.notion.name]
+original=Notion
+translation=Notion
+
+[modal.title-pick-format]
+original=Import data into Obsidian
+translation=นำเข้าข้อมูลไปยัง Obsidian
+
+[modal.title-choose-method]
+original=Choose how to import
+translation=เลือกวิธีการนำเข้า
+
+[modal.title-import-from]
+original=Import from {{format}}
+translation=นำเข้าจาก {{format}}
+
+[modal.search-placeholder]
+original=Filter...
+translation=ตัวกรอง...
+
+[modal.msg-no-formats]
+original=No formats found.
+translation=ไม่พบรูปแบบ
+
+[modal.button-continue]
+original=Continue
+translation=ดำเนินการต่อ
+
+[modal.button-import]
+original=Import
+translation=นำเข้า
+
+[modal.button-back]
+original=Back
+translation=กลับไป
+
+[modal.button-help]
+original=Help
+translation=ความช่วยเหลือ
+
+[modal.button-cancel]
+original=Cancel
+translation=ยกเลิก
+
+[modal.button-pause]
+original=Pause
+translation=หยุดชั่วคราว
+
+[modal.button-resume]
+original=Resume
+translation=ประมวลผลต่อ
+
+[modal.button-stop]
+original=Stop
+translation=หยุด
+
+[modal.button-save-report]
+original=Save report
+translation=บันทึกรายงาน
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=ไม่สามารถบันทึกรายงานการนำเข้าได้
+
+[modal.button-import-more]
+original=Import more
+translation=นำเข้าเพิ่มเติม
+
+[modal.button-done]
+original=Done
+translation=เสร็จสิ้น
+
+[modal.msg-unexpected-auth]
+original=Unexpected auth event. Please restart the auth process.
+translation=เหตุการณ์การยืนยันตัวตนที่ไม่คาดคิด กรุณารีสตาร์ตกระบวนการยืนยันตัวตน
+
+[progress.stat-imported]
+original=imported
+translation=นำเข้าแล้ว
+
+[progress.stat-attachments]
+original=attachments
+translation=ไฟล์แนบ
+
+[progress.stat-remaining]
+original=remaining
+translation=เหลืออยู่
+
+[progress.stat-skipped]
+original=skipped
+translation=ข้ามแล้ว
+
+[progress.stat-failed]
+original=failed
+translation=ไม่สำเร็จ
+
+[progress.label-skipped]
+original=Skipped: 
+translation=ข้ามแล้ว: 
+
+[progress.label-failed]
+original=Failed: 
+translation=ล้มเหลว: 
+
+[progress.label-entry]
+original="{{name}}"
+translation="{{name}}"
+
+[progress.label-entry-with-reason]
+original="{{name}}" because {{reason}}
+translation="{{name}}" เนื่องจาก {{reason}}
+
+[progress.label-paused]
+original=Paused
+translation=หยุดชั่วคราว
+
+[progress.label-paused-with]
+original=Paused - {{status}}
+translation=หยุดชั่วคราว - {{status}}
+
+[progress.label-importing]
+original=Importing
+translation=กำลังนำเข้า
+
+[progress.label-remaining]
+original={{count}} remaining...
+translation=เหลืออีก {{count}} รายการ...
+
+[progress.label-remaining_plural]
+original={{count}} remaining...
+translation=เหลืออีก {{count}} รายการ...
+
+[progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=หยุดชั่วคราว - เหลืออีก {{count}} รายการ
+
+[progress.label-paused-remaining_plural]
+original=Paused - {{count}} remaining
+translation=หยุดชั่วคราว - เหลืออีก {{count}} รายการ
+
+[progress.status-stopping]
+original=Stopping...
+translation=กำลังหยุด...
+
+[progress.msg-stopped]
+original=Import stopped.
+translation=หยุดการนำเข้าแล้ว
+
+[progress.msg-errors]
+original=Import finished with errors.
+translation=การนำเข้าเสร็จสิ้นโดยมีข้อผิดพลาด
+
+[progress.msg-complete]
+original=Import complete.
+translation=การนำเข้าเสร็จสมบูรณ์
+
+[progress.msg-imported-count]
+original={{count}} note imported
+translation=นำเข้า {{count}} โน้ตแล้ว
+
+[progress.msg-imported-count_plural]
+original={{count}} notes imported
+translation=นำเข้า {{count}} โน้ตแล้ว
+
+[progress.msg-click-to-show]
+original={{counts}}. Click to show.
+translation={{counts}} คลิกเพื่อแสดง
+
+[progress.status-waiting]
+original=Waiting {{duration}} ({{reason}})
+translation=กำลังรอ {{duration}} ({{reason}})
+
+[progress.status-standardizing]
+original=Standardizing Markdown ({{current}}/{{total}})
+translation=กำลังทำให้ Markdown เป็นมาตรฐาน ({{current}}/{{total}})
+
+[progress.label-finalization]
+original=Markdown finalization
+translation=การจัดรูปแบบ Markdown ขั้นสุดท้าย
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} บันทึกการนำเข้า {{importer}}
+
+[report.title]
+original={{importer}} import
+translation=การนำเข้า {{importer}}
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=เสร็จสิ้นเมื่อ {{when}} {{counts}}
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=หยุดเมื่อ {{when}} {{counts}}
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=ล้มเหลว ({{count}})
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=ข้ามแล้ว ({{count}})
+
+[report.heading-messages]
+original=Messages
+translation=ข้อความ
+
+[report.count-notes]
+original={{count}} note imported
+translation=นำเข้า {{count}} โน้ตแล้ว
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation=นำเข้า {{count}} โน้ตแล้ว
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation=ดาวน์โหลด {{count}} ไฟล์แนบแล้ว
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation=ดาวน์โหลด {{count}} ไฟล์แนบแล้ว
+
+[report.count-skipped]
+original={{count}} item skipped
+translation=ข้าม {{count}} รายการแล้ว
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation=ข้าม {{count}} รายการแล้ว
+
+[report.count-failed]
+original={{count}} item failed
+translation={{count}} รายการล้มเหลว
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation={{count}} รายการล้มเหลว
+
+[source.name]
+original=Files to import
+translation=ไฟล์ที่จะนำเข้า
+
+[source.desc]
+original=Pick the files that you want to import.
+translation=เลือกไฟล์ที่คุณต้องการนำเข้า
+
+[source.button-choose-file]
+original=Choose file
+translation=เลือกไฟล์
+
+[source.button-choose-files]
+original=Choose files
+translation=เลือกไฟล์
+
+[source.button-choose-folders]
+original=Choose folders
+translation=เลือกโฟลเดอร์
+
+[source.dialog-pick-files]
+original=Pick files to import
+translation=เลือกไฟล์ที่ต้องการนำเข้า
+
+[source.dialog-pick-folders]
+original=Folders to import
+translation=โฟลเดอร์ที่ต้องการนำเข้า
+
+[source.msg-reading-folders]
+original=Reading folders...
+translation=กำลังอ่านโฟลเดอร์...
+
+[source.msg-nothing-to-import]
+original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
+translation=ไม่มีอะไรให้นำเข้าที่นี่ เลือกไฟล์ {{extensions}} หรือโฟลเดอร์ที่มีไฟล์เหล่านั้น
+
+[source.msg-will-import]
+original={{files}} will be imported: 
+translation={{files}} จะถูกนำเข้า: 
+
+[output.label-source-id]
+original=source ID
+translation=ID ต้นทาง
+
+[output.name-save-source-id]
+original=Save {{label}}
+translation=บันทึก{{label}}
+
+[output.desc-save-source-id]
+original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
+translation=เพิ่ม{{label}}ลงในคุณสมบัติของโน้ตเพื่อให้การนำเข้าในอนาคตสามารถจดจำโน้ตที่ถูกย้ายหรือเปลี่ยนชื่อได้
+
+[output.name-folder]
+original=Output folder
+translation=โฟลเดอร์ปลายทาง
+
+[output.desc-folder]
+original=Where imported notes will be saved. Leave blank to use the top level of the vault.
+translation=ที่ที่โน้ตที่นำเข้าจะถูกบันทึก เว้นว่างเปล่าเพื่อใช้งานระดับบนสุดของห้องนิรภัย
+
+[output.name-attachments]
+original=Attachment location
+translation=ตำแหน่งไฟล์แนบ
+
+[output.desc-attachments]
+original=Where imported images and files will be saved.
+translation=ที่ที่รูปภาพและไฟล์ที่นำเข้าจะถูกบันทึก
+
+[output.name-subfolder]
+original=Subfolder name
+translation=ชื่อโฟลเดอร์ย่อย
+
+[output.desc-subfolder]
+original=Folder to use inside each imported note's folder.
+translation=โฟลเดอร์เพื่อใช้งานภายในโฟลเดอร์ของแต่ละโน้ตที่นำเข้า
+
+[output.name-attachment-folder]
+original=Attachment folder
+translation=โฟลเดอร์ไฟล์แนบ
+
+[output.desc-attachment-folder]
+original=Folder path from the top level of the vault.
+translation=เส้นทางโฟลเดอร์จากระดับบนสุดของห้องนิรภัย
+
+[output.name-duplicates]
+original=Existing notes
+translation=โน้ตที่มีอยู่แล้ว
+
+[output.desc-duplicates]
+original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
+translation=เลือกว่าจะทำอย่างไรเมื่อโน้ตที่นำเข้าตรงกับโน้ตในห้องนิรภัยของคุณ "{{update}}" จะข้ามโน้ตที่ไม่มีการเปลี่ยนแปลงและรักษาการแก้ไขในเครื่องที่ใหม่กว่าไว้เมื่อมีวันที่แก้ไขอยู่
+
+[output.option-create-copy]
+original=Create a copy
+translation=สร้างสำเนา
+
+[output.option-skip]
+original=Skip
+translation=ข้าม
+
+[output.option-update]
+original=Update
+translation=อัพเดต
+
+[output.option-attachments-vault]
+original=Vault folder
+translation=ในโฟลเดอร์เดียวกับห้องนิรภัย
+
+[output.option-attachments-folder]
+original=In the folder specified below
+translation=ในโฟลเดอร์ที่กำหนดเอง
+
+[output.option-attachments-note]
+original=Same folder as the note
+translation=โฟลเดอร์เดียวกับโน้ต
+
+[output.option-attachments-subfolder]
+original=In subfolder under the note
+translation=ในโฟลเดอร์ย่อยใต้โน้ต
+
+[common.msg-pick-file]
+original=Please pick at least one file to import.
+translation=กรุณาเลือกไฟล์อย่างน้อยหนึ่งไฟล์เพื่อนำเข้า
+
+[common.msg-pick-output]
+original=Please select a location to export to.
+translation=กรุณาเลือกตำแหน่งสำหรับส่งออก
+
+[common.msg-pick-import-location]
+original=Please select a location to import your files to.
+translation=กรุณาเลือกตำแหน่งสำหรับนำเข้าไฟล์ของคุณ
+
+[common.msg-unknown-error]
+original=Unknown error
+translation=ข้อผิดพลาดที่ไม่ทราบ
+
+[common.name-export]
+original=Export your data
+translation=ส่งออกข้อมูลของคุณ
+
+[common.label-learn-more]
+original=Learn more.
+translation=ข้อมูลเพิ่มเติม
+
+[common.button-instructions]
+original=Instructions
+translation=คำแนะนำ
+
+[common.button-open]
+original=Open
+translation=เปิด
+
+[common.status-processing]
+original=Processing {{name}}
+translation=กำลังประมวลผล {{name}}
+
+[common.status-importing-note]
+original=Importing note {{name}}
+translation=กำลังนำเข้าโน้ต {{name}}
+
+[common.status-importing-attachment]
+original=Importing attachment {{name}}
+translation=กำลังนำเข้าไฟล์แนบ {{name}}
+
+[common.status-cancelled]
+original=Import cancelled
+translation=การนำเข้าถูกยกเลิกแล้ว
+
+[reason.already-in-vault]
+original=it is already in the vault
+translation=มีอยู่ในห้องนิรภัยแล้ว
+
+[reason.unchanged-since-import]
+original=it has not changed since the last import
+translation=ไม่มีการเปลี่ยนแปลงตั้งแต่การนำเข้าครั้งล่าสุด
+
+[reason.edited-since-import]
+original=it has been edited in Obsidian since the last import
+translation=ถูกแก้ไขใน Obsidian ตั้งแต่การนำเข้าครั้งล่าสุด
+
+[reason.file-not-in-vault]
+original=The imported file did not appear in the vault.
+translation=ไฟล์ที่นำเข้าไม่ปรากฏในห้องนิรภัย
+
+[reason.folder-not-created]
+original=Failed to create folder at "{{path}}"
+translation=ล้มเหลวในการสร้างโฟลเดอร์ที่ "{{path}}"
+
+[tree.button-select-all]
+original=Select all
+translation=เลือกทั้งหมด
+
+[tree.button-deselect-all]
+original=Deselect all
+translation=ยกเลิกการเลือกทั้งหมด
+
+[tree.button-load]
+original=Load
+translation=โหลด
+
+[tree.button-loading]
+original=Loading...
+translation=กำลังโหลด...
+
+[tree.button-refresh]
+original=Refresh
+translation=รีเฟรช
+
+[request.msg-unauthorized]
+original={{service}} did not accept the request for {{subject}}. {{credential}}
+translation={{service}} ไม่ยอมรับคำขอสำหรับ {{subject}} {{credential}}
+
+[request.msg-forbidden]
+original={{service}} would not give access to {{subject}}. {{credential}}
+translation={{service}} ไม่อนุญาตให้เข้าถึง {{subject}} {{credential}}
+
+[request.msg-not-found]
+original={{service}} could not find {{subject}}.
+translation={{service}} ไม่พบ {{subject}}
+
+[request.msg-rate-limited]
+original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
+translation={{service}} จำกัดความเร็วในการอ่าน {{subject}} กรุณารอสักครู่แล้วลองอีกครั้ง
+
+[request.msg-timed-out]
+original={{service}} took too long to return {{subject}}. Try again shortly.
+translation={{service}} ใช้เวลานานเกินไปในการส่งคืน {{subject}} กรุณาลองอีกครั้งในอีกสักครู่
+
+[request.msg-unavailable]
+original={{service}} could not return {{subject}} right now. Try again shortly.
+translation={{service}} ไม่สามารถส่งคืน {{subject}} ได้ในขณะนี้ กรุณาลองอีกครั้งในอีกสักครู่
+
+[request.msg-failed-with-code]
+original=Could not read {{subject}}: {{message}} ({{code}})
+translation=ไม่สามารถอ่าน {{subject}}: {{message}} ({{code}})
+
+[request.msg-failed-with-message]
+original=Could not read {{subject}}: {{message}}
+translation=ไม่สามารถอ่าน {{subject}}: {{message}}
+
+[request.msg-failed-with-reported-code]
+original=Could not read {{subject}}. {{service}} reported {{code}}.
+translation=ไม่สามารถอ่าน {{subject}} {{service}} รายงาน {{code}}
+
+[request.msg-failed]
+original=Could not read {{subject}}.
+translation=ไม่สามารถอ่าน {{subject}}
+
+[template.msg-intro]
+original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
+translation=กำหนดค่าวิธีการนำเข้าข้อมูลของคุณ ใช้ไวยากรณ์ {{syntax}} เพื่ออ้างอิงค่าของฟิลด์
+
+[template.name-title]
+original=Note title
+translation=เปลี่ยนชื่อไฟล์
+
+[template.desc-title]
+original=Template for the note title. Use {{field_name}} to insert values.
+translation=เทมเพลตสำหรับชื่อโน้ต ใช้ {{field_name}} เพื่อแทรกค่า
+
+[template.name-location]
+original=Note location
+translation=ตำแหน่งโน้ต
+
+[template.desc-location]
+original=Template for note location/path. Use {{field_name}} to organize notes.
+translation=เทมเพลตสำหรับตำแหน่ง/เส้นทางของโน้ต ใช้ {{field_name}} เพื่อจัดระเบียบโน้ต
+
+[template.name-content]
+original=Note content
+translation=เนื้อหาโน้ต
+
+[template.desc-content]
+original=Template for the note content. Use {{field_name}} to insert values.
+translation=เทมเพลตสำหรับเนื้อหาโน้ต ใช้ {{field_name}} เพื่อแทรกค่า
+
+[template.heading-properties]
+original=Properties
+translation=คุณสมบัติ
+
+[template.column-property-name]
+original=Property name
+translation=ชื่อคุณสมบัติ
+
+[template.column-property-value]
+original=Property value
+translation=ค่าคุณสมบัติ
+
+[template.column-example]
+original=Example
+translation=ตัวอย่าง
+
+[template.action-delete-property]
+original=Delete property
+translation=ลบคุณสมบัติ
+
+[template.msg-title-required]
+original=Please provide a note title template.
+translation=กรุณาระบุเทมเพลตชื่อโน้ต
+
+[importer.airtable-api.name]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.option-text]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-id]
+original=Airtable record ID
+translation=ID ระเบียน Airtable
+
+[importer.airtable-api.name-token]
+original=Airtable personal access token
+translation=โทเค็นการเข้าถึงส่วนบุคคล Airtable
+
+[importer.airtable-api.desc-token]
+original=Create a personal access token in your Airtable account settings. 
+translation=สร้างโทเค็นการเข้าถึงส่วนบุคคลในการตั้งค่าบัญชี Airtable ของคุณ 
+
+[importer.airtable-api.link-get-token]
+original=Get token
+translation=รับโทเค็น
+
+[importer.airtable-api.name-tables]
+original=Tables to import
+translation=ตารางที่จะนำเข้า
+
+[importer.airtable-api.desc-tables]
+original=Load your Airtable bases and tables, then choose what to import.
+translation=โหลดฐานข้อมูลและตาราง Airtable ของคุณ จากนั้นเลือกสิ่งที่ต้องการนำเข้า
+
+[importer.airtable-api.hint-tables]
+original=Load your Airtable bases and tables to get started.
+translation=โหลดฐานข้อมูลและตาราง Airtable ของคุณเพื่อเริ่มต้น
+
+[importer.airtable-api.msg-fetching-bases]
+original=Fetching bases...
+translation=กำลังดึงฐานข้อมูล...
+
+[importer.airtable-api.msg-no-bases]
+original=No bases found.
+translation=ไม่พบฐานข้อมูล
+
+[importer.airtable-api.label-service]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-subject]
+original=your bases
+translation=ฐานข้อมูลของคุณ
+
+[importer.airtable-api.label-credential]
+original=Check that your personal access token is current and has access to them.
+translation=ตรวจสอบว่าโทเค็นการเข้าถึงส่วนบุคคลของคุณยังใช้งานได้และมีสิทธิ์เข้าถึง
+
+[importer.airtable-api.name-formulas]
+original=Convert formulas
+translation=แปลงสูตร
+
+[importer.airtable-api.desc-formulas]
+original=Try to convert formulas to Obsidian syntax, or import as static values.
+translation=พยายามแปลงสูตรเป็นไวยากรณ์ Obsidian หรือนำเข้าเป็นค่าคงที่
+
+[importer.airtable-api.option-formula-hybrid]
+original=Obsidian syntax (with fallback)
+translation=ไวยากรณ์ Obsidian (พร้อมทางเลือกสำรอง)
+
+[importer.airtable-api.option-formula-static]
+original=Static values only
+translation=ค่าคงที่เท่านั้น
+
+[importer.airtable-api.name-download-attachments]
+original=Download attachments
+translation=ดาวน์โหลดไฟล์แนบ
+
+[importer.airtable-api.desc-download-attachments]
+original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
+translation=ดาวน์โหลดไฟล์แนบไปยังห้องนิรภัยในเครื่อง หากปิดใช้งานหรือดาวน์โหลดล้มเหลว จะใช้ URL ภายนอกแทน
+
+[importer.airtable-api.name-view-property]
+original=View property name
+translation=ชื่อคุณสมบัติมุมมอง
+
+[importer.airtable-api.desc-view-property]
+original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
+translation=ชื่อคุณสมบัติเพื่อติดตามว่าระเบียนอยู่ในมุมมองใดบ้าง แต่ละระเบียนจะมีรายการชื่อมุมมองที่ปรากฏอยู่
+
+[importer.airtable-api.msg-token-first]
+original=Please enter your Airtable personal access token first.
+translation=กรุณากรอกโทเค็นการเข้าถึงส่วนบุคคล Airtable ก่อน
+
+[importer.airtable-api.msg-token-missing]
+original=Please enter your Airtable personal access token.
+translation=กรุณากรอกโทเค็นการเข้าถึงส่วนบุคคล Airtable
+
+[importer.airtable-api.msg-load-bases-failed]
+original=Failed to load bases: {{error}}
+translation=โหลดฐานข้อมูลล้มเหลว: {{error}}
+
+[importer.airtable-api.msg-load-tables-failed]
+original=Failed to load tables for "{{base}}": {{error}}
+translation=โหลดตารางสำหรับ "{{base}}" ล้มเหลว: {{error}}
+
+[importer.airtable-api.msg-pick-table]
+original=Please select at least one table to import.
+translation=กรุณาเลือกอย่างน้อยหนึ่งตารางเพื่อนำเข้า
+
+[importer.airtable-api.msg-loading-fields]
+original=Loading fields...
+translation=กำลังโหลดฟิลด์...
+
+[importer.airtable-api.msg-no-fields]
+original=No fields found in selected tables. Please check your selection.
+translation=ไม่พบฟิลด์ในตารางที่เลือก กรุณาตรวจสอบการเลือกของคุณ
+
+[importer.airtable-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=การนำเข้าล้มเหลว: {{error}}
+
+[importer.airtable-api.label-base-position]
+original= (base {{index}} of {{total}})
+translation= (ฐานข้อมูล {{index}} จาก {{total}})
+
+[importer.airtable-api.label-base]
+original=Base: {{name}}
+translation=ฐานข้อมูล: {{name}}
+
+[importer.airtable-api.label-linked-table]
+original=Linked table: {{name}}
+translation=ตารางที่เชื่อมโยง: {{name}}
+
+[importer.airtable-api.label-table-view]
+original={{table}} > {{view}}
+translation={{table}} > {{view}}
+
+[importer.airtable-api.label-import]
+original=Airtable API import
+translation=นำเข้าผ่าน Airtable API
+
+[importer.airtable-api.status-connecting]
+original=Connecting to Airtable API
+translation=กำลังเชื่อมต่อกับ Airtable API
+
+[importer.airtable-api.status-loading-tables]
+original=Loading tables for {{base}}
+translation=กำลังโหลดตารางสำหรับ {{base}}
+
+[importer.airtable-api.status-fetching-tables]
+original=Fetching tables for base {{base}}...
+translation=กำลังดึงตารางสำหรับฐานข้อมูล {{base}}...
+
+[importer.airtable-api.status-found-bases]
+original=Found {{bases}} to import
+translation=พบ {{bases}} เพื่อนำเข้า
+
+[importer.airtable-api.status-fetching-base]
+original=Fetching data from {{base}}{{position}}
+translation=กำลังดึงข้อมูลจาก {{base}}{{position}}
+
+[importer.airtable-api.status-preparing-records]
+original=Preparing records from {{base}}{{position}}
+translation=กำลังเตรียมระเบียนจาก {{base}}{{position}}
+
+[importer.airtable-api.status-reading-names]
+original=Reading names from {{table}}{{position}}
+translation=กำลังอ่านชื่อจาก {{table}}{{position}}
+
+[importer.airtable-api.status-planning]
+original=Working out where {{table}}{{position}} goes
+translation=กำลังวางแผนที่จะจัดวาง {{table}}{{position}}
+
+[importer.airtable-api.status-fetching-records]
+original=Fetching records from {{table}}{{position}}
+translation=กำลังดึงระเบียนจาก {{table}}{{position}}
+
+[importer.airtable-api.status-fetched-records]
+original=Fetched {{records}} from {{table}}{{position}}
+translation=ดึง {{records}} จาก {{table}}{{position}} แล้ว
+
+[importer.airtable-api.status-fetching-view]
+original=Fetching view {{view}} from {{table}}{{position}}
+translation=กำลังดึงมุมมอง {{view}} จาก {{table}}{{position}}
+
+[importer.airtable-api.status-creating-notes]
+original=Creating notes in {{table}}{{position}}
+translation=กำลังสร้างโน้ตใน {{table}}{{position}}
+
+[importer.airtable-api.status-updating-types]
+original=Updating property types
+translation=กำลังอัปเดตประเภทคุณสมบัติ
+
+[importer.airtable-api.status-complete]
+original=Import complete
+translation=การนำเข้าเสร็จสมบูรณ์
+
+[importer.airtable-api.status-rate-limited]
+original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
+translation=ถูกจำกัดอัตรา กำลังรอ {{seconds}} วินาที (ความพยายาม {{attempt}}/{{total}})...
+
+[importer.airtable-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}
+translation=กำลังดาวน์โหลดไฟล์แนบ: {{name}}
+
+[importer.airtable-api.reason-no-record-names]
+original=Could not read record names
+translation=ไม่สามารถอ่านชื่อระเบียนได้
+
+[importer.airtable-api.reason-empty-record]
+original=Empty record
+translation=ระเบียนว่างเปล่า
+
+[importer.airtable-api.desc-no-modified-time]
+original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
+translation=Airtable ไม่ได้บอกว่าระเบียนมีการเปลี่ยนแปลงครั้งล่าสุดเมื่อใด ดังนั้น "{{update}}" จะเปรียบเทียบโน้ตกับระเบียนแทน โน้ตที่คุณแก้ไขเองจะถูกอ่านว่ามีการเปลี่ยนแปลง และจะถูกเขียนทับ
+
+[importer.apple-notes.name]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.option-text]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.label-id]
+original=Apple Notes ID
+translation=Apple Notes ID
+
+[importer.apple-notes.msg-platform]
+original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
+translation=เนื่องจากข้อจำกัดของแพลตฟอร์ม Apple Notes ไม่สามารถส่งออกจากอุปกรณ์นี้ได้ เปิดห้องนิรภัยของคุณบน Mac เพื่อส่งออกจาก Apple Notes
+
+[importer.apple-notes.name-prefix-format]
+original=File prefix format
+translation=รูปแบบคำนำหน้าไฟล์
+
+[importer.apple-notes.desc-prefix-format]
+original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
+translation=รูปแบบสำหรับคำนำหน้าวันที่สร้างในชื่อไฟล์ ใช้ YYYY, MM, DD สำหรับปี เดือน วัน เว้นว่างเปล่าหากไม่ต้องการคำนำหน้า
+
+[importer.apple-notes.name-omit-first-line]
+original=Omit first line
+translation=ละบรรทัดแรก
+
+[importer.apple-notes.desc-omit-first-line]
+original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
+translation=ไม่รวมบรรทัดแรกในข้อความ เนื่องจาก Apple Notes ใช้เป็นชื่อ แต่จะยังคงถูกใช้เป็นชื่อโน้ต
+
+[importer.apple-notes.name-handwriting]
+original=Include handwriting text
+translation=รวมข้อความลายมือ
+
+[importer.apple-notes.desc-handwriting]
+original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
+translation=เมื่อ Apple Notes ตรวจพบลายมือในภาพวาด ให้รวมเป็นข้อความก่อนภาพวาด
+
+[importer.apple-notes.name-data-folder]
+original=Apple Notes data folder
+translation=โฟลเดอร์ข้อมูล Apple Notes
+
+[importer.apple-notes.desc-data-folder]
+original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
+translation=macOS จะอนุญาตให้ Obsidian อ่านโน้ตของคุณได้ก็ต่อเมื่อคุณชี้ไปยังโฟลเดอร์ที่เก็บโน้ตเหล่านั้น
+
+[importer.apple-notes.button-select-folder]
+original=Select folder
+translation=เลือกโฟลเดอร์
+
+[importer.apple-notes.msg-wrong-folder]
+original=Ensure you have selected the correct Apple Notes data folder.
+translation=ตรวจสอบให้แน่ใจว่าคุณเลือกโฟลเดอร์ข้อมูล Apple Notes ที่ถูกต้องแล้ว
+
+[importer.apple-notes.msg-dialog-folder]
+original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
+translation=เลือกโฟลเดอร์ "group.com.apple.notes" เพื่ออนุญาตให้ Obsidian อ่านข้อมูล Apple Notes
+
+[importer.apple-notes.msg-import-failed]
+original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
+translation=การนำเข้าข้อมูลล้มเหลว ตรวจสอบให้แน่ใจว่าคุณเลือกโฟลเดอร์ข้อมูล Apple Notes ที่ถูกต้องแล้ว
+
+[importer.apple-notes.msg-pick-folders]
+original=Please select at least one folder to import.
+translation=กรุณาเลือกอย่างน้อยหนึ่งโฟลเดอร์เพื่อนำเข้า
+
+[importer.apple-notes.name-folders]
+original=Folders to import
+translation=โฟลเดอร์ที่จะนำเข้า
+
+[importer.apple-notes.desc-folders]
+original=Pick the folders whose notes to bring across.
+translation=เลือกโฟลเดอร์ที่ต้องการนำโน้ตเข้ามา
+
+[importer.apple-notes.msg-no-access]
+original=Allow access to your notes to see the folders in them.
+translation=อนุญาตการเข้าถึงโน้ตของคุณเพื่อดูโฟลเดอร์ในนั้น
+
+[importer.apple-notes.msg-no-folders]
+original=No folders found.
+translation=ไม่พบโฟลเดอร์
+
+[importer.apple-notes.msg-database-busy]
+original=Your Apple Notes database is in use. Quit Notes and try again.
+translation=ฐานข้อมูล Apple Notes ของคุณกำลังถูกใช้งานอยู่ ปิดแอป Notes แล้วลองอีกครั้ง
+
+[importer.apple-notes.msg-database-unreadable]
+original=Could not open your Apple Notes database. {{hint}}
+translation=ไม่สามารถเปิดฐานข้อมูล Apple Notes ของคุณได้ {{hint}}
+
+[importer.apple-notes.msg-read-failed-with-detail]
+original=Could not read your notes: {{detail}}
+translation=ไม่สามารถอ่านโน้ตของคุณได้: {{detail}}
+
+[importer.apple-notes.msg-read-failed]
+original=Could not read your notes.
+translation=ไม่สามารถอ่านโน้ตของคุณได้
+
+[importer.apple-notes.reason-password-protected]
+original=note is password protected
+translation=โน้ตมีการป้องกันด้วยรหัสผ่าน
+
+[importer.apple-notes.reason-duplicate]
+original=note is a duplicate
+translation=โน้ตเป็นรายการทำซ้ำ
+
+[importer.apple-notes.reason-unchanged]
+original=note unchanged since last import
+translation=โน้ตไม่มีการเปลี่ยนแปลงตั้งแต่การนำเข้าครั้งล่าสุด
+
+[importer.apple-notes.reason-attachment-exists]
+original=attachment already exists
+translation=ไฟล์แนบมีอยู่แล้ว
+
+[importer.apple-notes.reason-attachment-unchanged]
+original=attachment unchanged since last import
+translation=ไฟล์แนบไม่มีการเปลี่ยนแปลงตั้งแต่การนำเข้าครั้งล่าสุด
+
+[importer.apple-notes.reason-not-downloaded]
+original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
+translation=ยังไม่ได้ดาวน์โหลดจาก iCloud - เปิดโน้ตใน Apple Notes เพื่อดึงข้อมูล
+
+[importer.apple-notes.label-attachment]
+original=Attachment {{id}}
+translation=ไฟล์แนบ {{id}}
+
+[importer.apple-notes.reason-no-attachment-row]
+original=no {{uti}} row to read it from
+translation=ไม่มีแถว {{uti}} ที่จะอ่านได้
+
+[importer.apple-notes.label-attachment-in-note]
+original={{name}} in {{note}}
+translation={{name}} ใน {{note}}
+
+[importer.apple-journal.name]
+original=Apple Journal
+translation=Apple Journal
+
+[importer.apple-journal.option-text]
+original=Apple Journal (HTML export)
+translation=Apple Journal (ส่งออก HTML)
+
+[importer.apple-journal.file-type]
+original=Journal entries
+translation=รายการบันทึกประจำวัน
+
+[importer.apple-journal.desc-files]
+original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
+translation=ส่งออกรายการจากแอป Journal จากนั้นเลือกไฟล์ HTML ที่บันทึกไว้ใน iCloud Drive
+
+[importer.apple-journal.heading-metadata]
+original=Journal metadata
+translation=เมทาดาทา Journal
+
+[importer.apple-journal.name-front-matter]
+original=Add metadata as frontmatter
+translation=เพิ่มเมทาดาทาเป็นเมทาดาทาตอนต้น
+
+[importer.apple-journal.desc-front-matter]
+original=Capture state-of-mind, contact, and similar tokens in YAML when available.
+translation=บันทึกสถานะจิตใจ ผู้ติดต่อ และโทเค็นที่คล้ายกันในรูปแบบ YAML เมื่อมีข้อมูล
+
+[importer.apple-journal.reason-index-file]
+original=index file is not a journal entry
+translation=ไฟล์ดัชนีไม่ใช่รายการบันทึกประจำวัน
+
+[importer.bear.name]
+original=Bear
+translation=Bear
+
+[importer.bear.option-text]
+original=Bear (.bear2bk)
+translation=Bear (.bear2bk)
+
+[importer.bear.file-type]
+original=Bear2bk
+translation=Bear2bk
+
+[importer.bear.label-id]
+original=Bear ID
+translation=Bear ID
+
+[importer.bear.desc-export]
+original=Back up your notes in Bear, you will receive a .bear2bk file.
+translation=สำรองข้อมูลโน้ตของคุณใน Bear คุณจะได้รับไฟล์ .bear2bk
+
+[importer.bear.name-flatten-tags]
+original=Flatten nested tags
+translation=ทำแท็กซ้อนให้แบน
+
+[importer.bear.desc-flatten-tags]
+original=When enabled, tags will be split on slashes (/) during import.
+translation=เมื่อเปิดใช้งาน แท็กจะถูกแยกด้วยเครื่องหมายทับ (/) ระหว่างการนำเข้า
+
+[importer.bear.status-importing-asset]
+original=Importing asset {{name}}
+translation=กำลังนำเข้าแอสเซท {{name}}
+
+[importer.bear.status-updating-links]
+original=Updating internal links…
+translation=กำลังอัปเดตลิงก์ภายใน…
+
+[importer.bear.reason-unknown-type]
+original=unknown type of file
+translation=ไม่ทราบประเภทของไฟล์
+
+[importer.csv.name]
+original=CSV
+translation=CSV
+
+[importer.csv.option-text]
+original=CSV (.csv)
+translation=CSV (.csv)
+
+[importer.csv.file-type]
+original=CSV
+translation=CSV
+
+[importer.csv.name-header-row]
+original=CSV has header row
+translation=CSV มีแถวหัวคอลัมน์
+
+[importer.csv.desc-header-row]
+original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=หากเปิดใช้งาน แถวแรกของไฟล์ CSV จะถูกใช้เป็นหัวคอลัมน์
+
+[importer.csv.msg-pick-file]
+original=Please pick at least one CSV file to import.
+translation=กรุณาเลือกไฟล์ CSV อย่างน้อยหนึ่งไฟล์เพื่อนำเข้า
+
+[importer.csv.msg-one-at-a-time]
+original=CSV files must be imported one at a time.
+translation=ไฟล์ CSV ต้องนำเข้าทีละไฟล์
+
+[importer.csv.msg-no-data]
+original=No data found in {{name}}.
+translation=ไม่พบข้อมูลใน {{name}}
+
+[importer.csv.msg-no-configuration]
+original=Configuration is missing.
+translation=ไม่มีการกำหนดค่า
+
+[importer.csv.status-parsing]
+original=Parsing {{name}}
+translation=กำลังแยกวิเคราะห์ {{name}}
+
+[importer.csv.status-creating-note]
+original=Creating note: {{title}}
+translation=กำลังสร้างโน้ต: {{title}}
+
+[importer.csv.label-row]
+original=Row {{number}}
+translation=แถว {{number}}
+
+[importer.csv.reason-empty-title]
+original=Empty title
+translation=ชื่อว่างเปล่า
+
+[importer.evernote.name]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.option-text]
+original=Evernote (.enex)
+translation=Evernote (.enex)
+
+[importer.evernote.file-type]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.desc-export]
+original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
+translation=ส่งออกสมุดบันทึกของคุณในรูปแบบ ENEX คุณจะได้รับไฟล์ .enex หนึ่งไฟล์ต่อสมุดบันทึก
+
+[importer.evernote.msg-unresolved-links]
+original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} ลิงค์ไม่สามารถจับคู่กับโน้ตได้ การส่งออก ENEX ไม่ได้ระบุว่าลิงก์ชี้ไปยังโน้ตใด มีเพียงชื่อที่แสดงใน Evernote เท่านั้น ดังนั้นโน้ตที่ถูกเปลี่ยนชื่อหลังจากสร้างลิงก์จะไม่ตรงกันอีกต่อไป Obsidian จะแสดงรายการเหล่านี้ภายใต้ลิงก์ที่ยังไม่ได้แก้ไข
+
+[importer.evernote.msg-unresolved-links_plural]
+original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} ลิงค์ไม่สามารถจับคู่กับโน้ตได้ การส่งออก ENEX ไม่ได้ระบุว่าลิงก์ชี้ไปยังโน้ตใด มีเพียงชื่อที่แสดงใน Evernote เท่านั้น ดังนั้นโน้ตที่ถูกเปลี่ยนชื่อหลังจากสร้างลิงก์จะไม่ตรงกันอีกต่อไป Obsidian จะแสดงรายการเหล่านี้ภายใต้ลิงก์ที่ยังไม่ได้แก้ไข
+
+[importer.keep.name]
+original=Google Keep
+translation=Google Keep
+
+[importer.keep.option-text]
+original=Google Keep (.zip/.json)
+translation=Google Keep (.zip/.json)
+
+[importer.keep.file-type]
+original=Notes & attachments
+translation=โน้ตและไฟล์แนบ
+
+[importer.keep.desc-export]
+original=Get your Google Keep data from Google Takeout. 
+translation=รับข้อมูล Google Keep ของคุณจาก Google Takeout 
+
+[importer.keep.name-archived]
+original=Import archived notes
+translation=นำเข้าโน้ตที่เก็บถาวร
+
+[importer.keep.desc-archived]
+original=If imported, files archived in Google Keep will be tagged as archived.
+translation=หากนำเข้า ไฟล์ที่เก็บถาวรใน Google Keep จะถูกแท็กว่าเก็บถาวร
+
+[importer.keep.name-deleted]
+original=Import deleted notes
+translation=นำเข้าโน้ตที่ลบแล้ว
+
+[importer.keep.desc-deleted]
+original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
+translation=หากนำเข้า ไฟล์ที่ลบแล้วใน Google Keep จะถูกแท็กว่าลบแล้ว โน้ตที่ลบแล้วจะมีอยู่ในข้อมูลส่งออก Google ของคุณเฉพาะในกรณีที่เพิ่งลบไปเมื่อไม่นานนี้
+
+[importer.keep.reason-invalid-json]
+original=Invalid Google Keep JSON
+translation=JSON ของ Google Keep ไม่ถูกต้อง
+
+[importer.keep.reason-archived]
+original=Archived note
+translation=โน้ตที่เก็บถาวร
+
+[importer.keep.reason-deleted]
+original=Deleted note
+translation=โน้ตที่ลบแล้ว
+
+[importer.html.name]
+original=HTML files
+translation=ไฟล์ HTML
+
+[importer.html.option-text]
+original=HTML (.html)
+translation=HTML (.html)
+
+[importer.html.file-type]
+original=HTML
+translation=HTML
+
+[importer.html.name-size-limit]
+original=Attachment size limit (MB)
+translation=ขีดจำกัดขนาดไฟล์แนบ (MB)
+
+[importer.html.name-minimum-image-size]
+original=Minimum image size (px)
+translation=ขนาดรูปภาพขั้นต่ำ (px)
+
+[importer.html.desc-set-zero-to-disable]
+original=Set 0 to disable.
+translation=ตั้งค่า 0 เพื่อปิดใช้งาน
+
+[importer.html.status-downloading]
+original=Downloading attachment for {{name}}
+translation=กำลังดาวน์โหลดไฟล์แนบสำหรับ {{name}}
+
+[importer.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.option-text]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.method-name]
+original=Microsoft account
+translation=บัญชี Microsoft
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=เข้าสู่ระบบบัญชี Microsoft ของคุณและนำเข้าสมุดบันทึกที่ซิงค์แล้วกับ OneDrive ต้องมีการเชื่อมต่ออินเทอร์เน็ต
+
+[importer.onenote.label-id]
+original=OneNote ID
+translation=OneNote ID
+
+[importer.onenote.name-incompatible]
+original=Import incompatible attachments
+translation=นำเข้าไฟล์แนบที่ไม่รองรับ
+
+[importer.onenote.desc-incompatible]
+original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+translation=นำเข้าไฟล์แนบที่ไม่รองรับซึ่งไม่สามารถฝังใน Obsidian ได้ เช่น ไฟล์ .exe
+
+[importer.onenote.name-account]
+original=Microsoft account
+translation=บัญชี Microsoft
+
+[importer.onenote.desc-sign-in]
+original=Sign in to import your OneNote notebooks.
+translation=เข้าสู่ระบบเพื่อนำเข้าสมุดบันทึก OneNote ของคุณ
+
+[importer.onenote.desc-sign-in-organization]
+original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
+translation=เข้าสู่ระบบเพื่อนำเข้าสมุดบันทึก OneNote ของคุณ บัญชีที่ทำงานหรือโรงเรียนอาจต้องได้รับการอนุมัติจากองค์กรของคุณ
+
+[importer.onenote.desc-signed-in]
+original=Signed in as {{name}} ({{email}}).
+translation=เข้าสู่ระบบในชื่อ {{name}} ({{email}})
+
+[importer.onenote.button-sign-in]
+original=Sign in
+translation=เข้าสู่ระบบ
+
+[importer.onenote.button-sign-out]
+original=Sign out
+translation=ออกจากระบบ
+
+[importer.onenote.button-work-account]
+original=Use work or school access
+translation=ใช้การเข้าถึงบัญชีที่ทำงานหรือโรงเรียน
+
+[importer.onenote.msg-sign-in-failed]
+original=An error occurred while trying to sign you in.
+translation=เกิดข้อผิดพลาดขณะพยายามเข้าสู่ระบบ
+
+[importer.onenote.msg-sign-in-details]
+original=Click here to show error details
+translation=คลิกที่นี่เพื่อดูรายละเอียดข้อผิดพลาด
+
+[importer.onenote.msg-signed-out]
+original=Sign in to see your OneNote notebooks.
+translation=เข้าสู่ระบบเพื่อดูสมุดบันทึก OneNote ของคุณ
+
+[importer.onenote.msg-please-sign-in]
+original=Please sign in to your Microsoft account.
+translation=กรุณาเข้าสู่ระบบบัญชี Microsoft ของคุณ
+
+[importer.onenote.name-sections]
+original=Sections to import
+translation=ส่วนที่จะนำเข้า
+
+[importer.onenote.desc-sections]
+original=Select a notebook, or sections within it.
+translation=เลือกสมุดบันทึก หรือส่วนภายในสมุดบันทึก
+
+[importer.onenote.msg-loading-notebooks]
+original=Loading notebooks...
+translation=กำลังโหลดสมุดบันทึก...
+
+[importer.onenote.msg-no-notebooks]
+original=No notebooks found.
+translation=ไม่พบสมุดบันทึก
+
+[importer.onenote.msg-scope-refused]
+original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
+translation=OneNote ไม่ได้อนุญาตให้การเข้าสู่ระบบนี้เข้าถึงสมุดบันทึกของคุณ ออกจากระบบและเข้าสู่ระบบอีกครั้งเพื่อขอสิทธิ์การเข้าถึงบัญชีที่ทำงานหรือโรงเรียน ซึ่งองค์กรของคุณอาจต้องอนุมัติ
+
+[importer.onenote.label-service]
+original=OneNote
+translation=OneNote
+
+[importer.onenote.label-subject]
+original=your notebooks
+translation=สมุดบันทึกของคุณ
+
+[importer.onenote.label-credential]
+original=Sign out and back in to try again.
+translation=ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อลองอีกครั้ง
+
+[importer.onenote.status-finding]
+original=Finding notes to import
+translation=กำลังค้นหาโน้ตที่จะนำเข้า
+
+[importer.onenote.status-finding-in]
+original=Finding notes in {{section}}
+translation=กำลังค้นหาโน้ตใน {{section}}
+
+[importer.onenote.status-finding-in-section]
+original=Finding notes in {{section}} (section {{index}} of {{total}})
+translation=กำลังค้นหาโน้ตใน {{section}} (ส่วนที่ {{index}} จาก {{total}})
+
+[importer.onenote.status-importing-notes]
+original=Importing {{notes}}
+translation=กำลังนำเข้า {{notes}}
+
+[importer.onenote.status-downloading]
+original=Downloading attachment {{name}}
+translation=กำลังดาวน์โหลดไฟล์แนบ {{name}}
+
+[importer.onenote.msg-too-many-errors]
+original=Microsoft OneNote returned too many consecutive errors.
+translation=Microsoft OneNote ส่งคืนข้อผิดพลาดติดต่อกันมากเกินไป
+
+[importer.onenote.label-unknown-page]
+original=<unknown>
+translation=<ไม่ทราบ>
+
+[importer.onenote.reason-too-many-failures]
+original=import was canceled (after too many pages failed to load)
+translation=การนำเข้าถูกยกเลิก (หลังจากหน้าโหลดล้มเหลวมากเกินไป)
+
+[importer.onenote.label-ink]
+original={{page}} - Ink.svg
+translation={{page}} - Ink.svg
+
+[importer.onenote.label-attachment]
+original=OneNote attachment
+translation=ไฟล์แนบ OneNote
+
+[importer.onenote.label-image]
+original=OneNote image
+translation=รูปภาพ OneNote
+
+[importer.onenote.reason-no-attachment-name]
+original=the attachment did not say what it was called
+translation=ไฟล์แนบไม่ได้ระบุชื่อของตัวเอง
+
+[importer.onenote.reason-no-attachment-url]
+original=the attachment did not include a download URL
+translation=ไฟล์แนบไม่มี URL สำหรับดาวน์โหลด
+
+[importer.onenote.reason-no-image-url]
+original=the image did not include a download URL
+translation=รูปภาพไม่มี URL สำหรับดาวน์โหลด
+
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=Microsoft OneNote (ไฟล์ส่งออก)
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=Microsoft OneNote (.one, .onepkg)
+
+[importer.onenote-file.method-name]
+original=File import
+translation=นำเข้าจากไฟล์
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=นำเข้าโดยใช้ไฟล์ส่งออกของ OneNote (.one, .onepkg) จากคอมพิวเตอร์ของคุณ ไม่ต้องใช้บัญชีหรือการเชื่อมต่ออินเทอร์เน็ต และใช้ได้กับสมุดบันทึกที่ไม่เคยซิงค์แล้ว
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=ไฟล์ส่งออก OneNote
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=OneNote ID
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=OneNote สำหรับ Windows จะเก็บสำเนาสำรองของตัวเอง และจะเปิดไปที่นั่น เลือกสมุดบันทึกหรือส่วนที่คุณต้องการ
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=ใน OneNote สำหรับ Windows ให้คลิกขวาที่สมุดบันทึกแล้วส่งออกเพื่อบันทึกเป็นไฟล์ .onepkg หรือส่งออกส่วนเดียวเป็น .one
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=ส่วนที่จะนำเข้า
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=เลือกส่วนที่จะนำเข้า
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=กำลังอ่านส่วน…
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=ไม่พบส่วนในไฟล์นี้
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=เลือกไฟล์ OneNote ก่อน
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation=กำลังอ่าน {{name}}
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation=กำลังนำเข้า {{name}} ({{index}} จาก {{total}})
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=ไฟล์ถูกป้องกันสิทธิ์ และสามารถเปิดได้เฉพาะบัญชีที่มีสิทธิ์เข้าถึงเท่านั้น
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=ไฟล์ใช้รูปแบบ OneNote ที่ตัวนำเข้านี้ยังไม่สามารถอ่านได้
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=ไฟล์ไม่ได้อธิบายโครงสร้าง OneNote ตามที่ระบุไว้
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=ไฟล์มีขนาดใหญ่เกินกว่าที่ตัวนำเข้านี้จะขยายได้
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=ไฟล์แนบไม่มีข้อมูล
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=ตารางภายในเซลล์ตารางไม่มีสิ่งเทียบเท่าใน Markdown
+
+[importer.notion-api.name]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.option-text]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=บัญชี Notion (แนะนำ)
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
+translation=นำเข้าพื้นที่ทำงานทั้งหมดของคุณ รวมถึงฐานข้อมูลและสูตรที่จะถูกแปลงเป็น bases ต้องใช้โทเค็นการเชื่อมต่อ Notion และการเชื่อมต่ออินเทอร์เน็ต
+
+[importer.notion-api.label-id]
+original=Notion ID
+translation=Notion ID
+
+[importer.notion-api.name-token]
+original=Notion API token
+translation=โทเค็น Notion API
+
+[importer.notion-api.desc-token]
+original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+translation=หากต้องการรับโทเค็น API ให้สร้างการเชื่อมต่อใน Notion แล้วให้สิทธิ์เข้าถึงหน้าต่าง ๆ ในพื้นที่ทำงานของคุณ 
+
+[importer.notion-api.link-get-token]
+original=Get API token.
+translation=รับโทเค็น API
+
+[importer.notion-api.name-pages]
+original=Pages to import
+translation=หน้าที่จะนำเข้า
+
+[importer.notion-api.desc-pages]
+original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+translation=คลิก "โหลด" เพื่อดูข้อมูลที่คุณสามารถนำเข้าได้ หากหน้าหรือฐานข้อมูลหายไป ให้ตรวจสอบว่าการเชื่อมต่อ Notion ของคุณมีสิทธิ์เข้าถึง
+
+[importer.notion-api.hint-pages]
+original=Click "Load" to load your Notion pages and databases.
+translation=คลิก "โหลด" เพื่อโหลดหน้าและฐานข้อมูล Notion ของคุณ
+
+[importer.notion-api.msg-loading-pages]
+original=Loading pages and databases...
+translation=กำลังโหลดหน้าและฐานข้อมูล...
+
+[importer.notion-api.msg-no-pages]
+original=No pages or databases found. Make sure your connection has access to the pages you want to import.
+translation=ไม่พบหน้าหรือฐานข้อมูล ตรวจสอบให้แน่ใจว่าการเชื่อมต่อของคุณมีสิทธิ์เข้าถึงหน้าที่คุณต้องการนำเข้า
+
+[importer.notion-api.label-service]
+original=Notion
+translation=Notion
+
+[importer.notion-api.label-subject]
+original=your pages
+translation=หน้าของคุณ
+
+[importer.notion-api.label-credential]
+original=Check that your token is current and that the connection has access to them.
+translation=ตรวจสอบว่าโทเค็นของคุณยังใช้ได้อยู่ และการเชื่อมต่อมีสิทธิ์เข้าถึง
+
+[importer.notion-api.name-formulas]
+original=Convert formulas
+translation=แปลงสูตร
+
+[importer.notion-api.desc-formulas]
+original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
+translation=โดยค่าเริ่มต้น สูตรของ Notion จะถูกแปลงเป็นไวยากรณ์ Obsidian หากไวยากรณ์ Notion ใดไม่รองรับ ค่าคงที่จะถูกบันทึกแทน หรือคุณสามารถนำเข้าสูตรทั้งหมดเป็นค่าคงที่ก็ได้
+
+[importer.notion-api.option-formula-hybrid]
+original=Obsidian syntax
+translation=ไวยากรณ์ Obsidian
+
+[importer.notion-api.option-formula-static]
+original=Static values
+translation=ค่าคงที่
+
+[importer.notion-api.name-download-external]
+original=Download external attachments
+translation=ดาวน์โหลดไฟล์แนบภายนอก
+
+[importer.notion-api.desc-download-external]
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=ดาวน์โหลดไฟล์แนบภายนอก (URL ภายนอก) เป็นไฟล์ในเครื่อง ไฟล์ที่โฮสต์บน Notion จะถูกดาวน์โหลดเสมอ
+
+[importer.notion-api.name-single-line-breaks]
+original=Single line breaks
+translation=ขึ้นบรรทัดใหม่เดี่ยว
+
+[importer.notion-api.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
+translation=แยกบล็อก Notion ด้วยการขึ้นบรรทัดใหม่เพียงหนึ่งครั้งแทนสองครั้ง บล็อกบางประเภท (รายการ, สลับ, ตาราง) จะยังคงใช้การขึ้นบรรทัดใหม่สองครั้งเมื่อจำเป็นสำหรับไวยากรณ์ Markdown ที่ถูกต้อง
+
+[importer.notion-api.name-cover-property]
+original=Cover property name
+translation=ชื่อคุณสมบัติปก
+
+[importer.notion-api.desc-cover-property]
+original=Property name for page cover image in YAML frontmatter. 
+translation=ชื่อคุณสมบัติสำหรับรูปภาพปกของหน้าในเมทาดาทาตอนต้น YAML 
+
+[importer.notion-api.desc-cover-property-conflicts]
+original=Leave as "cover" if you don't have conflicts with existing properties.
+translation=ปล่อยเป็น "cover" หากคุณไม่มีข้อขัดแย้งกับคุณสมบัติที่มีอยู่
+
+[importer.notion-api.name-database-property]
+original=Database property name
+translation=ชื่อคุณสมบัติฐานข้อมูล
+
+[importer.notion-api.desc-database-property]
+original=Property name in page frontmatter to link pages to their database .base file (default: "base")
+translation=ชื่อคุณสมบัติในเมทาดาทาตอนต้นของหน้าเพื่อลิงก์หน้าไปยังไฟล์ .base ของฐานข้อมูล (ค่าเริ่มต้น: "base")
+
+[importer.notion-api.name-linked-databases]
+original=Import linked databases
+translation=นำเข้าฐานข้อมูลที่ลิงก์
+
+[importer.notion-api.desc-linked-databases]
+original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
+translation=นำเข้าฐานข้อมูลที่หน้าที่เลือกลิงก์ไปด้วย เพื่อให้ความสัมพันธ์กลายเป็นลิงก์แทนชื่อ การดำเนินการนี้จะนำเข้าหน้าที่คุณไม่ได้เลือก
+
+[importer.notion-api.msg-token-first]
+original=Please enter your Notion API token first.
+translation=กรุณากรอกโทเค็น Notion API ก่อน
+
+[importer.notion-api.msg-token-missing]
+original=Please enter your Notion API token.
+translation=กรุณากรอกโทเค็น Notion API ของคุณ
+
+[importer.notion-api.msg-load-pages-failed]
+original=Failed to load pages: {{error}}
+translation=โหลดหน้าล้มเหลว: {{error}}
+
+[importer.notion-api.msg-found]
+original=Found {{count}} page or database.
+translation=พบ {{count}} หน้าหรือฐานข้อมูล
+
+[importer.notion-api.msg-found_plural]
+original=Found {{count}} pages and databases.
+translation=พบ {{count}} หน้าและฐานข้อมูล
+
+[importer.notion-api.msg-pick-page]
+original=Please select at least one page or database to import.
+translation=กรุณาเลือกอย่างน้อยหนึ่งหน้าหรือฐานข้อมูลเพื่อนำเข้า
+
+[importer.notion-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=การนำเข้าล้มเหลว: {{error}}
+
+[importer.notion-api.status-loading-items]
+original=Loading... ({{items}}, page {{page}})
+translation=กำลังโหลด... ({{items}}, หน้า {{page}})
+
+[importer.notion-api.status-connecting]
+original=Connecting to Notion API...
+translation=กำลังเชื่อมต่อกับ Notion API...
+
+[importer.notion-api.status-fetching]
+original=Fetching page content from Notion...
+translation=กำลังดึงเนื้อหาหน้าจาก Notion...
+
+[importer.notion-api.status-preparing]
+original=Preparing to import {{items}}...
+translation=กำลังเตรียมนำเข้า {{items}}...
+
+[importer.notion-api.status-importing-items]
+original=Importing {{items}}...
+translation=กำลังนำเข้า {{items}}...
+
+[importer.notion-api.status-importing-item]
+original=Importing item {{index}}/{{total}}...
+translation=กำลังนำเข้ารายการ {{index}}/{{total}}...
+
+[importer.notion-api.status-importing-title]
+original=Importing: {{title}}
+translation=กำลังนำเข้า: {{title}}
+
+[importer.notion-api.status-relation-links]
+original=Processing relation links...
+translation=กำลังประมวลผลลิงก์ความสัมพันธ์...
+
+[importer.notion-api.status-mention-links]
+original=Processing mention links...
+translation=กำลังประมวลผลลิงก์การกล่าวถึง...
+
+[importer.notion-api.status-synced-blocks]
+original=Processing synced block child references...
+translation=กำลังประมวลผลการอ้างอิงลูกของบล็อกที่ซิงค์แล้ว...
+
+[importer.notion-api.status-cleaning-ids]
+original=Cleaning up notion-id attributes...
+translation=กำลังล้างแอตทริบิวต์ notion-id...
+
+[importer.notion-api.status-done]
+original=Import completed successfully!
+translation=นำเข้าเสร็จสมบูรณ์!
+
+[importer.notion-api.status-replacing-relations]
+original=Replacing {{placeholders}}...
+translation=กำลังแทนที่ {{placeholders}}...
+
+[importer.notion-api.status-replacing-relation-links]
+original=Replacing relation placeholders with wiki links...
+translation=กำลังแทนที่ตัวแทนความสัมพันธ์ด้วยวิกิลิงก์...
+
+[importer.notion-api.status-importing-linked-databases]
+original=Importing {{databases}}...
+translation=กำลังนำเข้า {{databases}}...
+
+[importer.notion-api.status-importing-unimported]
+original=Importing unimported database {{id}}...
+translation=กำลังนำเข้าฐานข้อมูลที่ยังไม่ได้นำเข้า {{id}}...
+
+[importer.notion-api.status-replacing-mentions]
+original=Replacing mention placeholders...
+translation=กำลังแทนที่ตัวแทนการกล่าวถึง...
+
+[importer.notion-api.status-replaced-mentions]
+original=Replaced {{links}} in {{files}}.
+translation=แทนที่ {{links}} ใน {{files}} แล้ว
+
+[importer.notion-api.status-replacing-synced]
+original=Replacing synced block child references...
+translation=กำลังแทนที่การอ้างอิงลูกของบล็อกที่ซิงค์แล้ว...
+
+[importer.notion-api.status-replaced-synced]
+original=Replaced {{references}} in {{files}} (imported {{imported}}).
+translation=แทนที่ {{references}} ใน {{files}} แล้ว (นำเข้า {{imported}})
+
+[importer.notion-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}...
+translation=กำลังดาวน์โหลดไฟล์แนบ: {{name}}...
+
+[importer.notion-api.status-rate-limited]
+original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=ถูกจำกัดอัตราการเรียก กำลังรอ {{seconds}} วินาทีก่อนลองใหม่ ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Notion ส่งกลับ {{status}} กำลังรอ {{seconds}} วินาทีก่อนลองใหม่ ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}. ลองใหม่ในอีก {{seconds}} วินาที ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-processing-data-source]
+original=Processing database from data source: {{id}}...
+translation=กำลังประมวลผลฐานข้อมูลจากแหล่งข้อมูล: {{id}}...
+
+[importer.notion-api.status-processing-database]
+original=Processing database: {{title}}...
+translation=กำลังประมวลผลฐานข้อมูล: {{title}}...
+
+[importer.notion-api.status-found-pages]
+original=Found {{pages}} in database {{title}}
+translation=พบ {{pages}} ในฐานข้อมูล {{title}}
+
+[importer.notion-api.status-found-templates]
+original=Found {{templates}} in database {{title}}
+translation=พบ {{templates}} ในฐานข้อมูล {{title}}
+
+[importer.notion-api.status-importing-template]
+original=Importing template: {{name}}...
+translation=กำลังนำเข้าเทมเพลต: {{name}}...
+
+[importer.notion-api.label-import]
+original=Notion API import
+translation=นำเข้าจาก Notion API
+
+[importer.notion-api.label-item]
+original=Import item {{id}}
+translation=นำเข้ารายการ {{id}}
+
+[importer.notion-api.label-page]
+original=Page {{id}}
+translation=หน้า {{id}}
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
+translation=หน้า: {{title}} ({{id}})
+
+[importer.notion-api.label-relation-page]
+original=Relation page {{id}}
+translation=หน้าความสัมพันธ์ {{id}}
+
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
+translation=ฐานข้อมูล: {{title}} ({{id}})
+
+[importer.notion-api.label-mention-file]
+original=Mention file {{path}}
+translation=ไฟล์กล่าวถึง {{path}}
+
+[importer.notion-api.label-synced-block-file]
+original=Synced block file {{path}}
+translation=ไฟล์บล็อกซิงค์แล้ว {{path}}
+
+[importer.notion-api.label-attachment]
+original=Attachment: {{name}}
+translation=ไฟล์แนบ: {{name}}
+
+[importer.notion-api.label-child-page]
+original=Child page: {{title}}
+translation=หน้าย่อย: {{title}}
+
+[importer.notion-api.label-synced-block]
+original=Synced block: {{name}}
+translation=บล็อกซิงค์แล้ว: {{name}}
+
+[importer.notion-api.label-attachment-image]
+original=Image attachment
+translation=ไฟล์แนบรูปภาพ
+
+[importer.notion-api.label-attachment-video]
+original=Video attachment
+translation=ไฟล์แนบวิดีโอ
+
+[importer.notion-api.label-attachment-file]
+original=File attachment
+translation=ไฟล์แนบ
+
+[importer.notion-api.label-attachment-pdf]
+original=PDF attachment
+translation=ไฟล์แนบ PDF
+
+[importer.notion-api.label-fetch-children]
+original=Fetch children for {{context}} {{id}}
+translation=ดึงรายการย่อยของ {{context}} {{id}}
+
+[importer.notion-api.block-paragraph]
+original=paragraph
+translation=ย่อหน้า
+
+[importer.notion-api.block-bulleted-list-item]
+original=bulleted list item
+translation=รายการแบบจุด
+
+[importer.notion-api.block-numbered-list-item]
+original=numbered list item
+translation=รายการแบบลำดับเลข
+
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=รายการสิ่งที่ต้องทำ
+
+[importer.notion-api.block-quote]
+original=quote block
+translation=บล็อกคำคม
+
+[importer.notion-api.block-callout]
+original=callout block
+translation=บล็อกเน้น
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=บล็อกสลับ
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
+translation=หัวเรื่องแบบสลับได้
+
+[importer.notion-api.block-column]
+original=column
+translation=คอลัมน์
+
+[importer.notion-api.block-column-list]
+original=column list
+translation=รายการคอลัมน์
+
+[importer.notion-api.block-table]
+original=table
+translation=ตาราง
+
+[importer.notion-api.block-generic]
+original=block
+translation=บล็อก
+
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=บันทึกการประชุม: {{name}}
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=บันทึกการประชุม: {{name}} ({{section}})
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=บันทึกการประชุม {{id}}
+
+[importer.notion-api.section-summary]
+original=summary
+translation=สรุป
+
+[importer.notion-api.section-notes]
+original=notes
+translation=บันทึก
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=บทถอดเสียง
+
+[importer.notion-api.label-fetch-children-block]
+original=Fetch children for block {{id}}
+translation=ดึงรายการย่อยของบล็อก {{id}}
+
+[importer.notion-api.reason-not-in-tree]
+original=Item not found in tree
+translation=ไม่พบรายการในโครงสร้าง
+
+[importer.notion-api.reason-unknown-type]
+original=Unknown type: {{type}}
+translation=ประเภทไม่ทราบ: {{type}}
+
+[importer.notion-api.reason-earlier-import]
+original=an earlier import had already written it
+translation=การนำเข้าก่อนหน้าได้เขียนไว้แล้ว
+
+[importer.notion-api.reason-attachment-exists]
+original={{path}} is already in the vault, the same size (incremental import)
+translation={{path}} อยู่ในห้องนิรภัยแล้ว ขนาดเท่ากัน (นำเข้าแบบเพิ่มเติม)
+
+[importer.notion-api.reason-http-status]
+original=HTTP {{status}}
+translation=HTTP {{status}}
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=Notion ยังสร้างไม่เสร็จ ({{status}})
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=ถูกจำกัดอัตราการเรียก และยกเลิกหลังจากลองใหม่ {{retries}} ครั้ง
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation={{reason}} และยกเลิกหลังจากลองใหม่ {{retries}} ครั้ง
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
+translation={{reason}}; เก็บลิงก์ไปยัง {{url}} ไว้
+
+[importer.notion.name]
+original=Notion
+translation=Notion
+
+[importer.notion.option-text]
+original=Notion (.zip)
+translation=Notion (.zip)
+
+[importer.notion.method-name]
+original=File import
+translation=นำเข้าจากไฟล์
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
+translation=นำเข้าจากไฟล์ส่งออกของ Notion (.zip) ไม่ต้องใช้ API token หรือการเชื่อมต่ออินเทอร์เน็ต แต่ไม่สามารถเก็บฐานข้อมูลได้
+
+[importer.notion.file-type]
+original=Exported Notion
+translation=Notion ที่ส่งออกแล้ว
+
+[importer.notion.label-id]
+original=Notion ID
+translation=Notion ID
+
+[importer.notion.desc-export]
+original=Export your workspace in HTML format, you will receive a zip file.
+translation=ส่งออกพื้นที่ทำงานของคุณในรูปแบบ HTML คุณจะได้รับไฟล์ zip
+
+[importer.notion.desc-files]
+original=Pick the zip file Notion sent you.
+translation=เลือกไฟล์ zip ที่ Notion ส่งให้คุณ
+
+[importer.notion.name-subfolders]
+original=Save parent pages in subfolders
+translation=บันทึกหน้าหลักในโฟลเดอร์ย่อย
+
+[importer.notion.desc-subfolders]
+original=Places the parent database pages in the same folder as the nested content.
+translation=วางหน้าฐานข้อมูลหลักในโฟลเดอร์เดียวกับเนื้อหาที่ซ้อนอยู่
+
+[importer.notion.name-single-line-breaks]
+original=Single line breaks
+translation=ขึ้นบรรทัดใหม่บรรทัดเดียว
+
+[importer.notion.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break (default is 2).
+translation=แยกบล็อก Notion ด้วยการขึ้นบรรทัดใหม่เพียงบรรทัดเดียว (ค่าเริ่มต้นคือ 2)
+
+[importer.notion.status-looking]
+original=Looking for files to import
+translation=กำลังค้นหาไฟล์ที่จะนำเข้า
+
+[importer.notion.status-resolving]
+original=Resolving links and de-duplicating files
+translation=กำลังแก้ไขลิงก์และกำจัดไฟล์ซ้ำ
+
+[importer.notion.status-starting]
+original=Starting import
+translation=กำลังเริ่มการนำเข้า
+
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
+translation=เป็นการส่งออก Markdown; กรุณาส่งออกพื้นที่ทำงาน Notion ของคุณเป็น HTML แทน
+
+[importer.notion.reason-no-page-body]
+original=page body was not found
+translation=ไม่พบเนื้อหาของหน้า
+
+[importer.roam-json.name]
+original=Roam Research
+translation=Roam Research
+
+[importer.roam-json.option-text]
+original=Roam Research (.json)
+translation=Roam Research (.json)
+
+[importer.roam-json.file-type]
+original=Roam (.json)
+translation=Roam (.json)
+
+[importer.roam-json.label-id]
+original=Roam UID
+translation=Roam UID
+
+[importer.roam-json.desc-export]
+original=Export your data in JSON format.
+translation=ส่งออกข้อมูลของคุณในรูปแบบ JSON
+
+[importer.roam-json.desc-files]
+original=Pick the JSON file from your Roam export.
+translation=เลือกไฟล์ JSON จากการส่งออก Roam ของคุณ
+
+[importer.roam-json.name-download-attachments]
+original=Download all attachments
+translation=ดาวน์โหลดไฟล์แนบทั้งหมด
+
+[importer.roam-json.desc-download-attachments]
+original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
+translation=หากเปิดใช้งาน ไฟล์แนบทั้งหมดที่อัปโหลดไปยัง Roam จะถูกดาวน์โหลดไปยังโฟลเดอร์ไฟล์แนบของคุณ
+
+[importer.roam-json.name-date-properties]
+original=Add YAML created/update date
+translation=เพิ่มวันที่สร้าง/อัปเดตใน YAML
+
+[importer.roam-json.desc-date-properties]
+original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
+translation=หากเปิดใช้งาน โน้ตจะมีเวลาสร้างและเวลาแก้ไขจาก Roam เพิ่มเป็นคุณสมบัติ
+
+[importer.roam-json.name-title-property]
+original=Add YAML title
+translation=เพิ่มชื่อใน YAML
+
+[importer.roam-json.desc-title-property]
+original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
+translation=หากเปิดใช้งาน โน้ตจะมีชื่อเต็มเพิ่มเป็นคุณสมบัติ (โดยไม่คำนึงถึงอักขระที่ใช้ในชื่อไฟล์ไม่ได้)
+
+[importer.roam-json.reason-empty-title]
+original=Title is empty
+translation=ชื่อว่างเปล่า
+
+[importer.roam-json.reason-unexpected-extension]
+original=Unexpected file extension
+translation=extension ของไฟล์ไม่ตรงตามที่คาดไว้
+
+[importer.roam-json.reason-file-exists]
+original=File already exists
+translation=ไฟล์มีอยู่แล้ว
+
+[importer.textbundle.name]
+original=Textbundle files
+translation=ไฟล์ Textbundle
+
+[importer.textbundle.option-text]
+original=Textbundle (.textbundle, .textpack)
+translation=Textbundle (.textbundle, .textpack)
+
+[importer.textbundle.file-type]
+original=Textbundle
+translation=Textbundle
+
+[importer.textbundle.msg-platform]
+original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
+translation=เนื่องจากข้อจำกัดของแพลตฟอร์ม อุปกรณ์นี้สามารถนำเข้าได้เฉพาะไฟล์ textpack และ zip เท่านั้น เปิดห้องนิรภัยของคุณบน Mac เพื่อนำเข้าไฟล์ textbundle
+
+[importer.textbundle.reason-no-markdown]
+original=The textbundle does not contain markdown
+translation=textbundle ไม่มีเนื้อหา Markdown
+
+[importer.textbundle.reason-not-media]
+original=the file is not a media or markdown file.
+translation=ไฟล์ไม่ใช่ไฟล์สื่อหรือไฟล์ Markdown
+
+[importer.textbundle.reason-already-exists]
+original=the file already exists.
+translation=ไฟล์มีอยู่แล้ว
+
+[importer.tomboy.name]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.option-text]
+original=Tomboy/Gnote (.note)
+translation=Tomboy/Gnote (.note)
+
+[importer.tomboy.file-type]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.label-id]
+original=Tomboy ID
+translation=Tomboy ID
+
+[importer.tomboy.desc-files-mac]
+original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
+translation=โน้ต Tomboy มักจะอยู่ที่: ~/Library/Application Support/Tomboy
+
+[importer.tomboy.desc-files-windows]
+original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
+translation=โน้ต Tomboy มักจะอยู่ที่: %APPDATA%\\Tomboy
+
+[importer.tomboy.desc-files-linux]
+original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
+translation=โน้ต Tomboy มักจะอยู่ที่: ~/.local/share/tomboy - หรือ GNote: ~/.local/share/gnote
+
+[importer.tomboy.name-todo]
+original=Convert TODO lists to checkboxes
+translation=แปลงรายการ TODO เป็นช่องทำเครื่องหมาย
+
+[importer.tomboy.desc-todo]
+original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
+translation=เมื่อเปิดใช้งาน รายการในโน้ตที่มี "TODO" ในชื่อจะถูกแปลงเป็นรายการงานพร้อมช่องทำเครื่องหมาย รายการที่ขีดทับจะถูกทำเครื่องหมายว่าเสร็จแล้ว
+
+[importer.tomboy.name-keep-title]
+original=Keep title in Markdown
+translation=เก็บชื่อไว้ใน Markdown
+
+[importer.tomboy.desc-keep-title]
+original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
+translation=เลือกว่าจะเก็บชื่อโน้ตไว้ในเนื้อหา Markdown หรือไม่ ตัวเลือกอัตโนมัติจะเก็บชื่อไว้เฉพาะเมื่ออักขระพิเศษสูญหายในการแปลงชื่อไฟล์
+
+[importer.tomboy.option-automatic]
+original=Automatic
+translation=อัตโนมัติ
+
+[importer.tomboy.option-keep-titles]
+original=Keep titles
+translation=เก็บชื่อไว้
+
+[importer.tomboy.option-filename-only]
+original=Filename only
+translation=ชื่อไฟล์เท่านั้น

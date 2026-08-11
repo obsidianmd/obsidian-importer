@@ -1,0 +1,31 @@
+/**
+ * The names the plugin writes as they are spelled, whoever is reading.
+ *
+ * Two lint rules read this — the one that checks a `setName()` call and the one
+ * that checks the English string table — and so does the translation script,
+ * which tells a translator to leave every one of them alone. Keeping it in one
+ * place is what stops the third copy drifting from the first two.
+ */
+export const sentenceCase = {
+	brands: [
+		'Airtable', 'Apple', 'Apple Journal', 'Apple Notes', 'Bear', 'Evernote', 'Gnote',
+		'GNote', 'Google', 'Google Keep', 'Google Takeout', 'Journal', 'Mac', 'Markdown',
+		'Microsoft', 'Notion', 'Obsidian', 'OneNote', 'Roam', 'Roam Research', 'Textbundle',
+		'Tomboy', 'Windows', 'iCloud', 'iCloud Drive',
+	],
+	acronyms: ['API', 'CSV', 'DD', 'HTML', 'ID', 'JSON', 'MB', 'MM', 'PDF', 'UID', 'URL', 'YAML', 'YYYY'],
+	ignoreRegex: [
+		'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
+		'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',
+		// A fragment spliced into a longer sentence starts lower case on purpose.
+		'^[a-z]',
+		// A format listed with the extensions it comes in: "Bear (.bear2bk)".
+		'\\(\\.[a-z0-9., /]+\\)$',
+		// Names of things outside Obsidian, quoted as they are spelled there.
+		'"group\\.com\\.apple\\.notes"', 'Application Support', 'Quit Notes',
+		// A format or a path written in its own lower-case spelling.
+		'does not contain markdown', 'only textpack and zip files',
+		'import textbundle files', '~/\\.local/share/gnote',
+	],
+	ignoreWords: ['MB', '(MB)', 'TODO'],
+};

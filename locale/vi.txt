@@ -1,38 +1,38 @@
 [command.import-notes]
 original=Import notes
-translation=Importer des notes
+translation=Nhập ghi chú
 
 [nouns.file-with-count]
 original={{count}} file
-translation={{count}} fichier
+translation={{count}} tập tin
 
 [nouns.file-with-count_plural]
 original={{count}} files
-translation={{count}} fichiers
+translation={{count}} tập tin
 
 [nouns.note-with-count]
 original={{count}} note
-translation={{count}} note
+translation={{count}} ghi chú
 
 [nouns.note-with-count_plural]
 original={{count}} notes
-translation={{count}} notes
+translation={{count}} ghi chú
 
 [nouns.item-with-count]
 original={{count}} item
-translation={{count}} élément
+translation={{count}} mục
 
 [nouns.item-with-count_plural]
 original={{count}} items
-translation={{count}} éléments
+translation={{count}} mục
 
 [nouns.record-with-count]
 original={{count}} record
-translation={{count}} enregistrement
+translation={{count}} bản ghi
 
 [nouns.record-with-count_plural]
 original={{count}} records
-translation={{count}} enregistrements
+translation={{count}} bản ghi
 
 [nouns.base-with-count]
 original={{count}} base
@@ -40,79 +40,79 @@ translation={{count}} base
 
 [nouns.base-with-count_plural]
 original={{count}} bases
-translation={{count}} bases
+translation={{count}} base
 
 [nouns.template-with-count]
 original={{count}} template
-translation={{count}} modèle
+translation={{count}} mẫu
 
 [nouns.template-with-count_plural]
 original={{count}} templates
-translation={{count}} modèles
+translation={{count}} mẫu
 
 [nouns.failure-with-count]
 original={{count}} failure
-translation={{count}} échec
+translation={{count}} lỗi
 
 [nouns.failure-with-count_plural]
 original={{count}} failures
-translation={{count}} échecs
+translation={{count}} lỗi
 
 [nouns.second-with-count]
 original={{count}} second
-translation={{count}} seconde
+translation={{count}} giây
 
 [nouns.second-with-count_plural]
 original={{count}} seconds
-translation={{count}} secondes
+translation={{count}} giây
 
 [nouns.relation-placeholder-with-count]
 original={{count}} relation placeholder
-translation={{count}} marqueur de relation
+translation={{count}} trình giữ chỗ quan hệ
 
 [nouns.relation-placeholder-with-count_plural]
 original={{count}} relation placeholders
-translation={{count}} marqueurs de relation
+translation={{count}} trình giữ chỗ quan hệ
 
 [nouns.linked-database-with-count]
 original={{count}} linked database
-translation={{count}} base de données liée
+translation={{count}} cơ sở dữ liệu liên kết
 
 [nouns.linked-database-with-count_plural]
 original={{count}} linked databases
-translation={{count}} bases de données liées
+translation={{count}} cơ sở dữ liệu liên kết
 
 [nouns.mention-link-with-count]
 original={{count}} mention link
-translation={{count}} lien de mention
+translation={{count}} liên kết đề cập
 
 [nouns.mention-link-with-count_plural]
 original={{count}} mention links
-translation={{count}} liens de mention
+translation={{count}} liên kết đề cập
 
 [nouns.synced-reference-with-count]
 original={{count}} synced child reference
-translation={{count}} référence enfant synchronisée
+translation={{count}} tham chiếu con đã đồng bộ
 
 [nouns.synced-reference-with-count_plural]
 original={{count}} synced child references
-translation={{count}} références enfants synchronisées
+translation={{count}} tham chiếu con đã đồng bộ
 
 [nouns.new-item-with-count]
 original={{count}} new item
-translation={{count}} nouvel élément
+translation={{count}} mục mới
 
 [nouns.new-item-with-count_plural]
 original={{count}} new items
-translation={{count}} nouveaux éléments
+translation={{count}} mục mới
 
 [nouns.page-with-count]
 original={{count}} page
-translation={{count}} page
+translation={{count}} trang
 
 [nouns.page-with-count_plural]
 original={{count}} pages
-translation={{count}} pages
+translation={{count}} trang
 
 [group.onenote.name]
 original=Microsoft OneNote
@@ -124,539 +124,539 @@ translation=Notion
 
 [modal.title-pick-format]
 original=Import data into Obsidian
-translation=Importer des données dans Obsidian
+translation=Nhập dữ liệu vào Obsidian
 
 [modal.title-choose-method]
 original=Choose how to import
-translation=Choisir le mode d'import
+translation=Chọn cách nhập
 
 [modal.title-import-from]
 original=Import from {{format}}
-translation=Importer depuis {{format}}
+translation=Nhập từ {{format}}
 
 [modal.search-placeholder]
 original=Filter...
-translation=Filtrer...
+translation=Bộ lọc...
 
 [modal.msg-no-formats]
 original=No formats found.
-translation=Aucun format trouvé.
+translation=Không tìm thấy định dạng nào.
 
 [modal.button-continue]
 original=Continue
-translation=Continuer
+translation=Tiếp tục
 
 [modal.button-import]
 original=Import
-translation=Importer
+translation=Nhập
 
 [modal.button-back]
 original=Back
-translation=Retour
+translation=Quay lại
 
 [modal.button-help]
 original=Help
-translation=Aide
+translation=Trợ giúp
 
 [modal.button-cancel]
 original=Cancel
-translation=Annuler
+translation=Hủy
 
 [modal.button-pause]
 original=Pause
-translation=Pause
+translation=Tạm dừng
 
 [modal.button-resume]
 original=Resume
-translation=Reprendre
+translation=Tiếp tục
 
 [modal.button-stop]
 original=Stop
-translation=Arrêter
+translation=Dừng
 
 [modal.button-save-report]
 original=Save report
-translation=Enregistrer le journal
+translation=Lưu báo cáo
 
 [modal.msg-report-failed]
 original=Could not save the import report.
-translation=Impossible d'enregistrer le journal d'import.
+translation=Không thể lưu báo cáo nhập.
 
 [modal.button-import-more]
 original=Import more
-translation=Importer autre chose
+translation=Nhập thêm
 
 [modal.button-done]
 original=Done
-translation=Terminer
+translation=Hoàn thành
 
 [modal.msg-unexpected-auth]
 original=Unexpected auth event. Please restart the auth process.
-translation=Événement d'authentification inattendu. Veuillez relancer l'authentification.
+translation=Sự kiện xác thực không mong đợi. Vui lòng khởi động lại quy trình xác thực.
 
 [progress.stat-imported]
 original=imported
-translation=importées
+translation=đã nhập
 
 [progress.stat-attachments]
 original=attachments
-translation=pièces jointes
+translation=Tệp đính kèm
 
 [progress.stat-remaining]
 original=remaining
-translation=restantes
+translation=còn lại
 
 [progress.stat-skipped]
 original=skipped
-translation=ignorées
+translation=Đã bỏ qua
 
 [progress.stat-failed]
 original=failed
-translation=échouées
+translation=Lỗi
 
 [progress.label-skipped]
 original=Skipped: 
-translation=Ignoré : 
+translation=Đã bỏ qua: 
 
 [progress.label-failed]
 original=Failed: 
-translation=Échec : 
+translation=Thất bại: 
 
 [progress.label-entry]
 original="{{name}}"
-translation=« {{name}} »
+translation="{{name}}"
 
 [progress.label-entry-with-reason]
 original="{{name}}" because {{reason}}
-translation=« {{name}} » car {{reason}}
+translation="{{name}}" vì {{reason}}
 
 [progress.label-paused]
 original=Paused
-translation=En pause
+translation=Đã tạm dừng
 
 [progress.label-paused-with]
 original=Paused - {{status}}
-translation=En pause - {{status}}
+translation=Đã tạm dừng - {{status}}
 
 [progress.label-importing]
 original=Importing
-translation=Importation
+translation=Đang nhập
 
 [progress.label-remaining]
 original={{count}} remaining...
-translation={{count}} restante...
+translation=Còn {{count}}...
 
 [progress.label-remaining_plural]
 original={{count}} remaining...
-translation={{count}} restantes...
+translation=Còn {{count}}...
 
 [progress.label-paused-remaining]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restante
+translation=Đã tạm dừng - còn {{count}}
 
 [progress.label-paused-remaining_plural]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restantes
+translation=Đã tạm dừng - còn {{count}}
 
 [progress.status-stopping]
 original=Stopping...
-translation=Arrêt en cours...
+translation=Đang dừng...
 
 [progress.msg-stopped]
 original=Import stopped.
-translation=Importation arrêtée.
+translation=Đã dừng nhập.
 
 [progress.msg-errors]
 original=Import finished with errors.
-translation=Importation terminée avec des erreurs.
+translation=Nhập hoàn tất với lỗi.
 
 [progress.msg-complete]
 original=Import complete.
-translation=Importation terminée.
+translation=Nhập hoàn tất.
 
 [progress.msg-imported-count]
 original={{count}} note imported
-translation={{count}} note importée
+translation={{count}} ghi chú đã nhập
 
 [progress.msg-imported-count_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation={{count}} ghi chú đã nhập
 
 [progress.msg-click-to-show]
 original={{counts}}. Click to show.
-translation={{counts}}. Cliquez pour afficher.
+translation={{counts}}. Nhấn để hiển thị.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
-translation=Attente de {{duration}} ({{reason}})
+translation=Đang chờ {{duration}} ({{reason}})
 
 [progress.status-standardizing]
 original=Standardizing Markdown ({{current}}/{{total}})
-translation=Normalisation du Markdown ({{current}}/{{total}})
+translation=Chuẩn hóa Markdown ({{current}}/{{total}})
 
 [progress.label-finalization]
 original=Markdown finalization
-translation=Finalisation du Markdown
+translation=Hoàn thiện Markdown
 
 [report.file-name]
 original={{date}} {{importer}} import log
-translation={{date}} {{importer}} journal d'import
+translation={{date}} nhật ký nhập {{importer}}
 
 [report.title]
 original={{importer}} import
-translation=Import {{importer}}
+translation=Nhập {{importer}}
 
 [report.msg-finished]
 original=Finished {{when}}. {{counts}}.
-translation=Terminé le {{when}}. {{counts}}.
+translation=Hoàn tất {{when}}. {{counts}}.
 
 [report.msg-stopped]
 original=Stopped {{when}}. {{counts}}.
-translation=Arrêté le {{when}}. {{counts}}.
+translation=Đã dừng {{when}}. {{counts}}.
 
 [report.heading-failed]
 original=Failed ({{count}})
-translation=Échecs ({{count}})
+translation=Thất bại ({{count}})
 
 [report.heading-skipped]
 original=Skipped ({{count}})
-translation=Ignorés ({{count}})
+translation=Đã bỏ qua ({{count}})
 
 [report.heading-messages]
 original=Messages
-translation=Messages
+translation=Thông báo
 
 [report.count-notes]
 original={{count}} note imported
-translation={{count}} note importée
+translation={{count}} ghi chú đã nhập
 
 [report.count-notes_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation={{count}} ghi chú đã nhập
 
 [report.count-attachments]
 original={{count}} attachment downloaded
-translation={{count}} pièce jointe téléchargée
+translation={{count}} tệp đính kèm đã tải xuống
 
 [report.count-attachments_plural]
 original={{count}} attachments downloaded
-translation={{count}} pièces jointes téléchargées
+translation={{count}} tệp đính kèm đã tải xuống
 
 [report.count-skipped]
 original={{count}} item skipped
-translation={{count}} élément ignoré
+translation={{count}} mục đã bỏ qua
 
 [report.count-skipped_plural]
 original={{count}} items skipped
-translation={{count}} éléments ignorés
+translation={{count}} mục đã bỏ qua
 
 [report.count-failed]
 original={{count}} item failed
-translation={{count}} élément en échec
+translation={{count}} mục thất bại
 
 [report.count-failed_plural]
 original={{count}} items failed
-translation={{count}} éléments en échec
+translation={{count}} mục thất bại
 
 [source.name]
 original=Files to import
-translation=Fichiers à importer
+translation=Tệp để nhập
 
 [source.desc]
 original=Pick the files that you want to import.
-translation=Choisissez les fichiers que vous voulez importer.
+translation=Chọn các tệp bạn muốn nhập.
 
 [source.button-choose-file]
 original=Choose file
-translation=Choisir un fichier
+translation=Chọn tệp
 
 [source.button-choose-files]
 original=Choose files
-translation=Choisir des fichiers
+translation=Chọn tệp
 
 [source.button-choose-folders]
 original=Choose folders
-translation=Choisir des dossiers
+translation=Chọn thư mục
 
 [source.dialog-pick-files]
 original=Pick files to import
-translation=Choisir les fichiers à importer
+translation=Chọn tệp để nhập
 
 [source.dialog-pick-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=Thư mục để nhập
 
 [source.msg-reading-folders]
 original=Reading folders...
-translation=Lecture des dossiers...
+translation=Đọc thư mục...
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
-translation=Rien à importer ici. Choisissez des fichiers {{extensions}}, ou un dossier qui en contient.
+translation=Không có gì để nhập ở đây. Chọn tệp {{extensions}}, hoặc một thư mục chứa chúng.
 
 [source.msg-will-import]
 original={{files}} will be imported: 
-translation={{files}} seront importés : 
+translation={{files}} sẽ được nhập: 
 
 [output.label-source-id]
 original=source ID
-translation=l'identifiant source
+translation=ID nguồn
 
 [output.name-save-source-id]
 original=Save {{label}}
-translation=Enregistrer {{label}}
+translation=Lưu {{label}}
 
 [output.desc-save-source-id]
 original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
-translation=Ajouter {{label}} aux propriétés de la note pour que les prochains imports reconnaissent les notes déplacées ou renommées.
+translation=Thêm {{label}} vào thuộc tính ghi chú để các lần nhập sau có thể nhận diện ghi chú đã di chuyển hoặc đổi tên.
 
 [output.name-folder]
 original=Output folder
-translation=Dossier de destination
+translation=Thư mục đầu ra
 
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
-translation=Emplacement où les notes importées seront enregistrées. Laissez vide pour utiliser la racine du coffre.
+translation=Nơi các ghi chú được nhập sẽ được lưu. Để trống để sử dụng thư mục gốc của kho.
 
 [output.name-attachments]
 original=Attachment location
-translation=Emplacement des pièces jointes
+translation=Vị trí tệp đính kèm
 
 [output.desc-attachments]
 original=Where imported images and files will be saved.
-translation=Emplacement où les images et fichiers importés seront enregistrés.
+translation=Nơi các hình ảnh và tệp được nhập sẽ được lưu.
 
 [output.name-subfolder]
 original=Subfolder name
-translation=Nom du sous-dossier
+translation=Tên thư mục con
 
 [output.desc-subfolder]
 original=Folder to use inside each imported note's folder.
-translation=Dossier à utiliser dans le dossier de chaque note importée.
+translation=Thư mục con để sử dụng bên trong thư mục của mỗi ghi chú được nhập.
 
 [output.name-attachment-folder]
 original=Attachment folder
-translation=Dossier des pièces jointes
+translation=Thư mục tệp đính kèm
 
 [output.desc-attachment-folder]
 original=Folder path from the top level of the vault.
-translation=Chemin du dossier depuis la racine du coffre.
+translation=Đường dẫn thư mục từ thư mục gốc của kho.
 
 [output.name-duplicates]
 original=Existing notes
-translation=Notes existantes
+translation=Ghi chú hiện có
 
 [output.desc-duplicates]
 original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
-translation=Choisissez quoi faire lorsqu'une note importée correspond à une note de votre coffre. « {{update}} » ignore les notes inchangées et préserve les modifications locales plus récentes lorsque les dates de modification sont disponibles.
+translation=Chọn thao tác khi một ghi chú được nhập trùng với ghi chú trong kho của bạn. "{{update}}" bỏ qua các ghi chú không thay đổi và giữ lại các chỉnh sửa cục bộ mới hơn khi có ngày sửa đổi.
 
 [output.option-create-copy]
 original=Create a copy
-translation=Créer une copie
+translation=Tạo một bản sao
 
 [output.option-skip]
 original=Skip
-translation=Ignorer
+translation=Bỏ qua
 
 [output.option-update]
 original=Update
-translation=Mettre à jour
+translation=Cập nhật
 
 [output.option-attachments-vault]
 original=Vault folder
-translation=Racine du coffre
+translation=Thư mục gốc
 
 [output.option-attachments-folder]
 original=In the folder specified below
-translation=Dans le dossier spécifié ci-dessous
+translation=Trong thư mục được chỉ định dưới đây
 
 [output.option-attachments-note]
 original=Same folder as the note
-translation=Même dossier que la note
+translation=Cùng thư mục với ghi chú
 
 [output.option-attachments-subfolder]
 original=In subfolder under the note
-translation=Dans le sous-dossier, sous la note
+translation=Trong thư mục con dưới ghi chú
 
 [common.msg-pick-file]
 original=Please pick at least one file to import.
-translation=Veuillez choisir au moins un fichier à importer.
+translation=Vui lòng chọn ít nhất một tệp để nhập.
 
 [common.msg-pick-output]
 original=Please select a location to export to.
-translation=Veuillez choisir un emplacement de destination.
+translation=Vui lòng chọn vị trí để xuất.
 
 [common.msg-pick-import-location]
 original=Please select a location to import your files to.
-translation=Veuillez choisir un emplacement où importer vos fichiers.
+translation=Vui lòng chọn vị trí để nhập tệp của bạn.
 
 [common.msg-unknown-error]
 original=Unknown error
-translation=Erreur inconnue
+translation=Lỗi không rõ
 
 [common.name-export]
 original=Export your data
-translation=Exporter vos données
+translation=Xuất dữ liệu của bạn
 
 [common.label-learn-more]
 original=Learn more.
-translation=En savoir plus.
+translation=Tìm hiểu thêm.
 
 [common.button-instructions]
 original=Instructions
-translation=Instructions
+translation=Hướng dẫn
 
 [common.button-open]
 original=Open
-translation=Ouvrir
+translation=Mở
 
 [common.status-processing]
 original=Processing {{name}}
-translation=Traitement de {{name}}
+translation=Đang xử lý {{name}}
 
 [common.status-importing-note]
 original=Importing note {{name}}
-translation=Importation de la note {{name}}
+translation=Đang nhập ghi chú {{name}}
 
 [common.status-importing-attachment]
 original=Importing attachment {{name}}
-translation=Importation de la pièce jointe {{name}}
+translation=Đang nhập tệp đính kèm {{name}}
 
 [common.status-cancelled]
 original=Import cancelled
-translation=Importation annulée
+translation=Đã hủy nhập
 
 [reason.already-in-vault]
 original=it is already in the vault
-translation=elle est déjà dans le coffre
+translation=đã có trong kho
 
 [reason.unchanged-since-import]
 original=it has not changed since the last import
-translation=elle n'a pas changé depuis le dernier import
+translation=không thay đổi kể từ lần nhập trước
 
 [reason.edited-since-import]
 original=it has been edited in Obsidian since the last import
-translation=elle a été modifiée dans Obsidian depuis le dernier import
+translation=đã được chỉnh sửa trong Obsidian kể từ lần nhập trước
 
 [reason.file-not-in-vault]
 original=The imported file did not appear in the vault.
-translation=Le fichier importé n'est pas apparu dans le coffre.
+translation=Tệp được nhập không xuất hiện trong kho.
 
 [reason.folder-not-created]
 original=Failed to create folder at "{{path}}"
-translation=Impossible de créer le dossier « {{path}} »
+translation=Thất bại khi tạo thư mục tại "{{path}}"
 
 [tree.button-select-all]
 original=Select all
-translation=Tout sélectionner
+translation=Chọn tất cả
 
 [tree.button-deselect-all]
 original=Deselect all
-translation=Tout désélectionner
+translation=Bỏ chọn tất cả
 
 [tree.button-load]
 original=Load
-translation=Charger
+translation=Tải
 
 [tree.button-loading]
 original=Loading...
-translation=Chargement...
+translation=Đang tải...
 
 [tree.button-refresh]
 original=Refresh
-translation=Actualiser
+translation=Làm mới
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
-translation={{service}} a refusé la requête concernant {{subject}}. {{credential}}
+translation={{service}} đã từ chối yêu cầu cho {{subject}}. {{credential}}
 
 [request.msg-forbidden]
 original={{service}} would not give access to {{subject}}. {{credential}}
-translation={{service}} n'a pas donné accès à {{subject}}. {{credential}}
+translation={{service}} không cấp quyền truy cập vào {{subject}}. {{credential}}
 
 [request.msg-not-found]
 original={{service}} could not find {{subject}}.
-translation={{service}} n'a pas trouvé {{subject}}.
+translation={{service}} không tìm thấy {{subject}}.
 
 [request.msg-rate-limited]
 original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
-translation={{service}} limite la vitesse de lecture de {{subject}}. Attendez quelques minutes puis réessayez.
+translation={{service}} đang giới hạn tốc độ đọc {{subject}}. Vui lòng đợi vài phút rồi thử lại.
 
 [request.msg-timed-out]
 original={{service}} took too long to return {{subject}}. Try again shortly.
-translation={{service}} a mis trop de temps à renvoyer {{subject}}. Réessayez sous peu.
+translation={{service}} mất quá lâu để trả về {{subject}}. Vui lòng thử lại sau.
 
 [request.msg-unavailable]
 original={{service}} could not return {{subject}} right now. Try again shortly.
-translation={{service}} ne peut pas renvoyer {{subject}} pour le moment. Réessayez sous peu.
+translation={{service}} không thể trả về {{subject}} lúc này. Vui lòng thử lại sau.
 
 [request.msg-failed-with-code]
 original=Could not read {{subject}}: {{message}} ({{code}})
-translation=Impossible de lire {{subject}} : {{message}} ({{code}})
+translation=Không thể đọc {{subject}}: {{message}} ({{code}})
 
 [request.msg-failed-with-message]
 original=Could not read {{subject}}: {{message}}
-translation=Impossible de lire {{subject}} : {{message}}
+translation=Không thể đọc {{subject}}: {{message}}
 
 [request.msg-failed-with-reported-code]
 original=Could not read {{subject}}. {{service}} reported {{code}}.
-translation=Impossible de lire {{subject}}. {{service}} a signalé {{code}}.
+translation=Không thể đọc {{subject}}. {{service}} báo lỗi {{code}}.
 
 [request.msg-failed]
 original=Could not read {{subject}}.
-translation=Impossible de lire {{subject}}.
+translation=Không thể đọc {{subject}}.
 
 [template.msg-intro]
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
-translation=Configurez la façon dont vos données doivent être importées. Utilisez la syntaxe {{syntax}} pour référencer la valeur d'un champ.
+translation=Cấu hình cách dữ liệu của bạn được nhập. Sử dụng cú pháp {{syntax}} để tham chiếu giá trị trường.
 
 [template.name-title]
 original=Note title
-translation=Titre de la note
+translation=Đổi tên tệp
 
 [template.desc-title]
 original=Template for the note title. Use {{field_name}} to insert values.
-translation=Modèle pour le titre de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=Mẫu cho tiêu đề ghi chú. Sử dụng {{field_name}} để chèn giá trị.
 
 [template.name-location]
 original=Note location
-translation=Emplacement de la note
+translation=Vị trí ghi chú
 
 [template.desc-location]
 original=Template for note location/path. Use {{field_name}} to organize notes.
-translation=Modèle pour l'emplacement de la note. Utilisez {{field_name}} pour organiser les notes.
+translation=Mẫu cho vị trí/đường dẫn ghi chú. Sử dụng {{field_name}} để tổ chức ghi chú.
 
 [template.name-content]
 original=Note content
-translation=Contenu de la note
+translation=Nội dung ghi chú
 
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
-translation=Modèle pour le contenu de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=Mẫu cho nội dung ghi chú. Sử dụng {{field_name}} để chèn giá trị.
 
 [template.heading-properties]
 original=Properties
-translation=Propriétés
+translation=Thuộc tính
 
 [template.column-property-name]
 original=Property name
-translation=Nom de la propriété
+translation=Tên thuộc tính
 
 [template.column-property-value]
 original=Property value
-translation=Valeur de la propriété
+translation=Giá trị thuộc tính
 
 [template.column-example]
 original=Example
-translation=Exemple
+translation=Ví dụ
 
 [template.action-delete-property]
 original=Delete property
-translation=Supprimer la propriété
+translation=Xóa thuộc tính
 
 [template.msg-title-required]
 original=Please provide a note title template.
-translation=Veuillez fournir un modèle de titre de note.
+translation=Vui lòng cung cấp mẫu tiêu đề ghi chú.
 
 [importer.airtable-api.name]
 original=Airtable
@@ -668,39 +668,39 @@ translation=Airtable
 
 [importer.airtable-api.label-id]
 original=Airtable record ID
-translation=l'identifiant d'enregistrement Airtable
+translation=ID bản ghi Airtable
 
 [importer.airtable-api.name-token]
 original=Airtable personal access token
-translation=Jeton d'accès personnel Airtable
+translation=Mã truy cập cá nhân Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings. 
-translation=Créez un jeton d'accès personnel dans les réglages de votre compte Airtable. 
+translation=Tạo mã truy cập cá nhân trong cài đặt tài khoản Airtable của bạn. 
 
 [importer.airtable-api.link-get-token]
 original=Get token
-translation=Obtenir un jeton
+translation=Lấy mã
 
 [importer.airtable-api.name-tables]
 original=Tables to import
-translation=Tables à importer
+translation=Bảng cần nhập
 
 [importer.airtable-api.desc-tables]
 original=Load your Airtable bases and tables, then choose what to import.
-translation=Chargez vos bases et tables Airtable, puis choisissez ce qu'il faut importer.
+translation=Tải các cơ sở và bảng Airtable của bạn, sau đó chọn nội dung cần nhập.
 
 [importer.airtable-api.hint-tables]
 original=Load your Airtable bases and tables to get started.
-translation=Chargez vos bases et tables Airtable pour commencer.
+translation=Tải các cơ sở và bảng Airtable của bạn để bắt đầu.
 
 [importer.airtable-api.msg-fetching-bases]
 original=Fetching bases...
-translation=Récupération des bases...
+translation=Đang tải các cơ sở...
 
 [importer.airtable-api.msg-no-bases]
 original=No bases found.
-translation=Aucune base trouvée.
+translation=Không tìm thấy cơ sở nào.
 
 [importer.airtable-api.label-service]
 original=Airtable
@@ -708,87 +708,87 @@ translation=Airtable
 
 [importer.airtable-api.label-subject]
 original=your bases
-translation=vos bases
+translation=các cơ sở của bạn
 
 [importer.airtable-api.label-credential]
 original=Check that your personal access token is current and has access to them.
-translation=Vérifiez que votre jeton d'accès personnel est à jour et qu'il y a accès.
+translation=Kiểm tra xem mã truy cập cá nhân của bạn còn hiệu lực và có quyền truy cập chúng hay không.
 
 [importer.airtable-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=Chuyển đổi công thức
 
 [importer.airtable-api.desc-formulas]
 original=Try to convert formulas to Obsidian syntax, or import as static values.
-translation=Essayer de convertir les formules en syntaxe Obsidian, ou les importer comme valeurs statiques.
+translation=Thử chuyển đổi công thức sang cú pháp Obsidian, hoặc nhập dưới dạng giá trị tĩnh.
 
 [importer.airtable-api.option-formula-hybrid]
 original=Obsidian syntax (with fallback)
-translation=Syntaxe Obsidian (avec repli)
+translation=Cú pháp Obsidian (có dự phòng)
 
 [importer.airtable-api.option-formula-static]
 original=Static values only
-translation=Valeurs statiques uniquement
+translation=Chỉ giá trị tĩnh
 
 [importer.airtable-api.name-download-attachments]
 original=Download attachments
-translation=Télécharger les pièces jointes
+translation=Tải xuống tệp đính kèm
 
 [importer.airtable-api.desc-download-attachments]
 original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
-translation=Télécharger les pièces jointes dans le coffre local. Si l'option est désactivée ou si le téléchargement échoue, les URL externes seront utilisées.
+translation=Tải xuống tệp đính kèm vào kho cục bộ. Nếu tắt hoặc tải xuống thất bại, URL bên ngoài sẽ được sử dụng.
 
 [importer.airtable-api.name-view-property]
 original=View property name
-translation=Nom de la propriété de vue
+translation=Tên thuộc tính chế độ xem
 
 [importer.airtable-api.desc-view-property]
 original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
-translation=Nom de la propriété indiquant les vues auxquelles appartient un enregistrement. Chaque enregistrement aura la liste des vues où il apparaît.
+translation=Tên thuộc tính để theo dõi bản ghi thuộc về chế độ xem nào. Mỗi bản ghi sẽ có danh sách tên các chế độ xem mà nó xuất hiện.
 
 [importer.airtable-api.msg-token-first]
 original=Please enter your Airtable personal access token first.
-translation=Veuillez d'abord saisir votre jeton d'accès personnel Airtable.
+translation=Vui lòng nhập mã truy cập cá nhân Airtable của bạn trước.
 
 [importer.airtable-api.msg-token-missing]
 original=Please enter your Airtable personal access token.
-translation=Veuillez saisir votre jeton d'accès personnel Airtable.
+translation=Vui lòng nhập mã truy cập cá nhân Airtable của bạn.
 
 [importer.airtable-api.msg-load-bases-failed]
 original=Failed to load bases: {{error}}
-translation=Échec du chargement des bases : {{error}}
+translation=Thất bại khi tải các base: {{error}}
 
 [importer.airtable-api.msg-load-tables-failed]
 original=Failed to load tables for "{{base}}": {{error}}
-translation=Échec du chargement des tables de « {{base}} » : {{error}}
+translation=Thất bại khi tải các bảng cho "{{base}}": {{error}}
 
 [importer.airtable-api.msg-pick-table]
 original=Please select at least one table to import.
-translation=Veuillez sélectionner au moins une table à importer.
+translation=Vui lòng chọn ít nhất một bảng để nhập.
 
 [importer.airtable-api.msg-loading-fields]
 original=Loading fields...
-translation=Chargement des champs...
+translation=Đang tải các trường...
 
 [importer.airtable-api.msg-no-fields]
 original=No fields found in selected tables. Please check your selection.
-translation=Aucun champ trouvé dans les tables sélectionnées. Veuillez vérifier votre sélection.
+translation=Không tìm thấy trường nào trong các bảng đã chọn. Vui lòng kiểm tra lại lựa chọn của bạn.
 
 [importer.airtable-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=Nhập thất bại: {{error}}
 
 [importer.airtable-api.label-base-position]
 original= (base {{index}} of {{total}})
-translation= (base {{index}} sur {{total}})
+translation= (base {{index}} / {{total}})
 
 [importer.airtable-api.label-base]
 original=Base: {{name}}
-translation=Base : {{name}}
+translation=Base: {{name}}
 
 [importer.airtable-api.label-linked-table]
 original=Linked table: {{name}}
-translation=Table liée : {{name}}
+translation=Bảng liên kết: {{name}}
 
 [importer.airtable-api.label-table-view]
 original={{table}} > {{view}}
@@ -796,83 +796,83 @@ translation={{table}} > {{view}}
 
 [importer.airtable-api.label-import]
 original=Airtable API import
-translation=Importation via l'API Airtable
+translation=Nhập từ Airtable API
 
 [importer.airtable-api.status-connecting]
 original=Connecting to Airtable API
-translation=Connexion à l'API Airtable
+translation=Đang kết nối đến Airtable API
 
 [importer.airtable-api.status-loading-tables]
 original=Loading tables for {{base}}
-translation=Chargement des tables de {{base}}
+translation=Đang tải các bảng cho {{base}}
 
 [importer.airtable-api.status-fetching-tables]
 original=Fetching tables for base {{base}}...
-translation=Récupération des tables de la base {{base}}...
+translation=Đang lấy các bảng cho base {{base}}...
 
 [importer.airtable-api.status-found-bases]
 original=Found {{bases}} to import
-translation={{bases}} à importer
+translation=Đã tìm thấy {{bases}} để nhập
 
 [importer.airtable-api.status-fetching-base]
 original=Fetching data from {{base}}{{position}}
-translation=Récupération des données de {{base}}{{position}}
+translation=Đang lấy dữ liệu từ {{base}}{{position}}
 
 [importer.airtable-api.status-preparing-records]
 original=Preparing records from {{base}}{{position}}
-translation=Préparation des enregistrements de {{base}}{{position}}
+translation=Đang chuẩn bị bản ghi từ {{base}}{{position}}
 
 [importer.airtable-api.status-reading-names]
 original=Reading names from {{table}}{{position}}
-translation=Lecture des noms dans {{table}}{{position}}
+translation=Đang đọc tên từ {{table}}{{position}}
 
 [importer.airtable-api.status-planning]
 original=Working out where {{table}}{{position}} goes
-translation=Détermination de l'emplacement de {{table}}{{position}}
+translation=Đang xác định vị trí cho {{table}}{{position}}
 
 [importer.airtable-api.status-fetching-records]
 original=Fetching records from {{table}}{{position}}
-translation=Récupération des enregistrements de {{table}}{{position}}
+translation=Đang lấy bản ghi từ {{table}}{{position}}
 
 [importer.airtable-api.status-fetched-records]
 original=Fetched {{records}} from {{table}}{{position}}
-translation={{records}} récupérés de {{table}}{{position}}
+translation=Đã lấy {{records}} từ {{table}}{{position}}
 
 [importer.airtable-api.status-fetching-view]
 original=Fetching view {{view}} from {{table}}{{position}}
-translation=Récupération de la vue {{view}} de {{table}}{{position}}
+translation=Đang lấy xem {{view}} từ {{table}}{{position}}
 
 [importer.airtable-api.status-creating-notes]
 original=Creating notes in {{table}}{{position}}
-translation=Création des notes dans {{table}}{{position}}
+translation=Đang tạo ghi chú trong {{table}}{{position}}
 
 [importer.airtable-api.status-updating-types]
 original=Updating property types
-translation=Mise à jour des types de propriétés
+translation=Đang cập nhật kiểu thuộc tính
 
 [importer.airtable-api.status-complete]
 original=Import complete
-translation=Importation terminée
+translation=Nhập hoàn tất
 
 [importer.airtable-api.status-rate-limited]
 original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
-translation=Débit limité, attente de {{seconds}} s (tentative {{attempt}}/{{total}})...
+translation=Bị giới hạn tốc độ, đang chờ {{seconds}}s (lần thử {{attempt}}/{{total}})...
 
 [importer.airtable-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}
-translation=Téléchargement de la pièce jointe : {{name}}
+translation=Đang tải tệp đính kèm: {{name}}
 
 [importer.airtable-api.reason-no-record-names]
 original=Could not read record names
-translation=Impossible de lire les noms des enregistrements
+translation=Không thể đọc tên bản ghi
 
 [importer.airtable-api.reason-empty-record]
 original=Empty record
-translation=Enregistrement vide
+translation=Bản ghi trống
 
 [importer.airtable-api.desc-no-modified-time]
 original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
-translation=Airtable n'indique pas la date de dernière modification d'un enregistrement, donc « {{update}} » compare la note avec l'enregistrement à la place. Une note que vous avez modifiée vous-même sera considérée comme ayant des changements et sera écrasée.
+translation=Airtable không cho biết bản ghi thay đổi lần cuối khi nào, vì vậy "{{update}}" so sánh ghi chú với bản ghi. Ghi chú bạn đã tự chỉnh sửa sẽ được coi là đã thay đổi và sẽ bị ghi đè.
 
 [importer.apple-notes.name]
 original=Apple Notes
@@ -884,131 +884,131 @@ translation=Apple Notes
 
 [importer.apple-notes.label-id]
 original=Apple Notes ID
-translation=l'identifiant Apple Notes
+translation=Apple Notes ID
 
 [importer.apple-notes.msg-platform]
 original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
-translation=En raison de limitations de la plateforme, Apple Notes ne peut pas être exporté depuis cet appareil. Ouvrez votre coffre sur un Mac pour exporter depuis Apple Notes.
+translation=Do giới hạn nền tảng, Apple Notes không thể được xuất từ thiết bị này. Mở kho của bạn trên Mac để xuất từ Apple Notes.
 
 [importer.apple-notes.name-prefix-format]
 original=File prefix format
-translation=Format du préfixe de fichier
+translation=Định dạng tiền tố tệp
 
 [importer.apple-notes.desc-prefix-format]
 original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
-translation=Format du préfixe de date de création dans les noms de fichiers. Utilisez YYYY, MM, DD pour l'année, le mois et le jour. Laissez vide pour ne pas mettre de préfixe.
+translation=Định dạng cho tiền tố ngày tạo trong tên tệp. Sử dụng YYYY, MM, DD cho năm, tháng, ngày. Để trống nếu không cần tiền tố.
 
 [importer.apple-notes.name-omit-first-line]
 original=Omit first line
-translation=Omettre la première ligne
+translation=Bỏ dòng đầu tiên
 
 [importer.apple-notes.desc-omit-first-line]
 original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
-translation=Ne pas inclure la première ligne dans le texte, puisque Apple Notes s'en sert comme titre. Elle servira quand même de nom de note.
+translation=Không bao gồm dòng đầu tiên trong nội dung, vì Apple Notes sử dụng nó làm tiêu đề. Nó vẫn sẽ được dùng làm tên ghi chú.
 
 [importer.apple-notes.name-handwriting]
 original=Include handwriting text
-translation=Inclure le texte manuscrit
+translation=Bao gồm chữ viết tay
 
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
-translation=Lorsque Apple Notes a reconnu de l'écriture manuscrite dans un dessin, l'inclure comme texte avant le dessin.
+translation=Khi Apple Notes phát hiện chữ viết tay trong bản vẽ, bao gồm nó dưới dạng văn bản trước bản vẽ.
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
-translation=Dossier de données Apple Notes
+translation=Thư mục dữ liệu Apple Notes
 
 [importer.apple-notes.desc-data-folder]
 original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
-translation=macOS n'autorise Obsidian à lire vos notes qu'une fois que vous lui avez indiqué le dossier où elles sont conservées.
+translation=macOS chỉ cho phép Obsidian đọc ghi chú của bạn khi bạn đã trỏ đến thư mục chứa chúng.
 
 [importer.apple-notes.button-select-folder]
 original=Select folder
-translation=Choisir un dossier
+translation=Chọn thư mục
 
 [importer.apple-notes.msg-wrong-folder]
 original=Ensure you have selected the correct Apple Notes data folder.
-translation=Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=Hãy đảm bảo bạn đã chọn đúng thư mục dữ liệu Apple Notes.
 
 [importer.apple-notes.msg-dialog-folder]
 original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
-translation=Choisissez le dossier « group.com.apple.notes » pour permettre à Obsidian de lire les données d'Apple Notes.
+translation=Chọn thư mục "group.com.apple.notes" để Cho phép Obsidian đọc dữ liệu Apple Notes.
 
 [importer.apple-notes.msg-import-failed]
 original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
-translation=L'importation des données a échoué. Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=Nhập dữ liệu Thất bại. Hãy đảm bảo bạn đã chọn đúng thư mục dữ liệu Apple Notes.
 
 [importer.apple-notes.msg-pick-folders]
 original=Please select at least one folder to import.
-translation=Veuillez sélectionner au moins un dossier à importer.
+translation=Vui lòng chọn ít nhất một thư mục để nhập.
 
 [importer.apple-notes.name-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=Thư mục cần nhập
 
 [importer.apple-notes.desc-folders]
 original=Pick the folders whose notes to bring across.
-translation=Choisissez les dossiers dont les notes doivent être reprises.
+translation=Chọn các thư mục chứa ghi chú bạn muốn chuyển sang.
 
 [importer.apple-notes.msg-no-access]
 original=Allow access to your notes to see the folders in them.
-translation=Autorisez l'accès à vos notes pour voir les dossiers qu'elles contiennent.
+translation=Cho phép truy cập ghi chú của bạn để xem các thư mục trong đó.
 
 [importer.apple-notes.msg-no-folders]
 original=No folders found.
-translation=Aucun dossier trouvé.
+translation=Không tìm thấy thư mục nào.
 
 [importer.apple-notes.msg-database-busy]
 original=Your Apple Notes database is in use. Quit Notes and try again.
-translation=Votre base de données Apple Notes est en cours d'utilisation. Quittez Notes et réessayez.
+translation=Cơ sở dữ liệu Apple Notes đang được sử dụng. Thoát Notes và thử lại.
 
 [importer.apple-notes.msg-database-unreadable]
 original=Could not open your Apple Notes database. {{hint}}
-translation=Impossible d'ouvrir votre base de données Apple Notes. {{hint}}
+translation=Không thể mở cơ sở dữ liệu Apple Notes của bạn. {{hint}}
 
 [importer.apple-notes.msg-read-failed-with-detail]
 original=Could not read your notes: {{detail}}
-translation=Impossible de lire vos notes : {{detail}}
+translation=Không thể đọc ghi chú của bạn: {{detail}}
 
 [importer.apple-notes.msg-read-failed]
 original=Could not read your notes.
-translation=Impossible de lire vos notes.
+translation=Không thể đọc ghi chú của bạn.
 
 [importer.apple-notes.reason-password-protected]
 original=note is password protected
-translation=la note est protégée par un mot de passe
+translation=ghi chú được bảo vệ bằng mật khẩu
 
 [importer.apple-notes.reason-duplicate]
 original=note is a duplicate
-translation=la note est un doublon
+translation=ghi chú bị nhân bản
 
 [importer.apple-notes.reason-unchanged]
 original=note unchanged since last import
-translation=la note n'a pas changé depuis le dernier import
+translation=ghi chú không thay đổi kể từ lần nhập trước
 
 [importer.apple-notes.reason-attachment-exists]
 original=attachment already exists
-translation=la pièce jointe existe déjà
+translation=tệp đính kèm đã tồn tại
 
 [importer.apple-notes.reason-attachment-unchanged]
 original=attachment unchanged since last import
-translation=la pièce jointe n'a pas changé depuis le dernier import
+translation=tệp đính kèm không thay đổi kể từ lần nhập trước
 
 [importer.apple-notes.reason-not-downloaded]
 original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
-translation=elle n'a pas été téléchargée depuis iCloud - ouvrez la note dans Apple Notes pour la récupérer
+translation=chưa được tải xuống từ iCloud - mở ghi chú trong Apple Notes để tải về
 
 [importer.apple-notes.label-attachment]
 original=Attachment {{id}}
-translation=Pièce jointe {{id}}
+translation=Tệp đính kèm {{id}}
 
 [importer.apple-notes.reason-no-attachment-row]
 original=no {{uti}} row to read it from
-translation=aucune ligne {{uti}} d'où la lire
+translation=không có Hàng {{uti}} để đọc
 
 [importer.apple-notes.label-attachment-in-note]
 original={{name}} in {{note}}
-translation={{name}} dans {{note}}
+translation={{name}} trong {{note}}
 
 [importer.apple-journal.name]
 original=Apple Journal
@@ -1016,31 +1016,31 @@ translation=Apple Journal
 
 [importer.apple-journal.option-text]
 original=Apple Journal (HTML export)
-translation=Apple Journal (export HTML)
+translation=Apple Journal (xuất HTML)
 
 [importer.apple-journal.file-type]
 original=Journal entries
-translation=Entrées de journal
+translation=Mục nhật ký
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportez vos entrées depuis l'app Journal, puis choisissez les fichiers HTML qu'elle a écrits dans iCloud Drive.
+translation=Xuất các mục từ ứng dụng Journal, sau đó chọn các tệp HTML đã được ghi vào iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
-translation=Métadonnées du journal
+translation=Siêu dữ liệu Journal
 
 [importer.apple-journal.name-front-matter]
 original=Add metadata as frontmatter
-translation=Ajouter les métadonnées dans l'en-tête
+translation=Thêm siêu dữ liệu dưới dạng siêu dữ liệu đầu tệp
 
 [importer.apple-journal.desc-front-matter]
 original=Capture state-of-mind, contact, and similar tokens in YAML when available.
-translation=Capturer l'état d'esprit, les contacts et autres marqueurs similaires en YAML lorsqu'ils sont disponibles.
+translation=Ghi lại trạng thái cảm xúc, liên hệ và các thẻ thông tin tương tự trong YAML khi có sẵn.
 
 [importer.apple-journal.reason-index-file]
 original=index file is not a journal entry
-translation=le fichier d'index n'est pas une entrée de journal
+translation=tệp chỉ mục không phải là mục nhật ký
 
 [importer.bear.name]
 original=Bear
@@ -1056,31 +1056,31 @@ translation=Bear2bk
 
 [importer.bear.label-id]
 original=Bear ID
-translation=l'identifiant Bear
+translation=Bear ID
 
 [importer.bear.desc-export]
 original=Back up your notes in Bear, you will receive a .bear2bk file.
-translation=Sauvegardez vos notes dans Bear, vous obtiendrez un fichier .bear2bk.
+translation=Sao lưu ghi chú trong Bear, bạn sẽ nhận được một tệp .bear2bk.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
-translation=Aplatir les mots-clés imbriqués
+translation=Làm phẳng thẻ lồng nhau
 
 [importer.bear.desc-flatten-tags]
 original=When enabled, tags will be split on slashes (/) during import.
-translation=Lorsque cette option est activée, les mots-clés sont découpés sur les barres obliques (/) pendant l'import.
+translation=Khi đã bật, các thẻ sẽ được tách theo dấu gạch chéo (/) trong quá trình nhập.
 
 [importer.bear.status-importing-asset]
 original=Importing asset {{name}}
-translation=Importation de la ressource {{name}}
+translation=Đang nhập tài nguyên {{name}}
 
 [importer.bear.status-updating-links]
 original=Updating internal links…
-translation=Mise à jour des liens internes…
+translation=Đang cập nhật liên kết nội bộ…
 
 [importer.bear.reason-unknown-type]
 original=unknown type of file
-translation=type de fichier inconnu
+translation=loại tệp Không rõ
 
 [importer.csv.name]
 original=CSV
@@ -1096,43 +1096,43 @@ translation=CSV
 
 [importer.csv.name-header-row]
 original=CSV has header row
-translation=Le CSV a une ligne d'en-tête
+translation=CSV có hàng tiêu đề
 
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
-translation=Si cette option est activée, la première ligne du fichier CSV est traitée comme les en-têtes de colonnes.
+translation=Nếu đã bật, hàng đầu tiên của tệp CSV sẽ được coi là tiêu đề cột.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
-translation=Veuillez choisir au moins un fichier CSV à importer.
+translation=Vui lòng chọn ít nhất một tệp CSV để nhập.
 
 [importer.csv.msg-one-at-a-time]
 original=CSV files must be imported one at a time.
-translation=Les fichiers CSV doivent être importés un à la fois.
+translation=Các tệp CSV phải được nhập từng tệp một.
 
 [importer.csv.msg-no-data]
 original=No data found in {{name}}.
-translation=Aucune donnée trouvée dans {{name}}.
+translation=Không tìm thấy dữ liệu trong {{name}}.
 
 [importer.csv.msg-no-configuration]
 original=Configuration is missing.
-translation=La configuration est manquante.
+translation=Thiếu cấu hình.
 
 [importer.csv.status-parsing]
 original=Parsing {{name}}
-translation=Analyse de {{name}}
+translation=Đang phân tích {{name}}
 
 [importer.csv.status-creating-note]
 original=Creating note: {{title}}
-translation=Création de la note : {{title}}
+translation=Đang tạo ghi chú: {{title}}
 
 [importer.csv.label-row]
 original=Row {{number}}
-translation=Ligne {{number}}
+translation=Hàng {{number}}
 
 [importer.csv.reason-empty-title]
 original=Empty title
-translation=Titre vide
+translation=Tiêu đề Trống
 
 [importer.evernote.name]
 original=Evernote
@@ -1148,15 +1148,15 @@ translation=Evernote
 
 [importer.evernote.desc-export]
 original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
-translation=Exportez vos carnets au format ENEX, vous obtiendrez un fichier .enex par carnet.
+translation=Xuất sổ ghi chú của bạn ở định dạng ENEX, bạn sẽ nhận được một tệp .enex cho mỗi sổ ghi chú.
 
 [importer.evernote.msg-unresolved-links]
 original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} lien n'a pas pu être associé à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} liên kết không thể khớp với ghi chú nào. Bản xuất ENEX không cho biết liên kết trỏ đến ghi chú nào, chỉ cho biết tiêu đề hiển thị trong Evernote, vì vậy ghi chú đã đổi tên sau khi tạo liên kết sẽ không còn khớp được. Obsidian liệt kê những liên kết này trong mục liên kết chưa giải quyết.
 
 [importer.evernote.msg-unresolved-links_plural]
 original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} liens n'ont pas pu être associés à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} liên kết không thể khớp với ghi chú nào. Bản xuất ENEX không cho biết liên kết trỏ đến ghi chú nào, chỉ cho biết tiêu đề hiển thị trong Evernote, vì vậy ghi chú đã đổi tên sau khi tạo liên kết sẽ không còn khớp được. Obsidian liệt kê những liên kết này trong mục liên kết chưa giải quyết.
 
 [importer.keep.name]
 original=Google Keep
@@ -1168,43 +1168,43 @@ translation=Google Keep (.zip/.json)
 
 [importer.keep.file-type]
 original=Notes & attachments
-translation=Notes et pièces jointes
+translation=Ghi chú & tệp đính kèm
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout. 
-translation=Récupérez vos données Google Keep depuis Google Takeout. 
+translation=Lấy dữ liệu Google Keep của bạn từ Google Takeout. 
 
 [importer.keep.name-archived]
 original=Import archived notes
-translation=Importer les notes archivées
+translation=Nhập ghi chú đã lưu trữ
 
 [importer.keep.desc-archived]
 original=If imported, files archived in Google Keep will be tagged as archived.
-translation=Si elles sont importées, les notes archivées dans Google Keep recevront un mot-clé indiquant qu'elles sont archivées.
+translation=Nếu được nhập, các tệp đã lưu trữ trong Google Keep sẽ được gắn thẻ là đã lưu trữ.
 
 [importer.keep.name-deleted]
 original=Import deleted notes
-translation=Importer les notes supprimées
+translation=Nhập ghi chú đã xóa
 
 [importer.keep.desc-deleted]
 original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
-translation=Si elles sont importées, les notes supprimées dans Google Keep recevront un mot-clé indiquant qu'elles sont supprimées. Les notes supprimées ne figurent dans votre export Google que si elles l'ont été récemment.
+translation=Nếu được nhập, các tệp Đã xóa trong Google Keep sẽ được gắn thẻ là đã xóa. Ghi chú đã xóa chỉ tồn tại trong bản xuất Google nếu được xóa gần đây.
 
 [importer.keep.reason-invalid-json]
 original=Invalid Google Keep JSON
-translation=JSON Google Keep invalide
+translation=JSON Google Keep không hợp lệ
 
 [importer.keep.reason-archived]
 original=Archived note
-translation=Note archivée
+translation=Ghi chú đã lưu trữ
 
 [importer.keep.reason-deleted]
 original=Deleted note
-translation=Note supprimée
+translation=Ghi chú Đã xóa
 
 [importer.html.name]
 original=HTML files
-translation=Fichiers HTML
+translation=Tệp HTML
 
 [importer.html.option-text]
 original=HTML (.html)
@@ -1216,19 +1216,19 @@ translation=HTML
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
-translation=Taille maximale des pièces jointes (Mo)
+translation=Giới hạn kích thước tệp đính kèm (MB)
 
 [importer.html.name-minimum-image-size]
 original=Minimum image size (px)
-translation=Taille minimale des images (px)
+translation=Kích thước hình ảnh tối thiểu (px)
 
 [importer.html.desc-set-zero-to-disable]
 original=Set 0 to disable.
-translation=Mettre 0 pour désactiver.
+translation=Đặt 0 để Vô hiệu hóa.
 
 [importer.html.status-downloading]
 original=Downloading attachment for {{name}}
-translation=Téléchargement d'une pièce jointe pour {{name}}
+translation=Đang tải tệp đính kèm cho {{name}}
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -1240,87 +1240,87 @@ translation=Microsoft OneNote
 
 [importer.onenote.method-name]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Tài khoản Microsoft
 
 [importer.onenote.method-desc]
 original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
-translation=Connectez-vous à votre compte Microsoft et importez les blocs-notes synchronisés avec OneDrive. Nécessite une connexion Internet.
+translation=Đăng nhập vào tài khoản Microsoft của bạn và nhập các sổ tay đã đồng bộ với OneDrive. Yêu cầu kết nối internet.
 
 [importer.onenote.label-id]
 original=OneNote ID
-translation=l'identifiant OneNote
+translation=OneNote ID
 
 [importer.onenote.name-incompatible]
 original=Import incompatible attachments
-translation=Importer les pièces jointes incompatibles
+translation=Nhập tệp đính kèm không tương thích
 
 [importer.onenote.desc-incompatible]
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
-translation=Importe les pièces jointes incompatibles qui ne peuvent pas être intégrées dans Obsidian, comme les fichiers .exe.
+translation=Nhập các tệp đính kèm không tương thích mà không thể nhúng vào Obsidian, chẳng hạn như tệp .exe.
 
 [importer.onenote.name-account]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Tài khoản Microsoft
 
 [importer.onenote.desc-sign-in]
 original=Sign in to import your OneNote notebooks.
-translation=Connectez-vous pour importer vos blocs-notes OneNote.
+translation=Đăng nhập để nhập sổ tay OneNote của bạn.
 
 [importer.onenote.desc-sign-in-organization]
 original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
-translation=Connectez-vous pour importer vos blocs-notes OneNote. Un compte professionnel ou scolaire peut nécessiter l'approbation de votre organisation.
+translation=Đăng nhập để nhập sổ tay OneNote của bạn. Tài khoản cơ quan hoặc trường học có thể cần tổ chức của bạn phê duyệt quyền truy cập.
 
 [importer.onenote.desc-signed-in]
 original=Signed in as {{name}} ({{email}}).
-translation=Connecté en tant que {{name}} ({{email}}).
+translation=Đã đăng nhập với tư cách {{name}} ({{email}}).
 
 [importer.onenote.button-sign-in]
 original=Sign in
-translation=Se connecter
+translation=Đăng nhập
 
 [importer.onenote.button-sign-out]
 original=Sign out
-translation=Se déconnecter
+translation=Đăng xuất
 
 [importer.onenote.button-work-account]
 original=Use work or school access
-translation=Utiliser un accès professionnel ou scolaire
+translation=Sử dụng quyền truy cập cơ quan hoặc trường học
 
 [importer.onenote.msg-sign-in-failed]
 original=An error occurred while trying to sign you in.
-translation=Une erreur est survenue lors de la connexion.
+translation=Đã xảy ra lỗi khi cố đăng nhập.
 
 [importer.onenote.msg-sign-in-details]
 original=Click here to show error details
-translation=Cliquez ici pour afficher le détail de l'erreur
+translation=Nhấn vào đây để xem chi tiết lỗi
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
-translation=Connectez-vous pour voir vos blocs-notes OneNote.
+translation=Đăng nhập để xem sổ tay OneNote của bạn.
 
 [importer.onenote.msg-please-sign-in]
 original=Please sign in to your Microsoft account.
-translation=Veuillez vous connecter à votre compte Microsoft.
+translation=Vui lòng đăng nhập vào tài khoản Microsoft của bạn.
 
 [importer.onenote.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=Các mục cần nhập
 
 [importer.onenote.desc-sections]
 original=Select a notebook, or sections within it.
-translation=Sélectionnez un bloc-notes, ou des sections de celui-ci.
+translation=Chọn một sổ tay hoặc các mục trong đó.
 
 [importer.onenote.msg-loading-notebooks]
 original=Loading notebooks...
-translation=Chargement des blocs-notes...
+translation=Đang tải sổ tay...
 
 [importer.onenote.msg-no-notebooks]
 original=No notebooks found.
-translation=Aucun bloc-notes trouvé.
+translation=Không tìm thấy sổ tay nào.
 
 [importer.onenote.msg-scope-refused]
 original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
-translation=OneNote n'a pas accordé à cette connexion l'accès à vos blocs-notes. Déconnectez-vous puis reconnectez-vous pour demander un accès professionnel ou scolaire, que votre organisation devra peut-être approuver.
+translation=OneNote không cấp cho lần đăng nhập này quyền truy cập vào sổ tay của bạn. Hãy đăng xuất và đăng nhập lại để yêu cầu quyền truy cập cơ quan hoặc trường học, mà tổ chức của bạn có thể cần phê duyệt.
 
 [importer.onenote.label-service]
 original=OneNote
@@ -1328,43 +1328,43 @@ translation=OneNote
 
 [importer.onenote.label-subject]
 original=your notebooks
-translation=vos blocs-notes
+translation=sổ tay của bạn
 
 [importer.onenote.label-credential]
 original=Sign out and back in to try again.
-translation=Déconnectez-vous puis reconnectez-vous pour réessayer.
+translation=Đăng xuất và đăng nhập lại để thử lại.
 
 [importer.onenote.status-finding]
 original=Finding notes to import
-translation=Recherche des notes à importer
+translation=Đang tìm ghi chú để nhập
 
 [importer.onenote.status-finding-in]
 original=Finding notes in {{section}}
-translation=Recherche des notes dans {{section}}
+translation=Đang tìm ghi chú trong {{section}}
 
 [importer.onenote.status-finding-in-section]
 original=Finding notes in {{section}} (section {{index}} of {{total}})
-translation=Recherche des notes dans {{section}} (section {{index}} sur {{total}})
+translation=Đang tìm ghi chú trong {{section}} (mục {{index}} / {{total}})
 
 [importer.onenote.status-importing-notes]
 original=Importing {{notes}}
-translation=Importation de {{notes}}
+translation=Đang nhập {{notes}}
 
 [importer.onenote.status-downloading]
 original=Downloading attachment {{name}}
-translation=Téléchargement de la pièce jointe {{name}}
+translation=Đang tải tệp đính kèm {{name}}
 
 [importer.onenote.msg-too-many-errors]
 original=Microsoft OneNote returned too many consecutive errors.
-translation=Microsoft OneNote a renvoyé trop d'erreurs consécutives.
+translation=Microsoft OneNote trả về quá nhiều lỗi liên tiếp.
 
 [importer.onenote.label-unknown-page]
 original=<unknown>
-translation=<inconnue>
+translation=<Không rõ>
 
 [importer.onenote.reason-too-many-failures]
 original=import was canceled (after too many pages failed to load)
-translation=l'importation a été annulée (après l'échec du chargement de trop de pages)
+translation=quá trình nhập đã bị hủy (sau khi quá nhiều trang không tải được)
 
 [importer.onenote.label-ink]
 original={{page}} - Ink.svg
@@ -1372,27 +1372,27 @@ translation={{page}} - Ink.svg
 
 [importer.onenote.label-attachment]
 original=OneNote attachment
-translation=Pièce jointe OneNote
+translation=Tệp đính kèm OneNote
 
 [importer.onenote.label-image]
 original=OneNote image
-translation=Image OneNote
+translation=Hình ảnh OneNote
 
 [importer.onenote.reason-no-attachment-name]
 original=the attachment did not say what it was called
-translation=la pièce jointe n'indiquait pas son nom
+translation=tệp đính kèm không cho biết tên của nó
 
 [importer.onenote.reason-no-attachment-url]
 original=the attachment did not include a download URL
-translation=la pièce jointe ne comportait pas d'URL de téléchargement
+translation=tệp đính kèm không bao gồm URL tải xuống
 
 [importer.onenote.reason-no-image-url]
 original=the image did not include a download URL
-translation=l'image ne comportait pas d'URL de téléchargement
+translation=hình ảnh không bao gồm URL tải xuống
 
 [importer.onenote-file.name]
 original=Microsoft OneNote (export file)
-translation=Microsoft OneNote (fichier d'export)
+translation=Microsoft OneNote (tệp xuất)
 
 [importer.onenote-file.option-text]
 original=Microsoft OneNote (.one, .onepkg)
@@ -1400,79 +1400,79 @@ translation=Microsoft OneNote (.one, .onepkg)
 
 [importer.onenote-file.method-name]
 original=File import
-translation=Import de fichiers
+translation=Nhập từ tệp
 
 [importer.onenote-file.method-desc]
 original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
-translation=Importez à partir des fichiers d'export OneNote (.one, .onepkg) de votre ordinateur. Ne nécessite ni compte ni connexion Internet, et fonctionne pour les blocs-notes qui n'ont jamais été synchronisés.
+translation=Nhập bằng các tệp xuất OneNote (.one, .onepkg) từ máy tính của bạn. Không yêu cầu tài khoản hay kết nối internet, và hoạt động với các sổ tay chưa bao giờ được đã đồng bộ.
 
 [importer.onenote-file.file-type]
 original=OneNote export
-translation=Export OneNote
+translation=Xuất OneNote
 
 [importer.onenote-file.label-id]
 original=OneNote ID
-translation=ID OneNote
+translation=OneNote ID
 
 [importer.onenote-file.desc-backup-folder]
 original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
-translation=OneNote pour Windows conserve ses propres sauvegardes ; la sélection s'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.
+translation=OneNote cho Windows tự lưu bản sao lưu, và thư mục đó sẽ được mở. Chọn các sổ tay hoặc phần bạn muốn.
 
 [importer.onenote-file.desc-export]
 original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
-translation=Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.
+translation=Trong OneNote cho Windows, nhấp chuột phải vào sổ tay và xuất để lưu tệp .onepkg, hoặc xuất một phần đơn lẻ dưới dạng .one.
 
 [importer.onenote-file.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=Các phần cần nhập
 
 [importer.onenote-file.desc-sections]
 original=Choose which sections to import.
-translation=Choisissez les sections à importer.
+translation=Chọn những phần bạn muốn nhập.
 
 [importer.onenote-file.msg-loading-sections]
 original=Reading sections…
-translation=Lecture des sections…
+translation=Đang đọc các phần…
 
 [importer.onenote-file.msg-no-sections]
 original=No sections found in this file.
-translation=Aucune section trouvée dans ce fichier.
+translation=Không tìm thấy phần nào trong tệp này.
 
 [importer.onenote-file.msg-pick-file-first]
 original=Choose a OneNote file first.
-translation=Choisissez d'abord un fichier OneNote.
+translation=Hãy chọn tệp OneNote trước.
 
 [importer.onenote-file.status-reading-section]
 original=Reading {{name}}
-translation=Lecture de {{name}}
+translation=Đang đọc {{name}}
 
 [importer.onenote-file.status-importing-section]
 original=Importing {{name}} ({{index}} of {{total}})
-translation=Import de {{name}} ({{index}} sur {{total}})
+translation=Đang nhập {{name}} ({{index}} trên {{total}})
 
 [importer.onenote-file.reason-rights-protected]
 original=the file is rights-protected, and can only be opened by an account with permission to it
-translation=le fichier est protégé par des droits et ne peut être ouvert que par un compte qui y est autorisé
+translation=tệp được bảo vệ bản quyền và chỉ có thể mở bằng tài khoản có quyền truy cập
 
 [importer.onenote-file.reason-unsupported]
 original=the file uses a OneNote format this importer cannot read yet
-translation=le fichier utilise un format OneNote que l'importateur ne sait pas encore lire
+translation=tệp sử dụng định dạng OneNote mà trình nhập này chưa hỗ trợ đọc
 
 [importer.onenote-file.reason-malformed]
 original=the file does not describe the OneNote structures it claims to
-translation=le fichier ne décrit pas les structures OneNote qu'il annonce
+translation=tệp không mô tả đúng cấu trúc OneNote mà nó khai báo
 
 [importer.onenote-file.reason-too-large]
 original=the file is larger than this importer is willing to expand
-translation=le fichier est plus volumineux que ce que l'importateur accepte de décompresser
+translation=tệp lớn hơn mức mà trình nhập này sẵn sàng Mở rộng
 
 [importer.onenote-file.reason-no-attachment-data]
 original=the attachment held no data
-translation=la pièce jointe ne contenait aucune donnée
+translation=tệp đính kèm không chứa dữ liệu
 
 [importer.onenote-file.reason-not-representable]
 original=a table inside a table cell has no Markdown equivalent
-translation=un tableau à l'intérieur d'une cellule de tableau n'a pas d'équivalent en Markdown
+translation=bảng bên trong ô bảng không có tương đương trong Markdown
 
 [importer.notion-api.name]
 original=Notion (API)
@@ -1484,47 +1484,47 @@ translation=Notion (API)
 
 [importer.notion-api.method-name]
 original=Notion account (recommended)
-translation=Compte Notion (recommandé)
+translation=Tài khoản Notion (Được đề xuất)
 
 [importer.notion-api.method-desc]
 original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
-translation=Importe l'intégralité de votre espace de travail, y compris les bases de données et les formules qui sont converties en bases. Nécessite un jeton d'intégration Notion et une connexion Internet.
+translation=Nhập toàn bộ không gian làm việc của bạn, bao gồm cơ sở dữ liệu và công thức được chuyển đổi thành bases. Yêu cầu mã token tích hợp Notion và kết nối internet.
 
 [importer.notion-api.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion ID
 
 [importer.notion-api.name-token]
 original=Notion API token
-translation=Jeton d'API Notion
+translation=Mã token API Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Pour obtenir un jeton d'API, créez une connexion dans Notion et donnez-lui accès aux pages de votre espace de travail. 
+translation=Để lấy mã token API, hãy tạo kết nối trong Notion và cấp quyền truy cập các trang trong không gian làm việc của bạn. 
 
 [importer.notion-api.link-get-token]
 original=Get API token.
-translation=Obtenir un jeton d'API.
+translation=Lấy mã token API.
 
 [importer.notion-api.name-pages]
 original=Pages to import
-translation=Pages à importer
+translation=Các trang cần nhập
 
 [importer.notion-api.desc-pages]
 original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Cliquez sur « Charger » pour voir les données que vous pouvez importer. Si une page ou une base de données manque, vérifiez que votre connexion Notion y a accès.
+translation=Nhấp "Tải" để xem dữ liệu bạn có thể nhập. Nếu một trang hoặc cơ sở dữ liệu bị thiếu, hãy kiểm tra kết nối Notion của bạn có quyền truy cập tới nó.
 
 [importer.notion-api.hint-pages]
 original=Click "Load" to load your Notion pages and databases.
-translation=Cliquez sur « Charger » pour charger vos pages et bases de données Notion.
+translation=Nhấp "Tải" để tải các trang và cơ sở dữ liệu Notion của bạn.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
-translation=Chargement des pages et bases de données...
+translation=Đang tải các trang và cơ sở dữ liệu...
 
 [importer.notion-api.msg-no-pages]
 original=No pages or databases found. Make sure your connection has access to the pages you want to import.
-translation=Aucune page ni base de données trouvée. Vérifiez que votre connexion a accès aux pages que vous voulez importer.
+translation=Không tìm thấy trang hoặc cơ sở dữ liệu nào. Hãy đảm bảo kết nối của bạn có quyền truy cập các trang bạn muốn nhập.
 
 [importer.notion-api.label-service]
 original=Notion
@@ -1532,371 +1532,371 @@ translation=Notion
 
 [importer.notion-api.label-subject]
 original=your pages
-translation=vos pages
+translation=các trang của bạn
 
 [importer.notion-api.label-credential]
 original=Check that your token is current and that the connection has access to them.
-translation=Vérifiez que votre jeton est à jour et que la connexion y a accès.
+translation=Hãy kiểm tra mã token của bạn còn hiệu lực và kết nối có quyền truy cập tới chúng.
 
 [importer.notion-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=Chuyển đổi công thức
 
 [importer.notion-api.desc-formulas]
 original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
-translation=Par défaut, les formules Notion sont converties en syntaxe Obsidian. Si une syntaxe Notion n'est pas prise en charge, les valeurs statiques sont enregistrées à la place. Vous pouvez aussi importer toutes les formules comme valeurs statiques.
+translation=Theo mặc định, công thức Notion được chuyển đổi sang cú pháp Obsidian. Nếu cú pháp Notion nào không được hỗ trợ, giá trị tĩnh sẽ được lưu thay thế. Ngoài ra, bạn có thể nhập tất cả công thức dưới dạng giá trị tĩnh.
 
 [importer.notion-api.option-formula-hybrid]
 original=Obsidian syntax
-translation=Syntaxe Obsidian
+translation=Cú pháp Obsidian
 
 [importer.notion-api.option-formula-static]
 original=Static values
-translation=Valeurs statiques
+translation=Giá trị tĩnh
 
 [importer.notion-api.name-download-external]
 original=Download external attachments
-translation=Télécharger les pièces jointes externes
+translation=Tải xuống tệp đính kèm bên ngoài
 
 [importer.notion-api.desc-download-external]
 original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
-translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés.
+translation=Tải xuống tệp đính kèm bên ngoài (URL bên ngoài) thành tệp cục bộ. Các tệp được lưu trữ trên Notion sẽ luôn luôn được tải xuống.
 
 [importer.notion-api.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=Ngắt dòng đơn
 
 [importer.notion-api.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
-translation=Séparer les blocs Notion par un seul saut de ligne au lieu de deux. Certains blocs (listes, bascules, tableaux) utiliseront tout de même un double saut de ligne lorsque la syntaxe Markdown l'exige.
+translation=Phân tách các khối Notion chỉ bằng một ngắt dòng thay vì hai. Một số khối (danh sách, toggle, bảng) vẫn sẽ sử dụng ngắt dòng đôi khi cần thiết cho cú pháp Markdown đúng.
 
 [importer.notion-api.name-cover-property]
 original=Cover property name
-translation=Nom de la propriété de couverture
+translation=Tên thuộc tính ảnh bìa
 
 [importer.notion-api.desc-cover-property]
 original=Property name for page cover image in YAML frontmatter. 
-translation=Nom de la propriété de l'image de couverture de la page dans l'en-tête YAML. 
+translation=Tên thuộc tính cho hình ảnh bìa trang trong siêu dữ liệu đầu tệp YAML. 
 
 [importer.notion-api.desc-cover-property-conflicts]
 original=Leave as "cover" if you don't have conflicts with existing properties.
-translation=Laissez « cover » si vous n'avez pas de conflit avec des propriétés existantes.
+translation=Để là "cover" nếu bạn không có xung đột với các thuộc tính hiện có.
 
 [importer.notion-api.name-database-property]
 original=Database property name
-translation=Nom de la propriété de base de données
+translation=Tên thuộc tính cơ sở dữ liệu
 
 [importer.notion-api.desc-database-property]
 original=Property name in page frontmatter to link pages to their database .base file (default: "base")
-translation=Nom de la propriété, dans l'en-tête de la page, reliant les pages au fichier .base de leur base de données (par défaut : « base »)
+translation=Tên thuộc tính trong siêu dữ liệu đầu tệp của trang để liên kết các trang với tệp .base của cơ sở dữ liệu (mặc định: "base")
 
 [importer.notion-api.name-linked-databases]
 original=Import linked databases
-translation=Importer les bases de données liées
+translation=Nhập cơ sở dữ liệu được liên kết
 
 [importer.notion-api.desc-linked-databases]
 original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
-translation=Importer aussi les bases de données auxquelles les pages sélectionnées renvoient, afin que les relations deviennent des liens plutôt que des noms. Cela importe des pages que vous n'avez pas sélectionnées.
+translation=Cũng nhập các cơ sở dữ liệu mà các trang đã chọn liên kết đến, để các quan hệ trở thành liên kết thay vì tên. Điều này sẽ nhập các trang bạn chưa chọn.
 
 [importer.notion-api.msg-token-first]
 original=Please enter your Notion API token first.
-translation=Veuillez d'abord saisir votre jeton d'API Notion.
+translation=Vui lòng nhập mã API Notion của bạn trước.
 
 [importer.notion-api.msg-token-missing]
 original=Please enter your Notion API token.
-translation=Veuillez saisir votre jeton d'API Notion.
+translation=Vui lòng nhập mã API Notion của bạn.
 
 [importer.notion-api.msg-load-pages-failed]
 original=Failed to load pages: {{error}}
-translation=Échec du chargement des pages : {{error}}
+translation=Không thể tải các trang: {{error}}
 
 [importer.notion-api.msg-found]
 original=Found {{count}} page or database.
-translation={{count}} page ou base de données trouvée.
+translation=Tìm thấy {{count}} trang hoặc cơ sở dữ liệu.
 
 [importer.notion-api.msg-found_plural]
 original=Found {{count}} pages and databases.
-translation={{count}} pages et bases de données trouvées.
+translation=Tìm thấy {{count}} trang và cơ sở dữ liệu.
 
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
-translation=Veuillez sélectionner au moins une page ou base de données à importer.
+translation=Vui lòng chọn ít nhất một trang hoặc cơ sở dữ liệu để nhập.
 
 [importer.notion-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=Nhập thất bại: {{error}}
 
 [importer.notion-api.status-loading-items]
 original=Loading... ({{items}}, page {{page}})
-translation=Chargement... ({{items}}, page {{page}})
+translation=Đang tải... ({{items}}, trang {{page}})
 
 [importer.notion-api.status-connecting]
 original=Connecting to Notion API...
-translation=Connexion à l'API Notion...
+translation=Đang kết nối tới Notion API...
 
 [importer.notion-api.status-fetching]
 original=Fetching page content from Notion...
-translation=Récupération du contenu des pages depuis Notion...
+translation=Đang lấy nội dung trang từ Notion...
 
 [importer.notion-api.status-preparing]
 original=Preparing to import {{items}}...
-translation=Préparation de l'importation de {{items}}...
+translation=Đang chuẩn bị nhập {{items}}...
 
 [importer.notion-api.status-importing-items]
 original=Importing {{items}}...
-translation=Importation de {{items}}...
+translation=Đang nhập {{items}}...
 
 [importer.notion-api.status-importing-item]
 original=Importing item {{index}}/{{total}}...
-translation=Importation de l'élément {{index}}/{{total}}...
+translation=Đang nhập mục {{index}}/{{total}}...
 
 [importer.notion-api.status-importing-title]
 original=Importing: {{title}}
-translation=Importation : {{title}}
+translation=Đang nhập: {{title}}
 
 [importer.notion-api.status-relation-links]
 original=Processing relation links...
-translation=Traitement des liens de relation...
+translation=Đang xử lý liên kết quan hệ...
 
 [importer.notion-api.status-mention-links]
 original=Processing mention links...
-translation=Traitement des liens de mention...
+translation=Đang xử lý liên kết đề cập...
 
 [importer.notion-api.status-synced-blocks]
 original=Processing synced block child references...
-translation=Traitement des références enfants des blocs synchronisés...
+translation=Đang xử lý tham chiếu con của khối đã đồng bộ...
 
 [importer.notion-api.status-cleaning-ids]
 original=Cleaning up notion-id attributes...
-translation=Nettoyage des attributs notion-id...
+translation=Đang dọn dẹp thuộc tính notion-id...
 
 [importer.notion-api.status-done]
 original=Import completed successfully!
-translation=Importation terminée avec succès !
+translation=Nhập hoàn tất thành công!
 
 [importer.notion-api.status-replacing-relations]
 original=Replacing {{placeholders}}...
-translation=Remplacement de {{placeholders}}...
+translation=Đang thay thế {{placeholders}}...
 
 [importer.notion-api.status-replacing-relation-links]
 original=Replacing relation placeholders with wiki links...
-translation=Remplacement des marqueurs de relation par des liens wiki...
+translation=Đang thay thế chỗ giữ quan hệ bằng wiki liên kết...
 
 [importer.notion-api.status-importing-linked-databases]
 original=Importing {{databases}}...
-translation=Importation de {{databases}}...
+translation=Đang nhập {{databases}}...
 
 [importer.notion-api.status-importing-unimported]
 original=Importing unimported database {{id}}...
-translation=Importation de la base de données non importée {{id}}...
+translation=Đang nhập cơ sở dữ liệu chưa được nhập {{id}}...
 
 [importer.notion-api.status-replacing-mentions]
 original=Replacing mention placeholders...
-translation=Remplacement des marqueurs de mention...
+translation=Đang thay thế chỗ giữ đề cập...
 
 [importer.notion-api.status-replaced-mentions]
 original=Replaced {{links}} in {{files}}.
-translation={{links}} remplacés dans {{files}}.
+translation=Đã thay thế {{links}} trong {{files}}.
 
 [importer.notion-api.status-replacing-synced]
 original=Replacing synced block child references...
-translation=Remplacement des références enfants des blocs synchronisés...
+translation=Đang thay thế tham chiếu con của khối đã đồng bộ...
 
 [importer.notion-api.status-replaced-synced]
 original=Replaced {{references}} in {{files}} (imported {{imported}}).
-translation={{references}} remplacées dans {{files}} ({{imported}} importés).
+translation=Đã thay thế {{references}} trong {{files}} (đã nhập {{imported}}).
 
 [importer.notion-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}...
-translation=Téléchargement de la pièce jointe : {{name}}...
+translation=Đang tải xuống tệp đính kèm: {{name}}...
 
 [importer.notion-api.status-rate-limited]
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Débit limité. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=Bị giới hạn tốc độ. Đợi {{seconds}} giây trước khi thử lại ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-retrying]
 original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Notion a renvoyé {{status}}. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=Notion trả về {{status}}. Đợi {{seconds}} giây trước khi thử lại ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-retrying-attachment]
 original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
-translation={{name}} : {{failure}}. Nouvelle tentative dans {{seconds}} secondes ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}. Thử lại sau {{seconds}} giây ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
-translation=Traitement de la base de données de la source : {{id}}...
+translation=Đang xử lý cơ sở dữ liệu từ nguồn dữ liệu: {{id}}...
 
 [importer.notion-api.status-processing-database]
 original=Processing database: {{title}}...
-translation=Traitement de la base de données : {{title}}...
+translation=Đang xử lý cơ sở dữ liệu: {{title}}...
 
 [importer.notion-api.status-found-pages]
 original=Found {{pages}} in database {{title}}
-translation={{pages}} dans la base de données {{title}}
+translation=Đã tìm thấy {{pages}} trong cơ sở dữ liệu {{title}}
 
 [importer.notion-api.status-found-templates]
 original=Found {{templates}} in database {{title}}
-translation={{templates}} dans la base de données {{title}}
+translation=Đã tìm thấy {{templates}} trong cơ sở dữ liệu {{title}}
 
 [importer.notion-api.status-importing-template]
 original=Importing template: {{name}}...
-translation=Importation du modèle : {{name}}...
+translation=Đang nhập mẫu: {{name}}...
 
 [importer.notion-api.label-import]
 original=Notion API import
-translation=Importation via l'API Notion
+translation=Nhập từ Notion API
 
 [importer.notion-api.label-item]
 original=Import item {{id}}
-translation=Importer l'élément {{id}}
+translation=Nhập mục {{id}}
 
 [importer.notion-api.label-page]
 original=Page {{id}}
-translation=Page {{id}}
+translation=Trang {{id}}
 
 [importer.notion-api.label-page-with-title]
 original=Page: {{title}} ({{id}})
-translation=Page : {{title}} ({{id}})
+translation=Trang: {{title}} ({{id}})
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
-translation=Page de relation {{id}}
+translation=Trang liên kết {{id}}
 
 [importer.notion-api.label-database-with-id]
 original=Database: {{title}} ({{id}})
-translation=Base de données : {{title}} ({{id}})
+translation=Cơ sở dữ liệu: {{title}} ({{id}})
 
 [importer.notion-api.label-mention-file]
 original=Mention file {{path}}
-translation=Fichier de mention {{path}}
+translation=Tệp đề cập {{path}}
 
 [importer.notion-api.label-synced-block-file]
 original=Synced block file {{path}}
-translation=Fichier de bloc synchronisé {{path}}
+translation=Tệp khối đã đồng bộ {{path}}
 
 [importer.notion-api.label-attachment]
 original=Attachment: {{name}}
-translation=Pièce jointe : {{name}}
+translation=Tệp đính kèm: {{name}}
 
 [importer.notion-api.label-child-page]
 original=Child page: {{title}}
-translation=Page enfant : {{title}}
+translation=Trang con: {{title}}
 
 [importer.notion-api.label-synced-block]
 original=Synced block: {{name}}
-translation=Bloc synchronisé : {{name}}
+translation=Khối đã đồng bộ: {{name}}
 
 [importer.notion-api.label-attachment-image]
 original=Image attachment
-translation=Pièce jointe image
+translation=Hình ảnh đính kèm
 
 [importer.notion-api.label-attachment-video]
 original=Video attachment
-translation=Pièce jointe vidéo
+translation=Video đính kèm
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
-translation=Pièce jointe fichier
+translation=Tệp đính kèm
 
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
-translation=Pièce jointe PDF
+translation=PDF đính kèm
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
-translation=Récupération des enfants {{context}} {{id}}
+translation=Tải phần tử con cho {{context}} {{id}}
 
 [importer.notion-api.block-paragraph]
 original=paragraph
-translation=du paragraphe
+translation=Đoạn văn
 
 [importer.notion-api.block-bulleted-list-item]
 original=bulleted list item
-translation=de l'élément de liste à puces
+translation=mục danh sách có dấu đầu dòng
 
 [importer.notion-api.block-numbered-list-item]
 original=numbered list item
-translation=de l'élément de liste numérotée
+translation=mục danh sách đánh số
 
 [importer.notion-api.block-todo-item]
 original=to-do item
-translation=de la tâche
+translation=mục việc cần làm
 
 [importer.notion-api.block-quote]
 original=quote block
-translation=du bloc de citation
+translation=khối trích dẫn
 
 [importer.notion-api.block-callout]
 original=callout block
-translation=du bloc d'encadré
+translation=khối khung ghi chú
 
 [importer.notion-api.block-toggle]
 original=toggle block
-translation=du bloc bascule
+translation=khối thu gọn
 
 [importer.notion-api.block-toggleable-heading]
 original=toggleable heading
-translation=du titre bascule
+translation=tiêu đề thu gọn được
 
 [importer.notion-api.block-column]
 original=column
-translation=de la colonne
+translation=Cột
 
 [importer.notion-api.block-column-list]
 original=column list
-translation=de la liste de colonnes
+translation=danh sách cột
 
 [importer.notion-api.block-table]
 original=table
-translation=du tableau
+translation=Bảng
 
 [importer.notion-api.block-generic]
 original=block
-translation=du bloc
+translation=khối
 
 [importer.notion-api.label-meeting-notes]
 original=Meeting notes: {{name}}
-translation=Notes de réunion : {{name}}
+translation=Ghi chú cuộc họp: {{name}}
 
 [importer.notion-api.label-meeting-notes-section]
 original=Meeting notes: {{name}} ({{section}})
-translation=Notes de réunion : {{name}} ({{section}})
+translation=Ghi chú cuộc họp: {{name}} ({{section}})
 
 [importer.notion-api.label-untitled-meeting]
 original=Meeting notes {{id}}
-translation=Notes de réunion {{id}}
+translation=Ghi chú cuộc họp {{id}}
 
 [importer.notion-api.section-summary]
 original=summary
-translation=résumé
+translation=Tóm tắt
 
 [importer.notion-api.section-notes]
 original=notes
-translation=notes
+translation=ghi chú
 
 [importer.notion-api.section-transcript]
 original=transcript
-translation=transcription
+translation=bản ghi
 
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
-translation=Récupération des enfants du bloc {{id}}
+translation=Tải phần tử con cho khối {{id}}
 
 [importer.notion-api.reason-not-in-tree]
 original=Item not found in tree
-translation=Élément introuvable dans l'arborescence
+translation=Không tìm thấy mục trong cây
 
 [importer.notion-api.reason-unknown-type]
 original=Unknown type: {{type}}
-translation=Type inconnu : {{type}}
+translation=Loại không rõ: {{type}}
 
 [importer.notion-api.reason-earlier-import]
 original=an earlier import had already written it
-translation=un import précédent l'avait déjà écrit
+translation=một lần nhập trước đó đã ghi mục này
 
 [importer.notion-api.reason-attachment-exists]
 original={{path}} is already in the vault, the same size (incremental import)
-translation={{path}} est déjà dans le coffre, de la même taille (import incrémental)
+translation={{path}} đã có trong kho với cùng kích thước (nhập tăng dần)
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
@@ -1904,19 +1904,19 @@ translation=HTTP {{status}}
 
 [importer.notion-api.reason-meeting-notes-pending]
 original=Notion has not finished generating them ({{status}})
-translation=Notion n'a pas fini de les générer ({{status}})
+translation=Notion chưa tạo xong chúng ({{status}})
 
 [importer.notion-api.reason-rate-limit-gave-up]
 original=rate limited, and gave up after {{retries}} retries
-translation=débit limité, abandon après {{retries}} tentatives
+translation=bị giới hạn tốc độ, và đã bỏ cuộc sau {{retries}} lần thử lại
 
 [importer.notion-api.reason-gave-up]
 original={{reason}}, and gave up after {{retries}} retries
-translation={{reason}}, abandon après {{retries}} tentatives
+translation={{reason}}, và đã bỏ cuộc sau {{retries}} lần thử lại
 
 [importer.notion-api.reason-kept-link]
 original={{reason}}; kept the link to {{url}}
-translation={{reason}} ; lien conservé vers {{url}}
+translation={{reason}}; đã giữ liên kết đến {{url}}
 
 [importer.notion.name]
 original=Notion
@@ -1928,63 +1928,63 @@ translation=Notion (.zip)
 
 [importer.notion.method-name]
 original=File import
-translation=Import de fichiers
+translation=Nhập từ tệp
 
 [importer.notion.method-desc]
 original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
-translation=Importe à partir d'un fichier d'export Notion (.zip). Ne nécessite ni jeton d'API ni connexion Internet, mais ne préserve pas les bases de données.
+translation=Nhập bằng tệp xuất từ Notion (.zip). Không yêu cầu API token hoặc kết nối internet, nhưng không giữ được cơ sở dữ liệu.
 
 [importer.notion.file-type]
 original=Exported Notion
-translation=Export Notion
+translation=Notion đã xuất
 
 [importer.notion.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion ID
 
 [importer.notion.desc-export]
 original=Export your workspace in HTML format, you will receive a zip file.
-translation=Exportez votre espace de travail au format HTML, vous obtiendrez un fichier zip.
+translation=Xuất không gian làm việc của bạn ở định dạng HTML, bạn sẽ nhận được một tệp zip.
 
 [importer.notion.desc-files]
 original=Pick the zip file Notion sent you.
-translation=Choisissez le fichier zip que Notion vous a envoyé.
+translation=Chọn tệp zip mà Notion đã gửi cho bạn.
 
 [importer.notion.name-subfolders]
 original=Save parent pages in subfolders
-translation=Enregistrer les pages parentes dans des sous-dossiers
+translation=Lưu trang cha trong thư mục con
 
 [importer.notion.desc-subfolders]
 original=Places the parent database pages in the same folder as the nested content.
-translation=Place les pages parentes de la base de données dans le même dossier que le contenu imbriqué.
+translation=Đặt các trang cơ sở dữ liệu cha vào cùng thư mục với nội dung lồng nhau.
 
 [importer.notion.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=Ngắt dòng đơn
 
 [importer.notion.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break (default is 2).
-translation=Séparer les blocs Notion par un seul saut de ligne (2 par défaut).
+translation=Phân tách các khối Notion chỉ bằng một lần ngắt dòng (mặc định là 2).
 
 [importer.notion.status-looking]
 original=Looking for files to import
-translation=Recherche des fichiers à importer
+translation=Đang tìm tệp để nhập
 
 [importer.notion.status-resolving]
 original=Resolving links and de-duplicating files
-translation=Résolution des liens et suppression des doublons
+translation=Đang giải quyết liên kết và loại bỏ tệp trùng lặp
 
 [importer.notion.status-starting]
 original=Starting import
-translation=Démarrage de l'importation
+translation=Đang bắt đầu nhập
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
-translation=c'est un export Markdown ; exportez plutôt votre espace de travail Notion en HTML
+translation=đây là bản xuất Markdown; hãy xuất không gian làm việc Notion của bạn dưới dạng HTML
 
 [importer.notion.reason-no-page-body]
 original=page body was not found
-translation=le corps de la page est introuvable
+translation=không tìm thấy nội dung trang
 
 [importer.roam-json.name]
 original=Roam Research
@@ -2000,55 +2000,55 @@ translation=Roam (.json)
 
 [importer.roam-json.label-id]
 original=Roam UID
-translation=l'UID Roam
+translation=Roam UID
 
 [importer.roam-json.desc-export]
 original=Export your data in JSON format.
-translation=Exportez vos données au format JSON.
+translation=Xuất dữ liệu của bạn ở định dạng JSON.
 
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
-translation=Choisissez le fichier JSON de votre export Roam.
+translation=Chọn tệp JSON từ bản xuất Roam của bạn.
 
 [importer.roam-json.name-download-attachments]
 original=Download all attachments
-translation=Télécharger toutes les pièces jointes
+translation=Tải xuống tất cả tệp đính kèm
 
 [importer.roam-json.desc-download-attachments]
 original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Si cette option est activée, toutes les pièces jointes envoyées vers Roam seront téléchargées dans votre dossier de pièces jointes.
+translation=Nếu đã bật, tất cả tệp đính kèm đã tải lên Roam sẽ được tải xuống vào thư mục tệp đính kèm của bạn.
 
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
-translation=Ajouter les dates de création et de modification en YAML
+translation=Thêm ngày tạo/cập nhật YAML
 
 [importer.roam-json.desc-date-properties]
 original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Si cette option est activée, les notes auront les dates de création et de modification de Roam ajoutées comme propriétés.
+translation=Nếu đã bật, ghi chú sẽ có thời gian tạo và thời gian chỉnh sửa từ Roam được thêm dưới dạng thuộc tính.
 
 [importer.roam-json.name-title-property]
 original=Add YAML title
-translation=Ajouter le titre en YAML
+translation=Thêm tiêu đề YAML
 
 [importer.roam-json.desc-title-property]
 original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Si cette option est activée, les notes auront leur titre complet ajouté comme propriété (indépendamment des caractères interdits dans les noms de fichiers).
+translation=Nếu đã bật, ghi chú sẽ có tiêu đề đầy đủ được thêm dưới dạng thuộc tính (bất kể ký tự không hợp lệ trong tên tệp).
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
-translation=Le titre est vide
+translation=Tiêu đề trống
 
 [importer.roam-json.reason-unexpected-extension]
 original=Unexpected file extension
-translation=Extension de fichier inattendue
+translation=Extension tệp không mong đợi
 
 [importer.roam-json.reason-file-exists]
 original=File already exists
-translation=Le fichier existe déjà
+translation=Tệp đã tồn tại
 
 [importer.textbundle.name]
 original=Textbundle files
-translation=Fichiers Textbundle
+translation=Tệp Textbundle
 
 [importer.textbundle.option-text]
 original=Textbundle (.textbundle, .textpack)
@@ -2060,19 +2060,19 @@ translation=Textbundle
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
-translation=En raison de limitations de la plateforme, seuls les fichiers textpack et zip peuvent être importés depuis cet appareil. Ouvrez votre coffre sur un Mac pour importer des fichiers textbundle.
+translation=Do hạn chế của nền tảng, chỉ có thể nhập tệp textpack và zip từ thiết bị này. Mở kho của bạn trên Mac để nhập tệp textbundle.
 
 [importer.textbundle.reason-no-markdown]
 original=The textbundle does not contain markdown
-translation=Le textbundle ne contient pas de Markdown
+translation=Textbundle không chứa Markdown
 
 [importer.textbundle.reason-not-media]
 original=the file is not a media or markdown file.
-translation=le fichier n'est ni un média ni un fichier Markdown.
+translation=tệp không phải là tệp phương tiện hoặc Markdown.
 
 [importer.textbundle.reason-already-exists]
 original=the file already exists.
-translation=le fichier existe déjà.
+translation=tệp đã tồn tại.
 
 [importer.tomboy.name]
 original=Tomboy/Gnote
@@ -2088,44 +2088,44 @@ translation=Tomboy/Gnote
 
 [importer.tomboy.label-id]
 original=Tomboy ID
-translation=l'identifiant Tomboy
+translation=Tomboy ID
 
 [importer.tomboy.desc-files-mac]
 original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : ~/Library/Application Support/Tomboy
+translation=Ghi chú Tomboy thường được tìm thấy tại: ~/Library/Application Support/Tomboy
 
 [importer.tomboy.desc-files-windows]
 original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : %APPDATA%\\\\Tomboy
+translation=Ghi chú Tomboy thường được tìm thấy tại: %APPDATA%\\Tomboy
 
 [importer.tomboy.desc-files-linux]
 original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
-translation=Les notes Tomboy se trouvent généralement dans : ~/.local/share/tomboy - ou GNote : ~/.local/share/gnote
+translation=Ghi chú Tomboy thường được tìm thấy tại: ~/.local/share/tomboy - hoặc GNote: ~/.local/share/gnote
 
 [importer.tomboy.name-todo]
 original=Convert TODO lists to checkboxes
-translation=Convertir les listes TODO en cases à cocher
+translation=Chuyển đổi danh sách TODO thành hộp kiểm
 
 [importer.tomboy.desc-todo]
 original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
-translation=Lorsque cette option est activée, les listes des notes dont le titre contient « TODO » sont converties en listes de tâches avec cases à cocher. Les éléments barrés sont marqués comme terminés.
+translation=Khi đã bật, danh sách trong ghi chú có "TODO" trong tiêu đề sẽ được chuyển đổi thành danh sách tác vụ có hộp kiểm. Các mục gạch ngang sẽ được đánh dấu là đã hoàn thành.
 
 [importer.tomboy.name-keep-title]
 original=Keep title in Markdown
-translation=Conserver le titre dans le Markdown
+translation=Giữ tiêu đề trong Markdown
 
 [importer.tomboy.desc-keep-title]
 original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
-translation=Choisissez si le titre de la note doit être conservé dans le contenu Markdown. L'option automatique ne conserve les titres que lorsque des caractères spéciaux sont perdus lors de la conversion du nom de fichier.
+translation=Chọn có giữ tiêu đề ghi chú trong nội dung Markdown hay không. Tùy chọn tự động chỉ giữ tiêu đề khi các ký tự đặc biệt bị mất trong quá trình chuyển đổi tên tệp.
 
 [importer.tomboy.option-automatic]
 original=Automatic
-translation=Automatique
+translation=Tự động
 
 [importer.tomboy.option-keep-titles]
 original=Keep titles
-translation=Conserver les titres
+translation=Giữ tiêu đề
 
 [importer.tomboy.option-filename-only]
 original=Filename only
-translation=Nom de fichier seulement
+translation=Chỉ tên tệp

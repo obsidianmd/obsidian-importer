@@ -1,0 +1,2131 @@
+[command.import-notes]
+original=Import notes
+translation=নোট ইম্পোর্ট করুন
+
+[nouns.file-with-count]
+original={{count}} file
+translation={{count}}টা ফাইল
+
+[nouns.file-with-count_plural]
+original={{count}} files
+translation={{count}}টা ফাইল
+
+[nouns.note-with-count]
+original={{count}} note
+translation={{count}}টি নোট
+
+[nouns.note-with-count_plural]
+original={{count}} notes
+translation={{count}}টি নোট
+
+[nouns.item-with-count]
+original={{count}} item
+translation={{count}}টি আইটেম
+
+[nouns.item-with-count_plural]
+original={{count}} items
+translation={{count}}টি আইটেম
+
+[nouns.record-with-count]
+original={{count}} record
+translation={{count}}টি রেকর্ড
+
+[nouns.record-with-count_plural]
+original={{count}} records
+translation={{count}}টি রেকর্ড
+
+[nouns.base-with-count]
+original={{count}} base
+translation={{count}}টি বেস
+
+[nouns.base-with-count_plural]
+original={{count}} bases
+translation={{count}}টি বেস
+
+[nouns.template-with-count]
+original={{count}} template
+translation={{count}}টি টেমপ্লেট
+
+[nouns.template-with-count_plural]
+original={{count}} templates
+translation={{count}}টি টেমপ্লেট
+
+[nouns.failure-with-count]
+original={{count}} failure
+translation={{count}}টি ব্যর্থতা
+
+[nouns.failure-with-count_plural]
+original={{count}} failures
+translation={{count}}টি ব্যর্থতা
+
+[nouns.second-with-count]
+original={{count}} second
+translation={{count}} সেকেন্ড
+
+[nouns.second-with-count_plural]
+original={{count}} seconds
+translation={{count}} সেকেন্ড
+
+[nouns.relation-placeholder-with-count]
+original={{count}} relation placeholder
+translation={{count}}টি রিলেশন প্লেসহোল্ডার
+
+[nouns.relation-placeholder-with-count_plural]
+original={{count}} relation placeholders
+translation={{count}}টি রিলেশন প্লেসহোল্ডার
+
+[nouns.linked-database-with-count]
+original={{count}} linked database
+translation={{count}}টি লিঙ্কড ডাটাবেস
+
+[nouns.linked-database-with-count_plural]
+original={{count}} linked databases
+translation={{count}}টি লিঙ্কড ডাটাবেস
+
+[nouns.mention-link-with-count]
+original={{count}} mention link
+translation={{count}}টি মেনশন লিঙ্ক
+
+[nouns.mention-link-with-count_plural]
+original={{count}} mention links
+translation={{count}}টি মেনশন লিঙ্ক
+
+[nouns.synced-reference-with-count]
+original={{count}} synced child reference
+translation={{count}}টি সিঙ্ক হয়েছে চাইল্ড রেফারেন্স
+
+[nouns.synced-reference-with-count_plural]
+original={{count}} synced child references
+translation={{count}}টি সিঙ্ক হয়েছে চাইল্ড রেফারেন্স
+
+[nouns.new-item-with-count]
+original={{count}} new item
+translation={{count}}টি নতুন আইটেম
+
+[nouns.new-item-with-count_plural]
+original={{count}} new items
+translation={{count}}টি নতুন আইটেম
+
+[nouns.page-with-count]
+original={{count}} page
+translation={{count}}টি পৃষ্ঠা
+
+[nouns.page-with-count_plural]
+original={{count}} pages
+translation={{count}}টি পৃষ্ঠা
+
+[group.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[group.notion.name]
+original=Notion
+translation=Notion
+
+[modal.title-pick-format]
+original=Import data into Obsidian
+translation=Obsidian-এ ডেটা ইম্পোর্ট করুন
+
+[modal.title-choose-method]
+original=Choose how to import
+translation=ইম্পোর্টের পদ্ধতি নির্বাচন করুন
+
+[modal.title-import-from]
+original=Import from {{format}}
+translation={{format}} থেকে ইম্পোর্ট করুন
+
+[modal.search-placeholder]
+original=Filter...
+translation=ফিল্টার...
+
+[modal.msg-no-formats]
+original=No formats found.
+translation=কোনো ফরম্যাট পাওয়া যায়নি।
+
+[modal.button-continue]
+original=Continue
+translation=চালিয়ে যান
+
+[modal.button-import]
+original=Import
+translation=ইম্পোর্ট
+
+[modal.button-back]
+original=Back
+translation=ফিরে যান
+
+[modal.button-help]
+original=Help
+translation=সহায়তা
+
+[modal.button-cancel]
+original=Cancel
+translation=বাতিল
+
+[modal.button-pause]
+original=Pause
+translation=বিরতি দিন
+
+[modal.button-resume]
+original=Resume
+translation=পুনরায় শুরু করুন
+
+[modal.button-stop]
+original=Stop
+translation=বন্ধ করুন
+
+[modal.button-save-report]
+original=Save report
+translation=রিপোর্ট সংরক্ষণ করুন
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=ইম্পোর্ট রিপোর্ট সংরক্ষণ করা যায়নি।
+
+[modal.button-import-more]
+original=Import more
+translation=আরও ইম্পোর্ট করুন
+
+[modal.button-done]
+original=Done
+translation=সম্পন্ন
+
+[modal.msg-unexpected-auth]
+original=Unexpected auth event. Please restart the auth process.
+translation=অপ্রত্যাশিত অথ ইভেন্ট। অনুগ্রহ করে অথ প্রক্রিয়া রিস্টার্ট করুন।
+
+[progress.stat-imported]
+original=imported
+translation=ইম্পোর্ট হয়েছে
+
+[progress.stat-attachments]
+original=attachments
+translation=অ্যাটাচমেন্ট
+
+[progress.stat-remaining]
+original=remaining
+translation=বাকি আছে
+
+[progress.stat-skipped]
+original=skipped
+translation=এড়িয়ে যাওয়া
+
+[progress.stat-failed]
+original=failed
+translation=ব্যর্থ
+
+[progress.label-skipped]
+original=Skipped: 
+translation=এড়িয়ে যাওয়া: 
+
+[progress.label-failed]
+original=Failed: 
+translation=ব্যর্থ: 
+
+[progress.label-entry]
+original="{{name}}"
+translation="{{name}}"
+
+[progress.label-entry-with-reason]
+original="{{name}}" because {{reason}}
+translation="{{name}}" কারণ {{reason}}
+
+[progress.label-paused]
+original=Paused
+translation=বিরতি দেওয়া হয়েছে
+
+[progress.label-paused-with]
+original=Paused - {{status}}
+translation=বিরতি দেওয়া হয়েছে - {{status}}
+
+[progress.label-importing]
+original=Importing
+translation=ইম্পোর্ট হচ্ছে
+
+[progress.label-remaining]
+original={{count}} remaining...
+translation={{count}}টি বাকি আছে...
+
+[progress.label-remaining_plural]
+original={{count}} remaining...
+translation={{count}}টি বাকি আছে...
+
+[progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=বিরতি দেওয়া হয়েছে - {{count}}টি বাকি
+
+[progress.label-paused-remaining_plural]
+original=Paused - {{count}} remaining
+translation=বিরতি দেওয়া হয়েছে - {{count}}টি বাকি
+
+[progress.status-stopping]
+original=Stopping...
+translation=থামানো হচ্ছে...
+
+[progress.msg-stopped]
+original=Import stopped.
+translation=ইম্পোর্ট থামানো হয়েছে।
+
+[progress.msg-errors]
+original=Import finished with errors.
+translation=ইম্পোর্ট ত্রুটিসহ সম্পন্ন হয়েছে।
+
+[progress.msg-complete]
+original=Import complete.
+translation=ইম্পোর্ট সম্পন্ন।
+
+[progress.msg-imported-count]
+original={{count}} note imported
+translation={{count}}টি নোট ইম্পোর্ট হয়েছে
+
+[progress.msg-imported-count_plural]
+original={{count}} notes imported
+translation={{count}}টি নোট ইম্পোর্ট হয়েছে
+
+[progress.msg-click-to-show]
+original={{counts}}. Click to show.
+translation={{counts}}। দেখতে ক্লিক করুন।
+
+[progress.status-waiting]
+original=Waiting {{duration}} ({{reason}})
+translation=অপেক্ষা করা হচ্ছে {{duration}} ({{reason}})
+
+[progress.status-standardizing]
+original=Standardizing Markdown ({{current}}/{{total}})
+translation=Markdown মানসম্মত করা হচ্ছে ({{current}}/{{total}})
+
+[progress.label-finalization]
+original=Markdown finalization
+translation=Markdown চূড়ান্তকরণ
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} {{importer}} ইম্পোর্ট লগ
+
+[report.title]
+original={{importer}} import
+translation={{importer}} ইম্পোর্ট
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation={{when}} সম্পন্ন হয়েছে। {{counts}}।
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation={{when}} থামানো হয়েছে। {{counts}}।
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=ব্যর্থ ({{count}})
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=এড়িয়ে যাওয়া ({{count}})
+
+[report.heading-messages]
+original=Messages
+translation=বার্তাসমূহ
+
+[report.count-notes]
+original={{count}} note imported
+translation={{count}}টি নোট ইম্পোর্ট হয়েছে
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation={{count}}টি নোট ইম্পোর্ট হয়েছে
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation={{count}}টি আটাচমেন্ট ডাউনলোড হয়েছে
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation={{count}}টি আটাচমেন্ট ডাউনলোড হয়েছে
+
+[report.count-skipped]
+original={{count}} item skipped
+translation={{count}}টি আইটেম এড়িয়ে যাওয়া হয়েছে
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation={{count}}টি আইটেম এড়িয়ে যাওয়া হয়েছে
+
+[report.count-failed]
+original={{count}} item failed
+translation={{count}}টি আইটেম ব্যর্থ হয়েছে
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation={{count}}টি আইটেম ব্যর্থ হয়েছে
+
+[source.name]
+original=Files to import
+translation=ইম্পোর্ট করার ফাইল
+
+[source.desc]
+original=Pick the files that you want to import.
+translation=আপনি যে ফাইলগুলো ইম্পোর্ট করতে চান সেগুলো বেছে নিন।
+
+[source.button-choose-file]
+original=Choose file
+translation=ফাইল নির্বাচন করুন
+
+[source.button-choose-files]
+original=Choose files
+translation=ফাইল নির্বাচন করুন
+
+[source.button-choose-folders]
+original=Choose folders
+translation=ফোল্ডার নির্বাচন করুন
+
+[source.dialog-pick-files]
+original=Pick files to import
+translation=ইম্পোর্ট করার জন্য ফাইল বাছাই করুন
+
+[source.dialog-pick-folders]
+original=Folders to import
+translation=ইম্পোর্ট করার ফোল্ডার
+
+[source.msg-reading-folders]
+original=Reading folders...
+translation=ফোল্ডার পড়া হচ্ছে...
+
+[source.msg-nothing-to-import]
+original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
+translation=এখানে ইম্পোর্ট করার কিছু নেই। {{extensions}} ফাইল, অথবা সেগুলো ধারণকারী একটি ফোল্ডার বাছাই করুন।
+
+[source.msg-will-import]
+original={{files}} will be imported: 
+translation={{files}} ইম্পোর্ট করা হবে: 
+
+[output.label-source-id]
+original=source ID
+translation=সোর্স ID
+
+[output.name-save-source-id]
+original=Save {{label}}
+translation={{label}} সংরক্ষণ করুন
+
+[output.desc-save-source-id]
+original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
+translation=নোটের প্রপার্টিতে {{label}} যোগ করুন যাতে ভবিষ্যতে ইম্পোর্ট করার সময় সরানো বা নাম পরিবর্তিত নোট চিনতে পারে।
+
+[output.name-folder]
+original=Output folder
+translation=আউটপুট ফোল্ডার
+
+[output.desc-folder]
+original=Where imported notes will be saved. Leave blank to use the top level of the vault.
+translation=যেখানে ইম্পোর্ট করা নোট সংরক্ষণ করা হবে। ভল্টের শীর্ষ স্তর ব্যবহার করতে ফাঁকা ছেড়ে দিন।
+
+[output.name-attachments]
+original=Attachment location
+translation=আটাচমেন্টের অবস্থান
+
+[output.desc-attachments]
+original=Where imported images and files will be saved.
+translation=যেখানে ইম্পোর্ট করা ছবি এবং ফাইল সংরক্ষণ করা হবে।
+
+[output.name-subfolder]
+original=Subfolder name
+translation=সাবফোল্ডারের নাম
+
+[output.desc-subfolder]
+original=Folder to use inside each imported note's folder.
+translation=প্রতিটি ইম্পোর্ট করা নোটের ফোল্ডারের ভিতরে ব্যবহার করতে ফোল্ডার।
+
+[output.name-attachment-folder]
+original=Attachment folder
+translation=আটাচমেন্ট ফোল্ডার
+
+[output.desc-attachment-folder]
+original=Folder path from the top level of the vault.
+translation=ভল্টের শীর্ষ স্তর থেকে ফোল্ডারের অবস্থান।
+
+[output.name-duplicates]
+original=Existing notes
+translation=বিদ্যমান নোট
+
+[output.desc-duplicates]
+original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
+translation=ইম্পোর্ট করা নোট আপনার ভল্টে বিদ্যমান একটির সাথে মিললে কী করবেন তা নির্বাচন করুন। "{{update}}" অপরিবর্তিত নোট এড়িয়ে যায় এবং পরিবর্তনের তারিখ পাওয়া গেলে নতুন স্থানীয় সম্পাদনা সংরক্ষণ করে।
+
+[output.option-create-copy]
+original=Create a copy
+translation=একটি কপি তৈরি করুন
+
+[output.option-skip]
+original=Skip
+translation=এড়িয়ে যান
+
+[output.option-update]
+original=Update
+translation=আপডেট
+
+[output.option-attachments-vault]
+original=Vault folder
+translation=ভল্ট রুট
+
+[output.option-attachments-folder]
+original=In the folder specified below
+translation=নিচে যে ফোল্ডারটি নির্দেশ করা আছে
+
+[output.option-attachments-note]
+original=Same folder as the note
+translation=নোটের মতো একই ফোল্ডার
+
+[output.option-attachments-subfolder]
+original=In subfolder under the note
+translation=নোটের নিচে উপ-ফোল্ডারে
+
+[common.msg-pick-file]
+original=Please pick at least one file to import.
+translation=ইম্পোর্ট করার জন্য অন্তত একটি ফাইল বাছাই করুন।
+
+[common.msg-pick-output]
+original=Please select a location to export to.
+translation=এক্সপোর্ট করার জন্য একটি অবস্থান নির্বাচন করুন।
+
+[common.msg-pick-import-location]
+original=Please select a location to import your files to.
+translation=আপনার ফাইল ইম্পোর্ট করার জন্য একটি অবস্থান নির্বাচন করুন।
+
+[common.msg-unknown-error]
+original=Unknown error
+translation=অজানা ত্রুটি
+
+[common.name-export]
+original=Export your data
+translation=আপনার ডেটা এক্সপোর্ট করুন
+
+[common.label-learn-more]
+original=Learn more.
+translation=আরও জানুন।
+
+[common.button-instructions]
+original=Instructions
+translation=নির্দেশনা
+
+[common.button-open]
+original=Open
+translation=খুলুন
+
+[common.status-processing]
+original=Processing {{name}}
+translation={{name}} প্রসেস করা হচ্ছে
+
+[common.status-importing-note]
+original=Importing note {{name}}
+translation=নোট {{name}} ইম্পোর্ট করা হচ্ছে
+
+[common.status-importing-attachment]
+original=Importing attachment {{name}}
+translation=আটাচমেন্ট {{name}} ইম্পোর্ট করা হচ্ছে
+
+[common.status-cancelled]
+original=Import cancelled
+translation=ইম্পোর্ট বাতিল করা হয়েছে
+
+[reason.already-in-vault]
+original=it is already in the vault
+translation=এটি ইতিমধ্যে ভল্টে আছে
+
+[reason.unchanged-since-import]
+original=it has not changed since the last import
+translation=শেষ ইম্পোর্টের পর থেকে এটি পরিবর্তিত হয়নি
+
+[reason.edited-since-import]
+original=it has been edited in Obsidian since the last import
+translation=শেষ ইম্পোর্টের পর থেকে এটি Obsidian-এ সম্পাদিত হয়েছে
+
+[reason.file-not-in-vault]
+original=The imported file did not appear in the vault.
+translation=ইম্পোর্ট করা ফাইলটি ভল্টে দেখা যায়নি।
+
+[reason.folder-not-created]
+original=Failed to create folder at "{{path}}"
+translation="{{path}}"-এ ফোল্ডার তৈরি করতে ব্যর্থ
+
+[tree.button-select-all]
+original=Select all
+translation=সব নির্বাচন করুন
+
+[tree.button-deselect-all]
+original=Deselect all
+translation=সব নির্বাচন বাতিল করুন
+
+[tree.button-load]
+original=Load
+translation=লোড
+
+[tree.button-loading]
+original=Loading...
+translation=লোড হচ্ছে...
+
+[tree.button-refresh]
+original=Refresh
+translation=রিফ্রেশ
+
+[request.msg-unauthorized]
+original={{service}} did not accept the request for {{subject}}. {{credential}}
+translation={{service}} {{subject}}-এর জন্য অনুরোধ গ্রহণ করেনি। {{credential}}
+
+[request.msg-forbidden]
+original={{service}} would not give access to {{subject}}. {{credential}}
+translation={{service}} {{subject}}-এ অ্যাক্সেস দেয়নি। {{credential}}
+
+[request.msg-not-found]
+original={{service}} could not find {{subject}}.
+translation={{service}} {{subject}} খুঁজে পায়নি।
+
+[request.msg-rate-limited]
+original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
+translation={{service}} {{subject}} পড়ার গতি সীমিত করছে। কয়েক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।
+
+[request.msg-timed-out]
+original={{service}} took too long to return {{subject}}. Try again shortly.
+translation={{service}} {{subject}} ফেরত দিতে অনেক বেশি সময় নিচ্ছে। কিছুক্ষণ পর আবার চেষ্টা করুন।
+
+[request.msg-unavailable]
+original={{service}} could not return {{subject}} right now. Try again shortly.
+translation={{service}} এই মুহূর্তে {{subject}} ফেরত দিতে পারছে না। কিছুক্ষণ পর আবার চেষ্টা করুন।
+
+[request.msg-failed-with-code]
+original=Could not read {{subject}}: {{message}} ({{code}})
+translation={{subject}} পড়া যায়নি: {{message}} ({{code}})
+
+[request.msg-failed-with-message]
+original=Could not read {{subject}}: {{message}}
+translation={{subject}} পড়া যায়নি: {{message}}
+
+[request.msg-failed-with-reported-code]
+original=Could not read {{subject}}. {{service}} reported {{code}}.
+translation={{subject}} পড়া যায়নি। {{service}} {{code}} জানিয়েছে।
+
+[request.msg-failed]
+original=Could not read {{subject}}.
+translation={{subject}} পড়া যায়নি।
+
+[template.msg-intro]
+original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
+translation=আপনার ডেটা কীভাবে ইমপোর্ট করা হবে তা সাজান। ফিল্ডের মান রেফারেন্স করতে {{syntax}} সিনট্যাক্স ব্যবহার করুন।
+
+[template.name-title]
+original=Note title
+translation=ফাইলের নাম পরিবর্তন করুন
+
+[template.desc-title]
+original=Template for the note title. Use {{field_name}} to insert values.
+translation=নোটের শিরোনামের জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
+
+[template.name-location]
+original=Note location
+translation=নোটের অবস্থান
+
+[template.desc-location]
+original=Template for note location/path. Use {{field_name}} to organize notes.
+translation=নোটের অবস্থান/পাথের জন্য টেমপ্লেট। নোট সাজাতে {{field_name}} ব্যবহার করুন।
+
+[template.name-content]
+original=Note content
+translation=নোটের বিষয়বস্তু
+
+[template.desc-content]
+original=Template for the note content. Use {{field_name}} to insert values.
+translation=নোটের বিষয়বস্তুর জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
+
+[template.heading-properties]
+original=Properties
+translation=প্রপার্টি
+
+[template.column-property-name]
+original=Property name
+translation=বৈশিষ্ট্যের নাম
+
+[template.column-property-value]
+original=Property value
+translation=বৈশিষ্ট্যের মান
+
+[template.column-example]
+original=Example
+translation=উদাহরণ
+
+[template.action-delete-property]
+original=Delete property
+translation=বৈশিষ্ট্য মোছা
+
+[template.msg-title-required]
+original=Please provide a note title template.
+translation=অনুগ্রহ করে একটি নোটের শিরোনাম টেমপ্লেট দিন।
+
+[importer.airtable-api.name]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.option-text]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-id]
+original=Airtable record ID
+translation=Airtable রেকর্ড ID
+
+[importer.airtable-api.name-token]
+original=Airtable personal access token
+translation=Airtable ব্যক্তিগত অ্যাক্সেস টোকেন
+
+[importer.airtable-api.desc-token]
+original=Create a personal access token in your Airtable account settings. 
+translation=আপনার Airtable অ্যাকাউন্ট সেটিংসে একটি ব্যক্তিগত অ্যাক্সেস টোকেন তৈরি করুন। 
+
+[importer.airtable-api.link-get-token]
+original=Get token
+translation=টোকেন নিন
+
+[importer.airtable-api.name-tables]
+original=Tables to import
+translation=ইমপোর্ট করার টেবিল
+
+[importer.airtable-api.desc-tables]
+original=Load your Airtable bases and tables, then choose what to import.
+translation=আপনার Airtable বেস এবং টেবিল লোড করুন, তারপর কী ইমপোর্ট করবেন তা নির্বাচন করুন।
+
+[importer.airtable-api.hint-tables]
+original=Load your Airtable bases and tables to get started.
+translation=শুরু করতে আপনার Airtable বেস এবং টেবিল লোড করুন।
+
+[importer.airtable-api.msg-fetching-bases]
+original=Fetching bases...
+translation=বেস আনা হচ্ছে...
+
+[importer.airtable-api.msg-no-bases]
+original=No bases found.
+translation=কোনো বেস পাওয়া যায়নি।
+
+[importer.airtable-api.label-service]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-subject]
+original=your bases
+translation=আপনার বেসগুলো
+
+[importer.airtable-api.label-credential]
+original=Check that your personal access token is current and has access to them.
+translation=আপনার ব্যক্তিগত অ্যাক্সেস টোকেনটি বর্তমান এবং সেগুলোতে অ্যাক্সেস আছে কিনা পরীক্ষা করুন।
+
+[importer.airtable-api.name-formulas]
+original=Convert formulas
+translation=সূত্র রূপান্তর করুন
+
+[importer.airtable-api.desc-formulas]
+original=Try to convert formulas to Obsidian syntax, or import as static values.
+translation=সূত্রগুলো Obsidian সিনট্যাক্সে রূপান্তর করার চেষ্টা করুন, অথবা স্ট্যাটিক মান হিসেবে ইমপোর্ট করুন।
+
+[importer.airtable-api.option-formula-hybrid]
+original=Obsidian syntax (with fallback)
+translation=Obsidian সিনট্যাক্স (ফলব্যাকসহ)
+
+[importer.airtable-api.option-formula-static]
+original=Static values only
+translation=শুধুমাত্র স্ট্যাটিক মান
+
+[importer.airtable-api.name-download-attachments]
+original=Download attachments
+translation=আটাচমেন্টগুলো ডাউনলোড করুন
+
+[importer.airtable-api.desc-download-attachments]
+original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
+translation=আটাচমেন্ট ফাইল স্থানীয় ভল্টে ডাউনলোড করুন। নিষ্ক্রিয় থাকলে বা ডাউনলোড ব্যর্থ হলে, বাহ্যিক URL ব্যবহার করা হবে।
+
+[importer.airtable-api.name-view-property]
+original=View property name
+translation=ভিউ বৈশিষ্ট্যের নাম
+
+[importer.airtable-api.desc-view-property]
+original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
+translation=একটি রেকর্ড কোন ভিউসমূহে আছে তা ট্র্যাক করার জন্য বৈশিষ্ট্যের নাম। প্রতিটি রেকর্ডে এটি যেসব ভিউতে দেখা যায় তার নামের একটি তালিকা থাকবে।
+
+[importer.airtable-api.msg-token-first]
+original=Please enter your Airtable personal access token first.
+translation=অনুগ্রহ করে প্রথমে আপনার Airtable ব্যক্তিগত অ্যাক্সেস টোকেন দিন।
+
+[importer.airtable-api.msg-token-missing]
+original=Please enter your Airtable personal access token.
+translation=অনুগ্রহ করে আপনার Airtable ব্যক্তিগত অ্যাক্সেস টোকেন দিন।
+
+[importer.airtable-api.msg-load-bases-failed]
+original=Failed to load bases: {{error}}
+translation=বেস লোড করতে ব্যর্থ: {{error}}
+
+[importer.airtable-api.msg-load-tables-failed]
+original=Failed to load tables for "{{base}}": {{error}}
+translation="{{base}}"-এর জন্য টেবিল লোড করতে ব্যর্থ: {{error}}
+
+[importer.airtable-api.msg-pick-table]
+original=Please select at least one table to import.
+translation=অনুগ্রহ করে ইমপোর্ট করতে অন্তত একটি টেবিল নির্বাচন করুন।
+
+[importer.airtable-api.msg-loading-fields]
+original=Loading fields...
+translation=ফিল্ড লোড হচ্ছে...
+
+[importer.airtable-api.msg-no-fields]
+original=No fields found in selected tables. Please check your selection.
+translation=নির্বাচিত টেবিলে কোনো ফিল্ড পাওয়া যায়নি। অনুগ্রহ করে আপনার নির্বাচন পরীক্ষা করুন।
+
+[importer.airtable-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=ইমপোর্ট ব্যর্থ: {{error}}
+
+[importer.airtable-api.label-base-position]
+original= (base {{index}} of {{total}})
+translation= (বেস {{index}}/{{total}})
+
+[importer.airtable-api.label-base]
+original=Base: {{name}}
+translation=বেস: {{name}}
+
+[importer.airtable-api.label-linked-table]
+original=Linked table: {{name}}
+translation=লিঙ্কড টেবিল: {{name}}
+
+[importer.airtable-api.label-table-view]
+original={{table}} > {{view}}
+translation={{table}} > {{view}}
+
+[importer.airtable-api.label-import]
+original=Airtable API import
+translation=Airtable API ইমপোর্ট
+
+[importer.airtable-api.status-connecting]
+original=Connecting to Airtable API
+translation=Airtable API-তে সংযোগ করা হচ্ছে
+
+[importer.airtable-api.status-loading-tables]
+original=Loading tables for {{base}}
+translation={{base}}-এর জন্য টেবিল লোড হচ্ছে
+
+[importer.airtable-api.status-fetching-tables]
+original=Fetching tables for base {{base}}...
+translation={{base}} বেসের জন্য টেবিল আনা হচ্ছে...
+
+[importer.airtable-api.status-found-bases]
+original=Found {{bases}} to import
+translation=ইমপোর্ট করার জন্য {{bases}} পাওয়া গেছে
+
+[importer.airtable-api.status-fetching-base]
+original=Fetching data from {{base}}{{position}}
+translation={{base}}{{position}} থেকে ডেটা আনা হচ্ছে
+
+[importer.airtable-api.status-preparing-records]
+original=Preparing records from {{base}}{{position}}
+translation={{base}}{{position}} থেকে রেকর্ড প্রস্তুত করা হচ্ছে
+
+[importer.airtable-api.status-reading-names]
+original=Reading names from {{table}}{{position}}
+translation={{table}}{{position}} থেকে নাম পঠন করা হচ্ছে
+
+[importer.airtable-api.status-planning]
+original=Working out where {{table}}{{position}} goes
+translation={{table}}{{position}} যেখানে যাবে তা নির্ধারণ করা হচ্ছে
+
+[importer.airtable-api.status-fetching-records]
+original=Fetching records from {{table}}{{position}}
+translation={{table}}{{position}} থেকে রেকর্ড আনা হচ্ছে
+
+[importer.airtable-api.status-fetched-records]
+original=Fetched {{records}} from {{table}}{{position}}
+translation={{table}}{{position}} থেকে {{records}} আনা হয়েছে
+
+[importer.airtable-api.status-fetching-view]
+original=Fetching view {{view}} from {{table}}{{position}}
+translation={{table}}{{position}} থেকে {{view}} ভিউ আনা হচ্ছে
+
+[importer.airtable-api.status-creating-notes]
+original=Creating notes in {{table}}{{position}}
+translation={{table}}{{position}}-এ নোট তৈরি করা হচ্ছে
+
+[importer.airtable-api.status-updating-types]
+original=Updating property types
+translation=বৈশিষ্ট্যের ধরন আপডেট করা হচ্ছে
+
+[importer.airtable-api.status-complete]
+original=Import complete
+translation=ইমপোর্ট সম্পন্ন
+
+[importer.airtable-api.status-rate-limited]
+original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
+translation=রেট লিমিটেড, {{seconds}}সে অপেক্ষা করা হচ্ছে (প্রচেষ্টা {{attempt}}/{{total}})...
+
+[importer.airtable-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}
+translation=আটাচমেন্ট ডাউনলোড হচ্ছে: {{name}}
+
+[importer.airtable-api.reason-no-record-names]
+original=Could not read record names
+translation=রেকর্ডের নাম পড়া যায়নি
+
+[importer.airtable-api.reason-empty-record]
+original=Empty record
+translation=খালি রেকর্ড
+
+[importer.airtable-api.desc-no-modified-time]
+original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
+translation=Airtable জানায় না কোনো রেকর্ড সর্বশেষ কখন পরিবর্তিত হয়েছে, তাই "{{update}}" এর পরিবর্তে নোটটিকে রেকর্ডের সাথে তুলনা করে। আপনি নিজে সম্পাদনা করেছেন এমন নোট পরিবর্তিত হিসেবে গণ্য হবে এবং ওভাররাইট করা হবে।
+
+[importer.apple-notes.name]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.option-text]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.label-id]
+original=Apple Notes ID
+translation=Apple Notes আইডি
+
+[importer.apple-notes.msg-platform]
+original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
+translation=প্ল্যাটফর্ম সীমাবদ্ধতার কারণে, এই ডিভাইস থেকে Apple Notes এক্সপোর্ট করা যায় না। Apple Notes থেকে এক্সপোর্ট করতে একটি Mac-এ আপনার ভল্ট খুলুন।
+
+[importer.apple-notes.name-prefix-format]
+original=File prefix format
+translation=ফাইল প্রিফিক্স ফরম্যাটিং
+
+[importer.apple-notes.desc-prefix-format]
+original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
+translation=ফাইলের নামে তৈরির তারিখ প্রিফিক্সের ফরম্যাটিং। বছর, মাস, দিনের জন্য YYYY, MM, DD ব্যবহার করুন। প্রিফিক্স না চাইলে ফাঁকা ছেড়ে দিন।
+
+[importer.apple-notes.name-omit-first-line]
+original=Omit first line
+translation=প্রথম লাইন বাদ দিন
+
+[importer.apple-notes.desc-omit-first-line]
+original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
+translation=অক্ষরে প্রথম লাইন অন্তর্ভুক্ত করবেন না, কারণ Apple Notes এটি শিরোনাম হিসেবে ব্যবহার করে। এটি এখনো নোটের নাম হিসেবে ব্যবহৃত হবে।
+
+[importer.apple-notes.name-handwriting]
+original=Include handwriting text
+translation=হাতের লেখার অক্ষর অন্তর্ভুক্ত করুন
+
+[importer.apple-notes.desc-handwriting]
+original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
+translation=যখন Apple Notes অঙ্কনে হাতের লেখা শনাক্ত করে, তখন অঙ্কনের আগে এটি অক্ষর হিসেবে অন্তর্ভুক্ত করুন।
+
+[importer.apple-notes.name-data-folder]
+original=Apple Notes data folder
+translation=Apple Notes ডেটা ফোল্ডার
+
+[importer.apple-notes.desc-data-folder]
+original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
+translation=macOS শুধুমাত্র তখনই Obsidian-কে আপনার নোটগুলো পড়তে দেয় যখন আপনি সেগুলো যে ফোল্ডারে রাখা আছে সেটি নির্দেশ করেন।
+
+[importer.apple-notes.button-select-folder]
+original=Select folder
+translation=ফোল্ডার নির্বাচন করুন
+
+[importer.apple-notes.msg-wrong-folder]
+original=Ensure you have selected the correct Apple Notes data folder.
+translation=নিশ্চিত করুন যে আপনি সঠিক Apple Notes ডেটা ফোল্ডার নির্বাচন করেছেন।
+
+[importer.apple-notes.msg-dialog-folder]
+original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
+translation=Obsidian-কে Apple Notes ডেটা পড়ার অনুমতি দিতে "group.com.apple.notes" ফোল্ডারটি নির্বাচন করুন।
+
+[importer.apple-notes.msg-import-failed]
+original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
+translation=ডেটা ইম্পোর্ট ব্যর্থ হয়েছে। নিশ্চিত করুন যে আপনি সঠিক Apple Notes ডেটা ফোল্ডার নির্বাচন করেছেন।
+
+[importer.apple-notes.msg-pick-folders]
+original=Please select at least one folder to import.
+translation=ইম্পোর্ট করতে অন্তত একটি ফোল্ডার নির্বাচন করুন।
+
+[importer.apple-notes.name-folders]
+original=Folders to import
+translation=ইম্পোর্ট করার ফোল্ডারসমূহ
+
+[importer.apple-notes.desc-folders]
+original=Pick the folders whose notes to bring across.
+translation=যে ফোল্ডারগুলোর নোট আনতে চান সেগুলো বেছে নিন।
+
+[importer.apple-notes.msg-no-access]
+original=Allow access to your notes to see the folders in them.
+translation=ফোল্ডারগুলো দেখতে আপনার নোটে প্রবেশের অনুমতি দিন।
+
+[importer.apple-notes.msg-no-folders]
+original=No folders found.
+translation=কোনো ফোল্ডার পাওয়া যায়নি।
+
+[importer.apple-notes.msg-database-busy]
+original=Your Apple Notes database is in use. Quit Notes and try again.
+translation=আপনার Apple Notes ডেটাবেস ব্যবহৃত হচ্ছে। Notes বন্ধ করুন এবং আবার চেষ্টা করুন।
+
+[importer.apple-notes.msg-database-unreadable]
+original=Could not open your Apple Notes database. {{hint}}
+translation=আপনার Apple Notes ডেটাবেস খোলা যায়নি। {{hint}}
+
+[importer.apple-notes.msg-read-failed-with-detail]
+original=Could not read your notes: {{detail}}
+translation=আপনার নোটগুলো পড়া যায়নি: {{detail}}
+
+[importer.apple-notes.msg-read-failed]
+original=Could not read your notes.
+translation=আপনার নোটগুলো পড়া যায়নি।
+
+[importer.apple-notes.reason-password-protected]
+original=note is password protected
+translation=নোটটি পাসওয়ার্ড সুরক্ষিত
+
+[importer.apple-notes.reason-duplicate]
+original=note is a duplicate
+translation=নোটটি একটি প্রতিলিপি
+
+[importer.apple-notes.reason-unchanged]
+original=note unchanged since last import
+translation=শেষ ইম্পোর্টের পর থেকে নোট অপরিবর্তিত
+
+[importer.apple-notes.reason-attachment-exists]
+original=attachment already exists
+translation=আটাচমেন্ট ইতিমধ্যে বিদ্যমান
+
+[importer.apple-notes.reason-attachment-unchanged]
+original=attachment unchanged since last import
+translation=শেষ ইম্পোর্টের পর থেকে আটাচমেন্ট অপরিবর্তিত
+
+[importer.apple-notes.reason-not-downloaded]
+original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
+translation=এটি iCloud থেকে ডাউনলোড করা হয়নি - এটি আনতে Apple Notes-এ নোটটি খুলুন
+
+[importer.apple-notes.label-attachment]
+original=Attachment {{id}}
+translation=আটাচমেন্ট {{id}}
+
+[importer.apple-notes.reason-no-attachment-row]
+original=no {{uti}} row to read it from
+translation=এটি পড়ার জন্য কোনো {{uti}} সারি নেই
+
+[importer.apple-notes.label-attachment-in-note]
+original={{name}} in {{note}}
+translation={{note}}-এ {{name}}
+
+[importer.apple-journal.name]
+original=Apple Journal
+translation=Apple Journal
+
+[importer.apple-journal.option-text]
+original=Apple Journal (HTML export)
+translation=Apple Journal (HTML এক্সপোর্ট)
+
+[importer.apple-journal.file-type]
+original=Journal entries
+translation=Journal এন্ট্রি
+
+[importer.apple-journal.desc-files]
+original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
+translation=Journal অ্যাপ থেকে আপনার এন্ট্রিগুলো এক্সপোর্ট করুন, তারপর iCloud Drive-এ লেখা HTML ফাইলগুলো বেছে নিন।
+
+[importer.apple-journal.heading-metadata]
+original=Journal metadata
+translation=Journal মেটাডেটা
+
+[importer.apple-journal.name-front-matter]
+original=Add metadata as frontmatter
+translation=মেটাডেটা ফ্রন্টম্যাটার হিসেবে যোগ করুন
+
+[importer.apple-journal.desc-front-matter]
+original=Capture state-of-mind, contact, and similar tokens in YAML when available.
+translation=পাওয়া গেলে YAML-এ মানসিক অবস্থা, পরিচিতি এবং অনুরূপ টোকেন সংরক্ষণ করুন।
+
+[importer.apple-journal.reason-index-file]
+original=index file is not a journal entry
+translation=ইন্ডেক্স ফাইলটি একটি জার্নাল এন্ট্রি নয়
+
+[importer.bear.name]
+original=Bear
+translation=Bear
+
+[importer.bear.option-text]
+original=Bear (.bear2bk)
+translation=Bear (.bear2bk)
+
+[importer.bear.file-type]
+original=Bear2bk
+translation=Bear2bk
+
+[importer.bear.label-id]
+original=Bear ID
+translation=Bear ID
+
+[importer.bear.desc-export]
+original=Back up your notes in Bear, you will receive a .bear2bk file.
+translation=Bear-এ আপনার নোটগুলো ব্যাকআপ করুন, আপনি একটি .bear2bk ফাইল পাবেন।
+
+[importer.bear.name-flatten-tags]
+original=Flatten nested tags
+translation=নেস্টেড ট্যাগ সমতল করুন
+
+[importer.bear.desc-flatten-tags]
+original=When enabled, tags will be split on slashes (/) during import.
+translation=সক্রিয় থাকলে, ইম্পোর্টের সময় ট্যাগগুলো স্ল্যাশ (/) দিয়ে বিভক্ত করা হবে।
+
+[importer.bear.status-importing-asset]
+original=Importing asset {{name}}
+translation=অ্যাসেট {{name}} ইম্পোর্ট হচ্ছে
+
+[importer.bear.status-updating-links]
+original=Updating internal links…
+translation=অভ্যন্তরীণ লিঙ্ক আপডেট করা হচ্ছে…
+
+[importer.bear.reason-unknown-type]
+original=unknown type of file
+translation=অজানা ধরনের ফাইল
+
+[importer.csv.name]
+original=CSV
+translation=CSV
+
+[importer.csv.option-text]
+original=CSV (.csv)
+translation=CSV (.csv)
+
+[importer.csv.file-type]
+original=CSV
+translation=CSV
+
+[importer.csv.name-header-row]
+original=CSV has header row
+translation=CSV-তে হেডার সারি আছে
+
+[importer.csv.desc-header-row]
+original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=সক্রিয় থাকলে, CSV ফাইলের প্রথম সারি শ্রেণী হেডার হিসেবে ব্যবহৃত হবে।
+
+[importer.csv.msg-pick-file]
+original=Please pick at least one CSV file to import.
+translation=ইমপোর্ট করতে অন্তত একটি CSV ফাইল নির্বাচন করুন।
+
+[importer.csv.msg-one-at-a-time]
+original=CSV files must be imported one at a time.
+translation=CSV ফাইল একবারে একটি করে ইমপোর্ট করতে হবে।
+
+[importer.csv.msg-no-data]
+original=No data found in {{name}}.
+translation={{name}}-এ কোনো ডেটা পাওয়া যায়নি।
+
+[importer.csv.msg-no-configuration]
+original=Configuration is missing.
+translation=কনফিগারেশন অনুপস্থিত।
+
+[importer.csv.status-parsing]
+original=Parsing {{name}}
+translation={{name}} পার্স করা হচ্ছে
+
+[importer.csv.status-creating-note]
+original=Creating note: {{title}}
+translation=নোট তৈরি হচ্ছে: {{title}}
+
+[importer.csv.label-row]
+original=Row {{number}}
+translation=সারি {{number}}
+
+[importer.csv.reason-empty-title]
+original=Empty title
+translation=খালি শিরোনাম
+
+[importer.evernote.name]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.option-text]
+original=Evernote (.enex)
+translation=Evernote (.enex)
+
+[importer.evernote.file-type]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.desc-export]
+original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
+translation=আপনার নোটবুকগুলো ENEX ফরম্যাটে এক্সপোর্ট করুন, প্রতিটি নোটবুকের জন্য একটি .enex ফাইল পাবেন।
+
+[importer.evernote.msg-unresolved-links]
+original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}}টা লিঙ্ক কোনো নোটের সাথে মেলানো যায়নি। একটি ENEX এক্সপোর্টে উল্লেখ থাকে না যে লিঙ্কটি কোন নোটের দিকে নির্দেশ করে, শুধু Evernote-এ প্রদর্শিত শিরোনামটি থাকে, তাই লিঙ্ক তৈরির পর নোটের নাম পরিবর্তন করলে সেটি আর মেলে না। Obsidian এগুলো অমীমাংসিত লিঙ্কের অধীনে তালিকাভুক্ত করে।
+
+[importer.evernote.msg-unresolved-links_plural]
+original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}}টা লিঙ্ক কোনো নোটের সাথে মেলানো যায়নি। একটি ENEX এক্সপোর্টে উল্লেখ থাকে না যে লিঙ্কটি কোন নোটের দিকে নির্দেশ করে, শুধু Evernote-এ প্রদর্শিত শিরোনামটি থাকে, তাই লিঙ্ক তৈরির পর নোটের নাম পরিবর্তন করলে সেটি আর মেলে না। Obsidian এগুলো অমীমাংসিত লিঙ্কের অধীনে তালিকাভুক্ত করে।
+
+[importer.keep.name]
+original=Google Keep
+translation=Google Keep
+
+[importer.keep.option-text]
+original=Google Keep (.zip/.json)
+translation=Google Keep (.zip/.json)
+
+[importer.keep.file-type]
+original=Notes & attachments
+translation=নোট ও আটাচমেন্ট
+
+[importer.keep.desc-export]
+original=Get your Google Keep data from Google Takeout. 
+translation=Google Takeout থেকে আপনার Google Keep ডেটা সংগ্রহ করুন। 
+
+[importer.keep.name-archived]
+original=Import archived notes
+translation=আর্কাইভ করা নোট ইমপোর্ট করুন
+
+[importer.keep.desc-archived]
+original=If imported, files archived in Google Keep will be tagged as archived.
+translation=ইমপোর্ট করলে, Google Keep-এ আর্কাইভ করা ফাইলগুলো আর্কাইভড হিসেবে ট্যাগ করা হবে।
+
+[importer.keep.name-deleted]
+original=Import deleted notes
+translation=মুছে ফেলা নোট ইমপোর্ট করুন
+
+[importer.keep.desc-deleted]
+original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
+translation=ইমপোর্ট করলে, Google Keep-এ মুছে ফেলা ফাইলগুলো মুছে ফেলা হয়েছে হিসেবে ট্যাগ করা হবে। সম্প্রতি মুছে ফেলা হলেই কেবল মুছে ফেলা নোটগুলো আপনার Google এক্সপোর্টে থাকবে।
+
+[importer.keep.reason-invalid-json]
+original=Invalid Google Keep JSON
+translation=অবৈধ Google Keep JSON
+
+[importer.keep.reason-archived]
+original=Archived note
+translation=আর্কাইভ করা নোট
+
+[importer.keep.reason-deleted]
+original=Deleted note
+translation=মুছে ফেলা নোট
+
+[importer.html.name]
+original=HTML files
+translation=HTML ফাইল
+
+[importer.html.option-text]
+original=HTML (.html)
+translation=HTML (.html)
+
+[importer.html.file-type]
+original=HTML
+translation=HTML
+
+[importer.html.name-size-limit]
+original=Attachment size limit (MB)
+translation=আটাচমেন্ট সাইজ সীমা (MB)
+
+[importer.html.name-minimum-image-size]
+original=Minimum image size (px)
+translation=সর্বনিম্ন ছবির আকার (px)
+
+[importer.html.desc-set-zero-to-disable]
+original=Set 0 to disable.
+translation=বন্ধ করতে 0 সেট করুন।
+
+[importer.html.status-downloading]
+original=Downloading attachment for {{name}}
+translation={{name}}-এর জন্য আটাচমেন্ট ডাউনলোড করা হচ্ছে
+
+[importer.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.option-text]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.method-name]
+original=Microsoft account
+translation=Microsoft অ্যাকাউন্ট
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=আপনার Microsoft অ্যাকাউন্টে সাইন ইন করুন এবং OneDrive-এ সিঙ্ক হয়েছে এমন নোটবুকগুলি ইম্পোর্ট করুন। ইন্টারনেট সংযোগ প্রয়োজন।
+
+[importer.onenote.label-id]
+original=OneNote ID
+translation=OneNote আইডি
+
+[importer.onenote.name-incompatible]
+original=Import incompatible attachments
+translation=অসামঞ্জস্যপূর্ণ আটাচমেন্ট ইম্পোর্ট করুন
+
+[importer.onenote.desc-incompatible]
+original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+translation=Obsidian-এ এম্বেড করা যায় না এমন অসামঞ্জস্যপূর্ণ আটাচমেন্ট ইম্পোর্ট করে, যেমন .exe ফাইল।
+
+[importer.onenote.name-account]
+original=Microsoft account
+translation=Microsoft অ্যাকাউন্ট
+
+[importer.onenote.desc-sign-in]
+original=Sign in to import your OneNote notebooks.
+translation=আপনার OneNote নোটবুক ইম্পোর্ট করতে সাইন ইন করুন।
+
+[importer.onenote.desc-sign-in-organization]
+original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
+translation=আপনার OneNote নোটবুক ইম্পোর্ট করতে সাইন ইন করুন। কর্মস্থল বা শিক্ষা প্রতিষ্ঠানের অ্যাকাউন্টের ক্ষেত্রে আপনার প্রতিষ্ঠানের অনুমোদন প্রয়োজন হতে পারে।
+
+[importer.onenote.desc-signed-in]
+original=Signed in as {{name}} ({{email}}).
+translation={{name}} ({{email}}) হিসেবে সাইন ইন করা হয়েছে।
+
+[importer.onenote.button-sign-in]
+original=Sign in
+translation=সাইন ইন
+
+[importer.onenote.button-sign-out]
+original=Sign out
+translation=সাইন আউট
+
+[importer.onenote.button-work-account]
+original=Use work or school access
+translation=কর্মস্থল বা শিক্ষা প্রতিষ্ঠানের অ্যাক্সেস ব্যবহার করুন
+
+[importer.onenote.msg-sign-in-failed]
+original=An error occurred while trying to sign you in.
+translation=সাইন ইন করার সময় একটি ত্রুটি ঘটেছে।
+
+[importer.onenote.msg-sign-in-details]
+original=Click here to show error details
+translation=ত্রুটির বিস্তারিত দেখতে এখানে ক্লিক করুন
+
+[importer.onenote.msg-signed-out]
+original=Sign in to see your OneNote notebooks.
+translation=আপনার OneNote নোটবুক দেখতে সাইন ইন করুন।
+
+[importer.onenote.msg-please-sign-in]
+original=Please sign in to your Microsoft account.
+translation=অনুগ্রহ করে আপনার Microsoft অ্যাকাউন্টে সাইন ইন করুন।
+
+[importer.onenote.name-sections]
+original=Sections to import
+translation=ইম্পোর্ট করার সেকশন
+
+[importer.onenote.desc-sections]
+original=Select a notebook, or sections within it.
+translation=একটি নোটবুক, অথবা এর মধ্যে সেকশন নির্বাচন করুন।
+
+[importer.onenote.msg-loading-notebooks]
+original=Loading notebooks...
+translation=নোটবুক লোড হচ্ছে...
+
+[importer.onenote.msg-no-notebooks]
+original=No notebooks found.
+translation=কোনো নোটবুক পাওয়া যায়নি।
+
+[importer.onenote.msg-scope-refused]
+original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
+translation=OneNote এই সাইন-ইনে আপনার নোটবুকে অ্যাক্সেস দেয়নি। কর্মস্থল বা শিক্ষা প্রতিষ্ঠানের অ্যাক্সেসের জন্য সাইন আউট করে আবার সাইন ইন করুন, যা আপনার প্রতিষ্ঠানকে অনুমোদন করতে হতে পারে।
+
+[importer.onenote.label-service]
+original=OneNote
+translation=OneNote
+
+[importer.onenote.label-subject]
+original=your notebooks
+translation=আপনার নোটবুক
+
+[importer.onenote.label-credential]
+original=Sign out and back in to try again.
+translation=আবার চেষ্টা করতে সাইন আউট করে পুনরায় সাইন ইন করুন।
+
+[importer.onenote.status-finding]
+original=Finding notes to import
+translation=ইম্পোর্ট করার জন্য নোট খোঁজা হচ্ছে
+
+[importer.onenote.status-finding-in]
+original=Finding notes in {{section}}
+translation={{section}}-এ নোট খোঁজা হচ্ছে
+
+[importer.onenote.status-finding-in-section]
+original=Finding notes in {{section}} (section {{index}} of {{total}})
+translation={{section}}-এ নোট খোঁজা হচ্ছে (সেকশন {{index}}/{{total}})
+
+[importer.onenote.status-importing-notes]
+original=Importing {{notes}}
+translation={{notes}} ইম্পোর্ট হচ্ছে
+
+[importer.onenote.status-downloading]
+original=Downloading attachment {{name}}
+translation=আটাচমেন্ট {{name}} ডাউনলোড হচ্ছে
+
+[importer.onenote.msg-too-many-errors]
+original=Microsoft OneNote returned too many consecutive errors.
+translation=Microsoft OneNote পরপর অনেকগুলি ত্রুটি ফেরত দিয়েছে।
+
+[importer.onenote.label-unknown-page]
+original=<unknown>
+translation=<অজানা>
+
+[importer.onenote.reason-too-many-failures]
+original=import was canceled (after too many pages failed to load)
+translation=ইম্পোর্ট বাতিল করা হয়েছে (অনেকগুলি পৃষ্ঠা লোড করতে ব্যর্থ হওয়ার পর)
+
+[importer.onenote.label-ink]
+original={{page}} - Ink.svg
+translation={{page}} - Ink.svg
+
+[importer.onenote.label-attachment]
+original=OneNote attachment
+translation=OneNote আটাচমেন্ট
+
+[importer.onenote.label-image]
+original=OneNote image
+translation=OneNote ছবি
+
+[importer.onenote.reason-no-attachment-name]
+original=the attachment did not say what it was called
+translation=আটাচমেন্টটির নাম উল্লেখ ছিল না
+
+[importer.onenote.reason-no-attachment-url]
+original=the attachment did not include a download URL
+translation=আটাচমেন্টটিতে ডাউনলোড URL অন্তর্ভুক্ত ছিল না
+
+[importer.onenote.reason-no-image-url]
+original=the image did not include a download URL
+translation=ছবিটিতে ডাউনলোড URL অন্তর্ভুক্ত ছিল না
+
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=Microsoft OneNote (এক্সপোর্ট ফাইল)
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=Microsoft OneNote (.one, .onepkg)
+
+[importer.onenote-file.method-name]
+original=File import
+translation=ফাইল ইম্পোর্ট
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=আপনার কম্পিউটার থেকে OneNote এক্সপোর্ট ফাইল (.one, .onepkg) ব্যবহার করে ইম্পোর্ট করুন। কোনো অ্যাকাউন্ট বা ইন্টারনেট সংযোগ প্রয়োজন নেই, এবং যেসব নোটবুক কখনোই সিঙ্ক হয়নি সেগুলোর জন্যও কাজ করে।
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=OneNote এক্সপোর্ট
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=OneNote আইডি
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=OneNote for Windows নিজস্ব ব্যাকআপ রাখে, এবং এটি সেখানে খোলে। আপনার পছন্দের নোটবুক বা সেকশন বাছাই করুন।
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=OneNote for Windows-এ একটি নোটবুকে রাইট-ক্লিক করে এক্সপোর্ট করলে .onepkg ফাইল সংরক্ষণ হবে, অথবা একটি একক সেকশন .one হিসেবে এক্সপোর্ট করুন।
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=ইম্পোর্ট করার সেকশন
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=কোন সেকশনগুলো ইম্পোর্ট করতে চান নির্বাচন করুন।
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=সেকশন পঠন হচ্ছে…
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=এই ফাইলে কোনো সেকশন পাওয়া যায়নি।
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=প্রথমে একটি OneNote ফাইল নির্বাচন করুন।
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation={{name}} পঠন হচ্ছে
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation={{name}} ইম্পোর্ট হচ্ছে ({{total}}-এর মধ্যে {{index}})
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=ফাইলটি অধিকার-সুরক্ষিত, এবং শুধুমাত্র অনুমতিপ্রাপ্ত অ্যাকাউন্ট দিয়ে খোলা যাবে
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=ফাইলটি এমন একটি OneNote ফরম্যাটিং ব্যবহার করে যা এই ইম্পোর্টার এখনও পড়তে পারে না
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=ফাইলটি যে OneNote কাঠামো বলে দাবি করে তা সঠিকভাবে বর্ণনা করে না
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=ফাইলটি এই ইম্পোর্টার যতটুকু বিস্তার করতে পারে তার চেয়ে বড়
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=আটাচমেন্টে কোনো ডেটা নেই
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=একটি টেবিল সেলের ভিতরে থাকা টেবিলের কোনো Markdown সমতুল্য নেই
+
+[importer.notion-api.name]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.option-text]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=Notion অ্যাকাউন্ট (সুপারিশ)
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
+translation=আপনার সম্পূর্ণ কর্মক্ষেত্র ইম্পোর্ট করে, ডেটাবেস এবং সূত্র সহ যেগুলো বেসে রূপান্তরিত হয়। একটি Notion ইন্টিগ্রেশন টোকেন এবং ইন্টারনেট সংযোগ প্রয়োজন।
+
+[importer.notion-api.label-id]
+original=Notion ID
+translation=Notion আইডি
+
+[importer.notion-api.name-token]
+original=Notion API token
+translation=Notion API টোকেন
+
+[importer.notion-api.desc-token]
+original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+translation=API টোকেন পেতে Notion-এ একটি সংযোগ তৈরি করুন এবং আপনার কর্মক্ষেত্রের পৃষ্ঠাগুলোতে এটিকে অ্যাক্সেস দিন। 
+
+[importer.notion-api.link-get-token]
+original=Get API token.
+translation=API টোকেন নিন।
+
+[importer.notion-api.name-pages]
+original=Pages to import
+translation=ইম্পোর্ট করার পৃষ্ঠা
+
+[importer.notion-api.desc-pages]
+original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+translation=ইম্পোর্টযোগ্য ডেটা দেখতে "লোড" ক্লিক করুন। কোনো পৃষ্ঠা বা ডেটাবেস না থাকলে, আপনার Notion সংযোগের সেটিতে অ্যাক্সেস আছে কিনা পরীক্ষা করুন।
+
+[importer.notion-api.hint-pages]
+original=Click "Load" to load your Notion pages and databases.
+translation=আপনার Notion পৃষ্ঠা এবং ডেটাবেস লোড করতে "লোড" ক্লিক করুন।
+
+[importer.notion-api.msg-loading-pages]
+original=Loading pages and databases...
+translation=পৃষ্ঠা এবং ডেটাবেস লোড হচ্ছে...
+
+[importer.notion-api.msg-no-pages]
+original=No pages or databases found. Make sure your connection has access to the pages you want to import.
+translation=কোনো পৃষ্ঠা বা ডেটাবেস পাওয়া যায়নি। আপনার সংযোগের যে পৃষ্ঠাগুলো ইম্পোর্ট করতে চান সেগুলোতে অ্যাক্সেস আছে কিনা নিশ্চিত করুন।
+
+[importer.notion-api.label-service]
+original=Notion
+translation=Notion
+
+[importer.notion-api.label-subject]
+original=your pages
+translation=আপনার পৃষ্ঠাগুলো
+
+[importer.notion-api.label-credential]
+original=Check that your token is current and that the connection has access to them.
+translation=আপনার টোকেন বর্তমান কিনা এবং সংযোগের সেগুলোতে অ্যাক্সেস আছে কিনা পরীক্ষা করুন।
+
+[importer.notion-api.name-formulas]
+original=Convert formulas
+translation=সূত্র রূপান্তর করুন
+
+[importer.notion-api.desc-formulas]
+original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
+translation=ডিফল্টভাবে Notion সূত্রগুলো Obsidian সিনট্যাক্সে রূপান্তরিত হয়। কোনো Notion সিনট্যাক্স সমর্থিত না হলে স্ট্যাটিক মান সংরক্ষণ করা হবে। বিকল্পভাবে আপনি সবগুলো সূত্র স্ট্যাটিক মান হিসেবে ইম্পোর্ট করতে পারেন।
+
+[importer.notion-api.option-formula-hybrid]
+original=Obsidian syntax
+translation=Obsidian সিনট্যাক্স
+
+[importer.notion-api.option-formula-static]
+original=Static values
+translation=স্ট্যাটিক মান
+
+[importer.notion-api.name-download-external]
+original=Download external attachments
+translation=বাহ্যিক আটাচমেন্ট ডাউনলোড করুন
+
+[importer.notion-api.desc-download-external]
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=বাহ্যিক আটাচমেন্ট (বাহ্যিক URL) লোকাল ফাইলে ডাউনলোড করুন। Notion-এ হোস্ট করা ফাইল সবসময় ডাউনলোড হয়।
+
+[importer.notion-api.name-single-line-breaks]
+original=Single line breaks
+translation=একক লাইন ব্রেক
+
+[importer.notion-api.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
+translation=Notion ব্লকগুলো দুটির বদলে একটি লাইন ব্রেক দিয়ে আলাদা করুন। কিছু ব্লক (তালিকা, টগল, টেবিল) সঠিক Markdown সিনট্যাক্সের জন্য প্রয়োজন হলে এখনও ডাবল লাইন ব্রেক ব্যবহার করবে।
+
+[importer.notion-api.name-cover-property]
+original=Cover property name
+translation=কভার বৈশিষ্ট্যের নাম
+
+[importer.notion-api.desc-cover-property]
+original=Property name for page cover image in YAML frontmatter. 
+translation=YAML ফ্রন্টম্যাটারে পৃষ্ঠার কভার ছবির বৈশিষ্ট্যের নাম। 
+
+[importer.notion-api.desc-cover-property-conflicts]
+original=Leave as "cover" if you don't have conflicts with existing properties.
+translation=বিদ্যমান প্রপার্টির সাথে দ্বন্দ্ব না থাকলে "cover" রেখে দিন।
+
+[importer.notion-api.name-database-property]
+original=Database property name
+translation=ডাটাবেস বৈশিষ্ট্যের নাম
+
+[importer.notion-api.desc-database-property]
+original=Property name in page frontmatter to link pages to their database .base file (default: "base")
+translation=পৃষ্ঠাগুলোকে তাদের ডাটাবেস .base ফাইলে লিঙ্ক করতে পৃষ্ঠার ফ্রন্টম্যাটারে বৈশিষ্ট্যের নাম (ডিফল্ট: "base")
+
+[importer.notion-api.name-linked-databases]
+original=Import linked databases
+translation=লিঙ্ক করা ডাটাবেস ইম্পোর্ট করুন
+
+[importer.notion-api.desc-linked-databases]
+original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
+translation=নির্বাচিত পৃষ্ঠাগুলো যেসব ডাটাবেসে লিঙ্ক করে সেগুলোও ইম্পোর্ট করুন, যাতে রিলেশনগুলো নামের বদলে লিঙ্ক হয়। এটি আপনার নির্বাচিত নয় এমন পৃষ্ঠাও ইম্পোর্ট করবে।
+
+[importer.notion-api.msg-token-first]
+original=Please enter your Notion API token first.
+translation=অনুগ্রহ করে প্রথমে আপনার Notion API টোকেন দিন।
+
+[importer.notion-api.msg-token-missing]
+original=Please enter your Notion API token.
+translation=অনুগ্রহ করে আপনার Notion API টোকেন দিন।
+
+[importer.notion-api.msg-load-pages-failed]
+original=Failed to load pages: {{error}}
+translation=পৃষ্ঠা লোড করতে ব্যর্থ: {{error}}
+
+[importer.notion-api.msg-found]
+original=Found {{count}} page or database.
+translation={{count}}টি পৃষ্ঠা বা ডাটাবেস পাওয়া গেছে।
+
+[importer.notion-api.msg-found_plural]
+original=Found {{count}} pages and databases.
+translation={{count}}টি পৃষ্ঠা এবং ডাটাবেস পাওয়া গেছে।
+
+[importer.notion-api.msg-pick-page]
+original=Please select at least one page or database to import.
+translation=অনুগ্রহ করে ইম্পোর্ট করতে অন্তত একটি পৃষ্ঠা বা ডাটাবেস নির্বাচন করুন।
+
+[importer.notion-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=ইম্পোর্ট ব্যর্থ: {{error}}
+
+[importer.notion-api.status-loading-items]
+original=Loading... ({{items}}, page {{page}})
+translation=লোড হচ্ছে... ({{items}}, পৃষ্ঠা {{page}})
+
+[importer.notion-api.status-connecting]
+original=Connecting to Notion API...
+translation=Notion API-এ সংযোগ করা হচ্ছে...
+
+[importer.notion-api.status-fetching]
+original=Fetching page content from Notion...
+translation=Notion থেকে পৃষ্ঠার বিষয়বস্তু আনা হচ্ছে...
+
+[importer.notion-api.status-preparing]
+original=Preparing to import {{items}}...
+translation={{items}} ইম্পোর্টের জন্য প্রস্তুত হচ্ছে...
+
+[importer.notion-api.status-importing-items]
+original=Importing {{items}}...
+translation={{items}} ইম্পোর্ট হচ্ছে...
+
+[importer.notion-api.status-importing-item]
+original=Importing item {{index}}/{{total}}...
+translation=আইটেম {{index}}/{{total}} ইম্পোর্ট হচ্ছে...
+
+[importer.notion-api.status-importing-title]
+original=Importing: {{title}}
+translation=ইম্পোর্ট হচ্ছে: {{title}}
+
+[importer.notion-api.status-relation-links]
+original=Processing relation links...
+translation=রিলেশন লিঙ্ক প্রক্রিয়া করা হচ্ছে...
+
+[importer.notion-api.status-mention-links]
+original=Processing mention links...
+translation=মেনশন লিঙ্ক প্রক্রিয়া করা হচ্ছে...
+
+[importer.notion-api.status-synced-blocks]
+original=Processing synced block child references...
+translation=সিঙ্ক হওয়া ব্লকের চাইল্ড রেফারেন্স প্রক্রিয়া করা হচ্ছে...
+
+[importer.notion-api.status-cleaning-ids]
+original=Cleaning up notion-id attributes...
+translation=notion-id অ্যাট্রিবিউট পরিষ্কার করা হচ্ছে...
+
+[importer.notion-api.status-done]
+original=Import completed successfully!
+translation=ইম্পোর্ট সফলভাবে সম্পন্ন হয়েছে!
+
+[importer.notion-api.status-replacing-relations]
+original=Replacing {{placeholders}}...
+translation={{placeholders}} প্রতিস্থাপন করা হচ্ছে...
+
+[importer.notion-api.status-replacing-relation-links]
+original=Replacing relation placeholders with wiki links...
+translation=রিলেশন প্লেসহোল্ডারগুলো উইকি লিঙ্ক দিয়ে প্রতিস্থাপন করা হচ্ছে...
+
+[importer.notion-api.status-importing-linked-databases]
+original=Importing {{databases}}...
+translation={{databases}} ইম্পোর্ট হচ্ছে...
+
+[importer.notion-api.status-importing-unimported]
+original=Importing unimported database {{id}}...
+translation=ইম্পোর্ট না হওয়া ডাটাবেস {{id}} ইম্পোর্ট হচ্ছে...
+
+[importer.notion-api.status-replacing-mentions]
+original=Replacing mention placeholders...
+translation=মেনশন প্লেসহোল্ডার প্রতিস্থাপন করা হচ্ছে...
+
+[importer.notion-api.status-replaced-mentions]
+original=Replaced {{links}} in {{files}}.
+translation={{files}}-এ {{links}} প্রতিস্থাপন করা হয়েছে।
+
+[importer.notion-api.status-replacing-synced]
+original=Replacing synced block child references...
+translation=সিঙ্ক হওয়া ব্লকের চাইল্ড রেফারেন্স প্রতিস্থাপন করা হচ্ছে...
+
+[importer.notion-api.status-replaced-synced]
+original=Replaced {{references}} in {{files}} (imported {{imported}}).
+translation={{files}}-এ {{references}} প্রতিস্থাপন করা হয়েছে ({{imported}} ইম্পোর্ট হয়েছে)।
+
+[importer.notion-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}...
+translation=আটাচমেন্ট ডাউনলোড হচ্ছে: {{name}}...
+
+[importer.notion-api.status-rate-limited]
+original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=রেট লিমিটেড। আবার চেষ্টা করার আগে {{seconds}} সেকেন্ড অপেক্ষা করা হচ্ছে ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Notion {{status}} রিটার্ন করেছে। আবার চেষ্টা করার আগে {{seconds}} সেকেন্ড অপেক্ষা করা হচ্ছে ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}। {{seconds}} সেকেন্ড পর পুনরায় চেষ্টা করা হচ্ছে ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-processing-data-source]
+original=Processing database from data source: {{id}}...
+translation=ডেটা সোর্স থেকে ডাটাবেস প্রসেস করা হচ্ছে: {{id}}...
+
+[importer.notion-api.status-processing-database]
+original=Processing database: {{title}}...
+translation=ডাটাবেস প্রসেস করা হচ্ছে: {{title}}...
+
+[importer.notion-api.status-found-pages]
+original=Found {{pages}} in database {{title}}
+translation={{title}} ডাটাবেসে {{pages}} পাওয়া গেছে
+
+[importer.notion-api.status-found-templates]
+original=Found {{templates}} in database {{title}}
+translation={{title}} ডাটাবেসে {{templates}} পাওয়া গেছে
+
+[importer.notion-api.status-importing-template]
+original=Importing template: {{name}}...
+translation=টেমপ্লেট ইমপোর্ট করা হচ্ছে: {{name}}...
+
+[importer.notion-api.label-import]
+original=Notion API import
+translation=Notion API ইমপোর্ট
+
+[importer.notion-api.label-item]
+original=Import item {{id}}
+translation=আইটেম ইমপোর্ট করুন {{id}}
+
+[importer.notion-api.label-page]
+original=Page {{id}}
+translation=পৃষ্ঠা {{id}}
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
+translation=পৃষ্ঠা: {{title}} ({{id}})
+
+[importer.notion-api.label-relation-page]
+original=Relation page {{id}}
+translation=রিলেশন পৃষ্ঠা {{id}}
+
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
+translation=ডাটাবেস: {{title}} ({{id}})
+
+[importer.notion-api.label-mention-file]
+original=Mention file {{path}}
+translation=মেনশন ফাইল {{path}}
+
+[importer.notion-api.label-synced-block-file]
+original=Synced block file {{path}}
+translation=সিঙ্ক হয়েছে ব্লক ফাইল {{path}}
+
+[importer.notion-api.label-attachment]
+original=Attachment: {{name}}
+translation=আটাচমেন্ট: {{name}}
+
+[importer.notion-api.label-child-page]
+original=Child page: {{title}}
+translation=চাইল্ড পৃষ্ঠা: {{title}}
+
+[importer.notion-api.label-synced-block]
+original=Synced block: {{name}}
+translation=সিঙ্ক হয়েছে ব্লক: {{name}}
+
+[importer.notion-api.label-attachment-image]
+original=Image attachment
+translation=ছবি আটাচমেন্ট
+
+[importer.notion-api.label-attachment-video]
+original=Video attachment
+translation=ভিডিও আটাচমেন্ট
+
+[importer.notion-api.label-attachment-file]
+original=File attachment
+translation=ফাইল আটাচমেন্ট
+
+[importer.notion-api.label-attachment-pdf]
+original=PDF attachment
+translation=PDF আটাচমেন্ট
+
+[importer.notion-api.label-fetch-children]
+original=Fetch children for {{context}} {{id}}
+translation={{context}} {{id}}-এর চাইল্ড আনা হচ্ছে
+
+[importer.notion-api.block-paragraph]
+original=paragraph
+translation=অনুচ্ছেদ
+
+[importer.notion-api.block-bulleted-list-item]
+original=bulleted list item
+translation=বুলেটেড তালিকা আইটেম
+
+[importer.notion-api.block-numbered-list-item]
+original=numbered list item
+translation=সংখ্যাযুক্ত তালিকা আইটেম
+
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=টু-ডু আইটেম
+
+[importer.notion-api.block-quote]
+original=quote block
+translation=উদ্ধৃতি ব্লক
+
+[importer.notion-api.block-callout]
+original=callout block
+translation=কলআউট ব্লক
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=টগল ব্লক
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
+translation=টগলযোগ্য শিরোনাম
+
+[importer.notion-api.block-column]
+original=column
+translation=শ্রেণী
+
+[importer.notion-api.block-column-list]
+original=column list
+translation=শ্রেণী তালিকা
+
+[importer.notion-api.block-table]
+original=table
+translation=টেবিল
+
+[importer.notion-api.block-generic]
+original=block
+translation=ব্লক
+
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=মিটিং নোটস: {{name}}
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=মিটিং নোটস: {{name}} ({{section}})
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=মিটিং নোটস {{id}}
+
+[importer.notion-api.section-summary]
+original=summary
+translation=সারসংক্ষেপ
+
+[importer.notion-api.section-notes]
+original=notes
+translation=নোটস
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=ট্রান্সক্রিপ্ট
+
+[importer.notion-api.label-fetch-children-block]
+original=Fetch children for block {{id}}
+translation=ব্লক {{id}}-এর চাইল্ড আনা হচ্ছে
+
+[importer.notion-api.reason-not-in-tree]
+original=Item not found in tree
+translation=আইটেম ট্রি-তে পাওয়া যায়নি
+
+[importer.notion-api.reason-unknown-type]
+original=Unknown type: {{type}}
+translation=অজানা ধরন: {{type}}
+
+[importer.notion-api.reason-earlier-import]
+original=an earlier import had already written it
+translation=আগের একটি ইমপোর্ট ইতিমধ্যে এটি লিখেছিল
+
+[importer.notion-api.reason-attachment-exists]
+original={{path}} is already in the vault, the same size (incremental import)
+translation={{path}} ইতিমধ্যে ভল্টে আছে, একই আকারে (ইনক্রিমেন্টাল ইমপোর্ট)
+
+[importer.notion-api.reason-http-status]
+original=HTTP {{status}}
+translation=HTTP {{status}}
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=Notion এগুলো তৈরি করা শেষ করেনি ({{status}})
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=রেট লিমিটেড, {{retries}} বার চেষ্টার পর বাদ দেওয়া হয়েছে
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation={{reason}}, এবং {{retries}} বার চেষ্টার পর বাদ দেওয়া হয়েছে
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
+translation={{reason}}; {{url}}-এ লিঙ্ক রাখা হয়েছে
+
+[importer.notion.name]
+original=Notion
+translation=Notion
+
+[importer.notion.option-text]
+original=Notion (.zip)
+translation=Notion (.zip)
+
+[importer.notion.method-name]
+original=File import
+translation=ফাইল ইম্পোর্ট
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
+translation=Notion এক্সপোর্ট ফাইল (.zip) ব্যবহার করে ইম্পোর্ট করে। কোনো API টোকেন বা ইন্টারনেট সংযোগের প্রয়োজন নেই, তবে ডাটাবেস সংরক্ষিত হয় না।
+
+[importer.notion.file-type]
+original=Exported Notion
+translation=এক্সপোর্ট করা Notion
+
+[importer.notion.label-id]
+original=Notion ID
+translation=Notion আইডি
+
+[importer.notion.desc-export]
+original=Export your workspace in HTML format, you will receive a zip file.
+translation=আপনার কর্মক্ষেত্র HTML ফরম্যাটে এক্সপোর্ট করুন, আপনি একটি zip ফাইল পাবেন।
+
+[importer.notion.desc-files]
+original=Pick the zip file Notion sent you.
+translation=Notion আপনাকে যে zip ফাইল পাঠিয়েছে সেটি নির্বাচন করুন।
+
+[importer.notion.name-subfolders]
+original=Save parent pages in subfolders
+translation=প্যারেন্ট পেজগুলো সাবফোল্ডারে সংরক্ষণ করুন
+
+[importer.notion.desc-subfolders]
+original=Places the parent database pages in the same folder as the nested content.
+translation=প্যারেন্ট ডাটাবেস পেজগুলো নেস্টেড কন্টেন্টের সাথে একই ফোল্ডারে রাখে।
+
+[importer.notion.name-single-line-breaks]
+original=Single line breaks
+translation=একক লাইন ব্রেক
+
+[importer.notion.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break (default is 2).
+translation=Notion ব্লকগুলো শুধুমাত্র একটি লাইন ব্রেক দিয়ে আলাদা করুন (ডিফল্ট ২)।
+
+[importer.notion.status-looking]
+original=Looking for files to import
+translation=ইম্পোর্ট করার জন্য ফাইল খোঁজা হচ্ছে
+
+[importer.notion.status-resolving]
+original=Resolving links and de-duplicating files
+translation=লিঙ্ক সমাধান এবং ডুপ্লিকেট ফাইল অপসারণ করা হচ্ছে
+
+[importer.notion.status-starting]
+original=Starting import
+translation=ইম্পোর্ট শুরু হচ্ছে
+
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
+translation=এটি একটি Markdown এক্সপোর্ট; পরিবর্তে আপনার Notion কর্মক্ষেত্র HTML হিসেবে এক্সপোর্ট করুন
+
+[importer.notion.reason-no-page-body]
+original=page body was not found
+translation=পেজের বডি পাওয়া যায়নি
+
+[importer.roam-json.name]
+original=Roam Research
+translation=Roam Research
+
+[importer.roam-json.option-text]
+original=Roam Research (.json)
+translation=Roam Research (.json)
+
+[importer.roam-json.file-type]
+original=Roam (.json)
+translation=Roam (.json)
+
+[importer.roam-json.label-id]
+original=Roam UID
+translation=Roam UID
+
+[importer.roam-json.desc-export]
+original=Export your data in JSON format.
+translation=আপনার ডেটা JSON ফরম্যাটে এক্সপোর্ট করুন।
+
+[importer.roam-json.desc-files]
+original=Pick the JSON file from your Roam export.
+translation=আপনার Roam এক্সপোর্ট থেকে JSON ফাইলটি নির্বাচন করুন।
+
+[importer.roam-json.name-download-attachments]
+original=Download all attachments
+translation=সব আটাচমেন্ট ডাউনলোড করুন
+
+[importer.roam-json.desc-download-attachments]
+original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
+translation=সক্রিয় থাকলে, Roam-এ আপলোড করা সব আটাচমেন্ট আপনার আটাচমেন্ট ফোল্ডারে ডাউনলোড হবে।
+
+[importer.roam-json.name-date-properties]
+original=Add YAML created/update date
+translation=YAML তৈরি/আপডেট তারিখ যোগ করুন
+
+[importer.roam-json.desc-date-properties]
+original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
+translation=সক্রিয় থাকলে, নোটগুলোতে Roam থেকে তৈরির সময় এবং সম্পাদনার সময় প্রপার্টি হিসেবে যোগ হবে।
+
+[importer.roam-json.name-title-property]
+original=Add YAML title
+translation=YAML শিরোনাম যোগ করুন
+
+[importer.roam-json.desc-title-property]
+original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
+translation=সক্রিয় থাকলে, নোটগুলোতে সম্পূর্ণ শিরোনাম একটি বৈশিষ্ট্য হিসেবে যোগ হবে (অবৈধ ফাইলের নাম অক্ষর থাকলেও)।
+
+[importer.roam-json.reason-empty-title]
+original=Title is empty
+translation=শিরোনাম খালি
+
+[importer.roam-json.reason-unexpected-extension]
+original=Unexpected file extension
+translation=অপ্রত্যাশিত ফাইল এক্সটেনশন
+
+[importer.roam-json.reason-file-exists]
+original=File already exists
+translation=ফাইল ইতিমধ্যে বিদ্যমান
+
+[importer.textbundle.name]
+original=Textbundle files
+translation=Textbundle ফাইল
+
+[importer.textbundle.option-text]
+original=Textbundle (.textbundle, .textpack)
+translation=Textbundle (.textbundle, .textpack)
+
+[importer.textbundle.file-type]
+original=Textbundle
+translation=Textbundle
+
+[importer.textbundle.msg-platform]
+original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
+translation=প্ল্যাটফর্মের সীমাবদ্ধতার কারণে, এই ডিভাইস থেকে শুধুমাত্র textpack এবং zip ফাইল আমদানি করা যাবে। textbundle ফাইল আমদানি করতে Mac-এ আপনার ভল্ট খুলুন।
+
+[importer.textbundle.reason-no-markdown]
+original=The textbundle does not contain markdown
+translation=textbundle-এ Markdown ধারণ করে না
+
+[importer.textbundle.reason-not-media]
+original=the file is not a media or markdown file.
+translation=ফাইলটি কোনো মিডিয়া বা Markdown ফাইল নয়।
+
+[importer.textbundle.reason-already-exists]
+original=the file already exists.
+translation=ফাইলটি ইতিমধ্যে বিদ্যমান।
+
+[importer.tomboy.name]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.option-text]
+original=Tomboy/Gnote (.note)
+translation=Tomboy/Gnote (.note)
+
+[importer.tomboy.file-type]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.label-id]
+original=Tomboy ID
+translation=Tomboy ID
+
+[importer.tomboy.desc-files-mac]
+original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
+translation=Tomboy নোট সাধারণত এখানে পাওয়া যায়: ~/Library/Application Support/Tomboy
+
+[importer.tomboy.desc-files-windows]
+original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
+translation=Tomboy নোট সাধারণত এখানে পাওয়া যায়: %APPDATA%\\Tomboy
+
+[importer.tomboy.desc-files-linux]
+original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
+translation=Tomboy নোট সাধারণত এখানে পাওয়া যায়: ~/.local/share/tomboy - অথবা GNote: ~/.local/share/gnote
+
+[importer.tomboy.name-todo]
+original=Convert TODO lists to checkboxes
+translation=TODO তালিকাগুলি চেকবক্সে রূপান্তর করুন
+
+[importer.tomboy.desc-todo]
+original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
+translation=সক্রিয় থাকলে, শিরোনামে "TODO" আছে এমন নোটের তালিকাগুলি চেকবক্সসহ কার্য তালিকায় রূপান্তরিত হবে। স্ট্রাইকথ্রু আইটেমগুলি সম্পন্ন হিসেবে চিহ্নিত হবে।
+
+[importer.tomboy.name-keep-title]
+original=Keep title in Markdown
+translation=Markdown-এ শিরোনাম রাখুন
+
+[importer.tomboy.desc-keep-title]
+original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
+translation=Markdown বিষয়বস্তুতে নোটের শিরোনাম রাখা হবে কিনা নির্বাচন করুন। স্বয়ংক্রিয় বিকল্পটি শুধুমাত্র তখনই শিরোনাম রাখে যখন ফাইলের নাম রূপান্তরে বিশেষ অক্ষর হারিয়ে যায়।
+
+[importer.tomboy.option-automatic]
+original=Automatic
+translation=স্বয়ংক্রিয়
+
+[importer.tomboy.option-keep-titles]
+original=Keep titles
+translation=শিরোনাম রাখুন
+
+[importer.tomboy.option-filename-only]
+original=Filename only
+translation=শুধুমাত্র ফাইলের নাম

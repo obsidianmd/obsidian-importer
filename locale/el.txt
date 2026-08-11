@@ -1,0 +1,2131 @@
+[command.import-notes]
+original=Import notes
+translation=Εισαγωγή σημειώσεων
+
+[nouns.file-with-count]
+original={{count}} file
+translation={{count}} αρχείο
+
+[nouns.file-with-count_plural]
+original={{count}} files
+translation={{count}} αρχεία
+
+[nouns.note-with-count]
+original={{count}} note
+translation={{count}} σημείωση
+
+[nouns.note-with-count_plural]
+original={{count}} notes
+translation={{count}} σημειώσεις
+
+[nouns.item-with-count]
+original={{count}} item
+translation={{count}} στοιχείο
+
+[nouns.item-with-count_plural]
+original={{count}} items
+translation={{count}} στοιχεία
+
+[nouns.record-with-count]
+original={{count}} record
+translation={{count}} εγγραφή
+
+[nouns.record-with-count_plural]
+original={{count}} records
+translation={{count}} εγγραφές
+
+[nouns.base-with-count]
+original={{count}} base
+translation={{count}} βάση
+
+[nouns.base-with-count_plural]
+original={{count}} bases
+translation={{count}} βάσεις
+
+[nouns.template-with-count]
+original={{count}} template
+translation={{count}} πρότυπο
+
+[nouns.template-with-count_plural]
+original={{count}} templates
+translation={{count}} πρότυπα
+
+[nouns.failure-with-count]
+original={{count}} failure
+translation={{count}} αποτυχία
+
+[nouns.failure-with-count_plural]
+original={{count}} failures
+translation={{count}} αποτυχίες
+
+[nouns.second-with-count]
+original={{count}} second
+translation={{count}} δευτερόλεπτο
+
+[nouns.second-with-count_plural]
+original={{count}} seconds
+translation={{count}} δευτερόλεπτα
+
+[nouns.relation-placeholder-with-count]
+original={{count}} relation placeholder
+translation={{count}} σύμβολο κράτησης θέσης σχέσης
+
+[nouns.relation-placeholder-with-count_plural]
+original={{count}} relation placeholders
+translation={{count}} σύμβολα κράτησης θέσης σχέσεων
+
+[nouns.linked-database-with-count]
+original={{count}} linked database
+translation={{count}} συνδεδεμένη βάση δεδομένων
+
+[nouns.linked-database-with-count_plural]
+original={{count}} linked databases
+translation={{count}} συνδεδεμένες βάσεις δεδομένων
+
+[nouns.mention-link-with-count]
+original={{count}} mention link
+translation={{count}} σύνδεσμος αναφοράς
+
+[nouns.mention-link-with-count_plural]
+original={{count}} mention links
+translation={{count}} σύνδεσμοι αναφοράς
+
+[nouns.synced-reference-with-count]
+original={{count}} synced child reference
+translation={{count}} θυγατρική αναφορά σε συγχρονισμό
+
+[nouns.synced-reference-with-count_plural]
+original={{count}} synced child references
+translation={{count}} θυγατρικές αναφορές σε συγχρονισμό
+
+[nouns.new-item-with-count]
+original={{count}} new item
+translation={{count}} νέο στοιχείο
+
+[nouns.new-item-with-count_plural]
+original={{count}} new items
+translation={{count}} νέα στοιχεία
+
+[nouns.page-with-count]
+original={{count}} page
+translation={{count}} σελίδα
+
+[nouns.page-with-count_plural]
+original={{count}} pages
+translation={{count}} σελίδες
+
+[group.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[group.notion.name]
+original=Notion
+translation=Notion
+
+[modal.title-pick-format]
+original=Import data into Obsidian
+translation=Εισαγωγή δεδομένων στο Obsidian
+
+[modal.title-choose-method]
+original=Choose how to import
+translation=Επιλογή μεθόδου εισαγωγής
+
+[modal.title-import-from]
+original=Import from {{format}}
+translation=Εισαγωγή από {{format}}
+
+[modal.search-placeholder]
+original=Filter...
+translation=Φίλτρο...
+
+[modal.msg-no-formats]
+original=No formats found.
+translation=Δεν βρέθηκαν μορφές.
+
+[modal.button-continue]
+original=Continue
+translation=Συνέχεια
+
+[modal.button-import]
+original=Import
+translation=Εισαγωγή
+
+[modal.button-back]
+original=Back
+translation=Πίσω
+
+[modal.button-help]
+original=Help
+translation=Βοήθεια
+
+[modal.button-cancel]
+original=Cancel
+translation=Ακύρωση
+
+[modal.button-pause]
+original=Pause
+translation=Παύση
+
+[modal.button-resume]
+original=Resume
+translation=Συνέχεια
+
+[modal.button-stop]
+original=Stop
+translation=Τερματισμός
+
+[modal.button-save-report]
+original=Save report
+translation=Αποθήκευση αναφοράς
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=Δεν ήταν δυνατή η αποθήκευση της αναφοράς εισαγωγής.
+
+[modal.button-import-more]
+original=Import more
+translation=Εισαγωγή περισσότερων
+
+[modal.button-done]
+original=Done
+translation=Ολοκλήρωση
+
+[modal.msg-unexpected-auth]
+original=Unexpected auth event. Please restart the auth process.
+translation=Μη αναμενόμενο συμβάν ελέγχου ταυτότητας. Ξεκινήστε ξανά τη διαδικασία ελέγχου ταυτότητας.
+
+[progress.stat-imported]
+original=imported
+translation=εισήχθησαν
+
+[progress.stat-attachments]
+original=attachments
+translation=Επισυνάψεις
+
+[progress.stat-remaining]
+original=remaining
+translation=απομένουν
+
+[progress.stat-skipped]
+original=skipped
+translation=Παραλείφθηκαν
+
+[progress.stat-failed]
+original=failed
+translation=Απέτυχε
+
+[progress.label-skipped]
+original=Skipped: 
+translation=Παραλείφθηκαν: 
+
+[progress.label-failed]
+original=Failed: 
+translation=Απέτυχε: 
+
+[progress.label-entry]
+original="{{name}}"
+translation="{{name}}"
+
+[progress.label-entry-with-reason]
+original="{{name}}" because {{reason}}
+translation="{{name}}" επειδή {{reason}}
+
+[progress.label-paused]
+original=Paused
+translation=Σε παύση
+
+[progress.label-paused-with]
+original=Paused - {{status}}
+translation=Σε παύση - {{status}}
+
+[progress.label-importing]
+original=Importing
+translation=Εισαγωγή
+
+[progress.label-remaining]
+original={{count}} remaining...
+translation={{count}} απομένει...
+
+[progress.label-remaining_plural]
+original={{count}} remaining...
+translation={{count}} απομένουν...
+
+[progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=Σε παύση - {{count}} απομένει
+
+[progress.label-paused-remaining_plural]
+original=Paused - {{count}} remaining
+translation=Σε παύση - {{count}} απομένουν
+
+[progress.status-stopping]
+original=Stopping...
+translation=Διακοπή...
+
+[progress.msg-stopped]
+original=Import stopped.
+translation=Η εισαγωγή διακόπηκε.
+
+[progress.msg-errors]
+original=Import finished with errors.
+translation=Η εισαγωγή ολοκληρώθηκε με σφάλματα.
+
+[progress.msg-complete]
+original=Import complete.
+translation=Η εισαγωγή ολοκληρώθηκε.
+
+[progress.msg-imported-count]
+original={{count}} note imported
+translation={{count}} σημείωση εισήχθη
+
+[progress.msg-imported-count_plural]
+original={{count}} notes imported
+translation={{count}} σημειώσεις εισήχθησαν
+
+[progress.msg-click-to-show]
+original={{counts}}. Click to show.
+translation={{counts}}. Κάντε κλικ για εμφάνιση.
+
+[progress.status-waiting]
+original=Waiting {{duration}} ({{reason}})
+translation=Αναμονή {{duration}} ({{reason}})
+
+[progress.status-standardizing]
+original=Standardizing Markdown ({{current}}/{{total}})
+translation=Τυποποίηση Markdown ({{current}}/{{total}})
+
+[progress.label-finalization]
+original=Markdown finalization
+translation=Οριστικοποίηση Markdown
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} αρχείο καταγραφής εισαγωγής {{importer}}
+
+[report.title]
+original={{importer}} import
+translation=Εισαγωγή {{importer}}
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=Ολοκληρώθηκε {{when}}. {{counts}}.
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=Διακόπηκε {{when}}. {{counts}}.
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=Απέτυχε ({{count}})
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=Παραλείφθηκαν ({{count}})
+
+[report.heading-messages]
+original=Messages
+translation=Μηνύματα
+
+[report.count-notes]
+original={{count}} note imported
+translation={{count}} σημείωση εισήχθη
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation={{count}} σημειώσεις εισήχθησαν
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation={{count}} συνημμένο λήφθηκε
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation={{count}} συνημμένα λήφθηκαν
+
+[report.count-skipped]
+original={{count}} item skipped
+translation={{count}} στοιχείο παραλείφθηκε
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation={{count}} στοιχεία παραλείφθηκαν
+
+[report.count-failed]
+original={{count}} item failed
+translation={{count}} στοιχείο απέτυχε
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation={{count}} στοιχεία απέτυχαν
+
+[source.name]
+original=Files to import
+translation=Αρχεία προς εισαγωγή
+
+[source.desc]
+original=Pick the files that you want to import.
+translation=Επιλέξτε τα αρχεία που θέλετε να εισαγάγετε.
+
+[source.button-choose-file]
+original=Choose file
+translation=Επιλογή αρχείου
+
+[source.button-choose-files]
+original=Choose files
+translation=Επιλογή αρχείων
+
+[source.button-choose-folders]
+original=Choose folders
+translation=Επιλογή φακέλων
+
+[source.dialog-pick-files]
+original=Pick files to import
+translation=Επιλέξτε αρχεία για εισαγωγή
+
+[source.dialog-pick-folders]
+original=Folders to import
+translation=Φάκελοι για εισαγωγή
+
+[source.msg-reading-folders]
+original=Reading folders...
+translation=Ανάκτηση φακέλων...
+
+[source.msg-nothing-to-import]
+original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
+translation=Δεν υπάρχει τίποτα για εισαγωγή εκεί. Επιλέξτε αρχεία {{extensions}} ή έναν φάκελο που περιέχει τέτοια.
+
+[source.msg-will-import]
+original={{files}} will be imported: 
+translation={{files}} θα εισαχθούν: 
+
+[output.label-source-id]
+original=source ID
+translation=αναγνωριστικό πηγής
+
+[output.name-save-source-id]
+original=Save {{label}}
+translation=Αποθήκευση {{label}}
+
+[output.desc-save-source-id]
+original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
+translation=Προσθέστε το {{label}} στις ιδιότητες της σημείωσης ώστε μελλοντικές εισαγωγές να αναγνωρίζουν σημειώσεις που μετακινήθηκαν ή μετονομάστηκαν.
+
+[output.name-folder]
+original=Output folder
+translation=Φάκελος εξόδου
+
+[output.desc-folder]
+original=Where imported notes will be saved. Leave blank to use the top level of the vault.
+translation=Όπου θα αποθηκευτούν οι εισαγόμενες σημειώσεις. Αφήστε κενό για χρήση του ανώτατου επιπέδου του θησαυροφυλακίου.
+
+[output.name-attachments]
+original=Attachment location
+translation=Τοποθεσία συνημμένων
+
+[output.desc-attachments]
+original=Where imported images and files will be saved.
+translation=Όπου θα αποθηκευτούν οι εισαγόμενες εικόνες και τα αρχεία.
+
+[output.name-subfolder]
+original=Subfolder name
+translation=Όνομα υποφακέλου
+
+[output.desc-subfolder]
+original=Folder to use inside each imported note's folder.
+translation=Φάκελος για χρήση μέσα στον φάκελο κάθε εισαγόμενης σημείωσης.
+
+[output.name-attachment-folder]
+original=Attachment folder
+translation=Φάκελος συνημμένων
+
+[output.desc-attachment-folder]
+original=Folder path from the top level of the vault.
+translation=Διαδρομή φακέλου από το ανώτατο επίπεδο του θησαυροφυλακίου.
+
+[output.name-duplicates]
+original=Existing notes
+translation=Υπάρχουσες σημειώσεις
+
+[output.desc-duplicates]
+original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
+translation=Επιλέξτε τι θα γίνεται όταν μια εισαγόμενη σημείωση ταιριάζει με μία στο θησαυροφυλάκιό σας. "{{update}}" παραλείπει αμετάβλητες σημειώσεις και διατηρεί νεότερες τοπικές αλλαγές όταν υπάρχουν ημερομηνίες τροποποίησης.
+
+[output.option-create-copy]
+original=Create a copy
+translation=Δημιουργία αντιγράφου
+
+[output.option-skip]
+original=Skip
+translation=Παράλειψη
+
+[output.option-update]
+original=Update
+translation=Ενημέρωση
+
+[output.option-attachments-vault]
+original=Vault folder
+translation=Βασικό φυλάκιο
+
+[output.option-attachments-folder]
+original=In the folder specified below
+translation=Στον φάκελο που αναγράφεται παρακάτω
+
+[output.option-attachments-note]
+original=Same folder as the note
+translation=Ίδιος φάκελος με τη σημείωση
+
+[output.option-attachments-subfolder]
+original=In subfolder under the note
+translation=Σε υποφάκελο κάτω από τη σημείωση
+
+[common.msg-pick-file]
+original=Please pick at least one file to import.
+translation=Επιλέξτε τουλάχιστον ένα αρχείο για εισαγωγή.
+
+[common.msg-pick-output]
+original=Please select a location to export to.
+translation=Επιλέξτε μια τοποθεσία για εξαγωγή.
+
+[common.msg-pick-import-location]
+original=Please select a location to import your files to.
+translation=Επιλέξτε μια τοποθεσία για εισαγωγή των αρχείων σας.
+
+[common.msg-unknown-error]
+original=Unknown error
+translation=Άγνωστο σφάλμα
+
+[common.name-export]
+original=Export your data
+translation=Εξαγωγή δεδομένων
+
+[common.label-learn-more]
+original=Learn more.
+translation=Μάθετε περισσότερα.
+
+[common.button-instructions]
+original=Instructions
+translation=Οδηγίες
+
+[common.button-open]
+original=Open
+translation=Άνοιγμα
+
+[common.status-processing]
+original=Processing {{name}}
+translation=Επεξεργασία {{name}}
+
+[common.status-importing-note]
+original=Importing note {{name}}
+translation=Εισαγωγή σημείωσης {{name}}
+
+[common.status-importing-attachment]
+original=Importing attachment {{name}}
+translation=Εισαγωγή συνημμένου {{name}}
+
+[common.status-cancelled]
+original=Import cancelled
+translation=Η εισαγωγή ακυρώθηκε
+
+[reason.already-in-vault]
+original=it is already in the vault
+translation=βρίσκεται ήδη στο θησαυροφυλάκιο
+
+[reason.unchanged-since-import]
+original=it has not changed since the last import
+translation=δεν έχει αλλάξει από την τελευταία εισαγωγή
+
+[reason.edited-since-import]
+original=it has been edited in Obsidian since the last import
+translation=έχει επεξεργαστεί στο Obsidian από την τελευταία εισαγωγή
+
+[reason.file-not-in-vault]
+original=The imported file did not appear in the vault.
+translation=Το εισαγόμενο αρχείο δεν εμφανίστηκε στο θησαυροφυλάκιο.
+
+[reason.folder-not-created]
+original=Failed to create folder at "{{path}}"
+translation=Απέτυχε η δημιουργία φακέλου στο "{{path}}"
+
+[tree.button-select-all]
+original=Select all
+translation=Επιλογή όλων
+
+[tree.button-deselect-all]
+original=Deselect all
+translation=Αποεπιλογή όλων
+
+[tree.button-load]
+original=Load
+translation=Φόρτωση
+
+[tree.button-loading]
+original=Loading...
+translation=Φόρτωση...
+
+[tree.button-refresh]
+original=Refresh
+translation=Ανανέωση
+
+[request.msg-unauthorized]
+original={{service}} did not accept the request for {{subject}}. {{credential}}
+translation=Η υπηρεσία {{service}} δεν αποδέχτηκε το αίτημα για {{subject}}. {{credential}}
+
+[request.msg-forbidden]
+original={{service}} would not give access to {{subject}}. {{credential}}
+translation=Η υπηρεσία {{service}} δεν παρείχε πρόσβαση στο {{subject}}. {{credential}}
+
+[request.msg-not-found]
+original={{service}} could not find {{subject}}.
+translation=Η υπηρεσία {{service}} δεν μπόρεσε να βρει {{subject}}.
+
+[request.msg-rate-limited]
+original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
+translation=Η υπηρεσία {{service}} περιορίζει την ταχύτητα ανάγνωσης του {{subject}}. Περιμένετε μερικά λεπτά και δοκιμάστε ξανά.
+
+[request.msg-timed-out]
+original={{service}} took too long to return {{subject}}. Try again shortly.
+translation=Η υπηρεσία {{service}} καθυστέρησε πολύ να επιστρέψει {{subject}}. Δοκιμάστε ξανά σε λίγο.
+
+[request.msg-unavailable]
+original={{service}} could not return {{subject}} right now. Try again shortly.
+translation=Η υπηρεσία {{service}} δεν μπόρεσε να επιστρέψει {{subject}} αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο.
+
+[request.msg-failed-with-code]
+original=Could not read {{subject}}: {{message}} ({{code}})
+translation=Δεν ήταν δυνατή η ανάγνωση του {{subject}}: {{message}} ({{code}})
+
+[request.msg-failed-with-message]
+original=Could not read {{subject}}: {{message}}
+translation=Δεν ήταν δυνατή η ανάγνωση του {{subject}}: {{message}}
+
+[request.msg-failed-with-reported-code]
+original=Could not read {{subject}}. {{service}} reported {{code}}.
+translation=Δεν ήταν δυνατή η ανάγνωση του {{subject}}. Η υπηρεσία {{service}} ανέφερε {{code}}.
+
+[request.msg-failed]
+original=Could not read {{subject}}.
+translation=Δεν ήταν δυνατή η ανάγνωση του {{subject}}.
+
+[template.msg-intro]
+original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
+translation=Ρυθμίστε πώς θα εισαχθούν τα δεδομένα σας. Χρησιμοποιήστε σύνταξη {{syntax}} για αναφορά σε τιμές πεδίων.
+
+[template.name-title]
+original=Note title
+translation=Μετονομασία αρχείου
+
+[template.desc-title]
+original=Template for the note title. Use {{field_name}} to insert values.
+translation=Πρότυπο για τον τίτλο της σημείωσης. Χρησιμοποιήστε {{field_name}} για εισαγωγή τιμών.
+
+[template.name-location]
+original=Note location
+translation=Τοποθεσία σημείωσης
+
+[template.desc-location]
+original=Template for note location/path. Use {{field_name}} to organize notes.
+translation=Πρότυπο για την τοποθεσία/διαδρομή της σημείωσης. Χρησιμοποιήστε {{field_name}} για οργάνωση σημειώσεων.
+
+[template.name-content]
+original=Note content
+translation=Περιεχόμενο σημείωσης
+
+[template.desc-content]
+original=Template for the note content. Use {{field_name}} to insert values.
+translation=Πρότυπο για το περιεχόμενο της σημείωσης. Χρησιμοποιήστε {{field_name}} για εισαγωγή τιμών.
+
+[template.heading-properties]
+original=Properties
+translation=Ιδιότητες
+
+[template.column-property-name]
+original=Property name
+translation=Όνομα ιδιότητας
+
+[template.column-property-value]
+original=Property value
+translation=Τιμή ιδιότητας
+
+[template.column-example]
+original=Example
+translation=Παράδειγμα
+
+[template.action-delete-property]
+original=Delete property
+translation=Διαγραφή ιδιότητας
+
+[template.msg-title-required]
+original=Please provide a note title template.
+translation=Παρακαλώ δώστε ένα πρότυπο τίτλου σημείωσης.
+
+[importer.airtable-api.name]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.option-text]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-id]
+original=Airtable record ID
+translation=ID εγγραφής Airtable
+
+[importer.airtable-api.name-token]
+original=Airtable personal access token
+translation=Προσωπικό διακριτικό πρόσβασης Airtable
+
+[importer.airtable-api.desc-token]
+original=Create a personal access token in your Airtable account settings. 
+translation=Δημιουργήστε ένα προσωπικό διακριτικό πρόσβασης στις ρυθμίσεις του λογαριασμού σας Airtable. 
+
+[importer.airtable-api.link-get-token]
+original=Get token
+translation=Λήψη διακριτικού
+
+[importer.airtable-api.name-tables]
+original=Tables to import
+translation=Πίνακες για εισαγωγή
+
+[importer.airtable-api.desc-tables]
+original=Load your Airtable bases and tables, then choose what to import.
+translation=Φορτώστε τις βάσεις και τους πίνακες Airtable και μετά επιλέξτε τι θέλετε να εισαγάγετε.
+
+[importer.airtable-api.hint-tables]
+original=Load your Airtable bases and tables to get started.
+translation=Φορτώστε τις βάσεις και τους πίνακες Airtable για να ξεκινήσετε.
+
+[importer.airtable-api.msg-fetching-bases]
+original=Fetching bases...
+translation=Ανάκτηση βάσεων...
+
+[importer.airtable-api.msg-no-bases]
+original=No bases found.
+translation=Δεν βρέθηκαν βάσεις.
+
+[importer.airtable-api.label-service]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-subject]
+original=your bases
+translation=τις βάσεις σας
+
+[importer.airtable-api.label-credential]
+original=Check that your personal access token is current and has access to them.
+translation=Βεβαιωθείτε ότι το προσωπικό σας διακριτικό πρόσβασης είναι ενημερωμένο και έχει πρόσβαση σε αυτές.
+
+[importer.airtable-api.name-formulas]
+original=Convert formulas
+translation=Μετατροπή τύπων
+
+[importer.airtable-api.desc-formulas]
+original=Try to convert formulas to Obsidian syntax, or import as static values.
+translation=Προσπαθήστε να μετατρέψετε τους τύπους σε σύνταξη Obsidian ή εισαγάγετέ τους ως στατικές τιμές.
+
+[importer.airtable-api.option-formula-hybrid]
+original=Obsidian syntax (with fallback)
+translation=Σύνταξη Obsidian (με εναλλακτική)
+
+[importer.airtable-api.option-formula-static]
+original=Static values only
+translation=Μόνο στατικές τιμές
+
+[importer.airtable-api.name-download-attachments]
+original=Download attachments
+translation=Λήψη συνημμένων
+
+[importer.airtable-api.desc-download-attachments]
+original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
+translation=Λήψη συνημμένων αρχείων στο τοπικό θησαυροφυλάκιο. Αν απενεργοποιηθεί ή αποτύχει η λήψη, θα χρησιμοποιηθούν εξωτερικά URL.
+
+[importer.airtable-api.name-view-property]
+original=View property name
+translation=Όνομα ιδιότητας προβολής
+
+[importer.airtable-api.desc-view-property]
+original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
+translation=Όνομα ιδιότητας για παρακολούθηση σε ποιες προβολές ανήκει μια εγγραφή. Κάθε εγγραφή θα έχει μια λίστα με τα ονόματα των προβολών στις οποίες εμφανίζεται.
+
+[importer.airtable-api.msg-token-first]
+original=Please enter your Airtable personal access token first.
+translation=Παρακαλώ εισαγάγετε πρώτα το προσωπικό σας διακριτικό πρόσβασης Airtable.
+
+[importer.airtable-api.msg-token-missing]
+original=Please enter your Airtable personal access token.
+translation=Παρακαλώ εισαγάγετε το προσωπικό σας διακριτικό πρόσβασης Airtable.
+
+[importer.airtable-api.msg-load-bases-failed]
+original=Failed to load bases: {{error}}
+translation=Η φόρτωση των βάσεων απέτυχε: {{error}}
+
+[importer.airtable-api.msg-load-tables-failed]
+original=Failed to load tables for "{{base}}": {{error}}
+translation=Η φόρτωση πινάκων για "{{base}}" απέτυχε: {{error}}
+
+[importer.airtable-api.msg-pick-table]
+original=Please select at least one table to import.
+translation=Επιλέξτε τουλάχιστον έναν πίνακα για εισαγωγή.
+
+[importer.airtable-api.msg-loading-fields]
+original=Loading fields...
+translation=Φόρτωση πεδίων...
+
+[importer.airtable-api.msg-no-fields]
+original=No fields found in selected tables. Please check your selection.
+translation=Δεν βρέθηκαν πεδία στους επιλεγμένους πίνακες. Ελέγξτε την επιλογή σας.
+
+[importer.airtable-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=Η εισαγωγή απέτυχε: {{error}}
+
+[importer.airtable-api.label-base-position]
+original= (base {{index}} of {{total}})
+translation= (βάση {{index}} από {{total}})
+
+[importer.airtable-api.label-base]
+original=Base: {{name}}
+translation=Βάση: {{name}}
+
+[importer.airtable-api.label-linked-table]
+original=Linked table: {{name}}
+translation=Συνδεδεμένος πίνακας: {{name}}
+
+[importer.airtable-api.label-table-view]
+original={{table}} > {{view}}
+translation={{table}} > {{view}}
+
+[importer.airtable-api.label-import]
+original=Airtable API import
+translation=Εισαγωγή μέσω Airtable API
+
+[importer.airtable-api.status-connecting]
+original=Connecting to Airtable API
+translation=Σύνδεση στο Airtable API
+
+[importer.airtable-api.status-loading-tables]
+original=Loading tables for {{base}}
+translation=Φόρτωση πινάκων για {{base}}
+
+[importer.airtable-api.status-fetching-tables]
+original=Fetching tables for base {{base}}...
+translation=Ανάκτηση πινάκων για τη βάση {{base}}...
+
+[importer.airtable-api.status-found-bases]
+original=Found {{bases}} to import
+translation=Βρέθηκαν {{bases}} για εισαγωγή
+
+[importer.airtable-api.status-fetching-base]
+original=Fetching data from {{base}}{{position}}
+translation=Ανάκτηση δεδομένων από {{base}}{{position}}
+
+[importer.airtable-api.status-preparing-records]
+original=Preparing records from {{base}}{{position}}
+translation=Προετοιμασία εγγραφών από {{base}}{{position}}
+
+[importer.airtable-api.status-reading-names]
+original=Reading names from {{table}}{{position}}
+translation=Ανάκτηση ονομάτων από {{table}}{{position}}
+
+[importer.airtable-api.status-planning]
+original=Working out where {{table}}{{position}} goes
+translation=Υπολογισμός τοποθέτησης {{table}}{{position}}
+
+[importer.airtable-api.status-fetching-records]
+original=Fetching records from {{table}}{{position}}
+translation=Ανάκτηση εγγραφών από {{table}}{{position}}
+
+[importer.airtable-api.status-fetched-records]
+original=Fetched {{records}} from {{table}}{{position}}
+translation=Ανακτήθηκαν {{records}} από {{table}}{{position}}
+
+[importer.airtable-api.status-fetching-view]
+original=Fetching view {{view}} from {{table}}{{position}}
+translation=Ανάκτηση προβολής {{view}} από {{table}}{{position}}
+
+[importer.airtable-api.status-creating-notes]
+original=Creating notes in {{table}}{{position}}
+translation=Δημιουργία σημειώσεων σε {{table}}{{position}}
+
+[importer.airtable-api.status-updating-types]
+original=Updating property types
+translation=Ενημέρωση τύπων ιδιοτήτων
+
+[importer.airtable-api.status-complete]
+original=Import complete
+translation=Η εισαγωγή ολοκληρώθηκε
+
+[importer.airtable-api.status-rate-limited]
+original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
+translation=Όριο αιτημάτων, αναμονή {{seconds}}s (προσπάθεια {{attempt}}/{{total}})...
+
+[importer.airtable-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}
+translation=Λήψη συνημμένου: {{name}}
+
+[importer.airtable-api.reason-no-record-names]
+original=Could not read record names
+translation=Δεν ήταν δυνατή η ανάκτηση ονομάτων εγγραφών
+
+[importer.airtable-api.reason-empty-record]
+original=Empty record
+translation=Κενή εγγραφή
+
+[importer.airtable-api.desc-no-modified-time]
+original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
+translation=Το Airtable δεν αναφέρει πότε άλλαξε τελευταία φορά μια εγγραφή, οπότε η «{{update}}» συγκρίνει τη σημείωση με την εγγραφή. Μια σημείωση που έχετε επεξεργαστεί εσείς θα θεωρηθεί ότι άλλαξε και θα αντικατασταθεί.
+
+[importer.apple-notes.name]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.option-text]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.label-id]
+original=Apple Notes ID
+translation=Apple Notes ID
+
+[importer.apple-notes.msg-platform]
+original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
+translation=Λόγω περιορισμών πλατφόρμας, δεν είναι δυνατή η εξαγωγή του Apple Notes από αυτήν τη συσκευή. Ανοίξτε το θησαυροφυλάκιό σας σε Mac για εξαγωγή από το Apple Notes.
+
+[importer.apple-notes.name-prefix-format]
+original=File prefix format
+translation=Μορφοποίηση προθέματος αρχείου
+
+[importer.apple-notes.desc-prefix-format]
+original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
+translation=Μορφοποίηση του προθέματος ημερομηνίας δημιουργίας στα ονόματα αρχείων. Χρησιμοποιήστε YYYY, MM, DD για έτος, μήνα, ημέρα. Αφήστε κενό για κανένα πρόθεμα.
+
+[importer.apple-notes.name-omit-first-line]
+original=Omit first line
+translation=Παράλειψη πρώτης γραμμής
+
+[importer.apple-notes.desc-omit-first-line]
+original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
+translation=Να μη συμπεριληφθεί η πρώτη γραμμή στο κείμενο, καθώς το Apple Notes τη χρησιμοποιεί ως τίτλο. Θα χρησιμοποιηθεί ακόμα ως όνομα σημείωσης.
+
+[importer.apple-notes.name-handwriting]
+original=Include handwriting text
+translation=Συμπερίληψη κειμένου χειρόγραφου
+
+[importer.apple-notes.desc-handwriting]
+original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
+translation=Όταν το Apple Notes έχει ανιχνεύσει χειρόγραφο σε σχέδια, να συμπεριληφθεί ως κείμενο πριν από το σχέδιο.
+
+[importer.apple-notes.name-data-folder]
+original=Apple Notes data folder
+translation=Φάκελος δεδομένων Apple Notes
+
+[importer.apple-notes.desc-data-folder]
+original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
+translation=Το macOS επιτρέπει στο Obsidian να διαβάσει τις σημειώσεις σας μόνο αφού υποδείξετε τον φάκελο στον οποίο αποθηκεύονται.
+
+[importer.apple-notes.button-select-folder]
+original=Select folder
+translation=Επιλογή φακέλου
+
+[importer.apple-notes.msg-wrong-folder]
+original=Ensure you have selected the correct Apple Notes data folder.
+translation=Βεβαιωθείτε ότι έχετε επιλέξει τον σωστό φάκελο δεδομένων Apple Notes.
+
+[importer.apple-notes.msg-dialog-folder]
+original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
+translation=Επιλέξτε τον φάκελο "group.com.apple.notes" για να επιτρέψετε στο Obsidian να διαβάσει τα δεδομένα Apple Notes.
+
+[importer.apple-notes.msg-import-failed]
+original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
+translation=Η εισαγωγή δεδομένων απέτυχε. Βεβαιωθείτε ότι έχετε επιλέξει τον σωστό φάκελο δεδομένων Apple Notes.
+
+[importer.apple-notes.msg-pick-folders]
+original=Please select at least one folder to import.
+translation=Επιλέξτε τουλάχιστον έναν φάκελο για εισαγωγή.
+
+[importer.apple-notes.name-folders]
+original=Folders to import
+translation=Φάκελοι προς εισαγωγή
+
+[importer.apple-notes.desc-folders]
+original=Pick the folders whose notes to bring across.
+translation=Επιλέξτε τους φακέλους των οποίων τις σημειώσεις θέλετε να μεταφέρετε.
+
+[importer.apple-notes.msg-no-access]
+original=Allow access to your notes to see the folders in them.
+translation=Επιτρέψτε την πρόσβαση στις σημειώσεις σας για να δείτε τους φακέλους τους.
+
+[importer.apple-notes.msg-no-folders]
+original=No folders found.
+translation=Δεν βρέθηκαν φάκελοι.
+
+[importer.apple-notes.msg-database-busy]
+original=Your Apple Notes database is in use. Quit Notes and try again.
+translation=Η βάση δεδομένων Apple Notes χρησιμοποιείται. Κλείστε το Notes και δοκιμάστε ξανά.
+
+[importer.apple-notes.msg-database-unreadable]
+original=Could not open your Apple Notes database. {{hint}}
+translation=Δεν ήταν δυνατό το άνοιγμα της βάσης δεδομένων Apple Notes. {{hint}}
+
+[importer.apple-notes.msg-read-failed-with-detail]
+original=Could not read your notes: {{detail}}
+translation=Δεν ήταν δυνατή η ανάγνωση των σημειώσεών σας: {{detail}}
+
+[importer.apple-notes.msg-read-failed]
+original=Could not read your notes.
+translation=Δεν ήταν δυνατή η ανάγνωση των σημειώσεών σας.
+
+[importer.apple-notes.reason-password-protected]
+original=note is password protected
+translation=η σημείωση προστατεύεται με κωδικό πρόσβασης
+
+[importer.apple-notes.reason-duplicate]
+original=note is a duplicate
+translation=η σημείωση είναι διπλασιασμός
+
+[importer.apple-notes.reason-unchanged]
+original=note unchanged since last import
+translation=η σημείωση δεν έχει αλλάξει από την τελευταία εισαγωγή
+
+[importer.apple-notes.reason-attachment-exists]
+original=attachment already exists
+translation=το συνημμένο υπάρχει ήδη
+
+[importer.apple-notes.reason-attachment-unchanged]
+original=attachment unchanged since last import
+translation=το συνημμένο δεν έχει αλλάξει από την τελευταία εισαγωγή
+
+[importer.apple-notes.reason-not-downloaded]
+original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
+translation=δεν έχει ληφθεί από το iCloud - ανοίξτε τη σημείωση στο Apple Notes για να τη λάβετε
+
+[importer.apple-notes.label-attachment]
+original=Attachment {{id}}
+translation=Συνημμένο {{id}}
+
+[importer.apple-notes.reason-no-attachment-row]
+original=no {{uti}} row to read it from
+translation=δεν υπάρχει Γραμμή {{uti}} για ανάγνωση
+
+[importer.apple-notes.label-attachment-in-note]
+original={{name}} in {{note}}
+translation={{name}} στο {{note}}
+
+[importer.apple-journal.name]
+original=Apple Journal
+translation=Apple Journal
+
+[importer.apple-journal.option-text]
+original=Apple Journal (HTML export)
+translation=Apple Journal (εξαγωγή HTML)
+
+[importer.apple-journal.file-type]
+original=Journal entries
+translation=Καταχωρίσεις Journal
+
+[importer.apple-journal.desc-files]
+original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
+translation=Εξαγάγετε τις καταχωρίσεις σας από την εφαρμογή Journal και μετά επιλέξτε τα αρχεία HTML που αποθηκεύτηκαν στο iCloud Drive.
+
+[importer.apple-journal.heading-metadata]
+original=Journal metadata
+translation=Μεταδεδομένα Journal
+
+[importer.apple-journal.name-front-matter]
+original=Add metadata as frontmatter
+translation=Προσθήκη μεταδεδομένων ως μεταδεδομένα αρχής
+
+[importer.apple-journal.desc-front-matter]
+original=Capture state-of-mind, contact, and similar tokens in YAML when available.
+translation=Καταγραφή διάθεσης, επαφών και παρόμοιων στοιχείων σε YAML όταν είναι διαθέσιμα.
+
+[importer.apple-journal.reason-index-file]
+original=index file is not a journal entry
+translation=το αρχείο ευρετηρίου δεν είναι καταχώριση ημερολογίου
+
+[importer.bear.name]
+original=Bear
+translation=Bear
+
+[importer.bear.option-text]
+original=Bear (.bear2bk)
+translation=Bear (.bear2bk)
+
+[importer.bear.file-type]
+original=Bear2bk
+translation=Bear2bk
+
+[importer.bear.label-id]
+original=Bear ID
+translation=Bear ID
+
+[importer.bear.desc-export]
+original=Back up your notes in Bear, you will receive a .bear2bk file.
+translation=Δημιουργήστε αντίγραφο ασφαλείας των σημειώσεών σας στο Bear, θα λάβετε ένα αρχείο .bear2bk.
+
+[importer.bear.name-flatten-tags]
+original=Flatten nested tags
+translation=Ισοπέδωση ένθετων ετικετών
+
+[importer.bear.desc-flatten-tags]
+original=When enabled, tags will be split on slashes (/) during import.
+translation=Όταν είναι ενεργοποιημένο, οι ετικέτες θα διαχωρίζονται στις καθέτους (/) κατά την εισαγωγή.
+
+[importer.bear.status-importing-asset]
+original=Importing asset {{name}}
+translation=Εισαγωγή πόρου {{name}}
+
+[importer.bear.status-updating-links]
+original=Updating internal links…
+translation=Ενημέρωση εσωτερικών συνδέσμων…
+
+[importer.bear.reason-unknown-type]
+original=unknown type of file
+translation=Άγνωστο τύπος αρχείου
+
+[importer.csv.name]
+original=CSV
+translation=CSV
+
+[importer.csv.option-text]
+original=CSV (.csv)
+translation=CSV (.csv)
+
+[importer.csv.file-type]
+original=CSV
+translation=CSV
+
+[importer.csv.name-header-row]
+original=CSV has header row
+translation=Το CSV έχει γραμμή κεφαλίδων
+
+[importer.csv.desc-header-row]
+original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=Αν είναι ενεργοποιημένο, η πρώτη γραμμή του αρχείου CSV θα αντιμετωπίζεται ως κεφαλίδες στηλών.
+
+[importer.csv.msg-pick-file]
+original=Please pick at least one CSV file to import.
+translation=Επιλέξτε τουλάχιστον ένα αρχείο CSV για εισαγωγή.
+
+[importer.csv.msg-one-at-a-time]
+original=CSV files must be imported one at a time.
+translation=Τα αρχεία CSV πρέπει να εισάγονται ένα κάθε φορά.
+
+[importer.csv.msg-no-data]
+original=No data found in {{name}}.
+translation=Δεν βρέθηκαν δεδομένα στο {{name}}.
+
+[importer.csv.msg-no-configuration]
+original=Configuration is missing.
+translation=Λείπει η διαμόρφωση.
+
+[importer.csv.status-parsing]
+original=Parsing {{name}}
+translation=Ανάλυση {{name}}
+
+[importer.csv.status-creating-note]
+original=Creating note: {{title}}
+translation=Δημιουργία σημείωσης: {{title}}
+
+[importer.csv.label-row]
+original=Row {{number}}
+translation=Γραμμή {{number}}
+
+[importer.csv.reason-empty-title]
+original=Empty title
+translation=Κενό τίτλος
+
+[importer.evernote.name]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.option-text]
+original=Evernote (.enex)
+translation=Evernote (.enex)
+
+[importer.evernote.file-type]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.desc-export]
+original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
+translation=Εξαγάγετε τα σημειωματάριά σας σε μορφή ENEX, θα λάβετε ένα αρχείο .enex ανά σημειωματάριο.
+
+[importer.evernote.msg-unresolved-links]
+original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} σύνδεσμος δεν μπόρεσε να αντιστοιχιστεί σε σημείωση. Μια εξαγωγή ENEX δεν υποδεικνύει σε ποια σημείωση οδηγεί ένας σύνδεσμος, μόνο τον τίτλο που εμφανιζόταν στο Evernote, επομένως μια σημείωση που μετονομάστηκε μετά τη δημιουργία του συνδέσμου δεν αντιστοιχεί πλέον. Το Obsidian τους εμφανίζει στους μη επιλυμένους συνδέσμους.
+
+[importer.evernote.msg-unresolved-links_plural]
+original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} σύνδεσμοι δεν μπόρεσαν να αντιστοιχιστούν σε σημείωση. Μια εξαγωγή ENEX δεν υποδεικνύει σε ποια σημείωση οδηγεί ένας σύνδεσμος, μόνο τον τίτλο που εμφανιζόταν στο Evernote, επομένως μια σημείωση που μετονομάστηκε μετά τη δημιουργία του συνδέσμου δεν αντιστοιχεί πλέον. Το Obsidian τους εμφανίζει στους μη επιλυμένους συνδέσμους.
+
+[importer.keep.name]
+original=Google Keep
+translation=Google Keep
+
+[importer.keep.option-text]
+original=Google Keep (.zip/.json)
+translation=Google Keep (.zip/.json)
+
+[importer.keep.file-type]
+original=Notes & attachments
+translation=Σημειώσεις & συνημμένα
+
+[importer.keep.desc-export]
+original=Get your Google Keep data from Google Takeout. 
+translation=Λάβετε τα δεδομένα σας από το Google Keep μέσω Google Takeout. 
+
+[importer.keep.name-archived]
+original=Import archived notes
+translation=Εισαγωγή αρχειοθετημένων σημειώσεων
+
+[importer.keep.desc-archived]
+original=If imported, files archived in Google Keep will be tagged as archived.
+translation=Αν εισαχθούν, τα αρχεία που είναι αρχειοθετημένα στο Google Keep θα επισημανθούν ως αρχειοθετημένα.
+
+[importer.keep.name-deleted]
+original=Import deleted notes
+translation=Εισαγωγή διαγραμμένων σημειώσεων
+
+[importer.keep.desc-deleted]
+original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
+translation=Αν εισαχθούν, τα αρχεία που διαγράφηκαν στο Google Keep θα επισημανθούν ως διαγραμμένα. Οι διαγραμμένες σημειώσεις θα υπάρχουν στην εξαγωγή Google μόνο αν διαγράφηκαν πρόσφατα.
+
+[importer.keep.reason-invalid-json]
+original=Invalid Google Keep JSON
+translation=Μη έγκυρο Google Keep JSON
+
+[importer.keep.reason-archived]
+original=Archived note
+translation=Αρχειοθετημένη σημείωση
+
+[importer.keep.reason-deleted]
+original=Deleted note
+translation=Διαγραμμένη σημείωση
+
+[importer.html.name]
+original=HTML files
+translation=Αρχεία HTML
+
+[importer.html.option-text]
+original=HTML (.html)
+translation=HTML (.html)
+
+[importer.html.file-type]
+original=HTML
+translation=HTML
+
+[importer.html.name-size-limit]
+original=Attachment size limit (MB)
+translation=Όριο μεγέθους συνημμένου (MB)
+
+[importer.html.name-minimum-image-size]
+original=Minimum image size (px)
+translation=Ελάχιστο μέγεθος εικόνας (px)
+
+[importer.html.desc-set-zero-to-disable]
+original=Set 0 to disable.
+translation=Ορίστε 0 για απενεργοποίηση.
+
+[importer.html.status-downloading]
+original=Downloading attachment for {{name}}
+translation=Λήψη συνημμένου για {{name}}
+
+[importer.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.option-text]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.method-name]
+original=Microsoft account
+translation=Λογαριασμός Microsoft
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=Συνδεθείτε στον λογαριασμό σας Microsoft και εισαγάγετε τα σημειωματάρια που είναι σε συγχρονισμό με το OneDrive. Απαιτείται σύνδεση στο διαδίκτυο.
+
+[importer.onenote.label-id]
+original=OneNote ID
+translation=Αναγνωριστικό OneNote
+
+[importer.onenote.name-incompatible]
+original=Import incompatible attachments
+translation=Εισαγωγή μη συμβατών συνημμένων
+
+[importer.onenote.desc-incompatible]
+original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+translation=Εισάγει μη συμβατά συνημμένα που δεν μπορούν να ενσωματωθούν στο Obsidian, όπως αρχεία .exe.
+
+[importer.onenote.name-account]
+original=Microsoft account
+translation=Λογαριασμός Microsoft
+
+[importer.onenote.desc-sign-in]
+original=Sign in to import your OneNote notebooks.
+translation=Συνδεθείτε για να εισαγάγετε τα σημειωματάρια OneNote σας.
+
+[importer.onenote.desc-sign-in-organization]
+original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
+translation=Συνδεθείτε για να εισαγάγετε τα σημειωματάρια OneNote σας. Ένας λογαριασμός εργασίας ή σχολείου μπορεί να χρειαστεί έγκριση πρόσβασης από τον οργανισμό σας.
+
+[importer.onenote.desc-signed-in]
+original=Signed in as {{name}} ({{email}}).
+translation=Συνδεδεμένος ως {{name}} ({{email}}).
+
+[importer.onenote.button-sign-in]
+original=Sign in
+translation=Σύνδεση
+
+[importer.onenote.button-sign-out]
+original=Sign out
+translation=Αποσύνδεση
+
+[importer.onenote.button-work-account]
+original=Use work or school access
+translation=Χρήση πρόσβασης εργασίας ή σχολείου
+
+[importer.onenote.msg-sign-in-failed]
+original=An error occurred while trying to sign you in.
+translation=Παρουσιάστηκε σφάλμα κατά την προσπάθεια σύνδεσης.
+
+[importer.onenote.msg-sign-in-details]
+original=Click here to show error details
+translation=Κάντε κλικ εδώ για εμφάνιση λεπτομερειών σφάλματος
+
+[importer.onenote.msg-signed-out]
+original=Sign in to see your OneNote notebooks.
+translation=Συνδεθείτε για να δείτε τα σημειωματάρια OneNote σας.
+
+[importer.onenote.msg-please-sign-in]
+original=Please sign in to your Microsoft account.
+translation=Συνδεθείτε στον λογαριασμό σας Microsoft.
+
+[importer.onenote.name-sections]
+original=Sections to import
+translation=Ενότητες προς εισαγωγή
+
+[importer.onenote.desc-sections]
+original=Select a notebook, or sections within it.
+translation=Επιλέξτε ένα σημειωματάριο ή ενότητες μέσα σε αυτό.
+
+[importer.onenote.msg-loading-notebooks]
+original=Loading notebooks...
+translation=Φόρτωση σημειωματάριων...
+
+[importer.onenote.msg-no-notebooks]
+original=No notebooks found.
+translation=Δεν βρέθηκαν σημειωματάρια.
+
+[importer.onenote.msg-scope-refused]
+original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
+translation=Το OneNote δεν παραχώρησε πρόσβαση στα σημειωματάριά σας με αυτή τη σύνδεση. Αποσυνδεθείτε και συνδεθείτε ξανά για να ζητήσετε πρόσβαση εργασίας ή σχολείου, την οποία μπορεί να χρειαστεί να εγκρίνει ο οργανισμός σας.
+
+[importer.onenote.label-service]
+original=OneNote
+translation=OneNote
+
+[importer.onenote.label-subject]
+original=your notebooks
+translation=τα σημειωματάριά σας
+
+[importer.onenote.label-credential]
+original=Sign out and back in to try again.
+translation=Αποσυνδεθείτε και συνδεθείτε ξανά για να δοκιμάσετε ξανά.
+
+[importer.onenote.status-finding]
+original=Finding notes to import
+translation=Εύρεση σημειώσεων προς εισαγωγή
+
+[importer.onenote.status-finding-in]
+original=Finding notes in {{section}}
+translation=Εύρεση σημειώσεων στην ενότητα {{section}}
+
+[importer.onenote.status-finding-in-section]
+original=Finding notes in {{section}} (section {{index}} of {{total}})
+translation=Εύρεση σημειώσεων στην ενότητα {{section}} (ενότητα {{index}} από {{total}})
+
+[importer.onenote.status-importing-notes]
+original=Importing {{notes}}
+translation=Εισαγωγή {{notes}}
+
+[importer.onenote.status-downloading]
+original=Downloading attachment {{name}}
+translation=Λήψη συνημμένου {{name}}
+
+[importer.onenote.msg-too-many-errors]
+original=Microsoft OneNote returned too many consecutive errors.
+translation=Το Microsoft OneNote επέστρεψε πάρα πολλά διαδοχικά σφάλματα.
+
+[importer.onenote.label-unknown-page]
+original=<unknown>
+translation=<Άγνωστο>
+
+[importer.onenote.reason-too-many-failures]
+original=import was canceled (after too many pages failed to load)
+translation=η εισαγωγή ακυρώθηκε (μετά από πάρα πολλές αποτυχίες φόρτωσης σελίδων)
+
+[importer.onenote.label-ink]
+original={{page}} - Ink.svg
+translation={{page}} - Ink.svg
+
+[importer.onenote.label-attachment]
+original=OneNote attachment
+translation=Συνημμένο OneNote
+
+[importer.onenote.label-image]
+original=OneNote image
+translation=Εικόνα OneNote
+
+[importer.onenote.reason-no-attachment-name]
+original=the attachment did not say what it was called
+translation=το συνημμένο δεν είχε όνομα
+
+[importer.onenote.reason-no-attachment-url]
+original=the attachment did not include a download URL
+translation=το συνημμένο δεν περιλάμβανε URL λήψης
+
+[importer.onenote.reason-no-image-url]
+original=the image did not include a download URL
+translation=η εικόνα δεν περιλάμβανε URL λήψης
+
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=Microsoft OneNote (αρχείο εξαγωγής)
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=Microsoft OneNote (.one, .onepkg)
+
+[importer.onenote-file.method-name]
+original=File import
+translation=Εισαγωγή από αρχείο
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=Εισαγωγή μέσω αρχείων εξαγωγής OneNote (.one, .onepkg) από τον υπολογιστή σας. Δεν απαιτεί λογαριασμό ή σύνδεση στο διαδίκτυο και λειτουργεί για σημειωματάρια που δεν ήταν ποτέ σε συγχρονισμό.
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=Εξαγωγή OneNote
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=Αναγνωριστικό OneNote
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=Το OneNote για Windows διατηρεί τα δικά του αντίγραφα ασφαλείας και ο φάκελος αυτός ανοίγει εκεί. Επιλέξτε τα σημειωματάρια ή τις ενότητες που θέλετε.
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=Στο OneNote για Windows, κάντε δεξί κλικ σε ένα σημειωματάριο και εξαγάγετέ το για να αποθηκεύσετε ένα αρχείο .onepkg, ή εξαγάγετε μια μεμονωμένη ενότητα ως .one.
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=Ενότητες για εισαγωγή
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=Επιλέξτε ποιες ενότητες θα εισαχθούν.
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=Ανάκτηση ενοτήτων…
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=Δεν βρέθηκαν ενότητες σε αυτό το αρχείο.
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=Επιλέξτε πρώτα ένα αρχείο OneNote.
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation=Ανάκτηση {{name}}
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation=Εισαγωγή {{name}} ({{index}} από {{total}})
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=το αρχείο προστατεύεται με δικαιώματα και μπορεί να ανοιχτεί μόνο από λογαριασμό με άδεια πρόσβασης
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=το αρχείο χρησιμοποιεί μορφή OneNote που αυτός ο εισαγωγέας δεν μπορεί ακόμα να διαβάσει
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=το αρχείο δεν περιγράφει τις δομές OneNote που δηλώνει ότι περιέχει
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=το αρχείο είναι μεγαλύτερο από όσο ο εισαγωγέας είναι διατεθειμένος να επεκτείνει
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=το συνημμένο δεν περιείχε δεδομένα
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=ένας πίνακας μέσα σε κελί πίνακα δεν έχει αντίστοιχο σε Markdown
+
+[importer.notion-api.name]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.option-text]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=Λογαριασμός Notion (Προτείνεται)
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
+translation=Εισάγει ολόκληρο τον χώρο εργασίας σας, συμπεριλαμβανομένων βάσεων δεδομένων και τύπων που μετατρέπονται σε βάσεις. Απαιτεί ένα token ενοποίησης Notion και σύνδεση στο διαδίκτυο.
+
+[importer.notion-api.label-id]
+original=Notion ID
+translation=Αναγνωριστικό Notion
+
+[importer.notion-api.name-token]
+original=Notion API token
+translation=Token API Notion
+
+[importer.notion-api.desc-token]
+original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+translation=Για να αποκτήσετε ένα token API, δημιουργήστε μια σύνδεση στο Notion και δώστε της πρόσβαση στις σελίδες του χώρου εργασίας σας. 
+
+[importer.notion-api.link-get-token]
+original=Get API token.
+translation=Λήψη token API.
+
+[importer.notion-api.name-pages]
+original=Pages to import
+translation=Σελίδες για εισαγωγή
+
+[importer.notion-api.desc-pages]
+original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+translation=Κάντε κλικ στο "Φόρτωση" για να δείτε τα δεδομένα που μπορείτε να εισαγάγετε. Αν λείπει μια σελίδα ή βάση δεδομένων, ελέγξτε ότι η σύνδεσή σας στο Notion έχει πρόσβαση σε αυτήν.
+
+[importer.notion-api.hint-pages]
+original=Click "Load" to load your Notion pages and databases.
+translation=Κάντε κλικ στο "Φόρτωση" για να φορτώσετε τις σελίδες και τις βάσεις δεδομένων σας στο Notion.
+
+[importer.notion-api.msg-loading-pages]
+original=Loading pages and databases...
+translation=Φόρτωση σελίδων και βάσεων δεδομένων...
+
+[importer.notion-api.msg-no-pages]
+original=No pages or databases found. Make sure your connection has access to the pages you want to import.
+translation=Δεν βρέθηκαν σελίδες ή βάσεις δεδομένων. Βεβαιωθείτε ότι η σύνδεσή σας έχει πρόσβαση στις σελίδες που θέλετε να εισαγάγετε.
+
+[importer.notion-api.label-service]
+original=Notion
+translation=Notion
+
+[importer.notion-api.label-subject]
+original=your pages
+translation=τις σελίδες σας
+
+[importer.notion-api.label-credential]
+original=Check that your token is current and that the connection has access to them.
+translation=Ελέγξτε ότι το token σας είναι ενημερωμένο και ότι η σύνδεση έχει πρόσβαση σε αυτές.
+
+[importer.notion-api.name-formulas]
+original=Convert formulas
+translation=Μετατροπή τύπων
+
+[importer.notion-api.desc-formulas]
+original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
+translation=Από προεπιλογή, οι τύποι του Notion μετατρέπονται σε σύνταξη Obsidian. Αν κάποια σύνταξη Notion δεν υποστηρίζεται, θα αποθηκευτούν οι στατικές τιμές. Εναλλακτικά, μπορείτε να εισαγάγετε όλους τους τύπους ως στατικές τιμές.
+
+[importer.notion-api.option-formula-hybrid]
+original=Obsidian syntax
+translation=Σύνταξη Obsidian
+
+[importer.notion-api.option-formula-static]
+original=Static values
+translation=Στατικές τιμές
+
+[importer.notion-api.name-download-external]
+original=Download external attachments
+translation=Λήψη εξωτερικών συνημμένων
+
+[importer.notion-api.desc-download-external]
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=Λήψη εξωτερικών συνημμένων (εξωτερικά URL) ως τοπικά αρχεία. Τα αρχεία που φιλοξενούνται στο Notion λαμβάνονται πάντα.
+
+[importer.notion-api.name-single-line-breaks]
+original=Single line breaks
+translation=Μονές αλλαγές γραμμής
+
+[importer.notion-api.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
+translation=Διαχωρισμός μπλοκ του Notion με μόνο μία αλλαγή γραμμής αντί για δύο. Ορισμένα μπλοκ (λίστες, εναλλαγές, πίνακες) θα χρησιμοποιούν ακόμα διπλές αλλαγές γραμμής όταν απαιτείται για σωστή σύνταξη Markdown.
+
+[importer.notion-api.name-cover-property]
+original=Cover property name
+translation=Όνομα ιδιότητας εξωφύλλου
+
+[importer.notion-api.desc-cover-property]
+original=Property name for page cover image in YAML frontmatter. 
+translation=Όνομα ιδιότητας για την εικόνα εξωφύλλου σελίδας στα YAML μεταδεδομένα αρχής. 
+
+[importer.notion-api.desc-cover-property-conflicts]
+original=Leave as "cover" if you don't have conflicts with existing properties.
+translation=Αφήστε ως "cover" αν δεν έχετε συγκρούσεις με υπάρχουσες ιδιότητες.
+
+[importer.notion-api.name-database-property]
+original=Database property name
+translation=Όνομα ιδιότητας βάσης δεδομένων
+
+[importer.notion-api.desc-database-property]
+original=Property name in page frontmatter to link pages to their database .base file (default: "base")
+translation=Όνομα ιδιότητας στα μεταδεδομένα αρχής σελίδας για σύνδεση σελίδων με το αρχείο .base της βάσης δεδομένων τους (προεπιλογή: "base")
+
+[importer.notion-api.name-linked-databases]
+original=Import linked databases
+translation=Εισαγωγή συνδεδεμένων βάσεων δεδομένων
+
+[importer.notion-api.desc-linked-databases]
+original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
+translation=Εισαγωγή επίσης βάσεων δεδομένων στις οποίες συνδέονται οι επιλεγμένες σελίδες, ώστε οι σχέσεις να γίνονται σύνδεσμοι αντί για ονόματα. Αυτό εισάγει σελίδες που δεν επιλέξατε.
+
+[importer.notion-api.msg-token-first]
+original=Please enter your Notion API token first.
+translation=Παρακαλώ εισαγάγετε πρώτα το API token του Notion.
+
+[importer.notion-api.msg-token-missing]
+original=Please enter your Notion API token.
+translation=Παρακαλώ εισαγάγετε το API token του Notion.
+
+[importer.notion-api.msg-load-pages-failed]
+original=Failed to load pages: {{error}}
+translation=Αποτυχία φόρτωσης σελίδων: {{error}}
+
+[importer.notion-api.msg-found]
+original=Found {{count}} page or database.
+translation=Βρέθηκε {{count}} σελίδα ή βάση δεδομένων.
+
+[importer.notion-api.msg-found_plural]
+original=Found {{count}} pages and databases.
+translation=Βρέθηκαν {{count}} σελίδες και βάσεις δεδομένων.
+
+[importer.notion-api.msg-pick-page]
+original=Please select at least one page or database to import.
+translation=Παρακαλώ επιλέξτε τουλάχιστον μία σελίδα ή βάση δεδομένων για εισαγωγή.
+
+[importer.notion-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=Η εισαγωγή απέτυχε: {{error}}
+
+[importer.notion-api.status-loading-items]
+original=Loading... ({{items}}, page {{page}})
+translation=Φόρτωση... ({{items}}, σελίδα {{page}})
+
+[importer.notion-api.status-connecting]
+original=Connecting to Notion API...
+translation=Σύνδεση στο Notion API...
+
+[importer.notion-api.status-fetching]
+original=Fetching page content from Notion...
+translation=Ανάκτηση περιεχομένου σελίδας από το Notion...
+
+[importer.notion-api.status-preparing]
+original=Preparing to import {{items}}...
+translation=Προετοιμασία εισαγωγής {{items}}...
+
+[importer.notion-api.status-importing-items]
+original=Importing {{items}}...
+translation=Εισαγωγή {{items}}...
+
+[importer.notion-api.status-importing-item]
+original=Importing item {{index}}/{{total}}...
+translation=Εισαγωγή στοιχείου {{index}}/{{total}}...
+
+[importer.notion-api.status-importing-title]
+original=Importing: {{title}}
+translation=Εισαγωγή: {{title}}
+
+[importer.notion-api.status-relation-links]
+original=Processing relation links...
+translation=Επεξεργασία συνδέσμων σχέσεων...
+
+[importer.notion-api.status-mention-links]
+original=Processing mention links...
+translation=Επεξεργασία συνδέσμων αναφορών...
+
+[importer.notion-api.status-synced-blocks]
+original=Processing synced block child references...
+translation=Επεξεργασία θυγατρικών αναφορών συγχρονισμένων μπλοκ...
+
+[importer.notion-api.status-cleaning-ids]
+original=Cleaning up notion-id attributes...
+translation=Εκκαθάριση χαρακτηριστικών notion-id...
+
+[importer.notion-api.status-done]
+original=Import completed successfully!
+translation=Η εισαγωγή ολοκληρώθηκε επιτυχώς!
+
+[importer.notion-api.status-replacing-relations]
+original=Replacing {{placeholders}}...
+translation=Αντικατάσταση {{placeholders}}...
+
+[importer.notion-api.status-replacing-relation-links]
+original=Replacing relation placeholders with wiki links...
+translation=Αντικατάσταση placeholders σχέσεων με wiki συνδέσμους...
+
+[importer.notion-api.status-importing-linked-databases]
+original=Importing {{databases}}...
+translation=Εισαγωγή {{databases}}...
+
+[importer.notion-api.status-importing-unimported]
+original=Importing unimported database {{id}}...
+translation=Εισαγωγή μη εισηγμένης βάσης δεδομένων {{id}}...
+
+[importer.notion-api.status-replacing-mentions]
+original=Replacing mention placeholders...
+translation=Αντικατάσταση placeholders αναφορών...
+
+[importer.notion-api.status-replaced-mentions]
+original=Replaced {{links}} in {{files}}.
+translation=Αντικαταστάθηκαν {{links}} σε {{files}}.
+
+[importer.notion-api.status-replacing-synced]
+original=Replacing synced block child references...
+translation=Αντικατάσταση θυγατρικών αναφορών συγχρονισμένων μπλοκ...
+
+[importer.notion-api.status-replaced-synced]
+original=Replaced {{references}} in {{files}} (imported {{imported}}).
+translation=Αντικαταστάθηκαν {{references}} σε {{files}} (εισήχθησαν {{imported}}).
+
+[importer.notion-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}...
+translation=Λήψη συνημμένου: {{name}}...
+
+[importer.notion-api.status-rate-limited]
+original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Περιορισμός ρυθμού. Αναμονή {{seconds}} δευτερολέπτων πριν την επανάληψη ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Το Notion επέστρεψε {{status}}. Αναμονή {{seconds}} δευτερολέπτων πριν την επανάληψη ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}. Επαναπροσπάθεια σε {{seconds}} δευτερόλεπτα ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-processing-data-source]
+original=Processing database from data source: {{id}}...
+translation=Επεξεργασία βάσης δεδομένων από πηγή δεδομένων: {{id}}...
+
+[importer.notion-api.status-processing-database]
+original=Processing database: {{title}}...
+translation=Επεξεργασία βάσης δεδομένων: {{title}}...
+
+[importer.notion-api.status-found-pages]
+original=Found {{pages}} in database {{title}}
+translation=Βρέθηκαν {{pages}} στη βάση δεδομένων {{title}}
+
+[importer.notion-api.status-found-templates]
+original=Found {{templates}} in database {{title}}
+translation=Βρέθηκαν {{templates}} στη βάση δεδομένων {{title}}
+
+[importer.notion-api.status-importing-template]
+original=Importing template: {{name}}...
+translation=Εισαγωγή προτύπου: {{name}}...
+
+[importer.notion-api.label-import]
+original=Notion API import
+translation=Εισαγωγή μέσω Notion API
+
+[importer.notion-api.label-item]
+original=Import item {{id}}
+translation=Εισαγωγή στοιχείου {{id}}
+
+[importer.notion-api.label-page]
+original=Page {{id}}
+translation=Σελίδα {{id}}
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
+translation=Σελίδα: {{title}} ({{id}})
+
+[importer.notion-api.label-relation-page]
+original=Relation page {{id}}
+translation=Σελίδα σχέσης {{id}}
+
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
+translation=Βάση δεδομένων: {{title}} ({{id}})
+
+[importer.notion-api.label-mention-file]
+original=Mention file {{path}}
+translation=Αρχείο αναφοράς {{path}}
+
+[importer.notion-api.label-synced-block-file]
+original=Synced block file {{path}}
+translation=Αρχείο μπλοκ σε συγχρονισμό {{path}}
+
+[importer.notion-api.label-attachment]
+original=Attachment: {{name}}
+translation=Συνημμένο: {{name}}
+
+[importer.notion-api.label-child-page]
+original=Child page: {{title}}
+translation=Θυγατρική σελίδα: {{title}}
+
+[importer.notion-api.label-synced-block]
+original=Synced block: {{name}}
+translation=Μπλοκ σε συγχρονισμό: {{name}}
+
+[importer.notion-api.label-attachment-image]
+original=Image attachment
+translation=Συνημμένο εικόνας
+
+[importer.notion-api.label-attachment-video]
+original=Video attachment
+translation=Συνημμένο βίντεο
+
+[importer.notion-api.label-attachment-file]
+original=File attachment
+translation=Συνημμένο αρχείου
+
+[importer.notion-api.label-attachment-pdf]
+original=PDF attachment
+translation=Συνημμένο PDF
+
+[importer.notion-api.label-fetch-children]
+original=Fetch children for {{context}} {{id}}
+translation=Ανάκτηση θυγατρικών για {{context}} {{id}}
+
+[importer.notion-api.block-paragraph]
+original=paragraph
+translation=Παράγραφος
+
+[importer.notion-api.block-bulleted-list-item]
+original=bulleted list item
+translation=στοιχείο λίστας με κουκκίδες
+
+[importer.notion-api.block-numbered-list-item]
+original=numbered list item
+translation=στοιχείο αριθμημένης λίστας
+
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=στοιχείο εκκρεμοτήτων
+
+[importer.notion-api.block-quote]
+original=quote block
+translation=μπλοκ παράθεσης
+
+[importer.notion-api.block-callout]
+original=callout block
+translation=μπλοκ πλαισίου επισήμανσης
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=μπλοκ εναλλαγής
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
+translation=επικεφαλίδα με εναλλαγή
+
+[importer.notion-api.block-column]
+original=column
+translation=Στήλη
+
+[importer.notion-api.block-column-list]
+original=column list
+translation=λίστα στηλών
+
+[importer.notion-api.block-table]
+original=table
+translation=Πίνακας
+
+[importer.notion-api.block-generic]
+original=block
+translation=μπλοκ
+
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=Σημειώσεις συνάντησης: {{name}}
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=Σημειώσεις συνάντησης: {{name}} ({{section}})
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=Σημειώσεις συνάντησης {{id}}
+
+[importer.notion-api.section-summary]
+original=summary
+translation=Σύνοψη
+
+[importer.notion-api.section-notes]
+original=notes
+translation=σημειώσεις
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=απομαγνητοφώνηση
+
+[importer.notion-api.label-fetch-children-block]
+original=Fetch children for block {{id}}
+translation=Ανάκτηση θυγατρικών για μπλοκ {{id}}
+
+[importer.notion-api.reason-not-in-tree]
+original=Item not found in tree
+translation=Το στοιχείο δεν βρέθηκε στο δέντρο
+
+[importer.notion-api.reason-unknown-type]
+original=Unknown type: {{type}}
+translation=Άγνωστος τύπος: {{type}}
+
+[importer.notion-api.reason-earlier-import]
+original=an earlier import had already written it
+translation=μια προηγούμενη εισαγωγή το είχε ήδη γράψει
+
+[importer.notion-api.reason-attachment-exists]
+original={{path}} is already in the vault, the same size (incremental import)
+translation=Το {{path}} υπάρχει ήδη στο θησαυροφυλάκιο, με το ίδιο μέγεθος (σταδιακή εισαγωγή)
+
+[importer.notion-api.reason-http-status]
+original=HTTP {{status}}
+translation=HTTP {{status}}
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=Το Notion δεν έχει ολοκληρώσει τη δημιουργία τους ({{status}})
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=υπέρβαση ορίου αιτημάτων, εγκατάλειψη μετά από {{retries}} επαναπροσπάθειες
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation={{reason}}, εγκατάλειψη μετά από {{retries}} επαναπροσπάθειες
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
+translation={{reason}}· διατηρήθηκε ο σύνδεσμος προς {{url}}
+
+[importer.notion.name]
+original=Notion
+translation=Notion
+
+[importer.notion.option-text]
+original=Notion (.zip)
+translation=Notion (.zip)
+
+[importer.notion.method-name]
+original=File import
+translation=Εισαγωγή αρχείου
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
+translation=Εισαγωγή μέσω αρχείου εξαγωγής Notion (.zip). Δεν απαιτεί API token ή σύνδεση στο διαδίκτυο, αλλά δεν διατηρεί τις βάσεις δεδομένων.
+
+[importer.notion.file-type]
+original=Exported Notion
+translation=Εξαγωγή Notion
+
+[importer.notion.label-id]
+original=Notion ID
+translation=Notion ID
+
+[importer.notion.desc-export]
+original=Export your workspace in HTML format, you will receive a zip file.
+translation=Εξάγετε τον χώρο εργασίας σας σε μορφή HTML, θα λάβετε ένα αρχείο zip.
+
+[importer.notion.desc-files]
+original=Pick the zip file Notion sent you.
+translation=Επιλέξτε το αρχείο zip που σας έστειλε το Notion.
+
+[importer.notion.name-subfolders]
+original=Save parent pages in subfolders
+translation=Αποθήκευση γονικών σελίδων σε υποφακέλους
+
+[importer.notion.desc-subfolders]
+original=Places the parent database pages in the same folder as the nested content.
+translation=Τοποθετεί τις γονικές σελίδες βάσης δεδομένων στον ίδιο φάκελο με το ένθετο περιεχόμενο.
+
+[importer.notion.name-single-line-breaks]
+original=Single line breaks
+translation=Μονές αλλαγές γραμμής
+
+[importer.notion.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break (default is 2).
+translation=Διαχωρισμός των μπλοκ Notion με μία μόνο αλλαγή γραμμής (προεπιλογή είναι 2).
+
+[importer.notion.status-looking]
+original=Looking for files to import
+translation=Αναζήτηση αρχείων για εισαγωγή
+
+[importer.notion.status-resolving]
+original=Resolving links and de-duplicating files
+translation=Επίλυση συνδέσμων και αφαίρεση διπλοτύπων αρχείων
+
+[importer.notion.status-starting]
+original=Starting import
+translation=Έναρξη εισαγωγής
+
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
+translation=πρόκειται για εξαγωγή Markdown· εξάγετε τον χώρο εργασίας σας στο Notion ως HTML
+
+[importer.notion.reason-no-page-body]
+original=page body was not found
+translation=δεν βρέθηκε το κυρίως κείμενο της σελίδας
+
+[importer.roam-json.name]
+original=Roam Research
+translation=Roam Research
+
+[importer.roam-json.option-text]
+original=Roam Research (.json)
+translation=Roam Research (.json)
+
+[importer.roam-json.file-type]
+original=Roam (.json)
+translation=Roam (.json)
+
+[importer.roam-json.label-id]
+original=Roam UID
+translation=Roam UID
+
+[importer.roam-json.desc-export]
+original=Export your data in JSON format.
+translation=Εξάγετε τα δεδομένα σας σε μορφή JSON.
+
+[importer.roam-json.desc-files]
+original=Pick the JSON file from your Roam export.
+translation=Επιλέξτε το αρχείο JSON από την εξαγωγή Roam.
+
+[importer.roam-json.name-download-attachments]
+original=Download all attachments
+translation=Λήψη όλων των συνημμένων
+
+[importer.roam-json.desc-download-attachments]
+original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
+translation=Αν είναι ενεργοποιημένο, όλα τα συνημμένα που έχουν μεταφορτωθεί στο Roam θα ληφθούν στον φάκελο συνημμένων σας.
+
+[importer.roam-json.name-date-properties]
+original=Add YAML created/update date
+translation=Προσθήκη ημερομηνίας δημιουργίας/ενημέρωσης YAML
+
+[importer.roam-json.desc-date-properties]
+original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
+translation=Αν είναι ενεργοποιημένο, στις σημειώσεις θα προστεθούν ως ιδιότητες ο χρόνος δημιουργίας και επεξεργασίας από το Roam.
+
+[importer.roam-json.name-title-property]
+original=Add YAML title
+translation=Προσθήκη τίτλου YAML
+
+[importer.roam-json.desc-title-property]
+original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
+translation=Αν είναι ενεργοποιημένο, στις σημειώσεις θα προστεθεί ο πλήρης τίτλος ως ιδιότητα (ανεξάρτητα από μη έγκυρους χαρακτήρες ονόματος αρχείου).
+
+[importer.roam-json.reason-empty-title]
+original=Title is empty
+translation=Ο τίτλος είναι κενός
+
+[importer.roam-json.reason-unexpected-extension]
+original=Unexpected file extension
+translation=Μη αναμενόμενη επέκταση αρχείου
+
+[importer.roam-json.reason-file-exists]
+original=File already exists
+translation=Το αρχείο υπάρχει ήδη
+
+[importer.textbundle.name]
+original=Textbundle files
+translation=Αρχεία Textbundle
+
+[importer.textbundle.option-text]
+original=Textbundle (.textbundle, .textpack)
+translation=Textbundle (.textbundle, .textpack)
+
+[importer.textbundle.file-type]
+original=Textbundle
+translation=Textbundle
+
+[importer.textbundle.msg-platform]
+original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
+translation=Λόγω περιορισμών πλατφόρμας, μόνο αρχεία textpack και zip μπορούν να εισαχθούν από αυτήν τη συσκευή. Ανοίξτε το θησαυροφυλάκιό σας σε Mac για να εισαγάγετε αρχεία textbundle.
+
+[importer.textbundle.reason-no-markdown]
+original=The textbundle does not contain markdown
+translation=Το textbundle δεν περιέχει Markdown
+
+[importer.textbundle.reason-not-media]
+original=the file is not a media or markdown file.
+translation=το αρχείο δεν είναι αρχείο πολυμέσων ή Markdown.
+
+[importer.textbundle.reason-already-exists]
+original=the file already exists.
+translation=το αρχείο υπάρχει ήδη.
+
+[importer.tomboy.name]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.option-text]
+original=Tomboy/Gnote (.note)
+translation=Tomboy/Gnote (.note)
+
+[importer.tomboy.file-type]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.label-id]
+original=Tomboy ID
+translation=Tomboy ID
+
+[importer.tomboy.desc-files-mac]
+original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
+translation=Οι σημειώσεις Tomboy βρίσκονται συνήθως στο: ~/Library/Application Support/Tomboy
+
+[importer.tomboy.desc-files-windows]
+original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
+translation=Οι σημειώσεις Tomboy βρίσκονται συνήθως στο: %APPDATA%\\Tomboy
+
+[importer.tomboy.desc-files-linux]
+original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
+translation=Οι σημειώσεις Tomboy βρίσκονται συνήθως στο: ~/.local/share/tomboy - ή GNote: ~/.local/share/gnote
+
+[importer.tomboy.name-todo]
+original=Convert TODO lists to checkboxes
+translation=Μετατροπή λιστών TODO σε πλαίσια ελέγχου
+
+[importer.tomboy.desc-todo]
+original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
+translation=Όταν είναι ενεργοποιημένο, οι λίστες σε σημειώσεις με "TODO" στον τίτλο θα μετατραπούν σε λίστες εργασιών με πλαίσια ελέγχου. Τα στοιχεία με διακριτή διαγραφή θα επισημανθούν ως ολοκληρωμένα.
+
+[importer.tomboy.name-keep-title]
+original=Keep title in Markdown
+translation=Διατήρηση τίτλου στο Markdown
+
+[importer.tomboy.desc-keep-title]
+original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
+translation=Επιλέξτε αν θα διατηρηθεί ο τίτλος της σημείωσης στο περιεχόμενο Markdown. Η αυτόματη επιλογή διατηρεί τους τίτλους μόνο όταν χάνονται ειδικοί χαρακτήρες κατά τη μετατροπή ονόματος αρχείου.
+
+[importer.tomboy.option-automatic]
+original=Automatic
+translation=Αυτόματα
+
+[importer.tomboy.option-keep-titles]
+original=Keep titles
+translation=Διατήρηση τίτλων
+
+[importer.tomboy.option-filename-only]
+original=Filename only
+translation=Μόνο όνομα αρχείου

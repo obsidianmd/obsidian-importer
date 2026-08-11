@@ -1,118 +1,118 @@
 [command.import-notes]
 original=Import notes
-translation=Importer des notes
+translation=导入笔记
 
 [nouns.file-with-count]
 original={{count}} file
-translation={{count}} fichier
+translation={{count}} 个文件
 
 [nouns.file-with-count_plural]
 original={{count}} files
-translation={{count}} fichiers
+translation={{count}} 个文件
 
 [nouns.note-with-count]
 original={{count}} note
-translation={{count}} note
+translation={{count}} 条笔记
 
 [nouns.note-with-count_plural]
 original={{count}} notes
-translation={{count}} notes
+translation={{count}} 条笔记
 
 [nouns.item-with-count]
 original={{count}} item
-translation={{count}} élément
+translation={{count}} 个项目
 
 [nouns.item-with-count_plural]
 original={{count}} items
-translation={{count}} éléments
+translation={{count}} 个项目
 
 [nouns.record-with-count]
 original={{count}} record
-translation={{count}} enregistrement
+translation={{count}} 条记录
 
 [nouns.record-with-count_plural]
 original={{count}} records
-translation={{count}} enregistrements
+translation={{count}} 条记录
 
 [nouns.base-with-count]
 original={{count}} base
-translation={{count}} base
+translation={{count}} 个数据库
 
 [nouns.base-with-count_plural]
 original={{count}} bases
-translation={{count}} bases
+translation={{count}} 个数据库
 
 [nouns.template-with-count]
 original={{count}} template
-translation={{count}} modèle
+translation={{count}} 个模板
 
 [nouns.template-with-count_plural]
 original={{count}} templates
-translation={{count}} modèles
+translation={{count}} 个模板
 
 [nouns.failure-with-count]
 original={{count}} failure
-translation={{count}} échec
+translation={{count}} 个失败
 
 [nouns.failure-with-count_plural]
 original={{count}} failures
-translation={{count}} échecs
+translation={{count}} 个失败
 
 [nouns.second-with-count]
 original={{count}} second
-translation={{count}} seconde
+translation={{count}} 秒
 
 [nouns.second-with-count_plural]
 original={{count}} seconds
-translation={{count}} secondes
+translation={{count}} 秒
 
 [nouns.relation-placeholder-with-count]
 original={{count}} relation placeholder
-translation={{count}} marqueur de relation
+translation={{count}} 个关联占位符
 
 [nouns.relation-placeholder-with-count_plural]
 original={{count}} relation placeholders
-translation={{count}} marqueurs de relation
+translation={{count}} 个关联占位符
 
 [nouns.linked-database-with-count]
 original={{count}} linked database
-translation={{count}} base de données liée
+translation={{count}} 个链接数据库
 
 [nouns.linked-database-with-count_plural]
 original={{count}} linked databases
-translation={{count}} bases de données liées
+translation={{count}} 个链接数据库
 
 [nouns.mention-link-with-count]
 original={{count}} mention link
-translation={{count}} lien de mention
+translation={{count}} 个提及链接
 
 [nouns.mention-link-with-count_plural]
 original={{count}} mention links
-translation={{count}} liens de mention
+translation={{count}} 个提及链接
 
 [nouns.synced-reference-with-count]
 original={{count}} synced child reference
-translation={{count}} référence enfant synchronisée
+translation={{count}} 个已同步子引用
 
 [nouns.synced-reference-with-count_plural]
 original={{count}} synced child references
-translation={{count}} références enfants synchronisées
+translation={{count}} 个已同步子引用
 
 [nouns.new-item-with-count]
 original={{count}} new item
-translation={{count}} nouvel élément
+translation={{count}} 个未发布项目
 
 [nouns.new-item-with-count_plural]
 original={{count}} new items
-translation={{count}} nouveaux éléments
+translation={{count}} 个未发布项目
 
 [nouns.page-with-count]
 original={{count}} page
-translation={{count}} page
+translation={{count}} 个页面
 
 [nouns.page-with-count_plural]
 original={{count}} pages
-translation={{count}} pages
+translation={{count}} 个页面
 
 [group.onenote.name]
 original=Microsoft OneNote
@@ -124,539 +124,539 @@ translation=Notion
 
 [modal.title-pick-format]
 original=Import data into Obsidian
-translation=Importer des données dans Obsidian
+translation=将数据导入 Obsidian
 
 [modal.title-choose-method]
 original=Choose how to import
-translation=Choisir le mode d'import
+translation=选择导入方式
 
 [modal.title-import-from]
 original=Import from {{format}}
-translation=Importer depuis {{format}}
+translation=从 {{format}} 导入
 
 [modal.search-placeholder]
 original=Filter...
-translation=Filtrer...
+translation=搜索…
 
 [modal.msg-no-formats]
 original=No formats found.
-translation=Aucun format trouvé.
+translation=未找到任何格式。
 
 [modal.button-continue]
 original=Continue
-translation=Continuer
+translation=继续
 
 [modal.button-import]
 original=Import
-translation=Importer
+translation=导入
 
 [modal.button-back]
 original=Back
-translation=Retour
+translation=返回
 
 [modal.button-help]
 original=Help
-translation=Aide
+translation=帮助
 
 [modal.button-cancel]
 original=Cancel
-translation=Annuler
+translation=取消
 
 [modal.button-pause]
 original=Pause
-translation=Pause
+translation=暂停
 
 [modal.button-resume]
 original=Resume
-translation=Reprendre
+translation=恢复
 
 [modal.button-stop]
 original=Stop
-translation=Arrêter
+translation=停止
 
 [modal.button-save-report]
 original=Save report
-translation=Enregistrer le journal
+translation=保存报告
 
 [modal.msg-report-failed]
 original=Could not save the import report.
-translation=Impossible d'enregistrer le journal d'import.
+translation=无法保存导入报告。
 
 [modal.button-import-more]
 original=Import more
-translation=Importer autre chose
+translation=导入更多
 
 [modal.button-done]
 original=Done
-translation=Terminer
+translation=完成
 
 [modal.msg-unexpected-auth]
 original=Unexpected auth event. Please restart the auth process.
-translation=Événement d'authentification inattendu. Veuillez relancer l'authentification.
+translation=意外的认证事件。请重启认证流程。
 
 [progress.stat-imported]
 original=imported
-translation=importées
+translation=已导入
 
 [progress.stat-attachments]
 original=attachments
-translation=pièces jointes
+translation=附件
 
 [progress.stat-remaining]
 original=remaining
-translation=restantes
+translation=剩余
 
 [progress.stat-skipped]
 original=skipped
-translation=ignorées
+translation=已跳过
 
 [progress.stat-failed]
 original=failed
-translation=échouées
+translation=失败
 
 [progress.label-skipped]
 original=Skipped: 
-translation=Ignoré : 
+translation=已跳过： 
 
 [progress.label-failed]
 original=Failed: 
-translation=Échec : 
+translation=失败： 
 
 [progress.label-entry]
 original="{{name}}"
-translation=« {{name}} »
+translation="{{name}}"
 
 [progress.label-entry-with-reason]
 original="{{name}}" because {{reason}}
-translation=« {{name}} » car {{reason}}
+translation="{{name}}"，原因：{{reason}}
 
 [progress.label-paused]
 original=Paused
-translation=En pause
+translation=已暂停
 
 [progress.label-paused-with]
 original=Paused - {{status}}
-translation=En pause - {{status}}
+translation=已暂停 - {{status}}
 
 [progress.label-importing]
 original=Importing
-translation=Importation
+translation=正在导入
 
 [progress.label-remaining]
 original={{count}} remaining...
-translation={{count}} restante...
+translation=剩余 {{count}} 项…
 
 [progress.label-remaining_plural]
 original={{count}} remaining...
-translation={{count}} restantes...
+translation=剩余 {{count}} 项…
 
 [progress.label-paused-remaining]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restante
+translation=已暂停 - 剩余 {{count}} 项
 
 [progress.label-paused-remaining_plural]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restantes
+translation=已暂停 - 剩余 {{count}} 项
 
 [progress.status-stopping]
 original=Stopping...
-translation=Arrêt en cours...
+translation=正在停止…
 
 [progress.msg-stopped]
 original=Import stopped.
-translation=Importation arrêtée.
+translation=导入已停止。
 
 [progress.msg-errors]
 original=Import finished with errors.
-translation=Importation terminée avec des erreurs.
+translation=导入完成，但有错误。
 
 [progress.msg-complete]
 original=Import complete.
-translation=Importation terminée.
+translation=导入完成。
 
 [progress.msg-imported-count]
 original={{count}} note imported
-translation={{count}} note importée
+translation=已导入 {{count}} 条笔记
 
 [progress.msg-imported-count_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation=已导入 {{count}} 条笔记
 
 [progress.msg-click-to-show]
 original={{counts}}. Click to show.
-translation={{counts}}. Cliquez pour afficher.
+translation={{counts}}。点击查看。
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
-translation=Attente de {{duration}} ({{reason}})
+translation=等待中 {{duration}}（{{reason}}）
 
 [progress.status-standardizing]
 original=Standardizing Markdown ({{current}}/{{total}})
-translation=Normalisation du Markdown ({{current}}/{{total}})
+translation=正在标准化 Markdown（{{current}}/{{total}}）
 
 [progress.label-finalization]
 original=Markdown finalization
-translation=Finalisation du Markdown
+translation=Markdown 最终处理
 
 [report.file-name]
 original={{date}} {{importer}} import log
-translation={{date}} {{importer}} journal d'import
+translation={{date}} {{importer}} 导入日志
 
 [report.title]
 original={{importer}} import
-translation=Import {{importer}}
+translation={{importer}} 导入
 
 [report.msg-finished]
 original=Finished {{when}}. {{counts}}.
-translation=Terminé le {{when}}. {{counts}}.
+translation=完成于 {{when}}。{{counts}}。
 
 [report.msg-stopped]
 original=Stopped {{when}}. {{counts}}.
-translation=Arrêté le {{when}}. {{counts}}.
+translation=停止于 {{when}}。{{counts}}。
 
 [report.heading-failed]
 original=Failed ({{count}})
-translation=Échecs ({{count}})
+translation=失败（{{count}}）
 
 [report.heading-skipped]
 original=Skipped ({{count}})
-translation=Ignorés ({{count}})
+translation=已跳过（{{count}}）
 
 [report.heading-messages]
 original=Messages
-translation=Messages
+translation=消息
 
 [report.count-notes]
 original={{count}} note imported
-translation={{count}} note importée
+translation=已导入 {{count}} 条笔记
 
 [report.count-notes_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation=已导入 {{count}} 条笔记
 
 [report.count-attachments]
 original={{count}} attachment downloaded
-translation={{count}} pièce jointe téléchargée
+translation=已下载 {{count}} 个附件
 
 [report.count-attachments_plural]
 original={{count}} attachments downloaded
-translation={{count}} pièces jointes téléchargées
+translation=已下载 {{count}} 个附件
 
 [report.count-skipped]
 original={{count}} item skipped
-translation={{count}} élément ignoré
+translation=已跳过 {{count}} 个项目
 
 [report.count-skipped_plural]
 original={{count}} items skipped
-translation={{count}} éléments ignorés
+translation=已跳过 {{count}} 个项目
 
 [report.count-failed]
 original={{count}} item failed
-translation={{count}} élément en échec
+translation={{count}} 个项目失败
 
 [report.count-failed_plural]
 original={{count}} items failed
-translation={{count}} éléments en échec
+translation={{count}} 个项目失败
 
 [source.name]
 original=Files to import
-translation=Fichiers à importer
+translation=要导入的文件
 
 [source.desc]
 original=Pick the files that you want to import.
-translation=Choisissez les fichiers que vous voulez importer.
+translation=选择你要导入的文件。
 
 [source.button-choose-file]
 original=Choose file
-translation=Choisir un fichier
+translation=选择文件
 
 [source.button-choose-files]
 original=Choose files
-translation=Choisir des fichiers
+translation=选择文件列表
 
 [source.button-choose-folders]
 original=Choose folders
-translation=Choisir des dossiers
+translation=选择文件夹
 
 [source.dialog-pick-files]
 original=Pick files to import
-translation=Choisir les fichiers à importer
+translation=选择要导入的文件列表
 
 [source.dialog-pick-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=要导入的文件夹
 
 [source.msg-reading-folders]
 original=Reading folders...
-translation=Lecture des dossiers...
+translation=正在读取文件夹...
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
-translation=Rien à importer ici. Choisissez des fichiers {{extensions}}, ou un dossier qui en contient.
+translation=没有可导入的内容。请选择 {{extensions}} 文件列表，或包含这些文件的文件夹。
 
 [source.msg-will-import]
 original={{files}} will be imported: 
-translation={{files}} seront importés : 
+translation=将导入 {{files}}： 
 
 [output.label-source-id]
 original=source ID
-translation=l'identifiant source
+translation=源 ID
 
 [output.name-save-source-id]
 original=Save {{label}}
-translation=Enregistrer {{label}}
+translation=保存{{label}}
 
 [output.desc-save-source-id]
 original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
-translation=Ajouter {{label}} aux propriétés de la note pour que les prochains imports reconnaissent les notes déplacées ou renommées.
+translation=将{{label}}添加到笔记属性中，以便后续导入时能识别已移动或重命名的笔记。
 
 [output.name-folder]
 original=Output folder
-translation=Dossier de destination
+translation=输出文件夹
 
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
-translation=Emplacement où les notes importées seront enregistrées. Laissez vide pour utiliser la racine du coffre.
+translation=导入的笔记将保存到此处。留空则使用仓库的根目录。
 
 [output.name-attachments]
 original=Attachment location
-translation=Emplacement des pièces jointes
+translation=附件仓库位置
 
 [output.desc-attachments]
 original=Where imported images and files will be saved.
-translation=Emplacement où les images et fichiers importés seront enregistrés.
+translation=导入的图片和文件列表将保存到此处。
 
 [output.name-subfolder]
 original=Subfolder name
-translation=Nom du sous-dossier
+translation=子文件夹名称
 
 [output.desc-subfolder]
 original=Folder to use inside each imported note's folder.
-translation=Dossier à utiliser dans le dossier de chaque note importée.
+translation=在每个导入笔记所在文件夹内使用的子文件夹。
 
 [output.name-attachment-folder]
 original=Attachment folder
-translation=Dossier des pièces jointes
+translation=附件文件夹
 
 [output.desc-attachment-folder]
 original=Folder path from the top level of the vault.
-translation=Chemin du dossier depuis la racine du coffre.
+translation=从仓库根目录算起的文件夹路径。
 
 [output.name-duplicates]
 original=Existing notes
-translation=Notes existantes
+translation=已有笔记
 
 [output.desc-duplicates]
 original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
-translation=Choisissez quoi faire lorsqu'une note importée correspond à une note de votre coffre. « {{update}} » ignore les notes inchangées et préserve les modifications locales plus récentes lorsque les dates de modification sont disponibles.
+translation=选择当导入的笔记与仓库中已有笔记匹配时的处理方式。"{{update}}"会跳过未更改的笔记，并在有修改日期可用时保留较新的本地编辑。
 
 [output.option-create-copy]
 original=Create a copy
-translation=Créer une copie
+translation=创建副本
 
 [output.option-skip]
 original=Skip
-translation=Ignorer
+translation=跳过
 
 [output.option-update]
 original=Update
-translation=Mettre à jour
+translation=更新
 
 [output.option-attachments-vault]
 original=Vault folder
-translation=Racine du coffre
+translation=仓库的根目录
 
 [output.option-attachments-folder]
 original=In the folder specified below
-translation=Dans le dossier spécifié ci-dessous
+translation=指定的文件夹
 
 [output.option-attachments-note]
 original=Same folder as the note
-translation=Même dossier que la note
+translation=与笔记相同的文件夹
 
 [output.option-attachments-subfolder]
 original=In subfolder under the note
-translation=Dans le sous-dossier, sous la note
+translation=在笔记下的子文件夹中
 
 [common.msg-pick-file]
 original=Please pick at least one file to import.
-translation=Veuillez choisir au moins un fichier à importer.
+translation=请至少选择一个要导入的文件。
 
 [common.msg-pick-output]
 original=Please select a location to export to.
-translation=Veuillez choisir un emplacement de destination.
+translation=请选择导出的目标仓库位置。
 
 [common.msg-pick-import-location]
 original=Please select a location to import your files to.
-translation=Veuillez choisir un emplacement où importer vos fichiers.
+translation=请选择文件列表的导入仓库位置。
 
 [common.msg-unknown-error]
 original=Unknown error
-translation=Erreur inconnue
+translation=未知错误
 
 [common.name-export]
 original=Export your data
-translation=Exporter vos données
+translation=导出你的数据
 
 [common.label-learn-more]
 original=Learn more.
-translation=En savoir plus.
+translation=了解更多。
 
 [common.button-instructions]
 original=Instructions
-translation=Instructions
+translation=使用说明
 
 [common.button-open]
 original=Open
-translation=Ouvrir
+translation=打开
 
 [common.status-processing]
 original=Processing {{name}}
-translation=Traitement de {{name}}
+translation=正在处理 {{name}}
 
 [common.status-importing-note]
 original=Importing note {{name}}
-translation=Importation de la note {{name}}
+translation=正在导入笔记 {{name}}
 
 [common.status-importing-attachment]
 original=Importing attachment {{name}}
-translation=Importation de la pièce jointe {{name}}
+translation=正在导入附件 {{name}}
 
 [common.status-cancelled]
 original=Import cancelled
-translation=Importation annulée
+translation=导入已取消
 
 [reason.already-in-vault]
 original=it is already in the vault
-translation=elle est déjà dans le coffre
+translation=它已存在于仓库中
 
 [reason.unchanged-since-import]
 original=it has not changed since the last import
-translation=elle n'a pas changé depuis le dernier import
+translation=自上次导入以来未发生更改
 
 [reason.edited-since-import]
 original=it has been edited in Obsidian since the last import
-translation=elle a été modifiée dans Obsidian depuis le dernier import
+translation=自上次导入以来已在 Obsidian 中编辑过
 
 [reason.file-not-in-vault]
 original=The imported file did not appear in the vault.
-translation=Le fichier importé n'est pas apparu dans le coffre.
+translation=导入的文件未出现在仓库中。
 
 [reason.folder-not-created]
 original=Failed to create folder at "{{path}}"
-translation=Impossible de créer le dossier « {{path}} »
+translation=在"{{path}}"处创建文件夹失败
 
 [tree.button-select-all]
 original=Select all
-translation=Tout sélectionner
+translation=选中所有元素
 
 [tree.button-deselect-all]
 original=Deselect all
-translation=Tout désélectionner
+translation=取消全选
 
 [tree.button-load]
 original=Load
-translation=Charger
+translation=加载
 
 [tree.button-loading]
 original=Loading...
-translation=Chargement...
+translation=加载中…
 
 [tree.button-refresh]
 original=Refresh
-translation=Actualiser
+translation=刷新
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
-translation={{service}} a refusé la requête concernant {{subject}}. {{credential}}
+translation={{service}} 未接受对 {{subject}} 的请求。{{credential}}
 
 [request.msg-forbidden]
 original={{service}} would not give access to {{subject}}. {{credential}}
-translation={{service}} n'a pas donné accès à {{subject}}. {{credential}}
+translation={{service}} 拒绝授予对 {{subject}} 的访问权限。{{credential}}
 
 [request.msg-not-found]
 original={{service}} could not find {{subject}}.
-translation={{service}} n'a pas trouvé {{subject}}.
+translation={{service}} 找不到 {{subject}}。
 
 [request.msg-rate-limited]
 original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
-translation={{service}} limite la vitesse de lecture de {{subject}}. Attendez quelques minutes puis réessayez.
+translation={{service}} 正在限制读取 {{subject}} 的速率。请等待几分钟后重试。
 
 [request.msg-timed-out]
 original={{service}} took too long to return {{subject}}. Try again shortly.
-translation={{service}} a mis trop de temps à renvoyer {{subject}}. Réessayez sous peu.
+translation={{service}} 返回 {{subject}} 超时。请稍后重试。
 
 [request.msg-unavailable]
 original={{service}} could not return {{subject}} right now. Try again shortly.
-translation={{service}} ne peut pas renvoyer {{subject}} pour le moment. Réessayez sous peu.
+translation={{service}} 当前无法返回 {{subject}}。请稍后重试。
 
 [request.msg-failed-with-code]
 original=Could not read {{subject}}: {{message}} ({{code}})
-translation=Impossible de lire {{subject}} : {{message}} ({{code}})
+translation=无法读取 {{subject}}：{{message}}（{{code}}）
 
 [request.msg-failed-with-message]
 original=Could not read {{subject}}: {{message}}
-translation=Impossible de lire {{subject}} : {{message}}
+translation=无法读取 {{subject}}：{{message}}
 
 [request.msg-failed-with-reported-code]
 original=Could not read {{subject}}. {{service}} reported {{code}}.
-translation=Impossible de lire {{subject}}. {{service}} a signalé {{code}}.
+translation=无法读取 {{subject}}。{{service}} 返回了 {{code}}。
 
 [request.msg-failed]
 original=Could not read {{subject}}.
-translation=Impossible de lire {{subject}}.
+translation=无法读取 {{subject}}。
 
 [template.msg-intro]
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
-translation=Configurez la façon dont vos données doivent être importées. Utilisez la syntaxe {{syntax}} pour référencer la valeur d'un champ.
+translation=设置数据的导入方式。使用 {{syntax}} 语法引用字段值。
 
 [template.name-title]
 original=Note title
-translation=Titre de la note
+translation=重命名文件
 
 [template.desc-title]
 original=Template for the note title. Use {{field_name}} to insert values.
-translation=Modèle pour le titre de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=笔记标题的模板。使用 {{field_name}} 插入值。
 
 [template.name-location]
 original=Note location
-translation=Emplacement de la note
+translation=笔记仓库位置
 
 [template.desc-location]
 original=Template for note location/path. Use {{field_name}} to organize notes.
-translation=Modèle pour l'emplacement de la note. Utilisez {{field_name}} pour organiser les notes.
+translation=笔记仓库位置/路径的模板。使用 {{field_name}} 来组织笔记。
 
 [template.name-content]
 original=Note content
-translation=Contenu de la note
+translation=笔记内容
 
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
-translation=Modèle pour le contenu de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=笔记内容的模板。使用 {{field_name}} 插入值。
 
 [template.heading-properties]
 original=Properties
-translation=Propriétés
+translation=笔记属性
 
 [template.column-property-name]
 original=Property name
-translation=Nom de la propriété
+translation=属性名称
 
 [template.column-property-value]
 original=Property value
-translation=Valeur de la propriété
+translation=属性值
 
 [template.column-example]
 original=Example
-translation=Exemple
+translation=示例
 
 [template.action-delete-property]
 original=Delete property
-translation=Supprimer la propriété
+translation=删除属性
 
 [template.msg-title-required]
 original=Please provide a note title template.
-translation=Veuillez fournir un modèle de titre de note.
+translation=请提供笔记标题模板。
 
 [importer.airtable-api.name]
 original=Airtable
@@ -668,39 +668,39 @@ translation=Airtable
 
 [importer.airtable-api.label-id]
 original=Airtable record ID
-translation=l'identifiant d'enregistrement Airtable
+translation=Airtable 记录 ID
 
 [importer.airtable-api.name-token]
 original=Airtable personal access token
-translation=Jeton d'accès personnel Airtable
+translation=Airtable 个人访问令牌
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings. 
-translation=Créez un jeton d'accès personnel dans les réglages de votre compte Airtable. 
+translation=在您的 Airtable 账户设置中创建个人访问令牌。 
 
 [importer.airtable-api.link-get-token]
 original=Get token
-translation=Obtenir un jeton
+translation=获取令牌
 
 [importer.airtable-api.name-tables]
 original=Tables to import
-translation=Tables à importer
+translation=要导入的表格
 
 [importer.airtable-api.desc-tables]
 original=Load your Airtable bases and tables, then choose what to import.
-translation=Chargez vos bases et tables Airtable, puis choisissez ce qu'il faut importer.
+translation=加载您的 Airtable 数据库和表格，然后选择要导入的内容。
 
 [importer.airtable-api.hint-tables]
 original=Load your Airtable bases and tables to get started.
-translation=Chargez vos bases et tables Airtable pour commencer.
+translation=加载您的 Airtable 数据库和表格以开始操作。
 
 [importer.airtable-api.msg-fetching-bases]
 original=Fetching bases...
-translation=Récupération des bases...
+translation=正在获取数据库…
 
 [importer.airtable-api.msg-no-bases]
 original=No bases found.
-translation=Aucune base trouvée.
+translation=未找到数据库。
 
 [importer.airtable-api.label-service]
 original=Airtable
@@ -708,87 +708,87 @@ translation=Airtable
 
 [importer.airtable-api.label-subject]
 original=your bases
-translation=vos bases
+translation=您的数据库
 
 [importer.airtable-api.label-credential]
 original=Check that your personal access token is current and has access to them.
-translation=Vérifiez que votre jeton d'accès personnel est à jour et qu'il y a accès.
+translation=请检查您的个人访问令牌是否有效且具有相应的访问权限。
 
 [importer.airtable-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=转换公式
 
 [importer.airtable-api.desc-formulas]
 original=Try to convert formulas to Obsidian syntax, or import as static values.
-translation=Essayer de convertir les formules en syntaxe Obsidian, ou les importer comme valeurs statiques.
+translation=尝试将公式转换为 Obsidian 语法，或作为静态值导入。
 
 [importer.airtable-api.option-formula-hybrid]
 original=Obsidian syntax (with fallback)
-translation=Syntaxe Obsidian (avec repli)
+translation=Obsidian 语法（含回退）
 
 [importer.airtable-api.option-formula-static]
 original=Static values only
-translation=Valeurs statiques uniquement
+translation=仅静态值
 
 [importer.airtable-api.name-download-attachments]
 original=Download attachments
-translation=Télécharger les pièces jointes
+translation=下载附件
 
 [importer.airtable-api.desc-download-attachments]
 original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
-translation=Télécharger les pièces jointes dans le coffre local. Si l'option est désactivée ou si le téléchargement échoue, les URL externes seront utilisées.
+translation=将附件文件下载到本地仓库。如果禁用或下载失败，将使用外部 URL。
 
 [importer.airtable-api.name-view-property]
 original=View property name
-translation=Nom de la propriété de vue
+translation=视图属性名称
 
 [importer.airtable-api.desc-view-property]
 original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
-translation=Nom de la propriété indiquant les vues auxquelles appartient un enregistrement. Chaque enregistrement aura la liste des vues où il apparaît.
+translation=用于追踪记录所属视图的属性名称。每条记录将包含其出现的视图名称列表。
 
 [importer.airtable-api.msg-token-first]
 original=Please enter your Airtable personal access token first.
-translation=Veuillez d'abord saisir votre jeton d'accès personnel Airtable.
+translation=请先输入您的 Airtable 个人访问令牌。
 
 [importer.airtable-api.msg-token-missing]
 original=Please enter your Airtable personal access token.
-translation=Veuillez saisir votre jeton d'accès personnel Airtable.
+translation=请输入您的 Airtable 个人访问令牌。
 
 [importer.airtable-api.msg-load-bases-failed]
 original=Failed to load bases: {{error}}
-translation=Échec du chargement des bases : {{error}}
+translation=加载数据库失败：{{error}}
 
 [importer.airtable-api.msg-load-tables-failed]
 original=Failed to load tables for "{{base}}": {{error}}
-translation=Échec du chargement des tables de « {{base}} » : {{error}}
+translation=加载 "{{base}}" 的表格失败：{{error}}
 
 [importer.airtable-api.msg-pick-table]
 original=Please select at least one table to import.
-translation=Veuillez sélectionner au moins une table à importer.
+translation=请至少选择一个表格进行导入。
 
 [importer.airtable-api.msg-loading-fields]
 original=Loading fields...
-translation=Chargement des champs...
+translation=正在加载字段…
 
 [importer.airtable-api.msg-no-fields]
 original=No fields found in selected tables. Please check your selection.
-translation=Aucun champ trouvé dans les tables sélectionnées. Veuillez vérifier votre sélection.
+translation=在已选择的表格中未找到字段，请检查您的选择。
 
 [importer.airtable-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=导入失败：{{error}}
 
 [importer.airtable-api.label-base-position]
 original= (base {{index}} of {{total}})
-translation= (base {{index}} sur {{total}})
+translation= （数据库 {{index}}/{{total}}）
 
 [importer.airtable-api.label-base]
 original=Base: {{name}}
-translation=Base : {{name}}
+translation=数据库：{{name}}
 
 [importer.airtable-api.label-linked-table]
 original=Linked table: {{name}}
-translation=Table liée : {{name}}
+translation=关联表格：{{name}}
 
 [importer.airtable-api.label-table-view]
 original={{table}} > {{view}}
@@ -796,83 +796,83 @@ translation={{table}} > {{view}}
 
 [importer.airtable-api.label-import]
 original=Airtable API import
-translation=Importation via l'API Airtable
+translation=Airtable API 导入
 
 [importer.airtable-api.status-connecting]
 original=Connecting to Airtable API
-translation=Connexion à l'API Airtable
+translation=正在连接 Airtable API
 
 [importer.airtable-api.status-loading-tables]
 original=Loading tables for {{base}}
-translation=Chargement des tables de {{base}}
+translation=正在加载 {{base}} 的表格
 
 [importer.airtable-api.status-fetching-tables]
 original=Fetching tables for base {{base}}...
-translation=Récupération des tables de la base {{base}}...
+translation=正在获取数据库 {{base}} 的表格…
 
 [importer.airtable-api.status-found-bases]
 original=Found {{bases}} to import
-translation={{bases}} à importer
+translation=找到 {{bases}} 个待导入数据库
 
 [importer.airtable-api.status-fetching-base]
 original=Fetching data from {{base}}{{position}}
-translation=Récupération des données de {{base}}{{position}}
+translation=正在从 {{base}}{{position}} 获取数据
 
 [importer.airtable-api.status-preparing-records]
 original=Preparing records from {{base}}{{position}}
-translation=Préparation des enregistrements de {{base}}{{position}}
+translation=正在准备 {{base}}{{position}} 的记录
 
 [importer.airtable-api.status-reading-names]
 original=Reading names from {{table}}{{position}}
-translation=Lecture des noms dans {{table}}{{position}}
+translation=正在读取 {{table}}{{position}} 的名称
 
 [importer.airtable-api.status-planning]
 original=Working out where {{table}}{{position}} goes
-translation=Détermination de l'emplacement de {{table}}{{position}}
+translation=正在规划 {{table}}{{position}} 的存放位置
 
 [importer.airtable-api.status-fetching-records]
 original=Fetching records from {{table}}{{position}}
-translation=Récupération des enregistrements de {{table}}{{position}}
+translation=正在获取 {{table}}{{position}} 的记录
 
 [importer.airtable-api.status-fetched-records]
 original=Fetched {{records}} from {{table}}{{position}}
-translation={{records}} récupérés de {{table}}{{position}}
+translation=已从 {{table}}{{position}} 获取 {{records}} 条记录
 
 [importer.airtable-api.status-fetching-view]
 original=Fetching view {{view}} from {{table}}{{position}}
-translation=Récupération de la vue {{view}} de {{table}}{{position}}
+translation=正在从 {{table}}{{position}} 获取视图 {{view}}
 
 [importer.airtable-api.status-creating-notes]
 original=Creating notes in {{table}}{{position}}
-translation=Création des notes dans {{table}}{{position}}
+translation=正在创建 {{table}}{{position}} 中的笔记
 
 [importer.airtable-api.status-updating-types]
 original=Updating property types
-translation=Mise à jour des types de propriétés
+translation=正在更新属性类型
 
 [importer.airtable-api.status-complete]
 original=Import complete
-translation=Importation terminée
+translation=导入完成
 
 [importer.airtable-api.status-rate-limited]
 original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
-translation=Débit limité, attente de {{seconds}} s (tentative {{attempt}}/{{total}})...
+translation=请求受限，等待 {{seconds}} 秒（第 {{attempt}}/{{total}} 次尝试）…
 
 [importer.airtable-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}
-translation=Téléchargement de la pièce jointe : {{name}}
+translation=正在下载附件：{{name}}
 
 [importer.airtable-api.reason-no-record-names]
 original=Could not read record names
-translation=Impossible de lire les noms des enregistrements
+translation=无法读取记录名称
 
 [importer.airtable-api.reason-empty-record]
 original=Empty record
-translation=Enregistrement vide
+translation=空记录
 
 [importer.airtable-api.desc-no-modified-time]
 original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
-translation=Airtable n'indique pas la date de dernière modification d'un enregistrement, donc « {{update}} » compare la note avec l'enregistrement à la place. Une note que vous avez modifiée vous-même sera considérée comme ayant des changements et sera écrasée.
+translation=Airtable 不提供记录的最后修改时间，因此 "{{update}}" 会将笔记与记录进行对比。您自行编辑过的笔记会被视为本地有更改，并将被覆盖。
 
 [importer.apple-notes.name]
 original=Apple Notes
@@ -884,131 +884,131 @@ translation=Apple Notes
 
 [importer.apple-notes.label-id]
 original=Apple Notes ID
-translation=l'identifiant Apple Notes
+translation=Apple Notes ID
 
 [importer.apple-notes.msg-platform]
 original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
-translation=En raison de limitations de la plateforme, Apple Notes ne peut pas être exporté depuis cet appareil. Ouvrez votre coffre sur un Mac pour exporter depuis Apple Notes.
+translation=由于平台限制，无法从此设备导出 Apple Notes。请在 Mac 上打开您的仓库以导出 Apple Notes。
 
 [importer.apple-notes.name-prefix-format]
 original=File prefix format
-translation=Format du préfixe de fichier
+translation=文件前缀格式
 
 [importer.apple-notes.desc-prefix-format]
 original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
-translation=Format du préfixe de date de création dans les noms de fichiers. Utilisez YYYY, MM, DD pour l'année, le mois et le jour. Laissez vide pour ne pas mettre de préfixe.
+translation=文件名中创建日期前缀的格式。使用 YYYY、MM、DD 分别表示年、月、日。留空则不添加前缀。
 
 [importer.apple-notes.name-omit-first-line]
 original=Omit first line
-translation=Omettre la première ligne
+translation=省略第一行
 
 [importer.apple-notes.desc-omit-first-line]
 original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
-translation=Ne pas inclure la première ligne dans le texte, puisque Apple Notes s'en sert comme titre. Elle servira quand même de nom de note.
+translation=不在正文中包含第一行内容，因为 Apple Notes 将其用作标题。第一行仍会被用作笔记名称。
 
 [importer.apple-notes.name-handwriting]
 original=Include handwriting text
-translation=Inclure le texte manuscrit
+translation=包含手写文本
 
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
-translation=Lorsque Apple Notes a reconnu de l'écriture manuscrite dans un dessin, l'inclure comme texte avant le dessin.
+translation=当 Apple Notes 在绘图中识别到手写内容时，将其作为文本插入到绘图之前。
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
-translation=Dossier de données Apple Notes
+translation=Apple Notes 数据文件夹
 
 [importer.apple-notes.desc-data-folder]
 original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
-translation=macOS n'autorise Obsidian à lire vos notes qu'une fois que vous lui avez indiqué le dossier où elles sont conservées.
+translation=macOS 仅在你指定笔记存储文件夹后，才允许 Obsidian 读取你的笔记。
 
 [importer.apple-notes.button-select-folder]
 original=Select folder
-translation=Choisir un dossier
+translation=选择文件夹
 
 [importer.apple-notes.msg-wrong-folder]
 original=Ensure you have selected the correct Apple Notes data folder.
-translation=Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=请确保你已选择正确的 Apple Notes 数据文件夹。
 
 [importer.apple-notes.msg-dialog-folder]
 original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
-translation=Choisissez le dossier « group.com.apple.notes » pour permettre à Obsidian de lire les données d'Apple Notes.
+translation=选择"group.com.apple.notes"文件夹以允许 Obsidian 读取 Apple Notes 数据。
 
 [importer.apple-notes.msg-import-failed]
 original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
-translation=L'importation des données a échoué. Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=数据导入失败。请确保你已选择正确的 Apple Notes 数据文件夹。
 
 [importer.apple-notes.msg-pick-folders]
 original=Please select at least one folder to import.
-translation=Veuillez sélectionner au moins un dossier à importer.
+translation=请至少选择一个要导入的文件夹。
 
 [importer.apple-notes.name-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=要导入的文件夹
 
 [importer.apple-notes.desc-folders]
 original=Pick the folders whose notes to bring across.
-translation=Choisissez les dossiers dont les notes doivent être reprises.
+translation=选择要导入笔记的文件夹。
 
 [importer.apple-notes.msg-no-access]
 original=Allow access to your notes to see the folders in them.
-translation=Autorisez l'accès à vos notes pour voir les dossiers qu'elles contiennent.
+translation=允许访问你的笔记以查看其中的文件夹。
 
 [importer.apple-notes.msg-no-folders]
 original=No folders found.
-translation=Aucun dossier trouvé.
+translation=未找到文件夹。
 
 [importer.apple-notes.msg-database-busy]
 original=Your Apple Notes database is in use. Quit Notes and try again.
-translation=Votre base de données Apple Notes est en cours d'utilisation. Quittez Notes et réessayez.
+translation=你的 Apple Notes 数据库正在使用中。请退出 Notes 后重试。
 
 [importer.apple-notes.msg-database-unreadable]
 original=Could not open your Apple Notes database. {{hint}}
-translation=Impossible d'ouvrir votre base de données Apple Notes. {{hint}}
+translation=无法打开你的 Apple Notes 数据库。{{hint}}
 
 [importer.apple-notes.msg-read-failed-with-detail]
 original=Could not read your notes: {{detail}}
-translation=Impossible de lire vos notes : {{detail}}
+translation=无法读取你的笔记：{{detail}}
 
 [importer.apple-notes.msg-read-failed]
 original=Could not read your notes.
-translation=Impossible de lire vos notes.
+translation=无法读取你的笔记。
 
 [importer.apple-notes.reason-password-protected]
 original=note is password protected
-translation=la note est protégée par un mot de passe
+translation=笔记已设置密码保护
 
 [importer.apple-notes.reason-duplicate]
 original=note is a duplicate
-translation=la note est un doublon
+translation=笔记为创建副本
 
 [importer.apple-notes.reason-unchanged]
 original=note unchanged since last import
-translation=la note n'a pas changé depuis le dernier import
+translation=笔记自上次导入后未更改
 
 [importer.apple-notes.reason-attachment-exists]
 original=attachment already exists
-translation=la pièce jointe existe déjà
+translation=附件已存在
 
 [importer.apple-notes.reason-attachment-unchanged]
 original=attachment unchanged since last import
-translation=la pièce jointe n'a pas changé depuis le dernier import
+translation=附件自上次导入后未更改
 
 [importer.apple-notes.reason-not-downloaded]
 original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
-translation=elle n'a pas été téléchargée depuis iCloud - ouvrez la note dans Apple Notes pour la récupérer
+translation=尚未从 iCloud 下载——请在 Apple Notes 中打开该笔记以获取内容
 
 [importer.apple-notes.label-attachment]
 original=Attachment {{id}}
-translation=Pièce jointe {{id}}
+translation=附件 {{id}}
 
 [importer.apple-notes.reason-no-attachment-row]
 original=no {{uti}} row to read it from
-translation=aucune ligne {{uti}} d'où la lire
+translation=没有可读取的 {{uti}} 行
 
 [importer.apple-notes.label-attachment-in-note]
 original={{name}} in {{note}}
-translation={{name}} dans {{note}}
+translation={{note}} 中的 {{name}}
 
 [importer.apple-journal.name]
 original=Apple Journal
@@ -1016,31 +1016,31 @@ translation=Apple Journal
 
 [importer.apple-journal.option-text]
 original=Apple Journal (HTML export)
-translation=Apple Journal (export HTML)
+translation=Apple Journal（HTML 导出）
 
 [importer.apple-journal.file-type]
 original=Journal entries
-translation=Entrées de journal
+translation=Journal 条目
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportez vos entrées depuis l'app Journal, puis choisissez les fichiers HTML qu'elle a écrits dans iCloud Drive.
+translation=从 Journal 应用导出你的条目，然后选择其写入 iCloud Drive 的 HTML 文件。
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
-translation=Métadonnées du journal
+translation=Journal 元数据
 
 [importer.apple-journal.name-front-matter]
 original=Add metadata as frontmatter
-translation=Ajouter les métadonnées dans l'en-tête
+translation=将元数据添加为前置元数据
 
 [importer.apple-journal.desc-front-matter]
 original=Capture state-of-mind, contact, and similar tokens in YAML when available.
-translation=Capturer l'état d'esprit, les contacts et autres marqueurs similaires en YAML lorsqu'ils sont disponibles.
+translation=在可用时将心情状态、联系人及类似标记以 YAML 格式记录。
 
 [importer.apple-journal.reason-index-file]
 original=index file is not a journal entry
-translation=le fichier d'index n'est pas une entrée de journal
+translation=索引文件不是 Journal 条目
 
 [importer.bear.name]
 original=Bear
@@ -1056,31 +1056,31 @@ translation=Bear2bk
 
 [importer.bear.label-id]
 original=Bear ID
-translation=l'identifiant Bear
+translation=Bear ID
 
 [importer.bear.desc-export]
 original=Back up your notes in Bear, you will receive a .bear2bk file.
-translation=Sauvegardez vos notes dans Bear, vous obtiendrez un fichier .bear2bk.
+translation=在 Bear 中备份你的笔记，你将获得一个 .bear2bk 文件。
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
-translation=Aplatir les mots-clés imbriqués
+translation=展平嵌套标签
 
 [importer.bear.desc-flatten-tags]
 original=When enabled, tags will be split on slashes (/) during import.
-translation=Lorsque cette option est activée, les mots-clés sont découpés sur les barres obliques (/) pendant l'import.
+translation=已启用时，导入过程中标签将按斜杠（/）拆分。
 
 [importer.bear.status-importing-asset]
 original=Importing asset {{name}}
-translation=Importation de la ressource {{name}}
+translation=正在导入资源 {{name}}
 
 [importer.bear.status-updating-links]
 original=Updating internal links…
-translation=Mise à jour des liens internes…
+translation=正在更新内部链接…
 
 [importer.bear.reason-unknown-type]
 original=unknown type of file
-translation=type de fichier inconnu
+translation=未知的文件类型
 
 [importer.csv.name]
 original=CSV
@@ -1096,43 +1096,43 @@ translation=CSV
 
 [importer.csv.name-header-row]
 original=CSV has header row
-translation=Le CSV a une ligne d'en-tête
+translation=CSV 包含标题行
 
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
-translation=Si cette option est activée, la première ligne du fichier CSV est traitée comme les en-têtes de colonnes.
+translation=如果已启用，CSV 文件的第一行将被视为列标题。
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
-translation=Veuillez choisir au moins un fichier CSV à importer.
+translation=请至少选择一个 CSV 文件进行导入。
 
 [importer.csv.msg-one-at-a-time]
 original=CSV files must be imported one at a time.
-translation=Les fichiers CSV doivent être importés un à la fois.
+translation=CSV 文件必须逐个导入。
 
 [importer.csv.msg-no-data]
 original=No data found in {{name}}.
-translation=Aucune donnée trouvée dans {{name}}.
+translation=在 {{name}} 中未找到数据。
 
 [importer.csv.msg-no-configuration]
 original=Configuration is missing.
-translation=La configuration est manquante.
+translation=缺少配置。
 
 [importer.csv.status-parsing]
 original=Parsing {{name}}
-translation=Analyse de {{name}}
+translation=正在解析 {{name}}
 
 [importer.csv.status-creating-note]
 original=Creating note: {{title}}
-translation=Création de la note : {{title}}
+translation=正在创建笔记：{{title}}
 
 [importer.csv.label-row]
 original=Row {{number}}
-translation=Ligne {{number}}
+translation=第 {{number}} 行
 
 [importer.csv.reason-empty-title]
 original=Empty title
-translation=Titre vide
+translation=标题为空
 
 [importer.evernote.name]
 original=Evernote
@@ -1148,15 +1148,15 @@ translation=Evernote
 
 [importer.evernote.desc-export]
 original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
-translation=Exportez vos carnets au format ENEX, vous obtiendrez un fichier .enex par carnet.
+translation=以 ENEX 格式导出你的笔记本，每个笔记本会生成一个 .enex 文件。
 
 [importer.evernote.msg-unresolved-links]
 original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} lien n'a pas pu être associé à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} 条链接无法匹配到笔记。ENEX 导出文件不会记录链接指向哪篇笔记，只保留其在 Evernote 中显示的标题，因此创建链接后重命名过的笔记将无法被匹配。Obsidian 会将这些列在未解析的链接中。
 
 [importer.evernote.msg-unresolved-links_plural]
 original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} liens n'ont pas pu être associés à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} 条链接无法匹配到笔记。ENEX 导出文件不会记录链接指向哪篇笔记，只保留其在 Evernote 中显示的标题，因此创建链接后重命名过的笔记将无法被匹配。Obsidian 会将这些列在未解析的链接中。
 
 [importer.keep.name]
 original=Google Keep
@@ -1168,43 +1168,43 @@ translation=Google Keep (.zip/.json)
 
 [importer.keep.file-type]
 original=Notes & attachments
-translation=Notes et pièces jointes
+translation=笔记和附件
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout. 
-translation=Récupérez vos données Google Keep depuis Google Takeout. 
+translation=从 Google Takeout 获取你的 Google Keep 数据。 
 
 [importer.keep.name-archived]
 original=Import archived notes
-translation=Importer les notes archivées
+translation=导入已归档的笔记
 
 [importer.keep.desc-archived]
 original=If imported, files archived in Google Keep will be tagged as archived.
-translation=Si elles sont importées, les notes archivées dans Google Keep recevront un mot-clé indiquant qu'elles sont archivées.
+translation=如果导入，在 Google Keep 中归档的文件将被标记为已归档。
 
 [importer.keep.name-deleted]
 original=Import deleted notes
-translation=Importer les notes supprimées
+translation=导入已删除的笔记
 
 [importer.keep.desc-deleted]
 original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
-translation=Si elles sont importées, les notes supprimées dans Google Keep recevront un mot-clé indiquant qu'elles sont supprimées. Les notes supprimées ne figurent dans votre export Google que si elles l'ont été récemment.
+translation=如果导入，在 Google Keep 中已删除的文件将被标记为已删除。已删除的笔记仅在近期删除时才会存在于 Google 导出数据中。
 
 [importer.keep.reason-invalid-json]
 original=Invalid Google Keep JSON
-translation=JSON Google Keep invalide
+translation=无效的 Google Keep JSON
 
 [importer.keep.reason-archived]
 original=Archived note
-translation=Note archivée
+translation=已归档的笔记
 
 [importer.keep.reason-deleted]
 original=Deleted note
-translation=Note supprimée
+translation=已删除的笔记
 
 [importer.html.name]
 original=HTML files
-translation=Fichiers HTML
+translation=HTML 文件
 
 [importer.html.option-text]
 original=HTML (.html)
@@ -1216,19 +1216,19 @@ translation=HTML
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
-translation=Taille maximale des pièces jointes (Mo)
+translation=附件大小限制 (MB)
 
 [importer.html.name-minimum-image-size]
 original=Minimum image size (px)
-translation=Taille minimale des images (px)
+translation=最小图片尺寸 (px)
 
 [importer.html.desc-set-zero-to-disable]
 original=Set 0 to disable.
-translation=Mettre 0 pour désactiver.
+translation=设为 0 以禁用。
 
 [importer.html.status-downloading]
 original=Downloading attachment for {{name}}
-translation=Téléchargement d'une pièce jointe pour {{name}}
+translation=正在下载 {{name}} 的附件
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -1240,87 +1240,87 @@ translation=Microsoft OneNote
 
 [importer.onenote.method-name]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Microsoft 账户
 
 [importer.onenote.method-desc]
 original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
-translation=Connectez-vous à votre compte Microsoft et importez les blocs-notes synchronisés avec OneDrive. Nécessite une connexion Internet.
+translation=登录您的 Microsoft 账户并导入已同步到 OneDrive 的笔记本。需要互联网连接。
 
 [importer.onenote.label-id]
 original=OneNote ID
-translation=l'identifiant OneNote
+translation=OneNote ID
 
 [importer.onenote.name-incompatible]
 original=Import incompatible attachments
-translation=Importer les pièces jointes incompatibles
+translation=导入不兼容的附件
 
 [importer.onenote.desc-incompatible]
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
-translation=Importe les pièces jointes incompatibles qui ne peuvent pas être intégrées dans Obsidian, comme les fichiers .exe.
+translation=导入无法嵌入 Obsidian 的不兼容附件，例如 .exe 文件。
 
 [importer.onenote.name-account]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Microsoft 账户
 
 [importer.onenote.desc-sign-in]
 original=Sign in to import your OneNote notebooks.
-translation=Connectez-vous pour importer vos blocs-notes OneNote.
+translation=登录以导入您的 OneNote 笔记本。
 
 [importer.onenote.desc-sign-in-organization]
 original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
-translation=Connectez-vous pour importer vos blocs-notes OneNote. Un compte professionnel ou scolaire peut nécessiter l'approbation de votre organisation.
+translation=登录以导入您的 OneNote 笔记本。工作或学校账户可能需要您的组织批准访问。
 
 [importer.onenote.desc-signed-in]
 original=Signed in as {{name}} ({{email}}).
-translation=Connecté en tant que {{name}} ({{email}}).
+translation=已登录为 {{name}} ({{email}})。
 
 [importer.onenote.button-sign-in]
 original=Sign in
-translation=Se connecter
+translation=登录
 
 [importer.onenote.button-sign-out]
 original=Sign out
-translation=Se déconnecter
+translation=退出登录
 
 [importer.onenote.button-work-account]
 original=Use work or school access
-translation=Utiliser un accès professionnel ou scolaire
+translation=使用工作或学校账户访问
 
 [importer.onenote.msg-sign-in-failed]
 original=An error occurred while trying to sign you in.
-translation=Une erreur est survenue lors de la connexion.
+translation=登录时发生错误。
 
 [importer.onenote.msg-sign-in-details]
 original=Click here to show error details
-translation=Cliquez ici pour afficher le détail de l'erreur
+translation=点击此处查看错误详情
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
-translation=Connectez-vous pour voir vos blocs-notes OneNote.
+translation=登录以查看您的 OneNote 笔记本。
 
 [importer.onenote.msg-please-sign-in]
 original=Please sign in to your Microsoft account.
-translation=Veuillez vous connecter à votre compte Microsoft.
+translation=请登录您的 Microsoft 账户。
 
 [importer.onenote.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=要导入的分区
 
 [importer.onenote.desc-sections]
 original=Select a notebook, or sections within it.
-translation=Sélectionnez un bloc-notes, ou des sections de celui-ci.
+translation=选择一个笔记本或其中的分区。
 
 [importer.onenote.msg-loading-notebooks]
 original=Loading notebooks...
-translation=Chargement des blocs-notes...
+translation=正在加载笔记本…
 
 [importer.onenote.msg-no-notebooks]
 original=No notebooks found.
-translation=Aucun bloc-notes trouvé.
+translation=未找到笔记本。
 
 [importer.onenote.msg-scope-refused]
 original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
-translation=OneNote n'a pas accordé à cette connexion l'accès à vos blocs-notes. Déconnectez-vous puis reconnectez-vous pour demander un accès professionnel ou scolaire, que votre organisation devra peut-être approuver.
+translation=OneNote 未授予此登录访问您笔记本的权限。请退出登录并重新登录以请求工作或学校账户访问权限，您的组织可能需要批准。
 
 [importer.onenote.label-service]
 original=OneNote
@@ -1328,43 +1328,43 @@ translation=OneNote
 
 [importer.onenote.label-subject]
 original=your notebooks
-translation=vos blocs-notes
+translation=您的笔记本
 
 [importer.onenote.label-credential]
 original=Sign out and back in to try again.
-translation=Déconnectez-vous puis reconnectez-vous pour réessayer.
+translation=请退出登录并重新登录以重试。
 
 [importer.onenote.status-finding]
 original=Finding notes to import
-translation=Recherche des notes à importer
+translation=正在查找要导入的笔记
 
 [importer.onenote.status-finding-in]
 original=Finding notes in {{section}}
-translation=Recherche des notes dans {{section}}
+translation=正在查找 {{section}} 中的笔记
 
 [importer.onenote.status-finding-in-section]
 original=Finding notes in {{section}} (section {{index}} of {{total}})
-translation=Recherche des notes dans {{section}} (section {{index}} sur {{total}})
+translation=正在查找 {{section}} 中的笔记（分区 {{index}}/{{total}}）
 
 [importer.onenote.status-importing-notes]
 original=Importing {{notes}}
-translation=Importation de {{notes}}
+translation=正在导入 {{notes}}
 
 [importer.onenote.status-downloading]
 original=Downloading attachment {{name}}
-translation=Téléchargement de la pièce jointe {{name}}
+translation=正在下载附件 {{name}}
 
 [importer.onenote.msg-too-many-errors]
 original=Microsoft OneNote returned too many consecutive errors.
-translation=Microsoft OneNote a renvoyé trop d'erreurs consécutives.
+translation=Microsoft OneNote 返回了过多连续错误。
 
 [importer.onenote.label-unknown-page]
 original=<unknown>
-translation=<inconnue>
+translation=<未知>
 
 [importer.onenote.reason-too-many-failures]
 original=import was canceled (after too many pages failed to load)
-translation=l'importation a été annulée (après l'échec du chargement de trop de pages)
+translation=导入已取消（因过多页面加载失败）
 
 [importer.onenote.label-ink]
 original={{page}} - Ink.svg
@@ -1372,27 +1372,27 @@ translation={{page}} - Ink.svg
 
 [importer.onenote.label-attachment]
 original=OneNote attachment
-translation=Pièce jointe OneNote
+translation=OneNote 附件
 
 [importer.onenote.label-image]
 original=OneNote image
-translation=Image OneNote
+translation=OneNote 图片
 
 [importer.onenote.reason-no-attachment-name]
 original=the attachment did not say what it was called
-translation=la pièce jointe n'indiquait pas son nom
+translation=附件未提供文件名
 
 [importer.onenote.reason-no-attachment-url]
 original=the attachment did not include a download URL
-translation=la pièce jointe ne comportait pas d'URL de téléchargement
+translation=附件未包含下载 URL
 
 [importer.onenote.reason-no-image-url]
 original=the image did not include a download URL
-translation=l'image ne comportait pas d'URL de téléchargement
+translation=图片未包含下载 URL
 
 [importer.onenote-file.name]
 original=Microsoft OneNote (export file)
-translation=Microsoft OneNote (fichier d'export)
+translation=Microsoft OneNote（导出文件）
 
 [importer.onenote-file.option-text]
 original=Microsoft OneNote (.one, .onepkg)
@@ -1400,79 +1400,79 @@ translation=Microsoft OneNote (.one, .onepkg)
 
 [importer.onenote-file.method-name]
 original=File import
-translation=Import de fichiers
+translation=文件导入
 
 [importer.onenote-file.method-desc]
 original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
-translation=Importez à partir des fichiers d'export OneNote (.one, .onepkg) de votre ordinateur. Ne nécessite ni compte ni connexion Internet, et fonctionne pour les blocs-notes qui n'ont jamais été synchronisés.
+translation=使用计算机上的 OneNote 导出文件（.one、.onepkg）进行导入。无需账户或网络连接，也适用于从未已同步的笔记本。
 
 [importer.onenote-file.file-type]
 original=OneNote export
-translation=Export OneNote
+translation=OneNote 导出
 
 [importer.onenote-file.label-id]
 original=OneNote ID
-translation=ID OneNote
+translation=OneNote ID
 
 [importer.onenote-file.desc-backup-folder]
 original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
-translation=OneNote pour Windows conserve ses propres sauvegardes ; la sélection s'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.
+translation=OneNote for Windows 会保留自己的备份，此操作将打开该位置。选择你想要的笔记本或分区。
 
 [importer.onenote-file.desc-export]
 original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
-translation=Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.
+translation=在 OneNote for Windows 中，右键单击笔记本并导出为 .onepkg 文件，或将单个分区导出为 .one 文件。
 
 [importer.onenote-file.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=要导入的分区
 
 [importer.onenote-file.desc-sections]
 original=Choose which sections to import.
-translation=Choisissez les sections à importer.
+translation=选择要导入的分区。
 
 [importer.onenote-file.msg-loading-sections]
 original=Reading sections…
-translation=Lecture des sections…
+translation=正在读取分区…
 
 [importer.onenote-file.msg-no-sections]
 original=No sections found in this file.
-translation=Aucune section trouvée dans ce fichier.
+translation=此文件中未找到任何分区。
 
 [importer.onenote-file.msg-pick-file-first]
 original=Choose a OneNote file first.
-translation=Choisissez d'abord un fichier OneNote.
+translation=请先选择一个 OneNote 文件。
 
 [importer.onenote-file.status-reading-section]
 original=Reading {{name}}
-translation=Lecture de {{name}}
+translation=正在读取 {{name}}
 
 [importer.onenote-file.status-importing-section]
 original=Importing {{name}} ({{index}} of {{total}})
-translation=Import de {{name}} ({{index}} sur {{total}})
+translation=正在导入 {{name}}（第 {{index}} 个，共 {{total}} 个）
 
 [importer.onenote-file.reason-rights-protected]
 original=the file is rights-protected, and can only be opened by an account with permission to it
-translation=le fichier est protégé par des droits et ne peut être ouvert que par un compte qui y est autorisé
+translation=该文件受版权保护，只能由具有权限的账户打开
 
 [importer.onenote-file.reason-unsupported]
 original=the file uses a OneNote format this importer cannot read yet
-translation=le fichier utilise un format OneNote que l'importateur ne sait pas encore lire
+translation=该文件使用的 OneNote 格式暂不支持
 
 [importer.onenote-file.reason-malformed]
 original=the file does not describe the OneNote structures it claims to
-translation=le fichier ne décrit pas les structures OneNote qu'il annonce
+translation=该文件的内容与其声明的 OneNote 结构不符
 
 [importer.onenote-file.reason-too-large]
 original=the file is larger than this importer is willing to expand
-translation=le fichier est plus volumineux que ce que l'importateur accepte de décompresser
+translation=该文件过大，超出了此导入器的展开限制
 
 [importer.onenote-file.reason-no-attachment-data]
 original=the attachment held no data
-translation=la pièce jointe ne contenait aucune donnée
+translation=附件不包含任何数据
 
 [importer.onenote-file.reason-not-representable]
 original=a table inside a table cell has no Markdown equivalent
-translation=un tableau à l'intérieur d'une cellule de tableau n'a pas d'équivalent en Markdown
+translation=表格单元格中嵌套的表格无法用 Markdown 表示
 
 [importer.notion-api.name]
 original=Notion (API)
@@ -1484,47 +1484,47 @@ translation=Notion (API)
 
 [importer.notion-api.method-name]
 original=Notion account (recommended)
-translation=Compte Notion (recommandé)
+translation=Notion 账户（推荐）
 
 [importer.notion-api.method-desc]
 original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
-translation=Importe l'intégralité de votre espace de travail, y compris les bases de données et les formules qui sont converties en bases. Nécessite un jeton d'intégration Notion et une connexion Internet.
+translation=导入整个工作区，包括数据库和公式（将转换为 bases）。需要 Notion 集成令牌和网络连接。
 
 [importer.notion-api.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion ID
 
 [importer.notion-api.name-token]
 original=Notion API token
-translation=Jeton d'API Notion
+translation=Notion API 令牌
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Pour obtenir un jeton d'API, créez une connexion dans Notion et donnez-lui accès aux pages de votre espace de travail. 
+translation=要获取 API 令牌，请在 Notion 中创建一个连接，并授予其访问工作区页面的权限。 
 
 [importer.notion-api.link-get-token]
 original=Get API token.
-translation=Obtenir un jeton d'API.
+translation=获取 API 令牌。
 
 [importer.notion-api.name-pages]
 original=Pages to import
-translation=Pages à importer
+translation=要导入的页面
 
 [importer.notion-api.desc-pages]
 original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Cliquez sur « Charger » pour voir les données que vous pouvez importer. Si une page ou une base de données manque, vérifiez que votre connexion Notion y a accès.
+translation=点击"加载"查看可导入的数据。如果某个页面或数据库未显示，请检查你的 Notion 连接是否有权访问它。
 
 [importer.notion-api.hint-pages]
 original=Click "Load" to load your Notion pages and databases.
-translation=Cliquez sur « Charger » pour charger vos pages et bases de données Notion.
+translation=点击"加载"以加载你的 Notion 页面和数据库。
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
-translation=Chargement des pages et bases de données...
+translation=正在加载页面和数据库...
 
 [importer.notion-api.msg-no-pages]
 original=No pages or databases found. Make sure your connection has access to the pages you want to import.
-translation=Aucune page ni base de données trouvée. Vérifiez que votre connexion a accès aux pages que vous voulez importer.
+translation=未找到页面或数据库。请确保你的连接有权访问你要导入的页面。
 
 [importer.notion-api.label-service]
 original=Notion
@@ -1532,371 +1532,371 @@ translation=Notion
 
 [importer.notion-api.label-subject]
 original=your pages
-translation=vos pages
+translation=你的页面
 
 [importer.notion-api.label-credential]
 original=Check that your token is current and that the connection has access to them.
-translation=Vérifiez que votre jeton est à jour et que la connexion y a accès.
+translation=请检查你的令牌是否有效，且连接有权访问这些页面。
 
 [importer.notion-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=转换公式
 
 [importer.notion-api.desc-formulas]
 original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
-translation=Par défaut, les formules Notion sont converties en syntaxe Obsidian. Si une syntaxe Notion n'est pas prise en charge, les valeurs statiques sont enregistrées à la place. Vous pouvez aussi importer toutes les formules comme valeurs statiques.
+translation=默认情况下，Notion 公式会转换为 Obsidian 语法。如果有不支持的 Notion 语法，将改为保存静态值。你也可以将全部公式作为静态值导入。
 
 [importer.notion-api.option-formula-hybrid]
 original=Obsidian syntax
-translation=Syntaxe Obsidian
+translation=Obsidian 语法
 
 [importer.notion-api.option-formula-static]
 original=Static values
-translation=Valeurs statiques
+translation=静态值
 
 [importer.notion-api.name-download-external]
 original=Download external attachments
-translation=Télécharger les pièces jointes externes
+translation=下载外部附件
 
 [importer.notion-api.desc-download-external]
 original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
-translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés.
+translation=将外部附件（外部 URL）下载为本地文件。Notion 托管的文件始终会被下载。
 
 [importer.notion-api.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=单行换行
 
 [importer.notion-api.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
-translation=Séparer les blocs Notion par un seul saut de ligne au lieu de deux. Certains blocs (listes, bascules, tableaux) utiliseront tout de même un double saut de ligne lorsque la syntaxe Markdown l'exige.
+translation=Notion 块之间仅使用一个换行符而非两个。某些块（列表、折叠、表格）在需要正确 Markdown 语法时仍会使用双换行。
 
 [importer.notion-api.name-cover-property]
 original=Cover property name
-translation=Nom de la propriété de couverture
+translation=封面属性名称
 
 [importer.notion-api.desc-cover-property]
 original=Property name for page cover image in YAML frontmatter. 
-translation=Nom de la propriété de l'image de couverture de la page dans l'en-tête YAML. 
+translation=YAML 前置元数据中页面封面图片的属性名称。 
 
 [importer.notion-api.desc-cover-property-conflicts]
 original=Leave as "cover" if you don't have conflicts with existing properties.
-translation=Laissez « cover » si vous n'avez pas de conflit avec des propriétés existantes.
+translation=如果与现有属性没有冲突，请保留为"cover"。
 
 [importer.notion-api.name-database-property]
 original=Database property name
-translation=Nom de la propriété de base de données
+translation=数据库属性名称
 
 [importer.notion-api.desc-database-property]
 original=Property name in page frontmatter to link pages to their database .base file (default: "base")
-translation=Nom de la propriété, dans l'en-tête de la page, reliant les pages au fichier .base de leur base de données (par défaut : « base »)
+translation=页面前置元数据中用于将页面链接到其数据库 .base 文件的属性名称（默认："base"）
 
 [importer.notion-api.name-linked-databases]
 original=Import linked databases
-translation=Importer les bases de données liées
+translation=导入关联数据库
 
 [importer.notion-api.desc-linked-databases]
 original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
-translation=Importer aussi les bases de données auxquelles les pages sélectionnées renvoient, afin que les relations deviennent des liens plutôt que des noms. Cela importe des pages que vous n'avez pas sélectionnées.
+translation=同时导入所选页面链接到的数据库，使关联关系变为链接而非名称。这会导入您未选择的页面。
 
 [importer.notion-api.msg-token-first]
 original=Please enter your Notion API token first.
-translation=Veuillez d'abord saisir votre jeton d'API Notion.
+translation=请先输入您的 Notion API 令牌。
 
 [importer.notion-api.msg-token-missing]
 original=Please enter your Notion API token.
-translation=Veuillez saisir votre jeton d'API Notion.
+translation=请输入您的 Notion API 令牌。
 
 [importer.notion-api.msg-load-pages-failed]
 original=Failed to load pages: {{error}}
-translation=Échec du chargement des pages : {{error}}
+translation=加载页面失败：{{error}}
 
 [importer.notion-api.msg-found]
 original=Found {{count}} page or database.
-translation={{count}} page ou base de données trouvée.
+translation=找到 {{count}} 个页面或数据库。
 
 [importer.notion-api.msg-found_plural]
 original=Found {{count}} pages and databases.
-translation={{count}} pages et bases de données trouvées.
+translation=找到 {{count}} 个页面和数据库。
 
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
-translation=Veuillez sélectionner au moins une page ou base de données à importer.
+translation=请至少选择一个页面或数据库进行导入。
 
 [importer.notion-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=导入失败：{{error}}
 
 [importer.notion-api.status-loading-items]
 original=Loading... ({{items}}, page {{page}})
-translation=Chargement... ({{items}}, page {{page}})
+translation=加载中…（{{items}}，页面 {{page}}）
 
 [importer.notion-api.status-connecting]
 original=Connecting to Notion API...
-translation=Connexion à l'API Notion...
+translation=正在连接 Notion API…
 
 [importer.notion-api.status-fetching]
 original=Fetching page content from Notion...
-translation=Récupération du contenu des pages depuis Notion...
+translation=正在从 Notion 获取页面内容…
 
 [importer.notion-api.status-preparing]
 original=Preparing to import {{items}}...
-translation=Préparation de l'importation de {{items}}...
+translation=正在准备导入 {{items}}…
 
 [importer.notion-api.status-importing-items]
 original=Importing {{items}}...
-translation=Importation de {{items}}...
+translation=正在导入 {{items}}…
 
 [importer.notion-api.status-importing-item]
 original=Importing item {{index}}/{{total}}...
-translation=Importation de l'élément {{index}}/{{total}}...
+translation=正在导入项目 {{index}}/{{total}}…
 
 [importer.notion-api.status-importing-title]
 original=Importing: {{title}}
-translation=Importation : {{title}}
+translation=正在导入：{{title}}
 
 [importer.notion-api.status-relation-links]
 original=Processing relation links...
-translation=Traitement des liens de relation...
+translation=正在处理关联链接…
 
 [importer.notion-api.status-mention-links]
 original=Processing mention links...
-translation=Traitement des liens de mention...
+translation=正在处理提及链接…
 
 [importer.notion-api.status-synced-blocks]
 original=Processing synced block child references...
-translation=Traitement des références enfants des blocs synchronisés...
+translation=正在处理已同步块的子引用…
 
 [importer.notion-api.status-cleaning-ids]
 original=Cleaning up notion-id attributes...
-translation=Nettoyage des attributs notion-id...
+translation=正在清理 notion-id 属性…
 
 [importer.notion-api.status-done]
 original=Import completed successfully!
-translation=Importation terminée avec succès !
+translation=导入成功完成！
 
 [importer.notion-api.status-replacing-relations]
 original=Replacing {{placeholders}}...
-translation=Remplacement de {{placeholders}}...
+translation=正在替换 {{placeholders}}…
 
 [importer.notion-api.status-replacing-relation-links]
 original=Replacing relation placeholders with wiki links...
-translation=Remplacement des marqueurs de relation par des liens wiki...
+translation=正在将关联占位符替换为 Wiki 链接…
 
 [importer.notion-api.status-importing-linked-databases]
 original=Importing {{databases}}...
-translation=Importation de {{databases}}...
+translation=正在导入 {{databases}}…
 
 [importer.notion-api.status-importing-unimported]
 original=Importing unimported database {{id}}...
-translation=Importation de la base de données non importée {{id}}...
+translation=正在导入未导入的数据库 {{id}}…
 
 [importer.notion-api.status-replacing-mentions]
 original=Replacing mention placeholders...
-translation=Remplacement des marqueurs de mention...
+translation=正在替换提及占位符…
 
 [importer.notion-api.status-replaced-mentions]
 original=Replaced {{links}} in {{files}}.
-translation={{links}} remplacés dans {{files}}.
+translation=已在 {{files}} 个文件中替换了 {{links}} 个链接。
 
 [importer.notion-api.status-replacing-synced]
 original=Replacing synced block child references...
-translation=Remplacement des références enfants des blocs synchronisés...
+translation=正在替换已同步块的子引用…
 
 [importer.notion-api.status-replaced-synced]
 original=Replaced {{references}} in {{files}} (imported {{imported}}).
-translation={{references}} remplacées dans {{files}} ({{imported}} importés).
+translation=已在 {{files}} 个文件中替换了 {{references}} 个引用（导入了 {{imported}} 个）。
 
 [importer.notion-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}...
-translation=Téléchargement de la pièce jointe : {{name}}...
+translation=正在下载附件：{{name}}…
 
 [importer.notion-api.status-rate-limited]
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Débit limité. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=已被限流。等待 {{seconds}} 秒后重试（{{attempt}}/{{total}}）…
 
 [importer.notion-api.status-retrying]
 original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Notion a renvoyé {{status}}. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=Notion 返回 {{status}}。等待 {{seconds}} 秒后重试（{{attempt}}/{{total}}）…
 
 [importer.notion-api.status-retrying-attachment]
 original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
-translation={{name}} : {{failure}}. Nouvelle tentative dans {{seconds}} secondes ({{attempt}}/{{total}})...
+translation={{name}}：{{failure}}。将在 {{seconds}} 秒后重试（{{attempt}}/{{total}}）...
 
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
-translation=Traitement de la base de données de la source : {{id}}...
+translation=正在从数据源处理数据库：{{id}}...
 
 [importer.notion-api.status-processing-database]
 original=Processing database: {{title}}...
-translation=Traitement de la base de données : {{title}}...
+translation=正在处理数据库：{{title}}...
 
 [importer.notion-api.status-found-pages]
 original=Found {{pages}} in database {{title}}
-translation={{pages}} dans la base de données {{title}}
+translation=在数据库 {{title}} 中找到 {{pages}}
 
 [importer.notion-api.status-found-templates]
 original=Found {{templates}} in database {{title}}
-translation={{templates}} dans la base de données {{title}}
+translation=在数据库 {{title}} 中找到 {{templates}}
 
 [importer.notion-api.status-importing-template]
 original=Importing template: {{name}}...
-translation=Importation du modèle : {{name}}...
+translation=正在导入模板：{{name}}...
 
 [importer.notion-api.label-import]
 original=Notion API import
-translation=Importation via l'API Notion
+translation=Notion API 导入
 
 [importer.notion-api.label-item]
 original=Import item {{id}}
-translation=Importer l'élément {{id}}
+translation=导入项目 {{id}}
 
 [importer.notion-api.label-page]
 original=Page {{id}}
-translation=Page {{id}}
+translation=页面 {{id}}
 
 [importer.notion-api.label-page-with-title]
 original=Page: {{title}} ({{id}})
-translation=Page : {{title}} ({{id}})
+translation=页面：{{title}}（{{id}}）
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
-translation=Page de relation {{id}}
+translation=关联页面 {{id}}
 
 [importer.notion-api.label-database-with-id]
 original=Database: {{title}} ({{id}})
-translation=Base de données : {{title}} ({{id}})
+translation=数据库：{{title}}（{{id}}）
 
 [importer.notion-api.label-mention-file]
 original=Mention file {{path}}
-translation=Fichier de mention {{path}}
+translation=提及文件 {{path}}
 
 [importer.notion-api.label-synced-block-file]
 original=Synced block file {{path}}
-translation=Fichier de bloc synchronisé {{path}}
+translation=已同步块文件 {{path}}
 
 [importer.notion-api.label-attachment]
 original=Attachment: {{name}}
-translation=Pièce jointe : {{name}}
+translation=附件：{{name}}
 
 [importer.notion-api.label-child-page]
 original=Child page: {{title}}
-translation=Page enfant : {{title}}
+translation=子页面：{{title}}
 
 [importer.notion-api.label-synced-block]
 original=Synced block: {{name}}
-translation=Bloc synchronisé : {{name}}
+translation=已同步块：{{name}}
 
 [importer.notion-api.label-attachment-image]
 original=Image attachment
-translation=Pièce jointe image
+translation=图片附件
 
 [importer.notion-api.label-attachment-video]
 original=Video attachment
-translation=Pièce jointe vidéo
+translation=视频附件
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
-translation=Pièce jointe fichier
+translation=文件附件
 
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
-translation=Pièce jointe PDF
+translation=PDF 附件
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
-translation=Récupération des enfants {{context}} {{id}}
+translation=获取 {{context}} {{id}} 的子项
 
 [importer.notion-api.block-paragraph]
 original=paragraph
-translation=du paragraphe
+translation=段落设置
 
 [importer.notion-api.block-bulleted-list-item]
 original=bulleted list item
-translation=de l'élément de liste à puces
+translation=无序列表项
 
 [importer.notion-api.block-numbered-list-item]
 original=numbered list item
-translation=de l'élément de liste numérotée
+translation=有序列表项
 
 [importer.notion-api.block-todo-item]
 original=to-do item
-translation=de la tâche
+translation=待办事项
 
 [importer.notion-api.block-quote]
 original=quote block
-translation=du bloc de citation
+translation=引用块
 
 [importer.notion-api.block-callout]
 original=callout block
-translation=du bloc d'encadré
+translation=标注块
 
 [importer.notion-api.block-toggle]
 original=toggle block
-translation=du bloc bascule
+translation=折叠块
 
 [importer.notion-api.block-toggleable-heading]
 original=toggleable heading
-translation=du titre bascule
+translation=可折叠标题
 
 [importer.notion-api.block-column]
 original=column
-translation=de la colonne
+translation=列
 
 [importer.notion-api.block-column-list]
 original=column list
-translation=de la liste de colonnes
+translation=列列表
 
 [importer.notion-api.block-table]
 original=table
-translation=du tableau
+translation=表格
 
 [importer.notion-api.block-generic]
 original=block
-translation=du bloc
+translation=块
 
 [importer.notion-api.label-meeting-notes]
 original=Meeting notes: {{name}}
-translation=Notes de réunion : {{name}}
+translation=会议笔记：{{name}}
 
 [importer.notion-api.label-meeting-notes-section]
 original=Meeting notes: {{name}} ({{section}})
-translation=Notes de réunion : {{name}} ({{section}})
+translation=会议笔记：{{name}}（{{section}}）
 
 [importer.notion-api.label-untitled-meeting]
 original=Meeting notes {{id}}
-translation=Notes de réunion {{id}}
+translation=会议笔记 {{id}}
 
 [importer.notion-api.section-summary]
 original=summary
-translation=résumé
+translation=汇总
 
 [importer.notion-api.section-notes]
 original=notes
-translation=notes
+translation=笔记
 
 [importer.notion-api.section-transcript]
 original=transcript
-translation=transcription
+translation=转录
 
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
-translation=Récupération des enfants du bloc {{id}}
+translation=获取块 {{id}} 的子项
 
 [importer.notion-api.reason-not-in-tree]
 original=Item not found in tree
-translation=Élément introuvable dans l'arborescence
+translation=在树中未找到该项目
 
 [importer.notion-api.reason-unknown-type]
 original=Unknown type: {{type}}
-translation=Type inconnu : {{type}}
+translation=未知类型：{{type}}
 
 [importer.notion-api.reason-earlier-import]
 original=an earlier import had already written it
-translation=un import précédent l'avait déjà écrit
+translation=之前的导入已写入该内容
 
 [importer.notion-api.reason-attachment-exists]
 original={{path}} is already in the vault, the same size (incremental import)
-translation={{path}} est déjà dans le coffre, de la même taille (import incrémental)
+translation={{path}} 已存在于仓库中，大小相同（增量导入）
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
@@ -1904,19 +1904,19 @@ translation=HTTP {{status}}
 
 [importer.notion-api.reason-meeting-notes-pending]
 original=Notion has not finished generating them ({{status}})
-translation=Notion n'a pas fini de les générer ({{status}})
+translation=Notion 尚未完成生成（{{status}}）
 
 [importer.notion-api.reason-rate-limit-gave-up]
 original=rate limited, and gave up after {{retries}} retries
-translation=débit limité, abandon après {{retries}} tentatives
+translation=请求频率受限，重试 {{retries}} 次后放弃
 
 [importer.notion-api.reason-gave-up]
 original={{reason}}, and gave up after {{retries}} retries
-translation={{reason}}, abandon après {{retries}} tentatives
+translation={{reason}}，重试 {{retries}} 次后放弃
 
 [importer.notion-api.reason-kept-link]
 original={{reason}}; kept the link to {{url}}
-translation={{reason}} ; lien conservé vers {{url}}
+translation={{reason}}；已保留指向 {{url}} 的链接
 
 [importer.notion.name]
 original=Notion
@@ -1928,63 +1928,63 @@ translation=Notion (.zip)
 
 [importer.notion.method-name]
 original=File import
-translation=Import de fichiers
+translation=文件导入
 
 [importer.notion.method-desc]
 original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
-translation=Importe à partir d'un fichier d'export Notion (.zip). Ne nécessite ni jeton d'API ni connexion Internet, mais ne préserve pas les bases de données.
+translation=使用 Notion 导出文件（.zip）导入。无需 API 令牌或网络连接，但不保留数据库。
 
 [importer.notion.file-type]
 original=Exported Notion
-translation=Export Notion
+translation=Notion 导出文件
 
 [importer.notion.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion ID
 
 [importer.notion.desc-export]
 original=Export your workspace in HTML format, you will receive a zip file.
-translation=Exportez votre espace de travail au format HTML, vous obtiendrez un fichier zip.
+translation=将你的工作区导出为 HTML 文本格式，你将收到一个 zip 文件。
 
 [importer.notion.desc-files]
 original=Pick the zip file Notion sent you.
-translation=Choisissez le fichier zip que Notion vous a envoyé.
+translation=选择 Notion 发送给你的 zip 文件。
 
 [importer.notion.name-subfolders]
 original=Save parent pages in subfolders
-translation=Enregistrer les pages parentes dans des sous-dossiers
+translation=将父页面保存在子文件夹中
 
 [importer.notion.desc-subfolders]
 original=Places the parent database pages in the same folder as the nested content.
-translation=Place les pages parentes de la base de données dans le même dossier que le contenu imbriqué.
+translation=将父数据库页面放置在与嵌套内容相同的文件夹中。
 
 [importer.notion.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=单行换行
 
 [importer.notion.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break (default is 2).
-translation=Séparer les blocs Notion par un seul saut de ligne (2 par défaut).
+translation=Notion 块之间仅使用一个换行符分隔（默认为 2 个）。
 
 [importer.notion.status-looking]
 original=Looking for files to import
-translation=Recherche des fichiers à importer
+translation=正在查找要导入的文件
 
 [importer.notion.status-resolving]
 original=Resolving links and de-duplicating files
-translation=Résolution des liens et suppression des doublons
+translation=正在解析链接并去除重复文件
 
 [importer.notion.status-starting]
 original=Starting import
-translation=Démarrage de l'importation
+translation=正在开始导入
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
-translation=c'est un export Markdown ; exportez plutôt votre espace de travail Notion en HTML
+translation=这是一个 Markdown 导出；请将 Notion 工作区导出为 HTML 格式
 
 [importer.notion.reason-no-page-body]
 original=page body was not found
-translation=le corps de la page est introuvable
+translation=未找到页面正文
 
 [importer.roam-json.name]
 original=Roam Research
@@ -2000,55 +2000,55 @@ translation=Roam (.json)
 
 [importer.roam-json.label-id]
 original=Roam UID
-translation=l'UID Roam
+translation=Roam UID
 
 [importer.roam-json.desc-export]
 original=Export your data in JSON format.
-translation=Exportez vos données au format JSON.
+translation=将你的数据导出为 JSON 格式。
 
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
-translation=Choisissez le fichier JSON de votre export Roam.
+translation=选择从 Roam 导出的 JSON 文件。
 
 [importer.roam-json.name-download-attachments]
 original=Download all attachments
-translation=Télécharger toutes les pièces jointes
+translation=下载全部附件
 
 [importer.roam-json.desc-download-attachments]
 original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Si cette option est activée, toutes les pièces jointes envoyées vers Roam seront téléchargées dans votre dossier de pièces jointes.
+translation=启用后，所有上传到 Roam 的附件都将被下载到你的附件文件夹中。
 
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
-translation=Ajouter les dates de création et de modification en YAML
+translation=添加 YAML 创建/更新日期
 
 [importer.roam-json.desc-date-properties]
 original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Si cette option est activée, les notes auront les dates de création et de modification de Roam ajoutées comme propriétés.
+translation=启用后，笔记将把 Roam 中的创建时间和编辑时间添加为笔记属性。
 
 [importer.roam-json.name-title-property]
 original=Add YAML title
-translation=Ajouter le titre en YAML
+translation=添加 YAML 标题
 
 [importer.roam-json.desc-title-property]
 original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Si cette option est activée, les notes auront leur titre complet ajouté comme propriété (indépendamment des caractères interdits dans les noms de fichiers).
+translation=启用后，笔记将把完整标题添加为属性（无论文件名是否包含非法字符）。
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
-translation=Le titre est vide
+translation=标题值为空
 
 [importer.roam-json.reason-unexpected-extension]
 original=Unexpected file extension
-translation=Extension de fichier inattendue
+translation=意外的扩展名
 
 [importer.roam-json.reason-file-exists]
 original=File already exists
-translation=Le fichier existe déjà
+translation=文件已存在
 
 [importer.textbundle.name]
 original=Textbundle files
-translation=Fichiers Textbundle
+translation=Textbundle 文件
 
 [importer.textbundle.option-text]
 original=Textbundle (.textbundle, .textpack)
@@ -2060,19 +2060,19 @@ translation=Textbundle
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
-translation=En raison de limitations de la plateforme, seuls les fichiers textpack et zip peuvent être importés depuis cet appareil. Ouvrez votre coffre sur un Mac pour importer des fichiers textbundle.
+translation=由于平台限制，此设备只能导入 textpack 和 zip 文件。请在 Mac 上打开你的仓库以导入 textbundle 文件。
 
 [importer.textbundle.reason-no-markdown]
 original=The textbundle does not contain markdown
-translation=Le textbundle ne contient pas de Markdown
+translation=该 textbundle 不包含 Markdown 内容
 
 [importer.textbundle.reason-not-media]
 original=the file is not a media or markdown file.
-translation=le fichier n'est ni un média ni un fichier Markdown.
+translation=该文件不是媒体文件或 Markdown 文件。
 
 [importer.textbundle.reason-already-exists]
 original=the file already exists.
-translation=le fichier existe déjà.
+translation=该文件已存在。
 
 [importer.tomboy.name]
 original=Tomboy/Gnote
@@ -2088,44 +2088,44 @@ translation=Tomboy/Gnote
 
 [importer.tomboy.label-id]
 original=Tomboy ID
-translation=l'identifiant Tomboy
+translation=Tomboy ID
 
 [importer.tomboy.desc-files-mac]
 original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : ~/Library/Application Support/Tomboy
+translation=Tomboy 笔记通常位于：~/Library/Application Support/Tomboy
 
 [importer.tomboy.desc-files-windows]
 original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : %APPDATA%\\\\Tomboy
+translation=Tomboy 笔记通常位于：%APPDATA%\\Tomboy
 
 [importer.tomboy.desc-files-linux]
 original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
-translation=Les notes Tomboy se trouvent généralement dans : ~/.local/share/tomboy - ou GNote : ~/.local/share/gnote
+translation=Tomboy 笔记通常位于：~/.local/share/tomboy - 或 GNote：~/.local/share/gnote
 
 [importer.tomboy.name-todo]
 original=Convert TODO lists to checkboxes
-translation=Convertir les listes TODO en cases à cocher
+translation=将 TODO 列表转换为复选框
 
 [importer.tomboy.desc-todo]
 original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
-translation=Lorsque cette option est activée, les listes des notes dont le titre contient « TODO » sont converties en listes de tâches avec cases à cocher. Les éléments barrés sont marqués comme terminés.
+translation=已启用时，标题中含有"TODO"的笔记中的列表将被转换为带复选框的任务列表。删除线项目将被标记为已完成。
 
 [importer.tomboy.name-keep-title]
 original=Keep title in Markdown
-translation=Conserver le titre dans le Markdown
+translation=在 Markdown 中保留标题
 
 [importer.tomboy.desc-keep-title]
 original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
-translation=Choisissez si le titre de la note doit être conservé dans le contenu Markdown. L'option automatique ne conserve les titres que lorsque des caractères spéciaux sont perdus lors de la conversion du nom de fichier.
+translation=选择是否在 Markdown 内容中保留笔记标题。自动选项仅在文件名转换中丢失特殊字符时保留标题。
 
 [importer.tomboy.option-automatic]
 original=Automatic
-translation=Automatique
+translation=自动
 
 [importer.tomboy.option-keep-titles]
 original=Keep titles
-translation=Conserver les titres
+translation=保留标题
 
 [importer.tomboy.option-filename-only]
 original=Filename only
-translation=Nom de fichier seulement
+translation=仅文件名

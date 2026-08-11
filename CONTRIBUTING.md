@@ -21,8 +21,39 @@ We're still experimenting with contributions, if you have any questions, please 
 - Keep it lightweight. The fewer the dependencies, the better. For example, please do not import `lodash` to use two functions from it.
 - Your code should be self-explanatory. Class and function names should explain most things, but you should add comments for anything non-obvious. Also add examples in your comments to describe any unusual conversion that has to be done.
 - Be performance minded. Your code will be used in vaults with 10,000 or even 100,000 notes.
-- Text the user will read belongs in `src/i18n/en.ts`, not in a string literal at the call site. Reach it with `i18n.<section>.<key>()`, and run `npm run locales` afterwards so the translation files keep up. See `locale/README.md`.
+- Text the user will read belongs in `src/i18n/en.ts`, not in a string literal at the call site. See [Localization](#localization).
 - Avoid concurrency. It's easy to accidentally run out of memory when using concurrent processing in JavaScript. This also avoids making the code complicated and difficult to follow due to the mapping of promises.
+
+### Localization
+
+The importer supports every language published by Obsidian Help. English UI strings live in `src/i18n/en.ts`, and translations live in `locale/*.txt`. Locale files use the same block format as [Obsidian translations](https://github.com/obsidianmd/obsidian-translations).
+
+#### Adding or changing a string
+
+Add user-visible UI text to `src/i18n/en.ts`, then reference its key through `i18n`:
+
+```ts
+new Setting(contentEl).setName(i18n.output.nameDuplicates());
+ctx.status(i18n.progress.statusStandardizing({ current, total }));
+```
+
+Give separately displayed strings separate keys, and avoid joining translated fragments. Word order and grammar vary between languages. Do not localize console messages or text written into imported notes.
+
+Run `npm run locales`, then commit the resulting changes to `locale/*.txt` and `src/i18n/locales.ts`. See the [localization guide](locale/README.md) for placeholders, plurals, and whitespace.
+
+#### Correcting a translation
+
+Translations are machine-generated, and corrections from fluent speakers are welcome. Edit the relevant block in `locale/<language>.txt`:
+
+```
+[modal.button-done]
+original=Done
+translation=Terminé
+```
+
+The block header identifies the string. Change only `translation=`; leave `original=` and placeholders such as `{{name}}` unchanged.
+
+Run `npm run locales`, then commit the locale file and the updated `src/i18n/locales.ts`. Do not edit `src/i18n/locales.ts` or `locale/en.txt` directly. A blank translation falls back to English, and automated updates preserve corrections unless the English source changes.
 
 ### Bounties
 
