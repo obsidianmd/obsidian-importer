@@ -1,4 +1,4 @@
-import { Notice } from 'obsidian';
+import { Notice, TFile } from 'obsidian';
 import { helpUrl } from '../constants';
 import { markdownOutputFor } from '../markdown-output';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
@@ -67,6 +67,10 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 			writeNote: async (path, markdown, times) => {
 				const { planned, disposition } = plans.get(path)!;
+				// Vault will not create a file inside a folder that is not there,
+				// and nothing has made the notebook's folder: planNote settles a
+				// path without creating anything on the way to it.
+				await this.createFolders(parentOf(path));
 				await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
 			},
 
@@ -84,13 +88,25 @@ export class EvernoteEnexImporter extends FormatImporter {
 				return { path, write: reuse === null };
 			},
 
-			// The whole path, which resolves from anywhere. finalizeMarkdownOutput
-			// shortens it afterwards, to whatever form the user set.
-			linkTo: path => path,
+			/**
+			 * The link Obsidian would write itself, in whatever form the user
+			 * has set. Writing the whole path instead would resolve, but the
+			 * standardizing pass carries a wikilink's text over as its display
+			 * text - so the note would end up reading "embedded.png|Attachments/
+			 * embedded.png". The file is written by the time this is asked.
+			 */
+			linkTo: (path, fromNote) => {
+				const file = vault.getAbstractFileByPath(path);
+
+				return file instanceof TFile
+					? this.app.metadataCache.fileToLinktext(file, fromNote)
+					: path;
+			},
 
 			writeAttachment: async (path, data, times) => {
 				await this.createFolders(parentOf(path));
-				await this.writeAttachment(path, data, times);
+				const file = await this.writeAttachment(path, data, times);
+				ctx.reportAttachmentSuccess(file.name);
 			},
 		};
 	}

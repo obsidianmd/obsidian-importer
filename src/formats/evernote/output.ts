@@ -53,6 +53,7 @@ export interface EvernoteOutput {
 	 */
 	willImport(path: string, sourceMtime?: number): boolean;
 
+	/** Put the note there, creating the folders on the way to it. */
 	writeNote(path: string, markdown: string, times: FileTimes): Promise<void>;
 
 	/**
@@ -68,5 +69,6 @@ export interface EvernoteOutput {
 	/** How a note at one path refers to a file at another. */
 	linkTo(path: string, fromNote: string): string;
 
+	/** Put the attachment there, creating the folders on the way to it. */
 	writeAttachment(path: string, data: ArrayBuffer, times: FileTimes): Promise<void>;
 }
