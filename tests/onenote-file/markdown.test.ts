@@ -15,6 +15,7 @@ import type { Element, Page, Paragraph, TextRun } from '../../src/formats/onenot
 
 function page(...elements: Element[]): Page {
 	return {
+		id: 'test-page',
 		title: 'Test',
 		level: 0,
 		isConflictPage: false,

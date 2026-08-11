@@ -104,6 +104,7 @@ function mapPage(
 	if (!pageNode) return undefined;
 
 	const page: Page = {
+		id: keyOf(objectSpaceId),
 		title: readString(metadata, Property.cachedTitleString) ?? readString(pageNode, Property.cachedTitleStringFromPage) ?? '',
 		level: Math.max(0, (readUInt32Property(metadata, Property.pageLevel) ?? 1) - 1),
 		createdUtc: readFileTime(metadata, Property.topologyCreationTimestamp),

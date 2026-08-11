@@ -72,6 +72,12 @@ export interface EmbeddedFile {
 export type Element = Paragraph | Outline | Table | Image | EmbeddedFile;
 
 export interface Page {
+	/**
+	 * The page's object-space identity, stable across exports of the same
+	 * notebook. It is what lets a second import update a note rather than
+	 * write a copy beside it.
+	 */
+	id: string;
 	title: string;
 	/** Sub-page depth: 0 for a top-level page, 1 for its first subpage. */
 	level: number;

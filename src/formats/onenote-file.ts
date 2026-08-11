@@ -187,6 +187,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
 		const name = sanitizeFileName(section.name || fallbackName) || i18n.importer.onenoteFile.labelUntitledSection();
 		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${name}`));
+		const claimed: string[] = [];
 
 		for (const page of section.pages) {
 			if (await ctx.shouldStop()) return;
@@ -200,7 +201,8 @@ export class OneNoteFileImporter extends FormatImporter {
 					isCancelled: () => ctx.cancelled,
 					onSkipped: assetName => ctx.reportSkipped(assetName, i18n.importer.onenoteFile.reasonNoAttachmentData()),
 					saveAttachment: async (bytes, suggested) => {
-						const attachmentPath = await this.getAvailablePathForAttachment(sanitizeFileName(suggested), [], notePath);
+						const attachmentPath = await this.getAvailablePathForAttachment(sanitizeFileName(suggested), claimed, notePath);
+						claimed.push(attachmentPath);
 						await this.vault.createBinary(attachmentPath, toArrayBuffer(bytes));
 						ctx.reportAttachmentSuccess(attachmentPath);
 						return { path: attachmentPath, name: suggested };
@@ -208,6 +210,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				});
 
 				await this.writeNote(ctx, sectionFolder, title, converted.markdown, {
+					sourceId: page.id,
 					ctime: page.createdUtc?.getTime(),
 					mtime: page.lastModifiedUtc?.getTime(),
 				});
