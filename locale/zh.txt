@@ -1512,51 +1512,51 @@ translation=要导入的页面
 
 [importer.notion-api.desc-pages]
 original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
-translation=
+translation=点击"加载"查看可导入的数据。如果某个页面或数据库未显示，请检查你的 Notion 连接是否有权访问它。
 
 [importer.notion-api.hint-pages]
 original=Click "Load" to load your Notion pages and databases.
-translation=
+translation=点击"加载"以加载你的 Notion 页面和数据库。
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
-translation=
+translation=正在加载页面和数据库...
 
 [importer.notion-api.msg-no-pages]
 original=No pages or databases found. Make sure your connection has access to the pages you want to import.
-translation=
+translation=未找到页面或数据库。请确保你的连接有权访问你要导入的页面。
 
 [importer.notion-api.label-service]
 original=Notion
-translation=
+translation=Notion
 
 [importer.notion-api.label-subject]
 original=your pages
-translation=
+translation=你的页面
 
 [importer.notion-api.label-credential]
 original=Check that your token is current and that the connection has access to them.
-translation=
+translation=请检查你的令牌是否有效，且连接有权访问这些页面。
 
 [importer.notion-api.name-formulas]
 original=Convert formulas
-translation=
+translation=转换公式
 
 [importer.notion-api.desc-formulas]
 original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
-translation=
+translation=默认情况下，Notion 公式会转换为 Obsidian 语法。如果有不支持的 Notion 语法，将改为保存静态值。你也可以将全部公式作为静态值导入。
 
 [importer.notion-api.option-formula-hybrid]
 original=Obsidian syntax
-translation=
+translation=Obsidian 语法
 
 [importer.notion-api.option-formula-static]
 original=Static values
-translation=
+translation=静态值
 
 [importer.notion-api.name-download-external]
 original=Download external attachments
-translation=
+translation=下载外部附件
 
 [importer.notion-api.desc-download-external]
 original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
