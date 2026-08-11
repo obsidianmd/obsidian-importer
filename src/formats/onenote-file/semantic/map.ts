@@ -8,6 +8,7 @@
  */
 
 import { OneNoteFormatError } from '../errors';
+import { readUInt32 } from '../onestore/binary';
 import { ExtendedGuid } from '../onestore/file-header';
 import { RevisionStoreObject, keyOf } from '../onestore/objects';
 import { RevisionStore } from '../onestore/revision-store';
@@ -16,6 +17,8 @@ import {
 	Element,
 	EmbeddedFile,
 	Image,
+	Ink,
+	InkStroke,
 	ListInfo,
 	Outline,
 	Page,
@@ -25,11 +28,22 @@ import {
 	TableRow,
 	TextRun,
 } from './content';
+import {
+	InkDimensionId,
+	NATIVE_UNITS_PER_HALF_INCH,
+	decodeDimensions,
+	decodeInkColor,
+	decodePacketValues,
+	decodeRecognitionAlternatives,
+	decodeSignedVector,
+	indexOfDimension,
+} from './ink';
 import { MaterializedObjectSpace, ObjectSpaceMaterializer, spaceKey } from './object-space';
 import {
 	readBoolean,
 	readData,
 	readFileTime,
+	readFloat,
 	readReferences,
 	readSingleByteString,
 	readString,
@@ -115,8 +129,15 @@ function mapPage(
 		directContent: [],
 	};
 
+	const context: MapContext = {
+		space,
+		materializer,
+		options,
+		recognition: collectRecognition(space, pageNode),
+	};
+
 	for (const childId of readReferences(pageNode, Property.elementChildNodes)) {
-		const element = buildElement(space, materializer, childId, options, 0, new Set());
+		const element = buildElement(context, childId, 0, new Set());
 		if (element?.kind === 'outline') page.outlines.push(element);
 		else if (element) page.directContent.push(element);
 	}
@@ -129,7 +150,7 @@ function mapPage(
 
 			const parts: string[] = [];
 			for (const childId of readReferences(title, Property.elementChildNodes)) {
-				const element = buildElement(space, materializer, childId, options, 0, new Set());
+				const element = buildElement(context, childId, 0, new Set());
 				if (element) collectText(element, parts);
 			}
 			page.title = parts.filter(part => part.trim() !== '').join(' ').trim();
@@ -139,14 +160,22 @@ function mapPage(
 	return page;
 }
 
+/** What every element builder needs, so it does not travel as six parameters. */
+interface MapContext {
+	space: MaterializedObjectSpace;
+	materializer: ObjectSpaceMaterializer;
+	options: ReaderOptions;
+	/** Recognized handwriting, keyed by the stroke it was read from. */
+	recognition: Map<string, string>;
+}
+
 function buildElement(
-	space: MaterializedObjectSpace,
-	materializer: ObjectSpaceMaterializer,
+	context: MapContext,
 	id: ExtendedGuid,
-	options: ReaderOptions,
 	depth: number,
 	path: Set<string>,
 ): Element | undefined {
+	const { space, options } = context;
 	const pathKey = keyOf(id);
 	if (depth >= options.maxPropertySetDepth || path.has(pathKey)) return undefined;
 	path.add(pathKey);
@@ -160,26 +189,29 @@ function buildElement(
 			case Jcid.outlineGroup: {
 				const outline: Outline = { kind: 'outline', children: [] };
 				for (const childId of readReferences(item, Property.elementChildNodes)) {
-					const child = buildElement(space, materializer, childId, options, depth + 1, path);
+					const child = buildElement(context, childId, depth + 1, path);
 					if (child) outline.children.push(child);
 				}
 				return outline;
 			}
 
 			case Jcid.outlineElementNode:
-				return buildOutlineElement(space, materializer, item, options, depth, path);
+				return buildOutlineElement(context, item, depth, path);
 
 			case Jcid.richTextNode:
-				return buildParagraph(space, item);
+				return buildParagraph(context.space, item);
 
 			case Jcid.imageNode:
-				return buildImage(space, materializer, item);
+				return buildImage(context, item);
 
 			case Jcid.embeddedFileNode:
-				return buildEmbeddedFile(space, materializer, item);
+				return buildEmbeddedFile(context, item);
 
 			case Jcid.tableNode:
-				return buildTable(space, materializer, item, options, depth, path);
+				return buildTable(context, item, depth, path);
+
+			case Jcid.inkContainer:
+				return buildInk(context, item);
 
 			default:
 				return undefined;
@@ -195,23 +227,22 @@ function buildElement(
  * and list glyph, and wraps whatever content sits at that level.
  */
 function buildOutlineElement(
-	space: MaterializedObjectSpace,
-	materializer: ObjectSpaceMaterializer,
+	context: MapContext,
 	item: RevisionStoreObject,
-	options: ReaderOptions,
 	depth: number,
 	path: Set<string>,
 ): Element {
+	const { space } = context;
 	let primary: Element | undefined;
 	for (const contentId of readReferences(item, Property.contentChildNodes)) {
-		primary = buildElement(space, materializer, contentId, options, depth + 1, path);
+		primary = buildElement(context, contentId, depth + 1, path);
 		if (primary) break;
 	}
 
 	const list = buildListInfo(space, item);
 	const children: Element[] = [];
 	for (const childId of readReferences(item, Property.elementChildNodes)) {
-		const child = buildElement(space, materializer, childId, options, depth + 1, path);
+		const child = buildElement(context, childId, depth + 1, path);
 		if (child) children.push(child);
 	}
 
@@ -341,13 +372,12 @@ function readNumberListFormat(listNode: RevisionStoreObject): string {
 }
 
 function buildTable(
-	space: MaterializedObjectSpace,
-	materializer: ObjectSpaceMaterializer,
+	context: MapContext,
 	item: RevisionStoreObject,
-	options: ReaderOptions,
 	depth: number,
 	path: Set<string>,
 ): Table {
+	const { space } = context;
 	const table: Table = {
 		kind: 'table',
 		bordersVisible: readBoolean(item, Property.tableBordersVisible) ?? false,
@@ -365,7 +395,7 @@ function buildTable(
 
 			const children: Element[] = [];
 			for (const childId of readReferences(cellItem, Property.elementChildNodes)) {
-				const child = buildElement(space, materializer, childId, options, depth + 1, path);
+				const child = buildElement(context, childId, depth + 1, path);
 				if (child) children.push(child);
 			}
 			row.cells.push({ children });
@@ -377,7 +407,122 @@ function buildTable(
 	return table;
 }
 
-function buildImage(space: MaterializedObjectSpace, materializer: ObjectSpaceMaterializer, item: RevisionStoreObject): Image {
+/**
+ * A drawing, as the strokes it was drawn with.
+ *
+ * The scale factors live on the container and the geometry on the data node,
+ * so both are needed before a point means anything.
+ */
+function buildInk({ space, options, recognition }: MapContext, container: RevisionStoreObject): Ink | undefined {
+	const inkDataId = readReferences(container, Property.inkData)[0];
+	if (!inkDataId) return undefined;
+
+	const inkData = space.getObject(inkDataId);
+	if (inkData?.jcid !== Jcid.inkDataNode) return undefined;
+
+	const scaleX = readFloat(container, Property.inkScalingX) ?? 1;
+	const scaleY = readFloat(container, Property.inkScalingY) ?? 1;
+
+	const ink: Ink = { kind: 'ink', strokes: [] };
+	const words: string[] = [];
+
+	for (const strokeId of readReferences(inkData, Property.inkStrokes)) {
+		const strokeObject = space.getObject(strokeId);
+		if (strokeObject?.jcid !== Jcid.inkStrokeNode) continue;
+
+		const stroke = decodeStroke(space, strokeObject, scaleX, scaleY, options);
+		if (!stroke) continue;
+
+		stroke.recognizedText = recognition.get(keyOf(strokeId));
+		if (stroke.recognizedText) words.push(stroke.recognizedText);
+		ink.strokes.push(stroke);
+	}
+
+	if (ink.strokes.length === 0) return undefined;
+	if (words.length > 0) ink.recognizedText = words.join(' ');
+	return ink;
+}
+
+function decodeStroke(
+	space: MaterializedObjectSpace,
+	source: RevisionStoreObject,
+	scaleX: number,
+	scaleY: number,
+	options: ReaderOptions,
+): InkStroke | undefined {
+	const properties = space.getObject(readReferences(source, Property.inkStrokeProperties)[0]);
+	if (properties?.jcid !== Jcid.strokePropertiesNode) return undefined;
+
+	const pathData = readData(source, Property.inkPath);
+	if (!pathData) return undefined;
+
+	const dimensions = decodeDimensions(readData(properties, Property.inkDimensions));
+	const xIndex = indexOfDimension(dimensions, InkDimensionId.x);
+	const yIndex = indexOfDimension(dimensions, InkDimensionId.y);
+	if (xIndex < 0 || yIndex < 0) return undefined;
+
+	const values = decodeSignedVector(pathData, Math.min(options.maxInkPathValues, pathData.length * 8));
+	if (values.length === 0 || values.length % dimensions.length !== 0) return undefined;
+
+	const pointCount = values.length / dimensions.length;
+	const xs = decodePacketValues(values, xIndex * pointCount, pointCount);
+	const ys = decodePacketValues(values, yIndex * pointCount, pointCount);
+
+	const points = new Array<{ x: number, y: number }>(pointCount);
+	for (let index = 0; index < pointCount; index++) {
+		points[index] = {
+			x: xs[index] * scaleX / NATIVE_UNITS_PER_HALF_INCH,
+			y: ys[index] * scaleY / NATIVE_UNITS_PER_HALF_INCH,
+		};
+	}
+
+	const transparency = readUInt32Property(properties, Property.inkTransparency) ?? 0;
+
+	return {
+		points,
+		color: decodeInkColor(readUInt32Property(properties, Property.inkColor)),
+		width: Math.max(0.000001, (readFloat(properties, Property.inkWidth) ?? 1) * Math.abs(scaleX) / NATIVE_UNITS_PER_HALF_INCH),
+		opacity: 1 - Math.min(255, transparency) / 255,
+	};
+}
+
+/**
+ * The handwriting recognizer's output, keyed by the stroke each word came
+ * from. A word names its strokes by allocation number within its own
+ * identifier's namespace, which is how it meets the stroke again here.
+ */
+function collectRecognition(space: MaterializedObjectSpace, pageNode: RevisionStoreObject): Map<string, string> {
+	const recognition = new Map<string, string>();
+	const rootId = readReferences(pageNode, Property.pageRecognizedTextContainer)[0];
+	if (!rootId) return recognition;
+
+	const visited = new Set<string>();
+	const walk = (id: ExtendedGuid, depth: number): void => {
+		if (depth > 8 || visited.has(keyOf(id))) return;
+		visited.add(keyOf(id));
+
+		const item = space.getObject(id);
+		if (!item) return;
+
+		if (item.jcid === Jcid.recognizedTextWord) {
+			const [word] = decodeRecognitionAlternatives(readData(item, Property.recognizedText));
+			const references = readData(item, Property.recognizedTextStrokeReferences);
+			if (!word || !references) return;
+
+			for (let offset = 0; offset + 20 <= references.length; offset += 20) {
+				recognition.set(keyOf({ identifier: id.identifier, value: readUInt32(references, offset + 16), encodedLength: 17 }), word);
+			}
+			return;
+		}
+
+		for (const childId of readReferences(item, Property.recognizedTextChildNodes)) walk(childId, depth + 1);
+	};
+
+	walk(rootId, 0);
+	return recognition;
+}
+
+function buildImage({ space, materializer }: MapContext, item: RevisionStoreObject): Image {
 	const image: Image = {
 		kind: 'image',
 		fileName: readString(item, Property.imageFilename),
@@ -396,7 +541,7 @@ function buildImage(space: MaterializedObjectSpace, materializer: ObjectSpaceMat
 	return image;
 }
 
-function buildEmbeddedFile(space: MaterializedObjectSpace, materializer: ObjectSpaceMaterializer, item: RevisionStoreObject): EmbeddedFile {
+function buildEmbeddedFile({ space, materializer }: MapContext, item: RevisionStoreObject): EmbeddedFile {
 	const embedded: EmbeddedFile = {
 		kind: 'embedded-file',
 		fileName: readString(item, Property.embeddedFileName),
@@ -431,6 +576,9 @@ export function collectText(element: Element, into: string[]): void {
 					for (const child of cell.children) collectText(child, into);
 				}
 			}
+			break;
+		case 'ink':
+			if (element.recognizedText) into.push(element.recognizedText);
 			break;
 		default:
 			break;

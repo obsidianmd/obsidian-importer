@@ -1,11 +1,13 @@
 /**
  * Converts InkML (Ink Markup Language) files to SVG format.
+ *
+ * The drawing itself lives in ink-svg.ts, which the export-file importer draws
+ * its native strokes with too.
  */
 
-const INKML_NAMESPACE = 'http://www.w3.org/2003/InkML';
+import { strokesToSvg } from './ink-svg';
 
-/** Padding around the SVG content. */
-const PADDING = 10;
+const INKML_NAMESPACE = 'http://www.w3.org/2003/InkML';
 
 interface BrushProperties {
 	color: string;
@@ -18,13 +20,6 @@ interface TraceWithBrush {
 	id: string;
 	coords: number[][];
 	brush: BrushProperties;
-}
-
-interface BoundingBox {
-	minX: number;
-	minY: number;
-	maxX: number;
-	maxY: number;
 }
 
 const DEFAULT_BRUSH: BrushProperties = {
@@ -172,34 +167,6 @@ function getTracesWithBrushes(inkmlContent: string): TraceWithBrush[] {
 	return traces;
 }
 
-/**
- * Get the bounding box of traces
- */
-function getBoundingBox(traces: TraceWithBrush[]): BoundingBox {
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-
-	for (const trace of traces) {
-		for (const coord of trace.coords) {
-			if (coord.length >= 2) {
-				minX = Math.min(minX, coord[0]);
-				minY = Math.min(minY, coord[1]);
-				maxX = Math.max(maxX, coord[0]);
-				maxY = Math.max(maxY, coord[1]);
-			}
-		}
-	}
-
-	return { minX, minY, maxX, maxY };
-}
-
-/**
- * Convert InkML content to SVG string.
- * @param inkmlContent - The raw InkML XML content as a string.
- * @returns SVG string representation of the ink data or null if no traces found.
- */
 export function inkmlToSvg(inkmlContent: string): string | null {
 	if (!inkmlContent || inkmlContent.trim().length === 0) {
 		return null;
@@ -210,41 +177,11 @@ export function inkmlToSvg(inkmlContent: string): string | null {
 		return null;
 	}
 
-	const { minX, minY, maxX, maxY } = getBoundingBox(traces);
-
-	// Calculate dimensions with padding
-	const width = maxX - minX + PADDING * 2;
-	const height = maxY - minY + PADDING * 2;
-
-	// Build SVG paths
-	const paths: string[] = [];
-
-	for (const trace of traces) {
-		if (trace.coords.length === 0) continue;
-
-		const stroke = trace.brush.color;
+	return strokesToSvg(traces.map(trace => ({
+		points: trace.coords.map(coord => ({ x: coord[0], y: coord[1] })),
+		color: trace.brush.color,
 		// Ignore the conversion from himetric to pixels. It seems to match best when used 1:1.
-		const strokeWidth = trace.brush.width;
-		const opacity = 1 - trace.brush.transparency;
-		const opacityAttr = opacity < 1 ? ` opacity="${opacity.toFixed(2)}"` : '';
-
-		if (trace.coords.length === 1) {
-			// Single point - draw a small circle
-			const x = trace.coords[0][0] - minX + PADDING;
-			const y = trace.coords[0][1] - minY + PADDING;
-			paths.push(`<circle cx="${x}" cy="${y}" r="${strokeWidth / 2}" fill="${stroke}"${opacityAttr}/>`);
-		}
-		else {
-			// Multiple points - draw a path
-			const pathData = trace.coords.map((coord: number[], index: number) => {
-				const x = coord[0] - minX + PADDING;
-				const y = coord[1] - minY + PADDING;
-				return index === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-			}).join(' ');
-
-			paths.push(`<path d="${pathData}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"${opacityAttr}/>`);
-		}
-	}
-
-	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${paths.join('\n')}</svg>`;
+		width: trace.brush.width,
+		opacity: 1 - trace.brush.transparency,
+	})));
 }

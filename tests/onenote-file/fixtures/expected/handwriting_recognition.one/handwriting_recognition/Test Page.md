@@ -53,3 +53,7 @@ Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod 
 *𝑎=𝑏*
 
 ![example images from TESTIMAGES archive](attachments/testimages_screenshot.jpg)
+
+![Hello World Hello World](attachments/Test%20Page%20-%20Ink.svg)
+
+Hello World Hello World

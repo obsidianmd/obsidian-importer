@@ -69,7 +69,24 @@ export interface EmbeddedFile {
 	data?: Uint8Array;
 }
 
-export type Element = Paragraph | Outline | Table | Image | EmbeddedFile;
+export interface InkStroke {
+	/** Points in half-inch units, ready to be drawn without further scaling. */
+	points: { x: number, y: number }[];
+	color: string;
+	width: number;
+	opacity: number;
+	/** What OneNote's handwriting recognizer read this stroke as, if anything. */
+	recognizedText?: string;
+}
+
+export interface Ink {
+	kind: 'ink';
+	strokes: InkStroke[];
+	/** Every recognized word under this drawing, in the order they were written. */
+	recognizedText?: string;
+}
+
+export type Element = Paragraph | Outline | Table | Image | EmbeddedFile | Ink;
 
 export interface Page {
 	/**

@@ -13,6 +13,8 @@ export interface ReaderOptions {
 	maxPropertySetDepth: number;
 	maxPageGraphNodes: number;
 	maxPageRelationshipDepth: number;
+	/** Coordinates and pressure values kept for one ink stroke. */
+	maxInkPathValues: number;
 	maxAssetBytes: number;
 	maxTotalAssetBytes: number;
 	maxStreamObjects: number;
@@ -32,6 +34,7 @@ export const DEFAULT_READER_OPTIONS: ReaderOptions = {
 	maxPropertySetDepth: 128,
 	maxPageGraphNodes: 100_000,
 	maxPageRelationshipDepth: 128,
+	maxInkPathValues: 1_000_000,
 	maxAssetBytes: 64 * 1024 * 1024,
 	maxTotalAssetBytes: 256 * 1024 * 1024,
 	maxStreamObjects: 2_000_000,

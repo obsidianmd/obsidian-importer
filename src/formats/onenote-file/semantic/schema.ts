@@ -20,6 +20,11 @@ export const Jcid = {
 	pageManifestNode: 0x00060037,
 	conflictPageMetadata: 0x00020038,
 	author: 0x00120001,
+	inkContainer: 0x00060014,
+	inkDataNode: 0x0002003b,
+	inkStrokeNode: 0x00020047,
+	strokePropertiesNode: 0x00120048,
+	recognizedTextWord: 0x00020057,
 } as const;
 
 export const Property = {
@@ -71,6 +76,21 @@ export const Property = {
 	imageAltText: 0x1c001e58,
 	fileDataReference: 0x1c00343e,
 	fileDataExtension: 0x1c003424,
+
+	inkStrokeProperties: 0x20003409,
+	inkDimensions: 0x1c00340a,
+	inkPath: 0x1c00340b,
+	inkWidth: 0x1400340d,
+	inkColor: 0x1400340f,
+	inkTransparency: 0x0c003414,
+	inkData: 0x20003415,
+	inkStrokes: 0x24003416,
+	inkScalingX: 0x14001c46,
+	inkScalingY: 0x14001c47,
+	pageRecognizedTextContainer: 0x200035d7,
+	recognizedTextChildNodes: 0x240035d9,
+	recognizedText: 0x1c0035da,
+	recognizedTextStrokeReferences: 0x1c0035df,
 } as const;
 
 /** The object space OneNote keeps its own header cell in, which is not a section. */

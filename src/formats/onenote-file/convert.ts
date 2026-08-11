@@ -6,7 +6,14 @@
  * the link to them says. `src/formats/html/convert.ts` is the same shape.
  */
 
-import { Element, ListInfo, Page, Paragraph, Table, TextRun } from './semantic/content';
+import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
+import { Element, Ink, ListInfo, Page, Paragraph, Table, TextRun } from './semantic/content';
+
+/**
+ * Native ink is measured in half inches; SVG wants something screen-sized.
+ * 96 dots to the inch is what the rest of the drawing assumes.
+ */
+const PIXELS_PER_INK_UNIT = 48;
 
 export interface ResolvedAttachment {
 	path: string;
@@ -62,9 +69,11 @@ function listPrefix(list: ListInfo | undefined): string {
 
 class PageWriter {
 	private readonly lines: string[] = [];
+	private readonly inkStrokes: SvgStroke[] = [];
+	private readonly recognizedText: string[] = [];
 	readonly attachments: ResolvedAttachment[] = [];
 
-	constructor(private readonly options: OneNoteConversionOptions) {
+	constructor(private readonly options: OneNoteConversionOptions, private readonly pageTitle: string) {
 	}
 
 	get markdown(): string {
@@ -101,6 +110,9 @@ class PageWriter {
 				break;
 			case 'embedded-file':
 				await this.writeAsset(element.data, element.fileName ?? 'attachment', element.fileName ?? 'attachment', false);
+				break;
+			case 'ink':
+				this.collectInk(element);
 				break;
 		}
 	}
@@ -140,6 +152,42 @@ class PageWriter {
 		this.push('');
 	}
 
+	/**
+	 * OneNote splits one drawing across many ink containers, so they are held
+	 * until the page is done and drawn together - the Graph importer writes one
+	 * `<page> - Ink.svg` per page, and this keeps the two the same.
+	 */
+	private collectInk(ink: Ink): void {
+		for (const stroke of ink.strokes) {
+			this.inkStrokes.push({
+				points: stroke.points.map(point => ({ x: point.x * PIXELS_PER_INK_UNIT, y: point.y * PIXELS_PER_INK_UNIT })),
+				color: stroke.color,
+				width: Math.max(1, stroke.width * PIXELS_PER_INK_UNIT),
+				opacity: stroke.opacity,
+			});
+		}
+
+		// Every stroke of a word carries that whole word, so the six strokes of
+		// "Hello" would otherwise read as "Hello Hello Hello Hello Hello Hello".
+		if (ink.recognizedText && ink.recognizedText !== this.recognizedText[this.recognizedText.length - 1]) {
+			this.recognizedText.push(ink.recognizedText);
+		}
+	}
+
+	/** The page's drawings as one picture, with what the recognizer read beneath it. */
+	async writeCollectedInk(): Promise<void> {
+		const svg = strokesToSvg(this.inkStrokes);
+		if (!svg) return;
+
+		const recognized = this.recognizedText.join(' ');
+		await this.writeAsset(new TextEncoder().encode(svg), `${this.pageTitle} - Ink.svg`, recognized, true);
+
+		if (recognized !== '') {
+			this.push(recognized);
+			this.push('');
+		}
+	}
+
 	private async writeAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<void> {
 		if (!data || data.length === 0) {
 			this.options.onSkipped?.(name);
@@ -174,10 +222,11 @@ function collectCellText(element: Element, into: string[]): void {
 }
 
 export async function convertPage(page: Page, options: OneNoteConversionOptions): Promise<ConvertedPage> {
-	const writer = new PageWriter(options);
+	const writer = new PageWriter(options, page.title);
 
 	await writer.writeElements(page.outlines);
 	await writer.writeElements(page.directContent);
+	await writer.writeCollectedInk();
 
 	return { markdown: writer.markdown, attachments: writer.attachments };
 }
