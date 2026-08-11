@@ -1,0 +1,2131 @@
+[command.import-notes]
+original=Import notes
+translation=នាំចូលកំណត់ចំណាំ
+
+[nouns.file-with-count]
+original={{count}} file
+translation={{count}} ឯកសារ
+
+[nouns.file-with-count_plural]
+original={{count}} files
+translation={{count}} ឯកសារ
+
+[nouns.note-with-count]
+original={{count}} note
+translation={{count}} កំណត់ចំណាំ
+
+[nouns.note-with-count_plural]
+original={{count}} notes
+translation={{count}} កំណត់ចំណាំ
+
+[nouns.item-with-count]
+original={{count}} item
+translation={{count}} ធាតុ
+
+[nouns.item-with-count_plural]
+original={{count}} items
+translation={{count}} ធាតុ
+
+[nouns.record-with-count]
+original={{count}} record
+translation={{count}} កំណត់ត្រា
+
+[nouns.record-with-count_plural]
+original={{count}} records
+translation={{count}} កំណត់ត្រា
+
+[nouns.base-with-count]
+original={{count}} base
+translation={{count}} មូលដ្ឋាន
+
+[nouns.base-with-count_plural]
+original={{count}} bases
+translation={{count}} មូលដ្ឋាន
+
+[nouns.template-with-count]
+original={{count}} template
+translation={{count}} ពុម្ព
+
+[nouns.template-with-count_plural]
+original={{count}} templates
+translation={{count}} ពុម្ព
+
+[nouns.failure-with-count]
+original={{count}} failure
+translation={{count}} បរាជ័យ
+
+[nouns.failure-with-count_plural]
+original={{count}} failures
+translation={{count}} បរាជ័យ
+
+[nouns.second-with-count]
+original={{count}} second
+translation={{count}} វិនាទី
+
+[nouns.second-with-count_plural]
+original={{count}} seconds
+translation={{count}} វិនាទី
+
+[nouns.relation-placeholder-with-count]
+original={{count}} relation placeholder
+translation={{count}} កន្លែងទំនាក់ទំនង
+
+[nouns.relation-placeholder-with-count_plural]
+original={{count}} relation placeholders
+translation={{count}} កន្លែងទំនាក់ទំនង
+
+[nouns.linked-database-with-count]
+original={{count}} linked database
+translation={{count}} មូលដ្ឋានទិន្នន័យដែលបានភ្ជាប់
+
+[nouns.linked-database-with-count_plural]
+original={{count}} linked databases
+translation={{count}} មូលដ្ឋានទិន្នន័យដែលបានភ្ជាប់
+
+[nouns.mention-link-with-count]
+original={{count}} mention link
+translation={{count}} តំណលើកឡើង
+
+[nouns.mention-link-with-count_plural]
+original={{count}} mention links
+translation={{count}} តំណលើកឡើង
+
+[nouns.synced-reference-with-count]
+original={{count}} synced child reference
+translation={{count}} ឯកសារយោងកូនដែលបានសមកាលកម្ម
+
+[nouns.synced-reference-with-count_plural]
+original={{count}} synced child references
+translation={{count}} ឯកសារយោងកូនដែលបានសមកាលកម្ម
+
+[nouns.new-item-with-count]
+original={{count}} new item
+translation={{count}} ធាតុថ្មី
+
+[nouns.new-item-with-count_plural]
+original={{count}} new items
+translation={{count}} ធាតុថ្មី
+
+[nouns.page-with-count]
+original={{count}} page
+translation={{count}} ទំព័រ
+
+[nouns.page-with-count_plural]
+original={{count}} pages
+translation={{count}} ទំព័រ
+
+[group.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[group.notion.name]
+original=Notion
+translation=Notion
+
+[modal.title-pick-format]
+original=Import data into Obsidian
+translation=នាំចូលទិន្នន័យទៅក្នុង Obsidian
+
+[modal.title-choose-method]
+original=Choose how to import
+translation=ជ្រើសរើសវិធីនាំចូល
+
+[modal.title-import-from]
+original=Import from {{format}}
+translation=នាំចូលពី {{format}}
+
+[modal.search-placeholder]
+original=Filter...
+translation=តម្រង...
+
+[modal.msg-no-formats]
+original=No formats found.
+translation=រកមិនឃើញទម្រង់ទេ។
+
+[modal.button-continue]
+original=Continue
+translation=បន្ត
+
+[modal.button-import]
+original=Import
+translation=នាំចូល
+
+[modal.button-back]
+original=Back
+translation=ថយក្រោយ
+
+[modal.button-help]
+original=Help
+translation=ជំនួយ
+
+[modal.button-cancel]
+original=Cancel
+translation=បោះបង់
+
+[modal.button-pause]
+original=Pause
+translation=ផ្អាក
+
+[modal.button-resume]
+original=Resume
+translation=បន្ត
+
+[modal.button-stop]
+original=Stop
+translation=ឈប់
+
+[modal.button-save-report]
+original=Save report
+translation=រក្សាទុករបាយការណ៍
+
+[modal.msg-report-failed]
+original=Could not save the import report.
+translation=មិនអាចរក្សាទុករបាយការណ៍នាំចូលបានទេ។
+
+[modal.button-import-more]
+original=Import more
+translation=នាំចូលបន្ថែម
+
+[modal.button-done]
+original=Done
+translation=រួចរាល់
+
+[modal.msg-unexpected-auth]
+original=Unexpected auth event. Please restart the auth process.
+translation=ព្រឹត្តិការណ៍ផ្ទៀងផ្ទាត់មិនរំពឹងទុក។ សូមចាប់ផ្តើមឡើងវិញនូវដំណើរការផ្ទៀងផ្ទាត់។
+
+[progress.stat-imported]
+original=imported
+translation=បាននាំចូល
+
+[progress.stat-attachments]
+original=attachments
+translation=ឯកសារភ្ជាប់
+
+[progress.stat-remaining]
+original=remaining
+translation=នៅសល់
+
+[progress.stat-skipped]
+original=skipped
+translation=បានរំលង
+
+[progress.stat-failed]
+original=failed
+translation=បរាជ័យ
+
+[progress.label-skipped]
+original=Skipped: 
+translation=បានរំលង: 
+
+[progress.label-failed]
+original=Failed: 
+translation=បរាជ័យ: 
+
+[progress.label-entry]
+original="{{name}}"
+translation="{{name}}"
+
+[progress.label-entry-with-reason]
+original="{{name}}" because {{reason}}
+translation="{{name}}" ដោយសារ {{reason}}
+
+[progress.label-paused]
+original=Paused
+translation=ផ្អាក
+
+[progress.label-paused-with]
+original=Paused - {{status}}
+translation=ផ្អាក - {{status}}
+
+[progress.label-importing]
+original=Importing
+translation=កំពុងនាំចូល
+
+[progress.label-remaining]
+original={{count}} remaining...
+translation={{count}} នៅសល់...
+
+[progress.label-remaining_plural]
+original={{count}} remaining...
+translation={{count}} នៅសល់...
+
+[progress.label-paused-remaining]
+original=Paused - {{count}} remaining
+translation=ផ្អាក - {{count}} នៅសល់
+
+[progress.label-paused-remaining_plural]
+original=Paused - {{count}} remaining
+translation=ផ្អាក - {{count}} នៅសល់
+
+[progress.status-stopping]
+original=Stopping...
+translation=កំពុងបញ្ឈប់...
+
+[progress.msg-stopped]
+original=Import stopped.
+translation=ការនាំចូលត្រូវបានបញ្ឈប់។
+
+[progress.msg-errors]
+original=Import finished with errors.
+translation=ការនាំចូលបានបញ្ចប់ដោយមានកំហុស។
+
+[progress.msg-complete]
+original=Import complete.
+translation=ការនាំចូលបានបញ្ចប់។
+
+[progress.msg-imported-count]
+original={{count}} note imported
+translation={{count}} កំណត់ចំណាំត្រូវបាននាំចូល
+
+[progress.msg-imported-count_plural]
+original={{count}} notes imported
+translation={{count}} កំណត់ចំណាំត្រូវបាននាំចូល
+
+[progress.msg-click-to-show]
+original={{counts}}. Click to show.
+translation={{counts}}។ ចុចដើម្បីបង្ហាញ។
+
+[progress.status-waiting]
+original=Waiting {{duration}} ({{reason}})
+translation=កំពុងរង់ចាំ {{duration}} ({{reason}})
+
+[progress.status-standardizing]
+original=Standardizing Markdown ({{current}}/{{total}})
+translation=កំពុងធ្វើស្តង់ដារ Markdown ({{current}}/{{total}})
+
+[progress.label-finalization]
+original=Markdown finalization
+translation=ការបញ្ចប់ Markdown
+
+[report.file-name]
+original={{date}} {{importer}} import log
+translation={{date}} កំណត់ហេតុនាំចូល {{importer}}
+
+[report.title]
+original={{importer}} import
+translation=ការនាំចូល {{importer}}
+
+[report.msg-finished]
+original=Finished {{when}}. {{counts}}.
+translation=បានបញ្ចប់ {{when}}។ {{counts}}។
+
+[report.msg-stopped]
+original=Stopped {{when}}. {{counts}}.
+translation=បានបញ្ឈប់ {{when}}។ {{counts}}។
+
+[report.heading-failed]
+original=Failed ({{count}})
+translation=បរាជ័យ ({{count}})
+
+[report.heading-skipped]
+original=Skipped ({{count}})
+translation=បានរំលង ({{count}})
+
+[report.heading-messages]
+original=Messages
+translation=សារ
+
+[report.count-notes]
+original={{count}} note imported
+translation={{count}} កំណត់ចំណាំត្រូវបាននាំចូល
+
+[report.count-notes_plural]
+original={{count}} notes imported
+translation={{count}} កំណត់ចំណាំត្រូវបាននាំចូល
+
+[report.count-attachments]
+original={{count}} attachment downloaded
+translation={{count}} ឯកសារភ្ជាប់ត្រូវបានទាញយក
+
+[report.count-attachments_plural]
+original={{count}} attachments downloaded
+translation={{count}} ឯកសារភ្ជាប់ត្រូវបានទាញយក
+
+[report.count-skipped]
+original={{count}} item skipped
+translation={{count}} ធាតុត្រូវបានរំលង
+
+[report.count-skipped_plural]
+original={{count}} items skipped
+translation={{count}} ធាតុត្រូវបានរំលង
+
+[report.count-failed]
+original={{count}} item failed
+translation={{count}} ធាតុបរាជ័យ
+
+[report.count-failed_plural]
+original={{count}} items failed
+translation={{count}} ធាតុបរាជ័យ
+
+[source.name]
+original=Files to import
+translation=ឯកសារដែលត្រូវនាំចូល
+
+[source.desc]
+original=Pick the files that you want to import.
+translation=ជ្រើសរើសឯកសារដែលអ្នកចង់នាំចូល។
+
+[source.button-choose-file]
+original=Choose file
+translation=ជ្រើសរើសឯកសារ
+
+[source.button-choose-files]
+original=Choose files
+translation=ជ្រើសរើសឯកសារ
+
+[source.button-choose-folders]
+original=Choose folders
+translation=ជ្រើសរើសថត
+
+[source.dialog-pick-files]
+original=Pick files to import
+translation=ជ្រើសរើសឯកសារដើម្បីនាំចូល
+
+[source.dialog-pick-folders]
+original=Folders to import
+translation=ថតដើម្បីនាំចូល
+
+[source.msg-reading-folders]
+original=Reading folders...
+translation=កំពុងអានថត...
+
+[source.msg-nothing-to-import]
+original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
+translation=គ្មានអ្វីដើម្បីនាំចូលនៅទីនោះទេ។ ជ្រើសរើសឯកសារ {{extensions}} ឬថតដែលមានឯកសារទាំងនោះ។
+
+[source.msg-will-import]
+original={{files}} will be imported: 
+translation={{files}} នឹងត្រូវបាននាំចូល៖ 
+
+[output.label-source-id]
+original=source ID
+translation=ID ប្រភព
+
+[output.name-save-source-id]
+original=Save {{label}}
+translation=រក្សាទុក {{label}}
+
+[output.desc-save-source-id]
+original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
+translation=បន្ថែម {{label}} ទៅលក្ខណៈសម្បត្តិកំណត់ចំណាំ ដើម្បីឱ្យការនាំចូលនាពេលអនាគតអាចស្គាល់កំណត់ចំណាំដែលត្រូវបានផ្លាស់ទី ឬប្តូរឈ្មោះ។
+
+[output.name-folder]
+original=Output folder
+translation=ថតលទ្ធផល
+
+[output.desc-folder]
+original=Where imported notes will be saved. Leave blank to use the top level of the vault.
+translation=ដែលកំណត់ចំណាំដែលនាំចូលនឹងត្រូវបានរក្សាទុក។ ទទេដើម្បីប្រើប្រាស់កម្រិតកំពូលនៃវ៉ាល់។
+
+[output.name-attachments]
+original=Attachment location
+translation=ទីតាំងឯកសារភ្ជាប់
+
+[output.desc-attachments]
+original=Where imported images and files will be saved.
+translation=ដែលរូបភាព និង ឯកសារដែលនាំចូលនឹងត្រូវបានរក្សាទុក។
+
+[output.name-subfolder]
+original=Subfolder name
+translation=ឈ្មោះថតរង
+
+[output.desc-subfolder]
+original=Folder to use inside each imported note's folder.
+translation=ថតដើម្បីប្រើប្រាស់នៅក្នុងថតរបស់កំណត់ចំណាំនីមួយៗដែលបាននាំចូល។
+
+[output.name-attachment-folder]
+original=Attachment folder
+translation=ថតឯកសារភ្ជាប់
+
+[output.desc-attachment-folder]
+original=Folder path from the top level of the vault.
+translation=ផ្លូវថតពីកម្រិតកំពូលនៃវ៉ាល់។
+
+[output.name-duplicates]
+original=Existing notes
+translation=កំណត់ចំណាំដែលមានស្រាប់
+
+[output.desc-duplicates]
+original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
+translation=ជ្រើសរើសអ្វីដែលត្រូវធ្វើនៅពេលកំណត់ចំណាំដែលនាំចូលត្រូវគ្នានឹងកំណត់ចំណាំនៅក្នុងវ៉ាល់របស់អ្នក។ "{{update}}" រំលងកំណត់ចំណាំដែលមិនបានផ្លាស់ប្តូរ និង រក្សាការកែសម្រួលមូលដ្ឋានថ្មីជាង នៅពេលកាលបរិច្ឆេទកែប្រែមាន។
+
+[output.option-create-copy]
+original=Create a copy
+translation=បង្កើតច្បាប់ចម្លង
+
+[output.option-skip]
+original=Skip
+translation=រំលង
+
+[output.option-update]
+original=Update
+translation=អាប់ដេត
+
+[output.option-attachments-vault]
+original=Vault folder
+translation=ថតវ៉ាល់
+
+[output.option-attachments-folder]
+original=In the folder specified below
+translation=នៅក្នុងថតដែលបានបញ្ជាក់ខាងក្រោម
+
+[output.option-attachments-note]
+original=Same folder as the note
+translation=ថតដូចគ្នានឹងកំណត់ចំណាំ
+
+[output.option-attachments-subfolder]
+original=In subfolder under the note
+translation=នៅក្នុងថតរងក្រោមកំណត់ចំណាំ
+
+[common.msg-pick-file]
+original=Please pick at least one file to import.
+translation=សូមជ្រើសរើសយ៉ាងហោចណាស់ឯកសារមួយដើម្បីនាំចូល។
+
+[common.msg-pick-output]
+original=Please select a location to export to.
+translation=សូមជ្រើសរើសទីតាំងដើម្បីនាំចេញទៅ។
+
+[common.msg-pick-import-location]
+original=Please select a location to import your files to.
+translation=សូមជ្រើសរើសទីតាំងដើម្បីនាំចូលឯកសាររបស់អ្នកទៅ។
+
+[common.msg-unknown-error]
+original=Unknown error
+translation=កំហុសមិនស្គាល់
+
+[common.name-export]
+original=Export your data
+translation=នាំចេញទិន្នន័យរបស់អ្នក
+
+[common.label-learn-more]
+original=Learn more.
+translation=ស្វែង​យល់​បន្ថែម។
+
+[common.button-instructions]
+original=Instructions
+translation=សេចក្តីណែនាំ
+
+[common.button-open]
+original=Open
+translation=បើក
+
+[common.status-processing]
+original=Processing {{name}}
+translation=កំពុងដំណើរការ {{name}}
+
+[common.status-importing-note]
+original=Importing note {{name}}
+translation=កំពុងនាំចូលកំណត់ចំណាំ {{name}}
+
+[common.status-importing-attachment]
+original=Importing attachment {{name}}
+translation=កំពុងនាំចូលឯកសារភ្ជាប់ {{name}}
+
+[common.status-cancelled]
+original=Import cancelled
+translation=ការនាំចូលត្រូវបានបោះបង់
+
+[reason.already-in-vault]
+original=it is already in the vault
+translation=វាមាននៅក្នុងវ៉ាល់រួចហើយ
+
+[reason.unchanged-since-import]
+original=it has not changed since the last import
+translation=វាមិនបានផ្លាស់ប្តូរចាប់តាំងពីការនាំចូលចុងក្រោយ
+
+[reason.edited-since-import]
+original=it has been edited in Obsidian since the last import
+translation=វាត្រូវបានកែសម្រួលនៅក្នុង Obsidian ចាប់តាំងពីការនាំចូលចុងក្រោយ
+
+[reason.file-not-in-vault]
+original=The imported file did not appear in the vault.
+translation=ឯកសារដែលបាននាំចូលមិនបានបង្ហាញនៅក្នុងវ៉ាល់ទេ។
+
+[reason.folder-not-created]
+original=Failed to create folder at "{{path}}"
+translation=បរាជ័យក្នុងការបង្កើតថតនៅ "{{path}}"
+
+[tree.button-select-all]
+original=Select all
+translation=ជ្រើសរើស​ទាំងអស់
+
+[tree.button-deselect-all]
+original=Deselect all
+translation=ដក​ការ​ជ្រើស​រើស​ទាំង​អស់
+
+[tree.button-load]
+original=Load
+translation=ផ្ទុក
+
+[tree.button-loading]
+original=Loading...
+translation=កំពុងផ្ទុក...
+
+[tree.button-refresh]
+original=Refresh
+translation=ផ្ទុកឡើងវិញ
+
+[request.msg-unauthorized]
+original={{service}} did not accept the request for {{subject}}. {{credential}}
+translation={{service}} មិនបានទទួលយកសំណើសម្រាប់ {{subject}} ទេ។ {{credential}}
+
+[request.msg-forbidden]
+original={{service}} would not give access to {{subject}}. {{credential}}
+translation={{service}} មិនអនុញ្ញាតឱ្យចូលប្រើ {{subject}} ទេ។ {{credential}}
+
+[request.msg-not-found]
+original={{service}} could not find {{subject}}.
+translation={{service}} រកមិនឃើញ {{subject}} ។
+
+[request.msg-rate-limited]
+original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
+translation={{service}} កំពុងកំណត់ល្បឿនអាន {{subject}} ។ សូមរង់ចាំពីរបីនាទីហើយសាកល្បងម្ដងទៀត។
+
+[request.msg-timed-out]
+original={{service}} took too long to return {{subject}}. Try again shortly.
+translation={{service}} ចំណាយពេលយូរពេកក្នុងការត្រឡប់ {{subject}} ។ សូមសាកល្បងម្ដងទៀតក្នុងពេលបន្តិចទៀត។
+
+[request.msg-unavailable]
+original={{service}} could not return {{subject}} right now. Try again shortly.
+translation={{service}} មិនអាចត្រឡប់ {{subject}} នៅពេលនេះបានទេ។ សូមសាកល្បងម្ដងទៀតក្នុងពេលបន្តិចទៀត។
+
+[request.msg-failed-with-code]
+original=Could not read {{subject}}: {{message}} ({{code}})
+translation=មិនអាចអាន {{subject}} បានទេ៖ {{message}} ({{code}})
+
+[request.msg-failed-with-message]
+original=Could not read {{subject}}: {{message}}
+translation=មិនអាចអាន {{subject}} បានទេ៖ {{message}}
+
+[request.msg-failed-with-reported-code]
+original=Could not read {{subject}}. {{service}} reported {{code}}.
+translation=មិនអាចអាន {{subject}} បានទេ។ {{service}} បានរាយការណ៍ {{code}} ។
+
+[request.msg-failed]
+original=Could not read {{subject}}.
+translation=មិនអាចអាន {{subject}} បានទេ។
+
+[template.msg-intro]
+original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
+translation=កំណត់រចនាសម្ព័ន្ធរបៀបនាំចូលទិន្នន័យរបស់អ្នក។ ប្រើវាក្យសម្ព័ន្ធ {{syntax}} ដើម្បីយោងតម្លៃវាល។
+
+[template.name-title]
+original=Note title
+translation=ចំណងជើងកំណត់ចំណាំ
+
+[template.desc-title]
+original=Template for the note title. Use {{field_name}} to insert values.
+translation=ពុម្ពសម្រាប់ចំណងជើងកំណត់ចំណាំ។ ប្រើ {{field_name}} ដើម្បីបញ្ចូលតម្លៃ។
+
+[template.name-location]
+original=Note location
+translation=ទីតាំងកំណត់ចំណាំ
+
+[template.desc-location]
+original=Template for note location/path. Use {{field_name}} to organize notes.
+translation=ពុម្ពសម្រាប់ទីតាំង/ផ្លូវកំណត់ចំណាំ។ ប្រើ {{field_name}} ដើម្បីរៀបចំកំណត់ចំណាំ។
+
+[template.name-content]
+original=Note content
+translation=មាតិកាកំណត់ចំណាំ
+
+[template.desc-content]
+original=Template for the note content. Use {{field_name}} to insert values.
+translation=ពុម្ពសម្រាប់មាតិកាកំណត់ចំណាំ។ ប្រើ {{field_name}} ដើម្បីបញ្ចូលតម្លៃ។
+
+[template.heading-properties]
+original=Properties
+translation=លក្ខណៈសម្បត្តិ
+
+[template.column-property-name]
+original=Property name
+translation=ឈ្មោះលក្ខណៈសម្បត្តិ
+
+[template.column-property-value]
+original=Property value
+translation=តម្លៃលក្ខណៈសម្បត្តិ
+
+[template.column-example]
+original=Example
+translation=ឧទាហរណ៍
+
+[template.action-delete-property]
+original=Delete property
+translation=លុបលក្ខណៈសម្បត្តិ
+
+[template.msg-title-required]
+original=Please provide a note title template.
+translation=សូមផ្ដល់ពុម្ពចំណងជើងកំណត់ចំណាំ។
+
+[importer.airtable-api.name]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.option-text]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-id]
+original=Airtable record ID
+translation=Airtable record ID
+
+[importer.airtable-api.name-token]
+original=Airtable personal access token
+translation=Airtable personal access token
+
+[importer.airtable-api.desc-token]
+original=Create a personal access token in your Airtable account settings. 
+translation=បង្កើត personal access token នៅក្នុងការកំណត់គណនី Airtable របស់អ្នក។ 
+
+[importer.airtable-api.link-get-token]
+original=Get token
+translation=យក token
+
+[importer.airtable-api.name-tables]
+original=Tables to import
+translation=តារាងដែលត្រូវនាំចូល
+
+[importer.airtable-api.desc-tables]
+original=Load your Airtable bases and tables, then choose what to import.
+translation=ផ្ទុក bases និង តារាង Airtable របស់អ្នក រួចជ្រើសរើសអ្វីដែលត្រូវនាំចូល។
+
+[importer.airtable-api.hint-tables]
+original=Load your Airtable bases and tables to get started.
+translation=ផ្ទុក bases និង តារាង Airtable របស់អ្នកដើម្បីចាប់ផ្ដើម។
+
+[importer.airtable-api.msg-fetching-bases]
+original=Fetching bases...
+translation=កំពុងទាញយក bases...
+
+[importer.airtable-api.msg-no-bases]
+original=No bases found.
+translation=រកមិនឃើញ bases ទេ។
+
+[importer.airtable-api.label-service]
+original=Airtable
+translation=Airtable
+
+[importer.airtable-api.label-subject]
+original=your bases
+translation=bases របស់អ្នក
+
+[importer.airtable-api.label-credential]
+original=Check that your personal access token is current and has access to them.
+translation=ពិនិត្យថា personal access token របស់អ្នកមានសុពលភាព និង មានសិទ្ធិចូលប្រើពួកវា។
+
+[importer.airtable-api.name-formulas]
+original=Convert formulas
+translation=បម្លែងរូបមន្ត
+
+[importer.airtable-api.desc-formulas]
+original=Try to convert formulas to Obsidian syntax, or import as static values.
+translation=សាកល្បងបម្លែងរូបមន្តទៅជាវាក្យសម្ព័ន្ធ Obsidian ឬនាំចូលជាតម្លៃថេរ។
+
+[importer.airtable-api.option-formula-hybrid]
+original=Obsidian syntax (with fallback)
+translation=វាក្យសម្ព័ន្ធ Obsidian (ជាមួយជម្រើសបម្រុង)
+
+[importer.airtable-api.option-formula-static]
+original=Static values only
+translation=តម្លៃថេរតែប៉ុណ្ណោះ
+
+[importer.airtable-api.name-download-attachments]
+original=Download attachments
+translation=ទាញយកឯកសារភ្ជាប់
+
+[importer.airtable-api.desc-download-attachments]
+original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
+translation=ទាញយកឯកសារភ្ជាប់ទៅវ៉ If ក្នុងម៉ាស៊ីនមូលដ្ឋាន។ បើបិទ ឬការទាញយកបរាជ័យ URL ខាងក្រៅនឹងត្រូវបានប្រើ។
+
+[importer.airtable-api.name-view-property]
+original=View property name
+translation=ឈ្មោះលក្ខណៈសម្បត្តិទិដ្ឋភាព
+
+[importer.airtable-api.desc-view-property]
+original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
+translation=ឈ្មោះលក្ខណៈសម្បត្តិសម្រាប់តាមដានថា record ស្ថិតក្នុងទិដ្ឋភាពណាខ្លះ។ record នីមួយៗនឹងមានបញ្ជីឈ្មោះទិដ្ឋភាពដែលវាបង្ហាញ។
+
+[importer.airtable-api.msg-token-first]
+original=Please enter your Airtable personal access token first.
+translation=សូមបញ្ចូល Airtable personal access token របស់អ្នកជាមុនសិន។
+
+[importer.airtable-api.msg-token-missing]
+original=Please enter your Airtable personal access token.
+translation=សូមបញ្ចូល Airtable personal access token របស់អ្នក។
+
+[importer.airtable-api.msg-load-bases-failed]
+original=Failed to load bases: {{error}}
+translation=បរាជ័យក្នុងការផ្ទុក bases៖ {{error}}
+
+[importer.airtable-api.msg-load-tables-failed]
+original=Failed to load tables for "{{base}}": {{error}}
+translation=បរាជ័យក្នុងការផ្ទុកតារាងសម្រាប់ "{{base}}"៖ {{error}}
+
+[importer.airtable-api.msg-pick-table]
+original=Please select at least one table to import.
+translation=សូមជ្រើសរើសតារាងយ៉ាងហោចណាស់មួយដើម្បីនាំចូល។
+
+[importer.airtable-api.msg-loading-fields]
+original=Loading fields...
+translation=កំពុងផ្ទុកវាល...
+
+[importer.airtable-api.msg-no-fields]
+original=No fields found in selected tables. Please check your selection.
+translation=រកមិនឃើញវាលនៅក្នុងតារាងដែលបានជ្រើសរើស។ សូមពិនិត្យការជ្រើសរើសរបស់អ្នក។
+
+[importer.airtable-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=ការនាំចូលបរាជ័យ៖ {{error}}
+
+[importer.airtable-api.label-base-position]
+original= (base {{index}} of {{total}})
+translation= (base {{index}} នៃ {{total}})
+
+[importer.airtable-api.label-base]
+original=Base: {{name}}
+translation=Base៖ {{name}}
+
+[importer.airtable-api.label-linked-table]
+original=Linked table: {{name}}
+translation=តារាងដែលភ្ជាប់៖ {{name}}
+
+[importer.airtable-api.label-table-view]
+original={{table}} > {{view}}
+translation={{table}} > {{view}}
+
+[importer.airtable-api.label-import]
+original=Airtable API import
+translation=ការនាំចូល Airtable API
+
+[importer.airtable-api.status-connecting]
+original=Connecting to Airtable API
+translation=កំពុងតភ្ជាប់ទៅ Airtable API
+
+[importer.airtable-api.status-loading-tables]
+original=Loading tables for {{base}}
+translation=កំពុងផ្ទុកតារាងសម្រាប់ {{base}}
+
+[importer.airtable-api.status-fetching-tables]
+original=Fetching tables for base {{base}}...
+translation=កំពុងទាញយកតារាងសម្រាប់ base {{base}}...
+
+[importer.airtable-api.status-found-bases]
+original=Found {{bases}} to import
+translation=រកឃើញ {{bases}} សម្រាប់នាំចូល
+
+[importer.airtable-api.status-fetching-base]
+original=Fetching data from {{base}}{{position}}
+translation=កំពុងទាញយកទិន្នន័យពី {{base}}{{position}}
+
+[importer.airtable-api.status-preparing-records]
+original=Preparing records from {{base}}{{position}}
+translation=កំពុងរៀបចំកំណត់ត្រាពី {{base}}{{position}}
+
+[importer.airtable-api.status-reading-names]
+original=Reading names from {{table}}{{position}}
+translation=កំពុងអានឈ្មោះពី {{table}}{{position}}
+
+[importer.airtable-api.status-planning]
+original=Working out where {{table}}{{position}} goes
+translation=កំពុងរៀបចំដែល {{table}}{{position}} ទៅ
+
+[importer.airtable-api.status-fetching-records]
+original=Fetching records from {{table}}{{position}}
+translation=កំពុងទាញយកកំណត់ត្រាពី {{table}}{{position}}
+
+[importer.airtable-api.status-fetched-records]
+original=Fetched {{records}} from {{table}}{{position}}
+translation=បានទាញយក {{records}} ពី {{table}}{{position}}
+
+[importer.airtable-api.status-fetching-view]
+original=Fetching view {{view}} from {{table}}{{position}}
+translation=កំពុងទាញយកទិដ្ឋភាព {{view}} ពី {{table}}{{position}}
+
+[importer.airtable-api.status-creating-notes]
+original=Creating notes in {{table}}{{position}}
+translation=កំពុងបង្កើតកំណត់ចំណាំនៅក្នុង {{table}}{{position}}
+
+[importer.airtable-api.status-updating-types]
+original=Updating property types
+translation=កំពុងធ្វើបច្ចុប្បន្នភាពប្រភេទលក្ខណៈសម្បត្តិ
+
+[importer.airtable-api.status-complete]
+original=Import complete
+translation=ការនាំចូលបានបញ្ចប់
+
+[importer.airtable-api.status-rate-limited]
+original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
+translation=ត្រូវបានកំណត់អត្រា កំពុងរង់ចាំ {{seconds}}វិ (ការព្យាយាម {{attempt}}/{{total}})...
+
+[importer.airtable-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}
+translation=កំពុងទាញយកឯកសារភ្ជាប់៖ {{name}}
+
+[importer.airtable-api.reason-no-record-names]
+original=Could not read record names
+translation=មិនអាចអានឈ្មោះកំណត់ត្រាបានទេ
+
+[importer.airtable-api.reason-empty-record]
+original=Empty record
+translation=កំណត់ត្រាទទេ
+
+[importer.airtable-api.desc-no-modified-time]
+original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
+translation=Airtable មិនបង្ហាញថាកំណត់ត្រាបានផ្លាស់ប្តូរចុងក្រោយនៅពេលណាទេ ដូច្នេះ "{{update}}" ប្រៀបធៀបកំណត់ចំណាំជាមួយកំណត់ត្រាជំនួសវិញ។ កំណត់ចំណាំដែលអ្នកបានកែសម្រួលខ្លួនឯងនឹងអានដូចជាបានផ្លាស់ប្តូរ ហើយនឹងត្រូវសរសេរជាន់ពីលើ។
+
+[importer.apple-notes.name]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.option-text]
+original=Apple Notes
+translation=Apple Notes
+
+[importer.apple-notes.label-id]
+original=Apple Notes ID
+translation=Apple Notes ID
+
+[importer.apple-notes.msg-platform]
+original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
+translation=ដោយសារកំណត់របស់វេទិកា Apple Notes មិនអាចនាំចេញពីឧបករណ៍នេះបានទេ។ បើកវ៉ាល់របស់អ្នកនៅលើ Mac ដើម្បីនាំចេញពី Apple Notes។
+
+[importer.apple-notes.name-prefix-format]
+original=File prefix format
+translation=ទម្រង់បុព្វបទឯកសារ
+
+[importer.apple-notes.desc-prefix-format]
+original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
+translation=ទម្រង់សម្រាប់បុព្វបទកាលបរិច្ឆេទបង្កើតក្នុងឈ្មោះឯកសារ។ ប្រើ YYYY, MM, DD សម្រាប់ឆ្នាំ ខែ ថ្ងៃ។ ទុកទទេប្រសិនបើមិនចង់បានបុព្វបទ។
+
+[importer.apple-notes.name-omit-first-line]
+original=Omit first line
+translation=រំលងជួរទីមួយ
+
+[importer.apple-notes.desc-omit-first-line]
+original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
+translation=កុំបញ្ចូលជួរទីមួយក្នុងអត្ថបទ ព្រោះ Apple Notes ប្រើវាជាចំណងជើង។ វានឹងនៅតែត្រូវបានប្រើជាឈ្មោះកំណត់ចំណាំ។
+
+[importer.apple-notes.name-handwriting]
+original=Include handwriting text
+translation=បញ្ចូលអត្ថបទសរសេរដោយដៃ
+
+[importer.apple-notes.desc-handwriting]
+original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
+translation=នៅពេល Apple Notes បានរកឃើញការសរសេរដោយដៃក្នុងគំនូរ បញ្ចូលវាជាអត្ថបទមុនគំនូរ។
+
+[importer.apple-notes.name-data-folder]
+original=Apple Notes data folder
+translation=ថតទិន្នន័យ Apple Notes
+
+[importer.apple-notes.desc-data-folder]
+original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
+translation=macOS អនុញ្ញាតឱ្យ Obsidian អានកំណត់ចំណាំរបស់អ្នកបានតែបន្ទាប់ពីអ្នកបានចង្អុលបង្ហាញទៅថតដែលរក្សាទុកវា។
+
+[importer.apple-notes.button-select-folder]
+original=Select folder
+translation=ជ្រើសរើសថត
+
+[importer.apple-notes.msg-wrong-folder]
+original=Ensure you have selected the correct Apple Notes data folder.
+translation=សូមប្រាកដថាអ្នកបានជ្រើសរើសថតទិន្នន័យ Apple Notes ត្រឹមត្រូវ។
+
+[importer.apple-notes.msg-dialog-folder]
+original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
+translation=ជ្រើសរើសថត "group.com.apple.notes" ដើម្បីអនុញ្ញាតឱ្យ Obsidian អានទិន្នន័យ Apple Notes។
+
+[importer.apple-notes.msg-import-failed]
+original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
+translation=ការនាំចូលទិន្នន័យបរាជ័យ។ សូមប្រាកដថាអ្នកបានជ្រើសរើសថតទិន្នន័យ Apple Notes ត្រឹមត្រូវ។
+
+[importer.apple-notes.msg-pick-folders]
+original=Please select at least one folder to import.
+translation=សូមជ្រើសរើសយ៉ាងហោចណាស់មួយថតដើម្បីនាំចូល។
+
+[importer.apple-notes.name-folders]
+original=Folders to import
+translation=ថតដែលត្រូវនាំចូល
+
+[importer.apple-notes.desc-folders]
+original=Pick the folders whose notes to bring across.
+translation=ជ្រើសរើសថតដែលមានកំណត់ចំណាំដែលចង់នាំចូល។
+
+[importer.apple-notes.msg-no-access]
+original=Allow access to your notes to see the folders in them.
+translation=អនុញ្ញាតការចូលប្រើកំណត់ចំណាំរបស់អ្នកដើម្បីមើលថតនៅក្នុងនោះ។
+
+[importer.apple-notes.msg-no-folders]
+original=No folders found.
+translation=រកមិនឃើញថតទេ។
+
+[importer.apple-notes.msg-database-busy]
+original=Your Apple Notes database is in use. Quit Notes and try again.
+translation=មូលដ្ឋានទិន្នន័យ Apple Notes របស់អ្នកកំពុងត្រូវបានប្រើ។ សូមបិទ Notes រួចព្យាយាមម្ដងទៀត។
+
+[importer.apple-notes.msg-database-unreadable]
+original=Could not open your Apple Notes database. {{hint}}
+translation=មិនអាចបើកមូលដ្ឋានទិន្នន័យ Apple Notes របស់អ្នកបានទេ។ {{hint}}
+
+[importer.apple-notes.msg-read-failed-with-detail]
+original=Could not read your notes: {{detail}}
+translation=មិនអាចអានកំណត់ចំណាំរបស់អ្នកបានទេ៖ {{detail}}
+
+[importer.apple-notes.msg-read-failed]
+original=Could not read your notes.
+translation=មិនអាចអានកំណត់ចំណាំរបស់អ្នកបានទេ។
+
+[importer.apple-notes.reason-password-protected]
+original=note is password protected
+translation=កំណត់ចំណាំត្រូវបានការពារដោយពាក្យសម្ងាត់
+
+[importer.apple-notes.reason-duplicate]
+original=note is a duplicate
+translation=កំណត់ចំណាំស្ទួន
+
+[importer.apple-notes.reason-unchanged]
+original=note unchanged since last import
+translation=កំណត់ចំណាំមិនបានផ្លាស់ប្ដូរចាប់តាំងពីការនាំចូលចុងក្រោយ
+
+[importer.apple-notes.reason-attachment-exists]
+original=attachment already exists
+translation=ឯកសារភ្ជាប់មានរួចហើយ
+
+[importer.apple-notes.reason-attachment-unchanged]
+original=attachment unchanged since last import
+translation=ឯកសារភ្ជាប់មិនបានផ្លាស់ប្ដូរចាប់តាំងពីការនាំចូលចុងក្រោយ
+
+[importer.apple-notes.reason-not-downloaded]
+original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
+translation=វាមិនទាន់ត្រូវបានទាញយកពី iCloud ទេ - បើកកំណត់ចំណាំនៅក្នុង Apple Notes ដើម្បីទាញយកវា
+
+[importer.apple-notes.label-attachment]
+original=Attachment {{id}}
+translation=ឯកសារភ្ជាប់ {{id}}
+
+[importer.apple-notes.reason-no-attachment-row]
+original=no {{uti}} row to read it from
+translation=គ្មានជួរដេក {{uti}} ដើម្បីអានវាទេ
+
+[importer.apple-notes.label-attachment-in-note]
+original={{name}} in {{note}}
+translation={{name}} ក្នុង {{note}}
+
+[importer.apple-journal.name]
+original=Apple Journal
+translation=Apple Journal
+
+[importer.apple-journal.option-text]
+original=Apple Journal (HTML export)
+translation=Apple Journal (ការនាំចេញ HTML)
+
+[importer.apple-journal.file-type]
+original=Journal entries
+translation=ធាតុកំណត់ហេតុ
+
+[importer.apple-journal.desc-files]
+original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
+translation=នាំចេញធាតុរបស់អ្នកពីកម្មវិធី Journal រួចជ្រើសរើសឯកសារ HTML ដែលវាបានសរសេរទៅ iCloud Drive។
+
+[importer.apple-journal.heading-metadata]
+original=Journal metadata
+translation=ទិន្នន័យមេតា Journal
+
+[importer.apple-journal.name-front-matter]
+original=Add metadata as frontmatter
+translation=បន្ថែមទិន្នន័យមេតាជាទិន្នន័យមេតាដើមឯកសារ
+
+[importer.apple-journal.desc-front-matter]
+original=Capture state-of-mind, contact, and similar tokens in YAML when available.
+translation=ចាប់យកស្ថានភាពអារម្មណ៍ ទំនាក់ទំនង និង token ស្រដៀងគ្នានៅក្នុង YAML នៅពេលមាន។
+
+[importer.apple-journal.reason-index-file]
+original=index file is not a journal entry
+translation=ឯកសារលិបិក្រមមិនមែនជាធាតុកំណត់ហេតុទេ
+
+[importer.bear.name]
+original=Bear
+translation=Bear
+
+[importer.bear.option-text]
+original=Bear (.bear2bk)
+translation=Bear (.bear2bk)
+
+[importer.bear.file-type]
+original=Bear2bk
+translation=Bear2bk
+
+[importer.bear.label-id]
+original=Bear ID
+translation=Bear ID
+
+[importer.bear.desc-export]
+original=Back up your notes in Bear, you will receive a .bear2bk file.
+translation=បម្រុងទុកកំណត់ចំណាំរបស់អ្នកនៅក្នុង Bear អ្នកនឹងទទួលបានឯកសារ .bear2bk។
+
+[importer.bear.name-flatten-tags]
+original=Flatten nested tags
+translation=បង្រួមស្លាកដែលជាន់គ្នា
+
+[importer.bear.desc-flatten-tags]
+original=When enabled, tags will be split on slashes (/) during import.
+translation=នៅពេលបានបើក ស្លាកនឹងត្រូវបានបំបែកតាមសញ្ញា (/) ក្នុងពេលនាំចូល។
+
+[importer.bear.status-importing-asset]
+original=Importing asset {{name}}
+translation=កំពុងនាំចូលធនធាន {{name}}
+
+[importer.bear.status-updating-links]
+original=Updating internal links…
+translation=កំពុងធ្វើបច្ចុប្បន្នភាពតំណខាងក្នុង…
+
+[importer.bear.reason-unknown-type]
+original=unknown type of file
+translation=ប្រភេទឯកសារមិនស្គាល់
+
+[importer.csv.name]
+original=CSV
+translation=CSV
+
+[importer.csv.option-text]
+original=CSV (.csv)
+translation=CSV (.csv)
+
+[importer.csv.file-type]
+original=CSV
+translation=CSV
+
+[importer.csv.name-header-row]
+original=CSV has header row
+translation=CSV មានជួរដេកបឋមកថា
+
+[importer.csv.desc-header-row]
+original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=ប្រសិនបើបានបើក ជួរដេកទីមួយនៃឯកសារ CSV នឹងត្រូវបានចាត់ទុកជាបឋមកថាជួរឈរ។
+
+[importer.csv.msg-pick-file]
+original=Please pick at least one CSV file to import.
+translation=សូមជ្រើសរើសឯកសារ CSV យ៉ាងហោចណាស់មួយដើម្បីនាំចូល។
+
+[importer.csv.msg-one-at-a-time]
+original=CSV files must be imported one at a time.
+translation=ឯកសារ CSV ត្រូវតែនាំចូលម្តងមួយ។
+
+[importer.csv.msg-no-data]
+original=No data found in {{name}}.
+translation=រកមិនឃើញទិន្នន័យក្នុង {{name}}។
+
+[importer.csv.msg-no-configuration]
+original=Configuration is missing.
+translation=ការកំណត់រចនាសម្ព័ន្ធបាត់។
+
+[importer.csv.status-parsing]
+original=Parsing {{name}}
+translation=កំពុងញែក {{name}}
+
+[importer.csv.status-creating-note]
+original=Creating note: {{title}}
+translation=កំពុងបង្កើតកំណត់ចំណាំ៖ {{title}}
+
+[importer.csv.label-row]
+original=Row {{number}}
+translation=ជួរដេក {{number}}
+
+[importer.csv.reason-empty-title]
+original=Empty title
+translation=ចំណងជើងទទេ
+
+[importer.evernote.name]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.option-text]
+original=Evernote (.enex)
+translation=Evernote (.enex)
+
+[importer.evernote.file-type]
+original=Evernote
+translation=Evernote
+
+[importer.evernote.desc-export]
+original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
+translation=នាំចេញសៀវភៅកំណត់ចំណាំរបស់អ្នកជាទម្រង់ ENEX អ្នកនឹងទទួលបានឯកសារ .enex មួយក្នុងមួយសៀវភៅកំណត់ចំណាំ។
+
+[importer.evernote.msg-unresolved-links]
+original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} តំណភ្ជាប់មិនអាចផ្គូផ្គងទៅកំណត់ចំណាំបានទេ។ ការនាំចេញ ENEX មិនបញ្ជាក់ថាតំណចង្អុលទៅកំណត់ចំណាំណាទេ គ្រាន់តែចំណងជើងដែលវាបង្ហាញក្នុង Evernote ដូច្នេះកំណត់ចំណាំដែលត្រូវបានប្តូរឈ្មោះបន្ទាប់ពីបង្កើតតំណនឹងមិនត្រូវគ្នាទៀតទេ។ Obsidian រាយបញ្ជីទាំងនេះនៅក្រោមតំណមិនទាន់ដោះស្រាយ។
+
+[importer.evernote.msg-unresolved-links_plural]
+original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation={{count}} តំណភ្ជាប់មិនអាចផ្គូផ្គងទៅកំណត់ចំណាំបានទេ។ ការនាំចេញ ENEX មិនបញ្ជាក់ថាតំណចង្អុលទៅកំណត់ចំណាំណាទេ គ្រាន់តែចំណងជើងដែលវាបង្ហាញក្នុង Evernote ដូច្នេះកំណត់ចំណាំដែលត្រូវបានប្តូរឈ្មោះបន្ទាប់ពីបង្កើតតំណនឹងមិនត្រូវគ្នាទៀតទេ។ Obsidian រាយបញ្ជីទាំងនេះនៅក្រោមតំណមិនទាន់ដោះស្រាយ។
+
+[importer.keep.name]
+original=Google Keep
+translation=Google Keep
+
+[importer.keep.option-text]
+original=Google Keep (.zip/.json)
+translation=Google Keep (.zip/.json)
+
+[importer.keep.file-type]
+original=Notes & attachments
+translation=កំណត់ចំណាំ និង ឯកសារភ្ជាប់
+
+[importer.keep.desc-export]
+original=Get your Google Keep data from Google Takeout. 
+translation=យកទិន្នន័យ Google Keep របស់អ្នកពី Google Takeout។ 
+
+[importer.keep.name-archived]
+original=Import archived notes
+translation=នាំចូលកំណត់ចំណាំដែលបានទុកក្នុងប័ណ្ណសារ
+
+[importer.keep.desc-archived]
+original=If imported, files archived in Google Keep will be tagged as archived.
+translation=ប្រសិនបើនាំចូល ឯកសារដែលបានទុកក្នុងប័ណ្ណសារនៅ Google Keep នឹងត្រូវបានដាក់ស្លាកថាបានទុកក្នុងប័ណ្ណសារ។
+
+[importer.keep.name-deleted]
+original=Import deleted notes
+translation=នាំចូលកំណត់ចំណាំដែលត្រូវបានលុប
+
+[importer.keep.desc-deleted]
+original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
+translation=ប្រសិនបើនាំចូល ឯកសារដែលត្រូវបានលុបនៅ Google Keep នឹងត្រូវបានដាក់ស្លាកថាត្រូវបានលុប។ កំណត់ចំណាំដែលត្រូវបានលុបនឹងមាននៅក្នុងការនាំចេញ Google របស់អ្នកតែប្រសិនបើត្រូវបានលុបថ្មីៗប៉ុណ្ណោះ។
+
+[importer.keep.reason-invalid-json]
+original=Invalid Google Keep JSON
+translation=JSON Google Keep មិនត្រឹមត្រូវ
+
+[importer.keep.reason-archived]
+original=Archived note
+translation=កំណត់ចំណាំដែលបានទុកក្នុងប័ណ្ណសារ
+
+[importer.keep.reason-deleted]
+original=Deleted note
+translation=កំណត់ចំណាំដែលត្រូវបានលុប
+
+[importer.html.name]
+original=HTML files
+translation=ឯកសារ HTML
+
+[importer.html.option-text]
+original=HTML (.html)
+translation=HTML (.html)
+
+[importer.html.file-type]
+original=HTML
+translation=HTML
+
+[importer.html.name-size-limit]
+original=Attachment size limit (MB)
+translation=ដែនកំណត់ទំហំឯកសារភ្ជាប់ (MB)
+
+[importer.html.name-minimum-image-size]
+original=Minimum image size (px)
+translation=ទំហំរូបភាពអប្បបរមា (px)
+
+[importer.html.desc-set-zero-to-disable]
+original=Set 0 to disable.
+translation=កំណត់ 0 ដើម្បីបិទដំណើរការ។
+
+[importer.html.status-downloading]
+original=Downloading attachment for {{name}}
+translation=កំពុងទាញយកឯកសារភ្ជាប់សម្រាប់ {{name}}
+
+[importer.onenote.name]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.option-text]
+original=Microsoft OneNote
+translation=Microsoft OneNote
+
+[importer.onenote.method-name]
+original=Microsoft account
+translation=គណនី Microsoft
+
+[importer.onenote.method-desc]
+original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
+translation=ចុះឈ្មោះចូលគណនី Microsoft របស់អ្នក និងនាំចូលសៀវភៅកំណត់ត្រាដែលបានសមកាលកម្មទៅ OneDrive។ ត្រូវការការតភ្ជាប់អ៊ីនធឺណែត។
+
+[importer.onenote.label-id]
+original=OneNote ID
+translation=OneNote ID
+
+[importer.onenote.name-incompatible]
+original=Import incompatible attachments
+translation=នាំចូលឯកសារភ្ជាប់មិនឆបគ្នា
+
+[importer.onenote.desc-incompatible]
+original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
+translation=នាំចូលឯកសារភ្ជាប់មិនឆបគ្នាដែលមិនអាចបង្កប់ក្នុង Obsidian បានដូចជាឯកសារ .exe។
+
+[importer.onenote.name-account]
+original=Microsoft account
+translation=គណនី Microsoft
+
+[importer.onenote.desc-sign-in]
+original=Sign in to import your OneNote notebooks.
+translation=ចុះឈ្មោះចូលដើម្បីនាំចូលសៀវភៅកំណត់ត្រា OneNote របស់អ្នក។
+
+[importer.onenote.desc-sign-in-organization]
+original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
+translation=ចុះឈ្មោះចូលដើម្បីនាំចូលសៀវភៅកំណត់ត្រា OneNote របស់អ្នក។ គណនីការងារ ឬសាលាអាចត្រូវការការអនុម័តពីស្ថាប័នរបស់អ្នក។
+
+[importer.onenote.desc-signed-in]
+original=Signed in as {{name}} ({{email}}).
+translation=បានចុះឈ្មោះចូលជា {{name}} ({{email}})។
+
+[importer.onenote.button-sign-in]
+original=Sign in
+translation=ចូល
+
+[importer.onenote.button-sign-out]
+original=Sign out
+translation=ចាកចេញ
+
+[importer.onenote.button-work-account]
+original=Use work or school access
+translation=ប្រើការចូលប្រើការងារ ឬសាលា
+
+[importer.onenote.msg-sign-in-failed]
+original=An error occurred while trying to sign you in.
+translation=កំហុសបានកើតឡើងខណៈពេលព្យាយាមចុះឈ្មោះចូល។
+
+[importer.onenote.msg-sign-in-details]
+original=Click here to show error details
+translation=ចុចទីនេះដើម្បីបង្ហាញព័ត៌មានលម្អិតកំហុស
+
+[importer.onenote.msg-signed-out]
+original=Sign in to see your OneNote notebooks.
+translation=ចុះឈ្មោះចូលដើម្បីមើលសៀវភៅកំណត់ត្រា OneNote របស់អ្នក។
+
+[importer.onenote.msg-please-sign-in]
+original=Please sign in to your Microsoft account.
+translation=សូមចុះឈ្មោះចូលគណនី Microsoft របស់អ្នក។
+
+[importer.onenote.name-sections]
+original=Sections to import
+translation=ផ្នែកដែលត្រូវនាំចូល
+
+[importer.onenote.desc-sections]
+original=Select a notebook, or sections within it.
+translation=ជ្រើសរើសសៀវភៅកំណត់ត្រា ឬផ្នែកនៅក្នុងវា។
+
+[importer.onenote.msg-loading-notebooks]
+original=Loading notebooks...
+translation=កំពុងផ្ទុកសៀវភៅកំណត់ត្រា...
+
+[importer.onenote.msg-no-notebooks]
+original=No notebooks found.
+translation=រកមិនឃើញសៀវភៅកំណត់ត្រាទេ។
+
+[importer.onenote.msg-scope-refused]
+original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
+translation=OneNote មិនបានផ្ដល់សិទ្ធិចូលប្រើសៀវភៅកំណត់ត្រារបស់អ្នកក្នុងការចុះឈ្មោះចូលនេះទេ។ ចាកចេញ និងចុះឈ្មោះចូលម្តងទៀតដើម្បីស្នើសុំការចូលប្រើការងារ ឬសាលា ដែលស្ថាប័នរបស់អ្នកអាចត្រូវអនុម័ត។
+
+[importer.onenote.label-service]
+original=OneNote
+translation=OneNote
+
+[importer.onenote.label-subject]
+original=your notebooks
+translation=សៀវភៅកំណត់ត្រារបស់អ្នក
+
+[importer.onenote.label-credential]
+original=Sign out and back in to try again.
+translation=ចាកចេញ និងចុះឈ្មោះចូលម្តងទៀតដើម្បីព្យាយាមម្តងទៀត។
+
+[importer.onenote.status-finding]
+original=Finding notes to import
+translation=កំពុងស្វែងរកកំណត់ត្រាដើម្បីនាំចូល
+
+[importer.onenote.status-finding-in]
+original=Finding notes in {{section}}
+translation=កំពុងស្វែងរកកំណត់ត្រាក្នុង {{section}}
+
+[importer.onenote.status-finding-in-section]
+original=Finding notes in {{section}} (section {{index}} of {{total}})
+translation=កំពុងស្វែងរកកំណត់ត្រាក្នុង {{section}} (ផ្នែកទី {{index}} នៃ {{total}})
+
+[importer.onenote.status-importing-notes]
+original=Importing {{notes}}
+translation=កំពុងនាំចូល {{notes}}
+
+[importer.onenote.status-downloading]
+original=Downloading attachment {{name}}
+translation=កំពុងទាញយកឯកសារភ្ជាប់ {{name}}
+
+[importer.onenote.msg-too-many-errors]
+original=Microsoft OneNote returned too many consecutive errors.
+translation=Microsoft OneNote បានត្រឡប់កំហុសជាប់ៗគ្នាច្រើនពេក។
+
+[importer.onenote.label-unknown-page]
+original=<unknown>
+translation=<មិនស្គាល់>
+
+[importer.onenote.reason-too-many-failures]
+original=import was canceled (after too many pages failed to load)
+translation=ការនាំចូលត្រូវបានបោះបង់ (បន្ទាប់ពីទំព័រច្រើនពេកបរាជ័យក្នុងការផ្ទុក)
+
+[importer.onenote.label-ink]
+original={{page}} - Ink.svg
+translation={{page}} - Ink.svg
+
+[importer.onenote.label-attachment]
+original=OneNote attachment
+translation=ឯកសារភ្ជាប់ OneNote
+
+[importer.onenote.label-image]
+original=OneNote image
+translation=រូបភាព OneNote
+
+[importer.onenote.reason-no-attachment-name]
+original=the attachment did not say what it was called
+translation=ឯកសារភ្ជាប់មិនបានបញ្ជាក់ពីឈ្មោះរបស់វា
+
+[importer.onenote.reason-no-attachment-url]
+original=the attachment did not include a download URL
+translation=ឯកសារភ្ជាប់មិនមាន URL ទាញយក
+
+[importer.onenote.reason-no-image-url]
+original=the image did not include a download URL
+translation=រូបភាពមិនមាន URL ទាញយក
+
+[importer.onenote-file.name]
+original=Microsoft OneNote (export file)
+translation=Microsoft OneNote (ឯកសារនាំចេញ)
+
+[importer.onenote-file.option-text]
+original=Microsoft OneNote (.one, .onepkg)
+translation=Microsoft OneNote (.one, .onepkg)
+
+[importer.onenote-file.method-name]
+original=File import
+translation=នាំចូលពីឯកសារ
+
+[importer.onenote-file.method-desc]
+original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
+translation=នាំចូលដោយប្រើឯកសារនាំចេញ OneNote (.one, .onepkg) ពីកុំព្យូទ័ររបស់អ្នក។ មិនត្រូវការគណនី ឬការតភ្ជាប់អ៊ីនធឺណិតទេ ហើយដំណើរការសម្រាប់សៀវភៅកត់ត្រាដែលមិនដែលបានសមកាលកម្ម។
+
+[importer.onenote-file.file-type]
+original=OneNote export
+translation=ការនាំចេញ OneNote
+
+[importer.onenote-file.label-id]
+original=OneNote ID
+translation=OneNote ID
+
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=OneNote សម្រាប់ Windows រក្សាទុកច្បាប់ចម្លងបម្រុងផ្ទាល់ខ្លួន ហើយនេះបើកទីនោះ។ ជ្រើសរើorg សៀវភៅកត់ត្រា ឬផ្នែកដែលអ្នកចង់បាន។
+
+[importer.onenote-file.desc-export]
+original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
+translation=នៅក្នុង OneNote សម្រាប់ Windows សូមចុចស្តាំលើសៀវភៅកត់ត្រា ហើយនាំចេញវាដើម្បីរក្សាទុកឯកសារ .onepkg ឬនាំចេញផ្នែកតែមួយជា .one។
+
+[importer.onenote-file.name-sections]
+original=Sections to import
+translation=ផ្នែកដែលត្រូវនាំចូល
+
+[importer.onenote-file.desc-sections]
+original=Choose which sections to import.
+translation=ជ្រើសរើសផ្នែកណាមួយដើម្បីនាំចូល។
+
+[importer.onenote-file.msg-loading-sections]
+original=Reading sections…
+translation=កំពុងអានផ្នែកទាំងឡាយ…
+
+[importer.onenote-file.msg-no-sections]
+original=No sections found in this file.
+translation=រកមិនឃើញផ្នែកណាមួយនៅក្នុងឯកសារនេះទេ។
+
+[importer.onenote-file.msg-pick-file-first]
+original=Choose a OneNote file first.
+translation=ជ្រើសរើសឯកសារ OneNote ជាមុនសិន។
+
+[importer.onenote-file.status-reading-section]
+original=Reading {{name}}
+translation=កំពុងអាន {{name}}
+
+[importer.onenote-file.status-importing-section]
+original=Importing {{name}} ({{index}} of {{total}})
+translation=កំពុងនាំចូល {{name}} ({{index}} នៃ {{total}})
+
+[importer.onenote-file.reason-rights-protected]
+original=the file is rights-protected, and can only be opened by an account with permission to it
+translation=ឯកសារនេះត្រូវបានការពារសិទ្ធិ ហើយអាចបើកបានតែដោយគណនីដែលមានការអនុញ្ញាតប៉ុណ្ណោះ
+
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
+translation=ឯកសារនេះប្រើទម្រង់ OneNote ដែលកម្មវិធីនាំចូលនេះមិនទាន់អាចអានបាន
+
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
+translation=ឯកសារនេះមិនពណ៌នារចនាសម្ព័ន្ធ OneNote ដូចដែលវាអះអាងទេ
+
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
+translation=ឯកសារនេះធំជាងអ្វីដែលកម្មវិធីនាំចូលនេះមានឆន្ទៈពង្រីក
+
+[importer.onenote-file.reason-no-attachment-data]
+original=the attachment held no data
+translation=ឯកសារភ្ជាប់មិនមានទិន្នន័យទេ
+
+[importer.onenote-file.reason-not-representable]
+original=a table inside a table cell has no Markdown equivalent
+translation=តារាងនៅក្នុងក្រឡាតារាងមិនមានសមភាគក្នុង Markdown ទេ
+
+[importer.notion-api.name]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.option-text]
+original=Notion (API)
+translation=Notion (API)
+
+[importer.notion-api.method-name]
+original=Notion account (recommended)
+translation=គណនី Notion (បានណែនាំ)
+
+[importer.notion-api.method-desc]
+original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
+translation=នាំចូលតំបន់ការងារទាំងមូលរបស់អ្នក រួមទាំងមូលដ្ឋានទិន្នន័យ និងរូបមន្តដែលត្រូវបានបម្លែងទៅជាមូលដ្ឋាន។ ត្រូវការថូខឹនតភ្ជាប់ Notion និងការតភ្ជាប់អ៊ីនធឺណិត។
+
+[importer.notion-api.label-id]
+original=Notion ID
+translation=Notion ID
+
+[importer.notion-api.name-token]
+original=Notion API token
+translation=ថូខឹន Notion API
+
+[importer.notion-api.desc-token]
+original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+translation=ដើម្បីទទួលបានថូខឹន API សូមបង្កើតការតភ្ជាប់នៅក្នុង Notion ហើយផ្តល់សិទ្ធិចូលប្រើទំព័រនៅក្នុងតំបន់ការងាររបស់អ្នក។ 
+
+[importer.notion-api.link-get-token]
+original=Get API token.
+translation=ទទួលបានថូខឹន API។
+
+[importer.notion-api.name-pages]
+original=Pages to import
+translation=ទំព័រដែលត្រូវនាំចូល
+
+[importer.notion-api.desc-pages]
+original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+translation=ចុច "ផ្ទុក" ដើម្បីមើលទិន្នន័យដែលអ្នកអាចនាំចូល។ ប្រសិនបើទំព័រ ឬមូលដ្ឋានទិន្នន័យបាត់ សូមពិនិត្យមើលថាការតភ្ជាប់ Notion របស់អ្នកមានសិទ្ធិចូលប្រើវា។
+
+[importer.notion-api.hint-pages]
+original=Click "Load" to load your Notion pages and databases.
+translation=ចុច "ផ្ទុក" ដើម្បីផ្ទុកទំព័រ និងមូលដ្ឋានទិន្នន័យ Notion របស់អ្នក។
+
+[importer.notion-api.msg-loading-pages]
+original=Loading pages and databases...
+translation=កំពុងផ្ទុកទំព័រ និងមូលដ្ឋានទិន្នន័យ...
+
+[importer.notion-api.msg-no-pages]
+original=No pages or databases found. Make sure your connection has access to the pages you want to import.
+translation=រកមិនឃើញទំព័រ ឬមូលដ្ឋានទិន្នន័យទេ។ សូមប្រាកដថាការតភ្ជាប់របស់អ្នកមានសិទ្ធិចូលប្រើទំព័រដែលអ្នកចង់នាំចូល។
+
+[importer.notion-api.label-service]
+original=Notion
+translation=Notion
+
+[importer.notion-api.label-subject]
+original=your pages
+translation=ទំព័ររបស់អ្នក
+
+[importer.notion-api.label-credential]
+original=Check that your token is current and that the connection has access to them.
+translation=សូមពិនិត្យមើលថាថូខឹនរបស់អ្នកនៅជាបច្ចុប្បន្ន ហើយការតភ្ជាប់មានសិទ្ធិចូលប្រើវា។
+
+[importer.notion-api.name-formulas]
+original=Convert formulas
+translation=បម្លែងរូបមន្ត
+
+[importer.notion-api.desc-formulas]
+original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
+translation=តាមលំនាំដើម រូបមន្ត Notion ត្រូវបានបម្លែងទៅវាក្យសម្ព័ន្ធ Obsidian។ ប្រសិនបើវាក្យសម្ព័ន្ធ Notion ណាមួយមិនត្រូវបានគាំទ្រ តម្លៃឋិតិវន្តនឹងត្រូវបានរក្សាទុកជំនួសវិញ។ ម្យ៉ាងវិញទៀត អ្នកអាចនាំចូលរូបមន្តទាំងអស់ជាតម្លៃឋិតិវន្ត។
+
+[importer.notion-api.option-formula-hybrid]
+original=Obsidian syntax
+translation=វាក្យសម្ព័ន្ធ Obsidian
+
+[importer.notion-api.option-formula-static]
+original=Static values
+translation=តម្លៃឋិតិវន្ត
+
+[importer.notion-api.name-download-external]
+original=Download external attachments
+translation=ទាញយកឯកសារភ្ជាប់ខាងក្រៅ
+
+[importer.notion-api.desc-download-external]
+original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
+translation=ទាញយកឯកសារភ្ជាប់ខាងក្រៅ (URL ខាងក្រៅ) ទៅឯកសារមូលដ្ឋាន។ ឯកសារដែលផ្ទុកនៅលើ Notion ត្រូវបានទាញយកជានិច្ច។
+
+[importer.notion-api.name-single-line-breaks]
+original=Single line breaks
+translation=ការបំបែកបន្ទាត់តែមួយ
+
+[importer.notion-api.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
+translation=បំបែកប្លុក Notion ដោយការបំបែកបន្ទាត់តែមួយជំនួសឱ្យពីរ។ ប្លុកមួយចំនួន (បញ្ជី, toggles, តារាង) នៅតែប្រើការបំបែកបន្ទាត់ពីរនៅពេលចាំបាច់សម្រាប់វាក្យសម្ពន្ធ Markdown ត្រឹមត្រូវ។
+
+[importer.notion-api.name-cover-property]
+original=Cover property name
+translation=ឈ្មោះលក្ខណៈសម្បត្តិគម្រប
+
+[importer.notion-api.desc-cover-property]
+original=Property name for page cover image in YAML frontmatter. 
+translation=ឈ្មោះលក្ខណៈសម្បត្តិសម្រាប់រូបភាពគម្របទំព័រក្នុង YAML ទិន្នន័យមេតាដើមឯកសារ។ 
+
+[importer.notion-api.desc-cover-property-conflicts]
+original=Leave as "cover" if you don't have conflicts with existing properties.
+translation=ទុកជា "cover" ប្រសិនបើអ្នកមិនមានការប៉ះទង្គិចជាមួយលក្ខណៈសម្បត្តិដែលមានស្រាប់។
+
+[importer.notion-api.name-database-property]
+original=Database property name
+translation=ឈ្មោះលក្ខណៈសម្បត្តិមូលដ្ឋានទិន្នន័យ
+
+[importer.notion-api.desc-database-property]
+original=Property name in page frontmatter to link pages to their database .base file (default: "base")
+translation=ឈ្មោះលក្ខណៈសម្បត្តិក្នុងទិន្នន័យមេតាដើមឯកសារទំព័រ ដើម្បីភ្ជាប់ទំព័រទៅឯកសារ .base នៃមូលដ្ឋានទិន្នន័យរបស់វា (លំនាំដើម: "base")
+
+[importer.notion-api.name-linked-databases]
+original=Import linked databases
+translation=នាំចូលមូលដ្ឋានទិន្នន័យដែលភ្ជាប់
+
+[importer.notion-api.desc-linked-databases]
+original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
+translation=នាំចូលមូលដ្ឋានទិន្នន័យដែលទំព័រដែលបានជ្រើសរើសភ្ជាប់ទៅផងដែរ ដូច្នេះទំនាក់ទំនងក្លាយជាតំណជំនួសឱ្យឈ្មោះ។ វានាំចូលទំព័រដែលអ្នកមិនបានជ្រើសរើស។
+
+[importer.notion-api.msg-token-first]
+original=Please enter your Notion API token first.
+translation=សូមបញ្ចូល Notion API token របស់អ្នកជាមុនសិន។
+
+[importer.notion-api.msg-token-missing]
+original=Please enter your Notion API token.
+translation=សូមបញ្ចូល Notion API token របស់អ្នក។
+
+[importer.notion-api.msg-load-pages-failed]
+original=Failed to load pages: {{error}}
+translation=បរាជ័យក្នុងការផ្ទុកទំព័រ: {{error}}
+
+[importer.notion-api.msg-found]
+original=Found {{count}} page or database.
+translation=រកឃើញ {{count}} ទំព័រ ឬមូលដ្ឋានទិន្នន័យ។
+
+[importer.notion-api.msg-found_plural]
+original=Found {{count}} pages and databases.
+translation=រកឃើញ {{count}} ទំព័រ និងមូលដ្ឋានទិន្នន័យ។
+
+[importer.notion-api.msg-pick-page]
+original=Please select at least one page or database to import.
+translation=សូមជ្រើសរើសយ៉ាងហោចណាស់មួយទំព័រ ឬមូលដ្ឋានទិន្នន័យដើម្បីនាំចូល។
+
+[importer.notion-api.msg-import-failed]
+original=Import failed: {{error}}
+translation=ការនាំចូលបរាជ័យ: {{error}}
+
+[importer.notion-api.status-loading-items]
+original=Loading... ({{items}}, page {{page}})
+translation=កំពុងផ្ទុក... ({{items}}, ទំព័រ {{page}})
+
+[importer.notion-api.status-connecting]
+original=Connecting to Notion API...
+translation=កំពុងភ្ជាប់ទៅ Notion API...
+
+[importer.notion-api.status-fetching]
+original=Fetching page content from Notion...
+translation=កំពុងទាញយកមាតិកាទំព័រពី Notion...
+
+[importer.notion-api.status-preparing]
+original=Preparing to import {{items}}...
+translation=កំពុងរៀបចំដើម្បីនាំចូល {{items}}...
+
+[importer.notion-api.status-importing-items]
+original=Importing {{items}}...
+translation=កំពុងនាំចូល {{items}}...
+
+[importer.notion-api.status-importing-item]
+original=Importing item {{index}}/{{total}}...
+translation=កំពុងនាំចូលធាតុ {{index}}/{{total}}...
+
+[importer.notion-api.status-importing-title]
+original=Importing: {{title}}
+translation=កំពុងនាំចូល: {{title}}
+
+[importer.notion-api.status-relation-links]
+original=Processing relation links...
+translation=កំពុងដំណើរការតំណទំនាក់ទំនង...
+
+[importer.notion-api.status-mention-links]
+original=Processing mention links...
+translation=កំពុងដំណើរការតំណការលើកឡើង...
+
+[importer.notion-api.status-synced-blocks]
+original=Processing synced block child references...
+translation=កំពុងដំណើរការសេចក្តីយោងកូនប្លុកដែលបានសមកាលកម្ម...
+
+[importer.notion-api.status-cleaning-ids]
+original=Cleaning up notion-id attributes...
+translation=កំពុងសម្អាតគុណលក្ខណៈ notion-id...
+
+[importer.notion-api.status-done]
+original=Import completed successfully!
+translation=ការនាំចូលបានបញ្ចប់ដោយជោគជ័យ!
+
+[importer.notion-api.status-replacing-relations]
+original=Replacing {{placeholders}}...
+translation=កំពុងជំនួស {{placeholders}}...
+
+[importer.notion-api.status-replacing-relation-links]
+original=Replacing relation placeholders with wiki links...
+translation=កំពុងជំនួសកន្លែងទំនាក់ទំនងដោយតំណ wiki...
+
+[importer.notion-api.status-importing-linked-databases]
+original=Importing {{databases}}...
+translation=កំពុងនាំចូល {{databases}}...
+
+[importer.notion-api.status-importing-unimported]
+original=Importing unimported database {{id}}...
+translation=កំពុងនាំចូលមូលដ្ឋានទិន្នន័យដែលមិនទាន់បាននាំចូល {{id}}...
+
+[importer.notion-api.status-replacing-mentions]
+original=Replacing mention placeholders...
+translation=កំពុងជំនួសកន្លែងការលើកឡើង...
+
+[importer.notion-api.status-replaced-mentions]
+original=Replaced {{links}} in {{files}}.
+translation=បានជំនួស {{links}} ក្នុង {{files}}។
+
+[importer.notion-api.status-replacing-synced]
+original=Replacing synced block child references...
+translation=កំពុងជំនួorg សេចក្តីយោងកូនប្លុកដែលបានសមកាលកម្ម...
+
+[importer.notion-api.status-replaced-synced]
+original=Replaced {{references}} in {{files}} (imported {{imported}}).
+translation=បានជំនួស {{references}} ក្នុង {{files}} (បាននាំចូល {{imported}})។
+
+[importer.notion-api.status-downloading-attachment]
+original=Downloading attachment: {{name}}...
+translation=កំពុងទាញយកឯកសារភ្ជាប់: {{name}}...
+
+[importer.notion-api.status-rate-limited]
+original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=បានកំណត់អត្រា។ រង់ចាំ {{seconds}} វិនាទីមុនពេលព្យាយាមម្តងទៀត ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying]
+original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
+translation=Notion បានត្រឡប់ {{status}}។ រង់ចាំ {{seconds}} វិនាទីមុនពេលព្យាយាមម្តងទៀត ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-retrying-attachment]
+original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}។ កំពុងព្យាយាមម្តងទៀតក្នុង {{seconds}} វិនាទី ({{attempt}}/{{total}})...
+
+[importer.notion-api.status-processing-data-source]
+original=Processing database from data source: {{id}}...
+translation=កំពុងដំណើរការមូលដ្ឋានទិន្នន័យពីប្រភពទិន្នន័យ: {{id}}...
+
+[importer.notion-api.status-processing-database]
+original=Processing database: {{title}}...
+translation=កំពុងដំណើរការមូលដ្ឋានទិន្នន័យ: {{title}}...
+
+[importer.notion-api.status-found-pages]
+original=Found {{pages}} in database {{title}}
+translation=រកឃើញ {{pages}} ក្នុងមូលដ្ឋានទិន្នន័យ {{title}}
+
+[importer.notion-api.status-found-templates]
+original=Found {{templates}} in database {{title}}
+translation=រកឃើញ {{templates}} ក្នុងមូលដ្ឋានទិន្នន័យ {{title}}
+
+[importer.notion-api.status-importing-template]
+original=Importing template: {{name}}...
+translation=កំពុងនាំចូលពុម្ព: {{name}}...
+
+[importer.notion-api.label-import]
+original=Notion API import
+translation=ការនាំចូល Notion API
+
+[importer.notion-api.label-item]
+original=Import item {{id}}
+translation=នាំចូលធាតុ {{id}}
+
+[importer.notion-api.label-page]
+original=Page {{id}}
+translation=ទំព័រ {{id}}
+
+[importer.notion-api.label-page-with-title]
+original=Page: {{title}} ({{id}})
+translation=ទំព័រ: {{title}} ({{id}})
+
+[importer.notion-api.label-relation-page]
+original=Relation page {{id}}
+translation=ទំព័រទំនាក់ទំនង {{id}}
+
+[importer.notion-api.label-database-with-id]
+original=Database: {{title}} ({{id}})
+translation=មូលដ្ឋានទិន្នន័យ: {{title}} ({{id}})
+
+[importer.notion-api.label-mention-file]
+original=Mention file {{path}}
+translation=ឯកសារលើកឡើង {{path}}
+
+[importer.notion-api.label-synced-block-file]
+original=Synced block file {{path}}
+translation=ឯកសារប្លុកបានសមកាលកម្ម {{path}}
+
+[importer.notion-api.label-attachment]
+original=Attachment: {{name}}
+translation=ឯកសារភ្ជាប់: {{name}}
+
+[importer.notion-api.label-child-page]
+original=Child page: {{title}}
+translation=ទំព័រកូន: {{title}}
+
+[importer.notion-api.label-synced-block]
+original=Synced block: {{name}}
+translation=ប្លុកបានសមកាលកម្ម: {{name}}
+
+[importer.notion-api.label-attachment-image]
+original=Image attachment
+translation=ឯកសារភ្ជាប់រូបភាព
+
+[importer.notion-api.label-attachment-video]
+original=Video attachment
+translation=ឯកសារភ្ជាប់វីដេអូ
+
+[importer.notion-api.label-attachment-file]
+original=File attachment
+translation=ឯកសារភ្ជាប់ឯកសារ
+
+[importer.notion-api.label-attachment-pdf]
+original=PDF attachment
+translation=ឯកសារភ្ជាប់ PDF
+
+[importer.notion-api.label-fetch-children]
+original=Fetch children for {{context}} {{id}}
+translation=ទាញយកធាតុកូនសម្រាប់ {{context}} {{id}}
+
+[importer.notion-api.block-paragraph]
+original=paragraph
+translation=កថាខណ្ឌ
+
+[importer.notion-api.block-bulleted-list-item]
+original=bulleted list item
+translation=ធាតុបញ្ជីចំណុច
+
+[importer.notion-api.block-numbered-list-item]
+original=numbered list item
+translation=ធាតុបញ្ជីមានលេខរៀង
+
+[importer.notion-api.block-todo-item]
+original=to-do item
+translation=ធាតុត្រូវធ្វើ
+
+[importer.notion-api.block-quote]
+original=quote block
+translation=ប្លុកសម្រង់
+
+[importer.notion-api.block-callout]
+original=callout block
+translation=ប្លុកប្រអប់រំលេច
+
+[importer.notion-api.block-toggle]
+original=toggle block
+translation=ប្លុកបើកបិទ
+
+[importer.notion-api.block-toggleable-heading]
+original=toggleable heading
+translation=ចំណងជើងបើកបិទបាន
+
+[importer.notion-api.block-column]
+original=column
+translation=ជួរឈរ
+
+[importer.notion-api.block-column-list]
+original=column list
+translation=បញ្ជីជួរឈរ
+
+[importer.notion-api.block-table]
+original=table
+translation=តារាង
+
+[importer.notion-api.block-generic]
+original=block
+translation=ប្លុក
+
+[importer.notion-api.label-meeting-notes]
+original=Meeting notes: {{name}}
+translation=កំណត់ចំណាំប្រជុំ: {{name}}
+
+[importer.notion-api.label-meeting-notes-section]
+original=Meeting notes: {{name}} ({{section}})
+translation=កំណត់ចំណាំប្រជុំ: {{name}} ({{section}})
+
+[importer.notion-api.label-untitled-meeting]
+original=Meeting notes {{id}}
+translation=កំណត់ចំណាំប្រជុំ {{id}}
+
+[importer.notion-api.section-summary]
+original=summary
+translation=សេចក្តីសង្ខេប
+
+[importer.notion-api.section-notes]
+original=notes
+translation=កំណត់ចំណាំ
+
+[importer.notion-api.section-transcript]
+original=transcript
+translation=អត្ថបទប្រតិចារិក
+
+[importer.notion-api.label-fetch-children-block]
+original=Fetch children for block {{id}}
+translation=ទាញយកធាតុកូនសម្រាប់ប្លុក {{id}}
+
+[importer.notion-api.reason-not-in-tree]
+original=Item not found in tree
+translation=រកមិនឃើញធាតុនៅក្នុងរចនាសម្ព័ន្ធមែកធាង
+
+[importer.notion-api.reason-unknown-type]
+original=Unknown type: {{type}}
+translation=ប្រភេទមិនស្គាល់: {{type}}
+
+[importer.notion-api.reason-earlier-import]
+original=an earlier import had already written it
+translation=ការនាំចូលពីមុនបានសរសេររួចហើយ
+
+[importer.notion-api.reason-attachment-exists]
+original={{path}} is already in the vault, the same size (incremental import)
+translation={{path}} មានរួចហើយក្នុងវ៉ាល់ ទំហំដូចគ្នា (ការនាំចូលបន្ថែម)
+
+[importer.notion-api.reason-http-status]
+original=HTTP {{status}}
+translation=HTTP {{status}}
+
+[importer.notion-api.reason-meeting-notes-pending]
+original=Notion has not finished generating them ({{status}})
+translation=Notion មិនទាន់បញ្ចប់ការបង្កើតវាទេ ({{status}})
+
+[importer.notion-api.reason-rate-limit-gave-up]
+original=rate limited, and gave up after {{retries}} retries
+translation=បានកំណត់អត្រា ហើយបោះបង់បន្ទាប់ពីព្យាយាមឡើងវិញ {{retries}} ដង
+
+[importer.notion-api.reason-gave-up]
+original={{reason}}, and gave up after {{retries}} retries
+translation={{reason}} ហើយបោះបង់បន្ទាប់ពីព្យាយាមឡើងវិញ {{retries}} ដង
+
+[importer.notion-api.reason-kept-link]
+original={{reason}}; kept the link to {{url}}
+translation={{reason}}; បានរក្សាតំណទៅ {{url}}
+
+[importer.notion.name]
+original=Notion
+translation=Notion
+
+[importer.notion.option-text]
+original=Notion (.zip)
+translation=Notion (.zip)
+
+[importer.notion.method-name]
+original=File import
+translation=នាំចូលឯកសារ
+
+[importer.notion.method-desc]
+original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
+translation=នាំចូលដោយប្រើឯកសារនាំចេញពី Notion (.zip)។ មិនត្រូវការ API token ឬការតភ្ជាប់អ៊ីនធឺណិតទេ ប៉ុន្តែមិនរក្សាមូលដ្ឋានទិន្នន័យទេ។
+
+[importer.notion.file-type]
+original=Exported Notion
+translation=Notion ដែលបាននាំចេញ
+
+[importer.notion.label-id]
+original=Notion ID
+translation=Notion ID
+
+[importer.notion.desc-export]
+original=Export your workspace in HTML format, you will receive a zip file.
+translation=នាំចេញតំបន់ការងាររបស់អ្នកក្នុងទម្រង់ HTML អ្នកនឹងទទួលបានឯកសារ zip។
+
+[importer.notion.desc-files]
+original=Pick the zip file Notion sent you.
+translation=ជ្រើសរើសឯកសារ zip ដែល Notion បានផ្ញើមកអ្នក។
+
+[importer.notion.name-subfolders]
+original=Save parent pages in subfolders
+translation=រក្សាទុកទំព័រមេក្នុងថតរង
+
+[importer.notion.desc-subfolders]
+original=Places the parent database pages in the same folder as the nested content.
+translation=ដាក់ទំព័រមូលដ្ឋានទិន្នន័យមេក្នុងថតដូចគ្នានឹងមាតិកាដែលបង្កប់។
+
+[importer.notion.name-single-line-breaks]
+original=Single line breaks
+translation=ការបំបែកបន្ទាត់តែមួយ
+
+[importer.notion.desc-single-line-breaks]
+original=Separate Notion blocks with only one line break (default is 2).
+translation=បំបែកប្លុក Notion ដោយការបំបែកបន្ទាត់តែមួយ (លំនាំដើមគឺ 2)។
+
+[importer.notion.status-looking]
+original=Looking for files to import
+translation=កំពុងស្វែងរកឯកសារដើម្បីនាំចូល
+
+[importer.notion.status-resolving]
+original=Resolving links and de-duplicating files
+translation=កំពុងដោះស្រាយតំណ និងលុបឯកសារស្ទួន
+
+[importer.notion.status-starting]
+original=Starting import
+translation=កំពុងចាប់ផ្តើមនាំចូល
+
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
+translation=វាជាការនាំចេញ Markdown។ សូមនាំចេញតំបន់ការងារ Notion របស់អ្នកជា HTML ជំនួសវិញ
+
+[importer.notion.reason-no-page-body]
+original=page body was not found
+translation=រកមិនឃើញតួអក្សរទំព័រ
+
+[importer.roam-json.name]
+original=Roam Research
+translation=Roam Research
+
+[importer.roam-json.option-text]
+original=Roam Research (.json)
+translation=Roam Research (.json)
+
+[importer.roam-json.file-type]
+original=Roam (.json)
+translation=Roam (.json)
+
+[importer.roam-json.label-id]
+original=Roam UID
+translation=Roam UID
+
+[importer.roam-json.desc-export]
+original=Export your data in JSON format.
+translation=នាំចេញទិន្នន័យរបស់អ្នកក្នុងទម្រង់ JSON។
+
+[importer.roam-json.desc-files]
+original=Pick the JSON file from your Roam export.
+translation=ជ្រើសរើសឯកសារ JSON ពីការនាំចេញ Roam របស់អ្នក។
+
+[importer.roam-json.name-download-attachments]
+original=Download all attachments
+translation=ទាញយកឯកសារភ្ជាប់ទាំងអស់
+
+[importer.roam-json.desc-download-attachments]
+original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
+translation=ប្រសិនបើបានបើក ឯកសារភ្ជាប់ទាំងអស់ដែលបានផ្ទុកឡើងទៅ Roam នឹងត្រូវបានទាញយកទៅថតឯកសារភ្ជាប់របស់អ្នក។
+
+[importer.roam-json.name-date-properties]
+original=Add YAML created/update date
+translation=បន្ថែមកាលបរិច្ឆេទបង្កើត/បច្ចុប្បន្នភាព YAML
+
+[importer.roam-json.desc-date-properties]
+original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
+translation=ប្រសិនបើបានបើក កំណត់ត្រានឹងមានពេលបង្កើត និងពេលកែសម្រួលពី Roam បន្ថែមជាលក្ខណៈសម្បត្តិ។
+
+[importer.roam-json.name-title-property]
+original=Add YAML title
+translation=បន្ថែមចំណងជើង YAML
+
+[importer.roam-json.desc-title-property]
+original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
+translation=ប្រសិនបើបានបើក កំណត់ត្រានឹងមានចំណងជើងពេញបន្ថែមជាលក្ខណៈសម្បត្តិ (ដោយមិនគិតពីតួអក្សរខុសច្បាប់ក្នុងឈ្មោះ​ឯកសារ)។
+
+[importer.roam-json.reason-empty-title]
+original=Title is empty
+translation=ចំណងជើងទទេ
+
+[importer.roam-json.reason-unexpected-extension]
+original=Unexpected file extension
+translation=extension ដែលមិនរំពឹងទុក
+
+[importer.roam-json.reason-file-exists]
+original=File already exists
+translation=ឯកសារមានរួចហើយ
+
+[importer.textbundle.name]
+original=Textbundle files
+translation=ឯកសារ Textbundle
+
+[importer.textbundle.option-text]
+original=Textbundle (.textbundle, .textpack)
+translation=Textbundle (.textbundle, .textpack)
+
+[importer.textbundle.file-type]
+original=Textbundle
+translation=Textbundle
+
+[importer.textbundle.msg-platform]
+original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
+translation=ដោយសារការកំណត់របស់វេទិកា មានតែឯកសារ textpack និង zip ប៉ុណ្ណោះដែលអាចនាំចូលពីឧបករណ៍នេះ។ បើកវ៉ាល់របស់អ្នកនៅលើ Mac ដើម្បីនាំចូលឯកសារ textbundle។
+
+[importer.textbundle.reason-no-markdown]
+original=The textbundle does not contain markdown
+translation=Textbundle មិនមាន Markdown ទេ
+
+[importer.textbundle.reason-not-media]
+original=the file is not a media or markdown file.
+translation=ឯកសារមិនមែនជាមេឌៀ ឬឯកសារ Markdown ទេ។
+
+[importer.textbundle.reason-already-exists]
+original=the file already exists.
+translation=ឯកសារមានរួចហើយ។
+
+[importer.tomboy.name]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.option-text]
+original=Tomboy/Gnote (.note)
+translation=Tomboy/Gnote (.note)
+
+[importer.tomboy.file-type]
+original=Tomboy/Gnote
+translation=Tomboy/Gnote
+
+[importer.tomboy.label-id]
+original=Tomboy ID
+translation=Tomboy ID
+
+[importer.tomboy.desc-files-mac]
+original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
+translation=កំណត់ចំណាំ Tomboy ជាធម្មតាមាននៅក្នុង: ~/Library/Application Support/Tomboy
+
+[importer.tomboy.desc-files-windows]
+original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
+translation=កំណត់ចំណាំ Tomboy ជាធម្មតាមាននៅក្នុង: %APPDATA%\\Tomboy
+
+[importer.tomboy.desc-files-linux]
+original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
+translation=កំណត់ចំណាំ Tomboy ជាធម្មតាមាននៅក្នុង: ~/.local/share/tomboy - ឬ GNote: ~/.local/share/gnote
+
+[importer.tomboy.name-todo]
+original=Convert TODO lists to checkboxes
+translation=បម្លែងបញ្ជី TODO ទៅជាប្រអប់ធីក
+
+[importer.tomboy.desc-todo]
+original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
+translation=នៅពេលបានបើក បញ្ជីក្នុងកំណត់ចំណាំដែលមាន "TODO" ក្នុងចំណងជើងនឹងត្រូវបម្លែងទៅជាបញ្ជីភារកិច្ចមានប្រអប់ធីក។ ធាតុអក្សរបន្ទាត់ឆូតនឹងត្រូវសម្គាល់ថាបានបញ្ចប់។
+
+[importer.tomboy.name-keep-title]
+original=Keep title in Markdown
+translation=រក្សាចំណងជើងក្នុង Markdown
+
+[importer.tomboy.desc-keep-title]
+original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
+translation=ជ្រើសរើសថាតើត្រូវរក្សាចំណងជើងកំណត់ចំណាំក្នុងមាតិកា Markdown ដែរឬទេ។ ជម្រើសស្វ័យប្រវត្តិរក្សាចំណងជើងតែនៅពេលអក្សរពិសេសបាត់បង់ក្នុងការបម្លែងឈ្មោះឯកសារ។
+
+[importer.tomboy.option-automatic]
+original=Automatic
+translation=ស្វ័យប្រវត្តិ
+
+[importer.tomboy.option-keep-titles]
+original=Keep titles
+translation=រក្សាចំណងជើង
+
+[importer.tomboy.option-filename-only]
+original=Filename only
+translation=ឈ្មោះឯកសារប៉ុណ្ណោះ

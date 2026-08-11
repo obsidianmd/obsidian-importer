@@ -1,118 +1,118 @@
 [command.import-notes]
 original=Import notes
-translation=Importer des notes
+translation=Importera anteckningar
 
 [nouns.file-with-count]
 original={{count}} file
-translation={{count}} fichier
+translation={{count}} fil
 
 [nouns.file-with-count_plural]
 original={{count}} files
-translation={{count}} fichiers
+translation={{count}} filer
 
 [nouns.note-with-count]
 original={{count}} note
-translation={{count}} note
+translation={{count}} anteckning
 
 [nouns.note-with-count_plural]
 original={{count}} notes
-translation={{count}} notes
+translation={{count}} anteckningar
 
 [nouns.item-with-count]
 original={{count}} item
-translation={{count}} élément
+translation={{count}} objekt
 
 [nouns.item-with-count_plural]
 original={{count}} items
-translation={{count}} éléments
+translation={{count}} objekt
 
 [nouns.record-with-count]
 original={{count}} record
-translation={{count}} enregistrement
+translation={{count}} post
 
 [nouns.record-with-count_plural]
 original={{count}} records
-translation={{count}} enregistrements
+translation={{count}} poster
 
 [nouns.base-with-count]
 original={{count}} base
-translation={{count}} base
+translation={{count}} bas
 
 [nouns.base-with-count_plural]
 original={{count}} bases
-translation={{count}} bases
+translation={{count}} baser
 
 [nouns.template-with-count]
 original={{count}} template
-translation={{count}} modèle
+translation={{count}} mall
 
 [nouns.template-with-count_plural]
 original={{count}} templates
-translation={{count}} modèles
+translation={{count}} mallar
 
 [nouns.failure-with-count]
 original={{count}} failure
-translation={{count}} échec
+translation={{count}} fel
 
 [nouns.failure-with-count_plural]
 original={{count}} failures
-translation={{count}} échecs
+translation={{count}} fel
 
 [nouns.second-with-count]
 original={{count}} second
-translation={{count}} seconde
+translation={{count}} sekund
 
 [nouns.second-with-count_plural]
 original={{count}} seconds
-translation={{count}} secondes
+translation={{count}} sekunder
 
 [nouns.relation-placeholder-with-count]
 original={{count}} relation placeholder
-translation={{count}} marqueur de relation
+translation={{count}} relationsplatshållare
 
 [nouns.relation-placeholder-with-count_plural]
 original={{count}} relation placeholders
-translation={{count}} marqueurs de relation
+translation={{count}} relationsplatshållare
 
 [nouns.linked-database-with-count]
 original={{count}} linked database
-translation={{count}} base de données liée
+translation={{count}} länkad databas
 
 [nouns.linked-database-with-count_plural]
 original={{count}} linked databases
-translation={{count}} bases de données liées
+translation={{count}} länkade databaser
 
 [nouns.mention-link-with-count]
 original={{count}} mention link
-translation={{count}} lien de mention
+translation={{count}} omnämnandelänk
 
 [nouns.mention-link-with-count_plural]
 original={{count}} mention links
-translation={{count}} liens de mention
+translation={{count}} omnämnandelänkar
 
 [nouns.synced-reference-with-count]
 original={{count}} synced child reference
-translation={{count}} référence enfant synchronisée
+translation={{count}} synkroniserad barnreferens
 
 [nouns.synced-reference-with-count_plural]
 original={{count}} synced child references
-translation={{count}} références enfants synchronisées
+translation={{count}} synkroniserade barnreferenser
 
 [nouns.new-item-with-count]
 original={{count}} new item
-translation={{count}} nouvel élément
+translation={{count}} nytt objekt
 
 [nouns.new-item-with-count_plural]
 original={{count}} new items
-translation={{count}} nouveaux éléments
+translation={{count}} nya objekt
 
 [nouns.page-with-count]
 original={{count}} page
-translation={{count}} page
+translation={{count}} sida
 
 [nouns.page-with-count_plural]
 original={{count}} pages
-translation={{count}} pages
+translation={{count}} sidor
 
 [group.onenote.name]
 original=Microsoft OneNote
@@ -124,539 +124,539 @@ translation=Notion
 
 [modal.title-pick-format]
 original=Import data into Obsidian
-translation=Importer des données dans Obsidian
+translation=Importera data till Obsidian
 
 [modal.title-choose-method]
 original=Choose how to import
-translation=Choisir le mode d'import
+translation=Välj importmetod
 
 [modal.title-import-from]
 original=Import from {{format}}
-translation=Importer depuis {{format}}
+translation=Importera från {{format}}
 
 [modal.search-placeholder]
 original=Filter...
-translation=Filtrer...
+translation=Filtrera...
 
 [modal.msg-no-formats]
 original=No formats found.
-translation=Aucun format trouvé.
+translation=Inga format hittades.
 
 [modal.button-continue]
 original=Continue
-translation=Continuer
+translation=Fortsätt
 
 [modal.button-import]
 original=Import
-translation=Importer
+translation=Importera
 
 [modal.button-back]
 original=Back
-translation=Retour
+translation=Tillbaka
 
 [modal.button-help]
 original=Help
-translation=Aide
+translation=Hjälp
 
 [modal.button-cancel]
 original=Cancel
-translation=Annuler
+translation=Avbryt
 
 [modal.button-pause]
 original=Pause
-translation=Pause
+translation=Pausa
 
 [modal.button-resume]
 original=Resume
-translation=Reprendre
+translation=Återuppta
 
 [modal.button-stop]
 original=Stop
-translation=Arrêter
+translation=Stoppa
 
 [modal.button-save-report]
 original=Save report
-translation=Enregistrer le journal
+translation=Spara rapport
 
 [modal.msg-report-failed]
 original=Could not save the import report.
-translation=Impossible d'enregistrer le journal d'import.
+translation=Kunde inte spara importrapporten.
 
 [modal.button-import-more]
 original=Import more
-translation=Importer autre chose
+translation=Importera mer
 
 [modal.button-done]
 original=Done
-translation=Terminer
+translation=Klar
 
 [modal.msg-unexpected-auth]
 original=Unexpected auth event. Please restart the auth process.
-translation=Événement d'authentification inattendu. Veuillez relancer l'authentification.
+translation=Oväntat autentiseringshändelse. Starta om autentiseringsprocessen.
 
 [progress.stat-imported]
 original=imported
-translation=importées
+translation=importerade
 
 [progress.stat-attachments]
 original=attachments
-translation=pièces jointes
+translation=Bilagor
 
 [progress.stat-remaining]
 original=remaining
-translation=restantes
+translation=återstående
 
 [progress.stat-skipped]
 original=skipped
-translation=ignorées
+translation=Hoppade över
 
 [progress.stat-failed]
 original=failed
-translation=échouées
+translation=Misslyckades
 
 [progress.label-skipped]
 original=Skipped: 
-translation=Ignoré : 
+translation=Hoppade över: 
 
 [progress.label-failed]
 original=Failed: 
-translation=Échec : 
+translation=Misslyckades: 
 
 [progress.label-entry]
 original="{{name}}"
-translation=« {{name}} »
+translation="{{name}}"
 
 [progress.label-entry-with-reason]
 original="{{name}}" because {{reason}}
-translation=« {{name}} » car {{reason}}
+translation="{{name}}" eftersom {{reason}}
 
 [progress.label-paused]
 original=Paused
-translation=En pause
+translation=Pausad
 
 [progress.label-paused-with]
 original=Paused - {{status}}
-translation=En pause - {{status}}
+translation=Pausad - {{status}}
 
 [progress.label-importing]
 original=Importing
-translation=Importation
+translation=Importerar
 
 [progress.label-remaining]
 original={{count}} remaining...
-translation={{count}} restante...
+translation={{count}} återstår...
 
 [progress.label-remaining_plural]
 original={{count}} remaining...
-translation={{count}} restantes...
+translation={{count}} återstår...
 
 [progress.label-paused-remaining]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restante
+translation=Pausad - {{count}} återstår
 
 [progress.label-paused-remaining_plural]
 original=Paused - {{count}} remaining
-translation=En pause - {{count}} restantes
+translation=Pausad - {{count}} återstår
 
 [progress.status-stopping]
 original=Stopping...
-translation=Arrêt en cours...
+translation=Stoppar...
 
 [progress.msg-stopped]
 original=Import stopped.
-translation=Importation arrêtée.
+translation=Importen stoppades.
 
 [progress.msg-errors]
 original=Import finished with errors.
-translation=Importation terminée avec des erreurs.
+translation=Importen slutfördes med fel.
 
 [progress.msg-complete]
 original=Import complete.
-translation=Importation terminée.
+translation=Importen är klar.
 
 [progress.msg-imported-count]
 original={{count}} note imported
-translation={{count}} note importée
+translation={{count}} anteckning importerad
 
 [progress.msg-imported-count_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation={{count}} anteckningar importerade
 
 [progress.msg-click-to-show]
 original={{counts}}. Click to show.
-translation={{counts}}. Cliquez pour afficher.
+translation={{counts}}. Klicka för att visa.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
-translation=Attente de {{duration}} ({{reason}})
+translation=Väntar {{duration}} ({{reason}})
 
 [progress.status-standardizing]
 original=Standardizing Markdown ({{current}}/{{total}})
-translation=Normalisation du Markdown ({{current}}/{{total}})
+translation=Standardiserar Markdown ({{current}}/{{total}})
 
 [progress.label-finalization]
 original=Markdown finalization
-translation=Finalisation du Markdown
+translation=Markdown-slutförande
 
 [report.file-name]
 original={{date}} {{importer}} import log
-translation={{date}} {{importer}} journal d'import
+translation={{date}} {{importer}} importlogg
 
 [report.title]
 original={{importer}} import
-translation=Import {{importer}}
+translation={{importer}}-import
 
 [report.msg-finished]
 original=Finished {{when}}. {{counts}}.
-translation=Terminé le {{when}}. {{counts}}.
+translation=Slutfördes {{when}}. {{counts}}.
 
 [report.msg-stopped]
 original=Stopped {{when}}. {{counts}}.
-translation=Arrêté le {{when}}. {{counts}}.
+translation=Stoppades {{when}}. {{counts}}.
 
 [report.heading-failed]
 original=Failed ({{count}})
-translation=Échecs ({{count}})
+translation=Misslyckades ({{count}})
 
 [report.heading-skipped]
 original=Skipped ({{count}})
-translation=Ignorés ({{count}})
+translation=Hoppade över ({{count}})
 
 [report.heading-messages]
 original=Messages
-translation=Messages
+translation=Meddelanden
 
 [report.count-notes]
 original={{count}} note imported
-translation={{count}} note importée
+translation={{count}} anteckning importerad
 
 [report.count-notes_plural]
 original={{count}} notes imported
-translation={{count}} notes importées
+translation={{count}} anteckningar importerade
 
 [report.count-attachments]
 original={{count}} attachment downloaded
-translation={{count}} pièce jointe téléchargée
+translation={{count}} bilaga nedladdad
 
 [report.count-attachments_plural]
 original={{count}} attachments downloaded
-translation={{count}} pièces jointes téléchargées
+translation={{count}} bilagor nedladdade
 
 [report.count-skipped]
 original={{count}} item skipped
-translation={{count}} élément ignoré
+translation={{count}} objekt hoppades över
 
 [report.count-skipped_plural]
 original={{count}} items skipped
-translation={{count}} éléments ignorés
+translation={{count}} objekt hoppades över
 
 [report.count-failed]
 original={{count}} item failed
-translation={{count}} élément en échec
+translation={{count}} objekt misslyckades
 
 [report.count-failed_plural]
 original={{count}} items failed
-translation={{count}} éléments en échec
+translation={{count}} objekt misslyckades
 
 [source.name]
 original=Files to import
-translation=Fichiers à importer
+translation=Filer att importera
 
 [source.desc]
 original=Pick the files that you want to import.
-translation=Choisissez les fichiers que vous voulez importer.
+translation=Välj de filer du vill importera.
 
 [source.button-choose-file]
 original=Choose file
-translation=Choisir un fichier
+translation=Välj fil
 
 [source.button-choose-files]
 original=Choose files
-translation=Choisir des fichiers
+translation=Välj filer
 
 [source.button-choose-folders]
 original=Choose folders
-translation=Choisir des dossiers
+translation=Välj mappar
 
 [source.dialog-pick-files]
 original=Pick files to import
-translation=Choisir les fichiers à importer
+translation=Välj filer att importera
 
 [source.dialog-pick-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=Mappar att importera
 
 [source.msg-reading-folders]
 original=Reading folders...
-translation=Lecture des dossiers...
+translation=Läser mappar...
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
-translation=Rien à importer ici. Choisissez des fichiers {{extensions}}, ou un dossier qui en contient.
+translation=Inget att importera där. Välj {{extensions}}-filer, eller en mapp som innehåller sådana.
 
 [source.msg-will-import]
 original={{files}} will be imported: 
-translation={{files}} seront importés : 
+translation={{files}} kommer att importeras: 
 
 [output.label-source-id]
 original=source ID
-translation=l'identifiant source
+translation=käll-ID
 
 [output.name-save-source-id]
 original=Save {{label}}
-translation=Enregistrer {{label}}
+translation=Spara {{label}}
 
 [output.desc-save-source-id]
 original=Add the {{label}} to note properties so future imports can recognize moved or renamed notes.
-translation=Ajouter {{label}} aux propriétés de la note pour que les prochains imports reconnaissent les notes déplacées ou renommées.
+translation=Lägg till {{label}} i anteckningens egenskaper så att framtida importer kan känna igen flyttade eller omdöpta anteckningar.
 
 [output.name-folder]
 original=Output folder
-translation=Dossier de destination
+translation=Utdatamapp
 
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
-translation=Emplacement où les notes importées seront enregistrées. Laissez vide pour utiliser la racine du coffre.
+translation=Där importerade anteckningar sparas. Lämna tomt för att använda valvets toppnivå.
 
 [output.name-attachments]
 original=Attachment location
-translation=Emplacement des pièces jointes
+translation=Plats för bilagor
 
 [output.desc-attachments]
 original=Where imported images and files will be saved.
-translation=Emplacement où les images et fichiers importés seront enregistrés.
+translation=Där importerade bilder och filer sparas.
 
 [output.name-subfolder]
 original=Subfolder name
-translation=Nom du sous-dossier
+translation=Undermappens namn
 
 [output.desc-subfolder]
 original=Folder to use inside each imported note's folder.
-translation=Dossier à utiliser dans le dossier de chaque note importée.
+translation=Mapp att använda inuti varje importerad antecknings mapp.
 
 [output.name-attachment-folder]
 original=Attachment folder
-translation=Dossier des pièces jointes
+translation=Bilagemapp
 
 [output.desc-attachment-folder]
 original=Folder path from the top level of the vault.
-translation=Chemin du dossier depuis la racine du coffre.
+translation=Mappsökväg från valvets toppnivå.
 
 [output.name-duplicates]
 original=Existing notes
-translation=Notes existantes
+translation=Befintliga anteckningar
 
 [output.desc-duplicates]
 original=Choose what to do when an imported note matches one in your vault. "{{update}}" skips unchanged notes and preserves newer local edits when modification dates are available.
-translation=Choisissez quoi faire lorsqu'une note importée correspond à une note de votre coffre. « {{update}} » ignore les notes inchangées et préserve les modifications locales plus récentes lorsque les dates de modification sont disponibles.
+translation=Välj vad som ska göras när en importerad anteckning matchar en i ditt valv. "{{update}}" hoppar över oförändrade anteckningar och bevarar nyare lokala redigeringar när ändringsdatum finns tillgängliga.
 
 [output.option-create-copy]
 original=Create a copy
-translation=Créer une copie
+translation=Skapa en kopia
 
 [output.option-skip]
 original=Skip
-translation=Ignorer
+translation=Hoppa över
 
 [output.option-update]
 original=Update
-translation=Mettre à jour
+translation=Uppdatera
 
 [output.option-attachments-vault]
 original=Vault folder
-translation=Racine du coffre
+translation=Valvbas
 
 [output.option-attachments-folder]
 original=In the folder specified below
-translation=Dans le dossier spécifié ci-dessous
+translation=I mappen som visas nedan
 
 [output.option-attachments-note]
 original=Same folder as the note
-translation=Même dossier que la note
+translation=Samma mapp som anteckningen
 
 [output.option-attachments-subfolder]
 original=In subfolder under the note
-translation=Dans le sous-dossier, sous la note
+translation=I undermapp under anteckningen
 
 [common.msg-pick-file]
 original=Please pick at least one file to import.
-translation=Veuillez choisir au moins un fichier à importer.
+translation=Välj minst en fil att importera.
 
 [common.msg-pick-output]
 original=Please select a location to export to.
-translation=Veuillez choisir un emplacement de destination.
+translation=Välj en plats att exportera till.
 
 [common.msg-pick-import-location]
 original=Please select a location to import your files to.
-translation=Veuillez choisir un emplacement où importer vos fichiers.
+translation=Välj en plats att importera dina filer till.
 
 [common.msg-unknown-error]
 original=Unknown error
-translation=Erreur inconnue
+translation=Okänt fel
 
 [common.name-export]
 original=Export your data
-translation=Exporter vos données
+translation=Exportera dina data
 
 [common.label-learn-more]
 original=Learn more.
-translation=En savoir plus.
+translation=Läs mer.
 
 [common.button-instructions]
 original=Instructions
-translation=Instructions
+translation=Instruktioner
 
 [common.button-open]
 original=Open
-translation=Ouvrir
+translation=Öppna
 
 [common.status-processing]
 original=Processing {{name}}
-translation=Traitement de {{name}}
+translation=Bearbetar {{name}}
 
 [common.status-importing-note]
 original=Importing note {{name}}
-translation=Importation de la note {{name}}
+translation=Importerar anteckning {{name}}
 
 [common.status-importing-attachment]
 original=Importing attachment {{name}}
-translation=Importation de la pièce jointe {{name}}
+translation=Importerar bilaga {{name}}
 
 [common.status-cancelled]
 original=Import cancelled
-translation=Importation annulée
+translation=Import avbruten
 
 [reason.already-in-vault]
 original=it is already in the vault
-translation=elle est déjà dans le coffre
+translation=den finns redan i valvet
 
 [reason.unchanged-since-import]
 original=it has not changed since the last import
-translation=elle n'a pas changé depuis le dernier import
+translation=den har inte ändrats sedan senaste importen
 
 [reason.edited-since-import]
 original=it has been edited in Obsidian since the last import
-translation=elle a été modifiée dans Obsidian depuis le dernier import
+translation=den har redigerats i Obsidian sedan senaste importen
 
 [reason.file-not-in-vault]
 original=The imported file did not appear in the vault.
-translation=Le fichier importé n'est pas apparu dans le coffre.
+translation=Den importerade filen dök inte upp i valvet.
 
 [reason.folder-not-created]
 original=Failed to create folder at "{{path}}"
-translation=Impossible de créer le dossier « {{path}} »
+translation=Misslyckades med att skapa mapp vid "{{path}}"
 
 [tree.button-select-all]
 original=Select all
-translation=Tout sélectionner
+translation=Markera allt
 
 [tree.button-deselect-all]
 original=Deselect all
-translation=Tout désélectionner
+translation=Avmarkera alla
 
 [tree.button-load]
 original=Load
-translation=Charger
+translation=Ladda
 
 [tree.button-loading]
 original=Loading...
-translation=Chargement...
+translation=Läser in...
 
 [tree.button-refresh]
 original=Refresh
-translation=Actualiser
+translation=Uppdatera
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
-translation={{service}} a refusé la requête concernant {{subject}}. {{credential}}
+translation={{service}} accepterade inte begäran om {{subject}}. {{credential}}
 
 [request.msg-forbidden]
 original={{service}} would not give access to {{subject}}. {{credential}}
-translation={{service}} n'a pas donné accès à {{subject}}. {{credential}}
+translation={{service}} gav inte åtkomst till {{subject}}. {{credential}}
 
 [request.msg-not-found]
 original={{service}} could not find {{subject}}.
-translation={{service}} n'a pas trouvé {{subject}}.
+translation={{service}} kunde inte hitta {{subject}}.
 
 [request.msg-rate-limited]
 original={{service}} is limiting how fast {{subject}} can be read. Wait a few minutes and try again.
-translation={{service}} limite la vitesse de lecture de {{subject}}. Attendez quelques minutes puis réessayez.
+translation={{service}} begränsar hur snabbt {{subject}} kan läsas. Vänta några minuter och försök igen.
 
 [request.msg-timed-out]
 original={{service}} took too long to return {{subject}}. Try again shortly.
-translation={{service}} a mis trop de temps à renvoyer {{subject}}. Réessayez sous peu.
+translation={{service}} tog för lång tid att returnera {{subject}}. Försök igen om en stund.
 
 [request.msg-unavailable]
 original={{service}} could not return {{subject}} right now. Try again shortly.
-translation={{service}} ne peut pas renvoyer {{subject}} pour le moment. Réessayez sous peu.
+translation={{service}} kunde inte returnera {{subject}} just nu. Försök igen om en stund.
 
 [request.msg-failed-with-code]
 original=Could not read {{subject}}: {{message}} ({{code}})
-translation=Impossible de lire {{subject}} : {{message}} ({{code}})
+translation=Kunde inte läsa {{subject}}: {{message}} ({{code}})
 
 [request.msg-failed-with-message]
 original=Could not read {{subject}}: {{message}}
-translation=Impossible de lire {{subject}} : {{message}}
+translation=Kunde inte läsa {{subject}}: {{message}}
 
 [request.msg-failed-with-reported-code]
 original=Could not read {{subject}}. {{service}} reported {{code}}.
-translation=Impossible de lire {{subject}}. {{service}} a signalé {{code}}.
+translation=Kunde inte läsa {{subject}}. {{service}} rapporterade {{code}}.
 
 [request.msg-failed]
 original=Could not read {{subject}}.
-translation=Impossible de lire {{subject}}.
+translation=Kunde inte läsa {{subject}}.
 
 [template.msg-intro]
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
-translation=Configurez la façon dont vos données doivent être importées. Utilisez la syntaxe {{syntax}} pour référencer la valeur d'un champ.
+translation=Konfigurera hur dina data ska importeras. Använd {{syntax}}-syntax för att referera till fältvärden.
 
 [template.name-title]
 original=Note title
-translation=Titre de la note
+translation=Byt namn på fil
 
 [template.desc-title]
 original=Template for the note title. Use {{field_name}} to insert values.
-translation=Modèle pour le titre de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=Mall för anteckningens titel. Använd {{field_name}} för att infoga värden.
 
 [template.name-location]
 original=Note location
-translation=Emplacement de la note
+translation=Anteckningens plats
 
 [template.desc-location]
 original=Template for note location/path. Use {{field_name}} to organize notes.
-translation=Modèle pour l'emplacement de la note. Utilisez {{field_name}} pour organiser les notes.
+translation=Mall för anteckningens plats/sökväg. Använd {{field_name}} för att organisera anteckningar.
 
 [template.name-content]
 original=Note content
-translation=Contenu de la note
+translation=Anteckningens innehåll
 
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
-translation=Modèle pour le contenu de la note. Utilisez {{field_name}} pour insérer des valeurs.
+translation=Mall för anteckningens innehåll. Använd {{field_name}} för att infoga värden.
 
 [template.heading-properties]
 original=Properties
-translation=Propriétés
+translation=Egenskaper
 
 [template.column-property-name]
 original=Property name
-translation=Nom de la propriété
+translation=Egenskapsnamn
 
 [template.column-property-value]
 original=Property value
-translation=Valeur de la propriété
+translation=Egenskapsvärde
 
 [template.column-example]
 original=Example
-translation=Exemple
+translation=Exempel
 
 [template.action-delete-property]
 original=Delete property
-translation=Supprimer la propriété
+translation=Radera egenskap
 
 [template.msg-title-required]
 original=Please provide a note title template.
-translation=Veuillez fournir un modèle de titre de note.
+translation=Ange en mall för anteckningens titel.
 
 [importer.airtable-api.name]
 original=Airtable
@@ -668,39 +668,39 @@ translation=Airtable
 
 [importer.airtable-api.label-id]
 original=Airtable record ID
-translation=l'identifiant d'enregistrement Airtable
+translation=Airtable post-ID
 
 [importer.airtable-api.name-token]
 original=Airtable personal access token
-translation=Jeton d'accès personnel Airtable
+translation=Personlig åtkomsttoken för Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings. 
-translation=Créez un jeton d'accès personnel dans les réglages de votre compte Airtable. 
+translation=Skapa en personlig åtkomsttoken i dina Airtable-kontoinställningar. 
 
 [importer.airtable-api.link-get-token]
 original=Get token
-translation=Obtenir un jeton
+translation=Hämta token
 
 [importer.airtable-api.name-tables]
 original=Tables to import
-translation=Tables à importer
+translation=Tabeller att importera
 
 [importer.airtable-api.desc-tables]
 original=Load your Airtable bases and tables, then choose what to import.
-translation=Chargez vos bases et tables Airtable, puis choisissez ce qu'il faut importer.
+translation=Ladda dina Airtable-baser och tabeller, välj sedan vad som ska importeras.
 
 [importer.airtable-api.hint-tables]
 original=Load your Airtable bases and tables to get started.
-translation=Chargez vos bases et tables Airtable pour commencer.
+translation=Ladda dina Airtable-baser och tabeller för att komma igång.
 
 [importer.airtable-api.msg-fetching-bases]
 original=Fetching bases...
-translation=Récupération des bases...
+translation=Hämtar baser...
 
 [importer.airtable-api.msg-no-bases]
 original=No bases found.
-translation=Aucune base trouvée.
+translation=Inga baser hittades.
 
 [importer.airtable-api.label-service]
 original=Airtable
@@ -708,87 +708,87 @@ translation=Airtable
 
 [importer.airtable-api.label-subject]
 original=your bases
-translation=vos bases
+translation=dina baser
 
 [importer.airtable-api.label-credential]
 original=Check that your personal access token is current and has access to them.
-translation=Vérifiez que votre jeton d'accès personnel est à jour et qu'il y a accès.
+translation=Kontrollera att din personliga åtkomsttoken är aktuell och har åtkomst till dem.
 
 [importer.airtable-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=Konvertera formler
 
 [importer.airtable-api.desc-formulas]
 original=Try to convert formulas to Obsidian syntax, or import as static values.
-translation=Essayer de convertir les formules en syntaxe Obsidian, ou les importer comme valeurs statiques.
+translation=Försök konvertera formler till Obsidian-syntax, eller importera som statiska värden.
 
 [importer.airtable-api.option-formula-hybrid]
 original=Obsidian syntax (with fallback)
-translation=Syntaxe Obsidian (avec repli)
+translation=Obsidian-syntax (med reservlösning)
 
 [importer.airtable-api.option-formula-static]
 original=Static values only
-translation=Valeurs statiques uniquement
+translation=Endast statiska värden
 
 [importer.airtable-api.name-download-attachments]
 original=Download attachments
-translation=Télécharger les pièces jointes
+translation=Ladda ner bilagor
 
 [importer.airtable-api.desc-download-attachments]
 original=Download attachment files to local vault. If disabled or download fails, external URLs will be used.
-translation=Télécharger les pièces jointes dans le coffre local. Si l'option est désactivée ou si le téléchargement échoue, les URL externes seront utilisées.
+translation=Ladda ner bilagefiler till lokalt valv. Om inaktiverat eller nedladdningen misslyckas används externa URL:er.
 
 [importer.airtable-api.name-view-property]
 original=View property name
-translation=Nom de la propriété de vue
+translation=Egenskapsnamn för vy
 
 [importer.airtable-api.desc-view-property]
 original=Property name to track which views a record belongs to. Each record will have a list of view names it appears in.
-translation=Nom de la propriété indiquant les vues auxquelles appartient un enregistrement. Chaque enregistrement aura la liste des vues où il apparaît.
+translation=Egenskapsnamn för att spåra vilka vyer en post tillhör. Varje post får en lista med vynamn den förekommer i.
 
 [importer.airtable-api.msg-token-first]
 original=Please enter your Airtable personal access token first.
-translation=Veuillez d'abord saisir votre jeton d'accès personnel Airtable.
+translation=Ange din personliga åtkomsttoken för Airtable först.
 
 [importer.airtable-api.msg-token-missing]
 original=Please enter your Airtable personal access token.
-translation=Veuillez saisir votre jeton d'accès personnel Airtable.
+translation=Ange din personliga åtkomsttoken för Airtable.
 
 [importer.airtable-api.msg-load-bases-failed]
 original=Failed to load bases: {{error}}
-translation=Échec du chargement des bases : {{error}}
+translation=Misslyckades att ladda baser: {{error}}
 
 [importer.airtable-api.msg-load-tables-failed]
 original=Failed to load tables for "{{base}}": {{error}}
-translation=Échec du chargement des tables de « {{base}} » : {{error}}
+translation=Misslyckades att ladda tabeller för "{{base}}": {{error}}
 
 [importer.airtable-api.msg-pick-table]
 original=Please select at least one table to import.
-translation=Veuillez sélectionner au moins une table à importer.
+translation=Välj minst en tabell att importera.
 
 [importer.airtable-api.msg-loading-fields]
 original=Loading fields...
-translation=Chargement des champs...
+translation=Laddar fält...
 
 [importer.airtable-api.msg-no-fields]
 original=No fields found in selected tables. Please check your selection.
-translation=Aucun champ trouvé dans les tables sélectionnées. Veuillez vérifier votre sélection.
+translation=Inga fält hittades i valda tabeller. Kontrollera ditt val.
 
 [importer.airtable-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=Importen misslyckades: {{error}}
 
 [importer.airtable-api.label-base-position]
 original= (base {{index}} of {{total}})
-translation= (base {{index}} sur {{total}})
+translation= (bas {{index}} av {{total}})
 
 [importer.airtable-api.label-base]
 original=Base: {{name}}
-translation=Base : {{name}}
+translation=Bas: {{name}}
 
 [importer.airtable-api.label-linked-table]
 original=Linked table: {{name}}
-translation=Table liée : {{name}}
+translation=Länkad tabell: {{name}}
 
 [importer.airtable-api.label-table-view]
 original={{table}} > {{view}}
@@ -796,83 +796,83 @@ translation={{table}} > {{view}}
 
 [importer.airtable-api.label-import]
 original=Airtable API import
-translation=Importation via l'API Airtable
+translation=Airtable API-import
 
 [importer.airtable-api.status-connecting]
 original=Connecting to Airtable API
-translation=Connexion à l'API Airtable
+translation=Ansluter till Airtable API
 
 [importer.airtable-api.status-loading-tables]
 original=Loading tables for {{base}}
-translation=Chargement des tables de {{base}}
+translation=Laddar tabeller för {{base}}
 
 [importer.airtable-api.status-fetching-tables]
 original=Fetching tables for base {{base}}...
-translation=Récupération des tables de la base {{base}}...
+translation=Hämtar tabeller för bas {{base}}...
 
 [importer.airtable-api.status-found-bases]
 original=Found {{bases}} to import
-translation={{bases}} à importer
+translation=Hittade {{bases}} att importera
 
 [importer.airtable-api.status-fetching-base]
 original=Fetching data from {{base}}{{position}}
-translation=Récupération des données de {{base}}{{position}}
+translation=Hämtar data från {{base}}{{position}}
 
 [importer.airtable-api.status-preparing-records]
 original=Preparing records from {{base}}{{position}}
-translation=Préparation des enregistrements de {{base}}{{position}}
+translation=Förbereder poster från {{base}}{{position}}
 
 [importer.airtable-api.status-reading-names]
 original=Reading names from {{table}}{{position}}
-translation=Lecture des noms dans {{table}}{{position}}
+translation=Läser namn från {{table}}{{position}}
 
 [importer.airtable-api.status-planning]
 original=Working out where {{table}}{{position}} goes
-translation=Détermination de l'emplacement de {{table}}{{position}}
+translation=Beräknar var {{table}}{{position}} ska placeras
 
 [importer.airtable-api.status-fetching-records]
 original=Fetching records from {{table}}{{position}}
-translation=Récupération des enregistrements de {{table}}{{position}}
+translation=Hämtar poster från {{table}}{{position}}
 
 [importer.airtable-api.status-fetched-records]
 original=Fetched {{records}} from {{table}}{{position}}
-translation={{records}} récupérés de {{table}}{{position}}
+translation=Hämtade {{records}} från {{table}}{{position}}
 
 [importer.airtable-api.status-fetching-view]
 original=Fetching view {{view}} from {{table}}{{position}}
-translation=Récupération de la vue {{view}} de {{table}}{{position}}
+translation=Hämtar vy {{view}} från {{table}}{{position}}
 
 [importer.airtable-api.status-creating-notes]
 original=Creating notes in {{table}}{{position}}
-translation=Création des notes dans {{table}}{{position}}
+translation=Skapar anteckningar i {{table}}{{position}}
 
 [importer.airtable-api.status-updating-types]
 original=Updating property types
-translation=Mise à jour des types de propriétés
+translation=Uppdaterar egenskapstyper
 
 [importer.airtable-api.status-complete]
 original=Import complete
-translation=Importation terminée
+translation=Importen är klar
 
 [importer.airtable-api.status-rate-limited]
 original=Rate limited, waiting {{seconds}}s (attempt {{attempt}}/{{total}})...
-translation=Débit limité, attente de {{seconds}} s (tentative {{attempt}}/{{total}})...
+translation=Hastighetsbegränsad, väntar {{seconds}}s (försök {{attempt}}/{{total}})...
 
 [importer.airtable-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}
-translation=Téléchargement de la pièce jointe : {{name}}
+translation=Laddar ner bilaga: {{name}}
 
 [importer.airtable-api.reason-no-record-names]
 original=Could not read record names
-translation=Impossible de lire les noms des enregistrements
+translation=Kunde inte läsa postnamn
 
 [importer.airtable-api.reason-empty-record]
 original=Empty record
-translation=Enregistrement vide
+translation=Tom post
 
 [importer.airtable-api.desc-no-modified-time]
 original=Airtable does not say when a record last changed, so "{{update}}" compares the note with the record instead. A note you have edited yourself reads as changed, and will be written over.
-translation=Airtable n'indique pas la date de dernière modification d'un enregistrement, donc « {{update}} » compare la note avec l'enregistrement à la place. Une note que vous avez modifiée vous-même sera considérée comme ayant des changements et sera écrasée.
+translation=Airtable anger inte när en post senast ändrades, så "{{update}}" jämför anteckningen med posten istället. En anteckning du själv har redigerat tolkas som ändrad och skrivs över.
 
 [importer.apple-notes.name]
 original=Apple Notes
@@ -884,131 +884,131 @@ translation=Apple Notes
 
 [importer.apple-notes.label-id]
 original=Apple Notes ID
-translation=l'identifiant Apple Notes
+translation=Apple Notes ID
 
 [importer.apple-notes.msg-platform]
 original=Due to platform limitations, Apple Notes cannot be exported from this device. Open your vault on a Mac to export from Apple Notes.
-translation=En raison de limitations de la plateforme, Apple Notes ne peut pas être exporté depuis cet appareil. Ouvrez votre coffre sur un Mac pour exporter depuis Apple Notes.
+translation=På grund av plattformsbegränsningar kan Apple Notes inte exporteras från denna enhet. Öppna ditt valv på en Mac för att exportera från Apple Notes.
 
 [importer.apple-notes.name-prefix-format]
 original=File prefix format
-translation=Format du préfixe de fichier
+translation=Filprefixformat
 
 [importer.apple-notes.desc-prefix-format]
 original=Format for the creation date prefix in filenames. Use YYYY, MM, DD for year, month, day. Leave blank for no prefix.
-translation=Format du préfixe de date de création dans les noms de fichiers. Utilisez YYYY, MM, DD pour l'année, le mois et le jour. Laissez vide pour ne pas mettre de préfixe.
+translation=Format för datumprefix i filnamn baserat på skapelsedatum. Använd YYYY, MM, DD för år, månad, dag. Lämna tomt för inget prefix.
 
 [importer.apple-notes.name-omit-first-line]
 original=Omit first line
-translation=Omettre la première ligne
+translation=Utelämna första raden
 
 [importer.apple-notes.desc-omit-first-line]
 original=Don't include the first line in the text, since Apple Notes uses it as the title. It will still be used as the note name.
-translation=Ne pas inclure la première ligne dans le texte, puisque Apple Notes s'en sert comme titre. Elle servira quand même de nom de note.
+translation=Inkludera inte den första raden i texten, eftersom Apple Notes använder den som titel. Den kommer fortfarande att användas som anteckningsnamn.
 
 [importer.apple-notes.name-handwriting]
 original=Include handwriting text
-translation=Inclure le texte manuscrit
+translation=Inkludera handskriven text
 
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
-translation=Lorsque Apple Notes a reconnu de l'écriture manuscrite dans un dessin, l'inclure comme texte avant le dessin.
+translation=När Apple Notes har identifierat handskrift i teckningar, inkludera den som text före teckningen.
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
-translation=Dossier de données Apple Notes
+translation=Apple Notes datamapp
 
 [importer.apple-notes.desc-data-folder]
 original=macOS only lets Obsidian read your notes once you have pointed it at the folder they are kept in.
-translation=macOS n'autorise Obsidian à lire vos notes qu'une fois que vous lui avez indiqué le dossier où elles sont conservées.
+translation=macOS låter Obsidian läsa dina anteckningar först när du har pekat ut mappen där de lagras.
 
 [importer.apple-notes.button-select-folder]
 original=Select folder
-translation=Choisir un dossier
+translation=Välj mapp
 
 [importer.apple-notes.msg-wrong-folder]
 original=Ensure you have selected the correct Apple Notes data folder.
-translation=Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=Kontrollera att du har valt rätt Apple Notes datamapp.
 
 [importer.apple-notes.msg-dialog-folder]
 original=Select the "group.com.apple.notes" folder to allow Obsidian to read Apple Notes data.
-translation=Choisissez le dossier « group.com.apple.notes » pour permettre à Obsidian de lire les données d'Apple Notes.
+translation=Välj mappen "group.com.apple.notes" för att tillåta Obsidian att läsa Apple Notes-data.
 
 [importer.apple-notes.msg-import-failed]
 original=Data import failed. Ensure you have selected the correct Apple Notes data folder.
-translation=L'importation des données a échoué. Assurez-vous d'avoir choisi le bon dossier de données Apple Notes.
+translation=Dataimporten misslyckades. Kontrollera att du har valt rätt Apple Notes datamapp.
 
 [importer.apple-notes.msg-pick-folders]
 original=Please select at least one folder to import.
-translation=Veuillez sélectionner au moins un dossier à importer.
+translation=Välj minst en mapp att importera.
 
 [importer.apple-notes.name-folders]
 original=Folders to import
-translation=Dossiers à importer
+translation=Mappar att importera
 
 [importer.apple-notes.desc-folders]
 original=Pick the folders whose notes to bring across.
-translation=Choisissez les dossiers dont les notes doivent être reprises.
+translation=Välj de mappar vars anteckningar ska hämtas.
 
 [importer.apple-notes.msg-no-access]
 original=Allow access to your notes to see the folders in them.
-translation=Autorisez l'accès à vos notes pour voir les dossiers qu'elles contiennent.
+translation=Tillåt åtkomst till dina anteckningar för att se mapparna i dem.
 
 [importer.apple-notes.msg-no-folders]
 original=No folders found.
-translation=Aucun dossier trouvé.
+translation=Inga mappar hittades.
 
 [importer.apple-notes.msg-database-busy]
 original=Your Apple Notes database is in use. Quit Notes and try again.
-translation=Votre base de données Apple Notes est en cours d'utilisation. Quittez Notes et réessayez.
+translation=Din Apple Notes-databas används. Avsluta Notes och försök igen.
 
 [importer.apple-notes.msg-database-unreadable]
 original=Could not open your Apple Notes database. {{hint}}
-translation=Impossible d'ouvrir votre base de données Apple Notes. {{hint}}
+translation=Kunde inte öppna din Apple Notes-databas. {{hint}}
 
 [importer.apple-notes.msg-read-failed-with-detail]
 original=Could not read your notes: {{detail}}
-translation=Impossible de lire vos notes : {{detail}}
+translation=Kunde inte läsa dina anteckningar: {{detail}}
 
 [importer.apple-notes.msg-read-failed]
 original=Could not read your notes.
-translation=Impossible de lire vos notes.
+translation=Kunde inte läsa dina anteckningar.
 
 [importer.apple-notes.reason-password-protected]
 original=note is password protected
-translation=la note est protégée par un mot de passe
+translation=anteckningen är lösenordsskyddad
 
 [importer.apple-notes.reason-duplicate]
 original=note is a duplicate
-translation=la note est un doublon
+translation=anteckningen är en dubblett
 
 [importer.apple-notes.reason-unchanged]
 original=note unchanged since last import
-translation=la note n'a pas changé depuis le dernier import
+translation=anteckningen oförändrad sedan senaste importen
 
 [importer.apple-notes.reason-attachment-exists]
 original=attachment already exists
-translation=la pièce jointe existe déjà
+translation=bilagan finns redan
 
 [importer.apple-notes.reason-attachment-unchanged]
 original=attachment unchanged since last import
-translation=la pièce jointe n'a pas changé depuis le dernier import
+translation=bilagan oförändrad sedan senaste importen
 
 [importer.apple-notes.reason-not-downloaded]
 original=it has not been downloaded from iCloud - open the note in Apple Notes to fetch it
-translation=elle n'a pas été téléchargée depuis iCloud - ouvrez la note dans Apple Notes pour la récupérer
+translation=den har inte laddats ned från iCloud – öppna anteckningen i Apple Notes för att hämta den
 
 [importer.apple-notes.label-attachment]
 original=Attachment {{id}}
-translation=Pièce jointe {{id}}
+translation=Bilaga {{id}}
 
 [importer.apple-notes.reason-no-attachment-row]
 original=no {{uti}} row to read it from
-translation=aucune ligne {{uti}} d'où la lire
+translation=ingen {{uti}}-rad att läsa den från
 
 [importer.apple-notes.label-attachment-in-note]
 original={{name}} in {{note}}
-translation={{name}} dans {{note}}
+translation={{name}} i {{note}}
 
 [importer.apple-journal.name]
 original=Apple Journal
@@ -1016,31 +1016,31 @@ translation=Apple Journal
 
 [importer.apple-journal.option-text]
 original=Apple Journal (HTML export)
-translation=Apple Journal (export HTML)
+translation=Apple Journal (HTML-export)
 
 [importer.apple-journal.file-type]
 original=Journal entries
-translation=Entrées de journal
+translation=Journalposter
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportez vos entrées depuis l'app Journal, puis choisissez les fichiers HTML qu'elle a écrits dans iCloud Drive.
+translation=Exportera dina poster från Journal-appen och välj sedan HTML-filerna den skrev till iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
-translation=Métadonnées du journal
+translation=Journal-metadata
 
 [importer.apple-journal.name-front-matter]
 original=Add metadata as frontmatter
-translation=Ajouter les métadonnées dans l'en-tête
+translation=Lägg till metadata som frontmatter
 
 [importer.apple-journal.desc-front-matter]
 original=Capture state-of-mind, contact, and similar tokens in YAML when available.
-translation=Capturer l'état d'esprit, les contacts et autres marqueurs similaires en YAML lorsqu'ils sont disponibles.
+translation=Spara sinnesstämning, kontakt och liknande märken i YAML när det finns tillgängligt.
 
 [importer.apple-journal.reason-index-file]
 original=index file is not a journal entry
-translation=le fichier d'index n'est pas une entrée de journal
+translation=indexfilen är inte en journalpost
 
 [importer.bear.name]
 original=Bear
@@ -1056,31 +1056,31 @@ translation=Bear2bk
 
 [importer.bear.label-id]
 original=Bear ID
-translation=l'identifiant Bear
+translation=Bear ID
 
 [importer.bear.desc-export]
 original=Back up your notes in Bear, you will receive a .bear2bk file.
-translation=Sauvegardez vos notes dans Bear, vous obtiendrez un fichier .bear2bk.
+translation=Säkerhetskopiera dina anteckningar i Bear, du får en .bear2bk-fil.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
-translation=Aplatir les mots-clés imbriqués
+translation=Platta ut nästlade taggar
 
 [importer.bear.desc-flatten-tags]
 original=When enabled, tags will be split on slashes (/) during import.
-translation=Lorsque cette option est activée, les mots-clés sont découpés sur les barres obliques (/) pendant l'import.
+translation=När aktiverad delas taggar vid snedstreck (/) under importen.
 
 [importer.bear.status-importing-asset]
 original=Importing asset {{name}}
-translation=Importation de la ressource {{name}}
+translation=Importerar resurs {{name}}
 
 [importer.bear.status-updating-links]
 original=Updating internal links…
-translation=Mise à jour des liens internes…
+translation=Uppdaterar interna länkar…
 
 [importer.bear.reason-unknown-type]
 original=unknown type of file
-translation=type de fichier inconnu
+translation=Okänd filtyp
 
 [importer.csv.name]
 original=CSV
@@ -1096,43 +1096,43 @@ translation=CSV
 
 [importer.csv.name-header-row]
 original=CSV has header row
-translation=Le CSV a une ligne d'en-tête
+translation=CSV har rubrikrad
 
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
-translation=Si cette option est activée, la première ligne du fichier CSV est traitée comme les en-têtes de colonnes.
+translation=Om aktiverad kommer den första raden i CSV-filen att behandlas som kolumnrubriker.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
-translation=Veuillez choisir au moins un fichier CSV à importer.
+translation=Välj minst en CSV-fil att importera.
 
 [importer.csv.msg-one-at-a-time]
 original=CSV files must be imported one at a time.
-translation=Les fichiers CSV doivent être importés un à la fois.
+translation=CSV-filer måste importeras en i taget.
 
 [importer.csv.msg-no-data]
 original=No data found in {{name}}.
-translation=Aucune donnée trouvée dans {{name}}.
+translation=Ingen data hittades i {{name}}.
 
 [importer.csv.msg-no-configuration]
 original=Configuration is missing.
-translation=La configuration est manquante.
+translation=Konfiguration saknas.
 
 [importer.csv.status-parsing]
 original=Parsing {{name}}
-translation=Analyse de {{name}}
+translation=Tolkar {{name}}
 
 [importer.csv.status-creating-note]
 original=Creating note: {{title}}
-translation=Création de la note : {{title}}
+translation=Skapar anteckning: {{title}}
 
 [importer.csv.label-row]
 original=Row {{number}}
-translation=Ligne {{number}}
+translation=Rad {{number}}
 
 [importer.csv.reason-empty-title]
 original=Empty title
-translation=Titre vide
+translation=Tom titel
 
 [importer.evernote.name]
 original=Evernote
@@ -1148,15 +1148,15 @@ translation=Evernote
 
 [importer.evernote.desc-export]
 original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
-translation=Exportez vos carnets au format ENEX, vous obtiendrez un fichier .enex par carnet.
+translation=Exportera dina anteckningsböcker i ENEX-format, du får en .enex-fil per anteckningsbok.
 
 [importer.evernote.msg-unresolved-links]
 original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} lien n'a pas pu être associé à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} länk kunde inte matchas till en anteckning. En ENEX-export anger inte vilken anteckning en länk pekar på, bara titeln som visades i Evernote, så en anteckning som döpts om sedan länken skapades matchar inte längre. Obsidian listar dessa under olösta länkar.
 
 [importer.evernote.msg-unresolved-links_plural]
 original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
-translation={{count}} liens n'ont pas pu être associés à une note. Un export ENEX n'indique pas vers quelle note pointe un lien, seulement le titre affiché dans Evernote. Une note renommée depuis la création du lien ne correspond donc plus. Obsidian les répertorie sous les liens non résolus.
+translation={{count}} länkar kunde inte matchas till en anteckning. En ENEX-export anger inte vilken anteckning en länk pekar på, bara titeln som visades i Evernote, så en anteckning som döpts om sedan länken skapades matchar inte längre. Obsidian listar dessa under olösta länkar.
 
 [importer.keep.name]
 original=Google Keep
@@ -1168,43 +1168,43 @@ translation=Google Keep (.zip/.json)
 
 [importer.keep.file-type]
 original=Notes & attachments
-translation=Notes et pièces jointes
+translation=Anteckningar och bilagor
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout. 
-translation=Récupérez vos données Google Keep depuis Google Takeout. 
+translation=Hämta dina Google Keep-data från Google Takeout. 
 
 [importer.keep.name-archived]
 original=Import archived notes
-translation=Importer les notes archivées
+translation=Importera arkiverade anteckningar
 
 [importer.keep.desc-archived]
 original=If imported, files archived in Google Keep will be tagged as archived.
-translation=Si elles sont importées, les notes archivées dans Google Keep recevront un mot-clé indiquant qu'elles sont archivées.
+translation=Om importerade kommer filer arkiverade i Google Keep att taggas som arkiverade.
 
 [importer.keep.name-deleted]
 original=Import deleted notes
-translation=Importer les notes supprimées
+translation=Importera raderade anteckningar
 
 [importer.keep.desc-deleted]
 original=If imported, files deleted in Google Keep will be tagged as deleted. Deleted notes will only exist in your Google export if deleted recently.
-translation=Si elles sont importées, les notes supprimées dans Google Keep recevront un mot-clé indiquant qu'elles sont supprimées. Les notes supprimées ne figurent dans votre export Google que si elles l'ont été récemment.
+translation=Om importerade kommer filer raderade i Google Keep att taggas som raderade. Raderade anteckningar finns bara i din Google-export om de raderades nyligen.
 
 [importer.keep.reason-invalid-json]
 original=Invalid Google Keep JSON
-translation=JSON Google Keep invalide
+translation=Ogiltig Google Keep JSON
 
 [importer.keep.reason-archived]
 original=Archived note
-translation=Note archivée
+translation=Arkiverad anteckning
 
 [importer.keep.reason-deleted]
 original=Deleted note
-translation=Note supprimée
+translation=Raderad anteckning
 
 [importer.html.name]
 original=HTML files
-translation=Fichiers HTML
+translation=HTML-filer
 
 [importer.html.option-text]
 original=HTML (.html)
@@ -1216,19 +1216,19 @@ translation=HTML
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
-translation=Taille maximale des pièces jointes (Mo)
+translation=Storleksgräns för bilagor (MB)
 
 [importer.html.name-minimum-image-size]
 original=Minimum image size (px)
-translation=Taille minimale des images (px)
+translation=Minsta bildstorlek (px)
 
 [importer.html.desc-set-zero-to-disable]
 original=Set 0 to disable.
-translation=Mettre 0 pour désactiver.
+translation=Sätt 0 för att inaktivera.
 
 [importer.html.status-downloading]
 original=Downloading attachment for {{name}}
-translation=Téléchargement d'une pièce jointe pour {{name}}
+translation=Laddar ner bilaga för {{name}}
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -1240,87 +1240,87 @@ translation=Microsoft OneNote
 
 [importer.onenote.method-name]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Microsoft-konto
 
 [importer.onenote.method-desc]
 original=Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.
-translation=Connectez-vous à votre compte Microsoft et importez les blocs-notes synchronisés avec OneDrive. Nécessite une connexion Internet.
+translation=Logga in på ditt Microsoft-konto och importera anteckningsböckerna som är synkroniserade till OneDrive. Kräver internetanslutning.
 
 [importer.onenote.label-id]
 original=OneNote ID
-translation=l'identifiant OneNote
+translation=OneNote-id
 
 [importer.onenote.name-incompatible]
 original=Import incompatible attachments
-translation=Importer les pièces jointes incompatibles
+translation=Importera inkompatibla bilagor
 
 [importer.onenote.desc-incompatible]
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
-translation=Importe les pièces jointes incompatibles qui ne peuvent pas être intégrées dans Obsidian, comme les fichiers .exe.
+translation=Importerar inkompatibla bilagor som inte kan bäddas in i Obsidian, t.ex. .exe-filer.
 
 [importer.onenote.name-account]
 original=Microsoft account
-translation=Compte Microsoft
+translation=Microsoft-konto
 
 [importer.onenote.desc-sign-in]
 original=Sign in to import your OneNote notebooks.
-translation=Connectez-vous pour importer vos blocs-notes OneNote.
+translation=Logga in för att importera dina OneNote-anteckningsböcker.
 
 [importer.onenote.desc-sign-in-organization]
 original=Sign in to import your OneNote notebooks. A work or school account may need your organization to approve access.
-translation=Connectez-vous pour importer vos blocs-notes OneNote. Un compte professionnel ou scolaire peut nécessiter l'approbation de votre organisation.
+translation=Logga in för att importera dina OneNote-anteckningsböcker. Ett arbets- eller skolkonto kan kräva att din organisation godkänner åtkomsten.
 
 [importer.onenote.desc-signed-in]
 original=Signed in as {{name}} ({{email}}).
-translation=Connecté en tant que {{name}} ({{email}}).
+translation=Inloggad som {{name}} ({{email}}).
 
 [importer.onenote.button-sign-in]
 original=Sign in
-translation=Se connecter
+translation=Logga in
 
 [importer.onenote.button-sign-out]
 original=Sign out
-translation=Se déconnecter
+translation=Logga ut
 
 [importer.onenote.button-work-account]
 original=Use work or school access
-translation=Utiliser un accès professionnel ou scolaire
+translation=Använd arbets- eller skolåtkomst
 
 [importer.onenote.msg-sign-in-failed]
 original=An error occurred while trying to sign you in.
-translation=Une erreur est survenue lors de la connexion.
+translation=Ett fel uppstod när du försökte logga in.
 
 [importer.onenote.msg-sign-in-details]
 original=Click here to show error details
-translation=Cliquez ici pour afficher le détail de l'erreur
+translation=Klicka här för att visa felinformation
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
-translation=Connectez-vous pour voir vos blocs-notes OneNote.
+translation=Logga in för att se dina OneNote-anteckningsböcker.
 
 [importer.onenote.msg-please-sign-in]
 original=Please sign in to your Microsoft account.
-translation=Veuillez vous connecter à votre compte Microsoft.
+translation=Logga in på ditt Microsoft-konto.
 
 [importer.onenote.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=Avsnitt att importera
 
 [importer.onenote.desc-sections]
 original=Select a notebook, or sections within it.
-translation=Sélectionnez un bloc-notes, ou des sections de celui-ci.
+translation=Välj en anteckningsbok, eller avsnitt i den.
 
 [importer.onenote.msg-loading-notebooks]
 original=Loading notebooks...
-translation=Chargement des blocs-notes...
+translation=Laddar anteckningsböcker...
 
 [importer.onenote.msg-no-notebooks]
 original=No notebooks found.
-translation=Aucun bloc-notes trouvé.
+translation=Inga anteckningsböcker hittades.
 
 [importer.onenote.msg-scope-refused]
 original=OneNote did not grant this sign-in access to your notebooks. Sign out and sign in again to ask for work or school access, which your organization may need to approve.
-translation=OneNote n'a pas accordé à cette connexion l'accès à vos blocs-notes. Déconnectez-vous puis reconnectez-vous pour demander un accès professionnel ou scolaire, que votre organisation devra peut-être approuver.
+translation=OneNote beviljade inte denna inloggning åtkomst till dina anteckningsböcker. Logga ut och logga in igen för att begära arbets- eller skolåtkomst, vilket din organisation kan behöva godkänna.
 
 [importer.onenote.label-service]
 original=OneNote
@@ -1328,43 +1328,43 @@ translation=OneNote
 
 [importer.onenote.label-subject]
 original=your notebooks
-translation=vos blocs-notes
+translation=dina anteckningsböcker
 
 [importer.onenote.label-credential]
 original=Sign out and back in to try again.
-translation=Déconnectez-vous puis reconnectez-vous pour réessayer.
+translation=Logga ut och logga in igen för att försöka på nytt.
 
 [importer.onenote.status-finding]
 original=Finding notes to import
-translation=Recherche des notes à importer
+translation=Söker efter anteckningar att importera
 
 [importer.onenote.status-finding-in]
 original=Finding notes in {{section}}
-translation=Recherche des notes dans {{section}}
+translation=Söker efter anteckningar i {{section}}
 
 [importer.onenote.status-finding-in-section]
 original=Finding notes in {{section}} (section {{index}} of {{total}})
-translation=Recherche des notes dans {{section}} (section {{index}} sur {{total}})
+translation=Söker efter anteckningar i {{section}} (avsnitt {{index}} av {{total}})
 
 [importer.onenote.status-importing-notes]
 original=Importing {{notes}}
-translation=Importation de {{notes}}
+translation=Importerar {{notes}}
 
 [importer.onenote.status-downloading]
 original=Downloading attachment {{name}}
-translation=Téléchargement de la pièce jointe {{name}}
+translation=Laddar ner bilaga {{name}}
 
 [importer.onenote.msg-too-many-errors]
 original=Microsoft OneNote returned too many consecutive errors.
-translation=Microsoft OneNote a renvoyé trop d'erreurs consécutives.
+translation=Microsoft OneNote returnerade för många fel i rad.
 
 [importer.onenote.label-unknown-page]
 original=<unknown>
-translation=<inconnue>
+translation=<Okänd>
 
 [importer.onenote.reason-too-many-failures]
 original=import was canceled (after too many pages failed to load)
-translation=l'importation a été annulée (après l'échec du chargement de trop de pages)
+translation=importen avbröts (efter att för många sidor misslyckades att ladda)
 
 [importer.onenote.label-ink]
 original={{page}} - Ink.svg
@@ -1372,27 +1372,27 @@ translation={{page}} - Ink.svg
 
 [importer.onenote.label-attachment]
 original=OneNote attachment
-translation=Pièce jointe OneNote
+translation=OneNote-bilaga
 
 [importer.onenote.label-image]
 original=OneNote image
-translation=Image OneNote
+translation=OneNote-bild
 
 [importer.onenote.reason-no-attachment-name]
 original=the attachment did not say what it was called
-translation=la pièce jointe n'indiquait pas son nom
+translation=bilagan angav inte sitt namn
 
 [importer.onenote.reason-no-attachment-url]
 original=the attachment did not include a download URL
-translation=la pièce jointe ne comportait pas d'URL de téléchargement
+translation=bilagan innehöll ingen nedladdnings-URL
 
 [importer.onenote.reason-no-image-url]
 original=the image did not include a download URL
-translation=l'image ne comportait pas d'URL de téléchargement
+translation=bilden innehöll ingen nedladdnings-URL
 
 [importer.onenote-file.name]
 original=Microsoft OneNote (export file)
-translation=Microsoft OneNote (fichier d'export)
+translation=Microsoft OneNote (exportfil)
 
 [importer.onenote-file.option-text]
 original=Microsoft OneNote (.one, .onepkg)
@@ -1400,79 +1400,79 @@ translation=Microsoft OneNote (.one, .onepkg)
 
 [importer.onenote-file.method-name]
 original=File import
-translation=Import de fichiers
+translation=Filimport
 
 [importer.onenote-file.method-desc]
 original=Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.
-translation=Importez à partir des fichiers d'export OneNote (.one, .onepkg) de votre ordinateur. Ne nécessite ni compte ni connexion Internet, et fonctionne pour les blocs-notes qui n'ont jamais été synchronisés.
+translation=Importera med hjälp av OneNote-exportfiler (.one, .onepkg) från din dator. Kräver inget konto eller internetanslutning och fungerar för anteckningsböcker som aldrig har synkroniserats.
 
 [importer.onenote-file.file-type]
 original=OneNote export
-translation=Export OneNote
+translation=OneNote-export
 
 [importer.onenote-file.label-id]
 original=OneNote ID
-translation=ID OneNote
+translation=OneNote-id
 
 [importer.onenote-file.desc-backup-folder]
 original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
-translation=OneNote pour Windows conserve ses propres sauvegardes ; la sélection s'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.
+translation=OneNote för Windows sparar egna säkerhetskopior, och den här dialogrutan öppnas där. Välj de anteckningsböcker eller sektioner du vill ha.
 
 [importer.onenote-file.desc-export]
 original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
-translation=Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.
+translation=I OneNote för Windows, högerklicka på en anteckningsbok och exportera den för att spara en .onepkg-fil, eller exportera en enskild sektion som .one.
 
 [importer.onenote-file.name-sections]
 original=Sections to import
-translation=Sections à importer
+translation=Sektioner att importera
 
 [importer.onenote-file.desc-sections]
 original=Choose which sections to import.
-translation=Choisissez les sections à importer.
+translation=Välj vilka sektioner som ska importeras.
 
 [importer.onenote-file.msg-loading-sections]
 original=Reading sections…
-translation=Lecture des sections…
+translation=Läser sektioner…
 
 [importer.onenote-file.msg-no-sections]
 original=No sections found in this file.
-translation=Aucune section trouvée dans ce fichier.
+translation=Inga sektioner hittades i den här filen.
 
 [importer.onenote-file.msg-pick-file-first]
 original=Choose a OneNote file first.
-translation=Choisissez d'abord un fichier OneNote.
+translation=Välj en OneNote-fil först.
 
 [importer.onenote-file.status-reading-section]
 original=Reading {{name}}
-translation=Lecture de {{name}}
+translation=Läser {{name}}
 
 [importer.onenote-file.status-importing-section]
 original=Importing {{name}} ({{index}} of {{total}})
-translation=Import de {{name}} ({{index}} sur {{total}})
+translation=Importerar {{name}} ({{index}} av {{total}})
 
 [importer.onenote-file.reason-rights-protected]
 original=the file is rights-protected, and can only be opened by an account with permission to it
-translation=le fichier est protégé par des droits et ne peut être ouvert que par un compte qui y est autorisé
+translation=filen är rättighetsskyddad och kan bara öppnas av ett konto med behörighet till den
 
 [importer.onenote-file.reason-unsupported]
 original=the file uses a OneNote format this importer cannot read yet
-translation=le fichier utilise un format OneNote que l'importateur ne sait pas encore lire
+translation=filen använder ett OneNote-format som den här importeraren inte kan läsa ännu
 
 [importer.onenote-file.reason-malformed]
 original=the file does not describe the OneNote structures it claims to
-translation=le fichier ne décrit pas les structures OneNote qu'il annonce
+translation=filen beskriver inte de OneNote-strukturer den utger sig för att innehålla
 
 [importer.onenote-file.reason-too-large]
 original=the file is larger than this importer is willing to expand
-translation=le fichier est plus volumineux que ce que l'importateur accepte de décompresser
+translation=filen är större än vad den här importeraren kan expandera
 
 [importer.onenote-file.reason-no-attachment-data]
 original=the attachment held no data
-translation=la pièce jointe ne contenait aucune donnée
+translation=bilagan innehöll ingen data
 
 [importer.onenote-file.reason-not-representable]
 original=a table inside a table cell has no Markdown equivalent
-translation=un tableau à l'intérieur d'une cellule de tableau n'a pas d'équivalent en Markdown
+translation=en tabell inuti en tabellcell saknar Markdown-motsvarighet
 
 [importer.notion-api.name]
 original=Notion (API)
@@ -1484,47 +1484,47 @@ translation=Notion (API)
 
 [importer.notion-api.method-name]
 original=Notion account (recommended)
-translation=Compte Notion (recommandé)
+translation=Notion-konto (rekommenderad)
 
 [importer.notion-api.method-desc]
 original=Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.
-translation=Importe l'intégralité de votre espace de travail, y compris les bases de données et les formules qui sont converties en bases. Nécessite un jeton d'intégration Notion et une connexion Internet.
+translation=Importerar hela din arbetsyta, inklusive databaser och formler som konverteras till baser. Kräver en Notion-integrationstoken och en internetanslutning.
 
 [importer.notion-api.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion-id
 
 [importer.notion-api.name-token]
 original=Notion API token
-translation=Jeton d'API Notion
+translation=Notion API-token
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Pour obtenir un jeton d'API, créez une connexion dans Notion et donnez-lui accès aux pages de votre espace de travail. 
+translation=Skapa en anslutning i Notion och ge den åtkomst till sidor i din arbetsyta för att få en API-token. 
 
 [importer.notion-api.link-get-token]
 original=Get API token.
-translation=Obtenir un jeton d'API.
+translation=Hämta API-token.
 
 [importer.notion-api.name-pages]
 original=Pages to import
-translation=Pages à importer
+translation=Sidor att importera
 
 [importer.notion-api.desc-pages]
 original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Cliquez sur « Charger » pour voir les données que vous pouvez importer. Si une page ou une base de données manque, vérifiez que votre connexion Notion y a accès.
+translation=Klicka på "Ladda" för att se data du kan importera. Om en sida eller databas saknas, kontrollera att din Notion-anslutning har åtkomst till den.
 
 [importer.notion-api.hint-pages]
 original=Click "Load" to load your Notion pages and databases.
-translation=Cliquez sur « Charger » pour charger vos pages et bases de données Notion.
+translation=Klicka på "Ladda" för att ladda dina Notion-sidor och databaser.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
-translation=Chargement des pages et bases de données...
+translation=Laddar sidor och databaser...
 
 [importer.notion-api.msg-no-pages]
 original=No pages or databases found. Make sure your connection has access to the pages you want to import.
-translation=Aucune page ni base de données trouvée. Vérifiez que votre connexion a accès aux pages que vous voulez importer.
+translation=Inga sidor eller databaser hittades. Kontrollera att din anslutning har åtkomst till sidorna du vill importera.
 
 [importer.notion-api.label-service]
 original=Notion
@@ -1532,371 +1532,371 @@ translation=Notion
 
 [importer.notion-api.label-subject]
 original=your pages
-translation=vos pages
+translation=dina sidor
 
 [importer.notion-api.label-credential]
 original=Check that your token is current and that the connection has access to them.
-translation=Vérifiez que votre jeton est à jour et que la connexion y a accès.
+translation=Kontrollera att din token är aktuell och att anslutningen har åtkomst till dem.
 
 [importer.notion-api.name-formulas]
 original=Convert formulas
-translation=Convertir les formules
+translation=Konvertera formler
 
 [importer.notion-api.desc-formulas]
 original=By default Notion formulas are converted to Obsidian syntax. If any Notion syntax is not supported the static values will be saved instead. Alternatively you can import all formulas as static values.
-translation=Par défaut, les formules Notion sont converties en syntaxe Obsidian. Si une syntaxe Notion n'est pas prise en charge, les valeurs statiques sont enregistrées à la place. Vous pouvez aussi importer toutes les formules comme valeurs statiques.
+translation=Som standard konverteras Notion-formler till Obsidian-syntax. Om någon Notion-syntax inte stöds sparas de statiska värdena istället. Alternativt kan du importera alla formler som statiska värden.
 
 [importer.notion-api.option-formula-hybrid]
 original=Obsidian syntax
-translation=Syntaxe Obsidian
+translation=Obsidian-syntax
 
 [importer.notion-api.option-formula-static]
 original=Static values
-translation=Valeurs statiques
+translation=Statiska värden
 
 [importer.notion-api.name-download-external]
 original=Download external attachments
-translation=Télécharger les pièces jointes externes
+translation=Ladda ner externa bilagor
 
 [importer.notion-api.desc-download-external]
 original=Download external attachments (external URLs) to local files. Notion-hosted files are always downloaded.
-translation=Télécharger les pièces jointes externes (URL externes) dans des fichiers locaux. Les fichiers hébergés par Notion sont toujours téléchargés.
+translation=Ladda ner externa bilagor (externa URL:er) till lokala filer. Filer som lagras på Notion laddas alltid ner.
 
 [importer.notion-api.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=Enkla radbrytningar
 
 [importer.notion-api.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break instead of two. Some blocks (lists, toggles, tables) will still use double line breaks when required for proper Markdown syntax.
-translation=Séparer les blocs Notion par un seul saut de ligne au lieu de deux. Certains blocs (listes, bascules, tableaux) utiliseront tout de même un double saut de ligne lorsque la syntaxe Markdown l'exige.
+translation=Separera Notion-block med bara en radbrytning istället för två. Vissa block (listor, vikbara block, tabeller) använder fortfarande dubbla radbrytningar när det krävs för korrekt Markdown-syntax.
 
 [importer.notion-api.name-cover-property]
 original=Cover property name
-translation=Nom de la propriété de couverture
+translation=Namn på omslagsegenskap
 
 [importer.notion-api.desc-cover-property]
 original=Property name for page cover image in YAML frontmatter. 
-translation=Nom de la propriété de l'image de couverture de la page dans l'en-tête YAML. 
+translation=Namn på egenskap för sidans omslagsbild i YAML frontmatter. 
 
 [importer.notion-api.desc-cover-property-conflicts]
 original=Leave as "cover" if you don't have conflicts with existing properties.
-translation=Laissez « cover » si vous n'avez pas de conflit avec des propriétés existantes.
+translation=Lämna som "cover" om du inte har konflikter med befintliga egenskaper.
 
 [importer.notion-api.name-database-property]
 original=Database property name
-translation=Nom de la propriété de base de données
+translation=Namn på databasegenskap
 
 [importer.notion-api.desc-database-property]
 original=Property name in page frontmatter to link pages to their database .base file (default: "base")
-translation=Nom de la propriété, dans l'en-tête de la page, reliant les pages au fichier .base de leur base de données (par défaut : « base »)
+translation=Egenskapsnamn i sidans frontmatter för att länka sidor till deras databas .base-fil (standard: "base")
 
 [importer.notion-api.name-linked-databases]
 original=Import linked databases
-translation=Importer les bases de données liées
+translation=Importera länkade databaser
 
 [importer.notion-api.desc-linked-databases]
 original=Also import databases that the selected pages link to, so relations become links rather than names. This imports pages you did not select.
-translation=Importer aussi les bases de données auxquelles les pages sélectionnées renvoient, afin que les relations deviennent des liens plutôt que des noms. Cela importe des pages que vous n'avez pas sélectionnées.
+translation=Importera även databaser som de valda sidorna länkar till, så att relationer blir länkar istället för namn. Detta importerar sidor som du inte valde.
 
 [importer.notion-api.msg-token-first]
 original=Please enter your Notion API token first.
-translation=Veuillez d'abord saisir votre jeton d'API Notion.
+translation=Ange din Notion API-token först.
 
 [importer.notion-api.msg-token-missing]
 original=Please enter your Notion API token.
-translation=Veuillez saisir votre jeton d'API Notion.
+translation=Ange din Notion API-token.
 
 [importer.notion-api.msg-load-pages-failed]
 original=Failed to load pages: {{error}}
-translation=Échec du chargement des pages : {{error}}
+translation=Misslyckades att läsa in sidor: {{error}}
 
 [importer.notion-api.msg-found]
 original=Found {{count}} page or database.
-translation={{count}} page ou base de données trouvée.
+translation=Hittade {{count}} sida eller databas.
 
 [importer.notion-api.msg-found_plural]
 original=Found {{count}} pages and databases.
-translation={{count}} pages et bases de données trouvées.
+translation=Hittade {{count}} sidor och databaser.
 
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
-translation=Veuillez sélectionner au moins une page ou base de données à importer.
+translation=Välj minst en sida eller databas att importera.
 
 [importer.notion-api.msg-import-failed]
 original=Import failed: {{error}}
-translation=Échec de l'importation : {{error}}
+translation=Importen misslyckades: {{error}}
 
 [importer.notion-api.status-loading-items]
 original=Loading... ({{items}}, page {{page}})
-translation=Chargement... ({{items}}, page {{page}})
+translation=Läser in... ({{items}}, sida {{page}})
 
 [importer.notion-api.status-connecting]
 original=Connecting to Notion API...
-translation=Connexion à l'API Notion...
+translation=Ansluter till Notion API...
 
 [importer.notion-api.status-fetching]
 original=Fetching page content from Notion...
-translation=Récupération du contenu des pages depuis Notion...
+translation=Hämtar sidinnehåll från Notion...
 
 [importer.notion-api.status-preparing]
 original=Preparing to import {{items}}...
-translation=Préparation de l'importation de {{items}}...
+translation=Förbereder import av {{items}}...
 
 [importer.notion-api.status-importing-items]
 original=Importing {{items}}...
-translation=Importation de {{items}}...
+translation=Importerar {{items}}...
 
 [importer.notion-api.status-importing-item]
 original=Importing item {{index}}/{{total}}...
-translation=Importation de l'élément {{index}}/{{total}}...
+translation=Importerar objekt {{index}}/{{total}}...
 
 [importer.notion-api.status-importing-title]
 original=Importing: {{title}}
-translation=Importation : {{title}}
+translation=Importerar: {{title}}
 
 [importer.notion-api.status-relation-links]
 original=Processing relation links...
-translation=Traitement des liens de relation...
+translation=Bearbetar relationslänkar...
 
 [importer.notion-api.status-mention-links]
 original=Processing mention links...
-translation=Traitement des liens de mention...
+translation=Bearbetar omnämnandelänkar...
 
 [importer.notion-api.status-synced-blocks]
 original=Processing synced block child references...
-translation=Traitement des références enfants des blocs synchronisés...
+translation=Bearbetar synkroniserade blocks underreferenser...
 
 [importer.notion-api.status-cleaning-ids]
 original=Cleaning up notion-id attributes...
-translation=Nettoyage des attributs notion-id...
+translation=Rensar notion-id-attribut...
 
 [importer.notion-api.status-done]
 original=Import completed successfully!
-translation=Importation terminée avec succès !
+translation=Importen slutfördes!
 
 [importer.notion-api.status-replacing-relations]
 original=Replacing {{placeholders}}...
-translation=Remplacement de {{placeholders}}...
+translation=Ersätter {{placeholders}}...
 
 [importer.notion-api.status-replacing-relation-links]
 original=Replacing relation placeholders with wiki links...
-translation=Remplacement des marqueurs de relation par des liens wiki...
+translation=Ersätter relationsplatshållare med wikilänkar...
 
 [importer.notion-api.status-importing-linked-databases]
 original=Importing {{databases}}...
-translation=Importation de {{databases}}...
+translation=Importerar {{databases}}...
 
 [importer.notion-api.status-importing-unimported]
 original=Importing unimported database {{id}}...
-translation=Importation de la base de données non importée {{id}}...
+translation=Importerar oimporterad databas {{id}}...
 
 [importer.notion-api.status-replacing-mentions]
 original=Replacing mention placeholders...
-translation=Remplacement des marqueurs de mention...
+translation=Ersätter omnämnandeplatshållare...
 
 [importer.notion-api.status-replaced-mentions]
 original=Replaced {{links}} in {{files}}.
-translation={{links}} remplacés dans {{files}}.
+translation=Ersatte {{links}} i {{files}}.
 
 [importer.notion-api.status-replacing-synced]
 original=Replacing synced block child references...
-translation=Remplacement des références enfants des blocs synchronisés...
+translation=Ersätter synkroniserade blocks underreferenser...
 
 [importer.notion-api.status-replaced-synced]
 original=Replaced {{references}} in {{files}} (imported {{imported}}).
-translation={{references}} remplacées dans {{files}} ({{imported}} importés).
+translation=Ersatte {{references}} i {{files}} (importerade {{imported}}).
 
 [importer.notion-api.status-downloading-attachment]
 original=Downloading attachment: {{name}}...
-translation=Téléchargement de la pièce jointe : {{name}}...
+translation=Laddar ner bilaga: {{name}}...
 
 [importer.notion-api.status-rate-limited]
 original=Rate limited. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Débit limité. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=Hastighetsbegränsad. Väntar {{seconds}} sekunder innan nytt försök ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-retrying]
 original=Notion returned {{status}}. Waiting {{seconds}} seconds before retry ({{attempt}}/{{total}})...
-translation=Notion a renvoyé {{status}}. Attente de {{seconds}} secondes avant de réessayer ({{attempt}}/{{total}})...
+translation=Notion returnerade {{status}}. Väntar {{seconds}} sekunder innan nytt försök ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-retrying-attachment]
 original={{name}}: {{failure}}. Retrying in {{seconds}} seconds ({{attempt}}/{{total}})...
-translation={{name}} : {{failure}}. Nouvelle tentative dans {{seconds}} secondes ({{attempt}}/{{total}})...
+translation={{name}}: {{failure}}. Försöker igen om {{seconds}} sekunder ({{attempt}}/{{total}})...
 
 [importer.notion-api.status-processing-data-source]
 original=Processing database from data source: {{id}}...
-translation=Traitement de la base de données de la source : {{id}}...
+translation=Bearbetar databas från datakälla: {{id}}...
 
 [importer.notion-api.status-processing-database]
 original=Processing database: {{title}}...
-translation=Traitement de la base de données : {{title}}...
+translation=Bearbetar databas: {{title}}...
 
 [importer.notion-api.status-found-pages]
 original=Found {{pages}} in database {{title}}
-translation={{pages}} dans la base de données {{title}}
+translation=Hittade {{pages}} i databasen {{title}}
 
 [importer.notion-api.status-found-templates]
 original=Found {{templates}} in database {{title}}
-translation={{templates}} dans la base de données {{title}}
+translation=Hittade {{templates}} i databasen {{title}}
 
 [importer.notion-api.status-importing-template]
 original=Importing template: {{name}}...
-translation=Importation du modèle : {{name}}...
+translation=Importerar mall: {{name}}...
 
 [importer.notion-api.label-import]
 original=Notion API import
-translation=Importation via l'API Notion
+translation=Notion API-import
 
 [importer.notion-api.label-item]
 original=Import item {{id}}
-translation=Importer l'élément {{id}}
+translation=Importera objekt {{id}}
 
 [importer.notion-api.label-page]
 original=Page {{id}}
-translation=Page {{id}}
+translation=Sida {{id}}
 
 [importer.notion-api.label-page-with-title]
 original=Page: {{title}} ({{id}})
-translation=Page : {{title}} ({{id}})
+translation=Sida: {{title}} ({{id}})
 
 [importer.notion-api.label-relation-page]
 original=Relation page {{id}}
-translation=Page de relation {{id}}
+translation=Relationssida {{id}}
 
 [importer.notion-api.label-database-with-id]
 original=Database: {{title}} ({{id}})
-translation=Base de données : {{title}} ({{id}})
+translation=Databas: {{title}} ({{id}})
 
 [importer.notion-api.label-mention-file]
 original=Mention file {{path}}
-translation=Fichier de mention {{path}}
+translation=Omnämnd fil {{path}}
 
 [importer.notion-api.label-synced-block-file]
 original=Synced block file {{path}}
-translation=Fichier de bloc synchronisé {{path}}
+translation=Synkroniserad block-fil {{path}}
 
 [importer.notion-api.label-attachment]
 original=Attachment: {{name}}
-translation=Pièce jointe : {{name}}
+translation=Bilaga: {{name}}
 
 [importer.notion-api.label-child-page]
 original=Child page: {{title}}
-translation=Page enfant : {{title}}
+translation=Undersida: {{title}}
 
 [importer.notion-api.label-synced-block]
 original=Synced block: {{name}}
-translation=Bloc synchronisé : {{name}}
+translation=Synkroniserat block: {{name}}
 
 [importer.notion-api.label-attachment-image]
 original=Image attachment
-translation=Pièce jointe image
+translation=Bildbilaga
 
 [importer.notion-api.label-attachment-video]
 original=Video attachment
-translation=Pièce jointe vidéo
+translation=Videobilaga
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
-translation=Pièce jointe fichier
+translation=Filbilaga
 
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
-translation=Pièce jointe PDF
+translation=PDF-bilaga
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
-translation=Récupération des enfants {{context}} {{id}}
+translation=Hämta underordnade för {{context}} {{id}}
 
 [importer.notion-api.block-paragraph]
 original=paragraph
-translation=du paragraphe
+translation=Stycke
 
 [importer.notion-api.block-bulleted-list-item]
 original=bulleted list item
-translation=de l'élément de liste à puces
+translation=punktlisteobjekt
 
 [importer.notion-api.block-numbered-list-item]
 original=numbered list item
-translation=de l'élément de liste numérotée
+translation=numrerat listeobjekt
 
 [importer.notion-api.block-todo-item]
 original=to-do item
-translation=de la tâche
+translation=att göra-objekt
 
 [importer.notion-api.block-quote]
 original=quote block
-translation=du bloc de citation
+translation=citatblock
 
 [importer.notion-api.block-callout]
 original=callout block
-translation=du bloc d'encadré
+translation=notisblock
 
 [importer.notion-api.block-toggle]
 original=toggle block
-translation=du bloc bascule
+translation=växlingsblock
 
 [importer.notion-api.block-toggleable-heading]
 original=toggleable heading
-translation=du titre bascule
+translation=växlingsbar rubrik
 
 [importer.notion-api.block-column]
 original=column
-translation=de la colonne
+translation=Kolumn
 
 [importer.notion-api.block-column-list]
 original=column list
-translation=de la liste de colonnes
+translation=kolumnlista
 
 [importer.notion-api.block-table]
 original=table
-translation=du tableau
+translation=Tabell
 
 [importer.notion-api.block-generic]
 original=block
-translation=du bloc
+translation=block
 
 [importer.notion-api.label-meeting-notes]
 original=Meeting notes: {{name}}
-translation=Notes de réunion : {{name}}
+translation=Mötesanteckningar: {{name}}
 
 [importer.notion-api.label-meeting-notes-section]
 original=Meeting notes: {{name}} ({{section}})
-translation=Notes de réunion : {{name}} ({{section}})
+translation=Mötesanteckningar: {{name}} ({{section}})
 
 [importer.notion-api.label-untitled-meeting]
 original=Meeting notes {{id}}
-translation=Notes de réunion {{id}}
+translation=Mötesanteckningar {{id}}
 
 [importer.notion-api.section-summary]
 original=summary
-translation=résumé
+translation=Sammanfattning
 
 [importer.notion-api.section-notes]
 original=notes
-translation=notes
+translation=anteckningar
 
 [importer.notion-api.section-transcript]
 original=transcript
-translation=transcription
+translation=transkription
 
 [importer.notion-api.label-fetch-children-block]
 original=Fetch children for block {{id}}
-translation=Récupération des enfants du bloc {{id}}
+translation=Hämta underordnade för block {{id}}
 
 [importer.notion-api.reason-not-in-tree]
 original=Item not found in tree
-translation=Élément introuvable dans l'arborescence
+translation=Objektet hittades inte i trädet
 
 [importer.notion-api.reason-unknown-type]
 original=Unknown type: {{type}}
-translation=Type inconnu : {{type}}
+translation=Okänd typ: {{type}}
 
 [importer.notion-api.reason-earlier-import]
 original=an earlier import had already written it
-translation=un import précédent l'avait déjà écrit
+translation=en tidigare import hade redan skrivit den
 
 [importer.notion-api.reason-attachment-exists]
 original={{path}} is already in the vault, the same size (incremental import)
-translation={{path}} est déjà dans le coffre, de la même taille (import incrémental)
+translation={{path}} finns redan i valvet med samma storlek (inkrementell import)
 
 [importer.notion-api.reason-http-status]
 original=HTTP {{status}}
@@ -1904,19 +1904,19 @@ translation=HTTP {{status}}
 
 [importer.notion-api.reason-meeting-notes-pending]
 original=Notion has not finished generating them ({{status}})
-translation=Notion n'a pas fini de les générer ({{status}})
+translation=Notion har inte slutfört genereringen av dem ({{status}})
 
 [importer.notion-api.reason-rate-limit-gave-up]
 original=rate limited, and gave up after {{retries}} retries
-translation=débit limité, abandon après {{retries}} tentatives
+translation=hastighetsbegränsad, och gav upp efter {{retries}} försök
 
 [importer.notion-api.reason-gave-up]
 original={{reason}}, and gave up after {{retries}} retries
-translation={{reason}}, abandon après {{retries}} tentatives
+translation={{reason}}, och gav upp efter {{retries}} försök
 
 [importer.notion-api.reason-kept-link]
 original={{reason}}; kept the link to {{url}}
-translation={{reason}} ; lien conservé vers {{url}}
+translation={{reason}}; behöll länken till {{url}}
 
 [importer.notion.name]
 original=Notion
@@ -1928,63 +1928,63 @@ translation=Notion (.zip)
 
 [importer.notion.method-name]
 original=File import
-translation=Import de fichiers
+translation=Filimport
 
 [importer.notion.method-desc]
 original=Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.
-translation=Importe à partir d'un fichier d'export Notion (.zip). Ne nécessite ni jeton d'API ni connexion Internet, mais ne préserve pas les bases de données.
+translation=Importerar med en Notion-exportfil (.zip). Kräver ingen API-nyckel eller internetanslutning, men bevarar inte databaser.
 
 [importer.notion.file-type]
 original=Exported Notion
-translation=Export Notion
+translation=Exporterad Notion
 
 [importer.notion.label-id]
 original=Notion ID
-translation=l'identifiant Notion
+translation=Notion ID
 
 [importer.notion.desc-export]
 original=Export your workspace in HTML format, you will receive a zip file.
-translation=Exportez votre espace de travail au format HTML, vous obtiendrez un fichier zip.
+translation=Exportera din arbetsyta i HTML-format, du kommer att få en zip-fil.
 
 [importer.notion.desc-files]
 original=Pick the zip file Notion sent you.
-translation=Choisissez le fichier zip que Notion vous a envoyé.
+translation=Välj zip-filen som Notion skickade till dig.
 
 [importer.notion.name-subfolders]
 original=Save parent pages in subfolders
-translation=Enregistrer les pages parentes dans des sous-dossiers
+translation=Spara överordnade sidor i undermappar
 
 [importer.notion.desc-subfolders]
 original=Places the parent database pages in the same folder as the nested content.
-translation=Place les pages parentes de la base de données dans le même dossier que le contenu imbriqué.
+translation=Placerar de överordnade databassidorna i samma mapp som det nästlade innehållet.
 
 [importer.notion.name-single-line-breaks]
 original=Single line breaks
-translation=Sauts de ligne simples
+translation=Enkla radbrytningar
 
 [importer.notion.desc-single-line-breaks]
 original=Separate Notion blocks with only one line break (default is 2).
-translation=Séparer les blocs Notion par un seul saut de ligne (2 par défaut).
+translation=Separera Notion-block med bara en radbrytning (standard är 2).
 
 [importer.notion.status-looking]
 original=Looking for files to import
-translation=Recherche des fichiers à importer
+translation=Letar efter filer att importera
 
 [importer.notion.status-resolving]
 original=Resolving links and de-duplicating files
-translation=Résolution des liens et suppression des doublons
+translation=Löser upp länkar och avduplicerar filer
 
 [importer.notion.status-starting]
 original=Starting import
-translation=Démarrage de l'importation
+translation=Startar import
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
-translation=c'est un export Markdown ; exportez plutôt votre espace de travail Notion en HTML
+translation=det är en Markdown-export; exportera din Notion-arbetsyta som HTML istället
 
 [importer.notion.reason-no-page-body]
 original=page body was not found
-translation=le corps de la page est introuvable
+translation=sidans brödtext hittades inte
 
 [importer.roam-json.name]
 original=Roam Research
@@ -2000,55 +2000,55 @@ translation=Roam (.json)
 
 [importer.roam-json.label-id]
 original=Roam UID
-translation=l'UID Roam
+translation=Roam UID
 
 [importer.roam-json.desc-export]
 original=Export your data in JSON format.
-translation=Exportez vos données au format JSON.
+translation=Exportera dina data i JSON-format.
 
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
-translation=Choisissez le fichier JSON de votre export Roam.
+translation=Välj JSON-filen från din Roam-export.
 
 [importer.roam-json.name-download-attachments]
 original=Download all attachments
-translation=Télécharger toutes les pièces jointes
+translation=Ladda ner alla bilagor
 
 [importer.roam-json.desc-download-attachments]
 original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Si cette option est activée, toutes les pièces jointes envoyées vers Roam seront téléchargées dans votre dossier de pièces jointes.
+translation=Om aktiverad kommer alla bilagor uppladdade till Roam att laddas ner till din bilagemapp.
 
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
-translation=Ajouter les dates de création et de modification en YAML
+translation=Lägg till YAML skapad/uppdaterad-datum
 
 [importer.roam-json.desc-date-properties]
 original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Si cette option est activée, les notes auront les dates de création et de modification de Roam ajoutées comme propriétés.
+translation=Om aktiverad kommer anteckningar att få skapattid och redigeringstid från Roam tillagda som egenskaper.
 
 [importer.roam-json.name-title-property]
 original=Add YAML title
-translation=Ajouter le titre en YAML
+translation=Lägg till YAML-titel
 
 [importer.roam-json.desc-title-property]
 original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Si cette option est activée, les notes auront leur titre complet ajouté comme propriété (indépendamment des caractères interdits dans les noms de fichiers).
+translation=Om aktiverad kommer anteckningar att få den fullständiga titeln tillagd som en egenskap (oavsett otillåtna filnamntecken).
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
-translation=Le titre est vide
+translation=Titeln är tom
 
 [importer.roam-json.reason-unexpected-extension]
 original=Unexpected file extension
-translation=Extension de fichier inattendue
+translation=Oväntad filändelse
 
 [importer.roam-json.reason-file-exists]
 original=File already exists
-translation=Le fichier existe déjà
+translation=Filen finns redan
 
 [importer.textbundle.name]
 original=Textbundle files
-translation=Fichiers Textbundle
+translation=Textbundle-filer
 
 [importer.textbundle.option-text]
 original=Textbundle (.textbundle, .textpack)
@@ -2060,19 +2060,19 @@ translation=Textbundle
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
-translation=En raison de limitations de la plateforme, seuls les fichiers textpack et zip peuvent être importés depuis cet appareil. Ouvrez votre coffre sur un Mac pour importer des fichiers textbundle.
+translation=På grund av plattformsbegränsningar kan bara textpack- och zip-filer importeras från den här enheten. Öppna ditt valv på en Mac för att importera Textbundle-filer.
 
 [importer.textbundle.reason-no-markdown]
 original=The textbundle does not contain markdown
-translation=Le textbundle ne contient pas de Markdown
+translation=Textbundle-filen innehåller inte Markdown
 
 [importer.textbundle.reason-not-media]
 original=the file is not a media or markdown file.
-translation=le fichier n'est ni un média ni un fichier Markdown.
+translation=filen är inte en medie- eller Markdown-fil.
 
 [importer.textbundle.reason-already-exists]
 original=the file already exists.
-translation=le fichier existe déjà.
+translation=filen finns redan.
 
 [importer.tomboy.name]
 original=Tomboy/Gnote
@@ -2088,44 +2088,44 @@ translation=Tomboy/Gnote
 
 [importer.tomboy.label-id]
 original=Tomboy ID
-translation=l'identifiant Tomboy
+translation=Tomboy ID
 
 [importer.tomboy.desc-files-mac]
 original=Tomboy notes are typically found in: ~/Library/Application Support/Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : ~/Library/Application Support/Tomboy
+translation=Tomboy-anteckningar finns vanligtvis i: ~/Library/Application Support/Tomboy
 
 [importer.tomboy.desc-files-windows]
 original=Tomboy notes are typically found in: %APPDATA%\\Tomboy
-translation=Les notes Tomboy se trouvent généralement dans : %APPDATA%\\\\Tomboy
+translation=Tomboy-anteckningar finns vanligtvis i: %APPDATA%\\Tomboy
 
 [importer.tomboy.desc-files-linux]
 original=Tomboy notes are typically found in: ~/.local/share/tomboy - or GNote: ~/.local/share/gnote
-translation=Les notes Tomboy se trouvent généralement dans : ~/.local/share/tomboy - ou GNote : ~/.local/share/gnote
+translation=Tomboy-anteckningar finns vanligtvis i: ~/.local/share/tomboy - eller GNote: ~/.local/share/gnote
 
 [importer.tomboy.name-todo]
 original=Convert TODO lists to checkboxes
-translation=Convertir les listes TODO en cases à cocher
+translation=Konvertera TODO-listor till kryssrutor
 
 [importer.tomboy.desc-todo]
 original=When enabled, lists in notes with "TODO" in the title will be converted to task lists with checkboxes. Strikethrough items will be marked as completed.
-translation=Lorsque cette option est activée, les listes des notes dont le titre contient « TODO » sont converties en listes de tâches avec cases à cocher. Les éléments barrés sont marqués comme terminés.
+translation=När aktiverad kommer listor i anteckningar med "TODO" i titeln att konverteras till uppgiftslistor med kryssrutor. Objekt med genomstrykning markeras som slutförda.
 
 [importer.tomboy.name-keep-title]
 original=Keep title in Markdown
-translation=Conserver le titre dans le Markdown
+translation=Behåll titel i Markdown
 
 [importer.tomboy.desc-keep-title]
 original=Choose whether to keep the note title in the Markdown content. The automatic option keeps titles only when special characters are lost in filename conversion.
-translation=Choisissez si le titre de la note doit être conservé dans le contenu Markdown. L'option automatique ne conserve les titres que lorsque des caractères spéciaux sont perdus lors de la conversion du nom de fichier.
+translation=Välj om anteckningens titel ska behållas i Markdown-innehållet. Alternativet Automatisk behåller titlar bara när specialtecken förloras vid konvertering till filnamn.
 
 [importer.tomboy.option-automatic]
 original=Automatic
-translation=Automatique
+translation=Automatisk
 
 [importer.tomboy.option-keep-titles]
 original=Keep titles
-translation=Conserver les titres
+translation=Behåll titlar
 
 [importer.tomboy.option-filename-only]
 original=Filename only
-translation=Nom de fichier seulement
+translation=Endast filnamn
