@@ -49,7 +49,6 @@ export interface TableRow {
 
 export interface Table {
 	kind: 'table';
-	bordersVisible: boolean;
 	rows: TableRow[];
 }
 

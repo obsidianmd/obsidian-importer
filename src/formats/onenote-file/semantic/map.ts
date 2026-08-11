@@ -378,11 +378,7 @@ function buildTable(
 	path: Set<string>,
 ): Table {
 	const { space } = context;
-	const table: Table = {
-		kind: 'table',
-		bordersVisible: readBoolean(item, Property.tableBordersVisible) ?? false,
-		rows: [],
-	};
+	const table: Table = { kind: 'table', rows: [] };
 
 	for (const rowId of readReferences(item, Property.elementChildNodes)) {
 		const rowItem = space.getObject(rowId);

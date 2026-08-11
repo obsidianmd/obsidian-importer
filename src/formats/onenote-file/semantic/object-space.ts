@@ -17,7 +17,6 @@ export interface MaterializedObjectSpace {
 	revision: RevisionManifest;
 	getObject(id: ExtendedGuid): RevisionStoreObject | undefined;
 	getRoot(role: number): RevisionStoreObject | undefined;
-	objects: RevisionStoreObject[];
 }
 
 export function spaceKey(id: ExtendedGuid, contextId?: ExtendedGuid): string {
@@ -56,13 +55,12 @@ export class ObjectSpaceMaterializer {
 	}
 
 	findCurrentSpaceByRootJcid(jcid: number): MaterializedObjectSpace | undefined {
-		for (const [key, revisions] of this.spaces) {
+		for (const revisions of this.spaces.values()) {
 			const id = revisions[0].objectSpaceId!;
 			if (id.identifier === HEADER_CELL_OBJECT_SPACE_ID && id.value === 1) continue;
 
 			const space = this.tryGetSpace(id);
 			if (space?.getRoot(1)?.jcid === jcid) return space;
-			void key;
 		}
 
 		return undefined;
@@ -109,7 +107,6 @@ export class ObjectSpaceMaterializer {
 
 		const space: MaterializedObjectSpace = {
 			revision: current,
-			objects: [...objects.values()],
 			getObject: (objectId: ExtendedGuid) => objects.get(keyOf(objectId)),
 			getRoot: (role: number) => {
 				const rootId = roots.get(role);

@@ -23,18 +23,13 @@ export type OnexKind =
 	/** A compound file whose layout this importer does not recognise. */
 	| 'unrecognised';
 
-export interface OnexInspection {
-	kind: OnexKind;
-	streams: string[];
-}
-
 export function isCompoundFile(data: Uint8Array): boolean {
 	if (data.length < SIGNATURE.length) return false;
 	return SIGNATURE.every((byte, index) => data[index] === byte);
 }
 
-/** Names every directory entry, following the FAT chain that holds them. */
-export function inspectOnex(data: Uint8Array): OnexInspection {
+/** Walks the directory, following the FAT chain that holds it, to classify the payload. */
+export function inspectOnex(data: Uint8Array): OnexKind {
 	if (!isCompoundFile(data)) {
 		throw new OneNoteFormatError('ONENOTE_ONEX_SIGNATURE', 'The .onex file is not an OLE compound file.');
 	}
@@ -74,7 +69,5 @@ export function inspectOnex(data: Uint8Array): OnexInspection {
 	}
 
 	const protectedBy = ['EncryptedPackage', 'DRMEncryptedTransform', 'DRMEncryptedDataSpace'];
-	const kind: OnexKind = streams.some(name => protectedBy.includes(name)) ? 'rights-protected' : 'unrecognised';
-
-	return { kind, streams };
+	return streams.some(name => protectedBy.includes(name)) ? 'rights-protected' : 'unrecognised';
 }

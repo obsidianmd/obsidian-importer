@@ -83,7 +83,6 @@ test('a list item wins over a heading style on the same paragraph', async () => 
 test('a table gets a header row because GFM has no table without one', async () => {
 	const markdown = await render({
 		kind: 'table',
-		bordersVisible: true,
 		rows: [
 			{ cells: [{ children: [para('A')] }, { children: [para('B')] }] },
 			{ cells: [{ children: [para('1')] }, { children: [para('2')] }] },
@@ -96,7 +95,6 @@ test('a table gets a header row because GFM has no table without one', async () 
 test('a ragged table is padded to its widest row', async () => {
 	const markdown = await render({
 		kind: 'table',
-		bordersVisible: false,
 		rows: [
 			{ cells: [{ children: [para('A')] }] },
 			{ cells: [{ children: [para('1')] }, { children: [para('2')] }, { children: [para('3')] }] },
@@ -109,7 +107,6 @@ test('a ragged table is padded to its widest row', async () => {
 test('a pipe inside a cell is escaped rather than ending the cell', async () => {
 	const markdown = await render({
 		kind: 'table',
-		bordersVisible: false,
 		rows: [{ cells: [{ children: [para('a | b')] }] }],
 	});
 
@@ -117,7 +114,7 @@ test('a pipe inside a cell is escaped rather than ending the cell', async () => 
 });
 
 test('a table with no rows produces nothing at all', async () => {
-	assert.equal(await render({ kind: 'table', bordersVisible: false, rows: [] }), '');
+	assert.equal(await render({ kind: 'table', rows: [] }), '');
 });
 
 test('an image embeds and an embedded file links', async () => {

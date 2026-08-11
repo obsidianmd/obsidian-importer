@@ -11,63 +11,39 @@ import nodeFs from 'node:fs';
 import nodeOs from 'node:os';
 import nodePath from 'node:path';
 
-import { readCabinet } from '../../src/formats/onenote-file/cabinet/cabinet';
-import { readRevisionStore } from '../../src/formats/onenote-file/onestore/revision-store';
-import { mapSection } from '../../src/formats/onenote-file/semantic/map';
 import { convertPage } from '../../src/formats/onenote-file/convert';
-import type { Section } from '../../src/formats/onenote-file/semantic/content';
-import { Fixture, expectTree, fixtures } from '../helpers';
+import { readSections } from '../../src/formats/onenote-file/package';
+import { availableFileName, sanitizeFileName } from '../../src/util';
+import { Fixture, expectedFor, expectTree, fixtures } from '../helpers';
 
 const HERE = __dirname;
-const LIMITS = { maxExpandedBytes: 4 * 1024 * 1024 * 1024, maxEntryBytes: 512 * 1024 * 1024, maxEntries: 4096 };
-
-/** Enough to keep a title off the filesystem's toes; the importer does the real thing. */
-function safeName(name: string, fallback: string): string {
-	const trimmed = name.replace(/[\\/:*?"<>|#^[\]]/g, '-').replace(/\s+/g, ' ').trim();
-	return trimmed === '' ? fallback : trimmed.slice(0, 80);
-}
-
-function sectionsOf(fixture: Fixture): { name: string, section: Section }[] {
-	const data = new Uint8Array(nodeFs.readFileSync(fixture.path));
-
-	if (fixture.name.toLowerCase().endsWith('.onepkg')) {
-		return readCabinet(data, LIMITS)
-			.filter(entry => entry.name.toLowerCase().endsWith('.one'))
-			.map(entry => ({
-				name: nodePath.basename(entry.name).replace(/\.one$/i, ''),
-				section: mapSection(readRevisionStore(entry.data)),
-			}));
-	}
-
-	return [{ name: fixture.name.replace(/\.one$/i, ''), section: mapSection(readRevisionStore(data)) }];
-}
 
 async function writeSections(fixture: Fixture, into: string): Promise<void> {
-	for (const { name, section } of sectionsOf(fixture)) {
-		const sectionDir = nodePath.join(into, safeName(section.name || name, 'Section'));
+	const data = new Uint8Array(nodeFs.readFileSync(fixture.path));
+
+	for (const entry of readSections(data, fixture.name)) {
+		const section = entry.read();
+		const sectionDir = nodePath.join(into, sanitizeFileName(section.name || entry.title));
 		nodeFs.mkdirSync(sectionDir, { recursive: true });
 
-		const used = new Map<string, number>();
+		const taken = new Set<string>();
 
 		for (const page of section.pages) {
 			const attachments = nodePath.join(sectionDir, 'attachments');
 
 			const converted = await convertPage(page, {
-				saveAttachment: async (data, suggested) => {
-					const base = safeName(suggested, 'attachment');
-					const seen = used.get(base) ?? 0;
-					used.set(base, seen + 1);
+				saveAttachment: async (bytes, suggested) => {
+					const fileName = availableFileName(sanitizeFileName(suggested), candidate => taken.has(candidate));
+					taken.add(fileName);
 
-					const fileName = seen === 0 ? base : `${base}-${seen}`;
 					nodeFs.mkdirSync(attachments, { recursive: true });
-					nodeFs.writeFileSync(nodePath.join(attachments, fileName), data);
+					nodeFs.writeFileSync(nodePath.join(attachments, fileName), bytes);
 					return { path: `attachments/${fileName}`, name: fileName };
 				},
 			});
 
-			const title = safeName(page.title, 'Untitled');
-			const seen = used.get(`page:${title}`) ?? 0;
-			used.set(`page:${title}`, seen + 1);
+			const noteName = availableFileName(`${sanitizeFileName(page.title)}.md`, candidate => taken.has(candidate));
+			taken.add(noteName);
 
 			const front = [
 				'---',
@@ -79,9 +55,7 @@ async function writeSections(fixture: Fixture, into: string): Promise<void> {
 				'',
 			].join('\n');
 
-			nodeFs.writeFileSync(
-				nodePath.join(sectionDir, seen === 0 ? `${title}.md` : `${title}-${seen}.md`),
-				front + converted.markdown + '\n');
+			nodeFs.writeFileSync(nodePath.join(sectionDir, noteName), front + converted.markdown + '\n');
 		}
 	}
 }
@@ -100,7 +74,7 @@ for (const fixture of inputs) {
 
 		try {
 			await writeSections(fixture, produced);
-			expectTree(produced, nodePath.join(nodePath.dirname(fixture.path), 'expected', fixture.name), fixture.name);
+			expectTree(produced, expectedFor(fixture, fixture.name), fixture.name);
 		}
 		finally {
 			nodeFs.rmSync(produced, { recursive: true, force: true });

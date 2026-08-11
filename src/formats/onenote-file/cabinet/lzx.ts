@@ -361,8 +361,17 @@ class LzxDecoder {
 			}
 
 			const source = this.outputOffset - matchOffset;
-			for (let index = 0; index < matchLength; index++) {
-				this.decoded[this.outputOffset++] = this.decoded[source + index];
+
+			// An overlapping match is how LZX repeats a run, so it has to be
+			// copied a byte at a time; anything else is one move.
+			if (matchOffset >= matchLength && matchLength >= 16) {
+				this.decoded.copyWithin(this.outputOffset, source, source + matchLength);
+				this.outputOffset += matchLength;
+			}
+			else {
+				for (let index = 0; index < matchLength; index++) {
+					this.decoded[this.outputOffset++] = this.decoded[source + index];
+				}
 			}
 			this.blockBytesRemaining -= matchLength;
 		}

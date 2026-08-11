@@ -1402,32 +1402,20 @@ translation=
 original=Importing {{name}} ({{index}} of {{total}})
 translation=
 
-[importer.onenote-file.label-untitled-page]
-original=Untitled
-translation=
-
-[importer.onenote-file.label-untitled-section]
-original=Section
-translation=
-
-[importer.onenote-file.label-attachment]
-original=OneNote attachment
-translation=
-
 [importer.onenote-file.reason-rights-protected]
 original=the file is rights-protected, and can only be opened by an account with permission to it
 translation=
 
-[importer.onenote-file.reason-unsupported-container]
-original=the file is a compound document this importer does not recognize
+[importer.onenote-file.reason-unsupported]
+original=the file uses a OneNote format this importer cannot read yet
 translation=
 
-[importer.onenote-file.reason-modern-packaging]
-original=the section uses the newer OneDrive packaging, which this importer cannot read yet
+[importer.onenote-file.reason-malformed]
+original=the file does not describe the OneNote structures it claims to
 translation=
 
-[importer.onenote-file.reason-unreadable-section]
-original=the section could not be read ({{code}})
+[importer.onenote-file.reason-too-large]
+original=the file is larger than this importer is willing to expand
 translation=
 
 [importer.onenote-file.reason-no-attachment-data]

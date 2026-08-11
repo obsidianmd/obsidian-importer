@@ -10,7 +10,7 @@
  */
 
 import { OneNoteFormatError } from '../errors';
-import { ensureRange, readUInt16, readUInt32 } from './binary';
+import { readUInt16, readUInt32 } from './binary';
 import { ExtendedGuid } from './file-header';
 import { ReaderOptions } from './options';
 
@@ -280,8 +280,6 @@ export function readPropertySet(
 	options: ReaderOptions,
 	absoluteOffset: number,
 ): PropertySet {
-	ensureRange(data, 0, 0);
-
 	const cursor = new Cursor(data, globalIds, options, absoluteOffset);
 	const oids = cursor.readReferenceStream();
 	let osids = EMPTY_STREAM;

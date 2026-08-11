@@ -1,4 +1,4 @@
-import { Notice, TFolder, normalizePath } from 'obsidian';
+import { Notice, TFile, TFolder, normalizePath } from 'obsidian';
 import { helpUrl } from '../constants';
 import { PickedFile } from '../filesystem';
 import { FormatImporter } from '../format-importer';
@@ -6,25 +6,28 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
-import { sanitizeFileName } from '../util';
-import { CabinetEntry, DEFAULT_CABINET_LIMITS, readCabinet, readCabinetIndex } from './onenote-file/cabinet/cabinet';
+import { describeReason, sanitizeFileName, uint8arrayToArrayBuffer } from '../util';
 import { convertPage } from './onenote-file/convert';
-import { OneNoteFormatError } from './onenote-file/errors';
-import { inspectOnex, isCompoundFile } from './onenote-file/onex';
-import { readRevisionStore } from './onenote-file/onestore/revision-store';
-import { Section } from './onenote-file/semantic/content';
-import { mapSection } from './onenote-file/semantic/map';
+import { OneNoteErrorKind, OneNoteFormatError } from './onenote-file/errors';
+import { isPackage, listSections, readSections } from './onenote-file/package';
+import { Page, Section } from './onenote-file/semantic/content';
 
 const HELP_PERMALINK = 'import/onenote';
 
 interface SectionNode extends ViewableNode<SectionNode> {
 	/** Which picked file this section came from. */
 	file: PickedFile;
-	/** The entry name inside a package, or undefined when the file is one section. */
+	/** The entry name inside a package; a whole file has none. */
 	entryName?: string;
-	selected: boolean;
-	disabled: boolean;
 }
+
+/** One reason per kind, so a new error code cannot arrive without a sentence. */
+const REASONS: Record<OneNoteErrorKind, () => string> = {
+	unsupported: () => i18n.importer.onenoteFile.reasonUnsupported(),
+	protected: () => i18n.importer.onenoteFile.reasonRightsProtected(),
+	malformed: () => i18n.importer.onenoteFile.reasonMalformed(),
+	limit: () => i18n.importer.onenoteFile.reasonTooLarge(),
+};
 
 /**
  * Imports OneNote's own export files, without a Microsoft account.
@@ -54,6 +57,12 @@ export class OneNoteFileImporter extends FormatImporter {
 		this.drawSectionPicker();
 	}
 
+	/** A different file means the sections on screen are no longer this file's. */
+	protected sourceChanged(): void {
+		this.picker?.reset();
+		super.sourceChanged();
+	}
+
 	private drawSectionPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<SectionNode>(contentEl, {
@@ -62,23 +71,17 @@ export class OneNoteFileImporter extends FormatImporter {
 				hint: i18n.importer.onenoteFile.msgPickFileFirst(),
 				loading: i18n.importer.onenoteFile.msgLoadingSections(),
 				empty: i18n.importer.onenoteFile.msgNoSections(),
-				failed: error => describeFailure(error),
+				failed: describeFailure,
 				view: {
 					icon: node => node.children?.length ? 'book' : 'file-text',
-					flair: () => '',
 				},
+				onChange: () => this.sourceChanged(),
 			});
 
 			this.picker.onLoad(() => void this.loadSections());
 		}, 'source');
 	}
 
-	/**
-	 * Names the sections in each picked file.
-	 *
-	 * A package lists them in its uncompressed header, so this costs no
-	 * decompression however large the notebook is.
-	 */
 	private async loadSections(): Promise<void> {
 		if (this.files.length === 0) {
 			new Notice(i18n.importer.onenoteFile.msgPickFileFirst());
@@ -89,23 +92,28 @@ export class OneNoteFileImporter extends FormatImporter {
 			const nodes: SectionNode[] = [];
 
 			for (const file of this.files) {
-				if (file.extension.toLowerCase() === 'onepkg') {
-					const index = readCabinetIndex(new Uint8Array(await file.read()), DEFAULT_CABINET_LIMITS);
-					const sections = index.entries
-						.filter(entry => entry.name.toLowerCase().endsWith('.one'))
-						.map<SectionNode>(entry => ({
-							title: entryTitle(entry.name),
-							file,
-							entryName: entry.name,
-							selected: true,
-							disabled: false,
-						}));
+				const data = new Uint8Array(await file.read());
+				const sections = listSections(data, file.name);
 
-					nodes.push({ title: file.basename, file, selected: true, disabled: false, children: sections });
+				// A file that is one section is its own row, not a group of one.
+				if (!isPackage(data)) {
+					nodes.push({ title: file.basename, file, selected: true, disabled: false });
 					continue;
 				}
 
-				nodes.push({ title: file.basename, file, selected: true, disabled: false });
+				nodes.push({
+					title: file.basename,
+					file,
+					selected: true,
+					disabled: false,
+					children: sections.map(entry => ({
+						title: entry.title,
+						file,
+						entryName: entry.name,
+						selected: true,
+						disabled: false,
+					})),
+				});
 			}
 
 			return nodes;
@@ -124,17 +132,22 @@ export class OneNoteFileImporter extends FormatImporter {
 			return;
 		}
 
+		// Nothing loaded means every section; loaded and cleared means none.
+		const loaded = this.picker.nodes.length > 0;
 		const chosen = selectedNodes(this.picker.nodes, node => !node.children?.length);
-		const wanted = chosen.length > 0 ? chosen : undefined;
 
 		for (const file of this.files) {
 			if (await ctx.shouldStop()) return;
 
-			const forThisFile = wanted?.filter(node => node.file === file);
-			if (wanted && forThisFile!.length === 0) continue;
+			const forThisFile = chosen.filter(node => node.file === file);
+			if (loaded && forThisFile.length === 0) continue;
+
+			const wanted = loaded
+				? new Set(forThisFile.map(node => node.entryName).filter((name): name is string => name !== undefined))
+				: undefined;
 
 			try {
-				await this.importFile(ctx, file, folder, forThisFile?.map(node => node.entryName));
+				await this.importFile(ctx, file, folder, wanted);
 			}
 			catch (error) {
 				ctx.reportFailed(file.name, describeFailure(error));
@@ -142,100 +155,96 @@ export class OneNoteFileImporter extends FormatImporter {
 		}
 	}
 
-	private async importFile(ctx: ImportContext, file: PickedFile, folder: TFolder, entryNames?: (string | undefined)[]): Promise<void> {
+	private async importFile(ctx: ImportContext, file: PickedFile, folder: TFolder, wanted?: Set<string>): Promise<void> {
 		ctx.status(i18n.importer.onenoteFile.statusReadingSection({ name: file.name }));
 
 		const data = new Uint8Array(await file.read());
+		const sections = readSections(data, file.name, wanted?.size ? wanted : undefined);
+		let done = 0;
 
-		if (isCompoundFile(data)) {
-			const inspection = inspectOnex(data);
-			ctx.reportSkipped(file.name, inspection.kind === 'rights-protected'
-				? i18n.importer.onenoteFile.reasonRightsProtected()
-				: i18n.importer.onenoteFile.reasonUnsupportedContainer());
-			return;
-		}
-
-		const entries: CabinetEntry[] = file.extension.toLowerCase() === 'onepkg'
-			? readCabinet(data, DEFAULT_CABINET_LIMITS, name => {
-				if (!name.toLowerCase().endsWith('.one')) return false;
-				return !entryNames || entryNames.includes(name);
-			})
-			: [{ name: file.name, data }];
-
-		for (const [index, entry] of entries.entries()) {
+		for (const entry of sections) {
 			if (await ctx.shouldStop()) return;
 
 			ctx.status(i18n.importer.onenoteFile.statusImportingSection({
-				name: entryTitle(entry.name),
-				index: index + 1,
-				total: entries.length,
+				name: entry.title,
+				index: ++done,
+				total: sections.length,
 			}));
 
 			let section: Section;
 			try {
-				section = mapSection(readRevisionStore(entry.data));
+				section = entry.read();
 			}
 			catch (error) {
-				ctx.reportFailed(entryTitle(entry.name), describeFailure(error));
+				ctx.reportFailed(entry.title, describeFailure(error));
 				continue;
 			}
 
-			await this.importSection(ctx, section, entryTitle(entry.name), folder);
+			await this.importSection(ctx, section, entry.title, folder);
 		}
 	}
 
 	private async importSection(ctx: ImportContext, section: Section, fallbackName: string, folder: TFolder): Promise<void> {
-		const name = sanitizeFileName(section.name || fallbackName) || i18n.importer.onenoteFile.labelUntitledSection();
-		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${name}`));
-		const claimed: string[] = [];
+		const sectionFolder = await this.createFolders(normalizePath(`${folder.path}/${sanitizeFileName(section.name || fallbackName)}`));
+		let done = 0;
 
 		for (const page of section.pages) {
 			if (await ctx.shouldStop()) return;
 			if (page.isDeleted) continue;
 
-			const title = sanitizeFileName(page.title) || i18n.importer.onenoteFile.labelUntitledPage();
-			const notePath = normalizePath(`${sectionFolder.path}/${title}.md`);
-
-			try {
-				const converted = await convertPage(page, {
-					isCancelled: () => ctx.cancelled,
-					onSkipped: assetName => ctx.reportSkipped(assetName, i18n.importer.onenoteFile.reasonNoAttachmentData()),
-					saveAttachment: async (bytes, suggested) => {
-						const attachmentPath = await this.getAvailablePathForAttachment(sanitizeFileName(suggested), claimed, notePath);
-						claimed.push(attachmentPath);
-						await this.vault.createBinary(attachmentPath, toArrayBuffer(bytes));
-						ctx.reportAttachmentSuccess(attachmentPath);
-						return { path: attachmentPath, name: suggested };
-					},
-				});
-
-				await this.writeNote(ctx, sectionFolder, title, converted.markdown, {
-					sourceId: page.id,
-					ctime: page.createdUtc?.getTime(),
-					mtime: page.lastModifiedUtc?.getTime(),
-				});
-
-				ctx.reportNoteSuccess(title);
-			}
-			catch (error) {
-				ctx.reportFailed(title, describeFailure(error));
-			}
+			ctx.reportProgress(++done, section.pages.length);
+			await this.importPage(ctx, page, sectionFolder);
 		}
+	}
+
+	private async importPage(ctx: ImportContext, page: Page, sectionFolder: TFolder): Promise<void> {
+		const title = sanitizeFileName(page.title);
+		const notePath = normalizePath(`${sectionFolder.path}/${title}.md`);
+
+		try {
+			const converted = await convertPage(page, {
+				isCancelled: () => ctx.isCancelled(),
+				onSkipped: name => ctx.reportSkipped(name, i18n.importer.onenoteFile.reasonNoAttachmentData()),
+				saveAttachment: (bytes, suggested) => this.saveAttachment(ctx, bytes, suggested, notePath),
+			});
+
+			const { written } = await this.writeNote(ctx, sectionFolder, title, converted.markdown, {
+				sourceId: page.id,
+				ctime: page.createdUtc?.getTime(),
+				mtime: page.lastModifiedUtc?.getTime(),
+			});
+
+			if (written) ctx.reportNoteSuccess(title);
+		}
+		catch (error) {
+			ctx.reportFailed(title, error);
+		}
+	}
+
+	/**
+	 * The bytes came out of the file being imported, so an attachment already
+	 * in the vault can be compared against them outright — which is what lets a
+	 * second import reuse the picture instead of writing another copy.
+	 */
+	private async saveAttachment(ctx: ImportContext, bytes: Uint8Array, suggested: string, notePath: string) {
+		const data = uint8arrayToArrayBuffer(bytes as Uint8Array<ArrayBuffer>);
+
+		const { path, reuse } = await this.placeAttachment(suggested, notePath, async (existing: TFile) => {
+			if (existing.stat.size !== data.byteLength) return 'another';
+			const onDisk = new Uint8Array(await this.vault.readBinary(existing));
+			return onDisk.every((byte, index) => byte === bytes[index]) ? 'same' : 'another';
+		});
+
+		if (!reuse) {
+			await this.writeAttachment(path, data);
+			ctx.reportAttachmentSuccess(path);
+		}
+
+		return { path: reuse?.path ?? path, name: suggested };
 	}
 }
 
-function entryTitle(name: string): string {
-	return name.replace(/^.*[\\/]/, '').replace(/\.one$/i, '');
-}
-
-/** A format error carries a code; anything else is passed through as it came. */
+/** A format error is answered by kind; anything else is described as it came. */
 function describeFailure(error: unknown): string {
-	if (!(error instanceof OneNoteFormatError)) return String(error instanceof Error ? error.message : error);
-
-	if (error.code === 'ONENOTE_NOT_REVISION_STORE') return i18n.importer.onenoteFile.reasonModernPackaging();
-	return i18n.importer.onenoteFile.reasonUnreadableSection({ code: error.code });
-}
-
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+	return error instanceof OneNoteFormatError ? REASONS[error.kind]() : describeReason(error);
 }
