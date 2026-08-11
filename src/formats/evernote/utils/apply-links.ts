@@ -1,62 +1,43 @@
-import { fs, path } from '../../../filesystem';
-
-import { EvernoteOptions, noteWasWrittenBy } from '../options';
-import { RuntimePropertiesSingleton } from '../runtime-properties';
-import { rewriteFile } from './file-utils';
+import { parseFilePath } from '../../../filesystem';
+import { EvernoteRun } from '../run';
 import { escapeStringRegexp } from './escape-string-regexp';
-import { truncatFileName } from './folder-utils';
-import { getAllOutputFilesWithExtension } from './get-all-output-files';
 
-export const applyLinks = (options: EvernoteOptions, outputNotebookFolders: Array<string>): void => {
-	const linkNameMap = RuntimePropertiesSingleton.getInstance();
-	const allLinks = linkNameMap.getAllNoteIdNameMap();
+/** Resolve Evernote links by title; ENEX does not expose target IDs on notes. */
+const EVERNOTE_URL = 'evernote://';
 
-	let entries = Object.entries(allLinks);
+export const applyLinks = (run: EvernoteRun): void => {
+	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
 	if (entries.length === 0) return;
 
+	const links = entries.map(([url, { title, notebookName }]) => ({
+		url: new RegExp(escapeStringRegexp(url), 'g'),
+		target: run.plannedNote(title),
+		title,
+		notebookName,
+	}));
 
-	const allconvertedFiles: Array<string> = [];
-	for (const outputFolder of outputNotebookFolders) {
-		getAllOutputFilesWithExtension(outputFolder, allconvertedFiles, '');
-	}
+	for (const draft of run.drafts) {
+		if (!draft.markdown.includes(EVERNOTE_URL)) continue;
 
-	for (const notebookFolder of outputNotebookFolders) {
-		const filesInOutputDir = fs.readdirSync(notebookFolder);
+		const from = parseFilePath(draft.path).parent;
+		let updatedContent = draft.markdown;
 
-		const targetFiles = filesInOutputDir.filter(file => {
-			return path.extname(file).toLowerCase() === '.md';
-		});
+		for (const { url, target, title, notebookName } of links) {
+			const to = target
+				? linkToNote(target, from)
+				: notebookName && !from.endsWith(notebookName) ? `${notebookName}/${title}` : title;
 
-		for (const targetFile of targetFiles) {
-			let filepath = path.join(notebookFolder, targetFile);
-			if (!noteWasWrittenBy(filepath)) continue;
-
-			const fileContent = fs.readFileSync(filepath, 'utf8');
-			let updatedContent = fileContent;
-
-			for (const [linkName, linkProps] of entries) {
-				const uniqueId = linkProps.uniqueEnd;
-				let fileName = linkProps.title;
-				if (allconvertedFiles.find(fn => fn.includes(uniqueId))) {
-					fileName = truncatFileName(fileName, uniqueId);
-				}
-
-				const notebookName = linkProps.notebookName;
-				const encodedFileName = options.urlEncodeFileNamesAndLinks ? encodeURI(fileName) : fileName;
-
-				let replacement = encodedFileName;
-				if (notebookName && !notebookFolder.endsWith(notebookName)) {
-					replacement = `${notebookName}/${encodedFileName}`;
-				}
-
-				const regexp = new RegExp(escapeStringRegexp(linkName), 'g');
-				updatedContent = updatedContent.replace(regexp, replacement);
-			}
-
-			if (fileContent !== updatedContent) {
-				rewriteFile(filepath, updatedContent);
-			}
+			// Preserve the display title when the target includes a folder.
+			updatedContent = updatedContent.replace(url, to === title ? title : `${to}|${title}`);
 		}
-	}
 
+		draft.markdown = updatedContent;
+	}
 };
+
+function linkToNote(path: string, from: string): string {
+	const { parent, basename } = parseFilePath(path);
+	const name = basename.replace(/[[\]#^|]/g, '');
+
+	return parent === from ? name : `${parseFilePath(parent).name}/${name}`;
+}

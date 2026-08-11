@@ -22,6 +22,9 @@ export interface PickedFile {
 	/** Read the file as utf8 text */
 	readText(): Promise<string>;
 
+	/** Read UTF-8 text incrementally without splitting a character. */
+	readChunks(): AsyncIterable<string>;
+
 	/** Read the file as binary */
 	read(): Promise<ArrayBuffer>;
 
@@ -72,6 +75,20 @@ export function provideNodeModules(modules: NodeModules): void {
 	if (modules.zlib) zlib = modules.zlib;
 }
 
+const READ_CHUNK = 1 << 16;
+
+async function* decodeUtf8(chunks: AsyncIterable<Uint8Array>): AsyncIterable<string> {
+	const decoder = new TextDecoder('utf-8');
+
+	for await (const chunk of chunks) {
+		const piece = decoder.decode(chunk, { stream: true });
+		if (piece) yield piece;
+	}
+
+	const tail = decoder.decode();
+	if (tail) yield tail;
+}
+
 export function nodeBufferToArrayBuffer(buffer: Buffer<ArrayBuffer>, offset = 0, length = buffer.byteLength - offset): ArrayBuffer {
 	return buffer.buffer.slice(buffer.byteOffset + offset, buffer.byteOffset + offset + length);
 }
@@ -104,6 +121,25 @@ export class NodePickedFile implements PickedFile {
 	async read(): Promise<ArrayBuffer> {
 		let buffer = await fsPromises.readFile(this.filepath);
 		return nodeBufferToArrayBuffer(buffer);
+	}
+
+	async *readChunks(): AsyncIterable<string> {
+		const handle = await fsPromises.open(this.filepath, 'r');
+		try {
+			yield* decodeUtf8(async function* () {
+				const buffer = Buffer.alloc(READ_CHUNK);
+
+				for (;;) {
+					const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+					if (bytesRead === 0) return;
+
+					yield buffer.subarray(0, bytesRead);
+				}
+			}());
+		}
+		finally {
+			await handle.close();
+		}
 	}
 
 	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
@@ -191,6 +227,16 @@ export class WebPickedFile implements PickedFile {
 			reader.addEventListener('error', reject);
 			reader.readAsText(this.file);
 		});
+	}
+
+	async *readChunks(): AsyncIterable<string> {
+		const { file } = this;
+
+		yield* decodeUtf8(async function* () {
+			for (let at = 0; at < file.size; at += READ_CHUNK) {
+				yield new Uint8Array(await file.slice(at, at + READ_CHUNK).arrayBuffer());
+			}
+		}());
 	}
 
 	async read(): Promise<ArrayBuffer> {

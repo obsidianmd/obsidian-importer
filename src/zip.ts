@@ -33,6 +33,10 @@ export class ZipEntryFile implements PickedFile {
 		return (await this.entry.getData(new BlobWriter())).arrayBuffer();
 	}
 
+	async *readChunks(): AsyncIterable<string> {
+		yield await this.readText();
+	}
+
 	get filepath() {
 		return this.entry.filename;
 	}

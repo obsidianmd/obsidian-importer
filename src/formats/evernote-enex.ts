@@ -1,17 +1,24 @@
-import { FileSystemAdapter, normalizePath, Notice } from 'obsidian';
+import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { helpUrl } from '../constants';
-import { path } from '../filesystem';
-import { markdownOutputFor } from '../markdown-output';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
-import { ExistingNote, ExistingNoteDecision, setExistingNoteHandler, setMarkdownOutput, setMarkdownTracker } from './evernote/options';
-import { defaultEvernoteOptions, convertEnexFiles } from './evernote/convert';
+import { defaultEvernoteOptions } from './evernote/options';
+import { convertEnexFiles } from './evernote/convert';
+import { parseFilePath } from '../filesystem';
+import { availableFileName } from '../util';
+import { EvernoteOutput, PlacedAttachment } from './evernote/output';
 
 const HELP_PERMALINK = 'import/evernote';
 
+interface EnexPlan {
+	planned: PlannedNote;
+	reportAs: string;
+	disposition: NoteDisposition;
+}
+
 export class EvernoteEnexImporter extends FormatImporter {
-	interruption = 'stop' as const;
+	interruption = 'pause' as const;
 
 	init() {
 		this.addSetting('source')
@@ -25,14 +32,67 @@ export class EvernoteEnexImporter extends FormatImporter {
 		this.defaultOutputFolder = 'Evernote';
 	}
 
-	private decideExistingNote({ writtenAt, updatedAt }: ExistingNote): ExistingNoteDecision {
-		if (this.duplicateHandling === DuplicateHandling.Skip) return 'skip';
+	private outputInto(ctx: ImportContext): EvernoteOutput {
+		const { vault } = this;
+		const plans = new Map<string, EnexPlan>();
 
-		if (updatedAt === null) return 'write';
+		return {
+			planFolder: (parent, name) => {
+				const at = (candidate: string) => normalizePath(`${parent}/${candidate}`);
 
-		if (Math.floor(writtenAt) === Math.floor(updatedAt)) return 'skip';
+				const folder = this.duplicateHandling === DuplicateHandling.CreateCopy
+					? at(availableFileName(name, candidate => this.hasClaimed(at(candidate))
+						|| vault.getAbstractFileByPathInsensitive(at(candidate)) !== null))
+					: folderPath(vault.getAbstractFileByPathInsensitive(at(name))) ?? at(name);
 
-		return writtenAt > updatedAt ? 'skip' : 'write';
+				this.claimPath(folder);
+
+				return folder;
+			},
+
+			planNote: (folder, title, reportAs) => {
+				const planned = this.planNote(folder, title);
+				plans.set(planned.targetPath, { planned, reportAs, disposition: 'create' });
+
+				return planned.targetPath;
+			},
+
+			willImport: (path, sourceMtime) => {
+				const plan = plans.get(path)!;
+				plan.disposition = this.preflightNote(ctx, { ...plan.planned, title: plan.reportAs }, sourceMtime);
+
+				return !leavesTheNoteAlone(plan.disposition);
+			},
+
+			writeNote: async (path, markdown, times) => {
+				const { planned, reportAs, disposition } = plans.get(path)!;
+				await this.createFolders(parseFilePath(path).parent || '/');
+
+				const { written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
+				if (written) ctx.reportNoteSuccess(reportAs);
+			},
+
+			placeAttachment: async (fileName, notePath, size): Promise<PlacedAttachment> => {
+				const { path, reuse } = await this.placeAttachment(fileName, notePath,
+					existing => existing.stat.size === size ? 'same' : 'another');
+
+				return { path, write: reuse === null };
+			},
+
+			linkTo: (path, fromNote) => {
+				const file = vault.getAbstractFileByPath(path);
+
+				return file instanceof TFile
+					? this.app.metadataCache.fileToLinktext(file, fromNote)
+					: path;
+			},
+
+			writeAttachment: async (path, data, times) => {
+				await this.createFolders(parseFilePath(path).parent || '/');
+				const file = await this.writeAttachment(path, data, times);
+				ctx.reportAttachmentSuccess(file.name);
+			},
+		};
 	}
 
 	async import(ctx: ImportContext) {
@@ -48,34 +108,14 @@ export class EvernoteEnexImporter extends FormatImporter {
 			return;
 		}
 
-		let { app } = this;
-		let adapter = app.vault.adapter;
-		if (!(adapter instanceof FileSystemAdapter)) return;
-
-		setMarkdownOutput(markdownOutputFor(app.vault));
-
-		let evernoteOptions = {
+		await convertEnexFiles({
 			...defaultEvernoteOptions,
-			...{
-				enexSources: files,
-				outputDir: path.join(adapter.getBasePath(), folder.path),
-			},
-		};
-
-		setMarkdownTracker(absolutePath => {
-			this.trackMarkdownFile(normalizePath(path.relative(adapter.getBasePath(), absolutePath)));
-		});
-
-		setExistingNoteHandler(this.duplicateHandling === DuplicateHandling.CreateCopy
-			? null
-			: existing => this.decideExistingNote(existing));
-
-		try {
-			await convertEnexFiles(evernoteOptions, ctx);
-		}
-		finally {
-			setMarkdownTracker(null);
-			setExistingNoteHandler(null);
-		}
+			enexSources: files,
+			outputDir: folder.path,
+		}, this.outputInto(ctx), ctx);
 	}
+}
+
+function folderPath(found: unknown): string | null {
+	return found instanceof TFolder ? found.path : null;
 }

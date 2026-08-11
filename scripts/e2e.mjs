@@ -29,6 +29,18 @@ const CASES = [
 		expected: 'tests/journal/expected/entry-complex-metadata.md',
 		note: 'entry-complex-metadata.md',
 	},
+	{
+		// The one importer that writes into a folder of its own, which is what
+		// makes it worth running here: nothing creates the notebook's folder
+		// until a note goes into it, and Vault will not create a file inside a
+		// folder that is not there. A fixture with no attachments, because
+		// where those land is the vault's attachment setting rather than
+		// anything the recording could know.
+		importer: 'evernote',
+		fixture: 'tests/evernote/yarle/test-headings.enex',
+		expected: 'tests/evernote/yarle/expected/test-headings/test - headings.md',
+		note: 'test-headings/test - headings.md',
+	},
 ];
 
 function vaultName() {

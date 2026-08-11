@@ -24,8 +24,8 @@
 		"@microsoft/microsoft-graph-types": "2.38.0",
 		"@stylistic/eslint-plugin": "5.10.0",
 		"@types/node": "20.19.27",
+		"@types/sax": "1.2.7",
 		"@types/turndown": "5.0.6",
-		"@types/xml-flow": "1.0.1",
 		"esbuild": "0.25.4",
 		"eslint": "9.39.4",
 		"eslint-plugin-obsidianmd": "^0.4.1",
@@ -47,8 +47,8 @@
 		"mathml-to-latex": "^1.5.0",
 		"plain-tag": "0.1.3",
 		"protobufjs": "7.6.5",
-		"static-params": "0.4.0",
-		"xml-flow": "1.0.4"
+		"sax": "1.6.0",
+		"static-params": "0.4.0"
 	},
 	"pnpm": {
 		"overrides": {

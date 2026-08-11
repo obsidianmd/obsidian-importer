@@ -2,17 +2,17 @@ import { moment } from 'obsidian';
 import { EvernoteTask } from './models/EvernoteTask';
 import { getTaskStatusMd } from './utils/get-task-status-md';
 
-import { evernoteOptions } from './convert';
+import { EvernoteRun } from './run';
 
 const MEDIUM_PRIORITY_ICON = '🔼';
 const LOW_PRIORITY_ICON = '🔽';
 const DUE_DATE_ICON = '📅';
 const SCHEDULE_DATE_ICON = '⏳';
 
-export const convertTasktoMd = (task: EvernoteTask, notebookName: string): string => {
+export const convertTasktoMd = (run: EvernoteRun, task: EvernoteTask): string => {
 	const taskStatusMd = getTaskStatusMd(task);
 	const title = task.title ? ` ${task.title}` : '';
-	const tag = evernoteOptions.obsidianTaskTag !== '' ? ` ${evernoteOptions.obsidianTaskTag}` : '';
+	const tag = run.options.obsidianTaskTag !== '' ? ` ${run.options.obsidianTaskTag}` : '';
 	const duedate = task.duedate && !isNaN(task.duedate.getTime())
 		? ` ${DUE_DATE_ICON} ${convertDateFormat(task.duedate)}`
 		: '';

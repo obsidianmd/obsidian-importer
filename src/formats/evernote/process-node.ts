@@ -2,18 +2,24 @@ import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
-import { RuntimePropertiesSingleton } from './runtime-properties';
-import { getMetadata, getTags, isComplex, saveMdFile } from './utils';
+import { EvernoteRun } from './run';
+import { getMetadata, isComplex, logTags } from './utils';
+import { normalizeTitle } from './utils/filename-utils';
+import { noteTimes } from './utils/note-times';
 
-import { applyTemplate } from './utils/templates/templates';
-import { standardizeFrontMatter } from './utils/front-matter';
-import { evernoteOptions } from './convert';
+import { renderNote } from './utils/render-note';
 
-export const processNode = (note: EvernoteNote, notebookName: string): boolean => {
+export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: string): boolean => {
 
-	const runtimeProps = RuntimePropertiesSingleton.getInstance();
 	const title = note.title ?? '';
-	runtimeProps.setCurrentNoteName(title);
+	run.properties.setCurrentNoteName(title);
+
+	// Preflight before decoding attachments.
+	const times = noteTimes(note);
+	const notePath = run.output.planNote(run.mdPath, title || 'Untitled', reportAs);
+	run.notePlanned(normalizeTitle(title), notePath);
+
+	if (!run.output.willImport(notePath, times.mtime)) return false;
 
 	const content = joinNoteContent(note.content);
 	note.content = content;
@@ -22,32 +28,25 @@ export const processNode = (note: EvernoteNote, notebookName: string): boolean =
 		title,
 		content,
 		htmlContent: content,
-		originalContent: content,
 	};
 
 
 	try {
 		if (isComplex(note)) {
-			noteData.htmlContent = processResources(note);
+			noteData.htmlContent = processResources(run, note);
 		}
-		noteData.htmlContent = extractDataUrlResources(note, noteData.htmlContent);
+		noteData.htmlContent = extractDataUrlResources(run, note, noteData.htmlContent);
 
-		noteData = { ...noteData, ...convertHtml2Md(evernoteOptions, noteData) };
-		noteData = { ...noteData, ...getMetadata(note, notebookName) };
-		noteData = { ...noteData, ...getTags(note) };
+		noteData = { ...noteData, ...convertHtml2Md(run, noteData) };
+		noteData = { ...noteData, ...getMetadata(run, note) };
+		noteData.tags = logTags(run, note);
 
-		const data = standardizeFrontMatter(applyTemplate(noteData, evernoteOptions));
-		// console.log(`data =>\n ${JSON.stringify(data)} \n***`);
+		run.draftNote({ path: notePath, markdown: renderNote(noteData), times });
 
-		return saveMdFile(data, note);
-
-		/* if (isTOC(noteData.title)) {
-		  const  noteIdNameMap = RuntimePropertiesSingleton.getInstance();
-		  noteIdNameMap.extendNoteIdNameMap(noteData);
-		}*/
-
+		return true;
 	}
 	catch (e) {
+		run.forgetPendingResources();
 		console.error(`Failed to convert note: ${noteData.title}`, e);
 		throw e;
 	}

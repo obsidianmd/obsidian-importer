@@ -1,23 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeFs from 'node:fs';
-import * as nodeOs from 'node:os';
-import * as nodePath from 'node:path';
 
-import { provideNodeModules } from '../../src/filesystem';
-import { getFileIndex } from '../../src/formats/evernote/utils/filename-utils';
-
-provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
+import { getNextFilenameIndex } from '../../src/formats/evernote/utils/filename-dedupe';
 
 function indexFor(existing: string[], prefix: string): number {
-	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-evernote-'));
-	try {
-		for (const file of existing) nodeFs.writeFileSync(nodePath.join(dir, file), '');
-		return getFileIndex(dir, prefix);
-	}
-	finally {
-		nodeFs.rmSync(dir, { recursive: true, force: true });
-	}
+	return getNextFilenameIndex(existing, prefix);
 }
 
 function nameFor(existing: string[], prefix: string): string {

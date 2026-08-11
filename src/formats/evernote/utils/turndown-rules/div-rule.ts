@@ -1,9 +1,7 @@
 import { TurndownNode } from './turndown-types';
-import { evernoteOptions } from '../../convert';
 import { filterByNodeName } from './filter-by-nodename';
 import { getAttributeProxy } from './get-attribute-proxy';
 import { replaceCodeBlock } from './replace-code-block';
-import { replaceMonospaceCodeBlock } from './replace-monospace-code-block';
 
 const isTaskBlock = (node: TurndownNode) => {
 	const nodeProxy = getAttributeProxy(node);
@@ -23,8 +21,6 @@ export const divRule = {
 	replacement: (content: string, node: TurndownNode) => {
 		return (isTaskBlock(node))
 			? `<ENEX-EN-V10-TASK>${getTaskGroupId(node)}</ENEX-EN-V10-TASK>`
-			: (evernoteOptions.monospaceIsCodeBlock)
-				? replaceMonospaceCodeBlock(content, node)
-				: replaceCodeBlock(content, node);
+			: replaceCodeBlock(content, node);
 	},
 };

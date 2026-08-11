@@ -32,12 +32,12 @@ importers:
       protobufjs:
         specifier: 7.6.5
         version: 7.6.5
+      sax:
+        specifier: 1.6.0
+        version: 1.6.0
       static-params:
         specifier: 0.4.0
         version: 0.4.0
-      xml-flow:
-        specifier: 1.0.4
-        version: 1.0.4
     devDependencies:
       '@eslint/js':
         specifier: 9.39.4
@@ -51,12 +51,12 @@ importers:
       '@types/node':
         specifier: 20.19.27
         version: 20.19.27
+      '@types/sax':
+        specifier: 1.2.7
+        version: 1.2.7
       '@types/turndown':
         specifier: 5.0.6
         version: 5.0.6
-      '@types/xml-flow':
-        specifier: 1.0.1
-        version: 1.0.1
       esbuild:
         specifier: '>=0.28.1'
         version: 0.28.1
@@ -416,14 +416,14 @@ packages:
   '@types/node@20.19.27':
     resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
 
+  '@types/sax@1.2.7':
+    resolution: {integrity: sha512-rO73L89PJxeYM3s3pPPjiPgVVcymqU490g0YO5n5By0k2Erzj6tay/4lr1CHAAU4JyOWd1rpQ8bCf6cZfHU96A==}
+
   '@types/tern@0.23.9':
     resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
 
   '@types/turndown@5.0.6':
     resolution: {integrity: sha512-ru00MoyeeouE5BX4gRL+6m/BsDfbRayOskWqUvh7CLGW+UXxHQItqALa38kKnOiZPqJrtzJUgAC2+F0rL1S4Pg==}
-
-  '@types/xml-flow@1.0.1':
-    resolution: {integrity: sha512-kJpk5awHNvRtOir562ZOKcoev5/XKeXFQs01MQnBJO/SWguD3qePt2JSs2OUFysg8ovMqE/QPPxTP6j58KLM0A==}
 
   '@typescript-eslint/eslint-plugin@8.59.3':
     resolution: {integrity: sha512-PwFvSKsXGShKGW6n5bZOhGHEcCZXM8HofLK9fNsEwZXzFRjoY+XT1Vsf1zgyXdwTr0ZYz1/2tkZ0DBTT9jZjhw==}
@@ -1692,9 +1692,6 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  xml-flow@1.0.4:
-    resolution: {integrity: sha512-r19LXKPL7vkVGL6oWHlESoBgwUVom5w/w8opuS53qULh8+K2w+K9K72edTIQa+X/Vxx1R7ugnCabHFSZ1Tv2zA==}
-
   yaml-eslint-parser@1.3.2:
     resolution: {integrity: sha512-odxVsHAkZYYglR30aPYRY4nUGJnoJ2y1ww2HDvZALo0BDETv9kWbi16J52eHs+PWRNmF4ub6nZqfVOeesOvntg==}
     engines: {node: ^14.17.0 || >=16.0.0}
@@ -1952,15 +1949,15 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/sax@1.2.7':
+    dependencies:
+      '@types/node': 20.19.27
+
   '@types/tern@0.23.9':
     dependencies:
       '@types/estree': 1.0.9
 
   '@types/turndown@5.0.6': {}
-
-  '@types/xml-flow@1.0.1':
-    dependencies:
-      '@types/node': 20.19.27
 
   '@typescript-eslint/eslint-plugin@8.59.3(@typescript-eslint/parser@8.59.3(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)':
     dependencies:
@@ -3634,10 +3631,6 @@ snapshots:
       isexe: 2.0.0
 
   word-wrap@1.2.5: {}
-
-  xml-flow@1.0.4:
-    dependencies:
-      sax: 1.6.0
 
   yaml-eslint-parser@1.3.2:
     dependencies:

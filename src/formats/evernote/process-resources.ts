@@ -1,48 +1,39 @@
 import { EvernoteNote, EvernoteResource, joinNoteContent } from './models/EvernoteNote';
-import { fs, nodeCrypto, path } from '../../filesystem';
+import { base64ToArrayBuffer } from 'obsidian';
+import { stringToUtf8 } from '../../util';
 
 import { ResourceHashItem } from './models/ResourceHash';
+import { EvernoteRun } from './run';
+import { md5 } from './utils/md5';
+import { noteTimes } from './utils/note-times';
 import * as utils from './utils';
-import { evernoteOptions } from './convert';
 
-const getResourceWorkDirs = (note: EvernoteNote) => {
-	const pathSepRegExp = new RegExp(`\\${path.sep}`, 'g');
-	const relativeResourceWorkDir = utils.getRelativeResourceDir(note).replace(pathSepRegExp, evernoteOptions.pathSeparator || '/');
-	const absoluteResourceWorkDir = utils.getAbsoluteResourceDir(note); // .replace(pathSepRegExp,evernoteOptions.pathSeparator)
-
-	return { absoluteResourceWorkDir, relativeResourceWorkDir };
-};
-
-export const processResources = (note: EvernoteNote): string => {
+export const processResources = (run: EvernoteRun, note: EvernoteNote): string => {
 	let resourceHashes: Record<string, ResourceHashItem> = {};
 	let updatedContent = joinNoteContent(note.content);
-	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
 
-
-
-	utils.clearResourceDir(note);
 	const resources = Array.isArray(note.resource) ? note.resource
 		: note.resource ? [note.resource]
 			: [];
 	for (const resource of resources) {
 		resourceHashes = {
 			...resourceHashes,
-			...processResource(absoluteResourceWorkDir, resource),
+			...processResource(run, resource),
 		};
 	}
 
 	for (const hash of Object.keys(resourceHashes)) {
-		updatedContent = addMediaReference(updatedContent, resourceHashes, hash, relativeResourceWorkDir);
+		updatedContent = addMediaReference(updatedContent, resourceHashes, hash);
 	}
 
 	return updatedContent;
 };
 
-const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string, workDir: string): string => {
-	const fileName = resourceHashes[hash]?.fileName;
-	if (!fileName) return content;
+const addMediaReference = (content: string, resourceHashes: Record<string, ResourceHashItem>, hash: string): string => {
+	const entry = resourceHashes[hash];
+	if (!entry) return content;
 
-	const src = `${workDir}${evernoteOptions.pathSeparator}${fileName.replace(/ /g, ' ')}`;
+	const { fileName, src } = entry;
 	let updatedContent: string;
 	const replace = `<en-media ([^>]*)hash="${hash}".([^>]*)>`;
 	const re = new RegExp(replace, 'g');
@@ -65,7 +56,7 @@ const addMediaReference = (content: string, resourceHashes: Record<string, Resou
 	return updatedContent;
 };
 
-const processResource = (workDir: string, resource: EvernoteResource): Record<string, ResourceHashItem> => {
+const processResource = (run: EvernoteRun, resource: EvernoteResource): Record<string, ResourceHashItem> => {
 	const resourceHash: Record<string, ResourceHashItem> = {};
 
 	// Check if resource data exists
@@ -79,7 +70,7 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 	// Skip unknown type as we don't know how to handle
 	// Source: https://dev.evernote.com/doc/articles/data_structure.php
 	// "The default type "application/octet-stream" should be used if a more specific type is not known."
-	// Update: 
+	// Update:
 	// In case of unknown files Evernote does the same base64 encoding and put its MD5 hash into the note as reference
 	// https://discussion.evernote.com/forums/topic/146906-how-does-evernote-map-the-image-resources-in-enex-file/?do=findComment&comment=692209
 	// so I comment out the following exlusion of octet-streams, to fix issue: https://github.com/obsidianmd/obsidian-importer/issues/201
@@ -88,80 +79,50 @@ const processResource = (workDir: string, resource: EvernoteResource): Record<st
 	}*/
 
 	const accessTime = utils.getTimeStampMoment(resource);
-	const resourceFileProps = utils.getResourceFileProperties(workDir, resource);
-	let fileName = resourceFileProps.fileName;
+	const fileName = utils.getResourceFileName(resource);
 
-	const absFilePath = `${workDir}${path.sep}${fileName}`;
-
-	let buffer = Buffer.from(data, 'base64');
-	fs.writeFileSync(absFilePath, buffer);
-
-	const atime = accessTime.valueOf() / 1000;
-	try {
-		fs.utimesSync(absFilePath, atime, atime);
-	}
-	catch {
-		// The resource is already written; timestamps are best effort.
-	}
+	const bytes = base64ToArrayBuffer(data);
+	const src = run.draftResource(fileName, bytes, { mtime: accessTime.valueOf() });
 
 	const recognisedHash = resource.recognition?.match(/[a-f0-9]{32}/)?.[0];
 
 	if (recognisedHash && fileName) {
-		resourceHash[recognisedHash] = { fileName, alreadyUsed: false };
+		resourceHash[recognisedHash] = { fileName, src };
 	}
 	else {
-		let hash = nodeCrypto.createHash('md5');
-		hash.update(buffer);
-		const md5Hash = hash.digest('hex');
-		resourceHash[md5Hash] = { fileName, alreadyUsed: false };
+		resourceHash[md5(new Uint8Array(bytes))] = { fileName, src };
 	}
 
 	return resourceHash;
 };
 
 export const extractDataUrlResources = (
+	run: EvernoteRun,
 	note: EvernoteNote,
 	content: string,
 ): string => {
 	if (content.indexOf('src="data:') < 0) {
-		return content; // no data urls
+		return content;
 	}
 
-	const { absoluteResourceWorkDir, relativeResourceWorkDir } = getResourceWorkDirs(note);
-	fs.mkdirSync(absoluteResourceWorkDir, { recursive: true });
-
-	// src="data:image/svg+xml;base64,..." --> src="resourceDir/fileName"
 	return content.replace(/src="data:([^;,]*)(;base64)?,([^"]*)"/g, (match, mediatype, encoding, data) => {
-		const fileName = createResourceFromData(mediatype, encoding === ';base64', data, absoluteResourceWorkDir, note);
-		const src = `${relativeResourceWorkDir}${evernoteOptions.pathSeparator}${fileName}`;
-
-		return `src="${src}"`;
+		return `src="${createResourceFromData(run, mediatype, encoding === ';base64', data, note)}"`;
 	});
 };
 
-// returns filename of new resource
 const createResourceFromData = (
+	run: EvernoteRun,
 	mediatype: string,
 	base64: boolean,
 	data: string,
-	absoluteResourceWorkDir: string,
 	note: EvernoteNote,
 ): string => {
 	const baseName = 'embedded'; // data doesn't seem to include useful base filename
 	const extension = extensionForMimeType(mediatype) || '.dat';
-	const index = utils.getFileIndex(absoluteResourceWorkDir, baseName);
-	const fileName = index < 1 ? `${baseName}.${extension}` : `${baseName}.${index}.${extension}`;
-	const absFilePath = `${absoluteResourceWorkDir}${path.sep}${fileName}`;
 
-	if (!base64) {
-		data = decodeURIComponent(data);
-	}
+	const bytes = base64 ? base64ToArrayBuffer(data) : stringToUtf8(decodeURIComponent(data));
 
-	fs.writeFileSync(absFilePath, data, base64 ? 'base64' : undefined);
-	utils.setFileDates(absFilePath, note);
-
-
-	return fileName;
+	return run.draftResource(`${baseName}.${extension}`, bytes, noteTimes(note));
 };
 
 const extensionForMimeType = (mediatype: string): string => {

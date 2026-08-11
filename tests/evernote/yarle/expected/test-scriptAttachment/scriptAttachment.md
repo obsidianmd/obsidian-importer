@@ -1,3 +1,3 @@
 Note with script attachment
 
-![[./_resources/scriptAttachment.resources/sample.pdf.scpt]]
+![[test-scriptAttachment/attachments/sample.pdf.scpt]]

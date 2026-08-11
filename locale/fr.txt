@@ -278,10 +278,6 @@ translation={{counts}}. Cliquez pour afficher.
 original=Waiting {{duration}} ({{reason}})
 translation=Attente de {{duration}} ({{reason}})
 
-[progress.status-waiting-for-markdown]
-original=Waiting for imported Markdown…
-translation=En attente du Markdown importé…
-
 [progress.status-standardizing]
 original=Standardizing Markdown ({{current}}/{{total}})
 translation=Normalisation du Markdown ({{current}}/{{total}})
