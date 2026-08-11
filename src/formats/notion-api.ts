@@ -851,7 +851,9 @@ export class NotionAPIImporter extends FormatImporter {
 
 				let written: TFile;
 				try {
-					({ file: written } = await this.writePlannedNote(ctx, planned, fullContent, { ...options, disposition }));
+					const note = await this.writePlannedNote(ctx, planned, fullContent, { ...options, disposition });
+					written = note.file;
+					if (note.written) ctx.reportNoteSuccess(sanitizedTitle);
 				}
 				catch (error) {
 					console.error(`[CREATE FILE] Failed to create file: ${mdFilePath}`);
@@ -1430,7 +1432,8 @@ export class NotionAPIImporter extends FormatImporter {
 		if (createdTime) options.ctime = new Date(createdTime).getTime();
 		if (sourceMtime !== undefined) options.mtime = sourceMtime;
 
-		const { file } = await this.writePlannedNote(ctx, planned, content, { ...options, disposition, sourceId: blockId });
+		const { file, written } = await this.writePlannedNote(ctx, planned, content, { ...options, disposition, sourceId: blockId });
+		if (written) ctx.reportNoteSuccess(planned.title);
 		this.writtenPaths.add(file.path.replace(/\.md$/, ''));
 
 		return file.path;

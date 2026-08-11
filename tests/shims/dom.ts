@@ -49,6 +49,11 @@ if (globals.NodeFilter === undefined) {
 	};
 }
 
+/** linkedom draws nothing, so a frame is only ever the next turn of the loop. */
+if ((window as unknown as Record<string, unknown>).requestAnimationFrame === undefined) {
+	define(window as any, 'requestAnimationFrame', (callback: (time: number) => void) => setTimeout(() => callback(0), 0));
+}
+
 globals.window = window;
 (window as unknown as Record<string, unknown>).TurndownService = TurndownService;
 
@@ -116,6 +121,17 @@ define(elementProto, 'setText', function (this: any, text: unknown) {
 	}
 	else this.textContent = String(text);
 });
+// Obsidian shows and hides an element by its own display style.
+define(elementProto, 'hide', function (this: any) { this.style.display = 'none'; });
+define(elementProto, 'show', function (this: any) { this.style.removeProperty('display'); });
+define(elementProto, 'toggle', function (this: any, shown: boolean) {
+	if (shown) this.show();
+	else this.hide();
+});
+define(elementProto, 'toggleClass', function (this: any, classes: string | string[], value: boolean) {
+	for (const cls of Array.isArray(classes) ? classes : [classes]) this.classList.toggle(cls, value);
+});
+
 define(elementProto, 'getAttr', function (this: any, name: string) { return this.getAttribute(name); });
 define(elementProto, 'setAttr', function (this: any, name: string, value: string) { this.setAttribute(name, String(value)); });
 
@@ -167,8 +183,16 @@ if (!('cells' in elementProto)) {
 define(documentProto, 'find', function (this: any, selector: string) { return this.querySelector(selector); });
 define(documentProto, 'findAll', function (this: any, selector: string) { return Array.from(this.querySelectorAll(selector)); });
 
+type ElementInfo = { text?: string, cls?: string, attr?: Record<string, unknown> };
+
+/** Obsidian takes a lone string as the class to give the element. */
+function elementInfo(options?: ElementInfo | string): ElementInfo | undefined {
+	return typeof options === 'string' ? { cls: options } : options;
+}
+
 /** Detached equivalent of Obsidian's createEl. */
-function createEl(tag: string, options?: { text?: string, cls?: string, attr?: Record<string, unknown> }) {
+function createEl(tag: string, info?: ElementInfo | string, build?: (el: any) => void) {
+	const options = elementInfo(info);
 	const el = window.document.createElement(tag);
 	if (options?.text) el.textContent = options.text;
 	if (options?.cls) el.className = options.cls;
@@ -178,6 +202,8 @@ function createEl(tag: string, options?: { text?: string, cls?: string, attr?: R
 		if (value === null) continue;
 		el.setAttribute(name, String(value));
 	}
+	// Obsidian hands the finished element to the callback before returning it.
+	build?.(el);
 	return el;
 }
 
@@ -185,16 +211,20 @@ function createEl(tag: string, options?: { text?: string, cls?: string, attr?: R
  * The element methods append; the globals below do not. That difference is
  * Obsidian's, and code here relies on both.
  */
-define(nodeProto, 'createEl', function (this: any, tag: string, options?: object) {
-	const child = createEl(tag, options);
+define(nodeProto, 'createEl', function (this: any, tag: string, options?: ElementInfo | string, build?: (el: any) => void) {
+	const child = createEl(tag, options, build);
 	this.appendChild(child);
 	return child;
 });
-define(nodeProto, 'createDiv', function (this: any, options?: object) { return this.createEl('div', options); });
-define(nodeProto, 'createSpan', function (this: any, options?: object) { return this.createEl('span', options); });
+define(nodeProto, 'createDiv', function (this: any, options?: ElementInfo | string, build?: (el: any) => void) {
+	return this.createEl('div', options, build);
+});
+define(nodeProto, 'createSpan', function (this: any, options?: ElementInfo | string, build?: (el: any) => void) {
+	return this.createEl('span', options, build);
+});
 
 globals.createEl = createEl;
-globals.createDiv = (options?: object) => createEl('div', options);
-globals.createSpan = (options?: object) => createEl('span', options);
+globals.createDiv = (options?: ElementInfo | string, build?: (el: any) => void) => createEl('div', options, build);
+globals.createSpan = (options?: ElementInfo | string, build?: (el: any) => void) => createEl('span', options, build);
 globals.createFragment = () => window.document.createDocumentFragment();
 define(window as any, 'createEl', createEl);

@@ -255,6 +255,39 @@ export class Setting {
 	}
 }
 
+/**
+ * The plugin and its dialogs, which a test reaches only to read the progress
+ * screen. Constructing one needs an Obsidian window, so these stand in for the
+ * bindings that main.ts imports rather than for the classes themselves.
+ */
+export class Plugin {
+	constructor(_app: unknown, _manifest: unknown) {
+		throw new Error('Plugin cannot be loaded outside Obsidian');
+	}
+}
+
+export class Modal {
+	constructor(_app: unknown) {
+		throw new Error('Modal cannot be opened outside Obsidian');
+	}
+}
+
+export class Notice {
+	constructor(_message: string | DocumentFragment, _duration?: number) {
+		throw new Error('Notice cannot be shown outside Obsidian');
+	}
+}
+
+export class SearchComponent {
+	constructor(_containerEl: unknown) {
+		throw new Error('SearchComponent cannot be drawn outside Obsidian');
+	}
+}
+
+export function setIcon(_el: unknown, _icon: string): void {
+	throw new Error('setIcon is not available outside Obsidian');
+}
+
 export class SecretComponent {
 	constructor(_app: unknown, _containerEl: unknown) {
 		throw new Error('SecretComponent cannot be drawn outside Obsidian');

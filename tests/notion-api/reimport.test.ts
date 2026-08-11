@@ -148,6 +148,30 @@ test('a first import writes the page and its child', async () => {
 	]);
 });
 
+/**
+ * The imported count is what landed, not how far the import got: the progress
+ * an importer reports counts a skipped page too, and the two were once the
+ * same number on screen.
+ */
+test('a note it wrote is counted as imported', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder(OUTPUT);
+
+	const { ctx } = await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.equal(ctx.notes, 2);
+	assert.deepEqual([ctx.skipped.length, ctx.failed.length], [0, 0]);
+});
+
+test('a note the second import leaves alone is not counted as imported again', async () => {
+	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
+
+	const { ctx } = await importOnce(vault, DuplicateHandling.Skip);
+
+	assert.equal(ctx.notes, 0, 'nothing was written, so nothing was imported');
+	assert.equal(ctx.skipped.length, 2);
+});
+
 test('every note it wrote carries the id the next import recognises it by', async () => {
 	const vault = await vaultWithOneImport(DuplicateHandling.Skip);
 
