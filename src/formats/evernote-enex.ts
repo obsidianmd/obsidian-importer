@@ -25,7 +25,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 			?.setName(i18n.common.nameExport())
 			.setDesc(i18n.importer.evernote.descExport())
 			.addButton(button => button
-				.setButtonText(i18n.common.buttonOpen())
+				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		this.addFileChooserSetting(i18n.importer.evernote.fileType(), ['enex'], true);

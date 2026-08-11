@@ -40,7 +40,7 @@ export class OneNoteFileImporter extends FormatImporter {
 			?.setName(i18n.common.nameExport())
 			.setDesc(i18n.importer.onenoteFile.descExport())
 			.addButton(button => button
-				.setButtonText(i18n.common.buttonOpen())
+				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		const backup = windowsBackupFolder();

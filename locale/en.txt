@@ -502,6 +502,10 @@ translation=
 original=Learn more.
 translation=
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=

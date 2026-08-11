@@ -35,7 +35,7 @@ export class Bear2bkImporter extends FormatImporter {
 			?.setName(i18n.common.nameExport())
 			.setDesc(i18n.importer.bear.descExport())
 			.addButton(button => button
-				.setButtonText(i18n.common.buttonOpen())
+				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
 		this.addFileChooserSetting(i18n.importer.bear.fileType(), ['bear2bk']);
