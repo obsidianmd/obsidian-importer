@@ -1,0 +1,77 @@
+/** The MS-ONE JCID and property identifiers this importer reads. */
+
+export const Jcid = {
+	sectionNode: 0x00060007,
+	pageSeriesNode: 0x00060008,
+	pageNode: 0x0006000b,
+	outlineNode: 0x0006000c,
+	outlineElementNode: 0x0006000d,
+	richTextNode: 0x0006000e,
+	imageNode: 0x00060011,
+	numberListNode: 0x00060012,
+	outlineGroup: 0x00060019,
+	tableNode: 0x00060022,
+	tableRowNode: 0x00060023,
+	tableCellNode: 0x00060024,
+	titleNode: 0x0006002c,
+	pageMetadata: 0x00020030,
+	sectionMetadata: 0x00020031,
+	embeddedFileNode: 0x00060035,
+	pageManifestNode: 0x00060037,
+	conflictPageMetadata: 0x00020038,
+	author: 0x00120001,
+} as const;
+
+export const Property = {
+	contentChildNodes: 0x24001c1f,
+	elementChildNodes: 0x24001c20,
+	structureElementChildNodes: 0x24001d5f,
+	listNodes: 0x24001c26,
+	richEditTextUnicode: 0x1c001c22,
+	textExtendedAscii: 0x1c003498,
+	childGraphSpaceElementNodes: 0x2c001d63,
+	cachedTitleString: 0x1c001cf3,
+	cachedTitleStringFromPage: 0x1c001d3c,
+	author: 0x1c001d75,
+	sectionDisplayName: 0x1c00349b,
+	notebookColor: 0x14001cbe,
+	pageLevel: 0x14001dff,
+	topologyCreationTimestamp: 0x18001c65,
+	lastModifiedTimestamp: 0x18001d77,
+	lastModifiedTime: 0x14001d7a,
+	isConflictPage: 0x08001d7c,
+	isDeletedGraphSpaceContent: 0x1c001de9,
+
+	textRunIndex: 0x1c001e12,
+	textRunFormatting: 0x24001e13,
+	hyperlink: 0x08001e14,
+	hyperlinkUrl: 0x1c001e20,
+	bold: 0x08001c04,
+	italic: 0x08001c05,
+	underline: 0x08001c06,
+	strikethrough: 0x08001c07,
+	superscript: 0x08001c08,
+	subscript: 0x08001c09,
+	font: 0x1c001c0a,
+	fontSize: 0x10001c0b,
+
+	outlineElementChildLevel: 0x0c001c03,
+	numberListFormat: 0x1c001c1a,
+	paragraphStyle: 0x2000342c,
+	paragraphStyleId: 0x1c00345a,
+
+	tableBordersVisible: 0x08001d5e,
+	tableColumnWidths: 0x1c001d66,
+
+	pictureContainer: 0x20001c3f,
+	embeddedFileContainer: 0x20001d9b,
+	embeddedFileName: 0x1c001d9c,
+	sourceFilePath: 0x1c001d9d,
+	imageFilename: 0x1c001dd7,
+	imageAltText: 0x1c001e58,
+	fileDataReference: 0x1c00343e,
+	fileDataExtension: 0x1c003424,
+} as const;
+
+/** The object space OneNote keeps its own header cell in, which is not a section. */
+export const HEADER_CELL_OBJECT_SPACE_ID = '111e4cf3-7fef-4087-af6a-b9544acd334d';
