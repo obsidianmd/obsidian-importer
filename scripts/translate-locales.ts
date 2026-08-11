@@ -445,11 +445,31 @@ ${terms ? `\nObsidian itself is already translated into ${definition.english}, a
 		}
 	}
 
-	if (best.size === 0) throw lastError;
-
 	for (const [key, value] of best) translated[key] = value;
 	const missing = keys.filter(key => !best.has(key));
-	throw new Error(`${missing.length} of ${keys.length} left untranslated: ${missing.join(', ')}`);
+	if (missing.length === 0) return;
+
+	// A value the model truncates takes the rest of the answer with it, so one
+	// string it cannot get right loses the forty it was asked alongside. On its
+	// own it can only cost itself, and with nothing to spoil it usually lands.
+	if (keys.length > 1) {
+		const stubborn: string[] = [];
+
+		for (const key of missing) {
+			console.log(`${locale}: asking again for ${key} on its own`);
+			try {
+				await translateBatch([key]);
+			}
+			catch {
+				stubborn.push(key);
+			}
+		}
+
+		if (stubborn.length === 0) return;
+		throw new Error(`${stubborn.length} of ${keys.length} left untranslated: ${stubborn.join(', ')}`);
+	}
+
+	throw lastError;
 }
 
 /**
