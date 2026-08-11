@@ -171,7 +171,7 @@ export class NotionImporter extends FormatImporter {
 	}
 }
 
-async function processZips(ctx: ImportContext, files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
+export async function processZips(ctx: ImportContext, files: PickedFile[], callback: (file: ZipEntryFile) => Promise<void>) {
 	for (let zipFile of files) {
 		if (await ctx.shouldStop()) return;
 		try {
@@ -179,11 +179,13 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 				for (let entry of entries) {
 					if (await ctx.shouldStop()) return;
 
-					// throw an error for Notion Markdown exports
+					// Notion's own default is Markdown & CSV, and this importer reads
+					// the HTML export. Nothing here will convert, so say which export
+					// it is and stop, rather than letting the walk fail namelessly.
 					if (entry.extension === 'md' && getNotionId(entry.name)) {
-						new Notice(i18n.importer.notion.msgMarkdownExport());
+						ctx.reportFailed(zipFile.fullpath, i18n.importer.notion.reasonMarkdownExport());
 						ctx.cancel();
-						throw new Error(i18n.importer.notion.msgHtmlOnly());
+						return;
 					}
 
 					// Skip databses in CSV format
@@ -196,12 +198,9 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 					// because users can attach zip files to Notion, and they should be considered
 					// attachment files.
 					if (entry.extension === 'zip' && entry.parent === '') {
-						try {
-							await processZips(ctx, [entry], callback);
-						}
-						catch {
-							ctx.reportFailed(entry.fullpath);
-						}
+						// Whatever goes wrong inside is reported there, against the
+						// nested zip; wrapping this would name the same file twice.
+						await processZips(ctx, [entry], callback);
 					}
 					else {
 						await callback(entry);
@@ -209,8 +208,11 @@ async function processZips(ctx: ImportContext, files: PickedFile[], callback: (f
 				}
 			});
 		}
-		catch {
-			ctx.reportFailed(zipFile.fullpath);
+		catch (e) {
+			// Notion nests the export inside the zip it hands you, so this is
+			// usually a file the user never picked. Without the reason it is a
+			// failure they can neither place nor act on.
+			ctx.reportFailed(zipFile.fullpath, e);
 		}
 	}
 }

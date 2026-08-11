@@ -82,6 +82,13 @@ for (const exported of exports_) {
 		// the export's own index.html has none and never reaches conversion.
 		const pages = entries.filter(entry => entry.extension === 'html' && getNotionId(entry.name));
 
+		// A Markdown & CSV export holds nothing this conversion reads. What the
+		// importer tells the user about one is markdown-export.test.ts.
+		if (entries.some(entry => entry.extension === 'md' && getNotionId(entry.name))) {
+			assert.deepEqual(pages, [], 'a Markdown export should have no HTML pages');
+			return;
+		}
+
 		assert.ok(pages.length > 0, 'the export should contain pages');
 
 		// First pass, as the importer does it: every entry is noted before any

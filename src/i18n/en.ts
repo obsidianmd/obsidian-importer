@@ -587,8 +587,7 @@ export const en = {
 			statusLooking: 'Looking for files to import',
 			statusResolving: 'Resolving links and de-duplicating files',
 			statusStarting: 'Starting import',
-			msgMarkdownExport: 'Notion Markdown export detected. Please export Notion data to HTML instead.',
-			msgHtmlOnly: 'Notion importer uses only HTML exports. Please use the correct format.',
+			reasonMarkdownExport: 'it is a Markdown export; export your Notion workspace as HTML instead',
 			reasonNoPageBody: 'page body was not found',
 		},
 		roamJson: {

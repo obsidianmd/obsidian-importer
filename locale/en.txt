@@ -1978,12 +1978,8 @@ translation=
 original=Starting import
 translation=
 
-[importer.notion.msg-markdown-export]
-original=Notion Markdown export detected. Please export Notion data to HTML instead.
-translation=
-
-[importer.notion.msg-html-only]
-original=Notion importer uses only HTML exports. Please use the correct format.
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
 translation=
 
 [importer.notion.reason-no-page-body]

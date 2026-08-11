@@ -1978,13 +1978,9 @@ translation=Résolution des liens et suppression des doublons
 original=Starting import
 translation=Démarrage de l'importation
 
-[importer.notion.msg-markdown-export]
-original=Notion Markdown export detected. Please export Notion data to HTML instead.
-translation=Export Markdown de Notion détecté. Veuillez plutôt exporter vos données Notion en HTML.
-
-[importer.notion.msg-html-only]
-original=Notion importer uses only HTML exports. Please use the correct format.
-translation=L'importateur Notion n'accepte que les exports HTML. Veuillez utiliser le bon format.
+[importer.notion.reason-markdown-export]
+original=it is a Markdown export; export your Notion workspace as HTML instead
+translation=c'est un export Markdown ; exportez plutôt votre espace de travail Notion en HTML
 
 [importer.notion.reason-no-page-body]
 original=page body was not found
