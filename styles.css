@@ -14,7 +14,8 @@
 	border-top: var(--border-width) solid var(--background-modifier-border);
 }
 .modal.mod-importer .modal-button-container {
-	margin: 0 0 0 calc(var(--size-4-4) * -1);
+	margin: 0;
+	margin-inline-start: calc(var(--size-4-4) * -1);
 	padding: var(--size-4-4);
 	display: flex;
 	justify-content: flex-end;
