@@ -113,8 +113,14 @@ function listPrefix(list: ListInfo | undefined): string {
 	return '\t'.repeat(list.level) + (list.ordered ? '1. ' : '- ');
 }
 
+/** One thing written to the page, and whether it was an item in a list. */
+interface Block {
+	text: string;
+	listItem: boolean;
+}
+
 class PageWriter {
-	private readonly lines: string[] = [];
+	private readonly blocks: Block[] = [];
 	private readonly inkStrokes: SvgStroke[] = [];
 	private readonly recognizedText: string[] = [];
 	readonly attachments: ResolvedAttachment[] = [];
@@ -122,15 +128,25 @@ class PageWriter {
 	constructor(private readonly options: OneNoteConversionOptions, private readonly pageTitle: string) {
 	}
 
+	/**
+	 * Blocks are separated by a blank line, except between items of the same
+	 * list — a blank line there makes it a loose list, which Obsidian renders
+	 * with a gap after every bullet.
+	 */
 	get markdown(): string {
-		return this.lines
-			.join('\n')
-			.replace(/\n{3,}/g, '\n\n')
-			.trim();
+		const lines: string[] = [];
+
+		for (const [index, block] of this.blocks.entries()) {
+			const previous = this.blocks[index - 1];
+			if (previous && !(block.listItem && previous.listItem)) lines.push('');
+			lines.push(block.text);
+		}
+
+		return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 	}
 
-	private push(line: string): void {
-		this.lines.push(line);
+	private push(text: string, listItem = false): void {
+		this.blocks.push({ text, listItem });
 	}
 
 	async writeElements(elements: Element[]): Promise<void> {
@@ -171,8 +187,9 @@ class PageWriter {
 		if (text !== '') {
 			const prefix = listPrefix(paragraph.list) || headingPrefix(paragraph.styleId);
 			// A hard break inside one paragraph stays inside it.
-			this.push(prefix + text.split('\n').join('  \n' + '\t'.repeat(paragraph.list?.level ?? 0)));
-			this.push('');
+			this.push(
+				prefix + text.split('\n').join('  \n' + '\t'.repeat(paragraph.list?.level ?? 0)),
+				paragraph.list !== undefined);
 		}
 
 		await this.writeElements(paragraph.children);
@@ -194,10 +211,13 @@ class PageWriter {
 		});
 
 		// GFM has no table without a header, so the first row becomes one.
-		this.push(`| ${rendered[0].join(' | ')} |`);
-		this.push(`| ${new Array(columns).fill('---').join(' | ')} |`);
-		for (const row of rendered.slice(1)) this.push(`| ${row.join(' | ')} |`);
-		this.push('');
+		const lines = [
+			`| ${rendered[0].join(' | ')} |`,
+			`| ${new Array(columns).fill('---').join(' | ')} |`,
+			...rendered.slice(1).map(row => `| ${row.join(' | ')} |`),
+		];
+
+		this.push(lines.join('\n'));
 	}
 
 	/**
@@ -230,10 +250,7 @@ class PageWriter {
 		const recognized = this.recognizedText.join(' ');
 		await this.writeAsset(new TextEncoder().encode(svg), `${this.pageTitle} - Ink.svg`, recognized, true);
 
-		if (recognized !== '') {
-			this.push(recognized);
-			this.push('');
-		}
+		if (recognized !== '') this.push(recognized);
 	}
 
 	private async writeAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<void> {
@@ -251,7 +268,6 @@ class PageWriter {
 		this.attachments.push(attachment);
 		const target = encodeURI(attachment.path);
 		this.push(embed ? `![${label}](${target})` : `[${label}](${target})`);
-		this.push('');
 	}
 }
 

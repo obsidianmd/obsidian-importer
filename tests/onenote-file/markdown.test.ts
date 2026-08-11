@@ -73,7 +73,27 @@ test('lists carry their bullet and their indent', async () => {
 		para('nested', { list: { level: 1, ordered: false } }),
 		para('numbered', { list: { level: 0, ordered: true } }));
 
-	assert.equal(markdown, ['- one', '', '\t- nested', '', '1. numbered'].join('\n'));
+	// No blank lines between items: a gap makes it a loose list.
+	assert.equal(markdown, ['- one', '\t- nested', '1. numbered'].join('\n'));
+});
+
+test('a list is separated from the prose around it', async () => {
+	const markdown = await render(
+		para('before'),
+		para('one', { list: { level: 0, ordered: false } }),
+		para('two', { list: { level: 0, ordered: false } }),
+		para('after'));
+
+	assert.equal(markdown, ['before', '', '- one', '- two', '', 'after'].join('\n'));
+});
+
+test('an item that is not a list item breaks the list', async () => {
+	const markdown = await render(
+		para('one', { list: { level: 0, ordered: false } }),
+		para('interrupting'),
+		para('two', { list: { level: 0, ordered: false } }));
+
+	assert.equal(markdown, ['- one', '', 'interrupting', '', '- two'].join('\n'));
 });
 
 test('a list item wins over a heading style on the same paragraph', async () => {
