@@ -1,14 +1,5 @@
-/**
- * Native OneNote ink: the strokes a drawing or a handwritten note is made of.
- *
- * A stroke's path is one varint vector holding every dimension's packets end
- * to end — all the x values, then all the y values, then pressure if it was
- * recorded. Each dimension starts with an absolute value and continues as
- * deltas, so a path is only cheap to store, not cheap to read.
- *
- * Coordinates are in native units, 1270 to the half inch. Ported from
- * OfficeIMO's OneNoteInkCodec and OneNoteSemanticMapper.Ink (MIT).
- */
+/** Decodes dimension-major, delta-encoded OneNote ink packets.
+ * Ported from OfficeIMO's OneNoteInkCodec and semantic mapper (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { readGuid, readUInt32 } from '../onestore/binary';
@@ -25,7 +16,6 @@ export interface InkDimension {
 	upper: number;
 }
 
-/** Each record is a GUID naming the dimension and the range it was captured over. */
 export function decodeDimensions(data: Uint8Array | undefined): InkDimension[] {
 	if (!data || data.length === 0) return [];
 
@@ -63,7 +53,6 @@ function readVarUInt(data: Uint8Array, cursor: { offset: number }): number {
 	throw new OneNoteFormatError('ONENOTE_INK_VARINT', 'The ink path contains an invalid multi-byte integer.');
 }
 
-/** A zig-zag encoded vector: the count comes first, then the values. */
 export function decodeSignedVector(data: Uint8Array | undefined, maximumValues: number): number[] {
 	if (!data || data.length === 0) return [];
 
@@ -88,7 +77,6 @@ export function decodeSignedVector(data: Uint8Array | undefined, maximumValues: 
 	return values;
 }
 
-/** One dimension's run: an absolute first value, then differences from it. */
 export function decodePacketValues(encoded: number[], start: number, count: number): number[] {
 	const values = new Array<number>(count);
 	if (count === 0) return values;
@@ -114,7 +102,6 @@ export const InkDimensionId = {
 	pressure: PRESSURE_DIMENSION,
 } as const;
 
-/** OneNote stores an ink colour as 0x00BBGGRR. */
 export function decodeInkColor(color: number | undefined): string {
 	if (color === undefined) return '#000000';
 
@@ -126,7 +113,6 @@ export function decodeInkColor(color: number | undefined): string {
 	return `#${hex(red)}${hex(green)}${hex(blue)}`;
 }
 
-/** The recognizer writes its alternatives into one buffer, separated by nulls. */
 export function decodeRecognitionAlternatives(data: Uint8Array | undefined): string[] {
 	if (!data || data.length < 2) return [];
 

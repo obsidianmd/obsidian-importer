@@ -1398,6 +1398,10 @@ translation=Export OneNote
 original=OneNote ID
 translation=ID OneNote
 
+[importer.onenote-file.desc-backup-folder]
+original=OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.
+translation=OneNote pour Windows conserve ses propres sauvegardes ; la sélection s'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.
+
 [importer.onenote-file.desc-export]
 original=In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.
 translation=Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.

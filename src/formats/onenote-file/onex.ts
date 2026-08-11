@@ -1,14 +1,4 @@
-/**
- * What a .onex actually is.
- *
- * Unlike .one and .onepkg it is an OLE compound file, and the one thing worth
- * knowing about it before trying to read further is whether its payload is
- * rights-protected. A Purview sensitivity label leaves the notebook inside an
- * `EncryptedPackage` stream that only Azure RMS can open, so the useful answer
- * there is to say so plainly rather than to fail somewhere deeper.
- *
- * Only the header and the directory are walked; nothing is decoded.
- */
+/** Classifies OLE-based .onex files without decoding their payloads. */
 
 import { OneNoteFormatError } from './errors';
 import { readUInt16, readUInt32 } from './onestore/binary';
@@ -18,9 +8,7 @@ const DIRECTORY_ENTRY_LENGTH = 128;
 const MAX_DIRECTORY_SECTORS = 4096;
 
 export type OnexKind =
-	/** Rights-managed: the content is encrypted and cannot be read here. */
 	| 'rights-protected'
-	/** A compound file whose layout this importer does not recognise. */
 	| 'unrecognised';
 
 export function isCompoundFile(data: Uint8Array): boolean {
@@ -28,7 +16,6 @@ export function isCompoundFile(data: Uint8Array): boolean {
 	return SIGNATURE.every((byte, index) => data[index] === byte);
 }
 
-/** Walks the directory, following the FAT chain that holds it, to classify the payload. */
 export function inspectOnex(data: Uint8Array): OnexKind {
 	if (!isCompoundFile(data)) {
 		throw new OneNoteFormatError('ONENOTE_ONEX_SIGNATURE', 'The .onex file is not an OLE compound file.');
@@ -38,8 +25,7 @@ export function inspectOnex(data: Uint8Array): OnexKind {
 	const fatSectorCount = readUInt32(data, 44);
 	const firstDirectorySector = readUInt32(data, 48);
 
-	// The header carries the first 109 FAT sector numbers, which is every one
-	// a file this size can have; a longer chain would need the DIFAT sectors.
+	// Larger FAT chains require DIFAT support.
 	const fat: number[] = [];
 	for (let index = 0; index < Math.min(fatSectorCount, 109); index++) {
 		const sector = readUInt32(data, 76 + index * 4);

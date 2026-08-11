@@ -1,10 +1,4 @@
-/**
- * Reading a typed value out of an object's property set.
- *
- * A property identifier carries its representation in the high bits, and the
- * same logical property can appear more than once when revisions were merged —
- * the last one written is the live one, which is why these search backwards.
- */
+/** Typed property reads; the last duplicate is the live revision. */
 
 import { readUInt32 } from '../onestore/binary';
 import { ExtendedGuid } from '../onestore/file-header';
@@ -80,7 +74,7 @@ export function readFileTime(item: RevisionStoreObject | undefined, propertyId: 
 	return Number.isFinite(milliseconds) ? new Date(milliseconds) : undefined;
 }
 
-/** The other timestamp OneNote writes: seconds from 1980. */
+/** Seconds from 1980-01-01. */
 export function readTime32(item: RevisionStoreObject | undefined, propertyId: number): Date | undefined {
 	const value = readUInt32Property(item, propertyId);
 	return value === undefined ? undefined : new Date(Date.UTC(1980, 0, 1) + value * 1000);

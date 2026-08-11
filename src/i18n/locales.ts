@@ -329,6 +329,7 @@ export const locales: Record<string, Bundle> = {
 		'importer.onenote-file.method-desc': 'Importez à partir des fichiers d\'export OneNote (.one, .onepkg) de votre ordinateur. Ne nécessite ni compte ni connexion Internet, et fonctionne pour les blocs-notes qui n\'ont jamais été synchronisés.',
 		'importer.onenote-file.file-type': 'Export OneNote',
 		'importer.onenote-file.label-id': 'ID OneNote',
+		'importer.onenote-file.desc-backup-folder': 'OneNote pour Windows conserve ses propres sauvegardes ; la sélection s\'ouvre à cet emplacement. Choisissez les blocs-notes ou les sections à importer.',
 		'importer.onenote-file.desc-export': 'Dans OneNote pour Windows, faites un clic droit sur un bloc-notes et exportez-le pour enregistrer un fichier .onepkg, ou exportez une seule section au format .one.',
 		'importer.onenote-file.name-sections': 'Sections à importer',
 		'importer.onenote-file.desc-sections': 'Choisissez les sections à importer.',

@@ -1,12 +1,5 @@
-/**
- * Object spaces, and which revision of one is current.
- *
- * A revision store keeps every revision it has ever committed. A page is the
- * result of replaying its revision chain oldest-first, so a later revision's
- * declaration of an object wins over an earlier one — that replay is what
- * turns a pile of declarations into one page. Ported from OfficeIMO's
- * OneNoteObjectSpaceMaterializer (MIT).
- */
+/** Materializes object spaces by replaying revisions oldest-first.
+ * Ported from OfficeIMO's OneNoteObjectSpaceMaterializer (MIT). */
 
 import { ExtendedGuid } from '../onestore/file-header';
 import { FileDataStoreObject, RevisionManifest, RevisionStoreObject, keyOf } from '../onestore/objects';
@@ -50,7 +43,6 @@ export class ObjectSpaceMaterializer {
 			else this.objectsByRevision.set(key, [object]);
 		}
 
-		// A later store object with the same identity replaces an earlier one.
 		for (const item of store.graph.fileDataObjects) this.fileData.set(item.referenceId, item);
 	}
 
@@ -118,7 +110,6 @@ export class ObjectSpaceMaterializer {
 		return space;
 	}
 
-	/** A revision and everything it was built on, oldest first. */
 	getRevisionChain(revision: RevisionManifest): RevisionManifest[] {
 		const chain: RevisionManifest[] = [];
 		const visited = new Set<string>();
@@ -133,7 +124,6 @@ export class ObjectSpaceMaterializer {
 		return chain.reverse();
 	}
 
-	/** Follows an object's `<ifndf>` reference to the bytes in the file-data store. */
 	resolveFileData(item: RevisionStoreObject): Uint8Array | undefined {
 		const reference = item.fileDataReference;
 		if (!reference || !reference.toLowerCase().startsWith('<ifndf>')) return undefined;

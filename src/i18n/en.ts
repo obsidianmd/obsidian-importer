@@ -438,6 +438,7 @@ export const en = {
 			methodDesc: 'Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.',
 			fileType: 'OneNote export',
 			labelId: 'OneNote ID',
+			descBackupFolder: 'OneNote for Windows keeps its own backups, and this opens there. Pick the notebooks or sections you want.',
 			descExport: 'In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.',
 			nameSections: 'Sections to import',
 			descSections: 'Choose which sections to import.',

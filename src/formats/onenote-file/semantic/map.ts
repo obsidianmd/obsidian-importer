@@ -1,11 +1,5 @@
-/**
- * Object spaces into pages, and property sets into text.
- *
- * Ported from OfficeIMO's OneNoteSemanticMapper (MIT), covering the content an
- * import turns into markdown. Ink strokes, native math and note tags are read
- * past rather than mapped: they have no markdown to become, and an object this
- * does not recognise is skipped rather than failing the page around it.
- */
+/** Maps object spaces to importable content.
+ * Ported from OfficeIMO's OneNoteSemanticMapper (MIT). */
 
 import { OneNoteFormatError } from '../errors';
 import { readUInt32 } from '../onestore/binary';
@@ -145,7 +139,6 @@ function mapPage(
 		else if (element) page.directContent.push(element);
 	}
 
-	// A page whose title was never cached keeps it in a title node instead.
 	if (page.title.trim() === '') {
 		for (const titleId of readReferences(pageNode, Property.structureElementChildNodes)) {
 			const title = space.getObject(titleId);
@@ -163,12 +156,10 @@ function mapPage(
 	return page;
 }
 
-/** What every element builder needs, so it does not travel as six parameters. */
 interface MapContext {
 	space: MaterializedObjectSpace;
 	materializer: ObjectSpaceMaterializer;
 	options: ReaderOptions;
-	/** Recognized handwriting, keyed by the stroke it was read from. */
 	recognition: Map<string, string>;
 }
 
@@ -225,10 +216,6 @@ function buildElement(
 	}
 }
 
-/**
- * An outline element is the row in a OneNote outline: it carries the indent
- * and list glyph, and wraps whatever content sits at that level.
- */
 function buildOutlineElement(
 	context: MapContext,
 	item: RevisionStoreObject,
@@ -298,13 +285,7 @@ function buildParagraph(space: MaterializedObjectSpace, item: RevisionStoreObjec
 	return paragraph;
 }
 
-/**
- * A link OneNote wrote inline rather than as a run style.
- *
- * It arrives as a Word field inside the text itself — U+FDDF, then
- * `HYPERLINK "target"`, then the words the reader actually sees. Left alone
- * the field code reads as content, so it becomes the run's target instead.
- */
+/** Extracts Word-style `HYPERLINK "target"` fields embedded in text. */
 const HYPERLINK_FIELD = /﷟\s*HYPERLINK\s+"([^"]*)"\s*/;
 
 function liftHyperlinkFields(runs: TextRun[]): void {
@@ -320,7 +301,6 @@ function liftHyperlinkFields(runs: TextRun[]): void {
 
 		if (pending === undefined || run.text === '') continue;
 
-		// The words after the field are the ones the link is on.
 		run.hyperlinkUrl ??= pending;
 		pending = undefined;
 	}
@@ -345,16 +325,7 @@ function applyTextStyle(run: TextRun, style: RevisionStoreObject | undefined): v
 	}
 }
 
-/**
- * Only an outline element carrying a list node is a list item — every element
- * has an indent level, so the level alone would bullet the whole page.
- */
-/**
- * A highlight as `#rrggbb`, or nothing when none was applied.
- *
- * OneNote stores the colour as 0x00BBGGRR and uses a high byte for "no
- * colour"; white is the page showing through, which nobody chose either.
- */
+/** Converts 0x00BBGGRR to #rrggbb, excluding unset and white values. */
 function highlightColor(color: number | undefined): string | undefined {
 	if (color === undefined || (color & 0xff000000) !== 0) return undefined;
 	if ((color & 0xffffff) === 0xffffff) return undefined;
@@ -363,13 +334,7 @@ function highlightColor(color: number | undefined): string | undefined {
 	return `#${channel(0)}${channel(8)}${channel(16)}`;
 }
 
-/**
- * The tags beside a paragraph: a checkbox becomes a task, and anything else
- * keeps the label OneNote showed for it.
- *
- * Only the shape says whether a tag can be ticked; the label is written in
- * whatever language the notebook's author used, so it is never matched on.
- */
+/** Maps tags by shape because labels are localized. */
 function buildTags(space: MaterializedObjectSpace, item: RevisionStoreObject): Tag[] | undefined {
 	const states = findProperty(item.propertySet, Property.noteTagStates)?.childPropertySets;
 	if (!states || states.length === 0) return undefined;
@@ -378,7 +343,6 @@ function buildTags(space: MaterializedObjectSpace, item: RevisionStoreObject): T
 	for (const state of states.slice(0, MAX_TAGS_PER_PARAGRAPH)) {
 		const status = readSetUInt32(state, Property.actionItemStatus) ?? 0;
 
-		// A removed tag is still recorded, and is not shown.
 		if ((status & 0x10) !== 0) continue;
 
 		const definitionId = findProperty(state, Property.noteTagDefinitionOid)?.referencedIds?.[0];
@@ -399,7 +363,6 @@ function buildTags(space: MaterializedObjectSpace, item: RevisionStoreObject): T
 	return tags.length > 0 ? tags : undefined;
 }
 
-/** The shapes OneNote draws as a tick box. */
 function isCheckableShape(shape: number): boolean {
 	if (shape >= 1 && shape <= 12) return true;
 	if (shape === 28 || shape === 30 || shape === 32) return true;
@@ -424,7 +387,7 @@ function buildListInfo(space: MaterializedObjectSpace, item: RevisionStoreObject
 
 	const format = readNumberListFormat(listNode);
 
-	// The glyph OneNote substitutes the number into; without it the list is bulleted.
+	// Ordered-list formats contain a number placeholder.
 	const marker = format.indexOf('�');
 
 	return {
@@ -434,7 +397,6 @@ function buildListInfo(space: MaterializedObjectSpace, item: RevisionStoreObject
 	};
 }
 
-/** The format is a counted string: its first character says how long the rest is. */
 function readNumberListFormat(listNode: RevisionStoreObject): string {
 	const data = readData(listNode, Property.numberListFormat);
 	if (!data || data.length < 2) return '';
@@ -477,12 +439,6 @@ function buildTable(
 	return table;
 }
 
-/**
- * A drawing, as the strokes it was drawn with.
- *
- * The scale factors live on the container and the geometry on the data node,
- * so both are needed before a point means anything.
- */
 function buildInk({ space, options, recognition }: MapContext, container: RevisionStoreObject): Ink | undefined {
 	const inkDataId = readReferences(container, Property.inkData)[0];
 	if (!inkDataId) return undefined;
@@ -556,11 +512,7 @@ function decodeStroke(
 	};
 }
 
-/**
- * The handwriting recognizer's output, keyed by the stroke each word came
- * from. A word names its strokes by allocation number within its own
- * identifier's namespace, which is how it meets the stroke again here.
- */
+/** Indexes recognized words by stroke identity. */
 function collectRecognition(space: MaterializedObjectSpace, pageNode: RevisionStoreObject): Map<string, string> {
 	const recognition = new Map<string, string>();
 	const rootId = readReferences(pageNode, Property.pageRecognizedTextContainer)[0];
@@ -630,7 +582,6 @@ function buildEmbeddedFile({ space, materializer }: MapContext, item: RevisionSt
 	return embedded;
 }
 
-/** Every string an element holds, in reading order. */
 export function collectText(element: Element, into: string[]): void {
 	switch (element.kind) {
 		case 'paragraph':

@@ -1,5 +1,3 @@
-/** The MS-ONE JCID and property identifiers this importer reads. */
-
 export const Jcid = {
 	sectionNode: 0x00060007,
 	pageSeriesNode: 0x00060008,
@@ -103,5 +101,4 @@ export const Property = {
 	recognizedTextStrokeReferences: 0x1c0035df,
 } as const;
 
-/** The object space OneNote keeps its own header cell in, which is not a section. */
 export const HEADER_CELL_OBJECT_SPACE_ID = '111e4cf3-7fef-4087-af6a-b9544acd334d';
