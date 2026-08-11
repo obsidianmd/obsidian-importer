@@ -55,6 +55,13 @@ class BitReader {
 		return value;
 	}
 
+	/** Huffman decoding asks for one bit at a time, often enough to be worth its own path. */
+	readBit(): number {
+		if (this.bitsRemaining === 0) this.loadWord();
+		this.bitsRemaining--;
+		return (this.word >> this.bitsRemaining) & 1;
+	}
+
 	alignToWord(): void {
 		this.bitsRemaining = 0;
 	}
@@ -166,7 +173,7 @@ class HuffmanTree {
 
 		let code = 0;
 		for (let length = 1; length <= MAXIMUM_PATH_LENGTH; length++) {
-			code = (code << 1) | reader.readBits(1);
+			code = (code << 1) | reader.readBit();
 			const offset = code - this.firstCodes[length];
 			if (offset >= 0 && offset < this.counts[length]) {
 				return this.symbols[this.firstSymbolIndexes[length] + offset];
