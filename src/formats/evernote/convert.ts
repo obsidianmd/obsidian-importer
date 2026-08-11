@@ -65,6 +65,18 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 	};
 
 	return new Promise((resolve, reject) => {
+		// A cancelled read closes the stream, which ends it without ever ending
+		// the parser - so 'end' does not arrive and this would wait forever.
+		// 'close' follows 'end' on a stream that was read to the finish, so the
+		// notes are spliced either way and only once.
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			spliceTasks();
+			resolve();
+		};
+
 		const logAndReject = (e: Error) => {
 			ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
 			return reject(e);
@@ -127,10 +139,8 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 
 		});
 
-		xml.on('end', () => {
-			spliceTasks();
-			resolve();
-		});
+		xml.on('end', finish);
+		stream.on('close', finish);
 		xml.on('error', logAndReject);
 		stream.on('error', logAndReject);
 	});

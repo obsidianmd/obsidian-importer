@@ -6,8 +6,9 @@
  * decide - a name already taken, a note an earlier import wrote, attachments
  * beside it - is decided against what is there, and none of it was checked.
  *
- * Two of these record behaviour that is wrong, and say so. They are here so
- * that the change which fixes them has to move an expectation on purpose.
+ * One of these still records behaviour that is wrong, and says so. They are
+ * here so that the change which fixes one has to move an expectation on
+ * purpose, which is what happened to the two that no longer say it.
  */
 import '../shims/dom';
 

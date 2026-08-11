@@ -56,13 +56,6 @@ export class VaultOutput implements EvernoteOutput {
 		return found instanceof TFile ? found.stat.mtime : null;
 	}
 
-	async removeFolder(path: string): Promise<void> {
-		const found = this.vault.getAbstractFileByPathInsensitive(path);
-		// Trashed rather than deleted: a re-import empties a note's attachment
-		// folder, and what was in it may not all have been ours.
-		if (found instanceof TFolder) await this.app.fileManager.trashFile(found);
-	}
-
 	async write(path: string, data: string | ArrayBuffer, times: FileTimes): Promise<void> {
 		await this.createFolders(path.slice(0, path.lastIndexOf('/')));
 
