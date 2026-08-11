@@ -49,6 +49,26 @@ test('failures come before the skips, which are the ones with nothing to do abou
 	assert.ok(report.indexOf('## Failed') < report.indexOf('## Skipped'), report);
 });
 
+test('a message is listed as it was written, with nothing named or blamed', () => {
+	const ctx = new ImportContext();
+	ctx.reportMessage('12 links could not be matched to a note.');
+
+	const report = reportOf(ctx);
+
+	assert.match(report, /^## Worth knowing$/m);
+	assert.match(report, /^- 12 links could not be matched to a note\.$/m);
+	assert.doesNotMatch(report, /## Skipped|## Failed|"/);
+});
+
+test('a message is nobody\'s skip and nobody\'s failure, so it counts as neither', () => {
+	const ctx = new ImportContext();
+	ctx.notes = 3;
+	ctx.reportMessage('12 links could not be matched to a note.');
+
+	assert.deepEqual([ctx.skipped, ctx.failed], [[], []]);
+	assert.match(reportOf(ctx), /Finished 2026-08-09 14:32\. 3 notes imported\./);
+});
+
 test('the counts say what the import did as well as what it did not', () => {
 	const ctx = new ImportContext();
 	ctx.notes = 10544;

@@ -12,9 +12,10 @@ interface NoteLink {
 	notebookName: string;
 }
 
-export const applyLinks = (run: EvernoteRun): void => {
+/** @returns how many links no note in the import answered to. */
+export const applyLinks = (run: EvernoteRun): number => {
 	const entries = Object.entries(run.properties.getAllNoteIdNameMap());
-	if (entries.length === 0) return;
+	if (entries.length === 0) return 0;
 
 	// Longest first: one note's address can be another's with a trailing slash,
 	// and replacing the shorter inside the longer would break the link it is part of.
@@ -28,6 +29,8 @@ export const applyLinks = (run: EvernoteRun): void => {
 		notebookName,
 	}));
 
+	let unresolved = 0;
+
 	for (const draft of run.drafts) {
 		const from = parseFilePath(draft.path).parent;
 		let updatedContent = draft.markdown;
@@ -37,11 +40,17 @@ export const applyLinks = (run: EvernoteRun): void => {
 
 			const to = linkTo(link, from);
 			// One pass, so an address written back into the note is not read again.
-			updatedContent = updatedContent.replace(link.occurrence, () => to);
+			updatedContent = updatedContent.replace(link.occurrence, () => {
+				if (!link.target) unresolved++;
+
+				return to;
+			});
 		}
 
 		draft.markdown = updatedContent;
 	}
+
+	return unresolved;
 };
 
 function linkTo({ href, target, title, notebookName }: NoteLink, from: string): string {

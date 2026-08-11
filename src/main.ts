@@ -185,8 +185,10 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onLogged(entry: ImportLogEntry): void {
-		const countEl = entry.outcome === 'failed' ? this.failedCountEl : this.skippedCountEl;
-		countEl.setText((entry.outcome === 'failed' ? this.failed : this.skipped).length.toString());
+		if (entry.outcome !== 'message') {
+			const countEl = entry.outcome === 'failed' ? this.failedCountEl : this.skippedCountEl;
+			countEl.setText((entry.outcome === 'failed' ? this.failed : this.skipped).length.toString());
+		}
 
 		this.drawLogEntry(entry);
 		this.importLogEl.show();
@@ -217,6 +219,11 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	private drawLogEntry({ outcome, name, reason }: ImportLogEntry, into: Node = this.importLogEl): void {
+		if (outcome === 'message') {
+			into.createDiv('list-item', el => el.createSpan({ text: name }));
+			return;
+		}
+
 		into.createDiv('list-item', el => {
 			el.createSpan({
 				cls: 'importer-error',

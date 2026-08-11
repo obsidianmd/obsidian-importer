@@ -58,6 +58,26 @@ test('a link into another notebook names the notebook the note is in', async () 
 	});
 });
 
+/**
+ * A link carries no id an ENEX export could match a note by, only the title it
+ * shows, so a note renamed since the link was made leaves a link nothing
+ * answers to. Nothing here can resolve it; the count is what the user is told.
+ */
+test('counts the links no note answered to', async () => {
+	await convert([nodePath.join(FIXTURES, 'note-link-to-a-renamed-note.enex')], (_outputDir, ctx) => {
+		assert.equal(ctx.messages.length, 1);
+		assert.match(ctx.messages[0], /^1 link could not be matched to a note\./);
+		// Nothing was skipped or failed: the note imported, its link just points nowhere.
+		assert.deepEqual([ctx.skips, ctx.failures], [[], []]);
+	});
+});
+
+test('says nothing when every link found its note', async () => {
+	await convert([nodePath.join(FIXTURES, 'note-link-without-title.enex')], (_outputDir, ctx) => {
+		assert.deepEqual(ctx.messages, []);
+	});
+});
+
 test('keeps a resource file name that is its only attribute', async () => {
 	await convert([nodePath.join(FIXTURES, 'test-resource-attributes-single-child.enex')], outputDir => {
 		const attachments = [...readTree(outputDir).keys()].filter(path => path.endsWith('.png'));

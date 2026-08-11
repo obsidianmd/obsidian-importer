@@ -1,5 +1,6 @@
 export interface ImportLogEntry {
-	outcome: 'skipped' | 'failed';
+	outcome: 'skipped' | 'failed' | 'message';
+	/** The note or file, or the message itself when there is no outcome to label. */
 	name: string;
 	reason?: unknown;
 }
@@ -38,6 +39,16 @@ export class ImportContext {
 	reportAttachmentSuccess(name: string) {
 		this.attachments++;
 		this.onAttachmentSuccess(name);
+	}
+
+	/**
+	 * Something the user should know that no single note is answerable for, and
+	 * that leaves nothing skipped or failed to count.
+	 */
+	reportMessage(message: string) {
+		const entry: ImportLogEntry = { outcome: 'message', name: message };
+		this.log.push(entry);
+		this.onLogged(entry);
 	}
 
 	reportSkipped(name: string, reason?: unknown) {

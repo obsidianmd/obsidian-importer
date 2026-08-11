@@ -322,6 +322,10 @@ translation=
 original=Skipped ({{count}})
 translation=
 
+[report.heading-messages]
+original=Worth knowing
+translation=
+
 [report.count-notes]
 original={{count}} note imported
 translation=
@@ -1140,6 +1144,14 @@ translation=
 
 [importer.evernote.desc-export]
 original=Export your notebooks in ENEX format, you will receive one .enex file per notebook.
+translation=
+
+[importer.evernote.msg-unresolved-links]
+original={{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
+translation=
+
+[importer.evernote.msg-unresolved-links_plural]
+original={{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.
 translation=
 
 [importer.keep.name]

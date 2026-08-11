@@ -41,11 +41,19 @@ function section(heading: string, entries: ImportLogEntry[]): string[] {
 	return lines;
 }
 
+/** A message stands on its own, so it is listed rather than named and explained. */
+function messages(heading: string, entries: ImportLogEntry[]): string[] {
+	if (entries.length === 0) return [];
+
+	return [`## ${heading}`, '', ...entries.map(({ name }) => `- ${asText(name)}`), ''];
+}
+
 export function formatImportReport(report: ImportReport): string {
 	const { importer, when, notes, attachments, cancelled, log } = report;
 
 	const failed = log.filter(entry => entry.outcome === 'failed');
 	const skipped = log.filter(entry => entry.outcome === 'skipped');
+	const said = log.filter(entry => entry.outcome === 'message');
 
 	// Some importers do not count successful notes, so omit zero counts.
 	const counts = [
@@ -64,6 +72,7 @@ export function formatImportReport(report: ImportReport): string {
 		'',
 		...section(i18n.report.headingFailed({ count: failed.length }), failed),
 		...section(i18n.report.headingSkipped({ count: skipped.length }), skipped),
+		...messages(i18n.report.headingMessages(), said),
 	];
 
 	return lines.join('\n');

@@ -121,6 +121,7 @@ export const en = {
 		msgStopped: 'Stopped {{when}}. {{counts}}.',
 		headingFailed: 'Failed ({{count}})',
 		headingSkipped: 'Skipped ({{count}})',
+		headingMessages: 'Worth knowing',
 		countNotes: '{{count}} note imported',
 		countNotes_plural: '{{count}} notes imported',
 		countAttachments: '{{count}} attachment downloaded',
@@ -366,6 +367,8 @@ export const en = {
 			optionText: 'Evernote (.enex)',
 			fileType: 'Evernote',
 			descExport: 'Export your notebooks in ENEX format, you will receive one .enex file per notebook.',
+			msgUnresolvedLinks: '{{count}} link could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.',
+			msgUnresolvedLinks_plural: '{{count}} links could not be matched to a note. An ENEX export does not say which note a link points to, only the title it showed in Evernote, so a note renamed since the link was made no longer answers to it. Obsidian lists these under unresolved links.',
 		},
 		keep: {
 			name: 'Google Keep',
