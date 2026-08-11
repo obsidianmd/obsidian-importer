@@ -51,8 +51,22 @@ export const en = {
 		pageWithCount_plural: '{{count}} pages',
 	},
 
+	/**
+	 * An app offering more than one way in. The list shows the app; this is the
+	 * screen that follows, where the two ways are told apart.
+	 */
+	group: {
+		onenote: {
+			name: 'Microsoft OneNote',
+		},
+		notion: {
+			name: 'Notion',
+		},
+	},
+
 	modal: {
 		titlePickFormat: 'Import data into Obsidian',
+		titleChooseMethod: 'Choose how to import',
 		titleImportFrom: 'Import from {{format}}',
 		searchPlaceholder: 'Filter...',
 		msgNoFormats: 'No formats found.',
@@ -378,6 +392,8 @@ export const en = {
 		onenote: {
 			name: 'Microsoft OneNote',
 			optionText: 'Microsoft OneNote',
+			methodName: 'Microsoft account',
+			methodDesc: 'Sign into your Microsoft account and import the notebooks that are synced to OneDrive. Requires an internet connection.',
 			labelId: 'OneNote ID',
 			nameIncompatible: 'Import incompatible attachments',
 			descIncompatible: 'Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.',
@@ -418,11 +434,13 @@ export const en = {
 		onenoteFile: {
 			name: 'Microsoft OneNote (export file)',
 			optionText: 'Microsoft OneNote (.one, .onepkg)',
+			methodName: 'File import',
+			methodDesc: 'Import using OneNote export files (.one, .onepkg) from your computer. Requires no account or internet connection, and works for notebooks that were never synced.',
 			fileType: 'OneNote export',
 			labelId: 'OneNote ID',
 			descExport: 'In OneNote for Windows, right-click a notebook and export it to save a .onepkg file, or export a single section as .one.',
 			nameSections: 'Sections to import',
-			descSections: 'Load a file to choose which of its sections to import.',
+			descSections: 'Choose which sections to import.',
 			msgLoadingSections: 'Reading sections…',
 			msgNoSections: 'No sections found in this file.',
 			msgPickFileFirst: 'Choose a OneNote file first.',
@@ -438,6 +456,8 @@ export const en = {
 		notionApi: {
 			name: 'Notion (API)',
 			optionText: 'Notion (API)',
+			methodName: 'Notion account (recommended)',
+			methodDesc: 'Imports your entire workspace, including databases and formulas which are converted to bases. Requires a Notion integration token and an internet connection.',
 			labelId: 'Notion ID',
 			nameToken: 'Notion API token',
 			descToken: 'To get an API token create a connection in Notion and give it access to pages in your workspace. ',
@@ -549,6 +569,8 @@ export const en = {
 		notion: {
 			name: 'Notion',
 			optionText: 'Notion (.zip)',
+			methodName: 'File import',
+			methodDesc: 'Imports using a Notion export file (.zip). Requires no API token or internet connection, but does not preserve databases.',
 			fileType: 'Exported Notion',
 			labelId: 'Notion ID',
 			descExport: 'Export your workspace in HTML format, you will receive a zip file.',

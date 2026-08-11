@@ -30,6 +30,13 @@
 	margin-bottom: 0;
 }
 
+/* Back and Help sit at the start of a step, and the primary button is pushed
+   to the end by its own auto margin. Scoped like the rule above so it wins,
+   and only for a step: the progress and finish screens stay end-aligned. */
+.modal.mod-importer .importer-step-buttons {
+	justify-content: flex-start;
+}
+
 .importer-step-buttons .mod-cta {
 	margin-inline-start: auto;
 }

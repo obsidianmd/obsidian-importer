@@ -34,6 +34,41 @@ interface ImporterDefinition {
 	importer: new (app: App, host: ImporterHost) => FormatImporter;
 }
 
+/**
+ * Apps that offer more than one way in.
+ *
+ * The first screen lists the app once, rather than a row per way, and the
+ * choice between them is made on a screen that can explain the difference.
+ * Keyed by the group's own name, which is also the icon it borrows.
+ */
+const IMPORTER_GROUPS: Record<string, string[]> = {
+	'onenote': ['onenote-file', 'onenote'],
+	'notion': ['notion-api', 'notion'],
+};
+
+/** The help page for a group, which its members share. */
+function groupHelpPermalink(plugin: ImporterPlugin, group: string): string | undefined {
+	for (const member of IMPORTER_GROUPS[group]) {
+		const permalink = plugin.importers[member]?.helpPermalink;
+		if (permalink) return permalink;
+	}
+
+	return undefined;
+}
+
+/** The group an importer belongs to, if any. */
+function groupOf(id: string): string | undefined {
+	for (const [group, members] of Object.entries(IMPORTER_GROUPS)) {
+		if (members.includes(id)) return group;
+	}
+
+	return undefined;
+}
+
+function groupName(group: string): string {
+	return i18n.group(`${group}.name`);
+}
+
 /** The format's own name, and the longer line it is listed under. */
 function importerName(id: string): string {
 	return i18n.importer(`${id}.name`);
@@ -456,7 +491,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			rows = [];
 
 			for (const [id, match] of this.searchFormats(query)) {
-				const optionText = importerOptionText(id);
+				const optionText = this.rowText(id);
 
 				const setting = new Setting(itemsEl)
 					.setClass('mod-navigable')
@@ -474,12 +509,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 				const { settingEl } = setting;
 				const index = rows.length;
 				settingEl.tabIndex = 0;
-				settingEl.addEventListener('click', () => this.selectFormat(id));
+				settingEl.addEventListener('click', () => this.chooseRow(id));
 				settingEl.addEventListener('keydown', evt => {
 					switch (evt.key) {
 						case 'Enter':
 						case ' ':
-							this.selectFormat(id);
+							this.chooseRow(id);
 							break;
 						case 'ArrowDown':
 							focusRow(index + 1);
@@ -518,9 +553,26 @@ export class ImporterModal extends Modal implements ImporterHost {
 		search.inputEl.focus();
 	}
 
+	/** What the first screen offers: every ungrouped importer, and each group once. */
+	private pickableIds(): string[] {
+		const offered: string[] = [];
+
+		for (const id of Object.keys(this.plugin.importers)) {
+			const group = groupOf(id);
+			const entry = group ?? id;
+			if (!offered.includes(entry)) offered.push(entry);
+		}
+
+		return offered;
+	}
+
+	/** What a row is called: a group by its own name, an importer by its option text. */
+	private rowText(id: string): string {
+		return id in IMPORTER_GROUPS ? groupName(id) : importerOptionText(id);
+	}
+
 	private searchFormats(query: string): [string, SearchResult | null][] {
-		const importers = this.plugin.importers;
-		const ids = Object.keys(importers);
+		const ids = this.pickableIds();
 
 		if (!query) return ids.map(id => [id, null]);
 
@@ -528,10 +580,15 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const results: { id: string, match: SearchResult | null, score: number }[] = [];
 
 		for (const id of ids) {
-			const match = search(importerOptionText(id));
-			const byName = search(importerName(id));
+			const match = search(this.rowText(id));
 
-			const best = Math.max(match?.score ?? -Infinity, byName?.score ?? -Infinity);
+			// A group is found by what its members are called too, so searching
+			// for "onepkg" or "API" still reaches the app that offers it.
+			const searchable = id in IMPORTER_GROUPS
+				? IMPORTER_GROUPS[id].flatMap(member => [importerName(member), importerOptionText(member)])
+				: [importerName(id)];
+
+			const best = Math.max(match?.score ?? -Infinity, ...searchable.map(text => search(text)?.score ?? -Infinity));
 			if (best === -Infinity) continue;
 
 			results.push({ id, match, score: best });
@@ -539,6 +596,81 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		results.sort((a, b) => b.score - a.score);
 		return results.map(({ id, match }) => [id, match]);
+	}
+
+	/** A row is either an app that offers a choice, or an importer outright. */
+	private chooseRow(id: string): void {
+		if (id in IMPORTER_GROUPS) this.showMethodPicker(id);
+		else this.selectFormat(id);
+	}
+
+	/**
+	 * The screen between the list and the importer, for an app with more than
+	 * one way in. It exists to say what the difference is, which a row in a
+	 * list has no room for.
+	 */
+	private showMethodPicker(group: string): void {
+		const { contentEl, modalEl } = this;
+
+		contentEl.empty();
+		this.nextButtonEl = null;
+		// This screen has a Back button, so the content has to clear the footer.
+		modalEl.removeClass('is-picking-format');
+		this.titleEl.setText(i18n.modal.titleChooseMethod());
+
+		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
+		const rows: HTMLElement[] = [];
+
+		for (const member of IMPORTER_GROUPS[group]) {
+			if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, member)) continue;
+
+			const setting = new Setting(itemsEl)
+				.setClass('mod-navigable')
+				.setName(i18n.importer(`${member}.method-name`))
+				.setDesc(i18n.importer(`${member}.method-desc`));
+
+			setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
+
+			const { settingEl } = setting;
+			const index = rows.length;
+			settingEl.tabIndex = 0;
+			settingEl.addEventListener('click', () => this.selectFormat(member));
+			settingEl.addEventListener('keydown', evt => {
+				switch (evt.key) {
+					case 'Enter':
+					case ' ':
+						this.selectFormat(member);
+						break;
+					case 'ArrowDown':
+						rows[Math.min(index + 1, rows.length - 1)]?.focus();
+						break;
+					case 'ArrowUp':
+						rows[Math.max(index - 1, 0)]?.focus();
+						break;
+					default:
+						return;
+				}
+
+				evt.preventDefault();
+			});
+
+			rows.push(settingEl);
+		}
+
+		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
+			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+				el.addEventListener('click', () => this.showFormatPicker());
+			});
+
+			const permalink = groupHelpPermalink(this.plugin, group);
+			if (permalink) {
+				el.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
+					el.addEventListener('click', () => window.open(helpUrl(permalink)));
+				});
+			}
+		});
+
+		rows[0]?.focus();
 	}
 
 	selectFormat(id: string) {
@@ -551,6 +683,13 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		this.selectedId = id;
 		this.setUpImporter();
+	}
+
+	/** Back from the first step: to the app's choice of ways in, or to the list. */
+	private showPreviousScreen(): void {
+		const group = groupOf(this.selectedId);
+		if (group) this.showMethodPicker(group);
+		else this.showFormatPicker();
 	}
 
 	private setUpImporter() {
@@ -567,7 +706,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	private showFirstStep() {
 		if (this.importer.notAvailable) {
-			this.drawStep(this.optionsEl, () => this.showFormatPicker(), () => {});
+			this.drawStep(this.optionsEl, () => this.showPreviousScreen(), () => {});
 			return;
 		}
 
@@ -579,7 +718,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	}
 
 	showSourceStep() {
-		this.drawStep(this.sourceEl, () => this.showFormatPicker(), el => {
+		this.drawStep(this.sourceEl, () => this.showPreviousScreen(), el => {
 			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 				el.addEventListener('click', () => void this.showOutputStep());
 			});
@@ -632,7 +771,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 		contentEl.empty();
 		this.nextButtonEl = null;
 		modalEl.removeClass('is-picking-format');
-		this.titleEl.setText(i18n.modal.titleImportFrom({ format: importerName(this.selectedId) }));
+		// An app that offers a choice is named once, the way the list named it;
+		// which of its ways in was chosen was settled on the screen before.
+		const group = groupOf(this.selectedId);
+		this.titleEl.setText(i18n.modal.titleImportFrom({
+			format: group ? groupName(group) : importerName(this.selectedId),
+		}));
 
 		if (stepEl) contentEl.append(stepEl);
 
