@@ -303,9 +303,16 @@ function isDirectory(filepath: string): boolean {
 }
 
 /**
- * The files behind a drop. A folder is walked, but a folder with an extension
- * is left as a file: that is what the picker hands over for a macOS package
- * like a `.textbundle`, and what the importer reading one expects.
+ * The formats that are a folder rather than a file. macOS shows one as a
+ * single item and its picker hands the folder over whole, which is what the
+ * importer reading one expects. Every other folder with a dot in its name -
+ * `Evernote.2026` - is just a folder, and walking into it is the whole point
+ * of dropping it.
+ */
+const PACKAGE_EXTENSIONS = ['textbundle'];
+
+/**
+ * The files behind a drop: a folder is walked, and a package is left whole.
  */
 export async function expandDropped(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
 	const files: PickedFile[] = [];
@@ -336,7 +343,7 @@ export async function expandDropped(items: (PickedFile | PickedFolder)[]): Promi
 function packagedAsFile(folder: PickedFolder): PickedFile | null {
 	if (!(folder instanceof NodePickedFolder)) return null;
 
-	return splitext(folder.name)[1] ? new NodePickedFile(folder.filepath) : null;
+	return PACKAGE_EXTENSIONS.includes(splitext(folder.name)[1]) ? new NodePickedFile(folder.filepath) : null;
 }
 
 export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?: (file: PickedFile) => boolean): Promise<PickedFile[]> {
