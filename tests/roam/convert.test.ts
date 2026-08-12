@@ -200,7 +200,7 @@ function outline() {
 		}],
 	} as unknown as RoamPage;
 
-	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0);
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
 }
 
 test('starts the outline at the margin and indents each level by four spaces', async () => {
@@ -225,7 +225,7 @@ test('indents the lines after the first to the item text, so a fence stays in th
 		children: [{ string: 'Code', children: [{ string: '```js\none();\ntwo();```' }] }],
 	} as unknown as RoamPage;
 
-	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0), [
+	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0), [
 		'- Code',
 		'    - ```js',
 		'      one();',
@@ -248,7 +248,7 @@ async function anchored(page: RoamPage, referenced: string[]): Promise<string> {
 		isReferenced: uid => referenced.includes(uid),
 	});
 
-	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0);
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
 }
 
 test('a block something points at grows an anchor', async () => {
@@ -290,7 +290,7 @@ async function convertTable(rows: RoamBlock[], marker: string = '{{[[table]]}}')
 		children: [rows.length > 0 ? { string: marker, children: rows } : { string: marker }],
 	} as RoamPage;
 
-	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page, '', false, '', 0, 0);
+	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page, '', 0, 0);
 }
 
 /** A row, as Roam nests it: each column is a child of the column before it. */

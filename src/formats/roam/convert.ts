@@ -4,6 +4,7 @@ import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { BlockTarget, blockRefRegex } from './block-refs';
 import { serializeFrontMatter } from '../../util';
 import { convertRoamQueries } from './queries';
+import { deOutline, RenderedBlock } from './de-outline';
 
 const INDENT = '    ';
 
@@ -28,6 +29,8 @@ export interface RoamConverterOptions {
 	resolveBlockReference?: (uid: string) => BlockTarget | null;
 	/** Whether another block points at this one, and so whether it needs an anchor. */
 	isReferenced?: (uid: string) => boolean;
+	/** Write the outline as ordinary markdown rather than as nested bullets. */
+	deOutline?: boolean;
 }
 
 export class RoamPageConverter {
@@ -171,26 +174,82 @@ export class RoamPageConverter {
 		}
 	}
 
-	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
-		let markdown: string[] = [];
+	/**
+	 * A block and everything under it, converted but not yet laid out.
+	 *
+	 * What a block *says* is settled here and how the page is *shaped* is
+	 * settled after, so the outline and the flattened form are two readings of
+	 * one conversion rather than two conversions.
+	 */
+	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock, createdTimestamp: number, updatedTimestamp: number): Promise<RenderedBlock | null> {
+		this.accumulateTimestamps(block, createdTimestamp, updatedTimestamp);
 
-		this.accumulateTimestamps(json, createdTimestamp, updatedTimestamp);
-
-		if ('string' in json && json.string && roamTableRe.test(json.string.trim())) {
+		if (block.string && roamTableRe.test(block.string.trim())) {
 			// The marker's children are the table, so they are read as cells
-			// here rather than recursed into as bullets.
-			return this.convertTable(graphFolder, attachmentsFolder, json);
+			// rather than recursed into as bullets. A marker with no rows under
+			// it leaves nothing behind, marker included.
+			const table = await this.convertTable(graphFolder, attachmentsFolder, block);
+			return table ? { text: '', anchor: null, table, children: [] } : null;
 		}
 
-		if ('string' in json && json.string) {
-			const prefix = json.heading ? '#'.repeat(json.heading) + ' ' : '';
-			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, json.string);
-			// A block can hold several lines - a fence, say - and every one after the
-			// first has to be indented or it falls out of the item
-			const [first, ...rest] = `${prefix}${scrubbed}`.split('\n');
-			const continuation = isChild ? indent + '  ' : indent;
-			const lines = [
-				`${isChild ? indent + '- ' : indent}${first}`,
+		// A block Roam left empty writes no line of its own, while what is under
+		// it stays where it was. A block that scrubs away to nothing is not the
+		// same thing: it had something to say and keeps its place.
+		const prefix = block.heading ? '#'.repeat(block.heading) + ' ' : '';
+		const text = block.string
+			? `${prefix}${await this.roamMarkupScrubber(graphFolder, attachmentsFolder, block.string)}`
+			: null;
+
+		return {
+			text,
+			anchor: block.uid && this.options.isReferenced?.(block.uid) ? block.uid : null,
+			table: null,
+			children: await this.renderChildren(graphFolder, attachmentsFolder, block.children ?? []),
+		};
+	}
+
+	private async renderChildren(graphFolder: string, attachmentsFolder: string, children: RoamBlock[], skip?: Map<RoamBlock, string>): Promise<RenderedBlock[]> {
+		const rendered: RenderedBlock[] = [];
+
+		for (const child of children) {
+			if (skip?.has(child)) continue;
+
+			const block = await this.render(graphFolder, attachmentsFolder, child, this.oldestTimestamp, this.newestTimestamp);
+			if (block) rendered.push(block);
+		}
+
+		return rendered;
+	}
+
+	/**
+	 * The outline as Roam kept it: a bullet a block, four spaces a level.
+	 *
+	 * A block that says nothing still keeps its bullet, which is what Roam
+	 * shows - only a table marker with nothing under it goes without a line.
+	 */
+	private asOutline(blocks: RenderedBlock[], indent: string): string[] {
+		const lines: string[] = [];
+
+		for (const block of blocks) {
+			if (block.table !== null) {
+				lines.push(block.table);
+				continue;
+			}
+
+			if (block.text === null) {
+				// An empty block with nothing under it is still a blank line, and
+				// one with children gives its place over to them.
+				if (block.children.length === 0) lines.push('');
+				else lines.push(...this.asOutline(block.children, indent + INDENT));
+				continue;
+			}
+
+			// A block can hold several lines - a fence, say - and every one after
+			// the first has to be indented or it falls out of the item
+			const continuation = indent + '  ';
+			const [first, ...rest] = block.text.split('\n');
+			const written = [
+				`${indent}- ${first}`,
 				...rest.map(line => line ? continuation + line : line),
 			];
 
@@ -198,35 +257,28 @@ export class RoamPageConverter {
 			// It belongs at the end of the block, which for one holding several
 			// lines is a line of its own: appended to a closing fence it would
 			// land inside the code.
-			if (json.uid && this.options.isReferenced?.(json.uid)) {
-				if (lines.length > 1) lines.push(`${continuation}^${json.uid}`);
-				else lines[0] += ` ^${json.uid}`;
+			if (block.anchor) {
+				if (written.length > 1) written.push(`${continuation}^${block.anchor}`);
+				else written[0] += ` ^${block.anchor}`;
 			}
 
-			markdown.push(lines.join('\n'));
+			lines.push(written.join('\n'), ...this.asOutline(block.children, indent + INDENT));
 		}
+
+		return lines;
+	}
+
+	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
+		this.accumulateTimestamps(json, createdTimestamp, updatedTimestamp);
 
 		// A page's attributes are lifted out of the outline into its properties,
 		// so what is left of the page is the outline alone.
-		const attributes = isChild ? new Map<RoamBlock, string>() : await this.attributesOf(graphFolder, attachmentsFolder, json);
+		const attributes = await this.attributesOf(graphFolder, attachmentsFolder, json);
+		const blocks = await this.renderChildren(graphFolder, attachmentsFolder, json.children ?? [], attributes);
 
-		if (json.children) {
-			for (const child of json.children) {
-				if (attributes.has(child)) continue;
-
-				// The page is not a bullet, so its own blocks start at the margin
-				const converted = await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, isChild ? indent + INDENT : indent, true, '', this.oldestTimestamp, this.newestTimestamp);
-
-				// A table marker with no rows under it converts to nothing, and
-				// leaves no line behind either. Every other block keeps its line,
-				// empty or not, the way it always has.
-				if (converted || !roamTableRe.test((child.string ?? '').trim())) {
-					markdown.push(converted);
-				}
-			}
-		}
-
-		if (isChild) return markdown.join('\n');
+		const markdown = this.options.deOutline
+			? [deOutline(blocks)]
+			: this.asOutline(blocks, '');
 
 		const frontMatter: FrontMatterCache = {};
 

@@ -101,7 +101,7 @@ export class RoamGraphConverter {
 
 			await this.options.prepareNote?.(filename);
 			const converter = this.newConverter();
-			const markdownOutput = await converter.jsonToMarkdown(this.graphFolder, filename, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
+			const markdownOutput = await converter.jsonToMarkdown(this.graphFolder, filename, pageData, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 			markdownPages.set(filename, markdownOutput);
 			if (pageData.uid) pageUids.set(filename, pageData.uid);
 			for (const name of converter.attributeNames) attributeNames.add(name);
