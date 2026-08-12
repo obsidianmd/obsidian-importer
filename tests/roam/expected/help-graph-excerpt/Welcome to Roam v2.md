@@ -1,4 +1,4 @@
-- ## **Quick Start**
+- ## Quick Start
     - There's very little to know to start using Roam.
         - ### Everything is a block
             - **Each bullet you see is a *block*, and we write them inside pages like this one.**

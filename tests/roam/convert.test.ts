@@ -748,3 +748,28 @@ test('a lifted attribute still counts towards the page timestamps', async () => 
 
 	assert.equal(converter.newestTimestamp, 9_000_000_000_000);
 });
+
+/**
+ * Roam marks a heading on the block rather than in its text, so a block can be
+ * a heading and be written in bold as well. The help graph has sixty.
+ */
+async function headed(string: string, heading: number): Promise<string> {
+	const page = { title: 'P', uid: 'p', children: [{ string, heading }] } as unknown as RoamPage;
+
+	return scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0);
+}
+
+test('bold wrapped round the whole of a heading is dropped', async () => {
+	// A heading is already bold, so the markup only shows.
+	assert.equal(await headed('**Quick Start**', 2), '- ## Quick Start');
+	assert.equal(await headed('**Types of queries**', 1), '- # Types of queries');
+});
+
+test('but bold over part of a heading is kept, since it still marks something out', async () => {
+	assert.equal(await headed('The **important** part', 2), '- ## The **important** part');
+	assert.equal(await headed('**one** and **two**', 2), '- ## **one** and **two**');
+});
+
+test('and a block that is not a heading keeps its bold either way', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '**Quick Start**'), '**Quick Start**');
+});

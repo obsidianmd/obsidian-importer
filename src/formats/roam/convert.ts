@@ -241,10 +241,13 @@ export class RoamPageConverter {
 		// A block Roam left empty writes no line of its own, while what is under
 		// it stays where it was. A block that scrubs away to nothing is not the
 		// same thing: it had something to say and keeps its place.
-		const prefix = block.heading ? '#'.repeat(block.heading) + ' ' : '';
-		const text = block.string
-			? `${prefix}${await this.roamMarkupScrubber(graphFolder, attachmentsFolder, block.string)}`
+		const scrubbed = block.string
+			? await this.roamMarkupScrubber(graphFolder, attachmentsFolder, block.string)
 			: null;
+
+		const text = scrubbed === null ? null : block.heading
+			? `${'#'.repeat(block.heading)} ${withoutWholeBold(scrubbed)}`
+			: scrubbed;
 
 		return {
 			text,
@@ -442,6 +445,23 @@ export class RoamPageConverter {
 
 		return `\n${rows.map(row => `| ${row.join(' | ')} |`).join('\n')}\n`;
 	}
+}
+
+/**
+ * A heading without the bold wrapped round the whole of it.
+ *
+ * Roam marks a heading on the block rather than in its text, so a block can be
+ * a heading and be written in bold as well - the help graph has sixty of them.
+ * A heading is already bold, so the markup says nothing and only shows. Bold
+ * over part of a heading is kept: that one still marks something out.
+ */
+function withoutWholeBold(text: string): string {
+	const trimmed = text.trim();
+	const inner = trimmed.slice(2, -2);
+
+	return trimmed.startsWith('**') && trimmed.endsWith('**') && inner.length > 0 && !inner.includes('**')
+		? inner
+		: text;
 }
 
 /**
