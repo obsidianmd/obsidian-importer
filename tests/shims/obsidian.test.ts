@@ -6,7 +6,7 @@
  * values here came from the app, by round-tripping the same input through
  * processFrontMatter; see CLAUDE.md for how to redo that.
  */
-// The table cases convert HTML, which wants a DOM before turndown loads.
+// Install the DOM before importing htmlToMarkdown.
 import './dom';
 
 import { test } from 'node:test';
@@ -87,15 +87,7 @@ test('leaves the inside of a multi-line value alone', () => {
 	assert.deepEqual(yaml.parse(stringifyYaml(value)), value);
 });
 
-/**
- * Tables, against the app.
- *
- * turndown writes no table at all without its GFM plugin, and the plugin is
- * not what Obsidian uses: it pads a cell to `| a |` and squares off a short
- * row, and the app does neither. Every expectation below is what the app
- * returned for that exact input, collected through the htmlToMarkdown probe
- * described in CLAUDE.md.
- */
+// Expected values were captured from Obsidian; its output differs from GFM.
 const TABLES: [name: string, html: string, markdown: string][] = [
 	[
 		'a header and its rows',
@@ -195,11 +187,7 @@ for (const [name, html, markdown] of TABLES) {
 	});
 }
 
-/**
- * The app throws here - `Cannot read properties of undefined (reading
- * 'cells')` - which fails the note being imported rather than losing a table.
- * Measured, and deliberately not reproduced: a crash is not worth matching.
- */
+// Do not reproduce Obsidian's exception for an empty table.
 test('writes nothing for a table with no rows, where the app throws', () => {
 	assert.equal(htmlToMarkdown('<table></table>'), '');
 });
