@@ -19,7 +19,7 @@ import * as nodePath from 'node:path';
 
 import { RoamPageConverter } from '../../src/formats/roam/convert';
 import { RoamGraphConverter } from '../../src/formats/roam/graph';
-import { RoamPage } from '../../src/formats/roam/models/roam-json';
+import { RoamBlock, RoamPage } from '../../src/formats/roam/models/roam-json';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -275,4 +275,83 @@ test('a block of several lines takes its anchor on a line of its own', async () 
 		'  one();```',
 		'  ^fenced',
 	].join('\n'));
+});
+
+/**
+ * Tables are the one place the converter reads the tree rather than a block's
+ * text, so the shapes Roam can build are named here. The recorded pages cover
+ * the ordinary case.
+ */
+
+/** One page holding one table marker, converted. */
+async function convertTable(rows: RoamBlock[], marker: string = '{{[[table]]}}'): Promise<string> {
+	const page = {
+		title: 'Tables', uid: 'tables',
+		children: [rows.length > 0 ? { string: marker, children: rows } : { string: marker }],
+	} as RoamPage;
+
+	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page, '', false, '', 0, 0);
+}
+
+/** A row, as Roam nests it: each column is a child of the column before it. */
+function row(cells: string[]): RoamBlock {
+	const [first, ...rest] = cells;
+	return rest.length > 0 ? { string: first, children: [row(rest)] } : { string: first };
+}
+
+test('converts a Roam table to a pipe table, the first row its header', async () => {
+	assert.equal(
+		await convertTable([row(['Name', 'Colour']), row(['Apple', 'Red'])]),
+		'\n| Name | Colour |\n| --- | --- |\n| Apple | Red |\n');
+});
+
+test('converts the bare {{table}} spelling too', async () => {
+	assert.equal(await convertTable([row(['One'])], '{{table}}'), '\n| One |\n| --- |\n');
+});
+
+test('leaves an unbalanced table marker as an ordinary block', async () => {
+	// `{{[[table}}` is not a spelling Roam writes.
+	assert.equal(await convertTable([row(['One'])], '{{[[table}}'), '- {{[[table}}\n    - One');
+});
+
+test('a cell with several children is several rows sharing it', async () => {
+	// The cell is shown once and left empty on the rows below, which is how
+	// Roam draws it. Reading only the first child would drop the rest.
+	const shared: RoamBlock = {
+		string: 'Fruit',
+		children: [{ string: 'Apple' }, { string: 'Pear' }],
+	};
+
+	assert.equal(await convertTable([row(['Kind', 'Name']), shared]), [
+		'',
+		'| Kind | Name |',
+		'| --- | --- |',
+		'| Fruit | Apple |',
+		'|  | Pear |',
+		'',
+	].join('\n'));
+});
+
+test('pads a row Roam left short', async () => {
+	assert.equal(
+		await convertTable([row(['Name', 'Colour']), row(['Apple'])]),
+		'\n| Name | Colour |\n| --- | --- |\n| Apple |  |\n');
+});
+
+test('escapes a pipe inside a cell, which would otherwise end it', async () => {
+	assert.equal(await convertTable([row(['a | b'])]), '\n| a \\| b |\n| --- |\n');
+});
+
+test('keeps a cell of several lines on one row', async () => {
+	assert.equal(await convertTable([row(['one\ntwo'])]), '\n| one<br>two |\n| --- |\n');
+});
+
+test('a table marker with no rows leaves nothing behind, marker included', async () => {
+	assert.equal(await convertTable([]), '');
+});
+
+test('converts the markup inside a cell', async () => {
+	assert.equal(
+		await convertTable([row(['{{[[TODO]]}} ^^done^^'])]),
+		'\n| [ ] ==done== |\n| --- |\n');
 });

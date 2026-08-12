@@ -9,6 +9,14 @@ const INDENT = '    ';
 const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
+/**
+ * The block Roam marks a table with.
+ *
+ * The brackets are one alternation rather than two optional groups, so only the
+ * two spellings Roam writes match - `{{[[table}}` is not one of them.
+ */
+const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
+
 export interface RoamConverterOptions {
 	userDNPFormat: string;
 	fileDateYAML: boolean;
@@ -124,8 +132,15 @@ export class RoamPageConverter {
 		});
 	}
 
-	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
-		let markdown: string[] = [];
+	/**
+	 * Fold a block's own timestamps into the page's oldest and newest.
+	 *
+	 * The recursion carries these from block to block, so one reached any other
+	 * way - a table's cells, which are walked rather than recursed into - folds
+	 * its own in here, or a page whose latest edit happened inside a table comes
+	 * out dated before its own content.
+	 */
+	private accumulateTimestamps(json: RoamPage | RoamBlock, createdTimestamp: number, updatedTimestamp: number): void {
 		const jsonEditTime = json['edit-time'];
 		const jsonCreateTime = json['create-time'];
 
@@ -148,6 +163,18 @@ export class RoamPageConverter {
 		}
 		else {
 			this.oldestTimestamp = createdTimestamp;
+		}
+	}
+
+	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
+		let markdown: string[] = [];
+
+		this.accumulateTimestamps(json, createdTimestamp, updatedTimestamp);
+
+		if ('string' in json && json.string && roamTableRe.test(json.string.trim())) {
+			// The marker's children are the table, so they are read as cells
+			// here rather than recursed into as bullets.
+			return this.convertTable(graphFolder, attachmentsFolder, json);
 		}
 
 		if ('string' in json && json.string) {
@@ -183,7 +210,14 @@ export class RoamPageConverter {
 				if (attributes.has(child)) continue;
 
 				// The page is not a bullet, so its own blocks start at the margin
-				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, isChild ? indent + INDENT : indent, true, '', this.oldestTimestamp, this.newestTimestamp));
+				const converted = await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, isChild ? indent + INDENT : indent, true, '', this.oldestTimestamp, this.newestTimestamp);
+
+				// A table marker with no rows under it converts to nothing, and
+				// leaves no line behind either. Every other block keeps its line,
+				// empty or not, the way it always has.
+				if (converted || !roamTableRe.test((child.string ?? '').trim())) {
+					markdown.push(converted);
+				}
 			}
 		}
 
@@ -248,6 +282,63 @@ export class RoamPageConverter {
 
 	private attributeNameOf(block: RoamBlock): string {
 		return block.string.slice(0, block.string.indexOf('::')).trim();
+	}
+
+	/**
+	 * A Roam table, as a markdown pipe table.
+	 *
+	 * Roam builds a table out of the marker's children, a column for each level
+	 * of nesting: a block is a cell, and its children are the cells of the next
+	 * column along. A cell with several children is several rows of the table
+	 * rather than one, sharing that cell - so every path from the marker down to
+	 * a block with no children is a row, and a cell already shown to its left is
+	 * left empty on the rows below it.
+	 *
+	 * The first row is the header, which is how Roam shows it too.
+	 *
+	 * It is written at the left margin with a blank line either side, whatever
+	 * depth the marker sat at: Obsidian does not render a pipe table indented
+	 * inside a list item, so keeping the outline's indentation would keep the
+	 * bullets tidy and leave the table as rows of text.
+	 */
+	private async convertTable(graphFolder: string, attachmentsFolder: string, marker: RoamPage | RoamBlock): Promise<string> {
+		const rows: string[][] = [];
+
+		const walk = async (block: RoamBlock, before: string[]) => {
+			this.accumulateTimestamps(block, this.oldestTimestamp, this.newestTimestamp);
+
+			const scrubbed = await this.roamMarkupScrubber(graphFolder, attachmentsFolder, block.string ?? '');
+			// A pipe would end the cell and a newline the row, so neither can
+			// stay as itself.
+			const cells = [...before, scrubbed.replace(/\|/g, '\\|').replace(/\n/g, '<br>')];
+
+			const children = block.children ?? [];
+			if (children.length === 0) {
+				rows.push(cells);
+				return;
+			}
+
+			let carried = cells;
+			for (const child of children) {
+				await walk(child, carried);
+				// The cells to the left have been shown on the row above.
+				carried = cells.map(() => '');
+			}
+		};
+
+		for (const row of marker.children ?? []) await walk(row, []);
+
+		if (rows.length === 0) return '';
+
+		// Roam lets a row stop short; markdown wants every row the same width.
+		const width = Math.max(...rows.map(row => row.length));
+		for (const row of rows) {
+			while (row.length < width) row.push('');
+		}
+
+		rows.splice(1, 0, rows[0].map(() => '---'));
+
+		return `\n${rows.map(row => `| ${row.join(' | ')} |`).join('\n')}\n`;
 	}
 }
 
