@@ -106,13 +106,18 @@ export class RoamPageConverter {
 		}
 
 		// Use the graph's collision-safe name when available.
-		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match: string, group1: string) =>
-			`[[${this.options.resolvePageName?.(group1) ?? convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
+		// A `[[name]]` straight after `{{` names a component, not a page, so it
+		// is passed over. Matched rather than looked behind for: iOS 16.3 has
+		// no lookbehind.
+		blockText = blockText.replace(/(\{\{)?\[\[(.*?)\]\]/g, (match: string, component: string | undefined, name: string) =>
+			component ? match
+				: `[[${this.options.resolvePageName?.(name) ?? convertDateString(sanitizeFileNameKeepPath(name), this.userDNPFormat)}]]`);
 
 		// One link, not a span reaching from the first `[[` to the last `]]`:
 		// greedy, it swallowed every link between them and wrote the lot back
 		// twice, taking any {{[[DONE]]}} in the way with it.
-		blockText = blockText.replace(/\[\[([^[\]]*\/[^[\]]*)\]\]/g, (_: string, group1: string) => `[[${graphFolder}/${group1}|${group1}]]`);
+		blockText = blockText.replace(/(\{\{)?\[\[([^[\]]*\/[^[\]]*)\]\]/g, (match: string, component: string | undefined, name: string) =>
+			component ? match : `[[${graphFolder}/${name}|${name}]]`);
 		// Exclude brackets so a preceding checkbox cannot become the alias.
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
 

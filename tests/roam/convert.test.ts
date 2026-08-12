@@ -809,3 +809,19 @@ test('a component name is not a page reference', async () => {
 	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[query]]: {and: [[A]]}}}'),
 		'```query\nblock:([[A]])\n```');
 });
+
+test('a component nobody reads keeps its brackets and its name', async () => {
+	// Passed over when links are rewritten, so a page holding the same name
+	// cannot renumber it: {{[[kanban]]}} was arriving as {{[[kanban 1]]}}.
+	const named = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		resolvePageName: title => `${title} 1`,
+	});
+
+	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[kanban]]}}'), '{{[[kanban]]}}');
+	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[kroki]]: a}}'), '{{[[kroki]]: a}}');
+	// A page named with a slash is not expanded there either.
+	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[some/widget]]}}'), '{{[[some/widget]]}}');
+	// An argument beside the name is still a page reference.
+	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[embed]]: [[A Page]]}}'), '![[A Page 1]]');
+});
