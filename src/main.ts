@@ -32,7 +32,6 @@ declare global {
 					showOpenDialogSync(options: Record<string, unknown>): string[] | undefined;
 				};
 			};
-			/** Absent before Electron 32, where a File still carried its own path. */
 			webUtils?: {
 				getPathForFile(file: File): string;
 			};
@@ -41,26 +40,19 @@ declare global {
 	}
 }
 
-/** Where a drop nothing else claims goes: copied into the vault as it is. */
 const COPY_FILES = 'files';
 
-/** What a drop was carrying, in the three shapes the dialog needs it in. */
 interface Drop {
-	/** What was dropped, folders and all, which is what a copy keeps. */
 	items: (PickedFile | PickedFolder)[];
-	/** Those items walked flat, which is what an importer of a format reads. */
 	files: PickedFile[];
-	/** The files a format here reads, which is what the choice is described by. */
 	exports: PickedFile[];
 }
 
-/** An importer class, and the file types it declares for a dropped file to be matched against. */
 type ImporterClass = (new (app: App, host: ImporterHost) => FormatImporter) & { extensions: readonly string[] };
 
 interface ImporterDefinition {
 	helpPermalink?: string;
 	importer: ImporterClass;
-	/** Kept out of the list of formats: there is only one way to reach it. */
 	hidden?: boolean;
 }
 
@@ -281,8 +273,6 @@ export default class ImporterPlugin extends Plugin {
 	async onload() {
 		setLanguage(getLanguage());
 
-		// The name and the picker line for each of these live in the string
-		// table, under the same id.
 		this.importers = {
 			'airtable-api': {
 				importer: AirtableAPIImporter,
@@ -309,8 +299,6 @@ export default class ImporterPlugin extends Plugin {
 			},
 			'files': {
 				importer: FilesImporter,
-				// Offered by a drop it fits, rather than listed among the apps
-				// an import can come from.
 				hidden: true,
 			},
 			'keep': {
@@ -482,7 +470,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	private nextButtonEl: HTMLButtonElement | null = null;
 
-	/** Whether the screen is a list of formats, which is what decides where a drop goes. */
 	private pickingFormat: boolean = false;
 
 	private dropOverlayEl: HTMLElement | null = null;
@@ -563,11 +550,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		search.inputEl.focus();
 	}
 
-	/**
-	 * One row of a list the arrow keys walk. `focus` is how the list answers a
-	 * step off either end; the format picker sends the step above the first row
-	 * back to its search box.
-	 */
+	/** Adds a keyboard-navigable row. */
 	private addNavigableRow(
 		itemsEl: HTMLElement,
 		rows: HTMLElement[],
@@ -603,7 +586,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		return setting;
 	}
 
-	/** A navigable row for a format: the app's icon before its name, a chevron after. */
 	private addFormatRow(
 		itemsEl: HTMLElement,
 		rows: HTMLElement[],
@@ -799,16 +781,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		});
 	}
 
-	/**
-	 * More than one format reads what was dropped, so the user says which. The
-	 * methods of a group are listed apart here rather than behind the app they
-	 * share: only one of them reads a file at all.
-	 */
 	private showFormatOffer(ids: string[], drop: Drop) {
 		const { contentEl, modalEl } = this;
 		const { files, exports } = drop;
 
-		// Where Back leads, decided before this screen replaces that one.
+		// Preserve the screen interrupted by the drop.
 		const back = this.pickingFormat || !this.importer
 			? () => this.startOver()
 			: () => this.showFirstStep();
@@ -820,8 +797,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
 		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-			// What a format here reads, named when it is one file and counted
-			// when it is more. The rest of the drop is the copy row's business.
 			el.setText(exports.length === 0 ? i18n.modal.msgNoFormatForFiles()
 				: exports.length === 1 ? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
 					: i18n.modal.msgFormatReadsFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
@@ -834,7 +809,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 			const row = this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
 				.setName(importerOptionText(id));
 
-			// Copying takes the whole drop, formats only their own part of it.
 			if (id === COPY_FILES) row.setDesc(i18n.nouns.fileWithCount({ count: files.length }));
 		}
 
@@ -851,22 +825,16 @@ export class ImporterModal extends Modal implements ImporterHost {
 		rows[0]?.focus();
 	}
 
-	/** The list of formats with nothing chosen: a format picked earlier is forgotten, files and all. */
 	private startOver(): void {
 		this.selectedId = '';
 		this.showFormatPicker();
 	}
 
-	/** What each importer would take a dropped file to be. */
 	private fileTypes(): ImporterFileTypes[] {
 		return Object.entries(this.plugin.importers)
 			.map(([id, definition]) => ({ id, extensions: definition.importer.extensions }));
 	}
 
-	/**
-	 * Where files dropped on the window go: to the importer already on screen
-	 * when it reads them, and otherwise to whichever importer does.
-	 */
 	private async takeDropped(items: (PickedFile | PickedFolder)[]): Promise<void> {
 		const files = await expandDropped(items);
 
@@ -875,16 +843,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 			return;
 		}
 
-		// What no format reads is left out of the description, but not out of
-		// the drop: an importer takes the attachment beside the note linking to
-		// it, and copying takes everything.
+		// Matching ignores companion files; the chosen importer still receives them.
 		const exports = readableFiles(this.fileTypes(), files);
 		const drop: Drop = { items, files, exports };
 		const ids = importersForFiles(this.fileTypes(), exports.map(file => file.extension));
 
-		// A drop one format reads all of is what the user meant. Anything else
-		// - nothing read, or read along with files that are not part of it - is
-		// a question, and copying the lot in is one of the answers.
 		if (ids.length === 1 && exports.length === files.length) {
 			await this.handOver(ids[0], drop);
 			return;
@@ -899,7 +862,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const { importer } = this;
 		await importer.ready;
 
-		// An importer that cannot run here has already said so on screen.
 		if (importer.notAvailable) return;
 
 		if (importer.takeDropped(drop.items, drop.files) === 0) {
@@ -907,8 +869,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 			return;
 		}
 
-		// An importer whose picker is drawn once init() has finished has taken
-		// the files, but the step showing them was drawn before that.
+		// init() may have drawn the source controls asynchronously.
 		this.showSourceStep();
 	}
 
@@ -931,7 +892,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		win.removeEventListener('drop', this.onDrop, { capture: true });
 	}
 
-	/** A drop belongs to whatever is underneath while an import runs, or while the modal is out of the way. */
 	private acceptsDrop(): boolean {
 		return !this.hidden && !this.current;
 	}
@@ -939,8 +899,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private onDragOver = (evt: DragEvent) => {
 		if (!this.acceptsDrop() || !evt.dataTransfer || !dataTransferHasFiles(evt.dataTransfer)) return;
 
-		// preventDefault is what allows the drop; stopPropagation is what keeps
-		// the note underneath from taking it.
+		// Allow the drop and prevent the underlying note from handling it.
 		evt.preventDefault();
 		evt.stopPropagation();
 		evt.dataTransfer.dropEffect = 'copy';
@@ -949,7 +908,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	};
 
 	private onDragLeave = (evt: DragEvent) => {
-		// A leave with somewhere to go is a move between elements of the window.
+		// Ignore moves between elements in the same window.
 		if (evt.type === 'dragleave' && evt.relatedTarget) return;
 
 		this.hideDropOverlay();
@@ -962,7 +921,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		evt.stopPropagation();
 		this.hideDropOverlay();
 
-		// Read here: what a drop is carrying is gone by the time an await returns.
 		const dropped = droppedItems(evt.dataTransfer);
 		if (dropped.length === 0) return;
 
@@ -1278,7 +1236,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 	}
 
 	onOpen() {
-		// Anywhere in the window the modal opened on, not just over the modal.
 		this.catchFileDrop(this.containerEl.win);
 	}
 

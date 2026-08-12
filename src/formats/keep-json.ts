@@ -20,8 +20,7 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
-	// The export itself. The attachments beside it are companions the picker
-	// takes as well, but a lone image is not a Keep export.
+	// Attachments are accepted by the picker but do not identify a Keep export.
 	static extensions = [...BUNDLE_EXTS, ...NOTE_EXTS];
 
 	interruption = 'pause' as const;

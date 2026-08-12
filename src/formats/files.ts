@@ -7,34 +7,22 @@ import { sanitizeFileName } from '../util';
 
 const MAX_NAME_LIST_LENGTH = 300;
 
-/** What a copied file is counted as. Everything else is an attachment. */
 const NOTE_EXTS = ['md', 'markdown', 'canvas', 'base'];
 
-/** Where a file is going, decided before any of them are written. */
 interface PlannedCopy {
-	/** Vault folder, made when the file reaches it. */
 	parent: string;
 	file: PickedFile;
 }
 
-/**
- * The files a drop was carrying, copied into the vault as they are.
- *
- * What the file explorer does with a drop, for a drop the import dialog caught
- * instead: nothing is read or converted, and a folder keeps the shape it had
- * outside. It reads no format, which is why it claims no file types: a drop
- * arrives here when nothing else can make sense of it.
- */
+/** Copies dropped files and folders into the vault without conversion. */
 export class FilesImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
-	/** Both are set in init() or by a drop, not in a field initializer. */
+	// No initializers: the base constructor calls init() first.
 	private dropped: (PickedFile | PickedFolder)[] | undefined;
 	private showDropped: (() => void) | undefined;
 
 	init(): void {
-		// A copy has nothing to recognize a file by and nothing to update, so a
-		// name already taken is numbered, the way the file explorer numbers it.
 		this.duplicateModes = [DuplicateHandling.CreateCopy];
 		this.duplicateHandling = DuplicateHandling.CreateCopy;
 		this.defaultOutputFolder = '';
@@ -72,7 +60,6 @@ export class FilesImporter extends FormatImporter {
 		this.showDropped();
 	}
 
-	/** The drop, or the files a scripted import was handed instead. */
 	private copying(): (PickedFile | PickedFolder)[] {
 		return this.dropped ?? this.files;
 	}
@@ -81,7 +68,6 @@ export class FilesImporter extends FormatImporter {
 		return this.copying().length > 0;
 	}
 
-	/** A folder is kept whole here: copying it means copying what is inside it. */
 	takeDropped(dropped: (PickedFile | PickedFolder)[]): number {
 		this.dropped = dropped;
 		this.showDropped?.();
@@ -90,7 +76,6 @@ export class FilesImporter extends FormatImporter {
 		return dropped.length;
 	}
 
-	/** No attachments of its own to place: every file goes where the drop does. */
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 	}
@@ -129,7 +114,6 @@ export class FilesImporter extends FormatImporter {
 		}
 	}
 
-	/** Where each file is going, with the folders it arrived in rebuilt under the output folder. */
 	private async plan(ctx: ImportContext, items: (PickedFile | PickedFolder)[], into: string, dropped = true): Promise<PlannedCopy[]> {
 		const planned: PlannedCopy[] = [];
 
@@ -142,9 +126,7 @@ export class FilesImporter extends FormatImporter {
 
 				const name = sanitizeFileName(item.name, into);
 
-				// A dropped folder whose name the vault already holds is copied
-				// beside what is there rather than mixed into it, the way the
-				// file explorer takes one. Its own folders are rebuilt inside.
+				// Only top-level folders are collision-renamed.
 				const at = dropped ? this.freeFilePath(into, name) : normalizePath(into ? `${into}/${name}` : name);
 				if (dropped) this.claimPath(at);
 

@@ -155,13 +155,7 @@ export interface ImporterHost {
 }
 
 export abstract class FormatImporter {
-	/**
-	 * The file types that identify this importer's export, declared on the
-	 * class so the format picker can match a dropped file before there is an
-	 * importer to ask. Its picker may take more beside them - Keep accepts the
-	 * attachments its notes link to - but those are companions to an export
-	 * rather than one themselves.
-	 */
+	/** Extensions that identify this export format during drop matching. */
 	static extensions: readonly string[] = [];
 
 	app: App;
@@ -230,7 +224,7 @@ export abstract class FormatImporter {
 	private sourceFolder: string | null = null;
 	private lastSourceFolder: string | null = null;
 
-	/** All three are set in init(), by addFileChooserSetting, not in a field initializer. */
+	// Set by addFileChooserSetting during init().
 	private acceptedExtensions: readonly string[] | undefined;
 	private acceptsMultiple: boolean | undefined;
 	private showPickedFiles: (() => void) | undefined;
@@ -443,8 +437,7 @@ export abstract class FormatImporter {
 	}, 1000, true);
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
-		// Recorded before the setting is drawn, so an importer with nowhere to
-		// draw still knows what it takes.
+		// Headless importers still need their accepted file types.
 		this.acceptedExtensions = extensions;
 		this.acceptsMultiple = allowMultiple;
 
@@ -541,7 +534,6 @@ export abstract class FormatImporter {
 		this.showPickedFiles = updateFiles;
 	}
 
-	/** Which of these files this importer's own picker would have offered. */
 	acceptableFiles(files: PickedFile[]): PickedFile[] {
 		const extensions = this.acceptedExtensions;
 		if (!extensions) return [];
@@ -550,28 +542,16 @@ export abstract class FormatImporter {
 		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
 	}
 
-	/**
-	 * Take a drop, and say how much of it was kept.
-	 *
-	 * `files` is `dropped` walked flat, which is what an importer reading a
-	 * particular format wants. One that copies whatever it is given overrides
-	 * this to keep the shape the drop arrived in.
-	 */
-	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+	/** Accept a structured drop and its flattened files. */
+	takeDropped(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
 		return this.takeFiles(files);
 	}
 
-	/**
-	 * Take files chosen somewhere other than this importer's own picker, such
-	 * as a drop on the window, and say how many of them it kept.
-	 */
 	takeFiles(files: PickedFile[]): number {
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return 0;
 
 		this.files = accepted;
-		// Redraws the file list; falls to sourceChanged alone when the source
-		// step was never drawn.
 		if (this.showPickedFiles) this.showPickedFiles();
 		else this.sourceChanged();
 
@@ -586,7 +566,6 @@ export abstract class FormatImporter {
 		this.drawOutputSettings(contentEl);
 	}
 
-	/** What the output step asks. An importer with nowhere to put an attachment asks less. */
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
@@ -1003,11 +982,7 @@ export abstract class FormatImporter {
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
-	/**
-	 * A name nothing in the vault holds and this run has not taken.
-	 * getUniqueFilePath knows only what the vault holds, which was enough while
-	 * every note was written the moment its name was chosen.
-	 */
+	/** Returns a path free in both the vault and this run's claims. */
 	protected freeFilePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
 		if (!this.hasClaimed(unique)) return unique;

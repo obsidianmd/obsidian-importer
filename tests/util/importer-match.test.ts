@@ -27,7 +27,6 @@ test('an extension no importer reads matches nothing', () => {
 });
 
 test('the importer that reads more of what was dropped comes first', () => {
-	// Keep takes both; Notion only the zip.
 	assert.deepEqual(importersForFiles(IMPORTERS, ['zip', 'png']).slice(0, 1), ['keep']);
 });
 

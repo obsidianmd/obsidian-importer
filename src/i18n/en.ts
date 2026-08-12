@@ -368,10 +368,6 @@ export const en = {
 			labelRow: 'Row {{number}}',
 			reasonEmptyTitle: 'Empty title',
 		},
-		/**
-		 * Not an app: the files themselves, copied in as they are. What a drop
-		 * falls back to when no format here reads it.
-		 */
 		files: {
 			name: 'Files and folders',
 			optionText: 'Copy files and folders into your vault',

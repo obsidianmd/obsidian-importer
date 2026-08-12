@@ -243,17 +243,11 @@ export class WebPickedFile implements PickedFile {
 	}
 }
 
-/** Whether a drag is carrying files, which is all an import can take from one. */
 export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {
 	return Array.from(dataTransfer.items).some(item => item.kind === 'file');
 }
 
-/**
- * What a drop is offering, as the same files a picker would have handed over.
- *
- * Call it from the drop handler itself: the items are gone by the time an
- * await returns. Walking a dropped folder is `expandDropped`, which can wait.
- */
+/** Read during the drop event because its DataTransfer items do not survive an await. */
 export function droppedItems(dataTransfer: DataTransfer): (PickedFile | PickedFolder)[] {
 	const results: (PickedFile | PickedFolder)[] = [];
 
@@ -275,12 +269,10 @@ export function droppedItems(dataTransfer: DataTransfer): (PickedFile | PickedFo
 	return results;
 }
 
-/** Where a dropped file lives, or nothing at all when it has no path to read. */
 function localPath(file: File): string {
 	if (!Platform.isDesktopApp) return '';
 
-	// A file dragged from a web page never was on disk, and Electron says so by
-	// throwing rather than by answering.
+	// Electron throws when the dragged file has no local path.
 	try {
 		const { webUtils } = window.electron;
 		if (webUtils) return webUtils.getPathForFile(file);
@@ -289,7 +281,7 @@ function localPath(file: File): string {
 		return '';
 	}
 
-	// Electron stopped putting the path on File itself in 32.
+	// Electron <32 exposed the path on File.
 	return (file as File & { path?: string }).path ?? '';
 }
 
@@ -302,18 +294,8 @@ function isDirectory(filepath: string): boolean {
 	}
 }
 
-/**
- * The formats that are a folder rather than a file. macOS shows one as a
- * single item and its picker hands the folder over whole, which is what the
- * importer reading one expects. Every other folder with a dot in its name -
- * `Evernote.2026` - is just a folder, and walking into it is the whole point
- * of dropping it.
- */
 const PACKAGE_EXTENSIONS = ['textbundle'];
 
-/**
- * The files behind a drop: a folder is walked, and a package is left whole.
- */
 export async function expandDropped(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
 	const files: PickedFile[] = [];
 
