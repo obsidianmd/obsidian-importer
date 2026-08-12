@@ -282,6 +282,81 @@ test('keeps the first line when asked to', async () => {
 	}
 });
 
+test('omits redundant bold from headings but keeps other emphasis', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const converter = context(store.database, { omitFirstLine: false }).decodeData(
+			encodeNote({
+				title: 'Headings',
+				runs: [
+					{ text: 'Bold title\n', style: ANStyleType.Title, bold: true },
+					{ text: 'Bold heading\n', style: ANStyleType.Heading, bold: true },
+					{ text: `Bold heading${SOFT_RETURN}continued\n`, style: ANStyleType.Heading, bold: true },
+					{ text: 'Bold italic subheading\n', style: ANStyleType.Subheading, bold: true, italic: true },
+					{ text: 'A ', style: ANStyleType.Heading },
+					{ text: 'partly bold', style: ANStyleType.Heading, bold: true },
+					{ text: ' heading\n', style: ANStyleType.Heading },
+					{ text: 'A bold paragraph', bold: true },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(
+			await converter.format(false, 'Headings.md'),
+			'# Bold title\n'
+			+ '## Bold heading\n'
+			+ '## **Bold heading\ncontinued**\n'
+			+ '### *Bold italic subheading*\n'
+			+ '## A **partly bold** heading\n'
+			+ '**A bold paragraph**'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('a font is dropped, monospaced or not', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+
+	try {
+		const converter = context(store.database, { omitFirstLine: false }).decodeData(
+			encodeNote({
+				title: 'Fonts',
+				runs: [
+					{ text: 'Set in Arial\n', font: { fontName: 'ArialMT', pointSize: 10 } },
+					{ text: 'Large heading\n', style: ANStyleType.Heading, font: { pointSize: 17 } },
+					{ text: 'a [link] to #nothing\n', font: { pointSize: 13 } },
+					// Code is the monospaced paragraph style, which fences; a monospaced font is a typeface.
+					{ text: 'npm run build\n', font: { fontName: 'Courier' } },
+					{ text: 'bold Menlo', font: { fontName: 'Menlo-Regular' }, bold: true },
+					{ text: ' and ' },
+					{ text: 'underlined Courier', font: { fontName: 'Courier' }, underlined: true },
+				],
+			}).toString('hex'),
+			NoteConverter
+		);
+
+		assert.equal(
+			await converter.format(false, 'Fonts.md'),
+			'Set in Arial\n'
+			+ '## Large heading\n'
+			+ 'a \\[link\\] to \\#nothing\n'
+			+ 'npm run build\n'
+			+ '**bold Menlo** and <u>underlined Courier</u>'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
 test('a note starting with blank lines does not repeat its title', async () => {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });

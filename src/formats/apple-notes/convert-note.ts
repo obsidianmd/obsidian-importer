@@ -22,8 +22,6 @@ const FRAGMENT_SPLIT = /(^\s+|(?:\s+)?\n(?:\s+)?|\s+$)/;
 const SOFT_RETURN = '\u2028';
 const NOTE_URI = /applenotes:note\/([-0-9a-f]+)(?:\?ownerIdentifier=.*)?/;
 
-const DEFAULT_EMOJI = '.AppleColorEmojiUI';
-
 const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 	[ANEmphasisColor.Purple]: '🟣',
 	[ANEmphasisColor.Pink]: '🔴',
@@ -54,6 +52,8 @@ export function noteTitle(noteText: string, stored: string): string {
 const LIST_STYLES = [
 	ANStyleType.DottedList, ANStyleType.DashedList, ANStyleType.NumberedList, ANStyleType.Checkbox
 ];
+
+const HEADING_STYLES = [ANStyleType.Title, ANStyleType.Heading, ANStyleType.Subheading];
 
 export class NoteConverter extends ANConverter {
 	note: ANNote;
@@ -108,7 +108,7 @@ export class NoteConverter extends ANConverter {
 	}
 
 	async format(table = false, parentNotePath = ''): Promise<string> {
-		let fragments = this.parseTokens();
+		let fragments = this.omitRedundantHeadingBold(this.parseTokens());
 		// Keep URL-only titles in the body so the working URL is not lost (#591).
 		let firstLineSkip = !table && this.ctx.omitFirstLine
 			&& this.note.noteText.contains('\n')
@@ -152,7 +152,7 @@ export class NoteConverter extends ANConverter {
 					? this.formatParagraph(attr)
 					: attr.fragment;
 			}
-			else if (attr.superscript || attr.underlined || attr.font || this.multiRun == ANMultiRun.Alignment) {
+			else if (attr.superscript || attr.underlined || this.multiRun == ANMultiRun.Alignment) {
 				converted += await this.formatHtmlAttr(attr);
 			}
 			else {
@@ -169,6 +169,48 @@ export class NoteConverter extends ANConverter {
 		}
 
 		return converted;
+	}
+
+	/** A heading is already bold, so bold covering the whole line says nothing. */
+	omitRedundantHeadingBold(fragments: ANFragmentPair[]): ANFragmentPair[] {
+		let lineStart = 0;
+
+		for (let lineEnd = 0; lineEnd <= fragments.length; lineEnd++) {
+			if (lineEnd < fragments.length && !fragments[lineEnd].fragment.includes('\n')) continue;
+
+			const content = fragments
+				.slice(lineStart, lineEnd)
+				.filter(({ fragment }) => /\S/.test(fragment));
+			const style = content[0]?.attr.paragraphStyle?.styleType;
+			const allBold = content.length > 0
+				&& content.every(({ fragment }) => !fragment.includes(SOFT_RETURN))
+				&& content.every(({ attr }) =>
+					attr.fontWeight == ANFontWeight.Bold || attr.fontWeight == ANFontWeight.BoldItalic
+				);
+
+			if (style !== undefined && HEADING_STYLES.includes(style) && allBold) {
+				for (let i = lineStart; i < lineEnd; i++) {
+					const original = fragments[i].attr;
+					const fontWeight = original.fontWeight;
+					if (fontWeight != ANFontWeight.Bold && fontWeight != ANFontWeight.BoldItalic) continue;
+
+					const attr = Object.assign(
+						Object.create(Object.getPrototypeOf(original)),
+						original,
+						{ fontWeight: fontWeight == ANFontWeight.BoldItalic ? ANFontWeight.Italic : undefined }
+					) as ANAttributeRun;
+
+					fragments[i] = {
+						...fragments[i],
+						attr,
+					};
+				}
+			}
+
+			lineStart = lineEnd + 1;
+		}
+
+		return fragments;
 	}
 
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
@@ -269,15 +311,13 @@ export class NoteConverter extends ANConverter {
 	}
 
 	/** Since putting markdown inside inline html tags is currentlyproblematic in Live Preview, this is a separate
-	 parser for those that is activated when HTML-only stuff (eg underline, font size) is needed */
+	 parser for those that is activated when HTML-only stuff (eg underline, superscript) is needed */
 	async formatHtmlAttr(attr: ANAttributeRun): Promise<string> {
 		if (attr.strikethrough) attr.fragment = `<s>${attr.fragment}</s>`;
 		if (attr.underlined) attr.fragment = `<u>${attr.fragment}</u>`;
 
 		if (attr.superscript == ANBaseline.Super) attr.fragment = `<sup>${attr.fragment}</sup>`;
 		if (attr.superscript == ANBaseline.Sub) attr.fragment = `<sub>${attr.fragment}</sub>`;
-
-		let style = '';
 
 		switch (attr.fontWeight) {
 			case ANFontWeight.Bold:
@@ -291,23 +331,11 @@ export class NoteConverter extends ANConverter {
 				break;
 		}
 
-		if (attr.font?.fontName && attr.font.fontName !== DEFAULT_EMOJI) {
-			style += `font-family:${attr.font.fontName};`;
-		}
-
-		if (attr.font?.pointSize) style += `font-size:${attr.font.pointSize}pt;`;
-
-		if (attr.link && !NOTE_URI.test(attr.link)) {
-			if (style) style = ` style="${style}"`;
-
-			attr.fragment =
-				`<a href="${attr.link}" rel="noopener" class="external-link"` +
-				` target="_blank"${style}>${attr.fragment}</a>`;
-		}
-		else if (style) {
-			if (attr.link) attr.fragment = await this.getInternalLink(attr.link, attr.fragment);
-
-			attr.fragment = `<span style="${style}">${attr.fragment}</span>`;
+		if (attr.link) {
+			attr.fragment = NOTE_URI.test(attr.link)
+				? await this.getInternalLink(attr.link, attr.fragment)
+				: `<a href="${attr.link}" rel="noopener" class="external-link"` +
+					` target="_blank">${attr.fragment}</a>`;
 		}
 
 		attr.fragment = emphasise(attr);
