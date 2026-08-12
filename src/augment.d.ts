@@ -1,12 +1,29 @@
 import 'obsidian';
 
 declare module 'obsidian' {
+	/**
+	 * A page opened over a setting tab, with a back button of its own. Added in
+	 * Obsidian 1.13 and declared here because the published types predate it —
+	 * check for it before use, rather than assuming the app is new enough.
+	 */
+	class SettingPage {
+		rootEl: HTMLElement;
+		titlebarEl: HTMLElement;
+		containerEl: HTMLElement;
+		title: string;
+		display(): void;
+		hide(): void;
+	}
+
 	interface App {
 		// The settings window, which a setting tab has to open and close itself.
 		setting: {
 			open(): void;
 			close(): void;
 			openTabById(id: string): void;
+			openPage(page: SettingPage): void;
+			closePage(): void;
+			activeTab: SettingTab | null;
 		};
 
 		metadataTypeManager: {

@@ -166,6 +166,9 @@ export class ImporterModal extends Modal implements ImporterShell {
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
+	/** The modal draws Back itself, one step at a time. */
+	readonly combinesSteps: boolean = false;
+
 	private hidden: boolean = false;
 
 	constructor(app: App, plugin: ImporterPlugin) {
@@ -174,6 +177,10 @@ export class ImporterModal extends Modal implements ImporterShell {
 		this.modalEl.addClass('mod-importer');
 		this.flow = new ImporterFlow(app, plugin, this);
 		this.catchBackgroundClick();
+	}
+
+	setScreen(depth: number, title: string): void {
+		this.setTitle(title);
 	}
 
 	setPickingFormat(picking: boolean): void {

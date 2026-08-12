@@ -33,21 +33,32 @@ Imports notes from other apps into an Obsidian vault.
 ## Where the flow is shown
 
 `ImporterFlow` owns every screen and knows nothing about what surrounds it.
-A shell supplies the two elements it draws into and answers four things a
-window has an opinion about: what the title is, whether the format list is
-filling the screen, what Done does, and how to come back to an import the
-user has left.
+A shell supplies the elements it draws into and answers what a window has an
+opinion about: the title and how deep the screen is, what Done does, and how
+to come back to an import the user has left.
 
-Two shells implement it. `ImporterModal` is the ribbon and the command;
-`ImporterSettingTab` is the same screens in Settings, which Obsidian opens in
-a window of its own on desktop.
+Two shells implement it. `ImporterModal` is the ribbon and the command, and
+pages its steps one at a time behind Back and Continue. `ImporterSettingTab`
+sets `combinesSteps`, which asks the flow for one screen holding the source,
+the output and the options together under a single Import button, and to
+draw no Back button: Settings has one already, in the titlebar of the page
+it opens over a tab. Nothing is ever more than one page deep, so that back
+button always leads to the list of formats — including from a grouped
+format, whose method picker is a screen on the same page rather than a page
+of its own.
+
+Pages arrived in Obsidian 1.13. `ImporterSettingTab` checks for `SettingPage`
+before using it and falls back to the flow's own Back button, so the tab
+still works on an older app.
 
 A shell that goes away calls `flow.detach()`, and one that comes back calls
 `flow.attach()`. Between those an import keeps running with only the notice
 to report it, and the flow redraws the screen it was on when the shell
 returns — so the settings window can be closed mid-import and reopened onto
-the same progress. Closing the modal is different: it calls `dispose()`,
-which cancels.
+the same progress. `flow.leave()` is the other way out: the user walked back
+past a running import rather than closing the window, so the format list is
+what they get, and the notice remembers the screen to return them to.
+Closing the modal is different again: it calls `dispose()`, which cancels.
 
 ## The conversion seam
 

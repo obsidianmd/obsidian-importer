@@ -25,6 +25,10 @@ interface Drop {
 	exports: PickedFile[];
 }
 
+/** The format list, and everything reached from it. */
+export const FORMAT_LIST = 0;
+export const IMPORT_SCREEN = 1;
+
 /**
  * What the flow needs from whatever is showing it: a modal has a title bar and
  * closes, a setting tab has a heading and a window of its own to close.
@@ -34,7 +38,19 @@ export interface ImporterShell {
 	readonly contentEl: HTMLElement;
 	/** What the drop overlay covers, and the window a file is dropped into. */
 	readonly containerEl: HTMLElement;
-	setTitle(title: string): void;
+	/**
+	 * Show the source, the output and the options together, on one screen with
+	 * one Import button. A shell asks for this when it has a way back of its
+	 * own — Settings does, in the back button above every page it opens — and
+	 * a Back button of the flow's would only be a second one saying less.
+	 */
+	readonly combinesSteps: boolean;
+	/**
+	 * The flow moved: `depth` is FORMAT_LIST for the list of formats and
+	 * IMPORT_SCREEN for everything a format leads to, which is what a shell
+	 * showing pages needs in order to open and close one.
+	 */
+	setScreen(depth: number, title: string): void;
 	/** The format list fills the shell; every other screen ends in a button bar. */
 	setPickingFormat(picking: boolean): void;
 	/** Done: the modal closes, the setting tab closes the settings window. */
@@ -77,7 +93,16 @@ export class ImporterFlow implements ImporterHost {
 	private reportFile: TFile | null = null;
 
 	/** The screen showing now, so a shell that was taken away can draw it again. */
-	private drawCurrent: () => void = () => this.showFormatPicker();
+	private drawCurrent: () => unknown = () => this.showFormatPicker();
+
+	/** Set while drawing, so a shell redrawing in response cannot recurse. */
+	private drawing: boolean = false;
+
+	/**
+	 * The screen a running import is on, when the user has navigated away from
+	 * it: what the notice takes them back to.
+	 */
+	private awayFrom: (() => unknown) | null = null;
 
 	get importerId(): string {
 		return this.selectedId;
@@ -100,10 +125,37 @@ export class ImporterFlow implements ImporterHost {
 
 	/** The shell is on screen: draw where the flow got to, and catch drops. */
 	attach(): void {
-		this.hidden = false;
-		this.clearHiddenNotice();
+		// An import the user navigated away from stays away, and stays on the
+		// notice, even though the shell showing the format list is on screen.
+		this.hidden = this.awayFrom !== null;
+		if (!this.hidden) this.clearHiddenNotice();
 		this.catchFileDrop(this.shell.containerEl.win);
-		this.drawCurrent();
+		this.redraw();
+	}
+
+	/**
+	 * Draw the screen the flow is on, once. A shell redraws in answer to the
+	 * flow — a page fills itself when it opens — so a draw already under way,
+	 * including one waiting on an importer, is left to finish on its own.
+	 */
+	redraw(): void {
+		if (this.drawing) return;
+
+		this.drawing = true;
+		let drawn: unknown;
+		try {
+			drawn = this.drawCurrent();
+		}
+		finally {
+			if (drawn instanceof Promise) {
+				void drawn
+					.catch(e => console.error('Could not draw the import', e))
+					.finally(() => this.drawing = false);
+			}
+			else {
+				this.drawing = false;
+			}
+		}
 	}
 
 	/**
@@ -120,6 +172,21 @@ export class ImporterFlow implements ImporterHost {
 		this.showHiddenNotice();
 	}
 
+	/**
+	 * The user went back past the import itself — the way out of a settings
+	 * page. The list is what they asked for; an import already running keeps
+	 * going, and the notice is what leads back to it.
+	 */
+	leave(): void {
+		if (this.current) {
+			this.hidden = true;
+			this.awayFrom = this.drawCurrent;
+			this.showHiddenNotice();
+		}
+
+		this.showFormatPicker();
+	}
+
 	/** The shell is gone for good, and takes the import with it. */
 	dispose(): void {
 		this.hideDropOverlay();
@@ -127,16 +194,18 @@ export class ImporterFlow implements ImporterHost {
 		this.abortController.abort('import was canceled by user');
 		this.clearHiddenNotice();
 		this.hidden = false;
+		this.awayFrom = null;
 		this.current?.cancel();
 	}
 
 	showFormatPicker() {
-		const { contentEl } = this.shell;
 		this.drawCurrent = () => this.showFormatPicker();
-		contentEl.empty();
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(true);
-		this.shell.setTitle(i18n.modal.titlePickFormat());
+		this.shell.setScreen(FORMAT_LIST, i18n.modal.titlePickFormat());
+
+		const { contentEl } = this.shell;
+		contentEl.empty();
 
 		const groupEl = contentEl.createDiv('setting-group mod-list');
 		const searchEl = groupEl.createDiv('setting-group-search');
@@ -287,14 +356,14 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private showMethodPicker(group: string): void {
-		const { contentEl } = this.shell;
-
 		this.drawCurrent = () => this.showMethodPicker(group);
-		contentEl.empty();
 		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
-		this.shell.setTitle(i18n.modal.titleChooseMethod());
+		this.shell.setScreen(IMPORT_SCREEN, i18n.modal.titleChooseMethod());
+
+		const { contentEl } = this.shell;
+		contentEl.empty();
 
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
 		const rows: HTMLElement[] = [];
@@ -310,9 +379,11 @@ export class ImporterFlow implements ImporterHost {
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-				el.addEventListener('click', () => this.showFormatPicker());
-			});
+			if (!this.shell.combinesSteps) {
+				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+					el.addEventListener('click', () => this.showFormatPicker());
+				});
+			}
 
 			const permalink = groupHelpPermalink(this.plugin.importers, group);
 			if (permalink) {
@@ -357,11 +428,19 @@ export class ImporterFlow implements ImporterHost {
 
 	private showFirstStep() {
 		if (this.importer.notAvailable) {
-			this.drawStep(this.optionsEl, () => this.showPreviousScreen(), () => {});
+			this.drawStep([this.optionsEl], () => this.showPreviousScreen(), () => {});
 			return;
 		}
 
 		this.showSourceStep();
+	}
+
+	/** Keep grouped importers under the app name. */
+	private importTitle(): string {
+		const group = groupOf(this.selectedId);
+		return i18n.modal.titleImportFrom({
+			format: group ? groupName(group) : importerName(this.selectedId),
+		});
 	}
 
 	private hasOptionsStep(): boolean {
@@ -369,12 +448,36 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	showSourceStep() {
+		if (this.shell.combinesSteps) {
+			void this.showWholeImport();
+			return;
+		}
+
 		this.drawCurrent = () => this.showSourceStep();
-		this.drawStep(this.sourceEl, () => this.showPreviousScreen(), el => {
+		this.drawStep([this.sourceEl], () => this.showPreviousScreen(), el => {
 			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 				el.addEventListener('click', () => void this.showOutputStep());
 			});
 
+			this.sourceChanged();
+		});
+	}
+
+	/**
+	 * Every step at once, for a shell that would rather scroll than page: what
+	 * to import, where it lands, and whatever else the format asks, under one
+	 * Import button that waits for a source the same way Continue does.
+	 */
+	private async showWholeImport() {
+		const { importer } = this;
+
+		this.drawCurrent = () => this.showWholeImport();
+
+		await importer.ready;
+		importer.drawOutputStep();
+
+		this.drawStep([this.sourceEl, this.outputEl, this.optionsEl], null, el => {
+			this.nextButtonEl = this.addImportButton(el, importer);
 			this.sourceChanged();
 		});
 	}
@@ -386,12 +489,12 @@ export class ImporterFlow implements ImporterHost {
 	async showOutputStep() {
 		const { importer } = this;
 
-		this.drawCurrent = () => void this.showOutputStep();
+		this.drawCurrent = () => this.showOutputStep();
 
 		await importer.ready;
 		importer.drawOutputStep();
 
-		this.drawStep(this.outputEl, () => this.showSourceStep(), el => {
+		this.drawStep([this.outputEl], () => this.showSourceStep(), el => {
 			if (this.hasOptionsStep()) {
 				el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 					el.addEventListener('click', () => this.showOptionsStep());
@@ -407,31 +510,31 @@ export class ImporterFlow implements ImporterHost {
 		const { importer } = this;
 
 		this.drawCurrent = () => this.showOptionsStep();
-		this.drawStep(this.optionsEl, () => void this.showOutputStep(), el => {
+		this.drawStep([this.optionsEl], () => void this.showOutputStep(), el => {
 			this.addImportButton(el, importer);
 		});
 	}
 
-	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter) {
-		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
+	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter): HTMLButtonElement {
+		return buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
 			el.addEventListener('click', () => void this.startImport(importer)
 				.catch(e => console.error('Import failed', e)));
 		});
 	}
 
 	private showFormatOffer(ids: string[], drop: Drop) {
-		const { contentEl } = this.shell;
-
 		const back = this.pickingFormat || !this.importer
 			? () => this.startOver()
 			: () => this.showFirstStep();
 
 		this.drawCurrent = () => this.showFormatOffer(ids, drop);
-		contentEl.empty();
 		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
-		this.shell.setTitle(i18n.modal.titleChooseMethod());
+		this.shell.setScreen(IMPORT_SCREEN, i18n.modal.titleChooseMethod());
+
+		const { contentEl } = this.shell;
+		contentEl.empty();
 
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
 		const rows: HTMLElement[] = [];
@@ -447,9 +550,11 @@ export class ImporterFlow implements ImporterHost {
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-				el.addEventListener('click', back);
-			});
+			if (!this.shell.combinesSteps) {
+				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+					el.addEventListener('click', back);
+				});
+			}
 
 			el.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
 				el.addEventListener('click', () => this.startOver());
@@ -597,26 +702,27 @@ export class ImporterFlow implements ImporterHost {
 		this.dropOverlayEl = null;
 	}
 
-	private drawStep(stepEl: HTMLElement | null, onBack: () => void, buildButtons: (buttonsEl: HTMLElement) => void) {
-		const { contentEl } = this.shell;
+	private drawStep(stepEls: (HTMLElement | null)[], onBack: (() => void) | null, buildButtons: (buttonsEl: HTMLElement) => void) {
 		const definition = this.plugin.importers[this.selectedId];
 
-		contentEl.empty();
 		this.nextButtonEl = null;
 		this.pickingFormat = false;
 		this.shell.setPickingFormat(false);
-		// Keep grouped importers under the app name.
-		const group = groupOf(this.selectedId);
-		this.shell.setTitle(i18n.modal.titleImportFrom({
-			format: group ? groupName(group) : importerName(this.selectedId),
-		}));
+		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
 
-		if (stepEl) contentEl.append(stepEl);
+		const { contentEl } = this.shell;
+		contentEl.empty();
+
+		for (const stepEl of stepEls) {
+			if (stepEl) contentEl.append(stepEl);
+		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-				el.addEventListener('click', onBack);
-			});
+			if (onBack && !this.shell.combinesSteps) {
+				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+					el.addEventListener('click', onBack);
+				});
+			}
 
 			if (definition.helpPermalink) {
 				const permalink = definition.helpPermalink;
@@ -634,6 +740,7 @@ export class ImporterFlow implements ImporterHost {
 			this.current.cancel();
 		}
 
+		this.awayFrom = null;
 		this.reportFile = null;
 
 		const { contentEl } = this.shell;
@@ -646,7 +753,8 @@ export class ImporterFlow implements ImporterHost {
 
 		if (templateResult === false) {
 			this.current = null;
-			if (this.hasOptionsStep()) this.showOptionsStep();
+			if (this.shell.combinesSteps) void this.showWholeImport();
+			else if (this.hasOptionsStep()) this.showOptionsStep();
 			else void this.showOutputStep();
 			return;
 		}
@@ -693,8 +801,10 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private showProgress(ctx: ImportProgressUI, interruption: FormatImporter['interruption']) {
-		const { contentEl } = this.shell;
 		this.drawCurrent = () => this.showProgress(ctx, interruption);
+		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
+
+		const { contentEl } = this.shell;
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
@@ -774,8 +884,10 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private showFinished(ctx: ImportProgressUI) {
-		const { contentEl } = this.shell;
 		this.drawCurrent = () => this.showFinished(ctx);
+		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
+
+		const { contentEl } = this.shell;
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
@@ -797,7 +909,15 @@ export class ImporterFlow implements ImporterHost {
 			frag.append(progressEl);
 		}), 0);
 
-		notice.containerEl.addEventListener('click', () => this.shell.foreground());
+		notice.containerEl.addEventListener('click', () => {
+			// Back to the import itself, not to the list the user left it for.
+			if (this.awayFrom) {
+				this.drawCurrent = this.awayFrom;
+				this.awayFrom = null;
+			}
+
+			this.shell.foreground();
+		});
 
 		const drawProgress = () => {
 			const ctx = this.current;
