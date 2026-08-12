@@ -27,9 +27,7 @@ export class AppleJournalImporter extends FormatImporter {
 			defaultImportPath
 		);
 
-		this.addSetting()
-			?.setName(i18n.importer.appleJournal.headingMetadata())
-			.setHeading();
+		this.startGroup('options', i18n.importer.appleJournal.headingMetadata());
 
 		this.addSetting()
 			?.setName(i18n.importer.appleJournal.nameFrontMatter())

@@ -15,6 +15,16 @@ declare module 'obsidian' {
 		hide(): void;
 	}
 
+	/**
+	 * The elements of a setting group: the card its settings are drawn in, and
+	 * the group around it. Both are there in 1.11 and later; the published
+	 * types describe the group only by the methods that add to it.
+	 */
+	interface SettingGroup {
+		groupEl: HTMLElement;
+		listEl: HTMLElement;
+	}
+
 	interface App {
 		// The settings window, which a setting tab has to open and close itself.
 		setting: {

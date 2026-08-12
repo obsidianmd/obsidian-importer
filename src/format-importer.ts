@@ -1,4 +1,4 @@
-import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
@@ -298,9 +298,41 @@ export abstract class FormatImporter {
 		}
 	}
 
+	/**
+	 * Settings are drawn in cards, one per group, so settings that are read
+	 * together look it. A step keeps to one group until something else is
+	 * drawn into it or startGroup() breaks it.
+	 */
+	private groups = new WeakMap<HTMLElement, SettingGroup>();
+
+	private groupIn(contentEl: HTMLElement): HTMLElement {
+		const group = this.groups.get(contentEl);
+		// Anything drawn straight into the step lands after the group, so a
+		// setting added next belongs to a new one rather than jumping back.
+		if (group && contentEl.lastElementChild === group.groupEl) return group.listEl;
+
+		return this.startGroupIn(contentEl).listEl;
+	}
+
+	private startGroupIn(contentEl: HTMLElement, heading?: string): SettingGroup {
+		const group = new SettingGroup(contentEl);
+		if (heading) group.setHeading(heading);
+		this.groups.set(contentEl, group);
+		return group;
+	}
+
+	/**
+	 * Start a card of its own for the settings that follow, for a group that
+	 * is not read with the one before it.
+	 */
+	protected startGroup(step: ImporterStep = 'options', heading?: string): void {
+		const contentEl = this.stepEl(step);
+		if (contentEl) this.startGroupIn(contentEl, heading);
+	}
+
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
 		const contentEl = this.stepEl(step);
-		return contentEl ? new Setting(contentEl) : null;
+		return contentEl ? new Setting(this.groupIn(contentEl)) : null;
 	}
 
 	protected draw<T>(build: (contentEl: HTMLElement) => T, step: ImporterStep = 'options'): T | undefined {
@@ -570,6 +602,10 @@ export abstract class FormatImporter {
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
+
+		// Where an import lands is one question; what it does about what is
+		// already there is another.
+		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
 		this.addSaveSourceIdSetting(contentEl);
 	}
@@ -577,7 +613,7 @@ export abstract class FormatImporter {
 	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
 		if (!this.idProperty) return;
 
-		new Setting(contentEl)
+		new Setting(this.groupIn(contentEl))
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -591,7 +627,7 @@ export abstract class FormatImporter {
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {
-		new Setting(contentEl)
+		new Setting(this.groupIn(contentEl))
 			.setName(i18n.output.nameFolder())
 			.setDesc(i18n.output.descFolder())
 			.addText(text => {
@@ -607,11 +643,11 @@ export abstract class FormatImporter {
 	}
 
 	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
-		const setting = new Setting(contentEl)
+		const setting = new Setting(this.groupIn(contentEl))
 			.setName(i18n.output.nameAttachments())
 			.setDesc(i18n.output.descAttachments());
 
-		const pathSetting = new Setting(contentEl);
+		const pathSetting = new Setting(this.groupIn(contentEl));
 
 		const drawPathSetting = () => {
 			const { mode } = this.attachmentLocation;
@@ -652,7 +688,7 @@ export abstract class FormatImporter {
 		const modes = this.duplicateModes;
 		if (modes.length < 2) return;
 
-		new Setting(contentEl)
+		new Setting(this.groupIn(contentEl))
 			.setName(i18n.output.nameDuplicates())
 			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {

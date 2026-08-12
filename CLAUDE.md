@@ -53,6 +53,11 @@ leaves those it passed empty.
 A running import is the exception with nothing behind it. Its back leaves
 the flow altogether, and unwinds however many pages that takes.
 
+Settings are drawn in cards, one per group: `addSetting` keeps to the group
+its step is on, and `startGroup` breaks it where two settings are not read
+together. A group takes a heading only where one was already being shown —
+the cards are the grouping.
+
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in
 `src/augment.d.ts` rather than imported from types that have it.
