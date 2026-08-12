@@ -148,9 +148,15 @@ export class RoamPageConverter {
 		// no bracket of its own: reaching across one takes in whatever stands
 		// to the left, and by this point a converted `{{[[TODO]]}}` has left a
 		// `[ ]` there to be taken.
+		//
+		// This form is no plainer about what it means than the bare one: an
+		// ordinary markdown link to a parenthesised address is written the same
+		// way, and the help graph has footnotes of exactly that shape.
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match: string, alias: string, uid: string) => {
 			const target = resolve(uid);
-			return target ? `[[${target}|${alias}]]` : this.unresolved(match);
+			if (target) return `[[${target}|${alias}]]`;
+
+			return looksLikeBlockId(uid) ? this.unresolved(match) : match;
 		});
 
 		return blockText.replace(blockRefRegex, (match: string, uid: string) => {

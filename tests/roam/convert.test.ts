@@ -591,8 +591,14 @@ test('and leaves an aside in parentheses alone, whatever that option says', asyn
 
 	for (const aside of [
 		'a long ((and interesting)) quote',
-		'((Longer debounce time and normalize the search value))',
-		'see ((https://en.wikipedia.org/wiki/Johari_window))',
+		// Roam's own change log writes remarks this way.
+		'It is only a visual change ((you can still find the block in the DOM)) so do not use it',
+		'Small improvement to all pages search ((Longer debounce time and normalize the search value))',
+		// A footnote whose address is in parentheses is written exactly as an
+		// aliased reference is, and the help graph has several.
+		'a Johari Window[2](((https://en.wikipedia.org/wiki/Johari_window))) or a categorization',
+		// The syntax, documented in a code span, with a placeholder for the id.
+		'The format for aliases is `[alias](((blockid)))`',
 	]) {
 		assert.equal(await dropping.roamMarkupScrubber('', '', aside), aside);
 	}
