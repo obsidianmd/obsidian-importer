@@ -45,3 +45,19 @@ It is a page per thing that broke, so a failure names itself:
 
 Nothing in it is anyone's data: the names are invented and the block ids are
 words rather than Roam's.
+
+## Whole graphs, in local/
+
+Two are worth converting but not recording, so they go in the gitignored
+`local/` and are counted rather than compared:
+
+- `help-graph-full.json` - the 1,107-page Help graph the excerpt was cut from
+- `roam-to-git-demo.json` - the public roam-to-git demo graph, 1,864 pages
+
+Neither is much use as a *recording*: the demo graph is 1,864 pages holding 196
+blocks, nearly all of them empty daily notes, with no table, kanban or query in
+it. What they are good for is a page shape that throws, which is what found the
+250-character page title that a link could not reach.
+
+Anonymised on the way in: storage tokens and any address are replaced. Both
+were published by their authors as demonstrations.
