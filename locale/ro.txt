@@ -1072,11 +1072,11 @@ translation=Faceți o copie de rezervă a însemnărilor în Bear, veți primi u
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Mută etichetele într-o proprietate
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Când este activat, etichetele sunt extrase din însemnare și listate în proprietatea Etichete. Bear păstrează etichetele în textul unei însemnări, iar Obsidian le citește și de acolo.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

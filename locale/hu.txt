@@ -1072,11 +1072,11 @@ translation=Készíts biztonsági mentést a jegyzeteidről a Bear alkalmazásba
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Címkék áthelyezése tulajdonságba
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Ha engedélyezve van, a címkék eltávolításra kerülnek a jegyzetből, és a Címkék tulajdonságban lesznek felsorolva. A Bear a címkéket a jegyzet szövegében tárolja, és az Obsidian onnan is olvassa őket.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

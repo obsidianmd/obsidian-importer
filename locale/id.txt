@@ -1072,11 +1072,11 @@ translation=Cadangkan catatan Anda di Bear, Anda akan menerima file .bear2bk.
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Pindahkan Tag ke properti
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Saat diaktifkan, Tag akan diambil dari catatan dan dicantumkan di properti Tag-nya. Bear menyimpan Tag di dalam Teks catatan, dan Obsidian juga membacanya di sana.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

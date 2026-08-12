@@ -1072,11 +1072,11 @@ translation=Faça uma cópia de segurança das suas notas no Bear; receberá um 
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Mover etiquetas para uma propriedade
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Quando ativado, as etiquetas são removidas da nota e listadas na sua propriedade de etiquetas. Bear mantém as etiquetas no texto de uma nota, e Obsidian também as lê lá.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

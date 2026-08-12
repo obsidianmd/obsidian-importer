@@ -1072,11 +1072,11 @@ translation=បម្រុងទុកកំណត់ចំណាំរបស�
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=ផ្លាស់ទីស្លាកទៅលក្ខណៈសម្បត្តិមួយ
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=នៅពេលបានបើក ស្លាកត្រូវបានដកចេញពីកំណត់ចំណាំ និងរាយក្នុងលក្ខណៈសម្បត្តិស្លាករបស់វា។ Bear រក្សាស្លាកនៅក្នុងអត្ថបទនៃកំណត់ចំណាំ ហើយ Obsidian ក៏អានវានៅទីនោះដែរ។
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

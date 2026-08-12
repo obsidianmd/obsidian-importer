@@ -1072,11 +1072,11 @@ translation=Sikkerhetskopier notatene dine i Bear, du vil motta en .bear2bk-fil.
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Flytt tagger til en egenskap
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Når aktivert, fjernes tagger fra notatet og listes opp i dets Tagger-egenskap. Bear beholder tagger i teksten til et notat, og Obsidian leser dem der også.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

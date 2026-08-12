@@ -1072,11 +1072,11 @@ translation=Zálohujte si poznámky v Bear, dostanete súbor .bear2bk.
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=Presunúť značky do vlastnosti
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=Keď je povolené, značky sa odstránia z poznámky a uvedú sa v jej vlastnosti Značky. Bear uchováva značky v texte poznámky a Obsidian ich tam tiež číta.
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags

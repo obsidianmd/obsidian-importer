@@ -1072,11 +1072,11 @@ translation=在 Bear 中备份你的笔记，你将获得一个 .bear2bk 文件�
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
-translation=
+translation=将标签移至属性
 
 [importer.bear.desc-tags-property]
 original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
-translation=
+translation=已启用时，标签将从笔记中移除并列入其标签属性中。Bear 将标签保存在笔记的文本中，Obsidian 也能在那里读取它们。
 
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
