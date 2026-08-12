@@ -33,15 +33,86 @@ export function getLanguage(): string {
 }
 
 /**
- * A setting row, which a headless import never draws.
- *
- * FormatImporter.addSetting returns null when there is no dialog, so nothing
- * constructs this. It exists because the import of it is a value import, and
- * an absent binding fails at load rather than at use.
+ * The elements a setting row is made of. An importer never draws one headless
+ * — addSetting returns null without a dialog — but the progress UI does, and
+ * a test reads what it drew. The structure is all this reproduces: a control
+ * beyond the progress bar is the app's to build.
  */
 export class Setting {
-	constructor(_containerEl: unknown) {
-		throw new Error('Setting cannot be drawn outside Obsidian');
+	settingEl: HTMLElement;
+	infoEl: HTMLElement;
+	nameEl: HTMLElement;
+	descEl: HTMLElement;
+	controlEl: HTMLElement;
+
+	constructor(containerEl: HTMLElement) {
+		this.settingEl = containerEl.createDiv('setting-item');
+		this.infoEl = this.settingEl.createDiv('setting-item-info');
+		this.nameEl = this.infoEl.createDiv('setting-item-name');
+		this.descEl = this.infoEl.createDiv('setting-item-description');
+		this.controlEl = this.settingEl.createDiv('setting-item-control');
+	}
+
+	setName(name: string | DocumentFragment): this {
+		this.nameEl.setText(name);
+		return this;
+	}
+
+	setDesc(desc: string | DocumentFragment): this {
+		this.descEl.setText(desc);
+		return this;
+	}
+
+	setClass(cls: string): this {
+		this.settingEl.classList.add(cls);
+		return this;
+	}
+
+	addProgressBar(cb: (component: ProgressBarComponent) => unknown): this {
+		cb(new ProgressBarComponent(this.controlEl));
+		return this;
+	}
+}
+
+/** The card a group of settings is drawn in. */
+export class SettingGroup {
+	groupEl: HTMLElement;
+	listEl: HTMLElement;
+
+	constructor(containerEl: HTMLElement) {
+		this.groupEl = containerEl.createDiv('setting-group');
+		this.listEl = this.groupEl.createDiv('setting-items');
+	}
+
+	addClass(cls: string): this {
+		this.groupEl.classList.add(cls);
+		return this;
+	}
+
+	setHeading(text: string): this {
+		this.groupEl.createDiv('setting-item setting-item-heading')
+			.createDiv({ cls: 'setting-item-name', text });
+		return this;
+	}
+}
+
+export class ProgressBarComponent {
+	private value: number = 0;
+	private innerEl: HTMLElement;
+
+	constructor(containerEl: HTMLElement) {
+		this.innerEl = containerEl.createDiv('setting-progress-bar')
+			.createDiv('setting-progress-bar-inner');
+	}
+
+	getValue(): number {
+		return this.value;
+	}
+
+	setValue(value: number): this {
+		this.value = Math.max(0, Math.min(100, value));
+		this.innerEl.style.width = `${this.value}%`;
+		return this;
 	}
 }
 

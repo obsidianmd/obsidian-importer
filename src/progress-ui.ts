@@ -1,3 +1,4 @@
+import { ProgressBarComponent, Setting, SettingGroup } from 'obsidian';
 import { ImportContext, ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
 import { describeReason } from './util';
@@ -23,7 +24,7 @@ export function pausedText(message: string): string {
 export class ImportProgressUI extends ImportContext {
 	el: HTMLElement;
 	progressBarEl: HTMLElement;
-	progressBarInnerEl: HTMLElement;
+	progressBar: ProgressBarComponent;
 	importedCountEl: HTMLElement;
 	attachmentCountEl: HTMLElement;
 	remainingCountEl: HTMLElement;
@@ -45,11 +46,16 @@ export class ImportProgressUI extends ImportContext {
 		container.empty();
 
 		this.el = container;
-		this.statusEl = container.createDiv('importer-status');
 
-		this.progressBarEl = container.createDiv('importer-progress-bar', el => {
-			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
-		});
+		// What an import is doing and how far along it is, as Settings shows
+		// any measure of something filling up: the row stacks on a phone, and
+		// the bar has the width to itself there.
+		const progress = new Setting(new SettingGroup(container).listEl)
+			.setClass('importer-progress')
+			.addProgressBar(bar => this.progressBar = bar);
+
+		this.statusEl = progress.nameEl;
+		this.progressBarEl = progress.controlEl;
 
 		container.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
@@ -123,7 +129,7 @@ export class ImportProgressUI extends ImportContext {
 	// Progress includes skipped and failed items; onNoteSuccess updates imported count.
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
-		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
+		this.progressBar.setValue(100 * current / total);
 	}
 
 	// Preserve final progress, but hide a bar that never had a total.

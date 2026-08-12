@@ -899,7 +899,7 @@ export class ImporterFlow implements ImporterHost {
 
 		if (interruption === 'none') return;
 
-		let buttonsEl = contentEl.createDiv('modal-button-container');
+		let buttonsEl = contentEl.createDiv('modal-button-container importer-progress-buttons');
 
 		let pauseButtonEl: HTMLElement | null = null;
 		if (interruption === 'pause') {
@@ -915,7 +915,7 @@ export class ImporterFlow implements ImporterHost {
 			pauseButtonEl = button;
 		}
 
-		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-danger', text: i18n.modal.buttonStop() }, el => {
+		let cancelButtonEl = buttonsEl.createEl('button', { cls: 'mod-destructive', text: i18n.modal.buttonStop() }, el => {
 			el.addEventListener('click', () => {
 				ctx.cancel();
 				ctx.status(i18n.progress.statusStopping());

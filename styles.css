@@ -125,42 +125,50 @@ body:not(.is-mobile) .importer-step-buttons .mod-cta {
 	}
 }
 
-.importer-progress-bar {
-	width: 100%;
-	height: 8px;
-	background-color: var(--background-secondary);
-	overflow: hidden;
-	box-shadow: inset 0px 0px 0px 1px var(--background-modifier-border);
-	border-radius: var(--radius-s);
-}
-
-.importer-progress-bar-inner {
-	width: 0;
-	height: 100%;
-	background-color: var(--interactive-accent);
-}
-
-.is-paused .importer-progress-bar-inner {
+.is-paused .setting-progress-bar-inner {
 	background-color: var(--text-faint);
 }
 
-.importer-status {
+/* The row is nothing but a status and its bar, so it reads as a screen rather
+   than a setting: the status above, the bar with the width to itself. */
+.importer-progress {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--size-4-2);
+}
+
+.importer-progress .setting-item-control {
+	width: 100%;
+}
+
+/* The status is a file name, often longer than the room for it. */
+.importer-progress .setting-item-name {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	padding: var(--size-4-2) 0;
 	font-variant: tabular-nums;
 }
 
+/* Stacked, the buttons read down the screen, and stopping the import should
+   not be the one under the thumb. */
+body.is-mobile .importer-progress-buttons .mod-destructive {
+	order: -1;
+}
+
+/* Five counts side by side is more than a phone has room for, so they wrap
+   into as many rows as it takes. */
 .importer-stats-container {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-evenly;
+	gap: var(--size-4-3) var(--size-4-2);
 	margin-top: var(--size-4-5);
 	margin-bottom: var(--size-4-5);
 }
 
 .importer-stat {
 	text-align: center;
+	min-width: 4em;
 }
 
 .notice-message {
