@@ -121,6 +121,25 @@ function copyToVault() {
 	}
 }
 
+// esbuild rebuilds on a change to something it bundles, and styles.css is not
+// bundled: without this, editing it in a watch session never reaches the vault,
+// and the change reads as a rule that had no effect. Watch the directory rather
+// than the file, so a save that replaces the file keeps being noticed.
+function watchCopiedFiles() {
+	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
+
+	const copied = ["styles.css", "manifest.json"];
+	let queued;
+
+	fs.watch(".", (event, filename) => {
+		if (!copied.includes(filename)) return;
+
+		// An editor saves in more than one step; copy once it has settled.
+		clearTimeout(queued);
+		queued = setTimeout(copyToVault, 100);
+	});
+}
+
 const copyPlugin = {
 	name: "copy-to-vault",
 	setup(build) {
@@ -182,4 +201,5 @@ if (prod) {
 	process.exit(0);
 } else {
 	await context.watch();
+	watchCopiedFiles();
 }
