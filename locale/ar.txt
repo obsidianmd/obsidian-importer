@@ -158,10 +158,6 @@ translation=
 original=No format here reads what you dropped.
 translation=
 
-[modal.msg-only-copy-files]
-original=No format here reads these files, but they can go into your vault as they are.
-translation=
-
 [modal.button-show-all-formats]
 original=Show all formats
 translation=

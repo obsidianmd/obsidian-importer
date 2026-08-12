@@ -796,11 +796,14 @@ export class ImporterModal extends Modal implements ImporterHost {
 		modalEl.removeClass('is-picking-format');
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
-		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-			el.setText(exports.length === 0 ? i18n.modal.msgOnlyCopyFiles()
-				: exports.length === 1 ? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
+		// Nothing to say when the rows are the whole answer.
+		if (exports.length > 0) {
+			contentEl.createDiv('setting-item-description importer-drop-hint', el => {
+				el.setText(exports.length === 1
+					? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
 					: i18n.modal.msgFormatReadsFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
-		});
+			});
+		}
 
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
 		const rows: HTMLElement[] = [];
