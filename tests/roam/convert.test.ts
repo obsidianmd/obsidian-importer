@@ -797,3 +797,15 @@ test('"convert tags to links" reads a bare tag as the reference Roam means', asy
 	// A bracketed one is already a link by the time this is asked.
 	assert.equal(await linking.roamMarkupScrubber('', '', '#[[mental health]]'), '[[mental health]]');
 });
+
+test('removing a reference that leads nowhere keeps the words it was written on', async () => {
+	// The help graph has a heading made of three of these and nothing else, and
+	// taking the alias with the reference left it as a bare `#`.
+	const dropping = optioned({ dropUnresolvedReferences: true });
+
+	assert.equal(
+		await dropping.roamMarkupScrubber('', '', '[🚧](((dmQooXFj9)))[🚧](((dmQooXFj9)))'),
+		'🚧🚧');
+	// A bare reference has no words of its own, so it goes entirely.
+	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((dmQooXFj9))'), 'see ');
+});

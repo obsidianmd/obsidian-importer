@@ -178,8 +178,12 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match: string, alias: string, uid: string) => {
 			const target = resolve(uid);
 			if (target) return `[[${target}|${alias}]]`;
+			if (!looksLikeBlockId(uid)) return match;
 
-			return looksLikeBlockId(uid) ? this.unresolved(match) : match;
+			// Removing a reference that leads nowhere should not take the words
+			// it was written on with it. A heading made of nothing but these
+			// came out as a bare `#`.
+			return this.options.dropUnresolvedReferences ? alias : match;
 		});
 
 		return blockText.replace(blockRefRegex, (match: string, uid: string) => {
