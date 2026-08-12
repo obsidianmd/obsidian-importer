@@ -181,6 +181,7 @@ export class ImporterModal extends Modal implements ImporterShell {
 	readonly ownsBackButton: boolean = false;
 
 	readonly showsHelp: boolean = true;
+	readonly takesFocus: boolean = true;
 
 	private hidden: boolean = false;
 

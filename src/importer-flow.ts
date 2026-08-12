@@ -49,6 +49,13 @@ export interface ImporterShell {
 	 */
 	readonly showsHelp: boolean;
 	/**
+	 * Whether a screen may take the focus as it is drawn. A modal opens for
+	 * this and nothing else, so its search is ready to type into; a setting
+	 * tab is opened around the settings window's own search, and takes the
+	 * focus from it — or raises a phone's keyboard — by grabbing it.
+	 */
+	readonly takesFocus: boolean;
+	/**
 	 * The flow moved: `depth` counts screens in from the format list, which is
 	 * what a shell showing pages needs in order to open and close them.
 	 */
@@ -290,7 +297,7 @@ export class ImporterFlow implements ImporterHost {
 		});
 
 		draw('');
-		search.inputEl.focus();
+		if (this.shell.takesFocus) search.inputEl.focus();
 	}
 
 	/** What this format's documentation is, where the shell shows such a thing. */
@@ -444,7 +451,7 @@ export class ImporterFlow implements ImporterHost {
 		// and the space it still takes reads as a gap under the list.
 		if (buttonsEl.childElementCount > 0) contentEl.append(buttonsEl);
 
-		rows[0]?.focus();
+		if (this.shell.takesFocus) rows[0]?.focus();
 	}
 
 	selectFormat(id: string) {
@@ -589,7 +596,7 @@ export class ImporterFlow implements ImporterHost {
 			});
 		});
 
-		rows[0]?.focus();
+		if (this.shell.takesFocus) rows[0]?.focus();
 	}
 
 	private startOver(): void {
