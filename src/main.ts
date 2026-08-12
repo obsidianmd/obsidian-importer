@@ -11,6 +11,7 @@ import { AppleJournalImporter } from './formats/apple-journal';
 import { Bear2bkImporter } from './formats/bear-bear2bk';
 import { CSVImporter } from './formats/csv';
 import { EvernoteEnexImporter } from './formats/evernote-enex';
+import { FilesImporter } from './formats/files';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
 import { NotionImporter } from './formats/notion';
@@ -40,12 +41,27 @@ declare global {
 	}
 }
 
+/** Where a drop nothing else claims goes: copied into the vault as it is. */
+const COPY_FILES = 'files';
+
+/** What a drop was carrying, in the three shapes the dialog needs it in. */
+interface Drop {
+	/** What was dropped, folders and all, which is what a copy keeps. */
+	items: (PickedFile | PickedFolder)[];
+	/** Those items walked flat, which is what an importer of a format reads. */
+	files: PickedFile[];
+	/** The files a format here reads, which is what the choice is described by. */
+	exports: PickedFile[];
+}
+
 /** An importer class, and the file types it declares for a dropped file to be matched against. */
 type ImporterClass = (new (app: App, host: ImporterHost) => FormatImporter) & { extensions: readonly string[] };
 
 interface ImporterDefinition {
 	helpPermalink?: string;
 	importer: ImporterClass;
+	/** Kept out of the list of formats: there is only one way to reach it. */
+	hidden?: boolean;
 }
 
 const IMPORTER_GROUPS: Record<string, string[]> = {
@@ -97,6 +113,7 @@ function statusText(message: string): string {
 
 const FALLBACK_ICONS: Record<string, IconName> = {
 	'csv': 'table',
+	'files': 'copy',
 	'html': 'code-2',
 	'textbundle': 'package',
 	'tomboy': 'sticky-note',
@@ -289,6 +306,12 @@ export default class ImporterPlugin extends Plugin {
 			'evernote': {
 				importer: EvernoteEnexImporter,
 				helpPermalink: 'import/evernote',
+			},
+			'files': {
+				importer: FilesImporter,
+				// Offered by a drop it fits, rather than listed among the apps
+				// an import can come from.
+				hidden: true,
 			},
 			'keep': {
 				importer: KeepImporter,
@@ -602,7 +625,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private pickableIds(): string[] {
 		const offered: string[] = [];
 
-		for (const id of Object.keys(this.plugin.importers)) {
+		for (const [id, definition] of Object.entries(this.plugin.importers)) {
+			if (definition.hidden) continue;
+
 			const group = groupOf(id);
 			const entry = group ?? id;
 			if (!offered.includes(entry)) offered.push(entry);
@@ -779,8 +804,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 	 * methods of a group are listed apart here rather than behind the app they
 	 * share: only one of them reads a file at all.
 	 */
-	private showFormatOffer(ids: string[], files: PickedFile[], exports: PickedFile[]) {
+	private showFormatOffer(ids: string[], drop: Drop) {
 		const { contentEl, modalEl } = this;
+		const { files, exports } = drop;
 
 		// Where Back leads, decided before this screen replaces that one.
 		const back = this.pickingFormat || !this.importer
@@ -794,19 +820,22 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
 		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-			// The drop is described by what a format here reads. One file can be
-			// named; a pile of them is a count.
-			el.setText(exports.length === 1
-				? i18n.modal.msgChooseForFile({ name: exports[0].name })
-				: i18n.modal.msgChooseForFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
+			// What a format here reads, named when it is one file and counted
+			// when it is more. The rest of the drop is the copy row's business.
+			el.setText(exports.length === 0 ? i18n.modal.msgNoFormatForFiles()
+				: exports.length === 1 ? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
+					: i18n.modal.msgFormatReadsFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
 		});
 
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
-			this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, files))
+			const row = this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
 				.setName(importerOptionText(id));
+
+			// Copying takes the whole drop, formats only their own part of it.
+			if (id === COPY_FILES) row.setDesc(i18n.nouns.fileWithCount({ count: files.length }));
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
@@ -838,34 +867,33 @@ export class ImporterModal extends Modal implements ImporterHost {
 	 * Where files dropped on the window go: to the importer already on screen
 	 * when it reads them, and otherwise to whichever importer does.
 	 */
-	private async takeDropped(dropped: (PickedFile | PickedFolder)[]): Promise<void> {
-		const arrived = await expandDropped(dropped);
+	private async takeDropped(items: (PickedFile | PickedFolder)[]): Promise<void> {
+		const files = await expandDropped(items);
 
-		if (arrived.length > 0 && !this.pickingFormat && this.importer && this.importer.takeFiles(arrived) > 0) {
+		if (files.length > 0 && !this.pickingFormat && this.importer && this.importer.takeDropped(items, files) > 0) {
 			this.showSourceStep();
 			return;
 		}
 
-		// What nothing here reads is left out of both the choice and the count,
-		// but not out of the drop: an importer that takes an attachment beside
-		// the note linking to it is still handed everything that arrived.
-		const exports = readableFiles(this.fileTypes(), arrived);
+		// What no format reads is left out of the description, but not out of
+		// the drop: an importer takes the attachment beside the note linking to
+		// it, and copying takes everything.
+		const exports = readableFiles(this.fileTypes(), files);
+		const drop: Drop = { items, files, exports };
 		const ids = importersForFiles(this.fileTypes(), exports.map(file => file.extension));
 
-		if (ids.length === 0) {
-			new Notice(i18n.modal.msgNoFormatForFiles());
+		// A drop one format reads all of is what the user meant. Anything else
+		// - nothing read, or read along with files that are not part of it - is
+		// a question, and copying the lot in is one of the answers.
+		if (ids.length === 1 && exports.length === files.length) {
+			await this.handOver(ids[0], drop);
 			return;
 		}
 
-		if (ids.length === 1) {
-			await this.handOver(ids[0], arrived);
-			return;
-		}
-
-		this.showFormatOffer(ids, arrived, exports);
+		this.showFormatOffer([...ids, COPY_FILES], drop);
 	}
 
-	private async handOver(id: string, files: PickedFile[]): Promise<void> {
+	private async handOver(id: string, drop: Drop): Promise<void> {
 		this.selectFormat(id);
 
 		const { importer } = this;
@@ -874,7 +902,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		// An importer that cannot run here has already said so on screen.
 		if (importer.notAvailable) return;
 
-		if (importer.takeFiles(files) === 0) {
+		if (importer.takeDropped(drop.items, drop.files) === 0) {
 			new Notice(i18n.modal.msgNoFormatForFiles());
 			return;
 		}

@@ -1,5 +1,5 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
@@ -551,6 +551,17 @@ export abstract class FormatImporter {
 	}
 
 	/**
+	 * Take a drop, and say how much of it was kept.
+	 *
+	 * `files` is `dropped` walked flat, which is what an importer reading a
+	 * particular format wants. One that copies whatever it is given overrides
+	 * this to keep the shape the drop arrived in.
+	 */
+	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return this.takeFiles(files);
+	}
+
+	/**
 	 * Take files chosen somewhere other than this importer's own picker, such
 	 * as a drop on the window, and say how many of them it kept.
 	 */
@@ -572,6 +583,11 @@ export abstract class FormatImporter {
 		if (!contentEl || this.outputStepDrawn) return;
 		this.outputStepDrawn = true;
 
+		this.drawOutputSettings(contentEl);
+	}
+
+	/** What the output step asks. An importer with nowhere to put an attachment asks less. */
+	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
@@ -594,7 +610,7 @@ export abstract class FormatImporter {
 			});
 	}
 
-	private addOutputFolderSetting(contentEl: HTMLElement): void {
+	protected addOutputFolderSetting(contentEl: HTMLElement): void {
 		new Setting(contentEl)
 			.setName(i18n.output.nameFolder())
 			.setDesc(i18n.output.descFolder())
@@ -981,18 +997,18 @@ export abstract class FormatImporter {
 			? null
 			: this.previouslyImported(desiredPath, sourceId);
 
-		const targetPath = file ? file.path : this.freeNotePath(parent, name);
+		const targetPath = file ? file.path : this.freeFilePath(parent, name);
 		this.claimPath(targetPath);
 
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
 	/**
-	 * A name no note holds and this run has not taken. getUniqueFilePath knows
-	 * only what the vault holds, which was enough while every note was written
-	 * the moment its name was chosen.
+	 * A name nothing in the vault holds and this run has not taken.
+	 * getUniqueFilePath knows only what the vault holds, which was enough while
+	 * every note was written the moment its name was chosen.
 	 */
-	private freeNotePath(parent: string, name: string): string {
+	protected freeFilePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
 		if (!this.hasClaimed(unique)) return unique;
 

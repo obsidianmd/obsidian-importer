@@ -146,12 +146,12 @@ translation=Geen formaten gevonden.
 original=Drop files to import
 translation=
 
-[modal.msg-choose-for-file]
-original=More than one format reads {{name}}.
+[modal.msg-format-reads-file]
+original={{name}} can be imported by a format here.
 translation=
 
-[modal.msg-choose-for-files]
-original=More than one format reads {{files}}.
+[modal.msg-format-reads-files]
+original={{files}} can be imported by a format here.
 translation=
 
 [modal.msg-no-format-for-files]
@@ -1153,6 +1153,22 @@ translation=Rij {{number}}
 [importer.csv.reason-empty-title]
 original=Empty title
 translation=Lege titel
+
+[importer.files.name]
+original=Files and folders
+translation=
+
+[importer.files.option-text]
+original=Copy files and folders into your vault
+translation=
+
+[importer.files.name-source]
+original=Files to copy
+translation=
+
+[importer.files.desc-source]
+original=Drop files or folders anywhere in the window to copy them into your vault.
+translation=
 
 [importer.evernote.name]
 original=Evernote

@@ -71,8 +71,8 @@ export const en = {
 		searchPlaceholder: 'Filter...',
 		msgNoFormats: 'No formats found.',
 		msgDropToImport: 'Drop files to import',
-		msgChooseForFile: 'More than one format reads {{name}}.',
-		msgChooseForFiles: 'More than one format reads {{files}}.',
+		msgFormatReadsFile: '{{name}} can be imported by a format here.',
+		msgFormatReadsFiles: '{{files}} can be imported by a format here.',
 		msgNoFormatForFiles: 'No format here reads what you dropped.',
 		buttonShowAllFormats: 'Show all formats',
 		buttonContinue: 'Continue',
@@ -367,6 +367,16 @@ export const en = {
 			statusCreatingNote: 'Creating note: {{title}}',
 			labelRow: 'Row {{number}}',
 			reasonEmptyTitle: 'Empty title',
+		},
+		/**
+		 * Not an app: the files themselves, copied in as they are. What a drop
+		 * falls back to when no format here reads it.
+		 */
+		files: {
+			name: 'Files and folders',
+			optionText: 'Copy files and folders into your vault',
+			nameSource: 'Files to copy',
+			descSource: 'Drop files or folders anywhere in the window to copy them into your vault.',
 		},
 		evernote: {
 			name: 'Evernote',
