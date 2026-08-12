@@ -305,7 +305,8 @@ export abstract class FormatImporter {
 	 */
 	private groups = new WeakMap<HTMLElement, SettingGroup>();
 
-	private groupIn(contentEl: HTMLElement): HTMLElement {
+	/** Where a setting drawn into this container goes: its group's card. */
+	protected settingsIn(contentEl: HTMLElement): HTMLElement {
 		const group = this.groups.get(contentEl);
 		// Anything drawn straight into the step lands after the group, so a
 		// setting added next belongs to a new one rather than jumping back.
@@ -332,7 +333,7 @@ export abstract class FormatImporter {
 
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
 		const contentEl = this.stepEl(step);
-		return contentEl ? new Setting(this.groupIn(contentEl)) : null;
+		return contentEl ? new Setting(this.settingsIn(contentEl)) : null;
 	}
 
 	protected draw<T>(build: (contentEl: HTMLElement) => T, step: ImporterStep = 'options'): T | undefined {
@@ -613,7 +614,7 @@ export abstract class FormatImporter {
 	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
 		if (!this.idProperty) return;
 
-		new Setting(this.groupIn(contentEl))
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -627,7 +628,7 @@ export abstract class FormatImporter {
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {
-		new Setting(this.groupIn(contentEl))
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameFolder())
 			.setDesc(i18n.output.descFolder())
 			.addText(text => {
@@ -643,11 +644,11 @@ export abstract class FormatImporter {
 	}
 
 	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
-		const setting = new Setting(this.groupIn(contentEl))
+		const setting = new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameAttachments())
 			.setDesc(i18n.output.descAttachments());
 
-		const pathSetting = new Setting(this.groupIn(contentEl));
+		const pathSetting = new Setting(this.settingsIn(contentEl));
 
 		const drawPathSetting = () => {
 			const { mode } = this.attachmentLocation;
@@ -688,7 +689,7 @@ export abstract class FormatImporter {
 		const modes = this.duplicateModes;
 		if (modes.length < 2) return;
 
-		new Setting(this.groupIn(contentEl))
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameDuplicates())
 			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {

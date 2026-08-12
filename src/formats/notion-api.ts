@@ -139,6 +139,7 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<NotionTreeNode>(contentEl, {
+			setting: this.addSetting('source'),
 			name: i18n.importer.notionApi.namePages(),
 			desc: i18n.importer.notionApi.descPages(),
 			hint: i18n.importer.notionApi.hintPages(),

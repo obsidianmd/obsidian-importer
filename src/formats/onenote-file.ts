@@ -72,6 +72,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private drawSectionPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<SectionNode>(contentEl, {
+				setting: this.addSetting('source'),
 				name: i18n.importer.onenoteFile.nameSections(),
 				desc: i18n.importer.onenoteFile.descSections(),
 				hint: i18n.importer.onenoteFile.msgPickFileFirst(),

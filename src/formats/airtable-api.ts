@@ -153,6 +153,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<AirtableTreeNode>(contentEl, {
+			setting: this.addSetting('source'),
 			name: i18n.importer.airtableApi.nameTables(),
 			desc: i18n.importer.airtableApi.descTables(),
 			hint: i18n.importer.airtableApi.hintTables(),

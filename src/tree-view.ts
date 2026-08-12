@@ -36,6 +36,11 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	onChange?(): void;
 	/** Hides the load button when selection loads the tree. */
 	loadsItself?: boolean;
+	/**
+	 * The row the picker draws itself in. Given one, it joins the group of
+	 * settings it was made in; without, it stands on its own above the tree.
+	 */
+	setting?: Setting | null;
 }
 
 export class TreePicker<T extends ViewableNode<T>> {
@@ -46,7 +51,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	private loadButton: ButtonComponent;
 
 	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
-		new Setting(containerEl)
+		(options.setting ?? new Setting(containerEl))
 			.setName(options.name)
 			.setDesc(options.desc ?? '')
 			.addButton(button => {
