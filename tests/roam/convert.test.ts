@@ -87,6 +87,43 @@ for (const graph of graphs) {
 }
 
 /**
+ * The same graph flattened, recorded beside the outline it came from.
+ *
+ * Only the written fixture: what flattening decides is what each block was
+ * being used *as*, and a recording of that is only worth reading when the
+ * blocks were chosen to ask the question.
+ */
+test('converts shapes.json with the outline flattened', async () => {
+	const graph = graphs.find(candidate => candidate.name === 'shapes.json');
+	assert.ok(graph, 'shapes.json should be one of the fixtures');
+
+	const pages = JSON.parse(nodeFs.readFileSync(graph.path, 'utf8')) as RoamPage[];
+	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-roam-flat-'));
+
+	try {
+		const converted = await new RoamGraphConverter({
+			graphFolder: 'shapes',
+			userDNPFormat: DAILY_NOTE_FORMAT,
+			fileDateYAML: false,
+			titleYAML: false,
+			downloadAttachments: false,
+			deOutline: true,
+		}).convert(pages);
+
+		for (const [notePath, markdown] of converted.pages) {
+			const file = nodePath.join(produced, nodePath.relative('shapes', notePath));
+			nodeFs.mkdirSync(nodePath.dirname(file), { recursive: true });
+			nodeFs.writeFileSync(file, markdown);
+		}
+
+		expectTree(produced, expectedFor(graph, 'shapes-flat'), 'shapes.json flattened');
+	}
+	finally {
+		nodeFs.rmSync(produced, { recursive: true, force: true });
+	}
+});
+
+/**
  * The markup rewrites are where Roam-specific bugs live, so a few are named
  * rather than left to the recordings alone.
  */
@@ -420,4 +457,100 @@ test('two queries in one block are both converted', async () => {
 	assert.equal(
 		await scrubber().roamMarkupScrubber('', '', '{{query: {and: [[A]]}}} and {{query: {and: [[B]]}}}'),
 		'```query\nblock:([[A]])\n``` and ```query\nblock:([[B]])\n```');
+});
+
+/**
+ * What flattening decides. Roam gives every block a bullet, so the question is
+ * what each was being used as - and these are the answers the recordings do not
+ * make obvious on their own.
+ */
+async function flattened(children: RoamBlock[]): Promise<string> {
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		deOutline: true,
+	});
+
+	const page = { title: 'Page', uid: 'page', children } as RoamPage;
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
+}
+
+test('a block on its own becomes a paragraph', async () => {
+	assert.equal(await flattened([{ string: 'One thought' }, { string: 'Another' }]),
+		'One thought\n\nAnother');
+});
+
+test('siblings that are really a list stay a list, under their parent as prose', async () => {
+	assert.equal(await flattened([
+		{ string: 'The shopping', children: [{ string: 'apples' }, { string: 'pears' }] },
+	]), 'The shopping\n\n- apples\n- pears');
+});
+
+test('a lone child is the same thought, so it joins the paragraph', async () => {
+	// One bullet under another is what an outliner encourages and prose does
+	// not want; two siblings would have been a list.
+	assert.equal(await flattened([
+		{ string: 'A claim', children: [{ string: 'and what follows from it' }] },
+	]), 'A claim\n\nand what follows from it');
+});
+
+test('a heading takes what is under it as its body', async () => {
+	assert.equal(await flattened([
+		{ string: 'Notes', heading: 2, children: [{ string: 'the body' }] },
+	]), '## Notes\n\nthe body');
+});
+
+test('a heading is never a list item, however its siblings look', async () => {
+	assert.equal(await flattened([
+		{ string: 'Introduction', heading: 1 },
+		{ string: 'Conclusion', heading: 1 },
+	]), '# Introduction\n\n# Conclusion');
+});
+
+test('tasks stay a list, and consecutive ones are one list', async () => {
+	assert.equal(await flattened([
+		{ string: '{{[[TODO]]}} first' },
+		{ string: '{{[[DONE]]}} second' },
+		{ string: 'a paragraph' },
+	]), '- [ ] first\n- [x] second\n\na paragraph');
+});
+
+test('a list nested under a list keeps its nesting', async () => {
+	assert.equal(await flattened([
+		{
+			string: 'Kinds', children: [
+				{ string: 'fruit', children: [{ string: 'apple' }, { string: 'pear' }] },
+				{ string: 'vegetable' },
+			],
+		},
+	]), 'Kinds\n\n- fruit\n    - apple\n    - pear\n- vegetable');
+});
+
+test('a block of several lines keeps them, and its anchor stays off the fence', async () => {
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		deOutline: true,
+		isReferenced: uid => uid === 'fenced',
+	});
+
+	const page = {
+		title: 'Page', uid: 'page',
+		children: [{ string: '```js\none();```', uid: 'fenced' }],
+	} as RoamPage;
+
+	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+		'```js\none();```\n^fenced');
+});
+
+test('a table stands at the margin either way', async () => {
+	assert.equal(await flattened([
+		{ string: 'Before' },
+		{ string: '{{[[table]]}}', children: [{ string: 'One', children: [{ string: 'Two' }] }] },
+		{ string: 'After' },
+	]), 'Before\n\n| One | Two |\n| --- | --- |\n\nAfter');
 });
