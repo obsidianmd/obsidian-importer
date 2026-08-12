@@ -6,6 +6,7 @@ import { ImportContext } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
 import { ImporterDefinition, IMPORTERS, importerName } from './importers';
 import { ImporterFlow, ImporterShell } from './importer-flow';
+import { ImporterSettingTab } from './importer-setting-tab';
 import { i18n, setLanguage } from './i18n';
 
 declare global {
@@ -37,6 +38,8 @@ export default class ImporterPlugin extends Plugin {
 		setLanguage(getLanguage());
 
 		this.importers = IMPORTERS;
+
+		this.addSettingTab(new ImporterSettingTab(this.app, this));
 
 		this.addRibbonIcon('lucide-import', i18n.command.importNotes(), () => {
 			this.openImporter();

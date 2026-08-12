@@ -2,6 +2,13 @@ import 'obsidian';
 
 declare module 'obsidian' {
 	interface App {
+		// The settings window, which a setting tab has to open and close itself.
+		setting: {
+			open(): void;
+			close(): void;
+			openTabById(id: string): void;
+		};
+
 		metadataTypeManager: {
 			getAssignedWidget: (key: string) => string | null;
 			setType: (key: string, type: string) => void;

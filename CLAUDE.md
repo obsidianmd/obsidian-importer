@@ -7,6 +7,7 @@ Imports notes from other apps into an Obsidian vault.
 - `src/main.ts` — Plugin entry, and the modal an import is shown in
 - `src/importers.ts` — The registry: which formats there are, how they group, what each is called
 - `src/importer-flow.ts` — The screens of an import, and `ImporterShell`, what showing them takes
+- `src/importer-setting-tab.ts` — The same flow, shown in Settings
 - `src/progress-ui.ts` — `ImportProgressUI`: the progress screen an `ImportContext` drives
 - `src/format-importer.ts` — Base class every importer extends: file pickers, output folder, attachment paths
 - `src/formats/<name>.ts` — One importer per format; the vault-facing half
@@ -28,6 +29,25 @@ Imports notes from other apps into an Obsidian vault.
 - `npm run lint:review` — the config the Obsidian community review uses, which is stricter than ours
 
 **`eslint-disable` does not work for the community review.** A finding has to be solved rather than suppressed.
+
+## Where the flow is shown
+
+`ImporterFlow` owns every screen and knows nothing about what surrounds it.
+A shell supplies the two elements it draws into and answers four things a
+window has an opinion about: what the title is, whether the format list is
+filling the screen, what Done does, and how to come back to an import the
+user has left.
+
+Two shells implement it. `ImporterModal` is the ribbon and the command;
+`ImporterSettingTab` is the same screens in Settings, which Obsidian opens in
+a window of its own on desktop.
+
+A shell that goes away calls `flow.detach()`, and one that comes back calls
+`flow.attach()`. Between those an import keeps running with only the notice
+to report it, and the flow redraws the screen it was on when the shell
+returns — so the settings window can be closed mid-import and reopened onto
+the same progress. Closing the modal is different: it calls `dispose()`,
+which cancels.
 
 ## The conversion seam
 

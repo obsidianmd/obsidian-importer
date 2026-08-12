@@ -38,6 +38,12 @@
 	justify-content: flex-start;
 }
 
+/* The same steps in a setting tab, where the pane scrolls on its own: the
+   buttons sit at the end of the screen rather than pinned to a modal. */
+.importer-flow .importer-step-buttons {
+	justify-content: flex-start;
+}
+
 .importer-step-buttons .mod-cta {
 	margin-inline-start: auto;
 }
