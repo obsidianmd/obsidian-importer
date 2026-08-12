@@ -221,6 +221,30 @@ test('a hash in code is code, not a tag', async () => {
 	assert.deepEqual(moved.tags, ['real']);
 });
 
+test('a code span that runs over a line ending is still code', async () => {
+	const source = '`code\n#fake` and #real';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real']);
+
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+	assert.equal(moved.content, '`code\n#fake` and');
+	assert.deepEqual(moved.tags, ['real']);
+});
+
+test('a tag is found after any space, not only an ASCII one', async () => {
+	// A non-breaking space separates words too, and Bear leaves them about
+	const source = 'Tagged\u00a0#tag here';
+
+	const inline = await convertBearNote(source, noteOptions);
+	assert.deepEqual(inline.tags, ['tag']);
+
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+	assert.equal(moved.content, 'Tagged here');
+	assert.deepEqual(moved.tags, ['tag']);
+});
+
 test('a hex colour is not a tag', async () => {
 	const { content, tags } = await convertBearNote('Use #00ff00 and #c0ffee, not #facade', noteOptions);
 
@@ -235,6 +259,9 @@ test('writes Bear\'s underline as the tag Obsidian reads', async () => {
 	// A tilde on either side of something else is not an underline
 	const paths = await convertBearNote('Look in ~/notes and ~/drafts, or `~x~`', noteOptions);
 	assert.equal(paths.content, 'Look in ~/notes and ~/drafts, or `~x~`');
+
+	const escaped = await convertBearNote('A \\~literal\\~ tilde', noteOptions);
+	assert.equal(escaped.content, 'A \\~literal\\~ tilde');
 });
 
 test('separates a table from the paragraph above it', async () => {
@@ -259,4 +286,8 @@ test('writes Bear\'s width comment as a width Obsidian reads', async () => {
 
 	const plain = await convertBearNote('![](assets/cat.png)', options);
 	assert.equal(plain.content, '![](Bear/cat.png)');
+
+	// The note showing what Bear writes, rather than a note Bear wrote
+	const documented = '```\n![](https://example.com/cat.png)<!-- {"width":388} -->\n```';
+	assert.equal((await convertBearNote(documented, options)).content, documented);
 });

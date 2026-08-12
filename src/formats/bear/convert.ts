@@ -9,8 +9,12 @@ const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
  * A tag opens on a hash that begins a word. Bear escapes the hash of anything
  * it is only naming - the welcome note's own "**\#errands**" - so a hash that
  * follows a backslash, or any other character, is text rather than a tag.
+ *
+ * The space in front is taken with the tag, which is what closes the sentence
+ * up when a tag is moved to a property. Whatever separates words counts, since
+ * that is what the tags read out of the note are found by.
  */
-const TAG = new RegExp(`(^|[ \\t])#([^\\s#]+)`, 'gmu');
+const TAG = new RegExp(`([^\\S\\n]?)(?<!\\S)#([^\\s#]+)`, 'gu');
 
 /** Bear closes a tag of several words with a second hash: "#two words#". */
 const MULTI_WORD_TAG = new RegExp(
@@ -26,15 +30,17 @@ const IMAGE_SIZE = /!\[([^\]]*)\]\(([^()\s]*)\)<!--\s*(\{[^}]*\})\s*-->/g;
 
 const FENCE = /^\s*(`{3,}|~{3,})/;
 
-const CODE_SPAN = /`+[^`]*`+/g;
+/** A code span runs over a line ending, though never over a blank line. */
+const CODE_SPAN = /`+(?:[^`\n]|\n(?![ \t]*\n))*`+/g;
 
 /**
  * Bear underlines between single tildes. Obsidian reads a pair of them as
  * strikethrough and one as nothing at all, so the tag it does read is written
  * instead. What it wraps has to start and end on something other than a space,
- * which is what keeps a line of two paths from being read as one underline.
+ * which is what keeps a line of two paths from being read as one underline,
+ * and an escaped tilde is a tilde someone wanted to show.
  */
-const UNDERLINE = /(?<!~)~([^~\s\n](?:[^~\n]*[^~\s\n])?)~(?!~)/g;
+const UNDERLINE = /(?<![~\\])~([^~\s\n\\](?:[^~\n]*[^~\s\n\\])?)~(?!~)/g;
 
 /**
  * A colour is not a tag, however much it looks like one. Only one carrying a
@@ -100,7 +106,8 @@ function maskCode(content: string, code: string[] = []): string {
 	const hide = (text: string) => `\0${code.push(text) - 1}\0`;
 	let fence: string | null = null;
 
-	return content.split('\n').map(line => {
+	// A fence is decided line by line; a span is not, so it is found afterwards
+	const outsideFences = content.split('\n').map(line => {
 		const delimiter = line.match(FENCE)?.[1];
 
 		if (fence) {
@@ -112,8 +119,10 @@ function maskCode(content: string, code: string[] = []): string {
 			return hide(line);
 		}
 
-		return line.replace(CODE_SPAN, hide);
+		return line;
 	}).join('\n');
+
+	return outsideFences.replace(CODE_SPAN, hide);
 }
 
 /** The tag a hash opens, and whatever punctuation followed it. */
@@ -191,7 +200,7 @@ function isTableDelimiter(line: string): boolean {
 
 /** Bear's width comment, written as the width Obsidian reads off a link. */
 export function applyImageSizes(content: string): string {
-	return content.replace(IMAGE_SIZE, (match, alt: string, target: string, json: string) => {
+	return withoutCode(content, text => text.replace(IMAGE_SIZE, (match, alt: string, target: string, json: string) => {
 		let size: string;
 		try {
 			const dimensions = JSON.parse(json) as { width?: unknown, height?: unknown };
@@ -205,7 +214,7 @@ export function applyImageSizes(content: string): string {
 		}
 
 		return `![${alt === '' ? size : `${alt}|${size}`}](${target})`;
-	});
+	}));
 }
 
 export function writeUnderlines(content: string): string {
