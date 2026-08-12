@@ -83,7 +83,6 @@ export class Bear2bkImporter extends FormatImporter {
 
 		let outputFolder = folder;
 
-		// A backup with nothing archived or trashed should not leave empty folders
 		let archiveFolder: TFolder | null = null;
 		let trashFolder: TFolder | null = null;
 		const folderFor = async (metadata: Metadata | undefined): Promise<TFolder> => {
@@ -132,7 +131,6 @@ export class Bear2bkImporter extends FormatImporter {
 								mtime: metadata?.mtime,
 							});
 
-							// Left where Bear wrote them, a tag is already in the note
 							const noteTags = this.tagPlacement === 'property' ? tags : [];
 
 							if (written) {

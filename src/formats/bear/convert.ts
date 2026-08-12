@@ -1,62 +1,34 @@
 import { path } from '../../filesystem';
 import { ILLEGAL_TAG_CHARS, sanitizeTag } from '../../util';
 
-// Separators are allowed only inside tags, and a tag stops where code begins.
+// Separators are allowed only inside tags.
 const TAG_BODY = `[^${ILLEGAL_TAG_CHARS}\\s\\0]`;
 const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s\\0/-]`;
 
-/**
- * A tag opens on a hash that begins a word. Bear escapes the hash of anything
- * it is only naming - the welcome note's own "**\#errands**" - so a hash that
- * follows a backslash, or any other character, is text rather than a tag.
- *
- * The space in front is taken with the tag, which is what closes the sentence
- * up when a tag is moved to a property. Whatever separates words counts, since
- * that is what the tags read out of the note are found by.
- */
 const TAG = new RegExp(`([^\\S\\n]?)(?<!\\S)#([^\\s#\\0]+)`, 'gu');
 
-/** Bear closes a tag of several words with a second hash: "#two words#". */
 const MULTI_WORD_TAG = new RegExp(
 	`(?<!\\S)#(${TAG_EDGE}(?:${TAG_BODY}| )*${TAG_EDGE}|${TAG_EDGE})#(?!${TAG_BODY})`, 'gu');
 
-/** What a tag cannot end on is the sentence around it, not part of the tag. */
 const TAG_TAIL = new RegExp(`(?:(?!${TAG_EDGE})\\S)+$`, 'u');
 
 const ASSET_LINK = /\[[^\]]*\]\((assets\/[^)]+)\)/gm;
 
-/** Bear records a resized image in a comment after the link. */
 const IMAGE_SIZE = /!\[([^\]]*)\]\(([^()\s]*)\)<!--\s*(\{[^}]*\})\s*-->/g;
 
-/** Four spaces in is code of another kind, not the fence it looks like. */
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
-/** A closing fence carries its delimiter and nothing else. */
 const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*\r?$/;
 
-/**
- * A code span closes on a run of backticks as long as the one that opened it,
- * so a shorter run inside is code rather than the end of it. It may run over a
- * line ending, though never over a blank line.
- */
+// CommonMark code-span delimiters use equal-length backtick runs.
 const CODE_SPAN = /(?<!`)(`+)(?!`)(?:[^\n]|\n(?![ \t]*\n))*?(?<!`)\1(?!`)/g;
 
-/**
- * Bear underlines between single tildes. Obsidian reads a pair of them as
- * strikethrough and one as nothing at all, so the tag it does read is written
- * instead. What it wraps has to start and end on something other than a space,
- * which is what keeps a line of two paths from being read as one underline,
- * and an escaped tilde is a tilde someone wanted to show.
- */
+// Bear uses single tildes for underlines; Obsidian needs HTML.
 const UNDERLINE = /(?<![~\\])~([^~\s\n\\](?:[^~\n]*[^~\s\n\\])?)~(?!~)/g;
 
-/**
- * A colour is not a tag, however much it looks like one. Only one carrying a
- * digit: "#facade" is a word someone tagged with, "#c0ffee" is a colour.
- */
+// Require a digit so a word such as #facade remains a tag.
 const HEX_COLOUR = /^(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-/** Where a placeholder standing in for code begins and ends. */
 const MASKED = /\0(\d+)\0/g;
 
 export type BearTagPlacement = 'inline' | 'property';
@@ -94,21 +66,11 @@ export function removeMarkdownHeader(mdFilename: string, mdContent: string): str
 		: '';
 }
 
-/**
- * The note with its code held aside behind placeholders.
- *
- * Code is the one part of a Bear note that means itself: a fence or a span is
- * the thing being written about - the note explaining Bear's own syntax, or a
- * stylesheet - so no pass that follows should see into it. Every pass runs over
- * the masked note and `unmaskCode` puts the code back at the end, which also
- * keeps each position a tag is judged by: what precedes a hash is what decides
- * whether it opens a tag at all.
- */
+// Mask code once so later conversions cannot modify examples.
 function maskCode(content: string, code: string[]): string {
 	const hide = (text: string) => `\0${code.push(text) - 1}\0`;
 	const fenced = tracksFences();
 
-	// A fence is decided line by line; a span is not, so it is found afterwards
 	const outsideFences = content.split('\n')
 		.map(line => fenced(line) ? hide(line) : line)
 		.join('\n');
@@ -120,11 +82,6 @@ function unmaskCode(content: string, code: string[]): string {
 	return content.replace(MASKED, (_match, index: string) => code[Number(index)]);
 }
 
-/**
- * Whether each line in turn belongs to a fenced block, its own two lines
- * included. Only a delimiter on a line of its own closes a block, so the
- * "```js" opening an example inside a "```md" one does not end it early.
- */
 function tracksFences(): (line: string) => boolean {
 	let fence: string | null = null;
 
@@ -140,12 +97,10 @@ function tracksFences(): (line: string) => boolean {
 	};
 }
 
-/** The tag a hash opens, and whatever punctuation followed it. */
 function splitTag(run: string): { tag: string, tail: string } {
 	const tail = run.match(TAG_TAIL)?.[0] ?? '';
 	const body = tail ? run.slice(0, -tail.length) : run;
 
-	// A number is a number: Bear has no tag made only of digits
 	if (body === '' || /^\d+$/.test(body) || isColour(body)) return { tag: '', tail: run };
 
 	return { tag: sanitizeTag(body, '_').replace(/_+/g, '_'), tail };
@@ -178,10 +133,7 @@ function extractTagsFromContent(content: string, flattenTags: boolean): string[]
 	return Array.from(tags);
 }
 
-/**
- * A table renders only when a blank line separates it from the text above it,
- * and Bear writes one straight under the paragraph introducing it.
- */
+// Bear omits the blank line Obsidian needs before a table.
 function separateTables(content: string): string {
 	const lines = content.split('\n');
 	const out: string[] = [];
@@ -200,12 +152,10 @@ function separateTables(content: string): string {
 	return out.join('\n');
 }
 
-/** The row of dashes under a table's headings, which is what makes it a table. */
 function isTableDelimiter(line: string): boolean {
 	return /^[\s|:-]*$/.test(line) && line.includes('-') && line.includes('|');
 }
 
-/** Bear's width comment, written as the width Obsidian reads off a link. */
 function applyImageSizes(content: string): string {
 	return content.replace(IMAGE_SIZE, (match, alt: string, target: string, json: string) => {
 		let size: string;
@@ -228,7 +178,6 @@ function writeUnderlines(content: string): string {
 	return content.replace(UNDERLINE, (_match, underlined: string) => `<u>${underlined}</u>`);
 }
 
-/** Bear's tag forms, written as tags Obsidian reads. */
 function normalizeTags(content: string): string {
 	return content
 		.replace(MULTI_WORD_TAG, (_match, tag: string) => '#' + tag.replace(/\s+/g, '_'))
@@ -238,14 +187,12 @@ function normalizeTags(content: string): string {
 		});
 }
 
-/** Take the tags out of the note, for a vault that keeps them in a property. */
 function removeTags(content: string): string {
 	const kept: string[] = [];
 
 	for (const line of content.split('\n')) {
 		const stripped = line.replace(TAG, (match, before: string, run: string) => {
 			const { tag, tail } = splitTag(run);
-			// The space in front of the tag goes with it, so the sentence closes up
 			return tag === '' ? match : tail;
 		});
 
@@ -255,7 +202,6 @@ function removeTags(content: string): string {
 		else if (stripped.trim() !== '') {
 			kept.push(stripped.replace(/[ \t]+$/, ''));
 		}
-		// A line that was nothing but tags leaves nothing behind
 	}
 
 	return kept.join('\n').replace(/\s+$/, '');
@@ -267,7 +213,6 @@ export async function convertBearNote(
 ): Promise<ConvertedBearNote> {
 	const { basename, parent, flattenTags, tagPlacement, resolveAsset } = options;
 
-	// Set the note's code aside once, so no pass below can read or rewrite it
 	const code: string[] = [];
 	let content = maskCode(removeMarkdownHeader(basename, mdContent), code);
 
