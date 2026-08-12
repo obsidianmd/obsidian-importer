@@ -32,12 +32,13 @@ export class RoamJSONImporter extends FormatImporter {
 	fileDateYAML: boolean = false;
 	titleYAML: boolean = false;
 
-	// Shape and markup options
-	deOutline: boolean = false;
-	embedBlockReferences: boolean = false;
-	dropUnresolvedReferences: boolean = false;
+	// Shape and markup options. What is on by default is what makes the import
+	// read as an Obsidian vault rather than as a copy of a Roam graph.
+	deOutline: boolean = true;
+	embedBlockReferences: boolean = true;
+	dropUnresolvedReferences: boolean = true;
 	keepAttributesInOutline: boolean = false;
-	dropQueries: boolean = false;
+	dropQueries: boolean = true;
 
 	init() {
 		this.addSetting('source')

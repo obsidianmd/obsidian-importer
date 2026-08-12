@@ -2071,7 +2071,7 @@ original=Remove references to missing blocks
 translation=
 
 [importer.roam-json.desc-drop-unresolved-references]
-original=A reference to a block that is not in the export is kept as it was written. If enabled, it is removed instead.
+original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=
 
 [importer.roam-json.name-keep-attributes]
@@ -2087,7 +2087,7 @@ original=Remove queries
 translation=
 
 [importer.roam-json.desc-drop-queries]
-original=A query becomes an Obsidian search that shows its results in the note. If enabled, queries are removed instead.
+original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
 translation=
 
 [importer.roam-json.reason-empty-title]

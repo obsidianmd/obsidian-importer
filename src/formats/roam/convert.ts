@@ -1,7 +1,7 @@
 import { FrontMatterCache, moment } from 'obsidian';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
-import { BlockTarget, blockRefRegex } from './block-refs';
+import { BlockTarget, blockRefRegex, looksLikeBlockId } from './block-refs';
 import { serializeFrontMatter } from '../../util';
 import { convertRoamQueries } from './queries';
 import { deOutline, OutlineNode, anchorLines } from '../../outline';
@@ -155,7 +155,12 @@ export class RoamPageConverter {
 
 		return blockText.replace(blockRefRegex, (match: string, uid: string) => {
 			const target = resolve(uid);
-			if (!target) return this.unresolved(match);
+
+			// A block the graph holds is a reference whatever its id looks like.
+			// One it does not hold was only a reference if it was shaped like an
+			// id at all: a bare `((...))` is also how somebody writes an aside,
+			// and this is the only form that cannot say which it meant.
+			if (!target) return looksLikeBlockId(uid) ? this.unresolved(match) : match;
 
 			// A Roam reference shows the block where it stands, which an embed
 			// does and a link does not - so which of the two is the faithful

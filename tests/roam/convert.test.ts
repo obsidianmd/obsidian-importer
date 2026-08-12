@@ -574,10 +574,28 @@ test('"show referenced blocks in place" makes a reference an embed', async () =>
 test('"remove references to missing blocks" takes out what cannot be resolved', async () => {
 	const dropping = optioned({ dropUnresolvedReferences: true });
 
-	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((nosuch)) here'), 'see  here');
-	assert.equal(await dropping.roamMarkupScrubber('', '', '{{embed: ((nosuch))}}'), '');
+	// A Roam id is nine characters of its own alphabet. This one is shaped
+	// like one and names no block, which is a reference to a block the export
+	// left behind.
+	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((dmQooXFj9)) here'), 'see  here');
+	assert.equal(await dropping.roamMarkupScrubber('', '', '{{embed: ((dmQooXFj9))}}'), '');
 	// One that does resolve is untouched.
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((abc123))'), 'see [[Notes#^abc123]]');
+});
+
+test('and leaves an aside in parentheses alone, whatever that option says', async () => {
+	// `((...))` is also how somebody writes an aside. Thirteen of the
+	// thirty-one that resolved to nothing in a 1,107-page graph were of that
+	// kind, and removing them would take a sentence out of the middle of a note.
+	const dropping = optioned({ dropUnresolvedReferences: true });
+
+	for (const aside of [
+		'a long ((and interesting)) quote',
+		'((Longer debounce time and normalize the search value))',
+		'see ((https://en.wikipedia.org/wiki/Johari_window))',
+	]) {
+		assert.equal(await dropping.roamMarkupScrubber('', '', aside), aside);
+	}
 });
 
 test('"remove queries" takes the query out instead of converting it', async () => {

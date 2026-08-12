@@ -103,14 +103,16 @@ test('a page\'s attributes become its properties, and the graph gets a Base over
 
 	// The page's own uid joins the properties rather than replacing them, which
 	// is what tells us the frontmatter was real YAML and not a hand-built block.
+	// The outline is flattened, which is what the importer does unasked.
 	assert.equal(vault.contents.get('Roam/MyGraph/Sapiens.md'), [
 		'---',
 		'roam-uid: sapiens',
 		'Author: "[[Yuval Noah Harari]]"',
 		'Status: read',
 		'---',
-		'- Notes',
-		'    - Priority:: high',
+		'Notes',
+		'',
+		'Priority:: high',
 	].join('\n'));
 
 	// One Base beside the graph folder, its columns the attributes seen.
