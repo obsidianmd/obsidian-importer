@@ -2036,51 +2036,51 @@ translation=Roam のエクスポートから JSON ファイルを選択してく
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=アウトラインをフラットにする
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam はすべてのブロックを箇条書きとして記録します。有効にすると、各ブロックの使われ方に応じて段落・見出し・リストとして書き出されます。
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=参照先のブロックをその場に表示する
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam は参照先のブロックの内容を参照の位置に表示します。有効にすると、参照がリンクではなく埋め込みに変換されます。
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=存在しないブロックへの参照を削除する
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=エクスポートに含まれないブロックを参照しているものがあります。有効にすると削除されます。無効の場合は Roam が記録したまま残されます。
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=属性をノート内に残す
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=ページ先頭の属性はプロパティに変換されます。有効にすると、Roam が記録したダブルコロン付きのままノート内にも残されます。
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=タグをリンクに変換する
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Roam のタグは同名のページへの参照です。有効にすると、"#tag" が "[[tag]]" に変換されます。
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=クエリを削除する
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=有効にすると、クエリが削除されます。無効の場合は、クエリが Obsidian の検索に変換され、結果がノート内に表示されます。
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

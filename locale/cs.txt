@@ -2036,51 +2036,51 @@ translation=Vyberte soubor JSON z vašeho exportu z Roam.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Zploštit osnovu
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam zapisuje každý blok jako odrážku. Pokud je zapnuté, bloky se zapíší jako odstavce, nadpisy a seznamy podle toho, jak byly použity.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Zobrazit odkazované bloky na místě
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam zobrazuje obsah odkazovaného bloku na místě, kde stojí odkaz. Pokud je zapnuté, odkazy se změní na vložení místo odkazů.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Odebrat odkazy na chybějící bloky
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Některé odkazy odkazují na blok, který v exportu není. Pokud je zapnuté, budou odebrány; pokud ne, zůstanou tak, jak je zapsal Roam.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Ponechat atributy v poznámce
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Atribut na začátku stránky se stane vlastností. Pokud je zapnuté, zůstane v poznámce s dvojitou dvojtečkou, jak jej zapsal Roam.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Převést štítky na odkazy
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Štítek v Roam je odkaz na stránku stejného názvu. Pokud je zapnuté, "#tag" se změní na "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Odebrat dotazy
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Pokud je zapnuté, dotazy budou odebrány. Pokud ne, dotaz se změní na vyhledávání v Obsidian, které zobrazí výsledky v poznámce.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

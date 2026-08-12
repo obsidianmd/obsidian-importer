@@ -2036,51 +2036,51 @@ translation=Kies het JSON-bestand uit je Roam-export.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Het overzicht plat maken
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam schrijft elk blok als een Opsommingsteken. Indien ingeschakeld, worden blokken in plaats daarvan geschreven als alinea's, koppen en lijsten, afhankelijk van hoe elk blok werd gebruikt.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Verwezen blokken op hun plek tonen
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam toont de inhoud van een verwezen blok op de plek van de verwijzing. Indien ingeschakeld, worden verwijzingen insluitsels in plaats van Links.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Verwijzingen naar ontbrekende blokken verwijderen
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Sommige verwijzingen noemen een blok dat niet in de export staat. Indien ingeschakeld, worden ze verwijderd; zo niet, dan worden ze behouden zoals Roam ze heeft geschreven.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Attributen in de notitie behouden
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Een attribuut bovenaan een pagina wordt een eigenschap. Indien ingeschakeld, blijft het in de notitie staan met de dubbele dubbele punt waarmee Roam het heeft geschreven.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Labels omzetten naar Links
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Een tag in Roam is een verwijzing naar de pagina met die naam. Indien ingeschakeld, wordt "#tag" omgezet naar "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Zoekopdrachten verwijderen
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Indien ingeschakeld, worden zoekopdrachten verwijderd. Zo niet, dan wordt een zoekopdracht een Obsidian-zoekopdracht die de resultaten in de notitie toont.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

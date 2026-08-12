@@ -2036,51 +2036,51 @@ translation=選擇從 Roam 匯出的 JSON 檔案。
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=展平大綱
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam 會將每個區塊寫成項目符號。若已啟用，區塊會根據其用途改為段落、標題和列表形式。
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=就地顯示參照的區塊
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam 會在參照所在位置顯示被參照區塊的內容。若已啟用，參照會變成嵌入而非連結。
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=移除指向缺失區塊的參照
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=部分參照指向匯出中不存在的區塊。若已啟用，這些參照會被移除；若未啟用，則保留 Roam 原始寫入的內容。
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=在筆記中保留屬性
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=頁面頂部的屬性會成為屬性。若已啟用，該屬性會連同 Roam 寫入的雙冒號一起保留在筆記中。
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=將標籤轉換為連結
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Roam 中的標籤是對同名頁面的參照。若已啟用，"#tag" 會變成 "[[tag]]"。
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=移除查詢
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=若已啟用，查詢會被移除。若未啟用，查詢會轉換為 Obsidian 搜尋，並在筆記中顯示其結果。
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

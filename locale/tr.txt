@@ -2036,51 +2036,51 @@ translation=Roam dışa aktarımınızdaki JSON dosyasını seçin.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Anahat görünümünü düzleştir
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam her bloğu bir madde işareti olarak yazar. Etkin olduğunda bloklar, kullanım şekillerine bağlı olarak paragraf, başlık ve liste biçiminde yazılır.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Başvurulan blokları yerinde göster
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam, başvurulan bir bloğun içeriğini başvurunun bulunduğu yerde gösterir. Etkin olduğunda başvurular bağlantı yerine gömülü blok olur.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Eksik bloklara yapılan başvuruları kaldır
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Bazı başvurular dışa aktarmada bulunmayan bir bloğu işaret eder. Etkin olduğunda bu başvurular kaldırılır; değilse Roam'un yazdığı şekilde bırakılır.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Nitelikleri notta tut
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Bir sayfanın başındaki nitelik bir özellik olur. Etkin olduğunda nitelik, Roam'un yazdığı çift iki nokta biçimiyle notta bırakılır.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Etiketleri bağlantıya dönüştür
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Roam'da bir etiket, o adı taşıyan sayfaya yapılan bir başvurudur. Etkin olduğunda "#etiket" ifadesi "[[etiket]]" biçimine dönüştürülür.
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Sorguları kaldır
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Etkin olduğunda sorgular kaldırılır. Değilse sorgu, sonuçlarını notta gösteren bir Obsidian aramasına dönüştürülür.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

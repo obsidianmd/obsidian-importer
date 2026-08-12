@@ -2036,51 +2036,51 @@ translation=Wähle die JSON-Datei aus deinem Roam-Export aus.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Gliederung auflösen
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam schreibt jeden Block als Aufzählung. Wenn aktiviert, werden Blöcke stattdessen je nach Verwendung als Absätze, Überschriften und Listen geschrieben.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Referenzierte Blöcke an Ort und Stelle anzeigen
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam zeigt den Inhalt eines referenzierten Blocks an der Stelle der Referenz an. Wenn aktiviert, werden Referenzen zu Einbettungen statt zu Links.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Referenzen auf fehlende Blöcke entfernen
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Manche Referenzen verweisen auf einen Block, der nicht im Export enthalten ist. Wenn aktiviert, werden sie entfernt; andernfalls werden sie so beibehalten, wie Roam sie geschrieben hat.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Attribute in der Notiz beibehalten
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Ein Attribut am Anfang einer Seite wird zu einer Eigenschaft. Wenn aktiviert, bleibt es mit dem Doppelpunkt, den Roam geschrieben hat, in der Notiz stehen.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Tags in Links umwandeln
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Ein Tag in Roam ist eine Referenz auf die gleichnamige Seite. Wenn aktiviert, wird "#tag" zu "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Abfragen entfernen
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Wenn aktiviert, werden Abfragen entfernt. Andernfalls wird eine Abfrage zu einer Obsidian-Suche, die ihre Ergebnisse in der Notiz anzeigt.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

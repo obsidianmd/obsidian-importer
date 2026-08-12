@@ -2036,51 +2036,51 @@ translation=আপনার Roam এক্সপোর্ট থেকে JSON �
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=রূপরেখা সমতল করুন
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam প্রতিটি ব্লক বুলেট হিসেবে লেখে। সক্রিয় থাকলে, ব্লকগুলো প্রতিটির ব্যবহার অনুযায়ী অনুচ্ছেদ, শিরোনাম এবং তালিকা হিসেবে লেখা হয়।
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=রেফারেন্সকৃত ব্লকগুলো সেই স্থানে দেখান
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam রেফারেন্সের স্থানে রেফারেন্সকৃত ব্লকের বিষয়বস্তু দেখায়। সক্রিয় থাকলে, রেফারেন্সগুলো লিঙ্কের পরিবর্তে এম্বেড হয়ে যায়।
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=অনুপস্থিত ব্লকের রেফারেন্স সরান
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=কিছু রেফারেন্স এমন ব্লককে নির্দেশ করে যা এক্সপোর্টে নেই। সক্রিয় থাকলে সেগুলো সরানো হয়; না থাকলে Roam যেভাবে লিখেছিল সেভাবেই রাখা হয়।
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=নোটে অ্যাট্রিবিউট রাখুন
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=একটি পৃষ্ঠার শীর্ষে থাকা অ্যাট্রিবিউট বৈশিষ্ট্যতে পরিণত হয়। সক্রিয় থাকলে, Roam-এর লেখা ডাবল কোলনসহ এটি নোটে রেখে দেওয়া হয়।
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=ট্যাগকে লিঙ্কে রূপান্তর করুন
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Roam-এ একটি ট্যাগ সেই নামের পৃষ্ঠার একটি রেফারেন্স। সক্রিয় থাকলে, "#tag" হয়ে যায় "[[tag]]"।
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=কোয়েরি সরান
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=সক্রিয় থাকলে কোয়েরিগুলো সরানো হয়। না থাকলে, একটি কোয়েরি Obsidian অনুসন্ধানে পরিণত হয় যা নোটে ফলাফল দেখায়।
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

@@ -2036,51 +2036,51 @@ translation=Válaszd ki a JSON fájlt a Roam exportodból.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Vázlat kilapítása
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=A Roam minden blokkot felsorolásjelként ír. Ha engedélyezve van, a blokkok bekezdésekként, címsorokként és listákként jelennek meg a használatuk módja szerint.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Hivatkozott blokkok megjelenítése a helyükön
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=A Roam a hivatkozott blokk tartalmát a hivatkozás helyén jeleníti meg. Ha engedélyezve van, a hivatkozások beágyazásokká válnak hivatkozások helyett.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Hiányzó blokkokra mutató hivatkozások eltávolítása
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Egyes hivatkozások olyan blokkra mutatnak, amely nem szerepel az exportban. Ha engedélyezve van, ezek eltávolításra kerülnek; ha nem, a Roam által írt formában maradnak.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Attribútumok megtartása a jegyzetben
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Az oldal tetején lévő attribútum tulajdonsággá válik. Ha engedélyezve van, az attribútum a Roam által írt dupla kettősponttal a jegyzetben is megmarad.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Címkék átalakítása hivatkozásokká
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=A Roam-ban a címke az adott nevű oldalra mutató hivatkozás. Ha engedélyezve van, a "#címke" formából "[[címke]]" lesz.
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Lekérdezések eltávolítása
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Ha engedélyezve van, a lekérdezések eltávolításra kerülnek. Ha nem, a lekérdezés egy Obsidian kereséssé alakul, amely az eredményeket a jegyzetben jeleníti meg.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

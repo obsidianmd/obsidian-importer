@@ -2036,51 +2036,51 @@ translation=Velg JSON-filen fra Roam-eksporten din.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Flat ut disposisjonen
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam skriver hver blokk som en punktmerking. Hvis aktivert, skrives blokker som avsnitt, overskrifter og lister i stedet, avhengig av hvordan de ble brukt.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Vis refererte blokker på stedet
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam viser innholdet i en referert blokk der referansen står. Hvis aktivert, blir referanser innbygginger i stedet for lenker.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Fjern referanser til manglende blokker
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Noen referanser navngir en blokk som ikke finnes i eksporten. Hvis aktivert, fjernes de; hvis ikke, beholdes de slik Roam skrev dem.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Behold attributter i notatet
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Et attributt øverst på en side blir en egenskap. Hvis aktivert, beholdes det i notatet med dobbeltkolonet Roam skrev det med.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Konverter tagger til lenker
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=En tagg i Roam er en referanse til siden med det navnet. Hvis aktivert, blir "#tagg" til "[[tagg]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Fjern spørringer
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Hvis aktivert, fjernes spørringer. Hvis ikke, blir en spørring et Obsidian-søk som viser resultatene i notatet.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

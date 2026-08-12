@@ -2036,51 +2036,51 @@ translation=ជ្រើសរើសឯកសារ JSON ពីការនា�
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=ធ្វើឱ្យគ្រោងរាបស្មើ
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam សរសេរប្លុកទាំងអស់ជាចំណុច។ បើបានបើក ប្លុកនឹងត្រូវសរសេរជាកថាខណ្ឌ ចំណងជើង និងបញ្ជីជំនួសវិញ អាស្រ័យលើរបៀបដែលប្លុកនីមួយៗត្រូវបានប្រើ។
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=បង្ហាញប្លុកដែលយោងនៅកន្លែងនោះ
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam បង្ហាញមាតិកានៃប្លុកដែលយោងនៅកន្លែងដែលការយោងស្ថិតនៅ។ បើបានបើក ការយោងនឹងក្លាយជាការបង្កប់ជំនួសឱ្យតំណ។
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=ដកចេញការយោងទៅប្លុកដែលបាត់
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=ការយោងមួយចំនួនដាក់ឈ្មោះប្លុកដែលមិនមាននៅក្នុងការនាំចេញ។ បើបានបើក វានឹងត្រូវដកចេញ បើមិនបើកទេ វានឹងត្រូវរក្សាទុកដូចដែល Roam បានសរសេរ។
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=រក្សាគុណលក្ខណៈនៅក្នុងកំណត់ចំណាំ
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=គុណលក្ខណៈនៅផ្នែកខាងលើនៃទំព័រក្លាយជាលក្ខណៈសម្បត្តិ។ បើបានបើក វានឹងត្រូវទុកនៅក្នុងកំណត់ចំណាំជាមួយសញ្ញាចុចពីរដងដែល Roam បានសរសេរ។
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=បម្លែងស្លាកទៅជាតំណ
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=ស្លាកក្នុង Roam គឺជាការយោងទៅកាន់ទំព័រនៃឈ្មោះនោះ។ បើបានបើក "#tag" នឹងក្លាយជា "[[tag]]"។
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=ដកចេញសំណួរ
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=បើបានបើក សំណួរនឹងត្រូវដកចេញ។ បើមិនបើកទេ សំណួរនឹងក្លាយជាការស្វែងរកក្នុង Obsidian ដែលបង្ហាញលទ្ធផលនៅក្នុងកំណត់ចំណាំ។
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

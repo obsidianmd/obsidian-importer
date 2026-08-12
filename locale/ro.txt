@@ -2036,51 +2036,51 @@ translation=Alegeți fișierul JSON din exportul Roam.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Aplatizează schița
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam scrie fiecare bloc ca Marcator. Dacă este activat, blocurile sunt scrise ca paragrafe, titluri și liste, în funcție de modul în care a fost utilizat fiecare.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Afișează blocurile referențiate în loc
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam afișează conținutul unui bloc referențiat acolo unde se află referința. Dacă este activat, referințele devin încorporări în loc de legături.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Ștergeți referințele către blocuri lipsă
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Unele referințe indică un bloc care nu se află în export. Dacă este activat, acestea sunt șterse; dacă nu, sunt păstrate așa cum le-a scris Roam.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Păstrează atributele în însemnare
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Un atribut din partea de sus a unei pagini devine o proprietate. Dacă este activat, acesta este lăsat în însemnare cu dubla două puncte cu care l-a scris Roam.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Convertește etichetele în legături
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=O etichetă în Roam este o referință către pagina cu acel nume. Dacă este activat, "#tag" devine "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Ștergeți interogările
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Dacă este activat, interogările sunt șterse. Dacă nu, o interogare devine o căutare Obsidian care afișează rezultatele în însemnare.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

@@ -2036,51 +2036,51 @@ translation=Επιλέξτε το αρχείο JSON από την εξαγωγή
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Ισοπέδωση της διάρθρωσης
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Το Roam γράφει κάθε μπλοκ ως κουκκίδα. Αν είναι ενεργοποιημένο, τα μπλοκ γράφονται ως παράγραφοι, επικεφαλίδες και λίστες αντί αυτού, ανάλογα με τον τρόπο χρήσης τους.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Εμφάνιση αναφερόμενων μπλοκ στη θέση τους
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Το Roam εμφανίζει τα περιεχόμενα ενός αναφερόμενου μπλοκ στη θέση της αναφοράς. Αν είναι ενεργοποιημένο, οι αναφορές γίνονται ενσωματώσεις αντί για σύνδεσμοι.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Διαγραφή αναφορών σε μπλοκ που λείπουν
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Ορισμένες αναφορές ονομάζουν ένα μπλοκ που δεν υπάρχει στην εξαγωγή. Αν είναι ενεργοποιημένο, αφαιρούνται· αν όχι, διατηρούνται όπως τις έγραψε το Roam.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Διατήρηση χαρακτηριστικών στη σημείωση
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Ένα χαρακτηριστικό στην κορυφή μιας σελίδας γίνεται ιδιότητα. Αν είναι ενεργοποιημένο, παραμένει στη σημείωση με τη διπλή άνω κάτω τελεία που έγραψε το Roam.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Μετατροπή ετικετών σε συνδέσμους
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Μια ετικέτα στο Roam είναι μια αναφορά στη σελίδα με αυτό το όνομα. Αν είναι ενεργοποιημένο, το "#tag" γίνεται "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Διαγραφή ερωτημάτων
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Αν είναι ενεργοποιημένο, τα ερωτήματα αφαιρούνται. Αν όχι, ένα ερώτημα γίνεται αναζήτηση στο Obsidian που εμφανίζει τα αποτελέσματά της στη σημείωση.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

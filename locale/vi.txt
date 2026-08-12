@@ -2036,51 +2036,51 @@ translation=Chọn tệp JSON từ bản xuất Roam của bạn.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=Làm phẳng dàn ý
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam viết mọi khối dưới dạng Dấu đầu dòng. Nếu đã bật, các khối sẽ được viết dưới dạng đoạn văn, tiêu đề và danh sách, tùy thuộc vào cách mỗi khối được sử dụng.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=Hiển thị các khối được tham chiếu tại chỗ
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam hiển thị nội dung của khối được tham chiếu tại vị trí tham chiếu. Nếu đã bật, các tham chiếu sẽ trở thành nhúng thay vì liên kết.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=Gỡ bỏ tham chiếu đến các khối bị thiếu
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=Một số tham chiếu trỏ đến khối không có trong bản xuất. Nếu đã bật, chúng sẽ bị gỡ bỏ; nếu không, chúng sẽ được giữ nguyên như Roam đã viết.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=Giữ thuộc tính trong ghi chú
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=Thuộc tính ở đầu trang sẽ trở thành thuộc tính. Nếu đã bật, nó được giữ lại trong ghi chú với dấu hai chấm kép mà Roam đã viết.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=Chuyển thẻ thành liên kết
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=Thẻ trong Roam là một tham chiếu đến trang có tên đó. Nếu đã bật, "#tag" sẽ trở thành "[[tag]]".
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=Gỡ bỏ truy vấn
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=Nếu đã bật, các truy vấn sẽ bị gỡ bỏ. Nếu không, truy vấn sẽ trở thành tìm kiếm Obsidian hiển thị kết quả trong ghi chú.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty

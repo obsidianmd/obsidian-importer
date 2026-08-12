@@ -2036,51 +2036,51 @@ translation=فایل JSON خروجی Roam خود را انتخاب کنید.
 
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
-translation=
+translation=مسطح کردن طرح کلی
 
 [importer.roam-json.desc-de-outline]
 original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=
+translation=Roam هر بلوک را به‌صورت بولت می‌نویسد. اگر فعال باشد، بلوک‌ها بسته به نحوه استفاده، به‌صورت پاراگراف، سرتیتر و فهرست نوشته می‌شوند.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place
-translation=
+translation=نمایش بلوک‌های ارجاع‌شده در محل
 
 [importer.roam-json.desc-embed-block-references]
 original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
-translation=
+translation=Roam محتوای بلوک ارجاع‌شده را در محل ارجاع نمایش می‌دهد. اگر فعال باشد، ارجاعات به‌جای پیوندها به جاسازی تبدیل می‌شوند.
 
 [importer.roam-json.name-drop-unresolved-references]
 original=Remove references to missing blocks
-translation=
+translation=حذف ارجاعات به بلوک‌های ناموجود
 
 [importer.roam-json.desc-drop-unresolved-references]
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
-translation=
+translation=برخی ارجاعات به بلوکی اشاره می‌کنند که در خروجی وجود ندارد. اگر فعال باشد، آن‌ها حذف می‌شوند؛ در غیر این صورت، همان‌طور که Roam نوشته، حفظ می‌شوند.
 
 [importer.roam-json.name-keep-attributes]
 original=Keep attributes in the note
-translation=
+translation=حفظ ویژگی‌ها در یادداشت
 
 [importer.roam-json.desc-keep-attributes]
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=
+translation=ویژگی‌ای که در بالای صفحه باشد به یک ویژگی تبدیل می‌شود. اگر فعال باشد، با دونقطه دوتایی که Roam نوشته در یادداشت باقی می‌ماند.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
-translation=
+translation=تبدیل برچسب‌ها به پیوندها
 
 [importer.roam-json.desc-tags-as-links]
 original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
-translation=
+translation=برچسب در Roam ارجاعی به صفحه‌ای هم‌نام است. اگر فعال باشد، "#tag" به "[[tag]]" تبدیل می‌شود.
 
 [importer.roam-json.name-drop-queries]
 original=Remove queries
-translation=
+translation=حذف عبارات جست‌وجو
 
 [importer.roam-json.desc-drop-queries]
 original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
-translation=
+translation=اگر فعال باشد، عبارات جست‌وجو حذف می‌شوند. در غیر این صورت، هر عبارت جست‌وجو به یک جستجوی Obsidian تبدیل می‌شود که نتایج را در یادداشت نمایش می‌دهد.
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
