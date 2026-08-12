@@ -15,6 +15,11 @@ const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 const HELP_PERMALINK = 'import/roam';
 
+/** As much of Obsidian's internal plugin registry as the daily-note format needs. */
+interface InternalPlugins {
+	getPluginById(id: string): { instance?: { options?: { format?: string } } } | null;
+}
+
 export class RoamJSONImporter extends FormatImporter {
 	static extensions = ['json'];
 
@@ -171,15 +176,16 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	private getUserDNPFormat(): string {
-		// @ts-expect-error : Internal Method
-		const dailyNotePluginInstance = this.app.internalPlugins?.getPluginById('daily-notes')?.instance;
+		// Obsidian does not type its internal plugins, so what is read of the
+		// daily-notes one is described here rather than reached for untyped.
+		const app = this.app as { internalPlugins?: InternalPlugins };
+		const dailyNotePluginInstance = app.internalPlugins?.getPluginById('daily-notes')?.instance;
 		if (!dailyNotePluginInstance) {
 			console.warn('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
 			return 'YYYY-MM-DD';
 		}
 
-		let dailyPageFormat = dailyNotePluginInstance.options.format;
-		return dailyPageFormat || 'YYYY-MM-DD';
+		return dailyNotePluginInstance.options?.format || 'YYYY-MM-DD';
 	}
 
 	private newGraphConverter(graphFolder: string, progress: ImportContext): RoamGraphConverter {

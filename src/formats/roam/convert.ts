@@ -66,9 +66,9 @@ export class RoamPageConverter {
 
 		blockText = blockText.replace(/\[\[>\]\]/g, '>');
 
-		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
+		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match: string, group1: string) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
 
-		blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_, group1) => `[[${graphFolder}/${group1}|${group1}]]`);
+		blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_: string, group1: string) => `[[${graphFolder}/${group1}|${group1}]]`);
 		// As with an aliased block reference below, the alias holds no bracket
 		// of its own, or a `[link](((uid)))` standing to the left of one is
 		// taken into it.
@@ -117,7 +117,7 @@ export class RoamPageConverter {
 		if (!resolve) return blockText;
 
 		blockText = blockText.replace(/\{\{\[{0,2}embed[^{}]*?\(\((.*?)\)\)[^{}]*?\}\}/g,
-			(match, uid) => {
+			(match: string, uid: string) => {
 				const target = resolve(uid);
 				return target ? `![[${target}]]` : match;
 			});
@@ -126,12 +126,12 @@ export class RoamPageConverter {
 		// no bracket of its own: reaching across one takes in whatever stands
 		// to the left, and by this point a converted `{{[[TODO]]}}` has left a
 		// `[ ]` there to be taken.
-		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match, alias, uid) => {
+		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match: string, alias: string, uid: string) => {
 			const target = resolve(uid);
 			return target ? `[[${target}|${alias}]]` : match;
 		});
 
-		return blockText.replace(blockRefRegex, (match, uid) => {
+		return blockText.replace(blockRefRegex, (match: string, uid: string) => {
 			const target = resolve(uid);
 			return target ? `[[${target}]]` : match;
 		});
