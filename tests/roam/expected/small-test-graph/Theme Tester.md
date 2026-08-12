@@ -13,10 +13,10 @@
     - ### H3
         - sub text
     - ---
-- Block refs
-    - ((P68pRja7i))
+- Block refs ^xNaGTlLLA
+    - [[small-test-graph/Theme Tester#^P68pRja7i|The Theme Tester Page Link]]
     - the [[Theme Tester]] link
-    - ((ME2M37gZr))
+    - [[small-test-graph/Theme Tester#^ME2M37gZr|Embedded blocks]]
 - Images 
     - typical remote image
         - ![](https://i.imgur.com/SEr4dkd.jpg)
@@ -33,16 +33,16 @@
         - some text before {{[[pdf]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FAo1ZWqQOkv.pdf?alt=media&token=00000000-0000-0000-0000-000000000000}}
     - audio
         - some text before {{[[audio]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp-documentation%2Fhz3WHZhdUg.mp3?alt=media&token=00000000-0000-0000-0000-000000000000}}
-- Links
-    - The [[Theme Tester]] Page Link
+- Links ^JF3iFJPKu
+    - The [[Theme Tester]] Page Link ^P68pRja7i
         - [[bad improv]]
         - [[small-test-graph/roam/css|roam/css]]
     - [[small-test-graph/roam/css|roam/css]]
     - #[[mental health]]
     - [[Theme Tester|Basic Alias]]
-    - ((JF3iFJPKu))
+    - [[small-test-graph/Theme Tester#^JF3iFJPKu|Links]]
     - [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494)
-    - This is a paragraph with several types of tags and aliases ((JF3iFJPKu)) [[small-test-graph/Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health|Theme Tester]]) #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health]]
+    - This is a paragraph with several types of tags and aliases [[small-test-graph/Theme Tester#^JF3iFJPKu|Links ^JF3iFJPKu]] [[small-test-graph/Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health|Theme Tester]]) #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health]]
     - metadata: www.google.com
     - Tags
         - #[[exercise]]
@@ -68,8 +68,8 @@
       super well written code here
       and a second line of amazing code here```
 - Embeds
-    - Embedded blocks
-        - ((sHQRa0Wan))
+    - Embedded blocks ^ME2M37gZr
+        - sHQRa0Wan
     - Embedded Pages
         - [[testing]]
 - Misc Roam Components
@@ -116,7 +116,7 @@
         - > Regulare quote using page brackets
         - > bare quote without brackets
     - Collapsable Parenthesis 
-        - A very long ((and interesting)) quote collapsed and one ((open)) also one with regular ((xNaGTlLLA)).
+        - A very long and interesting quote collapsed and one open also one with regular [[small-test-graph/Theme Tester#^xNaGTlLLA|Block refs]].
     - LayTEX
         - $$O(n^2)$$
     - word and character counts

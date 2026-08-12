@@ -18,8 +18,8 @@ import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { RoamPageConverter } from '../../src/formats/roam/convert';
+import { RoamGraphConverter } from '../../src/formats/roam/graph';
 import { RoamPage } from '../../src/formats/roam/models/roam-json';
-import { convertDateString, sanitizeFileNameKeepPath } from '../../src/formats/roam/utils';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -54,25 +54,21 @@ for (const graph of graphs) {
 		let written = 0;
 
 		try {
-			for (const page of pages) {
-				// One converter per page: it carries the timestamps the
-				// recursion accumulates.
-				const converter = new RoamPageConverter({
-					userDNPFormat: DAILY_NOTE_FORMAT,
-					fileDateYAML: false,
-					titleYAML: false,
-					downloadAttachments: false,
-				});
+			// The graph rather than a page: a block reference names a block on
+			// another page, so what a page converts to is not settled until
+			// every page has been read.
+			const converted = await new RoamGraphConverter({
+				graphFolder: name,
+				userDNPFormat: DAILY_NOTE_FORMAT,
+				fileDateYAML: false,
+				titleYAML: false,
+				downloadAttachments: false,
+			}).convert(pages);
 
-				const markdown = await converter.jsonToMarkdown(
-					name, `${name}/Attachments`, page, '', false, '', 0, 0);
-
-				// Named the way the importer names it, through the same
-				// daily-note conversion and sanitiser.
-				const title = convertDateString(sanitizeFileNameKeepPath(page.title), DAILY_NOTE_FORMAT).trim();
-				if (!title) continue;
-
-				const file = nodePath.join(produced, `${title}.md`);
+			for (const [notePath, markdown] of converted.pages) {
+				// The converter names a note the way the importer does, under
+				// the graph folder; the recordings are the folder's contents.
+				const file = nodePath.join(produced, nodePath.relative(name, notePath));
 				nodeFs.mkdirSync(nodePath.dirname(file), { recursive: true });
 				nodeFs.writeFileSync(file, markdown);
 				written++;
