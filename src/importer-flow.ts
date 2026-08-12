@@ -1,4 +1,4 @@
-import { App, Notice, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon, TFile } from 'obsidian';
+import { App, Notice, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, SettingGroup, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { dataTransferHasFiles, droppedItems, expandDropped, PickedFile, PickedFolder } from './filesystem';
 import { ImporterFileTypes, importersForFiles, readableFiles } from './importer-match';
@@ -240,9 +240,8 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const groupEl = contentEl.createDiv('setting-group mod-list');
-		const searchEl = groupEl.createDiv('setting-group-search');
-		const itemsEl = groupEl.createDiv('setting-items');
+		const group = new SettingGroup(contentEl).addClass('mod-list');
+		const itemsEl = group.listEl;
 
 		let rows: HTMLElement[] = [];
 
@@ -270,9 +269,12 @@ export class ImporterFlow implements ImporterHost {
 			}
 		};
 
-		const search = new SearchComponent(searchEl)
-			.setPlaceholder(i18n.modal.searchPlaceholder())
-			.onChange(value => draw(value));
+		let search!: SearchComponent;
+		group.addSearch(component => {
+			search = component
+				.setPlaceholder(i18n.modal.searchPlaceholder())
+				.onChange(value => draw(value));
+		});
 
 		search.inputEl.addEventListener('keydown', evt => {
 			if (evt.key !== 'ArrowDown' && evt.key !== 'Enter') return;
@@ -407,7 +409,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
+		const itemsEl = new SettingGroup(contentEl).addClass('mod-list').listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const member of IMPORTER_GROUPS[group]) {
@@ -555,7 +557,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
+		const itemsEl = new SettingGroup(contentEl).addClass('mod-list').listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
