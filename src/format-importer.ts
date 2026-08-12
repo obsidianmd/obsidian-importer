@@ -155,7 +155,6 @@ export interface ImporterHost {
 }
 
 export abstract class FormatImporter {
-	/** Extensions that identify this export format during drop matching. */
 	static extensions: readonly string[] = [];
 
 	app: App;
@@ -224,7 +223,6 @@ export abstract class FormatImporter {
 	private sourceFolder: string | null = null;
 	private lastSourceFolder: string | null = null;
 
-	// Set by addFileChooserSetting during init().
 	private acceptedExtensions: readonly string[] | undefined;
 	private acceptsMultiple: boolean | undefined;
 	private showPickedFiles: (() => void) | undefined;
@@ -542,12 +540,10 @@ export abstract class FormatImporter {
 		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
 	}
 
-	/** Accept a structured drop and its flattened files. */
 	takeDropped(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
 		return this.takeFiles(files);
 	}
 
-	/** How many of those files it would take, asked before it takes any. */
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
 		return this.acceptableFiles(files).length;
 	}
@@ -987,7 +983,6 @@ export abstract class FormatImporter {
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
-	/** Returns a path free in both the vault and this run's claims. */
 	protected freeFilePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
 		if (!this.hasClaimed(unique)) return unique;

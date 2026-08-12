@@ -272,7 +272,7 @@ export function droppedItems(dataTransfer: DataTransfer): (PickedFile | PickedFo
 function localPath(file: File): string {
 	if (!Platform.isDesktopApp) return '';
 
-	// Electron throws when the dragged file has no local path.
+	// Electron 32+ throws when there is no local path; older versions used File.path.
 	try {
 		const { webUtils } = window.electron;
 		if (webUtils) return webUtils.getPathForFile(file);
@@ -281,7 +281,6 @@ function localPath(file: File): string {
 		return '';
 	}
 
-	// Electron <32 exposed the path on File.
 	return (file as File & { path?: string }).path ?? '';
 }
 

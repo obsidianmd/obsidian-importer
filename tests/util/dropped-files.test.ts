@@ -46,8 +46,6 @@ test('a dropped folder is walked, and the packages inside it survive the walk', 
 
 	assert.ok(names.includes('Textbundle Example v1.textbundle'), names.join(', '));
 	assert.ok(names.includes('example.textpack'), names.join(', '));
-	// Confirms the parent folder was traversed.
 	assert.ok(names.includes('convert.test.ts'), names.join(', '));
-	// Package contents remain encapsulated.
 	assert.ok(!names.includes('text.markdown'), names.join(', '));
 });

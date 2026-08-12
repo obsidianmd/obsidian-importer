@@ -11,11 +11,10 @@ const NOTE_EXTS = ['md', 'markdown', 'canvas', 'base'];
 
 interface PlannedCopy {
 	parent: string;
-	/** Nothing to write: the folder itself is what was dropped. */
+	// Null represents an empty folder.
 	file: PickedFile | null;
 }
 
-/** Copies dropped files and folders into the vault without conversion. */
 export class FilesImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -69,7 +68,6 @@ export class FilesImporter extends FormatImporter {
 		return this.copying().length > 0;
 	}
 
-	/** Whatever it is handed is something it can copy. */
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
 		return files.length;
 	}
@@ -139,8 +137,6 @@ export class FilesImporter extends FormatImporter {
 
 				const inside = await this.plan(ctx, await item.list(), at, false);
 
-				// An empty folder is part of the shape being copied, and nothing
-				// inside it will make it.
 				planned.push(...inside.length > 0 ? inside : [{ parent: at, file: null }]);
 			}
 			catch (error) {
@@ -155,9 +151,6 @@ export class FilesImporter extends FormatImporter {
 		const folder = await this.createFolders(parent || '/');
 		const at = folder.path === '/' ? '' : folder.path;
 
-		// The name it arrived with, tidied only where the vault cannot hold it:
-		// README.MD is not README.md, and an extension is sanitized like the
-		// rest of the name rather than trusted.
 		const name = sanitizeFileName(file.name, at);
 		const path = this.freeFilePath(at, name);
 		this.claimPath(path);

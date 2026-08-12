@@ -346,11 +346,6 @@
 	margin: 0 var(--size-4-1) 0 auto;
 }
 
-/*
- * The drop target while a file is over the window. It covers the modal as well
- * as the app behind it, because the drop is caught on the window: anywhere the
- * file lands, the import takes it.
- */
 .importer-drop-overlay {
 	position: fixed;
 	inset: 0;

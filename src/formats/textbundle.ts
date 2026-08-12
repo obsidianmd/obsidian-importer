@@ -7,8 +7,7 @@ import { readZip, ZipEntryFile } from '../zip';
 import { bundleNoteName, convertTextbundleNote, groupFilesByTextbundle, isMarkdownBundle } from './textbundle/convert';
 
 export class TextbundleImporter extends FormatImporter {
-	// A .textbundle is a folder everywhere but macOS, where it is a package the
-	// file picker hands over whole.
+	// macOS pickers expose .textbundle directories as files.
 	static extensions = Platform.isMacOS
 		? ['textbundle', 'textpack', 'zip']
 		: ['textpack', 'zip'];

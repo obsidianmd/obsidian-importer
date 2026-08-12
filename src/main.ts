@@ -550,7 +550,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		search.inputEl.focus();
 	}
 
-	/** Adds a keyboard-navigable row. */
 	private addNavigableRow(
 		itemsEl: HTMLElement,
 		rows: HTMLElement[],
@@ -784,7 +783,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private showFormatOffer(ids: string[], drop: Drop) {
 		const { contentEl, modalEl } = this;
 
-		// Preserve the screen interrupted by the drop.
 		const back = this.pickingFormat || !this.importer
 			? () => this.startOver()
 			: () => this.showFirstStep();
@@ -799,9 +797,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
-			// What each one would take of the drop, which is how they differ:
-			// two formats reading .json where one of them reads a single file,
-			// and copying, which takes all of it.
 			const takes = this.wouldTake(id, drop);
 
 			this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
@@ -829,11 +824,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.showFormatPicker();
 	}
 
-	/**
-	 * How much of a drop an importer would take, asked of one built for the
-	 * question and thrown away. Only the importer itself knows: its picker may
-	 * accept companions its format is not identified by, or one file alone.
-	 */
 	private wouldTake(id: string, drop: Drop): number {
 		try {
 			const importer = new this.plugin.importers[id].importer(this.app, {
@@ -861,9 +851,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private async takeDropped(items: (PickedFile | PickedFolder)[]): Promise<void> {
 		const files = await expandDropped(items);
 
-		// The importer on screen keeps the drop only when it reads all of it.
-		// Taking part of one and dropping the rest without a word is the case
-		// the choice below exists for.
+		// Probe before mutating so partial matches can remain choices.
 		if (!this.pickingFormat && this.importer) {
 			const taken = this.importer.wouldTake(items, files);
 			if (taken > 0 && taken === files.length) {
@@ -873,7 +861,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 			}
 		}
 
-		// Matching ignores companion files; the chosen importer still receives them.
 		const exports = readableFiles(this.fileTypes(), files);
 		const drop: Drop = { items, files, exports };
 		const ids = importersForFiles(this.fileTypes(), exports.map(file => file.extension));
@@ -896,7 +883,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		importer.takeDropped(drop.items, drop.files);
 
-		// init() may have drawn the source controls asynchronously.
+		// Redraw controls created during async init().
 		this.showSourceStep();
 	}
 
@@ -926,7 +913,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private onDragOver = (evt: DragEvent) => {
 		if (!this.acceptsDrop() || !evt.dataTransfer || !dataTransferHasFiles(evt.dataTransfer)) return;
 
-		// Allow the drop and prevent the underlying note from handling it.
+		// preventDefault enables the drop.
 		evt.preventDefault();
 		evt.stopPropagation();
 		evt.dataTransfer.dropEffect = 'copy';
@@ -935,7 +922,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	};
 
 	private onDragLeave = (evt: DragEvent) => {
-		// Ignore moves between elements in the same window.
+		// Ignore moves within the window.
 		if (evt.type === 'dragleave' && evt.relatedTarget) return;
 
 		this.hideDropOverlay();

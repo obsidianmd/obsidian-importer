@@ -7,7 +7,6 @@ export function readableFiles<T extends { extension: string }>(importers: Import
 	return files.filter(file => importers.some(({ extensions }) => extensions.includes(file.extension)));
 }
 
-/** Ranks importers by matched files, then by specificity. */
 export function importersForFiles(importers: ImporterFileTypes[], extensions: string[]): string[] {
 	const ranked = importers
 		.map(({ id, extensions: accepted }) => ({
