@@ -63,7 +63,7 @@ Links ^JF3iFJPKu
 - [[Theme Tester|Basic Alias]]
 - [[Theme Tester#^JF3iFJPKu|Block Alias]]
 - [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494)
-- This is a paragraph with several types of tags and aliases [[Theme Tester#^JF3iFJPKu|Block Alias]] [[small-test-graph/Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] [[mental health|Theme Tester]]) #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] [[mental health]]
+- This is a paragraph with several types of tags and aliases [[Theme Tester#^JF3iFJPKu|Block Alias]] [[Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] [[mental health]]
 - metadata:: www.google.com
 - Tags
     - [[exercise]]

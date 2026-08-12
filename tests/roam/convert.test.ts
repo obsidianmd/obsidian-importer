@@ -736,3 +736,26 @@ test('a block Roam left empty still keeps its place', async () => {
 
 	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), '\n- after');
 });
+
+/**
+ * A page Roam titled with a slash makes a folder here, so a link to one is
+ * written out in full. The rule has to match one link and not a span.
+ */
+test('a namespaced link beside another link converts only itself', async () => {
+	// Greedy, this reached from the first `[[` to the last `]]`, swallowed
+	// every link between them and wrote the lot back twice.
+	assert.equal(await scrubber().roamMarkupScrubber('g', 'g', '[[a]] and [[b/c]]'),
+		'[[a]] and [[g/b/c|b/c]]');
+});
+
+test('and a DONE marker beside one is still a checkbox', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('g', 'g', '{{[[DONE]]}} see [[roam/render]]'),
+		'[x] see [[g/roam/render|roam/render]]');
+	assert.equal(await scrubber().roamMarkupScrubber('g', 'g', '{{[[TODO]]}} see [[roam/render]]'),
+		'[ ] see [[g/roam/render|roam/render]]');
+});
+
+test('two namespaced links are each written out', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('g', 'g', '[[roam/render]] and [[roam/templates]]'),
+		'[[g/roam/render|roam/render]] and [[g/roam/templates|roam/templates]]');
+});

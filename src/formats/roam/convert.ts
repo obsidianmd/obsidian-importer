@@ -93,7 +93,10 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match: string, group1: string) =>
 			`[[${this.options.resolvePageName?.(group1) ?? convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
 
-		blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_: string, group1: string) => `[[${graphFolder}/${group1}|${group1}]]`);
+		// One link, not a span reaching from the first `[[` to the last `]]`:
+		// greedy, it swallowed every link between them and wrote the lot back
+		// twice, taking any {{[[DONE]]}} in the way with it.
+		blockText = blockText.replace(/\[\[([^[\]]*\/[^[\]]*)\]\]/g, (_: string, group1: string) => `[[${graphFolder}/${group1}|${group1}]]`);
 		// Exclude brackets so a preceding checkbox cannot become the alias.
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
 

@@ -13,7 +13,7 @@ We create new blocks by pressing `Enter`; and nest them using `Tab` (press`Shift
 
 ### Everything is where you need it to be
 
-**Organizing information is effortless with** [[help-graph-excerpt/Page References|page]]/[[Block References|Page References|block references]]/[[Block References|block references]].
+**Organizing information is effortless with** [[Page References|page]]/[[Block References|block references]].
 
 - Let's say we have a meeting. In our Daily Notes, we might write
     - ![[2021-02-01#^QhoXgk8VU]]
