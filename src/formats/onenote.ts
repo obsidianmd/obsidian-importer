@@ -330,12 +330,15 @@ export class OneNoteImporter extends FormatImporter {
 			.catch(e => console.error('Could not complete sign in', e)));
 		this.authenticatingAccountType = accountType;
 
+		// '_external' keeps this out of the Web Viewer, whose webview refuses to
+		// navigate anywhere but http(s) — the obsidian:// redirect Microsoft ends
+		// on would be dropped there, and sign in would stall with nothing said.
 		window.open(authorizationUrl(
 			this.authenticatingAccountType,
 			GRAPH_CLIENT_ID,
 			AUTH_REDIRECT_URI,
 			this.graphData.state,
-		));
+		), '_external');
 	}
 
 	private signOut() {
