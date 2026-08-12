@@ -2034,22 +2034,6 @@ translation=আপনার ডেটা JSON ফরম্যাটে এক্
 original=Pick the JSON file from your Roam export.
 translation=আপনার Roam এক্সপোর্ট থেকে JSON ফাইলটি নির্বাচন করুন।
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=YAML তৈরি/আপডেট তারিখ যোগ করুন
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=সক্রিয় থাকলে, নোটগুলোতে Roam থেকে তৈরির সময় এবং সম্পাদনার সময় প্রপার্টি হিসেবে যোগ হবে।
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=YAML শিরোনাম যোগ করুন
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=সক্রিয় থাকলে, নোটগুলোতে সম্পূর্ণ শিরোনাম একটি বৈশিষ্ট্য হিসেবে যোগ হবে (অবৈধ ফাইলের নাম অক্ষর থাকলেও)।
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

@@ -2034,22 +2034,6 @@ translation=Експортуйте свої дані у форматі JSON.
 original=Pick the JSON file from your Roam export.
 translation=Виберіть JSON-файл з експорту Roam.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=Додати дату створення/оновлення у YAML
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Якщо увімкнено, до нотаток будуть додані час створення та час редагування з Roam як властивості.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=Додати назву у YAML
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Якщо увімкнено, до нотаток буде додано повну назву як властивість (незалежно від недопустимих символів у назві файлу).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

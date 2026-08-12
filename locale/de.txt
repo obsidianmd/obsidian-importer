@@ -2034,22 +2034,6 @@ translation=Exportiere deine Daten im JSON-Format.
 original=Pick the JSON file from your Roam export.
 translation=Wähle die JSON-Datei aus deinem Roam-Export aus.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=YAML-Erstellungs-/Aktualisierungsdatum hinzufügen
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Wenn aktiviert, werden die Erstellungs- und Bearbeitungszeit aus Roam als Eigenschaften hinzugefügt.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=YAML-Titel hinzufügen
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Wenn aktiviert, wird der vollständige Titel als Eigenschaft hinzugefügt (ungeachtet ungültiger Dateiname-Zeichen).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

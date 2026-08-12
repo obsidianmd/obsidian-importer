@@ -2034,22 +2034,6 @@ translation=Exportáld az adataidat JSON formátumban.
 original=Pick the JSON file from your Roam export.
 translation=Válaszd ki a JSON fájlt a Roam exportodból.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=YAML létrehozási/frissítési dátum hozzáadása
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Ha engedélyezve van, a jegyzetekhez tulajdonságként hozzáadódik a Roam-ból származó létrehozási és szerkesztési idő.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=YAML cím hozzáadása
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Ha engedélyezve van, a jegyzetekhez tulajdonságként hozzáadódik a teljes cím (a fájlnévben nem engedélyezett karakterektől függetlenül).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

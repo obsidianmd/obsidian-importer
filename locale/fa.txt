@@ -2034,22 +2034,6 @@ translation=داده‌های خود را در قالب JSON خروجی بگیر
 original=Pick the JSON file from your Roam export.
 translation=فایل JSON خروجی Roam خود را انتخاب کنید.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=افزودن تاریخ ساخت/به‌روزرسانی YAML
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=در صورت فعال بودن، زمان ساختن و ویرایش از Roam به عنوان ویژگی‌ها به یادداشت‌ها اضافه می‌شود.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=افزودن عنوان YAML
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=در صورت فعال بودن، عنوان کامل به عنوان یک ویژگی به یادداشت‌ها اضافه می‌شود (صرف‌نظر از نویسه‌های غیرمجاز در نام پرونده).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

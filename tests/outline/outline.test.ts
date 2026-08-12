@@ -1,17 +1,8 @@
-/**
- * The outline flattener, on its own.
- *
- * The Roam tests drive it through that importer's conversion, which is what
- * checks the two fit together. These build the nodes by hand instead: the
- * module is meant to serve any importer whose source is an outline, so what it
- * decides has to be legible without knowing which one asked.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { anchorLines, deOutline, OutlineNode } from '../../src/outline';
 
-/** A node, with the parts an importer usually leaves empty filled in. */
 function node(text: string | null, children: OutlineNode[] = [], anchor: string | null = null): OutlineNode {
 	return { text, anchor, verbatim: null, children };
 }
@@ -67,11 +58,6 @@ test('an anchor rides along with the block it belongs to', () => {
 	assert.equal(deOutline([node('the block', [], 'abc123')]), 'the block ^abc123');
 });
 
-/**
- * Where an anchor goes. Shared because every importer of an outline format has
- * to answer it the same way, and appending to a closing fence is wrong in a way
- * that reads as working.
- */
 test('an anchor goes on the end of a block of one line', () => {
 	assert.deepEqual(anchorLines(['the block'], 'abc123', ''), ['the block ^abc123']);
 });
@@ -85,18 +71,6 @@ test('a block nothing points at is left as it was', () => {
 	assert.deepEqual(anchorLines(['the block'], null, ''), ['the block']);
 });
 
-/**
- * The top of a note is read as prose where the same blocks one level down are
- * a list. That is a decision rather than an oversight, so it is pinned here:
- * a note is a body of writing, and a run nested under something is a list of
- * things about it.
- *
- * The alternative was measured on a 1,107-page graph and on the fixtures. A
- * third of the pages there became one long bulleted list - and so did the
- * flattened Sapiens fixture, which came out identical to the outline it was
- * meant to flatten. Telling a list from a run of paragraphs on the shape of
- * the blocks alone cannot be done: an outliner gives both the same shape.
- */
 test('the top of a note is prose, where the same blocks below it are a list', () => {
 	const run = [node('[[Sapiens]]'), node('[[Dune]]'), node('[[Ubik]]')];
 

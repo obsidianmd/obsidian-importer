@@ -1,33 +1,9 @@
-/**
- * Roam queries, as Obsidian searches.
- *
- * `{{query: {and: [[A]] [[B]]}}}` asks Roam for the blocks referring to both
- * pages. Obsidian asks the same thing with `block:([[A]] [[B]])` in a `query`
- * code block, which embeds the results in the note - so the two say the same
- * thing and a query survives the import as a query rather than as the text of
- * one.
- *
- * The importer used to delete queries outright, which lost them without saying
- * so. What cannot be translated is now left as Roam wrote it: `{between:}` has
- * no counterpart, and a half-translated query would be worse than a legible
- * one that has to be rewritten by hand.
- */
-
 import { outsideCodeSpans } from '../../markdown';
 
-/** `{{query: …}}` and `{{[[query]]: …}}`, which are the two spellings Roam writes. */
 const queryStartRe = /\{\{(?:\[\[query\]\]|query)\s*:/i;
 
-/** What a term can be: a page, a block, or a tag. Anything else is not translated. */
 const tagRe = /^#[^\s{}[\]()]+/;
 
-/**
- * Every Roam query in a block, rewritten as a `query` code block.
- *
- * Text inside backticks is left alone: Roam's own help pages show query syntax
- * as an example in code, and a fence opened inside a code span makes a mess of
- * both.
- */
 export function convertRoamQueries(blockText: string, drop: boolean = false): string {
 	return outsideCodeSpans(blockText, segment => rewriteQueries(segment, drop));
 }
@@ -40,20 +16,13 @@ function rewriteQueries(text: string, drop: boolean): string {
 		const start = queryStartRe.exec(rest);
 		if (!start) return result + rest;
 
-		// The query begins at the `{{` the match opens with, and ends where
-		// that brace is closed - counted rather than searched for, since the
-		// clause inside brings braces of its own.
 		const opensAt = start.index;
 		const closesAt = matchingBrace(rest, opensAt);
 		if (closesAt === -1) return result + rest;
 
 		const whole = rest.slice(opensAt, closesAt + 1);
-		// `{{query: <clause>}}` - without the braces at either end and the
-		// keyword up to its colon, what is left is the clause.
 		const named = whole.slice(2, -2);
 		const search = drop ? null : translateClause(named.slice(named.indexOf(':') + 1));
-		// A query that cannot be translated is left as Roam wrote it, unless the
-		// reader asked for queries to go, in which case it goes with the rest.
 		const written = search !== null ? `\`\`\`query\n${search}\n\`\`\`` : drop ? '' : whole;
 
 		result += rest.slice(0, opensAt) + written;
@@ -61,11 +30,6 @@ function rewriteQueries(text: string, drop: boolean): string {
 	}
 }
 
-/**
- * A whole query clause as a search, or nothing when any part of it says
- * something Obsidian's search cannot - `{between:}`, or a term that is not a
- * page, a block or a tag.
- */
 function translateClause(clause: string): string | null {
 	const translated = translateGroup(clause.trim());
 
@@ -89,7 +53,6 @@ function translateGroup(group: string): string | null {
 
 		const nested = translateGroup(term);
 		if (nested === null) return null;
-		// Parenthesised, so that an `or` nested in an `and` keeps its meaning.
 		translated.push(`(${nested})`);
 	}
 
@@ -102,7 +65,6 @@ function translateGroup(group: string): string | null {
 	return null;
 }
 
-/** The terms of a clause, or nothing if one of them is not a shape we translate. */
 function splitTerms(body: string): string[] | null {
 	const terms: string[] = [];
 	let at = 0;
@@ -144,7 +106,6 @@ function splitTerms(body: string): string[] | null {
 	return terms;
 }
 
-/** Where the brace opened at `from` is closed, or -1 if it never is. */
 function matchingBrace(text: string, from: number): number {
 	let depth = 0;
 

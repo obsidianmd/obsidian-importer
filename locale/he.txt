@@ -2034,22 +2034,6 @@ translation=ייצא את הנתונים שלך בעיצוב JSON.
 original=Pick the JSON file from your Roam export.
 translation=בחר את קובץ ה-JSON מייצוא Roam שלך.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=הוסף תאריך יצירה/עדכון ב-YAML
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=כאשר מופעל, לפתקים יתווספו זמן היצירה וזמן העריכה מ-Roam כמאפיינים.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=הוסף כותרת ב-YAML
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=כאשר מופעל, לפתקים תתווסף הכותרת המלאה כמאפיין (ללא תלות בתווים לא חוקיים בשם קובץ).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

@@ -2034,22 +2034,6 @@ translation=Exportujte svá data ve formátu JSON.
 original=Pick the JSON file from your Roam export.
 translation=Vyberte soubor JSON z vašeho exportu z Roam.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=Přidat YAML datum vytvoření/aktualizace
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Pokud je zapnuté, poznámky budou mít čas vytvoření a úpravy z Roam přidány jako vlastnosti.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=Přidat YAML název
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Pokud je zapnuté, poznámky budou mít přidán úplný název jako vlastnost (bez ohledu na nepovolené znaky v názvu souboru).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

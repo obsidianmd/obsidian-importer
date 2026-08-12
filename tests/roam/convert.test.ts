@@ -1,14 +1,3 @@
-/**
- * The Roam conversion, outside Obsidian.
- *
- * A page from an exported graph goes in and markdown comes out. The converter
- * needs no vault: the importer's settings are passed to it, and downloading a
- * file a block links to is a callback, left out here so links are recorded as
- * the export wrote them.
- *
- * Each graph in this directory is converted with the settings the importer
- * uses by default, and every page is recorded as the file it would write.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -24,18 +13,8 @@ import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
 
-/** What the importer defaults to when the daily-note plugin is not configured. */
 const DAILY_NOTE_FORMAT = 'YYYY-MM-DD';
 
-/**
- * Above this many pages a graph is converted but not recorded.
- *
- * The graphs committed here are small enough to record. A whole exported graph
- * dropped into local/ is not: recording a thousand notes is output nobody is
- * going to read, and a recording nobody reads is not a check - it just goes
- * green. One that size is still worth converting, because that is what catches
- * a page shape that throws, so it is run and counted instead.
- */
 const RECORDABLE_PAGES = 25;
 
 const graphs = fixtures(FIXTURES, '.json');
@@ -54,19 +33,12 @@ for (const graph of graphs) {
 		let written = 0;
 
 		try {
-			// The graph rather than a page: a block reference names a block on
-			// another page, so what a page converts to is not settled until
-			// every page has been read.
 			const converted = await new RoamGraphConverter({
 				graphFolder: name,
 				userDNPFormat: DAILY_NOTE_FORMAT,
-				fileDateYAML: false,
-				titleYAML: false,
 			}).convert(pages);
 
 			for (const [notePath, markdown] of converted.pages) {
-				// The converter names a note the way the importer does, under
-				// the graph folder; the recordings are the folder's contents.
 				const file = nodePath.join(produced, nodePath.relative(name, notePath));
 				nodeFs.mkdirSync(nodePath.dirname(file), { recursive: true });
 				nodeFs.writeFileSync(file, markdown);
@@ -85,13 +57,6 @@ for (const graph of graphs) {
 	});
 }
 
-/**
- * The same graph flattened, recorded beside the outline it came from.
- *
- * Only the written fixture: what flattening decides is what each block was
- * being used *as*, and a recording of that is only worth reading when the
- * blocks were chosen to ask the question.
- */
 test('converts shapes.json with the outline flattened', async () => {
 	const graph = graphs.find(candidate => candidate.name === 'shapes.json');
 	assert.ok(graph, 'shapes.json should be one of the fixtures');
@@ -103,8 +68,6 @@ test('converts shapes.json with the outline flattened', async () => {
 		const converted = await new RoamGraphConverter({
 			graphFolder: 'shapes',
 			userDNPFormat: DAILY_NOTE_FORMAT,
-			fileDateYAML: false,
-			titleYAML: false,
 			deOutline: true,
 		}).convert(pages);
 
@@ -121,15 +84,9 @@ test('converts shapes.json with the outline flattened', async () => {
 	}
 });
 
-/**
- * The markup rewrites are where Roam-specific bugs live, so a few are named
- * rather than left to the recordings alone.
- */
 function scrubber() {
 	return new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 	});
 }
 
@@ -143,16 +100,9 @@ test('converts Roam emphasis to Obsidian emphasis', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '^^highlight^^'), '==highlight==');
 });
 
-/**
- * References and embeds, which are the two things a block can say about
- * another block. Both need the graph to say where that block ended up; a
- * scrubber without one leaves the markup as Roam wrote it.
- */
 function referring(blocks: Record<string, string> = { abc123: 'Notes' }) {
 	return new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		resolveBlockReference: uid => uid in blocks ? `${blocks[uid]}#^${uid}` : null,
 		isReferenced: uid => uid in blocks,
 	});
@@ -173,8 +123,6 @@ test('a block reference becomes a link to the block (#247)', async () => {
 });
 
 test('and carries no copy of what the block says, however often it is referred to', async () => {
-	// The alias used to hold the block's text, and the second reference to one
-	// block got the anchor the first reference had appended to it (#247).
 	const twice = await referring().roamMarkupScrubber('', '', '((abc123)) and again ((abc123))');
 
 	assert.equal(twice, '[[Notes#^abc123]] and again [[Notes#^abc123]]');
@@ -185,15 +133,12 @@ test('an aliased reference keeps the alias the user wrote', async () => {
 });
 
 test('a checkbox to the left of an aliased reference is not taken into the alias', async () => {
-	// `{{[[TODO]]}}` becomes `[ ]` before the reference is read, and an alias
-	// allowed to reach across a bracket takes the checkbox with it.
 	assert.equal(
 		await referring().roamMarkupScrubber('', '', '{{[[TODO]]}} do it [->](((abc123)))'),
 		'[ ] do it [[Notes#^abc123|->]]');
 });
 
 test('a parenthetical that is nobody\'s block id is left as it was', async () => {
-	// It used to lose its brackets and be left as bare text.
 	assert.equal(
 		await referring().roamMarkupScrubber('', '', 'a long ((and interesting)) quote'),
 		'a long ((and interesting)) quote');
@@ -205,7 +150,6 @@ test('a reference to a block the graph does not hold is left as it was', async (
 });
 
 test('turns a Roam quote into a blockquote', async () => {
-	// The excerpt has no page using [[>]], so this is the only check on it
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '[[>]] quoted'), '> quoted');
 });
 
@@ -213,12 +157,9 @@ test('turns a page alias into an Obsidian alias', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '[shown]([[Real Page]])'), '[[Real Page|shown]]');
 });
 
-/** The conversion writes four spaces a level; markdown-output.ts applies what the vault uses. */
 function outline() {
 	const converter = new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 	});
 
 	const page = {
@@ -232,7 +173,7 @@ function outline() {
 		}],
 	} as unknown as RoamPage;
 
-	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page);
 }
 
 test('starts the outline at the margin and indents each level by four spaces', async () => {
@@ -247,8 +188,6 @@ test('starts the outline at the margin and indents each level by four spaces', a
 test('indents the lines after the first to the item text, so a fence stays in the item', async () => {
 	const converter = new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 	});
 
 	const page = {
@@ -256,7 +195,7 @@ test('indents the lines after the first to the item text, so a fence stays in th
 		children: [{ string: 'Code', children: [{ string: '```js\none();\ntwo();```' }] }],
 	} as unknown as RoamPage;
 
-	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0), [
+	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page), [
 		'- Code',
 		'    - ```js',
 		'      one();',
@@ -265,21 +204,13 @@ test('indents the lines after the first to the item text, so a fence stays in th
 	].join('\n'));
 });
 
-/**
- * The anchor a reference reaches. It used to be patched into the finished
- * markdown by looking for a line holding the block's text, which found the
- * wrong line as readily as the right one and no line at all for a block of
- * more than one.
- */
 async function anchored(page: RoamPage, referenced: string[]): Promise<string> {
 	const converter = new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		isReferenced: uid => referenced.includes(uid),
 	});
 
-	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page);
 }
 
 test('a block something points at grows an anchor', async () => {
@@ -295,7 +226,6 @@ test('and a block nothing points at is left without one', async () => {
 });
 
 test('a block of several lines takes its anchor on a line of its own', async () => {
-	// Appended to the closing fence it would be read as part of the code.
 	const page = {
 		title: 'Notes', uid: 'notes',
 		children: [{ string: '```js\none();```', uid: 'fenced' }],
@@ -309,23 +239,16 @@ test('a block of several lines takes its anchor on a line of its own', async () 
 	].join('\n'));
 });
 
-/**
- * Tables are the one place the converter reads the tree rather than a block's
- * text, so the shapes Roam can build are named here. The recorded pages cover
- * the ordinary case.
- */
 
-/** One page holding one table marker, converted. */
 async function convertTable(rows: RoamBlock[], marker: string = '{{[[table]]}}'): Promise<string> {
 	const page = {
 		title: 'Tables', uid: 'tables',
 		children: [rows.length > 0 ? { string: marker, children: rows } : { string: marker }],
 	} as RoamPage;
 
-	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page, '', 0, 0);
+	return scrubber().jsonToMarkdown('Tables', 'Tables/Attachments', page);
 }
 
-/** A row, as Roam nests it: each column is a child of the column before it. */
 function row(cells: string[]): RoamBlock {
 	const [first, ...rest] = cells;
 	return rest.length > 0 ? { string: first, children: [row(rest)] } : { string: first };
@@ -342,13 +265,10 @@ test('converts the bare {{table}} spelling too', async () => {
 });
 
 test('leaves an unbalanced table marker as an ordinary block', async () => {
-	// `{{[[table}}` is not a spelling Roam writes.
 	assert.equal(await convertTable([row(['One'])], '{{[[table}}'), '- {{[[table}}\n    - One');
 });
 
 test('a cell with several children is several rows sharing it', async () => {
-	// The cell is shown once and left empty on the rows below, which is how
-	// Roam draws it. Reading only the first child would drop the rest.
 	const shared: RoamBlock = {
 		string: 'Fruit',
 		children: [{ string: 'Apple' }, { string: 'Pear' }],
@@ -388,10 +308,6 @@ test('converts the markup inside a cell', async () => {
 		'\n| [ ] ==done== |\n| --- |\n');
 });
 
-/**
- * Queries. These used to be deleted outright, so a page built around one was
- * imported with nothing on it.
- */
 
 test('converts a Roam query to an Obsidian query block', async () => {
 	assert.equal(
@@ -430,9 +346,6 @@ test('a tag is a term like any other', async () => {
 });
 
 test('a query Obsidian cannot express is left as Roam wrote it', async () => {
-	// `{between:}` has no counterpart, and half a query is worse than a legible
-	// one to rewrite by hand. The daily notes it names are still renamed, so
-	// what is left to rewrite points at the notes that were written.
 	assert.equal(
 		await scrubber().roamMarkupScrubber('', '', '{{query: {between: [[January 1st, 2021]] [[today]] }}}'),
 		'{{query: {between: [[2021-01-01]] [[today]] }}}');
@@ -442,8 +355,6 @@ test('a query Obsidian cannot express is left as Roam wrote it', async () => {
 });
 
 test('a query shown as an example inside backticks is left alone', async () => {
-	// Roam's own help pages document the syntax this way, and a fence opened
-	// inside a code span makes a mess of both.
 	const documented = 'write it as `{{query: {and: [[A]] [[B]]}}}` in a block';
 	assert.equal(await scrubber().roamMarkupScrubber('', '', documented), documented);
 });
@@ -454,21 +365,14 @@ test('two queries in one block are both converted', async () => {
 		'```query\nblock:([[A]])\n``` and ```query\nblock:([[B]])\n```');
 });
 
-/**
- * What flattening decides. Roam gives every block a bullet, so the question is
- * what each was being used as - and these are the answers the recordings do not
- * make obvious on their own.
- */
 async function flattened(children: RoamBlock[]): Promise<string> {
 	const converter = new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		deOutline: true,
 	});
 
 	const page = { title: 'Page', uid: 'page', children } as RoamPage;
-	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0);
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page);
 }
 
 test('a block on its own becomes a paragraph', async () => {
@@ -483,8 +387,6 @@ test('siblings that are really a list stay a list, under their parent as prose',
 });
 
 test('a lone child is the same thought, so it joins the paragraph', async () => {
-	// One bullet under another is what an outliner encourages and prose does
-	// not want; two siblings would have been a list.
 	assert.equal(await flattened([
 		{ string: 'A claim', children: [{ string: 'and what follows from it' }] },
 	]), 'A claim\n\nand what follows from it');
@@ -525,8 +427,6 @@ test('a list nested under a list keeps its nesting', async () => {
 test('a block of several lines keeps them, and its anchor stays off the fence', async () => {
 	const converter = new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		deOutline: true,
 		isReferenced: uid => uid === 'fenced',
 	});
@@ -536,7 +436,7 @@ test('a block of several lines keeps them, and its anchor stays off the fence', 
 		children: [{ string: '```js\none();```', uid: 'fenced' }],
 	} as RoamPage;
 
-	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page),
 		'```js\none();\n```\n^fenced');
 });
 
@@ -548,15 +448,9 @@ test('a table stands at the margin either way', async () => {
 	]), 'Before\n\n| One | Two |\n| --- | --- |\n\nAfter');
 });
 
-/**
- * The options, each of which changes one decision the conversion would
- * otherwise make on the reader's behalf.
- */
 function optioned(options: Partial<RoamConverterOptions>) {
 	return new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		resolveBlockReference: uid => uid === 'abc123' ? 'Notes#^abc123' : null,
 		isReferenced: uid => uid === 'abc123',
 		...options,
@@ -567,7 +461,6 @@ test('"show referenced blocks in place" makes a reference an embed', async () =>
 	assert.equal(
 		await optioned({ embedBlockReferences: true }).roamMarkupScrubber('', '', 'see ((abc123))'),
 		'see ![[Notes#^abc123]]');
-	// The alias the user wrote is still a link: an embed has nowhere to show one.
 	assert.equal(
 		await optioned({ embedBlockReferences: true }).roamMarkupScrubber('', '', '[shown](((abc123)))'),
 		'[[Notes#^abc123|shown]]');
@@ -576,30 +469,19 @@ test('"show referenced blocks in place" makes a reference an embed', async () =>
 test('"remove references to missing blocks" takes out what cannot be resolved', async () => {
 	const dropping = optioned({ dropUnresolvedReferences: true });
 
-	// A Roam id is nine characters of its own alphabet. This one is shaped
-	// like one and names no block, which is a reference to a block the export
-	// left behind.
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((dmQooXFj9)) here'), 'see  here');
 	assert.equal(await dropping.roamMarkupScrubber('', '', '{{embed: ((dmQooXFj9))}}'), '');
-	// One that does resolve is untouched.
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((abc123))'), 'see [[Notes#^abc123]]');
 });
 
 test('and leaves an aside in parentheses alone, whatever that option says', async () => {
-	// `((...))` is also how somebody writes an aside. Thirteen of the
-	// thirty-one that resolved to nothing in a 1,107-page graph were of that
-	// kind, and removing them would take a sentence out of the middle of a note.
 	const dropping = optioned({ dropUnresolvedReferences: true });
 
 	for (const aside of [
 		'a long ((and interesting)) quote',
-		// Roam's own change log writes remarks this way.
 		'It is only a visual change ((you can still find the block in the DOM)) so do not use it',
 		'Small improvement to all pages search ((Longer debounce time and normalize the search value))',
-		// A footnote whose address is in parentheses is written exactly as an
-		// aliased reference is, and the help graph has several.
 		'a Johari Window[2](((https://en.wikipedia.org/wiki/Johari_window))) or a categorization',
-		// The syntax, documented in a code span, with a placeholder for the id.
 		'The format for aliases is `[alias](((blockid)))`',
 	]) {
 		assert.equal(await dropping.roamMarkupScrubber('', '', aside), aside);
@@ -610,7 +492,6 @@ test('"remove queries" takes the query out instead of converting it', async () =
 	const dropping = optioned({ dropQueries: true });
 
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'before {{query: {and: [[A]]}}} after'), 'before  after');
-	// Including one that has no counterpart, which is otherwise kept.
 	assert.equal(await dropping.roamMarkupScrubber('', '', '{{query: {between: [[a]] [[b]]}}}'), '');
 });
 
@@ -621,32 +502,23 @@ test('"keep attributes in the note" leaves them in the outline, double colon and
 	} as RoamPage;
 
 	const keeping = optioned({ keepAttributesInOutline: true });
-	assert.equal(await keeping.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+	assert.equal(await keeping.jsonToMarkdown('graph', 'graph/Attachments', page),
 		'- Author:: Ada Lovelace\n- a block');
 	assert.deepEqual([...keeping.attributeNames], [], 'nothing lifted means no column for the Base');
 
-	// The default still lifts it.
-	assert.equal(await optioned({}).jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+	assert.equal(await optioned({}).jsonToMarkdown('graph', 'graph/Attachments', page),
 		'---\nAuthor: Ada Lovelace\n---\n- a block');
 });
 
-/**
- * The graph pass, which is where a page's name and a link to it are decided.
- * These are the ways the two came apart, each of which lost something quietly.
- */
 function graphConverter(overrides: Record<string, unknown> = {}) {
 	return new RoamGraphConverter({
 		graphFolder: 'g',
 		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: false,
-		titleYAML: false,
 		...overrides,
 	});
 }
 
 test('two titles that sanitise to one name are still two notes', async () => {
-	// The name was decided where the note was written, so the second page
-	// overwrote the first in the map before either got there.
 	const pages = [
 		{ title: 'A[B]', uid: 'p1', children: [{ string: 'the first', uid: 'b1' }] },
 		{ title: 'AB', uid: 'p2', children: [{ string: 'the second', uid: 'b2' }] },
@@ -685,9 +557,6 @@ test('a link to a title too long for a file name is cut the same way the file wa
 });
 
 test('a reference to a table cell stays as Roam wrote it, having nowhere to reach', async () => {
-	// A table's marker becomes the table and its cells become rows, so neither
-	// can carry a `^id`. A link to an anchor that was never written is worse
-	// than the reference it replaced.
 	const table = (uid: string) => ({
 		string: '{{[[table]]}}', uid,
 		children: [{ string: 'Cell', uid: `${uid}-cell` }],
@@ -697,8 +566,6 @@ test('a reference to a table cell stays as Roam wrote it, having nowhere to reac
 		{
 			title: 'Source', uid: 'p1', children: [
 				table('top'),
-				// A marker is a marker wherever it sits. Asking whether the
-				// *parent* was one left every nested marker indexed.
 				{ string: 'Under a block', uid: 'head', children: [table('deep')] },
 			],
 		},
@@ -715,8 +582,6 @@ test('a reference to a table cell stays as Roam wrote it, having nowhere to reac
 });
 
 test('an attribute something points at stays in the outline, where its anchor can go', async () => {
-	// A property has nowhere to carry an anchor, so lifting a referenced
-	// attribute would leave the reference pointing at nothing.
 	const pages = [
 		{
 			title: 'Sapiens', uid: 'p1', children: [
@@ -733,36 +598,13 @@ test('an attribute something points at stays in the outline, where its anchor ca
 	assert.equal(written.get('g/Pointing.md'), '- see [[Sapiens#^attr]]');
 });
 
-test('a lifted attribute still counts towards the page timestamps', async () => {
-	// It is taken out of the outline before the walk, so its own times are
-	// folded in where it is lifted or the page comes out dated without it.
-	const page = {
-		title: 'Sapiens', uid: 'p1', 'create-time': 1000, 'edit-time': 1000,
-		children: [{ string: 'Author:: Ada', uid: 'attr', 'create-time': 1000, 'edit-time': 9_000_000_000_000 }],
-	} as unknown as RoamPage;
-
-	const converter = new RoamPageConverter({
-		userDNPFormat: DAILY_NOTE_FORMAT,
-		fileDateYAML: true,
-		titleYAML: false,
-	});
-	await converter.jsonToMarkdown('g', 'g/A', page, '', 1000, 1000);
-
-	assert.equal(converter.newestTimestamp, 9_000_000_000_000);
-});
-
-/**
- * Roam marks a heading on the block rather than in its text, so a block can be
- * a heading and be written in bold as well. The help graph has sixty.
- */
 async function headed(string: string, heading: number): Promise<string> {
 	const page = { title: 'P', uid: 'p', children: [{ string, heading }] } as unknown as RoamPage;
 
-	return scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0);
+	return scrubber().jsonToMarkdown('g', 'g/A', page);
 }
 
 test('bold wrapped round the whole of a heading is dropped', async () => {
-	// A heading is already bold, so the markup only shows.
 	assert.equal(await headed('**Quick Start**', 2), '- ## Quick Start');
 	assert.equal(await headed('**Types of queries**', 1), '- # Types of queries');
 });
@@ -776,10 +618,6 @@ test('and a block that is not a heading keeps its bold either way', async () => 
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '**Quick Start**'), '**Quick Start**');
 });
 
-/**
- * Tags. Obsidian has no `#[[...]]` - a tag holds no spaces - so what Roam
- * writes that way is a hash beside a link rather than a tag.
- */
 test('a bracketed tag becomes the link it always named', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '#[[mental health]]'), '[[mental health]]');
 	assert.equal(await scrubber().roamMarkupScrubber('', '', 'about #[[Audio Player]] today'), 'about [[Audio Player]] today');
@@ -794,29 +632,19 @@ test('"convert tags to links" reads a bare tag as the reference Roam means', asy
 
 	assert.equal(await linking.roamMarkupScrubber('', '', 'filed under #marketing'), 'filed under [[marketing]]');
 	assert.equal(await linking.roamMarkupScrubber('', '', '#one #two'), '[[one]] [[two]]');
-	// A tag of digits alone is a year or a number rather than a name.
 	assert.equal(await linking.roamMarkupScrubber('', '', 'in #2021'), 'in #2021');
-	// A bracketed one is already a link by the time this is asked.
 	assert.equal(await linking.roamMarkupScrubber('', '', '#[[mental health]]'), '[[mental health]]');
 });
 
 test('removing a reference that leads nowhere keeps the words it was written on', async () => {
-	// The help graph has a heading made of three of these and nothing else, and
-	// taking the alias with the reference left it as a bare `#`.
 	const dropping = optioned({ dropUnresolvedReferences: true });
 
 	assert.equal(
 		await dropping.roamMarkupScrubber('', '', '[🚧](((dmQooXFj9)))[🚧](((dmQooXFj9)))'),
 		'🚧🚧');
-	// A bare reference has no words of its own, so it goes entirely.
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((dmQooXFj9))'), 'see ');
 });
 
-/**
- * Fences. Roam writes the closing one against the last line of the code, and a
- * fence with code in front of it is not a fence - it is more code, so the block
- * runs on and swallows the rest of the note.
- */
 test('a closing fence glued to the code is given its own line', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '```js\none();\ntwo();```'),
 		'```js\none();\ntwo();\n```');
@@ -833,20 +661,18 @@ test('text after a fenced block is not swallowed by it', async () => {
 		children: [{ string: '```js\none();```' }, { string: 'a paragraph after the code' }],
 	} as unknown as RoamPage;
 
-	const written = await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0);
+	const written = await scrubber().jsonToMarkdown('g', 'g/A', page);
 
 	assert.equal(written, '- ```js\n  one();\n  ```\n- a paragraph after the code');
 });
 
 test('a blank line inside a fence is indented with the code around it', async () => {
-	// It is part of the code, and left at the margin it falls out of the item
-	// that the fence around it stays in.
 	const page = {
 		title: 'P', uid: 'p',
 		children: [{ string: 'Code', children: [{ string: '```js\none();\n\ntwo();```' }] }],
 	} as unknown as RoamPage;
 
-	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0), [
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), [
 		'- Code',
 		'    - ```js',
 		'      one();',
@@ -862,7 +688,7 @@ test('and a blank line outside one is left bare, not filled with spaces', async 
 		children: [{ string: 'Code', children: [{ string: 'one line\n\nanother line' }] }],
 	} as unknown as RoamPage;
 
-	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0), [
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), [
 		'- Code',
 		'    - one line',
 		'',

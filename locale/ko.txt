@@ -2034,22 +2034,6 @@ translation=데이터를 JSON 서식으로 내보내세요.
 original=Pick the JSON file from your Roam export.
 translation=Roam 내보내기에서 JSON 파일을 선택하세요.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=YAML 생성/업데이트 날짜 추가
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=활성화하면 Roam의 생성 시간과 편집 시간이 속성으로 추가돼요.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=YAML 제목 추가
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=활성화하면 전체 제목이 속성으로 추가돼요 (파일 이름에 사용할 수 없는 문자 포함).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

@@ -2034,22 +2034,6 @@ translation=Verilerinizi JSON biçiminde dışa aktarın.
 original=Pick the JSON file from your Roam export.
 translation=Roam dışa aktarımınızdaki JSON dosyasını seçin.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=YAML oluşturma/güncelleme tarihi ekle
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Etkin olduğunda, notlara Roam'daki oluşturma ve düzenleme tarihleri özellik olarak eklenir.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=YAML başlık ekle
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Etkin olduğunda, notlara tam başlık bir özellik olarak eklenir (geçersiz dosya adı karakterlerinden bağımsız olarak).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

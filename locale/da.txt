@@ -2034,22 +2034,6 @@ translation=Eksportér dine data i JSON-format.
 original=Pick the JSON file from your Roam export.
 translation=Vælg JSON-filen fra din Roam-eksport.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=Tilføj YAML oprettelses-/opdateringsdato
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Hvis aktiveret, vil noter få oprettelses- og redigeringstidspunkt fra Roam tilføjet som egenskaber.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=Tilføj YAML-titel
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Hvis aktiveret, vil noter få den fulde titel tilføjet som en egenskab (uanset ugyldige filnavnstegn).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

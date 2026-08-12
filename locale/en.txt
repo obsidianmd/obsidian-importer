@@ -2034,22 +2034,6 @@ translation=
 original=Pick the JSON file from your Roam export.
 translation=
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=

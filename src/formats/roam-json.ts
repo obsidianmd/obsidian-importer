@@ -15,7 +15,6 @@ const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 const HELP_PERMALINK = 'import/roam';
 
-/** As much of Obsidian's internal plugin registry as the daily-note format needs. */
 interface InternalPlugins {
 	getPluginById(id: string): { instance?: { options?: { format?: string } } } | null;
 }
@@ -28,12 +27,7 @@ export class RoamJSONImporter extends FormatImporter {
 	progress: ImportContext;
 	userDNPFormat: string;
 
-	// YAML options
-	fileDateYAML: boolean = false;
-	titleYAML: boolean = false;
 
-	// Shape and markup options. What is on by default is what makes the import
-	// read as an Obsidian vault rather than as a copy of a Roam graph.
 	deOutline: boolean = true;
 	embedBlockReferences: boolean = true;
 	dropUnresolvedReferences: boolean = true;
@@ -55,26 +49,6 @@ export class RoamJSONImporter extends FormatImporter {
 		this.idProperty = 'roam-uid';
 		this.idLabel = i18n.importer.roamJson.labelId();
 		this.userDNPFormat = this.getUserDNPFormat();
-
-		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDateProperties())
-			.setDesc(i18n.importer.roamJson.descDateProperties())
-			.addToggle(toggle => {
-				toggle.setValue(this.fileDateYAML);
-				toggle.onChange(async (value) => {
-					this.fileDateYAML = value;
-				});
-			});
-
-		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameTitleProperty())
-			.setDesc(i18n.importer.roamJson.descTitleProperty())
-			.addToggle(toggle => {
-				toggle.setValue(this.titleYAML);
-				toggle.onChange(async (value) => {
-					this.titleYAML = value;
-				});
-			});
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameDeOutline())
@@ -139,21 +113,15 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			const graphName = sanitizeFileName(file.basename);
-			// The top of a vault has the path `/`, so joining it to the graph
-			// name leaves a slash belonging to nothing at the front of every
-			// link the graph goes on to generate (#276).
 			const graphFolder = normalizePath(`${outputFolder.path}/${graphName}`);
 
-			// create the base graph folders
 			await this.createFolders(graphFolder);
 
-			// read the graph
 			const data = await file.readText();
 			const allPages = JSON.parse(data) as RoamPage[];
 
 			const { pages: markdownPages, uids: pageUids, attributeNames } = await this.newGraphConverter(graphFolder, progress).convert(allPages);
 
-			// WRITE-PROCESS: create the actual pages //
 			const totalCount = markdownPages.size;
 			let index = 1;
 			for (const [filename, markdownOutput] of markdownPages.entries()) {
@@ -162,7 +130,6 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 
 				try {
-					//create folders for nested pages [[some/nested/subfolder/page]]
 					const { parent, name } = parseFilePath(filename);
 					const folder = await this.createFolders(parent);
 
@@ -182,16 +149,6 @@ export class RoamJSONImporter extends FormatImporter {
 		}
 	}
 
-	/**
-	 * A Base over the graph, showing every page by the attributes it carries.
-	 *
-	 * Roam's own `{{attr-table}}` is what this stands in for: attributes are the
-	 * database-shaped part of a graph, and now that they arrive as properties a
-	 * table view is what reads them (#180).
-	 *
-	 * A graph using no attributes gets no Base - an empty table over a thousand
-	 * notes is not worth the file.
-	 */
 	private async writeGraphBase(graphFolder: string, graphName: string, attributeNames: string[]): Promise<void> {
 		if (attributeNames.length === 0) return;
 
@@ -209,14 +166,12 @@ export class RoamJSONImporter extends FormatImporter {
 			}, this.vault);
 		}
 		catch (error) {
-			// A graph that imported is worth keeping even when its Base will not.
 			console.error('Failed to create Base file:', error);
 		}
 	}
 
 	private getUserDNPFormat(): string {
-		// Obsidian does not type its internal plugins, so what is read of the
-		// daily-notes one is described here rather than reached for untyped.
+		// Obsidian does not type its internal plugin registry.
 		const app = this.app as { internalPlugins?: InternalPlugins };
 		const dailyNotePluginInstance = app.internalPlugins?.getPluginById('daily-notes')?.instance;
 		if (!dailyNotePluginInstance) {
@@ -231,8 +186,6 @@ export class RoamJSONImporter extends FormatImporter {
 		return new RoamGraphConverter({
 			graphFolder,
 			userDNPFormat: this.userDNPFormat,
-			fileDateYAML: this.fileDateYAML,
-			titleYAML: this.titleYAML,
 			deOutline: this.deOutline,
 			embedBlockReferences: this.embedBlockReferences,
 			dropUnresolvedReferences: this.dropUnresolvedReferences,
@@ -240,8 +193,6 @@ export class RoamJSONImporter extends FormatImporter {
 			dropQueries: this.dropQueries,
 			tagsAsLinks: this.tagsAsLinks,
 			downloadFirebaseFile: (blockText, folder) => this.downloadFirebaseFile(blockText, folder),
-			// The attachment resolver needs the note's real parent for `.` and
-			// `./subfolder` settings, including Roam titles that create folders.
 			prepareNote: async filename => void await this.createFolders(parseFilePath(filename).parent),
 			reportFailed: (id, reason) => progress.reportFailed(id, reason),
 			emptyTitleReason: i18n.importer.roamJson.reasonEmptyTitle(),
@@ -265,7 +216,6 @@ export class RoamJSONImporter extends FormatImporter {
 				syntaxLink = line.match(/!\[.*https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
 			}
 			else {
-				// I expect this to be a bare link which is typically a binary file
 				link = line.match(binaryRegex);
 				syntaxLink = line.match(/https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
 			}
@@ -275,7 +225,6 @@ export class RoamJSONImporter extends FormatImporter {
 
 				let filename = decodeURIComponent(firebaseShort.split('/').last() || '');
 				if (!filename) {
-					// If we can't find the filename, then generate one with a timestamp and the original extension.
 					const timestamp = Math.floor(Date.now() / 1000);
 					const extMatch = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
 					if (!extMatch) {
@@ -301,7 +250,6 @@ export class RoamJSONImporter extends FormatImporter {
 
 				progress.reportAttachmentSuccess(url);
 
-				// const newLine = line.replace(link.input, newFilePath)
 				return line.replace(syntaxLink[0], `![[${newFilePath}]]`);
 
 			}

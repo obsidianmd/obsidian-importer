@@ -2034,22 +2034,6 @@ translation=Xuất dữ liệu của bạn ở định dạng JSON.
 original=Pick the JSON file from your Roam export.
 translation=Chọn tệp JSON từ bản xuất Roam của bạn.
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=Thêm ngày tạo/cập nhật YAML
-
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=Nếu đã bật, ghi chú sẽ có thời gian tạo và thời gian chỉnh sửa từ Roam được thêm dưới dạng thuộc tính.
-
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=Thêm tiêu đề YAML
-
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=Nếu đã bật, ghi chú sẽ có tiêu đề đầy đủ được thêm dưới dạng thuộc tính (bất kể ký tự không hợp lệ trong tên tệp).
-
 [importer.roam-json.name-de-outline]
 original=Flatten the outline
 translation=
