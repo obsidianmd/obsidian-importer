@@ -25,9 +25,8 @@ interface Drop {
 	exports: PickedFile[];
 }
 
-/** The format list, and everything reached from it. */
-export const FORMAT_LIST = 0;
-export const IMPORT_SCREEN = 1;
+/** The list of formats: the screen every other one is reached from. */
+const FORMAT_LIST = 0;
 
 /**
  * What the flow needs from whatever is showing it: a modal has a title bar and
@@ -39,16 +38,14 @@ export interface ImporterShell {
 	/** What the drop overlay covers, and the window a file is dropped into. */
 	readonly containerEl: HTMLElement;
 	/**
-	 * Show the source, the output and the options together, on one screen with
-	 * one Import button. A shell asks for this when it has a way back of its
-	 * own — Settings does, in the back button above every page it opens — and
-	 * a Back button of the flow's would only be a second one saying less.
+	 * The shell draws the way back itself, as Settings does in the titlebar of
+	 * every page it opens, and calls `back()` when it is used. The flow draws
+	 * no Back button of its own then: a second one would say less.
 	 */
-	readonly combinesSteps: boolean;
+	readonly ownsBackButton: boolean;
 	/**
-	 * The flow moved: `depth` is FORMAT_LIST for the list of formats and
-	 * IMPORT_SCREEN for everything a format leads to, which is what a shell
-	 * showing pages needs in order to open and close one.
+	 * The flow moved: `depth` counts screens in from the format list, which is
+	 * what a shell showing pages needs in order to open and close them.
 	 */
 	setScreen(depth: number, title: string): void;
 	/** The format list fills the shell; every other screen ends in a button bar. */
@@ -95,6 +92,12 @@ export class ImporterFlow implements ImporterHost {
 	/** The screen showing now, so a shell that was taken away can draw it again. */
 	private drawCurrent: () => unknown = () => this.showFormatPicker();
 
+	/** Where the screen showing now goes back to, if anywhere. */
+	private goBack: (() => unknown) | null = null;
+
+	/** How deep the screen showing now is, for the ones that replace it. */
+	private depth: number = FORMAT_LIST;
+
 	/** Set while drawing, so a shell redrawing in response cannot recurse. */
 	private drawing: boolean = false;
 
@@ -139,12 +142,29 @@ export class ImporterFlow implements ImporterHost {
 	 * including one waiting on an importer, is left to finish on its own.
 	 */
 	redraw(): void {
+		this.draw(this.drawCurrent);
+	}
+
+	/**
+	 * The way back from the screen showing now, for a shell that draws it: a
+	 * step at a time, and out of a running import altogether, which is the one
+	 * screen there is no going back from.
+	 */
+	back(): void {
+		// The list is as far back as it goes: a shell unwinding several pages
+		// at once asks each of them, and only the first has anywhere to go.
+		if (!this.goBack && this.depth === FORMAT_LIST) return;
+
+		this.draw(this.goBack ?? (() => this.leave()));
+	}
+
+	private draw(screen: () => unknown): void {
 		if (this.drawing) return;
 
 		this.drawing = true;
 		let drawn: unknown;
 		try {
-			drawn = this.drawCurrent();
+			drawn = screen();
 		}
 		finally {
 			if (drawn instanceof Promise) {
@@ -180,7 +200,9 @@ export class ImporterFlow implements ImporterHost {
 	leave(): void {
 		if (this.current) {
 			this.hidden = true;
-			this.awayFrom = this.drawCurrent;
+			// Keep the screen the import is on, not whatever was left behind
+			// on the way out of it.
+			this.awayFrom ??= this.drawCurrent;
 			this.showHiddenNotice();
 		}
 
@@ -198,11 +220,22 @@ export class ImporterFlow implements ImporterHost {
 		this.current?.cancel();
 	}
 
+	/**
+	 * Tell the shell where the flow is before drawing: it may answer with a
+	 * screen of its own to draw into — Settings opens a page — and the flow
+	 * fills whichever element it is left with.
+	 */
+	private showScreen(depth: number, title: string, back: (() => unknown) | null): void {
+		this.depth = depth;
+		this.goBack = back;
+		this.shell.setScreen(depth, title);
+	}
+
 	showFormatPicker() {
 		this.drawCurrent = () => this.showFormatPicker();
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(true);
-		this.shell.setScreen(FORMAT_LIST, i18n.modal.titlePickFormat());
+		this.showScreen(FORMAT_LIST, i18n.modal.titlePickFormat(), null);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
@@ -251,6 +284,15 @@ export class ImporterFlow implements ImporterHost {
 
 		draw('');
 		search.inputEl.focus();
+	}
+
+	/** The way back out of the screen showing now, unless the shell has one. */
+	private addBackButton(buttonsEl: HTMLElement): void {
+		if (this.shell.ownsBackButton || !this.goBack) return;
+
+		buttonsEl.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+			el.addEventListener('click', () => this.back());
+		});
 	}
 
 	private addNavigableRow(
@@ -360,7 +402,7 @@ export class ImporterFlow implements ImporterHost {
 		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
-		this.shell.setScreen(IMPORT_SCREEN, i18n.modal.titleChooseMethod());
+		this.showScreen(FORMAT_LIST + 1, i18n.modal.titleChooseMethod(), () => this.showFormatPicker());
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
@@ -379,11 +421,7 @@ export class ImporterFlow implements ImporterHost {
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			if (!this.shell.combinesSteps) {
-				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-					el.addEventListener('click', () => this.showFormatPicker());
-				});
-			}
+			this.addBackButton(el);
 
 			const permalink = groupHelpPermalink(this.plugin.importers, group);
 			if (permalink) {
@@ -428,11 +466,16 @@ export class ImporterFlow implements ImporterHost {
 
 	private showFirstStep() {
 		if (this.importer.notAvailable) {
-			this.drawStep([this.optionsEl], () => this.showPreviousScreen(), () => {});
+			this.drawStep(this.sourceDepth(), this.optionsEl, () => this.showPreviousScreen(), () => {});
 			return;
 		}
 
 		this.showSourceStep();
+	}
+
+	/** The source comes after the method picker, for a format that has one. */
+	private sourceDepth(): number {
+		return groupOf(this.selectedId) ? FORMAT_LIST + 2 : FORMAT_LIST + 1;
 	}
 
 	/** Keep grouped importers under the app name. */
@@ -448,36 +491,12 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	showSourceStep() {
-		if (this.shell.combinesSteps) {
-			void this.showWholeImport();
-			return;
-		}
-
 		this.drawCurrent = () => this.showSourceStep();
-		this.drawStep([this.sourceEl], () => this.showPreviousScreen(), el => {
+		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), el => {
 			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 				el.addEventListener('click', () => void this.showOutputStep());
 			});
 
-			this.sourceChanged();
-		});
-	}
-
-	/**
-	 * Every step at once, for a shell that would rather scroll than page: what
-	 * to import, where it lands, and whatever else the format asks, under one
-	 * Import button that waits for a source the same way Continue does.
-	 */
-	private async showWholeImport() {
-		const { importer } = this;
-
-		this.drawCurrent = () => this.showWholeImport();
-
-		await importer.ready;
-		importer.drawOutputStep();
-
-		this.drawStep([this.sourceEl, this.outputEl, this.optionsEl], null, el => {
-			this.nextButtonEl = this.addImportButton(el, importer);
 			this.sourceChanged();
 		});
 	}
@@ -494,7 +513,7 @@ export class ImporterFlow implements ImporterHost {
 		await importer.ready;
 		importer.drawOutputStep();
 
-		this.drawStep([this.outputEl], () => this.showSourceStep(), el => {
+		this.drawStep(this.sourceDepth() + 1, this.outputEl, () => this.showSourceStep(), el => {
 			if (this.hasOptionsStep()) {
 				el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
 					el.addEventListener('click', () => this.showOptionsStep());
@@ -510,7 +529,7 @@ export class ImporterFlow implements ImporterHost {
 		const { importer } = this;
 
 		this.drawCurrent = () => this.showOptionsStep();
-		this.drawStep([this.optionsEl], () => void this.showOutputStep(), el => {
+		this.drawStep(this.sourceDepth() + 2, this.optionsEl, () => this.showOutputStep(), el => {
 			this.addImportButton(el, importer);
 		});
 	}
@@ -531,7 +550,7 @@ export class ImporterFlow implements ImporterHost {
 		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
-		this.shell.setScreen(IMPORT_SCREEN, i18n.modal.titleChooseMethod());
+		this.showScreen(FORMAT_LIST + 1, i18n.modal.titleChooseMethod(), back);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
@@ -550,11 +569,7 @@ export class ImporterFlow implements ImporterHost {
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			if (!this.shell.combinesSteps) {
-				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-					el.addEventListener('click', back);
-				});
-			}
+			this.addBackButton(el);
 
 			el.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
 				el.addEventListener('click', () => this.startOver());
@@ -702,27 +717,21 @@ export class ImporterFlow implements ImporterHost {
 		this.dropOverlayEl = null;
 	}
 
-	private drawStep(stepEls: (HTMLElement | null)[], onBack: (() => void) | null, buildButtons: (buttonsEl: HTMLElement) => void) {
+	private drawStep(depth: number, stepEl: HTMLElement | null, onBack: (() => unknown) | null, buildButtons: (buttonsEl: HTMLElement) => void) {
 		const definition = this.plugin.importers[this.selectedId];
 
 		this.nextButtonEl = null;
 		this.pickingFormat = false;
 		this.shell.setPickingFormat(false);
-		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
+		this.showScreen(depth, this.importTitle(), onBack);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		for (const stepEl of stepEls) {
-			if (stepEl) contentEl.append(stepEl);
-		}
+		if (stepEl) contentEl.append(stepEl);
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			if (onBack && !this.shell.combinesSteps) {
-				el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
-					el.addEventListener('click', onBack);
-				});
-			}
+			this.addBackButton(el);
 
 			if (definition.helpPermalink) {
 				const permalink = definition.helpPermalink;
@@ -753,13 +762,16 @@ export class ImporterFlow implements ImporterHost {
 
 		if (templateResult === false) {
 			this.current = null;
-			if (this.shell.combinesSteps) void this.showWholeImport();
-			else if (this.hasOptionsStep()) this.showOptionsStep();
+			if (this.hasOptionsStep()) this.showOptionsStep();
 			else void this.showOutputStep();
 			return;
 		}
 
-		this.showProgress(ctx, importer.interruption);
+		// The screen it was started from is where it is watched and finished:
+		// held on to, because the flow can be sent back to the list meanwhile.
+		const depth = this.depth;
+
+		this.showProgress(ctx, importer.interruption, depth);
 		const name = importerName(this.selectedId);
 		let threw = false;
 		try {
@@ -796,13 +808,14 @@ export class ImporterFlow implements ImporterHost {
 				this.finishHiddenNotice(ctx);
 			}
 
-			this.showFinished(ctx);
+			this.showFinished(ctx, depth);
 		}
 	}
 
-	private showProgress(ctx: ImportProgressUI, interruption: FormatImporter['interruption']) {
-		this.drawCurrent = () => this.showProgress(ctx, interruption);
-		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
+	private showProgress(ctx: ImportProgressUI, interruption: FormatImporter['interruption'], depth: number) {
+		this.drawCurrent = () => this.showProgress(ctx, interruption, depth);
+		// An import cannot be stepped back into; leaving it is the way out.
+		this.showScreen(depth, this.importTitle(), null);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
@@ -883,9 +896,9 @@ export class ImporterFlow implements ImporterHost {
 		}
 	}
 
-	private showFinished(ctx: ImportProgressUI) {
-		this.drawCurrent = () => this.showFinished(ctx);
-		this.shell.setScreen(IMPORT_SCREEN, this.importTitle());
+	private showFinished(ctx: ImportProgressUI, depth: number) {
+		this.drawCurrent = () => this.showFinished(ctx, depth);
+		this.showScreen(depth, this.importTitle(), null);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();

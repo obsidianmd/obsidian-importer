@@ -1,8 +1,8 @@
 import { App, PluginSettingTab, Setting, SettingPage } from 'obsidian';
-import { FORMAT_LIST, ImporterFlow, ImporterShell } from './importer-flow';
+import { ImporterFlow, ImporterShell } from './importer-flow';
 import type ImporterPlugin from './main';
 
-/** A page holding one import, with the back button that leads out of it. */
+/** One screen of an import, with the back button that leads out of it. */
 class ImportPage extends SettingPage {
 	constructor(private tab: ImporterSettingTab, title: string) {
 		super();
@@ -14,7 +14,7 @@ class ImportPage extends SettingPage {
 	}
 
 	display(): void {
-		this.tab.drawInPage();
+		this.tab.drawInPage(this);
 	}
 
 	hide(): void {
@@ -24,16 +24,15 @@ class ImportPage extends SettingPage {
 
 /**
  * The import flow as a settings tab: the format list is the tab itself, and
- * the format chosen from it opens a page — one screen holding what to import,
- * where it lands and whatever else the format asks, the way Settings shows
- * anything that needs a screen of its own.
+ * every screen from there is a page opened over it, the way Settings shows
+ * anything with more behind it. Its back button walks them one at a time.
  */
 export class ImporterSettingTab extends PluginSettingTab implements ImporterShell {
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
-	/** The page opened over the tab carries the way back out of it. */
-	readonly combinesSteps: boolean = true;
+	/** Every page Settings opens comes with the way back out of it. */
+	readonly ownsBackButton: boolean = true;
 
 	/** Built by display(), under the heading the flow retitles per screen. */
 	private rootContentEl: HTMLElement;
@@ -48,7 +47,17 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	 */
 	private title: string = '';
 
-	private page: ImportPage | null = null;
+	/** The pages open over the tab, one for each screen in front of it. */
+	private pages: ImportPage[] = [];
+
+	/** How deep the flow says it is, which is how many pages there should be. */
+	private depth: number = 0;
+
+	/** Whether the tab is the one Settings is showing. */
+	private visible: boolean = false;
+
+	/** Set between a page closing and the flow being told to step back. */
+	private pendingBack: boolean = false;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app, plugin);
@@ -56,9 +65,9 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.flow = new ImporterFlow(app, plugin, this);
 	}
 
-	/** Whichever of the two is showing: the tab, or the page opened over it. */
+	/** Whichever is showing: the topmost page, or the tab under them all. */
 	get contentEl(): HTMLElement {
-		return this.page ? this.page.containerEl : this.rootContentEl;
+		return this.topPage()?.containerEl ?? this.rootContentEl;
 	}
 
 	display(): void {
@@ -69,37 +78,57 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 
 		this.heading = new Setting(containerEl).setHeading().setName(this.title);
 		this.rootContentEl = containerEl.createDiv();
+		this.visible = true;
 
-		this.flow.attach();
+		// A page just closed draws itself once the flow has stepped back to
+		// what is behind it; drawing here would put the screen that closed
+		// straight back on top.
+		if (!this.pendingBack) this.flow.attach();
 	}
 
 	hide(): void {
+		this.visible = false;
 		this.flow.detach();
 	}
 
-	/** Obsidian drew the page: the flow fills it with the screen it is on. */
-	drawInPage(): void {
+	/**
+	 * Settings drew a page. Only the page the flow is on has anything to put
+	 * in it: the ones beneath are covered, and a screen that opened more than
+	 * one page at once left those it passed empty on the way.
+	 */
+	drawInPage(page: ImportPage): void {
+		if (page !== this.topPage() || this.pages.length !== this.depth) return;
+
 		this.flow.redraw();
 	}
 
-	/** The page was closed — by the back button, unless the flow closed it. */
+	/** A page was closed. By its back button, unless the flow closed it. */
 	pageClosed(page: ImportPage): void {
-		if (this.page !== page) return;
+		if (page !== this.topPage()) return;
 
-		this.page = null;
-		this.flow.leave();
+		this.pages.pop();
+		const behind = this.pages.length;
+		this.pendingBack = true;
+
+		// Answered once Settings has finished with the page, both because
+		// stepping back closes pages of its own and because what else went
+		// with this one is how a step back is told from a teardown.
+		queueMicrotask(() => {
+			this.pendingBack = false;
+
+			// The rest of the stack went too, or the tab did: Settings is
+			// putting the whole thing away rather than going back through it,
+			// and the flow keeps the screen it was on to be returned to.
+			if (this.pages.length !== behind || !this.visible) return;
+
+			this.flow.back();
+		});
 	}
 
 	setScreen(depth: number, title: string): void {
 		this.title = title;
-
-		if (depth === FORMAT_LIST) {
-			this.closePage();
-			this.heading?.setName(title);
-			return;
-		}
-
-		this.openPage(title);
+		this.depth = depth;
+		this.showPages(title);
 	}
 
 	setPickingFormat(picking: boolean): void {
@@ -122,28 +151,33 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		else setting.openTabById(this.plugin.manifest.id);
 	}
 
-	private openPage(title: string): void {
-		const open = this.page;
-
-		if (open) {
-			// The page outlives the screen: choosing a method retitles it.
-			open.title = title;
-			open.titlebarEl.querySelector('.setting-page-title')?.setText(title);
-			return;
+	/** Open and close pages until there is one for every screen so far. */
+	private showPages(title: string): void {
+		while (this.pages.length > this.depth) {
+			// Popped first: closing calls back into pageClosed, which is for
+			// the back button, and this is the flow having moved by itself.
+			this.pages.pop();
+			this.app.setting.closePage();
 		}
 
-		// Set before opening: Obsidian draws the page on the way in, and the
-		// flow draws into whichever of the two contentEls is showing.
-		const page = this.page = new ImportPage(this, title);
-		this.app.setting.openPage(page);
+		while (this.pages.length < this.depth) {
+			const page = new ImportPage(this, title);
+			this.pages.push(page);
+			this.app.setting.openPage(page);
+		}
+
+		const top = this.topPage();
+		if (top) this.retitle(top, title);
+		else this.heading?.setName(title);
 	}
 
-	private closePage(): void {
-		if (!this.page) return;
+	/** A page outlives the screen in it: choosing a method retitles it. */
+	private retitle(page: ImportPage, title: string): void {
+		page.title = title;
+		page.titlebarEl.querySelector('.setting-page-title')?.setText(title);
+	}
 
-		// Cleared first: closing calls back into pageClosed, which is for the
-		// back button, and this is the flow having moved on by itself.
-		this.page = null;
-		this.app.setting.closePage();
+	private topPage(): ImportPage | null {
+		return this.pages[this.pages.length - 1] ?? null;
 	}
 }

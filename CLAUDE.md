@@ -38,14 +38,20 @@ opinion about: the title and how deep the screen is, what Done does, and how
 to come back to an import the user has left.
 
 Two shells implement it. `ImporterModal` is the ribbon and the command, and
-pages its steps one at a time behind Back and Continue. `ImporterSettingTab`
-sets `combinesSteps`, which asks the flow for one screen holding the source,
-the output and the options together under a single Import button, and to
-draw no Back button: Settings has one already, in the titlebar of the page
-it opens over a tab. Nothing is ever more than one page deep, so that back
-button always leads to the list of formats — including from a grouped
-format, whose method picker is a screen on the same page rather than a page
-of its own.
+draws its own Back beside Continue. `ImporterSettingTab` sets
+`ownsBackButton`: every screen is a page opened over the tab, and Settings
+puts the way back in each page's titlebar, so a second one in the content
+would only say less. `back()` is what that button reaches, and it is the
+same journey Back makes in the modal — one step, to the screen behind.
+
+Which is why a screen says how deep it is. The format list is 0, the method
+picker 1, and a step counts on from there; the tab opens and closes pages
+until it has one for each. Only the screen the flow is on draws: pages
+beneath are covered, and one deep enough to have opened several at once
+leaves those it passed empty.
+
+A running import is the exception with nothing behind it. Its back leaves
+the flow altogether, and unwinds however many pages that takes.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in
@@ -55,10 +61,16 @@ A shell that goes away calls `flow.detach()`, and one that comes back calls
 `flow.attach()`. Between those an import keeps running with only the notice
 to report it, and the flow redraws the screen it was on when the shell
 returns — so the settings window can be closed mid-import and reopened onto
-the same progress. `flow.leave()` is the other way out: the user walked back
-past a running import rather than closing the window, so the format list is
-what they get, and the notice remembers the screen to return them to.
-Closing the modal is different again: it calls `dispose()`, which cancels.
+the same progress, pages and all. `flow.leave()` is the other way out: the
+user walked back past a running import rather than closing the window, so
+the format list is what they get, and `awayFrom` remembers the screen the
+notice returns them to. Closing the modal is different again: it calls
+`dispose()`, which cancels.
+
+Settings closing a whole stack of pages looks like a back button pressed
+several times, so `pageClosed` answers a beat later, and does nothing if the
+rest of the stack — or the tab — went with it. A teardown leaves the flow
+where it stood, which is what it is reopened on.
 
 ## The conversion seam
 
