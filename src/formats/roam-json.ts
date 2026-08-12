@@ -1,5 +1,5 @@
 import { ImportContext } from '../import-context';
-import { Notice, requestUrl } from 'obsidian';
+import { normalizePath, Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { i18n } from '../i18n';
@@ -96,7 +96,10 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			const graphName = sanitizeFileName(file.basename);
-			const graphFolder = `${outputFolder.path}/${graphName}`;
+			// The top of a vault has the path `/`, so joining it to the graph
+			// name leaves a slash belonging to nothing at the front of every
+			// link the graph goes on to generate (#276).
+			const graphFolder = normalizePath(`${outputFolder.path}/${graphName}`);
 
 			// create the base graph folders
 			await this.createFolders(graphFolder);
@@ -199,7 +202,7 @@ export class RoamJSONImporter extends FormatImporter {
 
 	private getUserDNPFormat(): string {
 		// @ts-expect-error : Internal Method
-		const dailyNotePluginInstance = this.app.internalPlugins.getPluginById('daily-notes').instance;
+		const dailyNotePluginInstance = this.app.internalPlugins?.getPluginById('daily-notes')?.instance;
 		if (!dailyNotePluginInstance) {
 			console.warn('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
 			return 'YYYY-MM-DD';
