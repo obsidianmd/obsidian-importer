@@ -144,11 +144,11 @@ translation=រកមិនឃើញទម្រង់ទេ។
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=ទម្លាក់ឯកសារដើម្បីនាំចូល
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=បង្ហាញទាំងអស់នូវទម្រង់
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=ចំណងជើងទទេ
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=ឯកសារ និងថតឯកសារ
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=ចម្លងឯកសារ និងថតឯកសារទៅក្នុងវ៉ាល់របស់អ្នក
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=ឯកសារដែលត្រូវចម្លង
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=ទម្លាក់ឯកសារ ឬថតឯកសារនៅកន្លែងណាមួយក្នុងបង្អួចដើម្បីចម្លងវាទៅក្នុងវ៉ាល់របស់អ្នក។
 
 [importer.evernote.name]
 original=Evernote

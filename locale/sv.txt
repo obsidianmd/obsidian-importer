@@ -144,11 +144,11 @@ translation=Inga format hittades.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Släpp filer för att importera
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Visa alla format
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Tom titel
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Filer och mappar
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopiera filer och mappar till ditt valv
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Filer att kopiera
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Släpp filer eller mappar var som helst i fönstret för att kopiera dem till ditt valv.
 
 [importer.evernote.name]
 original=Evernote

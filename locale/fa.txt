@@ -144,11 +144,11 @@ translation=هیچ قالب‌بندی‌ای یافت نشد.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=پرونده‌ها را برای وارد کردن رها کنید
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=نمایش همه قالب‌ها
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=عنوان خالی
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=پرونده‌ها و پوشه‌ها
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=پرونده‌ها و پوشه‌ها را در گاوصندوق خود کپی کنید
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=پرونده‌ها برای کپی
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=پرونده‌ها یا پوشه‌ها را در هر جای پنجره رها کنید تا در گاوصندوق شما کپی شوند.
 
 [importer.evernote.name]
 original=Evernote

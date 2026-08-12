@@ -144,11 +144,11 @@ translation=ไม่พบรูปแบบ
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=วางไฟล์เพื่อนำเข้า
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=แสดงทั้งหมดรูปแบบ
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=ชื่อว่างเปล่า
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=ไฟล์และโฟลเดอร์
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=คัดลอกไฟล์และโฟลเดอร์ไปยังห้องนิรภัยของคุณ
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=ไฟล์ที่จะคัดลอก
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=วางไฟล์หรือโฟลเดอร์ที่ใดก็ได้ในหน้าต่างเพื่อคัดลอกไปยังห้องนิรภัยของคุณ
 
 [importer.evernote.name]
 original=Evernote

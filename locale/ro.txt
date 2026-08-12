@@ -144,11 +144,11 @@ translation=Nu s-au găsit formate.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Plasați fișiere pentru a importa
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Afișează toate formatele
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Titlu gol
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Fișiere și foldere
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Copiază fișiere și foldere în seiful tău
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Fișiere de copiat
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Plasați fișiere sau foldere oriunde în fereastră pentru a le copia în seiful dumneavoastră.
 
 [importer.evernote.name]
 original=Evernote

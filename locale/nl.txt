@@ -144,11 +144,11 @@ translation=Geen formaten gevonden.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Bestanden neerzetten om te importeren
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Alles tonen
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Lege titel
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Bestanden en mappen
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopieer bestanden en mappen naar je kluis
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Te kopiëren bestanden
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Zet bestanden of mappen ergens in het venster neer om ze naar je kluis te kopiëren.
 
 [importer.evernote.name]
 original=Evernote

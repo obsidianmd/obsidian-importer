@@ -144,11 +144,11 @@ translation=Δεν βρέθηκαν μορφές.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Απόθεση αρχείων για εισαγωγή
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Εμφάνιση όλων των μορφών
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Κενό τίτλος
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Αρχεία και φάκελοι
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Αντιγραφή αρχείων και φακέλων στο θησαυροφυλάκιό σας
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Αρχεία προς αντιγραφή
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Κάντε απόθεση αρχείων ή φακέλων οπουδήποτε στο παράθυρο για να τα αντιγράψετε στο θησαυροφυλάκιό σας.
 
 [importer.evernote.name]
 original=Evernote

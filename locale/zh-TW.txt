@@ -144,11 +144,11 @@ translation=未找到任何格式。
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=放下檔案以匯入
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=顯示所有格式
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=空白標題
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=檔案與資料夾
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=複製檔案與資料夾到您的保管庫
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=要複製的檔案
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=將檔案或資料夾放下到視窗中的任意位置，即可複製到您的保管庫。
 
 [importer.evernote.name]
 original=Evernote

@@ -144,11 +144,11 @@ translation=לא נמצאו פורמטים.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=שחרר קבצים לייבוא
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=הצג הכול
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=כותרת ריק
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=קבצים ותיקיות
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=העתק קבצים ותיקיות לתוך הכספת שלך
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=קבצים להעתקה
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=שחרר קבצים או תיקיות בכל מקום בחלון כדי להעתיק אותם לתוך הכספת שלך.
 
 [importer.evernote.name]
 original=Evernote

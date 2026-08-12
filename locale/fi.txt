@@ -144,11 +144,11 @@ translation=Muotoja ei löytynyt.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Pudota tiedostot tuotaviksi
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Näytä kaikki muodot
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Tyhjä otsikko
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Tiedostot ja kansiot
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopioi tiedostot ja kansiot holviisi
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Kopioitavat tiedostot
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Pudota tiedostot tai kansiot mihin tahansa ikkunaan kopioidaksesi ne holviisi.
 
 [importer.evernote.name]
 original=Evernote
