@@ -169,6 +169,8 @@ export class ImporterModal extends Modal implements ImporterShell {
 	/** A modal has no chrome to go back with: the flow draws Back itself. */
 	readonly ownsBackButton: boolean = false;
 
+	readonly showsHelp: boolean = true;
+
 	private hidden: boolean = false;
 
 	constructor(app: App, plugin: ImporterPlugin) {

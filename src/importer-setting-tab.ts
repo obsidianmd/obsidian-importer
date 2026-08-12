@@ -34,6 +34,8 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	/** Every page Settings opens comes with the way back out of it. */
 	readonly ownsBackButton: boolean = true;
 
+	readonly showsHelp: boolean = false;
+
 	/** Built by display(), under the heading the flow retitles per screen. */
 	private rootContentEl: HTMLElement;
 

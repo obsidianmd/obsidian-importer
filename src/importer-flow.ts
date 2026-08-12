@@ -44,6 +44,11 @@ export interface ImporterShell {
 	 */
 	readonly ownsBackButton: boolean;
 	/**
+	 * Whether the screens offer a link to the format's documentation. The
+	 * modal does; a setting tab leaves it out.
+	 */
+	readonly showsHelp: boolean;
+	/**
 	 * The flow moved: `depth` counts screens in from the format list, which is
 	 * what a shell showing pages needs in order to open and close them.
 	 */
@@ -288,6 +293,15 @@ export class ImporterFlow implements ImporterHost {
 		search.inputEl.focus();
 	}
 
+	/** What this format's documentation is, where the shell shows such a thing. */
+	private addHelpButton(buttonsEl: HTMLElement, permalink: string | undefined): void {
+		if (!permalink || !this.shell.showsHelp) return;
+
+		buttonsEl.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
+			el.addEventListener('click', () => window.open(helpUrl(permalink)));
+		});
+	}
+
 	/** The way back out of the screen showing now, unless the shell has one. */
 	private addBackButton(buttonsEl: HTMLElement): void {
 		if (this.shell.ownsBackButton || !this.goBack) return;
@@ -422,16 +436,13 @@ export class ImporterFlow implements ImporterHost {
 			setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
 		}
 
-		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			this.addBackButton(el);
+		const buttonsEl = createDiv('modal-button-container importer-step-buttons');
+		this.addBackButton(buttonsEl);
+		this.addHelpButton(buttonsEl, groupHelpPermalink(this.plugin.importers, group));
 
-			const permalink = groupHelpPermalink(this.plugin.importers, group);
-			if (permalink) {
-				el.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
-					el.addEventListener('click', () => window.open(helpUrl(permalink)));
-				});
-			}
-		});
+		// Both belong to the shell in Settings, where the row would be empty,
+		// and the space it still takes reads as a gap under the list.
+		if (buttonsEl.childElementCount > 0) contentEl.append(buttonsEl);
 
 		rows[0]?.focus();
 	}
@@ -735,12 +746,7 @@ export class ImporterFlow implements ImporterHost {
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
 			this.addBackButton(el);
 
-			if (definition.helpPermalink) {
-				const permalink = definition.helpPermalink;
-				el.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
-					el.addEventListener('click', () => window.open(helpUrl(permalink)));
-				});
-			}
+			this.addHelpButton(el, definition.helpPermalink);
 
 			buildButtons(el);
 		});
