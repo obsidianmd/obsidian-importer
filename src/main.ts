@@ -894,10 +894,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		if (importer.notAvailable) return;
 
-		if (importer.takeDropped(drop.items, drop.files) === 0) {
-			new Notice(i18n.modal.msgNoFormatForFiles());
-			return;
-		}
+		importer.takeDropped(drop.items, drop.files);
 
 		// init() may have drawn the source controls asynchronously.
 		this.showSourceStep();

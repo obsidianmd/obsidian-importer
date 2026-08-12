@@ -146,10 +146,6 @@ translation=រកមិនឃើញទម្រង់ទេ។
 original=Drop files to import
 translation=
 
-[modal.msg-no-format-for-files]
-original=No format here reads what you dropped.
-translation=
-
 [modal.button-show-all-formats]
 original=Show all formats
 translation=

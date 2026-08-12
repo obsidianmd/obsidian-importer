@@ -71,7 +71,6 @@ export const en = {
 		searchPlaceholder: 'Filter...',
 		msgNoFormats: 'No formats found.',
 		msgDropToImport: 'Drop files to import',
-		msgNoFormatForFiles: 'No format here reads what you dropped.',
 		buttonShowAllFormats: 'Show all formats',
 		buttonContinue: 'Continue',
 		buttonImport: 'Import',
