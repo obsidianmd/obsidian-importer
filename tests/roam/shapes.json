@@ -1,0 +1,181 @@
+[
+	{
+		"title": "Sapiens",
+		"uid": "page-sapiens",
+		"create-time": 1600000000000,
+		"edit-time": 1600000100000,
+		"children": [
+			{ "string": "Author:: [[Yuval Noah Harari]]", "uid": "attr-author" },
+			{ "string": "Status:: read", "uid": "attr-status" },
+			{ "string": "Rating:: 8/10", "uid": "attr-rating" },
+			{
+				"string": "Reading notes",
+				"uid": "notes-head",
+				"children": [
+					{ "string": "Priority:: high", "uid": "attr-nested" },
+					{ "string": "The cognitive revolution is the turning point", "uid": "blk-cognitive" },
+					{ "string": "A shared fiction is what lets strangers cooperate", "uid": "blk-fiction" }
+				]
+			},
+			{
+				"string": "Themes::",
+				"uid": "attr-with-children",
+				"children": [
+					{ "string": "#history", "uid": "blk-history" }
+				]
+			}
+		]
+	},
+	{
+		"title": "Dune",
+		"uid": "page-dune",
+		"create-time": 1600000200000,
+		"edit-time": 1600000300000,
+		"children": [
+			{ "string": "Author:: [[Frank Herbert]]", "uid": "attr-author-2" },
+			{ "string": "Status:: reading", "uid": "attr-status-2" }
+		]
+	},
+	{
+		"title": "References",
+		"uid": "page-references",
+		"create-time": 1600000400000,
+		"edit-time": 1600000500000,
+		"children": [
+			{ "string": "A reference to a block on another page: ((blk-cognitive))", "uid": "ref-plain" },
+			{ "string": "The same block again: ((blk-cognitive))", "uid": "ref-again" },
+			{ "string": "An aliased reference: [the turning point](((blk-cognitive)))", "uid": "ref-aliased" },
+			{ "string": "{{[[TODO]]}} a task with a reference [->](((blk-fiction)))", "uid": "ref-after-todo" },
+			{ "string": "A long ((and considered)) aside, which is nobody's block id", "uid": "ref-parenthetical" },
+			{ "string": "A reference to a block that is not in this graph: ((nosuchblk))", "uid": "ref-missing" },
+			{
+				"string": "A reference to a block of several lines: ((blk-fenced))",
+				"uid": "ref-to-fence"
+			}
+		]
+	},
+	{
+		"title": "Embeds",
+		"uid": "page-embeds",
+		"create-time": 1600000600000,
+		"edit-time": 1600000700000,
+		"children": [
+			{ "string": "{{embed: ((blk-with-children))}}", "uid": "embed-plain" },
+			{ "string": "{{[[embed]]: ((blk-with-children))}}", "uid": "embed-bracketed" },
+			{ "string": "{{embed-path: ((blk-cognitive))}}", "uid": "embed-path" },
+			{ "string": "{{[[embed]]: [[Sapiens]]}}", "uid": "embed-page" },
+			{ "string": "{{embed: ((nosuchblk))}}", "uid": "embed-missing" }
+		]
+	},
+	{
+		"title": "Source",
+		"uid": "page-source",
+		"create-time": 1600000800000,
+		"edit-time": 1600000900000,
+		"children": [
+			{
+				"string": "An embedded block keeps the children under it",
+				"uid": "blk-with-children",
+				"children": [
+					{ "string": "the first child", "uid": "blk-child-one" },
+					{ "string": "the second child", "uid": "blk-child-two" }
+				]
+			},
+			{ "string": "```js\nconst one = 1;\nconst two = 2;```", "uid": "blk-fenced" }
+		]
+	},
+	{
+		"title": "Tables",
+		"uid": "page-tables",
+		"create-time": 1600001000000,
+		"edit-time": 1600001100000,
+		"children": [
+			{
+				"string": "A table whose cells each have one child",
+				"uid": "table-simple-head",
+				"children": [
+					{
+						"string": "{{[[table]]}}",
+						"uid": "table-simple",
+						"children": [
+							{ "string": "Name", "uid": "t1", "children": [{ "string": "Colour", "uid": "t2" }] },
+							{ "string": "Apple", "uid": "t3", "children": [{ "string": "Red", "uid": "t4" }] },
+							{ "string": "Pear", "uid": "t5", "children": [{ "string": "Green", "uid": "t6" }] }
+						]
+					}
+				]
+			},
+			{
+				"string": "A table where one cell covers several rows, and one row stops short",
+				"uid": "table-shared-head",
+				"children": [
+					{
+						"string": "{{table}}",
+						"uid": "table-shared",
+						"children": [
+							{ "string": "Kind", "uid": "u1", "children": [{ "string": "Name", "uid": "u2", "children": [{ "string": "Note", "uid": "u3" }] }] },
+							{
+								"string": "Fruit",
+								"uid": "u4",
+								"children": [
+									{ "string": "Apple", "uid": "u5", "children": [{ "string": "keeps well", "uid": "u6" }] },
+									{ "string": "Pear", "uid": "u7", "children": [{ "string": "does not", "uid": "u8" }] }
+								]
+							},
+							{ "string": "Vegetable", "uid": "u9" }
+						]
+					}
+				]
+			},
+			{
+				"string": "A table with markup, a pipe and a marker with no rows",
+				"uid": "table-markup-head",
+				"children": [
+					{
+						"string": "{{[[table]]}}",
+						"uid": "table-markup",
+						"children": [
+							{ "string": "{{[[TODO]]}} ^^done^^", "uid": "v1", "children": [{ "string": "a | b", "uid": "v2" }] }
+						]
+					},
+					{ "string": "{{[[table]]}}", "uid": "table-empty" },
+					{ "string": "{{[[table}}", "uid": "table-unbalanced", "children": [{ "string": "not a table", "uid": "v3" }] }
+				]
+			}
+		]
+	},
+	{
+		"title": "Queries",
+		"uid": "page-queries",
+		"create-time": 1600001200000,
+		"edit-time": 1600001300000,
+		"children": [
+			{ "string": "{{query: {and: [[Sapiens]] [[Dune]]}}}", "uid": "q-and" },
+			{ "string": "{{[[query]]: {or: [[Sapiens]] [[Dune]]}}}", "uid": "q-or" },
+			{ "string": "{{query: {and: [[Sapiens]] {not: [[Dune]]}}}}", "uid": "q-not" },
+			{ "string": "{{query: {and: #history {or: [[Sapiens]] [[Dune]]}}}}", "uid": "q-nested" },
+			{ "string": "{{query: {between: [[January 1st, 2021]] [[today]]}}}", "uid": "q-between" },
+			{ "string": "Written as an example: `{{query: {and: [[A]] [[B]]}}}`", "uid": "q-in-code" }
+		]
+	},
+	{
+		"title": "roam/css",
+		"uid": "page-namespaced",
+		"create-time": 1600001400000,
+		"edit-time": 1600001500000,
+		"children": [
+			{ "string": "A page whose title Roam wrote with a slash, which makes a folder here", "uid": "ns-1" },
+			{ "string": "Linked to as [[roam/css]] from elsewhere", "uid": "ns-2" }
+		]
+	},
+	{
+		"title": "January 1st, 2021",
+		"uid": "01-01-2021",
+		"create-time": 1600001600000,
+		"edit-time": 1600001700000,
+		"children": [
+			{ "string": "A daily note, named the way the daily-notes plugin is set to", "uid": "dnp-1" },
+			{ "string": "It links to [[January 2nd, 2021]] and to [[Sapiens]]", "uid": "dnp-2" }
+		]
+	}
+]
