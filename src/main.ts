@@ -783,7 +783,6 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	private showFormatOffer(ids: string[], drop: Drop) {
 		const { contentEl, modalEl } = this;
-		const { files, exports } = drop;
 
 		// Preserve the screen interrupted by the drop.
 		const back = this.pickingFormat || !this.importer
@@ -796,28 +795,20 @@ export class ImporterModal extends Modal implements ImporterHost {
 		modalEl.removeClass('is-picking-format');
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
-		// Nothing to say when the rows are the whole answer.
-		if (exports.length > 0) {
-			contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-				el.setText(exports.length === 1
-					? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
-					: i18n.modal.msgFormatReadsFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
-			});
-		}
-
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
-			const row = this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
-				.setName(importerOptionText(id));
+			// What each one would take of the drop, which is how they differ:
+			// two formats reading .json where one of them reads a single file,
+			// and copying, which takes all of it.
+			const takes = this.wouldTake(id, drop);
 
-			// A drop of nothing but folders is counted as what was dropped.
-			if (id === COPY_FILES) {
-				row.setDesc(files.length > 0
-					? i18n.nouns.fileWithCount({ count: files.length })
+			this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
+				.setName(importerOptionText(id))
+				.setDesc(takes > 0
+					? i18n.nouns.fileWithCount({ count: takes })
 					: i18n.nouns.itemWithCount({ count: drop.items.length }));
-			}
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
@@ -836,6 +827,30 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private startOver(): void {
 		this.selectedId = '';
 		this.showFormatPicker();
+	}
+
+	/**
+	 * How much of a drop an importer would take, asked of one built for the
+	 * question and thrown away. Only the importer itself knows: its picker may
+	 * accept companions its format is not identified by, or one file alone.
+	 */
+	private wouldTake(id: string, drop: Drop): number {
+		try {
+			const importer = new this.plugin.importers[id].importer(this.app, {
+				sourceEl: null,
+				outputEl: null,
+				optionsEl: null,
+				plugin: this.plugin,
+				importerId: id,
+				abortController: new AbortController(),
+			});
+
+			return importer.wouldTake(drop.items, drop.files);
+		}
+		catch (e) {
+			console.error(`Could not ask the ${id} importer what it would take`, e);
+			return 0;
+		}
 	}
 
 	private fileTypes(): ImporterFileTypes[] {

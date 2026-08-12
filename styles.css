@@ -368,7 +368,3 @@
 	font-size: var(--font-ui-large);
 	font-weight: var(--font-medium);
 }
-
-.importer-drop-hint {
-	padding-bottom: var(--size-4-3);
-}

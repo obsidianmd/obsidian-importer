@@ -146,14 +146,6 @@ translation=Nenašli sa žiadne formáty.
 original=Drop files to import
 translation=
 
-[modal.msg-format-reads-file]
-original={{name}} can be imported by a format here.
-translation=
-
-[modal.msg-format-reads-files]
-original={{files}} can be imported by a format here.
-translation=
-
 [modal.msg-no-format-for-files]
 original=No format here reads what you dropped.
 translation=
