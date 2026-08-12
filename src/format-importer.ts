@@ -547,6 +547,11 @@ export abstract class FormatImporter {
 		return this.takeFiles(files);
 	}
 
+	/** How many of those files it would take, asked before it takes any. */
+	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return this.acceptableFiles(files).length;
+	}
+
 	takeFiles(files: PickedFile[]): number {
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return 0;

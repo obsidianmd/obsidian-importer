@@ -809,7 +809,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 			const row = this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, drop))
 				.setName(importerOptionText(id));
 
-			if (id === COPY_FILES) row.setDesc(i18n.nouns.fileWithCount({ count: files.length }));
+			// A drop of nothing but folders is counted as what was dropped.
+			if (id === COPY_FILES) {
+				row.setDesc(files.length > 0
+					? i18n.nouns.fileWithCount({ count: files.length })
+					: i18n.nouns.itemWithCount({ count: drop.items.length }));
+			}
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
@@ -838,9 +843,16 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private async takeDropped(items: (PickedFile | PickedFolder)[]): Promise<void> {
 		const files = await expandDropped(items);
 
-		if (files.length > 0 && !this.pickingFormat && this.importer && this.importer.takeDropped(items, files) > 0) {
-			this.showSourceStep();
-			return;
+		// The importer on screen keeps the drop only when it reads all of it.
+		// Taking part of one and dropping the rest without a word is the case
+		// the choice below exists for.
+		if (!this.pickingFormat && this.importer) {
+			const taken = this.importer.wouldTake(items, files);
+			if (taken > 0 && taken === files.length) {
+				this.importer.takeDropped(items, files);
+				this.showSourceStep();
+				return;
+			}
 		}
 
 		// Matching ignores companion files; the chosen importer still receives them.

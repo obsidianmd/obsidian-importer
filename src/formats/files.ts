@@ -11,7 +11,8 @@ const NOTE_EXTS = ['md', 'markdown', 'canvas', 'base'];
 
 interface PlannedCopy {
 	parent: string;
-	file: PickedFile;
+	/** Nothing to write: the folder itself is what was dropped. */
+	file: PickedFile | null;
 }
 
 /** Copies dropped files and folders into the vault without conversion. */
@@ -68,6 +69,11 @@ export class FilesImporter extends FormatImporter {
 		return this.copying().length > 0;
 	}
 
+	/** Whatever it is handed is something it can copy. */
+	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return files.length;
+	}
+
 	takeDropped(dropped: (PickedFile | PickedFolder)[]): number {
 		this.dropped = dropped;
 		this.showDropped?.();
@@ -102,12 +108,13 @@ export class FilesImporter extends FormatImporter {
 		for (const { parent, file } of planned) {
 			if (await ctx.shouldStop()) return;
 
-			ctx.status(i18n.common.statusProcessing({ name: file.name }));
+			ctx.status(i18n.common.statusProcessing({ name: file ? file.name : parent }));
 			try {
-				await this.copy(ctx, parent, file);
+				if (file) await this.copy(ctx, parent, file);
+				else await this.createFolders(parent);
 			}
 			catch (error) {
-				ctx.reportFailed(file.fullpath, error);
+				ctx.reportFailed(file ? file.fullpath : parent, error);
 			}
 
 			ctx.reportProgress(++done, planned.length);
@@ -130,7 +137,11 @@ export class FilesImporter extends FormatImporter {
 				const at = dropped ? this.freeFilePath(into, name) : normalizePath(into ? `${into}/${name}` : name);
 				if (dropped) this.claimPath(at);
 
-				planned.push(...await this.plan(ctx, await item.list(), at, false));
+				const inside = await this.plan(ctx, await item.list(), at, false);
+
+				// An empty folder is part of the shape being copied, and nothing
+				// inside it will make it.
+				planned.push(...inside.length > 0 ? inside : [{ parent: at, file: null }]);
 			}
 			catch (error) {
 				ctx.reportFailed(item.name, error);
@@ -144,7 +155,10 @@ export class FilesImporter extends FormatImporter {
 		const folder = await this.createFolders(parent || '/');
 		const at = folder.path === '/' ? '' : folder.path;
 
-		const name = sanitizeFileName(file.basename, at) + (file.extension ? `.${file.extension}` : '');
+		// The name it arrived with, tidied only where the vault cannot hold it:
+		// README.MD is not README.md, and an extension is sanitized like the
+		// rest of the name rather than trusted.
+		const name = sanitizeFileName(file.name, at);
 		const path = this.freeFilePath(at, name);
 		this.claimPath(path);
 
