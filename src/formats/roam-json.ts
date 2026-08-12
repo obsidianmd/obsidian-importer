@@ -33,6 +33,13 @@ export class RoamJSONImporter extends FormatImporter {
 	fileDateYAML: boolean = false;
 	titleYAML: boolean = false;
 
+	// Shape and markup options
+	deOutline: boolean = false;
+	embedBlockReferences: boolean = false;
+	dropUnresolvedReferences: boolean = false;
+	keepAttributesInOutline: boolean = false;
+	dropQueries: boolean = false;
+
 	init() {
 		this.addSetting('source')
 			?.setName(i18n.common.nameExport())
@@ -78,6 +85,46 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
+		this.addSetting()?.setName(i18n.importer.roamJson.headingOutline()).setHeading();
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameDeOutline())
+			.setDesc(i18n.importer.roamJson.descDeOutline())
+			.addToggle(toggle => toggle
+				.setValue(this.deOutline)
+				.onChange(value => this.deOutline = value));
+
+		this.addSetting()?.setName(i18n.importer.roamJson.headingBlockReferences()).setHeading();
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameEmbedBlockReferences())
+			.setDesc(i18n.importer.roamJson.descEmbedBlockReferences())
+			.addToggle(toggle => toggle
+				.setValue(this.embedBlockReferences)
+				.onChange(value => this.embedBlockReferences = value));
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameDropUnresolvedReferences())
+			.setDesc(i18n.importer.roamJson.descDropUnresolvedReferences())
+			.addToggle(toggle => toggle
+				.setValue(this.dropUnresolvedReferences)
+				.onChange(value => this.dropUnresolvedReferences = value));
+
+		this.addSetting()?.setName(i18n.importer.roamJson.headingRoamMarkup()).setHeading();
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameKeepAttributes())
+			.setDesc(i18n.importer.roamJson.descKeepAttributes())
+			.addToggle(toggle => toggle
+				.setValue(this.keepAttributesInOutline)
+				.onChange(value => this.keepAttributesInOutline = value));
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameDropQueries())
+			.setDesc(i18n.importer.roamJson.descDropQueries())
+			.addToggle(toggle => toggle
+				.setValue(this.dropQueries)
+				.onChange(value => this.dropQueries = value));
 	}
 
 	async import(progress: ImportContext) {
@@ -195,6 +242,11 @@ export class RoamJSONImporter extends FormatImporter {
 			fileDateYAML: this.fileDateYAML,
 			titleYAML: this.titleYAML,
 			downloadAttachments: this.downloadAttachments,
+			deOutline: this.deOutline,
+			embedBlockReferences: this.embedBlockReferences,
+			dropUnresolvedReferences: this.dropUnresolvedReferences,
+			keepAttributesInOutline: this.keepAttributesInOutline,
+			dropQueries: this.dropQueries,
 			downloadFirebaseFile: (blockText, folder) => this.downloadFirebaseFile(blockText, folder),
 			// The attachment resolver needs the note's real parent for `.` and
 			// `./subfolder` settings, including Roam titles that create folders.

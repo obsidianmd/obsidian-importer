@@ -2058,6 +2058,58 @@ translation=YAML-titel toevoegen
 original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
 translation=Indien ingeschakeld krijgen notities de volledige titel als eigenschap (ongeacht ongeldige bestandsnaamtekens).
 
+[importer.roam-json.heading-outline]
+original=Outline
+translation=
+
+[importer.roam-json.name-de-outline]
+original=Flatten the outline
+translation=
+
+[importer.roam-json.desc-de-outline]
+original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
+translation=
+
+[importer.roam-json.heading-block-references]
+original=Block references
+translation=
+
+[importer.roam-json.name-embed-block-references]
+original=Show referenced blocks in place
+translation=
+
+[importer.roam-json.desc-embed-block-references]
+original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
+translation=
+
+[importer.roam-json.name-drop-unresolved-references]
+original=Remove references to missing blocks
+translation=
+
+[importer.roam-json.desc-drop-unresolved-references]
+original=A reference to a block that is not in the export is kept as it was written. If enabled, it is removed instead.
+translation=
+
+[importer.roam-json.heading-roam-markup]
+original=Roam markup
+translation=
+
+[importer.roam-json.name-keep-attributes]
+original=Keep attributes in the note
+translation=
+
+[importer.roam-json.desc-keep-attributes]
+original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
+translation=
+
+[importer.roam-json.name-drop-queries]
+original=Remove queries
+translation=
+
+[importer.roam-json.desc-drop-queries]
+original=A query becomes an Obsidian search that shows its results in the note. If enabled, queries are removed instead.
+translation=
+
 [importer.roam-json.reason-empty-title]
 original=Title is empty
 translation=Titel is leeg

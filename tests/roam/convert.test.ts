@@ -17,7 +17,7 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { RoamPageConverter } from '../../src/formats/roam/convert';
+import { RoamConverterOptions, RoamPageConverter } from '../../src/formats/roam/convert';
 import { RoamGraphConverter } from '../../src/formats/roam/graph';
 import { RoamBlock, RoamPage } from '../../src/formats/roam/models/roam-json';
 import { expectedFor, expectTree, fixtures } from '../helpers';
@@ -553,4 +553,63 @@ test('a table stands at the margin either way', async () => {
 		{ string: '{{[[table]]}}', children: [{ string: 'One', children: [{ string: 'Two' }] }] },
 		{ string: 'After' },
 	]), 'Before\n\n| One | Two |\n| --- | --- |\n\nAfter');
+});
+
+/**
+ * The options, each of which changes one decision the conversion would
+ * otherwise make on the reader's behalf.
+ */
+function optioned(options: Partial<RoamConverterOptions>) {
+	return new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		resolveBlockReference: uid => uid === 'abc123' ? 'Notes#^abc123' : null,
+		isReferenced: uid => uid === 'abc123',
+		...options,
+	});
+}
+
+test('"show referenced blocks in place" makes a reference an embed', async () => {
+	assert.equal(
+		await optioned({ embedBlockReferences: true }).roamMarkupScrubber('', '', 'see ((abc123))'),
+		'see ![[Notes#^abc123]]');
+	// The alias the user wrote is still a link: an embed has nowhere to show one.
+	assert.equal(
+		await optioned({ embedBlockReferences: true }).roamMarkupScrubber('', '', '[shown](((abc123)))'),
+		'[[Notes#^abc123|shown]]');
+});
+
+test('"remove references to missing blocks" takes out what cannot be resolved', async () => {
+	const dropping = optioned({ dropUnresolvedReferences: true });
+
+	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((nosuch)) here'), 'see  here');
+	assert.equal(await dropping.roamMarkupScrubber('', '', '{{embed: ((nosuch))}}'), '');
+	// One that does resolve is untouched.
+	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((abc123))'), 'see [[Notes#^abc123]]');
+});
+
+test('"remove queries" takes the query out instead of converting it', async () => {
+	const dropping = optioned({ dropQueries: true });
+
+	assert.equal(await dropping.roamMarkupScrubber('', '', 'before {{query: {and: [[A]]}}} after'), 'before  after');
+	// Including one that has no counterpart, which is otherwise kept.
+	assert.equal(await dropping.roamMarkupScrubber('', '', '{{query: {between: [[a]] [[b]]}}}'), '');
+});
+
+test('"keep attributes in the note" leaves them in the outline, double colon and all', async () => {
+	const page = {
+		title: 'Sapiens', uid: 'sapiens',
+		children: [{ string: 'Author:: Ada Lovelace' }, { string: 'a block' }],
+	} as RoamPage;
+
+	const keeping = optioned({ keepAttributesInOutline: true });
+	assert.equal(await keeping.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+		'- Author:: Ada Lovelace\n- a block');
+	assert.deepEqual([...keeping.attributeNames], [], 'nothing lifted means no column for the Base');
+
+	// The default still lifts it.
+	assert.equal(await optioned({}).jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
+		'---\nAuthor: Ada Lovelace\n---\n- a block');
 });

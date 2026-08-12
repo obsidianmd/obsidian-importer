@@ -31,6 +31,14 @@ export interface RoamConverterOptions {
 	isReferenced?: (uid: string) => boolean;
 	/** Write the outline as ordinary markdown rather than as nested bullets. */
 	deOutline?: boolean;
+	/** Show a referenced block where the reference stands, rather than link to it. */
+	embedBlockReferences?: boolean;
+	/** Remove a reference whose block is not in the graph, rather than leave it. */
+	dropUnresolvedReferences?: boolean;
+	/** Leave `Name:: value` in the outline rather than lifting it to a property. */
+	keepAttributesInOutline?: boolean;
+	/** Remove a query rather than converting it to an Obsidian search. */
+	dropQueries?: boolean;
 }
 
 export class RoamPageConverter {
@@ -79,7 +87,7 @@ export class RoamPageConverter {
 
 		// After the page links are rewritten, so a query names the notes that
 		// were actually written rather than the titles Roam had.
-		blockText = convertRoamQueries(blockText);
+		blockText = convertRoamQueries(blockText, this.options.dropQueries ?? false);
 
 		blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
 		blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
@@ -122,7 +130,7 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\{\{\[{0,2}embed[^{}]*?\(\((.*?)\)\)[^{}]*?\}\}/g,
 			(match: string, uid: string) => {
 				const target = resolve(uid);
-				return target ? `![[${target}]]` : match;
+				return target ? `![[${target}]]` : this.unresolved(match);
 			});
 
 		// An aliased reference keeps the alias the user wrote. The alias holds
@@ -131,13 +139,29 @@ export class RoamPageConverter {
 		// `[ ]` there to be taken.
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match: string, alias: string, uid: string) => {
 			const target = resolve(uid);
-			return target ? `[[${target}|${alias}]]` : match;
+			return target ? `[[${target}|${alias}]]` : this.unresolved(match);
 		});
 
 		return blockText.replace(blockRefRegex, (match: string, uid: string) => {
 			const target = resolve(uid);
-			return target ? `[[${target}]]` : match;
+			if (!target) return this.unresolved(match);
+
+			// A Roam reference shows the block where it stands, which an embed
+			// does and a link does not - so which of the two is the faithful
+			// reading depends on what the reader wants back.
+			return this.options.embedBlockReferences ? `![[${target}]]` : `[[${target}]]`;
 		});
+	}
+
+	/**
+	 * What is left where a reference named a block the graph does not hold.
+	 *
+	 * Kept as Roam wrote it by default: `((a parenthetical))` is often nobody's
+	 * id at all, and an id that is one belongs to a page left out of a partial
+	 * export, which the reader may want to go and fetch.
+	 */
+	private unresolved(match: string): string {
+		return this.options.dropUnresolvedReferences ? '' : match;
 	}
 
 	/**
@@ -324,6 +348,7 @@ export class RoamPageConverter {
 	 */
 	private async attributesOf(graphFolder: string, attachmentsFolder: string, page: RoamPage | RoamBlock): Promise<Map<RoamBlock, string>> {
 		const attributes = new Map<RoamBlock, string>();
+		if (this.options.keepAttributesInOutline) return attributes;
 
 		for (const block of page.children ?? []) {
 			if (block.children?.length) continue;

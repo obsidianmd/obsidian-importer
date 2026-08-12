@@ -26,14 +26,14 @@ const tagRe = /^#[^\s{}[\]()]+/;
  * as an example in code, and a fence opened inside a code span makes a mess of
  * both.
  */
-export function convertRoamQueries(blockText: string): string {
+export function convertRoamQueries(blockText: string, drop: boolean = false): string {
 	return blockText
 		.split(/(`+[^`]*`+)/)
-		.map((segment, index) => index % 2 === 1 ? segment : rewriteQueries(segment))
+		.map((segment, index) => index % 2 === 1 ? segment : rewriteQueries(segment, drop))
 		.join('');
 }
 
-function rewriteQueries(text: string): string {
+function rewriteQueries(text: string, drop: boolean): string {
 	let result = '';
 	let rest = text;
 
@@ -52,9 +52,12 @@ function rewriteQueries(text: string): string {
 		// `{{query: <clause>}}` - without the braces at either end and the
 		// keyword up to its colon, what is left is the clause.
 		const named = whole.slice(2, -2);
-		const search = translateClause(named.slice(named.indexOf(':') + 1));
+		const search = drop ? null : translateClause(named.slice(named.indexOf(':') + 1));
+		// A query that cannot be translated is left as Roam wrote it, unless the
+		// reader asked for queries to go, in which case it goes with the rest.
+		const written = search !== null ? `\`\`\`query\n${search}\n\`\`\`` : drop ? '' : whole;
 
-		result += rest.slice(0, opensAt) + (search === null ? whole : `\`\`\`query\n${search}\n\`\`\``);
+		result += rest.slice(0, opensAt) + written;
 		rest = rest.slice(closesAt + 1);
 	}
 }
