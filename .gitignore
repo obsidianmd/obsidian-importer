@@ -35,3 +35,6 @@ data.json
 # issue, typically. Drop one in tests/<importer>/local/ and its output is
 # recorded beside it. See tests/helpers.ts.
 tests/**/local/
+
+# Website build output
+/web/dist

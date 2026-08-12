@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>Obsidian Importer</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128218;</text></svg>">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<main>
+		<h1>Obsidian Importer</h1>
+		<p class="lede">Convert notes from another app to Markdown, in this browser. Nothing is uploaded.</p>
+
+		<label for="format">Format</label>
+		<select id="format"></select>
+
+		<label for="files">Files</label>
+		<input id="files" type="file" multiple>
+
+		<button id="run">Import</button>
+
+		<div class="progress"><div id="bar"></div></div>
+		<p id="status"></p>
+		<div id="result"></div>
+		<ul id="log"></ul>
+	</main>
+	<div id="notices"></div>
+	<script src="app.js"></script>
+</body>
+</html>

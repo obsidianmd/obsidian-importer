@@ -12,6 +12,8 @@ import {
 import { createBaseFile } from '../base';
 
 export class CSVImporter extends FormatImporter {
+	static extensions = ['csv'];
+
 	interruption = 'pause' as const;
 
 	private csvHeaders: string[] = [];
@@ -20,7 +22,7 @@ export class CSVImporter extends FormatImporter {
 	private hasHeaderRow: boolean;
 
 	init() {
-		this.addFileChooserSetting(i18n.importer.csv.fileType(), ['csv']);
+		this.addFileChooserSetting(i18n.importer.csv.fileType(), CSVImporter.extensions);
 		this.defaultOutputFolder = 'CSV import';
 
 		this.hasHeaderRow = true;

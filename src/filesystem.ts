@@ -243,6 +243,90 @@ export class WebPickedFile implements PickedFile {
 	}
 }
 
+export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {
+	return Array.from(dataTransfer.items).some(item => item.kind === 'file');
+}
+
+/** Read during the drop event because its DataTransfer items do not survive an await. */
+export function droppedItems(dataTransfer: DataTransfer): (PickedFile | PickedFolder)[] {
+	const results: (PickedFile | PickedFolder)[] = [];
+
+	for (const item of Array.from(dataTransfer.items)) {
+		if (item.kind !== 'file') continue;
+
+		const file = item.getAsFile();
+		if (!file) continue;
+
+		const filepath = localPath(file);
+		if (!filepath) {
+			results.push(new WebPickedFile(file));
+			continue;
+		}
+
+		results.push(isDirectory(filepath) ? new NodePickedFolder(filepath) : new NodePickedFile(filepath));
+	}
+
+	return results;
+}
+
+function localPath(file: File): string {
+	if (!Platform.isDesktopApp) return '';
+
+	// Electron 32+ throws when there is no local path; older versions used File.path.
+	try {
+		const { webUtils } = window.electron;
+		if (webUtils) return webUtils.getPathForFile(file);
+	}
+	catch {
+		return '';
+	}
+
+	return (file as File & { path?: string }).path ?? '';
+}
+
+function isDirectory(filepath: string): boolean {
+	try {
+		return fs.statSync(filepath).isDirectory();
+	}
+	catch {
+		return false;
+	}
+}
+
+const PACKAGE_EXTENSIONS = ['textbundle'];
+
+export async function expandDropped(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
+	const files: PickedFile[] = [];
+
+	for (const item of items) {
+		try {
+			if (item.type === 'file') {
+				files.push(item);
+				continue;
+			}
+
+			const asPackage = packagedAsFile(item);
+			if (asPackage) {
+				files.push(asPackage);
+				continue;
+			}
+
+			files.push(...await expandDropped(await item.list()));
+		}
+		catch (e) {
+			console.error('Skipping path: ', item.name, e);
+		}
+	}
+
+	return files;
+}
+
+function packagedAsFile(folder: PickedFolder): PickedFile | null {
+	if (!(folder instanceof NodePickedFolder)) return null;
+
+	return PACKAGE_EXTENSIONS.includes(splitext(folder.name)[1]) ? new NodePickedFile(folder.filepath) : null;
+}
+
 export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?: (file: PickedFile) => boolean): Promise<PickedFile[]> {
 	let results: PickedFile[] = [];
 	for (let file of files) {

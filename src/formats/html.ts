@@ -15,13 +15,15 @@ import { extensionForMime } from '../mime';
 import { stringToUtf8 } from '../util';
 
 export class HtmlImporter extends FormatImporter {
+	static extensions = ['htm', 'html'];
+
 	interruption = 'pause' as const;
 
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
 
 	init() {
-		this.addFileChooserSetting(i18n.importer.html.fileType(), ['htm', 'html'], true);
+		this.addFileChooserSetting(i18n.importer.html.fileType(), HtmlImporter.extensions, true);
 		this.addAttachmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.defaultOutputFolder = 'HTML import';

@@ -28,6 +28,8 @@ const REASONS: Record<OneNoteErrorKind, () => string> = {
 };
 
 export class OneNoteFileImporter extends FormatImporter {
+	static extensions = ['one', 'onepkg', 'onex'];
+
 	interruption = 'pause' as const;
 
 	// Field initializers would overwrite values set by base-constructor init().
@@ -46,7 +48,7 @@ export class OneNoteFileImporter extends FormatImporter {
 		const backup = windowsBackupFolder();
 		this.addFileChooserSetting(
 			i18n.importer.onenoteFile.fileType(),
-			['one', 'onepkg', 'onex'],
+			OneNoteFileImporter.extensions,
 			true,
 			backup ? i18n.importer.onenoteFile.descBackupFolder() : undefined,
 			backup);

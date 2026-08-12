@@ -70,6 +70,8 @@ export const en = {
 		titleImportFrom: 'Import from {{format}}',
 		searchPlaceholder: 'Filter...',
 		msgNoFormats: 'No formats found.',
+		msgDropToImport: 'Drop files to import',
+		buttonShowAllFormats: 'Show all formats',
 		buttonContinue: 'Continue',
 		buttonImport: 'Import',
 		buttonBack: 'Back',
@@ -362,6 +364,12 @@ export const en = {
 			statusCreatingNote: 'Creating note: {{title}}',
 			labelRow: 'Row {{number}}',
 			reasonEmptyTitle: 'Empty title',
+		},
+		files: {
+			name: 'Files and folders',
+			optionText: 'Copy files and folders into your vault',
+			nameSource: 'Files to copy',
+			descSource: 'Drop files or folders anywhere in the window to copy them into your vault.',
 		},
 		evernote: {
 			name: 'Evernote',

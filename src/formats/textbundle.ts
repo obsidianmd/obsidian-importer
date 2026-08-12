@@ -7,6 +7,11 @@ import { readZip, ZipEntryFile } from '../zip';
 import { bundleNoteName, convertTextbundleNote, groupFilesByTextbundle, isMarkdownBundle } from './textbundle/convert';
 
 export class TextbundleImporter extends FormatImporter {
+	// macOS pickers expose .textbundle directories as files.
+	static extensions = Platform.isMacOS
+		? ['textbundle', 'textpack', 'zip']
+		: ['textpack', 'zip'];
+
 	interruption = 'pause' as const;
 
 	private attachmentsFolderPath: TFolder;
@@ -18,11 +23,7 @@ export class TextbundleImporter extends FormatImporter {
 			}), 'source');
 		}
 
-		const formats = Platform.isMacOS
-			? ['textbundle', 'textpack', 'zip']
-			: ['textpack', 'zip'];
-
-		this.addFileChooserSetting(i18n.importer.textbundle.fileType(), formats, true);
+		this.addFileChooserSetting(i18n.importer.textbundle.fileType(), TextbundleImporter.extensions, true);
 		this.defaultOutputFolder = 'Textbundle';
 	}
 

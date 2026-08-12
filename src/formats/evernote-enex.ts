@@ -18,6 +18,8 @@ interface EnexPlan {
 }
 
 export class EvernoteEnexImporter extends FormatImporter {
+	static extensions = ['enex'];
+
 	interruption = 'pause' as const;
 
 	init() {
@@ -28,7 +30,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting(i18n.importer.evernote.fileType(), ['enex'], true);
+		this.addFileChooserSetting(i18n.importer.evernote.fileType(), EvernoteEnexImporter.extensions, true);
 		this.defaultOutputFolder = 'Evernote';
 	}
 

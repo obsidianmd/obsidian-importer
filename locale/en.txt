@@ -142,6 +142,14 @@ translation=
 original=No formats found.
 translation=
 
+[modal.msg-drop-to-import]
+original=Drop files to import
+translation=
+
+[modal.button-show-all-formats]
+original=Show all formats
+translation=
+
 [modal.button-continue]
 original=Continue
 translation=
@@ -1132,6 +1140,22 @@ translation=
 
 [importer.csv.reason-empty-title]
 original=Empty title
+translation=
+
+[importer.files.name]
+original=Files and folders
+translation=
+
+[importer.files.option-text]
+original=Copy files and folders into your vault
+translation=
+
+[importer.files.name-source]
+original=Files to copy
+translation=
+
+[importer.files.desc-source]
+original=Drop files or folders anywhere in the window to copy them into your vault.
 translation=
 
 [importer.evernote.name]

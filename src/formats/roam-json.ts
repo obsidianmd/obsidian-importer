@@ -17,6 +17,8 @@ const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 const HELP_PERMALINK = 'import/roam';
 
 export class RoamJSONImporter extends FormatImporter {
+	static extensions = ['json'];
+
 	interruption = 'pause' as const;
 
 	downloadAttachments: boolean = false;
@@ -35,7 +37,7 @@ export class RoamJSONImporter extends FormatImporter {
 				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), ['json'], false,
+		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), RoamJSONImporter.extensions, false,
 			i18n.importer.roamJson.descFiles());
 		this.defaultOutputFolder = 'Roam';
 		this.idProperty = 'roam-uid';

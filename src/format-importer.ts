@@ -1,5 +1,5 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
@@ -155,6 +155,8 @@ export interface ImporterHost {
 }
 
 export abstract class FormatImporter {
+	static extensions: readonly string[] = [];
+
 	app: App;
 	vault: Vault;
 	host: ImporterHost;
@@ -220,6 +222,10 @@ export abstract class FormatImporter {
 
 	private sourceFolder: string | null = null;
 	private lastSourceFolder: string | null = null;
+
+	private acceptedExtensions: readonly string[] | undefined;
+	private acceptsMultiple: boolean | undefined;
+	private showPickedFiles: (() => void) | undefined;
 
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
@@ -429,6 +435,10 @@ export abstract class FormatImporter {
 	}, 1000, true);
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
+		// Headless importers still need their accepted file types.
+		this.acceptedExtensions = extensions;
+		this.acceptsMultiple = allowMultiple;
+
 		const fileLocationSetting = this.addSetting('source');
 		if (!fileLocationSetting) return;
 
@@ -518,6 +528,35 @@ export abstract class FormatImporter {
 				frag.createSpan({ cls: 'u-pop', text: pathText });
 			}));
 		};
+
+		this.showPickedFiles = updateFiles;
+	}
+
+	acceptableFiles(files: PickedFile[]): PickedFile[] {
+		const extensions = this.acceptedExtensions;
+		if (!extensions) return [];
+
+		const accepted = files.filter(file => extensions.includes(file.extension));
+		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
+	}
+
+	takeDropped(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return this.takeFiles(files);
+	}
+
+	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return this.acceptableFiles(files).length;
+	}
+
+	takeFiles(files: PickedFile[]): number {
+		const accepted = this.acceptableFiles(files);
+		if (accepted.length === 0) return 0;
+
+		this.files = accepted;
+		if (this.showPickedFiles) this.showPickedFiles();
+		else this.sourceChanged();
+
+		return accepted.length;
 	}
 
 	drawOutputStep(): void {
@@ -525,6 +564,10 @@ export abstract class FormatImporter {
 		if (!contentEl || this.outputStepDrawn) return;
 		this.outputStepDrawn = true;
 
+		this.drawOutputSettings(contentEl);
+	}
+
+	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
@@ -547,7 +590,7 @@ export abstract class FormatImporter {
 			});
 	}
 
-	private addOutputFolderSetting(contentEl: HTMLElement): void {
+	protected addOutputFolderSetting(contentEl: HTMLElement): void {
 		new Setting(contentEl)
 			.setName(i18n.output.nameFolder())
 			.setDesc(i18n.output.descFolder())
@@ -934,18 +977,13 @@ export abstract class FormatImporter {
 			? null
 			: this.previouslyImported(desiredPath, sourceId);
 
-		const targetPath = file ? file.path : this.freeNotePath(parent, name);
+		const targetPath = file ? file.path : this.freeFilePath(parent, name);
 		this.claimPath(targetPath);
 
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
-	/**
-	 * A name no note holds and this run has not taken. getUniqueFilePath knows
-	 * only what the vault holds, which was enough while every note was written
-	 * the moment its name was chosen.
-	 */
-	private freeNotePath(parent: string, name: string): string {
+	protected freeFilePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
 		if (!this.hasClaimed(unique)) return unique;
 

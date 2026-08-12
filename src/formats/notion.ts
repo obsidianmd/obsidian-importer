@@ -15,6 +15,8 @@ import { parseFileInfo } from './notion/parse-info';
 const HELP_PERMALINK = 'import/notion';
 
 export class NotionImporter extends FormatImporter {
+	static extensions = ['zip'];
+
 	interruption = 'pause' as const;
 
 	parentsInSubfolders: boolean;
@@ -30,7 +32,7 @@ export class NotionImporter extends FormatImporter {
 				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting(i18n.importer.notion.fileType(), ['zip'], false,
+		this.addFileChooserSetting(i18n.importer.notion.fileType(), NotionImporter.extensions, false,
 			i18n.importer.notion.descFiles());
 		this.defaultOutputFolder = 'Notion';
 		this.idProperty = NOTION_ID_PROPERTY;

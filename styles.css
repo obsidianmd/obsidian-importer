@@ -345,3 +345,21 @@
 	flex-shrink: 0;
 	margin: 0 var(--size-4-1) 0 auto;
 }
+
+.importer-drop-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: var(--layer-modal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--background-modifier-cover);
+	pointer-events: none;
+}
+
+.importer-drop-message {
+	padding: var(--size-4-4) var(--size-4-8);
+	color: var(--text-normal);
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-medium);
+}

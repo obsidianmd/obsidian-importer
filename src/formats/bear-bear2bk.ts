@@ -25,6 +25,8 @@ type IDMappingValue = {
 };
 
 export class Bear2bkImporter extends FormatImporter {
+	static extensions = ['bear2bk'];
+
 	interruption = 'pause' as const;
 
 	private attachmentMap: Record<string, string> = {};
@@ -38,7 +40,7 @@ export class Bear2bkImporter extends FormatImporter {
 				.setButtonText(i18n.common.buttonInstructions())
 				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
 
-		this.addFileChooserSetting(i18n.importer.bear.fileType(), ['bear2bk']);
+		this.addFileChooserSetting(i18n.importer.bear.fileType(), Bear2bkImporter.extensions);
 		this.defaultOutputFolder = 'Bear';
 		this.idProperty = 'bear-id';
 		this.idLabel = i18n.importer.bear.labelId();
