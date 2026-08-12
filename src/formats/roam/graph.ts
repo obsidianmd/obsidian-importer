@@ -174,20 +174,24 @@ export class RoamGraphConverter {
 	 * cells become rows, and markdown gives neither anywhere to put a `^id`.
 	 */
 	private index(pages: RoamPage[]): void {
-		const walk = (pageName: string, block: RoamBlock, anchorable: boolean) => {
+		const walk = (pageName: string, block: RoamBlock, insideTable: boolean) => {
+			// Asked of the block itself rather than of its parent: a marker
+			// nested anywhere is still a marker, and asking one level up left
+			// the deeper ones indexed.
+			const marker = isTableMarker(block.string);
+
 			// A Roam uid is short and legal already, so it is its own anchor.
-			if (block.uid && anchorable) this.blocks.define(block.uid, pageName);
+			if (block.uid && !insideTable && !marker) this.blocks.define(block.uid, pageName);
 			for (const uid of extractBlockReferenceUIDs(block.string ?? '')) this.blocks.mention(uid);
 
-			const inTable = !anchorable || isTableMarker(block.string);
-			for (const child of block.children ?? []) walk(pageName, child, !inTable);
+			for (const child of block.children ?? []) walk(pageName, child, insideTable || marker);
 		};
 
 		for (const page of pages) {
 			const pageName = this.noteNames.get(page.title);
 			if (pageName === undefined) continue;
 
-			for (const block of page.children ?? []) walk(pageName, block, !isTableMarker(block.string));
+			for (const block of page.children ?? []) walk(pageName, block, false);
 		}
 	}
 

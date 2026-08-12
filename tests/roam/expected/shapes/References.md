@@ -5,3 +5,5 @@
 - A long ((and considered)) aside, which is nobody's block id
 - A reference to a block that is not in this graph: ((nosuchblk))
 - A reference to a block of several lines: [[Source#^blk-fenced]]
+- A reference to a table marker, which has nowhere to carry an anchor: ((table-simple))
+- And to a cell of one: ((t3))

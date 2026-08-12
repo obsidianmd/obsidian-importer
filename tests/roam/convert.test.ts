@@ -673,18 +673,30 @@ test('a reference to a table cell stays as Roam wrote it, having nowhere to reac
 	// A table's marker becomes the table and its cells become rows, so neither
 	// can carry a `^id`. A link to an anchor that was never written is worse
 	// than the reference it replaced.
+	const table = (uid: string) => ({
+		string: '{{[[table]]}}', uid,
+		children: [{ string: 'Cell', uid: `${uid}-cell` }],
+	});
+
 	const pages = [
 		{
 			title: 'Source', uid: 'p1', children: [
-				{ string: '{{[[table]]}}', uid: 'marker', children: [{ string: 'Cell', uid: 'cell' }] },
+				table('top'),
+				// A marker is a marker wherever it sits. Asking whether the
+				// *parent* was one left every nested marker indexed.
+				{ string: 'Under a block', uid: 'head', children: [table('deep')] },
 			],
 		},
-		{ title: 'Pointing', uid: 'p2', children: [{ string: 'a ((marker)) b ((cell))', uid: 'b1' }] },
+		{
+			title: 'Pointing', uid: 'p2', children: [
+				{ string: 'a ((top)) b ((top-cell)) c ((deep)) d ((deep-cell))', uid: 'b1' },
+			],
+		},
 	] as unknown as RoamPage[];
 
 	const { pages: written } = await graphConverter().convert(pages);
 
-	assert.equal(written.get('g/Pointing.md'), '- a ((marker)) b ((cell))');
+	assert.equal(written.get('g/Pointing.md'), '- a ((top)) b ((top-cell)) c ((deep)) d ((deep-cell))');
 });
 
 test('an attribute something points at stays in the outline, where its anchor can go', async () => {

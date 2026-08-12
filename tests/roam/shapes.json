@@ -96,6 +96,14 @@
 			{
 				"string": "A reference to a block of several lines: ((blk-fenced))",
 				"uid": "ref-to-fence"
+			},
+			{
+				"string": "A reference to a table marker, which has nowhere to carry an anchor: ((table-simple))",
+				"uid": "ref-to-table"
+			},
+			{
+				"string": "And to a cell of one: ((t3))",
+				"uid": "ref-to-cell"
 			}
 		]
 	},
