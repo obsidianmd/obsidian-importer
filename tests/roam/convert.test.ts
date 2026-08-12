@@ -837,3 +837,35 @@ test('text after a fenced block is not swallowed by it', async () => {
 
 	assert.equal(written, '- ```js\n  one();\n  ```\n- a paragraph after the code');
 });
+
+test('a blank line inside a fence is indented with the code around it', async () => {
+	// It is part of the code, and left at the margin it falls out of the item
+	// that the fence around it stays in.
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: 'Code', children: [{ string: '```js\none();\n\ntwo();```' }] }],
+	} as unknown as RoamPage;
+
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0), [
+		'- Code',
+		'    - ```js',
+		'      one();',
+		'      ',
+		'      two();',
+		'      ```',
+	].join('\n'));
+});
+
+test('and a blank line outside one is left bare, not filled with spaces', async () => {
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: 'Code', children: [{ string: 'one line\n\nanother line' }] }],
+	} as unknown as RoamPage;
+
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0), [
+		'- Code',
+		'    - one line',
+		'',
+		'      another line',
+	].join('\n'));
+});

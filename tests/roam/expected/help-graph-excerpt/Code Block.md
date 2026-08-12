@@ -3,19 +3,19 @@
         - ```javascript
           <!DOCTYPE HTML>
           <html>
-
+          
           <body>
-
+          
             <p>Before the script...</p>
-
+          
             <script>
               alert( 'Hello, Roamans!' );
             </script>
-
+          
             <p>...After the script.</p>
-
+          
           </body>
-
+          
           </html>
           ```
     - CSS block
@@ -25,13 +25,13 @@
           	color: DeepSkyBlue;
           }
           </style>
-
+          
           <h1>Hello, Roamans!</h1>
           ```
     - Clojure block
         - ```clojure
           (ns hello-world.core)
-
+          
           (println "Hello Roamans!")
           ```
 - Key Commands:

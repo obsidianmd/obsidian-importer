@@ -4,7 +4,7 @@ import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { BlockTarget, blockRefRegex, looksLikeBlockId } from './block-refs';
 import { serializeFrontMatter } from '../../util';
 import { convertRoamQueries } from './queries';
-import { deOutline, OutlineNode, anchorLines } from '../../outline';
+import { deOutline, OutlineNode, anchorLines, withContinuation } from '../../outline';
 
 const INDENT = '    ';
 
@@ -324,11 +324,8 @@ export class RoamPageConverter {
 			// A block can hold several lines - a fence, say - and every one after
 			// the first has to be indented or it falls out of the item
 			const continuation = indent + '  ';
-			const [first, ...rest] = block.text.split('\n');
-			const written = anchorLines([
-				`${indent}- ${first}`,
-				...rest.map(line => line ? continuation + line : line),
-			], block.anchor, continuation);
+			const [first, ...rest] = withContinuation(block.text.split('\n'), continuation);
+			const written = anchorLines([`${indent}- ${first}`, ...rest], block.anchor, continuation);
 
 			lines.push(written.join('\n'), ...this.asOutline(block.children, indent + INDENT));
 		}

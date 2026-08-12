@@ -33,6 +33,31 @@ export interface OutlineNode {
 }
 
 /**
+ * A block's lines, with every line after the first indented to the item's text.
+ *
+ * A blank line inside a fenced block is indented too. It is part of the code,
+ * and left at the margin it falls out of the item that the fence around it
+ * stays in. A blank line outside a fence is left bare, where spaces would only
+ * be trailing whitespace on an empty line.
+ *
+ * The first line is returned untouched, since what goes in front of it - a
+ * bullet, or nothing - is the caller's to decide.
+ */
+export function withContinuation(lines: string[], continuation: string): string[] {
+	let insideFence = false;
+
+	return lines.map((line, index) => {
+		const wasInside = insideFence;
+		if (/^\s*```/.test(line)) insideFence = !insideFence;
+
+		if (index === 0) return line;
+		if (line) return continuation + line;
+
+		return wasInside ? continuation : line;
+	});
+}
+
+/**
  * A block's lines with the anchor another block reaches it by.
  *
  * The anchor goes at the end, which for a block of more than one line is a
@@ -95,10 +120,8 @@ function isChain(block: OutlineNode): boolean {
 
 /** The text of a block, with the anchor the outline would have put on it. */
 function textOf(block: OutlineNode, continuation: string = ''): string[] {
-	const lines = (block.text ?? '').split('\n');
-
 	return anchorLines(
-		[lines[0], ...lines.slice(1).map(line => line ? continuation + line : line)],
+		withContinuation((block.text ?? '').split('\n'), continuation),
 		block.anchor, continuation);
 }
 
