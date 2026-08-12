@@ -156,9 +156,11 @@ export interface ImporterHost {
 
 export abstract class FormatImporter {
 	/**
-	 * The file types this importer reads, declared on the class so the format
-	 * picker can match a dropped file before there is an importer to ask.
-	 * `addFileChooserSetting` is handed the same list.
+	 * The file types that identify this importer's export, declared on the
+	 * class so the format picker can match a dropped file before there is an
+	 * importer to ask. Its picker may take more beside them - Keep accepts the
+	 * attachments its notes link to - but those are companions to an export
+	 * rather than one themselves.
 	 */
 	static extensions: readonly string[] = [];
 

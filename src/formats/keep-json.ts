@@ -20,7 +20,9 @@ const NOTE_EXTS = ['json'];
 const ZIP_IGNORED_EXTS = ['html', 'txt'];
 
 export class KeepImporter extends FormatImporter {
-	static extensions = [...BUNDLE_EXTS, ...NOTE_EXTS, ...ATTACHMENT_EXTS];
+	// The export itself. The attachments beside it are companions the picker
+	// takes as well, but a lone image is not a Keep export.
+	static extensions = [...BUNDLE_EXTS, ...NOTE_EXTS];
 
 	interruption = 'pause' as const;
 
@@ -40,7 +42,7 @@ export class KeepImporter extends FormatImporter {
 				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open('https://takeout.google.com/settings/takeout')));
 
-		this.addFileChooserSetting(i18n.importer.keep.fileType(), KeepImporter.extensions, true);
+		this.addFileChooserSetting(i18n.importer.keep.fileType(), [...KeepImporter.extensions, ...ATTACHMENT_EXTS], true);
 
 		this.addSetting()
 			?.setName(i18n.importer.keep.nameArchived())

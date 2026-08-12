@@ -779,7 +779,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	 * methods of a group are listed apart here rather than behind the app they
 	 * share: only one of them reads a file at all.
 	 */
-	private showFormatOffer(ids: string[], files: PickedFile[]) {
+	private showFormatOffer(ids: string[], files: PickedFile[], exports: PickedFile[]) {
 		const { contentEl, modalEl } = this;
 
 		// Where Back leads, decided before this screen replaces that one.
@@ -794,10 +794,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
 		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-			// One file can be named; a pile of them is a count.
-			el.setText(files.length === 1
-				? i18n.modal.msgChooseForFile({ name: files[0].name })
-				: i18n.modal.msgChooseForFiles({ files: i18n.nouns.fileWithCount({ count: files.length }) }));
+			// The drop is described by what a format here reads. One file can be
+			// named; a pile of them is a count.
+			el.setText(exports.length === 1
+				? i18n.modal.msgChooseForFile({ name: exports[0].name })
+				: i18n.modal.msgChooseForFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
 		});
 
 		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
@@ -845,9 +846,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 			return;
 		}
 
-		// What nothing here reads is left out of both the choice and the count.
-		const files = readableFiles(this.fileTypes(), arrived);
-		const ids = importersForFiles(this.fileTypes(), files.map(file => file.extension));
+		// What nothing here reads is left out of both the choice and the count,
+		// but not out of the drop: an importer that takes an attachment beside
+		// the note linking to it is still handed everything that arrived.
+		const exports = readableFiles(this.fileTypes(), arrived);
+		const ids = importersForFiles(this.fileTypes(), exports.map(file => file.extension));
 
 		if (ids.length === 0) {
 			new Notice(i18n.modal.msgNoFormatForFiles());
@@ -855,11 +858,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 
 		if (ids.length === 1) {
-			await this.handOver(ids[0], files);
+			await this.handOver(ids[0], arrived);
 			return;
 		}
 
-		this.showFormatOffer(ids, files);
+		this.showFormatOffer(ids, arrived, exports);
 	}
 
 	private async handOver(id: string, files: PickedFile[]): Promise<void> {
