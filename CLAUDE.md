@@ -78,6 +78,13 @@ several times, so `pageClosed` answers a beat later, and does nothing if the
 rest of the stack — or the tab — went with it. A teardown leaves the flow
 where it stood, which is what it is reopened on.
 
+Leaving a running import puts the list back in reach, and Import with it, so
+one import can be asked for while another is still going. Stopping is
+cooperative — the run ends at its next checkpoint, and is writing until it
+does — so a second import waits on `importRun` before it starts. An import
+the user has walked out of also finishes where they left it: `awayFrom`
+becomes the finished screen rather than drawing it over the list.
+
 ## The conversion seam
 
 An importer is split in two:

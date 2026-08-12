@@ -120,6 +120,15 @@ export class ImporterFlow implements ImporterHost {
 	 */
 	private awayFrom: (() => unknown) | null = null;
 
+	/** The import running now, until the last of its writing is done. */
+	private importRun: Promise<void> | null = null;
+
+	/**
+	 * Set from the moment Import is pressed until there is a run to point at.
+	 * A press during the run is a different matter: it stops that one first.
+	 */
+	private starting: boolean = false;
+
 	get importerId(): string {
 		return this.selectedId;
 	}
@@ -763,11 +772,25 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private async startImport(importer: FormatImporter) {
-		if (this.current) {
-			this.current.cancel();
+		// Two presses before either has a run to its name would both get past
+		// the stop below, and import at once.
+		if (this.starting) return;
+		this.starting = true;
+
+		try {
+			await this.startImportRun(importer);
 		}
+		finally {
+			this.starting = false;
+		}
+	}
+
+	private async startImportRun(importer: FormatImporter) {
+		await this.stopRunningImport();
 
 		this.awayFrom = null;
+		this.hidden = false;
+		this.clearHiddenNotice();
 		this.reportFile = null;
 
 		const { contentEl } = this.shell;
@@ -789,6 +812,35 @@ export class ImporterFlow implements ImporterHost {
 		// held on to, because the flow can be sent back to the list meanwhile.
 		const depth = this.depth;
 
+		const run = this.runImport(importer, ctx, depth);
+		this.importRun = run;
+		// The run is what a later press waits on from here.
+		this.starting = false;
+
+		try {
+			await run;
+		}
+		finally {
+			if (this.importRun === run) this.importRun = null;
+		}
+	}
+
+	/**
+	 * Stop the import running now, and wait for it to have stopped. Stopping
+	 * is cooperative: until the run reaches its next checkpoint it is still
+	 * writing to the vault, and still has a screen of its own to finish on.
+	 */
+	private async stopRunningImport(): Promise<void> {
+		const running = this.importRun;
+		if (!running) return;
+
+		this.current?.cancel();
+		this.current?.status(i18n.progress.statusStopping());
+
+		await running;
+	}
+
+	private async runImport(importer: FormatImporter, ctx: ImportProgressUI, depth: number) {
 		this.showProgress(ctx, importer.interruption, depth);
 		const name = importerName(this.selectedId);
 		let threw = false;
@@ -826,7 +878,11 @@ export class ImporterFlow implements ImporterHost {
 				this.finishHiddenNotice(ctx);
 			}
 
-			this.showFinished(ctx, depth);
+			// An import the user walked out of finishes where they left it, not
+			// over the list they went back to: the notice is the way in, and
+			// what it leads to is how the import ended.
+			if (this.awayFrom) this.awayFrom = () => this.showFinished(ctx, depth);
+			else this.showFinished(ctx, depth);
 		}
 	}
 
