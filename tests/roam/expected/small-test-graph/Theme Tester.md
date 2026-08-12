@@ -108,7 +108,9 @@
                     - sub two
 
     - query
-        - 
+        - ```query
+          block:([[Theme Tester]])
+          ```
     - comments
         - There is lots of controversial ideas in this block 
     - Blockquotes

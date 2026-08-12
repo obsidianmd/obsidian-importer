@@ -355,3 +355,69 @@ test('converts the markup inside a cell', async () => {
 		await convertTable([row(['{{[[TODO]]}} ^^done^^'])]),
 		'\n| [ ] ==done== |\n| --- |\n');
 });
+
+/**
+ * Queries. These used to be deleted outright, so a page built around one was
+ * imported with nothing on it.
+ */
+
+test('converts a Roam query to an Obsidian query block', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {and: [[A]] [[B]]}}}'),
+		'```query\nblock:([[A]] [[B]])\n```');
+});
+
+test('converts the {{[[query]]}} spelling too', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{[[query]]: {and: [[A]]}}}'),
+		'```query\nblock:([[A]])\n```');
+});
+
+test('or becomes OR, and not becomes an exclusion', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {or: [[A]] [[B]]}}}'),
+		'```query\nblock:([[A]] OR [[B]])\n```');
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {not: [[A]]}}}'),
+		'```query\nblock:(-[[A]])\n```');
+});
+
+test('a nested clause is parenthesised, so an or inside an and keeps its meaning', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {and: [[A]] {or: [[B]] [[C]]}}}}'),
+		'```query\nblock:([[A]] ([[B]] OR [[C]]))\n```');
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {and: [[A]] {not: [[B]] }}}}'),
+		'```query\nblock:([[A]] (-[[B]]))\n```');
+});
+
+test('a tag is a term like any other', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {and: #done [[A]]}}}'),
+		'```query\nblock:(#done [[A]])\n```');
+});
+
+test('a query Obsidian cannot express is left as Roam wrote it', async () => {
+	// `{between:}` has no counterpart, and half a query is worse than a legible
+	// one to rewrite by hand. The daily notes it names are still renamed, so
+	// what is left to rewrite points at the notes that were written.
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {between: [[January 1st, 2021]] [[today]] }}}'),
+		'{{query: {between: [[2021-01-01]] [[today]] }}}');
+
+	const partly = '{{query: {and: [[A]] {between: [[x]] [[y]]}}}}';
+	assert.equal(await scrubber().roamMarkupScrubber('', '', partly), partly);
+});
+
+test('a query shown as an example inside backticks is left alone', async () => {
+	// Roam's own help pages document the syntax this way, and a fence opened
+	// inside a code span makes a mess of both.
+	const documented = 'write it as `{{query: {and: [[A]] [[B]]}}}` in a block';
+	assert.equal(await scrubber().roamMarkupScrubber('', '', documented), documented);
+});
+
+test('two queries in one block are both converted', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{query: {and: [[A]]}}} and {{query: {and: [[B]]}}}'),
+		'```query\nblock:([[A]])\n``` and ```query\nblock:([[B]])\n```');
+});

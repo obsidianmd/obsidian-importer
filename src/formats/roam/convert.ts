@@ -3,10 +3,11 @@ import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { BlockTarget, blockRefRegex } from './block-refs';
 import { serializeFrontMatter } from '../../util';
+import { convertRoamQueries } from './queries';
 
 const INDENT = '    ';
 
-const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'query', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
+const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
 /**
@@ -72,6 +73,10 @@ export class RoamPageConverter {
 		// of its own, or a `[link](((uid)))` standing to the left of one is
 		// taken into it.
 		blockText = blockText.replace(/\[([^[\]]+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
+
+		// After the page links are rewritten, so a query names the notes that
+		// were actually written rather than the titles Roam had.
+		blockText = convertRoamQueries(blockText);
 
 		blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
 		blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
