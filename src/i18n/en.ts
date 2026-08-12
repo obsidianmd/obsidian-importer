@@ -344,6 +344,8 @@ export const en = {
 			fileType: 'Bear2bk',
 			labelId: 'Bear ID',
 			descExport: 'Back up your notes in Bear, you will receive a .bear2bk file.',
+			nameTagsProperty: 'Move tags to a property',
+			descTagsProperty: 'When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.',
 			nameFlattenTags: 'Flatten nested tags',
 			descFlattenTags: 'When enabled, tags will be split on slashes (/) during import.',
 			statusImportingAsset: 'Importing asset {{name}}',

@@ -1070,6 +1070,14 @@ translation=معرّف Bear
 original=Back up your notes in Bear, you will receive a .bear2bk file.
 translation=أنشئ نسخة احتياطية من ملاحظاتك في Bear، وستحصل على ملف .bear2bk.
 
+[importer.bear.name-tags-property]
+original=Move tags to a property
+translation=
+
+[importer.bear.desc-tags-property]
+original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
+translation=
+
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
 translation=تسطيح الوسوم المتداخلة

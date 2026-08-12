@@ -9,7 +9,9 @@
  * Where an asset lands is the importer's, so the resolver here names it the way
  * the vault's default attachment setting would. The frontmatter the importer
  * writes from info.json is recorded alongside each note, since which folder a
- * note lands in - archive or trash - is decided from the same metadata.
+ * note lands in - archive or trash - is decided from the same metadata. A tag
+ * stays where Bear wrote it unless the import is asked to move it, so a
+ * recording shows the tag in the note rather than in a property.
  */
 import '../shims/runtime';
 
@@ -110,10 +112,11 @@ for (const backup of backups) {
 				// The note is named after its bundle, without the extension
 				const basename = nodePath.basename(note.parent, nodePath.extname(note.parent));
 
-				const { content, tags } = await convertBearNote(note.text ?? '', {
+				const { content } = await convertBearNote(note.text ?? '', {
 					basename,
 					parent: note.parent,
 					flattenTags: false,
+					tagPlacement: 'inline',
 					resolveAsset: async assetPath => {
 						const name = nodePath.basename(assetPath);
 						if (!assetPaths.has(assetPath)) {
@@ -129,7 +132,6 @@ for (const backup of backups) {
 				});
 
 				const frontMatter = metadataFor(entries, note.parent);
-				if (tags.length > 0) frontMatter.tags = tags;
 
 				// processFrontMatter writes these onto the note the importer has
 				// already saved, so the file ends up as one then the other
@@ -146,28 +148,106 @@ for (const backup of backups) {
 	});
 }
 
-test('splits a nested tag when asked to', async () => {
-	const options = {
-		basename: 'note',
-		parent: 'note.textbundle',
-		resolveAsset: async () => assert.fail('no assets here'),
-	};
+const noteOptions = {
+	basename: 'note',
+	parent: 'note.textbundle',
+	flattenTags: false,
+	tagPlacement: 'inline' as const,
+	resolveAsset: async () => assert.fail('no assets here'),
+};
 
-	const nested = await convertBearNote('#parent/child', { ...options, flattenTags: false });
+test('splits a nested tag when asked to', async () => {
+	const nested = await convertBearNote('#parent/child', { ...noteOptions, flattenTags: false });
 	assert.deepEqual(nested.tags, ['parent/child']);
 
-	const flattened = await convertBearNote('#parent/child', { ...options, flattenTags: true });
+	const flattened = await convertBearNote('#parent/child', { ...noteOptions, flattenTags: true });
 	assert.deepEqual(flattened.tags, ['parent', 'child']);
 });
 
 test('drops a heading that only repeats the file name', async () => {
-	const options = {
-		basename: 'Title',
-		parent: 'Title.textbundle',
-		flattenTags: false,
-		resolveAsset: async () => assert.fail('no assets here'),
-	};
+	const options = { ...noteOptions, basename: 'Title', parent: 'Title.textbundle' };
 
 	assert.equal((await convertBearNote('# Title\nbody', options)).content, 'body');
 	assert.equal((await convertBearNote('# Something else\nbody', options)).content, '# Something else\nbody');
+});
+
+test('a tag ends before the punctuation that follows it', async () => {
+	const source = 'A tag like #bear, or #bear/welcome. And #bad!tag inside.';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, 'A tag like #bear, or #bear/welcome. And #bad_tag inside.');
+	assert.deepEqual(tags, ['bear', 'bear/welcome', 'bad_tag']);
+});
+
+test('a hash Bear escaped is text, not a tag', async () => {
+	const source = 'the tags **\\#errands**, and **\\#welcome notes\\#** are examples';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, []);
+});
+
+test('keeps tags where Bear wrote them, or moves them to the property', async () => {
+	const source = 'Inline tags: #tag\n\nBody #two words# here.\n\n#bear/welcome';
+
+	const inline = await convertBearNote(source, noteOptions);
+	assert.equal(inline.content, 'Inline tags: #tag\n\nBody #two_words here.\n\n#bear/welcome');
+	assert.deepEqual(inline.tags, ['tag', 'two_words', 'bear/welcome']);
+
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+	assert.equal(moved.content, 'Inline tags:\n\nBody here.');
+	assert.deepEqual(moved.tags, ['tag', 'two_words', 'bear/welcome']);
+});
+
+test('a hash in code is code, not a tag', async () => {
+	const source = [
+		'A colour `#00ff00` and a `#bad!tag` in a span.',
+		'',
+		'```css',
+		'a { color: #00ff00 }',
+		'#bad!tag',
+		'```',
+		'',
+		'#real',
+	].join('\n');
+
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real']);
+
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+	assert.equal(moved.content, source.replace('\n\n#real', ''));
+	assert.deepEqual(moved.tags, ['real']);
+});
+
+test('a hex colour is not a tag', async () => {
+	const { content, tags } = await convertBearNote('Use #00ff00 and #c0ffee, not #facade', noteOptions);
+
+	assert.equal(content, 'Use #00ff00 and #c0ffee, not #facade');
+	assert.deepEqual(tags, ['facade']);
+});
+
+test('separates a table from the paragraph above it', async () => {
+	const table = '| a | b |\n|---|---|\n| 1 | 2 |';
+	const options = { ...noteOptions, basename: 'Tables', parent: 'Tables.textbundle' };
+
+	assert.equal((await convertBearNote(`Intro\n${table}`, options)).content, `Intro\n\n${table}`);
+	assert.equal((await convertBearNote(`Intro\n\n${table}`, options)).content, `Intro\n\n${table}`);
+	// A table in a fence is an example of one, and is left as it was written
+	assert.equal((await convertBearNote(`\`\`\`\nIntro\n${table}\n\`\`\``, options)).content,
+		`\`\`\`\nIntro\n${table}\n\`\`\``);
+});
+
+test('writes Bear\'s width comment as a width Obsidian reads', async () => {
+	const options = { ...noteOptions, resolveAsset: async () => 'Bear/cat.png' };
+
+	const sized = await convertBearNote('![](assets/cat.png)<!-- {"width":388} -->', options);
+	assert.equal(sized.content, '![388](Bear/cat.png)');
+
+	const described = await convertBearNote('![A cat](assets/cat.png)<!-- {"width":388} -->', options);
+	assert.equal(described.content, '![A cat|388](Bear/cat.png)');
+
+	const plain = await convertBearNote('![](assets/cat.png)', options);
+	assert.equal(plain.content, '![](Bear/cat.png)');
 });
