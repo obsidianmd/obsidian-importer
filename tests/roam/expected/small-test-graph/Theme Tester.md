@@ -45,13 +45,13 @@ Uploaded Files
 - image
     - some text before ![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FywRWXjCVNW.png?alt=media&token=00000000-0000-0000-0000-000000000000)
 - video
-    - some text before {{[[video]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2F5_JZnrFS-l.mp4?alt=media&token=00000000-0000-0000-0000-000000000000}}
+    - some text before <video controls src="https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2F5_JZnrFS-l.mp4?alt=media&token=00000000-0000-0000-0000-000000000000"></video>
 - gif
     - some text before ![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FCGJbyfjuGM.gif?alt=media&token=00000000-0000-0000-0000-000000000000)
 - pdf
-    - some text before {{[[pdf]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FAo1ZWqQOkv.pdf?alt=media&token=00000000-0000-0000-0000-000000000000}}
+    - some text before <iframe src="https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FAo1ZWqQOkv.pdf?alt=media&token=00000000-0000-0000-0000-000000000000"></iframe>
 - audio
-    - some text before {{[[audio]]: https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp-documentation%2Fhz3WHZhdUg.mp3?alt=media&token=00000000-0000-0000-0000-000000000000}}
+    - some text before <audio controls src="https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp-documentation%2Fhz3WHZhdUg.mp3?alt=media&token=00000000-0000-0000-0000-000000000000"></audio>
 
 Links ^JF3iFJPKu
 

@@ -14,6 +14,12 @@ const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.jo
 // Match only Roam's two balanced table markers.
 const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
 
+/** A Roam player component pointing at a URL: `{{[[video]]: https://...}}`. */
+const mediaComponentRe = /\{\{\[{0,2}(video|audio|pdf|iframe)\]{0,2}:\s*(https?:\/\/[^\s{}]+)\s*\}\}/gi;
+
+/** A URL that names a media file, which an element can play directly. */
+const mediaFileRe = /\.(mp4|webm|ogv|mov|m4v)(\?|$)/i;
+
 /** A reference to a Roam CSS class page: `[[.rm-grid]]`, `#.rm-hide`. */
 const styleReferenceRe = /\s*(?:\[\[\.[^\]]*\]\]|#\.[^\s[\]#]+)/g;
 
@@ -118,7 +124,16 @@ export class RoamPageConverter {
 			blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
 		}
 
-		return blockText;
+		// Whatever the download did not take: a player pointing at somewhere
+		// else, or a file it could not fetch. Markdown takes HTML, so the
+		// component becomes the element it stood for.
+		return blockText.replace(mediaComponentRe, (match: string, name: string, url: string) => {
+			if (name.toLowerCase() === 'audio') return `<audio controls src="${url}"></audio>`;
+
+			return mediaFileRe.test(url)
+				? `<video controls src="${url}"></video>`
+				: `<iframe src="${url}"></iframe>`;
+		});
 	};
 
 	private resolveEmbedsAndReferences(blockText: string): string {

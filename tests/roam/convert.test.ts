@@ -759,3 +759,40 @@ test('two namespaced links are each written out', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('g', 'g', '[[roam/render]] and [[roam/templates]]'),
 		'[[g/roam/render|roam/render]] and [[g/roam/templates|roam/templates]]');
 });
+
+/**
+ * A Roam component is a widget, and `{{...}}` around a name means nothing in a
+ * vault. Markdown takes HTML, so the ones pointing at a URL become the element
+ * they stood for.
+ */
+test('a player pointing somewhere else becomes the element it stood for', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{[[video]]: https://www.loom.com/share/abc}}'),
+		'<iframe src="https://www.loom.com/share/abc"></iframe>');
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{iframe: https://example.com/page}}'),
+		'<iframe src="https://example.com/page"></iframe>');
+});
+
+test('a URL naming a media file gets an element that can play it', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{[[video]]: https://example.com/clip.mp4}}'),
+		'<video controls src="https://example.com/clip.mp4"></video>');
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{[[audio]]: https://example.com/talk.mp3}}'),
+		'<audio controls src="https://example.com/talk.mp3"></audio>');
+});
+
+test('a YouTube video is left to Obsidian, which embeds it from the link', async () => {
+	assert.equal(
+		await scrubber().roamMarkupScrubber('', '', '{{[[video]]: https://www.youtube.com/watch?v=abc}}'),
+		'![](https://www.youtube.com/watch?v=abc)');
+});
+
+test('a component with no URL is not touched', async () => {
+	// `{{[[video-timestamp]]: 00:07:07}}` and an empty player say something
+	// this cannot improve on.
+	for (const text of ['{{[[video-timestamp]]: 00:07:07}}', '{{[[video]]: }}', '{{excalidraw}}']) {
+		assert.equal(await scrubber().roamMarkupScrubber('', '', text), text);
+	}
+});
