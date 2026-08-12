@@ -62,7 +62,6 @@ for (const graph of graphs) {
 				userDNPFormat: DAILY_NOTE_FORMAT,
 				fileDateYAML: false,
 				titleYAML: false,
-				downloadAttachments: false,
 			}).convert(pages);
 
 			for (const [notePath, markdown] of converted.pages) {
@@ -106,7 +105,6 @@ test('converts shapes.json with the outline flattened', async () => {
 			userDNPFormat: DAILY_NOTE_FORMAT,
 			fileDateYAML: false,
 			titleYAML: false,
-			downloadAttachments: false,
 			deOutline: true,
 		}).convert(pages);
 
@@ -132,7 +130,6 @@ function scrubber() {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 	});
 }
 
@@ -156,7 +153,6 @@ function referring(blocks: Record<string, string> = { abc123: 'Notes' }) {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		resolveBlockReference: uid => uid in blocks ? `${blocks[uid]}#^${uid}` : null,
 		isReferenced: uid => uid in blocks,
 	});
@@ -223,7 +219,6 @@ function outline() {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 	});
 
 	const page = {
@@ -254,7 +249,6 @@ test('indents the lines after the first to the item text, so a fence stays in th
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 	});
 
 	const page = {
@@ -281,7 +275,6 @@ async function anchored(page: RoamPage, referenced: string[]): Promise<string> {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		isReferenced: uid => referenced.includes(uid),
 	});
 
@@ -469,7 +462,6 @@ async function flattened(children: RoamBlock[]): Promise<string> {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		deOutline: true,
 	});
 
@@ -533,7 +525,6 @@ test('a block of several lines keeps them, and its anchor stays off the fence', 
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		deOutline: true,
 		isReferenced: uid => uid === 'fenced',
 	});
@@ -564,7 +555,6 @@ function optioned(options: Partial<RoamConverterOptions>) {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		resolveBlockReference: uid => uid === 'abc123' ? 'Notes#^abc123' : null,
 		isReferenced: uid => uid === 'abc123',
 		...options,
@@ -624,7 +614,6 @@ function graphConverter(overrides: Record<string, unknown> = {}) {
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: false,
 		titleYAML: false,
-		downloadAttachments: false,
 		...overrides,
 	});
 }
@@ -730,7 +719,6 @@ test('a lifted attribute still counts towards the page timestamps', async () => 
 		userDNPFormat: DAILY_NOTE_FORMAT,
 		fileDateYAML: true,
 		titleYAML: false,
-		downloadAttachments: false,
 	});
 	await converter.jsonToMarkdown('g', 'g/A', page, '', 1000, 1000);
 

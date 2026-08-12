@@ -2034,14 +2034,6 @@ translation=Exportiere deine Daten im JSON-Format.
 original=Pick the JSON file from your Roam export.
 translation=Wähle die JSON-Datei aus deinem Roam-Export aus.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Alle Anhänge herunterladen
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Wenn aktiviert, werden alle in Roam hochgeladenen Anhänge in deinen Anhänge-Ordner heruntergeladen.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=YAML-Erstellungs-/Aktualisierungsdatum hinzufügen

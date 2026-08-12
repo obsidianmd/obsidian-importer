@@ -2034,14 +2034,6 @@ translation=Exportáld az adataidat JSON formátumban.
 original=Pick the JSON file from your Roam export.
 translation=Válaszd ki a JSON fájlt a Roam exportodból.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Összes melléklet letöltése
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Ha engedélyezve van, a Roam-ba feltöltött összes melléklet letöltődik a mellékletek mappájába.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=YAML létrehozási/frissítési dátum hozzáadása

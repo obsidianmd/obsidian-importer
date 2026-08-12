@@ -2034,14 +2034,6 @@ translation=Exportați datele în format JSON.
 original=Pick the JSON file from your Roam export.
 translation=Alegeți fișierul JSON din exportul Roam.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Descarcă toate atașamentele
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Dacă este activat, toate atașamentele încărcate în Roam vor fi descărcate în directorul de atașamente.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=Adăugați data creării/actualizării în YAML

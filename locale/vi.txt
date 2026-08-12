@@ -2034,14 +2034,6 @@ translation=Xuất dữ liệu của bạn ở định dạng JSON.
 original=Pick the JSON file from your Roam export.
 translation=Chọn tệp JSON từ bản xuất Roam của bạn.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Tải xuống tất cả tệp đính kèm
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Nếu đã bật, tất cả tệp đính kèm đã tải lên Roam sẽ được tải xuống vào thư mục tệp đính kèm của bạn.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=Thêm ngày tạo/cập nhật YAML

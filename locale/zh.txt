@@ -2034,14 +2034,6 @@ translation=将你的数据导出为 JSON 格式。
 original=Pick the JSON file from your Roam export.
 translation=选择从 Roam 导出的 JSON 文件。
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=下载全部附件
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=启用后，所有上传到 Roam 的附件都将被下载到你的附件文件夹中。
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=添加 YAML 创建/更新日期

@@ -2034,14 +2034,6 @@ translation=Ekspor data Anda dalam format JSON.
 original=Pick the JSON file from your Roam export.
 translation=Pilih file JSON dari ekspor Roam Anda.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Unduh semua lampiran
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Jika diaktifkan, semua lampiran yang diunggah ke Roam akan diunduh ke folder lampiran Anda.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=Tambah tanggal dibuat/diperbarui YAML

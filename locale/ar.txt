@@ -2034,14 +2034,6 @@ translation=صدّر بياناتك بتنسيق JSON.
 original=Pick the JSON file from your Roam export.
 translation=اختر ملف JSON من تصدير Roam.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=نزّل جميع المرفقات
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=إذا كان مُمكّنًا، سيتم تنزيل جميع المرفقات المرفوعة إلى Roam في مجلد المرفقات.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=إضافة تاريخ الإنشاء/التحديث بتنسيق YAML

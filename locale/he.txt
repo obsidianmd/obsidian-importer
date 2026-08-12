@@ -2034,14 +2034,6 @@ translation=ייצא את הנתונים שלך בעיצוב JSON.
 original=Pick the JSON file from your Roam export.
 translation=בחר את קובץ ה-JSON מייצוא Roam שלך.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=הורד את כל הקבצים המצורפים
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=כאשר מופעל, כל הקבצים המצורפים שהועלו ל-Roam יורדו לתיקיית הקבצים המצורפים שלך.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=הוסף תאריך יצירה/עדכון ב-YAML

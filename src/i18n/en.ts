@@ -605,8 +605,6 @@ export const en = {
 			labelId: 'Roam UID',
 			descExport: 'Export your data in JSON format.',
 			descFiles: 'Pick the JSON file from your Roam export.',
-			nameDownloadAttachments: 'Download all attachments',
-			descDownloadAttachments: 'If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.',
 			nameDateProperties: 'Add YAML created/update date',
 			descDateProperties: 'If enabled, notes will have the create-time and edit-time from Roam added as properties.',
 			nameTitleProperty: 'Add YAML title',

@@ -25,7 +25,6 @@ export class RoamJSONImporter extends FormatImporter {
 
 	interruption = 'pause' as const;
 
-	downloadAttachments: boolean = false;
 	progress: ImportContext;
 	userDNPFormat: string;
 
@@ -54,16 +53,6 @@ export class RoamJSONImporter extends FormatImporter {
 		this.idProperty = 'roam-uid';
 		this.idLabel = i18n.importer.roamJson.labelId();
 		this.userDNPFormat = this.getUserDNPFormat();
-
-		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDownloadAttachments())
-			.setDesc(i18n.importer.roamJson.descDownloadAttachments())
-			.addToggle(toggle => {
-				toggle.setValue(this.downloadAttachments);
-				toggle.onChange(async (value) => {
-					this.downloadAttachments = value;
-				});
-			});
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameDateProperties())
@@ -235,7 +224,6 @@ export class RoamJSONImporter extends FormatImporter {
 			userDNPFormat: this.userDNPFormat,
 			fileDateYAML: this.fileDateYAML,
 			titleYAML: this.titleYAML,
-			downloadAttachments: this.downloadAttachments,
 			deOutline: this.deOutline,
 			embedBlockReferences: this.embedBlockReferences,
 			dropUnresolvedReferences: this.dropUnresolvedReferences,

@@ -28,7 +28,11 @@ export interface RoamConverterOptions {
 	userDNPFormat: string;
 	fileDateYAML: boolean;
 	titleYAML: boolean;
-	downloadAttachments: boolean;
+	/**
+	 * Download a file a block links to, and say how to reach it in the vault.
+	 * Left out by a conversion with no vault to put one in, which leaves the
+	 * link as the export wrote it.
+	 */
 	downloadFirebaseFile?: (blockText: string, attachmentsFolder: string) => Promise<string>;
 	/** Where the block with this id ended up, when the graph knows of one. */
 	resolveBlockReference?: (uid: string) => BlockTarget | null;
@@ -56,7 +60,6 @@ export class RoamPageConverter {
 	readonly attributeNames = new Set<string>();
 
 	private userDNPFormat: string;
-	private downloadAttachments: boolean;
 	private fileDateYAML: boolean;
 	private titleYAML: boolean;
 	private options: RoamConverterOptions;
@@ -64,7 +67,6 @@ export class RoamPageConverter {
 	constructor(options: RoamConverterOptions) {
 		this.options = options;
 		this.userDNPFormat = options.userDNPFormat;
-		this.downloadAttachments = options.downloadAttachments;
 		this.fileDateYAML = options.fileDateYAML;
 		this.titleYAML = options.titleYAML;
 	}
@@ -75,7 +77,7 @@ export class RoamPageConverter {
 			: blockText;
 	}
 
-	async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string, skipDownload: boolean = false): Promise<string> {
+	async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string): Promise<string> {
 		blockText = blockText.replace(roamSpecificMarkupRe, '');
 
 		if (blockText.substring(0, 8) == ':hiccup ' && blockText.includes(':hr')) {
@@ -111,12 +113,9 @@ export class RoamPageConverter {
 
 		blockText = this.resolveEmbedsAndReferences(blockText);
 
-		if (this.downloadAttachments && !skipDownload) {
-			if (blockText.includes('firebasestorage')) {
-				blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
-			}
+		if (blockText.includes('firebasestorage')) {
+			blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
 		}
-
 
 		return blockText;
 	};

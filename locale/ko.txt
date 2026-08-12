@@ -2034,14 +2034,6 @@ translation=데이터를 JSON 서식으로 내보내세요.
 original=Pick the JSON file from your Roam export.
 translation=Roam 내보내기에서 JSON 파일을 선택하세요.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=모든 첨부파일 다운로드
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=활성화하면 Roam에 업로드된 모든 첨부파일을 첨부파일 폴더에 다운로드해요.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=YAML 생성/업데이트 날짜 추가

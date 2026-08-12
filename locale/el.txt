@@ -2034,14 +2034,6 @@ translation=Εξάγετε τα δεδομένα σας σε μορφή JSON.
 original=Pick the JSON file from your Roam export.
 translation=Επιλέξτε το αρχείο JSON από την εξαγωγή Roam.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Λήψη όλων των συνημμένων
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Αν είναι ενεργοποιημένο, όλα τα συνημμένα που έχουν μεταφορτωθεί στο Roam θα ληφθούν στον φάκελο συνημμένων σας.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=Προσθήκη ημερομηνίας δημιουργίας/ενημέρωσης YAML

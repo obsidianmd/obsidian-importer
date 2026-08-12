@@ -2034,14 +2034,6 @@ translation=Vie tietosi JSON-muodossa.
 original=Pick the JSON file from your Roam export.
 translation=Valitse Roam-viennin JSON-tiedosto.
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=Lataa kaikki liitteet
-
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=Jos käytössä, kaikki Roam-palveluun ladatut liitteet ladataan liitekansioon.
-
 [importer.roam-json.name-date-properties]
 original=Add YAML created/update date
 translation=Lisää YAML-luonti-/päivityspäivämäärä
