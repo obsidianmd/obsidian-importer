@@ -14,6 +14,7 @@
 import { RoamPageConverter, RoamConverterOptions } from './convert';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
+import { sanitizeFilePath } from '../../util';
 import { BlockTarget, extractBlockReferenceUIDs } from './block-refs';
 
 export interface RoamGraphOptions extends RoamConverterOptions {
@@ -68,7 +69,7 @@ export class RoamGraphConverter {
 		const attributeNames = new Set<string>();
 
 		for (const pageData of allPages) {
-			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.options.userDNPFormat).trim();
+			const pageName = this.noteNameFor(pageData);
 			if (pageName === '') {
 				this.options.reportFailed?.(pageData.uid, this.options.emptyTitleReason ?? 'The page has no title');
 				console.error('Cannot import data with an empty title', pageData);
@@ -163,9 +164,19 @@ export class RoamGraphConverter {
 		}
 	}
 
-	/** What a page is called as a note, which is what a link to it has to say. */
+	/**
+	 * What a page is called as a note, which is what a link to it has to say.
+	 *
+	 * Through the same length limit the write goes through, and per path
+	 * segment so a title Roam wrote with a slash still makes its folders. A
+	 * page titled with a whole sentence - the demo graph has one 250 characters
+	 * long - is written under a name the filesystem will take, and a link
+	 * naming the untruncated title would reach nothing.
+	 */
 	private noteNameFor(page: RoamPage): string {
-		return convertDateString(sanitizeFileNameKeepPath(page.title), this.options.userDNPFormat).trim();
+		const named = convertDateString(sanitizeFileNameKeepPath(page.title), this.options.userDNPFormat).trim();
+
+		return sanitizeFilePath(named, this.graphFolder);
 	}
 
 }

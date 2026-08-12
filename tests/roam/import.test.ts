@@ -130,3 +130,23 @@ test('a graph using no attributes gets no Base', async () => {
 
 	assert.deepEqual(vault.paths().filter(path => path.endsWith('.base')), []);
 });
+
+test('a page whose title is too long for a file name is still linked to correctly', async () => {
+	const longTitle = 'Like optical illusions, intellectual illusions can trick us into thinking something that is not actually there or true, and even when we know they are there we still have to actively override our default perception to get at the truth behind the illusion';
+
+	const { vault, subject } = await importer('Roam');
+	subject.files = [graphFile('MyGraph', [
+		{ title: longTitle, uid: 'long', children: [{ string: 'the block', uid: 'longblk' }] },
+		{ title: 'Pointing', uid: 'pointing', children: [{ string: 'see ((longblk))', uid: 'p1' }] },
+	])];
+
+	await subject.import(new ImportContext());
+
+	const written = vault.paths().filter(path => path.endsWith('.md'));
+	const pointing = vault.contents.get('Roam/MyGraph/Pointing.md') as string;
+	const target = /\[\[(.+?)#\^longblk\]\]/.exec(pointing)?.[1];
+
+	assert.ok(target, `no link written: ${pointing}`);
+	assert.ok(written.includes(`Roam/MyGraph/${target}.md`),
+		`the link names "${target}" but the note was written as one of ${JSON.stringify(written)}`);
+});
