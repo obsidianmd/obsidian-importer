@@ -3,8 +3,8 @@ import 'obsidian';
 declare module 'obsidian' {
 	/**
 	 * A page opened over a setting tab, with a back button of its own. Added in
-	 * Obsidian 1.13 and declared here because the published types predate it —
-	 * check for it before use, rather than assuming the app is new enough.
+	 * Obsidian 1.13, which is what this plugin asks for, and declared here
+	 * because the published types are still 1.12.
 	 */
 	class SettingPage {
 		rootEl: HTMLElement;

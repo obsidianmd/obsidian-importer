@@ -47,9 +47,9 @@ button always leads to the list of formats — including from a grouped
 format, whose method picker is a screen on the same page rather than a page
 of its own.
 
-Pages arrived in Obsidian 1.13. `ImporterSettingTab` checks for `SettingPage`
-before using it and falls back to the flow's own Back button, so the tab
-still works on an older app.
+Settings pages are why the plugin asks for Obsidian 1.13. The published
+`obsidian` types are still 1.12, so `SettingPage` is declared in
+`src/augment.d.ts` rather than imported from types that have it.
 
 A shell that goes away calls `flow.detach()`, and one that comes back calls
 `flow.attach()`. Between those an import keeps running with only the notice

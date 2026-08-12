@@ -2,35 +2,24 @@ import { App, PluginSettingTab, Setting, SettingPage } from 'obsidian';
 import { FORMAT_LIST, ImporterFlow, ImporterShell } from './importer-flow';
 import type ImporterPlugin from './main';
 
-/**
- * Whether this Obsidian shows a page over a setting tab, with the back button
- * that leads out of it. Pages arrived in 1.13; on anything earlier the flow
- * falls back to drawing a Back button of its own.
- */
-function hasPages(app: App): boolean {
-	return typeof SettingPage === 'function' && typeof app.setting?.openPage === 'function';
-}
+/** A page holding one import, with the back button that leads out of it. */
+class ImportPage extends SettingPage {
+	constructor(private tab: ImporterSettingTab, title: string) {
+		super();
 
-/**
- * A page holding one import. Built by a function rather than declared as a
- * subclass so that nothing reads `SettingPage` on an Obsidian without one.
- */
-function stepPage(tab: ImporterSettingTab, title: string): SettingPage {
-	const page = new (class extends SettingPage {
-		display(): void {
-			tab.drawInPage();
-		}
+		// The page is a sibling of the tab, not a child, so it needs the class
+		// the flow's own styles hang off in its own right.
+		this.rootEl.addClass('importer-flow');
+		this.title = title;
+	}
 
-		hide(): void {
-			tab.pageClosed(this);
-		}
-	})();
+	display(): void {
+		this.tab.drawInPage();
+	}
 
-	// The page is a sibling of the tab, not a child, so it needs the class the
-	// flow's own styles hang off in its own right.
-	page.rootEl.addClass('importer-flow');
-	page.title = title;
-	return page;
+	hide(): void {
+		this.tab.pageClosed(this);
+	}
 }
 
 /**
@@ -43,7 +32,8 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
-	readonly combinesSteps: boolean;
+	/** The page opened over the tab carries the way back out of it. */
+	readonly combinesSteps: boolean = true;
 
 	/** Built by display(), under the heading the flow retitles per screen. */
 	private rootContentEl: HTMLElement;
@@ -58,12 +48,11 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	 */
 	private title: string = '';
 
-	private page: SettingPage | null = null;
+	private page: ImportPage | null = null;
 
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
-		this.combinesSteps = hasPages(app);
 		this.flow = new ImporterFlow(app, plugin, this);
 	}
 
@@ -94,7 +83,7 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	}
 
 	/** The page was closed — by the back button, unless the flow closed it. */
-	pageClosed(page: SettingPage): void {
+	pageClosed(page: ImportPage): void {
 		if (this.page !== page) return;
 
 		this.page = null;
@@ -103,11 +92,6 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 
 	setScreen(depth: number, title: string): void {
 		this.title = title;
-
-		if (!this.combinesSteps) {
-			this.heading?.setName(title);
-			return;
-		}
 
 		if (depth === FORMAT_LIST) {
 			this.closePage();
@@ -150,7 +134,7 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 
 		// Set before opening: Obsidian draws the page on the way in, and the
 		// flow draws into whichever of the two contentEls is showing.
-		const page = this.page = stepPage(this, title);
+		const page = this.page = new ImportPage(this, title);
 		this.app.setting.openPage(page);
 	}
 
