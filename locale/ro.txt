@@ -2090,10 +2090,6 @@ translation=Titlul este gol
 original=Unexpected file extension
 translation=Extension neașteptată
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Fișierul există deja
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Fișiere Textbundle

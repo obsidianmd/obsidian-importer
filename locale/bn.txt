@@ -2090,10 +2090,6 @@ translation=শিরোনাম খালি
 original=Unexpected file extension
 translation=অপ্রত্যাশিত ফাইল এক্সটেনশন
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=ফাইল ইতিমধ্যে বিদ্যমান
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle ফাইল

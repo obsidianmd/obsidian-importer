@@ -2090,10 +2090,6 @@ translation=제목이 비어 있어요
 original=Unexpected file extension
 translation=예상하지 못한 확장자예요
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=파일이 이미 존재해요
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle 파일

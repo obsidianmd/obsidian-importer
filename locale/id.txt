@@ -2090,10 +2090,6 @@ translation=Judul kosong
 original=Unexpected file extension
 translation=Extension file tidak terduga
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=File sudah ada
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=File Textbundle

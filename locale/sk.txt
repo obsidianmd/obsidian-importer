@@ -2090,10 +2090,6 @@ translation=Nadpis je prázdny
 original=Unexpected file extension
 translation=Neočakávaná prípona súboru
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Súbor už existuje
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Súbory Textbundle

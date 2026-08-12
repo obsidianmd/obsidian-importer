@@ -236,22 +236,22 @@ export class RoamJSONImporter extends FormatImporter {
 					filename = `${timestamp}.${extMatch[2]}`;
 				}
 
-				const newFilePath = await this.getAvailablePathForAttachment(filename, [], sourcePath);
+				// Roam names an upload with a token of its own, unique to that
+				// file, so a copy already under the name is the same attachment
+				// from an earlier import rather than another one.
+				const { path, reuse } = await this.placeAttachment(filename, sourcePath, () => 'same');
 
-				const existingFile = vault.getAbstractFileByPath(newFilePath);
-				if (existingFile) {
-					progress.reportSkipped(link[1], i18n.importer.roamJson.reasonFileExists());
-					return line;
+				if (!reuse) {
+					url = link[0].slice(0, -1);
+					const data = (await requestUrl(url)).arrayBuffer;
+
+					await vault.createBinary(path, data);
+					progress.reportAttachmentSuccess(url);
 				}
 
-				url = link[0].slice(0, -1);
-				const data = (await requestUrl(url)).arrayBuffer;
-
-				await vault.createBinary(newFilePath, data);
-
-				progress.reportAttachmentSuccess(url);
-
-				return line.replace(syntaxLink[0], `![[${newFilePath}]]`);
+				// Linked either way: a second import used to leave the raw Roam
+				// markup where the first had written the embed.
+				return line.replace(syntaxLink[0], `![[${path}]]`);
 
 			}
 		}

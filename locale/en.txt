@@ -2090,10 +2090,6 @@ translation=
 original=Unexpected file extension
 translation=
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=

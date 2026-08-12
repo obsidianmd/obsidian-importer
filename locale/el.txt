@@ -2090,10 +2090,6 @@ translation=Ο τίτλος είναι κενός
 original=Unexpected file extension
 translation=Μη αναμενόμενη επέκταση αρχείου
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Το αρχείο υπάρχει ήδη
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Αρχεία Textbundle

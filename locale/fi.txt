@@ -2090,10 +2090,6 @@ translation=Otsikko on tyhjä
 original=Unexpected file extension
 translation=Odottamaton tiedostopääte
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Tiedosto on jo olemassa
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle-tiedostot

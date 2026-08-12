@@ -2090,10 +2090,6 @@ translation=Tiêu đề trống
 original=Unexpected file extension
 translation=Extension tệp không mong đợi
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Tệp đã tồn tại
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Tệp Textbundle

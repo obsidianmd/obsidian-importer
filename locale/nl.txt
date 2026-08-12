@@ -2090,10 +2090,6 @@ translation=Titel is leeg
 original=Unexpected file extension
 translation=Onverwachte extension
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Bestand bestaat al
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle-bestanden

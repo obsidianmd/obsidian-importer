@@ -2090,10 +2090,6 @@ translation=הכותרת ריקה
 original=Unexpected file extension
 translation=סיומת הקובץ לא צפויה
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=הקובץ כבר קיים
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=קובצי Textbundle

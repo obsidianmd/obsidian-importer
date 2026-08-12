@@ -2090,10 +2090,6 @@ translation=El títol està buit
 original=Unexpected file extension
 translation=Extensió de fitxer inesperada
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=El fitxer ja existeix
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Fitxers Textbundle

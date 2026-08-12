@@ -2090,10 +2090,6 @@ translation=Název je prázdný
 original=Unexpected file extension
 translation=Neočekávaná extension souboru
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=Soubor již existuje
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Soubory Textbundle

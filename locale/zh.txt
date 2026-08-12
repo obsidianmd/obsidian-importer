@@ -2090,10 +2090,6 @@ translation=标题值为空
 original=Unexpected file extension
 translation=意外的扩展名
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=文件已存在
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle 文件

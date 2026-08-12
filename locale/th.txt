@@ -2090,10 +2090,6 @@ translation=ชื่อว่างเปล่า
 original=Unexpected file extension
 translation=extension ของไฟล์ไม่ตรงตามที่คาดไว้
 
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=ไฟล์มีอยู่แล้ว
-
 [importer.textbundle.name]
 original=Textbundle files
 translation=ไฟล์ Textbundle

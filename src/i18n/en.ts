@@ -619,7 +619,6 @@ export const en = {
 			descDropQueries: 'If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.',
 			reasonEmptyTitle: 'Title is empty',
 			reasonUnexpectedExtension: 'Unexpected file extension',
-			reasonFileExists: 'File already exists',
 		},
 		textbundle: {
 			name: 'Textbundle files',
