@@ -141,7 +141,8 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.app.setting.close();
 	}
 
-	foreground(): void {
+	/** Show this tab, opening the settings window if it is not already open. */
+	open(): void {
 		const { setting } = this.app;
 
 		setting.open();
@@ -151,6 +152,10 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		// flow is about to draw into.
 		if (setting.activeTab === this) this.flow.attach();
 		else setting.openTabById(this.plugin.manifest.id);
+	}
+
+	foreground(): void {
+		this.open();
 	}
 
 	/** Open and close pages until there is one for every screen so far. */

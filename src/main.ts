@@ -34,12 +34,16 @@ export default class ImporterPlugin extends Plugin {
 
 	private modal: ImporterModal | null = null;
 
+	/** Set in onload(), where the tab is registered. */
+	private settingTab: ImporterSettingTab;
+
 	async onload() {
 		setLanguage(getLanguage());
 
 		this.importers = IMPORTERS;
 
-		this.addSettingTab(new ImporterSettingTab(this.app, this));
+		this.settingTab = new ImporterSettingTab(this.app, this);
+		this.addSettingTab(this.settingTab);
 
 		this.addRibbonIcon('lucide-import', i18n.command.importNotes(), () => {
 			this.openImporter();
@@ -69,15 +73,22 @@ export default class ImporterPlugin extends Plugin {
 			});
 	}
 
-	openImporter(): ImporterModal {
-		if (this.modal) {
-			this.modal.show();
-			return this.modal;
+	openImporter(): void {
+		// A modal on a phone is a screen inside a screen, and Settings is
+		// already the shape this flow wants there: full width, one page at a
+		// time, with the way back where the platform puts it.
+		if (Platform.isMobile) {
+			this.settingTab.open();
+			return;
 		}
 
-		const modal = this.modal = new ImporterModal(this.app, this);
-		modal.open();
-		return modal;
+		if (this.modal) {
+			this.modal.show();
+			return;
+		}
+
+		this.modal = new ImporterModal(this.app, this);
+		this.modal.open();
 	}
 
 	forgetImporter(modal: ImporterModal): void {

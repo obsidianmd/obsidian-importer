@@ -37,8 +37,9 @@ A shell supplies the elements it draws into and answers what a window has an
 opinion about: the title and how deep the screen is, what Done does, and how
 to come back to an import the user has left.
 
-Two shells implement it. `ImporterModal` is the ribbon and the command, and
-draws its own Back beside Continue. `ImporterSettingTab` sets
+Two shells implement it. `ImporterModal` is the ribbon and the command on
+the desktop, and draws its own Back beside Continue; on mobile both open the
+setting tab instead, where the platform's own screens fit the flow better. `ImporterSettingTab` sets
 `ownsBackButton`: every screen is a page opened over the tab, and Settings
 puts the way back in each page's titlebar, so a second one in the content
 would only say less. `back()` is what that button reaches, and it is the
