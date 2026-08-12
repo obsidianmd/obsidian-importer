@@ -253,6 +253,22 @@ test('only a delimiter on a line of its own closes a fence', async () => {
 	assert.deepEqual(moved.tags, ['real']);
 });
 
+test('four spaces in is code of another kind, not a fence', async () => {
+	const source = '    ```\n#real';
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+
+	assert.equal(moved.content, '    ```');
+	assert.deepEqual(moved.tags, ['real']);
+});
+
+test('a table example inside a code span is left as it was written', async () => {
+	const source = 'Write `Intro\n| a | b |\n|---|---|\n#fake` and then #real';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real']);
+});
+
 test('a tag is found after any space, not only an ASCII one', async () => {
 	// A non-breaking space separates words too, and Bear leaves them about
 	const source = 'Tagged\u00a0#tag here';

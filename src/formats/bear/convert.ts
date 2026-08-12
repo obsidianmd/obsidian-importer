@@ -28,10 +28,11 @@ const ASSET_LINK = /\[[^\]]*\]\((assets\/[^)]+)\)/gm;
 /** Bear records a resized image in a comment after the link. */
 const IMAGE_SIZE = /!\[([^\]]*)\]\(([^()\s]*)\)<!--\s*(\{[^}]*\})\s*-->/g;
 
-const FENCE = /^[ \t]*(`{3,}|~{3,})/;
+/** Four spaces in is code of another kind, not the fence it looks like. */
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
 /** A closing fence carries its delimiter and nothing else. */
-const FENCE_CLOSE = /^[ \t]*(`{3,}|~{3,})[ \t]*\r?$/;
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*\r?$/;
 
 /**
  * A code span closes on a run of backticks as long as the one that opened it,
@@ -94,22 +95,16 @@ export function removeMarkdownHeader(mdFilename: string, mdContent: string): str
 }
 
 /**
- * The note with its code replaced by placeholders, rewritten, and put back.
+ * The note with its code held aside behind placeholders.
  *
- * A hash inside a fence or a code span is the thing being written about - the
- * note explaining Bear's own syntax, or a stylesheet - so no pass that reads
- * tags should see it. Masking rather than rewriting each stretch in turn keeps
- * every position a tag is judged by: what precedes a hash decides whether it
- * opens a tag at all.
+ * Code is the one part of a Bear note that means itself: a fence or a span is
+ * the thing being written about - the note explaining Bear's own syntax, or a
+ * stylesheet - so no pass that follows should see into it. Every pass runs over
+ * the masked note and `unmaskCode` puts the code back at the end, which also
+ * keeps each position a tag is judged by: what precedes a hash is what decides
+ * whether it opens a tag at all.
  */
-function withoutCode(content: string, rewrite: (content: string) => string): string {
-	const code: string[] = [];
-
-	return rewrite(maskCode(content, code)).replace(MASKED, (_match, index: string) => code[Number(index)]);
-}
-
-/** The same note to read rather than rewrite, so nothing has to be put back. */
-function maskCode(content: string, code: string[] = []): string {
+function maskCode(content: string, code: string[]): string {
 	const hide = (text: string) => `\0${code.push(text) - 1}\0`;
 	const fenced = tracksFences();
 
@@ -119,6 +114,10 @@ function maskCode(content: string, code: string[] = []): string {
 		.join('\n');
 
 	return outsideFences.replace(CODE_SPAN, hide);
+}
+
+function unmaskCode(content: string, code: string[]): string {
+	return content.replace(MASKED, (_match, index: string) => code[Number(index)]);
 }
 
 /**
@@ -156,13 +155,12 @@ function isColour(body: string): boolean {
 	return HEX_COLOUR.test(body) && /\d/.test(body);
 }
 
-export function extractTagsFromContent(content: string, flattenTags: boolean): string[] {
+function extractTagsFromContent(content: string, flattenTags: boolean): string[] {
 	const tags = new Set<string>();
 
-	const readable = maskCode(content);
 	const simpleTagRegex = new RegExp(`(?<!\\S)#(${TAG_EDGE}${TAG_BODY}*${TAG_EDGE}|${TAG_EDGE}+)(?!${TAG_BODY})`, 'gu');
 	let matchSimple;
-	while ((matchSimple = simpleTagRegex.exec(readable)) !== null) {
+	while ((matchSimple = simpleTagRegex.exec(content)) !== null) {
 		const rawSimpleTag = matchSimple[1].trim();
 		if (rawSimpleTag !== '' && !isColour(rawSimpleTag)) {
 			if (flattenTags && rawSimpleTag.includes('/')) {
@@ -184,15 +182,14 @@ export function extractTagsFromContent(content: string, flattenTags: boolean): s
  * A table renders only when a blank line separates it from the text above it,
  * and Bear writes one straight under the paragraph introducing it.
  */
-export function separateTables(content: string): string {
+function separateTables(content: string): string {
 	const lines = content.split('\n');
 	const out: string[] = [];
-	const fenced = tracksFences();
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 
-		if (!fenced(line) && i > 0 && line.includes('|')
+		if (i > 0 && line.includes('|')
 			&& isTableDelimiter(lines[i + 1] ?? '') && lines[i - 1].trim() !== '') {
 			out.push('');
 		}
@@ -209,8 +206,8 @@ function isTableDelimiter(line: string): boolean {
 }
 
 /** Bear's width comment, written as the width Obsidian reads off a link. */
-export function applyImageSizes(content: string): string {
-	return withoutCode(content, text => text.replace(IMAGE_SIZE, (match, alt: string, target: string, json: string) => {
+function applyImageSizes(content: string): string {
+	return content.replace(IMAGE_SIZE, (match, alt: string, target: string, json: string) => {
 		let size: string;
 		try {
 			const dimensions = JSON.parse(json) as { width?: unknown, height?: unknown };
@@ -224,46 +221,44 @@ export function applyImageSizes(content: string): string {
 		}
 
 		return `![${alt === '' ? size : `${alt}|${size}`}](${target})`;
-	}));
+	});
 }
 
-export function writeUnderlines(content: string): string {
-	return withoutCode(content, text => text.replace(UNDERLINE, (_match, underlined: string) => `<u>${underlined}</u>`));
+function writeUnderlines(content: string): string {
+	return content.replace(UNDERLINE, (_match, underlined: string) => `<u>${underlined}</u>`);
 }
 
 /** Bear's tag forms, written as tags Obsidian reads. */
 function normalizeTags(content: string): string {
-	return withoutCode(content, text => text
+	return content
 		.replace(MULTI_WORD_TAG, (_match, tag: string) => '#' + tag.replace(/\s+/g, '_'))
 		.replace(TAG, (match, before: string, run: string) => {
 			const { tag, tail } = splitTag(run);
 			return tag === '' ? match : `${before}#${tag}${tail}`;
-		}));
+		});
 }
 
 /** Take the tags out of the note, for a vault that keeps them in a property. */
 function removeTags(content: string): string {
-	return withoutCode(content, text => {
-		const kept: string[] = [];
+	const kept: string[] = [];
 
-		for (const line of text.split('\n')) {
-			const stripped = line.replace(TAG, (match, before: string, run: string) => {
-				const { tag, tail } = splitTag(run);
-				// The space in front of the tag goes with it, so the sentence closes up
-				return tag === '' ? match : tail;
-			});
+	for (const line of content.split('\n')) {
+		const stripped = line.replace(TAG, (match, before: string, run: string) => {
+			const { tag, tail } = splitTag(run);
+			// The space in front of the tag goes with it, so the sentence closes up
+			return tag === '' ? match : tail;
+		});
 
-			if (stripped === line) {
-				kept.push(line);
-			}
-			else if (stripped.trim() !== '') {
-				kept.push(stripped.replace(/[ \t]+$/, ''));
-			}
-			// A line that was nothing but tags leaves nothing behind
+		if (stripped === line) {
+			kept.push(line);
 		}
+		else if (stripped.trim() !== '') {
+			kept.push(stripped.replace(/[ \t]+$/, ''));
+		}
+		// A line that was nothing but tags leaves nothing behind
+	}
 
-		return kept.join('\n').replace(/\s+$/, '');
-	});
+	return kept.join('\n').replace(/\s+$/, '');
 }
 
 export async function convertBearNote(
@@ -272,7 +267,10 @@ export async function convertBearNote(
 ): Promise<ConvertedBearNote> {
 	const { basename, parent, flattenTags, tagPlacement, resolveAsset } = options;
 
-	let content = removeMarkdownHeader(basename, mdContent);
+	// Set the note's code aside once, so no pass below can read or rewrite it
+	const code: string[] = [];
+	let content = maskCode(removeMarkdownHeader(basename, mdContent), code);
+
 	content = separateTables(content);
 	content = applyImageSizes(content);
 	content = writeUnderlines(content);
@@ -293,5 +291,5 @@ export async function convertBearNote(
 		content = removeTags(content);
 	}
 
-	return { content, tags };
+	return { content: unmaskCode(content, code), tags };
 }
