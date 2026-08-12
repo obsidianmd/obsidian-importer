@@ -13,7 +13,7 @@ Inline tags: #tag
 *This is italic text*
 ***This is bold italic text***
 ~~Strikethrough~~
-~underline~
+<u>underline</u>
 ==Highlight==
 
 Colored higlights:

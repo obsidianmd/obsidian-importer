@@ -29,6 +29,14 @@ const FENCE = /^\s*(`{3,}|~{3,})/;
 const CODE_SPAN = /`+[^`]*`+/g;
 
 /**
+ * Bear underlines between single tildes. Obsidian reads a pair of them as
+ * strikethrough and one as nothing at all, so the tag it does read is written
+ * instead. What it wraps has to start and end on something other than a space,
+ * which is what keeps a line of two paths from being read as one underline.
+ */
+const UNDERLINE = /(?<!~)~([^~\s\n](?:[^~\n]*[^~\s\n])?)~(?!~)/g;
+
+/**
  * A colour is not a tag, however much it looks like one. Only one carrying a
  * digit: "#facade" is a word someone tagged with, "#c0ffee" is a colour.
  */
@@ -200,6 +208,10 @@ export function applyImageSizes(content: string): string {
 	});
 }
 
+export function writeUnderlines(content: string): string {
+	return withoutCode(content, text => text.replace(UNDERLINE, (_match, underlined: string) => `<u>${underlined}</u>`));
+}
+
 /** Bear's tag forms, written as tags Obsidian reads. */
 function normalizeTags(content: string): string {
 	return withoutCode(content, text => text
@@ -244,6 +256,7 @@ export async function convertBearNote(
 	let content = removeMarkdownHeader(basename, mdContent);
 	content = separateTables(content);
 	content = applyImageSizes(content);
+	content = writeUnderlines(content);
 
 	for (const match of [...content.matchAll(ASSET_LINK)]) {
 		const [fullMatch, linkPath] = match;

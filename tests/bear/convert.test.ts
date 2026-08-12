@@ -228,6 +228,15 @@ test('a hex colour is not a tag', async () => {
 	assert.deepEqual(tags, ['facade']);
 });
 
+test('writes Bear\'s underline as the tag Obsidian reads', async () => {
+	const underlined = await convertBearNote('~underline~, ~~strikethrough~~, **B*I*~U~ button**', noteOptions);
+	assert.equal(underlined.content, '<u>underline</u>, ~~strikethrough~~, **B*I*<u>U</u> button**');
+
+	// A tilde on either side of something else is not an underline
+	const paths = await convertBearNote('Look in ~/notes and ~/drafts, or `~x~`', noteOptions);
+	assert.equal(paths.content, 'Look in ~/notes and ~/drafts, or `~x~`');
+});
+
 test('separates a table from the paragraph above it', async () => {
 	const table = '| a | b |\n|---|---|\n| 1 | 2 |';
 	const options = { ...noteOptions, basename: 'Tables', parent: 'Tables.textbundle' };

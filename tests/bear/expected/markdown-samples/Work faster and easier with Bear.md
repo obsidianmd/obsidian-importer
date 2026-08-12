@@ -20,7 +20,7 @@ Double-click a note in the Note List to open it in a separate window. Yes, you c
 You can export all notes from a single tag for fun and profit. Right-click/long press a tag in the Sidebar, then choose **Export**. 
 
 ### 👉 Link notes together
-Notes can link to each other to form a body of knowledge, or a wiki. To link to a note, simply type two brackets, then a couple letters of the title of the note. On iOS a **Wiki Link button** is available next to the **B*I*~U~ button**.
+Notes can link to each other to form a body of knowledge, or a wiki. To link to a note, simply type two brackets, then a couple letters of the title of the note. On iOS a **Wiki Link button** is available next to the **B*I*<u>U</u> button**.
 
 ### 👉 Stand out with TagCons 
 Tags in the sidebar with pound signs are cool. Know what’s cooler? Tags with cute emoji-like icons that make them easier to find!

@@ -12,18 +12,18 @@ Click the **New Note button** (⌘+N) at the top of the Note List and start typi
 
 ----
 ## Meet the Styles
-Bear's custom keyboard is the control board styling your notes on iPhone and iPad. On macOS, the same functionalities are available in the style bar at the bottom of the editor. Both can be enabled via the **B*I*~U~ button**.
+Bear's custom keyboard is the control board styling your notes on iPhone and iPad. On macOS, the same functionalities are available in the style bar at the bottom of the editor. Both can be enabled via the **B*I*<u>U</u> button**.
 ![](Bear/Get%20Started%20-%20Keyboard%203.png)
 ### 📝 Write with styles
-You can add all kinds of text styles to your notes, including: **bold**, *italic*, ~underline~, ~~strikethrough~~, ==highlight==, headings,  [links](bear.app), lists, todos, tables, and more—and it all starts with the **Style Bar**.
+You can add all kinds of text styles to your notes, including: **bold**, *italic*, <u>underline</u>, ~~strikethrough~~, ==highlight==, headings,  [links](bear.app), lists, todos, tables, and more—and it all starts with the **Style Bar**.
 ​
-Use the **B*I*~U~ button** (⇧+⌘+Y) at the top of Bear to reveal the Style Bar and many of the core tools available to you. You can combine styles together, like **bold** and ~underline~ on the same **~word~**. To apply all this formatting, Bear uses Markdown[^1], a simple way to add style to plain text by wrapping it with special characters. [Visit our support docs](https://bear.app/faq/) to learn more about using Markdown in Bear and how you can apply this formatting yourself.
+Use the **B*I*<u>U</u> button** (⇧+⌘+Y) at the top of Bear to reveal the Style Bar and many of the core tools available to you. You can combine styles together, like **bold** and <u>underline</u> on the same **<u>word</u>**. To apply all this formatting, Bear uses Markdown[^1], a simple way to add style to plain text by wrapping it with special characters. [Visit our support docs](https://bear.app/faq/) to learn more about using Markdown in Bear and how you can apply this formatting yourself.
 
 ### 📷 More than text
-Bear notes can hold just about any kind of file, from photos to PDFs to… we’ll spare you the full list. You can drag & drop any file in your notes or use the attachment function (it looks like a photo) on the Style Bar. You can trigger with **B*I*~U~ button** on iOS and iPadOS.
+Bear notes can hold just about any kind of file, from photos to PDFs to… we’ll spare you the full list. You can drag & drop any file in your notes or use the attachment function (it looks like a photo) on the Style Bar. You can trigger with **B*I*<u>U</u> button** on iOS and iPadOS.
 
 ### 🎨 Draw your ideas
-When it’s time to get visual, you can add sketches to your notes on iPad. To create a sketch anywhere in a note, tap the **B*I*~U~ button**, then the **Squiggly Line Sketch Button** (yes that is its technical name). An expandable canvas will appear with Apple’s PencilKit tools, just add your creativity.
+When it’s time to get visual, you can add sketches to your notes on iPad. To create a sketch anywhere in a note, tap the **B*I*<u>U</u> button**, then the **Squiggly Line Sketch Button** (yes that is its technical name). An expandable canvas will appear with Apple’s PencilKit tools, just add your creativity.
 
 ---
 
