@@ -8,11 +8,14 @@ import { deOutline, OutlineNode, anchorLines, withContinuation } from '../../out
 
 const INDENT = '    ';
 
-const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'calc'];
+const roamSpecificMarkup = ['POMO', 'word-count', 'date', 'slider', 'encrypt', 'TaoOfRoam', 'orphans', 'count', 'character-count', 'comment-button', 'streak', 'attr-table', 'mentions', 'search', 'roam/render', 'roam/css', 'calc'];
 const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.join('|')})(\\]\\])?.*?\\}\\}(\\})?`, 'g');
 
 // Match only Roam's two balanced table markers.
 const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
+
+/** The components something below reads, as Roam brackets their names. */
+const namedComponentRe = /\{\{\[\[(TODO|DONE|table|query|embed|embed-path|video|audio|pdf|iframe)\]\]/gi;
 
 /** A Roam player component pointing at a URL: `{{[[video]]: https://...}}`. */
 const mediaComponentRe = /\{\{\[{0,2}(video|audio|pdf|iframe)\]{0,2}:\s*(https?:\/\/[^\s{}]+)\s*\}\}/gi;
@@ -75,6 +78,13 @@ export class RoamPageConverter {
 	}
 
 	async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string): Promise<string> {
+		// A component names itself in brackets, which is not a page reference:
+		// left as one it was rewritten like any other link, and {{[[query]]}}
+		// became {{[[query 1]]}} where a page had taken the name first - after
+		// which nothing recognised it as a query. Only the names something here
+		// goes on to read, so a component nobody handles is left as Roam wrote it.
+		blockText = blockText.replace(namedComponentRe, '{{$1');
+
 		blockText = blockText.replace(roamSpecificMarkupRe, '');
 
 		if (blockText.substring(0, 8) == ':hiccup ' && blockText.includes(':hr')) {

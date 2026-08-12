@@ -789,10 +789,23 @@ test('a YouTube video is left to Obsidian, which embeds it from the link', async
 		'![](https://www.youtube.com/watch?v=abc)');
 });
 
-test('a component with no URL is not touched', async () => {
-	// `{{[[video-timestamp]]: 00:07:07}}` and an empty player say something
-	// this cannot improve on.
-	for (const text of ['{{[[video-timestamp]]: 00:07:07}}', '{{[[video]]: }}', '{{excalidraw}}']) {
+test('a component nobody here reads is left as Roam wrote it', async () => {
+	// Including the brackets round its name: rewriting those is only worth it
+	// for the names something goes on to read.
+	for (const text of ['{{[[video-timestamp]]: 00:07:07}}', '{{excalidraw}}', '{{[[mermaid]]}}']) {
 		assert.equal(await scrubber().roamMarkupScrubber('', '', text), text);
 	}
+});
+
+test('a component name is not a page reference', async () => {
+	// It was rewritten like any other link, so {{[[query]]}} became
+	// {{[[query 1]]}} wherever a page had taken the name first, and nothing
+	// downstream recognised it as a query any more.
+	const named = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		resolvePageName: title => title === 'query' ? 'query 1' : title,
+	});
+
+	assert.equal(await named.roamMarkupScrubber('g', 'g', '{{[[query]]: {and: [[A]]}}}'),
+		'```query\nblock:([[A]])\n```');
 });
