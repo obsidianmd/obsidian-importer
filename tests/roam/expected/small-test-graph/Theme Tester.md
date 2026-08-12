@@ -14,9 +14,9 @@
         - sub text
     - ---
 - Block refs ^xNaGTlLLA
-    - [[small-test-graph/Theme Tester#^P68pRja7i|The Theme Tester Page Link]]
+    - [[Theme Tester#^P68pRja7i]]
     - the [[Theme Tester]] link
-    - [[small-test-graph/Theme Tester#^ME2M37gZr|Embedded blocks]]
+    - [[Theme Tester#^ME2M37gZr]]
 - Images 
     - typical remote image
         - ![](https://i.imgur.com/SEr4dkd.jpg)
@@ -40,9 +40,9 @@
     - [[small-test-graph/roam/css|roam/css]]
     - #[[mental health]]
     - [[Theme Tester|Basic Alias]]
-    - [[small-test-graph/Theme Tester#^JF3iFJPKu|Links]]
+    - [[Theme Tester#^JF3iFJPKu|Block Alias]]
     - [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494)
-    - This is a paragraph with several types of tags and aliases [[small-test-graph/Theme Tester#^JF3iFJPKu|Links ^JF3iFJPKu]] [[small-test-graph/Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health|Theme Tester]]) #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health]]
+    - This is a paragraph with several types of tags and aliases [[Theme Tester#^JF3iFJPKu|Block Alias]] [[small-test-graph/Theme Tester|Basic Alias]] #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health|Theme Tester]]) #test [External Alias](https://www.usgbc.org/education/sessions/day-1-study-plan-10411494) [[Theme Tester]] #[[mental health]]
     - metadata: www.google.com
     - Tags
         - #[[exercise]]
@@ -69,9 +69,9 @@
       and a second line of amazing code here```
 - Embeds
     - Embedded blocks ^ME2M37gZr
-        - sHQRa0Wan
+        - {{[[embed]]: ((sHQRa0Wan))}}
     - Embedded Pages
-        - [[testing]]
+        - ![[testing]]
 - Misc Roam Components
     - pomodoro
         - 
@@ -116,7 +116,7 @@
         - > Regulare quote using page brackets
         - > bare quote without brackets
     - Collapsable Parenthesis 
-        - A very long and interesting quote collapsed and one open also one with regular [[small-test-graph/Theme Tester#^xNaGTlLLA|Block refs]].
+        - A very long ((and interesting)) quote collapsed and one ((open)) also one with regular [[Theme Tester#^xNaGTlLLA]].
     - LayTEX
         - $$O(n^2)$$
     - word and character counts

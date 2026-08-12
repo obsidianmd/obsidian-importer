@@ -8,7 +8,7 @@
         - ### Everything is where you need it to be
             - **Organizing information is effortless with** [[help-graph-excerpt/Page References|page]]/[[Block References|Page References|block references]]/[[Block References|block references]].
                 - Let's say we have a meeting. In our Daily Notes, we might write
-                    - [[help-graph-excerpt/2021-02-01#^QhoXgk8VU|{{TODO}} Have a meeting with John Smith about Roam Research on February 8th, 2021. #marketing]]
+                    - [[2021-02-01#^QhoXgk8VU]]
                 - Those square brackets turn text into ***backlinks***.
                     - This automatically creates a page for each keyword--click the backlink to go the keyword's page. 
                     - At the bottom, you'll find instances where the page was mentioned--its *page references*.

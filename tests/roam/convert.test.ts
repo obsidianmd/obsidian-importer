@@ -109,8 +109,66 @@ test('converts Roam emphasis to Obsidian emphasis', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '^^highlight^^'), '==highlight==');
 });
 
-test('unwraps a block embed to its reference', async () => {
-	assert.equal(await scrubber().roamMarkupScrubber('', '', '{{embed: ((abc123))}}'), '((abc123))');
+/**
+ * References and embeds, which are the two things a block can say about
+ * another block. Both need the graph to say where that block ended up; a
+ * scrubber without one leaves the markup as Roam wrote it.
+ */
+function referring(blocks: Record<string, string> = { abc123: 'Notes' }) {
+	return new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		resolveBlockReference: uid => uid in blocks ? `${blocks[uid]}#^${uid}` : null,
+		isReferenced: uid => uid in blocks,
+	});
+}
+
+test('a block embed becomes an embed, not a link (#246)', async () => {
+	assert.equal(await referring().roamMarkupScrubber('', '', '{{embed: ((abc123))}}'), '![[Notes#^abc123]]');
+	assert.equal(await referring().roamMarkupScrubber('', '', '{{[[embed]]: ((abc123))}}'), '![[Notes#^abc123]]');
+	assert.equal(await referring().roamMarkupScrubber('', '', '{{embed-path: ((abc123))}}'), '![[Notes#^abc123]]');
+});
+
+test('an embedded page becomes an embed too, and needs nothing looked up', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '{{[[embed]]: [[testing]]}}'), '![[testing]]');
+});
+
+test('a block reference becomes a link to the block (#247)', async () => {
+	assert.equal(await referring().roamMarkupScrubber('', '', 'see ((abc123))'), 'see [[Notes#^abc123]]');
+});
+
+test('and carries no copy of what the block says, however often it is referred to', async () => {
+	// The alias used to hold the block's text, and the second reference to one
+	// block got the anchor the first reference had appended to it (#247).
+	const twice = await referring().roamMarkupScrubber('', '', '((abc123)) and again ((abc123))');
+
+	assert.equal(twice, '[[Notes#^abc123]] and again [[Notes#^abc123]]');
+});
+
+test('an aliased reference keeps the alias the user wrote', async () => {
+	assert.equal(await referring().roamMarkupScrubber('', '', '[the block](((abc123)))'), '[[Notes#^abc123|the block]]');
+});
+
+test('a checkbox to the left of an aliased reference is not taken into the alias', async () => {
+	// `{{[[TODO]]}}` becomes `[ ]` before the reference is read, and an alias
+	// allowed to reach across a bracket takes the checkbox with it.
+	assert.equal(
+		await referring().roamMarkupScrubber('', '', '{{[[TODO]]}} do it [->](((abc123)))'),
+		'[ ] do it [[Notes#^abc123|->]]');
+});
+
+test('a parenthetical that is nobody\'s block id is left as it was', async () => {
+	// It used to lose its brackets and be left as bare text.
+	assert.equal(
+		await referring().roamMarkupScrubber('', '', 'a long ((and interesting)) quote'),
+		'a long ((and interesting)) quote');
+});
+
+test('a reference to a block the graph does not hold is left as it was', async () => {
+	assert.equal(await referring().roamMarkupScrubber('', '', '((notinhere))'), '((notinhere))');
+	assert.equal(await referring().roamMarkupScrubber('', '', '{{embed: ((notinhere))}}'), '{{embed: ((notinhere))}}');
 });
 
 test('turns a Roam quote into a blockquote', async () => {
@@ -172,5 +230,49 @@ test('indents the lines after the first to the item text, so a fence stays in th
 		'    - ```js',
 		'      one();',
 		'      two();```',
+	].join('\n'));
+});
+
+/**
+ * The anchor a reference reaches. It used to be patched into the finished
+ * markdown by looking for a line holding the block's text, which found the
+ * wrong line as readily as the right one and no line at all for a block of
+ * more than one.
+ */
+async function anchored(page: RoamPage, referenced: string[]): Promise<string> {
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		isReferenced: uid => referenced.includes(uid),
+	});
+
+	return converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', false, '', 0, 0);
+}
+
+test('a block something points at grows an anchor', async () => {
+	const page = { title: 'Notes', uid: 'notes', children: [{ string: 'the block', uid: 'abc123' }] } as RoamPage;
+
+	assert.equal(await anchored(page, ['abc123']), '- the block ^abc123');
+});
+
+test('and a block nothing points at is left without one', async () => {
+	const page = { title: 'Notes', uid: 'notes', children: [{ string: 'the block', uid: 'abc123' }] } as RoamPage;
+
+	assert.equal(await anchored(page, []), '- the block');
+});
+
+test('a block of several lines takes its anchor on a line of its own', async () => {
+	// Appended to the closing fence it would be read as part of the code.
+	const page = {
+		title: 'Notes', uid: 'notes',
+		children: [{ string: '```js\none();```', uid: 'fenced' }],
+	} as RoamPage;
+
+	assert.equal(await anchored(page, ['fenced']), [
+		'- ```js',
+		'  one();```',
+		'  ^fenced',
 	].join('\n'));
 });

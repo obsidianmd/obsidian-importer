@@ -12,9 +12,9 @@
  * graph links to is downloaded.
  */
 import { RoamPageConverter, RoamConverterOptions } from './convert';
-import { BlockInfo, RoamBlock, RoamPage } from './models/roam-json';
+import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
-import { blockRefRegex, extractBlockReferenceUIDs } from './block-refs';
+import { BlockTarget, extractBlockReferenceUIDs } from './block-refs';
 
 export interface RoamGraphOptions extends RoamConverterOptions {
 	/** Where the graph's notes are written, as a vault path. */
@@ -42,14 +42,21 @@ export class RoamGraphConverter {
 	private options: RoamGraphOptions;
 	private graphFolder: string;
 
+	/** The note each block that carries an id ended up on, by that id. */
+	private blocks = new Map<string, string>();
+	/** The blocks something points at, which are the ones needing an anchor. */
+	private referenced = new Set<string>();
+
 	constructor(options: RoamGraphOptions) {
 		this.options = options;
 		this.graphFolder = options.graphFolder;
 	}
 
 	async convert(allPages: RoamPage[]): Promise<ConvertedGraph> {
-		// PRE-PROCESS: map the blocks for easy lookup //
-		const [blockLocations, toPostProcess] = this.preprocess(allPages);
+		// Where every block is, and which of them something points at. Both
+		// have to be known before any page is converted: a reference reaches
+		// forward as readily as back.
+		this.index(allPages);
 
 		const markdownPages: Map<string, string> = new Map();
 		const pageUids: Map<string, string> = new Map();
@@ -92,144 +99,66 @@ export class RoamGraphConverter {
 			if (pageData.uid) pageUids.set(filename, pageData.uid);
 		}
 
-		// POST-PROCESS: fix block refs //
-		for (const callingBlock of toPostProcess.values()) {
-			const callingBlockStringScrubbed = await this.newConverter()
-				.roamMarkupScrubber(this.graphFolder, `${this.graphFolder}/${callingBlock.pageName}.md`, callingBlock.blockString, true);
-			const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, callingBlockStringScrubbed);
-
-			const callingBlockFilePath = `${this.graphFolder}/${callingBlock.pageName}.md`;
-			const callingBlockMarkdown = markdownPages.get(callingBlockFilePath);
-			if (callingBlockMarkdown) {
-				const lines = callingBlockMarkdown.split('\n');
-
-				const index = lines.findIndex((item: string) => item.contains('- ' + callingBlockStringScrubbed));
-				if (index !== -1) {
-					lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
-				}
-
-				markdownPages.set(callingBlockFilePath, lines.join('\n'));
-			}
-		}
-
 		return { pages: markdownPages, uids: pageUids };
 	}
 
 	private newConverter(): RoamPageConverter {
-		return new RoamPageConverter(this.options);
+		return new RoamPageConverter({
+			...this.options,
+			resolveBlockReference: uid => this.resolveBlockReference(uid),
+			isReferenced: uid => this.referenced.has(uid),
+		});
 	}
 
-	private preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
-		// preprocess/map the graph so each block can be quickly found
-		const blockLocations: Map<string, BlockInfo> = new Map();
-		const toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
-		const userDNPFormat = this.options.userDNPFormat;
+	/**
+	 * How a note in this graph is linked to.
+	 *
+	 * A plain title is left plain, the way a converted `[[page]]` is, so a
+	 * reference and a link to the same page read alike. A title Roam wrote
+	 * with a slash made a folder here, and a bare `[[a/b]]` would be read as a
+	 * path, so that one is written out in full.
+	 */
+	private linkTo(pageName: string): string {
+		return pageName.includes('/') ? `${this.graphFolder}/${pageName}` : pageName;
+	}
 
-		function processBlock(page: RoamPage, block: RoamBlock) {
-			if (block.uid) {
-				//check for roam DNP and convert to obsidian DNP
-				const dateObject = new Date(page.uid);
-				if (!isNaN(dateObject.getTime())) {
-					// The string can be converted to a Date object
-					const newPageTitle = convertDateString(page.title, userDNPFormat);
-					page.title = newPageTitle;
-				}
+	private resolveBlockReference(uid: string): BlockTarget | null {
+		const pageName = this.blocks.get(uid);
+		if (pageName === undefined) return null;
 
-				const info = {
-					pageName: sanitizeFileNameKeepPath(page.title),
-					blockString: block.string,
-				};
+		return `${this.linkTo(pageName)}#^${uid}`;
+	}
 
-				const containsBlockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
-				if (containsBlockRefRegex.test(block.string)) {
-					toPostProcessblockLocations.set(block.uid, info);
-				}
-				blockLocations.set(block.uid, info);
-			}
+	/**
+	 * Every block by its id, and the ids something points at.
+	 *
+	 * Only a reference to a block that is really there counts: `((a passing
+	 * thought))` is somebody's parenthesis, not an id, and anchoring a block
+	 * nothing reaches for would leave a `^id` on the page for no reason.
+	 */
+	private index(pages: RoamPage[]): void {
+		const mentioned = new Set<string>();
 
-			if (block.children) {
-				for (const child of block.children) {
-					processBlock(page, child);
-				}
-			}
-		}
+		const walk = (pageName: string, block: RoamBlock) => {
+			if (block.uid) this.blocks.set(block.uid, pageName);
+			for (const uid of extractBlockReferenceUIDs(block.string ?? '')) mentioned.add(uid);
+
+			for (const child of block.children ?? []) walk(pageName, child);
+		};
 
 		for (const page of pages) {
-			if (page.children) {
-				for (const block of page.children) {
-					processBlock(page, block);
-				}
-			}
+			const pageName = this.noteNameFor(page);
+			for (const block of page.children ?? []) walk(pageName, block);
 		}
 
-		return [blockLocations, toPostProcessblockLocations];
-	}
-
-	private modifySourceBlockString(markdownPages: Map<string, string>, sourceBlock: BlockInfo, sourceBlockUID: string) {
-		if (!sourceBlock.blockString.endsWith('^' + sourceBlockUID)) {
-			const sourceBlockFilePath = `${this.graphFolder}/${sourceBlock.pageName}.md`;
-			const markdown = markdownPages.get(sourceBlockFilePath);
-
-			if (markdown) {
-				const lines = markdown.split('\n');
-
-				// Edit the specific line, for example, the 5th line.
-				const index = lines.findIndex((item: string) => item.contains('- ' + sourceBlock.blockString));
-				if (index !== -1) {
-					const newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-
-					// replace the line before updating sourceBlock
-					lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);
-					sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-				}
-
-				markdownPages.set(sourceBlockFilePath, lines.join('\n'));
-			}
+		for (const uid of mentioned) {
+			if (this.blocks.has(uid)) this.referenced.add(uid);
 		}
 	}
 
-	private async extractAndProcessBlockReferences(markdownPages: Map<string, string>, blockLocations: Map<string, BlockInfo>, inputString: string): Promise<string> {
-		const blockReferences = extractBlockReferenceUIDs(inputString);
-
-		// If there are no block references, return the input string as is
-		if (blockReferences.length === 0) {
-			return inputString;
-		}
-
-		// Asynchronously process each block reference
-		const processedBlocks: string[] = [];
-
-		for (const sourceBlockUID of blockReferences) {
-			try {
-				const sourceBlock = blockLocations.get(sourceBlockUID);
-
-				if (!sourceBlock) {
-					// no block with that uid exists
-					// most likely just double ((WITH_REGULAR_TEXT))
-					processedBlocks.push(sourceBlockUID);
-					continue;
-				}
-
-				// the source block string needs to be stripped of any page syntax or the alias won't work
-				const strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '');
-				// create the obsidian alias []()
-				const processedBlock = `[[${this.graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`;
-				// Modify the source block markdown page so the new obsidian alias points to something
-				this.modifySourceBlockString(markdownPages, sourceBlock, sourceBlockUID);
-
-				processedBlocks.push(processedBlock);
-			}
-			catch {
-				// no block with that uid exists
-				// most likely just double ((WITH_REGULAR_TEXT))
-				processedBlocks.push(sourceBlockUID);
-			}
-		}
-
-		// Replace the block references in the input string with the processed ones
-		let index = 0;
-		const processedString = inputString.replace(blockRefRegex, () => processedBlocks[index++]);
-
-		return processedString;
+	/** What a page is called as a note, which is what a link to it has to say. */
+	private noteNameFor(page: RoamPage): string {
+		return convertDateString(sanitizeFileNameKeepPath(page.title), this.options.userDNPFormat).trim();
 	}
+
 }

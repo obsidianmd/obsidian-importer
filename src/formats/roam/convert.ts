@@ -1,6 +1,7 @@
 import { moment } from 'obsidian';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
+import { BlockTarget, blockRefRegex } from './block-refs';
 
 const INDENT = '    ';
 
@@ -13,6 +14,10 @@ export interface RoamConverterOptions {
 	titleYAML: boolean;
 	downloadAttachments: boolean;
 	downloadFirebaseFile?: (blockText: string, attachmentsFolder: string) => Promise<string>;
+	/** Where the block with this id ended up, when the graph knows of one. */
+	resolveBlockReference?: (uid: string) => BlockTarget | null;
+	/** Whether another block points at this one, and so whether it needs an anchor. */
+	isReferenced?: (uid: string) => boolean;
 }
 
 export class RoamPageConverter {
@@ -51,8 +56,10 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match, group1) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
 
 		blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_, group1) => `[[${graphFolder}/${group1}|${group1}]]`);
-		blockText = blockText.replace(/\[.+?\]\((\(.+?\)\))\)/g, '$1');
-		blockText = blockText.replace(/\[(.+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
+		// As with an aliased block reference below, the alias holds no bracket
+		// of its own, or a `[link](((uid)))` standing to the left of one is
+		// taken into it.
+		blockText = blockText.replace(/\[([^[\]]+?)\]\(\[\[(.+?)\]\]\)/g, '[[$2|$1]]');
 
 		blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
 		blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
@@ -63,8 +70,8 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/__(.+?)__/g, '*$1*');
 		blockText = blockText.replace(/\^\^(.+?)\^\^/g, '==$1==');
 
-		blockText = blockText.replace(/{{\[{0,2}embed.*?(\(\(.*?\)\)).*?}}/g, '$1');
-		blockText = blockText.replace(/{{\[{0,2}embed.*?(\[\[.*?\]\]).*?}}/g, '$1');
+		blockText = this.resolveEmbedsAndReferences(blockText);
+
 		if (this.downloadAttachments && !skipDownload) {
 			if (blockText.includes('firebasestorage')) {
 				blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
@@ -74,6 +81,45 @@ export class RoamPageConverter {
 
 		return blockText;
 	};
+
+	/**
+	 * What a block says about another block.
+	 *
+	 * An embed shows the block where it stands, so it becomes an embed rather
+	 * than a link (#246); a reference points at it, showing the block's text
+	 * where it can (#247). Both need to know where the block ended up, which
+	 * only the graph knows - without it the markup is left as Roam wrote it,
+	 * which is also what happens to `((a parenthetical))` that is nobody's
+	 * block id.
+	 */
+	private resolveEmbedsAndReferences(blockText: string): string {
+		const resolve = this.options.resolveBlockReference;
+
+		// An embedded page, which needs nothing looked up.
+		blockText = blockText.replace(/\{\{\[{0,2}embed[^{}]*?(\[\[.*?\]\])[^{}]*?\}\}/g, '!$1');
+
+		if (!resolve) return blockText;
+
+		blockText = blockText.replace(/\{\{\[{0,2}embed[^{}]*?\(\((.*?)\)\)[^{}]*?\}\}/g,
+			(match, uid) => {
+				const target = resolve(uid);
+				return target ? `![[${target}]]` : match;
+			});
+
+		// An aliased reference keeps the alias the user wrote. The alias holds
+		// no bracket of its own: reaching across one takes in whatever stands
+		// to the left, and by this point a converted `{{[[TODO]]}}` has left a
+		// `[ ]` there to be taken.
+		blockText = blockText.replace(/\[([^[\]]+?)\]\(\(\((.+?)\)\)\)/g, (match, alias, uid) => {
+			const target = resolve(uid);
+			return target ? `[[${target}|${alias}]]` : match;
+		});
+
+		return blockText.replace(blockRefRegex, (match, uid) => {
+			const target = resolve(uid);
+			return target ? `[[${target}]]` : match;
+		});
+	}
 
 	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
 		let markdown: string[] = [];
@@ -109,10 +155,21 @@ export class RoamPageConverter {
 			// first has to be indented or it falls out of the item
 			const [first, ...rest] = `${prefix}${scrubbed}`.split('\n');
 			const continuation = isChild ? indent + '  ' : indent;
-			markdown.push([
+			const lines = [
 				`${isChild ? indent + '- ' : indent}${first}`,
 				...rest.map(line => line ? continuation + line : line),
-			].join('\n'));
+			];
+
+			// A block something else points at needs an anchor to be reached by.
+			// It belongs at the end of the block, which for one holding several
+			// lines is a line of its own: appended to a closing fence it would
+			// land inside the code.
+			if (json.uid && this.options.isReferenced?.(json.uid)) {
+				if (lines.length > 1) lines.push(`${continuation}^${json.uid}`);
+				else lines[0] += ` ^${json.uid}`;
+			}
+
+			markdown.push(lines.join('\n'));
 		}
 
 		if (json.children) {
