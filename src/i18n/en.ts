@@ -74,6 +74,7 @@ export const en = {
 		msgFormatReadsFile: '{{name}} can be imported by a format here.',
 		msgFormatReadsFiles: '{{files}} can be imported by a format here.',
 		msgNoFormatForFiles: 'No format here reads what you dropped.',
+		msgOnlyCopyFiles: 'No format here reads these files, but they can go into your vault as they are.',
 		buttonShowAllFormats: 'Show all formats',
 		buttonContinue: 'Continue',
 		buttonImport: 'Import',

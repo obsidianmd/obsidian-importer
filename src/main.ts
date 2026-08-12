@@ -797,7 +797,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
 		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
-			el.setText(exports.length === 0 ? i18n.modal.msgNoFormatForFiles()
+			el.setText(exports.length === 0 ? i18n.modal.msgOnlyCopyFiles()
 				: exports.length === 1 ? i18n.modal.msgFormatReadsFile({ name: exports[0].name })
 					: i18n.modal.msgFormatReadsFiles({ files: i18n.nouns.fileWithCount({ count: exports.length }) }));
 		});
