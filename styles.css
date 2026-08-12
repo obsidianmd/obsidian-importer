@@ -31,20 +31,34 @@
 	margin-bottom: 0;
 }
 
+/* Stacked, the buttons are three rows deep, and a bar pinned to the bottom of
+   the modal would cover the end of the step it belongs to. It scrolls with
+   the step instead. */
+body.is-mobile .modal.mod-importer .modal-content {
+	margin-bottom: 0;
+}
+
+body.is-mobile .modal.mod-importer .modal-button-container {
+	position: static;
+	width: auto;
+	margin-inline-start: 0;
+	padding-inline: 0;
+	border-top: none;
+}
+
 /* Back and Help sit at the start of a step, and the primary button is pushed
    to the end by its own auto margin. Scoped like the rule above so it wins,
-   and only for a step: the progress and finish screens stay end-aligned. */
-.modal.mod-importer .importer-step-buttons {
+   and only for a step: the progress and finish screens stay end-aligned.
+
+   None of it on mobile, where Obsidian stacks a button container into a
+   column and each button fills the width: an auto margin along what is then
+   the cross axis takes that width back off the primary one. */
+body:not(.is-mobile) .modal.mod-importer .importer-step-buttons,
+body:not(.is-mobile) .importer-flow .importer-step-buttons {
 	justify-content: flex-start;
 }
 
-/* The same steps in a setting tab, where the pane scrolls on its own: the
-   buttons sit at the end of the screen rather than pinned to a modal. */
-.importer-flow .importer-step-buttons {
-	justify-content: flex-start;
-}
-
-.importer-step-buttons .mod-cta {
+body:not(.is-mobile) .importer-step-buttons .mod-cta {
 	margin-inline-start: auto;
 }
 
