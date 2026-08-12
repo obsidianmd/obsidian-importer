@@ -18,9 +18,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  TRANSLATION_BRANCH: automation/importer-locales
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -86,19 +83,6 @@ jobs:
           ref: ${{ needs.setup.outputs.base_sha }}
           fetch-depth: 0
 
-      - name: Start from the existing translation PR
-        env:
-          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git fetch origin "$TRANSLATION_BRANCH"; then
-            git switch --detach FETCH_HEAD
-            git merge --no-edit "$BASE_SHA"
-          else
-            git switch --detach "$BASE_SHA"
-          fi
-
       - name: Install pnpm
         uses: pnpm/action-setup@v6
 
@@ -141,33 +125,17 @@ jobs:
           name: locale-${{ matrix.locale }}
           path: ${{ runner.temp }}/${{ matrix.locale }}.patch
 
-  propose:
+  commit:
     needs: [setup, translate]
     if: ${{ always() && needs.setup.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.setup.outputs.base_sha }}
           fetch-depth: 0
-
-      - name: Start from the existing translation PR
-        env:
-          BASE_SHA: ${{ needs.setup.outputs.base_sha }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git fetch origin "$TRANSLATION_BRANCH"; then
-            git switch --detach FETCH_HEAD
-            git merge --no-edit "$BASE_SHA"
-          else
-            git switch --detach "$BASE_SHA"
-          fi
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -201,25 +169,25 @@ jobs:
       - name: Build plugin
         run: pnpm build
 
-      - name: Update translation PR
+      - name: Commit translations
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if [ -z "$(git status --porcelain)" ]; then
             echo "Translations are already current"
             exit 0
           fi
 
-          git switch -C "$TRANSLATION_BRANCH"
           git add locale src/i18n/locales.ts
           git commit -m "Update translations"
-          git push origin "HEAD:$TRANSLATION_BRANCH"
 
-          url=$(gh pr list --head "$TRANSLATION_BRANCH" --state open --json url --jq '.[0].url')
-          if [ -n "$url" ]; then
-            echo "$url"
-          else
-            gh pr create \
-              --base master \
-              --head "$TRANSLATION_BRANCH" \
-              --title "Update translations" \
-              --body "Updates Importer UI translations for every locale published by obsidian-help. The translations use obsidian-translations as their terminology reference and fall back to English for any omitted value."
-          fi
+          # Master may have moved while the locales were being translated.
+          for _ in 1 2 3; do
+            if git push origin HEAD:master; then
+              exit 0
+            fi
+            git fetch origin master
+            git rebase FETCH_HEAD
+          done
+          exit 1
