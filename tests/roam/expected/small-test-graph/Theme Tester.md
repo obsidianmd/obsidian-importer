@@ -75,12 +75,9 @@
         - ![[testing]]
 - Misc Roam Components
     - pomodoro
-        - 
     - in-line  {{or:options | versioning}}
     - Calc
         -  = 
-    - 
-    - 
     - Diagrams
         - Regular
             - {{[[diagram]]}}
@@ -124,8 +121,6 @@
     - word and character counts
         -   very cool  
     - progress bar
-        - 
-            - [ ] 
-            - [x] 
+        - [ ] 
+        - [x] 
     - Streaks
-        - 

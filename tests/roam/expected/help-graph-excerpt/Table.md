@@ -1,4 +1,3 @@
-- [[--]]
 - ## Articles::
     - [How to build a table in Roam Research](https://web.archive.org/web/20201109133038/https://www.roamtips.com/home/create-tables-roam-research) - [[Roam Tips and Hacks]] 
 - ## Community Videos::
@@ -10,4 +9,3 @@
     - ### Tables with Complex Cells (no audio) by [[Robin Alvarez]]
         - ![](https://www.youtube.com/watch?v=EXAMPLE0001)
           [[Table]]
-- [[--]]

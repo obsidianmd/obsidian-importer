@@ -14,6 +14,9 @@ const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.jo
 // Match only Roam's two balanced table markers.
 const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
 
+/** A reference to a Roam CSS class page: `[[.rm-grid]]`, `#.rm-hide`. */
+const styleReferenceRe = /\s*(?:\[\[\.[^\]]*\]\]|#\.[^\s[\]#]+)/g;
+
 const bareTagRe = /(^|\s)#([^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~[\]\\\s]+)/g;
 
 export function isTableMarker(blockString: string | undefined): boolean {
@@ -62,6 +65,10 @@ export class RoamPageConverter {
 
 		// Roam's bracketed tags are page links; Obsidian has no equivalent tag syntax.
 		blockText = blockText.replace(/#(\[\[.*?\]\])/g, '$1');
+
+		// A dotted page name is a CSS class Roam styles the block with, not
+		// anything to read - and being per-block, cssclasses cannot hold it.
+		blockText = blockText.replace(styleReferenceRe, '');
 
 		if (this.options.tagsAsLinks) {
 			blockText = blockText.replace(bareTagRe, (match: string, before: string, tag: string) =>
@@ -132,10 +139,10 @@ export class RoamPageConverter {
 		return this.options.dropUnresolvedReferences ? '' : match;
 	}
 
-	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock): Promise<OutlineNode | null> {
+	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock): Promise<OutlineNode[]> {
 		if (block.string && isTableMarker(block.string)) {
 			const table = await this.convertTable(graphFolder, attachmentsFolder, block);
-			return table ? { text: '', anchor: null, verbatim: table, children: [] } : null;
+			return table ? [{ text: '', anchor: null, verbatim: table, children: [] }] : [];
 		}
 
 		// A source-empty block omits its own line but retains its children.
@@ -143,16 +150,23 @@ export class RoamPageConverter {
 			? await this.roamMarkupScrubber(graphFolder, attachmentsFolder, block.string)
 			: null;
 
+		const children = await this.renderChildren(graphFolder, attachmentsFolder, block.children ?? []);
+
 		const text = scrubbed === null ? null : block.heading
 			? `${'#'.repeat(block.heading)} ${withoutWholeBold(scrubbed)}`
 			: scrubbed;
 
-		return {
+		// A block whose whole text was Roam markup we remove leaves no bullet
+		// behind, and what was under it takes its place rather than staying a
+		// level deeper than a block that is no longer there.
+		if (text !== null && text.trim() === '') return children;
+
+		return [{
 			text,
 			anchor: block.uid && this.options.isReferenced?.(block.uid) ? block.uid : null,
 			verbatim: null,
-			children: await this.renderChildren(graphFolder, attachmentsFolder, block.children ?? []),
-		};
+			children,
+		}];
 	}
 
 	private async renderChildren(graphFolder: string, attachmentsFolder: string, children: RoamBlock[], skip?: Map<RoamBlock, string>): Promise<OutlineNode[]> {
@@ -161,8 +175,7 @@ export class RoamPageConverter {
 		for (const child of children) {
 			if (skip?.has(child)) continue;
 
-			const block = await this.render(graphFolder, attachmentsFolder, child);
-			if (block) rendered.push(block);
+			rendered.push(...await this.render(graphFolder, attachmentsFolder, child));
 		}
 
 		return rendered;

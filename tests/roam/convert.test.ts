@@ -695,3 +695,42 @@ test('and a blank line outside one is left bare, not filled with spaces', async 
 		'      another line',
 	].join('\n'));
 });
+
+/**
+ * Roam styles a block by referring to a page whose name begins with a dot.
+ * The class is Roam's own and means nothing in a vault.
+ */
+test('a style reference is removed, and the content beside it kept', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', 'Content #.rm-hide'), 'Content');
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '**Components** #.rm-grid'), '**Components**');
+	assert.equal(await scrubber().roamMarkupScrubber('', '', 'before [[.bp3-card]] after'), 'before after');
+});
+
+test('a block that was nothing but a style reference leaves no bullet', async () => {
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: '[[.--]]' }, { string: 'real content' }],
+	} as unknown as RoamPage;
+
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), '- real content');
+});
+
+test('and what was under it takes its place rather than staying a level deeper', async () => {
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: '[[.--]]', children: [{ string: 'the content' }] }],
+	} as unknown as RoamPage;
+
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), '- the content');
+});
+
+test('a block Roam left empty still keeps its place', async () => {
+	// It said nothing to begin with, which is not the same as having said
+	// something that was all markup.
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: '' }, { string: 'after' }],
+	} as unknown as RoamPage;
+
+	assert.equal(await scrubber().jsonToMarkdown('g', 'g/A', page), '\n- after');
+});
