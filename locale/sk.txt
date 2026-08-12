@@ -1070,6 +1070,14 @@ translation=Bear ID
 original=Back up your notes in Bear, you will receive a .bear2bk file.
 translation=Zálohujte si poznámky v Bear, dostanete súbor .bear2bk.
 
+[importer.bear.name-tags-property]
+original=Move tags to a property
+translation=
+
+[importer.bear.desc-tags-property]
+original=When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.
+translation=
+
 [importer.bear.name-flatten-tags]
 original=Flatten nested tags
 translation=Sploštiť vnorené značky

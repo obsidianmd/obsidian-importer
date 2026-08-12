@@ -1,11 +1,11 @@
-import { DataWriteOptions, normalizePath, Notice, TFile } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { helpUrl } from '../constants';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
-import { convertBearNote } from './bear/convert';
+import { BearTagPlacement, convertBearNote } from './bear/convert';
 
 const HELP_PERMALINK = 'import/bear';
 
@@ -31,6 +31,7 @@ export class Bear2bkImporter extends FormatImporter {
 
 	private attachmentMap: Record<string, string> = {};
 	private flattenTags: boolean = false;
+	private tagPlacement: BearTagPlacement = 'inline';
 
 	init() {
 		this.addSetting('source')
@@ -44,6 +45,14 @@ export class Bear2bkImporter extends FormatImporter {
 		this.defaultOutputFolder = 'Bear';
 		this.idProperty = 'bear-id';
 		this.idLabel = i18n.importer.bear.labelId();
+
+		this.addSetting()
+			?.setName(i18n.importer.bear.nameTagsProperty())
+			.setDesc(i18n.importer.bear.descTagsProperty())
+			.addToggle(t => t
+				.setValue(false)
+				.onChange(async v => this.tagPlacement = v ? 'property' : 'inline')
+			);
 
 		this.addSetting()
 			?.setName(i18n.importer.bear.nameFlattenTags())
@@ -74,8 +83,17 @@ export class Bear2bkImporter extends FormatImporter {
 
 		let outputFolder = folder;
 
-		const archiveFolder = await this.createFolders(`${folder.path}/archive`);
-		const trashFolder = await this.createFolders(`${folder.path}/trash`);
+		let archiveFolder: TFolder | null = null;
+		let trashFolder: TFolder | null = null;
+		const folderFor = async (metadata: Metadata | undefined): Promise<TFolder> => {
+			if (metadata?.archivedtime !== undefined) {
+				return archiveFolder ??= await this.createFolders(`${folder.path}/archive`);
+			}
+			if (metadata?.trashedtime !== undefined) {
+				return trashFolder ??= await this.createFolders(`${folder.path}/trash`);
+			}
+			return outputFolder;
+		};
 
 		for (let file of files) {
 			if (await ctx.shouldStop()) return;
@@ -94,18 +112,13 @@ export class Bear2bkImporter extends FormatImporter {
 							const mdFilename = parseFilePath(parent).basename;
 							ctx.status(i18n.common.statusImportingNote({ name: mdFilename }));
 							const metadata = metadataLookup[parent];
-							let targetFolder = outputFolder;
-							if (metadata?.archivedtime !== undefined) {
-								targetFolder = archiveFolder;
-							}
-							else if (metadata?.trashedtime !== undefined) {
-								targetFolder = trashFolder;
-							}
+							const targetFolder = await folderFor(metadata);
 							const notePath = normalizePath(`${targetFolder.path}/${mdFilename}.md`);
 							const { content: mdContent, tags } = await convertBearNote(await entry.readText(), {
 								basename: mdFilename,
 								parent,
 								flattenTags: this.flattenTags,
+								tagPlacement: this.tagPlacement,
 								resolveAsset: assetPath => this.getAttachmentStoragePath(assetPath, notePath),
 							});
 
@@ -118,12 +131,14 @@ export class Bear2bkImporter extends FormatImporter {
 								mtime: metadata?.mtime,
 							});
 
+							const noteTags = this.tagPlacement === 'property' ? tags : [];
+
 							if (written) {
-								if (metadata?.archivedtime || metadata?.trashedtime || tags.length > 0) {
-									await this.updateNoteFrontmatter(metadata, file, tags);
+								if (metadata?.archivedtime || metadata?.trashedtime || noteTags.length > 0) {
+									await this.updateNoteFrontmatter(metadata, file, noteTags);
 								}
 								if (metadata?.ctime && metadata?.mtime) {
-									await this.modifFileTimestamps(metadata, file);
+									await this.modifyFileTimestamps(metadata, file);
 								}
 							}
 
@@ -140,10 +155,7 @@ export class Bear2bkImporter extends FormatImporter {
 						else if (filepath.match(/\/assets\//g)) {
 							ctx.status(i18n.importer.bear.statusImportingAsset({ name: entry.name }));
 							const noteParent = filepath.slice(0, filepath.indexOf('/assets/'));
-							const noteMetadata = metadataLookup[noteParent];
-							const noteFolder = noteMetadata?.archivedtime !== undefined
-								? archiveFolder
-								: noteMetadata?.trashedtime !== undefined ? trashFolder : outputFolder;
+							const noteFolder = await folderFor(metadataLookup[noteParent]);
 							const noteName = parseFilePath(noteParent).basename;
 							const notePath = normalizePath(`${noteFolder.path}/${noteName}.md`);
 							const outputPath = await this.getAttachmentStoragePath(entry.filepath, notePath);
@@ -204,7 +216,7 @@ export class Bear2bkImporter extends FormatImporter {
 		}, writeOptions);
 	}
 
-	private async modifFileTimestamps(metaData: Metadata, file: TFile) {
+	private async modifyFileTimestamps(metaData: Metadata, file: TFile) {
 		const writeOptions: DataWriteOptions = {
 			ctime: metaData.ctime,
 			mtime: metaData.mtime,
