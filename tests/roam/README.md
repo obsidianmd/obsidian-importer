@@ -51,9 +51,15 @@ It is a page per thing that broke, so a failure names itself:
 Nothing in it is anyone's data: the names are invented and the block ids are
 words rather than Roam's.
 
-It is recorded twice, in `expected/shapes/` as the outline Roam kept and in
-`expected/shapes-flat/` with the outline flattened, so the difference the
-setting makes is a diff rather than a description.
+It is recorded twice: `expected/shapes/` is what an import writes, with the
+settings the importer ships, and `expected/shapes-outline/` is the same graph
+with the outline kept, so the difference that setting makes is a diff rather
+than a description.
+
+Every graph here is converted with `roamDefaults`, which the settings panel
+reads too. Recording anything else would describe a configuration nobody runs -
+which is how an empty heading reached a real import while the recordings stayed
+green.
 
 ## Whole graphs, in local/
 

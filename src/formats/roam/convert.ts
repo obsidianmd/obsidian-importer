@@ -37,6 +37,20 @@ export interface RoamConverterOptions {
 	tagsAsLinks?: boolean;
 }
 
+/**
+ * What the importer does unasked. Read by the settings panel and by the tests,
+ * so what is recorded is what an import produces rather than a shape nobody
+ * runs.
+ */
+export const roamDefaults = {
+	deOutline: true,
+	embedBlockReferences: true,
+	dropUnresolvedReferences: true,
+	keepAttributesInOutline: false,
+	dropQueries: true,
+	tagsAsLinks: false,
+} as const;
+
 export class RoamPageConverter {
 	readonly attributeNames = new Set<string>();
 

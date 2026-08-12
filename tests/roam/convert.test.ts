@@ -6,7 +6,7 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { RoamConverterOptions, RoamPageConverter } from '../../src/formats/roam/convert';
+import { roamDefaults, RoamConverterOptions, RoamPageConverter } from '../../src/formats/roam/convert';
 import { RoamGraphConverter } from '../../src/formats/roam/graph';
 import { RoamBlock, RoamPage } from '../../src/formats/roam/models/roam-json';
 import { expectedFor, expectTree, fixtures } from '../helpers';
@@ -36,6 +36,7 @@ for (const graph of graphs) {
 			const converted = await new RoamGraphConverter({
 				graphFolder: name,
 				userDNPFormat: DAILY_NOTE_FORMAT,
+				...roamDefaults,
 			}).convert(pages);
 
 			for (const [notePath, markdown] of converted.pages) {
@@ -62,13 +63,14 @@ test('converts shapes.json with the outline flattened', async () => {
 	assert.ok(graph, 'shapes.json should be one of the fixtures');
 
 	const pages = JSON.parse(nodeFs.readFileSync(graph.path, 'utf8')) as RoamPage[];
-	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-roam-flat-'));
+	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-roam-outline-'));
 
 	try {
 		const converted = await new RoamGraphConverter({
 			graphFolder: 'shapes',
 			userDNPFormat: DAILY_NOTE_FORMAT,
-			deOutline: true,
+			...roamDefaults,
+			deOutline: false,
 		}).convert(pages);
 
 		for (const [notePath, markdown] of converted.pages) {
@@ -77,7 +79,7 @@ test('converts shapes.json with the outline flattened', async () => {
 			nodeFs.writeFileSync(file, markdown);
 		}
 
-		expectTree(produced, expectedFor(graph, 'shapes-flat'), 'shapes.json flattened');
+		expectTree(produced, expectedFor(graph, 'shapes-outline'), 'shapes.json as an outline');
 	}
 	finally {
 		nodeFs.rmSync(produced, { recursive: true, force: true });

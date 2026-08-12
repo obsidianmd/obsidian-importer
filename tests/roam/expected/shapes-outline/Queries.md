@@ -1,0 +1,1 @@
+- Written as an example: `{{query: {and: [[A]] [[B]]}}}`

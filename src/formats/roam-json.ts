@@ -7,6 +7,7 @@ import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
 import { RoamPage } from './roam/models/roam-json';
 import { RoamGraphConverter } from './roam/graph';
+import { roamDefaults } from './roam/convert';
 import { createBaseFile } from '../base';
 
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
@@ -28,12 +29,12 @@ export class RoamJSONImporter extends FormatImporter {
 	userDNPFormat: string;
 
 
-	deOutline: boolean = true;
-	embedBlockReferences: boolean = true;
-	dropUnresolvedReferences: boolean = true;
-	keepAttributesInOutline: boolean = false;
-	dropQueries: boolean = true;
-	tagsAsLinks: boolean = false;
+	deOutline: boolean = roamDefaults.deOutline;
+	embedBlockReferences: boolean = roamDefaults.embedBlockReferences;
+	dropUnresolvedReferences: boolean = roamDefaults.dropUnresolvedReferences;
+	keepAttributesInOutline: boolean = roamDefaults.keepAttributesInOutline;
+	dropQueries: boolean = roamDefaults.dropQueries;
+	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
 
 	init() {
 		this.addSetting('source')

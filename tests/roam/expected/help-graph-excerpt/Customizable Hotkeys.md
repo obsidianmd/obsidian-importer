@@ -1,1 +1,1 @@
-- ![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FOJFPJqjqmA.gif?alt=media&token=00000000-0000-0000-0000-000000000000)
+![](https://firebasestorage.googleapis.com/v0/b/example-graph/o/imgs%2Fapp%2Fhelp%2FOJFPJqjqmA.gif?alt=media&token=00000000-0000-0000-0000-000000000000)
