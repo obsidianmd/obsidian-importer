@@ -1286,6 +1286,30 @@ translation=0으로 설정하면 비활성화돼요.
 original=Downloading attachment for {{name}}
 translation={{name}}의 첨부 파일을 다운로드하는 중
 
+[importer.markdown.name]
+original=Markdown
+translation=
+
+[importer.markdown.option-text]
+original=Markdown (.md)
+translation=
+
+[importer.markdown.file-type]
+original=Markdown
+translation=
+
+[importer.markdown.desc-source]
+original=Pick Markdown files, or folders to import with the structure they are in.
+translation=
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

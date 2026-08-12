@@ -763,7 +763,7 @@ export abstract class FormatImporter {
 		drawPathSetting();
 	}
 
-	private addDuplicateHandlingSetting(contentEl: HTMLElement): void {
+	protected addDuplicateHandlingSetting(contentEl: HTMLElement): void {
 		const modes = this.duplicateModes;
 		if (modes.length < 2) return;
 

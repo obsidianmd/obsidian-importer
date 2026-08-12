@@ -409,6 +409,14 @@ export const en = {
 			descSetZeroToDisable: 'Set 0 to disable.',
 			statusDownloading: 'Downloading attachment for {{name}}',
 		},
+		markdown: {
+			name: 'Markdown',
+			optionText: 'Markdown (.md)',
+			fileType: 'Markdown',
+			descSource: 'Pick Markdown files, or folders to import with the structure they are in.',
+			nameTagsAsProperties: 'Convert inline tags to properties',
+			descTagsAsProperties: 'Move tags written in the body of a note into its tags property.',
+		},
 		onenote: {
 			name: 'Microsoft OneNote',
 			optionText: 'Microsoft OneNote',

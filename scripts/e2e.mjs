@@ -31,6 +31,23 @@ const CASES = [
 		note: 'entry-complex-metadata.md',
 	},
 	{
+		// Recorded against the shim's stringifyYaml, so the app's own is what
+		// says whether the two still agree.
+		importer: 'markdown',
+		fixture: 'tests/markdown/frontmatter.md',
+		expected: 'tests/markdown/expected/frontmatter/tags-as-properties.md',
+		note: 'frontmatter.md',
+		options: { tagsAsProperties: true },
+	},
+	{
+		// Every option off has to land the note exactly as it was written, so
+		// the fixture is its own recording.
+		importer: 'markdown',
+		fixture: 'tests/markdown/tags.md',
+		expected: 'tests/markdown/tags.md',
+		note: 'tags.md',
+	},
+	{
 		// The one importer that writes into a folder of its own, which is what
 		// makes it worth running here: nothing creates the notebook's folder
 		// until a note goes into it, and Vault will not create a file inside a
@@ -107,7 +124,7 @@ const script = `
 			testCase.importer,
 			[repo + '/' + testCase.fixture],
 			folder,
-			importer => { importer.saveSourceId = false; });
+			importer => { importer.saveSourceId = false; Object.assign(importer, testCase.options || {}); });
 
 		const file = app.vault.getAbstractFileByPath(folder + '/' + testCase.note);
 		const produced = file ? await app.vault.read(file) : null;
