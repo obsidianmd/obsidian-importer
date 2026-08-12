@@ -1,12 +1,3 @@
-import { NodePickedFile } from '../../../filesystem';
-
-export interface RoamImportOptions {
-	saveAttachments: boolean;
-	jsonSources: NodePickedFile[];
-	outputDir: string;
-	downloadAttachments: boolean;
-}
-
 export interface RoamPage {
 	title: string;
 	children?: RoamBlock[];

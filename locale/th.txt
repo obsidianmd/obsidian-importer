@@ -2034,29 +2034,53 @@ translation=ส่งออกข้อมูลของคุณในรู�
 original=Pick the JSON file from your Roam export.
 translation=เลือกไฟล์ JSON จากการส่งออก Roam ของคุณ
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=ดาวน์โหลดไฟล์แนบทั้งหมด
+[importer.roam-json.name-de-outline]
+original=Flatten the outline
+translation=
 
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=หากเปิดใช้งาน ไฟล์แนบทั้งหมดที่อัปโหลดไปยัง Roam จะถูกดาวน์โหลดไปยังโฟลเดอร์ไฟล์แนบของคุณ
+[importer.roam-json.desc-de-outline]
+original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
+translation=
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=เพิ่มวันที่สร้าง/อัปเดตใน YAML
+[importer.roam-json.name-embed-block-references]
+original=Show referenced blocks in place
+translation=
 
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=หากเปิดใช้งาน โน้ตจะมีเวลาสร้างและเวลาแก้ไขจาก Roam เพิ่มเป็นคุณสมบัติ
+[importer.roam-json.desc-embed-block-references]
+original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
+translation=
 
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=เพิ่มชื่อใน YAML
+[importer.roam-json.name-drop-unresolved-references]
+original=Remove references to missing blocks
+translation=
 
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=หากเปิดใช้งาน โน้ตจะมีชื่อเต็มเพิ่มเป็นคุณสมบัติ (โดยไม่คำนึงถึงอักขระที่ใช้ในชื่อไฟล์ไม่ได้)
+[importer.roam-json.desc-drop-unresolved-references]
+original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
+translation=
+
+[importer.roam-json.name-keep-attributes]
+original=Keep attributes in the note
+translation=
+
+[importer.roam-json.desc-keep-attributes]
+original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
+translation=
+
+[importer.roam-json.name-tags-as-links]
+original=Convert tags to links
+translation=
+
+[importer.roam-json.desc-tags-as-links]
+original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
+translation=
+
+[importer.roam-json.name-drop-queries]
+original=Remove queries
+translation=
+
+[importer.roam-json.desc-drop-queries]
+original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
+translation=
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
@@ -2065,10 +2089,6 @@ translation=ชื่อว่างเปล่า
 [importer.roam-json.reason-unexpected-extension]
 original=Unexpected file extension
 translation=extension ของไฟล์ไม่ตรงตามที่คาดไว้
-
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=ไฟล์มีอยู่แล้ว
 
 [importer.textbundle.name]
 original=Textbundle files

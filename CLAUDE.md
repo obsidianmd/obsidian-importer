@@ -11,6 +11,8 @@ Imports notes from other apps into an Obsidian vault.
 - `src/filesystem.ts` — The only place node modules are reached, and the seam tests inject through
 - `src/encoding.ts` — What encoding a file is read in; every `readText` goes through it
 - `src/util.ts` — `parseHTML`, `sanitizeFileName`, `sanitizeTag`, `serializeFrontMatter`, `getUniqueFilePath`
+- `src/outline.ts`, `src/block-refs.ts`, `src/markdown.ts` — what every outliner
+  format needs (see below)
 - `tests/shims/` — What a test needs to run importer code outside Obsidian: `obsidian.ts` (API), `dom.ts` (linkedom), `runtime.ts` (Obsidian's prototype extensions)
 - `tests/<importer>/` — Fixtures, with recorded output in `expected/`
 
@@ -34,6 +36,30 @@ An importer is split in two:
 Anything the conversion needs from the vault is passed in as a callback. `src/formats/html/convert.ts` is the pattern to copy: it takes `resolveAttachment`, and the importer supplies the one that enforces its size limits and path checks.
 
 Extracting a conversion is a **faithful move** — copy the code, do not improve it on the way. A behaviour change and a refactor in one commit cannot be reviewed.
+
+## Importing an outliner
+
+Roam and Logseq are the same shape of problem, so three modules are shared
+rather than written twice:
+
+- `src/outline.ts` — `OutlineNode` and `deOutline`. In an outliner everything is
+  a bullet, prose and headings included, so an import that keeps the outline is
+  a vault where every note is a list. Flattening asks what each block was being
+  used *as*. `anchorLines` lives here too: an anchor goes on the end of a block
+  of one line and on a line of its own for a block of several — appended to a
+  closing fence it is read as code.
+- `src/block-refs.ts` — `BlockIndex`. One block names another by an id, and the
+  block it names can be on any page, so no note is finished until the graph has
+  been read. Where a block is and whether anything points at it are kept apart:
+  only the second decides whether an anchor is written, and `((a passing
+  thought))` reads as a reference in these formats while being nobody's id.
+- `src/markdown.ts` — `outsideCodeSpans`. These sources document their own
+  markup as examples in code, and a conversion that rewrote those too would
+  mangle the page explaining the syntax.
+
+An importer builds `OutlineNode`s from whatever it has. Roam is handed the tree
+and builds them directly; a format stored as markdown on disk has to parse its
+outline first and gets the same answers afterwards.
 
 ## Fixtures and recorded output
 

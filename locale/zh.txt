@@ -2034,29 +2034,53 @@ translation=将你的数据导出为 JSON 格式。
 original=Pick the JSON file from your Roam export.
 translation=选择从 Roam 导出的 JSON 文件。
 
-[importer.roam-json.name-download-attachments]
-original=Download all attachments
-translation=下载全部附件
+[importer.roam-json.name-de-outline]
+original=Flatten the outline
+translation=
 
-[importer.roam-json.desc-download-attachments]
-original=If enabled, all attachments uploaded to Roam will be downloaded to your attachments folder.
-translation=启用后，所有上传到 Roam 的附件都将被下载到你的附件文件夹中。
+[importer.roam-json.desc-de-outline]
+original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
+translation=
 
-[importer.roam-json.name-date-properties]
-original=Add YAML created/update date
-translation=添加 YAML 创建/更新日期
+[importer.roam-json.name-embed-block-references]
+original=Show referenced blocks in place
+translation=
 
-[importer.roam-json.desc-date-properties]
-original=If enabled, notes will have the create-time and edit-time from Roam added as properties.
-translation=启用后，笔记将把 Roam 中的创建时间和编辑时间添加为笔记属性。
+[importer.roam-json.desc-embed-block-references]
+original=Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.
+translation=
 
-[importer.roam-json.name-title-property]
-original=Add YAML title
-translation=添加 YAML 标题
+[importer.roam-json.name-drop-unresolved-references]
+original=Remove references to missing blocks
+translation=
 
-[importer.roam-json.desc-title-property]
-original=If enabled, notes will have the full title added as a property (regardless of illegal file name characters).
-translation=启用后，笔记将把完整标题添加为属性（无论文件名是否包含非法字符）。
+[importer.roam-json.desc-drop-unresolved-references]
+original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
+translation=
+
+[importer.roam-json.name-keep-attributes]
+original=Keep attributes in the note
+translation=
+
+[importer.roam-json.desc-keep-attributes]
+original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
+translation=
+
+[importer.roam-json.name-tags-as-links]
+original=Convert tags to links
+translation=
+
+[importer.roam-json.desc-tags-as-links]
+original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
+translation=
+
+[importer.roam-json.name-drop-queries]
+original=Remove queries
+translation=
+
+[importer.roam-json.desc-drop-queries]
+original=If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.
+translation=
 
 [importer.roam-json.reason-empty-title]
 original=Title is empty
@@ -2065,10 +2089,6 @@ translation=标题值为空
 [importer.roam-json.reason-unexpected-extension]
 original=Unexpected file extension
 translation=意外的扩展名
-
-[importer.roam-json.reason-file-exists]
-original=File already exists
-translation=文件已存在
 
 [importer.textbundle.name]
 original=Textbundle files

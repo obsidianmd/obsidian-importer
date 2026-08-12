@@ -42,6 +42,12 @@ const CASES = [
 		expected: 'tests/evernote/yarle/expected/test-headings/test - headings.md',
 		note: 'test-headings/test - headings.md',
 	},
+	{
+		importer: 'roam-json',
+		fixture: 'tests/roam/shapes.json',
+		expected: 'tests/roam/expected/shapes/Dune.md',
+		note: 'shapes/Dune.md',
+	},
 ];
 
 function vaultName() {

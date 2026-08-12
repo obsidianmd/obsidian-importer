@@ -1,14 +1,14 @@
 import { ImportContext } from '../import-context';
-import { Notice, requestUrl } from 'obsidian';
+import { normalizePath, Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { i18n } from '../i18n';
 import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
-import { BlockInfo, RoamBlock, RoamPage } from './roam/models/roam-json';
-import { convertDateString, sanitizeFileNameKeepPath } from './roam/utils';
-import { RoamPageConverter } from './roam/convert';
-import { blockRefRegex, extractBlockReferenceUIDs } from './roam/block-refs';
+import { RoamPage } from './roam/models/roam-json';
+import { RoamGraphConverter } from './roam/graph';
+import { roamDefaults } from './roam/convert';
+import { createBaseFile } from '../base';
 
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
@@ -16,18 +16,25 @@ const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 const HELP_PERMALINK = 'import/roam';
 
+interface InternalPlugins {
+	getPluginById(id: string): { instance?: { options?: { format?: string } } } | null;
+}
+
 export class RoamJSONImporter extends FormatImporter {
 	static extensions = ['json'];
 
 	interruption = 'pause' as const;
 
-	downloadAttachments: boolean = false;
 	progress: ImportContext;
 	userDNPFormat: string;
 
-	// YAML options
-	fileDateYAML: boolean = false;
-	titleYAML: boolean = false;
+
+	deOutline: boolean = roamDefaults.deOutline;
+	embedBlockReferences: boolean = roamDefaults.embedBlockReferences;
+	dropUnresolvedReferences: boolean = roamDefaults.dropUnresolvedReferences;
+	keepAttributesInOutline: boolean = roamDefaults.keepAttributesInOutline;
+	dropQueries: boolean = roamDefaults.dropQueries;
+	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
 
 	init() {
 		this.addSetting('source')
@@ -45,35 +52,46 @@ export class RoamJSONImporter extends FormatImporter {
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDownloadAttachments())
-			.setDesc(i18n.importer.roamJson.descDownloadAttachments())
-			.addToggle(toggle => {
-				toggle.setValue(this.downloadAttachments);
-				toggle.onChange(async (value) => {
-					this.downloadAttachments = value;
-				});
-			});
+			?.setName(i18n.importer.roamJson.nameDeOutline())
+			.setDesc(i18n.importer.roamJson.descDeOutline())
+			.addToggle(toggle => toggle
+				.setValue(this.deOutline)
+				.onChange(value => this.deOutline = value));
 
 		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDateProperties())
-			.setDesc(i18n.importer.roamJson.descDateProperties())
-			.addToggle(toggle => {
-				toggle.setValue(this.fileDateYAML);
-				toggle.onChange(async (value) => {
-					this.fileDateYAML = value;
-				});
-			});
+			?.setName(i18n.importer.roamJson.nameEmbedBlockReferences())
+			.setDesc(i18n.importer.roamJson.descEmbedBlockReferences())
+			.addToggle(toggle => toggle
+				.setValue(this.embedBlockReferences)
+				.onChange(value => this.embedBlockReferences = value));
 
 		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameTitleProperty())
-			.setDesc(i18n.importer.roamJson.descTitleProperty())
-			.addToggle(toggle => {
-				toggle.setValue(this.titleYAML);
-				toggle.onChange(async (value) => {
-					this.titleYAML = value;
-				});
-			});
+			?.setName(i18n.importer.roamJson.nameDropUnresolvedReferences())
+			.setDesc(i18n.importer.roamJson.descDropUnresolvedReferences())
+			.addToggle(toggle => toggle
+				.setValue(this.dropUnresolvedReferences)
+				.onChange(value => this.dropUnresolvedReferences = value));
 
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameKeepAttributes())
+			.setDesc(i18n.importer.roamJson.descKeepAttributes())
+			.addToggle(toggle => toggle
+				.setValue(this.keepAttributesInOutline)
+				.onChange(value => this.keepAttributesInOutline = value));
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameTagsAsLinks())
+			.setDesc(i18n.importer.roamJson.descTagsAsLinks())
+			.addToggle(toggle => toggle
+				.setValue(this.tagsAsLinks)
+				.onChange(value => this.tagsAsLinks = value));
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameDropQueries())
+			.setDesc(i18n.importer.roamJson.descDropQueries())
+			.addToggle(toggle => toggle
+				.setValue(this.dropQueries)
+				.onChange(value => this.dropQueries = value));
 	}
 
 	async import(progress: ImportContext) {
@@ -96,81 +114,15 @@ export class RoamJSONImporter extends FormatImporter {
 			}
 
 			const graphName = sanitizeFileName(file.basename);
-			const graphFolder = `${outputFolder.path}/${graphName}`;
+			const graphFolder = normalizePath(`${outputFolder.path}/${graphName}`);
 
-			// create the base graph folders
 			await this.createFolders(graphFolder);
 
-			// read the graph
 			const data = await file.readText();
 			const allPages = JSON.parse(data) as RoamPage[];
 
-			// PRE-PROCESS: map the blocks for easy lookup //
-			const [blockLocations, toPostProcess] = this.preprocess(allPages);
+			const { pages: markdownPages, uids: pageUids, attributeNames } = await this.newGraphConverter(graphFolder, progress).convert(allPages);
 
-			const markdownPages: Map<string, string> = new Map();
-			const pageUids: Map<string, string> = new Map();
-			for (const pageData of allPages) {
-				let pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.userDNPFormat).trim();
-				if (pageName === '') {
-					progress.reportFailed(pageData.uid, i18n.importer.roamJson.reasonEmptyTitle());
-					console.error('Cannot import data with an empty title', pageData);
-					continue;
-				}
-				const filename = `${graphFolder}/${pageName}.md`;
-
-				// if title option is enabled
-				const YAMLtitle = this.titleYAML ? pageData.title : '';
-
-				// if timestamp option is enabled
-				// set up numbers to pass, default to 0
-				let pageCreateTimestamp: number = 0;
-				let pageEditTimestamp: number = 0;
-				if (this.fileDateYAML) {
-					// get page creation time and update time
-					let pageCreateTime = pageData['create-time'];
-					let pageEditTime = pageData['edit-time'];
-
-					// type check both for numbers, set to 0 if there's a type mismatch
-					if (typeof pageCreateTime === 'number') {
-						pageCreateTimestamp = pageCreateTime;
-					}
-
-					if (typeof pageEditTime === 'number') {
-						pageEditTimestamp = pageEditTime;
-					}
-				}
-
-				// The attachment resolver needs the note's real parent for `.` and
-				// `./subfolder` settings, including Roam titles that create folders.
-				await this.createFolders(parseFilePath(filename).parent);
-				const converter = this.newConverter();
-				const markdownOutput = await converter.jsonToMarkdown(graphFolder, filename, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
-				markdownPages.set(filename, markdownOutput);
-				if (pageData.uid) pageUids.set(filename, pageData.uid);
-			}
-
-			// POST-PROCESS: fix block refs //
-			for (const callingBlock of toPostProcess.values()) {
-				const callingBlockStringScrubbed = await this.newConverter()
-					.roamMarkupScrubber(graphFolder, `${graphFolder}/${callingBlock.pageName}.md`, callingBlock.blockString, true);
-				const newCallingBlockReferences = await this.extractAndProcessBlockReferences(markdownPages, blockLocations, graphFolder, callingBlockStringScrubbed);
-
-				const callingBlockFilePath = `${graphFolder}/${callingBlock.pageName}.md`;
-				const callingBlockMarkdown = markdownPages.get(callingBlockFilePath);
-				if (callingBlockMarkdown) {
-					let lines = callingBlockMarkdown.split('\n');
-
-					let index = lines.findIndex((item: string) => item.contains('- ' + callingBlockStringScrubbed));
-					if (index !== -1) {
-						lines[index] = lines[index].replace(callingBlockStringScrubbed, newCallingBlockReferences);
-					}
-
-					markdownPages.set(callingBlockFilePath, lines.join('\n'));
-				}
-			}
-
-			// WRITE-PROCESS: create the actual pages //
 			const totalCount = markdownPages.size;
 			let index = 1;
 			for (const [filename, markdownOutput] of markdownPages.entries()) {
@@ -179,7 +131,6 @@ export class RoamJSONImporter extends FormatImporter {
 				}
 
 				try {
-					//create folders for nested pages [[some/nested/subfolder/page]]
 					const { parent, name } = parseFilePath(filename);
 					const folder = await this.createFolders(parent);
 
@@ -194,149 +145,59 @@ export class RoamJSONImporter extends FormatImporter {
 
 				index++;
 			}
+
+			await this.writeGraphBase(graphFolder, graphName, attributeNames);
+		}
+	}
+
+	private async writeGraphBase(graphFolder: string, graphName: string, attributeNames: string[]): Promise<void> {
+		if (attributeNames.length === 0) return;
+
+		try {
+			const { parent } = parseFilePath(graphFolder);
+			const folder = await this.createFolders(parent || '/');
+
+			await createBaseFile(folder, graphName, {
+				filters: `file.folder == "${graphFolder}"`,
+				views: [{
+					type: 'table',
+					name: 'Table',
+					order: ['file.name', ...attributeNames],
+				}],
+			}, this.vault);
+		}
+		catch (error) {
+			console.error('Failed to create Base file:', error);
 		}
 	}
 
 	private getUserDNPFormat(): string {
-		// @ts-expect-error : Internal Method
-		const dailyNotePluginInstance = this.app.internalPlugins.getPluginById('daily-notes').instance;
+		// Obsidian does not type its internal plugin registry.
+		const app = this.app as { internalPlugins?: InternalPlugins };
+		const dailyNotePluginInstance = app.internalPlugins?.getPluginById('daily-notes')?.instance;
 		if (!dailyNotePluginInstance) {
 			console.warn('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
 			return 'YYYY-MM-DD';
 		}
 
-		let dailyPageFormat = dailyNotePluginInstance.options.format;
-		return dailyPageFormat || 'YYYY-MM-DD';
+		return dailyNotePluginInstance.options?.format || 'YYYY-MM-DD';
 	}
 
-	private newConverter(): RoamPageConverter {
-		return new RoamPageConverter({
+	private newGraphConverter(graphFolder: string, progress: ImportContext): RoamGraphConverter {
+		return new RoamGraphConverter({
+			graphFolder,
 			userDNPFormat: this.userDNPFormat,
-			fileDateYAML: this.fileDateYAML,
-			titleYAML: this.titleYAML,
-			downloadAttachments: this.downloadAttachments,
+			deOutline: this.deOutline,
+			embedBlockReferences: this.embedBlockReferences,
+			dropUnresolvedReferences: this.dropUnresolvedReferences,
+			keepAttributesInOutline: this.keepAttributesInOutline,
+			dropQueries: this.dropQueries,
+			tagsAsLinks: this.tagsAsLinks,
 			downloadFirebaseFile: (blockText, folder) => this.downloadFirebaseFile(blockText, folder),
+			prepareNote: async filename => void await this.createFolders(parseFilePath(filename).parent),
+			reportFailed: (id, reason) => progress.reportFailed(id, reason),
+			emptyTitleReason: i18n.importer.roamJson.reasonEmptyTitle(),
 		});
-	}
-
-	private preprocess(pages: RoamPage[]): Map<string, BlockInfo>[] {
-		// preprocess/map the graph so each block can be quickly found 
-		let blockLocations: Map<string, BlockInfo> = new Map();
-		let toPostProcessblockLocations: Map<string, BlockInfo> = new Map();
-		const userDNPFormat = this.userDNPFormat;
-
-		function processBlock(page: RoamPage, block: RoamBlock) {
-			if (block.uid) {
-				//check for roam DNP and convert to obsidian DNP
-				const dateObject = new Date(page.uid);
-				if (!isNaN(dateObject.getTime())) {
-					// The string can be converted to a Date object
-					const newPageTitle = convertDateString(page.title, userDNPFormat);
-					page.title = newPageTitle;
-				}
-
-				const info = {
-					pageName: sanitizeFileNameKeepPath(page.title),
-					blockString: block.string,
-				};
-
-				const containsBlockRefRegex = /.*?(\(\(.*?\)\)).*?/g;
-				if (containsBlockRefRegex.test(block.string)) {
-					toPostProcessblockLocations.set(block.uid, info);
-				}
-				blockLocations.set(block.uid, info);
-			}
-
-			if (block.children) {
-				for (let child of block.children) {
-					processBlock(page, child);
-				}
-			}
-		}
-
-		for (let page of pages) {
-			if (page.children) {
-				for (let block of page.children) {
-					processBlock(page, block);
-				}
-			}
-		}
-
-		return [blockLocations, toPostProcessblockLocations];
-	}
-
-
-	// setup to hold the newest and oldest timestamp value from a given page
-	newestTimestamp: number = 0;
-	oldestTimestamp: number = 0;
-
-
-	private async modifySourceBlockString(markdownPages: Map<string, string>, sourceBlock: BlockInfo, graphFolder: string, sourceBlockUID: string) {
-		if (!sourceBlock.blockString.endsWith('^' + sourceBlockUID)) {
-			const sourceBlockFilePath = `${graphFolder}/${sourceBlock.pageName}.md`;
-			let markdown = markdownPages.get(sourceBlockFilePath);
-
-			if (markdown) {
-				let lines = markdown.split('\n');
-
-				// Edit the specific line, for example, the 5th line.
-				let index = lines.findIndex((item: string) => item.contains('- ' + sourceBlock.blockString));
-				if (index !== -1) {
-					let newSourceBlockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-
-					// replace the line before updating sourceBlock
-					lines[index] = lines[index].replace(sourceBlock.blockString, newSourceBlockString);
-					sourceBlock.blockString = sourceBlock.blockString + ' ^' + sourceBlockUID;
-				}
-
-				markdownPages.set(sourceBlockFilePath, lines.join('\n'));
-			}
-		}
-	}
-
-	private async extractAndProcessBlockReferences(markdownPages: Map<string, string>, blockLocations: Map<string, BlockInfo>, graphFolder: string, inputString: string): Promise<string> {
-		const blockReferences = extractBlockReferenceUIDs(inputString);
-
-		// If there are no block references, return the input string as is
-		if (blockReferences.length === 0) {
-			return inputString;
-		}
-
-		// Asynchronously process each block reference
-		let processedBlocks: string[] = [];
-
-		for (const sourceBlockUID of blockReferences) {
-			try {
-				const sourceBlock = blockLocations.get(sourceBlockUID);
-
-				if (!sourceBlock) {
-					// no block with that uid exists
-					// most likely just double ((WITH_REGULAR_TEXT))
-					processedBlocks.push(sourceBlockUID);
-					continue;
-				}
-
-				// the source block string needs to be stripped of any page syntax or the alias won't work
-				let strippedSourceBlockString = sourceBlock.blockString.replace(/\[\[|\]\]/g, '');
-				// create the obsidian alias []()
-				let processedBlock = `[[${graphFolder}/${sourceBlock.pageName}#^${sourceBlockUID}|${strippedSourceBlockString}]]`;
-				// Modify the source block markdown page asynchronously so the new obsidian alias points to something
-				await this.modifySourceBlockString(markdownPages, sourceBlock, graphFolder, sourceBlockUID);
-
-				processedBlocks.push(processedBlock);
-			}
-			catch {
-				// no block with that uid exists
-				// most likely just double ((WITH_REGULAR_TEXT))
-				processedBlocks.push(sourceBlockUID);
-			}
-		}
-
-		// Replace the block references in the input string with the processed ones
-		let index = 0;
-		const processedString = inputString.replace(blockRefRegex, () => processedBlocks[index++]);
-
-		return processedString;
 	}
 
 	private async downloadFirebaseFile(line: string, sourcePath: string): Promise<string> {
@@ -356,7 +217,6 @@ export class RoamJSONImporter extends FormatImporter {
 				syntaxLink = line.match(/!\[.*https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
 			}
 			else {
-				// I expect this to be a bare link which is typically a binary file
 				link = line.match(binaryRegex);
 				syntaxLink = line.match(/https:\/\/firebasestorage.*?alt=media&.*?(?=\s|$)/);
 			}
@@ -366,7 +226,6 @@ export class RoamJSONImporter extends FormatImporter {
 
 				let filename = decodeURIComponent(firebaseShort.split('/').last() || '');
 				if (!filename) {
-					// If we can't find the filename, then generate one with a timestamp and the original extension.
 					const timestamp = Math.floor(Date.now() / 1000);
 					const extMatch = firebaseShort.slice(-5).match(/(.*?)\.(.+)/);
 					if (!extMatch) {
@@ -377,23 +236,22 @@ export class RoamJSONImporter extends FormatImporter {
 					filename = `${timestamp}.${extMatch[2]}`;
 				}
 
-				const newFilePath = await this.getAvailablePathForAttachment(filename, [], sourcePath);
+				// Roam names an upload with a token of its own, unique to that
+				// file, so a copy already under the name is the same attachment
+				// from an earlier import rather than another one.
+				const { path, reuse } = await this.placeAttachment(filename, sourcePath, () => 'same');
 
-				const existingFile = vault.getAbstractFileByPath(newFilePath);
-				if (existingFile) {
-					progress.reportSkipped(link[1], i18n.importer.roamJson.reasonFileExists());
-					return line;
+				if (!reuse) {
+					url = link[0].slice(0, -1);
+					const data = (await requestUrl(url)).arrayBuffer;
+
+					await vault.createBinary(path, data);
+					progress.reportAttachmentSuccess(url);
 				}
 
-				url = link[0].slice(0, -1);
-				const data = (await requestUrl(url)).arrayBuffer;
-
-				await vault.createBinary(newFilePath, data);
-
-				progress.reportAttachmentSuccess(url);
-
-				// const newLine = line.replace(link.input, newFilePath)
-				return line.replace(syntaxLink[0], `![[${newFilePath}]]`);
+				// Linked either way: a second import used to leave the raw Roam
+				// markup where the first had written the embed.
+				return line.replace(syntaxLink[0], `![[${path}]]`);
 
 			}
 		}
