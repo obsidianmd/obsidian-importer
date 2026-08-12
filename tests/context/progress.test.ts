@@ -4,7 +4,7 @@ import '../shims/runtime';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ImportProgressUI } from '../../src/main';
+import { ImportProgressUI } from '../../src/progress-ui';
 
 interface Stats {
 	imported: string;

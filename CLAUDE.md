@@ -4,7 +4,10 @@ Imports notes from other apps into an Obsidian vault.
 
 ## Project structure
 
-- `src/main.ts` — Plugin entry, the importer registry, `ImportContext` (progress and reporting)
+- `src/main.ts` — Plugin entry, and the modal an import is shown in
+- `src/importers.ts` — The registry: which formats there are, how they group, what each is called
+- `src/importer-flow.ts` — The screens of an import, and `ImporterShell`, what showing them takes
+- `src/progress-ui.ts` — `ImportProgressUI`: the progress screen an `ImportContext` drives
 - `src/format-importer.ts` — Base class every importer extends: file pickers, output folder, attachment paths
 - `src/formats/<name>.ts` — One importer per format; the vault-facing half
 - `src/formats/<name>/` — The conversion, extracted so it runs without a vault (see below)
