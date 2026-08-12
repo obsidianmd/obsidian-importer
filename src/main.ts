@@ -1,6 +1,7 @@
 import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
-import { NodePickedFile } from './filesystem';
+import { dataTransferHasFiles, droppedItems, expandDropped, NodePickedFile, PickedFile, PickedFolder } from './filesystem';
+import { ImporterFileTypes, importersForFiles } from './importer-match';
 import { AuthCallback, helpUrl } from './constants';
 import { ImportContext, ImportLogEntry } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
@@ -24,14 +25,27 @@ import { describeReason } from './util';
 
 declare global {
 	interface Window {
-		electron: any;
+		electron: {
+			remote: {
+				dialog: {
+					showOpenDialogSync(options: Record<string, unknown>): string[] | undefined;
+				};
+			};
+			/** Absent before Electron 32, where a File still carried its own path. */
+			webUtils?: {
+				getPathForFile(file: File): string;
+			};
+		};
 		require: NodeJS.Require;
 	}
 }
 
+/** An importer class, and the file types it declares for a dropped file to be matched against. */
+type ImporterClass = (new (app: App, host: ImporterHost) => FormatImporter) & { extensions: readonly string[] };
+
 interface ImporterDefinition {
 	helpPermalink?: string;
-	importer: new (app: App, host: ImporterHost) => FormatImporter;
+	importer: ImporterClass;
 }
 
 const IMPORTER_GROUPS: Record<string, string[]> = {
@@ -445,6 +459,12 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 	private nextButtonEl: HTMLButtonElement | null = null;
 
+	/** Whether the screen is a list of formats, which is what decides where a drop goes. */
+	private pickingFormat: boolean = false;
+
+	private dropOverlayEl: HTMLElement | null = null;
+	private dropWin: Window | null = null;
+
 	get importerId(): string {
 		return this.selectedId;
 	}
@@ -470,6 +490,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 	showFormatPicker() {
 		const { contentEl, modalEl } = this;
 		contentEl.empty();
+		this.pickingFormat = true;
 		modalEl.addClass('is-picking-format');
 		this.titleEl.setText(i18n.modal.titlePickFormat());
 
@@ -491,43 +512,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 			for (const [id, match] of this.searchFormats(query)) {
 				const optionText = this.rowText(id);
 
-				const setting = new Setting(itemsEl)
-					.setClass('mod-navigable')
+				this.addFormatRow(itemsEl, rows, id, () => this.chooseRow(id), focusRow)
 					.setName(createFragment(frag => {
 						if (match) renderMatches(frag, optionText, match.matches);
 						else frag.appendText(optionText);
 					}));
-
-				const iconEl = createDiv(`setting-item-icon importer-app-icon mod-${id}`);
-				if (FALLBACK_ICONS[id]) setIcon(iconEl, FALLBACK_ICONS[id]);
-				setting.settingEl.prepend(iconEl);
-
-				setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
-
-				const { settingEl } = setting;
-				const index = rows.length;
-				settingEl.tabIndex = 0;
-				settingEl.addEventListener('click', () => this.chooseRow(id));
-				settingEl.addEventListener('keydown', evt => {
-					switch (evt.key) {
-						case 'Enter':
-						case ' ':
-							this.chooseRow(id);
-							break;
-						case 'ArrowDown':
-							focusRow(index + 1);
-							break;
-						case 'ArrowUp':
-							focusRow(index - 1);
-							break;
-						default:
-							return;
-					}
-
-					evt.preventDefault();
-				});
-
-				rows.push(settingEl);
 			}
 
 			if (rows.length === 0) {
@@ -549,6 +538,65 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		draw('');
 		search.inputEl.focus();
+	}
+
+	/**
+	 * One row of a list the arrow keys walk. `focus` is how the list answers a
+	 * step off either end; the format picker sends the step above the first row
+	 * back to its search box.
+	 */
+	private addNavigableRow(
+		itemsEl: HTMLElement,
+		rows: HTMLElement[],
+		choose: () => void,
+		focus: (index: number) => void = index => rows[Math.min(Math.max(index, 0), rows.length - 1)]?.focus(),
+	): Setting {
+		const setting = new Setting(itemsEl).setClass('mod-navigable');
+		const { settingEl } = setting;
+		const index = rows.length;
+
+		settingEl.tabIndex = 0;
+		settingEl.addEventListener('click', choose);
+		settingEl.addEventListener('keydown', evt => {
+			switch (evt.key) {
+				case 'Enter':
+				case ' ':
+					choose();
+					break;
+				case 'ArrowDown':
+					focus(index + 1);
+					break;
+				case 'ArrowUp':
+					focus(index - 1);
+					break;
+				default:
+					return;
+			}
+
+			evt.preventDefault();
+		});
+
+		rows.push(settingEl);
+		return setting;
+	}
+
+	/** A navigable row for a format: the app's icon before its name, a chevron after. */
+	private addFormatRow(
+		itemsEl: HTMLElement,
+		rows: HTMLElement[],
+		id: string,
+		choose: () => void,
+		focus?: (index: number) => void,
+	): Setting {
+		const setting = this.addNavigableRow(itemsEl, rows, choose, focus);
+
+		const iconEl = createDiv(`setting-item-icon importer-app-icon mod-${id}`);
+		if (FALLBACK_ICONS[id]) setIcon(iconEl, FALLBACK_ICONS[id]);
+		setting.settingEl.prepend(iconEl);
+
+		setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
+
+		return setting;
 	}
 
 	private pickableIds(): string[] {
@@ -603,6 +651,7 @@ export class ImporterModal extends Modal implements ImporterHost {
 
 		contentEl.empty();
 		this.nextButtonEl = null;
+		this.pickingFormat = true;
 		modalEl.removeClass('is-picking-format');
 		this.titleEl.setText(i18n.modal.titleChooseMethod());
 
@@ -612,37 +661,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		for (const member of IMPORTER_GROUPS[group]) {
 			if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, member)) continue;
 
-			const setting = new Setting(itemsEl)
-				.setClass('mod-navigable')
+			const setting = this.addNavigableRow(itemsEl, rows, () => this.selectFormat(member))
 				.setName(i18n.importer(`${member}.method-name`))
 				.setDesc(i18n.importer(`${member}.method-desc`));
 
 			setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
-
-			const { settingEl } = setting;
-			const index = rows.length;
-			settingEl.tabIndex = 0;
-			settingEl.addEventListener('click', () => this.selectFormat(member));
-			settingEl.addEventListener('keydown', evt => {
-				switch (evt.key) {
-					case 'Enter':
-					case ' ':
-						this.selectFormat(member);
-						break;
-					case 'ArrowDown':
-						rows[Math.min(index + 1, rows.length - 1)]?.focus();
-						break;
-					case 'ArrowUp':
-						rows[Math.max(index - 1, 0)]?.focus();
-						break;
-					default:
-						return;
-				}
-
-				evt.preventDefault();
-			});
-
-			rows.push(settingEl);
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
@@ -751,12 +774,173 @@ export class ImporterModal extends Modal implements ImporterHost {
 		});
 	}
 
+	/**
+	 * More than one format reads what was dropped, so the user says which. The
+	 * methods of a group are listed apart here rather than behind the app they
+	 * share: only one of them reads a file at all.
+	 */
+	private showFormatOffer(ids: string[], files: PickedFile[]) {
+		const { contentEl, modalEl } = this;
+
+		contentEl.empty();
+		this.nextButtonEl = null;
+		this.pickingFormat = true;
+		modalEl.removeClass('is-picking-format');
+		this.titleEl.setText(i18n.modal.titleChooseMethod());
+
+		contentEl.createDiv('setting-item-description importer-drop-hint', el => {
+			// One file can be named; a pile of them is a count.
+			el.setText(files.length === 1
+				? i18n.modal.msgChooseForFile({ name: files[0].name })
+				: i18n.modal.msgChooseForFiles({ files: i18n.nouns.fileWithCount({ count: files.length }) }));
+		});
+
+		const itemsEl = contentEl.createDiv('setting-group mod-list').createDiv('setting-items');
+		const rows: HTMLElement[] = [];
+
+		for (const id of ids) {
+			this.addFormatRow(itemsEl, rows, id, () => void this.handOver(id, files))
+				.setName(importerOptionText(id));
+		}
+
+		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
+			el.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
+				el.addEventListener('click', () => this.showFormatPicker());
+			});
+		});
+
+		rows[0]?.focus();
+	}
+
+	/** What each importer would take a dropped file to be. */
+	private fileTypes(): ImporterFileTypes[] {
+		return Object.entries(this.plugin.importers)
+			.map(([id, definition]) => ({ id, extensions: definition.importer.extensions }));
+	}
+
+	/**
+	 * Where files dropped on the window go: to the importer already on screen
+	 * when it reads them, and otherwise to whichever importer does.
+	 */
+	private async takeDropped(dropped: (PickedFile | PickedFolder)[]): Promise<void> {
+		const files = await expandDropped(dropped);
+
+		if (files.length > 0 && !this.pickingFormat && this.importer && this.importer.takeFiles(files) > 0) {
+			this.showSourceStep();
+			return;
+		}
+
+		const ids = importersForFiles(this.fileTypes(), files.map(file => file.extension));
+
+		if (ids.length === 0) {
+			new Notice(i18n.modal.msgNoFormatForFiles());
+			return;
+		}
+
+		if (ids.length === 1) {
+			await this.handOver(ids[0], files);
+			return;
+		}
+
+		this.showFormatOffer(ids, files);
+	}
+
+	private async handOver(id: string, files: PickedFile[]): Promise<void> {
+		this.selectFormat(id);
+
+		const { importer } = this;
+		await importer.ready;
+
+		// An importer that cannot run here has already said so on screen.
+		if (importer.notAvailable) return;
+
+		if (importer.takeFiles(files) === 0) {
+			new Notice(i18n.modal.msgNoFormatForFiles());
+			return;
+		}
+
+		// An importer whose picker is drawn once init() has finished has taken
+		// the files, but the step showing them was drawn before that.
+		this.showSourceStep();
+	}
+
+	private catchFileDrop(win: Window): void {
+		this.dropWin = win;
+		win.addEventListener('dragover', this.onDragOver, { capture: true });
+		win.addEventListener('dragleave', this.onDragLeave, { capture: true });
+		win.addEventListener('dragend', this.onDragLeave, { capture: true });
+		win.addEventListener('drop', this.onDrop, { capture: true });
+	}
+
+	private forgetFileDrop(): void {
+		const win = this.dropWin;
+		if (!win) return;
+
+		this.dropWin = null;
+		win.removeEventListener('dragover', this.onDragOver, { capture: true });
+		win.removeEventListener('dragleave', this.onDragLeave, { capture: true });
+		win.removeEventListener('dragend', this.onDragLeave, { capture: true });
+		win.removeEventListener('drop', this.onDrop, { capture: true });
+	}
+
+	/** A drop belongs to whatever is underneath while an import runs, or while the modal is out of the way. */
+	private acceptsDrop(): boolean {
+		return !this.hidden && !this.current;
+	}
+
+	private onDragOver = (evt: DragEvent) => {
+		if (!this.acceptsDrop() || !evt.dataTransfer || !dataTransferHasFiles(evt.dataTransfer)) return;
+
+		// preventDefault is what allows the drop; stopPropagation is what keeps
+		// the note underneath from taking it.
+		evt.preventDefault();
+		evt.stopPropagation();
+		evt.dataTransfer.dropEffect = 'copy';
+
+		this.showDropOverlay();
+	};
+
+	private onDragLeave = (evt: DragEvent) => {
+		// A leave with somewhere to go is a move between elements of the window.
+		if (evt.type === 'dragleave' && evt.relatedTarget) return;
+
+		this.hideDropOverlay();
+	};
+
+	private onDrop = (evt: DragEvent) => {
+		if (!this.acceptsDrop() || !evt.dataTransfer || !dataTransferHasFiles(evt.dataTransfer)) return;
+
+		evt.preventDefault();
+		evt.stopPropagation();
+		this.hideDropOverlay();
+
+		// Read here: what a drop is carrying is gone by the time an await returns.
+		const dropped = droppedItems(evt.dataTransfer);
+		if (dropped.length === 0) return;
+
+		void this.takeDropped(dropped).catch(e => console.error('Could not read what was dropped', e));
+	};
+
+	private showDropOverlay(): void {
+		if (this.dropOverlayEl) return;
+
+		this.dropOverlayEl = this.containerEl.createDiv('importer-drop-overlay', el => {
+			el.createDiv({ cls: 'importer-drop-message', text: i18n.modal.msgDropToImport() });
+		});
+	}
+
+	private hideDropOverlay(): void {
+		this.dropOverlayEl?.detach();
+		this.dropOverlayEl = null;
+	}
+
 	private drawStep(stepEl: HTMLElement | null, onBack: () => void, buildButtons: (buttonsEl: HTMLElement) => void) {
 		const { contentEl, modalEl } = this;
 		const definition = this.plugin.importers[this.selectedId];
 
 		contentEl.empty();
 		this.nextButtonEl = null;
+		this.pickingFormat = false;
 		modalEl.removeClass('is-picking-format');
 		// Keep grouped importers under the app name.
 		const group = groupOf(this.selectedId);
@@ -1045,6 +1229,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}, { capture: true });
 	}
 
+	onOpen() {
+		// Anywhere in the window the modal opened on, not just over the modal.
+		this.catchFileDrop(this.containerEl.win);
+	}
+
 	onEscapeKey(evt: KeyboardEvent) {
 		if (evt.defaultPrevented) return;
 		evt.preventDefault();
@@ -1056,6 +1245,9 @@ export class ImporterModal extends Modal implements ImporterHost {
 		const { contentEl, current } = this;
 		contentEl.empty();
 		this.abortController.abort('import was canceled by user');
+
+		this.hideDropOverlay();
+		this.forgetFileDrop();
 
 		this.clearHiddenNotice();
 		this.hidden = false;

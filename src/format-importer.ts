@@ -155,6 +155,13 @@ export interface ImporterHost {
 }
 
 export abstract class FormatImporter {
+	/**
+	 * The file types this importer reads, declared on the class so the format
+	 * picker can match a dropped file before there is an importer to ask.
+	 * `addFileChooserSetting` is handed the same list.
+	 */
+	static extensions: readonly string[] = [];
+
 	app: App;
 	vault: Vault;
 	host: ImporterHost;
@@ -220,6 +227,11 @@ export abstract class FormatImporter {
 
 	private sourceFolder: string | null = null;
 	private lastSourceFolder: string | null = null;
+
+	/** All three are set in init(), by addFileChooserSetting, not in a field initializer. */
+	private acceptedExtensions: readonly string[] | undefined;
+	private acceptsMultiple: boolean | undefined;
+	private showPickedFiles: (() => void) | undefined;
 
 	/** SecretStorage id of the credential linked to this importer, if any. */
 	private secretId: string | null = null;
@@ -429,6 +441,11 @@ export abstract class FormatImporter {
 	}, 1000, true);
 
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
+		// Recorded before the setting is drawn, so an importer with nowhere to
+		// draw still knows what it takes.
+		this.acceptedExtensions = extensions;
+		this.acceptsMultiple = allowMultiple;
+
 		const fileLocationSetting = this.addSetting('source');
 		if (!fileLocationSetting) return;
 
@@ -518,6 +535,34 @@ export abstract class FormatImporter {
 				frag.createSpan({ cls: 'u-pop', text: pathText });
 			}));
 		};
+
+		this.showPickedFiles = updateFiles;
+	}
+
+	/** Which of these files this importer's own picker would have offered. */
+	acceptableFiles(files: PickedFile[]): PickedFile[] {
+		const extensions = this.acceptedExtensions;
+		if (!extensions) return [];
+
+		const accepted = files.filter(file => extensions.includes(file.extension));
+		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
+	}
+
+	/**
+	 * Take files chosen somewhere other than this importer's own picker, such
+	 * as a drop on the window, and say how many of them it kept.
+	 */
+	takeFiles(files: PickedFile[]): number {
+		const accepted = this.acceptableFiles(files);
+		if (accepted.length === 0) return 0;
+
+		this.files = accepted;
+		// Redraws the file list; falls to sourceChanged alone when the source
+		// step was never drawn.
+		if (this.showPickedFiles) this.showPickedFiles();
+		else this.sourceChanged();
+
+		return accepted.length;
 	}
 
 	drawOutputStep(): void {

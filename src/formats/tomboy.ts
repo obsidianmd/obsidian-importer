@@ -7,6 +7,8 @@ import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
 
 export class TomboyImporter extends FormatImporter {
+	static extensions = ['note'];
+
 	interruption = 'pause' as const;
 
 	private coreConverter: TomboyCoreConverter;
@@ -63,7 +65,7 @@ export class TomboyImporter extends FormatImporter {
 		this.coreConverter = new TomboyCoreConverter();
 		this.keepTitleMode = 'automatic';
 
-		this.addFileChooserSetting(i18n.importer.tomboy.fileType(), ['note'], true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
+		this.addFileChooserSetting(i18n.importer.tomboy.fileType(), TomboyImporter.extensions, true, this.getOSSpecificDescription(), this.getDefaultTomboyPath());
 		this.defaultOutputFolder = 'Tomboy';
 		this.idProperty = 'tomboy-id';
 		this.idLabel = i18n.importer.tomboy.labelId();

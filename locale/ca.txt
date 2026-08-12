@@ -142,6 +142,26 @@ translation=Filtre...
 original=No formats found.
 translation=No s'han trobat formats.
 
+[modal.msg-drop-to-import]
+original=Drop files to import
+translation=
+
+[modal.msg-choose-for-file]
+original=More than one format reads {{name}}.
+translation=
+
+[modal.msg-choose-for-files]
+original=More than one format reads {{files}}.
+translation=
+
+[modal.msg-no-format-for-files]
+original=No format here reads what you dropped.
+translation=
+
+[modal.button-show-all-formats]
+original=Show all formats
+translation=
+
 [modal.button-continue]
 original=Continue
 translation=Continua

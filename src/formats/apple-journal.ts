@@ -11,6 +11,8 @@ const DEFAULT_OUTPUT_FOLDER = 'Journal';
 
 
 export class AppleJournalImporter extends FormatImporter {
+	static extensions = ['htm', 'html'];
+
 	interruption = 'pause' as const;
 
 	private frontMatterEnabled = true;
@@ -19,7 +21,7 @@ export class AppleJournalImporter extends FormatImporter {
 		const defaultImportPath = detectDefaultEntriesPath();
 		this.addFileChooserSetting(
 			i18n.importer.appleJournal.fileType(),
-			['htm', 'html'],
+			AppleJournalImporter.extensions,
 			true,
 			i18n.importer.appleJournal.descFiles(),
 			defaultImportPath

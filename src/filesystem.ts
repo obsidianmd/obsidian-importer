@@ -243,6 +243,102 @@ export class WebPickedFile implements PickedFile {
 	}
 }
 
+/** Whether a drag is carrying files, which is all an import can take from one. */
+export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {
+	return Array.from(dataTransfer.items).some(item => item.kind === 'file');
+}
+
+/**
+ * What a drop is offering, as the same files a picker would have handed over.
+ *
+ * Call it from the drop handler itself: the items are gone by the time an
+ * await returns. Walking a dropped folder is `expandDropped`, which can wait.
+ */
+export function droppedItems(dataTransfer: DataTransfer): (PickedFile | PickedFolder)[] {
+	const results: (PickedFile | PickedFolder)[] = [];
+
+	for (const item of Array.from(dataTransfer.items)) {
+		if (item.kind !== 'file') continue;
+
+		const file = item.getAsFile();
+		if (!file) continue;
+
+		const filepath = localPath(file);
+		if (!filepath) {
+			results.push(new WebPickedFile(file));
+			continue;
+		}
+
+		results.push(isDirectory(filepath) ? new NodePickedFolder(filepath) : new NodePickedFile(filepath));
+	}
+
+	return results;
+}
+
+/** Where a dropped file lives, or nothing at all when it has no path to read. */
+function localPath(file: File): string {
+	if (!Platform.isDesktopApp) return '';
+
+	// A file dragged from a web page never was on disk, and Electron says so by
+	// throwing rather than by answering.
+	try {
+		const { webUtils } = window.electron;
+		if (webUtils) return webUtils.getPathForFile(file);
+	}
+	catch {
+		return '';
+	}
+
+	// Electron stopped putting the path on File itself in 32.
+	return (file as File & { path?: string }).path ?? '';
+}
+
+function isDirectory(filepath: string): boolean {
+	try {
+		return fs.statSync(filepath).isDirectory();
+	}
+	catch {
+		return false;
+	}
+}
+
+/**
+ * The files behind a drop. A folder is walked, but a folder with an extension
+ * is left as a file: that is what the picker hands over for a macOS package
+ * like a `.textbundle`, and what the importer reading one expects.
+ */
+export async function expandDropped(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
+	const files: PickedFile[] = [];
+
+	for (const item of items) {
+		try {
+			if (item.type === 'file') {
+				files.push(item);
+				continue;
+			}
+
+			const asPackage = packagedAsFile(item);
+			if (asPackage) {
+				files.push(asPackage);
+				continue;
+			}
+
+			files.push(...await expandDropped(await item.list()));
+		}
+		catch (e) {
+			console.error('Skipping path: ', item.name, e);
+		}
+	}
+
+	return files;
+}
+
+function packagedAsFile(folder: PickedFolder): PickedFile | null {
+	if (!(folder instanceof NodePickedFolder)) return null;
+
+	return splitext(folder.name)[1] ? new NodePickedFile(folder.filepath) : null;
+}
+
 export async function getAllFiles(files: (PickedFolder | PickedFile)[], filter?: (file: PickedFile) => boolean): Promise<PickedFile[]> {
 	let results: PickedFile[] = [];
 	for (let file of files) {
