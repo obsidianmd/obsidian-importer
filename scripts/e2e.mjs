@@ -42,6 +42,18 @@ const CASES = [
 		expected: 'tests/evernote/yarle/expected/test-headings/test - headings.md',
 		note: 'test-headings/test - headings.md',
 	},
+	{
+		// A page that is nothing but properties, which is what makes it worth
+		// running here: the Roam attributes it carries are serialised as YAML,
+		// and one of the values is a wikilink - a `[` opens a flow sequence, so
+		// whether it comes back quoted is the app's YAML dialect answering, not
+		// the shim's. The other pages of this graph link to each other and so
+		// depend on the vault; this one does not.
+		importer: 'roam-json',
+		fixture: 'tests/roam/shapes.json',
+		expected: 'tests/roam/expected/shapes/Dune.md',
+		note: 'shapes/Dune.md',
+	},
 ];
 
 function vaultName() {
