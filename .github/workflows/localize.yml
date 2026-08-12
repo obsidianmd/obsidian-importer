@@ -80,8 +80,6 @@ jobs:
         locale: ${{ fromJson(needs.setup.outputs.locales) }}
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OBSIDIAN_HELP_PATH: ${{ runner.temp }}/obsidian-help
-      OBSIDIAN_TRANSLATIONS_PATH: ${{ runner.temp }}/obsidian-translations
     steps:
       - uses: actions/checkout@v6
         with:
@@ -112,10 +110,14 @@ jobs:
       - name: Install modules
         run: pnpm install --frozen-lockfile
 
+      # Exported here rather than in the job's `env`, where the runner context
+      # is not available.
       - name: Clone terminology sources
         run: |
-          git clone --depth 1 https://github.com/obsidianmd/obsidian-help.git "$OBSIDIAN_HELP_PATH"
-          git clone --depth 1 https://github.com/obsidianmd/obsidian-translations.git "$OBSIDIAN_TRANSLATIONS_PATH"
+          echo "OBSIDIAN_HELP_PATH=$RUNNER_TEMP/obsidian-help" >> "$GITHUB_ENV"
+          echo "OBSIDIAN_TRANSLATIONS_PATH=$RUNNER_TEMP/obsidian-translations" >> "$GITHUB_ENV"
+          git clone --depth 1 https://github.com/obsidianmd/obsidian-help.git "$RUNNER_TEMP/obsidian-help"
+          git clone --depth 1 https://github.com/obsidianmd/obsidian-translations.git "$RUNNER_TEMP/obsidian-translations"
 
       - name: Translate ${{ matrix.locale }}
         env:
