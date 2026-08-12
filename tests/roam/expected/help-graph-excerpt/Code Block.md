@@ -16,7 +16,8 @@
 
           </body>
 
-          </html>```
+          </html>
+          ```
     - CSS block
         - ```css
           <style type="text/css">
@@ -25,11 +26,13 @@
           }
           </style>
 
-          <h1>Hello, Roamans!</h1>```
+          <h1>Hello, Roamans!</h1>
+          ```
     - Clojure block
         - ```clojure
           (ns hello-world.core)
 
-          (println "Hello Roamans!")```
+          (println "Hello Roamans!")
+          ```
 - Key Commands:
     - `/code block`

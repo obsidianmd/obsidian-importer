@@ -5,5 +5,6 @@ An embedded block keeps the children under it ^blk-with-children
 
 ```js
 const one = 1;
-const two = 2;```
+const two = 2;
+```
 ^blk-fenced

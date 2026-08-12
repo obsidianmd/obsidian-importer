@@ -66,7 +66,8 @@
     - `import code`
     - ```javascript
       super well written code here
-      and a second line of amazing code here```
+      and a second line of amazing code here
+      ```
 - Embeds
     - Embedded blocks ^ME2M37gZr
         - {{[[embed]]: ((sHQRa0Wan))}}

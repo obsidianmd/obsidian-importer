@@ -260,7 +260,8 @@ test('indents the lines after the first to the item text, so a fence stays in th
 		'- Code',
 		'    - ```js',
 		'      one();',
-		'      two();```',
+		'      two();',
+		'      ```',
 	].join('\n'));
 });
 
@@ -302,7 +303,8 @@ test('a block of several lines takes its anchor on a line of its own', async () 
 
 	assert.equal(await anchored(page, ['fenced']), [
 		'- ```js',
-		'  one();```',
+		'  one();',
+		'  ```',
 		'  ^fenced',
 	].join('\n'));
 });
@@ -535,7 +537,7 @@ test('a block of several lines keeps them, and its anchor stays off the fence', 
 	} as RoamPage;
 
 	assert.equal(await converter.jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
-		'```js\none();```\n^fenced');
+		'```js\none();\n```\n^fenced');
 });
 
 test('a table stands at the margin either way', async () => {
@@ -808,4 +810,30 @@ test('removing a reference that leads nowhere keeps the words it was written on'
 		'🚧🚧');
 	// A bare reference has no words of its own, so it goes entirely.
 	assert.equal(await dropping.roamMarkupScrubber('', '', 'see ((dmQooXFj9))'), 'see ');
+});
+
+/**
+ * Fences. Roam writes the closing one against the last line of the code, and a
+ * fence with code in front of it is not a fence - it is more code, so the block
+ * runs on and swallows the rest of the note.
+ */
+test('a closing fence glued to the code is given its own line', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '```js\none();\ntwo();```'),
+		'```js\none();\ntwo();\n```');
+});
+
+test('and one that already has a line to itself is left alone', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '```js\none();\n```'),
+		'```js\none();\n```');
+});
+
+test('text after a fenced block is not swallowed by it', async () => {
+	const page = {
+		title: 'P', uid: 'p',
+		children: [{ string: '```js\none();```' }, { string: 'a paragraph after the code' }],
+	} as unknown as RoamPage;
+
+	const written = await scrubber().jsonToMarkdown('g', 'g/A', page, '', 0, 0);
+
+	assert.equal(written, '- ```js\n  one();\n  ```\n- a paragraph after the code');
 });

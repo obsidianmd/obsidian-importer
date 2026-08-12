@@ -135,6 +135,7 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\^\^(.+?)\^\^/g, '==$1==');
 
 		blockText = this.resolveEmbedsAndReferences(blockText);
+		blockText = withFencesOnTheirOwnLines(blockText);
 
 		if (blockText.includes('firebasestorage')) {
 			blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
@@ -472,6 +473,44 @@ export class RoamPageConverter {
 
 		return `\n${rows.map(row => `| ${row.join(' | ')} |`).join('\n')}\n`;
 	}
+}
+
+/**
+ * A fenced block whose fences each have a line to themselves.
+ *
+ * Roam writes the closing fence against the last line of the code -
+ * ```` ```js\ncode``` ```` - and a fence with code in front of it is not a
+ * fence at all: it is more code, and the block runs on to the end of the note
+ * swallowing whatever follows. Every line then gets the item's indentation
+ * where the block is laid out, so the opening fence, the code and the closing
+ * fence all arrive at the same level, which is what a list item needs.
+ */
+function withFencesOnTheirOwnLines(text: string): string {
+	if (!text.includes('```')) return text;
+
+	const written: string[] = [];
+	let open = false;
+
+	for (const line of text.split('\n')) {
+		if (!open) {
+			written.push(line);
+			// A fence opens the block unless the same line closes it again.
+			if (/^\s*```/.test(line) && !/^\s*```.*\S```\s*$/.test(line)) open = true;
+			continue;
+		}
+
+		const glued = /^(.*\S)\s*```\s*$/.exec(line);
+		if (glued) {
+			written.push(glued[1], '```');
+			open = false;
+			continue;
+		}
+
+		written.push(line);
+		if (/^\s*```\s*$/.test(line)) open = false;
+	}
+
+	return written.join('\n');
 }
 
 /**
