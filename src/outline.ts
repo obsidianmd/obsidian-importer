@@ -210,9 +210,12 @@ function asProse(blocks: OutlineNode[]): string[] {
 /**
  * A note's blocks as flat markdown.
  *
- * The top level is prose rather than a list even when it looks like one: a page
- * whose blocks are all short is a page of short paragraphs, and turning the
- * whole note into one bulleted list is what flattening was asked to undo.
+ * The top of a note is read as prose even where the same blocks one level down
+ * would be a list, and that difference is the point rather than an oversight:
+ * a note is a body of writing, and a run nested under something is a list of
+ * things about it. Asking the list question here too turns a page whose blocks
+ * are all label-like into one long bulleted list - which is the shape
+ * flattening was asked to undo.
  */
 export function deOutline(blocks: OutlineNode[]): string {
 	return asProse(blocks).join('\n').replace(/\n{3,}/g, '\n\n').trim();

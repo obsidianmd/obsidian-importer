@@ -84,3 +84,25 @@ test('and on a line of its own for a block of several, off the closing fence', (
 test('a block nothing points at is left as it was', () => {
 	assert.deepEqual(anchorLines(['the block'], null, ''), ['the block']);
 });
+
+/**
+ * The top of a note is read as prose where the same blocks one level down are
+ * a list. That is a decision rather than an oversight, so it is pinned here:
+ * a note is a body of writing, and a run nested under something is a list of
+ * things about it.
+ *
+ * The alternative was measured on a 1,107-page graph and on the fixtures. A
+ * third of the pages there became one long bulleted list - and so did the
+ * flattened Sapiens fixture, which came out identical to the outline it was
+ * meant to flatten. Telling a list from a run of paragraphs on the shape of
+ * the blocks alone cannot be done: an outliner gives both the same shape.
+ */
+test('the top of a note is prose, where the same blocks below it are a list', () => {
+	const run = [node('[[Sapiens]]'), node('[[Dune]]'), node('[[Ubik]]')];
+
+	assert.equal(deOutline(run), '[[Sapiens]]\n\n[[Dune]]\n\n[[Ubik]]');
+	assert.equal(deOutline([node('## Reading', run)]),
+		'## Reading\n\n- [[Sapiens]]\n- [[Dune]]\n- [[Ubik]]');
+	assert.equal(deOutline([node('Reading', run)]),
+		'Reading\n\n- [[Sapiens]]\n- [[Dune]]\n- [[Ubik]]');
+});
