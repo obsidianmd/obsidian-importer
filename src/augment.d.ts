@@ -25,6 +25,15 @@ declare module 'obsidian' {
 		listEl: HTMLElement;
 	}
 
+	/**
+	 * A row that leads somewhere: the chevron, the click, and the classes that
+	 * go with it, including `tappable` for the tap it should answer at once.
+	 * In the app since 1.13 and not in the published types.
+	 */
+	interface Setting {
+		setNavigable(onNavigate: () => void): this;
+	}
+
 	interface App {
 		// The settings window, which a setting tab has to open and close itself.
 		setting: {

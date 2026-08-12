@@ -116,13 +116,13 @@ body:not(.is-mobile) .importer-step-buttons .mod-cta {
 	filter: brightness(1.7) saturate(0.7);
 }
 
-.importer-format-chevron {
-	display: flex;
-	color: var(--text-faint);
-}
-
-.setting-group.mod-list .setting-item.mod-navigable:hover {
-	background-color: var(--background-modifier-hover);
+/* Obsidian marks a row that leads somewhere, but leaves what it looks like
+   under the pointer to whoever is showing it. Only where there is one: on a
+   touch screen the highlight would stay behind after the tap. */
+@media (hover: hover) {
+	.setting-group.mod-list .setting-item.mod-navigable:hover {
+		background-color: var(--background-modifier-hover);
+	}
 }
 
 .importer-progress-bar {

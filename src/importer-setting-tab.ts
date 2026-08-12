@@ -35,7 +35,7 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	readonly ownsBackButton: boolean = true;
 
 	readonly showsHelp: boolean = false;
-	readonly takesFocus: boolean = false;
+	readonly ownsFocus: boolean = false;
 
 	/** Built by display(), under the heading the flow retitles per screen. */
 	private rootContentEl: HTMLElement;

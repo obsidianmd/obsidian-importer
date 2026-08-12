@@ -49,12 +49,13 @@ export interface ImporterShell {
 	 */
 	readonly showsHelp: boolean;
 	/**
-	 * Whether a screen may take the focus as it is drawn. A modal opens for
-	 * this and nothing else, so its search is ready to type into; a setting
-	 * tab is opened around the settings window's own search, and takes the
-	 * focus from it — or raises a phone's keyboard — by grabbing it.
+	 * Whether the flow is what moves the focus here. A modal opens for this
+	 * and nothing else, so its search is ready to type into and its rows
+	 * answer the arrow keys. Settings does both for itself, around a search
+	 * of its own, and a screen that grabbed the focus would take it from
+	 * there — or raise a phone's keyboard as the pane opened.
 	 */
-	readonly takesFocus: boolean;
+	readonly ownsFocus: boolean;
 	/**
 	 * The flow moved: `depth` counts screens in from the format list, which is
 	 * what a shell showing pages needs in order to open and close them.
@@ -297,7 +298,7 @@ export class ImporterFlow implements ImporterHost {
 		});
 
 		draw('');
-		if (this.shell.takesFocus) search.inputEl.focus();
+		if (this.shell.ownsFocus) search.inputEl.focus();
 	}
 
 	/** What this format's documentation is, where the shell shows such a thing. */
@@ -324,30 +325,36 @@ export class ImporterFlow implements ImporterHost {
 		choose: () => void,
 		focus: (index: number) => void = index => rows[Math.min(Math.max(index, 0), rows.length - 1)]?.focus(),
 	): Setting {
-		const setting = new Setting(itemsEl).setClass('mod-navigable');
+		// setNavigable draws the chevron, takes the click, and marks the row
+		// tappable, which is what keeps a phone from waiting on a second tap.
+		const setting = new Setting(itemsEl).setNavigable(choose);
 		const { settingEl } = setting;
 		const index = rows.length;
 
 		settingEl.tabIndex = 0;
-		settingEl.addEventListener('click', choose);
-		settingEl.addEventListener('keydown', evt => {
-			switch (evt.key) {
-				case 'Enter':
-				case ' ':
-					choose();
-					break;
-				case 'ArrowDown':
-					focus(index + 1);
-					break;
-				case 'ArrowUp':
-					focus(index - 1);
-					break;
-				default:
-					return;
-			}
 
-			evt.preventDefault();
-		});
+		// Settings walks these rows itself and activates the focused one, so a
+		// second listener would choose the same format twice.
+		if (this.shell.ownsFocus) {
+			settingEl.addEventListener('keydown', (evt: KeyboardEvent) => {
+				switch (evt.key) {
+					case 'Enter':
+					case ' ':
+						choose();
+						break;
+					case 'ArrowDown':
+						focus(index + 1);
+						break;
+					case 'ArrowUp':
+						focus(index - 1);
+						break;
+					default:
+						return;
+				}
+
+				evt.preventDefault();
+			});
+		}
 
 		rows.push(settingEl);
 		return setting;
@@ -365,8 +372,6 @@ export class ImporterFlow implements ImporterHost {
 		const iconEl = createDiv(`setting-item-icon importer-app-icon mod-${id}`);
 		if (FALLBACK_ICONS[id]) setIcon(iconEl, FALLBACK_ICONS[id]);
 		setting.settingEl.prepend(iconEl);
-
-		setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
 
 		return setting;
 	}
@@ -436,11 +441,9 @@ export class ImporterFlow implements ImporterHost {
 		for (const member of IMPORTER_GROUPS[group]) {
 			if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, member)) continue;
 
-			const setting = this.addNavigableRow(itemsEl, rows, () => this.selectFormat(member))
+			this.addNavigableRow(itemsEl, rows, () => this.selectFormat(member))
 				.setName(i18n.importer(`${member}.method-name`))
 				.setDesc(i18n.importer(`${member}.method-desc`));
-
-			setIcon(setting.controlEl.createSpan('importer-format-chevron'), 'lucide-chevron-right');
 		}
 
 		const buttonsEl = createDiv('modal-button-container importer-step-buttons');
@@ -451,7 +454,7 @@ export class ImporterFlow implements ImporterHost {
 		// and the space it still takes reads as a gap under the list.
 		if (buttonsEl.childElementCount > 0) contentEl.append(buttonsEl);
 
-		if (this.shell.takesFocus) rows[0]?.focus();
+		if (this.shell.ownsFocus) rows[0]?.focus();
 	}
 
 	selectFormat(id: string) {
@@ -596,7 +599,7 @@ export class ImporterFlow implements ImporterHost {
 			});
 		});
 
-		if (this.shell.takesFocus) rows[0]?.focus();
+		if (this.shell.ownsFocus) rows[0]?.focus();
 	}
 
 	private startOver(): void {
