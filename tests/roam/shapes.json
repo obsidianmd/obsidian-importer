@@ -145,6 +145,39 @@
 		]
 	},
 	{
+		"title": "Headings",
+		"uid": "page-headings",
+		"create-time": 1600001800000,
+		"edit-time": 1600001900000,
+		"children": [
+			{
+				"string": "Community videos",
+				"heading": 2,
+				"uid": "h-videos",
+				"children": [
+					{ "string": "One by [[Jo Kim]]", "uid": "h-v1" },
+					{ "string": "Another by [[Pat Morgan]]", "uid": "h-v2" }
+				]
+			},
+			{
+				"string": "Background",
+				"heading": 2,
+				"uid": "h-background",
+				"children": [
+					{ "string": "A paragraph on its own, which is not a list of one.", "uid": "h-b1" }
+				]
+			},
+			{
+				"string": "A heading whose body is itself a heading",
+				"heading": 1,
+				"uid": "h-nested",
+				"children": [
+					{ "string": "Underneath", "heading": 3, "uid": "h-n1", "children": [{ "string": "and its body", "uid": "h-n2" }] }
+				]
+			}
+		]
+	},
+	{
 		"title": "Queries",
 		"uid": "page-queries",
 		"create-time": 1600001200000,

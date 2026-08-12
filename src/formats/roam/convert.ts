@@ -4,7 +4,7 @@ import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { BlockTarget, blockRefRegex } from './block-refs';
 import { serializeFrontMatter } from '../../util';
 import { convertRoamQueries } from './queries';
-import { deOutline, RenderedBlock } from './de-outline';
+import { deOutline, OutlineNode, anchorLines } from '../../outline';
 
 const INDENT = '    ';
 
@@ -205,7 +205,7 @@ export class RoamPageConverter {
 	 * settled after, so the outline and the flattened form are two readings of
 	 * one conversion rather than two conversions.
 	 */
-	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock, createdTimestamp: number, updatedTimestamp: number): Promise<RenderedBlock | null> {
+	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock, createdTimestamp: number, updatedTimestamp: number): Promise<OutlineNode | null> {
 		this.accumulateTimestamps(block, createdTimestamp, updatedTimestamp);
 
 		if (block.string && roamTableRe.test(block.string.trim())) {
@@ -213,7 +213,7 @@ export class RoamPageConverter {
 			// rather than recursed into as bullets. A marker with no rows under
 			// it leaves nothing behind, marker included.
 			const table = await this.convertTable(graphFolder, attachmentsFolder, block);
-			return table ? { text: '', anchor: null, table, children: [] } : null;
+			return table ? { text: '', anchor: null, verbatim: table, children: [] } : null;
 		}
 
 		// A block Roam left empty writes no line of its own, while what is under
@@ -227,13 +227,13 @@ export class RoamPageConverter {
 		return {
 			text,
 			anchor: block.uid && this.options.isReferenced?.(block.uid) ? block.uid : null,
-			table: null,
+			verbatim: null,
 			children: await this.renderChildren(graphFolder, attachmentsFolder, block.children ?? []),
 		};
 	}
 
-	private async renderChildren(graphFolder: string, attachmentsFolder: string, children: RoamBlock[], skip?: Map<RoamBlock, string>): Promise<RenderedBlock[]> {
-		const rendered: RenderedBlock[] = [];
+	private async renderChildren(graphFolder: string, attachmentsFolder: string, children: RoamBlock[], skip?: Map<RoamBlock, string>): Promise<OutlineNode[]> {
+		const rendered: OutlineNode[] = [];
 
 		for (const child of children) {
 			if (skip?.has(child)) continue;
@@ -251,12 +251,12 @@ export class RoamPageConverter {
 	 * A block that says nothing still keeps its bullet, which is what Roam
 	 * shows - only a table marker with nothing under it goes without a line.
 	 */
-	private asOutline(blocks: RenderedBlock[], indent: string): string[] {
+	private asOutline(blocks: OutlineNode[], indent: string): string[] {
 		const lines: string[] = [];
 
 		for (const block of blocks) {
-			if (block.table !== null) {
-				lines.push(block.table);
+			if (block.verbatim !== null) {
+				lines.push(block.verbatim);
 				continue;
 			}
 
@@ -272,19 +272,10 @@ export class RoamPageConverter {
 			// the first has to be indented or it falls out of the item
 			const continuation = indent + '  ';
 			const [first, ...rest] = block.text.split('\n');
-			const written = [
+			const written = anchorLines([
 				`${indent}- ${first}`,
 				...rest.map(line => line ? continuation + line : line),
-			];
-
-			// A block something else points at needs an anchor to be reached by.
-			// It belongs at the end of the block, which for one holding several
-			// lines is a line of its own: appended to a closing fence it would
-			// land inside the code.
-			if (block.anchor) {
-				if (written.length > 1) written.push(`${continuation}^${block.anchor}`);
-				else written[0] += ` ^${block.anchor}`;
-			}
+			], block.anchor, continuation);
 
 			lines.push(written.join('\n'), ...this.asOutline(block.children, indent + INDENT));
 		}

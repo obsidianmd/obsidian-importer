@@ -40,11 +40,18 @@ It is a page per thing that broke, so a failure names itself:
   pipe in a cell, a marker with no rows, and an unbalanced `{{[[table}}` (#180)
 - `Queries` - `and`, `or`, `not`, a nested clause, the `{between:}` that has no
   counterpart, and one written as an example inside backticks (#180)
+- `Headings` - a heading whose children are a list, one whose child is a lone
+  paragraph, and one whose body is another heading, which is what flattening
+  has to tell apart
 - `roam/css`, `January 1st, 2021` - a title that makes a folder, and a daily
   note, both of which a link has to name the way the note was written
 
 Nothing in it is anyone's data: the names are invented and the block ids are
 words rather than Roam's.
+
+It is recorded twice, in `expected/shapes/` as the outline Roam kept and in
+`expected/shapes-flat/` with the outline flattened, so the difference the
+setting makes is a diff rather than a description.
 
 ## Whole graphs, in local/
 

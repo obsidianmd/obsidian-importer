@@ -16,6 +16,7 @@ import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { sanitizeFilePath } from '../../util';
 import { BlockTarget, extractBlockReferenceUIDs } from './block-refs';
+import { BlockIndex } from '../../block-refs';
 
 export interface RoamGraphOptions extends RoamConverterOptions {
 	/** Where the graph's notes are written, as a vault path. */
@@ -48,10 +49,8 @@ export class RoamGraphConverter {
 	private options: RoamGraphOptions;
 	private graphFolder: string;
 
-	/** The note each block that carries an id ended up on, by that id. */
-	private blocks = new Map<string, string>();
-	/** The blocks something points at, which are the ones needing an anchor. */
-	private referenced = new Set<string>();
+	/** Where every block that carries a uid is, and which of them are pointed at. */
+	private blocks = new BlockIndex();
 
 	constructor(options: RoamGraphOptions) {
 		this.options = options;
@@ -114,7 +113,7 @@ export class RoamGraphConverter {
 		return new RoamPageConverter({
 			...this.options,
 			resolveBlockReference: uid => this.resolveBlockReference(uid),
-			isReferenced: uid => this.referenced.has(uid),
+			isReferenced: uid => this.blocks.isReferenced(uid),
 		});
 	}
 
@@ -131,25 +130,20 @@ export class RoamGraphConverter {
 	}
 
 	private resolveBlockReference(uid: string): BlockTarget | null {
-		const pageName = this.blocks.get(uid);
-		if (pageName === undefined) return null;
+		const block = this.blocks.resolve(uid);
+		if (!block) return null;
 
-		return `${this.linkTo(pageName)}#^${uid}`;
+		return `${this.linkTo(block.page)}#^${block.anchor}`;
 	}
 
 	/**
-	 * Every block by its id, and the ids something points at.
-	 *
-	 * Only a reference to a block that is really there counts: `((a passing
-	 * thought))` is somebody's parenthesis, not an id, and anchoring a block
-	 * nothing reaches for would leave a `^id` on the page for no reason.
+	 * Every block by its uid, and the uids something points at.
 	 */
 	private index(pages: RoamPage[]): void {
-		const mentioned = new Set<string>();
-
 		const walk = (pageName: string, block: RoamBlock) => {
-			if (block.uid) this.blocks.set(block.uid, pageName);
-			for (const uid of extractBlockReferenceUIDs(block.string ?? '')) mentioned.add(uid);
+			// A Roam uid is short and legal already, so it is its own anchor.
+			if (block.uid) this.blocks.define(block.uid, pageName);
+			for (const uid of extractBlockReferenceUIDs(block.string ?? '')) this.blocks.mention(uid);
 
 			for (const child of block.children ?? []) walk(pageName, child);
 		};
@@ -157,10 +151,6 @@ export class RoamGraphConverter {
 		for (const page of pages) {
 			const pageName = this.noteNameFor(page);
 			for (const block of page.children ?? []) walk(pageName, block);
-		}
-
-		for (const uid of mentioned) {
-			if (this.blocks.has(uid)) this.referenced.add(uid);
 		}
 	}
 

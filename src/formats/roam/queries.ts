@@ -13,6 +13,8 @@
  * one that has to be rewritten by hand.
  */
 
+import { outsideCodeSpans } from '../../markdown';
+
 /** `{{query: …}}` and `{{[[query]]: …}}`, which are the two spellings Roam writes. */
 const queryStartRe = /\{\{(?:\[\[query\]\]|query)\s*:/i;
 
@@ -27,10 +29,7 @@ const tagRe = /^#[^\s{}[\]()]+/;
  * both.
  */
 export function convertRoamQueries(blockText: string, drop: boolean = false): string {
-	return blockText
-		.split(/(`+[^`]*`+)/)
-		.map((segment, index) => index % 2 === 1 ? segment : rewriteQueries(segment, drop))
-		.join('');
+	return outsideCodeSpans(blockText, segment => rewriteQueries(segment, drop));
 }
 
 function rewriteQueries(text: string, drop: boolean): string {
