@@ -1,7 +1,7 @@
 import { App, getLanguage, IconName, Modal, Notice, Platform, Plugin, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { dataTransferHasFiles, droppedItems, expandDropped, NodePickedFile, PickedFile, PickedFolder } from './filesystem';
-import { ImporterFileTypes, importersForFiles } from './importer-match';
+import { ImporterFileTypes, importersForFiles, readableFiles } from './importer-match';
 import { AuthCallback, helpUrl } from './constants';
 import { ImportContext, ImportLogEntry } from './import-context';
 import { DEFAULT_DATA, ImporterData } from './plugin-data';
@@ -782,6 +782,11 @@ export class ImporterModal extends Modal implements ImporterHost {
 	private showFormatOffer(ids: string[], files: PickedFile[]) {
 		const { contentEl, modalEl } = this;
 
+		// Where Back leads, decided before this screen replaces that one.
+		const back = this.pickingFormat || !this.importer
+			? () => this.startOver()
+			: () => this.showFirstStep();
+
 		contentEl.empty();
 		this.nextButtonEl = null;
 		this.pickingFormat = true;
@@ -804,12 +809,22 @@ export class ImporterModal extends Modal implements ImporterHost {
 		}
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
+			el.createEl('button', { text: i18n.modal.buttonBack() }, el => {
+				el.addEventListener('click', back);
+			});
+
 			el.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
-				el.addEventListener('click', () => this.showFormatPicker());
+				el.addEventListener('click', () => this.startOver());
 			});
 		});
 
 		rows[0]?.focus();
+	}
+
+	/** The list of formats with nothing chosen: a format picked earlier is forgotten, files and all. */
+	private startOver(): void {
+		this.selectedId = '';
+		this.showFormatPicker();
 	}
 
 	/** What each importer would take a dropped file to be. */
@@ -823,13 +838,15 @@ export class ImporterModal extends Modal implements ImporterHost {
 	 * when it reads them, and otherwise to whichever importer does.
 	 */
 	private async takeDropped(dropped: (PickedFile | PickedFolder)[]): Promise<void> {
-		const files = await expandDropped(dropped);
+		const arrived = await expandDropped(dropped);
 
-		if (files.length > 0 && !this.pickingFormat && this.importer && this.importer.takeFiles(files) > 0) {
+		if (arrived.length > 0 && !this.pickingFormat && this.importer && this.importer.takeFiles(arrived) > 0) {
 			this.showSourceStep();
 			return;
 		}
 
+		// What nothing here reads is left out of both the choice and the count.
+		const files = readableFiles(this.fileTypes(), arrived);
 		const ids = importersForFiles(this.fileTypes(), files.map(file => file.extension));
 
 		if (ids.length === 0) {

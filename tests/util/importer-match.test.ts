@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { importersForFiles } from '../../src/importer-match';
+import { importersForFiles, readableFiles } from '../../src/importer-match';
 
 const IMPORTERS = [
 	{ id: 'bear', extensions: ['bear2bk'] },
@@ -33,4 +33,17 @@ test('the importer that reads more of what was dropped comes first', () => {
 
 test('an importer is offered for the files it can read, not the ones it cannot', () => {
 	assert.deepEqual(importersForFiles(IMPORTERS, ['html', 'docx']), ['html', 'apple-journal']);
+});
+
+test('an export dropped with ten other things is a drop of an export', () => {
+	const dropped = [
+		{ extension: 'zip', name: 'export.zip' },
+		...Array.from({ length: 10 }, (_, n) => ({ extension: 'docx', name: `report ${n}.docx` })),
+	];
+
+	assert.deepEqual(readableFiles(IMPORTERS, dropped).map(file => file.name), ['export.zip']);
+});
+
+test('a drop nothing here reads keeps nothing', () => {
+	assert.deepEqual(readableFiles(IMPORTERS, [{ extension: 'docx' }, { extension: 'pages' }]), []);
 });

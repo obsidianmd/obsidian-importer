@@ -362,20 +362,8 @@
 	pointer-events: none;
 }
 
-/* The frame says the whole window is the target, not the box in the middle. */
-.importer-drop-overlay::after {
-	content: '';
-	position: absolute;
-	inset: var(--size-4-4);
-	border: 2px dashed var(--interactive-accent);
-	border-radius: var(--radius-l);
-}
-
 .importer-drop-message {
 	padding: var(--size-4-4) var(--size-4-8);
-	border-radius: var(--radius-l);
-	background-color: var(--background-primary);
-	box-shadow: var(--shadow-l);
 	color: var(--text-normal);
 	font-size: var(--font-ui-large);
 	font-weight: var(--font-medium);

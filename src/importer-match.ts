@@ -12,6 +12,15 @@ export interface ImporterFileTypes {
 }
 
 /**
+ * The files at least one importer reads. What else came with them is no part
+ * of the import: a drop of an export beside ten other things is a drop of an
+ * export.
+ */
+export function readableFiles<T extends { extension: string }>(importers: ImporterFileTypes[], files: T[]): T[] {
+	return files.filter(file => importers.some(({ extensions }) => extensions.includes(file.extension)));
+}
+
+/**
  * The importers that could read these files, likeliest first: the one that
  * takes most of what was dropped, and among equals the one that claims fewer
  * file types, since a narrow claim is the more particular one.
