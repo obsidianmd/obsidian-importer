@@ -144,11 +144,11 @@ translation=Không tìm thấy định dạng nào.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Thả tệp để nhập
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Hiển thị tất cả định dạng
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Tiêu đề Trống
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Tệp và thư mục
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Sao chép tệp và thư mục vào kho của bạn
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Tệp cần sao chép
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Thả tệp hoặc thư mục vào bất kỳ đâu trong cửa sổ để sao chép chúng vào kho của bạn.
 
 [importer.evernote.name]
 original=Evernote

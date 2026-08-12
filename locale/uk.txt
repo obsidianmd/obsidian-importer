@@ -144,11 +144,11 @@ translation=Формати не знайдено.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Відпустіть файли для імпорту
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Показати все формати
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Порожня назва
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Файли і папки
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Копіювати файли і папки до вашого сховища
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Файли для копіювання
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Відпустіть файли або папки будь-де у вікні, щоб копіювати їх до вашого сховища.
 
 [importer.evernote.name]
 original=Evernote

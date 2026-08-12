@@ -144,11 +144,11 @@ translation=No s'han trobat formats.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Deixa anar fitxers per importar
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Mostra-ho tot
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Títol buit
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Fitxers i carpetes
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Copia fitxers i carpetes a la teva cambra forta
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Fitxers per copiar
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Deixa anar fitxers o carpetes en qualsevol lloc de la finestra per copiar-los a la teva cambra forta.
 
 [importer.evernote.name]
 original=Evernote

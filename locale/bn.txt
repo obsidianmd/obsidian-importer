@@ -144,11 +144,11 @@ translation=কোনো ফরম্যাট পাওয়া যায়�
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=ইম্পোর্ট করতে ফাইল ছেড়ে দিন
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=সব ফরম্যাট দেখান
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=খালি শিরোনাম
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=ফাইল এবং ফোল্ডার
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=আপনার ভল্টে ফাইল এবং ফোল্ডার কপি করুন
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=কপি করার ফাইল
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=আপনার ভল্টে কপি করতে উইন্ডোর যেকোনো জায়গায় ফাইল বা ফোল্ডার ছেড়ে দিন।
 
 [importer.evernote.name]
 original=Evernote

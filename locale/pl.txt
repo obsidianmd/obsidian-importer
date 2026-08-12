@@ -144,11 +144,11 @@ translation=Nie znaleziono formatów.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Upuść pliki do zaimportowania
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Pokaż wszystko
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Pusty tytuł
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Pliki i foldery
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopiuj pliki i foldery do swojego skarbca
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Pliki do skopiowania
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Upuść pliki lub foldery w dowolnym miejscu okna, aby skopiować je do swojego skarbca.
 
 [importer.evernote.name]
 original=Evernote

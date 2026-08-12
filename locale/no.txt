@@ -144,11 +144,11 @@ translation=Ingen formater funnet.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Slipp filer for å importere
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Vis alle formater
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Tom tittel
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Filer og mapper
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopier filer og mapper til hvelvet ditt
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Filer å kopiere
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Slipp filer eller mapper hvor som helst i vinduet for å kopiere dem til hvelvet ditt.
 
 [importer.evernote.name]
 original=Evernote

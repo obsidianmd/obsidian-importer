@@ -144,11 +144,11 @@ translation=Biçim bulunamadı.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=İçe aktarmak için dosyaları bırakın
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Tüm biçimleri göster
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Boş başlık
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Dosyalar ve klasörler
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Dosya ve klasörleri kasanıza kopyalayın
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Kopyalanacak dosyalar
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Dosya veya klasörleri kasanıza kopyalamak için pencereye bırakın.
 
 [importer.evernote.name]
 original=Evernote

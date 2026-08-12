@@ -144,11 +144,11 @@ translation=Nebyly nalezeny žádné formáty.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=Pusťte soubory pro import
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=Zobrazit vše formáty
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=Prázdné název
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=Soubory a složky
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=Kopírovat soubory a složky do vašeho trezoru
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=Soubory ke kopírování
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=Pusťte soubory nebo složky kamkoli v okně a zkopírujte je do svého trezoru.
 
 [importer.evernote.name]
 original=Evernote

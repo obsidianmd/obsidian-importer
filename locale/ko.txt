@@ -144,11 +144,11 @@ translation=서식을 찾을 수 없어요.
 
 [modal.msg-drop-to-import]
 original=Drop files to import
-translation=
+translation=가져올 파일을 놓기하세요
 
 [modal.button-show-all-formats]
 original=Show all formats
-translation=
+translation=모두 표시하기
 
 [modal.button-continue]
 original=Continue
@@ -1144,19 +1144,19 @@ translation=비어 있음 제목
 
 [importer.files.name]
 original=Files and folders
-translation=
+translation=파일 and 폴더
 
 [importer.files.option-text]
 original=Copy files and folders into your vault
-translation=
+translation=파일 and 폴더를 보관함으로 복사해요
 
 [importer.files.name-source]
 original=Files to copy
-translation=
+translation=복사할 파일
 
 [importer.files.desc-source]
 original=Drop files or folders anywhere in the window to copy them into your vault.
-translation=
+translation=창 아무 곳에나 파일 또는 폴더를 놓기하면 보관함으로 복사돼요.
 
 [importer.evernote.name]
 original=Evernote
