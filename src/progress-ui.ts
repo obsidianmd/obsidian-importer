@@ -31,6 +31,8 @@ export class ImportProgressUI extends ImportContext {
 	skippedCountEl: HTMLElement;
 	failedCountEl: HTMLElement;
 	statusEl: HTMLElement;
+	/** Where the flow draws what can be done about the import. */
+	actionsEl: HTMLElement;
 	importLogEl: HTMLElement;
 
 	private finished: boolean = false;
@@ -79,6 +81,10 @@ export class ImportProgressUI extends ImportContext {
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statFailed() });
 			});
 		});
+
+		// Above the log, which grows as the import goes on: buttons under it
+		// would walk down the screen away from the thumb.
+		this.actionsEl = container.createDiv('importer-actions');
 
 		this.importLogEl = container.createDiv('importer-log');
 		this.importLogEl.hide();

@@ -133,12 +133,16 @@ body:not(.is-mobile) .importer-step-buttons .mod-cta {
    than a setting: the status above, the bar with the width to itself. */
 .importer-progress {
 	flex-direction: column;
-	align-items: flex-start;
+	align-items: stretch;
 	gap: var(--size-4-2);
 }
 
+/* Both halves take the row's width, and neither the name nor the status in
+   it may grow past it: a flex item is free to, unless it is told not to. */
+.importer-progress .setting-item-info,
 .importer-progress .setting-item-control {
 	width: 100%;
+	min-width: 0;
 }
 
 /* The status is a file name, often longer than the room for it. */

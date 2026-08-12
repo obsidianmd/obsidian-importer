@@ -899,7 +899,7 @@ export class ImporterFlow implements ImporterHost {
 
 		if (interruption === 'none') return;
 
-		let buttonsEl = contentEl.createDiv('modal-button-container importer-progress-buttons');
+		let buttonsEl = ctx.actionsEl.createDiv('modal-button-container importer-progress-buttons');
 
 		let pauseButtonEl: HTMLElement | null = null;
 		if (interruption === 'pause') {
@@ -978,7 +978,7 @@ export class ImporterFlow implements ImporterHost {
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
-		this.drawFinishButtons(contentEl.createDiv('modal-button-container'), ctx, true);
+		this.drawFinishButtons(ctx.actionsEl.createDiv('modal-button-container'), ctx, true);
 	}
 
 	private showHiddenNotice() {
