@@ -1,1 +1,3 @@
-- source: https://lamport.azurewebsites.net/pubs/proof.pdf
+---
+source: https://lamport.azurewebsites.net/pubs/proof.pdf
+---

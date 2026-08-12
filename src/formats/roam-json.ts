@@ -7,6 +7,7 @@ import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
 import { RoamPage } from './roam/models/roam-json';
 import { RoamGraphConverter } from './roam/graph';
+import { createBaseFile } from '../base';
 
 const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
@@ -106,7 +107,7 @@ export class RoamJSONImporter extends FormatImporter {
 			const data = await file.readText();
 			const allPages = JSON.parse(data) as RoamPage[];
 
-			const { pages: markdownPages, uids: pageUids } = await this.newGraphConverter(graphFolder, progress).convert(allPages);
+			const { pages: markdownPages, uids: pageUids, attributeNames } = await this.newGraphConverter(graphFolder, progress).convert(allPages);
 
 			// WRITE-PROCESS: create the actual pages //
 			const totalCount = markdownPages.size;
@@ -132,6 +133,40 @@ export class RoamJSONImporter extends FormatImporter {
 
 				index++;
 			}
+
+			await this.writeGraphBase(graphFolder, graphName, attributeNames);
+		}
+	}
+
+	/**
+	 * A Base over the graph, showing every page by the attributes it carries.
+	 *
+	 * Roam's own `{{attr-table}}` is what this stands in for: attributes are the
+	 * database-shaped part of a graph, and now that they arrive as properties a
+	 * table view is what reads them (#180).
+	 *
+	 * A graph using no attributes gets no Base - an empty table over a thousand
+	 * notes is not worth the file.
+	 */
+	private async writeGraphBase(graphFolder: string, graphName: string, attributeNames: string[]): Promise<void> {
+		if (attributeNames.length === 0) return;
+
+		try {
+			const { parent } = parseFilePath(graphFolder);
+			const folder = await this.createFolders(parent || '/');
+
+			await createBaseFile(folder, graphName, {
+				filters: `file.folder == "${graphFolder}"`,
+				views: [{
+					type: 'table',
+					name: 'Table',
+					order: ['file.name', ...attributeNames],
+				}],
+			}, this.vault);
+		}
+		catch (error) {
+			// A graph that imported is worth keeping even when its Base will not.
+			console.error('Failed to create Base file:', error);
 		}
 	}
 

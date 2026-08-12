@@ -1,4 +1,3 @@
-import { path } from './filesystem';
 import { TFolder, TFile, BasesConfigFile, stringifyYaml, normalizePath, Vault } from 'obsidian';
 
 /**
@@ -39,7 +38,9 @@ export async function createBaseFile(
 	vault: Vault
 ): Promise<TFile> {
 	const yamlContent = stringifyYaml(contents);
-	const filePath = normalizePath(path.join(folder.path, fileName + '.base'));
+	// Joined as a string rather than through node's path, which is null anywhere
+	// but a desktop app - on mobile this threw and the .base was never written.
+	const filePath = normalizePath(`${folder.path}/${fileName}.base`);
 
 	// Check if file already exists
 	const existingFile = vault.getAbstractFileByPath(filePath);

@@ -36,6 +36,11 @@ export interface ConvertedGraph {
 	pages: Map<string, string>;
 	/** Note path to the uid of the Roam page it came from. */
 	uids: Map<string, string>;
+	/**
+	 * Every attribute the graph turned into a property, in the order it was
+	 * first seen. These are the columns the graph's Base shows.
+	 */
+	attributeNames: string[];
 }
 
 export class RoamGraphConverter {
@@ -60,6 +65,7 @@ export class RoamGraphConverter {
 
 		const markdownPages: Map<string, string> = new Map();
 		const pageUids: Map<string, string> = new Map();
+		const attributeNames = new Set<string>();
 
 		for (const pageData of allPages) {
 			const pageName = convertDateString(sanitizeFileNameKeepPath(pageData.title), this.options.userDNPFormat).trim();
@@ -97,9 +103,10 @@ export class RoamGraphConverter {
 			const markdownOutput = await converter.jsonToMarkdown(this.graphFolder, filename, pageData, '', false, YAMLtitle, pageCreateTimestamp, pageEditTimestamp);
 			markdownPages.set(filename, markdownOutput);
 			if (pageData.uid) pageUids.set(filename, pageData.uid);
+			for (const name of converter.attributeNames) attributeNames.add(name);
 		}
 
-		return { pages: markdownPages, uids: pageUids };
+		return { pages: markdownPages, uids: pageUids, attributeNames: [...attributeNames] };
 	}
 
 	private newConverter(): RoamPageConverter {

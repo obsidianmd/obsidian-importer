@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 
 import { RoamJSONImporter } from '../../src/formats/roam-json';
 import { ImportContext } from '../../src/import-context';
+import { parseYaml } from 'obsidian';
 import { PickedFile } from '../../src/filesystem';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
@@ -76,4 +77,56 @@ test('and the same graph under an output folder is written under it', async () =
 	await subject.import(new ImportContext());
 
 	assert.ok(vault.contents.has('Roam/MyGraph/Referring.md'), `written: ${vault.paths().join(', ')}`);
+});
+
+/** Two pages carrying attributes, which is what a Base is built over. */
+const attributedGraph = [
+	{
+		title: 'Sapiens', uid: 'sapiens', children: [
+			{ string: 'Author:: [[Yuval Noah Harari]]', uid: 'a1' },
+			{ string: 'Status:: read', uid: 'a2' },
+			{ string: 'Notes', uid: 'a3', children: [{ string: 'Priority:: high', uid: 'a4' }] },
+		],
+	},
+	{
+		title: 'Dune', uid: 'dune', children: [
+			{ string: 'Author:: [[Frank Herbert]]', uid: 'b1' },
+		],
+	},
+];
+
+test('a page\'s attributes become its properties, and the graph gets a Base over them', async () => {
+	const { vault, subject } = await importer('Roam');
+	subject.files = [graphFile('MyGraph', attributedGraph)];
+
+	await subject.import(new ImportContext());
+
+	// The page's own uid joins the properties rather than replacing them, which
+	// is what tells us the frontmatter was real YAML and not a hand-built block.
+	assert.equal(vault.contents.get('Roam/MyGraph/Sapiens.md'), [
+		'---',
+		'roam-uid: sapiens',
+		'Author: "[[Yuval Noah Harari]]"',
+		'Status: read',
+		'---',
+		'- Notes',
+		'    - Priority:: high',
+	].join('\n'));
+
+	// One Base beside the graph folder, its columns the attributes seen.
+	const base = vault.contents.get('Roam/MyGraph.base');
+	assert.ok(typeof base === 'string', `written: ${vault.paths().join(', ')}`);
+	assert.deepEqual(parseYaml(base), {
+		filters: 'file.folder == "Roam/MyGraph"',
+		views: [{ type: 'table', name: 'Table', order: ['file.name', 'Author', 'Status'] }],
+	});
+});
+
+test('a graph using no attributes gets no Base', async () => {
+	const { vault, subject } = await importer('Roam');
+	subject.files = [graphFile('MyGraph', referringGraph)];
+
+	await subject.import(new ImportContext());
+
+	assert.deepEqual(vault.paths().filter(path => path.endsWith('.base')), []);
 });

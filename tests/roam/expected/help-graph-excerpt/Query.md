@@ -23,7 +23,7 @@
             - `
               }
               }`
-    - ## Community Videos:
+    - ## Community Videos::
         - ### Query syntax and logic: how to ask Roam questions with queries by [[Sam Patel]]
             - ![](https://www.youtube.com/watch?v=EXAMPLE0001&t=20s&ab_channel=RobertHaisfield)
         - ### How Queries Work in Roam Research by [[R.J. Nestor]]
@@ -34,8 +34,8 @@
             - ![](https://www.youtube.com/watch?v=EXAMPLE0001)
         - ### Roam Research Query Tutorial: Pending Tasks for Task Management and Task Dashboard Using Queries by [[The Upgraded Brain]]
             - ![](https://www.youtube.com/watch?v=EXAMPLE0001)
-    - ## Articles:
+    - ## Articles::
         - ### [How to query in Roam](https://roamhacks.com/how-to-query-roam/) by [[Roamhacks]]
         - ### [Searching Roam With Queries: A Primer](https://www.roamstack.com/roam-queries-primer/) by [[RoamStack]]
-    - ## Key Commands:
+    - ## Key Commands::
         - `/query`

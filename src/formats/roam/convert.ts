@@ -1,7 +1,8 @@
-import { moment } from 'obsidian';
+import { FrontMatterCache, moment } from 'obsidian';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
 import { BlockTarget, blockRefRegex } from './block-refs';
+import { serializeFrontMatter } from '../../util';
 
 const INDENT = '    ';
 
@@ -23,6 +24,9 @@ export interface RoamConverterOptions {
 export class RoamPageConverter {
 	newestTimestamp: number = 0;
 	oldestTimestamp: number = 0;
+
+	/** The attributes this page turned into properties, for the graph's Base. */
+	readonly attributeNames = new Set<string>();
 
 	private userDNPFormat: string;
 	private downloadAttachments: boolean;
@@ -63,7 +67,6 @@ export class RoamPageConverter {
 
 		blockText = blockText.replace(/{{TODO}}|{{\[\[TODO\]\]}}/g, '[ ]');
 		blockText = blockText.replace(/{{DONE}}|{{\[\[DONE\]\]}}/g, '[x]');
-		blockText = blockText.replace('::', ':');
 
 		blockText = blockText.replace(/{{.*?\bvideo\b.*?(\bhttp.*?\byoutu.*?)}}/g, '![]($1)');
 		blockText = blockText.replace(/(https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status\/\d+(?:\?[\w=&-]+)?)/g, '![]($1)');
@@ -123,7 +126,6 @@ export class RoamPageConverter {
 
 	async jsonToMarkdown(graphFolder: string, attachmentsFolder: string, json: RoamPage | RoamBlock, indent: string = '', isChild: boolean = false, setTitleProperty: string, createdTimestamp: number, updatedTimestamp: number): Promise<string> {
 		let markdown: string[] = [];
-		let frontMatterYAML: string[] = [];
 		const jsonEditTime = json['edit-time'];
 		const jsonCreateTime = json['create-time'];
 
@@ -172,38 +174,98 @@ export class RoamPageConverter {
 			markdown.push(lines.join('\n'));
 		}
 
+		// A page's attributes are lifted out of the outline into its properties,
+		// so what is left of the page is the outline alone.
+		const attributes = isChild ? new Map<RoamBlock, string>() : await this.attributesOf(graphFolder, attachmentsFolder, json);
+
 		if (json.children) {
 			for (const child of json.children) {
+				if (attributes.has(child)) continue;
+
 				// The page is not a bullet, so its own blocks start at the margin
 				markdown.push(await this.jsonToMarkdown(graphFolder, attachmentsFolder, child, isChild ? indent + INDENT : indent, true, '', this.oldestTimestamp, this.newestTimestamp));
 			}
 		}
 
-		if ((this.fileDateYAML || this.titleYAML) && !isChild) {
+		if (isChild) return markdown.join('\n');
 
-			let timeCreated = this.oldestTimestamp;
+		const frontMatter: FrontMatterCache = {};
 
-			frontMatterYAML.push('---');
-
-			if (this.titleYAML) {
-				frontMatterYAML.push(`title: "${setTitleProperty}"`);
-			}
-
-			if (this.fileDateYAML) {
-				let TSFormat = 'YYYY-MM-DD HH:mm:ss';
-
-				let formatUpdateDate = this.newestTimestamp ? moment(this.newestTimestamp).format(TSFormat) : moment(new Date()).format(TSFormat);
-				let formatCreateDate = timeCreated ? moment(timeCreated).format(TSFormat) : formatUpdateDate;
-
-				frontMatterYAML.push('created: ' + formatCreateDate);
-				frontMatterYAML.push('updated: ' + formatUpdateDate);
-			}
-
-			frontMatterYAML.push('---');
-
-			markdown.unshift(frontMatterYAML.join('\n'));
+		if (this.titleYAML) {
+			frontMatter.title = setTitleProperty;
 		}
 
-		return markdown.join('\n');
+		if (this.fileDateYAML) {
+			const TSFormat = 'YYYY-MM-DD HH:mm:ss';
+
+			const formatUpdateDate = this.newestTimestamp ? moment(this.newestTimestamp).format(TSFormat) : moment(new Date()).format(TSFormat);
+			const formatCreateDate = this.oldestTimestamp ? moment(this.oldestTimestamp).format(TSFormat) : formatUpdateDate;
+
+			frontMatter.created = formatCreateDate;
+			frontMatter.updated = formatUpdateDate;
+		}
+
+		for (const [block, value] of attributes) {
+			const name = this.attributeNameOf(block);
+			frontMatter[name] = value;
+			this.attributeNames.add(name);
+		}
+
+		// Through stringifyYaml rather than written by hand: a title holding a
+		// quote, and an attribute whose value starts with `[[`, each need
+		// quoting that a template string does not do.
+		return serializeFrontMatter(frontMatter) + markdown.join('\n');
 	}
+
+	/**
+	 * The attributes a page carries, by the block each was written on.
+	 *
+	 * Roam writes an attribute as `Name:: value`, anywhere in the outline. The
+	 * ones at the top of a page are what a page is *about* - the author of a
+	 * book, the status of a project - so those become properties, which is
+	 * where Obsidian keeps the same thing and what a Base reads (#245).
+	 *
+	 * A block with children stays where it is: Roam uses the same syntax for a
+	 * heading with an outline under it, and lifting one would leave its
+	 * children with nothing above them. So does an attribute deeper in the
+	 * outline, which belongs to the block it sits under rather than the page,
+	 * and which properties have nowhere to put.
+	 */
+	private async attributesOf(graphFolder: string, attachmentsFolder: string, page: RoamPage | RoamBlock): Promise<Map<RoamBlock, string>> {
+		const attributes = new Map<RoamBlock, string>();
+
+		for (const block of page.children ?? []) {
+			if (block.children?.length) continue;
+
+			const value = attributeValue(block.string);
+			if (value === null) continue;
+
+			attributes.set(block, await this.roamMarkupScrubber(graphFolder, attachmentsFolder, value));
+		}
+
+		return attributes;
+	}
+
+	private attributeNameOf(block: RoamBlock): string {
+		return block.string.slice(0, block.string.indexOf('::')).trim();
+	}
+}
+
+/**
+ * What `Name:: value` says, or nothing when the block does not say it.
+ *
+ * A name runs to the first `::` and holds no markup of its own: `[[a]] :: b`
+ * is a link beside a pair of colons rather than an attribute, and a name over
+ * a line long is a sentence that happens to contain them. Neither name nor
+ * value spans a line, so a block of several is left in the outline whatever it
+ * begins with.
+ */
+function attributeValue(blockString: string | undefined): string | null {
+	const attribute = /^([^\n[\]{}:]{1,80})::([^\n]*)$/.exec(blockString ?? '');
+	if (!attribute) return null;
+
+	const [, name, value] = attribute;
+	if (!name.trim() || !value.trim()) return null;
+
+	return value.trim();
 }
