@@ -85,16 +85,12 @@ export class RoamJSONImporter extends FormatImporter {
 				});
 			});
 
-		this.addSetting()?.setName(i18n.importer.roamJson.headingOutline()).setHeading();
-
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameDeOutline())
 			.setDesc(i18n.importer.roamJson.descDeOutline())
 			.addToggle(toggle => toggle
 				.setValue(this.deOutline)
 				.onChange(value => this.deOutline = value));
-
-		this.addSetting()?.setName(i18n.importer.roamJson.headingBlockReferences()).setHeading();
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameEmbedBlockReferences())
@@ -109,8 +105,6 @@ export class RoamJSONImporter extends FormatImporter {
 			.addToggle(toggle => toggle
 				.setValue(this.dropUnresolvedReferences)
 				.onChange(value => this.dropUnresolvedReferences = value));
-
-		this.addSetting()?.setName(i18n.importer.roamJson.headingRoamMarkup()).setHeading();
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameKeepAttributes())
