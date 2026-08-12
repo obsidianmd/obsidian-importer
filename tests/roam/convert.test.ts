@@ -613,3 +613,114 @@ test('"keep attributes in the note" leaves them in the outline, double colon and
 	assert.equal(await optioned({}).jsonToMarkdown('graph', 'graph/Attachments', page, '', 0, 0),
 		'---\nAuthor: Ada Lovelace\n---\n- a block');
 });
+
+/**
+ * The graph pass, which is where a page's name and a link to it are decided.
+ * These are the ways the two came apart, each of which lost something quietly.
+ */
+function graphConverter(overrides: Record<string, unknown> = {}) {
+	return new RoamGraphConverter({
+		graphFolder: 'g',
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: false,
+		titleYAML: false,
+		downloadAttachments: false,
+		...overrides,
+	});
+}
+
+test('two titles that sanitise to one name are still two notes', async () => {
+	// The name was decided where the note was written, so the second page
+	// overwrote the first in the map before either got there.
+	const pages = [
+		{ title: 'A[B]', uid: 'p1', children: [{ string: 'the first', uid: 'b1' }] },
+		{ title: 'AB', uid: 'p2', children: [{ string: 'the second', uid: 'b2' }] },
+	] as unknown as RoamPage[];
+
+	const { pages: written } = await graphConverter().convert(pages);
+
+	assert.deepEqual([...written.keys()], ['g/AB.md', 'g/AB 1.md']);
+	assert.equal(written.get('g/AB.md'), '- the first');
+	assert.equal(written.get('g/AB 1.md'), '- the second');
+});
+
+test('and a link to one of them names the note that was written', async () => {
+	const pages = [
+		{ title: 'A[B]', uid: 'p1', children: [{ string: 'the first', uid: 'b1' }] },
+		{ title: 'AB', uid: 'p2', children: [{ string: 'the second', uid: 'b2' }] },
+		{ title: 'Pointing', uid: 'p3', children: [{ string: 'see [[AB]]', uid: 'b3' }] },
+	] as unknown as RoamPage[];
+
+	const { pages: written } = await graphConverter().convert(pages);
+
+	assert.equal(written.get('g/Pointing.md'), '- see [[AB 1]]');
+});
+
+test('a link to a title too long for a file name is cut the same way the file was', async () => {
+	const long = 'Like optical illusions intellectual illusions can trick us into thinking something that is not actually there or true and even when we know they are there we still have to actively override our default perception to get at the truth behind it';
+	const pages = [
+		{ title: long, uid: 'p1', children: [{ string: 'body', uid: 'b1' }] },
+		{ title: 'Pointing', uid: 'p2', children: [{ string: `see [[${long}]]`, uid: 'b2' }] },
+	] as unknown as RoamPage[];
+
+	const { pages: written } = await graphConverter().convert(pages);
+	const named = /\[\[(.+?)\]\]/.exec(written.get('g/Pointing.md') as string)?.[1];
+
+	assert.ok(named && written.has(`g/${named}.md`), `the link names "${named}", which is not among ${[...written.keys()]}`);
+});
+
+test('a reference to a table cell stays as Roam wrote it, having nowhere to reach', async () => {
+	// A table's marker becomes the table and its cells become rows, so neither
+	// can carry a `^id`. A link to an anchor that was never written is worse
+	// than the reference it replaced.
+	const pages = [
+		{
+			title: 'Source', uid: 'p1', children: [
+				{ string: '{{[[table]]}}', uid: 'marker', children: [{ string: 'Cell', uid: 'cell' }] },
+			],
+		},
+		{ title: 'Pointing', uid: 'p2', children: [{ string: 'a ((marker)) b ((cell))', uid: 'b1' }] },
+	] as unknown as RoamPage[];
+
+	const { pages: written } = await graphConverter().convert(pages);
+
+	assert.equal(written.get('g/Pointing.md'), '- a ((marker)) b ((cell))');
+});
+
+test('an attribute something points at stays in the outline, where its anchor can go', async () => {
+	// A property has nowhere to carry an anchor, so lifting a referenced
+	// attribute would leave the reference pointing at nothing.
+	const pages = [
+		{
+			title: 'Sapiens', uid: 'p1', children: [
+				{ string: 'Author:: Ada', uid: 'attr' },
+				{ string: 'Status:: read', uid: 'plain' },
+			],
+		},
+		{ title: 'Pointing', uid: 'p2', children: [{ string: 'see ((attr))', uid: 'b1' }] },
+	] as unknown as RoamPage[];
+
+	const { pages: written } = await graphConverter().convert(pages);
+
+	assert.equal(written.get('g/Sapiens.md'), '---\nStatus: read\n---\n- Author:: Ada ^attr');
+	assert.equal(written.get('g/Pointing.md'), '- see [[Sapiens#^attr]]');
+});
+
+test('a lifted attribute still counts towards the page timestamps', async () => {
+	// It is taken out of the outline before the walk, so its own times are
+	// folded in where it is lifted or the page comes out dated without it.
+	const page = {
+		title: 'Sapiens', uid: 'p1', 'create-time': 1000, 'edit-time': 1000,
+		children: [{ string: 'Author:: Ada', uid: 'attr', 'create-time': 1000, 'edit-time': 9_000_000_000_000 }],
+	} as unknown as RoamPage;
+
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		fileDateYAML: true,
+		titleYAML: false,
+		downloadAttachments: false,
+	});
+	await converter.jsonToMarkdown('g', 'g/A', page, '', 1000, 1000);
+
+	assert.equal(converter.newestTimestamp, 9_000_000_000_000);
+});

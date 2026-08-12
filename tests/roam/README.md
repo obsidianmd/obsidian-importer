@@ -43,6 +43,8 @@ It is a page per thing that broke, so a failure names itself:
 - `Headings` - a heading whose children are a list, one whose child is a lone
   paragraph, and one whose body is another heading, which is what flattening
   has to tell apart
+- `Colliding [name]`, `Colliding name` - two titles that sanitise to one file
+  name, which used to leave one page written over by the other
 - `roam/css`, `January 1st, 2021` - a title that makes a folder, and a daily
   note, both of which a link has to name the way the note was written
 

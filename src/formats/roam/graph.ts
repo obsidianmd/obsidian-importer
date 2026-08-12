@@ -14,9 +14,10 @@
 import { RoamPageConverter, RoamConverterOptions } from './convert';
 import { RoamBlock, RoamPage } from './models/roam-json';
 import { convertDateString, sanitizeFileNameKeepPath } from './utils';
-import { sanitizeFilePath } from '../../util';
+import { availableFileName, sanitizeFilePath } from '../../util';
 import { BlockTarget, extractBlockReferenceUIDs } from './block-refs';
 import { BlockIndex } from '../../block-refs';
+import { isTableMarker } from './convert';
 
 export interface RoamGraphOptions extends RoamConverterOptions {
 	/** Where the graph's notes are written, as a vault path. */
@@ -51,6 +52,8 @@ export class RoamGraphConverter {
 
 	/** Where every block that carries a uid is, and which of them are pointed at. */
 	private blocks = new BlockIndex();
+	/** What each page is called as a note, by the title Roam gave it. */
+	private noteNames = new Map<string, string>();
 
 	constructor(options: RoamGraphOptions) {
 		this.options = options;
@@ -58,9 +61,10 @@ export class RoamGraphConverter {
 	}
 
 	async convert(allPages: RoamPage[]): Promise<ConvertedGraph> {
-		// Where every block is, and which of them something points at. Both
-		// have to be known before any page is converted: a reference reaches
-		// forward as readily as back.
+		// What every page is called, then where every block is: all of it before
+		// any page is converted, since a link reaches forward as readily as back
+		// and has to name the note that will actually be written.
+		this.name(allPages);
 		this.index(allPages);
 
 		const markdownPages: Map<string, string> = new Map();
@@ -68,7 +72,7 @@ export class RoamGraphConverter {
 		const attributeNames = new Set<string>();
 
 		for (const pageData of allPages) {
-			const pageName = this.noteNameFor(pageData);
+			const pageName = this.noteNames.get(pageData.title) ?? '';
 			if (pageName === '') {
 				this.options.reportFailed?.(pageData.uid, this.options.emptyTitleReason ?? 'The page has no title');
 				console.error('Cannot import data with an empty title', pageData);
@@ -114,6 +118,7 @@ export class RoamGraphConverter {
 			...this.options,
 			resolveBlockReference: uid => this.resolveBlockReference(uid),
 			isReferenced: uid => this.blocks.isReferenced(uid),
+			resolvePageName: title => this.noteNames.get(title) ?? null,
 		});
 	}
 
@@ -137,20 +142,52 @@ export class RoamGraphConverter {
 	}
 
 	/**
+	 * What every page will be called as a note.
+	 *
+	 * Sanitising two different titles can arrive at one name - `A[B]` and `AB`
+	 * both lose their brackets, and two long titles can be cut to the same
+	 * prefix - so the name is claimed here rather than where the note is
+	 * written. Deciding it once is also what keeps a link and its file
+	 * agreeing, since both read it from here.
+	 */
+	private name(pages: RoamPage[]): void {
+		const taken = new Set<string>();
+
+		for (const page of pages) {
+			if (this.noteNames.has(page.title)) continue;
+
+			const wanted = this.noteNameFor(page);
+			if (wanted === '') continue;
+
+			const free = availableFileName(wanted, candidate => taken.has(candidate.toLowerCase()));
+			taken.add(free.toLowerCase());
+			this.noteNames.set(page.title, free);
+		}
+	}
+
+	/**
 	 * Every block by its uid, and the uids something points at.
+	 *
+	 * A block that cannot carry an anchor is left out, so a reference to it
+	 * stays as Roam wrote it rather than becoming a link to an anchor that was
+	 * never written. A table is the case: its marker becomes the table and its
+	 * cells become rows, and markdown gives neither anywhere to put a `^id`.
 	 */
 	private index(pages: RoamPage[]): void {
-		const walk = (pageName: string, block: RoamBlock) => {
+		const walk = (pageName: string, block: RoamBlock, anchorable: boolean) => {
 			// A Roam uid is short and legal already, so it is its own anchor.
-			if (block.uid) this.blocks.define(block.uid, pageName);
+			if (block.uid && anchorable) this.blocks.define(block.uid, pageName);
 			for (const uid of extractBlockReferenceUIDs(block.string ?? '')) this.blocks.mention(uid);
 
-			for (const child of block.children ?? []) walk(pageName, child);
+			const inTable = !anchorable || isTableMarker(block.string);
+			for (const child of block.children ?? []) walk(pageName, child, !inTable);
 		};
 
 		for (const page of pages) {
-			const pageName = this.noteNameFor(page);
-			for (const block of page.children ?? []) walk(pageName, block);
+			const pageName = this.noteNames.get(page.title);
+			if (pageName === undefined) continue;
+
+			for (const block of page.children ?? []) walk(pageName, block, !isTableMarker(block.string));
 		}
 	}
 

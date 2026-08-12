@@ -19,6 +19,11 @@ const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.jo
  */
 const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
 
+/** Whether a block is the marker Roam builds a table from. */
+export function isTableMarker(blockString: string | undefined): boolean {
+	return roamTableRe.test((blockString ?? '').trim());
+}
+
 export interface RoamConverterOptions {
 	userDNPFormat: string;
 	fileDateYAML: boolean;
@@ -29,6 +34,8 @@ export interface RoamConverterOptions {
 	resolveBlockReference?: (uid: string) => BlockTarget | null;
 	/** Whether another block points at this one, and so whether it needs an anchor. */
 	isReferenced?: (uid: string) => boolean;
+	/** What the page with this title was called as a note, when the graph holds one. */
+	resolvePageName?: (title: string) => string | null;
 	/** Write the outline as ordinary markdown rather than as nested bullets. */
 	deOutline?: boolean;
 	/** Show a referenced block where the reference stands, rather than link to it. */
@@ -77,7 +84,12 @@ export class RoamPageConverter {
 
 		blockText = blockText.replace(/\[\[>\]\]/g, '>');
 
-		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match: string, group1: string) => `[[${convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
+		// A link names the note that was written, which is what the graph decided
+		// and not what sanitising this title alone would arrive at: a title too
+		// long for a file name was cut, and one whose name another page had
+		// taken was numbered.
+		blockText = blockText.replace(/\[\[(.*?)\]\]/g, (match: string, group1: string) =>
+			`[[${this.options.resolvePageName?.(group1) ?? convertDateString(sanitizeFileNameKeepPath(group1), this.userDNPFormat)}]]`);
 
 		blockText = blockText.replace(/\[\[(.*\/.*)\]\]/g, (_: string, group1: string) => `[[${graphFolder}/${group1}|${group1}]]`);
 		// As with an aliased block reference below, the alias holds no bracket
@@ -208,7 +220,7 @@ export class RoamPageConverter {
 	private async render(graphFolder: string, attachmentsFolder: string, block: RoamBlock, createdTimestamp: number, updatedTimestamp: number): Promise<OutlineNode | null> {
 		this.accumulateTimestamps(block, createdTimestamp, updatedTimestamp);
 
-		if (block.string && roamTableRe.test(block.string.trim())) {
+		if (block.string && isTableMarker(block.string)) {
 			// The marker's children are the table, so they are read as cells
 			// rather than recursed into as bullets. A marker with no rows under
 			// it leaves nothing behind, marker included.
@@ -347,6 +359,13 @@ export class RoamPageConverter {
 			const value = attributeValue(block.string);
 			if (value === null) continue;
 
+			// A property cannot carry an anchor, so an attribute something
+			// points at stays in the outline where the reference can reach it.
+			if (block.uid && this.options.isReferenced?.(block.uid)) continue;
+
+			// Lifted out of the outline, it is not walked with the rest, so its
+			// own timestamps are folded in here or the page is dated without it.
+			this.accumulateTimestamps(block, this.oldestTimestamp, this.newestTimestamp);
 			attributes.set(block, await this.roamMarkupScrubber(graphFolder, attachmentsFolder, value));
 		}
 
