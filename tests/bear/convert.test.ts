@@ -233,6 +233,26 @@ test('a code span that runs over a line ending is still code', async () => {
 	assert.deepEqual(moved.tags, ['real']);
 });
 
+test('a code span closes on a run as long as the one that opened it', async () => {
+	const source = '``foo `#fake`` and #real``';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real']);
+});
+
+test('only a delimiter on a line of its own closes a fence', async () => {
+	const source = '```md\n```js\n#fake\n```\n\n#real';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real']);
+
+	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });
+	assert.equal(moved.content, '```md\n```js\n#fake\n```');
+	assert.deepEqual(moved.tags, ['real']);
+});
+
 test('a tag is found after any space, not only an ASCII one', async () => {
 	// A non-breaking space separates words too, and Bear leaves them about
 	const source = 'Tagged\u00a0#tag here';

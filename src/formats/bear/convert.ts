@@ -1,9 +1,9 @@
 import { path } from '../../filesystem';
 import { ILLEGAL_TAG_CHARS, sanitizeTag } from '../../util';
 
-// Separators are allowed only inside tags.
-const TAG_BODY = `[^${ILLEGAL_TAG_CHARS}\\s]`;
-const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
+// Separators are allowed only inside tags, and a tag stops where code begins.
+const TAG_BODY = `[^${ILLEGAL_TAG_CHARS}\\s\\0]`;
+const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s\\0/-]`;
 
 /**
  * A tag opens on a hash that begins a word. Bear escapes the hash of anything
@@ -14,7 +14,7 @@ const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
  * up when a tag is moved to a property. Whatever separates words counts, since
  * that is what the tags read out of the note are found by.
  */
-const TAG = new RegExp(`([^\\S\\n]?)(?<!\\S)#([^\\s#]+)`, 'gu');
+const TAG = new RegExp(`([^\\S\\n]?)(?<!\\S)#([^\\s#\\0]+)`, 'gu');
 
 /** Bear closes a tag of several words with a second hash: "#two words#". */
 const MULTI_WORD_TAG = new RegExp(
@@ -28,10 +28,17 @@ const ASSET_LINK = /\[[^\]]*\]\((assets\/[^)]+)\)/gm;
 /** Bear records a resized image in a comment after the link. */
 const IMAGE_SIZE = /!\[([^\]]*)\]\(([^()\s]*)\)<!--\s*(\{[^}]*\})\s*-->/g;
 
-const FENCE = /^\s*(`{3,}|~{3,})/;
+const FENCE = /^[ \t]*(`{3,}|~{3,})/;
 
-/** A code span runs over a line ending, though never over a blank line. */
-const CODE_SPAN = /`+(?:[^`\n]|\n(?![ \t]*\n))*`+/g;
+/** A closing fence carries its delimiter and nothing else. */
+const FENCE_CLOSE = /^[ \t]*(`{3,}|~{3,})[ \t]*\r?$/;
+
+/**
+ * A code span closes on a run of backticks as long as the one that opened it,
+ * so a shorter run inside is code rather than the end of it. It may run over a
+ * line ending, though never over a blank line.
+ */
+const CODE_SPAN = /(?<!`)(`+)(?!`)(?:[^\n]|\n(?![ \t]*\n))*?(?<!`)\1(?!`)/g;
 
 /**
  * Bear underlines between single tildes. Obsidian reads a pair of them as
@@ -104,25 +111,34 @@ function withoutCode(content: string, rewrite: (content: string) => string): str
 /** The same note to read rather than rewrite, so nothing has to be put back. */
 function maskCode(content: string, code: string[] = []): string {
 	const hide = (text: string) => `\0${code.push(text) - 1}\0`;
-	let fence: string | null = null;
+	const fenced = tracksFences();
 
 	// A fence is decided line by line; a span is not, so it is found afterwards
-	const outsideFences = content.split('\n').map(line => {
-		const delimiter = line.match(FENCE)?.[1];
-
-		if (fence) {
-			if (delimiter && delimiter[0] === fence[0] && delimiter.length >= fence.length) fence = null;
-			return hide(line);
-		}
-		if (delimiter) {
-			fence = delimiter;
-			return hide(line);
-		}
-
-		return line;
-	}).join('\n');
+	const outsideFences = content.split('\n')
+		.map(line => fenced(line) ? hide(line) : line)
+		.join('\n');
 
 	return outsideFences.replace(CODE_SPAN, hide);
+}
+
+/**
+ * Whether each line in turn belongs to a fenced block, its own two lines
+ * included. Only a delimiter on a line of its own closes a block, so the
+ * "```js" opening an example inside a "```md" one does not end it early.
+ */
+function tracksFences(): (line: string) => boolean {
+	let fence: string | null = null;
+
+	return line => {
+		if (fence) {
+			const closing = line.match(FENCE_CLOSE)?.[1];
+			if (closing && closing[0] === fence[0] && closing.length >= fence.length) fence = null;
+			return true;
+		}
+
+		fence = line.match(FENCE)?.[1] ?? null;
+		return fence !== null;
+	};
 }
 
 /** The tag a hash opens, and whatever punctuation followed it. */
@@ -171,19 +187,13 @@ export function extractTagsFromContent(content: string, flattenTags: boolean): s
 export function separateTables(content: string): string {
 	const lines = content.split('\n');
 	const out: string[] = [];
-	let fence: string | null = null;
+	const fenced = tracksFences();
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		const delimiter = line.match(FENCE)?.[1];
 
-		if (fence) {
-			if (delimiter && delimiter[0] === fence[0] && delimiter.length >= fence.length) fence = null;
-		}
-		else if (delimiter) {
-			fence = delimiter;
-		}
-		else if (i > 0 && line.includes('|') && isTableDelimiter(lines[i + 1] ?? '') && lines[i - 1].trim() !== '') {
+		if (!fenced(line) && i > 0 && line.includes('|')
+			&& isTableDelimiter(lines[i + 1] ?? '') && lines[i - 1].trim() !== '') {
 			out.push('');
 		}
 
