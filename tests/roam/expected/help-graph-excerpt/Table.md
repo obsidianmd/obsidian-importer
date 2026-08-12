@@ -9,5 +9,5 @@
 - ## Roam Team Videos::
     - ### Tables with Complex Cells (no audio) by [[Robin Alvarez]]
         - ![](https://www.youtube.com/watch?v=EXAMPLE0001)
-          #[[Table]]
+          [[Table]]
 - [[--]]

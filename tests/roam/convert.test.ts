@@ -773,3 +773,27 @@ test('but bold over part of a heading is kept, since it still marks something ou
 test('and a block that is not a heading keeps its bold either way', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '**Quick Start**'), '**Quick Start**');
 });
+
+/**
+ * Tags. Obsidian has no `#[[...]]` - a tag holds no spaces - so what Roam
+ * writes that way is a hash beside a link rather than a tag.
+ */
+test('a bracketed tag becomes the link it always named', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', '#[[mental health]]'), '[[mental health]]');
+	assert.equal(await scrubber().roamMarkupScrubber('', '', 'about #[[Audio Player]] today'), 'about [[Audio Player]] today');
+});
+
+test('and a bare tag is left as the tag Obsidian understands', async () => {
+	assert.equal(await scrubber().roamMarkupScrubber('', '', 'filed under #marketing'), 'filed under #marketing');
+});
+
+test('"convert tags to links" reads a bare tag as the reference Roam means', async () => {
+	const linking = optioned({ tagsAsLinks: true });
+
+	assert.equal(await linking.roamMarkupScrubber('', '', 'filed under #marketing'), 'filed under [[marketing]]');
+	assert.equal(await linking.roamMarkupScrubber('', '', '#one #two'), '[[one]] [[two]]');
+	// A tag of digits alone is a year or a number rather than a name.
+	assert.equal(await linking.roamMarkupScrubber('', '', 'in #2021'), 'in #2021');
+	// A bracketed one is already a link by the time this is asked.
+	assert.equal(await linking.roamMarkupScrubber('', '', '#[[mental health]]'), '[[mental health]]');
+});

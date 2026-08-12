@@ -19,6 +19,9 @@ const roamSpecificMarkupRe = new RegExp(`\\{\\{(\\[\\[)?(${roamSpecificMarkup.jo
  */
 const roamTableRe = /^\{\{(\[\[table\]\]|table)\}\}$/i;
 
+/** A tag written without brackets, as the app's own converter reads one. */
+const bareTagRe = /(^|\s)#([^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~[\]\\\s]+)/g;
+
 /** Whether a block is the marker Roam builds a table from. */
 export function isTableMarker(blockString: string | undefined): boolean {
 	return roamTableRe.test((blockString ?? '').trim());
@@ -50,6 +53,8 @@ export interface RoamConverterOptions {
 	keepAttributesInOutline?: boolean;
 	/** Remove a query rather than converting it to an Obsidian search. */
 	dropQueries?: boolean;
+	/** Read a bare `#tag` as the page reference Roam means by it. */
+	tagsAsLinks?: boolean;
 }
 
 export class RoamPageConverter {
@@ -85,6 +90,24 @@ export class RoamPageConverter {
 		}
 
 		blockText = blockText.replace(/\[\[>\]\]/g, '>');
+
+		// Obsidian has no `#[[...]]`: a tag holds no spaces, so what Roam writes
+		// as a bracketed tag is a hash beside a link rather than a tag. It names
+		// a page every time - all 506 of them in the 1,107-page help graph - so
+		// the link is what it meant and the hash is what has to go. A bare #tag
+		// is left alone: it is a tag Obsidian understands, and four in five name
+		// no page at all.
+		blockText = blockText.replace(/#(\[\[.*?\]\])/g, '$1');
+
+		// A bare tag is a page reference in Roam too, so it can be read as one
+		// here. Not by default - it is a tag Obsidian understands as it stands -
+		// but the choice has to live somewhere now that the format converter
+		// that offered it is going away. A tag of digits alone is left be: it is
+		// a year or a number rather than a name.
+		if (this.options.tagsAsLinks) {
+			blockText = blockText.replace(bareTagRe, (match: string, before: string, tag: string) =>
+				/^\d+$/.test(tag) ? match : `${before}[[${tag}]]`);
+		}
 
 		// A link names the note that was written, which is what the graph decided
 		// and not what sanitising this title alone would arrive at: a title too

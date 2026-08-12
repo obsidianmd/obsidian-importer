@@ -617,6 +617,8 @@ export const en = {
 			descDropUnresolvedReferences: 'Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.',
 			nameKeepAttributes: 'Keep attributes in the note',
 			descKeepAttributes: 'An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.',
+			nameTagsAsLinks: 'Convert tags to links',
+			descTagsAsLinks: 'A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".',
 			nameDropQueries: 'Remove queries',
 			descDropQueries: 'If enabled, queries are removed. If not, a query becomes an Obsidian search that shows its results in the note.',
 			reasonEmptyTitle: 'Title is empty',

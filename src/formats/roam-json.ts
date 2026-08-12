@@ -39,6 +39,7 @@ export class RoamJSONImporter extends FormatImporter {
 	dropUnresolvedReferences: boolean = true;
 	keepAttributesInOutline: boolean = false;
 	dropQueries: boolean = true;
+	tagsAsLinks: boolean = false;
 
 	init() {
 		this.addSetting('source')
@@ -102,6 +103,13 @@ export class RoamJSONImporter extends FormatImporter {
 			.addToggle(toggle => toggle
 				.setValue(this.keepAttributesInOutline)
 				.onChange(value => this.keepAttributesInOutline = value));
+
+		this.addSetting()
+			?.setName(i18n.importer.roamJson.nameTagsAsLinks())
+			.setDesc(i18n.importer.roamJson.descTagsAsLinks())
+			.addToggle(toggle => toggle
+				.setValue(this.tagsAsLinks)
+				.onChange(value => this.tagsAsLinks = value));
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameDropQueries())
@@ -230,6 +238,7 @@ export class RoamJSONImporter extends FormatImporter {
 			dropUnresolvedReferences: this.dropUnresolvedReferences,
 			keepAttributesInOutline: this.keepAttributesInOutline,
 			dropQueries: this.dropQueries,
+			tagsAsLinks: this.tagsAsLinks,
 			downloadFirebaseFile: (blockText, folder) => this.downloadFirebaseFile(blockText, folder),
 			// The attachment resolver needs the note's real parent for `.` and
 			// `./subfolder` settings, including Roam titles that create folders.

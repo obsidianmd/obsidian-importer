@@ -2082,6 +2082,14 @@ translation=
 original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
 translation=
 
+[importer.roam-json.name-tags-as-links]
+original=Convert tags to links
+translation=
+
+[importer.roam-json.desc-tags-as-links]
+original=A tag in Roam is a reference to the page of that name. If enabled, "#tag" becomes "[[tag]]".
+translation=
+
 [importer.roam-json.name-drop-queries]
 original=Remove queries
 translation=
