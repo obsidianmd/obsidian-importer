@@ -75,6 +75,16 @@ body.is-phone .importer-flow.has-step-buttons .importer-step-body {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
+
+	/* A scrollbar sits at the edge of whatever scrolls, and every other page in
+	   Settings scrolls the full width of the screen. This one is inside the
+	   page's own inset, so it reaches back out to the screen and carries that
+	   inset as its padding: the step stays where it was, and the scrollbar goes
+	   where one is expected. */
+	margin-left: calc(-1 * max(var(--size-4-4), var(--safe-area-inset-left)));
+	margin-right: calc(-1 * max(var(--size-4-4), var(--safe-area-inset-right)));
+	padding-left: max(var(--size-4-4), var(--safe-area-inset-left));
+	padding-right: max(var(--size-4-4), var(--safe-area-inset-right));
 }
 
 body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
