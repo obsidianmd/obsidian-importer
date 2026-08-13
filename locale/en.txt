@@ -1110,6 +1110,10 @@ translation=
 original=CSV
 translation=
 
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=
+
 [importer.csv.name-header-row]
 original=CSV has header row
 translation=
@@ -1203,7 +1207,7 @@ original=Notes & attachments
 translation=
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
 translation=
 
 [importer.keep.name-archived]
@@ -1244,6 +1248,10 @@ translation=
 
 [importer.html.file-type]
 original=HTML
+translation=
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
 translation=
 
 [importer.html.name-size-limit]
@@ -2108,6 +2116,10 @@ translation=
 
 [importer.textbundle.file-type]
 original=Textbundle
+translation=
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
 translation=
 
 [importer.textbundle.msg-platform]

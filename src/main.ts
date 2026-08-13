@@ -141,6 +141,7 @@ export default class ImporterPlugin extends Plugin {
 			optionsEl: null,
 			plugin: this,
 			importerId,
+			helpPermalink: definition.helpPermalink,
 			abortController: new AbortController(),
 		};
 

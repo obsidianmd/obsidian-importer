@@ -1110,6 +1110,10 @@ translation=CSV (.csv)
 original=CSV
 translation=CSV
 
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=
+
 [importer.csv.name-header-row]
 original=CSV has header row
 translation=Le CSV a une ligne d'en-tête
@@ -1203,8 +1207,8 @@ original=Notes & attachments
 translation=Notes et pièces jointes
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Récupérez vos données Google Keep depuis Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=Récupérez vos données Google Keep depuis Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1249,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2109,6 +2117,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

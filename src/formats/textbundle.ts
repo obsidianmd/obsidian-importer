@@ -23,6 +23,7 @@ export class TextbundleImporter extends FormatImporter {
 			}), 'source');
 		}
 
+		this.addExportSetting(i18n.importer.textbundle.descExport());
 		this.addFileChooserSetting(i18n.importer.textbundle.fileType(), TextbundleImporter.extensions, true);
 		this.defaultOutputFolder = 'Textbundle';
 	}

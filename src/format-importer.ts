@@ -1,7 +1,7 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
-import { AuthCallback } from './constants';
+import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
@@ -150,6 +150,8 @@ export interface ImporterHost {
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	importerId: string;
+	/** The format's page in the documentation, where it has one. */
+	helpPermalink?: string;
 	sourceChanged?(): void;
 	abortController: AbortController;
 }
@@ -296,6 +298,35 @@ export abstract class FormatImporter {
 			case 'options':
 				return this.host.optionsEl;
 		}
+	}
+
+	/**
+	 * The way to the format's documentation, on the row that says what to do
+	 * before an import: what to export, or what to connect to.
+	 */
+	protected addInstructions(setting: Setting | null): Setting | null {
+		const { helpPermalink } = this.host;
+		if (!setting || !helpPermalink) return setting;
+
+		return setting.addButton(button => {
+			button
+				.setButtonText(i18n.common.buttonInstructions())
+				.onClick(() => window.open(helpUrl(helpPermalink)));
+
+			// Before whatever the row is for — signing in, choosing a folder —
+			// which stays the last thing in it wherever the button is added.
+			setting.controlEl.prepend(button.buttonEl);
+		});
+	}
+
+	/**
+	 * The row a format you export from starts with: what to ask that app for,
+	 * and where the instructions are.
+	 */
+	protected addExportSetting(desc: string | DocumentFragment): Setting | null {
+		return this.addInstructions(this.addSetting('source')
+			?.setName(i18n.common.nameExport())
+			.setDesc(desc) ?? null);
 	}
 
 	/**

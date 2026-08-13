@@ -22,6 +22,7 @@ export class CSVImporter extends FormatImporter {
 	private hasHeaderRow: boolean;
 
 	init() {
+		this.addExportSetting(i18n.importer.csv.descExport());
 		this.addFileChooserSetting(i18n.importer.csv.fileType(), CSVImporter.extensions);
 		this.defaultOutputFolder = 'CSV import';
 

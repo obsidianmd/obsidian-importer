@@ -167,6 +167,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.dataPath = this.readableDataFolder();
 		showAccess();
 
+		this.addInstructions(setting);
+
 		setting.addButton(button => button
 			.setButtonText(i18n.importer.appleNotes.buttonSelectFolder())
 			.onClick(() => {

@@ -133,6 +133,10 @@ export class ImporterFlow implements ImporterHost {
 		return this.selectedId;
 	}
 
+	get helpPermalink(): string | undefined {
+		return this.plugin.importers[this.selectedId]?.helpPermalink;
+	}
+
 	get importing(): boolean {
 		return this.current !== null;
 	}
@@ -624,6 +628,7 @@ export class ImporterFlow implements ImporterHost {
 				optionsEl: null,
 				plugin: this.plugin,
 				importerId: id,
+				helpPermalink: this.plugin.importers[id].helpPermalink,
 				abortController: new AbortController(),
 			});
 

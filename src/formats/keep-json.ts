@@ -1,7 +1,7 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { FormatImporter, NoteWritten } from '../format-importer';
-import { ATTACHMENT_EXTS, helpUrl } from '../constants';
+import { ATTACHMENT_EXTS } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
@@ -9,7 +9,6 @@ import { KeepJson } from './keep/models';
 import { convertKeepNote } from './keep/convert';
 
 
-const HELP_PERMALINK = 'import/google-keep';
 
 const BUNDLE_EXTS = ['zip'];
 const NOTE_EXTS = ['json'];
@@ -31,13 +30,8 @@ export class KeepImporter extends FormatImporter {
 	private claimedAttachmentPaths: string[] = [];
 
 	init() {
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(createFragment(frag => {
-				frag.appendText(i18n.importer.keep.descExport());
-				frag.createEl('a', { text: i18n.common.labelLearnMore(), href: helpUrl(HELP_PERMALINK) });
-			}))
-			.addButton(button => button
+		this.addExportSetting(i18n.importer.keep.descExport())
+			?.addButton(button => button
 				.setButtonText(i18n.common.buttonOpen())
 				.onClick(() => window.open('https://takeout.google.com/settings/takeout')));
 

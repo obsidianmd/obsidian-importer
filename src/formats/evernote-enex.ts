@@ -1,5 +1,4 @@
 import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
-import { helpUrl } from '../constants';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -9,7 +8,6 @@ import { parseFilePath } from '../filesystem';
 import { availableFileName } from '../util';
 import { EvernoteOutput, PlacedAttachment } from './evernote/output';
 
-const HELP_PERMALINK = 'import/evernote';
 
 interface EnexPlan {
 	planned: PlannedNote;
@@ -23,12 +21,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
 	init() {
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(i18n.importer.evernote.descExport())
-			.addButton(button => button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+		this.addExportSetting(i18n.importer.evernote.descExport());
 
 		this.addFileChooserSetting(i18n.importer.evernote.fileType(), EvernoteEnexImporter.extensions, true);
 		this.defaultOutputFolder = 'Evernote';

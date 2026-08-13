@@ -59,6 +59,14 @@ its step is on, and `startGroup` breaks it where two settings are not read
 together. A group takes a heading only where one was already being shown —
 the cards are the grouping.
 
+Every source step starts with the way to that format's documentation, since
+Settings has no Help button to carry it. A format you export from calls
+`addExportSetting`, which draws "Export your data" and the Instructions
+button beside it; one you connect to instead — a token, an account, a folder
+on disk — calls `addInstructions` on the row it already has. The permalink
+comes from the registry, through `ImporterHost`, so a format names its
+documentation once.
+
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in
 `src/augment.d.ts` rather than imported from types that have it.

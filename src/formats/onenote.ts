@@ -236,7 +236,11 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		this.accountSetting = new Setting(this.settingsIn(contentEl))
-			.setName(i18n.importer.onenote.nameAccount())
+			.setName(i18n.importer.onenote.nameAccount());
+
+		this.addInstructions(this.accountSetting);
+
+		this.accountSetting
 			.addButton(button => {
 				this.organizationButton = button;
 				button

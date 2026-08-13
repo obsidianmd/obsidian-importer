@@ -147,7 +147,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
-		this.addSecretSetting(i18n.importer.airtableApi.nameToken(), this.createTokenDescription());
+		this.addInstructions(this.addSecretSetting(i18n.importer.airtableApi.nameToken(), this.createTokenDescription()));
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
