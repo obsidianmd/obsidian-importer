@@ -203,6 +203,8 @@ export const en = {
 		buttonLoad: 'Load',
 		buttonLoading: 'Loading...',
 		buttonRefresh: 'Refresh',
+		placeholderFilter: 'Filter...',
+		msgNoMatches: 'No results found.',
 	},
 
 	/**

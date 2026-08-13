@@ -586,6 +586,14 @@ translation=Загрузка...
 original=Refresh
 translation=Обновить
 
+[tree.placeholder-filter]
+original=Filter...
+translation=
+
+[tree.msg-no-matches]
+original=No results found.
+translation=
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} не принял запрос для {{subject}}. {{credential}}

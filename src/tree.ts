@@ -42,6 +42,42 @@ export function selectedNodes<T extends SelectableNode>(nodes: T[], canImport: (
 	return into;
 }
 
+/** A node a filter can read: what it is called, and what is under it. */
+export interface NamedNode {
+	title: string;
+	children?: NamedNode[];
+}
+
+/**
+ * Which nodes a query leaves standing: the ones it names, everything under one
+ * of those, and the branch that leads down to it — a match whose path is hidden
+ * is an answer nobody can reach.
+ *
+ * An empty query is nobody asking, and is answered with nothing rather than
+ * with everything: whether to filter at all is the caller's to decide.
+ */
+export function nodesMatching<T extends NamedNode>(nodes: T[], query: string): Set<T> {
+	const wanted = query.trim().toLowerCase();
+	const kept = new Set<T>();
+	if (!wanted) return kept;
+
+	const walk = (node: T, underAMatch: boolean): boolean => {
+		const matches = underAMatch || node.title.toLowerCase().includes(wanted);
+		let keep = matches;
+
+		for (const child of (node.children ?? []) as T[]) {
+			if (walk(child, matches)) keep = true;
+		}
+
+		if (keep) kept.add(node);
+		return keep;
+	};
+
+	for (const node of nodes) walk(node, false);
+
+	return kept;
+}
+
 export function redrawTree(container: HTMLElement, draw: () => void): void {
 	const scrollTop = container.scrollTop;
 

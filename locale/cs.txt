@@ -586,6 +586,14 @@ translation=Načítání...
 original=Refresh
 translation=Obnovit
 
+[tree.placeholder-filter]
+original=Filter...
+translation=
+
+[tree.msg-no-matches]
+original=No results found.
+translation=
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} nepřijal požadavek na {{subject}}. {{credential}}

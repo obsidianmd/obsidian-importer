@@ -370,8 +370,13 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	padding: 0;
 }
 
-body:not(.is-phone) .import-section .publish-change-list {
-	max-height: 200px;
+/* Above what it narrows, and the width of it. */
+.import-section .importer-tree-filter {
+	margin-bottom: var(--size-4-2);
+}
+
+.import-section .importer-tree-filter input {
+	width: 100%;
 }
 
 .import-section .publish-change-list {

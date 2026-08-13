@@ -1,6 +1,6 @@
-import { ButtonComponent, IconName, setIcon, Setting } from 'obsidian';
+import { ButtonComponent, IconName, SearchComponent, setIcon, Setting } from 'obsidian';
 import { i18n } from './i18n';
-import { areAllSelected, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
+import { areAllSelected, nodesMatching, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
 
 
 export interface ViewableNode<T extends SelectableNode> extends SelectableNode {
@@ -15,6 +15,12 @@ export interface TreeView<T extends ViewableNode<T>> {
 	flair?(node: T): string;
 	onExpand?(node: T, rowEl: HTMLElement): Promise<boolean>;
 	redraw(): void;
+	/**
+	 * What a filter left, when one is on: everything else is left out, and what
+	 * is drawn is drawn open, since a match found inside a closed branch is the
+	 * whole point of having found it.
+	 */
+	filtered?: Set<T> | null;
 }
 
 export function showTreePlaceholder(container: HTMLElement, text: string): void {
@@ -49,6 +55,9 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 	private toggleButton: ButtonComponent;
 	private loadButton: ButtonComponent;
+	private filterEl: HTMLElement;
+	private search: SearchComponent;
+	private query: string = '';
 
 	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
 		(options.setting ?? new Setting(containerEl))
@@ -72,10 +81,20 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 		// Beside the row it belongs to, in the card that row is in.
 		const treeParentEl = options.setting?.settingEl.parentElement ?? containerEl;
+		const sectionEl = treeParentEl.createDiv('import-section file-tree publish-section');
 
-		this.treeEl = treeParentEl
-			.createDiv('import-section file-tree publish-section')
-			.createDiv('publish-change-list');
+		// Above what it narrows, and only once there is something to narrow.
+		this.filterEl = sectionEl.createDiv('importer-tree-filter');
+		this.filterEl.hide();
+
+		this.search = new SearchComponent(this.filterEl)
+			.setPlaceholder(i18n.tree.placeholderFilter())
+			.onChange(query => {
+				this.query = query;
+				this.render();
+			});
+
+		this.treeEl = sectionEl.createDiv('publish-change-list');
 
 		showTreePlaceholder(this.treeEl, options.hint);
 	}
@@ -86,6 +105,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 	async load(load: () => Promise<T[]>): Promise<void> {
 		this.nodes = [];
+		this.clearFilter();
 		this.toggleButton.buttonEl.hide();
 		this.loadButton.setDisabled(true).setButtonText(i18n.tree.buttonLoading());
 		this.setStatus(this.options.loading);
@@ -113,23 +133,40 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
 		this.loadButton.setButtonText(i18n.tree.buttonLoad());
+		this.clearFilter();
 		this.setStatus(this.options.hint);
 		this.options.onChange?.();
 	}
 
+	/** A filter outlives nothing: what it narrowed is gone. */
+	private clearFilter(): void {
+		this.query = '';
+		this.search.setValue('');
+		this.filterEl.hide();
+	}
+
 	render(): void {
+		const filtered = this.query.trim() ? nodesMatching(this.nodes, this.query) : null;
+
 		redrawTree(this.treeEl, () => {
 			if (this.nodes.length === 0) {
 				drawPlaceholder(this.treeEl, this.options.empty);
 				return;
 			}
 
+			if (filtered && filtered.size === 0) {
+				drawPlaceholder(this.treeEl, i18n.tree.msgNoMatches());
+				return;
+			}
+
 			renderTreeNodes(this.treeEl, this.nodes, {
 				...this.options.view,
+				filtered,
 				redraw: () => this.render(),
 			});
 		});
 
+		this.filterEl.toggle(this.nodes.length > 0);
 		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? i18n.tree.buttonDeselectAll() : i18n.tree.buttonSelectAll());
 		this.options.onChange?.();
 	}
@@ -137,6 +174,8 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElement, nodes: T[], view: TreeView<T>): void {
 	for (const node of nodes) {
+		if (view.filtered && !view.filtered.has(node)) continue;
+
 		renderTreeNode(container, node, view);
 	}
 }
@@ -144,6 +183,11 @@ export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElemen
 function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>): void {
 	const children = node.children ?? [];
 	const collapsible = view.isCollapsible?.(node) ?? children.length > 0;
+
+	// A filter draws what it left open, whatever the branch was closed to
+	// before. Only how it is drawn: what the user closed is still recorded, and
+	// is what the tree goes back to once the filter is gone.
+	let folded = view.filtered ? false : !!node.collapsed;
 
 	const treeItem = container.createDiv('tree-item');
 
@@ -157,8 +201,8 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	if (collapseIcon) {
 		treeItemSelf.addClass('mod-collapsible');
 		setIcon(collapseIcon, 'right-triangle');
-		collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
-		treeItem.toggleClass('is-collapsed', !!node.collapsed);
+		collapseIcon.toggleClass('is-collapsed', folded);
+		treeItem.toggleClass('is-collapsed', folded);
 	}
 
 	const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
@@ -185,15 +229,15 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	}
 
 	const childrenContainer = treeItem.createDiv('tree-item-children');
-	if (node.collapsed) childrenContainer.hide();
+	if (folded) childrenContainer.hide();
 
 	renderTreeNodes(childrenContainer, children, view);
 
 	if (collapseIcon) {
 		const fold = () => {
-			collapseIcon.toggleClass('is-collapsed', !!node.collapsed);
-			treeItem.toggleClass('is-collapsed', !!node.collapsed);
-			childrenContainer.toggle(!node.collapsed);
+			collapseIcon.toggleClass('is-collapsed', folded);
+			treeItem.toggleClass('is-collapsed', folded);
+			childrenContainer.toggle(!folded);
 
 			iconEl.empty();
 			setIcon(iconEl, view.icon(node));
@@ -201,9 +245,10 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 
 		collapseIcon.addEventListener('click', evt => {
 			evt.stopPropagation();
-			node.collapsed = !node.collapsed;
+			folded = !folded;
+			node.collapsed = folded;
 
-			if (!node.collapsed && view.onExpand) {
+			if (!folded && view.onExpand) {
 				void view.onExpand(node, treeItemSelf)
 					.then(changed => changed ? view.redraw() : fold())
 					.catch(e => console.error('Could not open the tree item', e));

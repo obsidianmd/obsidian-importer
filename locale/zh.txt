@@ -586,6 +586,14 @@ translation=加载中…
 original=Refresh
 translation=刷新
 
+[tree.placeholder-filter]
+original=Filter...
+translation=
+
+[tree.msg-no-matches]
+original=No results found.
+translation=
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} 未接受对 {{subject}} 的请求。{{credential}}
