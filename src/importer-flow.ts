@@ -25,12 +25,18 @@ interface Drop {
 	exports: PickedFile[];
 }
 
-/** The card a step ends with, if it ends with one. */
+/**
+ * The card a step ends with, for the button that ends the step. A step that
+ * ends in something else — a tree of what to import, a message — gets a card
+ * of its own for it, which the next draw finds at the end and reuses.
+ */
 function trailingGroupList(stepEl: HTMLElement | null): HTMLElement | null {
-	const last = stepEl?.lastElementChild;
-	if (!last?.hasClass('setting-group')) return null;
+	if (!stepEl) return null;
 
-	return last.querySelector('.setting-items');
+	const last = stepEl.lastElementChild;
+	if (last?.hasClass('setting-group')) return last.querySelector('.setting-items');
+
+	return new SettingGroup(stepEl).listEl;
 }
 
 /** The list of formats: the screen every other one is reached from. */
@@ -558,9 +564,7 @@ export class ImporterFlow implements ImporterHost {
 
 	/**
 	 * What a step ends with. On a phone it is the last row of the last card,
-	 * where the eye already is, rather than a button under everything — but
-	 * only where the card is the last thing on the screen: a tree or a message
-	 * drawn after it would be left below the way on.
+	 * where the eye already is, rather than a button under everything.
 	 */
 	private addPrimaryAction(buttonsEl: HTMLElement, stepEl: HTMLElement | null, text: string, act: () => void): void {
 		const listEl = Platform.isMobile ? trailingGroupList(stepEl) : null;
