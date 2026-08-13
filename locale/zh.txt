@@ -406,6 +406,18 @@ translation=没有可导入的内容。请选择 {{extensions}} 文件列表，�
 original={{files}} will be imported: 
 translation=将导入 {{files}}： 
 
+[source.msg-more-files]
+original=and {{count}} more file
+translation=
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=
+
+[source.button-remove-file]
+original=Remove from the import
+translation=
+
 [output.label-source-id]
 original=source ID
 translation=源 ID

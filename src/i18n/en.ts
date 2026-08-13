@@ -145,6 +145,9 @@ export const en = {
 		msgReadingFolders: 'Reading folders...',
 		msgNothingToImport: 'Nothing to import there. Pick {{extensions}} files, or a folder holding some.',
 		msgWillImport: '{{files}} will be imported: ',
+		msgMoreFiles: 'and {{count}} more file',
+		msgMoreFiles_plural: 'and {{count}} more files',
+		buttonRemoveFile: 'Remove from the import',
 	},
 
 	output: {

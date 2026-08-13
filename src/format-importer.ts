@@ -9,7 +9,8 @@ import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, stan
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
-const MAX_PATH_DESCRIPTION_LENGTH = 300;
+/** How many of the picked files the list names before it counts the rest. */
+const MAX_FILES_LISTED = 5;
 
 export enum DuplicateHandling {
 	CreateCopy = 'create-copy',
@@ -346,6 +347,11 @@ export abstract class FormatImporter {
 		return this.startGroupIn(contentEl).listEl;
 	}
 
+	/** The next setting drawn here starts a card of its own. */
+	private endGroupIn(contentEl: HTMLElement): void {
+		this.groups.delete(contentEl);
+	}
+
 	private startGroupIn(contentEl: HTMLElement, heading?: string): SettingGroup {
 		const group = new SettingGroup(contentEl);
 		if (heading) group.setHeading(heading);
@@ -498,101 +504,156 @@ export abstract class FormatImporter {
 		})();
 	}, 1000, true);
 
+	/**
+	 * What is going to be imported, drawn the way Settings draws a list you add
+	 * to: a card of what has been picked, and a row at the end that picks more.
+	 */
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
 		// Headless importers still need their accepted file types.
 		this.acceptedExtensions = extensions;
 		this.acceptsMultiple = allowMultiple;
 
-		const fileLocationSetting = this.addSetting('source');
-		if (!fileLocationSetting) return;
+		const contentEl = this.stepEl('source');
+		if (!contentEl) return;
 
-		fileLocationSetting
-			.setName(i18n.source.name())
-			.setDesc(description || i18n.source.desc())
-			.addButton(button => button
-				.setButtonText(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile())
-				.onClick(async () => {
-					if (Platform.isDesktopApp) {
-						let properties = ['openFile', 'dontAddToRecent'];
-						if (allowMultiple) {
-							properties.push('multiSelections');
-						}
-						const filePaths = this.chooseFrom({
-							title: i18n.source.dialogPickFiles(), properties,
-							filters: [{ name, extensions }],
-						}, defaultPath);
+		// A card of its own: what follows it is about the import, not the files.
+		const { listEl } = this.startGroupIn(contentEl, i18n.source.name());
+		this.endGroupIn(contentEl);
 
-						if (filePaths.length > 0) {
-							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
-							updateFiles();
-						}
-					}
-					else {
-						let inputEl = createEl('input');
-						inputEl.type = 'file';
-						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
-						inputEl.addEventListener('change', () => {
-							if (!inputEl.files) return;
-							let files = Array.from(inputEl.files);
-							if (files.length > 0) {
-								this.files = files.map(file => new WebPickedFile(file))
-									.filter(file => extensions.contains(file.extension));
-								updateFiles();
-							}
-						});
-						inputEl.click();
-					}
-				}));
+		const chooseFiles = async () => {
+			if (Platform.isDesktopApp) {
+				const properties = ['openFile', 'dontAddToRecent'];
+				if (allowMultiple) properties.push('multiSelections');
 
-		if (allowMultiple && Platform.isDesktopApp) {
-			fileLocationSetting.addButton(button => button
-				.setButtonText(i18n.source.buttonChooseFolders())
-				.onClick(async () => {
-					if (Platform.isDesktopApp) {
-						const filePaths = this.chooseFrom({
-							title: i18n.source.dialogPickFolders(),
-							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-						}, defaultPath);
+				const filePaths = this.chooseFrom({
+					title: i18n.source.dialogPickFiles(), properties,
+					filters: [{ name, extensions }],
+				}, defaultPath);
 
-						if (filePaths.length > 0) {
-							fileLocationSetting.setDesc(i18n.source.msgReadingFolders());
-							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
-							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
-							updateFiles();
-						}
-					}
-				}));
-		}
+				if (filePaths.length > 0) {
+					addFiles(filePaths.map((filepath: string) => new NodePickedFile(filepath)));
+				}
 
-		let updateFiles = () => {
+				return;
+			}
+
+			// Attached, because WebKit ignores a click on an input that is not
+			// in the document: on iOS the picker simply never opened.
+			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
+			inputEl.type = 'file';
+			inputEl.multiple = allowMultiple;
+			inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
+
+			inputEl.addEventListener('change', () => {
+				const files = Array.from(inputEl.files ?? []);
+				inputEl.detach();
+
+				if (files.length === 0) return;
+
+				addFiles(files.map(file => new WebPickedFile(file))
+					.filter(file => extensions.contains(file.extension)));
+			});
+
+			// Dismissing the picker leaves the input behind otherwise.
+			inputEl.addEventListener('cancel', () => inputEl.detach());
+
+			inputEl.click();
+		};
+
+		const chooseFolders = async () => {
+			const filePaths = this.chooseFrom({
+				title: i18n.source.dialogPickFolders(),
+				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
+			}, defaultPath);
+
+			if (filePaths.length === 0) return;
+
+			drawState(i18n.source.msgReadingFolders());
+
+			const folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
+			addFiles(await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension)));
+		};
+
+		/**
+		 * What was picked joins what is already there, which is what a row
+		 * with a plus on it says it will do. An importer taking one file has
+		 * the last pick replace it instead.
+		 */
+		const addFiles = (picked: PickedFile[]) => {
+			if (!allowMultiple) {
+				this.files = picked.slice(0, 1);
+				updateFiles();
+				return;
+			}
+
+			const seen = new Set(this.files.map(file => file.toString()));
+			this.files = [...this.files, ...picked.filter(file => !seen.has(file.toString()))];
+			updateFiles();
+		};
+
+		/** One row saying where the list stands, in place of the list. */
+		const drawState = (text: string) => {
+			listEl.empty();
+			new Setting(listEl).setClass('mod-empty-state').setName(text);
+			drawPickers();
+		};
+
+		const drawPickers = () => {
+			const files = new Setting(listEl)
+				.setClass('mod-add-item')
+				.setName(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile());
+
+			files.setIcon('lucide-plus');
+			files.setAction(() => void chooseFiles());
+
+			if (!allowMultiple || !Platform.isDesktopApp) return;
+
+			const folders = new Setting(listEl)
+				.setClass('mod-add-item')
+				.setName(i18n.source.buttonChooseFolders());
+
+			folders.setIcon('lucide-plus');
+			folders.setAction(() => void chooseFolders());
+		};
+
+		const updateFiles = () => {
 			this.sourceChanged();
 
 			if (this.files.length === 0) {
-				fileLocationSetting.setDesc(i18n.source.msgNothingToImport({
+				drawState(i18n.source.msgNothingToImport({
 					extensions: extensions.map(e => '.' + e).join(', '),
 				}));
 				return;
 			}
 
-			let pathText = this.files.map(f => f.name).join(', ');
-			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
-				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
+			listEl.empty();
+
+			// A folder of notes is thousands of rows nobody reads: enough of
+			// them to recognise the pick, and a count for the rest.
+			for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
+				new Setting(listEl)
+					.setName(file.name)
+					.setIcon('lucide-file')
+					.addExtraButton(button => button
+						.setIcon('lucide-x')
+						.setTooltip(i18n.source.buttonRemoveFile())
+						.onClick(() => {
+							this.files = this.files.filter(other => other !== file);
+							updateFiles();
+						}));
 			}
 
-			fileLocationSetting.setDesc(createFragment(frag => {
-				if (this.files.length > 1) {
-					frag.createSpan({
-						text: i18n.source.msgWillImport({
-							files: i18n.nouns.fileWithCount({ count: this.files.length }),
-						}),
-					});
-					frag.createEl('br');
-				}
+			const rest = this.files.length - MAX_FILES_LISTED;
+			if (rest > 0) {
+				new Setting(listEl)
+					.setClass('mod-empty-state')
+					.setName(i18n.source.msgMoreFiles({ count: rest }));
+			}
 
-				frag.createSpan({ cls: 'u-pop', text: pathText });
-			}));
+			drawPickers();
 		};
 
+		drawState(description || i18n.source.desc());
 		this.showPickedFiles = updateFiles;
 	}
 

@@ -406,6 +406,18 @@ translation=چیزی برای وارد کردن وجود ندارد. فایل‌
 original={{files}} will be imported: 
 translation={{files}} وارد خواهد شد: 
 
+[source.msg-more-files]
+original=and {{count}} more file
+translation=
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=
+
+[source.button-remove-file]
+original=Remove from the import
+translation=
+
 [output.label-source-id]
 original=source ID
 translation=شناسه منبع

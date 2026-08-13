@@ -32,6 +32,10 @@ declare module 'obsidian' {
 	 */
 	interface Setting {
 		setNavigable(onNavigate: () => void): this;
+		/** The row is an action: accent text, and the whole of it clickable. */
+		setAction(onAction: () => void): this;
+		/** The icon a list row is drawn with, at the start of the row. */
+		setIcon(icon: IconName | null): this;
 	}
 
 	interface App {

@@ -406,6 +406,18 @@ translation=এখানে ইম্পোর্ট করার কিছু �
 original={{files}} will be imported: 
 translation={{files}} ইম্পোর্ট করা হবে: 
 
+[source.msg-more-files]
+original=and {{count}} more file
+translation=
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=
+
+[source.button-remove-file]
+original=Remove from the import
+translation=
+
 [output.label-source-id]
 original=source ID
 translation=সোর্স ID
