@@ -448,6 +448,7 @@ export abstract class FormatImporter {
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
 					showLinking(!!this.secretId);
+					this.secretChanged(!!this.secretId);
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
@@ -465,6 +466,17 @@ export abstract class FormatImporter {
 		});
 
 		return setting;
+	}
+
+	/**
+	 * The user linked a credential, or unlinked the one that was there.
+	 *
+	 * A format that lists what the credential reaches reads it here, so the list
+	 * arrives with the token rather than waiting to be asked for a second time.
+	 * Only the choice fires this: a token remembered from a previous session is
+	 * restored without going and fetching anything.
+	 */
+	protected secretChanged(linked: boolean): void {
 	}
 
 	/**

@@ -226,6 +226,11 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 
+	protected secretChanged(linked: boolean): void {
+		if (linked) void this.loadTree();
+		else this.picker.reset();
+	}
+
 	/**
 	 * Load base and table tree from Airtable API
 	 */

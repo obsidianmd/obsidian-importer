@@ -289,6 +289,11 @@ export class NotionAPIImporter extends FormatImporter {
 		});
 	}
 
+	protected secretChanged(linked: boolean): void {
+		if (linked) void this.loadPageTree();
+		else this.picker.reset();
+	}
+
 	private async loadPageTree(): Promise<void> {
 		if (!this.notionToken) {
 			new Notice(i18n.importer.notionApi.msgTokenFirst());
