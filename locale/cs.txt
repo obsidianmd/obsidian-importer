@@ -522,10 +522,6 @@ translation=Exportujte svá data
 original=Learn more.
 translation=Zjistit více.
 
-[common.button-instructions]
-original=Instructions
-translation=Pokyny
-
 [common.button-open]
 original=Open
 translation=Otevřít

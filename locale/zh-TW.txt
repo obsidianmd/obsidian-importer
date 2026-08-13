@@ -522,10 +522,6 @@ translation=匯出您的資料
 original=Learn more.
 translation=深入了解。
 
-[common.button-instructions]
-original=Instructions
-translation=操作說明
-
 [common.button-open]
 original=Open
 translation=開啟

@@ -522,10 +522,6 @@ translation=Exporta les teves dades
 original=Learn more.
 translation=Aprèn'n més.
 
-[common.button-instructions]
-original=Instructions
-translation=Instruccions
-
 [common.button-open]
 original=Open
 translation=Obrir

@@ -522,10 +522,6 @@ translation=Adatok exportálása
 original=Learn more.
 translation=További információk.
 
-[common.button-instructions]
-original=Instructions
-translation=Útmutató
-
 [common.button-open]
 original=Open
 translation=Megnyitás

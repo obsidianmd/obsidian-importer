@@ -522,10 +522,6 @@ translation=خروجی‌گیری از داده‌ها
 original=Learn more.
 translation=اطلاعات بیشتر.
 
-[common.button-instructions]
-original=Instructions
-translation=راهنما
-
 [common.button-open]
 original=Open
 translation=گشودن

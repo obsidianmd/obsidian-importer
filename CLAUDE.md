@@ -54,25 +54,33 @@ leaves those it passed empty.
 A running import is the exception with nothing behind it. Its back leaves
 the flow altogether, and unwinds however many pages that takes.
 
-A screen also says whether it ended in the step's own row of buttons, which
-is the row that sits at the bottom of a phone's screen rather than after the
-settings. `setStepButtons` is told once the screen has drawn, since only then
-is the page it drew into the one to lay out around it. **Obsidian's CSS may
-not use `:has()`**, which is why the shell puts a class on the page rather
-than the stylesheet asking what is inside it.
+A screen also says whether it ended in a row of buttons, which is the bar
+over the bottom of the page rather than a row after the settings — Continue
+on a step, Done and Import more at the end of an import, the way the modal
+has always drawn them. `setButtonBar` is told once the screen has drawn,
+since only then is the page it drew into the one to lay out around it.
+**Obsidian's CSS may not use `:has()`**, which is why the shell puts a class
+on the page rather than the stylesheet asking what is inside it.
+
+What the bar has to get around is `will-change: transform`, the hint a page
+carries for the slide it arrives on: it makes the page the containing block
+for anything positioned inside it, and the page is also the scroller, so a
+bar anchored to its bottom scrolls away with the screen. Cleared, the bar
+answers to the box the pages sit in, which does not scroll, while still
+sliding in as a descendant of its page.
 
 Settings are drawn in cards, one per group: `addSetting` keeps to the group
 its step is on, and `startGroup` breaks it where two settings are not read
 together. A group takes a heading only where one was already being shown —
 the cards are the grouping.
 
-Every source step starts with the way to that format's documentation, since
-Settings has no Help button to carry it, and it is the same row either way: a
-name, what has to be done before an import, and the Instructions button. A
-format you export from calls `addExportSetting`, a format you connect to
-calls `addConnectSetting`, and what it is done with — a token, an account, a
-folder on disk — is the row below. The permalink comes from the registry,
-through `ImporterHost`, so a format names its documentation once.
+Every source step starts with what has to be done before an import, and it is
+the same row either way: a format you export from calls `addExportSetting`, a
+format you connect to calls `addConnectSetting`, and what it is done with — a
+token, an account, a folder on disk — is the row below. The way to the
+format's documentation is Help, in the bar at the bottom of every screen, in
+both shells; the permalink comes from the registry, through `ImporterHost`,
+so a format names its documentation once.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in

@@ -49,9 +49,10 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	border-top: none;
 }
 
-/* The step's buttons float over the bottom of the screen, and the page keeps
-   the layout Settings gave it: it scrolls and bounces as any other page does,
-   and slides in from the side the same way.
+/* A screen's buttons are a bar over the bottom of the page — Continue on a
+   step, Done and Import more at the end of an import — the way the modal's
+   are, and the page keeps the layout Settings gave it: it scrolls and bounces
+   as any other page does, and slides in from the side the same way.
 
    What stood in the way of a bar that floats is `will-change: transform`,
    the hint a page carries for that slide: it makes the page the containing
@@ -59,21 +60,21 @@ body.is-mobile .modal.mod-importer .modal-button-container {
    so a bar anchored to its bottom scrolls away with the step. Without the
    hint the bar answers to the box the pages sit in, which does not scroll. It
    is still a descendant, so it slides in with its page. */
-.modal.mod-settings .setting-page.importer-flow.has-step-buttons {
+.modal.mod-settings .setting-page.importer-flow.has-button-bar {
 	will-change: auto;
 }
 
 /* Room for the bar to sit over, which is what the modal reserves for its own.
    A phone stacks the buttons into a column and the page already keeps a
    phone's worth of room below its content. */
-body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-step-buttons {
+body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-bar {
 	padding-bottom: calc(var(--input-height) + var(--size-4-8) + var(--size-4-2));
 }
 
-/* The page's own bottom padding is what the step scrolls clear of the bar by.
-   The buttons keep the inset the cards above them have, so Continue ends where
-   the card ends rather than at the edge of the pane. */
-.importer-flow.has-step-buttons .modal-button-container.importer-step-buttons {
+/* The page's own bottom padding is what the screen scrolls clear of the bar
+   by. The buttons keep the inset the cards above them have, so Continue ends
+   where the card ends rather than at the edge of the pane. */
+.importer-flow.has-button-bar .modal-button-container {
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -96,7 +97,7 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-step-bu
    column down the middle of it, and has the safe area to keep clear as well.
    The safe area is the bar's own padding rather than a margin below it, so the
    background reaches the bottom of the screen. */
-body.is-mobile .importer-flow.has-step-buttons .modal-button-container.importer-step-buttons {
+body.is-mobile .importer-flow.has-button-bar .modal-button-container {
 	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
 	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));

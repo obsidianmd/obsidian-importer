@@ -522,10 +522,6 @@ translation=Exporteer je gegevens
 original=Learn more.
 translation=Meer informatie.
 
-[common.button-instructions]
-original=Instructions
-translation=Instructies
-
 [common.button-open]
 original=Open
 translation=Openen

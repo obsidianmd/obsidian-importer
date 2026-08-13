@@ -44,11 +44,6 @@ export interface ImporterShell {
 	 */
 	readonly ownsBackButton: boolean;
 	/**
-	 * Whether the screens offer a link to the format's documentation. The
-	 * modal does; a setting tab leaves it out.
-	 */
-	readonly showsHelp: boolean;
-	/**
 	 * Whether the flow is what moves the focus here. A modal opens for this
 	 * and nothing else, so its search is ready to type into and its rows
 	 * answer the arrow keys. Settings does both for itself, around a search
@@ -64,11 +59,11 @@ export interface ImporterShell {
 	/** The format list fills the shell; every other screen ends in a button bar. */
 	setPickingFormat(picking: boolean): void;
 	/**
-	 * Whether the screen just drawn ends in a step's own row of buttons, which
-	 * is the row that sits at the bottom of the screen rather than after the
-	 * settings. Only the screen showing it lays itself out around it.
+	 * Whether the screen just drawn ends in a row of buttons, which is the row
+	 * that sits at the bottom of the screen rather than after the settings.
+	 * Only the screen showing it lays itself out around it.
 	 */
-	setStepButtons(present: boolean): void;
+	setButtonBar(present: boolean): void;
 	/** Done: the modal closes, the setting tab closes the settings window. */
 	finish(): void;
 	/** Show a shell the user has left, to return to the import in it. */
@@ -216,7 +211,7 @@ export class ImporterFlow implements ImporterHost {
 	 */
 	private drawn(): void {
 		this.drawing = false;
-		this.shell.setStepButtons(!!this.shell.contentEl.querySelector('.importer-step-buttons'));
+		this.shell.setButtonBar(!!this.shell.contentEl.querySelector('.modal-button-container'));
 	}
 
 	/**
@@ -329,9 +324,9 @@ export class ImporterFlow implements ImporterHost {
 		if (this.shell.ownsFocus) search.inputEl.focus();
 	}
 
-	/** What this format's documentation is, where the shell shows such a thing. */
+	/** The way to this format's documentation, for a format that has one. */
 	private addHelpButton(buttonsEl: HTMLElement, permalink: string | undefined): void {
-		if (!permalink || !this.shell.showsHelp) return;
+		if (!permalink) return;
 
 		buttonsEl.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
 			el.addEventListener('click', () => window.open(helpUrl(permalink)));

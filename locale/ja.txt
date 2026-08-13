@@ -522,10 +522,6 @@ translation=データをエクスポート
 original=Learn more.
 translation=詳細を確認。
 
-[common.button-instructions]
-original=Instructions
-translation=手順
-
 [common.button-open]
 original=Open
 translation=開く

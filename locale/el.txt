@@ -522,10 +522,6 @@ translation=Εξαγωγή δεδομένων
 original=Learn more.
 translation=Μάθετε περισσότερα.
 
-[common.button-instructions]
-original=Instructions
-translation=Οδηγίες
-
 [common.button-open]
 original=Open
 translation=Άνοιγμα

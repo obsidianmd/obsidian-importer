@@ -34,7 +34,6 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	/** Every page Settings opens comes with the way back out of it. */
 	readonly ownsBackButton: boolean = true;
 
-	readonly showsHelp: boolean = false;
 	readonly ownsFocus: boolean = false;
 
 	/** Built by display(), under the heading the flow retitles per screen. */
@@ -139,8 +138,8 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	}
 
 	/** On the page itself, which is what the bar is laid out against. */
-	setStepButtons(present: boolean): void {
-		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-step-buttons', present);
+	setButtonBar(present: boolean): void {
+		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-button-bar', present);
 	}
 
 	finish(): void {

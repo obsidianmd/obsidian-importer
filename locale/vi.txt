@@ -522,10 +522,6 @@ translation=Xuất dữ liệu của bạn
 original=Learn more.
 translation=Tìm hiểu thêm.
 
-[common.button-instructions]
-original=Instructions
-translation=Hướng dẫn
-
 [common.button-open]
 original=Open
 translation=Mở

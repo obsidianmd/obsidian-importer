@@ -181,7 +181,6 @@ export class ImporterModal extends Modal implements ImporterShell {
 	/** A modal has no chrome to go back with: the flow draws Back itself. */
 	readonly ownsBackButton: boolean = false;
 
-	readonly showsHelp: boolean = true;
 	readonly ownsFocus: boolean = true;
 
 	private hidden: boolean = false;
@@ -203,7 +202,7 @@ export class ImporterModal extends Modal implements ImporterShell {
 	}
 
 	/** The modal's own bar sits at its bottom whatever screen is in it. */
-	setStepButtons(present: boolean): void {
+	setButtonBar(present: boolean): void {
 	}
 
 	finish(): void {

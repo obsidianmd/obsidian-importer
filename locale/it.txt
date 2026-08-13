@@ -522,10 +522,6 @@ translation=Esporta i tuoi dati
 original=Learn more.
 translation=Scopri di più.
 
-[common.button-instructions]
-original=Instructions
-translation=Istruzioni
-
 [common.button-open]
 original=Open
 translation=Apri

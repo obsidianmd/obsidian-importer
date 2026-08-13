@@ -522,10 +522,6 @@ translation=Vie tietosi
 original=Learn more.
 translation=Lue lisää.
 
-[common.button-instructions]
-original=Instructions
-translation=Ohjeet
-
 [common.button-open]
 original=Open
 translation=Avaa

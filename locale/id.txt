@@ -522,10 +522,6 @@ translation=Ekspor data Anda
 original=Learn more.
 translation=Pelajari lebih lanjut.
 
-[common.button-instructions]
-original=Instructions
-translation=Petunjuk
-
 [common.button-open]
 original=Open
 translation=Buka

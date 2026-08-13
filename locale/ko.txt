@@ -522,10 +522,6 @@ translation=데이터 내보내기
 original=Learn more.
 translation=자세히 알아보기.
 
-[common.button-instructions]
-original=Instructions
-translation=안내
-
 [common.button-open]
 original=Open
 translation=열기

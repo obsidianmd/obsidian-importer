@@ -522,10 +522,6 @@ translation=আপনার ডেটা এক্সপোর্ট করু�
 original=Learn more.
 translation=আরও জানুন।
 
-[common.button-instructions]
-original=Instructions
-translation=নির্দেশনা
-
 [common.button-open]
 original=Open
 translation=খুলুন

@@ -1,7 +1,7 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
-import { AuthCallback, helpUrl } from './constants';
+import { AuthCallback } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
@@ -302,45 +302,23 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * The way to the format's documentation, on the row that says what to do
-	 * before an import: what to export, or what to connect to.
-	 */
-	protected addInstructions(setting: Setting | null): Setting | null {
-		const { helpPermalink } = this.host;
-		if (!setting || !helpPermalink) return setting;
-
-		return setting.addButton(button => {
-			button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(helpPermalink)));
-
-			// Before whatever the row is for — signing in, choosing a folder —
-			// which stays the last thing in it wherever the button is added.
-			setting.controlEl.prepend(button.buttonEl);
-		});
-	}
-
-	/**
 	 * The row a format you connect to starts with, in the same shape as the
 	 * one a format you export from starts with: what has to be done before an
-	 * import, and the way to the instructions for doing it. What it is done
-	 * with — a token, an account, a folder — is the row below.
+	 * import. What it is done with — a token, an account, a folder — is the row
+	 * below, and the way to the instructions is Help, in the bar at the bottom.
 	 */
 	protected addConnectSetting(name: string, desc?: string | DocumentFragment): Setting | null {
 		const setting = this.addSetting('source')?.setName(name) ?? null;
 		if (desc) setting?.setDesc(desc);
 
-		return this.addInstructions(setting);
+		return setting;
 	}
 
-	/**
-	 * The row a format you export from starts with: what to ask that app for,
-	 * and where the instructions are.
-	 */
+	/** The row a format you export from starts with: what to ask that app for. */
 	protected addExportSetting(desc: string | DocumentFragment): Setting | null {
-		return this.addInstructions(this.addSetting('source')
+		return this.addSetting('source')
 			?.setName(i18n.common.nameExport())
-			.setDesc(desc) ?? null);
+			.setDesc(desc) ?? null;
 	}
 
 	/**

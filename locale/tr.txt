@@ -522,10 +522,6 @@ translation=Verilerinizi dışa aktarın
 original=Learn more.
 translation=Daha fazlasını öğrenin.
 
-[common.button-instructions]
-original=Instructions
-translation=Talimatlar
-
 [common.button-open]
 original=Open
 translation=Aç
