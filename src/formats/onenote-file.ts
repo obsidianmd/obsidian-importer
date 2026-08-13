@@ -1,4 +1,4 @@
-import { Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
+import { Notice, Platform, SettingGroup, TFile, TFolder, normalizePath } from 'obsidian';
 import { PickedFile, fs, os, path as nodePath } from '../filesystem';
 import { FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
@@ -32,6 +32,7 @@ export class OneNoteFileImporter extends FormatImporter {
 
 	// Field initializers would overwrite values set by base-constructor init().
 	private picker: TreePicker<SectionNode>;
+	private sectionsGroup: SettingGroup | null;
 	private loadedFrom = '';
 	private loadGeneration = 0;
 
@@ -55,6 +56,8 @@ export class OneNoteFileImporter extends FormatImporter {
 	protected sourceChanged(): void {
 		super.sourceChanged();
 
+		this.showSections();
+
 		const key = this.files.map(file => file.fullpath).join('\n');
 		if (key === this.loadedFrom) return;
 
@@ -62,10 +65,19 @@ export class OneNoteFileImporter extends FormatImporter {
 		if (this.picker) void this.loadSections();
 	}
 
+	/**
+	 * The sections are what a file turned out to hold, so there is nothing to
+	 * say about them until there is a file: an empty card telling the user to
+	 * pick one repeats the row above it.
+	 */
+	private showSections(): void {
+		this.sectionsGroup?.groupEl.toggle(this.files.length > 0);
+	}
+
 	private drawSectionPicker(): void {
 		this.draw(contentEl => {
 			// What to import is a card of its own: the row, and what it lists.
-			this.startGroup('source');
+			this.sectionsGroup = this.startGroup('source');
 
 			this.picker = new TreePicker<SectionNode>(contentEl, {
 				setting: this.addSetting('source'),
@@ -80,6 +92,10 @@ export class OneNoteFileImporter extends FormatImporter {
 				},
 				loadsItself: true,
 			});
+
+			// Drawn again with files already picked: the step is redrawn every
+			// time it is returned to.
+			this.showSections();
 		}, 'source');
 	}
 
