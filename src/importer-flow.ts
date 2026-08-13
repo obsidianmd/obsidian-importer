@@ -1,4 +1,4 @@
-import { App, Notice, Platform, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, SettingGroup, setIcon, TFile } from 'obsidian';
+import { App, Notice, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, SettingGroup, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { dataTransferHasFiles, droppedItems, expandDropped, PickedFile, PickedFolder } from './filesystem';
 import { ImporterFileTypes, importersForFiles, readableFiles } from './importer-match';
@@ -23,14 +23,6 @@ interface Drop {
 	items: (PickedFile | PickedFolder)[];
 	files: PickedFile[];
 	exports: PickedFile[];
-}
-
-/** The card a step ends with, if it ends with one. */
-function trailingGroupList(stepEl: HTMLElement | null): HTMLElement | null {
-	const last = stepEl?.lastElementChild;
-	if (!last?.hasClass('setting-group')) return null;
-
-	return last.querySelector('.setting-items');
 }
 
 /** The list of formats: the screen every other one is reached from. */
@@ -97,8 +89,7 @@ export class ImporterFlow implements ImporterHost {
 
 	current: ImportContext | null = null;
 
-	/** Whatever a step's primary action is drawn as, told when it is ready. */
-	private nextAction: ((enabled: boolean) => void) | null = null;
+	private nextButtonEl: HTMLButtonElement | null = null;
 
 	private pickingFormat: boolean = false;
 
@@ -449,7 +440,7 @@ export class ImporterFlow implements ImporterHost {
 
 	private showMethodPicker(group: string): void {
 		this.drawCurrent = () => this.showMethodPicker(group);
-		this.nextAction = null;
+		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
 		this.showScreen(FORMAT_LIST + 1, i18n.modal.titleChooseMethod(), () => this.showFormatPicker());
@@ -546,51 +537,17 @@ export class ImporterFlow implements ImporterHost {
 
 	showSourceStep() {
 		this.drawCurrent = () => this.showSourceStep();
-		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), (el, stepEl) => {
-			this.addPrimaryAction(el, stepEl, i18n.modal.buttonContinue(), () => void this.showOutputStep());
+		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), el => {
+			this.nextButtonEl = el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
+				el.addEventListener('click', () => void this.showOutputStep());
+			});
+
 			this.sourceChanged();
 		});
 	}
 
 	sourceChanged(): void {
-		this.nextAction?.(this.importer.sourceReady);
-	}
-
-	/**
-	 * What a step ends with. On a phone it is the last row of the last card,
-	 * where the eye already is, rather than a button under everything — but
-	 * only where the card is the last thing on the screen: a tree or a message
-	 * drawn after it would be left below the way on.
-	 */
-	private addPrimaryAction(buttonsEl: HTMLElement, stepEl: HTMLElement | null, text: string, act: () => void): void {
-		const listEl = Platform.isMobile ? trailingGroupList(stepEl) : null;
-
-		if (!listEl) {
-			const buttonEl = buttonsEl.createEl('button', { cls: 'mod-cta', text }, el => {
-				el.addEventListener('click', act);
-			});
-
-			this.nextAction = enabled => buttonEl.disabled = !enabled;
-			return;
-		}
-
-		// A step draws into elements the importer keeps between screens, and a
-		// screen can be drawn twice — once by the flow, once by the page it
-		// opened — so the row this leaves behind is swept up rather than
-		// remembered.
-		for (const stale of Array.from(listEl.querySelectorAll('.mod-primary-action'))) stale.detach();
-
-		// The same button, in the card rather than under it.
-		let buttonEl: HTMLButtonElement | null = null;
-
-		new Setting(listEl).setClass('mod-primary-action').addButton(button => {
-			buttonEl = button.buttonEl;
-			button.setCta().setButtonText(text).onClick(() => act());
-		});
-
-		this.nextAction = enabled => {
-			if (buttonEl) buttonEl.disabled = !enabled;
-		};
+		if (this.nextButtonEl) this.nextButtonEl.disabled = !this.importer.sourceReady;
 	}
 
 	async showOutputStep() {
@@ -601,13 +558,15 @@ export class ImporterFlow implements ImporterHost {
 		await importer.ready;
 		importer.drawOutputStep();
 
-		this.drawStep(this.sourceDepth() + 1, this.outputEl, () => this.showSourceStep(), (el, stepEl) => {
+		this.drawStep(this.sourceDepth() + 1, this.outputEl, () => this.showSourceStep(), el => {
 			if (this.hasOptionsStep()) {
-				this.addPrimaryAction(el, stepEl, i18n.modal.buttonContinue(), () => this.showOptionsStep());
+				el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
+					el.addEventListener('click', () => this.showOptionsStep());
+				});
 				return;
 			}
 
-			this.addImportButton(el, stepEl, importer);
+			this.addImportButton(el, importer);
 		});
 	}
 
@@ -615,14 +574,16 @@ export class ImporterFlow implements ImporterHost {
 		const { importer } = this;
 
 		this.drawCurrent = () => this.showOptionsStep();
-		this.drawStep(this.sourceDepth() + 2, this.optionsEl, () => this.showOutputStep(), (el, stepEl) => {
-			this.addImportButton(el, stepEl, importer);
+		this.drawStep(this.sourceDepth() + 2, this.optionsEl, () => this.showOutputStep(), el => {
+			this.addImportButton(el, importer);
 		});
 	}
 
-	private addImportButton(buttonsEl: HTMLElement, stepEl: HTMLElement | null, importer: FormatImporter): void {
-		this.addPrimaryAction(buttonsEl, stepEl, i18n.modal.buttonImport(), () => void this.startImport(importer)
-			.catch(e => console.error('Import failed', e)));
+	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter): HTMLButtonElement {
+		return buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
+			el.addEventListener('click', () => void this.startImport(importer)
+				.catch(e => console.error('Import failed', e)));
+		});
 	}
 
 	private showFormatOffer(ids: string[], drop: Drop) {
@@ -631,7 +592,7 @@ export class ImporterFlow implements ImporterHost {
 			: () => this.showFirstStep();
 
 		this.drawCurrent = () => this.showFormatOffer(ids, drop);
-		this.nextAction = null;
+		this.nextButtonEl = null;
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(false);
 		this.showScreen(FORMAT_LIST + 1, i18n.modal.titleChooseMethod(), back);
@@ -802,10 +763,10 @@ export class ImporterFlow implements ImporterHost {
 		this.dropOverlayEl = null;
 	}
 
-	private drawStep(depth: number, stepEl: HTMLElement | null, onBack: (() => unknown) | null, buildButtons: (buttonsEl: HTMLElement, stepEl: HTMLElement | null) => void) {
+	private drawStep(depth: number, stepEl: HTMLElement | null, onBack: (() => unknown) | null, buildButtons: (buttonsEl: HTMLElement) => void) {
 		const definition = this.plugin.importers[this.selectedId];
 
-		this.nextAction = null;
+		this.nextButtonEl = null;
 		this.pickingFormat = false;
 		this.shell.setPickingFormat(false);
 		this.showScreen(depth, this.importTitle(), onBack);
@@ -815,14 +776,13 @@ export class ImporterFlow implements ImporterHost {
 
 		if (stepEl) contentEl.append(stepEl);
 
-		const buttonsEl = createDiv('modal-button-container importer-step-buttons');
-		this.addBackButton(buttonsEl);
-		this.addHelpButton(buttonsEl, definition.helpPermalink);
-		buildButtons(buttonsEl, stepEl);
+		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
+			this.addBackButton(el);
 
-		// Where the shell draws the way back and the action went into a card,
-		// there is nothing left to put under the step.
-		if (buttonsEl.childElementCount > 0) contentEl.append(buttonsEl);
+			this.addHelpButton(el, definition.helpPermalink);
+
+			buildButtons(el);
+		});
 	}
 
 	private async startImport(importer: FormatImporter) {
