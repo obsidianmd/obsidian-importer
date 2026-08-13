@@ -68,14 +68,28 @@ body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
 	background-color: var(--settings-background);
 	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
+
+	/* Sticky only holds the bar down once there is something to scroll: a step
+	   short enough to fit leaves it wherever the settings ended, halfway up the
+	   screen. The page below fills the screen whether or not it is full, and
+	   this margin takes the bar the rest of the way to the bottom. */
+	margin-top: auto;
 }
 
 /* A settings page keeps a phone's worth of room below its content, and a
    sticky bar cannot reach past it — 100px short of the bottom is exactly what
    it reads as floating. The bar carries the safe area itself instead. Scoped
    through the settings modal to outweigh the rule that sets the padding. */
-body.is-phone .modal.mod-settings .setting-page.importer-flow {
+body.is-phone .modal.mod-settings .setting-page.importer-flow:has(.importer-step-buttons) {
 	padding-bottom: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+body.is-phone .modal.mod-settings .setting-page.importer-flow > .setting-page-content:has(.importer-step-buttons) {
+	display: flex;
+	flex-direction: column;
+	flex: 1 0 auto;
 }
 
 /* Back and Help sit at the start of a step, and the primary button is pushed
