@@ -46,6 +46,6 @@ $a=b$
 
 ![example images from TESTIMAGES archive](attachments/Test%20Page%20image.jpg)
 
-![Hello World Hello World](attachments/Test%20Page%20-%20Ink.svg)
+![](attachments/Test%20Page%20-%20Ink.svg)
 
 Hello World Hello World

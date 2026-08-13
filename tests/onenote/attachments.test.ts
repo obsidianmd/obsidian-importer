@@ -192,6 +192,32 @@ test('an image without a download URL is reported rather than losing the page', 
 	assert.match(page.textContent ?? '', /After/);
 });
 
+test("OneNote's own OCR cannot break the image it is the alt text of", async () => {
+	const subject = importer(name => name);
+	const alt = 'Background Check Authorization\n[Name] Jane Doe';
+
+	const page = await subject.getAllAttachments(
+		new ImportContext(),
+		`<html><body><img data-fullres-src="https://example.com/image" alt="${alt}"></body></html>`,
+		'Notebook/Page.md',
+	);
+
+	const image = page.find('img') as HTMLImageElement;
+	assert.equal(image.alt, 'Background Check Authorization Name Jane Doe');
+});
+
+test('an image whose download failed still has alt text a note can hold', async () => {
+	const subject = importer(() => null);
+
+	const page = await subject.getAllAttachments(
+		new ImportContext(),
+		'<html><body><img data-fullres-src="https://example.com/image" alt="a [scan]"></body></html>',
+		'Notebook/Page.md',
+	);
+
+	assert.equal((page.find('img') as HTMLImageElement).alt, 'a scan');
+});
+
 test('an image with no declared type still downloads', async () => {
 	const downloaded: string[] = [];
 	const subject = importer(name => {

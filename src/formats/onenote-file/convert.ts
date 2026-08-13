@@ -1,3 +1,4 @@
+import { sanitizeAltText } from '../onenote/alt-text';
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
 import { Element, Image, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
@@ -350,8 +351,10 @@ class PageWriter {
 		const svg = strokesToSvg(this.inkStrokes);
 		if (!svg) return;
 
+		// The recognized handwriting is written below the drawing, so an alt text
+		// saying the same thing would only be the second copy of it.
 		const recognized = this.recognizedText.join(' ');
-		await this.writeAsset(new TextEncoder().encode(svg), `${this.pageTitle} - Ink.svg`, recognized, true);
+		await this.writeAsset(new TextEncoder().encode(svg), `${this.pageTitle} - Ink.svg`, '', true);
 
 		if (recognized !== '') this.push(recognized);
 	}
@@ -379,7 +382,8 @@ class PageWriter {
 
 		this.attachments.push(attachment);
 		const target = encodeURI(attachment.path);
-		return embed ? `![${label}](${target})` : `[${label}](${target})`;
+		const text = sanitizeAltText(label);
+		return embed ? `![${text}](${target})` : `[${text}](${target})`;
 	}
 
 	private async renderCell(children: Element[]): Promise<string> {

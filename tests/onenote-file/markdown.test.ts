@@ -157,6 +157,34 @@ test('an image is named after its page, and an embedded file keeps its own name'
 		'[notes.docx](files/notes.docx)');
 });
 
+test('OCR alt text cannot break the image it labels', async () => {
+	const data = new Uint8Array([1, 2, 3]);
+	const altText = 'Background Check Authorization\n[Name]\tJane Doe\n[Date] 2026-01-01';
+
+	assert.equal(
+		await render({ kind: 'image', fileName: 'scan.png', altText, data }),
+		'![Background Check Authorization Name Jane Doe Date 2026-01-01](files/Test%20image.png)');
+});
+
+test('a page of OCR is cut down rather than written out as the label', async () => {
+	const data = new Uint8Array([1, 2, 3]);
+	const markdown = await render({ kind: 'image', altText: 'word '.repeat(200), extension: '.png', data });
+
+	assert.equal(markdown.split('\n').length, 1);
+	assert.ok(markdown.startsWith('![word word'), markdown);
+	assert.ok(markdown.includes('word…](files/Test%20image.png)'), markdown);
+});
+
+test('recognized handwriting is written under the drawing and not also on it', async () => {
+	const markdown = await render({
+		kind: 'ink',
+		strokes: [{ points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], color: '#000', width: 1, opacity: 1 }],
+		recognizedText: 'Hello World',
+	});
+
+	assert.equal(markdown, '![](files/Test%20-%20Ink.svg)\n\nHello World');
+});
+
 test('an asset with no bytes is reported rather than linked', async () => {
 	const skipped: string[] = [];
 
