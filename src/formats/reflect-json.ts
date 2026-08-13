@@ -3,17 +3,21 @@ import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, truncateText } from '../util';
-import { sanitizeTag } from './keep/util';
 import { ReflectExport, ReflectNote } from './reflect/models';
-import { convertDocument, ConvertOptions } from './reflect/convert';
+import { AttachmentInfo, convertDocument, ConvertOptions, escapeMarkdownLinkText, getUrlPathname } from './reflect/convert';
 
 const MAX_FILENAME_LENGTH = 200;
-const MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS = 4;
-const MAX_ATTACHMENT_RETRY_DELAY_SECONDS = 30;
+// One initial attempt plus one retry per entry here (signed export URLs are
+// occasionally flaky during bulk imports; anything more is over-engineering).
+const ATTACHMENT_RETRY_DELAYS_SECONDS = [2, 8];
 
-interface ImageDownloadError extends Error {
-	status?: number;
-	retryAfterSeconds?: number;
+class HttpStatusError extends Error {
+	status: number;
+
+	constructor(status: number) {
+		super(`HTTP ${status}`);
+		this.status = status;
+	}
 }
 
 export class ReflectImporter extends FormatImporter {
@@ -42,13 +46,13 @@ export class ReflectImporter extends FormatImporter {
 			.addToggle(toggle => {
 				toggle.setValue(this.downloadAttachments);
 				toggle.onChange(async (value) => {
-					this.downloadAttachments = value === true;
+					this.downloadAttachments = value;
 				});
 			});
 
 		new Setting(this.modal.contentEl)
 			.setName('Add YAML tags')
-			.setDesc('If enabled, notes will have tags from Reflect added as properties.')
+			.setDesc('If enabled, tags from Reflect will be moved out of the note body and into a tags property.')
 			.addToggle(toggle => {
 				toggle.setValue(this.tagsFrontmatter);
 				toggle.onChange(async (value) => {
@@ -115,7 +119,7 @@ export class ReflectImporter extends FormatImporter {
 		}
 	}
 
-	private resolveImageUrl(url: string): string | null {
+	private resolveAttachmentUrl(url: string): string | null {
 		// Skip relative paths (orphaned refs from prior note app imports)
 		if (!url.startsWith('http://') && !url.startsWith('https://')) {
 			return null;
@@ -141,62 +145,12 @@ export class ReflectImporter extends FormatImporter {
 		return 'Unknown error';
 	}
 
-	private parseRetryAfterSeconds(value: string | undefined | null): number | undefined {
-		if (!value) return undefined;
-
-		const numeric = Number(value);
-		if (Number.isFinite(numeric) && numeric > 0) {
-			return Math.ceil(numeric);
+	private shouldRetryDownload(error: unknown): boolean {
+		if (error instanceof HttpStatusError) {
+			return error.status === 429 || error.status >= 500;
 		}
 
-		const dateMs = Date.parse(value);
-		if (!Number.isNaN(dateMs)) {
-			const seconds = Math.ceil((dateMs - Date.now()) / 1_000);
-			return seconds > 0 ? seconds : undefined;
-		}
-
-		return undefined;
-	}
-
-	private getRetryAfterFromHeaders(headers: Record<string, string> | undefined): number | undefined {
-		if (!headers) return undefined;
-
-		for (const [key, value] of Object.entries(headers)) {
-			if (key.toLowerCase() === 'retry-after') {
-				return this.parseRetryAfterSeconds(value);
-			}
-		}
-
-		return undefined;
-	}
-
-	private createHttpError(status: number, retryAfterSeconds?: number): ImageDownloadError {
-		const error = new Error(`HTTP ${status}`) as ImageDownloadError;
-		error.status = status;
-		if (retryAfterSeconds) {
-			error.retryAfterSeconds = retryAfterSeconds;
-		}
-		return error;
-	}
-
-	private getDownloadErrorStatus(error: unknown): number | undefined {
-		if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
-		const { status } = error as { status?: unknown };
-		return typeof status === 'number' ? status : undefined;
-	}
-
-	private getDownloadRetryAfterSeconds(error: unknown): number | undefined {
-		if (typeof error !== 'object' || error === null || !('retryAfterSeconds' in error)) return undefined;
-		const { retryAfterSeconds } = error as { retryAfterSeconds?: unknown };
-		return typeof retryAfterSeconds === 'number' && retryAfterSeconds > 0 ? retryAfterSeconds : undefined;
-	}
-
-	private shouldRetryImageDownload(error: unknown): boolean {
-		const status = this.getDownloadErrorStatus(error);
-		if (status === 429 || (status !== undefined && status >= 500)) {
-			return true;
-		}
-
+		// fetch network failures surface as TypeError; requestUrl only as a message.
 		if (error instanceof TypeError) {
 			return true;
 		}
@@ -207,16 +161,6 @@ export class ReflectImporter extends FormatImporter {
 			|| message.includes('timed out')
 			|| message.includes('fetch failed')
 			|| message.includes('econnreset');
-	}
-
-	private getDownloadRetryDelaySeconds(error: unknown, attempt: number): number {
-		const retryAfter = this.getDownloadRetryAfterSeconds(error);
-		if (retryAfter) {
-			return Math.min(retryAfter, MAX_ATTACHMENT_RETRY_DELAY_SECONDS);
-		}
-
-		const exponential = 2 ** attempt;
-		return Math.min(exponential, MAX_ATTACHMENT_RETRY_DELAY_SECONDS);
 	}
 
 	private parseReflectExport(content: string): ReflectExport {
@@ -264,7 +208,7 @@ export class ReflectImporter extends FormatImporter {
 		return parsed as ReflectExport;
 	}
 
-	private async fetchImageData(url: string): Promise<{ data: ArrayBuffer, contentType: string }> {
+	private async fetchAttachmentData(url: string): Promise<{ data: ArrayBuffer, contentType: string }> {
 		// Try fetch first, fall back to requestUrl (bypasses CORS in Electron)
 		try {
 			const response = await fetch(url, {
@@ -282,8 +226,7 @@ export class ReflectImporter extends FormatImporter {
 
 		const response = await requestUrl({ url, throw: false });
 		if (response.status !== 200) {
-			const retryAfterSeconds = this.getRetryAfterFromHeaders(response.headers);
-			throw this.createHttpError(response.status, retryAfterSeconds);
+			throw new HttpStatusError(response.status);
 		}
 		return {
 			data: response.arrayBuffer,
@@ -291,34 +234,36 @@ export class ReflectImporter extends FormatImporter {
 		};
 	}
 
-	private async downloadImage(
-		url: string,
-		fileName: string,
+	private async downloadAttachment(
+		attachment: AttachmentInfo,
 		sourcePath: string,
 		claimedAttachmentPaths: string[],
-		downloadedImagePathsByUrl: Map<string, string>,
+		downloadedPathsByUrl: Map<string, string>,
 		ctx: ImportContext,
 	): Promise<string | null> {
-		const resolvedUrl = this.resolveImageUrl(url);
+		const resolvedUrl = this.resolveAttachmentUrl(attachment.url);
 		if (!resolvedUrl) {
 			return null;
 		}
 
-		const cachedPath = downloadedImagePathsByUrl.get(resolvedUrl);
+		const cachedPath = downloadedPathsByUrl.get(resolvedUrl);
 		if (cachedPath) {
 			return cachedPath;
 		}
 
 		let lastError: unknown;
-		for (let attempt = 1; attempt <= MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS; attempt++) {
+		for (let attempt = 0; attempt <= ATTACHMENT_RETRY_DELAYS_SECONDS.length; attempt++) {
+			if (ctx.isCancelled()) {
+				return null;
+			}
 			try {
-				const { data, contentType } = await this.fetchImageData(resolvedUrl);
+				const { data, contentType } = await this.fetchAttachmentData(resolvedUrl);
 
-				// Determine filename
-				let name = fileName;
+				// Note-provided filenames may carry characters that break vault
+				// paths or wikilinks; fall back to a generated name.
+				let name = attachment.fileName ? sanitizeFileName(attachment.fileName) : '';
 				if (!name) {
-					const ext = this.getExtensionFromMimeType(contentType);
-					name = `reflect-image-${Date.now()}${ext}`;
+					name = `reflect-attachment-${Date.now()}${this.getExtension(contentType, resolvedUrl)}`;
 				}
 
 				// Respect vault attachment settings, including "Same folder as current file".
@@ -330,34 +275,31 @@ export class ReflectImporter extends FormatImporter {
 
 				await this.vault.createBinary(filePath, data);
 				claimedAttachmentPaths.push(filePath);
-				downloadedImagePathsByUrl.set(resolvedUrl, filePath);
+				downloadedPathsByUrl.set(resolvedUrl, filePath);
 				ctx.reportAttachmentSuccess(parseFilePath(filePath).name);
 				return filePath;
 			}
 			catch (error) {
 				lastError = error;
 
-				const shouldRetry = attempt < MAX_ATTACHMENT_DOWNLOAD_ATTEMPTS
-					&& this.shouldRetryImageDownload(error);
-				if (!shouldRetry) {
+				const delaySeconds = ATTACHMENT_RETRY_DELAYS_SECONDS[attempt];
+				if (delaySeconds === undefined || !this.shouldRetryDownload(error)) {
 					break;
 				}
-
-				const delaySeconds = this.getDownloadRetryDelaySeconds(error, attempt);
 				await this.pause(delaySeconds, 'attachment download retry backoff', ctx);
 			}
 		}
 
 		console.error('Reflect attachment download failed', {
 			url: resolvedUrl,
-			fileName,
+			fileName: attachment.fileName,
 			error: lastError,
 		});
-		ctx.reportFailed(fileName || url, this.getErrorMessage(lastError));
+		ctx.reportFailed(attachment.fileName || attachment.url, this.getErrorMessage(lastError));
 		return null;
 	}
 
-	private getExtensionFromMimeType(mimeType: string): string {
+	private getExtension(mimeType: string, url: string): string {
 		const map: Record<string, string> = {
 			'image/png': '.png',
 			'image/jpeg': '.jpg',
@@ -365,19 +307,37 @@ export class ReflectImporter extends FormatImporter {
 			'image/webp': '.webp',
 			'image/svg+xml': '.svg',
 			'image/bmp': '.bmp',
+			'image/avif': '.avif',
+			'application/pdf': '.pdf',
+			'audio/mpeg': '.mp3',
+			'audio/mp4': '.m4a',
+			'audio/x-m4a': '.m4a',
+			'audio/wav': '.wav',
+			'audio/x-wav': '.wav',
+			'audio/ogg': '.ogg',
+			'audio/flac': '.flac',
+			'video/mp4': '.mp4',
+			'video/webm': '.webm',
+			'video/quicktime': '.mov',
 		};
 		for (const [mime, ext] of Object.entries(map)) {
 			if (mimeType.includes(mime)) return ext;
+		}
+
+		// Unknown content type: prefer an extension already present in the URL.
+		const urlExtension = getUrlPathname(url).match(/\.[a-zA-Z0-9]{1,8}$/);
+		if (urlExtension) {
+			return urlExtension[0];
 		}
 		return '.png';
 	}
 
 	async import(ctx: ImportContext) {
-		// Snapshot option values for this run so they can't drift mid-import.
-		const shouldDownloadAttachments = this.downloadAttachments === true;
-		const shouldAddTagsFrontmatter = this.tagsFrontmatter === true;
-		const shouldAddDateFrontmatter = this.dateFrontmatter === true;
-		const shouldAddTitleFrontmatter = this.titleFrontmatter === true;
+		// Read option values once so toggling mid-import has no effect.
+		const shouldDownloadAttachments = this.downloadAttachments;
+		const shouldAddTagsFrontmatter = this.tagsFrontmatter;
+		const shouldAddDateFrontmatter = this.dateFrontmatter;
+		const shouldAddTitleFrontmatter = this.titleFrontmatter;
 
 		let { files } = this;
 		if (files.length === 0) {
@@ -412,7 +372,7 @@ export class ReflectImporter extends FormatImporter {
 			const idToOutputPath = new Map<string, string>();
 			const claimedPaths = new Set<string>();
 			const claimedAttachmentPaths: string[] = [];
-			const downloadedImagePathsByUrl = new Map<string, string>();
+			const downloadedPathsByUrl = new Map<string, string>();
 			for (const note of data.notes) {
 				const title = this.getNoteTitle(note, userDNPFormat);
 				const outputPath = this.getAvailableNotePath(folder.path, title, claimedPaths);
@@ -452,39 +412,31 @@ export class ReflectImporter extends FormatImporter {
 						frontMatter['title'] = note.subject;
 					}
 					if (shouldAddTagsFrontmatter && result.tags.size > 0) {
-						frontMatter['tags'] = [...result.tags].map(t => sanitizeTag(t));
+						// Tags were already sanitized during conversion.
+						frontMatter['tags'] = [...result.tags];
 					}
 					if (shouldAddDateFrontmatter) {
 						frontMatter['created'] = note.created_at;
 						frontMatter['updated'] = note.updated_at;
 					}
-					if (Object.keys(frontMatter).length > 0) {
-						content = serializeFrontMatter(frontMatter) + content;
-					}
+					content = serializeFrontMatter(frontMatter) + content;
 
-					// Download images sequentially to avoid creating attachment request bursts.
-					if (shouldDownloadAttachments && result.images.length > 0) {
-						for (const image of result.images) {
-							const localPath = await this.downloadImage(
-								image.url,
-								image.fileName,
-								outputPath,
-								claimedAttachmentPaths,
-								downloadedImagePathsByUrl,
-								ctx,
-							);
-							if (localPath) {
-								content = content.replace(image.placeholder, `![[${localPath}]]`);
-							}
-							else {
-								content = content.replace(image.placeholder, `![](${image.url})`);
-							}
+					// Download attachments sequentially to avoid request bursts.
+					// Function replacers keep '$' sequences in paths and URLs literal.
+					for (const attachment of result.attachments) {
+						const localPath = shouldDownloadAttachments
+							? await this.downloadAttachment(attachment, outputPath, claimedAttachmentPaths, downloadedPathsByUrl, ctx)
+							: null;
+						if (localPath) {
+							content = content.replace(attachment.placeholder, () =>
+								attachment.embed ? `![[${localPath}]]` : `[[${localPath}]]`);
 						}
-					}
-					else if (result.images.length > 0) {
-						// Not downloading: replace placeholders with original URLs
-						for (const image of result.images) {
-							content = content.replace(image.placeholder, `![](${image.url})`);
+						else if (attachment.embed) {
+							content = content.replace(attachment.placeholder, () => `![](${attachment.url})`);
+						}
+						else {
+							const label = escapeMarkdownLinkText(attachment.fileName || attachment.url);
+							content = content.replace(attachment.placeholder, () => `[${label}](${attachment.url})`);
 						}
 					}
 

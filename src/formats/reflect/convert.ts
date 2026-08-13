@@ -5,14 +5,20 @@ import { ProseMirrorNode, ProseMirrorMark } from './models';
 export interface ConvertResult {
 	markdown: string;
 	tags: Set<string>;
-	images: ImageInfo[];
+	attachments: AttachmentInfo[];
 }
 
-export interface ImageInfo {
+export interface AttachmentInfo {
 	url: string;
 	fileName: string;
 	placeholder: string;
+	// Whether Obsidian can render this attachment as an embed (![[...]]);
+	// non-embeddable files get a plain link instead.
+	embed: boolean;
 }
+
+// File formats Obsidian renders as embeds: https://help.obsidian.md/file-formats
+const EMBEDDABLE_EXTENSIONS = /\.(avif|bmp|gif|jpe?g|png|svg|webp|mp3|wav|m4a|3gp|flac|ogg|oga|opus|mp4|webm|ogv|mov|mkv|pdf)$/i;
 
 export interface ConvertOptions {
 	stripInlineTags?: boolean;
@@ -26,8 +32,8 @@ export function convertDocument(
 ): ConvertResult {
 	const doc: ProseMirrorNode = JSON.parse(documentJson);
 	const tags = new Set<string>();
-	const images: ImageInfo[] = [];
-	const ctx: ConvertContext = { idToSubject, tags, images, stripInlineTags: options?.stripInlineTags ?? false };
+	const attachments: AttachmentInfo[] = [];
+	const ctx: ConvertContext = { idToSubject, tags, attachments, stripInlineTags: options?.stripInlineTags ?? false };
 
 	let nodes = doc.content || [];
 
@@ -46,23 +52,34 @@ export function convertDocument(
 	}
 
 	const markdown = convertNodes(nodes, ctx).trim();
-	return { markdown, tags, images };
+	return { markdown, tags, attachments };
 }
 
 interface ConvertContext {
 	idToSubject: Map<string, string>;
 	tags: Set<string>;
-	images: ImageInfo[];
+	attachments: AttachmentInfo[];
 	stripInlineTags: boolean;
 }
 
 function convertNodes(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
 	let result = '';
 	let orderedIndex = 0;
-	for (const node of nodes) {
-		if (node.type === 'list' && node.attrs?.kind === 'ordered') {
-			orderedIndex++;
-			result += convertLegacyList(node, ctx, 0, orderedIndex);
+	for (let i = 0; i < nodes.length; i++) {
+		const node = nodes[i];
+		if (node.type === 'list') {
+			// Each legacy `list` node is a single list item; consecutive ones form
+			// one list, so only end the run with a blank line, not every item.
+			if (node.attrs?.kind === 'ordered') {
+				orderedIndex++;
+			}
+			else {
+				orderedIndex = 0;
+			}
+			result += convertLegacyList(node, ctx, 0, orderedIndex || 1);
+			if (nodes[i + 1]?.type !== 'list') {
+				result += '\n';
+			}
 		}
 		else {
 			orderedIndex = 0;
@@ -107,14 +124,13 @@ function convertNode(node: ProseMirrorNode, ctx: ConvertContext): string {
 		case 'list': {
 			return convertLegacyList(node, ctx);
 		}
-		case 'bulletList': {
-			return convertBulletList(node, ctx);
-		}
+		case 'bulletList':
 		case 'taskList': {
-			return convertTaskList(node, ctx);
+			return convertItemList(node, ctx);
 		}
-		case 'image': {
-			return convertImage(node, ctx);
+		case 'image':
+		case 'file': {
+			return convertAttachment(node, ctx);
 		}
 		default:
 			// Fallback: try to convert children
@@ -125,28 +141,22 @@ function convertNode(node: ProseMirrorNode, ctx: ConvertContext): string {
 	}
 }
 
-function convertInline(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
+function convertInline(inlineNodes: ProseMirrorNode[], ctx: ConvertContext): string {
+	const nodes = stripRedundantLinkBrackets(inlineNodes);
 	const parts: string[] = [];
-	for (let i = 0; i < nodes.length; i++) {
+	let i = 0;
+	while (i < nodes.length) {
 		const node = nodes[i];
 		if (node.type === 'text') {
-			const hasLinkMark = (n: ProseMirrorNode) =>
-				n.type === 'text' && n.marks?.some(m => m.type === 'link');
-
-			// Strip trailing `[` when next node is a link (avoids `[[link](url)]` in Obsidian)
-			if (node.text?.endsWith('[') && i + 1 < nodes.length && hasLinkMark(nodes[i + 1])) {
-				parts.push(applyMarks(node.text.slice(0, -1), node.marks || []));
-				continue;
-			}
-			// Strip leading `]` when previous node was a link
-			if (node.text?.startsWith(']') && i > 0 && hasLinkMark(nodes[i - 1])) {
-				parts.push(applyMarks(node.text.slice(1), node.marks || []));
-				continue;
-			}
-
-			parts.push(applyMarks(node.text || '', node.marks || []));
+			// Serialize whole runs of text nodes together so a mark spanning
+			// several nodes gets one pair of delimiters, not one pair per node.
+			let runEnd = i;
+			while (runEnd < nodes.length && nodes[runEnd].type === 'text') runEnd++;
+			parts.push(serializeTextRun(nodes.slice(i, runEnd)));
+			i = runEnd;
+			continue;
 		}
-		else if (node.type === 'hardBreak') {
+		if (node.type === 'hardBreak') {
 			parts.push('<br>\n');
 		}
 		else if (node.type === 'backlink') {
@@ -158,37 +168,123 @@ function convertInline(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
 		else {
 			parts.push(convertNode(node, ctx));
 		}
+		i++;
 	}
 	return parts.join('');
 }
 
-function applyMarks(text: string, marks: ProseMirrorMark[]): string {
-	let result = text;
-	for (const mark of marks) {
-		switch (mark.type) {
-			case 'bold':
-				result = `**${result}**`;
-				break;
-			case 'italic':
-				result = `*${result}*`;
-				break;
-			case 'code':
-				result = `\`${result}\``;
-				break;
-			case 'strike':
-				result = `~~${result}~~`;
-				break;
-			case 'underline':
-				result = `<u>${result}</u>`;
-				break;
-			case 'link': {
-				const href = mark.attrs?.href || '';
-				result = `[${result}](${href})`;
-				break;
-			}
+// Avoids `[[link](url)]` when the note text already wraps a link in brackets.
+function stripRedundantLinkBrackets(nodes: ProseMirrorNode[]): ProseMirrorNode[] {
+	const hasLinkMark = (n: ProseMirrorNode | undefined) =>
+		n?.type === 'text' && !!n.marks?.some(m => m.type === 'link');
+
+	return nodes.map((node, i) => {
+		if (node.type !== 'text' || !node.text || hasLinkMark(node)) {
+			return node;
 		}
+		let text = node.text;
+		if (text.endsWith('[') && hasLinkMark(nodes[i + 1])) {
+			text = text.slice(0, -1);
+		}
+		if (text.startsWith(']') && hasLinkMark(nodes[i - 1])) {
+			text = text.slice(1);
+		}
+		return text === node.text ? node : { ...node, text };
+	});
+}
+
+// Nesting order for marks: outermost first. Code must stay innermost so
+// delimiters of other marks never end up inside a code span.
+const MARK_PRIORITY: Record<string, number> = {
+	link: 0,
+	underline: 1,
+	bold: 2,
+	italic: 3,
+	strike: 4,
+	code: 5,
+};
+
+function sortedMarks(node: ProseMirrorNode): ProseMirrorMark[] {
+	return [...(node.marks || [])].sort((a, b) =>
+		(MARK_PRIORITY[a.type] ?? Object.keys(MARK_PRIORITY).length) - (MARK_PRIORITY[b.type] ?? Object.keys(MARK_PRIORITY).length));
+}
+
+function markKey(mark: ProseMirrorMark): string {
+	return JSON.stringify([mark.type, mark.attrs || {}]);
+}
+
+// Reflect splits a continuously marked range across several text nodes (for
+// example bold text containing inline code). Wrap each maximal group of nodes
+// sharing the outermost mark in a single pair of delimiters and recurse into
+// the group with that mark removed.
+function serializeTextRun(nodes: ProseMirrorNode[]): string {
+	let result = '';
+	let i = 0;
+	while (i < nodes.length) {
+		const marks = sortedMarks(nodes[i]);
+		if (marks.length === 0) {
+			result += nodes[i].text || '';
+			i++;
+			continue;
+		}
+
+		const outerKey = markKey(marks[0]);
+		let groupEnd = i;
+		while (groupEnd < nodes.length && sortedMarks(nodes[groupEnd]).some(m => markKey(m) === outerKey)) {
+			groupEnd++;
+		}
+		const inner = nodes.slice(i, groupEnd).map(n => ({
+			...n,
+			marks: (n.marks || []).filter(m => markKey(m) !== outerKey),
+		}));
+		result += applyMark(serializeTextRun(inner), marks[0]);
+		i = groupEnd;
 	}
 	return result;
+}
+
+function applyMark(text: string, mark: ProseMirrorMark): string {
+	switch (mark.type) {
+		case 'bold':
+			return wrapDelimited(text, '**');
+		case 'italic':
+			return wrapDelimited(text, '*');
+		case 'code':
+			return wrapCode(text);
+		case 'strike':
+			return wrapDelimited(text, '~~');
+		case 'underline':
+			return `<u>${text}</u>`;
+		case 'link': {
+			const href = mark.attrs?.href || '';
+			return `[${text}](${href})`;
+		}
+		default:
+			return text;
+	}
+}
+
+// A closing emphasis delimiter preceded by whitespace never closes, so marked
+// text like "bold text " must keep its whitespace outside the markers.
+function wrapDelimited(text: string, delimiter: string): string {
+	const [, lead, core, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+	if (!core) {
+		return text;
+	}
+	return `${lead}${delimiter}${core}${delimiter}${trail}`;
+}
+
+function wrapCode(text: string): string {
+	const [, lead, core, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+	if (!core) {
+		return text;
+	}
+	// A code span needs a fence longer than any backtick run it contains,
+	// and padding when the content starts or ends with a backtick.
+	const longestRun = (core.match(/`+/g) || []).reduce((max, run) => Math.max(max, run.length), 0);
+	const fence = '`'.repeat(longestRun + 1);
+	const pad = core.startsWith('`') || core.endsWith('`') ? ' ' : '';
+	return `${lead}${fence}${pad}${core}${pad}${fence}${trail}`;
 }
 
 function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0, ordinal: number = 1): string {
@@ -265,162 +361,81 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 		result += indent + prefix + '\n';
 	}
 
-	// Only add trailing newline at top level
-	if (depth === 0) {
-		result += '\n';
-	}
-
 	return result;
 }
 
-function convertBulletList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0): string {
+// Shared walker for the modern `bulletList` and `taskList` shapes; their items
+// differ only in wrapper type and line prefix.
+function convertItemList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0): string {
 	const indent = '\t'.repeat(depth);
 	let result = '';
 
 	for (const item of node.content || []) {
-		if (item.type === 'listItem') {
-			let wroteItemPrefix = false;
-			let skippedContent = false;
-			let childOrderedIndex = 0;
+		if (item.type !== 'listItem' && item.type !== 'taskListItem') {
+			continue;
+		}
+		const prefix = item.type === 'taskListItem'
+			? (item.attrs?.checked ? '- [x] ' : '- [ ] ')
+			: '- ';
+		let wroteItemPrefix = false;
+		let skippedContent = false;
+		let childOrderedIndex = 0;
 
-			for (const child of item.content || []) {
-				if (child.type === 'paragraph') {
-					const text = convertInline(child.content || [], ctx);
-					if (text.trim() === '') {
-						skippedContent = true;
-						continue;
-					}
-					if (!wroteItemPrefix) {
-						result += indent + '- ' + text + '\n';
-						wroteItemPrefix = true;
-					}
-					else {
-						result += indentChildContent(text + '\n', depth);
-					}
+		for (const child of item.content || []) {
+			if (child.type === 'paragraph') {
+				const text = convertInline(child.content || [], ctx);
+				if (text.trim() === '') {
+					skippedContent = true;
+					continue;
 				}
-				else if (child.type === 'bulletList') {
-					if (!wroteItemPrefix) {
-						result += indent + '- \n';
-						wroteItemPrefix = true;
-					}
-					result += convertBulletList(child, ctx, depth + 1);
-				}
-				else if (child.type === 'taskList') {
-					if (!wroteItemPrefix) {
-						result += indent + '- \n';
-						wroteItemPrefix = true;
-					}
-					result += convertTaskList(child, ctx, depth + 1);
-				}
-				else if (child.type === 'list') {
-					if (!wroteItemPrefix) {
-						result += indent + '- \n';
-						wroteItemPrefix = true;
-					}
-					if (child.attrs?.kind === 'ordered') {
-						childOrderedIndex++;
-					}
-					else {
-						childOrderedIndex = 0;
-					}
-					result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
+				if (!wroteItemPrefix) {
+					result += indent + prefix + text + '\n';
+					wroteItemPrefix = true;
 				}
 				else {
-					if (!wroteItemPrefix) {
-						if (child.type === 'heading') {
-							result += prefixFirstLine(convertNode(child, ctx), indent, '- ', depth);
-						}
-						else {
-							result += indent + '- \n';
-							result += indentChildContent(convertNode(child, ctx), depth);
-						}
-						wroteItemPrefix = true;
+					result += indentChildContent(text + '\n', depth);
+				}
+			}
+			else if (child.type === 'bulletList' || child.type === 'taskList') {
+				if (!wroteItemPrefix) {
+					result += indent + prefix + '\n';
+					wroteItemPrefix = true;
+				}
+				result += convertItemList(child, ctx, depth + 1);
+			}
+			else if (child.type === 'list') {
+				if (!wroteItemPrefix) {
+					result += indent + prefix + '\n';
+					wroteItemPrefix = true;
+				}
+				if (child.attrs?.kind === 'ordered') {
+					childOrderedIndex++;
+				}
+				else {
+					childOrderedIndex = 0;
+				}
+				result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
+			}
+			else {
+				if (!wroteItemPrefix) {
+					if (child.type === 'heading') {
+						result += prefixFirstLine(convertNode(child, ctx), indent, prefix, depth);
 					}
 					else {
+						result += indent + prefix + '\n';
 						result += indentChildContent(convertNode(child, ctx), depth);
 					}
-				}
-			}
-
-			if (!wroteItemPrefix && !skippedContent) {
-				result += indent + '- \n';
-			}
-		}
-	}
-
-	if (depth === 0) {
-		result += '\n';
-	}
-	return result;
-}
-
-function convertTaskList(node: ProseMirrorNode, ctx: ConvertContext, depth: number = 0): string {
-	const indent = '\t'.repeat(depth);
-	let result = '';
-
-	for (const item of node.content || []) {
-		if (item.type === 'taskListItem') {
-			const checked = item.attrs?.checked;
-			const checkbox = checked ? '- [x] ' : '- [ ] ';
-			let wroteItemPrefix = false;
-			let skippedContent = false;
-			let childOrderedIndex = 0;
-
-			for (const child of item.content || []) {
-				if (child.type === 'paragraph') {
-					const text = convertInline(child.content || [], ctx);
-					if (text.trim() === '') {
-						skippedContent = true;
-						continue;
-					}
-					if (!wroteItemPrefix) {
-						result += indent + checkbox + text + '\n';
-						wroteItemPrefix = true;
-					}
-					else {
-						result += indentChildContent(text + '\n', depth);
-					}
-				}
-				else if (child.type === 'bulletList') {
-					if (!wroteItemPrefix) {
-						result += indent + checkbox + '\n';
-						wroteItemPrefix = true;
-					}
-					result += convertBulletList(child, ctx, depth + 1);
-				}
-				else if (child.type === 'taskList') {
-					if (!wroteItemPrefix) {
-						result += indent + checkbox + '\n';
-						wroteItemPrefix = true;
-					}
-					result += convertTaskList(child, ctx, depth + 1);
-				}
-				else if (child.type === 'list') {
-					if (!wroteItemPrefix) {
-						result += indent + checkbox + '\n';
-						wroteItemPrefix = true;
-					}
-					if (child.attrs?.kind === 'ordered') {
-						childOrderedIndex++;
-					}
-					else {
-						childOrderedIndex = 0;
-					}
-					result += convertLegacyList(child, ctx, depth + 1, child.attrs?.kind === 'ordered' ? childOrderedIndex : 1);
+					wroteItemPrefix = true;
 				}
 				else {
-					if (!wroteItemPrefix) {
-						result += indent + checkbox + '\n';
-						wroteItemPrefix = true;
-					}
 					// Preserve non-paragraph blocks (heading, blockquote, codeBlock, etc.) inside list items.
 					result += indentChildContent(convertNode(child, ctx), depth);
 				}
 			}
+		}
 
-			if (!wroteItemPrefix && !skippedContent) {
-				result += indent + checkbox + '\n';
-			}
+		if (!wroteItemPrefix && !skippedContent) {
+			result += indent + prefix + '\n';
 		}
 	}
 
@@ -464,25 +479,37 @@ function convertTag(node: ProseMirrorNode, ctx: ConvertContext): string {
 	return '#' + sanitized;
 }
 
-function convertImage(node: ProseMirrorNode, ctx: ConvertContext): string {
-	const src = node.attrs?.src || '';
+function convertAttachment(node: ProseMirrorNode, ctx: ConvertContext): string {
+	// `image` nodes carry their payload in attrs.src, `file` nodes in attrs.url.
+	const url = node.attrs?.src || node.attrs?.url || '';
 	const fileName = node.attrs?.fileName || '';
 
-	if (!src) {
+	if (!url) {
 		return '';
 	}
 
+	const embed = node.type === 'image' || EMBEDDABLE_EXTENSIONS.test(fileName || getUrlPathname(url));
+
 	// Generate a unique placeholder
-	const placeholder = `<<REFLECT_IMG_${ctx.images.length}>>`;
-	ctx.images.push({ url: src, fileName, placeholder });
+	const placeholder = `<<REFLECT_ATTACHMENT_${ctx.attachments.length}>>`;
+	ctx.attachments.push({ url, fileName, placeholder, embed });
 	return placeholder + '\n\n';
+}
+
+export function getUrlPathname(url: string): string {
+	try {
+		return new URL(url).pathname;
+	}
+	catch {
+		return url;
+	}
 }
 
 function isUnsafeWikiLabel(text: string): boolean {
 	return /[\\|\]]/.test(text);
 }
 
-function escapeMarkdownLinkText(text: string): string {
+export function escapeMarkdownLinkText(text: string): string {
 	return text
 		.replace(/\\/g, '\\\\')
 		.replace(/\[/g, '\\[')
