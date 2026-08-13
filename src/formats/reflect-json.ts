@@ -4,7 +4,7 @@ import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../main';
 import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, truncateText } from '../util';
 import { ReflectExport, ReflectNote } from './reflect/models';
-import { AttachmentInfo, convertDocument, ConvertOptions, escapeMarkdownLinkText, getUrlPathname } from './reflect/convert';
+import { AttachmentInfo, convertDocument, ConvertOptions, EMBEDDABLE_EXTENSIONS, escapeMarkdownLinkText, getUrlPathname } from './reflect/convert';
 
 const MAX_FILENAME_LENGTH = 200;
 // One initial attempt plus one retry per entry here (signed export URLs are
@@ -260,10 +260,14 @@ export class ReflectImporter extends FormatImporter {
 				const { data, contentType } = await this.fetchAttachmentData(resolvedUrl);
 
 				// Note-provided filenames may carry characters that break vault
-				// paths or wikilinks; fall back to a generated name.
+				// paths or wikilinks; fall back to a generated name. An unusable
+				// name sanitizes to 'Untitled', which is equally worth replacing.
 				let name = attachment.fileName ? sanitizeFileName(attachment.fileName) : '';
-				if (!name) {
-					name = `reflect-attachment-${Date.now()}${this.getExtension(contentType, resolvedUrl)}`;
+				if (!name || name === 'Untitled') {
+					name = `reflect-attachment-${Date.now()}`;
+				}
+				if (!parseFilePath(name).extension) {
+					name += this.getExtension(contentType, resolvedUrl, attachment.isImage);
 				}
 
 				// Respect vault attachment settings, including "Same folder as current file".
@@ -299,7 +303,7 @@ export class ReflectImporter extends FormatImporter {
 		return null;
 	}
 
-	private getExtension(mimeType: string, url: string): string {
+	private getExtension(mimeType: string, url: string, isImage: boolean): string {
 		const map: Record<string, string> = {
 			'image/png': '.png',
 			'image/jpeg': '.jpg',
@@ -314,11 +318,16 @@ export class ReflectImporter extends FormatImporter {
 			'audio/x-m4a': '.m4a',
 			'audio/wav': '.wav',
 			'audio/x-wav': '.wav',
+			'audio/webm': '.weba',
 			'audio/ogg': '.ogg',
+			'audio/opus': '.opus',
 			'audio/flac': '.flac',
+			'audio/3gpp': '.3gp',
 			'video/mp4': '.mp4',
 			'video/webm': '.webm',
+			'video/ogg': '.ogv',
 			'video/quicktime': '.mov',
+			'video/x-matroska': '.mkv',
 		};
 		for (const [mime, ext] of Object.entries(map)) {
 			if (mimeType.includes(mime)) return ext;
@@ -329,7 +338,9 @@ export class ReflectImporter extends FormatImporter {
 		if (urlExtension) {
 			return urlExtension[0];
 		}
-		return '.png';
+		// Image nodes were historically saved as .png; generic files must not
+		// be mislabeled as images.
+		return isImage ? '.png' : '.bin';
 	}
 
 	async import(ctx: ImportContext) {
@@ -428,10 +439,13 @@ export class ReflectImporter extends FormatImporter {
 							? await this.downloadAttachment(attachment, outputPath, claimedAttachmentPaths, downloadedPathsByUrl, ctx)
 							: null;
 						if (localPath) {
-							content = content.replace(attachment.placeholder, () =>
-								attachment.embed ? `![[${localPath}]]` : `[[${localPath}]]`);
+							// Embed only what Obsidian can render; judged from the file
+							// actually saved, so mime/extension inference is respected.
+							const embed = EMBEDDABLE_EXTENSIONS.test(localPath) ? '!' : '';
+							content = content.replace(attachment.placeholder, () => `${embed}[[${localPath}]]`);
 						}
-						else if (attachment.embed) {
+						else if (attachment.isImage) {
+							// External markdown embeds only render for images.
 							content = content.replace(attachment.placeholder, () => `![](${attachment.url})`);
 						}
 						else {

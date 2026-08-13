@@ -12,13 +12,14 @@ export interface AttachmentInfo {
 	url: string;
 	fileName: string;
 	placeholder: string;
-	// Whether Obsidian can render this attachment as an embed (![[...]]);
-	// non-embeddable files get a plain link instead.
-	embed: boolean;
+	// Reflect `image` nodes render remotely via ![](url); `file` nodes only
+	// get a plain link when they stay remote. The local embed decision is
+	// made from the saved file's extension instead (EMBEDDABLE_EXTENSIONS).
+	isImage: boolean;
 }
 
-// File formats Obsidian renders as embeds: https://help.obsidian.md/file-formats
-const EMBEDDABLE_EXTENSIONS = /\.(avif|bmp|gif|jpe?g|png|svg|webp|mp3|wav|m4a|3gp|flac|ogg|oga|opus|mp4|webm|ogv|mov|mkv|pdf)$/i;
+// File formats Obsidian renders as ![[...]] embeds: https://help.obsidian.md/file-formats
+export const EMBEDDABLE_EXTENSIONS = /\.(avif|bmp|gif|jpe?g|png|svg|webp|mp3|wav|m4a|3gp|flac|ogg|oga|opus|mp4|webm|ogv|mov|mkv|pdf)$/i;
 
 export interface ConvertOptions {
 	stripInlineTags?: boolean;
@@ -33,7 +34,13 @@ export function convertDocument(
 	const doc: ProseMirrorNode = JSON.parse(documentJson);
 	const tags = new Set<string>();
 	const attachments: AttachmentInfo[] = [];
-	const ctx: ConvertContext = { idToSubject, tags, attachments, stripInlineTags: options?.stripInlineTags ?? false };
+	const ctx: ConvertContext = {
+		idToSubject,
+		tags,
+		attachments,
+		stripInlineTags: options?.stripInlineTags ?? false,
+		placeholderNonce: Math.random().toString(36).slice(2, 10),
+	};
 
 	let nodes = doc.content || [];
 
@@ -60,6 +67,7 @@ interface ConvertContext {
 	tags: Set<string>;
 	attachments: AttachmentInfo[];
 	stripInlineTags: boolean;
+	placeholderNonce: string;
 }
 
 function convertNodes(nodes: ProseMirrorNode[], ctx: ConvertContext): string {
@@ -101,7 +109,10 @@ function convertNode(node: ProseMirrorNode, ctx: ConvertContext): string {
 			return text + '\n\n';
 		}
 		case 'hardBreak':
-			return '<br>\n';
+			// Block-level break: keep the following text in its own paragraph. A
+			// `<br>` line directly above text would start a CommonMark HTML block
+			// and swallow the markdown after it.
+			return '<br>\n\n';
 		case 'horizontalRule':
 			return '---\n\n';
 		case 'blockquote': {
@@ -237,22 +248,24 @@ function serializeTextRun(nodes: ProseMirrorNode[]): string {
 			...n,
 			marks: (n.marks || []).filter(m => markKey(m) !== outerKey),
 		}));
-		result += applyMark(serializeTextRun(inner), marks[0]);
+		const prevChar = result.slice(-1);
+		const nextChar = (nodes[groupEnd]?.text || '').charAt(0);
+		result += applyMark(serializeTextRun(inner), marks[0], prevChar, nextChar);
 		i = groupEnd;
 	}
 	return result;
 }
 
-function applyMark(text: string, mark: ProseMirrorMark): string {
+function applyMark(text: string, mark: ProseMirrorMark, prevChar: string, nextChar: string): string {
 	switch (mark.type) {
 		case 'bold':
-			return wrapDelimited(text, '**');
+			return wrapEmphasis(text, '**', 'strong', prevChar, nextChar);
 		case 'italic':
-			return wrapDelimited(text, '*');
+			return wrapEmphasis(text, '*', 'em', prevChar, nextChar);
 		case 'code':
 			return wrapCode(text);
 		case 'strike':
-			return wrapDelimited(text, '~~');
+			return wrapEmphasis(text, '~~', 's', prevChar, nextChar);
 		case 'underline':
 			return `<u>${text}</u>`;
 		case 'link': {
@@ -264,12 +277,27 @@ function applyMark(text: string, mark: ProseMirrorMark): string {
 	}
 }
 
-// A closing emphasis delimiter preceded by whitespace never closes, so marked
-// text like "bold text " must keep its whitespace outside the markers.
-function wrapDelimited(text: string, delimiter: string): string {
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+// Emphasis delimiters obey CommonMark flanking rules: enclosing whitespace
+// must stay outside the markers, and some positions (mid-word emphasis around
+// punctuation, delimiter runs colliding) cannot be expressed with delimiters
+// at all — fall back to HTML tags there, which Obsidian renders fine.
+function wrapEmphasis(text: string, delimiter: string, htmlTag: string, prevChar: string, nextChar: string): string {
 	const [, lead, core, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
 	if (!core) {
 		return text;
+	}
+
+	// Opening delimiter is not left-flanking when squeezed between a word
+	// character and punctuation; closing mirrors it.
+	const openUnsafe = !lead && !!prevChar && WORD_CHAR.test(prevChar) && !WORD_CHAR.test(core.charAt(0));
+	const closeUnsafe = !trail && !!nextChar && WORD_CHAR.test(nextChar) && !WORD_CHAR.test(core.slice(-1));
+	// Delimiter runs merge ambiguously when they touch (e.g. '***' + '*C*').
+	const adjacentRun = (!lead && prevChar === delimiter[0]) || (!trail && nextChar === delimiter[0]);
+
+	if (openUnsafe || closeUnsafe || adjacentRun) {
+		return `${lead}<${htmlTag}>${core}</${htmlTag}>${trail}`;
 	}
 	return `${lead}${delimiter}${core}${delimiter}${trail}`;
 }
@@ -342,7 +370,9 @@ function convertLegacyList(node: ProseMirrorNode, ctx: ConvertContext, depth: nu
 		}
 		else {
 			if (!wroteItemPrefix) {
-				if (child.type === 'heading') {
+				// A heading can merge onto a plain bullet ('- ## H' stays a heading
+				// inside the item), but after a task marker '##' is literal text.
+				if (child.type === 'heading' && !prefix.includes('[')) {
 					result += prefixFirstLine(convertNode(child, ctx), indent, prefix, depth);
 				}
 				else {
@@ -418,7 +448,9 @@ function convertItemList(node: ProseMirrorNode, ctx: ConvertContext, depth: numb
 			}
 			else {
 				if (!wroteItemPrefix) {
-					if (child.type === 'heading') {
+					// Same policy as legacy lists: merge headings onto plain bullets
+					// only; after a task marker '##' would be literal text.
+					if (child.type === 'heading' && item.type === 'listItem') {
 						result += prefixFirstLine(convertNode(child, ctx), indent, prefix, depth);
 					}
 					else {
@@ -488,11 +520,10 @@ function convertAttachment(node: ProseMirrorNode, ctx: ConvertContext): string {
 		return '';
 	}
 
-	const embed = node.type === 'image' || EMBEDDABLE_EXTENSIONS.test(fileName || getUrlPathname(url));
-
-	// Generate a unique placeholder
-	const placeholder = `<<REFLECT_ATTACHMENT_${ctx.attachments.length}>>`;
-	ctx.attachments.push({ url, fileName, placeholder, embed });
+	// The nonce keeps note text that happens to contain a placeholder-shaped
+	// string from being replaced by mistake.
+	const placeholder = `<<REFLECT_ATTACHMENT_${ctx.placeholderNonce}_${ctx.attachments.length}>>`;
+	ctx.attachments.push({ url, fileName, placeholder, isImage: node.type === 'image' });
 	return placeholder + '\n\n';
 }
 
