@@ -108,6 +108,20 @@ body.is-mobile .importer-flow.has-button-bar .modal-button-container {
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
 }
 
+/* Obsidian stacks a button container into a column on mobile, which a step in
+   Settings has no need of: Back is in the page's own titlebar, so what is left
+   is Help and Continue, and two buttons fit across even a phone. Only a step —
+   an import that has finished has three, and the progress screen puts stopping
+   where a thumb will not find it by accident. */
+body.is-mobile .importer-flow.has-button-bar .importer-step-buttons {
+	flex-direction: row;
+}
+
+/* Half the bar each, rather than as wide as the words in them. */
+body.is-phone .importer-flow.has-button-bar .importer-step-buttons button {
+	flex: 1;
+}
+
 /* Back and Help sit at the start of a step, and the primary button is pushed
    to the end by its own auto margin. Scoped like the rule above so it wins,
    and only for a step: the progress and finish screens stay end-aligned.
