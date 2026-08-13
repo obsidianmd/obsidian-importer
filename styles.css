@@ -363,15 +363,6 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
    and no card of its own inside one. */
 .setting-items > .import-section {
 	margin: 0;
-	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
-	border-top: var(--setting-items-divider-width) solid var(--background-modifier-border);
-}
-
-.setting-items > .import-section .publish-change-list {
-	padding: 0;
-	background-color: transparent;
-	border: none;
-	border-radius: 0;
 }
 
 .import-section .tree-item-flair {
@@ -379,11 +370,14 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	padding: 0;
 }
 
-.import-section .publish-change-list {
+body:not(.is-mobile) .import-section .publish-change-list {
 	max-height: 200px;
-	height: 200px;
+}
+
+.import-section .publish-change-list {
+	min-height: 200px;
 	overflow-y: auto;
-	padding: var(--size-4-2);
+	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
 	background-color: var(--setting-items-background);
 	border-radius: var(--setting-items-radius);
 	corner-shape: var(--corner-shape);
