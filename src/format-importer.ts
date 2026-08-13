@@ -458,6 +458,7 @@ export abstract class FormatImporter {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
 					showLinking(!!secretId);
+					this.secretChanged(!!secretId);
 					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));
@@ -469,12 +470,12 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * The user linked a credential, or unlinked the one that was there.
+	 * There is a credential to work with, or there is no longer one.
 	 *
 	 * A format that lists what the credential reaches reads it here, so the list
 	 * arrives with the token rather than waiting to be asked for a second time.
-	 * Only the choice fires this: a token remembered from a previous session is
-	 * restored without going and fetching anything.
+	 * Linking one says this, and so does arriving on the step with one already
+	 * remembered from a previous session.
 	 */
 	protected secretChanged(linked: boolean): void {
 	}
