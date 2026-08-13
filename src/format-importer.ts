@@ -376,9 +376,9 @@ export abstract class FormatImporter {
 	 * Start a card of its own for the settings that follow, for a group that
 	 * is not read with the one before it.
 	 */
-	protected startGroup(step: ImporterStep = 'options', heading?: string): void {
+	protected startGroup(step: ImporterStep = 'options', heading?: string): SettingGroup | null {
 		const contentEl = this.stepEl(step);
-		if (contentEl) this.startGroupIn(contentEl, heading);
+		return contentEl ? this.startGroupIn(contentEl, heading) : null;
 	}
 
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {

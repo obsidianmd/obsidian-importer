@@ -70,7 +70,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 				if (options.loadsItself) button.buttonEl.hide();
 			});
 
-		this.treeEl = containerEl
+		// Beside the row it belongs to, in the card that row is in.
+		const treeParentEl = options.setting?.settingEl.parentElement ?? containerEl;
+
+		this.treeEl = treeParentEl
 			.createDiv('import-section file-tree publish-section')
 			.createDiv('publish-change-list');
 

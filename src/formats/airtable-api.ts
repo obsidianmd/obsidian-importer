@@ -156,6 +156,9 @@ export class AirtableAPIImporter extends FormatImporter {
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
+		// What to import is a card of its own: the row, and what it lists.
+		this.startGroup('source');
+
 		this.picker = new TreePicker<AirtableTreeNode>(contentEl, {
 			setting: this.addSetting('source'),
 			name: i18n.importer.airtableApi.nameTables(),

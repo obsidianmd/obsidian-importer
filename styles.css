@@ -329,6 +329,21 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	margin-top: var(--size-4-3);
 }
 
+/* Drawn in the card of the row that loads it: the row's own divider above it,
+   and no card of its own inside one. */
+.setting-items > .import-section {
+	margin: 0;
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
+	border-top: var(--setting-items-divider-width) solid var(--background-modifier-border);
+}
+
+.setting-items > .import-section .publish-change-list {
+	padding: 0;
+	background-color: transparent;
+	border: none;
+	border-radius: 0;
+}
+
 .import-section .tree-item-flair {
 	color: var(--text-faint);
 	padding: 0;
