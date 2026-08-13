@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=אסימון גישה אישי של Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=צור אסימון גישה אישי בהגדרות חשבון ה-Airtable שלך. 
+original=Create a personal access token in your Airtable account settings.
+translation=צור אסימון גישה אישי בהגדרות חשבון ה-Airtable שלך.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=מייבא קבצים מצורפים לא תואמים שלא נית
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=חשבון Microsoft
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=אסימון API של Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=כדי לקבל אסימון API, צור חיבור ב-Notion ותן לו גישה לדפים במרחב העבודה שלך. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=כדי לקבל אסימון API, צור חיבור ב-Notion ותן לו גישה לדפים במרחב העבודה שלך.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=קבל אסימון API.
 
 [importer.notion-api.name-pages]

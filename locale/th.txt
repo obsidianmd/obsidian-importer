@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=โทเค็นการเข้าถึงส่วนบุคคล Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=สร้างโทเค็นการเข้าถึงส่วนบุคคลในการตั้งค่าบัญชี Airtable ของคุณ 
+original=Create a personal access token in your Airtable account settings.
+translation=สร้างโทเค็นการเข้าถึงส่วนบุคคลในการตั้งค่าบัญชี Airtable ของคุณ
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=นำเข้าไฟล์แนบที่ไม่รอง�
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=บัญชี Microsoft
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=โทเค็น Notion API
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=หากต้องการรับโทเค็น API ให้สร้างการเชื่อมต่อใน Notion แล้วให้สิทธิ์เข้าถึงหน้าต่าง ๆ ในพื้นที่ทำงานของคุณ 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=หากต้องการรับโทเค็น API ให้สร้างการเชื่อมต่อใน Notion แล้วให้สิทธิ์เข้าถึงหน้าต่าง ๆ ในพื้นที่ทำงานของคุณ
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=รับโทเค็น API
 
 [importer.notion-api.name-pages]

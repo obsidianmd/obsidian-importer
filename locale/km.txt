@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable personal access token
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=បង្កើត personal access token នៅក្នុងការកំណត់គណនី Airtable របស់អ្នក។ 
+original=Create a personal access token in your Airtable account settings.
+translation=បង្កើត personal access token នៅក្នុងការកំណត់គណនី Airtable របស់អ្នក។
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=នាំចូលឯកសារភ្ជាប់មិនឆប�
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=គណនី Microsoft
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=ថូខឹន Notion API
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=ដើម្បីទទួលបានថូខឹន API សូមបង្កើតការតភ្ជាប់នៅក្នុង Notion ហើយផ្តល់សិទ្ធិចូលប្រើទំព័រនៅក្នុងតំបន់ការងាររបស់អ្នក។ 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=ដើម្បីទទួលបានថូខឹន API សូមបង្កើតការតភ្ជាប់នៅក្នុង Notion ហើយផ្តល់សិទ្ធិចូលប្រើទំព័រនៅក្នុងតំបន់ការងាររបស់អ្នក។
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=ទទួលបានថូខឹន API។
 
 [importer.notion-api.name-pages]

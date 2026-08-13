@@ -146,10 +146,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	private addAccessSetting(): void {
-		this.addConnectSetting(
-			i18n.importer.appleNotes.nameAccess(),
-			i18n.importer.appleNotes.descDataFolder(),
-		);
+		this.addConnectSetting(i18n.importer.appleNotes.nameAccess());
 
 		const setting = this.addSetting('source');
 		if (!setting) return;
@@ -158,7 +155,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const showAccess = () => {
 			if (!this.dataPath) {
-				setting.setDesc('');
+				setting.setDesc(i18n.importer.appleNotes.descDataFolder());
 				return;
 			}
 

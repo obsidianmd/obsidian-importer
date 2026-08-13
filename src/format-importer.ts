@@ -326,10 +326,11 @@ export abstract class FormatImporter {
 	 * import, and the way to the instructions for doing it. What it is done
 	 * with — a token, an account, a folder — is the row below.
 	 */
-	protected addConnectSetting(name: string, desc: string | DocumentFragment): Setting | null {
-		return this.addInstructions(this.addSetting('source')
-			?.setName(name)
-			.setDesc(desc) ?? null);
+	protected addConnectSetting(name: string, desc?: string | DocumentFragment): Setting | null {
+		const setting = this.addSetting('source')?.setName(name) ?? null;
+		if (desc) setting?.setDesc(desc);
+
+		return this.addInstructions(setting);
 	}
 
 	/**
@@ -399,7 +400,7 @@ export abstract class FormatImporter {
 	 *
 	 * Read the credential back with getSecret().
 	 */
-	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
+	addSecretSetting(name: string, description?: string | DocumentFragment, external?: { text: string, url: string }): Setting | null {
 		let setting = this.addSetting('source');
 
 		if (!setting) {
@@ -416,10 +417,25 @@ export abstract class FormatImporter {
 			setting.setDesc(description);
 		}
 
+		// Where to go and get one, for as long as there is none to link.
+		let externalEl: HTMLElement | null = null;
+
+		if (external) {
+			setting.addButton(button => {
+				externalEl = button.buttonEl;
+				button
+					.setButtonText(external.text)
+					.onClick(() => window.open(external.url));
+			});
+		}
+
+		const showExternal = (linked: boolean) => externalEl?.toggle(!linked);
+
 		setting.addComponent(el => {
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
+					showExternal(!!this.secretId);
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
@@ -428,6 +444,7 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
+					showExternal(!!secretId);
 					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));

@@ -147,8 +147,11 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
-		this.addConnectSetting(i18n.importer.airtableApi.nameConnect(), this.createTokenDescription());
-		this.addSecretSetting(i18n.importer.airtableApi.nameToken());
+		this.addConnectSetting(i18n.importer.airtableApi.nameConnect());
+		this.addSecretSetting(i18n.importer.airtableApi.nameToken(), i18n.importer.airtableApi.descToken(), {
+			text: i18n.importer.airtableApi.linkGetToken(),
+			url: 'https://airtable.com/create/tokens',
+		});
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
@@ -219,15 +222,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		});
 	}
 
-	private createTokenDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.airtableApi.descToken());
-		frag.createEl('a', {
-			text: i18n.importer.airtableApi.linkGetToken(),
-			href: 'https://airtable.com/create/tokens',
-		});
-		return frag;
-	}
 
 	/**
 	 * Load base and table tree from Airtable API

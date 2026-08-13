@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable 個人存取權杖
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=在您的 Airtable 帳戶設定中建立個人存取權杖。 
+original=Create a personal access token in your Airtable account settings.
+translation=在您的 Airtable 帳戶設定中建立個人存取權杖。
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=匯入無法嵌入 Obsidian 的不相容附件，例如 .exe 檔案�
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft 帳戶
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=Notion API 權杖
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=若要取得 API 權杖，請在 Notion 中建立連線，並授予其存取工作區中頁面的權限。 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=若要取得 API 權杖，請在 Notion 中建立連線，並授予其存取工作區中頁面的權限。
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=取得 API 權杖。
 
 [importer.notion-api.name-pages]

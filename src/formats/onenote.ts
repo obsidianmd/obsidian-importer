@@ -235,7 +235,7 @@ export class OneNoteImporter extends FormatImporter {
 			return;
 		}
 
-		this.addConnectSetting(i18n.importer.onenote.nameConnect(), i18n.importer.onenote.descConnect());
+		this.addConnectSetting(i18n.importer.onenote.nameConnect());
 
 		this.accountSetting = new Setting(this.settingsIn(contentEl))
 			.setName(i18n.importer.onenote.nameAccount());

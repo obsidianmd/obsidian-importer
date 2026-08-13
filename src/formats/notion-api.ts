@@ -133,8 +133,11 @@ export class NotionAPIImporter extends FormatImporter {
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.idLabel = i18n.importer.notionApi.labelId();
 
-		this.addConnectSetting(i18n.importer.notionApi.nameConnect(), this.createTokenDescription());
-		this.addSecretSetting(i18n.importer.notionApi.nameToken());
+		this.addConnectSetting(i18n.importer.notionApi.nameConnect());
+		this.addSecretSetting(i18n.importer.notionApi.nameToken(), i18n.importer.notionApi.descToken(), {
+			text: i18n.importer.notionApi.linkGetToken(),
+			url: 'https://app.notion.com/developers/connections',
+		});
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
@@ -234,15 +237,6 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 	}
 
-	private createTokenDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.notionApi.descToken());
-		frag.createEl('a', {
-			text: i18n.importer.notionApi.linkGetToken(),
-			href: 'https://app.notion.com/developers/connections',
-		});
-		return frag;
-	}
 
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = createFragment();

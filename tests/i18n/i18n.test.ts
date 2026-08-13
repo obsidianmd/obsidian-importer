@@ -123,10 +123,10 @@ test('the French strings that sit next to other text still read as sentences', (
 		'Ignoré : « note »'
 	);
 
-	// A description runs straight into the link that follows it. Keep's does
-	// not any more: the documentation moved to the button beside it.
-	assert.match(i18n.importer.airtableApi.descToken(), /Airtable\. $/);
-	assert.match(i18n.importer.notionApi.descToken(), /travail\. $/);
+	// A description that once ran into a link ends where the sentence ends:
+	// the link is a button beside it now, for Keep as for the tokens.
+	assert.doesNotMatch(i18n.importer.airtableApi.descToken(), / $/);
+	assert.doesNotMatch(i18n.importer.notionApi.descToken(), / $/);
 	assert.doesNotMatch(i18n.importer.keep.descExport(), / $/);
 
 	// One of something is singular.

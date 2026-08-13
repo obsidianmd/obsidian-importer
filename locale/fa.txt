@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=توکن دسترسی شخصی Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=یک توکن دسترسی شخصی در تنظیمات حساب Airtable خود بسازید. 
+original=Create a personal access token in your Airtable account settings.
+translation=یک توکن دسترسی شخصی در تنظیمات حساب Airtable خود بسازید.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=پیوست‌های ناسازگاری را که نمی‌توان �
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=حساب Microsoft
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=توکن API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود بدهید. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود بدهید.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=دریافت توکن API.
 
 [importer.notion-api.name-pages]

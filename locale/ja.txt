@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable パーソナルアクセストークン
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Airtable のアカウント設定でパーソナルアクセストークンを作成してください。 
+original=Create a personal access token in your Airtable account settings.
+translation=Airtable のアカウント設定でパーソナルアクセストークンを作成してください。
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=.exe ファイルなど、Obsidian に埋め込むことができな
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft アカウント
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=Notion API トークン
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセス権を付与してください。 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセス権を付与してください。
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=API トークンを取得する。
 
 [importer.notion-api.name-pages]

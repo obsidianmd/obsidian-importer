@@ -699,8 +699,8 @@ original=Airtable personal access token
 translation=Osobisty token dostępu Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Stwórz osobisty token dostępu w ustawieniach konta Airtable. 
+original=Create a personal access token in your Airtable account settings.
+translation=Stwórz osobisty token dostępu w ustawieniach konta Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1322,10 +1322,6 @@ translation=Importuje niekompatybilne załączniki, których nie można osadzić
 original=Connect to OneNote
 translation=
 
-[importer.onenote.desc-connect]
-original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Konto Microsoft
@@ -1571,11 +1567,11 @@ original=Notion API token
 translation=Token API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Aby uzyskać token API, utwórz połączenie w Notion i nadaj mu dostęp do stron w Twoim obszarze roboczym. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Aby uzyskać token API, utwórz połączenie w Notion i nadaj mu dostęp do stron w Twoim obszarze roboczym.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Uzyskaj token API.
 
 [importer.notion-api.name-pages]
