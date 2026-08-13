@@ -49,6 +49,35 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	border-top: none;
 }
 
+/* The step's buttons stay in reach however long the step is. Sticky rather
+   than fixed: Settings gives a page `will-change: transform` for the slide it
+   arrives on, which makes that page the containing block for anything fixed
+   inside it — and since the page is also the scroller, a bar fixed to the
+   bottom scrolls away with the content it was meant to sit over. Sticky is
+   the same shape Obsidian's own .setting-page-titlebar takes at the top of
+   that scroller, background and all, so the step reads through it. */
+body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+	padding-inline: 0;
+	/* The safe area is the bar's own padding rather than a margin below it, so
+	   the background reaches the bottom of the screen instead of stopping in a
+	   transparent strip the step scrolls through. */
+	margin-bottom: 0;
+	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
+	background-color: var(--settings-background);
+	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
+}
+
+/* A settings page keeps a phone's worth of room below its content, and a
+   sticky bar cannot reach past it — 100px short of the bottom is exactly what
+   it reads as floating. The bar carries the safe area itself instead. Scoped
+   through the settings modal to outweigh the rule that sets the padding. */
+body.is-phone .modal.mod-settings .setting-page.importer-flow {
+	padding-bottom: 0;
+}
+
 /* Back and Help sit at the start of a step, and the primary button is pushed
    to the end by its own auto margin. Scoped like the rule above so it wins,
    and only for a step: the progress and finish screens stay end-aligned.
