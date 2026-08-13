@@ -448,7 +448,7 @@ export abstract class FormatImporter {
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
 					showLinking(!!this.secretId);
-					this.secretChanged(!!this.secretId);
+					this.secretChanged();
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
@@ -458,7 +458,7 @@ export abstract class FormatImporter {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
 					showLinking(!!secretId);
-					this.secretChanged(!!secretId);
+					this.secretChanged();
 					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));
@@ -470,14 +470,15 @@ export abstract class FormatImporter {
 	}
 
 	/**
-	 * There is a credential to work with, or there is no longer one.
+	 * What getSecret() answers has changed.
 	 *
 	 * A format that lists what the credential reaches reads it here, so the list
 	 * arrives with the token rather than waiting to be asked for a second time.
 	 * Linking one says this, and so does arriving on the step with one already
-	 * remembered from a previous session.
+	 * remembered from a previous session. Nothing here was asked for, so nothing
+	 * here has anything to say about a credential that is missing.
 	 */
-	protected secretChanged(linked: boolean): void {
+	protected secretChanged(): void {
 	}
 
 	/**

@@ -226,8 +226,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 
-	protected secretChanged(linked: boolean): void {
-		if (linked) void this.loadTree();
+	protected secretChanged(): void {
+		if (this.airtableToken) void this.loadTree();
 		else this.picker.reset();
 	}
 
