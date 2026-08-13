@@ -64,16 +64,21 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	will-change: auto;
 }
 
-/* Room for the bar to sit over, which is what the modal reserves for its own.
-   A phone stacks the buttons into a column and the page already keeps a
+/* The scroller ends where the bar begins, so its scrollbar ends there too
+   rather than running on behind it. The modal takes the same measurement off
+   its own content for the same reason; here it has to be the height, since a
+   page is `height: 100%` in a box that clips, and a margin would only hang
+   past the bottom of it.
+
+   A phone stacks the buttons into a column, and the page there already keeps a
    phone's worth of room below its content. */
 body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-bar {
-	padding-bottom: calc(var(--input-height) + var(--size-4-8) + var(--size-4-2));
+	height: calc(100% - (var(--input-height) + var(--size-4-8)));
+	padding-bottom: var(--size-4-4);
 }
 
-/* The page's own bottom padding is what the screen scrolls clear of the bar
-   by. The buttons keep the inset the cards above them have, so Continue ends
-   where the card ends rather than at the edge of the pane. */
+/* The buttons keep the inset the cards above them have, so Continue ends where
+   the card ends rather than at the edge of the pane. */
 .importer-flow.has-button-bar .modal-button-container {
 	position: absolute;
 	bottom: 0;
