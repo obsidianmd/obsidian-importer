@@ -202,6 +202,10 @@ export class ImporterModal extends Modal implements ImporterShell {
 		this.modalEl.toggleClass('is-picking-format', picking);
 	}
 
+	/** The modal's own bar sits at its bottom whatever screen is in it. */
+	setStepButtons(present: boolean): void {
+	}
+
 	finish(): void {
 		this.close();
 	}

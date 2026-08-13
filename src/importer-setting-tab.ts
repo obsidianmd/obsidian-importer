@@ -138,6 +138,11 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.containerEl.toggleClass('is-picking-format', picking);
 	}
 
+	/** On the page itself, which is what the bar is laid out against. */
+	setStepButtons(present: boolean): void {
+		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-step-buttons', present);
+	}
+
 	finish(): void {
 		this.app.setting.close();
 	}

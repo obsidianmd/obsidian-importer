@@ -80,13 +80,13 @@ body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
    sticky bar cannot reach past it — 100px short of the bottom is exactly what
    it reads as floating. The bar carries the safe area itself instead. Scoped
    through the settings modal to outweigh the rule that sets the padding. */
-body.is-phone .modal.mod-settings .setting-page.importer-flow:has(.importer-step-buttons) {
+body.is-phone .modal.mod-settings .setting-page.importer-flow.has-step-buttons {
 	padding-bottom: 0;
 	display: flex;
 	flex-direction: column;
 }
 
-body.is-phone .modal.mod-settings .setting-page.importer-flow > .setting-page-content:has(.importer-step-buttons) {
+body.is-phone .modal.mod-settings .setting-page.importer-flow.has-step-buttons > .setting-page-content {
 	display: flex;
 	flex-direction: column;
 	flex: 1 0 auto;

@@ -63,6 +63,12 @@ export interface ImporterShell {
 	setScreen(depth: number, title: string): void;
 	/** The format list fills the shell; every other screen ends in a button bar. */
 	setPickingFormat(picking: boolean): void;
+	/**
+	 * Whether the screen just drawn ends in a step's own row of buttons, which
+	 * is the row that sits at the bottom of the screen rather than after the
+	 * settings. Only the screen showing it lays itself out around it.
+	 */
+	setStepButtons(present: boolean): void;
 	/** Done: the modal closes, the setting tab closes the settings window. */
 	finish(): void;
 	/** Show a shell the user has left, to return to the import in it. */
@@ -196,12 +202,21 @@ export class ImporterFlow implements ImporterHost {
 			if (drawn instanceof Promise) {
 				void drawn
 					.catch(e => console.error('Could not draw the import', e))
-					.finally(() => this.drawing = false);
+					.finally(() => this.drawn());
 			}
 			else {
-				this.drawing = false;
+				this.drawn();
 			}
 		}
+	}
+
+	/**
+	 * A screen has finished drawing. The shell it drew into is the one that was
+	 * opened for it, so what it ended with is only known now.
+	 */
+	private drawn(): void {
+		this.drawing = false;
+		this.shell.setStepButtons(!!this.shell.contentEl.querySelector('.importer-step-buttons'));
 	}
 
 	/**

@@ -54,6 +54,13 @@ leaves those it passed empty.
 A running import is the exception with nothing behind it. Its back leaves
 the flow altogether, and unwinds however many pages that takes.
 
+A screen also says whether it ended in the step's own row of buttons, which
+is the row that sits at the bottom of a phone's screen rather than after the
+settings. `setStepButtons` is told once the screen has drawn, since only then
+is the page it drew into the one to lay out around it. **Obsidian's CSS may
+not use `:has()`**, which is why the shell puts a class on the page rather
+than the stylesheet asking what is inside it.
+
 Settings are drawn in cards, one per group: `addSetting` keeps to the group
 its step is on, and `startGroup` breaks it where two settings are not read
 together. A group takes a heading only where one was already being shown —
