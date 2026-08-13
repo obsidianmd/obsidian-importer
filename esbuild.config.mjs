@@ -32,6 +32,30 @@ const stubInquirePlugin = {
 	},
 };
 
+// protobufjs and sax probe for `fs` and `stream` with a bare require, each
+// guarded by a try/catch and a fallback for when the module is absent. Obsidian
+// logs "Attempting to load NodeJS package" before that catch runs, so loading
+// the plugin printed a stack trace per probe for features neither library is
+// used for here (reading a .proto off disk; sax's stream API). Answering with an
+// empty module leaves each library on the browser path it already has. Our own
+// node access goes through src/filesystem.ts, which asks for `node:fs` and is
+// not what this matches.
+const PROBING_MODULE = /[\\/](@?protobufjs|sax)[\\/]/;
+
+const stubOptionalNodePlugin = {
+	name: 'stub-optional-node-requires',
+	setup(build) {
+		build.onResolve({ filter: /^(fs|stream)$/ }, args => {
+			if (!PROBING_MODULE.test(args.importer)) return null;
+			return { path: args.path, namespace: 'stub-node' };
+		});
+		build.onLoad({ filter: /.*/, namespace: 'stub-node' }, () => ({
+			contents: 'module.exports = {};',
+			loader: 'js',
+		}));
+	},
+};
+
 const PLUGIN_ID = JSON.parse(fs.readFileSync("manifest.json", "utf8")).id;
 
 // Load OBSIDIAN_PATH from .env (path to your vault's plugins folder, relative
@@ -192,7 +216,9 @@ const context = await esbuild.context({
 	minify: prod,
 	platform: 'browser',
 	treeShaking: true,
-	plugins: prod ? [stubInquirePlugin] : [stubInquirePlugin, copyPlugin],
+	plugins: prod
+		? [stubInquirePlugin, stubOptionalNodePlugin]
+		: [stubInquirePlugin, stubOptionalNodePlugin, copyPlugin],
 	outfile,
 });
 
