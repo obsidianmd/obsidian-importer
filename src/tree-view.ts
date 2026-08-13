@@ -65,7 +65,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			})
 			.addButton(button => {
 				this.loadButton = button;
-				button.buttonEl.addClass('importer-tree-button', 'mod-cta');
+				button.buttonEl.addClass('importer-tree-button');
 				button.setButtonText(i18n.tree.buttonLoad());
 				if (options.loadsItself) button.buttonEl.hide();
 			});
@@ -101,7 +101,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 			throw e;
 		}
 		finally {
-			this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh()).removeCta();
+			this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh());
 		}
 	}
 
@@ -112,7 +112,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	reset(): void {
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
-		this.loadButton.setButtonText(i18n.tree.buttonLoad()).setCta();
+		this.loadButton.setButtonText(i18n.tree.buttonLoad());
 		this.setStatus(this.options.hint);
 		this.options.onChange?.();
 	}
