@@ -371,8 +371,8 @@ original=Files to import
 translation=Файлы для импорта
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=Выберите файлы, которые вы хотите импортировать.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

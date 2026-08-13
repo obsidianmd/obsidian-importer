@@ -371,8 +371,8 @@ original=Files to import
 translation=ឯកសារដែលត្រូវនាំចូល
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=ជ្រើសរើសឯកសារដែលអ្នកចង់នាំចូល។
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

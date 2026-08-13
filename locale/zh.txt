@@ -371,8 +371,8 @@ original=Files to import
 translation=要导入的文件
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=选择你要导入的文件。
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

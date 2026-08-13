@@ -371,8 +371,8 @@ original=Files to import
 translation=가져올 파일
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=가져올 파일을 선택하세요.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

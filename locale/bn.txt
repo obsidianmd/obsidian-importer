@@ -371,8 +371,8 @@ original=Files to import
 translation=ইম্পোর্ট করার ফাইল
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=আপনি যে ফাইলগুলো ইম্পোর্ট করতে চান সেগুলো বেছে নিন।
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

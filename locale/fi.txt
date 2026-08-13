@@ -371,8 +371,8 @@ original=Files to import
 translation=Tuotavat tiedostot
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=Valitse tiedostot, jotka haluat tuoda.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

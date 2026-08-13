@@ -371,8 +371,8 @@ original=Files to import
 translation=File untuk diimpor
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=Pilih file yang ingin Anda impor.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

@@ -371,8 +371,8 @@ original=Files to import
 translation=Fitxers a importar
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=Tria els fitxers que vols importar.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file

@@ -371,7 +371,7 @@ original=Files to import
 translation=
 
 [source.desc]
-original=Pick the files that you want to import.
+original=Drag and drop, or choose files to import.
 translation=
 
 [source.button-choose-file]

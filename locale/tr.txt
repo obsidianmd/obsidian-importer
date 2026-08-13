@@ -371,8 +371,8 @@ original=Files to import
 translation=İçe aktarılacak dosyalar
 
 [source.desc]
-original=Pick the files that you want to import.
-translation=İçe aktarmak istediğiniz dosyaları seçin.
+original=Drag and drop, or choose files to import.
+translation=
 
 [source.button-choose-file]
 original=Choose file
