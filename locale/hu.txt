@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} jegyzet importálva
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Kattints a megjelenítéshez.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Hiba történt a bejelentkezés során.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Kattints ide a hiba részleteinek megtekintéséhez
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Importálandó oldalak
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Kattintson a "Betöltés" gombra az importálható adatok megtekintéséhez. Ha egy oldal vagy adatbázis hiányzik, ellenőrizze, hogy a Notion kapcsolat hozzáfér-e hozzá.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Kattintson a "Betöltés" gombra a Notion oldalak és adatbázisok betöltéséhez.
 
 [importer.notion-api.msg-loading-pages]

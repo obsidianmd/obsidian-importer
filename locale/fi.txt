@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} muistiinpanoa tuotu
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Näytä napsauttamalla.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Kirjautumisen aikana tapahtui virhe.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Napsauta tätä nähdäksesi virhetiedot
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Tuotavat sivut
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Napsauta "Lataa" nähdäksesi tuotavissa olevat tiedot. Jos sivu tai tietokanta puuttuu, tarkista, että Notion-yhteydellä on pääsy siihen.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Napsauta "Lataa" ladataksesi Notion-sivut ja -tietokannat.
 
 [importer.notion-api.msg-loading-pages]

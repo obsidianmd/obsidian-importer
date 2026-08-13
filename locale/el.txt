@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} σημειώσεις εισήχθησαν
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Κάντε κλικ για εμφάνιση.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Παρουσιάστηκε σφάλμα κατά την προσπάθεια σύνδεσης.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Κάντε κλικ εδώ για εμφάνιση λεπτομερειών σφάλματος
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Σελίδες για εισαγωγή
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Κάντε κλικ στο "Φόρτωση" για να δείτε τα δεδομένα που μπορείτε να εισαγάγετε. Αν λείπει μια σελίδα ή βάση δεδομένων, ελέγξτε ότι η σύνδεσή σας στο Notion έχει πρόσβαση σε αυτήν.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Κάντε κλικ στο "Φόρτωση" για να φορτώσετε τις σελίδες και τις βάσεις δεδομένων σας στο Notion.
 
 [importer.notion-api.msg-loading-pages]

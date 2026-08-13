@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation=已匯入 {{count}} 則筆記
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}。點擊以顯示。
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=嘗試登入時發生錯誤。
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=點此顯示錯誤詳情
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=要匯入的頁面
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=點擊「載入」以查看可匯入的資料。若頁面或資料庫未顯示，請確認您的 Notion 連線已有其存取權限。
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=點擊「載入」以載入您的 Notion 頁面與資料庫。
 
 [importer.notion-api.msg-loading-pages]

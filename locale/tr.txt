@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} not içe aktarıldı
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Göstermek için tıklayın.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Oturum açmaya çalışırken bir hata oluştu.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Hata ayrıntılarını görmek için buraya tıklayın
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=İçe aktarılacak sayfalar
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=İçe aktarabileceğiniz verileri görmek için "Yükle"ye tıklayın. Bir sayfa veya veritabanı eksikse Notion bağlantınızın ona erişimi olduğundan emin olun.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Notion sayfalarınızı ve veritabanlarınızı yüklemek için "Yükle"ye tıklayın.
 
 [importer.notion-api.msg-loading-pages]

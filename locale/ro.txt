@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} însemnări importate
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Apasă pentru a afișa.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=A apărut o eroare la autentificare.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Faceți clic aici pentru a vedea detaliile erorii
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Pagini de importat
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Faceți clic pe "Încarcă" pentru a vedea datele pe care le puteți importa. Dacă o pagină sau o bază de date lipsește, verificați că conexiunea Notion are acces la ea.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Faceți clic pe "Încarcă" pentru a încărca paginile și bazele de date Notion.
 
 [importer.notion-api.msg-loading-pages]

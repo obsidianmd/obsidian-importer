@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}}টি নোট ইম্পোর্ট হয়েছে
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}। দেখতে ক্লিক করুন।
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=সাইন ইন করার সময় একটি ত্রুটি ঘটেছে।
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=ত্রুটির বিস্তারিত দেখতে এখানে ক্লিক করুন
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=ইম্পোর্ট করার পৃষ্ঠা
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=ইম্পোর্টযোগ্য ডেটা দেখতে "লোড" ক্লিক করুন। কোনো পৃষ্ঠা বা ডেটাবেস না থাকলে, আপনার Notion সংযোগের সেটিতে অ্যাক্সেস আছে কিনা পরীক্ষা করুন।
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=আপনার Notion পৃষ্ঠা এবং ডেটাবেস লোড করতে "লোড" ক্লিক করুন।
 
 [importer.notion-api.msg-loading-pages]

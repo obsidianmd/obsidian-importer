@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation=יובאו {{count}} הערות
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. לחץ להצגה.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=אירעה שגיאה בניסיון להתחבר.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=לחץ כאן כדי להציג פרטי שגיאה
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=דפים לייבוא
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=לחץ על "טען" כדי לראות נתונים שניתן לייבא. אם דף או מסד נתונים חסרים, בדוק שלחיבור Notion שלך יש גישה אליהם.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=לחץ על "טען" כדי לטעון את הדפים ומסדי הנתונים שלך מ-Notion.
 
 [importer.notion-api.msg-loading-pages]

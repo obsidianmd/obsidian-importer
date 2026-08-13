@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} заметок импортировано
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Нажмите, чтобы показать.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=При попытке входа произошла ошибка.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Нажмите здесь, чтобы показать подробности ошибки
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Страницы для импорта
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Нажмите «Загрузить», чтобы увидеть доступные для импорта данные. Если страница или база данных отсутствует, проверьте, что ваше подключение Notion имеет к ней доступ.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Нажмите «Загрузить», чтобы загрузить страницы и базы данных Notion.
 
 [importer.notion-api.msg-loading-pages]

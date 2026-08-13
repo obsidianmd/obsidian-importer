@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} notities geïmporteerd
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Klik om te tonen.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Er is een fout opgetreden bij het inloggen.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Klik hier om foutdetails te tonen
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Te importeren pagina's
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Klik op "Laden" om gegevens te zien die je kunt importeren. Als een pagina of database ontbreekt, controleer dan of je Notion-verbinding er toegang toe heeft.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Klik op "Laden" om je Notion-pagina's en databases te laden.
 
 [importer.notion-api.msg-loading-pages]

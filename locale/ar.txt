@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation=تم استيراد {{count}} ملاحظة
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. انقر للعرض.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=حدث خطأ أثناء محاولة تسجيل الدخول.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=انقر هنا لعرض تفاصيل الخطأ
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=الصفحات المراد استيرادها
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=انقر "تحميل" لعرض البيانات التي يمكنك استيرادها. إذا كانت صفحة أو قاعدة بيانات مفقودة، تحقق من أن اتصال Notion لديه حق الوصول إليها.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=انقر "تحميل" لتحميل صفحات Notion وقواعد البيانات الخاصة بك.
 
 [importer.notion-api.msg-loading-pages]

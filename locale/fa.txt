@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} یادداشت وارد شد
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. برای نمایش کلیک کنید.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=هنگام ورود خطایی رخ داد.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=برای مشاهده جزئیات خطا اینجا کلیک کنید
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=صفحات برای وارد کردن
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=روی «بارگیری» کلیک کنید تا داده‌هایی که می‌توانید وارد کنید را ببینید. اگر صفحه یا پایگاه داده‌ای وجود ندارد، بررسی کنید که اتصال Notion شما به آن دسترسی دارد.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=روی «بارگیری» کلیک کنید تا صفحات و پایگاه‌های داده Notion شما بارگیری شوند.
 
 [importer.notion-api.msg-loading-pages]

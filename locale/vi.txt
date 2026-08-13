@@ -291,7 +291,7 @@ original={{count}} notes imported
 translation={{count}} ghi chú đã nhập
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Nhấn để hiển thị.
 
 [progress.status-waiting]
@@ -1355,7 +1355,7 @@ original=An error occurred while trying to sign you in.
 translation=Đã xảy ra lỗi khi cố đăng nhập.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Nhấn vào đây để xem chi tiết lỗi
 
 [importer.onenote.msg-signed-out]
@@ -1579,11 +1579,11 @@ original=Pages to import
 translation=Các trang cần nhập
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Nhấp "Tải" để xem dữ liệu bạn có thể nhập. Nếu một trang hoặc cơ sở dữ liệu bị thiếu, hãy kiểm tra kết nối Notion của bạn có quyền truy cập tới nó.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Nhấp "Tải" để tải các trang và cơ sở dữ liệu Notion của bạn.
 
 [importer.notion-api.msg-loading-pages]
