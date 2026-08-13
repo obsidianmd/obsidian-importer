@@ -370,7 +370,7 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	padding: 0;
 }
 
-body:not(.is-mobile) .import-section .publish-change-list {
+body:not(.is-phone) .import-section .publish-change-list {
 	max-height: 200px;
 }
 
