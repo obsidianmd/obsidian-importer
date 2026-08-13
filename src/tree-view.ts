@@ -55,12 +55,14 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 	private toggleButton: ButtonComponent;
 	private loadButton: ButtonComponent;
+	private rowEl: HTMLElement;
+	private sectionEl: HTMLElement;
 	private filterEl: HTMLElement;
 	private search: SearchComponent;
 	private query: string = '';
 
 	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
-		(options.setting ?? new Setting(containerEl))
+		const setting = (options.setting ?? new Setting(containerEl))
 			.setName(options.name)
 			.setDesc(options.desc ?? '')
 			.addButton(button => {
@@ -80,8 +82,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 			});
 
 		// Beside the row it belongs to, in the card that row is in.
+		this.rowEl = setting.settingEl;
 		const treeParentEl = options.setting?.settingEl.parentElement ?? containerEl;
-		const sectionEl = treeParentEl.createDiv('import-section file-tree publish-section');
+		this.sectionEl = treeParentEl.createDiv('import-section file-tree publish-section');
+		const sectionEl = this.sectionEl;
 
 		// Above what it narrows, and only once there is something to narrow.
 		this.filterEl = sectionEl.createDiv('importer-tree-filter');
@@ -101,6 +105,15 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 	onLoad(action: () => void): void {
 		this.loadButton.onClick(action);
+	}
+
+	/**
+	 * Whether the picker is shown at all: its row and what it lists, which now
+	 * share a card with the settings above rather than having one to hide.
+	 */
+	toggle(shown: boolean): void {
+		this.rowEl.toggle(shown);
+		this.sectionEl.toggle(shown);
 	}
 
 	async load(load: () => Promise<T[]>): Promise<void> {

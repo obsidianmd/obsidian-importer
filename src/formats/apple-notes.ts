@@ -186,9 +186,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 	private drawFolderPicker(): void {
 		this.draw(contentEl => {
-			// What to import is a card of its own: the row, and what it lists.
-			this.startGroup('source');
-
 			this.picker = new TreePicker<AppleNotesTreeNode>(contentEl, {
 				setting: this.addSetting('source'),
 				name: i18n.importer.appleNotes.nameFolders(),

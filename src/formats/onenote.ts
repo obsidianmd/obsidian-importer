@@ -492,9 +492,6 @@ export class OneNoteImporter extends FormatImporter {
 	}
 
 	private drawSectionPicker(contentEl: HTMLElement): void {
-		// What to import is a card of its own: the row, and what it lists.
-		this.startGroup('source');
-
 		this.picker = new TreePicker<OneNoteTreeNode>(contentEl, {
 			setting: this.addSetting('source'),
 			name: i18n.importer.onenote.nameSections(),

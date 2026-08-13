@@ -77,6 +77,13 @@ body.is-phone .importer-flow.has-step-buttons .modal-button-container.importer-s
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
 	background-color: var(--settings-background);
 	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
+
+	/* Out of the way while a keyboard is up. Typing into the filter, or into a
+	   folder name, is not a moment anyone is reaching for Continue, and the bar
+	   would otherwise sit on top of what is being typed about. Obsidian's own
+	   bottom chrome moves by --keyboard-height the same way; the box the pages
+	   sit in clips what leaves it. */
+	transform: translateY(var(--keyboard-height, 0px));
 }
 
 /* Back and Help sit at the start of a step, and the primary button is pushed
@@ -372,7 +379,7 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 
 /* Above what it narrows, and the width of it. */
 .import-section .importer-tree-filter {
-	margin-bottom: var(--size-4-2);
+	padding: 0 var(--setting-items-padding-x);
 }
 
 .import-section .importer-tree-filter input {
@@ -382,7 +389,7 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 .import-section .publish-change-list {
 	min-height: 200px;
 	overflow-y: auto;
-	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
 	background-color: var(--setting-items-background);
 	border-radius: var(--setting-items-radius);
 	corner-shape: var(--corner-shape);
@@ -394,6 +401,7 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	font-size: var(--font-ui-small);
 	text-align: center;
 	padding: 30px 10px;
+	min-height: 200px;
 	height: 100%;
     display: flex;
     align-items: center;
