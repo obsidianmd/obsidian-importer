@@ -517,7 +517,9 @@ export abstract class FormatImporter {
 		if (!contentEl) return;
 
 		// A card of its own: what follows it is about the import, not the files.
-		const { listEl } = this.startGroupIn(contentEl, i18n.source.name());
+		// A list, so that a row stays a row on a phone rather than stacking
+		// its icon, its name and its button down the screen.
+		const { listEl } = this.startGroupIn(contentEl, i18n.source.name()).addClass('mod-list');
 		this.endGroupIn(contentEl);
 
 		const chooseFiles = async () => {
