@@ -136,6 +136,7 @@ export const en = {
 
 	source: {
 		desc: 'Drag and drop, or choose files to import.',
+		descChoose: 'Choose files to import.',
 		buttonChooseFile: 'Choose file',
 		buttonChooseFiles: 'Choose files',
 		buttonChooseFolders: 'Choose folders',

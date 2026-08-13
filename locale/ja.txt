@@ -370,6 +370,10 @@ translation={{count}} 件のアイテムが失敗しました
 original=Drag and drop, or choose files to import.
 translation=
 
+[source.desc-choose]
+original=Choose files to import.
+translation=
+
 [source.button-choose-file]
 original=Choose file
 translation=ファイルを選択

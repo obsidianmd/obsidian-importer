@@ -429,13 +429,25 @@ export abstract class FormatImporter {
 			});
 		}
 
-		const showExternal = (linked: boolean) => externalEl?.toggle(!linked);
+		/**
+		 * Linking is what the step is waiting on until something is linked,
+		 * and fetching one is only worth offering until then.
+		 */
+		const showLinking = (linked: boolean) => {
+			externalEl?.toggle(!linked);
+
+			// The button the component draws for itself, which is every button
+			// in the row but the one added above it.
+			for (const button of Array.from(setting.controlEl.querySelectorAll('button'))) {
+				if (button !== externalEl) button.toggleClass('mod-cta', !linked);
+			}
+		};
 
 		setting.addComponent(el => {
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
-					showExternal(!!this.secretId);
+					showLinking(!!this.secretId);
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
@@ -444,7 +456,7 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
-					showExternal(!!secretId);
+					showLinking(!!secretId);
 					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));
@@ -684,7 +696,8 @@ export abstract class FormatImporter {
 			drawPickers();
 		};
 
-		drawState(description || i18n.source.desc());
+		// Nothing is dragged into a phone, so nothing there is told it can be.
+		drawState(description || (Platform.isMobile ? i18n.source.descChoose() : i18n.source.desc()));
 		this.showPickedFiles = updateFiles;
 	}
 
