@@ -33,6 +33,7 @@ export class KeepImporter extends FormatImporter {
 		this.addExportSetting(i18n.importer.keep.descExport())
 			?.addButton(button => button
 				.setButtonText(i18n.common.buttonOpen())
+				.setCta()
 				.onClick(() => window.open('https://takeout.google.com/settings/takeout')));
 
 		this.addFileChooserSetting(i18n.importer.keep.fileType(), [...KeepImporter.extensions, ...ATTACHMENT_EXTS], true);
