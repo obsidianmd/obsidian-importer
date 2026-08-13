@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=Airtable রেকর্ড ID
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Airtable ব্যক্তিগত অ্যাক্সেস টোকেন
@@ -933,6 +937,10 @@ translation=হাতের লেখার অক্ষর অন্তর্�
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=যখন Apple Notes অঙ্কনে হাতের লেখা শনাক্ত করে, তখন অঙ্কনের আগে এটি অক্ষর হিসেবে অন্তর্ভুক্ত করুন।
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=অসামঞ্জস্যপূর্ণ আটাচমেন�
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Obsidian-এ এম্বেড করা যায় না এমন অসামঞ্জস্যপূর্ণ আটাচমেন্ট ইম্পোর্ট করে, যেমন .exe ফাইল।
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft অ্যাকাউন্ট
@@ -1545,6 +1561,10 @@ translation=আপনার সম্পূর্ণ কর্মক্ষেত
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion আইডি
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

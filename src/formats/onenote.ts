@@ -235,10 +235,10 @@ export class OneNoteImporter extends FormatImporter {
 			return;
 		}
 
+		this.addConnectSetting(i18n.importer.onenote.nameConnect(), i18n.importer.onenote.descConnect());
+
 		this.accountSetting = new Setting(this.settingsIn(contentEl))
 			.setName(i18n.importer.onenote.nameAccount());
-
-		this.addInstructions(this.accountSetting);
 
 		this.accountSetting
 			.addButton(button => {

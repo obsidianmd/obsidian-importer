@@ -133,7 +133,8 @@ export class NotionAPIImporter extends FormatImporter {
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.idLabel = i18n.importer.notionApi.labelId();
 
-		this.addInstructions(this.addSecretSetting(i18n.importer.notionApi.nameToken(), this.createTokenDescription()));
+		this.addConnectSetting(i18n.importer.notionApi.nameConnect(), this.createTokenDescription());
+		this.addSecretSetting(i18n.importer.notionApi.nameToken());
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;

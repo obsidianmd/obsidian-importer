@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=Airtable 記錄 ID
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Airtable 個人存取權杖
@@ -933,6 +937,10 @@ translation=包含手寫文字
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=當 Apple Notes 在繪圖中偵測到手寫內容時，將其作為文字插入繪圖之前。
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=匯入不相容的附件
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=匯入無法嵌入 Obsidian 的不相容附件，例如 .exe 檔案。
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft 帳戶
@@ -1545,6 +1561,10 @@ translation=匯入您的整個工作區，包括資料庫與公式，這些將�
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion ID
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

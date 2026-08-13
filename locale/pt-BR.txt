@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=ID do registro Airtable
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Token de acesso pessoal do Airtable
@@ -933,6 +937,10 @@ translation=Incluir texto manuscrito
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Quando Apple Notes detectar texto manuscrito em desenhos, incluí-lo como texto antes do desenho.
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=Importar anexos incompatíveis
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Importa anexos incompatíveis que não podem ser incorporados no Obsidian, como arquivos .exe.
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Conta Microsoft
@@ -1545,6 +1561,10 @@ translation=Importa toda a sua área de trabalho, incluindo bancos de dados e f�
 [importer.notion-api.label-id]
 original=Notion ID
 translation=ID do Notion
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

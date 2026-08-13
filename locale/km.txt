@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=Airtable record ID
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Airtable personal access token
@@ -933,6 +937,10 @@ translation=បញ្ចូលអត្ថបទសរសេរដោយដៃ
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=នៅពេល Apple Notes បានរកឃើញការសរសេរដោយដៃក្នុងគំនូរ បញ្ចូលវាជាអត្ថបទមុនគំនូរ។
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=នាំចូលឯកសារភ្ជាប់មិនឆប�
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=នាំចូលឯកសារភ្ជាប់មិនឆបគ្នាដែលមិនអាចបង្កប់ក្នុង Obsidian បានដូចជាឯកសារ .exe។
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=គណនី Microsoft
@@ -1545,6 +1561,10 @@ translation=នាំចូលតំបន់ការងារទាំងម�
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion ID
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

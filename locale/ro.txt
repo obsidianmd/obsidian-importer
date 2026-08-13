@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=ID înregistrare Airtable
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Token de acces personal Airtable
@@ -933,6 +937,10 @@ translation=Include textul scris de mână
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Când Apple Notes a detectat scriere de mână în desene, include-o ca text înaintea desenului.
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=Importă atașamente incompatibile
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Importă atașamente incompatibile care nu pot fi încorporate în Obsidian, cum ar fi fișierele .exe.
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Cont Microsoft
@@ -1545,6 +1561,10 @@ translation=Importă întregul spațiu de lucru, inclusiv bazele de date și for
 [importer.notion-api.label-id]
 original=Notion ID
 translation=ID Notion
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

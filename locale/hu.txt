@@ -690,6 +690,10 @@ translation=Airtable
 original=Airtable record ID
 translation=Airtable rekord ID
 
+[importer.airtable-api.name-connect]
+original=Connect to Airtable
+translation=
+
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Airtable személyes hozzáférési token
@@ -933,6 +937,10 @@ translation=Kézírás szövegének megjelenítése
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Ha az Apple Notes kézírást észlelt a rajzokban, a rajz előtt szövegként is szerepeljen.
+
+[importer.apple-notes.name-access]
+original=Allow access to your notes
+translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1310,6 +1318,14 @@ translation=Nem kompatibilis mellékletek importálása
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Importálja a nem kompatibilis mellékleteket, amelyek nem ágyazhatók be az Obsidian alkalmazásba, például .exe fájlokat.
 
+[importer.onenote.name-connect]
+original=Connect to OneNote
+translation=
+
+[importer.onenote.desc-connect]
+original=Sign in with the Microsoft account your notebooks are in, then pick the sections to import.
+translation=
+
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft fiók
@@ -1545,6 +1561,10 @@ translation=Importálja a teljes munkaterületet, beleértve az adatbázisokat �
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion ID
+
+[importer.notion-api.name-connect]
+original=Connect to Notion
+translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

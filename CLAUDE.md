@@ -60,12 +60,12 @@ together. A group takes a heading only where one was already being shown —
 the cards are the grouping.
 
 Every source step starts with the way to that format's documentation, since
-Settings has no Help button to carry it. A format you export from calls
-`addExportSetting`, which draws "Export your data" and the Instructions
-button beside it; one you connect to instead — a token, an account, a folder
-on disk — calls `addInstructions` on the row it already has. The permalink
-comes from the registry, through `ImporterHost`, so a format names its
-documentation once.
+Settings has no Help button to carry it, and it is the same row either way: a
+name, what has to be done before an import, and the Instructions button. A
+format you export from calls `addExportSetting`, a format you connect to
+calls `addConnectSetting`, and what it is done with — a token, an account, a
+folder on disk — is the row below. The permalink comes from the registry,
+through `ImporterHost`, so a format names its documentation once.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in
