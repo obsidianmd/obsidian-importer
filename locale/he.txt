@@ -366,10 +366,6 @@ translation=נכשל פריט {{count}}
 original={{count}} items failed
 translation=נכשלו {{count}} פריטים
 
-[source.name]
-original=Files to import
-translation=קבצים לייבוא
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

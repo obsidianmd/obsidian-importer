@@ -1,3 +1,7 @@
+.setting-secret-value:empty {
+	display: none;
+}
+
 .modal.mod-importer {
 	max-height: var(--modal-height);
 	padding: var(--size-4-4) 0 0 0;

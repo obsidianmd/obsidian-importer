@@ -366,10 +366,6 @@ translation={{count}} item mislukt
 original={{count}} items failed
 translation={{count}} items mislukt
 
-[source.name]
-original=Files to import
-translation=Te importeren bestanden
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

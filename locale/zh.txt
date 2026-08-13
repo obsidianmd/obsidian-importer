@@ -366,10 +366,6 @@ translation={{count}} 个项目失败
 original={{count}} items failed
 translation={{count}} 个项目失败
 
-[source.name]
-original=Files to import
-translation=要导入的文件
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

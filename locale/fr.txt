@@ -366,10 +366,6 @@ translation={{count}} élément en échec
 original={{count}} items failed
 translation={{count}} éléments en échec
 
-[source.name]
-original=Files to import
-translation=Fichiers à importer
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

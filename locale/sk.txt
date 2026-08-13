@@ -366,10 +366,6 @@ translation={{count}} položka zlyhala
 original={{count}} items failed
 translation={{count}} položiek zlyhalo
 
-[source.name]
-original=Files to import
-translation=Súbory na import
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

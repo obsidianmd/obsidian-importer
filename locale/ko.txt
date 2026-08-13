@@ -366,10 +366,6 @@ translation={{count}}개 항목이 실패했어요
 original={{count}} items failed
 translation={{count}}개 항목이 실패했어요
 
-[source.name]
-original=Files to import
-translation=가져올 파일
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=

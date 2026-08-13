@@ -366,10 +366,6 @@ translation={{count}} item falhou
 original={{count}} items failed
 translation={{count}} itens falharam
 
-[source.name]
-original=Files to import
-translation=Ficheiros a importar
-
 [source.desc]
 original=Drag and drop, or choose files to import.
 translation=
