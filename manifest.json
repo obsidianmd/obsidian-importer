@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-importer",
 	"name": "Importer",
-	"version": "2.6.0",
+	"version": "2.6.1",
 	"minAppVersion": "1.11.4",
 	"description": "Import data from Airtable, Notion, Evernote, Apple Notes, Apple Journal, Microsoft OneNote, Google Keep, Bear, Roam, Tomboy, Textbundle, CSV, and HTML files.",
 	"author": "Obsidian",
