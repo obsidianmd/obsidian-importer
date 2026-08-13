@@ -351,12 +351,10 @@ class PageWriter {
 		const svg = strokesToSvg(this.inkStrokes);
 		if (!svg) return;
 
-		// The recognized handwriting is written below the drawing, so an alt text
-		// saying the same thing would only be the second copy of it.
-		const recognized = this.recognizedText.join(' ');
+		const recognizedText = this.recognizedText.join(' ');
 		await this.writeAsset(new TextEncoder().encode(svg), `${this.pageTitle} - Ink.svg`, '', true);
 
-		if (recognized !== '') this.push(recognized);
+		if (recognizedText !== '') this.push(recognizedText);
 	}
 
 	private imageName(image: Image): string {
@@ -382,7 +380,7 @@ class PageWriter {
 
 		this.attachments.push(attachment);
 		const target = encodeURI(attachment.path);
-		const text = sanitizeAltText(label);
+		const text = embed ? sanitizeAltText(label) : label;
 		return embed ? `![${text}](${target})` : `[${text}](${target})`;
 	}
 

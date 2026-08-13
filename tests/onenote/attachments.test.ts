@@ -183,11 +183,12 @@ test('an image without a download URL is reported rather than losing the page', 
 
 	const page = await subject.getAllAttachments(
 		progress,
-		'<html><body><p>Before</p><img alt="Missing"><p>After</p></body></html>',
+		'<html><body><p>Before</p><img alt="Missing [scan]"><p>After</p></body></html>',
 		'Notebook/Page.md',
 	);
 
 	assert.deepEqual(progress.failed, ['OneNote image']);
+	assert.equal((page.find('img') as HTMLImageElement).alt, 'Missing scan');
 	assert.match(page.textContent ?? '', /Before/);
 	assert.match(page.textContent ?? '', /After/);
 });

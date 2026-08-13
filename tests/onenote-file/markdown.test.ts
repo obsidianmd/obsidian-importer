@@ -142,7 +142,7 @@ test('a table with no rows produces nothing at all', async () => {
 	assert.equal(await render({ kind: 'table', rows: [] }), '');
 });
 
-test('an image is named after its page, and an embedded file keeps its own name', async () => {
+test('an image is named after its page, and an embedded file keeps its full name', async () => {
 	const data = new Uint8Array([1, 2, 3]);
 
 	assert.equal(
@@ -153,8 +153,8 @@ test('an image is named after its page, and an embedded file keeps its own name'
 		'![](files/Test%20image.jpg)');
 
 	assert.equal(
-		await render({ kind: 'embedded-file', fileName: 'notes.docx', data }),
-		'[notes.docx](files/notes.docx)');
+		await render({ kind: 'embedded-file', fileName: 'notes [final].docx', data }),
+		'[notes [final].docx](files/notes%20%5Bfinal%5D.docx)');
 });
 
 test('OCR alt text cannot break the image it labels', async () => {

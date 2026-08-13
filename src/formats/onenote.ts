@@ -970,8 +970,12 @@ export class OneNoteImporter extends FormatImporter {
 			object.parentNode?.replaceChild(markdownLink, object);
 		}
 
-		for (let i = 0; i < images.length; i++) {
-			const image = images[i];
+		for (const image of images) {
+			const alt = image.alt;
+			image.alt = !alt || BASE64_REGEX.test(alt)
+				? 'Exported image'
+				: sanitizeAltText(alt) || 'Exported image';
+
 			const contentLocation = image.getAttribute('data-fullres-src');
 			if (!contentLocation) {
 				progress.reportFailed(i18n.importer.onenote.labelImage(), i18n.importer.onenote.reasonNoImageUrl());
@@ -980,15 +984,6 @@ export class OneNoteImporter extends FormatImporter {
 
 			const extension = extensionForMime(image.getAttribute('data-fullres-src-type') ?? '') || 'png';
 			const fileName = `${parseFilePath(notePath).basename} image.${extension}`;
-			// OneNote fills the alt text in with its own OCR of the picture, so it
-			// is sanitized whether or not the image itself came down.
-			if (!image.alt || BASE64_REGEX.test(image.alt)) {
-				image.alt = 'Exported image';
-			}
-			else {
-				image.alt = sanitizeAltText(image.alt) || 'Exported image';
-			}
-
 			const outputPath = await this.fetchAttachment(
 				progress, fileName, contentLocation, notePath, sourceMtime, true);
 			if (outputPath) {

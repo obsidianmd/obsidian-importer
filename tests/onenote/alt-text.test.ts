@@ -24,8 +24,7 @@ test('a page of OCR is cut at a word rather than mid-sentence', () => {
 	assert.ok(cut.endsWith('word…'), cut);
 });
 
-test('the cut counts characters the way a reader does', () => {
-	// Emoji are surrogate pairs, so cutting on UTF-16 units would halve one.
+test('the cut counts Unicode code points instead of UTF-16 units', () => {
 	const cut = sanitizeAltText('🙂'.repeat(10), 4);
 
 	assert.equal(cut, '🙂🙂🙂🙂…');
