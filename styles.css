@@ -49,47 +49,43 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	border-top: none;
 }
 
-/* The step's buttons stay in reach however long the step is. Sticky rather
-   than fixed: Settings gives a page `will-change: transform` for the slide it
-   arrives on, which makes that page the containing block for anything fixed
-   inside it — and since the page is also the scroller, a bar fixed to the
-   bottom scrolls away with the content it was meant to sit over. Sticky is
-   the same shape Obsidian's own .setting-page-titlebar takes at the top of
-   that scroller, background and all, so the step reads through it. */
-body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
-	position: sticky;
-	bottom: 0;
-	z-index: 1;
-	padding-inline: 0;
-	/* The safe area is the bar's own padding rather than a margin below it, so
-	   the background reaches the bottom of the screen instead of stopping in a
-	   transparent strip the step scrolls through. */
-	margin-bottom: 0;
-	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
-	background-color: var(--settings-background);
-	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
-
-	/* Sticky only holds the bar down once there is something to scroll: a step
-	   short enough to fit leaves it wherever the settings ended, halfway up the
-	   screen. The page below fills the screen whether or not it is full, and
-	   this margin takes the bar the rest of the way to the bottom. */
-	margin-top: auto;
-}
-
-/* A settings page keeps a phone's worth of room below its content, and a
-   sticky bar cannot reach past it — 100px short of the bottom is exactly what
-   it reads as floating. The bar carries the safe area itself instead. Scoped
-   through the settings modal to outweigh the rule that sets the padding. */
+/* The step's buttons sit at the bottom of the screen rather than after the
+   settings, and stay there however long the step is. A bar that scrolls with
+   the step cannot: fixed is answered by the page's own `will-change:
+   transform`, which makes the page the containing block, and sticky rides the
+   bounce at the end of the scroll. So the step scrolls in a box of its own and
+   the bar is the row beneath it, outside everything that moves. */
 body.is-phone .modal.mod-settings .setting-page.importer-flow.has-step-buttons {
+	/* The page keeps a phone's worth of room below its content, which is where
+	   the bar goes; the bar carries the safe area itself. */
 	padding-bottom: 0;
 	display: flex;
 	flex-direction: column;
+	overflow: hidden;
 }
 
 body.is-phone .modal.mod-settings .setting-page.importer-flow.has-step-buttons > .setting-page-content {
 	display: flex;
 	flex-direction: column;
-	flex: 1 0 auto;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+body.is-phone .importer-flow.has-step-buttons .importer-step-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+body.is-phone .importer-flow .modal-button-container.importer-step-buttons {
+	flex: 0 0 auto;
+	padding-inline: 0;
+	/* The safe area is the bar's own padding rather than a margin below it, so
+	   the background reaches the bottom of the screen. */
+	margin-bottom: 0;
+	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
+	background-color: var(--settings-background);
+	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
 }
 
 /* Back and Help sit at the start of a step, and the primary button is pushed

@@ -463,7 +463,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = new SettingGroup(contentEl).listEl;
+		const itemsEl = new SettingGroup(this.stepBody(contentEl)).listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const member of IMPORTER_GROUPS[group]) {
@@ -615,7 +615,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = new SettingGroup(contentEl).listEl;
+		const itemsEl = new SettingGroup(this.stepBody(contentEl)).listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
@@ -778,6 +778,16 @@ export class ImporterFlow implements ImporterHost {
 		this.dropOverlayEl = null;
 	}
 
+	/**
+	 * The part of a screen that scrolls, which is everything above the step's
+	 * buttons. A bar inside the scroller rides the bounce at the end of a step
+	 * and lifts off the bottom of the screen; one outside it stays put without
+	 * the step having to give up scrolling past its end.
+	 */
+	private stepBody(contentEl: HTMLElement): HTMLElement {
+		return contentEl.createDiv('importer-step-body');
+	}
+
 	private drawStep(depth: number, stepEl: HTMLElement | null, onBack: (() => unknown) | null, buildButtons: (buttonsEl: HTMLElement) => void) {
 		const definition = this.plugin.importers[this.selectedId];
 
@@ -789,7 +799,8 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		if (stepEl) contentEl.append(stepEl);
+		const bodyEl = this.stepBody(contentEl);
+		if (stepEl) bodyEl.append(stepEl);
 
 		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
 			this.addBackButton(el);
