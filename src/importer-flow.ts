@@ -448,7 +448,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = new SettingGroup(contentEl).addClass('mod-list').listEl;
+		const itemsEl = new SettingGroup(contentEl).listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const member of IMPORTER_GROUPS[group]) {
@@ -600,7 +600,7 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 
-		const itemsEl = new SettingGroup(contentEl).addClass('mod-list').listEl;
+		const itemsEl = new SettingGroup(contentEl).listEl;
 		const rows: HTMLElement[] = [];
 
 		for (const id of ids) {
