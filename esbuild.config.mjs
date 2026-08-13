@@ -125,10 +125,42 @@ function typeChecks() {
 	}
 }
 
+// A style is read when the plugin loads and never again, so a copied
+// styles.css sits in the vault unseen until something reloads. Swapping the
+// text of the <style> element the plugin made gets there without one, which is
+// what a CSS change wants: a reload closes whatever screen is being styled.
+// Told there is nothing to swap, fall back to reloading.
+const STYLE_NEEDLE = 'mod-importer';
+
+function refreshStyles() {
+	const code = [
+		'(async () => {',
+		`const dir = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]?.manifest.dir;`,
+		'if (!dir) return "no-plugin";',
+		'const styleEl = Array.from(document.head.querySelectorAll(\'style[type="text/css"]\'))',
+		`.find(el => el.textContent.includes(${JSON.stringify(STYLE_NEEDLE)}));`,
+		'if (!styleEl) return "no-style";',
+		'styleEl.textContent = await app.vault.readRaw(dir + "/styles.css");',
+		'return "ok";',
+		'})()',
+	].join(' ');
+
+	const vault = vaultName();
+	const args = vault ? [`vault=${vault}`, 'eval', `code=${code}`] : ['eval', `code=${code}`];
+
+	execFile('obsidian', args, (err, stdout) => {
+		if (err || !`${stdout}`.includes('ok')) {
+			reloadPlugin();
+			return;
+		}
+		console.log('Updated styles.css in place');
+	});
+}
+
 // Copy the built plugin files into the vault after each rebuild, then reload.
 // styles.css matters as much as main.js here: the importer's modal UI is
 // entirely styled from it.
-function copyToVault() {
+function copyToVault({ reload = true } = {}) {
 	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
 	const dest = path.join(process.env.HOME, process.env.OBSIDIAN_PATH, PLUGIN_ID);
 	try {
@@ -139,7 +171,8 @@ function copyToVault() {
 			}
 		}
 		console.log(`Copied plugin to ${dest}`);
-		reloadPlugin();
+		if (reload) reloadPlugin();
+		else refreshStyles();
 	} catch (e) {
 		console.warn(`Skipped vault copy: ${e.message}`);
 	}
@@ -154,13 +187,20 @@ function watchCopiedFiles() {
 
 	const copied = ["styles.css", "manifest.json"];
 	let queued;
+	let reload = false;
 
 	fs.watch(".", (event, filename) => {
 		if (!copied.includes(filename)) return;
 
+		// A style can be pushed into the running app; a manifest cannot.
+		if (filename !== "styles.css") reload = true;
+
 		// An editor saves in more than one step; copy once it has settled.
 		clearTimeout(queued);
-		queued = setTimeout(copyToVault, 100);
+		queued = setTimeout(() => {
+			copyToVault({ reload });
+			reload = false;
+		}, 100);
 	});
 }
 
