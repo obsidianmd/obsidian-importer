@@ -1043,8 +1043,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML エクスポート)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries

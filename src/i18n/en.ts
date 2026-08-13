@@ -335,7 +335,7 @@ export const en = {
 		},
 		appleJournal: {
 			name: 'Apple Journal',
-			optionText: 'Apple Journal (HTML export)',
+			optionText: 'Apple Journal',
 			fileType: 'Journal entries',
 			descFiles: 'Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.',
 			headingMetadata: 'Journal metadata',
