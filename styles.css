@@ -59,24 +59,30 @@ body.is-mobile .modal.mod-importer .modal-button-container {
    so a bar anchored to its bottom scrolls away with the step. Without the
    hint the bar answers to the box the pages sit in, which does not scroll. It
    is still a descendant, so it slides in with its page. */
-body.is-phone .modal.mod-settings .setting-page.importer-flow.has-step-buttons {
+.modal.mod-settings .setting-page.importer-flow.has-step-buttons {
 	will-change: auto;
 }
 
-/* The page's own bottom padding is what the step scrolls clear of the bar by. */
-body.is-phone .importer-flow.has-step-buttons .modal-button-container.importer-step-buttons {
+/* Room for the bar to sit over, which is what the modal reserves for its own.
+   A phone stacks the buttons into a column and the page already keeps a
+   phone's worth of room below its content. */
+body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-step-buttons {
+	padding-bottom: calc(var(--input-height) + var(--size-4-8) + var(--size-4-2));
+}
+
+/* The page's own bottom padding is what the step scrolls clear of the bar by.
+   The buttons keep the inset the cards above them have, so Continue ends where
+   the card ends rather than at the edge of the pane. */
+.importer-flow.has-step-buttons .modal-button-container.importer-step-buttons {
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	/* The safe area is the bar's own padding rather than a margin below it, so
-	   the background reaches the bottom of the screen. */
-	margin-bottom: 0;
-	padding-left: max(var(--size-4-4), var(--safe-area-inset-left));
-	padding-right: max(var(--size-4-4), var(--safe-area-inset-right));
-	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom));
+	margin: 0;
+	padding-block: var(--size-4-4);
+	padding-inline: max(var(--size-4-8), var(--setting-group-center-offset, 0px));
 	background-color: var(--settings-background);
-	box-shadow: 0 calc(var(--size-4-2) * -1) var(--size-4-2) 0 var(--settings-background);
+	border-top: var(--border-width) solid var(--background-modifier-border);
 
 	/* Out of the way while a keyboard is up. Typing into the filter, or into a
 	   folder name, is not a moment anyone is reaching for Continue, and the bar
@@ -84,6 +90,16 @@ body.is-phone .importer-flow.has-step-buttons .modal-button-container.importer-s
 	   bottom chrome moves by --keyboard-height the same way; the box the pages
 	   sit in clips what leaves it. */
 	transform: translateY(var(--keyboard-height, 0px));
+}
+
+/* A page on a phone or tablet is inset by its own padding rather than by a
+   column down the middle of it, and has the safe area to keep clear as well.
+   The safe area is the bar's own padding rather than a margin below it, so the
+   background reaches the bottom of the screen. */
+body.is-mobile .importer-flow.has-step-buttons .modal-button-container.importer-step-buttons {
+	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
+	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
+	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
 }
 
 /* Back and Help sit at the start of a step, and the primary button is pushed
