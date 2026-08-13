@@ -694,10 +694,6 @@ translation=Airtable
 original=Airtable record ID
 translation=ID εγγραφής Airtable
 
-[importer.airtable-api.name-connect]
-original=Connect to Airtable
-translation=
-
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Προσωπικό διακριτικό πρόσβασης Airtable
@@ -941,10 +937,6 @@ translation=Συμπερίληψη κειμένου χειρόγραφου
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Όταν το Apple Notes έχει ανιχνεύσει χειρόγραφο σε σχέδια, να συμπεριληφθεί ως κείμενο πριν από το σχέδιο.
-
-[importer.apple-notes.name-access]
-original=Allow access to your notes
-translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1322,10 +1314,6 @@ translation=Εισαγωγή μη συμβατών συνημμένων
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Εισάγει μη συμβατά συνημμένα που δεν μπορούν να ενσωματωθούν στο Obsidian, όπως αρχεία .exe.
 
-[importer.onenote.name-connect]
-original=Connect to OneNote
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Λογαριασμός Microsoft
@@ -1561,10 +1549,6 @@ translation=Εισάγει ολόκληρο τον χώρο εργασίας σ�
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Αναγνωριστικό Notion
-
-[importer.notion-api.name-connect]
-original=Connect to Notion
-translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

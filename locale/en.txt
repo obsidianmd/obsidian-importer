@@ -694,10 +694,6 @@ translation=
 original=Airtable record ID
 translation=
 
-[importer.airtable-api.name-connect]
-original=Connect to Airtable
-translation=
-
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=
@@ -940,10 +936,6 @@ translation=
 
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
-translation=
-
-[importer.apple-notes.name-access]
-original=Allow access to your notes
 translation=
 
 [importer.apple-notes.name-data-folder]
@@ -1322,10 +1314,6 @@ translation=
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=
 
-[importer.onenote.name-connect]
-original=Connect to OneNote
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=
@@ -1560,10 +1548,6 @@ translation=
 
 [importer.notion-api.label-id]
 original=Notion ID
-translation=
-
-[importer.notion-api.name-connect]
-original=Connect to Notion
 translation=
 
 [importer.notion-api.name-token]

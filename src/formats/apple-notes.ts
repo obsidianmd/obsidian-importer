@@ -146,8 +146,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	private addAccessSetting(): void {
-		this.addConnectSetting(i18n.importer.appleNotes.nameAccess());
-
 		const setting = this.addSetting('source');
 		if (!setting) return;
 

@@ -74,13 +74,13 @@ its step is on, and `startGroup` breaks it where two settings are not read
 together. A group takes a heading only where one was already being shown —
 the cards are the grouping.
 
-Every source step starts with what has to be done before an import, and it is
-the same row either way: a format you export from calls `addExportSetting`, a
-format you connect to calls `addConnectSetting`, and what it is done with — a
-token, an account, a folder on disk — is the row below. The way to the
-format's documentation is Help, in the bar at the bottom of every screen, in
-both shells; the permalink comes from the registry, through `ImporterHost`,
-so a format names its documentation once.
+A format you export from starts its source step with `addExportSetting`: what
+to ask that app for. A format you connect to starts with the thing it
+connects with — a token, an account, a folder on disk — since a row naming
+the service and saying nothing else only repeats the title above it. The way
+to the format's documentation is Help, in the bar at the bottom of every
+screen, in both shells; the permalink comes from the registry, through
+`ImporterHost`, so a format names its documentation once.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in

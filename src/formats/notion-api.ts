@@ -133,7 +133,6 @@ export class NotionAPIImporter extends FormatImporter {
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.idLabel = i18n.importer.notionApi.labelId();
 
-		this.addConnectSetting(i18n.importer.notionApi.nameConnect());
 		this.addSecretSetting(i18n.importer.notionApi.nameToken(), i18n.importer.notionApi.descToken(), {
 			text: i18n.importer.notionApi.linkGetToken(),
 			url: 'https://app.notion.com/developers/connections',

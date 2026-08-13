@@ -694,10 +694,6 @@ translation=Airtable
 original=Airtable record ID
 translation=ID bản ghi Airtable
 
-[importer.airtable-api.name-connect]
-original=Connect to Airtable
-translation=
-
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Mã truy cập cá nhân Airtable
@@ -941,10 +937,6 @@ translation=Bao gồm chữ viết tay
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Khi Apple Notes phát hiện chữ viết tay trong bản vẽ, bao gồm nó dưới dạng văn bản trước bản vẽ.
-
-[importer.apple-notes.name-access]
-original=Allow access to your notes
-translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1322,10 +1314,6 @@ translation=Nhập tệp đính kèm không tương thích
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=Nhập các tệp đính kèm không tương thích mà không thể nhúng vào Obsidian, chẳng hạn như tệp .exe.
 
-[importer.onenote.name-connect]
-original=Connect to OneNote
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Tài khoản Microsoft
@@ -1561,10 +1549,6 @@ translation=Nhập toàn bộ không gian làm việc của bạn, bao gồm cơ
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion ID
-
-[importer.notion-api.name-connect]
-original=Connect to Notion
-translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

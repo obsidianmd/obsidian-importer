@@ -301,19 +301,6 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/**
-	 * The row a format you connect to starts with, in the same shape as the
-	 * one a format you export from starts with: what has to be done before an
-	 * import. What it is done with — a token, an account, a folder — is the row
-	 * below, and the way to the instructions is Help, in the bar at the bottom.
-	 */
-	protected addConnectSetting(name: string, desc?: string | DocumentFragment): Setting | null {
-		const setting = this.addSetting('source')?.setName(name) ?? null;
-		if (desc) setting?.setDesc(desc);
-
-		return setting;
-	}
-
 	/** The row a format you export from starts with: what to ask that app for. */
 	protected addExportSetting(desc: string | DocumentFragment): Setting | null {
 		return this.addSetting('source')

@@ -694,10 +694,6 @@ translation=Airtable
 original=Airtable record ID
 translation=Airtable 레코드 ID
 
-[importer.airtable-api.name-connect]
-original=Connect to Airtable
-translation=
-
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=Airtable 개인 액세스 토큰
@@ -941,10 +937,6 @@ translation=필기 텍스트 포함
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=Apple Notes가 그림에서 필기를 인식한 경우, 그림 앞에 텍스트로 포함해요.
-
-[importer.apple-notes.name-access]
-original=Allow access to your notes
-translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1322,10 +1314,6 @@ translation=호환되지 않는 첨부파일 가져오기
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=.exe 파일 등 Obsidian에 삽입할 수 없는 호환되지 않는 첨부파일을 가져와요.
 
-[importer.onenote.name-connect]
-original=Connect to OneNote
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=Microsoft 계정
@@ -1561,10 +1549,6 @@ translation=데이터베이스와 수식을 포함한 전체 작업 공간을 �
 [importer.notion-api.label-id]
 original=Notion ID
 translation=Notion ID
-
-[importer.notion-api.name-connect]
-original=Connect to Notion
-translation=
 
 [importer.notion-api.name-token]
 original=Notion API token

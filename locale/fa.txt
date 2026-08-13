@@ -694,10 +694,6 @@ translation=Airtable
 original=Airtable record ID
 translation=شناسه رکورد Airtable
 
-[importer.airtable-api.name-connect]
-original=Connect to Airtable
-translation=
-
 [importer.airtable-api.name-token]
 original=Airtable personal access token
 translation=توکن دسترسی شخصی Airtable
@@ -941,10 +937,6 @@ translation=شامل‌کردن متن دست‌نویس
 [importer.apple-notes.desc-handwriting]
 original=When Apple Notes has detected handwriting in drawings, include it as text before the drawing.
 translation=هنگامی که Apple Notes دست‌نویس را در نقاشی‌ها تشخیص داده، آن را به‌عنوان متن قبل از نقاشی قرار دهید.
-
-[importer.apple-notes.name-access]
-original=Allow access to your notes
-translation=
 
 [importer.apple-notes.name-data-folder]
 original=Apple Notes data folder
@@ -1322,10 +1314,6 @@ translation=وارد کردن پیوست‌های ناسازگار
 original=Imports incompatible attachments which cannot be embedded in Obsidian, such as .exe files.
 translation=پیوست‌های ناسازگاری را که نمی‌توان در Obsidian جاسازی کرد (مانند فایل‌های .exe) وارد می‌کند.
 
-[importer.onenote.name-connect]
-original=Connect to OneNote
-translation=
-
 [importer.onenote.name-account]
 original=Microsoft account
 translation=حساب Microsoft
@@ -1561,10 +1549,6 @@ translation=تمام فضای کاری شما را شامل پایگاه‌ها�
 [importer.notion-api.label-id]
 original=Notion ID
 translation=شناسه Notion
-
-[importer.notion-api.name-connect]
-original=Connect to Notion
-translation=
 
 [importer.notion-api.name-token]
 original=Notion API token
