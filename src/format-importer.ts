@@ -593,15 +593,37 @@ export abstract class FormatImporter {
 			updateFiles();
 		};
 
+		/**
+		 * The rows this list drew, and only those: the flow puts the way on to
+		 * the next step at the end of the same card, and a redraw of the list
+		 * must leave it where it was.
+		 */
+		const drawn = new WeakSet<HTMLElement>();
+
+		const row = (setting: Setting): Setting => {
+			drawn.add(setting.settingEl);
+			return setting;
+		};
+
+		const redraw = (build: () => void) => {
+			const trailing = Array.from(listEl.children)
+				.filter(el => !el.instanceOf(HTMLElement) || !drawn.has(el));
+
+			listEl.empty();
+			build();
+			listEl.append(...trailing);
+		};
+
 		/** One row saying where the list stands, in place of the list. */
 		const drawState = (text: string) => {
-			listEl.empty();
-			new Setting(listEl).setClass('mod-empty-state').setName(text);
-			drawPickers();
+			redraw(() => {
+				row(new Setting(listEl)).setClass('mod-empty-state').setName(text);
+				drawPickers();
+			});
 		};
 
 		const drawPickers = () => {
-			const files = new Setting(listEl)
+			const files = row(new Setting(listEl))
 				.setClass('mod-add-item')
 				.setName(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile());
 
@@ -610,7 +632,7 @@ export abstract class FormatImporter {
 
 			if (!allowMultiple || !Platform.isDesktopApp) return;
 
-			const folders = new Setting(listEl)
+			const folders = row(new Setting(listEl))
 				.setClass('mod-add-item')
 				.setName(i18n.source.buttonChooseFolders());
 
@@ -628,31 +650,31 @@ export abstract class FormatImporter {
 				return;
 			}
 
-			listEl.empty();
+			redraw(() => {
+				// A folder of notes is thousands of rows nobody reads: enough
+				// of them to recognise the pick, and a count for the rest.
+				for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
+					row(new Setting(listEl))
+						.setName(file.name)
+						.setIcon('lucide-file')
+						.addExtraButton(button => button
+							.setIcon('lucide-x')
+							.setTooltip(i18n.source.buttonRemoveFile())
+							.onClick(() => {
+								this.files = this.files.filter(other => other !== file);
+								updateFiles();
+							}));
+				}
 
-			// A folder of notes is thousands of rows nobody reads: enough of
-			// them to recognise the pick, and a count for the rest.
-			for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
-				new Setting(listEl)
-					.setName(file.name)
-					.setIcon('lucide-file')
-					.addExtraButton(button => button
-						.setIcon('lucide-x')
-						.setTooltip(i18n.source.buttonRemoveFile())
-						.onClick(() => {
-							this.files = this.files.filter(other => other !== file);
-							updateFiles();
-						}));
-			}
+				const rest = this.files.length - MAX_FILES_LISTED;
+				if (rest > 0) {
+					row(new Setting(listEl))
+						.setClass('mod-empty-state')
+						.setName(i18n.source.msgMoreFiles({ count: rest }));
+				}
 
-			const rest = this.files.length - MAX_FILES_LISTED;
-			if (rest > 0) {
-				new Setting(listEl)
-					.setClass('mod-empty-state')
-					.setName(i18n.source.msgMoreFiles({ count: rest }));
-			}
-
-			drawPickers();
+				drawPickers();
+			});
 		};
 
 		drawState(description || i18n.source.desc());

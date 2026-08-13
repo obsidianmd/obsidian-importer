@@ -153,6 +153,26 @@ body:not(.is-mobile) .importer-step-buttons .mod-cta {
 	font-variant: tabular-nums;
 }
 
+/* The way on, as the last row of the last card: the row is the button, and
+   the button is the width of the card. Written against the same ancestors as
+   the rule that sizes a control in a list, which would otherwise win. */
+.setting-item.mod-primary-action .setting-item-info {
+	display: none;
+}
+
+body.is-mobile .setting-group .setting-items .setting-item.mod-primary-action .setting-item-control {
+	flex: 1 1 auto;
+	width: 100%;
+}
+
+.setting-item.mod-primary-action .setting-item-control {
+	width: 100%;
+}
+
+.setting-item.mod-primary-action .setting-item-control button {
+	width: 100%;
+}
+
 /* The file picker's input has to be in the document for iOS to open it, and
    out of the way while it is. */
 .importer-file-input {
