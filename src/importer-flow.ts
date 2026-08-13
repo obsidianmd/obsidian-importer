@@ -502,11 +502,20 @@ export class ImporterFlow implements ImporterHost {
 
 	private showFirstStep() {
 		if (this.importer.notAvailable) {
-			this.drawStep(this.sourceDepth(), this.optionsEl, () => this.showPreviousScreen(), () => {});
+			this.showUnavailable();
 			return;
 		}
 
 		this.showSourceStep();
+	}
+
+	/**
+	 * A format that cannot be imported from this device still says so, and
+	 * still says where to read about it: what it drew into its source step.
+	 */
+	private showUnavailable() {
+		this.drawCurrent = () => this.showUnavailable();
+		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), () => {});
 	}
 
 	/** The source comes after the method picker, for a format that has one. */

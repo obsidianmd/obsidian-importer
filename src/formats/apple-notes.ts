@@ -99,9 +99,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.idLabel = i18n.importer.appleNotes.labelId();
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
-			this.draw(contentEl => contentEl.createEl('p', {
-				text: i18n.importer.appleNotes.msgPlatform(),
-			}));
+			this.addExportSetting(i18n.importer.appleNotes.msgPlatform());
 
 			this.notAvailable = true;
 			return;
