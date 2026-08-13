@@ -153,6 +153,12 @@ body:not(.is-mobile) .importer-step-buttons .mod-cta {
 	font-variant: tabular-nums;
 }
 
+/* A phone pads a button container, which would set the button in from the
+   cards it follows. The step's button lines up with them instead. */
+body.is-phone .importer-flow .modal-button-container {
+	padding-inline: 0;
+}
+
 /* The file picker's input has to be in the document for iOS to open it, and
    out of the way while it is. */
 .importer-file-input {
