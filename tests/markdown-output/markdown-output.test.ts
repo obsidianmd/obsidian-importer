@@ -305,6 +305,66 @@ test('writes resolved links with Obsidian link settings after targets exist', as
 		'See [label](Folder/Target.md#Heading) and ![](assets/image.png).');
 });
 
+test('an alias written into a table cell does not end the cell', async () => {
+	const markdown = [
+		'| Col |',
+		'| --- |',
+		'| [[Folder/Target]] |',
+		'',
+		'And [[Folder/Target]] outside one.',
+	].join('\n');
+	const inCell = markdown.indexOf('[[Folder/Target]] |');
+	const outside = markdown.lastIndexOf('[[Folder/Target]]');
+	const target = { path: 'Folder/Target.md' };
+	const at = (start: number, text: string) => ({ start: { offset: start }, end: { offset: start + text.length } });
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => ({
+				links: [
+					{ link: 'Folder/Target', displayText: 'Target', position: at(inCell, '[[Folder/Target]]') },
+					{ link: 'Folder/Target', displayText: 'Target', position: at(outside, '[[Folder/Target]]') },
+				],
+				sections: [{ type: 'table', position: at(0, markdown.split('\n\n')[0]) }],
+			}),
+			getFirstLinkpathDest: () => target,
+		},
+		fileManager: {
+			generateMarkdownLink: (file: typeof target, _source: string, _subpath = '', alias = '') =>
+				`[[${file.path}|${alias}]]`,
+		},
+	} as never;
+
+	assert.equal(await standardizedMarkdown(app, 'Imported/Note.md', markdown), [
+		'| Col |',
+		'| --- |',
+		'| [[Folder/Target.md\\|Target]] |',
+		'',
+		'And [[Folder/Target.md|Target]] outside one.',
+	].join('\n'));
+});
+
+test('a pipe already escaped in a table cell is not escaped twice', async () => {
+	const markdown = '| [[Target]] |';
+	const target = { path: 'Target.md' };
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => ({
+				links: [{ link: 'Target', displayText: 'a|b', position: { start: { offset: 2 }, end: { offset: 12 } } }],
+				sections: [{ type: 'table', position: { start: { offset: 0 }, end: { offset: markdown.length } } }],
+			}),
+			getFirstLinkpathDest: () => target,
+		},
+		fileManager: {
+			generateMarkdownLink: (file: typeof target, _source: string, _subpath = '', alias = '') =>
+				`[[${file.path}\\|${alias}]]`,
+		},
+	} as never;
+
+	assert.equal(await standardizedMarkdown(app, 'Note.md', markdown), '| [[Target.md\\|a\\|b]] |');
+});
+
 test('does not apply cached link offsets to newly formatted content', async () => {
 	const vault = new MemoryVault();
 	vault.config.set('useTab', true);

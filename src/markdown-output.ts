@@ -53,6 +53,11 @@ export async function modifyMarkdown(vault: Vault, file: TFile, content: string,
 
 type MarkdownChange = { from: number, to: number, text: string };
 
+function escapePipes(text: string): string {
+	return text.replace(/(\\*)\|/g, (pipe: string, slashes: string) =>
+		slashes.length % 2 === 0 ? `${slashes}\\|` : pipe);
+}
+
 /**
  * Write resolvable vault links the same way Obsidian's editor creates them.
  *
@@ -70,6 +75,10 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 	const cache = await computeMetadata(app, content);
 	if (!cache) return content;
 
+	const tables = (cache.sections ?? []).filter(section => section.type === 'table');
+	const inTable = (offset: number) => tables.some(({ position }) =>
+		offset >= position.start.offset && offset < position.end.offset);
+
 	const changes: MarkdownChange[] = [];
 	for (const { reference, embed } of [
 		...(cache.links ?? []).map(reference => ({ reference, embed: false })),
@@ -81,6 +90,7 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 
 		let text = app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
 		if (embed) text = '!' + text;
+		if (inTable(reference.position.start.offset)) text = escapePipes(text);
 		changes.push({ from: reference.position.start.offset, to: reference.position.end.offset, text });
 	}
 
