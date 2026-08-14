@@ -522,6 +522,10 @@ translation=Εξαγωγή δεδομένων
 original=Learn more.
 translation=Μάθετε περισσότερα.
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=Άνοιγμα

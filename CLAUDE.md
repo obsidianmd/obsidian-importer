@@ -79,8 +79,10 @@ to ask that app for. A format you connect to starts with the thing it
 connects with — a token, an account, a folder on disk — since a row naming
 the service and saying nothing else only repeats the title above it. The way
 to the format's documentation is Help, in the bar at the bottom of every
-screen, in both shells; the permalink comes from the registry, through
-`ImporterHost`, so a format names its documentation once.
+screen, in both shells; a format whose export takes some finding says so
+twice, and calls `addInstructions` on its export row as well. The permalink
+comes from the registry, through `ImporterHost`, so a format names its
+documentation once.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in

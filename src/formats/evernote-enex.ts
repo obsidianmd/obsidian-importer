@@ -21,7 +21,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
 	init() {
-		this.addExportSetting(i18n.importer.evernote.descExport());
+		this.addInstructions(this.addExportSetting(i18n.importer.evernote.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.evernote.fileType(), EvernoteEnexImporter.extensions, true);
 		this.defaultOutputFolder = 'Evernote';

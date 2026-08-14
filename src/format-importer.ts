@@ -1,7 +1,7 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
-import { AuthCallback } from './constants';
+import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
@@ -299,6 +299,20 @@ export abstract class FormatImporter {
 			case 'options':
 				return this.host.optionsEl;
 		}
+	}
+
+	/**
+	 * The way to the format's documentation, on the row that says what to
+	 * export. Help, in the bar at the bottom, is the other way to the same
+	 * page; a format whose export takes some finding says so twice.
+	 */
+	protected addInstructions(setting: Setting | null): Setting | null {
+		const { helpPermalink } = this.host;
+		if (!setting || !helpPermalink) return setting;
+
+		return setting.addButton(button => button
+			.setButtonText(i18n.common.buttonInstructions())
+			.onClick(() => window.open(helpUrl(helpPermalink))));
 	}
 
 	/** The row a format you export from starts with: what to ask that app for. */

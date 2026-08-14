@@ -522,6 +522,10 @@ translation=Exportați datele
 original=Learn more.
 translation=Aflați mai multe.
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=Deschideți

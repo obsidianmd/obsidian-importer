@@ -522,6 +522,10 @@ translation=Експортуйте свої дані
 original=Learn more.
 translation=Дізнатися більше.
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=Відкрити

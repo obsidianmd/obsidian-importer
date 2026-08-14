@@ -181,6 +181,7 @@ export const en = {
 		msgUnknownError: 'Unknown error',
 		nameExport: 'Export your data',
 		labelLearnMore: 'Learn more.',
+		buttonInstructions: 'Instructions',
 		buttonOpen: 'Open',
 		statusProcessing: 'Processing {{name}}',
 		statusImportingNote: 'Importing note {{name}}',

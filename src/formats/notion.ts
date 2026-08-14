@@ -24,7 +24,7 @@ export class NotionImporter extends FormatImporter {
 	init() {
 		this.parentsInSubfolders = true;
 
-		this.addExportSetting(i18n.importer.notion.descExport());
+		this.addInstructions(this.addExportSetting(i18n.importer.notion.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.notion.fileType(), NotionImporter.extensions, false,
 			i18n.importer.notion.descFiles());

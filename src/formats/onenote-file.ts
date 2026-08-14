@@ -36,7 +36,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private loadGeneration = 0;
 
 	init(): void {
-		this.addExportSetting(i18n.importer.onenoteFile.descExport());
+		this.addInstructions(this.addExportSetting(i18n.importer.onenoteFile.descExport()));
 
 		const backup = windowsBackupFolder();
 		this.addFileChooserSetting(

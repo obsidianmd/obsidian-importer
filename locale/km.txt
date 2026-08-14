@@ -522,6 +522,10 @@ translation=នាំចេញទិន្នន័យរបស់អ្នក
 original=Learn more.
 translation=ស្វែង​យល់​បន្ថែម។
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=បើក

@@ -32,7 +32,7 @@ export class Bear2bkImporter extends FormatImporter {
 	private tagPlacement: BearTagPlacement = 'inline';
 
 	init() {
-		this.addExportSetting(i18n.importer.bear.descExport());
+		this.addInstructions(this.addExportSetting(i18n.importer.bear.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.bear.fileType(), Bear2bkImporter.extensions);
 		this.defaultOutputFolder = 'Bear';

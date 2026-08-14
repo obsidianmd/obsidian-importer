@@ -522,6 +522,10 @@ translation=ייצוא הנתונים שלך
 original=Learn more.
 translation=מידע נוסף.
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=פתח

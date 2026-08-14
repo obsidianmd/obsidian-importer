@@ -522,6 +522,10 @@ translation=ส่งออกข้อมูลของคุณ
 original=Learn more.
 translation=ข้อมูลเพิ่มเติม
 
+[common.button-instructions]
+original=Instructions
+translation=
+
 [common.button-open]
 original=Open
 translation=เปิด

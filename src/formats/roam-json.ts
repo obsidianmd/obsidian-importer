@@ -35,7 +35,7 @@ export class RoamJSONImporter extends FormatImporter {
 	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
 
 	init() {
-		this.addExportSetting(i18n.importer.roamJson.descExport());
+		this.addInstructions(this.addExportSetting(i18n.importer.roamJson.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), RoamJSONImporter.extensions, false,
 			i18n.importer.roamJson.descFiles());
