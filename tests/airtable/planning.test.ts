@@ -65,6 +65,22 @@ async function planning(vault: MemoryVault, mode: DuplicateHandling) {
 /** Each record's planned path, in the order the table has them. */
 const paths = (plans: TablePlan[]) => plans[0].records.map(planned => planned.filePath);
 
+test('base groups resolve IDs without repeatedly scanning the picker tree', () => {
+	const subject = new AirtableAPIImporter(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+	subject['picker'] = {
+		nodes: [
+			{ id: 'base-1', title: 'Base One', type: 'base', parentId: null, selected: true, disabled: false, children: [
+				{ id: 'table-1', title: 'Table One', type: 'table', parentId: 'base-1', selected: true, disabled: false, metadata: { baseId: 'base-1', tableId: 'table-1', tableName: 'Table One', primaryFieldId: 'field-1', fields: [{ id: 'field-1', type: 'singleLineText', name: 'Name' }], views: [] } },
+				{ id: 'table-2', title: 'Table Two', type: 'table', parentId: 'base-1', selected: true, disabled: false, metadata: { baseId: 'base-1', tableId: 'table-2', tableName: 'Table Two', primaryFieldId: 'field-2', fields: [{ id: 'field-2', type: 'singleLineText', name: 'Name' }], views: [] } },
+			], },
+		],
+	} as never;
+
+	const group = (subject as any).groupSelectedNodesByBase(subject['picker'].nodes);
+	assert.equal(group.get('base-1')?.baseName, 'Base One');
+	assert.deepEqual(group.get('base-1')?.tables.map((t: { tableName: string }) => t.tableName), ['Table One', 'Table Two']);
+});
+
 test('a record nothing matches is planned at its title', async () => {
 	const vault = new MemoryVault();
 	const subject = await planning(vault, DuplicateHandling.Skip);

@@ -49,6 +49,14 @@ import type {
 	TablePlan,
 } from './airtable-api/types';
 
+function indexById<T extends { id: string }>(items: Iterable<T>): Map<string, T> {
+	const byId = new Map<string, T>();
+	for (const item of items) {
+		byId.set(item.id, item);
+	}
+	return byId;
+}
+
 /**
  * Placeholder shown next to each field in the template configurator, so the user
  * can see the shape of what a property will hold. Select fields are handled in
@@ -620,6 +628,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private groupSelectedNodesByBase(selectedNodes: AirtableTreeNode[]): Map<string, BaseGroupInfo> {
 		const baseGroups = new Map<string, BaseGroupInfo>();
+		const baseNodeById = indexById((this.picker?.nodes ?? []).filter(node => node.type === 'base'));
 
 		for (const node of selectedNodes) {
 			if (node.type === 'base' && node.children) {
@@ -648,11 +657,9 @@ export class AirtableAPIImporter extends FormatImporter {
 				const baseId = node.metadata.baseId;
 
 				if (!baseGroups.has(baseId)) {
-					// Find the base node to get the base name
-					const baseName = this.picker.nodes.find(baseNode => baseNode.id === baseId)?.title ?? '';
 					baseGroups.set(baseId, {
 						baseId,
-						baseName,
+						baseName: baseNodeById.get(baseId)?.title ?? '',
 						tables: [],
 					});
 				}
@@ -670,6 +677,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		return baseGroups;
 	}
+
 
 	/**
 	 * Clear data from previous base to free memory
@@ -742,14 +750,16 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (linkedTableIds.size === 0) return;
 
-		const schema = this.picker.nodes.find(node => node.id === baseId)?.children ?? [];
+		const schema = this.picker?.nodes.find(node => node.id === baseId)?.children ?? [];
+		const schemaByTableId = indexById(schema.filter(node => node.metadata?.tableId));
 
 		for (const tableId of linkedTableIds) {
 			if (await ctx.shouldStop()) return;
 
-			const table = schema.find(node => node.metadata?.tableId === tableId);
+			const table = schemaByTableId.get(tableId);
 			const fields = table?.metadata?.fields ?? [];
-			const primaryFieldName = fields.find(field => field.id === table?.metadata?.primaryFieldId)?.name;
+			const fieldById = indexById(fields);
+			const primaryFieldName = fieldById.get(table?.metadata?.primaryFieldId ?? '')?.name;
 			if (!primaryFieldName) continue;
 
 			const tableName = table?.metadata?.tableName ?? tableId;
@@ -820,7 +830,8 @@ export class AirtableAPIImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return plans;
 
 			const { baseId, baseName, tableName, primaryFieldId, fields, records } = tableData;
-			const primaryFieldName = fields.find(f => f.id === primaryFieldId)?.name || fields[0]?.name;
+			const fieldById = indexById(fields);
+			const primaryFieldName = fieldById.get(primaryFieldId)?.name || fields[0]?.name;
 
 			const tablePath = baseName
 				? normalizePath(`${rootPath}/${sanitizeFileName(baseName)}/${sanitizeFileName(tableName)}`)
@@ -920,8 +931,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		);
 
 		// Find the primary field by ID (don't assume fields[0] is primary)
-		const primaryField = fields.find(f => f.id === primaryFieldId);
-		const primaryFieldName = primaryField?.name || fields[0]?.name;
+		const fieldById = indexById(fields);
+		const primaryFieldName = fieldById.get(primaryFieldId)?.name || fields[0]?.name;
 
 		// Collect fields for type inference and build global field ID to name mapping
 		for (const field of fields) {
@@ -1028,8 +1039,8 @@ export class AirtableAPIImporter extends FormatImporter {
 		const { baseId, tableName, primaryFieldId, fields, views, recordViewMemberships } = tableData;
 
 		// Find primary field by ID (don't assume fields[0] is primary)
-		const primaryField = fields.find(f => f.id === primaryFieldId);
-		const primaryFieldName = primaryField?.name || fields[0]?.name;
+		const fieldById = indexById(fields);
+		const primaryFieldName = fieldById.get(primaryFieldId)?.name || fields[0]?.name;
 
 		await this.createFolders(tablePath);
 
