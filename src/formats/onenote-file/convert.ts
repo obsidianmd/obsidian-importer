@@ -1,4 +1,3 @@
-import { sanitizeAltText } from '../onenote/alt-text';
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
 import { Element, Image, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
@@ -274,7 +273,7 @@ class PageWriter {
 				await this.writeTable(element);
 				break;
 			case 'image':
-				await this.writeAsset(element.data, this.imageName(element), element.altText ?? '', true);
+				await this.writeAsset(element.data, this.imageName(element), '', true);
 				break;
 			case 'embedded-file': {
 				const name = withExtension(element.fileName ?? 'attachment', element.extension);
@@ -380,8 +379,7 @@ class PageWriter {
 
 		this.attachments.push(attachment);
 		const target = encodeURI(attachment.path);
-		const text = embed ? sanitizeAltText(label) : label;
-		return embed ? `![${text}](${target})` : `[${text}](${target})`;
+		return embed ? `![${label}](${target})` : `[${label}](${target})`;
 	}
 
 	private async renderCell(children: Element[]): Promise<string> {
@@ -397,7 +395,7 @@ class PageWriter {
 					parts.push(await this.renderCell(child.children));
 					break;
 				case 'image':
-					parts.push(await this.renderAsset(child.data, this.imageName(child), child.altText ?? '', true) ?? '');
+					parts.push(await this.renderAsset(child.data, this.imageName(child), '', true) ?? '');
 					break;
 				case 'embedded-file': {
 					const name = withExtension(child.fileName ?? 'attachment', child.extension);

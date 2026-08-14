@@ -55,7 +55,6 @@ export interface Table {
 export interface Image {
 	kind: 'image';
 	fileName?: string;
-	altText?: string;
 	extension?: string;
 	data?: Uint8Array;
 }

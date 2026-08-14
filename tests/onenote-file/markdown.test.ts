@@ -146,8 +146,8 @@ test('an image is named after its page, and an embedded file keeps its full name
 	const data = new Uint8Array([1, 2, 3]);
 
 	assert.equal(
-		await render({ kind: 'image', fileName: 'Untitled picture.png', altText: 'a shot', data }),
-		'![a shot](files/Test%20image.png)');
+		await render({ kind: 'image', fileName: 'Untitled picture.png', data }),
+		'![](files/Test%20image.png)');
 	assert.equal(
 		await render({ kind: 'image', extension: '.jpg', data }),
 		'![](files/Test%20image.jpg)');
@@ -157,22 +157,14 @@ test('an image is named after its page, and an embedded file keeps its full name
 		'[notes [final].docx](files/notes%20%5Bfinal%5D.docx)');
 });
 
-test('OCR alt text cannot break the image it labels', async () => {
+test('an image inside a table stays inside its cell', async () => {
 	const data = new Uint8Array([1, 2, 3]);
-	const altText = 'Background Check Authorization\n[Name]\tJane Doe\n[Date] 2026-01-01';
+	const markdown = await render({
+		kind: 'table',
+		rows: [{ cells: [{ children: [{ kind: 'image', fileName: 'scan.png', data }] }] }],
+	});
 
-	assert.equal(
-		await render({ kind: 'image', fileName: 'scan.png', altText, data }),
-		'![Background Check Authorization Name Jane Doe Date 2026-01-01](files/Test%20image.png)');
-});
-
-test('a page of OCR is cut down rather than written out as the label', async () => {
-	const data = new Uint8Array([1, 2, 3]);
-	const markdown = await render({ kind: 'image', altText: 'word '.repeat(200), extension: '.png', data });
-
-	assert.equal(markdown.split('\n').length, 1);
-	assert.ok(markdown.startsWith('![word word'), markdown);
-	assert.ok(markdown.includes('word…](files/Test%20image.png)'), markdown);
+	assert.equal(markdown, ['| ![](files/Test%20image.png) |', '| --- |'].join('\n'));
 });
 
 test('recognized handwriting is written under the drawing and not also on it', async () => {

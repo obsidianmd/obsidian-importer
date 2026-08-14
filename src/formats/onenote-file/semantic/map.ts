@@ -547,7 +547,6 @@ function buildImage({ space, materializer }: MapContext, item: RevisionStoreObje
 	const image: Image = {
 		kind: 'image',
 		fileName: readString(item, Property.imageFilename),
-		altText: readString(item, Property.imageAltText),
 	};
 
 	for (const containerId of readReferences(item, Property.pictureContainer)) {

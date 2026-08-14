@@ -44,7 +44,7 @@ Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod 
 
 $a=b$
 
-![example images from TESTIMAGES archive](attachments/Test%20Page%20image.jpg)
+![](attachments/Test%20Page%20image.jpg)
 
 ![](attachments/Test%20Page%20-%20Ink.svg)
 

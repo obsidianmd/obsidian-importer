@@ -7,7 +7,6 @@ import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
-import { sanitizeAltText } from './onenote/alt-text';
 import { AccessTokenResponse } from './onenote/models';
 import { convertPageTags, pageToMarkdown } from './onenote/convert';
 import { describeNotebookFailure, SCOPE_REFUSED, THROTTLED } from './onenote/errors';
@@ -32,8 +31,6 @@ const MAX_RETRY_ATTEMPTS = 5;
 // Increase spacing after throttling and reduce it after successful downloads.
 const ATTACHMENT_SPACING_STEP_MS = 500;
 const MAX_ATTACHMENT_SPACING_MS = 3_000;
-
-const BASE64_REGEX = new RegExp(/^data:[\w\d]+\/[\w\d]+;base64,/);
 
 // Microsoft Graph caps page requests at 100.
 const PAGES_PER_REQUEST = 100;
@@ -971,10 +968,8 @@ export class OneNoteImporter extends FormatImporter {
 		}
 
 		for (const image of images) {
-			const alt = image.alt;
-			image.alt = !alt || BASE64_REGEX.test(alt)
-				? 'Exported image'
-				: sanitizeAltText(alt) || 'Exported image';
+			// OneNote stores its OCR output in alt text.
+			image.removeAttribute('alt');
 
 			const contentLocation = image.getAttribute('data-fullres-src');
 			if (!contentLocation) {

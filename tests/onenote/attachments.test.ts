@@ -188,26 +188,25 @@ test('an image without a download URL is reported rather than losing the page', 
 	);
 
 	assert.deepEqual(progress.failed, ['OneNote image']);
-	assert.equal((page.find('img') as HTMLImageElement).alt, 'Missing scan');
 	assert.match(page.textContent ?? '', /Before/);
 	assert.match(page.textContent ?? '', /After/);
 });
 
-test("OneNote's own OCR cannot break the image it is the alt text of", async () => {
+test("OneNote's own OCR is not carried into the note as a label", async () => {
 	const subject = importer(name => name);
-	const alt = 'Background Check Authorization\n[Name] Jane Doe';
+	const alt = 'Subnet 10.240.148.160 Subnet Mask 255.255.255.224 Site OKAY';
 
 	const page = await subject.getAllAttachments(
 		new ImportContext(),
-		`<html><body><img data-fullres-src="https://example.com/image" alt="${alt}"></body></html>`,
+		`<html><body><table><tr><td><img data-fullres-src="https://example.com/image" alt="${alt}"></td></tr></table></body></html>`,
 		'Notebook/Page.md',
 	);
 
 	const image = page.find('img') as HTMLImageElement;
-	assert.equal(image.alt, 'Background Check Authorization Name Jane Doe');
+	assert.equal(image.hasAttribute('alt'), false, 'display text after a pipe would end the table cell');
 });
 
-test('an image whose download failed still has alt text a note can hold', async () => {
+test('an image whose download failed carries no alt text either', async () => {
 	const subject = importer(() => null);
 
 	const page = await subject.getAllAttachments(
@@ -216,7 +215,7 @@ test('an image whose download failed still has alt text a note can hold', async 
 		'Notebook/Page.md',
 	);
 
-	assert.equal((page.find('img') as HTMLImageElement).alt, 'a scan');
+	assert.equal((page.find('img') as HTMLImageElement).hasAttribute('alt'), false);
 });
 
 test('an image with no declared type still downloads', async () => {
