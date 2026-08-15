@@ -145,6 +145,16 @@ export class ReflectImporter extends FormatImporter {
 		return 'Unknown error';
 	}
 
+	private isNonImageContentType(contentType: string): boolean {
+		if (!contentType) {
+			// No header at all: nothing to judge by; let the download proceed.
+			return false;
+		}
+		const normalized = contentType.toLowerCase();
+		// Generic binary types are how some storage backends serve real images.
+		return !normalized.startsWith('image/') && !normalized.includes('octet-stream');
+	}
+
 	private shouldRetryDownload(error: unknown): boolean {
 		if (error instanceof HttpStatusError) {
 			return error.status === 429 || error.status >= 500;
@@ -258,6 +268,14 @@ export class ReflectImporter extends FormatImporter {
 			}
 			try {
 				const { data, contentType } = await this.fetchAttachmentData(resolvedUrl);
+
+				// A dead asset behind Reflect's proxy can come back as an HTML
+				// error page with HTTP 200; saving that as an image would corrupt
+				// the vault silently. Fail instead so the remote-URL fallback and
+				// the import log both reflect what happened.
+				if (attachment.isImage && this.isNonImageContentType(contentType)) {
+					throw new Error(`Expected image data but got '${contentType}'`);
+				}
 
 				// Note-provided filenames may carry characters that break vault
 				// paths or wikilinks; fall back to a generated name. An unusable

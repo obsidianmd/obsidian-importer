@@ -83,6 +83,16 @@
       "backlinked_count": 0
     },
     {
+      "id": "dead-proxy-asset",
+      "subject": "Dead Proxy Asset",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Dead Proxy Asset\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Image whose proxy serves an HTML error page with HTTP 200 (should fail cleanly, not save HTML as an image):\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"\",\"src\":\"https://httpbin.org/html\",\"title\":\"\",\"resizable\":false,\"fileName\":\"image.html\"}}]}",
+      "created_at": "2026-02-27T15:09:00.000Z",
+      "updated_at": "2026-02-27T15:09:00.000Z",
+      "edited_at": "2026-02-27T15:09:00.000Z",
+      "daily_at": null,
+      "backlinked_count": 0
+    },
+    {
       "id": "mark-runs",
       "subject": "Mark Runs",
       "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Mark Runs\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"bold with trailing space \",\"marks\":[{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\"then plain.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Call (\",\"marks\":[{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\"my_function\",\"marks\":[{\"type\":\"code\"},{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\" in \",\"marks\":[{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\"tasks.py\",\"marks\":[{\"type\":\"code\"},{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\") first\",\"marks\":[{\"type\":\"bold\"}]},{\"type\":\"text\",\"text\":\" afterwards.\"}]}]}",
