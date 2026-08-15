@@ -240,8 +240,18 @@ export class ReflectImporter extends FormatImporter {
 		}
 		return {
 			data: response.arrayBuffer,
-			contentType: response.headers['content-type'] || '',
+			contentType: this.getHeader(response.headers, 'content-type'),
 		};
+	}
+
+	private getHeader(headers: Record<string, string> | undefined, name: string): string {
+		// Header key casing is not guaranteed across platforms.
+		for (const [key, value] of Object.entries(headers || {})) {
+			if (key.toLowerCase() === name) {
+				return value;
+			}
+		}
+		return '';
 	}
 
 	private async downloadAttachment(

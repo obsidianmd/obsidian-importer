@@ -85,7 +85,7 @@
     {
       "id": "dead-proxy-asset",
       "subject": "Dead Proxy Asset",
-      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Dead Proxy Asset\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Image whose proxy serves an HTML error page with HTTP 200 (should fail cleanly, not save HTML as an image):\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"\",\"src\":\"https://httpbin.org/html\",\"title\":\"\",\"resizable\":false,\"fileName\":\"image.html\"}}]}",
+      "document_json": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Dead Proxy Asset\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Images whose proxy serves an HTML error page with HTTP 200 (should fail cleanly, not save HTML as an image). With a fileName:\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"\",\"src\":\"https://httpbin.org/html\",\"title\":\"\",\"resizable\":false,\"fileName\":\"image.html\"}},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"And without one (pre-fix this was saved as a .png and embedded):\"}]},{\"type\":\"image\",\"attrs\":{\"settled\":true,\"alt\":\"\",\"src\":\"https://httpbin.org/html\",\"title\":\"\",\"resizable\":false}}]}",
       "created_at": "2026-02-27T15:09:00.000Z",
       "updated_at": "2026-02-27T15:09:00.000Z",
       "edited_at": "2026-02-27T15:09:00.000Z",
