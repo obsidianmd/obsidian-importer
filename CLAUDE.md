@@ -67,6 +67,12 @@ is sliding, which makes it the containing block for that while — so a bar
 that answers to the box outside would jump to the page's own bottom mid-slide
 and back again. Outside, it holds still while the pages move under it.
 
+The bar outlives the screens: the tab makes one and refills it, rather than
+taking it out and putting it back per screen, which would leave it missing
+for as long as a page takes to slide. It sits above the pages on `z-index`
+rather than at the end of them, so it does not have to be moved when one
+opens, and arriving and leaving is a fade.
+
 The page is still told it has one: `has-button-bar` is what shortens it, so
 its scrollbar ends where the bar begins. **Obsidian's CSS may not use
 `:has()`**, which is why the shell puts the class on rather than the

@@ -75,11 +75,21 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	bottom: 0;
 	left: 0;
 	right: 0;
-	margin: 0;
+
+	/* Above the pages rather than after them, so one opening over another
+	   passes under it without the bar having to be moved to the end. */
+	z-index: 1;
+
 	padding-block: var(--size-4-4);
 	padding-inline: max(var(--size-4-8), var(--setting-group-center-offset, 0px));
 	background-color: var(--settings-background);
 	border-top: var(--border-width) solid var(--background-modifier-border);
+
+	/* The bar outlives the screens, so arriving and leaving is a fade rather
+	   than the pop of an element the page took with it. */
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 100ms ease-out;
 
 	/* Out of the way while a keyboard is up. Typing into the filter, or into a
 	   folder name, is not a moment anyone is reaching for Continue, and the bar
@@ -87,6 +97,15 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	   bottom chrome moves by --keyboard-height the same way; the box the pages
 	   sit in clips what leaves it. */
 	transform: translateY(var(--keyboard-height, 0px));
+}
+
+.modal.mod-settings .importer-button-bar.is-shown {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.modal.mod-settings .importer-button-bar .modal-button-container {
+	margin: 0;
 }
 
 /* A page on a phone or tablet is inset by its own padding rather than by a
@@ -104,12 +123,12 @@ body.is-mobile .modal.mod-settings .importer-button-bar {
    is Help and Continue, and two buttons fit across even a phone. Only a step —
    an import that has finished has three, and the progress screen puts stopping
    where a thumb will not find it by accident. */
-body.is-mobile .modal.mod-settings .importer-button-bar.importer-step-buttons {
+body.is-mobile .modal.mod-settings .importer-button-bar .importer-step-buttons {
 	flex-direction: row;
 }
 
 /* Half the bar each, rather than as wide as the words in them. */
-body.is-phone .modal.mod-settings .importer-button-bar.importer-step-buttons button {
+body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons button {
 	flex: 1;
 }
 
@@ -121,7 +140,7 @@ body.is-phone .modal.mod-settings .importer-button-bar.importer-step-buttons but
    column and each button fills the width: an auto margin along what is then
    the cross axis takes that width back off the primary one. */
 body:not(.is-mobile) .modal.mod-importer .importer-step-buttons,
-body:not(.is-mobile) .modal.mod-settings .importer-button-bar.importer-step-buttons {
+body:not(.is-mobile) .modal.mod-settings .importer-button-bar .importer-step-buttons {
 	justify-content: flex-start;
 }
 
