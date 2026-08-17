@@ -109,12 +109,17 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 }
 
 /* A page on a phone or tablet is inset by its own padding rather than by a
-   column down the middle of it, and has the safe area to keep clear as well.
-   The safe area is the bar's own padding rather than a margin below it, so the
-   background reaches the bottom of the screen. */
+   column down the middle of it. */
 body.is-mobile .modal.mod-settings .importer-button-bar {
 	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
 	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
+}
+
+/* Only a phone fills the screen, so only a phone has anything below the bar to
+   keep clear of. The safe area is the bar's own padding rather than a margin
+   under it, so the background reaches the bottom of the screen; a tablet, whose
+   settings float in a window, would only be left with a gap. */
+body.is-phone .modal.mod-settings .importer-button-bar {
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
 }
 
