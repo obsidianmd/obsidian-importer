@@ -54,20 +54,23 @@ leaves those it passed empty.
 A running import is the exception with nothing behind it. Its back leaves
 the flow altogether, and unwinds however many pages that takes.
 
-A screen also says whether it ended in a row of buttons, which is the bar
-over the bottom of the page rather than a row after the settings — Continue
-on a step, Done and Import more at the end of an import, the way the modal
-has always drawn them. `setButtonBar` is told once the screen has drawn,
-since only then is the page it drew into the one to lay out around it.
-**Obsidian's CSS may not use `:has()`**, which is why the shell puts a class
-on the page rather than the stylesheet asking what is inside it.
+A screen's buttons are a bar over the bottom — Continue on a step, Done and
+Import more at the end of an import, the way the modal has always drawn them.
+The screen makes the row and hands it to `adoptButtonBar`, which is what
+decides where it goes: the end of the modal's content, or, in Settings, the
+box the pages sit in rather than the page itself. The list is the one screen
+that ends in nothing, and adopts `null`.
 
-What the bar has to get around is `will-change: transform`, the hint a page
-carries for the slide it arrives on: it makes the page the containing block
-for anything positioned inside it, and the page is also the scroller, so a
-bar anchored to its bottom scrolls away with the screen. Cleared, the bar
-answers to the box the pages sit in, which does not scroll, while still
-sliding in as a descendant of its page.
+A page cannot hold it. A page is the scroller, so a bar positioned inside one
+scrolls away with the step; and a page carries a transform for as long as it
+is sliding, which makes it the containing block for that while — so a bar
+that answers to the box outside would jump to the page's own bottom mid-slide
+and back again. Outside, it holds still while the pages move under it.
+
+The page is still told it has one: `has-button-bar` is what shortens it, so
+its scrollbar ends where the bar begins. **Obsidian's CSS may not use
+`:has()`**, which is why the shell puts the class on rather than the
+stylesheet asking what is inside.
 
 Settings are drawn in cards, one per group: `addSetting` keeps to the group
 its step is on, and `startGroup` breaks it where two settings are not read

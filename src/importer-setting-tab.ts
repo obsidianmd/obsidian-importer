@@ -61,6 +61,9 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	/** Set between a page closing and the flow being told to step back. */
 	private pendingBack: boolean = false;
 
+	/** The screen's buttons, held in the pane rather than in the page. */
+	private barEl: HTMLElement | null = null;
+
 	constructor(app: App, plugin: ImporterPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
@@ -90,6 +93,12 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 
 	hide(): void {
 		this.visible = false;
+
+		// The bar is the one thing the flow leaves outside the tab's own
+		// element, so it is the one thing emptying that element does not take.
+		this.barEl?.detach();
+		this.barEl = null;
+
 		this.flow.detach();
 	}
 
@@ -137,9 +146,36 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.containerEl.toggleClass('is-picking-format', picking);
 	}
 
-	/** On the page itself, which is what the bar is laid out against. */
-	setButtonBar(present: boolean): void {
-		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-button-bar', present);
+	/**
+	 * The buttons belong to the pane rather than to the page that drew them. A
+	 * page is the scroller, and carries a transform for as long as it is
+	 * sliding; either would take a bar positioned inside it along, up the
+	 * screen and back down again. Moved out, it holds still while the pages
+	 * move under it.
+	 *
+	 * The page is still told it has one, since what it makes room for is its
+	 * own: the scroller ends where the bar begins.
+	 */
+	adoptButtonBar(barEl: HTMLElement | null): void {
+		// The screen that drew the last one has been emptied around it.
+		this.barEl?.detach();
+		this.barEl = barEl;
+
+		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-button-bar', !!barEl);
+		if (!barEl) return;
+
+		// Found through the document rather than up from the page, which may not
+		// be in one yet: a page fills itself on the way to being opened. Settings
+		// can be a window of its own, and `ownerDocument` is which one — an
+		// element detached between screens still answers.
+		const paneEl = this.containerEl.ownerDocument
+			.querySelector<HTMLElement>('.vertical-tab-content-container');
+		if (!paneEl) return;
+
+		barEl.addClass('importer-button-bar');
+
+		// Last in the pane, so a page opening over another passes under it.
+		paneEl.append(barEl);
 	}
 
 	finish(): void {

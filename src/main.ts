@@ -201,8 +201,9 @@ export class ImporterModal extends Modal implements ImporterShell {
 		this.modalEl.toggleClass('is-picking-format', picking);
 	}
 
-	/** The modal's own bar sits at its bottom whatever screen is in it. */
-	setButtonBar(present: boolean): void {
+	/** The modal pins its own bar, wherever in the content it is drawn. */
+	adoptButtonBar(barEl: HTMLElement | null): void {
+		if (barEl) this.contentEl.append(barEl);
 	}
 
 	finish(): void {

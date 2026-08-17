@@ -49,21 +49,6 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	border-top: none;
 }
 
-/* A screen's buttons are a bar over the bottom of the page — Continue on a
-   step, Done and Import more at the end of an import — the way the modal's
-   are, and the page keeps the layout Settings gave it: it scrolls and bounces
-   as any other page does, and slides in from the side the same way.
-
-   What stood in the way of a bar that floats is `will-change: transform`,
-   the hint a page carries for that slide: it makes the page the containing
-   block for anything positioned inside it, and the page is also the scroller,
-   so a bar anchored to its bottom scrolls away with the step. Without the
-   hint the bar answers to the box the pages sit in, which does not scroll. It
-   is still a descendant, so it slides in with its page. */
-.modal.mod-settings .setting-page.importer-flow.has-button-bar {
-	will-change: auto;
-}
-
 /* The scroller ends where the bar begins, so its scrollbar ends there too
    rather than running on behind it. The modal takes the same measurement off
    its own content for the same reason; here it has to be the height, since a
@@ -77,9 +62,15 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	padding-bottom: var(--size-4-4);
 }
 
-/* The buttons keep the inset the cards above them have, so Continue ends where
+/* A screen's buttons are a bar over the bottom of the pane — Continue on a
+   step, Done and Import more at the end of an import — the way the modal's
+   are. The pane is what holds it, not the page that drew it: a page is the
+   scroller, and carries a transform while it slides, either of which would
+   take the bar along.
+
+   The buttons keep the inset the cards above them have, so Continue ends where
    the card ends rather than at the edge of the pane. */
-.importer-flow.has-button-bar .modal-button-container {
+.modal.mod-settings .importer-button-bar {
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -102,7 +93,7 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
    column down the middle of it, and has the safe area to keep clear as well.
    The safe area is the bar's own padding rather than a margin below it, so the
    background reaches the bottom of the screen. */
-body.is-mobile .importer-flow.has-button-bar .modal-button-container {
+body.is-mobile .modal.mod-settings .importer-button-bar {
 	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
 	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
@@ -113,12 +104,12 @@ body.is-mobile .importer-flow.has-button-bar .modal-button-container {
    is Help and Continue, and two buttons fit across even a phone. Only a step —
    an import that has finished has three, and the progress screen puts stopping
    where a thumb will not find it by accident. */
-body.is-mobile .importer-flow.has-button-bar .importer-step-buttons {
+body.is-mobile .modal.mod-settings .importer-button-bar.importer-step-buttons {
 	flex-direction: row;
 }
 
 /* Half the bar each, rather than as wide as the words in them. */
-body.is-phone .importer-flow.has-button-bar .importer-step-buttons button {
+body.is-phone .modal.mod-settings .importer-button-bar.importer-step-buttons button {
 	flex: 1;
 }
 
@@ -130,7 +121,7 @@ body.is-phone .importer-flow.has-button-bar .importer-step-buttons button {
    column and each button fills the width: an auto margin along what is then
    the cross axis takes that width back off the primary one. */
 body:not(.is-mobile) .modal.mod-importer .importer-step-buttons,
-body:not(.is-mobile) .importer-flow .importer-step-buttons {
+body:not(.is-mobile) .modal.mod-settings .importer-button-bar.importer-step-buttons {
 	justify-content: flex-start;
 }
 
@@ -437,8 +428,8 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	font-size: var(--font-ui-small);
 	text-align: center;
 	padding: 30px 10px;
-	min-height: 200px;
-	height: 100%;
+	height: 200px;
+	max-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;

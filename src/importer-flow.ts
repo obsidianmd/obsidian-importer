@@ -59,11 +59,12 @@ export interface ImporterShell {
 	/** The format list fills the shell; every other screen ends in a button bar. */
 	setPickingFormat(picking: boolean): void;
 	/**
-	 * Whether the screen just drawn ends in a row of buttons, which is the row
-	 * that sits at the bottom of the screen rather than after the settings.
-	 * Only the screen showing it lays itself out around it.
+	 * The row of buttons a screen ends in, handed over as it is made so the
+	 * shell can put it where the screen cannot reach — or `null` for a screen
+	 * that ends in nothing. Only the screen showing one lays itself out
+	 * around it.
 	 */
-	setButtonBar(present: boolean): void;
+	adoptButtonBar(barEl: HTMLElement | null): void;
 	/** Done: the modal closes, the setting tab closes the settings window. */
 	finish(): void;
 	/** Show a shell the user has left, to return to the import in it. */
@@ -205,13 +206,8 @@ export class ImporterFlow implements ImporterHost {
 		}
 	}
 
-	/**
-	 * A screen has finished drawing. The shell it drew into is the one that was
-	 * opened for it, so what it ended with is only known now.
-	 */
 	private drawn(): void {
 		this.drawing = false;
-		this.shell.setButtonBar(!!this.shell.contentEl.querySelector('.modal-button-container'));
 	}
 
 	/**
@@ -271,6 +267,9 @@ export class ImporterFlow implements ImporterHost {
 		this.drawCurrent = () => this.showFormatPicker();
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(true);
+
+		// The list is the one screen that ends in nothing.
+		this.shell.adoptButtonBar(null);
 		this.showScreen(FORMAT_LIST, i18n.modal.titlePickFormat(), null);
 
 		const { contentEl } = this.shell;
@@ -322,6 +321,19 @@ export class ImporterFlow implements ImporterHost {
 
 		draw('');
 		if (this.shell.ownsFocus) search.inputEl.focus();
+	}
+
+	/**
+	 * The row a screen ends in. Made loose and handed to the shell, which knows
+	 * where a bar belongs: in the modal, the end of its content; in Settings,
+	 * outside the page altogether, where the page's scrolling and sliding
+	 * cannot take it along.
+	 */
+	private buttonBar(cls: string): HTMLElement {
+		const barEl = createDiv(cls);
+		this.shell.adoptButtonBar(barEl);
+
+		return barEl;
 	}
 
 	/** The way to this format's documentation, for a format that has one. */
@@ -475,7 +487,7 @@ export class ImporterFlow implements ImporterHost {
 
 		// Both belong to the shell in Settings, where the row would be empty,
 		// and the space it still takes reads as a gap under the list.
-		if (buttonsEl.childElementCount > 0) contentEl.append(buttonsEl);
+		this.shell.adoptButtonBar(buttonsEl.childElementCount > 0 ? buttonsEl : null);
 
 		if (this.shell.ownsFocus) rows[0]?.focus();
 	}
@@ -623,12 +635,11 @@ export class ImporterFlow implements ImporterHost {
 					: i18n.nouns.itemWithCount({ count: drop.items.length }));
 		}
 
-		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			this.addBackButton(el);
+		const buttonsEl = this.buttonBar('modal-button-container importer-step-buttons');
+		this.addBackButton(buttonsEl);
 
-			el.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
-				el.addEventListener('click', () => this.startOver());
-			});
+		buttonsEl.createEl('button', { text: i18n.modal.buttonShowAllFormats() }, el => {
+			el.addEventListener('click', () => this.startOver());
 		});
 
 		if (this.shell.ownsFocus) rows[0]?.focus();
@@ -786,13 +797,10 @@ export class ImporterFlow implements ImporterHost {
 
 		if (stepEl) contentEl.append(stepEl);
 
-		contentEl.createDiv('modal-button-container importer-step-buttons', el => {
-			this.addBackButton(el);
-
-			this.addHelpButton(el, definition.helpPermalink);
-
-			buildButtons(el);
-		});
+		const buttonsEl = this.buttonBar('modal-button-container importer-step-buttons');
+		this.addBackButton(buttonsEl);
+		this.addHelpButton(buttonsEl, definition.helpPermalink);
+		buildButtons(buttonsEl);
 	}
 
 	private async startImport(importer: FormatImporter) {
@@ -923,7 +931,7 @@ export class ImporterFlow implements ImporterHost {
 
 		if (interruption === 'none') return;
 
-		let buttonsEl = ctx.actionsEl.createDiv('modal-button-container importer-progress-buttons');
+		let buttonsEl = this.buttonBar('modal-button-container importer-progress-buttons');
 
 		let pauseButtonEl: HTMLElement | null = null;
 		if (interruption === 'pause') {
@@ -1002,7 +1010,7 @@ export class ImporterFlow implements ImporterHost {
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
-		this.drawFinishButtons(ctx.actionsEl.createDiv('modal-button-container'), ctx, true);
+		this.drawFinishButtons(this.buttonBar('modal-button-container'), ctx, true);
 	}
 
 	private showHiddenNotice() {
