@@ -418,6 +418,17 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	margin: 0;
 }
 
+/* A file tree's icon is nudged 2px down for the taller rows Publish draws.
+   These rows are the height of the text and clip what leaves them, so the
+   nudge was taking the bottom of every icon with it. */
+.import-section .file-tree-item-icon {
+	top: 0;
+}
+
+.import-section .file-tree-item-icon svg {
+	display: block;
+}
+
 .import-section .tree-item-flair {
 	color: var(--text-faint);
 	padding: 0;
