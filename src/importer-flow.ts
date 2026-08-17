@@ -39,8 +39,8 @@ export interface ImporterShell {
 	readonly containerEl: HTMLElement;
 	/**
 	 * The shell draws the way back itself, as Settings does in the titlebar of
-	 * every page it opens, and calls `back()` when it is used. The flow draws
-	 * no Back button of its own then: a second one would say less.
+	 * every page it opens on a phone, and calls `back()` when it is used. The
+	 * flow draws no Back button of its own then: a second one would say less.
 	 */
 	readonly ownsBackButton: boolean;
 	/**

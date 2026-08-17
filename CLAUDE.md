@@ -39,11 +39,13 @@ to come back to an import the user has left.
 
 Two shells implement it. `ImporterModal` is the ribbon and the command on
 the desktop, and draws its own Back beside Continue; on mobile both open the
-setting tab instead, where the platform's own screens fit the flow better. `ImporterSettingTab` sets
-`ownsBackButton`: every screen is a page opened over the tab, and Settings
-puts the way back in each page's titlebar, so a second one in the content
-would only say less. `back()` is what that button reaches, and it is the
-same journey Back makes in the modal — one step, to the screen behind.
+setting tab instead, where the platform's own screens fit the flow better.
+Every screen in `ImporterSettingTab` is a page opened over the tab, and
+Settings puts the way back in each page's titlebar — which on a phone is
+where one is expected and all there is room for, so the tab sets
+`ownsBackButton` there and the flow draws none of its own. Anything larger
+gets Back in the bar as well, beside Help, as the modal has always had it.
+`back()` is what either reaches, and it is one step, to the screen behind.
 
 Which is why a screen says how deep it is. The format list is 0, the method
 picker 1, and a step counts on from there; the tab opens and closes pages

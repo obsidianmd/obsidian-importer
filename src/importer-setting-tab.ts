@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, SettingPage } from 'obsidian';
+import { App, Platform, PluginSettingTab, Setting, SettingPage } from 'obsidian';
 import { ImporterFlow, ImporterShell } from './importer-flow';
 import type ImporterPlugin from './main';
 
@@ -31,8 +31,15 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
-	/** Every page Settings opens comes with the way back out of it. */
-	readonly ownsBackButton: boolean = true;
+	/**
+	 * A phone has the way back where it expects one, in the titlebar of every
+	 * page Settings opens, and a second one under it would only say less. There
+	 * is room for it beside the other buttons on anything larger, which is
+	 * where the modal has always kept it.
+	 */
+	get ownsBackButton(): boolean {
+		return Platform.isPhone;
+	}
 
 	readonly ownsFocus: boolean = false;
 
