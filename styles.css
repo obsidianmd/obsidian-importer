@@ -110,7 +110,13 @@ body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons bu
 }
 
 /* Help is a circle the width of a thumb, and takes no more of the row than
-   that: the button beside it is the one being aimed at. */
+   that: the button beside it is the one being aimed at.
+
+   The auto margin only bites when Help is the whole row — a screen still
+   working out what to offer, or one that only has its documentation to give.
+   A growing button beside it has already taken the free space, so nothing is
+   left for the margin to claim and the row is unchanged. Without it the bar's
+   own end-alignment would leave the lone circle on the wrong side. */
 body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .importer-help-button {
 	--icon-size: var(--icon-l);
 	--icon-stroke: var(--icon-l-stroke-width);
@@ -118,6 +124,7 @@ body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .
 	width: var(--touch-size-m);
 	height: var(--touch-size-m);
 	padding: 0;
+	margin-inline-end: auto;
 	border-radius: var(--touch-size-m);
 	box-shadow: none;
 }
