@@ -751,7 +751,12 @@ export class ImporterFlow implements ImporterHost {
 		// Capture state before waiting for a previous run to stop.
 		const importerId = this.selectedId;
 		const setupScreen = this.drawCurrent;
-		const depth = this.depth;
+
+		// A screen of the importer's own is a page over the step it was started
+		// from, so it arrives the way every other screen does — slid in, and
+		// swiped back out. The run that follows stays on that page rather than
+		// closing it to draw itself one behind.
+		const depth = importer.configures ? this.depth + 1 : this.depth;
 		const sourceEl = this.sourceEl;
 		const outputEl = this.outputEl;
 		const optionsEl = this.optionsEl;
