@@ -282,6 +282,15 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	min-width: 4em;
 }
 
+.importer-stat-count {
+	font-size: var(--font-ui-large);
+	font-variant: tabular-nums;
+}
+.importer-stat-name {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
 /* Five counts side by side need the width of the longest word in each. Where
    there is not enough, each reads as a row of its own: what it counts at the
    start, how many at the end. */
@@ -299,14 +308,6 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 		order: 1;
 		font-size: var(--font-ui-medium);
 	}
-}
-.importer-stat-count {
-	font-size: var(--font-ui-large);
-	font-variant: tabular-nums;
-}
-.importer-stat-name {
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
 }
 
 .notice-message {
