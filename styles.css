@@ -210,6 +210,25 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 	font-variant: tabular-nums;
 }
 
+.importer-progress-bar {
+	width: 100%;
+	height: 8px;
+	background-color: var(--background-secondary);
+	overflow: hidden;
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.importer-progress-bar-inner {
+	width: 0;
+	height: 100%;
+	background-color: var(--interactive-accent);
+}
+
+.is-paused .importer-progress-bar-inner {
+	background-color: var(--text-faint);
+}
+
 .is-mobile .importer-flow .setting-page-content {
 	padding-bottom: 20vh;
 }
@@ -250,9 +269,14 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-evenly;
-	gap: var(--size-4-3) var(--size-4-2);
-	margin-top: var(--size-4-5);
-	margin-bottom: var(--size-4-5);
+	gap: var(--size-4-4) var(--size-4-2);
+	margin-top: var(--size-4-3);
+	margin-bottom: var(--size-4-3);
+	padding: var(--size-4-4);
+	background-color: var(--setting-items-background);
+	border-radius: var(--setting-items-radius);
+	corner-shape: var(--corner-shape);
+	border: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-stat {
@@ -267,6 +291,7 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 .importer-stat-count {
 	font-size: var(--font-ui-large);
 	font-variant: tabular-nums;
+	
 }
 
 .importer-log {
@@ -275,12 +300,14 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
 	padding: var(--size-4-4);
-	background-color: var(--background-secondary);
 	border-radius: var(--radius-s);
 	max-height: 300px;
 	user-select: text;
+	background-color: var(--setting-items-background);
+	border-radius: var(--setting-items-radius);
+	corner-shape: var(--corner-shape);
+	border: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-log .list-item {
@@ -307,6 +334,7 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	margin-bottom: var(--size-4-4);
+	padding: 0 var(--size-4-4);
 }
 
 .importer-select-all-setting {

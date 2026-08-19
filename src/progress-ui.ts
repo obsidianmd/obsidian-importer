@@ -1,4 +1,4 @@
-import { ProgressBarComponent, Setting, SettingGroup } from 'obsidian';
+import { Setting, SettingGroup } from 'obsidian';
 import { ImportContext, ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
 import { describeReason } from './util';
@@ -24,7 +24,7 @@ export function pausedText(message: string): string {
 export class ImportProgressUI extends ImportContext {
 	el: HTMLElement;
 	progressBarEl: HTMLElement;
-	progressBar: ProgressBarComponent;
+	progressBarInnerEl: HTMLElement;
 	importedCountEl: HTMLElement;
 	attachmentCountEl: HTMLElement;
 	remainingCountEl: HTMLElement;
@@ -49,11 +49,12 @@ export class ImportProgressUI extends ImportContext {
 		this.el = container;
 
 		const progress = new Setting(new SettingGroup(container).listEl)
-			.setClass('importer-progress')
-			.addProgressBar(bar => this.progressBar = bar);
+			.setClass('importer-progress');
 
 		this.statusEl = progress.nameEl;
-		this.progressBarEl = progress.controlEl;
+		this.progressBarEl = progress.controlEl.createDiv('importer-progress-bar', el => {
+			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
+		});
 
 		container.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
@@ -85,7 +86,10 @@ export class ImportProgressUI extends ImportContext {
 
 		if (this.isPaused()) this.onPaused(true);
 		else this.onStatus(this.statusMessage);
+
+		// Nothing to show until there is something to count.
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
+		else this.progressBarEl.hide();
 		if (this.log.length > 0) {
 			const drawn = createFragment();
 			for (const entry of this.log) this.drawLogEntry(entry, drawn);
@@ -128,12 +132,21 @@ export class ImportProgressUI extends ImportContext {
 
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
-		this.progressBar.setValue(100 * current / total);
+		this.progressBarEl.show();
+		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
 	}
 
+	/**
+	 * An import that finished is a full bar, whether or not it counted its way
+	 * there: an importer that reports no progress would otherwise end on an
+	 * empty track, or none at all. One that was stopped keeps how far it got.
+	 */
 	protected onFinish(): void {
 		this.finished = true;
-		if (this.progressTotal <= 0) this.progressBarEl.hide();
+		if (this.isCancelled()) return;
+
+		this.progressBarEl.show();
+		this.progressBarInnerEl.style.width = '100%';
 	}
 
 	// Batch layout reads when several log entries arrive together.
