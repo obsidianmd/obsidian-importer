@@ -286,9 +286,6 @@ export class ImporterFlow implements ImporterHost {
 
 		const open = () => window.open(helpUrl(permalink));
 
-		// A phone's bar is only as wide as the screen, and the way on has to fit
-		// in it, so Help is the icon it is elsewhere in Obsidian rather than a
-		// button's width of text.
 		if (Platform.isPhone) {
 			buttonsEl.createEl('button', {
 				cls: 'clickable-icon mod-raised importer-help-button',
