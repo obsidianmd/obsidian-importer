@@ -364,11 +364,11 @@ translation={{count}} 个项目失败
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=拖动并放下，或选择要导入的文件。
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=选择要导入的文件。
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation=将导入 {{files}}：
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=且还有 {{count}} 个文件
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=且还有 {{count}} 个文件
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=从导入中移除
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=了解更多。
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=使用说明
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=刷新
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=搜索…
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=未找到相关结果。
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=从数据所在的应用中将表格导出为 CSV，例如 Excel、Google Sheets、Numbers、Notion 或 Airtable。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=将你想要保留的页面保存为 HTML。如果页面所在的应用有专属的导入器，请优先使用，它能保留更多数据。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=将笔记导出为 textbundle 或 textpack 格式，Agenda、Craft、Taio、Ulysses 和 Zettlr 均支持导出该格式。
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

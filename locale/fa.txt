@@ -364,11 +364,11 @@ translation={{count}} مورد ناموفق
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=فایل‌ها را بکشید و رها کنید، یا فایل‌ها را برای درون‌ریزی انتخاب کنید.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=فایل‌ها را برای درون‌ریزی انتخاب کنید.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} وارد خواهد شد:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=و {{count}} فایل دیگر
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=و {{count}} فایل دیگر
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=حذف از درون‌ریزی
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=اطلاعات بیشتر.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=راهنما
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=بازنوسازی
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=پالایش...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=!نتیجه‌ای پیدا نشد
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=جدول خود را به صورت CSV از اپلیکیشنی که در آن قرار دارد صادر کنید؛ مانند Excel، Google Sheets، Numbers، Notion یا Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=صفحاتی را که می‌خواهید نگه دارید به صورت HTML ذخیره کنید. اگر اپلیکیشن مبدأ درون‌ریز اختصاصی خود را دارد، از آن استفاده کنید: داده‌های بیشتری حفظ می‌شود.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=یادداشت‌های خود را به صورت textbundle یا textpack صادر کنید؛ Agenda، Craft، Taio، Ulysses و Zettlr همگی قادر به ایجاد این فرمت هستند.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

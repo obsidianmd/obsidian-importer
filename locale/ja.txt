@@ -364,11 +364,11 @@ translation={{count}} 件のアイテムが失敗しました
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=ドラッグ＆ドロップ、またはインポートするファイルを選択してください。
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=インポートするファイルを選択してください。
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} がインポートされます:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=かつ さらに {{count}} 件のファイル
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=かつ さらに {{count}} 件のファイル
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=インポートから削除
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=詳細を確認。
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=手順
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=更新
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=フィルタ…
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=結果が見つかりません。
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Excel、Google Sheets、Numbers、Notion、Airtable など、使用中のアプリから表を CSV としてエクスポートしてください。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=保存したいページを HTML として保存してください。使用中のアプリに専用のインポーターがある場合は、そちらを使うとより多くのデータを保持できます。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=ノートを textbundle または textpack としてエクスポートしてください。Agenda、Craft、Taio、Ulysses、Zettlr がこれらの形式に対応しています。
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

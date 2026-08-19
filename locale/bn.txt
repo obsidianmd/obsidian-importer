@@ -364,11 +364,11 @@ translation={{count}}টি আইটেম ব্যর্থ হয়েছ�
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=টানুন এবং ছেড়ে দিন, অথবা ইম্পোর্ট করতে ফাইল নির্বাচন করুন।
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=ইম্পোর্ট করতে ফাইল নির্বাচন করুন।
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} ইম্পোর্ট করা হবে:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=এবং আরও {{count}}টি ফাইল
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=এবং আরও {{count}}টি ফাইল
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=ইম্পোর্ট থেকে সরান
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=আরও জানুন।
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=নির্দেশনা
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=রিফ্রেশ
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=ফিল্টার...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=কোন ফলাফল পাওয়া যায়নি।
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=আপনার টেবিল যে অ্যাপে আছে সেখান থেকে CSV হিসেবে এক্সপোর্ট করুন, যেমন Excel, Google Sheets, Numbers, Notion, বা Airtable।
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=যে পৃষ্ঠাগুলো রাখতে চান সেগুলো HTML হিসেবে সংরক্ষণ করুন। সেগুলো যে অ্যাপে আছে তার নিজস্ব ইম্পোর্টার থাকলে সেটি ব্যবহার করুন: এতে আপনার বেশি ডেটা সংরক্ষিত থাকে।
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=আপনার নোট textbundle বা textpack হিসেবে এক্সপোর্ট করুন, যা Agenda, Craft, Taio, Ulysses এবং Zettlr সবগুলোই লিখতে পারে।
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

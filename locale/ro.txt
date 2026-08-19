@@ -364,11 +364,11 @@ translation={{count}} elemente eșuate
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Trageți și plasați, sau alegeți fișierele de importat.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Alegeți fișierele de importat.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} vor fi importate:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=și încă {{count}} fișier
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=și încă {{count}} fișiere
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Ștergeți din import
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Aflați mai multe.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Instrucțiuni
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Reîmprospătare
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Filtrează...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Nu am găsit niciun rezultat.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Exportați tabelul ca CSV din aplicația în care se află, cum ar fi Excel, Google Sheets, Numbers, Notion sau Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Salvați paginile pe care doriți să le păstrați ca HTML. Dacă aplicația în care se află are un importator propriu, folosiți-l pe acela: păstrează mai multe din datele dvs.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Exportați însemnările ca textbundle sau textpack, format pe care Agenda, Craft, Taio, Ulysses și Zettlr îl pot genera.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

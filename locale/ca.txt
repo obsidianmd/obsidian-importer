@@ -364,11 +364,11 @@ translation={{count}} elements han fallat
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Arrossega i deixa anar, o tria fitxers per importar.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Tria fitxers per importar.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation=S'importaran {{files}}:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=i {{count}} més fitxer
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=i {{count}} més fitxers
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Eliminar de la importació
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Aprèn'n més.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Instruccions
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Actualitza
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Filtre...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=No s'han trobat resultats.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Exporta la teva taula com a CSV des de l'aplicació on es troba, com ara Excel, Google Sheets, Numbers, Notion o Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Desa les pàgines que vulguis conservar com a HTML. Si l'aplicació on es troben té un importador propi, utilitza'l: conserva més dades.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Exporta les teves notes com a textbundle o textpack, formats que Agenda, Craft, Taio, Ulysses i Zettlr poden generar.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

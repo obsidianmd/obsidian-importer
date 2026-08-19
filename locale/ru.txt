@@ -364,11 +364,11 @@ translation={{count}} элементов не удалось
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Перетащите или выберите файлы для импорта.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Выберите файлы для импорта.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} будет импортировано:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=и ещё {{count}} файл
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=и ещё {{count}} файлов
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Удалить из импорта
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Подробнее.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Инструкции
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Обновить
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Фильтр...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Ничего не найдено.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Экспортируйте таблицу в формате CSV из приложения, в котором она находится, например Excel, Google Sheets, Numbers, Notion или Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Сохраните нужные страницы в формате HTML. Если приложение, в котором они находятся, имеет собственный импортёр, используйте его: он сохранит больше ваших данных.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Экспортируйте заметки в формате textbundle или textpack — их поддерживают Agenda, Craft, Taio, Ulysses и Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

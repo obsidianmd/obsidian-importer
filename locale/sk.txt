@@ -364,11 +364,11 @@ translation={{count}} položiek zlyhalo
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Presunúť a pustiť, alebo zvoliť súbory na import.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Zvoliť súbory na import.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} bude importovaných:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=a ďalší {{count}} súbor
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=a ďalších {{count}} súborov
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Odobrať z importu
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Viac informácií.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Pokyny
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Obnoviť
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Filtrovať...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Žiadne výsledky hľadania.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Exportujte svoju tabuľku ako CSV z aplikácie, v ktorej sa nachádza, napríklad Excel, Google Sheets, Numbers, Notion alebo Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Uložte stránky, ktoré si chcete ponechať, ako HTML. Ak má aplikácia, v ktorej sa nachádzajú, vlastný importér, použite radšej ten: uchová viac vašich dát.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Exportujte svoje poznámky ako textbundle alebo textpack, čo dokážu zapísať Agenda, Craft, Taio, Ulysses a Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

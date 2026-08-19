@@ -364,11 +364,11 @@ translation=נכשלו {{count}} פריטים
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=גרירה ושחרר, או בחר קבצים לייבוא.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=בחר קבצים לייבוא.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} ייובאו:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=וגם עוד {{count}} קובץ
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=וגם עוד {{count}} קבצים
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=הסר מהייבוא
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=מידע נוסף.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=הוראות
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=רענון
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=סינון...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=לא נמצאו תוצאות.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=ייצא את הטבלה שלך כ-CSV מהאפליקציה שבה היא נמצאת, כגון Excel,‏ Google Sheets,‏ Numbers,‏ Notion או Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=שמור את הדפים שברצונך לשמור כ-HTML. אם לאפליקציה שבה הם נמצאים יש ייבוא משלה, השתמש בו במקום זאת: הוא שומר יותר מהנתונים שלך.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=ייצא את ההערות שלך כ-textbundle או textpack, שאותם Agenda,‏ Craft,‏ Taio,‏ Ulysses ו-Zettlr יכולים לכתוב.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

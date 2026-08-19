@@ -364,11 +364,11 @@ translation={{count}} elem sikertelen
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Húzd ide, vagy válaszd ki az importálandó fájlokat.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Válaszd ki az importálandó fájlokat.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} importálva lesz:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=és további {{count}} fájl
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=és további {{count}} fájl
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Eltávolítás az importból
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=További információk.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Útmutató
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Frissítés
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Szűrő...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Nincs találat.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Exportáld a táblázatot CSV formátumban abból az alkalmazásból, amelyben található, például Excel, Google Sheets, Numbers, Notion vagy Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Mentsd el a megtartani kívánt oldalakat HTML formátumban. Ha az alkalmazásnak, amelyben találhatók, van saját importálója, használd inkább azt: több adatot őriz meg.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Exportáld a jegyzeteidet textbundle vagy textpack formátumban, amelyet az Agenda, Craft, Taio, Ulysses és Zettlr mind képes létrehozni.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

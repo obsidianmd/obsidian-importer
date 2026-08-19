@@ -364,11 +364,11 @@ translation={{count}} kohdetta epäonnistui
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Raahaa ja pudota tai valitse tuotavat tiedostot.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Valitse tuotavat tiedostot.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} tuodaan:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=ja {{count}} lisää tiedosto
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=ja {{count}} lisää tiedostoa
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Poista tuonnista
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Lue lisää.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Ohjeet
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Päivitä
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Suodata...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Ei tuloksia.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Vie taulukko CSV-muodossa sovelluksesta, jossa se sijaitsee, kuten Excel, Google Sheets, Numbers, Notion tai Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Tallenna säilytettävät sivut HTML-muodossa. Jos sovelluksella, jossa ne ovat, on oma tuontitoiminto, käytä sitä: se säilyttää enemmän tietojasi.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Vie muistiinpanosi textbundle- tai textpack-muodossa. Agenda, Craft, Taio, Ulysses ja Zettlr voivat kaikki tuottaa näitä.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

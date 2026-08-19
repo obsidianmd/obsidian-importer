@@ -364,11 +364,11 @@ translation={{count}}개 항목이 실패했어요
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=드래그 앤 놓기하거나, 가져올 파일을 선택하세요.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=가져올 파일을 선택하세요.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}}개를 가져올 예정이에요:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=and {{count}}개 더 파일
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=and {{count}}개 더 파일
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=가져오기에서 삭제
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=자세히 알아보기.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=안내
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=새로고침
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=필터...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=결과를 찾지 못했습니다.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Excel, Google Sheets, Numbers, Notion, Airtable 등 사용 중인 앱에서 표를 CSV로 내보내세요.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱에 전용 가져오기 도구가 있다면 그것을 사용하는 편이 더 많은 데이터를 유지할 수 있어요.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=노트를 textbundle 또는 textpack으로 내보내세요. Agenda, Craft, Taio, Ulysses, Zettlr 모두 이 형식을 지원해요.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

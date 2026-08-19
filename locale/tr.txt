@@ -364,11 +364,11 @@ translation={{count}} öğe başarısız oldu
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Sürükle ve bırak yöntemiyle veya içe aktarılacak dosyaları seçin.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=İçe aktarılacak dosyaları seçin.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} içe aktarılacak:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=ve {{count}} tane daha dosya
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=ve {{count}} tane daha dosya
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=İçe aktarmadan kaldır
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Daha fazlasını öğrenin.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Talimatlar
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Yenile
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Filtrele...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Sonuç Bulunamadı.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Tablonuzu bulunduğu uygulamadan (Excel, Google Sheets, Numbers, Notion veya Airtable gibi) CSV olarak dışa aktarın.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Saklamak istediğiniz sayfaları HTML olarak kaydedin. Bulundukları uygulamanın kendi içe aktarıcısı varsa onu tercih edin: verilerinizin daha fazlasını korur.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Notlarınızı textbundle veya textpack olarak dışa aktarın; Agenda, Craft, Taio, Ulysses ve Zettlr bu formatları yazabilir.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

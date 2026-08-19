@@ -364,11 +364,11 @@ translation={{count}} item gagal
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=
+translation=Seret dan lepas, atau pilih file untuk diimpor.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=
+translation=Pilih file untuk diimpor.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,15 +404,15 @@ translation={{files}} akan diimpor:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=
+translation=dan {{count}} lainnya file
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=
+translation=dan {{count}} lainnya file
 
 [source.button-remove-file]
 original=Remove from the import
-translation=
+translation=Hapus dari impor
 
 [output.label-source-id]
 original=source ID
@@ -520,7 +520,7 @@ translation=Pelajari lebih lanjut.
 
 [common.button-instructions]
 original=Instructions
-translation=
+translation=Instruksi
 
 [common.button-open]
 original=Open
@@ -584,11 +584,11 @@ translation=Segarkan
 
 [tree.placeholder-filter]
 original=Filter...
-translation=
+translation=Saring...
 
 [tree.msg-no-matches]
 original=No results found.
-translation=
+translation=Tidak ada hasil.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=
+translation=Ekspor tabel Anda sebagai CSV dari aplikasi tempatnya berada, seperti Excel, Google Sheets, Numbers, Notion, atau Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=
+translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi tempatnya berada memiliki importir tersendiri, gunakan itu: data Anda akan lebih lengkap.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=
+translation=Ekspor catatan Anda sebagai textbundle atau textpack, yang dapat ditulis oleh Agenda, Craft, Taio, Ulysses, dan Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.
