@@ -288,7 +288,7 @@ translation={{count}} noter importeret
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Klik for at vise.
+translation={{counts}}. Vælg for at vise.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Eksportér din tabel som CSV fra den applikation, den befinder sig i, f.eks. Excel, Google Sheets, Numbers, Notion eller Airtable.
+translation=Eksportér din tabel som CSV fra den applikation, den findes i, f.eks. Excel, Google Sheets, Numbers, Notion eller Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Gem de sider, du vil beholde, som HTML. Hvis den applikation, de findes i, har sin egen importør, så brug den i stedet: den bevarer flere af dine data.
+translation=Gem de sider, du vil beholde, som HTML. Hvis den applikation, de er i, har sin egen importør, så brug den i stedet: den bevarer flere af dine data.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Der opstod en fejl under forsøg på at logge dig ind.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klik her for at vise fejldetaljer
+translation=Vis fejldetaljer
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=For at få et API-token skal du oprette en forbindelse i Notion og g
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Hent API-token.
+translation=Hent API-token
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Sider at importere
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klik på "Indlæs" for at se data, du kan importere. Hvis en side eller database mangler, skal du kontrollere, at din Notion-forbindelse har adgang til den.
+translation=Indlæs dine Notion-sider og -databaser, og vælg derefter, hvad der skal importeres. Hvis en side eller database mangler, skal du kontrollere, at din Notion-forbindelse har adgang til den.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klik på "Indlæs" for at indlæse dine Notion-sider og -databaser.
+translation=Indlæs dine Notion-sider og -databaser for at komme i gang.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Eksportér dine noter som textbundle eller textpack, som Agenda, Craft, Taio, Ulysses og Zettlr alle kan skrive.
+translation=Eksportér dine noter som textbundle eller textpack, hvilket Agenda, Craft, Taio, Ulysses og Zettlr alle kan skrive.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

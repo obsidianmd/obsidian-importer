@@ -288,7 +288,7 @@ translation={{count}} not içe aktarıldı
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Göstermek için tıklayın.
+translation={{counts}}. Göstermek için seçin.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,7 +364,7 @@ translation={{count}} öğe başarısız oldu
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Sürükle ve bırak yöntemiyle veya içe aktarılacak dosyaları seçin.
+translation=Sürükle ve bırak veya içe aktarılacak dosyaları seçin.
 
 [source.desc-choose]
 original=Choose files to import.
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Tablonuzu bulunduğu uygulamadan (Excel, Google Sheets, Numbers, Notion veya Airtable gibi) CSV olarak dışa aktarın.
+translation=Tablonuzu bulunduğu uygulamadan CSV olarak dışa aktarın; örneğin Excel, Google Sheets, Numbers, Notion veya Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Saklamak istediğiniz sayfaları HTML olarak kaydedin. Bulundukları uygulamanın kendi içe aktarıcısı varsa onu tercih edin: verilerinizin daha fazlasını korur.
+translation=Saklamak istediğiniz sayfaları HTML olarak kaydedin. Bulundukları uygulamanın kendi içe aktarıcısı varsa onu kullanın: verilerinizin daha fazlasını korur.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Oturum açmaya çalışırken bir hata oluştu.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Hata ayrıntılarını görmek için buraya tıklayın
+translation=Hata ayrıntılarını göster
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API belirteci
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Bir API belirteci almak için Notion'da bir bağlantı oluşturun ve çalışma alanınızdaki sayfalara erişim verin.
+translation=Bir API belirteci almak için Notion'da bir bağlantı oluşturun ve çalışma alanınızdaki sayfalara erişim izni verin.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API belirteci al.
+translation=API belirteci al
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=İçe aktarılacak sayfalar
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=İçe aktarabileceğiniz verileri görmek için "Yükle"ye tıklayın. Bir sayfa veya veritabanı eksikse Notion bağlantınızın ona erişimi olduğundan emin olun.
+translation=Notion sayfalarınızı ve veritabanlarınızı yükleyin, ardından neleri içe aktaracağınızı seçin. Bir sayfa veya veritabanı eksikse Notion bağlantınızın ona erişimi olduğunu kontrol edin.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Notion sayfalarınızı ve veritabanlarınızı yüklemek için "Yükle"ye tıklayın.
+translation=Başlamak için Notion sayfalarınızı ve veritabanlarınızı yükleyin.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Notlarınızı textbundle veya textpack olarak dışa aktarın; Agenda, Craft, Taio, Ulysses ve Zettlr bu formatları yazabilir.
+translation=Notlarınızı textbundle veya textpack olarak dışa aktarın; Agenda, Craft, Taio, Ulysses ve Zettlr bu formatları destekler.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

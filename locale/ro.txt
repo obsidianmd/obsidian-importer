@@ -288,7 +288,7 @@ translation={{count}} însemnări importate
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Apasă pentru a afișa.
+translation={{counts}}. Selectați pentru a afișa.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} elemente eșuate
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Trageți și plasați, sau alegeți fișierele de importat.
+translation=Trageți și plasați sau alegeți fișiere de importat.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=Alegeți fișierele de importat.
+translation=Alegeți fișiere de importat.
 
 [source.button-choose-file]
 original=Choose file
@@ -700,7 +700,7 @@ translation=Token de acces personal Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Creați un token de acces personal în setările contului Airtable.
+translation=Creați un token de acces personal în setările contului dvs. Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1224,7 +1224,7 @@ translation=Însemnări și atașamente
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Obțineți datele din Google Keep prin Google Takeout.
+translation=Obțineți datele din Google Keep folosind Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1348,7 +1348,7 @@ translation=A apărut o eroare la autentificare.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Faceți clic aici pentru a vedea detaliile erorii
+translation=Afișează detaliile erorii
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Pentru a obține un token API, creați o conexiune în Notion și ac
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Obține token API.
+translation=Obțineți tokenul API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Pagini de importat
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Faceți clic pe "Încarcă" pentru a vedea datele pe care le puteți importa. Dacă o pagină sau o bază de date lipsește, verificați că conexiunea Notion are acces la ea.
+translation=Încărcați paginile și bazele de date din Notion, apoi alegeți ce să importați. Dacă o pagină sau o bază de date lipsește, verificați dacă conexiunea Notion are acces la ea.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Faceți clic pe "Încarcă" pentru a încărca paginile și bazele de date Notion.
+translation=Încărcați paginile și bazele de date din Notion pentru a începe.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Exportați însemnările ca textbundle sau textpack, format pe care Agenda, Craft, Taio, Ulysses și Zettlr îl pot genera.
+translation=Exportați notițele ca textbundle sau textpack, formate pe care Agenda, Craft, Taio, Ulysses și Zettlr le pot genera.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

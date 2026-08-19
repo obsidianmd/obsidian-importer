@@ -288,7 +288,7 @@ translation={{count}} muistiinpanoa tuotu
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Näytä napsauttamalla.
+translation={{counts}}. Valitse näyttääksesi.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -1224,7 +1224,7 @@ translation=Muistiinpanot ja liitteet
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Hae Google Keep ‑tietosi Google Takeout ‑palvelusta.
+translation=Hae Google Keep -tietosi Google Takeout -palvelusta.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Tallenna säilytettävät sivut HTML-muodossa. Jos sovelluksella, jossa ne ovat, on oma tuontitoiminto, käytä sitä: se säilyttää enemmän tietojasi.
+translation=Tallenna säilytettävät sivut HTML-muodossa. Jos sovelluksella, jossa ne ovat, on oma tuontityökalu, käytä sitä: se säilyttää enemmän tietojasi.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Kirjautumisen aikana tapahtui virhe.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Napsauta tätä nähdäksesi virhetiedot
+translation=Näytä virhetiedot
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API -token
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Saadaksesi API-tokenin luo yhteys Notionissa ja anna sille pääsy työtilasi sivuihin.
+translation=Saadaksesi API-tunnisteen luo yhteys Notion-sovelluksessa ja anna sille pääsy työtilasi sivuihin.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Hanki API-token.
+translation=Hae API-tunniste
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Tuotavat sivut
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Napsauta "Lataa" nähdäksesi tuotavissa olevat tiedot. Jos sivu tai tietokanta puuttuu, tarkista, että Notion-yhteydellä on pääsy siihen.
+translation=Lataa Notion-sivusi ja -tietokantasi ja valitse tuotavat kohteet. Jos sivu tai tietokanta puuttuu, tarkista, että Notion-yhteydellä on pääsy siihen.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Napsauta "Lataa" ladataksesi Notion-sivut ja -tietokannat.
+translation=Lataa Notion-sivusi ja -tietokantasi aloittaaksesi.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Vie muistiinpanosi textbundle- tai textpack-muodossa. Agenda, Craft, Taio, Ulysses ja Zettlr voivat kaikki tuottaa näitä.
+translation=Vie muistiinpanosi textbundle- tai textpack-muodossa, jota Agenda, Craft, Taio, Ulysses ja Zettlr tukevat.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

@@ -700,7 +700,7 @@ translation=Osobní přístupový token Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Vytvořte osobní přístupový token v nastavení vašeho účtu Airtable.
+translation=Vytvořte si osobní přístupový token v nastavení svého účtu Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Uložte stránky, které si chcete ponechat, jako HTML. Pokud má aplikace, ve které se nacházejí, vlastní importér, použijte raději ten: zachová více vašich dat.
+translation=Uložte stránky, které si chcete ponechat, jako HTML. Pokud má aplikace, ve které se nacházejí, vlastní importér, použijte raději ten – zachová více vašich dat.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Při pokusu o přihlášení došlo k chybě.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klikněte sem pro zobrazení podrobností chyby
+translation=Zobrazit podrobnosti chyby
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Pro získání API tokenu vytvořte připojení v Notion a udělte m
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Získat API token.
+translation=Získat API token
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Stránky k importu
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klikněte na "Načíst" pro zobrazení dat, která můžete importovat. Pokud stránka nebo databáze chybí, zkontrolujte, zda má vaše připojení k Notion přístup.
+translation=Načtěte své stránky a databáze z Notion a poté vyberte, co chcete importovat. Pokud stránka nebo databáze chybí, zkontrolujte, zda k ní má vaše připojení v Notion přístup.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klikněte na "Načíst" pro načtení vašich stránek a databází z Notion.
+translation=Pro začátek načtěte své stránky a databáze z Notion.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

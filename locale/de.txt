@@ -288,7 +288,7 @@ translation={{count}} Notizen importiert
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Klicke zum Anzeigen.
+translation={{counts}}. Auswählen zum Anzeigen.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} Elemente fehlgeschlagen
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Ziehe Dateien hierher, lege sie ab oder wähle Dateien zum Importieren aus.
+translation=Ziehen und ablegen oder Dateien zum Importieren auswählen.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=Wähle Dateien zum Importieren aus.
+translation=Dateien zum Importieren auswählen.
 
 [source.button-choose-file]
 original=Choose file
@@ -700,7 +700,7 @@ translation=Persönliches Airtable-Zugriffstoken
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Erstelle ein persönliches Zugriffstoken in deinen Airtable-Kontoeinstellungen.
+translation=Erstelle einen persönlichen Zugriffstoken in deinen Airtable-Kontoeinstellungen.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1348,7 +1348,7 @@ translation=Beim Anmelden ist ein Fehler aufgetreten.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klicke hier, um Fehlerdetails anzuzeigen
+translation=Fehlerdetails anzeigen
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion-API-Token
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Um ein API-Token zu erhalten, erstelle eine Verbindung in Notion und gewähre ihr Zugriff auf Seiten in deinem Workspace.
+translation=Um einen API-Token zu erhalten, erstelle eine Verbindung in Notion und gib ihr Zugriff auf Seiten in deinem Workspace.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API-Token erhalten.
+translation=API-Token abrufen
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Zu importierende Seiten
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klicke auf "Laden", um importierbare Daten zu sehen. Wenn eine Seite oder Datenbank fehlt, überprüfe, ob deine Notion-Verbindung Zugriff darauf hat.
+translation=Lade deine Notion-Seiten und -Datenbanken, dann wähle aus, was importiert werden soll. Falls eine Seite oder Datenbank fehlt, prüfe, ob deine Notion-Verbindung Zugriff darauf hat.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klicke auf "Laden", um deine Notion-Seiten und -Datenbanken zu laden.
+translation=Lade deine Notion-Seiten und -Datenbanken, um loszulegen.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Exportiere deine Notizen als Textbundle oder Textpack – dieses Format können Agenda, Craft, Taio, Ulysses und Zettlr alle erzeugen.
+translation=Exportiere deine Notizen als Textbundle oder Textpack, was Agenda, Craft, Taio, Ulysses und Zettlr alle unterstützen.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

@@ -288,7 +288,7 @@ translation={{count}} ghi chú đã nhập
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Nhấn để hiển thị.
+translation={{counts}}. Chọn để hiển thị.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Lưu các trang bạn muốn giữ lại dưới dạng HTML. Nếu ứng dụng chứa chúng có trình nhập riêng, hãy dùng trình nhập đó: nó giữ được nhiều dữ liệu hơn.
+translation=Lưu các trang bạn muốn giữ lại dưới dạng HTML. Nếu ứng dụng chứa chúng có trình nhập riêng, hãy dùng trình nhập đó: nó giữ lại nhiều dữ liệu hơn.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Đã xảy ra lỗi khi cố đăng nhập.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Nhấn vào đây để xem chi tiết lỗi
+translation=Hiển thị chi tiết lỗi
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Mã token API Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Để lấy mã token API, hãy tạo kết nối trong Notion và cấp quyền truy cập các trang trong không gian làm việc của bạn.
+translation=Để lấy mã API, hãy tạo một kết nối trong Notion và cấp cho nó quyền truy cập các trang trong không gian làm việc của bạn.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Lấy mã token API.
+translation=Lấy mã API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Các trang cần nhập
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Nhấp "Tải" để xem dữ liệu bạn có thể nhập. Nếu một trang hoặc cơ sở dữ liệu bị thiếu, hãy kiểm tra kết nối Notion của bạn có quyền truy cập tới nó.
+translation=Tải các trang và cơ sở dữ liệu Notion của bạn, sau đó chọn nội dung cần nhập. Nếu một trang hoặc cơ sở dữ liệu bị thiếu, hãy kiểm tra xem kết nối Notion của bạn có quyền truy cập vào nó không.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Nhấp "Tải" để tải các trang và cơ sở dữ liệu Notion của bạn.
+translation=Tải các trang và cơ sở dữ liệu Notion của bạn để bắt đầu.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

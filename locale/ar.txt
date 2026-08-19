@@ -700,7 +700,7 @@ translation=رمز الوصول الشخصي لـ Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=أنشئ رمز وصول شخصي في إعدادات الحساب الخاص بك في Airtable.
+translation=أنشئ رمز وصول شخصي في إعدادات الحساب على Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=صدّر الجدول بصيغة CSV من التطبيق الذي يحتويه، مثل Excel أو Google Sheets أو Numbers أو Notion أو Airtable.
+translation=صدّر الجدول كملف CSV من التطبيق الذي يحتويه، مثل Excel أو Google Sheets أو Numbers أو Notion أو Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=احفظ الصفحات التي تريد الاحتفاظ بها بصيغة HTML. إذا كان التطبيق الذي توجد فيه يحتوي على مستورد خاص به، فاستخدمه بدلاً من ذلك: فهو يحتفظ بمزيد من بياناتك.
+translation=احفظ الصفحات التي تريد الاحتفاظ بها بصيغة HTML. إذا كان التطبيق الذي توجد فيه يحتوي على أداة استيراد خاصة به، فاستخدمها بدلاً من ذلك: فهي تحتفظ بمزيد من بياناتك.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=صدّر ملاحظاتك بصيغة textbundle أو textpack، والتي يمكن لكل من Agenda و Craft و Taio و Ulysses و Zettlr كتابتها.
+translation=صدّر ملاحظاتك بصيغة textbundle أو textpack، وهي صيغ يمكن لـ Agenda و Craft و Taio و Ulysses و Zettlr كتابتها.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

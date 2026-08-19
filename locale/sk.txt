@@ -288,7 +288,7 @@ translation={{count}} poznámok importovaných
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Kliknutím zobrazíte.
+translation={{counts}}. Vyberte na zobrazenie.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} položiek zlyhalo
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Presunúť a pustiť, alebo zvoliť súbory na import.
+translation=Presuňte a pusťte, alebo zvoľte súbory na import.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=Zvoliť súbory na import.
+translation=Zvoľte súbory na import.
 
 [source.button-choose-file]
 original=Choose file
@@ -700,7 +700,7 @@ translation=Osobný prístupový token Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Vytvorte si osobný prístupový token v nastaveniach svojho účtu Airtable.
+translation=Vytvorte si osobný prístupový token v nastaveniach svojho Airtable účtu.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1224,7 +1224,7 @@ translation=Poznámky a prílohy
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Získajte svoje dáta z Google Keep cez Google Takeout.
+translation=Získajte svoje dáta z Google Keep prostredníctvom Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Uložte stránky, ktoré si chcete ponechať, ako HTML. Ak má aplikácia, v ktorej sa nachádzajú, vlastný importér, použite radšej ten: uchová viac vašich dát.
+translation=Uložte stránky, ktoré si chcete ponechať, ako HTML. Ak aplikácia, v ktorej sa nachádzajú, má vlastný importér, použite radšej ten: zachová viac vašich dát.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Pri pokuse o prihlásenie sa vyskytla chyba.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Kliknutím zobrazíte podrobnosti o chybe
+translation=Zobraziť podrobnosti o chybe
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Na získanie API tokenu vytvorte pripojenie v Notion a udeľte mu pr
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Získať API token.
+translation=Získať API token
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Stránky na import
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Kliknutím na "Načítať" zobrazíte dáta, ktoré môžete importovať. Ak stránka alebo databáza chýba, skontrolujte, či vaše pripojenie Notion má k nej prístup.
+translation=Načítajte svoje Notion stránky a databázy a potom zvoľte, čo chcete importovať. Ak stránka alebo databáza chýba, skontrolujte, či má vaše Notion pripojenie k nej prístup.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Kliknutím na "Načítať" načítate vaše stránky a databázy z Notion.
+translation=Načítajte svoje Notion stránky a databázy, aby ste mohli začať.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Exportujte svoje poznámky ako textbundle alebo textpack, čo dokážu zapísať Agenda, Craft, Taio, Ulysses a Zettlr.
+translation=Exportujte svoje poznámky ako textbundle alebo textpack, čo dokážu Agenda, Craft, Taio, Ulysses a Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

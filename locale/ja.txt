@@ -288,7 +288,7 @@ translation={{count}} 件のノートをインポートしました
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}。クリックして表示。
+translation={{counts}}。選択して表示。
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=Airtable パーソナルアクセストークン
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Airtable のアカウント設定でパーソナルアクセストークンを作成してください。
+translation=Airtable のアカウント設定で個人アクセストークンを作成してください。
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Excel、Google Sheets、Numbers、Notion、Airtable など、使用中のアプリから表を CSV としてエクスポートしてください。
+translation=Excel、Google Sheets、Numbers、Notion、Airtable などのアプリから表を CSV としてエクスポートしてください。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=保存したいページを HTML として保存してください。使用中のアプリに専用のインポーターがある場合は、そちらを使うとより多くのデータを保持できます。
+translation=保存したいページを HTML として保存してください。そのアプリ専用のインポーターがある場合は、そちらを使うとより多くのデータを保持できます。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=サインイン中にエラーが発生しました。
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=ここをクリックしてエラーの詳細を表示
+translation=エラーの詳細を表示
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API トークン
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセス権を付与してください。
+translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセスを許可してください。
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API トークンを取得する。
+translation=API トークンを取得
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=インポートするページ
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=「ロード」をクリックするとインポート可能なデータが表示されます。ページやデータベースが見つからない場合は、Notion コネクションにアクセス権があるか確認してください。
+translation=Notion のページとデータベースをロードし、インポートする対象を選択してください。ページやデータベースが見つからない場合は、Notion のコネクションにアクセス権があるか確認してください。
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=「ロード」をクリックして Notion のページとデータベースをロードしてください。
+translation=まず Notion のページとデータベースをロードしてください。
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

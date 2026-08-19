@@ -364,7 +364,7 @@ translation={{count}} елементів не вдалося
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Перетягнути й відпустити або обрати файли для імпорту.
+translation=Перетягнути і відпустити або обрати файли для імпорту.
 
 [source.desc-choose]
 original=Choose files to import.
@@ -700,7 +700,7 @@ translation=Персональний токен доступу Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Створіть персональний токен доступу в налаштуваннях облікового запису Airtable.
+translation=Створіть особистий токен доступу в налаштуваннях облікового запису Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Експортуйте таблицю як CSV із застосунку, в якому вона зберігається, наприклад Excel, Google Sheets, Numbers, Notion або Airtable.
+translation=Експортуйте таблицю як CSV із застосунку, в якому вона знаходиться, наприклад Excel, Google Sheets, Numbers, Notion або Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Збережіть потрібні сторінки як HTML. Якщо застосунок, у якому вони знаходяться, має власний імпортер, скористайтеся ним: він збереже більше ваших даних.
+translation=Збережіть потрібні сторінки як HTML. Якщо застосунок, в якому вони знаходяться, має власний імпортер, скористайтеся ним: він збереже більше ваших даних.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Під час входу сталася помилка.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Натисніть тут, щоб переглянути деталі помилки
+translation=Показати деталі помилки
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Щоб отримати токен API, створіть підкл�
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Отримати токен API.
+translation=Отримати токен API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Сторінки для імпорту
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Натисніть "Завантажити", щоб побачити дані, які можна імпортувати. Якщо сторінка або база даних відсутня, перевірте, чи ваше підключення Notion має до неї доступ.
+translation=Завантажте сторінки й бази даних Notion, потім оберіть, що імпортувати. Якщо сторінка або база даних відсутня, перевірте, чи має ваше підключення Notion доступ до неї.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Натисніть "Завантажити", щоб завантажити ваші сторінки та бази даних Notion.
+translation=Завантажте сторінки й бази даних Notion, щоб почати.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

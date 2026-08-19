@@ -288,7 +288,7 @@ translation={{count}} notas importadas
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Haz clic para mostrar.
+translation={{counts}}. Seleccionar para mostrar.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} elementos con error
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Arrastra y suelta, o elige archivos para importar.
+translation=Arrastrar y soltar, o elegir archivos para importar.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=Elige archivos para importar.
+translation=Elegir archivos para importar.
 
 [source.button-choose-file]
 original=Choose file
@@ -404,11 +404,11 @@ translation=Se importarán {{files}}:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=y {{count}} archivo más
+translation=y {{count}} más archivo
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=y {{count}} archivos más
+translation=y {{count}} más archivos
 
 [source.button-remove-file]
 original=Remove from the import
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Guarda las páginas que quieras conservar como HTML. Si la aplicación en la que están tiene su propio importador, usa ese en su lugar: conserva más datos.
+translation=Guarda las páginas que quieras conservar como HTML. Si la aplicación en la que se encuentran tiene su propio importador, úsalo en su lugar: conserva más datos.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Se produjo un error al intentar iniciar sesión.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Haz clic aquí para mostrar los detalles del error
+translation=Mostrar detalles del error
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Para obtener un token de API, crea una conexión en Notion y dale ac
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Obtener token de API.
+translation=Obtener token de API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Páginas a importar
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Haz clic en "Cargar" para ver los datos que puedes importar. Si falta una página o base de datos, comprueba que tu conexión de Notion tenga acceso.
+translation=Carga tus páginas y bases de datos de Notion y luego elige qué importar. Si falta una página o base de datos, comprueba que tu conexión de Notion tenga acceso a ella.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Haz clic en "Cargar" para cargar tus páginas y bases de datos de Notion.
+translation=Carga tus páginas y bases de datos de Notion para comenzar.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

@@ -288,7 +288,7 @@ translation=已导入 {{count}} 条笔记
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}。点击查看。
+translation={{counts}}。点击以显示。
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=Airtable 个人访问令牌
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=在您的 Airtable 账户设置中创建个人访问令牌。
+translation=在你的 Airtable 账户设置中创建个人访问令牌。
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=从数据所在的应用中将表格导出为 CSV，例如 Excel、Google Sheets、Numbers、Notion 或 Airtable。
+translation=从你使用的应用中将表格导出为 CSV，例如 Excel、Google Sheets、Numbers、Notion 或 Airtable。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1224,7 +1224,7 @@ translation=笔记和附件
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=从 Google Takeout 获取你的 Google Keep 数据。
+translation=通过 Google Takeout 获取你的 Google Keep 数据。
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=将你想要保留的页面保存为 HTML。如果页面所在的应用有专属的导入器，请优先使用，它能保留更多数据。
+translation=将你想保留的页面保存为 HTML。如果页面所在的应用有自己的导入器，请优先使用，这样能保留更多数据。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=登录时发生错误。
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=点击此处查看错误详情
+translation=显示错误详情
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API 令牌
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=要获取 API 令牌，请在 Notion 中创建一个连接，并授予其访问工作区页面的权限。
+translation=要获取 API 令牌，请在 Notion 中创建一个连接，并授予其访问工作区中页面的权限。
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=获取 API 令牌。
+translation=获取 API 令牌
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=要导入的页面
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=点击"加载"查看可导入的数据。如果某个页面或数据库未显示，请检查你的 Notion 连接是否有权访问它。
+translation=加载你的 Notion 页面和数据库，然后选择要导入的内容。如果某个页面或数据库未显示，请检查你的 Notion 连接是否有权访问它。
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=点击"加载"以加载你的 Notion 页面和数据库。
+translation=加载你的 Notion 页面和数据库以开始。
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=将笔记导出为 textbundle 或 textpack 格式，Agenda、Craft、Taio、Ulysses 和 Zettlr 均支持导出该格式。
+translation=将你的笔记导出为 textbundle 或 textpack，Agenda、Craft、Taio、Ulysses 和 Zettlr 均支持导出此格式。
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

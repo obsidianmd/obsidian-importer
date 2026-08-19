@@ -288,7 +288,7 @@ translation={{count}} កំណត់ចំណាំត្រូវបានន�
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}។ ចុចដើម្បីបង្ហាញ។
+translation={{counts}}។ ជ្រើសរើសដើម្បីបង្ហាញ។
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} ធាតុបរាជ័យ
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=អូស និង ទម្លាក់ ឬជ្រើសរើសឯកសារដើម្បីនាំចូល។
+translation=អូស និង ទម្លាក់ ឬ ជ្រើសរើស ឯកសារ ដើម្បីនាំចូល។
 
 [source.desc-choose]
 original=Choose files to import.
-translation=ជ្រើសរើសឯកសារដើម្បីនាំចូល។
+translation=ជ្រើសរើស ឯកសារ ដើម្បីនាំចូល។
 
 [source.button-choose-file]
 original=Choose file
@@ -404,11 +404,11 @@ translation={{files}} នឹងត្រូវបាននាំចូល៖
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=និង {{count}} ឯកសារទៀត
+translation=និង {{count}} ឯកសារ ទៀត
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=និង {{count}} ឯកសារទៀត
+translation=និង {{count}} ឯកសារ ទៀត
 
 [source.button-remove-file]
 original=Remove from the import
@@ -700,7 +700,7 @@ translation=Airtable personal access token
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=បង្កើត personal access token នៅក្នុងការកំណត់គណនី Airtable របស់អ្នក។
+translation=បង្កើត token ចូលប្រើផ្ទាល់ខ្លួន នៅក្នុង ការកំណត់ គណនី Airtable របស់អ្នក។
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=នាំចេញតារាងរបស់អ្នកជា CSV ពីកម្មវិធីដែលវាស្ថិតនៅ ដូចជា Excel, Google Sheets, Numbers, Notion, ឬ Airtable។
+translation=នាំចេញ តារាង របស់អ្នកជា CSV ពី កម្មវិធី ដែលវាស្ថិតនៅ ដូចជា Excel, Google Sheets, Numbers, Notion ឬ Airtable។
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1224,7 +1224,7 @@ translation=កំណត់ចំណាំ និង ឯកសារភ្ជា
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=យកទិន្នន័យ Google Keep របស់អ្នកពី Google Takeout។
+translation=ទទួលយកទិន្នន័យ Google Keep របស់អ្នកពី Google Takeout។
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=រក្សាទុកទំព័រដែលអ្នកចង់រក្សាជា HTML។ ប្រសិនបើកម្មវិធីដែលវាស្ថិតនៅមានកម្មវិធីនាំចូលផ្ទាល់ខ្លួន សូមប្រើវាជំនួសវិញ៖ វារក្សាទិន្នន័យរបស់អ្នកបានច្រើនជាង។
+translation=រក្សាទុក ទំព័រដែលអ្នកចង់រក្សាទុកជា HTML។ ប្រសិនបើ កម្មវិធី ដែលពួកវាស្ថិតនៅមានកម្មវិធីនាំចូលផ្ទាល់ខ្លួន សូមប្រើវាជំនួស៖ វារក្សាទិន្នន័យរបស់អ្នកបានច្រើនជាង។
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=កំហុសបានកើតឡើងខណៈពេលព្�
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=ចុចទីនេះដើម្បីបង្ហាញព័ត៌មានលម្អិតកំហុស
+translation=បង្ហាញព័ត៌មានលម្អិតអំពី កំហុស
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=ថូខឹន Notion API
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=ដើម្បីទទួលបានថូខឹន API សូមបង្កើតការតភ្ជាប់នៅក្នុង Notion ហើយផ្តល់សិទ្ធិចូលប្រើទំព័រនៅក្នុងតំបន់ការងាររបស់អ្នក។
+translation=ដើម្បីទទួល API token សូម បង្កើត ការតភ្ជាប់ក្នុង Notion ហើយផ្តល់សិទ្ធិចូលប្រើទំព័រក្នុង តំបន់ការងារ របស់អ្នក។
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=ទទួលបានថូខឹន API។
+translation=ទទួល API token
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=ទំព័រដែលត្រូវនាំចូល
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=ចុច "ផ្ទុក" ដើម្បីមើលទិន្នន័យដែលអ្នកអាចនាំចូល។ ប្រសិនបើទំព័រ ឬមូលដ្ឋានទិន្នន័យបាត់ សូមពិនិត្យមើលថាការតភ្ជាប់ Notion របស់អ្នកមានសិទ្ធិចូលប្រើវា។
+translation=ផ្ទុក ទំព័រ និង មូលដ្ឋានទិន្នន័យ Notion របស់អ្នក រួចហើយ ជ្រើសរើស អ្វីដែលត្រូវនាំចូល។ ប្រសិនបើទំព័រ ឬ មូលដ្ឋានទិន្នន័យបាត់ សូមពិនិត្យថាការតភ្ជាប់ Notion របស់អ្នកមានសិទ្ធិចូលប្រើវា។
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=ចុច "ផ្ទុក" ដើម្បីផ្ទុកទំព័រ និងមូលដ្ឋានទិន្នន័យ Notion របស់អ្នក។
+translation=ផ្ទុក ទំព័រ និង មូលដ្ឋានទិន្នន័យ Notion របស់អ្នកដើម្បីចាប់ផ្តើម។
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=នាំចេញកំណត់ចំណាំរបស់អ្នកជា textbundle ឬ textpack ដែល Agenda, Craft, Taio, Ulysses និង Zettlr អាចសរសេរបានទាំងអស់។
+translation=នាំចេញកំណត់ត្រារបស់អ្នកជា textbundle ឬ textpack ដែល Agenda, Craft, Taio, Ulysses និង Zettlr អាចសរសេរបានទាំងអស់។
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

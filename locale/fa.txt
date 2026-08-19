@@ -288,7 +288,7 @@ translation={{count}} یادداشت وارد شد
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. برای نمایش کلیک کنید.
+translation={{counts}}. برای نمایش انتخاب کنید.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,11 +364,11 @@ translation={{count}} مورد ناموفق
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=فایل‌ها را بکشید و رها کنید، یا فایل‌ها را برای درون‌ریزی انتخاب کنید.
+translation=فایل‌ها را برای وارد کردن بکشید و رها کنید، یا انتخاب کنید.
 
 [source.desc-choose]
 original=Choose files to import.
-translation=فایل‌ها را برای درون‌ریزی انتخاب کنید.
+translation=فایل‌هایی را برای وارد کردن انتخاب کنید.
 
 [source.button-choose-file]
 original=Choose file
@@ -412,7 +412,7 @@ translation=و {{count}} فایل دیگر
 
 [source.button-remove-file]
 original=Remove from the import
-translation=حذف از درون‌ریزی
+translation=حذف از واردسازی
 
 [output.label-source-id]
 original=source ID
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=جدول خود را به صورت CSV از اپلیکیشنی که در آن قرار دارد صادر کنید؛ مانند Excel، Google Sheets، Numbers، Notion یا Airtable.
+translation=جدول خود را به صورت CSV از اپلیکیشنی که در آن قرار دارد صادر کنید، مانند Excel، Google Sheets، Numbers، Notion یا Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=صفحاتی را که می‌خواهید نگه دارید به صورت HTML ذخیره کنید. اگر اپلیکیشن مبدأ درون‌ریز اختصاصی خود را دارد، از آن استفاده کنید: داده‌های بیشتری حفظ می‌شود.
+translation=صفحاتی را که می‌خواهید نگه دارید به صورت HTML ذخیره کنید. اگر اپلیکیشنی که در آن هستند واردکننده مخصوص خود را دارد، از آن استفاده کنید: اطلاعات بیشتری را حفظ می‌کند.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=هنگام ورود خطایی رخ داد.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=برای مشاهده جزئیات خطا اینجا کلیک کنید
+translation=نمایش جزئیات خطا
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=توکن API Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود بدهید.
+translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود را بدهید.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=دریافت توکن API.
+translation=دریافت توکن API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=صفحات برای وارد کردن
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=روی «بارگیری» کلیک کنید تا داده‌هایی که می‌توانید وارد کنید را ببینید. اگر صفحه یا پایگاه داده‌ای وجود ندارد، بررسی کنید که اتصال Notion شما به آن دسترسی دارد.
+translation=صفحات و پایگاه‌های داده Notion خود را بارگیری کنید، سپس موارد مورد نظر برای واردسازی را انتخاب کنید. اگر صفحه یا پایگاه داده‌ای موجود نیست، بررسی کنید که اتصال Notion شما به آن دسترسی داشته باشد.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=روی «بارگیری» کلیک کنید تا صفحات و پایگاه‌های داده Notion شما بارگیری شوند.
+translation=برای شروع، صفحات و پایگاه‌های داده Notion خود را بارگیری کنید.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=یادداشت‌های خود را به صورت textbundle یا textpack صادر کنید؛ Agenda، Craft، Taio، Ulysses و Zettlr همگی قادر به ایجاد این فرمت هستند.
+translation=یادداشت‌های خود را به صورت textbundle یا textpack صادر کنید؛ Agenda، Craft، Taio، Ulysses و Zettlr همگی قادر به نوشتن آن هستند.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

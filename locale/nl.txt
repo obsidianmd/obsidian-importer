@@ -288,7 +288,7 @@ translation={{count}} notities geïmporteerd
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Klik om te tonen.
+translation={{counts}}. Selecteer om te tonen.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Exporteer je tabel als CSV vanuit de app waar deze in staat, zoals Excel, Google Sheets, Numbers, Notion of Airtable.
+translation=Exporteer je tabel als CSV vanuit de app waarin deze zich bevindt, zoals Excel, Google Sheets, Numbers, Notion of Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Sla de pagina's die je wilt bewaren op als HTML. Als de app waar ze in staan een eigen importeerder heeft, gebruik die dan: die behoudt meer van je gegevens.
+translation=Sla de pagina's die je wilt bewaren op als HTML. Als de app waarin ze staan een eigen importfunctie heeft, gebruik die dan: daarmee behoud je meer van je gegevens.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Er is een fout opgetreden bij het inloggen.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klik hier om foutdetails te tonen
+translation=Foutdetails tonen
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Om een API-token te krijgen, maak je een verbinding aan in Notion en
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API-token ophalen.
+translation=API-token ophalen
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Te importeren pagina's
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klik op "Laden" om gegevens te zien die je kunt importeren. Als een pagina of database ontbreekt, controleer dan of je Notion-verbinding er toegang toe heeft.
+translation=Laad je Notion-pagina's en -databases en kies wat je wilt importeren. Als een pagina of database ontbreekt, controleer dan of je Notion-verbinding er toegang toe heeft.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klik op "Laden" om je Notion-pagina's en databases te laden.
+translation=Laad je Notion-pagina's en -databases om te beginnen.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

@@ -412,7 +412,7 @@ translation=és további {{count}} fájl
 
 [source.button-remove-file]
 original=Remove from the import
-translation=Eltávolítás az importból
+translation=Eltávolítás az importálásból
 
 [output.label-source-id]
 original=source ID
@@ -700,7 +700,7 @@ translation=Airtable személyes hozzáférési token
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Hozzon létre személyes hozzáférési tokent az Airtable fiók beállításaiban.
+translation=Hozz létre egy személyes hozzáférési tokent az Airtable fiók beállításaiban.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1224,7 +1224,7 @@ translation=Jegyzetek és mellékletek
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Töltse le Google Keep adatait a Google Takeout segítségével.
+translation=Szerezd be a Google Keep adataidat a Google Takeout segítségével.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Mentsd el a megtartani kívánt oldalakat HTML formátumban. Ha az alkalmazásnak, amelyben találhatók, van saját importálója, használd inkább azt: több adatot őriz meg.
+translation=Mentsd el a megtartani kívánt oldalakat HTML formátumban. Ha az alkalmazásnak, amelyben találhatók, saját importálója van, használd inkább azt: több adatot őriz meg.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Hiba történt a bejelentkezés során.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Kattints ide a hiba részleteinek megtekintéséhez
+translation=Hiba részleteinek megjelenítése
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API token
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=API token beszerzéséhez hozzon létre egy kapcsolatot a Notion-ben, és adjon neki hozzáférést a munkaterület oldalaihoz.
+translation=Az API token beszerzéséhez hozz létre egy kapcsolatot a Notion alkalmazásban, és adj hozzáférést a munkaterületed oldalaihoz.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API token beszerzése.
+translation=API token beszerzése
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Importálandó oldalak
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Kattintson a "Betöltés" gombra az importálható adatok megtekintéséhez. Ha egy oldal vagy adatbázis hiányzik, ellenőrizze, hogy a Notion kapcsolat hozzáfér-e hozzá.
+translation=Töltsd be a Notion oldalaidat és adatbázisaidat, majd válaszd ki, mit szeretnél importálni. Ha egy oldal vagy adatbázis hiányzik, ellenőrizd, hogy a Notion kapcsolatod hozzáfér-e hozzá.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Kattintson a "Betöltés" gombra a Notion oldalak és adatbázisok betöltéséhez.
+translation=A kezdéshez töltsd be a Notion oldalaidat és adatbázisaidat.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Exportáld a jegyzeteidet textbundle vagy textpack formátumban, amelyet az Agenda, Craft, Taio, Ulysses és Zettlr mind képes létrehozni.
+translation=Exportáld a jegyzeteidet textbundle vagy textpack formátumban, amelyet az Agenda, Craft, Taio, Ulysses és Zettlr egyaránt támogat.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

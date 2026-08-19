@@ -288,7 +288,7 @@ translation={{count}} notas importadas
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Clique para mostrar.
+translation={{counts}}. Selecione para mostrar.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=Token de acesso pessoal do Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Crie um token de acesso pessoal nas definições da sua Conta Airtable.
+translation=Crie um token de acesso pessoal nas definições da sua conta Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1348,7 +1348,7 @@ translation=Ocorreu um erro ao tentar iniciar sessão.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Clique aqui para ver os detalhes do erro
+translation=Mostrar detalhes do erro
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Token API do Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Para obter um token API, crie uma conexão no Notion e dê-lhe acesso às páginas na sua área de trabalho.
+translation=Para obter um token API, crie uma ligação no Notion e dê-lhe acesso às páginas na sua área de trabalho.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Obter token API.
+translation=Obter token API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Páginas a importar
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Clique em "Carregar" para ver os dados que pode importar. Se uma página ou base de dados estiver em falta, verifique se a sua conexão do Notion tem acesso a ela.
+translation=Carregue as suas páginas e bases de dados do Notion e escolha o que importar. Se uma página ou base de dados estiver em falta, verifique se a sua ligação do Notion tem acesso à mesma.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Clique em "Carregar" para carregar as suas páginas e bases de dados do Notion.
+translation=Carregue as suas páginas e bases de dados do Notion para começar.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Exporte as suas notas como textbundle ou textpack, formato que o Agenda, Craft, Taio, Ulysses e Zettlr conseguem gerar.
+translation=Exporte as suas notas como textbundle ou textpack, formato que Agenda, Craft, Taio, Ulysses e Zettlr conseguem gerar.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

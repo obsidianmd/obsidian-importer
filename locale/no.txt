@@ -288,7 +288,7 @@ translation={{count}} notater importert
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Klikk for å vise.
+translation={{counts}}. Velg for å vise.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=Personlig tilgangstoken for Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Opprett et personlig tilgangstoken i kontoinnstillingene for Airtable.
+translation=Opprett et personlig tilgangstoken i Airtable-kontoinnstillingene dine.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Lagre sidene du vil beholde som HTML. Hvis appen de befinner seg i har sin egen importør, bruk den i stedet: den beholder mer av dataene dine.
+translation=Lagre sidene du vil beholde som HTML. Hvis appen de befinner seg i har en egen importør, bruk den i stedet: den tar vare på mer av dataene dine.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Det oppstod en feil under innlogging.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klikk her for å vise feildetaljer
+translation=Vis feildetaljer
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=For å få et API-token, opprett en tilkobling i Notion og gi den ti
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Hent API-token.
+translation=Hent API-token
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Sider å importere
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klikk "Last inn" for å se data du kan importere. Hvis en side eller database mangler, sjekk at Notion-tilkoblingen din har tilgang til den.
+translation=Last inn Notion-sidene og -databasene dine, og velg hva du vil importere. Hvis en side eller database mangler, sjekk at Notion-tilkoblingen din har tilgang til den.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klikk "Last inn" for å laste inn Notion-sidene og databasene dine.
+translation=Last inn Notion-sidene og -databasene dine for å komme i gang.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

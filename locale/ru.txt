@@ -364,7 +364,7 @@ translation={{count}} элементов не удалось
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Перетащите или выберите файлы для импорта.
+translation=Перетащите и отпустите или выберите файлы для импорта.
 
 [source.desc-choose]
 original=Choose files to import.
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=Экспортируйте таблицу в формате CSV из приложения, в котором она находится, например Excel, Google Sheets, Numbers, Notion или Airtable.
+translation=Экспортируйте таблицу в формате CSV из приложения, в котором она хранится, например Excel, Google Sheets, Numbers, Notion или Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Сохраните нужные страницы в формате HTML. Если приложение, в котором они находятся, имеет собственный импортёр, используйте его: он сохранит больше ваших данных.
+translation=Сохраните нужные страницы в формате HTML. Если приложение, в котором они находятся, имеет собственный импортёр, используйте его — он сохранит больше ваших данных.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=При попытке входа произошла ошибка.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Нажмите здесь, чтобы показать подробности ошибки
+translation=Показать подробности ошибки
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Чтобы получить токен API, создайте под�
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Получить токен API.
+translation=Получить токен API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Страницы для импорта
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Нажмите «Загрузить», чтобы увидеть доступные для импорта данные. Если страница или база данных отсутствует, проверьте, что ваше подключение Notion имеет к ней доступ.
+translation=Загрузите страницы и базы данных Notion, затем выберите, что импортировать. Если страница или база данных отсутствует, проверьте, имеет ли ваше подключение Notion доступ к ней.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Нажмите «Загрузить», чтобы загрузить страницы и базы данных Notion.
+translation=Загрузите страницы и базы данных Notion, чтобы начать.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Экспортируйте заметки в формате textbundle или textpack — их поддерживают Agenda, Craft, Taio, Ulysses и Zettlr.
+translation=Экспортируйте заметки в формате textbundle или textpack, который поддерживают Agenda, Craft, Taio, Ulysses и Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

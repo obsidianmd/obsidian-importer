@@ -288,7 +288,7 @@ translation={{count}} notes importades
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Fes clic per mostrar.
+translation={{counts}}. Selecciona per mostrar.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=Token d'accés personal d'Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Creeu un token d'accés personal a la configuració del vostre compte d'Airtable.
+translation=Crea un testimoni d'accés personal a la configuració del teu compte d'Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1224,7 +1224,7 @@ translation=Notes i adjunts
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Obteniu les vostres dades de Google Keep des de Google Takeout.
+translation=Obtén les teves dades de Google Keep des de Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1348,7 +1348,7 @@ translation=S'ha produït un error en intentar iniciar sessió.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Feu clic aquí per mostrar els detalls de l'error
+translation=Mostra els detalls de l'error
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Token API de Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Per obtenir un token API, crea una connexió a Notion i dona-li accés a les pàgines del teu espai de treball.
+translation=Per obtenir un testimoni API, crea una connexió a Notion i dona-li accés a les pàgines del teu espai de treball.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Obtenir token API.
+translation=Obtén el testimoni API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Pàgines per importar
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Fes clic a "Carrega" per veure les dades que pots importar. Si falta una pàgina o base de dades, comprova que la teva connexió de Notion hi té accés.
+translation=Carrega les teves pàgines i bases de dades de Notion, després tria què importar. Si falta una pàgina o base de dades, comprova que la teva connexió de Notion hi té accés.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Fes clic a "Carrega" per carregar les teves pàgines i bases de dades de Notion.
+translation=Carrega les teves pàgines i bases de dades de Notion per començar.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

@@ -288,7 +288,7 @@ translation=已匯入 {{count}} 則筆記
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}。點擊以顯示。
+translation={{counts}}。選取以顯示。
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=從您使用的應用程式（例如 Excel、Google Sheets、Numbers、Notion 或 Airtable）將表格匯出為 CSV。
+translation=從表格所在的應用程式中將其匯出為 CSV，例如 Excel、Google Sheets、Numbers、Notion 或 Airtable。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=將您想保留的頁面儲存為 HTML。如果頁面所在的應用程式有專屬的匯入工具，請改用該工具：它能保留更多資料。
+translation=將您想保留的頁面儲存為 HTML。如果頁面所在的應用程式有自己的匯入工具，請改用該工具：它能保留更多資料。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=嘗試登入時發生錯誤。
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=點此顯示錯誤詳情
+translation=顯示錯誤詳情
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=若要取得 API 權杖，請在 Notion 中建立連線，並授予�
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=取得 API 權杖。
+translation=取得 API 權杖
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=要匯入的頁面
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=點擊「載入」以查看可匯入的資料。若頁面或資料庫未顯示，請確認您的 Notion 連線已有其存取權限。
+translation=載入您的 Notion 頁面和資料庫，然後選擇要匯入的內容。如果缺少某個頁面或資料庫，請確認您的 Notion 連線具有存取權限。
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=點擊「載入」以載入您的 Notion 頁面與資料庫。
+translation=載入您的 Notion 頁面和資料庫以開始使用。
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=將筆記匯出為 textbundle 或 textpack，Agenda、Craft、Taio、Ulysses 和 Zettlr 都支援此格式。
+translation=將您的筆記匯出為 textbundle 或 textpack，Agenda、Craft、Taio、Ulysses 和 Zettlr 都支援此格式。
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

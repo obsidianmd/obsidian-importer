@@ -288,7 +288,7 @@ translation=นำเข้า {{count}} โน้ตแล้ว
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}} คลิกเพื่อแสดง
+translation={{counts}} เลือกเพื่อแสดง
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -412,7 +412,7 @@ translation=และอีก {{count}} ไฟล์
 
 [source.button-remove-file]
 original=Remove from the import
-translation=ถอดถอนจากการนำเข้า
+translation=ถอดถอนออกจากการนำเข้า
 
 [output.label-source-id]
 original=source ID
@@ -1128,7 +1128,7 @@ translation=CSV
 
 [importer.csv.desc-export]
 original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
-translation=ส่งออกตารางของคุณเป็น CSV จากแอปที่ใช้งานอยู่ เช่น Excel, Google Sheets, Numbers, Notion หรือ Airtable
+translation=ส่งออกตารางของคุณเป็น CSV จากแอปที่ใช้อยู่ เช่น Excel, Google Sheets, Numbers, Notion หรือ Airtable
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1224,7 +1224,7 @@ translation=โน้ตและไฟล์แนบ
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=รับข้อมูล Google Keep ของคุณจาก Google Takeout
+translation=ดาวน์โหลดข้อมูล Google Keep ของคุณจาก Google Takeout
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=บันทึกหน้าที่คุณต้องการเก็บไว้เป็น HTML หากแอปที่ใช้อยู่มีตัวนำเข้าของตัวเอง ให้ใช้ตัวนั้นแทน เพราะจะรักษาข้อมูลของคุณได้มากกว่า
+translation=บันทึกหน้าที่คุณต้องการเก็บไว้เป็น HTML หากแอปที่ใช้อยู่มีตัวนำเข้าของตัวเอง ให้ใช้ตัวนั้นแทน เพราะจะเก็บข้อมูลของคุณได้มากกว่า
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=เกิดข้อผิดพลาดขณะพยายา�
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=คลิกที่นี่เพื่อดูรายละเอียดข้อผิดพลาด
+translation=แสดงรายละเอียดข้อผิดพลาด
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,7 +1556,7 @@ translation=โทเค็น Notion API
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=หากต้องการรับโทเค็น API ให้สร้างการเชื่อมต่อใน Notion แล้วให้สิทธิ์เข้าถึงหน้าต่าง ๆ ในพื้นที่ทำงานของคุณ
+translation=เพื่อรับโทเค็น API ให้สร้างการเชื่อมต่อใน Notion และให้สิทธิ์เข้าถึงหน้าในพื้นที่ทำงานของคุณ
 
 [importer.notion-api.link-get-token]
 original=Get API token
@@ -1568,11 +1568,11 @@ translation=หน้าที่จะนำเข้า
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=คลิก "โหลด" เพื่อดูข้อมูลที่คุณสามารถนำเข้าได้ หากหน้าหรือฐานข้อมูลหายไป ให้ตรวจสอบว่าการเชื่อมต่อ Notion ของคุณมีสิทธิ์เข้าถึง
+translation=โหลดหน้าและฐานข้อมูล Notion ของคุณ แล้วเลือกสิ่งที่จะนำเข้า หากหน้าหรือฐานข้อมูลหายไป ให้ตรวจสอบว่าการเชื่อมต่อ Notion ของคุณมีสิทธิ์เข้าถึง
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=คลิก "โหลด" เพื่อโหลดหน้าและฐานข้อมูล Notion ของคุณ
+translation=โหลดหน้าและฐานข้อมูล Notion ของคุณเพื่อเริ่มต้น
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=ส่งออกโน้ตของคุณเป็น textbundle หรือ textpack ซึ่ง Agenda, Craft, Taio, Ulysses และ Zettlr สามารถเขียนได้ทั้งหมด
+translation=ส่งออกบันทึกของคุณเป็น textbundle หรือ textpack ซึ่ง Agenda, Craft, Taio, Ulysses และ Zettlr สามารถเขียนได้ทั้งหมด
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

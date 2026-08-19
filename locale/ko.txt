@@ -288,7 +288,7 @@ translation={{count}}개 노트를 가져왔어요
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. 클릭하면 표시돼요.
+translation={{counts}}. 선택하여 표시해요.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,7 +364,7 @@ translation={{count}}개 항목이 실패했어요
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=드래그 앤 놓기하거나, 가져올 파일을 선택하세요.
+translation=드래그 앤 놓기하거나 가져올 파일을 선택하세요.
 
 [source.desc-choose]
 original=Choose files to import.
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱에 전용 가져오기 도구가 있다면 그것을 사용하는 편이 더 많은 데이터를 유지할 수 있어요.
+translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱에 자체 가져오기 도구가 있다면 그것을 사용하세요. 더 많은 데이터를 유지할 수 있어요.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=로그인하는 중 오류가 발생했어요.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=여기를 클릭하면 오류 세부 정보를 볼 수 있어요
+translation=오류 세부 정보 표시
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Notion API 토큰
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=API 토큰을 얻으려면 Notion에서 연결을 만들고 작업 공간의 페이지에 접근 권한을 부여하세요.
+translation=API 토큰을 받으려면 Notion에서 연결을 생성하고 작업 공간의 페이지에 대한 접근 권한을 부여하세요.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=API 토큰 받기.
+translation=API 토큰 받기
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=가져올 페이지
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation="불러오기"를 클릭하면 가져올 수 있는 데이터를 확인할 수 있어요. 페이지나 데이터베이스가 보이지 않으면 Notion 연결에 해당 항목의 접근 권한이 있는지 확인하세요.
+translation=Notion 페이지와 데이터베이스를 불러온 다음 가져올 항목을 선택하세요. 페이지나 데이터베이스가 보이지 않으면 Notion 연결에 해당 항목에 대한 접근 권한이 있는지 확인하세요.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation="불러오기"를 클릭하여 Notion 페이지와 데이터베이스를 불러오세요.
+translation=시작하려면 Notion 페이지와 데이터베이스를 불러오세요.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=노트를 textbundle 또는 textpack으로 내보내세요. Agenda, Craft, Taio, Ulysses, Zettlr 모두 이 형식을 지원해요.
+translation=노트를 textbundle 또는 textpack으로 내보내세요. Agenda, Craft, Taio, Ulysses, Zettlr에서 모두 이 형식으로 내보낼 수 있어요.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

@@ -288,7 +288,7 @@ translation={{count}} σημειώσεις εισήχθησαν
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Κάντε κλικ για εμφάνιση.
+translation={{counts}}. Επιλέξτε για εμφάνιση.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -364,7 +364,7 @@ translation={{count}} στοιχεία απέτυχαν
 
 [source.desc]
 original=Drag and drop, or choose files to import.
-translation=Σύρετε και κάντε απόθεση, ή επιλέξτε αρχεία για εισαγωγή.
+translation=Σύρετε και κάντε απόθεση ή επιλέξτε αρχεία για εισαγωγή.
 
 [source.desc-choose]
 original=Choose files to import.
@@ -700,7 +700,7 @@ translation=Προσωπικό διακριτικό πρόσβασης Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Δημιουργήστε ένα προσωπικό διακριτικό πρόσβασης στις ρυθμίσεις του λογαριασμού σας Airtable.
+translation=Δημιουργήστε ένα προσωπικό διακριτικό πρόσβασης στις ρυθμίσεις του λογαριασμού σας στο Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1224,7 +1224,7 @@ translation=Σημειώσεις & συνημμένα
 
 [importer.keep.desc-export]
 original=Get your Google Keep data from Google Takeout.
-translation=Λάβετε τα δεδομένα σας από το Google Keep μέσω Google Takeout.
+translation=Λάβετε τα δεδομένα σας από το Google Keep μέσω του Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Αποθηκεύστε τις σελίδες που θέλετε να κρατήσετε ως HTML. Εάν η εφαρμογή στην οποία βρίσκονται διαθέτει δικό της εργαλείο εισαγωγής, χρησιμοποιήστε αυτό: διατηρεί περισσότερα δεδομένα σας.
+translation=Αποθηκεύστε τις σελίδες που θέλετε να κρατήσετε ως HTML. Εάν η εφαρμογή στην οποία βρίσκονται διαθέτει δικό της εργαλείο εισαγωγής, χρησιμοποιήστε εκείνο: διατηρεί περισσότερα από τα δεδομένα σας.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Παρουσιάστηκε σφάλμα κατά την προσπά
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Κάντε κλικ εδώ για εμφάνιση λεπτομερειών σφάλματος
+translation=Εμφάνιση λεπτομερειών σφάλματος
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1556,11 +1556,11 @@ translation=Token API Notion
 
 [importer.notion-api.desc-token]
 original=To get an API token create a connection in Notion and give it access to pages in your workspace.
-translation=Για να αποκτήσετε ένα token API, δημιουργήστε μια σύνδεση στο Notion και δώστε της πρόσβαση στις σελίδες του χώρου εργασίας σας.
+translation=Για να λάβετε ένα διακριτικό API, δημιουργήστε μια σύνδεση στο Notion και δώστε της πρόσβαση σε σελίδες στον χώρο εργασίας σας.
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Λήψη token API.
+translation=Λήψη διακριτικού API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Σελίδες για εισαγωγή
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Κάντε κλικ στο "Φόρτωση" για να δείτε τα δεδομένα που μπορείτε να εισαγάγετε. Αν λείπει μια σελίδα ή βάση δεδομένων, ελέγξτε ότι η σύνδεσή σας στο Notion έχει πρόσβαση σε αυτήν.
+translation=Φορτώστε τις σελίδες και τις βάσεις δεδομένων σας στο Notion και μετά επιλέξτε τι θέλετε να εισαγάγετε. Εάν λείπει κάποια σελίδα ή βάση δεδομένων, ελέγξτε ότι η σύνδεσή σας στο Notion έχει πρόσβαση σε αυτήν.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Κάντε κλικ στο "Φόρτωση" για να φορτώσετε τις σελίδες και τις βάσεις δεδομένων σας στο Notion.
+translation=Φορτώστε τις σελίδες και τις βάσεις δεδομένων σας στο Notion για να ξεκινήσετε.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
@@ -2136,7 +2136,7 @@ translation=Textbundle
 
 [importer.textbundle.desc-export]
 original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
-translation=Εξαγάγετε τις σημειώσεις σας ως textbundle ή textpack, τα οποία μπορούν να δημιουργήσουν τα Agenda, Craft, Taio, Ulysses και Zettlr.
+translation=Εξαγάγετε τις σημειώσεις σας ως textbundle ή textpack, μορφές που μπορούν να εξαγάγουν τα Agenda, Craft, Taio, Ulysses και Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

@@ -288,7 +288,7 @@ translation={{count}} catatan diimpor
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. Klik untuk menampilkan.
+translation={{counts}}. Pilih untuk menampilkan.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -404,11 +404,11 @@ translation={{files}} akan diimpor:
 
 [source.msg-more-files]
 original=and {{count}} more file
-translation=dan {{count}} lainnya file
+translation=dan {{count}} file lainnya
 
 [source.msg-more-files_plural]
 original=and {{count}} more files
-translation=dan {{count}} lainnya file
+translation=dan {{count}} file lainnya
 
 [source.button-remove-file]
 original=Remove from the import
@@ -700,7 +700,7 @@ translation=Token akses personal Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=Buat token akses personal di pengaturan akun Airtable Anda.
+translation=Buat token akses pribadi di pengaturan akun Airtable Anda.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1268,7 +1268,7 @@ translation=HTML
 
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
-translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi tempatnya berada memiliki importir tersendiri, gunakan itu: data Anda akan lebih lengkap.
+translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi tempatnya berada memiliki importernya sendiri, gunakan itu: data Anda akan lebih lengkap.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1348,7 +1348,7 @@ translation=Terjadi kesalahan saat mencoba memasukkan Anda.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=Klik di sini untuk menampilkan detail kesalahan
+translation=Tampilkan detail kesalahan
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=Untuk mendapatkan token API, buat koneksi di Notion dan berikan akse
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=Dapatkan token API.
+translation=Dapatkan token API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=Halaman yang akan diimpor
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=Klik "Muat" untuk melihat data yang dapat Anda impor. Jika halaman atau basis data tidak muncul, periksa apakah koneksi Notion Anda memiliki akses ke sana.
+translation=Muat halaman dan basis data Notion Anda, lalu pilih apa yang ingin diimpor. Jika halaman atau basis data tidak muncul, periksa apakah koneksi Notion Anda memiliki akses ke sana.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=Klik "Muat" untuk memuat halaman dan basis data Notion Anda.
+translation=Muat halaman dan basis data Notion Anda untuk memulai.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...

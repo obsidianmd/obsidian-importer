@@ -288,7 +288,7 @@ translation=יובאו {{count}} הערות
 
 [progress.msg-click-to-show]
 original={{counts}}. Select to show.
-translation={{counts}}. לחץ להצגה.
+translation={{counts}}. בחר כדי להציג.
 
 [progress.status-waiting]
 original=Waiting {{duration}} ({{reason}})
@@ -700,7 +700,7 @@ translation=אסימון גישה אישי של Airtable
 
 [importer.airtable-api.desc-token]
 original=Create a personal access token in your Airtable account settings.
-translation=צור אסימון גישה אישי בהגדרות חשבון ה-Airtable שלך.
+translation=צור אסימון גישה אישי בהגדרות חשבון Airtable שלך.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1348,7 +1348,7 @@ translation=אירעה שגיאה בניסיון להתחבר.
 
 [importer.onenote.msg-sign-in-details]
 original=Show error details
-translation=לחץ כאן כדי להציג פרטי שגיאה
+translation=הצג פרטי שגיאה
 
 [importer.onenote.msg-signed-out]
 original=Sign in to see your OneNote notebooks.
@@ -1560,7 +1560,7 @@ translation=כדי לקבל אסימון API, צור חיבור ב-Notion ותן
 
 [importer.notion-api.link-get-token]
 original=Get API token
-translation=קבל אסימון API.
+translation=קבל אסימון API
 
 [importer.notion-api.name-pages]
 original=Pages to import
@@ -1568,11 +1568,11 @@ translation=דפים לייבוא
 
 [importer.notion-api.desc-pages]
 original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
-translation=לחץ על "טען" כדי לראות נתונים שניתן לייבא. אם דף או מסד נתונים חסרים, בדוק שלחיבור Notion שלך יש גישה אליהם.
+translation=טען את הדפים ומסדי הנתונים שלך מ-Notion, ואז בחר מה לייבא. אם דף או מסד נתונים חסר, ודא שלחיבור Notion שלך יש גישה אליו.
 
 [importer.notion-api.hint-pages]
 original=Load your Notion pages and databases to get started.
-translation=לחץ על "טען" כדי לטעון את הדפים ומסדי הנתונים שלך מ-Notion.
+translation=טען את הדפים ומסדי הנתונים שלך מ-Notion כדי להתחיל.
 
 [importer.notion-api.msg-loading-pages]
 original=Loading pages and databases...
