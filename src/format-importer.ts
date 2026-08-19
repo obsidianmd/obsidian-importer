@@ -1,5 +1,5 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
@@ -531,6 +531,10 @@ export abstract class FormatImporter {
 		const { listEl } = this.startGroupIn(contentEl).addClass('mod-list');
 		this.endGroupIn(contentEl);
 
+		const win = contentEl.doc.defaultView;
+		const canChooseFolders = Platform.isDesktopApp
+			|| (!!win && 'webkitdirectory' in win.HTMLInputElement.prototype);
+
 		const chooseFiles = async () => {
 			if (Platform.isDesktopApp) {
 				const properties = ['openFile', 'dontAddToRecent'];
@@ -548,11 +552,17 @@ export abstract class FormatImporter {
 				return;
 			}
 
-			// iOS ignores clicks on detached file inputs.
+			chooseFromWeb(false);
+		};
+
+		// iOS ignores clicks on detached file inputs.
+		const chooseFromWeb = (folder: boolean) => {
 			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
 			inputEl.type = 'file';
 			inputEl.multiple = allowMultiple;
-			inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
+
+			if (folder) inputEl.webkitdirectory = true;
+			else inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 
 			inputEl.addEventListener('change', () => {
 				const files = Array.from(inputEl.files ?? []);
@@ -560,8 +570,11 @@ export abstract class FormatImporter {
 
 				if (files.length === 0) return;
 
-				void addChosen(files.map(file => new WebPickedFile(file))
-					.filter(file => extensions.contains(file.extension)));
+				if (folder) void addFolders(webPickedTree(files));
+				else {
+					void addChosen(files.map(file => new WebPickedFile(file))
+						.filter(file => extensions.contains(file.extension)));
+				}
 			});
 
 			inputEl.addEventListener('cancel', () => inputEl.detach());
@@ -570,6 +583,11 @@ export abstract class FormatImporter {
 		};
 
 		const chooseFolders = async () => {
+			if (!Platform.isDesktopApp) {
+				chooseFromWeb(true);
+				return;
+			}
+
 			const filePaths = this.chooseFrom({
 				title: i18n.source.dialogPickFolders(),
 				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
@@ -577,9 +595,12 @@ export abstract class FormatImporter {
 
 			if (filePaths.length === 0) return;
 
+			await addFolders(filePaths.map((filepath: string) => new NodePickedFolder(filepath)));
+		};
+
+		const addFolders = async (folders: (PickedFile | PickedFolder)[]) => {
 			drawState(i18n.source.msgReadingFolders());
 
-			const folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
 			await addChosen(this.keepsFolders ? folders : await this.filesInside(folders));
 		};
 
@@ -615,7 +636,7 @@ export abstract class FormatImporter {
 			files.setIcon('lucide-plus');
 			files.setAction(() => void chooseFiles());
 
-			if (!allowMultiple || !Platform.isDesktopApp) return;
+			if (!allowMultiple || !canChooseFolders) return;
 
 			const folders = new Setting(listEl)
 				.setClass('mod-add-item')

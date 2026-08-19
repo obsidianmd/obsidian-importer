@@ -195,10 +195,10 @@ export class WebPickedFile implements PickedFile {
 	readonly basename: string;
 	readonly extension: string;
 
-	constructor(file: File) {
+	constructor(file: File, fullpath: string = file.name) {
 		this.file = file;
 		let name = this.name = file.name;
-		this.fullpath = name;
+		this.fullpath = fullpath;
 
 		let { basename, extension } = parseFilePath(name);
 
@@ -239,8 +239,64 @@ export class WebPickedFile implements PickedFile {
 	}
 
 	toString(): string {
-		return this.file.name;
+		return this.fullpath;
 	}
+}
+
+/** A folder a browser gave up as a flat list, put back together. */
+export class WebPickedFolder implements PickedFolder {
+	readonly type = 'folder' as const;
+
+	constructor(
+		readonly name: string,
+		readonly fullpath: string,
+		private readonly items: (PickedFile | PickedFolder)[],
+	) {}
+
+	async list(): Promise<(PickedFile | PickedFolder)[]> {
+		return this.items;
+	}
+
+	toString(): string {
+		return this.fullpath;
+	}
+}
+
+/**
+ * The folders behind a directory input's files, which arrive as one flat list
+ * with the path each file had as the only record of the shape it came in.
+ */
+export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
+	const top: (PickedFile | PickedFolder)[] = [];
+	const inside = new Map<string, (PickedFile | PickedFolder)[]>();
+
+	const folderAt = (path: string): (PickedFile | PickedFolder)[] => {
+		const existing = inside.get(path);
+		if (existing) return existing;
+
+		const items: (PickedFile | PickedFolder)[] = [];
+		inside.set(path, items);
+
+		const cut = path.lastIndexOf('/');
+		const parent = cut < 0 ? top : folderAt(path.slice(0, cut));
+		parent.push(new WebPickedFolder(path.slice(cut + 1), path, items));
+
+		return items;
+	};
+
+	for (const file of files) {
+		const path = file.webkitRelativePath;
+		if (!path) {
+			top.push(new WebPickedFile(file));
+			continue;
+		}
+
+		const cut = path.lastIndexOf('/');
+		const into = cut < 0 ? top : folderAt(path.slice(0, cut));
+		into.push(new WebPickedFile(file, path));
+	}
+
+	return top;
 }
 
 export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {
