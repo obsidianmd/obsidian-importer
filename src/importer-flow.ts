@@ -25,6 +25,18 @@ interface Drop {
 	exports: PickedFile[];
 }
 
+interface ImportRun {
+	importer: FormatImporter;
+	importerId: string;
+	ctx: ImportProgressUI;
+	depth: number;
+	reportFile: TFile | null;
+}
+
+type ConfigurationResult =
+	| { kind: 'configured', result: boolean | null }
+	| { kind: 'cancelled', redraw: boolean };
+
 /** The list of formats: the screen every other one is reached from. */
 const FORMAT_LIST = 0;
 
@@ -102,7 +114,8 @@ export class ImporterFlow implements ImporterHost {
 	private hiddenNotice: Notice | null = null;
 	private hiddenInterval: number | null = null;
 
-	private reportFile: TFile | null = null;
+	/** Resolves the configuration screen that is waiting for its own buttons. */
+	private configurationCancel: ((redraw: boolean) => void) | null = null;
 
 	/** The screen showing now, so a shell that was taken away can draw it again. */
 	private drawCurrent: () => unknown = () => this.showFormatPicker();
@@ -218,6 +231,16 @@ export class ImporterFlow implements ImporterHost {
 		this.hideDropOverlay();
 		this.forgetFileDrop();
 
+		// Configuration has no work to carry on in the background, and its
+		// controls belong to the shell that is going away. Return to the step it
+		// came from without trying to draw into a shell being torn down.
+		if (this.configurationCancel) {
+			this.configurationCancel(false);
+			this.hidden = false;
+			this.clearHiddenNotice();
+			return;
+		}
+
 		if (!this.current) return;
 
 		this.hidden = true;
@@ -245,6 +268,7 @@ export class ImporterFlow implements ImporterHost {
 	dispose(): void {
 		this.hideDropOverlay();
 		this.forgetFileDrop();
+		this.configurationCancel?.(false);
 		this.abortController.abort('import was canceled by user');
 		this.clearHiddenNotice();
 		this.hidden = false;
@@ -495,7 +519,11 @@ export class ImporterFlow implements ImporterHost {
 	selectFormat(id: string) {
 		if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, id)) return;
 
-		if (id === this.selectedId && this.importer) {
+		// A running import keeps its importer until its last write is done. The
+		// format list can be reached while that happens, so returning to the same
+		// format must configure a new instance rather than expose the live one.
+		if (id === this.selectedId && this.importer
+			&& !this.current && !this.importRun && !this.awayFrom) {
 			this.showFirstStep();
 			return;
 		}
@@ -546,10 +574,10 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	/** Keep grouped importers under the app name. */
-	private importTitle(): string {
-		const group = groupOf(this.selectedId);
+	private importTitle(importerId: string = this.selectedId): string {
+		const group = groupOf(importerId);
 		return i18n.modal.titleImportFrom({
-			format: group ? groupName(group) : importerName(this.selectedId),
+			format: group ? groupName(group) : importerName(importerId),
 		});
 	}
 
@@ -818,33 +846,89 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private async startImportRun(importer: FormatImporter) {
+		// These belong to the Import button that was pressed. The previous run
+		// may take time to stop, and the format list remains usable meanwhile.
+		const importerId = this.selectedId;
+		const setupScreen = this.drawCurrent;
+		const depth = this.depth;
+		const sourceEl = this.sourceEl;
+		const outputEl = this.outputEl;
+		const optionsEl = this.optionsEl;
+		const restoreSetup = () => {
+			this.selectedId = importerId;
+			this.importer = importer;
+			this.sourceEl = sourceEl;
+			this.outputEl = outputEl;
+			this.optionsEl = optionsEl;
+		};
+
 		await this.stopRunningImport();
+		restoreSetup();
 
 		this.awayFrom = null;
 		this.hidden = false;
 		this.clearHiddenNotice();
-		this.reportFile = null;
 
+		let configurationContext: ImportProgressUI | null = null;
+		let cancelConfiguration!: (redraw: boolean) => void;
+		const cancelled = new Promise<ConfigurationResult>(resolve => {
+			let settled = false;
+			cancelConfiguration = redraw => {
+				if (settled) return;
+				settled = true;
+				configurationContext?.cancel();
+				resolve({ kind: 'cancelled', redraw });
+			};
+		});
+
+		this.configurationCancel = cancelConfiguration;
+		this.showConfigurationScreen(depth, importerId, cancelConfiguration);
+
+		// setScreen() above may have opened a Settings page of its own, so ask
+		// the shell for the element only after it has moved to the captured step.
 		const { contentEl } = this.shell;
-
 		contentEl.empty();
-		let configEl = contentEl.createDiv();
-		let ctx = this.current = new ImportProgressUI(configEl);
+		const configEl = contentEl.createDiv();
+		const ctx = configurationContext = this.current = new ImportProgressUI(configEl);
 
-		const templateResult = await importer.showTemplateConfiguration(ctx, configEl);
+		let configuration: ConfigurationResult;
+		try {
+			configuration = await Promise.race([
+				importer.showTemplateConfiguration(ctx, configEl)
+					.then(result => ({ kind: 'configured', result }) as const),
+				cancelled,
+			]);
+		}
+		catch (error) {
+			if (this.configurationCancel === cancelConfiguration) this.configurationCancel = null;
+			if (this.current === ctx) this.current = null;
+			restoreSetup();
+			this.drawCurrent = setupScreen;
+			if (!this.hidden) this.draw(setupScreen);
+			throw error;
+		}
 
-		if (templateResult === false) {
-			this.current = null;
-			if (this.hasOptionsStep()) this.showOptionsStep();
-			else void this.showOutputStep();
+		if (this.configurationCancel === cancelConfiguration) this.configurationCancel = null;
+
+		if (configuration.kind === 'cancelled' || configuration.result === false) {
+			if (this.current === ctx) this.current = null;
+			restoreSetup();
+			this.drawCurrent = setupScreen;
+
+			const redraw = configuration.kind === 'configured' || configuration.redraw;
+			if (redraw) this.draw(setupScreen);
 			return;
 		}
 
-		// The screen it was started from is where it is watched and finished:
-		// held on to, because the flow can be sent back to the list meanwhile.
-		const depth = this.depth;
+		const state: ImportRun = {
+			importer,
+			importerId,
+			ctx,
+			depth,
+			reportFile: null,
+		};
 
-		const run = this.runImport(importer, ctx, depth);
+		const run = this.runImport(state);
 		this.importRun = run;
 		// The run is what a later press waits on from here.
 		this.starting = false;
@@ -855,6 +939,24 @@ export class ImporterFlow implements ImporterHost {
 		finally {
 			if (this.importRun === run) this.importRun = null;
 		}
+	}
+
+	/**
+	 * The temporary screen owned by showTemplateConfiguration(). Its own Cancel
+	 * button resolves the importer promise; a shell's Back resolves the other
+	 * side of the race above. The old step bar must not remain actionable under
+	 * configuration drawn into Settings.
+	 */
+	private showConfigurationScreen(
+		depth: number,
+		importerId: string,
+		cancel: (redraw: boolean) => void,
+	): void {
+		this.drawCurrent = () => this.showConfigurationScreen(depth, importerId, cancel);
+		this.pickingFormat = false;
+		this.shell.setPickingFormat(false);
+		this.showScreen(depth, this.importTitle(importerId), () => cancel(true));
+		this.shell.adoptButtonBar(null);
 	}
 
 	/**
@@ -872,9 +974,10 @@ export class ImporterFlow implements ImporterHost {
 		await running;
 	}
 
-	private async runImport(importer: FormatImporter, ctx: ImportProgressUI, depth: number) {
-		this.showProgress(ctx, importer.interruption, depth);
-		const name = importerName(this.selectedId);
+	private async runImport(state: ImportRun) {
+		const { importer, importerId, ctx } = state;
+		this.showProgress(state);
+		const name = importerName(importerId);
 		let threw = false;
 		try {
 			importer.indexImportedNotes();
@@ -913,15 +1016,17 @@ export class ImporterFlow implements ImporterHost {
 			// An import the user walked out of finishes where they left it, not
 			// over the list they went back to: the notice is the way in, and
 			// what it leads to is how the import ended.
-			if (this.awayFrom) this.awayFrom = () => this.showFinished(ctx, depth);
-			else this.showFinished(ctx, depth);
+			if (this.awayFrom) this.awayFrom = () => this.showFinished(state);
+			else this.showFinished(state);
 		}
 	}
 
-	private showProgress(ctx: ImportProgressUI, interruption: FormatImporter['interruption'], depth: number) {
-		this.drawCurrent = () => this.showProgress(ctx, interruption, depth);
+	private showProgress(state: ImportRun) {
+		const { ctx, depth, importerId } = state;
+		const { interruption } = state.importer;
+		this.drawCurrent = () => this.showProgress(state);
 		// An import cannot be stepped back into; leaving it is the way out.
-		this.showScreen(depth, this.importTitle(), null);
+		this.showScreen(depth, this.importTitle(importerId), null);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
@@ -955,44 +1060,51 @@ export class ImporterFlow implements ImporterHost {
 				cancelButtonEl.detach();
 
 				// Show disabled finish actions while cancellation completes.
-				this.drawFinishButtons(buttonsEl, ctx, false);
+				this.drawFinishButtons(buttonsEl, state, false);
 			});
 		});
 	}
 
-	private drawFinishButtons(buttonsEl: HTMLElement, ctx: ImportProgressUI, enabled: boolean): void {
+	private drawFinishButtons(buttonsEl: HTMLElement, state: ImportRun, enabled: boolean): void {
+		const { ctx } = state;
 		if (ctx.log.length > 0) {
 			buttonsEl.createEl('button', { cls: 'importer-report-button', text: i18n.modal.buttonSaveReport() }, el => {
 				el.disabled = !enabled;
-				el.addEventListener('click', () => void this.saveReport(ctx, el));
+				el.addEventListener('click', () => void this.saveReport(state, el));
 			});
 		}
 
 		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
 			el.disabled = !enabled;
-			el.addEventListener('click', () => this.setUpImporter());
+			el.addEventListener('click', () => {
+				this.selectedId = state.importerId;
+				this.setUpImporter();
+			});
 		});
 		buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonDone() }, el => {
 			el.disabled = !enabled;
-			el.addEventListener('click', () => this.shell.finish());
+			el.addEventListener('click', () => this.finish());
 		});
 	}
 
-	private async saveReport(ctx: ImportProgressUI, buttonEl: HTMLButtonElement): Promise<void> {
+	private async saveReport(state: ImportRun, buttonEl: HTMLButtonElement): Promise<void> {
 		buttonEl.disabled = true;
 
 		try {
 			// Reuse a report already saved from this run.
-			this.reportFile ??= await this.importer.writeImportReport(ctx, importerName(this.selectedId));
+			state.reportFile ??= await state.importer.writeImportReport(
+				state.ctx,
+				importerName(state.importerId),
+			);
 
-			if (!this.reportFile) {
+			if (!state.reportFile) {
 				new Notice(i18n.modal.msgReportFailed());
 				buttonEl.disabled = false;
 				return;
 			}
 
-			const report = this.reportFile;
-			this.shell.finish();
+			const report = state.reportFile;
+			this.finish();
 			await this.app.workspace.getLeaf(true).openFile(report);
 		}
 		catch (error) {
@@ -1002,15 +1114,23 @@ export class ImporterFlow implements ImporterHost {
 		}
 	}
 
-	private showFinished(ctx: ImportProgressUI, depth: number) {
-		this.drawCurrent = () => this.showFinished(ctx, depth);
-		this.showScreen(depth, this.importTitle(), null);
+	private showFinished(state: ImportRun) {
+		const { ctx, depth, importerId } = state;
+		this.drawCurrent = () => this.showFinished(state);
+		this.showScreen(depth, this.importTitle(importerId), null);
 
 		const { contentEl } = this.shell;
 		contentEl.empty();
 		ctx.createProgressUI(contentEl.createDiv());
 
-		this.drawFinishButtons(this.buttonBar('modal-button-container'), ctx, true);
+		this.drawFinishButtons(this.buttonBar('modal-button-container'), state, true);
+	}
+
+	/** Done means the next opening starts a new import; closing the shell by its
+	 * own controls still detaches and preserves the screen it was on. */
+	private finish(): void {
+		this.startOver();
+		this.shell.finish();
 	}
 
 	private showHiddenNotice() {
