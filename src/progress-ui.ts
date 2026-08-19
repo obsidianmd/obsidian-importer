@@ -48,7 +48,11 @@ export class ImportProgressUI extends ImportContext {
 
 		this.el = container;
 
-		const progress = new Setting(new SettingGroup(container).listEl)
+		// How far along, and what that came to, are the same card: one is the
+		// other's total.
+		const group = new SettingGroup(container);
+
+		const progress = new Setting(group.listEl)
 			.setClass('importer-progress');
 
 		this.statusEl = progress.nameEl;
@@ -56,7 +60,7 @@ export class ImportProgressUI extends ImportContext {
 			this.progressBarInnerEl = el.createDiv('importer-progress-bar-inner');
 		});
 
-		container.createDiv('importer-stats-container', el => {
+		group.listEl.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
 				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statImported() });

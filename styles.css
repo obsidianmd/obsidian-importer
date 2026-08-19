@@ -7,6 +7,7 @@
 	padding: var(--size-4-4) 0 0 0;
 	position: relative;
 	overflow: hidden;
+	height: 630px;
 }
 .modal.mod-importer .modal-title {
 	padding: 0 var(--size-4-4);
@@ -265,38 +266,37 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	order: -1;
 }
 
+/* In the card the progress row is in, under the divider that follows it. */
 .importer-stats-container {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-evenly;
-	gap: var(--size-4-4) var(--size-4-2);
-	margin-top: var(--size-4-3);
-	margin-bottom: var(--size-4-3);
-	padding: var(--size-4-4);
-	background-color: var(--setting-items-background);
-	border-radius: var(--setting-items-radius);
-	corner-shape: var(--corner-shape);
-	border: var(--setting-items-border-width) solid var(--setting-items-border-color);
+	gap: var(--size-4-2) var(--size-4-2) var(--size-4-4);
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
+	border-top: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-stat {
 	text-align: center;
 	min-width: 4em;
 }
+.importer-stat-count {
+	font-size: var(--font-ui-large);
+	font-variant: tabular-nums;
+}
+.importer-stat-name {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
 
 .notice-message {
 	font-variant: tabular-nums;
 }
 
-.importer-stat-count {
-	font-size: var(--font-ui-large);
-	font-variant: tabular-nums;
-	
-}
-
 .importer-log {
 	overflow: auto;
 	flex-grow: 1;
+	margin-top: var(--size-4-3);
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
