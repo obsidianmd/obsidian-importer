@@ -267,7 +267,16 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
-	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
+	/**
+	 * Whether there is a screen of this importer's own between the steps and the
+	 * run — which is what decides whether the last step ends in Import or in
+	 * Continue, since a button should say what pressing it does.
+	 */
+	get configures(): boolean {
+		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
+	}
+
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean | null> {
 		return null;
 	}
 

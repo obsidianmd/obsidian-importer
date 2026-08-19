@@ -630,7 +630,11 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter): HTMLButtonElement {
-		return buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
+		// A format with a screen of its own between here and the run is not
+		// importing yet, whatever this button is pressed for.
+		const text = importer.configures ? i18n.modal.buttonContinue() : i18n.modal.buttonImport();
+
+		return buttonsEl.createEl('button', { cls: 'mod-cta', text }, el => {
 			el.addEventListener('click', () => void this.startImport(importer)
 				.catch(e => console.error('Import failed', e)));
 		});
@@ -891,10 +895,17 @@ export class ImporterFlow implements ImporterHost {
 		const configEl = contentEl.createDiv();
 		const ctx = configurationContext = this.current = new ImportProgressUI(configEl);
 
+		// The screen reads as any other step: the way back and the way to the
+		// documentation at the start, and the way on added to the end by whoever
+		// draws the configuration.
+		const buttonsEl = this.buttonBar('modal-button-container importer-step-buttons');
+		this.addBackButton(buttonsEl);
+		this.addHelpButton(buttonsEl, this.plugin.importers[importerId]?.helpPermalink);
+
 		let configuration: ConfigurationResult;
 		try {
 			configuration = await Promise.race([
-				importer.showTemplateConfiguration(ctx, configEl)
+				importer.showTemplateConfiguration(ctx, configEl, buttonsEl)
 					.then(result => ({ kind: 'configured', result }) as const),
 				cancelled,
 			]);
@@ -942,10 +953,9 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	/**
-	 * The temporary screen owned by showTemplateConfiguration(). Its own Cancel
-	 * button resolves the importer promise; a shell's Back resolves the other
-	 * side of the race above. The old step bar must not remain actionable under
-	 * configuration drawn into Settings.
+	 * The temporary screen owned by showTemplateConfiguration(). Back resolves
+	 * the race above; the way on is the importer's own, added to the bar the
+	 * step draws for it.
 	 */
 	private showConfigurationScreen(
 		depth: number,
@@ -956,7 +966,6 @@ export class ImporterFlow implements ImporterHost {
 		this.pickingFormat = false;
 		this.shell.setPickingFormat(false);
 		this.showScreen(depth, this.importTitle(importerId), () => cancel(true));
-		this.shell.adoptButtonBar(null);
 	}
 
 	/**

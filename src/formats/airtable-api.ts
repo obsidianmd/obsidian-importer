@@ -360,7 +360,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
-	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		if (this.getSelectedNodes().length === 0) {
 			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return false;
@@ -444,7 +444,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			showLocationTemplate: false, // Records go to table folders automatically
 		});
 
-		this.templateConfig = await configurator.show(container);
+		this.templateConfig = await configurator.show(container, buttonsEl);
 
 		// Return false if user cancelled
 		return this.templateConfig !== null;

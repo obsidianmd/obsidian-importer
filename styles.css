@@ -344,14 +344,12 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 }
 
 /* Template configuration styles */
-.importer-frontmatter-header {
-	display: flex;
-	flex-direction: column;
-	gap: var(--size-4-2);
-}
-
-.importer-frontmatter-header h4 {
-	margin: 0;
+/* What a screen is for, where that is more than a row's description can say.
+   Reads as one, above the cards it explains. */
+.importer-screen-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: var(--size-4-4);
 }
 
 .importer-select-all-setting {
@@ -364,10 +362,10 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 }
 
 .importer-column-list {
-	display: flex;	
+	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-1);
-	padding: var(--size-4-3) 0;
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
 }
 
 .importer-column-header-row {

@@ -153,7 +153,7 @@ export default class ImporterPlugin extends Plugin {
 			throw new Error(`The ${importerName(importerId)} importer is not available here.`);
 		}
 
-		if (importer.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration) {
+		if (importer.configures) {
 			throw new Error(`The ${importerName(importerId)} importer is configured on a second screen, which an import without the dialog cannot show yet.`);
 		}
 

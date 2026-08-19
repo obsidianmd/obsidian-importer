@@ -38,7 +38,7 @@ export class CSVImporter extends FormatImporter {
 			});
 	}
 
-	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		const { files } = this;
 		if (files.length === 0) {
 			new Notice(i18n.importer.csv.msgPickFile());
@@ -84,7 +84,7 @@ export class CSVImporter extends FormatImporter {
 			placeholderSyntax: '{{column_name}}',
 		});
 
-		this.config = await configurator.show(container);
+		this.config = await configurator.show(container, buttonsEl);
 
 		// Return false if user cancelled
 		return this.config !== null;
