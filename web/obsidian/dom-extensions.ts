@@ -146,6 +146,13 @@ export function installDomExtensions(window: Win, host: DomHost = {}): Win {
 		for (const cls of Array.isArray(classes) ? classes : [classes]) this.classList.toggle(cls, value);
 	});
 
+	define(elementProto, 'setCssStyles', function (this: any, styles: Record<string, string>) {
+		for (const [name, value] of Object.entries(styles)) this.style.setProperty(name, value);
+	});
+	define(elementProto, 'setCssProps', function (this: any, props: Record<string, string>) {
+		for (const [name, value] of Object.entries(props)) this.style.setProperty(name, value);
+	});
+
 	define(elementProto, 'getAttr', function (this: any, name: string) { return this.getAttribute(name); });
 	define(elementProto, 'setAttr', function (this: any, name: string, value: string) { this.setAttribute(name, String(value)); });
 

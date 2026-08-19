@@ -133,7 +133,7 @@ export class ImportProgressUI extends ImportContext {
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
 		this.progressBarEl.show();
-		this.progressBarInnerEl.style.width = (100 * current / total).toFixed(1) + '%';
+		this.fillBar((100 * current / total).toFixed(1) + '%');
 	}
 
 	/**
@@ -146,7 +146,12 @@ export class ImportProgressUI extends ImportContext {
 		if (this.isCancelled()) return;
 
 		this.progressBarEl.show();
-		this.progressBarInnerEl.style.width = '100%';
+		this.fillBar('100%');
+	}
+
+	/** How far along the bar reads, which its own width is drawn from. */
+	private fillBar(width: string): void {
+		this.progressBarEl.setCssProps({ '--importer-progress': width });
 	}
 
 	// Batch layout reads when several log entries arrive together.
