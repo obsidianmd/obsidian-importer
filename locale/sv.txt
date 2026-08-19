@@ -1666,14 +1666,6 @@ translation=Ange din Notion API-token.
 original=Failed to load pages: {{error}}
 translation=Misslyckades att läsa in sidor: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Hittade {{count}} sida eller databas.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Hittade {{count}} sidor och databaser.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Välj minst en sida eller databas att importera.

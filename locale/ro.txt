@@ -1666,14 +1666,6 @@ translation=Vă rugăm să introduceți tokenul API Notion.
 original=Failed to load pages: {{error}}
 translation=Încărcarea paginilor a eșuat: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=S-a găsit {{count}} pagină sau bază de date.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=S-au găsit {{count}} pagini și baze de date.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Vă rugăm să selectați cel puțin o pagină sau bază de date pentru import.

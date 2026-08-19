@@ -1666,14 +1666,6 @@ translation=Voer je Notion API-token in.
 original=Failed to load pages: {{error}}
 translation=Laden van pagina's mislukt: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} pagina of database gevonden.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} pagina's en databases gevonden.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Selecteer ten minste één pagina of database om te importeren.

@@ -1666,14 +1666,6 @@ translation=অনুগ্রহ করে আপনার Notion API টোক
 original=Failed to load pages: {{error}}
 translation=পৃষ্ঠা লোড করতে ব্যর্থ: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}}টি পৃষ্ঠা বা ডাটাবেস পাওয়া গেছে।
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}}টি পৃষ্ঠা এবং ডাটাবেস পাওয়া গেছে।
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=অনুগ্রহ করে ইম্পোর্ট করতে অন্তত একটি পৃষ্ঠা বা ডাটাবেস নির্বাচন করুন।

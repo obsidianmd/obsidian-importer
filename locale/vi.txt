@@ -1666,14 +1666,6 @@ translation=Vui lòng nhập mã API Notion của bạn.
 original=Failed to load pages: {{error}}
 translation=Không thể tải các trang: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Tìm thấy {{count}} trang hoặc cơ sở dữ liệu.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Tìm thấy {{count}} trang và cơ sở dữ liệu.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Vui lòng chọn ít nhất một trang hoặc cơ sở dữ liệu để nhập.

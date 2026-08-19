@@ -1666,14 +1666,6 @@ translation=אנא הזן את טוקן ה-API של Notion.
 original=Failed to load pages: {{error}}
 translation=טעינת עמודים נכשלה: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=נמצאו עמוד או מסד נתונים אחד ({{count}}).
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=נמצאו {{count}} עמודים ומסדי נתונים.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=אנא בחר לפחות עמוד אחד או מסד נתונים אחד לייבוא.

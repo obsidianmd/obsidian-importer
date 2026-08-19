@@ -509,8 +509,6 @@ export const en = {
 			msgTokenFirst: 'Please enter your Notion API token first.',
 			msgTokenMissing: 'Please enter your Notion API token.',
 			msgLoadPagesFailed: 'Failed to load pages: {{error}}',
-			msgFound: 'Found {{count}} page or database.',
-			msgFound_plural: 'Found {{count}} pages and databases.',
 			msgPickPage: 'Please select at least one page or database to import.',
 			msgImportFailed: 'Import failed: {{error}}',
 			statusLoadingItems: 'Loading... ({{items}}, page {{page}})',

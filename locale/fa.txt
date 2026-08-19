@@ -1666,14 +1666,6 @@ translation=لطفاً توکن API Notion خود را وارد کنید.
 original=Failed to load pages: {{error}}
 translation=بارگذاری صفحات ناموفق بود: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} صفحه یا پایگاه داده یافت شد.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} صفحه و پایگاه داده یافت شد.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=لطفاً حداقل یک صفحه یا پایگاه داده را برای درون‌ریزی انتخاب کنید.

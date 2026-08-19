@@ -1666,14 +1666,6 @@ translation=Notion API トークンを入力してください。
 original=Failed to load pages: {{error}}
 translation=ページのロードに失敗: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} 件のページまたはデータベースが見つかりました。
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} 件のページとデータベースが見つかりました。
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=インポートするページまたはデータベースを少なくとも1つ選択してください。

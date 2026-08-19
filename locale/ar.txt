@@ -1666,14 +1666,6 @@ translation=يرجى إدخال رمز Notion API.
 original=Failed to load pages: {{error}}
 translation=فشل تحميل الصفحات: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=تم العثور على {{count}} صفحة أو قاعدة بيانات.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=تم العثور على {{count}} صفحة وقاعدة بيانات.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=يرجى تحديد صفحة أو قاعدة بيانات واحدة على الأقل للاستيراد.

@@ -1666,14 +1666,6 @@ translation=Notion API 토큰을 입력해 주세요.
 original=Failed to load pages: {{error}}
 translation=페이지 불러오기 실패함: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}}개의 페이지 또는 데이터베이스를 찾았어요.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}}개의 페이지 및 데이터베이스를 찾았어요.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=가져올 페이지 또는 데이터베이스를 하나 이상 선택해 주세요.

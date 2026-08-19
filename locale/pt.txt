@@ -1666,14 +1666,6 @@ translation=Introduza o seu token da API do Notion.
 original=Failed to load pages: {{error}}
 translation=Falhou ao carregar páginas: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Encontrada {{count}} página ou base de dados.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Encontradas {{count}} páginas e bases de dados.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Selecione pelo menos uma página ou base de dados para importar.

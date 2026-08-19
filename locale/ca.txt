@@ -1666,14 +1666,6 @@ translation=Si us plau, introduïu el vostre testimoni API de Notion.
 original=Failed to load pages: {{error}}
 translation=No s'han pogut carregar les pàgines: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=S'ha trobat {{count}} pàgina o base de dades.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=S'han trobat {{count}} pàgines i bases de dades.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Si us plau, seleccioneu almenys una pàgina o base de dades per importar.

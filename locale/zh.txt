@@ -1666,14 +1666,6 @@ translation=请输入您的 Notion API 令牌。
 original=Failed to load pages: {{error}}
 translation=加载页面失败：{{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=找到 {{count}} 个页面或数据库。
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=找到 {{count}} 个页面和数据库。
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=请至少选择一个页面或数据库进行导入。

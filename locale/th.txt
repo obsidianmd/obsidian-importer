@@ -1666,14 +1666,6 @@ translation=กรุณากรอกโทเค็น Notion API ของ�
 original=Failed to load pages: {{error}}
 translation=โหลดหน้าล้มเหลว: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=พบ {{count}} หน้าหรือฐานข้อมูล
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=พบ {{count}} หน้าและฐานข้อมูล
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=กรุณาเลือกอย่างน้อยหนึ่งหน้าหรือฐานข้อมูลเพื่อนำเข้า

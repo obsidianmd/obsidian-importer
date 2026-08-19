@@ -1666,14 +1666,6 @@ translation=Zadejte svůj Notion API token.
 original=Failed to load pages: {{error}}
 translation=Nepodařilo se načíst stránky: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Nalezena {{count}} stránka nebo databáze.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Nalezeno {{count}} stránek a databází.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Vyberte alespoň jednu stránku nebo databázi k importu.

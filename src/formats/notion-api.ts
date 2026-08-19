@@ -341,10 +341,7 @@ export class NotionAPIImporter extends FormatImporter {
 			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
 		} while (cursor);
 
-		const allItems = collectItems(allRawItems);
-		new Notice(i18n.importer.notionApi.msgFound({ count: allItems.length }));
-
-		return buildTree(allItems);
+		return buildTree(collectItems(allRawItems));
 	}
 
 	/**

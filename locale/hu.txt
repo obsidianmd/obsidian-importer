@@ -1666,14 +1666,6 @@ translation=Kérlek, add meg a Notion API tokenedet.
 original=Failed to load pages: {{error}}
 translation=Az oldalak betöltése sikertelen: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} oldal vagy adatbázis található.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} oldal és adatbázis található.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Kérlek, válassz ki legalább egy oldalt vagy adatbázist az importáláshoz.

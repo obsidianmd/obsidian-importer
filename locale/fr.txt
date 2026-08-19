@@ -1666,14 +1666,6 @@ translation=Veuillez saisir votre jeton d'API Notion.
 original=Failed to load pages: {{error}}
 translation=Échec du chargement des pages : {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} page ou base de données trouvée.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} pages et bases de données trouvées.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Veuillez sélectionner au moins une page ou base de données à importer.

@@ -1666,14 +1666,6 @@ translation=Anna Notion API -tunnuksesi.
 original=Failed to load pages: {{error}}
 translation=Sivujen lataaminen epäonnistui: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Löydettiin {{count}} sivu tai tietokanta.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Löydettiin {{count}} sivua ja tietokantaa.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Valitse vähintään yksi sivu tai tietokanta tuotavaksi.

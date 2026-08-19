@@ -1666,14 +1666,6 @@ translation=請輸入您的 Notion API 權杖。
 original=Failed to load pages: {{error}}
 translation=載入頁面失敗：{{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=找到 {{count}} 個頁面或資料庫。
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=找到 {{count}} 個頁面與資料庫。
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=請至少選取一個頁面或資料庫來匯入。

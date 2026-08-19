@@ -1666,14 +1666,6 @@ translation=Lütfen Notion API anahtarınızı girin.
 original=Failed to load pages: {{error}}
 translation=Sayfalar yüklenemedi: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation={{count}} sayfa veya veritabanı bulundu.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation={{count}} sayfa ve veritabanı bulundu.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Lütfen içe aktarmak için en az bir sayfa veya veritabanı seçin.

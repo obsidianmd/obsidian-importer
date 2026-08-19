@@ -1666,14 +1666,6 @@ translation=សូមបញ្ចូល Notion API token របស់អ្ន�
 original=Failed to load pages: {{error}}
 translation=បរាជ័យក្នុងការផ្ទុកទំព័រ: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=រកឃើញ {{count}} ទំព័រ ឬមូលដ្ឋានទិន្នន័យ។
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=រកឃើញ {{count}} ទំព័រ និងមូលដ្ឋានទិន្នន័យ។
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=សូមជ្រើសរើសយ៉ាងហោចណាស់មួយទំព័រ ឬមូលដ្ឋានទិន្នន័យដើម្បីនាំចូល។

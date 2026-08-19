@@ -1666,14 +1666,6 @@ translation=Skriv inn Notion API-nøkkelen din.
 original=Failed to load pages: {{error}}
 translation=Kunne ikke laste inn sider: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Fant {{count}} side eller database.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Fant {{count}} sider og databaser.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Velg minst én side eller database å importere.

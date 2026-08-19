@@ -1666,14 +1666,6 @@ translation=Παρακαλώ εισαγάγετε το API token του Notion.
 original=Failed to load pages: {{error}}
 translation=Αποτυχία φόρτωσης σελίδων: {{error}}
 
-[importer.notion-api.msg-found]
-original=Found {{count}} page or database.
-translation=Βρέθηκε {{count}} σελίδα ή βάση δεδομένων.
-
-[importer.notion-api.msg-found_plural]
-original=Found {{count}} pages and databases.
-translation=Βρέθηκαν {{count}} σελίδες και βάσεις δεδομένων.
-
 [importer.notion-api.msg-pick-page]
 original=Please select at least one page or database to import.
 translation=Παρακαλώ επιλέξτε τουλάχιστον μία σελίδα ή βάση δεδομένων για εισαγωγή.
