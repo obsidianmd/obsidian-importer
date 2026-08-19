@@ -13,57 +13,8 @@ import { PickedFile, PickedFolder } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { ImportContext } from '../../src/import-context';
+import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
-
-class SourceFile implements PickedFile {
-	readonly type = 'file' as const;
-	readonly fullpath: string;
-	readonly name: string;
-	readonly basename: string;
-	readonly extension: string;
-
-	constructor(name: string, private readonly text: string) {
-		this.fullpath = this.name = name;
-
-		const dot = name.lastIndexOf('.');
-		this.basename = dot > 0 ? name.slice(0, dot) : name;
-		this.extension = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
-	}
-
-	async readText(): Promise<string> {
-		return this.text;
-	}
-
-	async read(): Promise<ArrayBuffer> {
-		return new TextEncoder().encode(this.text).buffer;
-	}
-
-	async *readChunks(): AsyncIterable<string> {
-		yield this.text;
-	}
-
-	async readZip(): Promise<void> {
-		throw new Error('not a zip');
-	}
-
-	toString(): string {
-		return this.name;
-	}
-}
-
-class SourceFolder implements PickedFolder {
-	readonly type = 'folder' as const;
-
-	constructor(readonly name: string, private readonly items: (PickedFile | PickedFolder)[]) {}
-
-	async list(): Promise<(PickedFile | PickedFolder)[]> {
-		return this.items;
-	}
-
-	toString(): string {
-		return this.name;
-	}
-}
 
 function importer(): { vault: MemoryVault, subject: MarkdownImporter } {
 	const vault = new MemoryVault();

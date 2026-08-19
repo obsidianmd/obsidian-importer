@@ -674,28 +674,34 @@ export abstract class FormatImporter {
 	/** The files this importer reads, from anywhere inside what it was given. */
 	protected async filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
 		const extensions = this.acceptedExtensions;
+		if (!extensions) return [];
 
-		return await getAllFiles(items, file => !extensions || extensions.includes(file.extension));
+		return await getAllFiles(items, file => extensions.includes(file.extension));
 	}
 
 	/** Keep the files in step with what is picked, after a folder joins or leaves it. */
 	private async readChosen(): Promise<void> {
-		this.files = this.chosen.every(item => item.type === 'file')
-			? this.chosen
-			: await this.filesInside(this.chosen);
+		const chosen = this.chosen;
+		const files = chosen.every(item => item.type === 'file')
+			? chosen
+			: await this.filesInside(chosen);
+
+		// Reading a large folder can outlast the pick that replaced it.
+		if (chosen === this.chosen) this.files = files;
 	}
 
-	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
-		if (!this.keepsFolders) return this.takeFiles(files);
+	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
+		if (!this.keepsFolders) {
+			this.takeFiles(files);
+			return;
+		}
 
 		const accepted = this.acceptableFiles(files);
-		if (accepted.length === 0) return 0;
+		if (accepted.length === 0) return;
 
 		// A folder comes as it was dropped; a file only if this importer reads it.
 		const kept = dropped.filter(item => item.type === 'folder' || accepted.includes(item));
 		this.takeChosen(kept, accepted);
-
-		return kept.length;
 	}
 
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
