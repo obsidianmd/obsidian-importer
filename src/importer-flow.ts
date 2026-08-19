@@ -794,7 +794,12 @@ export class ImporterFlow implements ImporterHost {
 		const { contentEl } = this.shell;
 		contentEl.empty();
 		const configEl = contentEl.createDiv();
-		const ctx = configurationContext = this.current = new ImportProgressUI(configEl);
+
+		// Drawn loose: the progress UI draws itself where it is made, and the run
+		// draws it again when it starts, so made here it is the progress screen
+		// flashing up under the configuration — for as long as the importer takes
+		// to have something to show.
+		const ctx = configurationContext = this.current = new ImportProgressUI(createDiv());
 
 		const buttonsEl = this.buttonBar('modal-button-container importer-step-buttons');
 		this.addBackButton(buttonsEl);
