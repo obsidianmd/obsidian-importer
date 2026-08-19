@@ -166,10 +166,6 @@ translation=ថយក្រោយ
 original=Help
 translation=ជំនួយ
 
-[modal.button-cancel]
-original=Cancel
-translation=បោះបង់
-
 [modal.button-pause]
 original=Pause
 translation=ផ្អាក

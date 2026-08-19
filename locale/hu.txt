@@ -166,10 +166,6 @@ translation=Vissza
 original=Help
 translation=Súgó
 
-[modal.button-cancel]
-original=Cancel
-translation=Mégse
-
 [modal.button-pause]
 original=Pause
 translation=Szüneteltetés

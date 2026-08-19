@@ -166,10 +166,6 @@ translation=뒤로
 original=Help
 translation=도움말
 
-[modal.button-cancel]
-original=Cancel
-translation=취소
-
 [modal.button-pause]
 original=Pause
 translation=중지

@@ -166,10 +166,6 @@ translation=กลับไป
 original=Help
 translation=ความช่วยเหลือ
 
-[modal.button-cancel]
-original=Cancel
-translation=ยกเลิก
-
 [modal.button-pause]
 original=Pause
 translation=หยุดชั่วคราว

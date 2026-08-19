@@ -166,10 +166,6 @@ translation=Quay lại
 original=Help
 translation=Trợ giúp
 
-[modal.button-cancel]
-original=Cancel
-translation=Hủy
-
 [modal.button-pause]
 original=Pause
 translation=Tạm dừng

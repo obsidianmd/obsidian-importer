@@ -166,10 +166,6 @@ translation=
 original=Help
 translation=
 
-[modal.button-cancel]
-original=Cancel
-translation=
-
 [modal.button-pause]
 original=Pause
 translation=

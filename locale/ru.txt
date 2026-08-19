@@ -166,10 +166,6 @@ translation=Назад
 original=Help
 translation=Справка
 
-[modal.button-cancel]
-original=Cancel
-translation=Отмена
-
 [modal.button-pause]
 original=Pause
 translation=Приостановить

@@ -166,10 +166,6 @@ translation=Späť
 original=Help
 translation=Nápoveda
 
-[modal.button-cancel]
-original=Cancel
-translation=Zrušiť
-
 [modal.button-pause]
 original=Pause
 translation=Pozastaviť

@@ -166,10 +166,6 @@ translation=Πίσω
 original=Help
 translation=Βοήθεια
 
-[modal.button-cancel]
-original=Cancel
-translation=Ακύρωση
-
 [modal.button-pause]
 original=Pause
 translation=Παύση

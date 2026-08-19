@@ -166,10 +166,6 @@ translation=بازگشت
 original=Help
 translation=راهنما
 
-[modal.button-cancel]
-original=Cancel
-translation=لغو
-
 [modal.button-pause]
 original=Pause
 translation=توقف موقت

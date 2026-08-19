@@ -166,10 +166,6 @@ translation=Zurück
 original=Help
 translation=Hilfe
 
-[modal.button-cancel]
-original=Cancel
-translation=Abbrechen
-
 [modal.button-pause]
 original=Pause
 translation=Anhalten

@@ -166,10 +166,6 @@ translation=Tilbake
 original=Help
 translation=Hjelp
 
-[modal.button-cancel]
-original=Cancel
-translation=Avbryt
-
 [modal.button-pause]
 original=Pause
 translation=Pause

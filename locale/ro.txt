@@ -166,10 +166,6 @@ translation=Înapoi
 original=Help
 translation=Ajutor
 
-[modal.button-cancel]
-original=Cancel
-translation=Anulează
-
 [modal.button-pause]
 original=Pause
 translation=Pauză

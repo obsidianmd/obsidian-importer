@@ -166,10 +166,6 @@ translation=Geri
 original=Help
 translation=Yardım
 
-[modal.button-cancel]
-original=Cancel
-translation=İptal
-
 [modal.button-pause]
 original=Pause
 translation=Dur

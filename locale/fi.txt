@@ -166,10 +166,6 @@ translation=Takaisin
 original=Help
 translation=Apua
 
-[modal.button-cancel]
-original=Cancel
-translation=Peruuta
-
 [modal.button-pause]
 original=Pause
 translation=Keskeytä

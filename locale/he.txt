@@ -166,10 +166,6 @@ translation=חזור
 original=Help
 translation=עזרה
 
-[modal.button-cancel]
-original=Cancel
-translation=ביטול
-
 [modal.button-pause]
 original=Pause
 translation=השהה

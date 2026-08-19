@@ -166,10 +166,6 @@ translation=Voltar
 original=Help
 translation=Ajuda
 
-[modal.button-cancel]
-original=Cancel
-translation=Cancelar
-
 [modal.button-pause]
 original=Pause
 translation=Pausar

@@ -166,10 +166,6 @@ translation=Tilbage
 original=Help
 translation=Hjælp
 
-[modal.button-cancel]
-original=Cancel
-translation=Annuller
-
 [modal.button-pause]
 original=Pause
 translation=Sæt på pause

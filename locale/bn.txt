@@ -166,10 +166,6 @@ translation=ফিরে যান
 original=Help
 translation=সহায়তা
 
-[modal.button-cancel]
-original=Cancel
-translation=বাতিল
-
 [modal.button-pause]
 original=Pause
 translation=বিরতি দিন

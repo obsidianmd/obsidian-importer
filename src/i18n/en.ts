@@ -76,7 +76,6 @@ export const en = {
 		buttonImport: 'Import',
 		buttonBack: 'Back',
 		buttonHelp: 'Help',
-		buttonCancel: 'Cancel',
 		buttonPause: 'Pause',
 		buttonResume: 'Resume',
 		buttonStop: 'Stop',

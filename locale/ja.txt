@@ -166,10 +166,6 @@ translation=戻る
 original=Help
 translation=ヘルプ
 
-[modal.button-cancel]
-original=Cancel
-translation=キャンセル
-
 [modal.button-pause]
 original=Pause
 translation=停止

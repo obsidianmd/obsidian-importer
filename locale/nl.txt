@@ -166,10 +166,6 @@ translation=Terug
 original=Help
 translation=Hulp
 
-[modal.button-cancel]
-original=Cancel
-translation=Annuleren
-
 [modal.button-pause]
 original=Pause
 translation=Pauzeren

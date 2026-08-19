@@ -166,10 +166,6 @@ translation=Atrás
 original=Help
 translation=Ayuda
 
-[modal.button-cancel]
-original=Cancel
-translation=Cancelar
-
 [modal.button-pause]
 original=Pause
 translation=Pausar

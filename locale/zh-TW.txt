@@ -166,10 +166,6 @@ translation=返回
 original=Help
 translation=說明
 
-[modal.button-cancel]
-original=Cancel
-translation=取消
-
 [modal.button-pause]
 original=Pause
 translation=暫停

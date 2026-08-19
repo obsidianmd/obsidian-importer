@@ -166,10 +166,6 @@ translation=Kembali
 original=Help
 translation=Bantuan
 
-[modal.button-cancel]
-original=Cancel
-translation=Batal
-
 [modal.button-pause]
 original=Pause
 translation=Jeda

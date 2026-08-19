@@ -166,10 +166,6 @@ translation=Indietro
 original=Help
 translation=Aiuto
 
-[modal.button-cancel]
-original=Cancel
-translation=Annulla
-
 [modal.button-pause]
 original=Pause
 translation=Pausa
