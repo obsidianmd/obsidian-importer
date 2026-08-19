@@ -122,6 +122,7 @@ body.is-mobile .modal.mod-settings .importer-button-bar {
    settings float in a window, would only be left with a gap. */
 body.is-phone .modal.mod-settings .importer-button-bar {
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
+
 }
 
 /* Obsidian stacks a button container into a column on mobile, which a step in
@@ -254,14 +255,17 @@ body.is-phone .importer-flow .modal-button-container {
 	padding-inline: 0;
 }
 body.is-phone .modal-button-container.importer-step-buttons {
-	padding-block: 0;
+	padding: 0;
 }
 body.is-phone .modal.mod-settings .importer-button-bar {
-	width: 92%;
+	width: max(92%, calc(100% - var(--size-4-8)));
+	background-color: transparent;
+	background-image: linear-gradient(to bottom, transparent 0%, var(--settings-background) 80%);
 	border-top: none;
+	padding-left: 0;
+	padding-right: 0;
+	padding-top: var(--size-4-8);
 }
-
-
 
 /* The file picker's input has to be in the document for iOS to open it, and
    out of the way while it is. */
@@ -379,7 +383,6 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
-	background-color: var(--background-primary);
 	border-radius: var(--radius-s);
 }
 
