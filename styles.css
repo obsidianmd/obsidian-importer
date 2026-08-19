@@ -460,7 +460,10 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	width: 100%;
 }
 
+/* Ticking a box rebuilds the tree, which scroll anchoring reads as the page
+   having moved, and it shifts the scroll to compensate. */
 .import-section .publish-change-list {
+	overflow-anchor: none;
 	min-height: 200px;
 	overflow-y: auto;
 	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
