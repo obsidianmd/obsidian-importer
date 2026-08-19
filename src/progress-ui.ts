@@ -91,9 +91,10 @@ export class ImportProgressUI extends ImportContext {
 		if (this.isPaused()) this.onPaused(true);
 		else this.onStatus(this.statusMessage);
 
-		// Nothing to show until there is something to count.
+		// The track is there from the start, empty: an import that has not
+		// counted anything yet is still under way, and a card with the bar
+		// missing from it reads as one that has gone wrong.
 		if (this.progressTotal > 0) this.onProgress(this.progressCurrent, this.progressTotal);
-		else this.progressBarEl.hide();
 		if (this.log.length > 0) {
 			const drawn = createFragment();
 			for (const entry of this.log) this.drawLogEntry(entry, drawn);
@@ -136,7 +137,6 @@ export class ImportProgressUI extends ImportContext {
 
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
-		this.progressBarEl.show();
 		this.fillBar((100 * current / total).toFixed(1) + '%');
 	}
 
@@ -149,7 +149,6 @@ export class ImportProgressUI extends ImportContext {
 		this.finished = true;
 		if (this.isCancelled()) return;
 
-		this.progressBarEl.show();
 		this.fillBar('100%');
 	}
 
